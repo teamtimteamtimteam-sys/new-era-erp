@@ -12,6 +12,9 @@
 --   pft3                         pricing_formula_history_masked 那三段:公式当前方向 ∧ old_direction ∧ new_direction
 --   pay_journal:<码>             持码,或这一行所在分录不是工资分录(journal_lines_masked;U1-A,UNBLOCK-1 Q1)
 --   apr_amount                   approval_log_amount_visible(subject_type, subject_id)(approval_log_masked;U1-A,Q8 · Q10)
+--   apr_note                     approval_log_note_visible(subject_type, subject_id)(approval_log_masked;U1-B)
+--   jr_amount                    journal_request_amount_visible(id)(journal_requests_masked;U1-B)
+-- ★ U1-B(2026-10-05)加了 3 行(101 → 104):工资分录冲销申请的金额 · 医疗报销的批准 / 驳回理由(在报销单上与在审批留痕上)。
 -- ★ U1-A(UNBLOCK-1,2026-10-05)加了 20 行(81 → 101):工资分录的金额(Q1)· 审批留痕上的金额(Q8 · Q10)· 人事备注(Q6)·
 --   健康数据(Q8)· 工资期的合计与工资申请的快照和金额(Q9 · Q10)。每一行都抄自它那张 _masked 视图里的 CASE。
 -- 【它会不会和视图漂开】会 —— 所以有一道闸:change_log_mask_gaps() 拿目录里【真的被遮的列】
@@ -26,6 +29,7 @@ AS $function$
     VALUES
         ('approval_log'::text, 'amount_ccy'::text, 'apr_amount'::text),
         ('approval_log', 'amount_base', 'apr_amount'),
+        ('approval_log', 'note', 'apr_note'),
         ('company_profile', 'bank_name', 'code:data.view_banking'),
         ('company_profile', 'bank_account_name', 'code:data.view_banking'),
         ('company_profile', 'bank_account_no', 'code:data.view_banking'),
@@ -52,11 +56,13 @@ AS $function$
         ('journal_lines', 'debit', 'pay_journal:data.view_pay'),
         ('journal_lines', 'credit', 'pay_journal:data.view_pay'),
         ('journal_lines', 'amount_ccy', 'pay_journal:data.view_pay'),
+        ('journal_requests', 'amount_base', 'jr_amount'),
         ('leave_requests', 'reason', 'code_or_self:data.view_health:employee_id'),
         ('leave_requests', 'certificate_ref', 'code_or_self:data.view_health:employee_id'),
         ('leave_requests', 'exception_reason', 'code_or_self:data.view_health:employee_id'),
         ('medical_claims', 'amount_sgd', 'code_or_self:data.view_health:employee_id'),
         ('medical_claims', 'description', 'code_or_self:data.view_health:employee_id'),
+        ('medical_claims', 'decision_notes', 'code_or_self:data.view_health:employee_id'),
         ('payment_term_template_lines', 'fixed_amount_ccy', 'code:data.view_purchase_prices'),
         ('payroll_lines', 'gross_pay', 'code_or_self:data.view_pay:employee_id'),
         ('payroll_lines', 'employer_cpf', 'code_or_self:data.view_pay:employee_id'),

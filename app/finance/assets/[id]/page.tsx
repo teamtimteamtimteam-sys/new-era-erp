@@ -174,8 +174,9 @@ export default async function AssetPage({ params, searchParams }: {
         supabase.from('equipment_maintenance_advice')
             .select('maintenance_id, work_cost_base, pct_of_equipment_cost, meets_threshold')
             .eq('equipment_id', id),
+        // U1-B(Q15):作废的三列一起读 —— 作废的那一段【留在表里、标着】,而不是消失(面板按 voided_at 画)。
         supabase.from('equipment_downtime')
-            .select('id, started_at, ended_at, reason, notes, duration')
+            .select('id, started_at, ended_at, reason, notes, duration, voided_at, voided_by, void_reason')
             .eq('equipment_id', id).order('started_at', { ascending: false }),
         supabase.from('maintenance_settings')
             .select('capitalise_pct_of_cost, capitalise_floor_base').maybeSingle(),

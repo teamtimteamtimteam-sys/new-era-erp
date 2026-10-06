@@ -192,6 +192,8 @@ export default async function ForwarderDetailPage({ params, searchParams }: {
                     validTo: t('logistics.quoteValidTo'),
                     addQuote: t('logistics.addQuote'),
                     removeQuote: t('logistics.removeQuote'),
+                    removeQuoteConfirm: t('logistics.removeQuoteConfirm'),
+                    removeQuoteConfirmBody: t('logistics.removeQuoteConfirmBody'),
                     freeDays: t('logistics.quoteFreeDays'),
                     freeDaysHint: t('logistics.quoteFreeDaysHint'),
                     freeDaysNotStated: t('logistics.quoteFreeDaysNotStated'),

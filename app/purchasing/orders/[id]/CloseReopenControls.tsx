@@ -7,8 +7,13 @@
 //
 // CONFIRM-1:两处都换成 ConfirmButton,主语都是【单号】(po.code,由页面传进来 ——
 //   与同一页的 ApprovalControls 同一个约定)。
-//   ★ 关单那一侧的「关单说明」留在面板里【没有搬进对话框】:它不是一句理由,
-//     它是给未抵扣预付留的记录,而对话框只放得下一个理由框。搬一半更坏。
+//   ★ 关单那一侧的「关单说明」留在面板里【没有搬进对话框】:它是给未抵扣预付留的
+//     记录,而对话框只放得下一个理由框。搬一半更坏。
+//
+// ★ U1-B(UNBLOCK-1 Q25,2026-10-05):那一格现在【就是关单的理由】——
+//   close_purchase_order 把它存进 close_reason / closed_by,【不再追加进备注】
+//   (从前它被拼成 "[… closed] …" 接在人写的备注后面,还印上发给供应商的 PDF)。
+//   页面上那条「已结束」横幅读的就是它。行为不变:有未抵扣预付时必填,否则可空。
 //   ★ 重开那一侧的原因搬进了对话框(只有它一个必填项,搬得干净)。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
@@ -92,6 +97,7 @@ canEdit: boolean
                     onChange={(e) => setNotes(e.target.value)}
                     className={`${CONTROL_INPUT} w-full`}
                 />
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.closeReasonHint')}</p>
             </div>
             {error && <p className="text-red-600">{error}</p>}
             <div className="flex gap-2">

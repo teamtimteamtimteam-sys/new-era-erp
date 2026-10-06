@@ -29,7 +29,7 @@
 //
 // ── WHAT "USABLE AT 390px" MEANS HERE (stated before counting) ──────────────
 //   Measured in a real browser (chrome-headless-shell over CDP), against a
-//   real server-rendered page with a real admin session, reading
+//   real server-rendered page with a throwaway all-codes session (U1-B), reading
 //   getBoundingClientRect / getComputedStyle / scrollWidth. Not screenshots.
 //
 //   U1 · PAN-FREE      documentElement.scrollWidth <= innerWidth + 1
@@ -63,7 +63,7 @@ import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSy
 import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3198              // NOT 3199 — that one is the smoke's
@@ -446,28 +446,18 @@ async function main() {
         }
     } catch (e) { if (/held by a LIVE/.test(e.message)) throw e }
 
-    // ephemeral admin — NOT the smoke's `smoke-` prefix, so the smoke's
+    // ephemeral all-codes session — NOT the smoke's `smoke-` prefix, so the smoke's
     // sweepScratch (which deletes every smoke-*@test.local without looking at
     // age or ownership) cannot delete this run's session out from under it.
-    const email = `survey-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'survey-pass-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('could not create survey account: ' + JSON.stringify(cu).slice(0, 300))
-    // ★ LEAK-1:计划【先于】它要清的东西落盘。顺序是"先收权限,再删账号" ——
-    //   反过来,一旦中间挂掉,剩下的就是一条认不到人的授权,而此后没有任何清扫看得见它。
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke survey admin grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete survey admin account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'survey-pass-1' }) })).json()
-    if (!sess?.access_token) throw new Error('survey sign-in failed: ' + JSON.stringify(sess).slice(0, 200))
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
-    console.error('· ephemeral admin session ready')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】(而且不看授权那一句的返回码);现在经 mintThrowaway
+    //   造一个一次性全码角色(probe-survey-all-<stamp>)授给它 —— 删除步(先收权限、再删角色、再删账号)先落盘,
+    //   每一句往返看返回码。下面评估人那一个会话【不授角色】,照旧自己建。
+    const tw = await mintThrowaway({ prefix: 'survey', label: 'all', codes: 'all', password: 'survey-pass-1' })
+    accountId = tw.userId
+    const sess = tw.session
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
+    console.error('· ephemeral all-codes session ready')
 
     // ════════════════════════════════════════════════════════════════════════
     // ★★【PRE-ACCOUNT-1】/my-reviews/[id] 从来没有被量过,而【那不是缺数据】★★

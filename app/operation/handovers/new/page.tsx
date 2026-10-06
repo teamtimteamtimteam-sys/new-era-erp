@@ -38,9 +38,12 @@ export default async function NewHandoverPage() {
 
     // R5:设备状态是一条【引用】—— 这里列的是 equipment_downtime 的行,
     // 交接班挂过去的是它的 id,不是它的 reason 的一份抄写。
+    // U1-B(Q15):作废了的一段【不列】—— 它没有发生过,submit_shift_handover 也按名拒(HANDOVER_DOWNTIME_VOIDED)。
+    //   过滤在 limit 之前:不然作废的行会占掉 50 个名额里的位置。
     const downtime = mustRows(
         await supabase.from('equipment_downtime')
             .select('id, equipment_id, started_at, ended_at, reason')
+            .is('voided_at', null)
             .order('started_at', { ascending: false }).limit(50),
         'equipment_downtime') as {
             id: string; equipment_id: string; started_at: string

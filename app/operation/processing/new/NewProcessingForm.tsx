@@ -74,6 +74,7 @@ export default function NewProcessingForm({
     defaultAllocationBasis,
     workOrders,
     operations,
+    equipment,
     canCommit,
     canReceive,
 }: {
@@ -88,6 +89,8 @@ export default function NewProcessingForm({
      *  **accepts / produces 都是从字典读来的**,不是在这里写死的 —— 加一道工序
      *  或者改它收什么,是加一行数据,这一屏不必改。 */
     operations: OperationOption[]
+    /** UNBLOCK-1 Q21:可选的机器 —— 页面已滤掉已处置的(服务端也拒,EQUIPMENT_DISPOSED)。 */
+    equipment: { id: string; code: string; description: string | null }[]
     /** ROLE-1 Batch 3b:提交 = commit_processing_run,归 action.processing_commit(页面 can() 算好传进来) */
     canCommit: boolean
     /** ROLE-1 Batch 3b:「先去建收货单」那条链接归 action.receive_goods */
@@ -102,6 +105,9 @@ export default function NewProcessingForm({
     // WO-1c:照哪张工单做的。【默认不选】—— 临时起意的加工是合法的,而
     // 预选一张工单等于替人做了一个"这次是照计划做的"的判断。
     const [workOrderId, setWorkOrderId] = useState('')
+    // UNBLOCK-1 Q21:用了哪台机器。【默认「未记录」】—— 预选一台机器等于替人
+    // 断言这一炉在哪台机器上跑。
+    const [equipmentId, setEquipmentId] = useState('')
     // PROC-WIRE-1B-i:【默认不选】—— 预选一道工序等于替人断言这一炉在跑哪台机器。
     const [operationCode, setOperationCode] = useState('')
     const operation = operations.find((o) => o.code === operationCode) ?? null
@@ -253,6 +259,7 @@ export default function NewProcessingForm({
             outputs: validOutputs,
             allocation_basis: allocationBasis,
             work_order_id: workOrderId || null,
+            equipment_id: equipmentId || null,
             operation_type_code: operationCode || null,
         }
 
@@ -324,6 +331,29 @@ export default function NewProcessingForm({
                         ))}
                     </select>
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.form.workOrderHint')}</p>
+                </div>
+
+                {/* UNBLOCK-1 Q21:用了哪台机器 —— 【可选,今天绝不必填】。
+                    「未记录」是一个正当答案:不选就不归属任何机器,equipment_usage 不算它。
+                    MES-4a 会把它改成必填;在那之前这里不拦,也不预选。
+                    已处置 / 尚未购入的机器由 commit_processing_run 按名拒(EQUIPMENT_*)。 */}
+                <div>
+                    <label className="block mb-1">
+                        {t('processing.form.machine')}
+                    </label>
+                    <select
+                        value={equipmentId}
+                        onChange={(e) => setEquipmentId(e.target.value)}
+                        className={`${CONTROL_SELECT} w-full`}
+                    >
+                        <option value="">{t('processing.form.machineNone')}</option>
+                        {equipment.map((m) => (
+                            <option key={m.id} value={m.id}>
+                                {m.code}{m.description ? ` — ${m.description}` : ''}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.form.machineHint')}</p>
                 </div>
 
                 {/* 加工日期 —— 必填(决定分录期间)。预填今天是【便利】不是默认值:

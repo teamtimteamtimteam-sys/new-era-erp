@@ -19,7 +19,8 @@
 //   ★ 所以这支探针的判据不是"那一页对不对",是【它以谁的身份取的】。★
 //
 // ── 它做什么 ────────────────────────────────────────────────────────────────
-//   对每个受测角色:建一个一次性账号 → 授那个角色 → 登录 → 用**它的 cookie**
+//   对每个受测角色:建一个一次性账号 → 授那个角色的【一次性克隆】(同码;U1-B,2026-10-05,GHOST-GRANTS:
+//   不再授真角色本身)→ 登录 → 用**它的 cookie**
 //   取几条真实路由 → 断言 HTTP 200 且页面里没有 Next 的错误边界。
 //   受测的批次【按名挑】:一条挂着采购单、一条没挂 —— 因为这条缺陷只在
 //   前者上发生,而"随手拿第一行"会得到一个时好时坏的探针(ID_FILTERS 那一课)。
@@ -37,7 +38,7 @@ import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3197            // 不是 3198(版式探针的),也不是 3199(冒烟的)
@@ -181,27 +182,31 @@ async function main() {
     const made = []
     const cookies = {}
     for (const roleCode of ROLES) {
-        const email = `roleprobe-${stamp}-${roleCode}@test.local`
-        const r = await rest('/auth/v1/admin/users', {
-            method: 'POST',
-            body: JSON.stringify({ email, password: 'role-probe-1', email_confirm: true }),
-        })
-        if (!r.ok) throw new Error(`建 ${roleCode} 账号失败:HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
-        const u = await r.json()
-        made.push(u.id)
-        // ★ LEAK-1:计划先于它要清的东西落盘。这一支一跑造【三个】账号,
-        //   而它原来的信号处理器只放锁、不清理 —— 一次 Ctrl-C 就是三条幽灵授权。
-        planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `revoke ${roleCode} grant ${u.id}`, ORDER.GRANT)
-        planDelete(`/auth/v1/admin/users/${u.id}`, `delete ${roleCode} account ${u.id}`, ORDER.ACCOUNT)
-        if (INJECT !== 'no-role') {
-            const rr = await restRows(`/rest/v1/roles?select=id&code=eq.${roleCode}`, `roles ← ${roleCode}`)
-            if (!rr.length) throw new Error(`角色 ${roleCode} 不在册`)
-            const g = await rest('/rest/v1/user_roles', {
-                method: 'POST', body: JSON.stringify(ephemeralGrantBody(u.id, rr[0].id)),
+        if (INJECT === 'no-role') {
+            // 注入格:建账号但【不授任何角色】—— 不碰 user_roles,所以不经 mintThrowaway —— 它总要授点什么。
+            const email = `roleprobe-${stamp}-${roleCode}@test.local`
+            const r = await rest('/auth/v1/admin/users', {
+                method: 'POST',
+                body: JSON.stringify({ email, password: 'role-probe-1', email_confirm: true }),
             })
-            if (!g.ok) throw new Error(`授 ${roleCode} 失败:HTTP ${g.status} ${(await g.text()).slice(0, 200)}`)
+            if (!r.ok) throw new Error(`建 ${roleCode} 账号失败:HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
+            const u = await r.json()
+            made.push(u.id)
+            // ★ LEAK-1:计划先于它要清的东西落盘(收权限那一步照登 —— 应为空,登了无害)。
+            planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `revoke ${roleCode} grant ${u.id}`, ORDER.GRANT)
+            planDelete(`/auth/v1/admin/users/${u.id}`, `delete ${roleCode} account ${u.id}`, ORDER.ACCOUNT)
+            cookies[roleCode] = await signIn(email, 'role-probe-1')
+            continue
         }
-        cookies[roleCode] = await signIn(email, 'role-probe-1')
+        // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真角色】本身(--roles=admin 时就是一条真 admin)。
+        //   现在一律是一次性克隆({ cloneOf }:恰好持那个真角色此刻的码,probe- 命名空间、非系统)——
+        //   连 admin 也克隆、不换成全码:这支探针存在的理由就是"少一个码才发生的缺陷"(抬头 5–10 行),
+        //   一个全码的读者恰恰看不见它。页面的门只认码(requireModule / RLS),没有一格问审批人身份。
+        //   克隆源不在册或零码,mintThrowaway 当场抛(原来那句「角色不在册」的等价物)。
+        const tw = await mintThrowaway({ prefix: 'roleprobe', label: roleCode, stamp, password: 'role-probe-1',
+            codes: { cloneOf: roleCode } })
+        made.push(tw.userId)
+        cookies[roleCode] = tw.cookie
     }
 
     // ── dev server ──────────────────────────────────────────────────────────

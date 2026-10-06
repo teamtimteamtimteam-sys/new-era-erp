@@ -15,6 +15,8 @@
 -- 【EXECUTE 从 authenticated 收回】调用它的都是 SECURITY DEFINER 的提交函数;approval_deciders
 -- 本身也收回了。
 --
+-- U1-B(2026-10-05):函数体改成调 assert_other_decider_for_subject(…, NULL, …)—— 判据只留一份。
+--
 -- NOTE: introduced by db/migrations/2026-09-25-role1b3a-the-counter-never-posts.sql.
 
 CREATE OR REPLACE FUNCTION public.assert_other_decider(p_subject_type text, p_action_function text, p_level smallint, p_refusal text)
@@ -23,19 +25,9 @@ CREATE OR REPLACE FUNCTION public.assert_other_decider(p_subject_type text, p_ac
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE
-    v_l1 text;
-    v_l2 text;
 BEGIN
-    IF NOT approvals_enabled() THEN
-        RETURN;
-    END IF;
-    SELECT approval_level1_role_code, approval_level2_role_code
-      INTO v_l1, v_l2 FROM finance_settings LIMIT 1;
-    IF NOT EXISTS (SELECT 1 FROM approval_deciders(p_subject_type, p_action_function, p_level,
-                                                   auth.uid(), NULL, v_l1, v_l2)) THEN
-        RAISE EXCEPTION '%', p_refusal;
-    END IF;
+    -- U1-B:判据只写一份 —— 本函数是 assert_other_decider_for_subject 主角为 NULL 的那一种。
+    PERFORM assert_other_decider_for_subject(p_subject_type, p_action_function, p_level, NULL, p_refusal);
 END;
 $function$;
 

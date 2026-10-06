@@ -2,30 +2,24 @@
 // DRAFT-1 的双渲染证明 —— #10 QuoteLinesEditor(唯一一张线上有行的表,见 R11 计数)。
 // ★ 跑在【生产构建】上:probe-avatar 抬头那条 —— 这棵树在 next dev 下水合不收尾。
 // ★ 它【不点保存】,所以一行业务数据都不会被写。
-import { readFileSync, existsSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3202, CDP_PORT = 9338
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.75/chrome-headless-shell-mac-arm64/chrome-headless-shell')
 const QUOTE = process.env.QUOTE_ID
-const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
-const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
-const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
-    apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', ...(o.headers || {}) } })
 const fail = []
 const probe = (id, ok, detail) => {
     if (!ok) fail.push(`${id}: ${detail}`)
     console.log(`${ok ? '✓' : '✗'} ${id.padEnd(36)} ${detail}`)
 }
-let server = null, chrome = null, accountId = null
+let server = null, chrome = null
 
 async function waitPort(port, ms) {
     const t0 = Date.now()
@@ -48,21 +42,10 @@ async function main() {
     if (!existsSync(CHROME)) throw new Error('chrome not at ' + CHROME)
     for (const p of [PORT, CDP_PORT]) { try { execSync(`lsof -ti tcp:${p} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {} }
 
-    const email = `draft1probe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'draft1-probe-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'draft1-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一次性全码角色(probe-draft1probe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'draft1probe', label: 'all', codes: 'all', password: 'draft1-probe-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     server = spawn(join(ROOT,'node_modules/.bin/next'), ['start', '-p', String(PORT)], { cwd: ROOT, stdio: 'ignore' })
     if (!await waitPort(PORT, 120000)) throw new Error('next start 没起来')

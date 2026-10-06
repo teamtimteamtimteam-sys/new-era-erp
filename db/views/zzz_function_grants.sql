@@ -434,6 +434,8 @@ REVOKE EXECUTE ON FUNCTION public.receipt_settled_base(uuid) FROM authenticated;
 --   只从 SECURITY DEFINER 的提交函数(submit_payroll_request 与六支付款申请提交)里调用;它读
 --   approval_deciders(本身已收回),留着 EXECUTE 就是把"谁批得了"这张名单的一个问法敞开。
 REVOKE EXECUTE ON FUNCTION public.assert_other_decider(text, text, smallint, text) FROM authenticated;
+-- U1-B(2026-10-05):带主角的那一版,同一条理由。
+REVOKE EXECUTE ON FUNCTION public.assert_other_decider_for_subject(text, text, smallint, uuid, text) FROM authenticated;
 
 -- APR-5a(2026-09-25):贷项 / 作废申请的内层算子。**这几支没有调用者检查,靠的就是调不到。**
 --   void_invoice_internal · create_credit_note_internal —— 原 void_invoice / create_credit_note 的函数体(去掉门);

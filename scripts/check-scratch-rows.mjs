@@ -36,6 +36,10 @@
 //                   ★ 我**不在** `npm run build` 里(要连线上),走 `npm run check:scratch`。
 // ==========================================================================
 import { readFileSync } from 'node:fs'
+// U1-B(2026-10-05):一次性账号的前缀与一次性角色的命名空间从 mintThrowaway 那一份读 ——
+//   这里从前只认 `smoke-`,于是 u1aprobe- / at1*probe- / roleprobe- / pgprobe- / searchres- / pdfsample- …
+//   造的账号【一个都不在本报告的视野里】。新脚本在 ephemeral.mjs 里加一个前缀,这里自动认得。
+import { THROWAWAY_EMAIL_PREFIXES, THROWAWAY_LEGACY_EMAIL_PREFIXES, THROWAWAY_ROLE_PREFIX, THROWAWAY_EMAIL_DOMAIN } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const env = readFileSync(ROOT + '.env.local', 'utf8')
@@ -53,6 +57,11 @@ const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 // 都成立,而且不需要任何一方配合。
 const STRANDED_AFTER_MS = 2 * 60 * 60 * 1000
 
+// 一个 @test.local 账号是不是【某一支脚本造的一次性账号】:前缀在 mintThrowaway 的名单里(含已停用的旧前缀)。
+const THROWAWAY_PREFIXES = [...THROWAWAY_EMAIL_PREFIXES, ...THROWAWAY_LEGACY_EMAIL_PREFIXES]
+const isThrowawayEmail = (e) => (e ?? '').endsWith(THROWAWAY_EMAIL_DOMAIN)
+    && THROWAWAY_PREFIXES.some((p) => (e ?? '').startsWith(p + '-'))
+
 // 扫哪些表、按什么命名认临时行。【只认命名,不认内容】—— 命名是这个仓库自己
 // 定的约定(smoke-* 账号、ZZ-SMOKE-* 业务行、fixture-* / probe-* 角色)。
 const TARGETS = [
@@ -67,7 +76,7 @@ const TARGETS = [
     // TERMS-EDIT-1:冒烟自己造的两份草稿合同(号 ZZ-SMOKE-CON-*)
     { table: 'contracts',        like: 'ZZ-SMOKE%', refs: [['purchase_orders', 'contract_id'], ['sales_orders', 'contract_id']] },
     { table: 'roles',            like: 'fixture-%', refs: [['user_roles', 'role_id']] },
-    { table: 'roles',            like: 'probe-%',   refs: [['user_roles', 'role_id']] },
+    { table: 'roles',            like: `${THROWAWAY_ROLE_PREFIX}%`, refs: [['user_roles', 'role_id']] },   // mintThrowaway 的一次性角色
 ]
 
 const rest = (p) => fetch(URL_ + p, {
@@ -112,6 +121,8 @@ async function rows(path, ctx) {
 // ════════════════════════════════════════════════════════════════════════════
 function sweptBySmoke(rec) {
     if (rec.table === 'employees') return true              // ① ZZ-SMOKE-% + 它们的评估
+    // ③ U1-B:sweepScratch 也扫 probe-smoke-* 一次性角色(连同指着它的授权)—— 只此一个命名空间
+    if (rec.table === 'roles') return String(rec.code).startsWith(`${THROWAWAY_ROLE_PREFIX}smoke-`)
     if (rec.table === 'auth.users') {
         const email = String(rec.code).split(' ')[0]        // code 可能是 `邮箱 [角色]`
         return email.startsWith('smoke-') && email.endsWith('@test.local')   // ②
@@ -147,12 +158,10 @@ async function main() {
 
     const accounts = await (await rest('/auth/v1/admin/users?per_page=1000')).json()
     const authUsers = accounts?.users ?? []
-    for (const u of authUsers) {
-        if (!(u.email ?? '').startsWith('smoke-') || !(u.email ?? '').endsWith('@test.local')) continue
-        const age = now - new Date(u.created_at).getTime()
-        const rec = { table: 'auth.users', code: u.email, id: u.id, ageH: (age / 3600000).toFixed(1), refs: [] }
-        ;(age < STRANDED_AFTER_MS ? recent : stranded).push(rec)
-    }
+    // U1-B:每一个一次性前缀的账号都报(从前只报 smoke-)。持着授权的那些在下面另起一条、带处置说明,
+    //   这里只报"不持任何未撤销授权"的 —— 一个账号不报两次。
+    const heldBy = new Set()   // 下面那一段填:持有任何未撤销授权的 user_id
+    const throwawayAccounts = authUsers.filter((u) => isThrowawayEmail(u.email))
 
     // ════════════════════════════════════════════════════════════════════════
     // 【幽灵授权:user_roles 里 user_id 在 auth.users 中根本不存在的行】
@@ -233,29 +242,66 @@ async function main() {
     // 【年龄门槛照旧】正在跑的一次冒烟/探针【就该】持有一个 —— 那不是残骸,
     //   所以它进 recent 桶,与上面每一处同一条规矩。
     // ════════════════════════════════════════════════════════════════════════
+    //
+    // ★ U1-B(2026-10-05,GHOST-GRANTS)把判据放宽到【任何】未撤销的授权 ★
+    //   此前只报 is_system(admin)。而 U1-B 之后,一次性账号持的是 mintThrowaway 造的
+    //   `probe-*` 一次性角色 —— 全码的那一把(probe-*-all-*)比今天的 admin(三码)能做的事多得多。
+    //   只报 is_system,等于对着那把更大的钥匙闭眼。所以:
+    //     · @test.local 账号持【任何】未撤销授权 → 报(is_system 的照旧用最重的那句说明);
+    //     · 一个 `probe-*` 一次性角色被一个【不是 @test.local】的、还在的账号持着 → 也报
+    //       (一个真人手里拿着一次性角色,说明有谁把它当真角色授了出去)。
+    //   仍然【只报告,不动手】—— 归属与年龄的理由与本文件抬头一字不差。
+    // ════════════════════════════════════════════════════════════════════════
     const systemRoleIds = new Set(roleRows.filter((r) => r.is_system).map((r) => r.id))
+    const throwawayRoleIds = new Set(roleRows.filter((r) => String(r.code).startsWith(THROWAWAY_ROLE_PREFIX)).map((r) => r.id))
     if (authUsers.length < 1000) {
         const liveGrants = new Map()
         for (const g of grants) {
             if (g.revoked_at) continue
-            if (!systemRoleIds.has(g.role_id)) continue
             if (!liveGrants.has(g.user_id)) liveGrants.set(g.user_id, [])
-            liveGrants.get(g.user_id).push(roleCode.get(g.role_id) ?? '?')
+            liveGrants.get(g.user_id).push(g)
         }
         for (const u of authUsers) {
-            if (!(u.email ?? '').endsWith('@test.local')) continue
             const held = liveGrants.get(u.id)
             if (!held?.length) continue
+            heldBy.add(u.id)
             const age = now - new Date(u.created_at).getTime()
-            ;(age < STRANDED_AFTER_MS ? recent : stranded).push({
-                table: 'auth.users', code: `${u.email} [${held.join(',')}]`, id: u.id,
-                ageH: (age / 3600000).toFixed(1), refs: [],
-                note: '【活着的一次性 admin】一个用完该删的账号,今天还持着一份未撤销的 '
-                    + 'is_system 授权 —— 而它的密码写在仓库的脚本正文里。'
-                    + '处置:先删 user_roles,再删 auth 账号(顺序反了就变成一条幽灵授权)。',
-            })
+            const codes = held.map((g) => roleCode.get(g.role_id) ?? '?')
+            if ((u.email ?? '').endsWith(THROWAWAY_EMAIL_DOMAIN)) {
+                const sys = held.some((g) => systemRoleIds.has(g.role_id))
+                ;(age < STRANDED_AFTER_MS ? recent : stranded).push({
+                    table: 'auth.users', code: `${u.email} [${codes.join(',')}]`, id: u.id,
+                    ageH: (age / 3600000).toFixed(1), refs: [],
+                    note: (sys
+                        ? '【活着的一次性 admin】一个用完该删的账号,今天还持着一份未撤销的 '
+                            + 'is_system 授权 —— 而它的密码写在仓库的脚本正文里。'
+                        : '【活着的一次性授权】一个用完该删的账号,今天还持着未撤销的授权'
+                            + (held.some((g) => throwawayRoleIds.has(g.role_id)) ? '(一次性 probe-* 角色 —— 全码的那种比 admin 能做的还多)' : '')
+                            + ' —— 它的计划没跑到(SIGKILL / 网络),或者它不是经 mintThrowaway 造的。')
+                        + '处置:先删 user_roles,再删 auth 账号,最后删 probe-* 角色(顺序反了就变成一条幽灵授权);'
+                        + '或者 node scripts/reap-ephemeral.mjs(计划还在盘上的话)。',
+                })
+            } else {
+                const tw = held.filter((g) => throwawayRoleIds.has(g.role_id))
+                if (!tw.length) continue
+                ;(age < STRANDED_AFTER_MS ? recent : stranded).push({
+                    table: 'user_roles', code: `${tw.map((g) => roleCode.get(g.role_id)).join(',')} ← ${u.email ?? u.id}`, id: tw[0].id,
+                    ageH: (age / 3600000).toFixed(1), refs: [],
+                    note: '【真账号手里的一次性角色】probe-* 是 mintThrowaway 的命名空间,'
+                        + '它的角色只该授给同一跑造的 @test.local 账号。一个不是 @test.local 的账号持着它 —— 有谁把它当真角色授了出去。'
+                        + '处置由人决定(那个人可能正靠它干活)。',
+                })
+            }
         }
     }
+    // 不持任何未撤销授权的一次性账号:照旧按年龄进两个桶(持着授权的上面已经报过)。
+    for (const u of throwawayAccounts) {
+        if (heldBy.has(u.id)) continue
+        const age = now - new Date(u.created_at).getTime()
+        const rec = { table: 'auth.users', code: u.email, id: u.id, ageH: (age / 3600000).toFixed(1), refs: [] }
+        ;(age < STRANDED_AFTER_MS ? recent : stranded).push(rec)
+    }
+
 
     if (recent.length) {
         console.log(`\n临时行(${(STRANDED_AFTER_MS / 3600000)} 小时以内 —— 可能是【正在跑的那一次】,不是残骸):`)

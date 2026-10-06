@@ -83,7 +83,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { machineTokens, selfProof as trailDetectorSelfProof } from '../lib/trail/machineTokens.ts'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER,
+import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER,
     beginCleanupPhase, isCleanupPhase, cleanupSignal, installCleanupNetworkFault } from './ephemeral.mjs'
 
 // ★ LEAK-1(2026-09-06):这一支从前【一个信号处理器都没有】。
@@ -1681,8 +1681,11 @@ async function sweepScratch(label = '清扫上次残留') {
     }
     // ★ PAY-REQ-1:一次性全码角色(ROLE-1 起才有)此前不在清扫范围里 —— 计划没跑到时,
     //   它会连同 role_permissions 里【每一个码】一起躺在线上。先收回指着它的授权,再删角色
-    //   (role_permissions 随角色级联)。只认 probe-smoke-all-* 这个本脚本自己的命名空间。
-    const roles = await restRows('/rest/v1/roles?select=id,code&code=like.probe-smoke-all-*', '清扫 ← 一次性全码角色')
+    //   (role_permissions 随角色级联)。只认 probe-smoke-* 这个本脚本自己的命名空间。
+    //   ★ U1-B(2026-10-05):从 probe-smoke-all-* 扩到 probe-smoke-* —— --reach 现在也造一次性角色
+    //     (probe-smoke-<角色>-<stamp>)。【不】扩到 probe-*:那是别的探针的命名空间,
+    //     它们可能此刻正在跑(sweepScratch 没有归属判据,见 docs/concurrency-one-tree-one-smoke.md)。
+    const roles = await restRows('/rest/v1/roles?select=id,code&code=like.probe-smoke-*', '清扫 ← 一次性角色')
     for (const r of roles) {
         await restCleanup(`/rest/v1/user_roles?role_id=eq.${r.id}`, { method: 'DELETE' }, `清扫授权 ← 角色 ${r.code}`)
         await restOk(`/rest/v1/roles?id=eq.${r.id}`, { method: 'DELETE' }, `清扫角色 ${r.code}`)
@@ -2019,37 +2022,24 @@ async function main() {
     // ── 一次性 admin 会话 ────────────────────────────────────────────────────
     PROGRESS.phase = '建一次性会话'
     const stamp = Date.now()
-    const email = `smoke-${stamp}@test.local`
-    const cu = await (await restOk('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'smoke-pass-1', email_confirm: true }) }, '建 admin 账号')).json()
-    planDelete(`/rest/v1/user_roles?user_id=eq.${cu.id}`, '收尾:收回一次性 admin 授权', ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${cu.id}`, '收尾:删一次性 admin 账号', ORDER.ACCOUNT)
     // ★ ROLE-1(Tim 的矩阵 · Q8,2026-09-23):`admin` 从此【只做系统管理】—— 三个码,
     //   一个业务码都没有,也读不到任何业务数据。这里此前借它当"什么都看得见"的会话,
     //   于是冒烟会以一个受限读者的身份走完 218 条路由、每一页都是「受限」,而退出码照样是 0。
     //   现在造一个【一次性的全码角色】(与 fixture 的 r_all 同一个形状),不借任何一个真角色 ——
     //   尤其不借 finance / cfo:那两个是审批角色,借了它,一次性账号在冒烟期间就是一个
     //   真的审批人(real_role_holders 认它)。计划先落盘,再造(LEAK-1)。
-    const allRoleCode = `probe-smoke-all-${stamp}`
-    planDelete(`/rest/v1/roles?code=eq.${allRoleCode}`, '收尾:删一次性全码角色(role_permissions 级联)', ORDER.ROLE)
-    const allRole = (await (await restOk('/rest/v1/roles', { method: 'POST',
-        headers: { Prefer: 'return=representation' },
-        body: JSON.stringify({ code: allRoleCode, name_en: 'smoke (all codes)', name_zh: '冒烟(全码)', is_active: true }) },
-        '建一次性全码角色')).json())[0]
-    const permCodes = await restRows('/rest/v1/permissions?select=code', 'permissions ← 全部码')
-    if (!permCodes.length) throw new Error('permissions 读回 0 行 —— 一个零码的"全码角色"会让整趟冒烟以受限读者跑完')
-    await restOk('/rest/v1/role_permissions', { method: 'POST',
-        body: JSON.stringify(permCodes.map((p) => ({ role_id: allRole.id, permission_code: p.code }))) },
-        '给一次性角色授全部码')
-    await restOk('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(cu.id, allRole.id)) }, '授一次性全码角色')
-    console.log(`  一次性会话已授权:${email} ← ${allRoleCode}(${permCodes.length} 码)`)
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):造法收进 scripts/ephemeral.mjs 的 mintThrowaway —— 每一句往返
+    //   看返回码、删除步先于它要删的东西落盘,角色码形状不变:probe-smoke-all-<stamp>。
+    const mainTw = await mintThrowaway({ prefix: 'smoke', label: 'all', codes: 'all', stamp, password: 'smoke-pass-1' })
+    const email = mainTw.email
+    const cu = { id: mainTw.userId }
+    console.log(`  一次性会话已授权:${email} ← ${mainTw.roleCode}(${mainTw.codes.length} 码)`)
     if (FORCE_FAIL_AT === 'after-grant') throw new ForcedFailure('after-grant')
     if (FORCE_FAIL_AT === 'cleanup-hang' || FORCE_FAIL_AT === 'cleanup-refused') {
         installCleanupNetworkFault(FORCE_FAIL_AT === 'cleanup-hang' ? 'hang' : 'refused')
         throw new ForcedFailure(FORCE_FAIL_AT)
     }
-    const adminSession = await signInSession(email, 'smoke-pass-1')
+    const adminSession = { token: mainTw.token, cookie: mainTw.cookie }
     const cookie = adminSession.cookie
 
     // ── 第二个一次性会话:评估人视角 ─────────────────────────────────────────
@@ -2880,19 +2870,16 @@ async function main() {
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
         const reachUsers = []
         if (RUN_REACH) console.log(`\n== 按角色的可达性(打得开却走不到)· 本跑 ${REACH_ROLES.length} 个角色:${REACH_ROLES.join('、')} ==`)
+        // ★ U1-B(2026-10-05,GHOST-GRANTS):这里此前授的是【真角色】(admin / operations / finance)——
+        //   计划没跑到时线上就留下一条真的 admin。现在授一个一次性克隆:恰好持那个真角色此刻的码
+        //   ({ cloneOf }),于是可达性测的仍是"持这个角色的码的人从首页走得到哪儿"(导航与守卫只认码,
+        //   不认角色名)。克隆源不存在或零码,mintThrowaway 当场抛 —— 不会对着一个空角色跑。
+        const reachTw = []
         const mkSession = async (roleCode) => {
-            const em = `smoke-${stamp}-${roleCode}@test.local`
-            const u = await (await restOk('/auth/v1/admin/users', { method: 'POST',
-                body: JSON.stringify({ email: em, password: 'smoke-pass-3', email_confirm: true }) },
-                `建 ${roleCode} 账号`)).json()
-            const rr = await restRows(`/rest/v1/roles?select=id&code=eq.${roleCode}`, `roles ← ${roleCode}`)
-            if (!rr.length) throw new Error(`角色 ${roleCode} 不存在 —— 可达性检查不能对着一个空角色跑`)
-            planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `收尾:收回 ${roleCode} 授权`, ORDER.GRANT)
-            planDelete(`/auth/v1/admin/users/${u.id}`, `收尾:删 ${roleCode} 账号`, ORDER.ACCOUNT)
-            await restOk('/rest/v1/user_roles', { method: 'POST',
-                body: JSON.stringify(ephemeralGrantBody(u.id, rr[0].id)) }, `授 ${roleCode}`)
-            reachUsers.push(u.id)
-            return signIn(em, 'smoke-pass-3')
+            const tw = await mintThrowaway({ prefix: 'smoke', label: roleCode, codes: { cloneOf: roleCode }, stamp, password: 'smoke-pass-3' })
+            reachUsers.push(tw.userId)
+            reachTw.push(tw)
+            return tw.cookie
         }
         if (!RUN_REACH) {
             console.log('\n== 按角色的可达性:【跳过】(默认关闭)——'
@@ -2947,6 +2934,11 @@ async function main() {
                 `reach:收回角色授权 ${id}`)
             await restCleanup(`/auth/v1/admin/users/${id}`, { method: 'DELETE' },
                 `reach:删账号 ${id}`)
+        }
+        // U1-B:一次性克隆角色在授权收回之后删(计划里也有这一步,runPlan 兜底)。
+        for (const tw of reachTw) {
+            await restCleanup(`/rest/v1/roles?code=eq.${tw.roleCode}`, { method: 'DELETE' },
+                `reach:删一次性角色 ${tw.roleCode}`)
         }
     } finally {
         beginCleanupPhase()   // CLAIM-GST-1:从这里起,rest() 的每一次往返都带上限

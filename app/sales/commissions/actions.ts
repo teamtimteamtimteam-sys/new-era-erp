@@ -93,27 +93,3 @@ export async function saveCommissionAgreement(input: CommissionInput) {
     revalidatePath('/sales/commissions')
     return { success: true }
 }
-
-export async function softDeleteCommissionAgreement(id: string) {
-    const supabase = await createClient()
-    // 同上 —— 软删也写 updated_by,同一条理由。
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError) {
-        return { error: await localizeCommissionError(authError.name === 'AuthRetryableFetchError'
-            ? 'COMMISSION_AUTH_UNAVAILABLE'
-            : 'COMMISSION_NOT_PERMITTED') }
-    }
-
-    const { error } = await supabase
-        .from('commission_agreements')
-        .update({ deleted_at: new Date().toISOString(), updated_by: user?.id ?? null })
-        .eq('id', id)
-        .is('deleted_at', null) // 已经删过的不重复删
-
-    if (error) {
-        return { error: await localizeCommissionError(error.message) }
-    }
-
-    revalidatePath('/sales/commissions')
-    return { success: true }
-}

@@ -63,9 +63,12 @@ export default async function HandoverPage({ params, searchParams }: {
 
     // 提到的停机:停机那一行 + 哪一台机器(equipment_usage,加工的人读得到)
     const downIds = refRows.map((r) => r.downtime_id)
+    // U1-B(Q15):一段停机可以在交接【之后】被作废。交接单不动(那是交接时说过的话),
+    //   但读它的人要知道那一段后来被收回了 —— 所以 voided_at / void_reason 一起读,画一个标记。
     const downRows = downIds.length === 0 ? [] : mustRows(await supabase.from('equipment_downtime')
-        .select('id, equipment_id, started_at, ended_at, reason').in('id', downIds), 'equipment_downtime') as
-        { id: string; equipment_id: string; started_at: string; ended_at: string | null; reason: string }[]
+        .select('id, equipment_id, started_at, ended_at, reason, voided_at, void_reason').in('id', downIds), 'equipment_downtime') as
+        { id: string; equipment_id: string; started_at: string; ended_at: string | null; reason: string
+          voided_at: string | null; void_reason: string | null }[]
     const eqIds = [...new Set(downRows.map((d) => d.equipment_id))]
     const machines = eqIds.length === 0 ? [] : mustRows(await supabase.from('equipment_usage')
         .select('equipment_id, equipment_code').in('equipment_id', eqIds), 'equipment_usage') as { equipment_id: string; equipment_code: string }[]
@@ -96,9 +99,23 @@ export default async function HandoverPage({ params, searchParams }: {
             cells: {
                 machine: m ? <Link href={`/operation/equipment/${d.equipment_id}`} className="app-link hover:underline">{m.equipment_code}</Link> : '—',
                 from: formatDateTime(d.started_at, locale),
-                to: d.ended_at ? formatDateTime(d.ended_at, locale)
+                // U1-B:后来作废了的一段 —— 不再说"还没结束",说"后来作废了"。原因照交接时那样留着(不划掉:
+                //   交接单记的是那时说过的话),下面一行是作废的理由。
+                to: d.voided_at ? (
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                        {d.ended_at && <span className="line-through text-gray-400">{formatDateTime(d.ended_at, locale)}</span>}
+                        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600" data-downtime-voided="1">{t('processing.handover.downtimeVoidedLater')}</span>
+                    </span>
+                ) : d.ended_at ? formatDateTime(d.ended_at, locale)
                     : <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">{t('processing.handover.downtimeOngoing')}</span>,
-                reason: <span className="break-words">{d.reason}</span>,
+                reason: d.voided_at ? (
+                    <span className="break-words">
+                        {d.reason}
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">
+                            {t('equipment.down.voidedBecause', { reason: d.void_reason ?? '—', when: formatDateTime(d.voided_at, locale) })}
+                        </span>
+                    </span>
+                ) : <span className="break-words">{d.reason}</span>,
             },
         }
     })

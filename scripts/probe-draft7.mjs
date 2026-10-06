@@ -42,14 +42,13 @@ import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3210, CDP_PORT = 9346
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.75/chrome-headless-shell-mac-arm64/chrome-headless-shell')
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 // 只读清点(2026-09-21,一次写都没发)。★★ **「以谁的身份读」写出来**:
@@ -97,21 +96,10 @@ async function main() {
     mkdirSync(join(ROOT, 'docs/captures'), { recursive: true })
     for (const p of [PORT, CDP_PORT]) { try { execSync(`lsof -ti tcp:${p} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {} }
 
-    const email = `draft7probe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'draft7-probe-1', email_confirm: true }) })).json()
-    const accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'draft7-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一次性全码角色(probe-draft7probe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'draft7probe', label: 'all', codes: 'all', password: 'draft7-probe-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     server = spawn(join(ROOT, 'node_modules/.bin/next'), ['start', '-p', String(PORT)], { cwd: ROOT, stdio: 'ignore' })
     if (!await waitPort(PORT, 120000)) throw new Error('next start 没起来')

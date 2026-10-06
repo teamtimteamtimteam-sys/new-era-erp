@@ -354,17 +354,6 @@ export async function updateEmployee(
     redirect(`/hr/employees/${employeeId}`)
 }
 
-export async function deleteEmployee(employeeId: string): Promise<{ error?: string }> {
-    const supabase = await createClient()
-    const { error } = await supabase
-        .from('employees')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', employeeId)
-    if (error) return { error: await localizeHrError(error.message) }
-    revalidatePath('/hr/employees')
-    return {}
-}
-
 // ROLE-1(Tim 的矩阵 · Q7,2026-09-23):一个人的第一份月薪。走 set_initial_salary ——
 // 直连写 monthly_salary 从 ROLE-1 起一律被 guard_employee_salary_write 拒。
 // 服务端【独立】拒空:生效日与金额决定工资从哪一期、按多少起算,不给默认值,

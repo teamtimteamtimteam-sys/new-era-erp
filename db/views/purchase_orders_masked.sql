@@ -76,6 +76,12 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     -- 【不遮蔽】它是一个地址,不是钱。
     delivery_location,
     -- APR-10(2026-09-27):品类(工厂耗材 / 设备与货物 / 办公用品)。末尾追加;【不遮蔽】它是一个分类,不是钱。
-    category
+    category,
+    -- U1-B(2026-10-05,Q25):关闭 / 重开的人与理由。末尾追加;【不遮蔽】。
+    closed_by,
+    close_reason,
+    reopened_at,
+    reopened_by,
+    reopen_reason
    FROM purchase_orders
   WHERE has_permission('module.purchasing.view'::text);

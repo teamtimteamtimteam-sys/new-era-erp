@@ -28,14 +28,13 @@ import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, reapStalePlans, ORDER, exitAfterCleanup, installExitHooks } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, reapStalePlans, exitAfterCleanup, installExitHooks } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3209, CDP_PORT = 9349
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.75/chrome-headless-shell-mac-arm64/chrome-headless-shell')
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const FAULT = process.env.PROBE_FAULT || ''
 
@@ -93,22 +92,12 @@ async function main() {
     if (!existsSync(CHROME)) throw new Error('chrome not at ' + CHROME)
     for (const p of [PORT, CDP_PORT]) { try { execSync(`lsof -ti tcp:${p} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {} }
 
-    // ── 一次性 admin 会话 ──
-    const email = `datepick1probe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'datepick1-probe-1', email_confirm: true }) })).json()
-    const accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'datepick1-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ── 一次性全码会话 ──
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】(而且不看授权那一句的返回码);现在经 mintThrowaway
+    //   造一个一次性全码角色(probe-datepick1probe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'datepick1probe', label: 'all', codes: 'all', password: 'datepick1-probe-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     server = spawn(join(ROOT, 'node_modules/.bin/next'), ['start', '-p', String(PORT)], { cwd: ROOT, stdio: 'ignore' })
     if (!await waitPort(PORT, 120000)) throw new Error('next start 没起来')

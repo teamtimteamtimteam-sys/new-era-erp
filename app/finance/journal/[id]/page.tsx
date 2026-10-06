@@ -95,11 +95,13 @@ export default async function JournalDetailPage({
     //   判据读不出来(error)就抛 —— 一次失败不许被读成"可以冲"。
     const [routeRes, openRevRes] = await Promise.all([
         supabase.rpc('journal_entry_reversal_route', { p_entry_id: id }),
-        supabase.from('journal_requests').select('label')
+        // U1-B:读遮蔽伴生视图 —— 基表的 amount_base 已从 authenticated 收回,本仓库的读一律走 journal_requests_masked
+        //   (只取 label,但"基表不再直读"是一条规矩,不是按列判的例外)。
+        supabase.from('journal_requests_masked').select('label')
             .eq('target_entry_id', id).eq('kind', 'reversal').eq('status', 'submitted').maybeSingle(),
     ])
     const route = mustOne(routeRes, 'journal_entry_reversal_route') as string | null
-    const openReversalLabel = mustOne(openRevRes, 'journal_requests')?.label ?? null
+    const openReversalLabel = mustOne(openRevRes, 'journal_requests_masked')?.label ?? null
 
     // 冲销关系 + 来源链接(单条小查询)
     const [reversedByRes, reversalOfRes, hrefs] = await Promise.all([

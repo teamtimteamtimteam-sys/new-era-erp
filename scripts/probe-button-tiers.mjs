@@ -56,7 +56,7 @@ import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const RAWLINK_BASELINE = join(ROOT, 'scripts/probe-rawlink-baseline.json')
@@ -70,7 +70,6 @@ const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/ma
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
@@ -305,7 +304,7 @@ const UNRENDERABLE = [
 //   这一条与委托书里"覆盖物"那一节是同一件事:**按页枚举会漏掉只在
 //   某个状态下才存在的东西**。这类按钮由人走(docs/manual-walk-list.md)。
 
-let server, chrome, accountId
+let server, chrome
 function killChildren() {
     try { if (chrome?.pid) process.kill(-chrome.pid) } catch {}
     try { if (server?.pid) process.kill(-server.pid) } catch {}
@@ -320,27 +319,15 @@ try {
     openPlan('scripts/probe-button-tiers.mjs')
     await reapStalePlans()
 
-    const email = `btnprobe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'btn-probe-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
     // ★★ LEAK-1(2026-09-06):这一支是那 28 条幽灵授权的【头号产地】,而它
     //    【不是】被杀掉才漏的 —— 原来的 finally 只删账号、**一个字都没提 user_roles**
-    //    (整份文件里 user_roles 只出现过一次,就是下面这条 INSERT)。
+    //    (整份文件里 user_roles 只出现过一次,就是那条 INSERT)。
     //    于是它【每一次跑完都漏一条】:退出码 0、没有人被杀、没有任何东西报红。
     //    先删授权再删账号,顺序反了留下的正是一条认不到人的授权。
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke btnprobe grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete btnprobe account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'btn-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一次性全码角色(probe-btnprobe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'btnprobe', label: 'all', codes: 'all', password: 'btn-probe-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     server = spawn('npx', ['next', 'start', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
     server.stderr.on('data', () => {})

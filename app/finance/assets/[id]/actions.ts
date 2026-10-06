@@ -16,7 +16,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { localizeEquipmentError } from '../equipmentErrorCodes'
-import { refuseFromCoded } from '@/lib/action-refusal'
+import { refuseFromCoded, refuseNothingChanged } from '@/lib/action-refusal'
 
 export type ActState = { error?: string; success?: boolean }
 
@@ -144,10 +144,78 @@ export async function closeDowntime(input: {
     // 【不在这里比 ended_at >= started_at】那是表上 equipment_downtime_period_order
     // 的活。在 TS 里再比一遍就是同一条规矩的第二份实现,而本仓库为"两份实现必然
     // 漂开"付过很多次账 —— 让库来拒,句子由约束名翻。
-    const { error } = await supabase.from('equipment_downtime')
+    //
+    // ★ U1-B(ALERT-1):这一条 UPDATE 从前【零行也报成功】。三个过滤器各挡一种"那一行不是你以为的那一行":
+    //   · equipment_id —— 这一页说的是这台机器;一个对不上的 id 不许改到别的机器上去;
+    //   · ended_at IS NULL —— 只关【开着的】那一段(两个标签页同时关,第二个改零行);
+    //   · voided_at IS NULL —— 作废了的那一段没有发生过,不能被"关上"(库里 guard_downtime_write 也拒)。
+    //   零行 = 被 RLS 挡下,或那一行已经不是开着的 —— refuseNothingChanged 按权限码说出是哪一种。
+    const { data, error } = await supabase.from('equipment_downtime')
         .update({ ended_at: input.endedAt } as never)
         .eq('id', input.downtimeId)
-    if (error) return { error: await localizeEquipmentError(error.message) }
+        .eq('equipment_id', input.assetId)
+        .is('ended_at', null)
+        .is('voided_at', null)
+        .select('id')
+    if (error) return { error: (await refuseFromCoded(error.message, localizeEquipmentError)).error }
+    if (!data || data.length === 0) return await refuseNothingChanged('module.processing.edit')
+    refresh(input.assetId)
+    return { success: true }
+}
+
+// ── U1-B(UNBLOCK-1 Q15):更正一段停机 —— 起止时刻与原因 ───────────────────────
+// 【为什么是直连 UPDATE 而不是一支函数】Tim 的 Q15:更正走表上的 UPDATE 策略(module.processing.edit),
+//   变更记录留着旧值;只有【作废】走函数(作废那三列只许 void_equipment_downtime 写)。
+// 【时刻的规矩一条都不在这里】结束早于开始(equipment_downtime_period_order)、未来的时刻
+//   (DOWNTIME_START_IN_FUTURE / _END_IN_FUTURE)、与别的一段重叠(DOWNTIME_OVERLAPS)、
+//   一台机器两段开口(uq_equipment_downtime_open)—— 全是库的活,句子由 localizeEquipmentError 翻。
+// 【ended_at 只在那一段【已经关了】时才改】开着的那一段由"关上它"那一条路关(closeDowntime);
+//   这里给开着的那一段传 null,于是它保持开着 —— 更正不是关闭的第二个入口。
+export async function correctDowntime(input: {
+    assetId: string; downtimeId: string; startedAt: string; endedAt: string | null; reason: string
+}): Promise<ActState> {
+    // 拒空,独立于表单(与 openDowntime / closeDowntime 同一组具名码)。
+    if (!input.startedAt) return { error: await localizeEquipmentError('DOWNTIME_START_REQUIRED') }
+    if (input.endedAt !== null && !input.endedAt) return { error: await localizeEquipmentError('DOWNTIME_END_REQUIRED') }
+    if (!input.reason.trim()) return { error: await localizeEquipmentError('DOWNTIME_REASON_REQUIRED') }
+    const supabase = await createClient()
+    const patch: Record<string, string> = { started_at: input.startedAt, reason: input.reason.trim() }
+    if (input.endedAt !== null) patch.ended_at = input.endedAt
+    let q = supabase.from('equipment_downtime')
+        .update(patch as never)
+        .eq('id', input.downtimeId)
+        .eq('equipment_id', input.assetId)
+        // 作废了的一段冻住(库里 guard_downtime_write 抛 DOWNTIME_VOIDED);这里先不去碰它,零行照实说。
+        .is('voided_at', null)
+    // 【开着的一段不许借更正被关上,关了的一段不许借更正被重新打开】—— 那一行的形状必须还是表单读到的那个形状。
+    q = input.endedAt === null ? q.is('ended_at', null) : q.not('ended_at', 'is', null)
+    const { data, error } = await q.select('id')
+    if (error) return { error: (await refuseFromCoded(error.message, localizeEquipmentError)).error }
+    if (!data || data.length === 0) return await refuseNothingChanged('module.processing.edit')
+    refresh(input.assetId)
+    return { success: true }
+}
+
+// ── U1-B(UNBLOCK-1 Q15):作废一段【从来没有发生过】的停机 ────────────────────────
+// 走 void_equipment_downtime —— 作废那三列只许它写(guard_downtime_write 拒直连)。理由必填:
+// 对话框不让空理由按下去,这里再拒一次(两层都是机制),库里第三次(DOWNTIME_VOID_REASON_REQUIRED)。
+// 【为什么要问 equipment_id 对不对得上】函数只认 downtime_id;这一页说的是这台机器,
+//   一个从别处带来的 id 不该在这一页上作废另一台机器的停机。先读一次,对不上就按 NOT_FOUND 说。
+export async function voidDowntime(input: {
+    assetId: string; downtimeId: string; reason: string
+}): Promise<ActState> {
+    if (!input.reason.trim()) return { error: await localizeEquipmentError('DOWNTIME_VOID_REASON_REQUIRED') }
+    const supabase = await createClient()
+    const { data: row, error: readErr } = await supabase.from('equipment_downtime')
+        .select('id').eq('id', input.downtimeId).eq('equipment_id', input.assetId).maybeSingle()
+    if (readErr) return { error: (await refuseFromCoded(readErr.message, localizeEquipmentError)).error }
+    if (!row) return { error: await localizeEquipmentError(`DOWNTIME_NOT_FOUND|${input.downtimeId}`) }
+    const { error } = await supabase.rpc('void_equipment_downtime', {
+        p_downtime_id: input.downtimeId,
+        p_reason: input.reason.trim(),
+    })
+    // refuseFromCoded:PERMISSION_DENIED|module.processing.edit 由它的分支 ① 接住(本地化器没有那一支)。
+    if (error) return { error: (await refuseFromCoded(error.message, localizeEquipmentError)).error }
     refresh(input.assetId)
     return { success: true }
 }

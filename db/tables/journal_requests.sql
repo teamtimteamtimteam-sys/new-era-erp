@@ -120,3 +120,12 @@ CREATE POLICY "journal_requests select by permission" ON public.journal_requests
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.journal_requests FROM anon;
+
+-- ★ U1-B(2026-10-05,U1A-PAYROLL-REVERSAL-REQUEST-SHOWS-AMOUNT):amount_base 从列授权里拿掉 —— 一张工资分录的冲销申请抄着那张分录的
+--   合计(一期一个人时就是一个人的实发工资)。只经 journal_requests_masked 读,判据 journal_request_amount_visible
+--   (持 data.view_pay,或冲销的不是工资分录)。其余列照给。
+--   列授权不随 ADD COLUMN 自动延伸:给这张表加列,要回到这一行,并把它放进 journal_requests_masked(gate 的 colgrant)。
+REVOKE SELECT ON public.journal_requests FROM authenticated;
+GRANT SELECT (id, kind, status, label, entry_date, memo, lines, target_entry_id, credits_bank, decided_at, decided_by,
+              decision_notes, result_journal_entry_id, withdrawn_at, withdrawn_by, withdraw_reason, created_at, created_by)
+    ON public.journal_requests TO authenticated;

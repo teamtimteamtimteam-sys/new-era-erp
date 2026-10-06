@@ -4,6 +4,12 @@ DECLARE
     v_s timestamptz;
     v_e timestamptz;
 BEGIN
+    -- U1-B(Q15):作废的那一行不再是一段"发生过的停机",三条都不问它 —— 作废一段记错了的(甚至是挡着别人的)
+    --   停机,不能被它自己的错挡住。作废之后它冻住(guard_downtime_write),所以这一格只在作废的那一次 UPDATE 上走到。
+    IF NEW.voided_at IS NOT NULL THEN
+        RETURN NEW;
+    END IF;
+
     -- 【① 开始时间不许在未来】
     -- 简报只点名了"结束不许在未来",而同一句话对开始一样成立 ——
     -- 一段"明天开始"的停机记的是【计划】,不是发生过的事。而这正是 B 那一半的
@@ -40,6 +46,7 @@ BEGIN
       FROM public.equipment_downtime d
      WHERE d.equipment_id = NEW.equipment_id
        AND d.id <> NEW.id
+       AND d.voided_at IS NULL            -- U1-B:作废的那一段不挡任何人
        AND tstzrange(d.started_at, COALESCE(d.ended_at, 'infinity'::timestamptz), '[)')
         && tstzrange(NEW.started_at, COALESCE(NEW.ended_at, 'infinity'::timestamptz), '[)')
      ORDER BY d.started_at

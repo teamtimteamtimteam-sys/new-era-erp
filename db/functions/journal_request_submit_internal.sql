@@ -117,7 +117,9 @@ BEGIN
         'label', v_label,
         'kind', p_kind,
         'status', CASE WHEN v_on THEN 'submitted' ELSE 'approved' END,
-        'amount_base', COALESCE(v_post->'amount_base', v_dry->'amount_base'),
+        -- U1-B:返回值也是一扇读的门 —— 工资分录的冲销申请,金额只给持 data.view_pay 的人(journal_request_amount_visible)。
+        'amount_base', CASE WHEN journal_request_amount_visible(v_id)
+                            THEN COALESCE(v_post->'amount_base', v_dry->'amount_base') END,
         'credits_bank', COALESCE(v_post->'credits_bank', v_dry->'credits_bank'),
         'entry_id', v_post->>'entry_id',
         'journal_code', v_post->>'journal_code');

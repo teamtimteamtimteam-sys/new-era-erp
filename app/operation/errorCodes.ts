@@ -1,4 +1,5 @@
-import { getTranslations } from '@/lib/i18n/server'
+import { getLocale, getTranslations } from '@/lib/i18n/server'
+import { formatDate } from '@/lib/dates'
 import { STATE_OPTIONS } from '@/app/inbound/options'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 import { fallbackForRawError, fallbackTextFor } from '@/lib/machine-text'
@@ -80,6 +81,18 @@ const PROCESSING_ERROR_CODES = new Set([
     // (今天没有屏幕这样写,编进来是为了万一有,屏幕上是句子而不是机器串)。
     'WO_NO_OTHER_RELEASER',
     'PROCESSING_THROUGH_FUNCTION_ONLY',
+
+    // ── U1-B(2026-10-05,UNBLOCK-1 Step 0 §3 5.1):此前掉进共用兜底的那几条 ──────────────
+    // allocate_processing_costs 的状态改变型(深度放电那一族)四条 + 总账分道一条 —— 参数 {0} 都是单号。
+    'ALLOCATION_STATE_CHANGING_BASIS', 'ALLOCATION_STATE_CHANGING_OUTPUT_INPUT',
+    'ALLOCATION_STATE_CHANGING_NO_INPUT', 'ALLOCATION_STATE_CHANGING_NO_BASIS',
+    'ALLOCATION_LEDGER_DIVERGED',
+    // commit_processing_run 的设备三条(EQUIPMENT_NOT_ACQUIRED / _DISPOSED 的 {1} {2} 是 ISO 日期,下面格式化)。
+    'EQUIPMENT_NOT_FOUND', 'EQUIPMENT_NOT_ACQUIRED', 'EQUIPMENT_DISPOSED',
+    // submit_shift_handover:引用了一段不存在的 / 已作废的停机(后者 U1-B Q15)。
+    'HANDOVER_DOWNTIME_NOT_FOUND', 'HANDOVER_DOWNTIME_VOIDED',
+    // ★ PERIOD_LOCKED / YEAR_CLOSED【不在这里】—— 它们横跨所有模块,由共用兜底
+    //   lib/machine-text.ts 的 sharedCodeText 翻一次(点名两个日期)。这里再收一份就是第二份实现。
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,
@@ -149,6 +162,13 @@ export async function localizeProcessingError(message: string): Promise<string> 
     if (code === 'OUTPUT_CONSUMED' && params['1']) {
         const key = STATE_OPTIONS.find((o) => o.value === params['1'])?.labelKey
         if (key) params['1'] = t(key)
+    }
+
+    // U1-B:设备那两条带的是库里的 ISO 日期 —— 格式化一次再进句子(DD/MM/YYYY,与屏幕上其余日期同一个长相)。
+    if ((code === 'EQUIPMENT_NOT_ACQUIRED' || code === 'EQUIPMENT_DISPOSED') && (params['1'] || params['2'])) {
+        const locale = await getLocale()
+        if (params['1']) params['1'] = formatDate(params['1'], locale)
+        if (params['2']) params['2'] = formatDate(params['2'], locale)
     }
 
     return t('processing.errors.' + code, params)

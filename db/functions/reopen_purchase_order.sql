@@ -41,14 +41,21 @@ BEGIN
     -- 整个事务余下的时间里【一直是关着的】:跑过一次 close_purchase_order 之后,
     -- 同一事务里一条直连的 UPDATE ... SET status 就畅通无阻(实测过)。
     PERFORM set_config('evoltrya.po_status_ctx', '1', true);
+    -- ★ U1-B(UNBLOCK-1 Q25):重开的理由进它自己的列(reopen_reason / reopened_at / reopened_by),【notes 不再被改写】。
+    --   单子不再是关着的,所以关单那三列清掉;那一次关单的全貌留在历史(closed 那一行)与变更记录里。
     UPDATE purchase_orders
     SET status = v_status,
         closed_at = NULL,
-        notes = COALESCE(notes || E'\n', '')
-                || '[' || to_char(now(), 'YYYY-MM-DD HH24:MI') || ' reopened] ' || btrim(p_reason),
+        closed_by = NULL,
+        close_reason = NULL,
+        reopened_at = now(),
+        reopened_by = v_user,
+        reopen_reason = btrim(p_reason),
         updated_by = v_user
     WHERE id = p_purchase_order_id;
     PERFORM set_config('evoltrya.po_status_ctx', '', true);
+    INSERT INTO purchase_order_history (purchase_order_id, change_type, amend_reason, changed_by)
+    VALUES (p_purchase_order_id, 'reopened', btrim(p_reason), v_user);
 
 
     RETURN jsonb_build_object(

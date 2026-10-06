@@ -207,7 +207,14 @@ fixture 221 G3)。代价照直记:**供应商记错了的已定价收货从此�
 供应商 —— 今天没有一张需要更正。Tim 的裁定(Batch 3 grilling Q11):**按名拒;更正的生命周期(申请 → 批准 → 连同应付
 与已付一起搬)登记为以后的事**。**删除条件:** 一条有留痕、经批准的更正路径落地。
 
-## ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE · 采购单(≥ 1,000)与报销单也能被提成"除了提单人没人批得动"(ROLE-1 Batch 3a 登记,2026-09-25)
+## ✅ 已关闭(U1-B,2026-10-05)· ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE · 采购单(≥ 1,000)与报销单也能被提成"除了提单人没人批得动"(ROLE-1 Batch 3a 登记,2026-09-25)
+
+> ★ **✅ 报销单那一半也关闭了(U1-B,`v1.4.36`,2026-10-05,UNBLOCK-1 Step 0 §3 3.6)**:`submit_expense_claim` 在审批开着时按这张单会落到的那一级
+> 问一句"提单人与主角之外有没有人批得动",没有就按名拒 `EXPENSE_CLAIM_NO_OTHER_DECIDER|<单号>`,一张不落(单号随回滚放回去)。
+> 判据是新的 `assert_other_decider_for_subject` —— `assert_other_decider` 带主角的那一版(它一直传 NULL 当主角,问不出报销单
+> 四眼里"主角"那条腿);`assert_other_decider` 从此只是它主角为 NULL 的那一种,判据只留一份。Tim 的 R2 例外照算:唯一的二级持有人
+> 替自己报的单【不拒】(他可以决定自己的报销)。折不出本位币的单不在这里另造一句拒绝(决定时 `fx_rate_for` 按名拒)。
+> fixture 248 CL1–CL4(提单人那条腿 · 主角那条腿 · 多一个人就照开 · R2 例外)。**本条两半都已关闭。**
 
 > ★ **采购单那一半已关闭(APR-10,2026-09-27)**:`create_purchase_order` 在审批开着时按这张单的档位调 `assert_other_decider`,
 > 提单人之外没人批得动就按名拒 `PO_NO_OTHER_DECIDER|<单号>`(线上走证 P7:admin@ 开 5,000.00 的单被拒,一张不落)。
@@ -3587,7 +3594,10 @@ state 写入者**:SO-2 的一条明确决定就是预留不碰 `state`,而"谁�
 
 ---
 
-## 改单:`shipped` 上的【加行】有引擎、有页面,但【没有入口】(SO-1b)
+## ✅ 已关闭(U1-B,2026-10-05)· 改单:`shipped` 上的【加行】有引擎、有页面,但【没有入口】(SO-1b)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q14:可以加)**:`/sales/orders/[id]` 的改单入口对 `shipped` 也画出来,写着"Add lines"与
+> 一句"只许加新行,加一行订单回到部分发货"的提示(`sales.amend.addLinesAction` / `addLinesActionHint`)。引擎与改单页本来就认这个状态。
 
 `amend_sales_order` 给一张整单发完的订单开了一条缝:**只许加行**,而加一行会让
 状态按"已发 vs 已订"重算,自己翻回 `partially_shipped`。这条缝不是装饰 ——
@@ -4688,7 +4698,13 @@ PROC-6 的注入矩阵里有一格把 `trg_assay_results_basis_stated` 换成
 出现 —— 而每一条规则都把它读成了"已经在役"。fixture 120 的 F5(d) 用目录扫描
 正面钉住"**没有任何函数或视图读 planned_in_service_date**"。
 
-## 停机没有【删除 / 更正】的门(FIX-1 撞出来,2026-08-23)
+## ✅ 已关闭(U1-B,2026-10-05)· 停机没有【删除 / 更正】的门(FIX-1 撞出来,2026-08-23)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q15:两样都要,永远不硬删)**:资产页的停机列表每一行有【更正】(起止与原因,走表上的 UPDATE
+> 策略,变更记录留着旧值)与【作废】(带理由,`void_equipment_downtime`)。作废的那一段冻住、不挡重叠、不算"开着的那一段"
+> (`uq_equipment_downtime_open` 的谓词加了 `voided_at IS NULL`)、交接单不能再引用它(`HANDOVER_DOWNTIME_VOIDED`)、照旧列着并标"已作废"。
+> **删除对任何人都按名拒**(`guard_downtime_write`,语句级:`DOWNTIME_NEVER_DELETED`)。审计记录说 "Downtime corrected" / "Downtime voided"
+> (带理由),一段已结束的停机改了结束时刻是"更正",不再被说成第二次"恢复运行"。fixture 248 DT1–DT4。
 
 app 里只有"开一段"(insert)与"关一段"(update `ended_at`)两个动作。
 一段记错了的停机 —— 错的开始时刻、错的原因 —— **今天改不了,也删不掉**。
@@ -5134,7 +5150,16 @@ FIX-3 在保养间隔那块屏幕上修掉一处 `?? 0`:视图里
 `finance` 的**唯一**账号正是那个登不进来的 `chef1949@126.com` ——
 **那条出路今天不存在**。记在 `docs/as-built-divergences.md` 第 3 条的职责分离一节。
 
-## GHOST-GRANTS · 幽灵 admin 授权【会再长回来】 —— **66 → 21 → 8**,这是**第三次**清扫
+## ✅ 已关闭(U1-B,2026-10-05)· GHOST-GRANTS · 幽灵 admin 授权【会再长回来】 —— **66 → 21 → 8**,这是**第三次**清扫
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q23:只改脚本)**。关闭的判据就是本条自己写的那一句:**没有一支脚本还能造出一条认不出主人的
+> 真 `admin` 授权。** 做法:`scripts/ephemeral.mjs` 多了一个共用的一次性账号帮手 `mintThrowaway`(MES-0 Q1:MES 的测试脚本也用它)——
+> 账号、可选的员工、一个 `probe-<前缀>-<标签>-<时刻>` 的一次性角色(全部码 / 指定码 / 照某个真角色抄一份码),清理计划在造之前落盘;
+> 真角色只能经 `{realRole}` 授,而它对 `is_system` 的角色(admin)**按名拒** `THROWAWAY_REFUSES_SYSTEM_ROLE`。37 支原来直连
+> `/rest/v1/user_roles` 的脚本全部改走它(冒烟的 `--reach` 改成照每个真角色抄一份码的一次性角色,仍然量那个角色能走到哪里);
+> `render-pdf-samples.mjs` 持上了 live-lock;两支清扫 / 报告认识每一个在用的前缀与 `probe-` 角色。**闸**:`scripts/check-throwaway-grants.mjs`
+> 进 `npm run build` —— 任何一支脚本在帮手之外 POST `user_roles`、或按 `code=eq.admin` 找角色,构建就红;覆盖率是断言(独立数文件),
+> `--inject=all` 让每一支改造过的文件各红一次(38/38)。线上实测见 `docs/handbacks/U1-B.md`(`probe-throwaway.mjs` 与它的三格注入)。
 
 > ## ★ C-1(2026-09-04):**计数的洞堵上了。产地仍然开着。**
 >
@@ -9007,7 +9032,7 @@ probe-role-crash · probe-button-tiers · render-pdf-samples · smoke-routes —
   而 `survey-*-reviewer@test.local` **故意不授任何角色**,于是它一条都不报 ——
   实测线上躺着两个,最老的近 5 小时。**这【不是】本刀修的那个"假忠告"缺陷**
   (那是"说了假话",这是"没看见"),按 Tim 的裁定只报告不顺手改。去处:cleanup A。
-* **`scripts/render-pdf-samples.mjs` 不持 live-lock**,而 smoke / survey / avatar /
+* ✅ ~~**`scripts/render-pdf-samples.mjs` 不持 live-lock**~~(★ **U1-B,2026-10-05:持上了**,`acquireOrExit(…, {ownExit:false})`,GHOST-GRANTS 那一刀),而 smoke / survey / avatar /
   gate 都持。它碰线上、造账号。同上,按名记下,不在本刀范围。
 
 ---
@@ -9777,7 +9802,11 @@ Supabase auth 的 `ban_duration = '876000h'`,与 `/settings/accounts` 的「停�
 **删除条件:** 停用时让已发出的令牌失效(例如权限判据同时检查 `auth.users.banned_until`,或缩短令牌寿命),并对"停用后
 用旧令牌调 PostgREST"做一次对着线上的复测。
 
-## AT0-DEEP-DISCHARGE-DIRECT-UPDATE —— 采购单明细行的「深度放电判断」存不进去(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34,2026-09-29)
+## ✅ 已关闭(U1-B,2026-10-05)· AT0-DEEP-DISCHARGE-DIRECT-UPDATE —— 采购单明细行的「深度放电判断」存不进去(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34,2026-09-29)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q20)**:新函数 `set_po_line_deep_discharge`(SECURITY DEFINER,`module.purchasing.edit`,单子没被取消;
+> 不许回到空 —— NULL 的意思是"早于这一条轴";字典里没有的码按名拒),控件改调它。审计记录:"Deep discharge judgement recorded"(一条关键事件,
+> 不并进"改单")。fixture 248 DD1–DD3。
 
 `app/purchasing/orders/[id]/actions.ts` 的 `setDeepDischargeJudgement` 直接 `UPDATE purchase_order_lines`。APR-10 撤掉了这张表的写策略、
 加了语句级触发器 `trg_purchase_order_lines_direct_write` → `guard_po_direct_write()`,它对任何带 RLS 的调用(也就是每一个
@@ -9785,7 +9814,14 @@ Supabase auth 的 `ban_duration = '876000h'`,与 `/settings/accounts` 的「停�
 证据:`docs/surveys/AUDIT-TRAIL-0/ops-commercial.md` §e/f;`db/tables/purchase_order_lines.sql:115-116,227-230`。
 **删除条件:** 这个判断改走一支 SECURITY DEFINER 的函数(与其它明细行写入同一条路),或者这个控件退役。
 
-## AT0-WITHDRAW-PAYMENT-REQUEST-NO-REQUESTER-CHECK —— 任何有财务编辑权的人都能撤回别人的付款申请(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+## ✅ 已关闭(U1-B,2026-10-05)· AT0-WITHDRAW-PAYMENT-REQUEST-NO-REQUESTER-CHECK —— 任何有财务编辑权的人都能撤回别人的付款申请(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+> ★ **✅ 结案:不是缺陷(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q19 照建议)**。**就地更正**:下面"同一族的另外五支 `withdraw_*_request` 都有"那一句【不准】。
+> 实测(`grep -n "self_leg\|require_permission" db/functions/withdraw_*request*.sql`):那几支的写法是
+> `IF self_leg(created_by, NULL, auth.uid()) <> 'raiser' THEN PERFORM require_permission(<码>)` —— 意思是**提单人本人,【或】任何持那个码的人**
+> (`withdraw_invoice_request.sql:3` 的抬头原话),不是"只许提单人"。`withdraw_payment_request` 要 `module.finance.edit`,而提交它
+> (`submit_payment_request.sql:32`)要的正是同一个码 —— **每一个提单人都持它**,所以两种写法放进来的是同一群人;`withdraw_payroll_request`
+> 同形。改成"只许提单人"会让一张提单人离职了的申请搁浅。线上 0 张付款申请(以 postgres 读 `payment_requests`,2026-10-05)。原文保留:
 
 `withdraw_payment_request` 只 `require_permission('module.finance.edit')`,没有"撤回的人就是提交的人"那一条(`self_leg`);
 同一族的另外五支 `withdraw_*_request` 都有。证据:`docs/surveys/AUDIT-TRAIL-0/ops-finance.md` P4 与第 279 行。
@@ -9797,20 +9833,33 @@ Supabase auth 的 `ban_duration = '876000h'`,与 `/settings/accounts` 的「停�
 (开关、一级 / 二级审批角色、金额门槛 —— `ApprovalsForm` → `set_approvals_policy`),每次保存记进 `finance_settings_history`。
 **AUDIT-TRAIL-1a 改正了那段注释**(Tim 的 Q34:六条里只修这一条)。
 
-## AT0-RUN-EQUIPMENT-NOT-PASSED —— 记加工单时从来不带"用了哪台机器"(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+## ✅ 已关闭(U1-B,2026-10-05)· AT0-RUN-EQUIPMENT-NOT-PASSED —— 记加工单时从来不带"用了哪台机器"(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q21:可选)**:`/operation/processing/new` 多了一个可选的"用了哪台机器"(读 `equipment_usage`,
+> 不列已处置的;第一项是"未记录"),`p_equipment_id` 传进 `commit_processing_run`(它本来就校验)。**可选是这一刀的裁定** ——
+> MES-4a 会让挂了机器的工序必须选(MES-0 Q41)。
 
 `commit_processing_run(p_equipment_id)` 收这个参数,但应用里**一处都没传**(`grep p_equipment_id app lib` 0 处);线上 14 张加工单
 0 张有 `equipment_id`。于是机器的用量、按机器看的加工史今天都是空的 —— 那不是审计记录的缺口,是【采集】的缺口。
 证据:`docs/surveys/AUDIT-TRAIL-0/ops-production.md` 第 22、145、297 行。**删除条件:** 录入加工单时选机器(或 Tim 裁定不采集)。
 
-## AT0-ACTIONS-WITHOUT-CALLER —— 三支写数据的服务端动作没有任何界面调用(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+## ✅ 已关闭(U1-B,2026-10-05)· AT0-ACTIONS-WITHOUT-CALLER —— 三支写数据的服务端动作没有任何界面调用(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q24:删)**:`deleteEmployee` · `updateQuoteHeader` · `softDeleteCommissionAgreement` 三支删掉
+> (`grep -rnw` 只命中定义本身);`rollback_processing_run` 那支有名字的拒绝留着(它指向仓库申请那条路)。
 
 `deleteEmployee`(`app/hr/employees/actions.ts:358`)、`updateQuoteHeader`、`softDeleteCommissionAgreement` —— `grep -rnw <名字> app lib`
 只命中定义本身。死代码会随着表结构的变化悄悄变错,而没有人会踩到它。(数据库那一侧 `rollback_processing_run` 同样没有界面调用,
 回滚走的是仓库申请。)证据:`docs/surveys/AUDIT-TRAIL-0/ops-commercial.md` §e、`ops-people-settings.md` 第 14、270 行。
 **删除条件:** 接上界面,或删掉。
 
-## AT0-PO-CLOSE-REASON-IN-NOTES —— 关闭 / 重开采购单时,理由被追加进了「备注」(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+## ✅ 已关闭(U1-B,2026-10-05)· AT0-PO-CLOSE-REASON-IN-NOTES —— 关闭 / 重开采购单时,理由被追加进了「备注」(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的 UNBLOCK-1 Q25 (a))**:关闭 / 重开的理由进它们自己的列(`close_reason` · `closed_by` · `reopen_reason` ·
+> `reopened_at` · `reopened_by`;遮蔽表 —— 加列 · 列授权 · `purchase_orders_masked` 同一支迁移),**notes 不再被改写**;修改史各记一行
+> `closed` / `reopened`,理由在 `amend_reason`;审计记录说 "Purchase order closed / reopened" 并带理由,不再多说一次没有理由的"修改"。
+> 采购单页多了一条"已关闭"横幅(谁、何时、理由)与"重开过"那一行;"签发之后改过"不再被关闭 / 重开 / 取消触发。
+> **线上两张单 notes 里的旧后缀原样留着**(测试数据;Q25)。fixture 248 PO1–PO2。
 
 `close_purchase_order` / `reopen_purchase_order` 把理由拼到 `purchase_orders.notes` 的末尾。于是:备注被一段不是备注的话改写;
 修改史的触发器把它记成一次**没有理由的** `header_update`;审计记录上它读作"Notes … → …"而不是一句"Reason: …"。
@@ -10001,6 +10050,11 @@ banner-noby / history-back / refusal-wrong 三跑,五次 zh = en = 667 字;`cjk`
 **处置(还没做):** 让 `ListTrail` 在被截掉的时候说一句(或者给这几块一个"更早的批次"链接到分录清单的过滤视图)。**删除条件:** 截断被说出来。
 
 ## AT1C3-LIVE-MONTH-CLOSE-BLOCKED-BY-UNALLOCATED-RUNS —— 线上任何一个月末都关不了账:8 张已提交的加工单从未分摊成本(AT-1c-3 的线上证明量到,2026-10-04)
+
+> ★ **U1-B(2026-10-05)补两件代码,本条仍开着(Tim 的 Q26:这 8 张由他自己在 `/operation/processing/[id]` 上点"分摊")**:
+> ① 月结清单数的从此就是关账拒的那一句(`processing_runs_blocking_close`,`close_period` 与清单调同一支 —— 此前清单可以显示 0 而关账照拒);
+> ② 加工那一页认得分摊的几个错误码(`ALLOCATION_STATE_CHANGING_*` · `ALLOCATION_LEDGER_DIVERGED`)与期间锁(共用兜底)。
+> PROC-2026-0001 早于每一条金属价,大概会被 `NO_METAL_VALUE` 拒 —— 改按重量分摊,或先在那天之前录一个价,或申请冲销(Step 0 的建议)。
 
 以 postgres 读(2026-10-04):`processing_runs` 里 `status = 'committed' AND allocated_at IS NULL AND deleted_at IS NULL` 的有 **8** 张,
 `process_date` 全部 ≤ 31/08/2026;锁在 01/08/2026。`close_period` 对每一个 ≥ 锁的月末按名拒 `PROCESSING_COSTS_UNALLOCATED`(INV-VAL-1 R8)。
@@ -10237,7 +10291,12 @@ DATE-PICK-1 在这一页上改的是 PayrollGrid 的月份框;单路由复现是
 (`db/functions/export_my_personal_data.sql` 抬头);fixture 247 EN 臂钉着"导出里仍有那段备注"。
 **删除条件:** 无 —— 只有 Tim 改口才动(那时连同 fixture 247 EN 那一格一起改)。
 
-## U1A-PAYROLL-REVERSAL-REQUEST-SHOWS-AMOUNT —— 一张【工资分录的冲销申请】带着那张分录的金额,对不持 data.view_pay 的财务读者可读(U1-A 登记,2026-10-05)
+## ✅ 已关闭(U1-B,2026-10-05)· U1A-PAYROLL-REVERSAL-REQUEST-SHOWS-AMOUNT —— 一张【工资分录的冲销申请】带着那张分录的金额,对不持 data.view_pay 的财务读者可读(U1-A 登记,2026-10-05)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim:照 `data.view_pay` 那条规矩遮)**:`journal_requests.amount_base` 从列授权里拿掉;新视图 `journal_requests_masked`
+> (金额 + `amount_restricted`),判据 `journal_request_amount_visible`(持 `data.view_pay`,或冲销的不是工资分录 —— 与 `journal_lines_masked`
+> 同一个谓词)。同一支判据管四个读者:视图 · 审批留痕的金额(`approval_log_amount_visible` 多一支)· 变更记录(新规则 `jr_amount`)·
+> 提交与决定两支函数的返回值。凭证页的申请面板读视图、受限时印 Restricted。fixture 248 JR1–JR5;审计记录 ⑭ 的金句。
 
 发薪、公积金、扣款那几张分录的冲销走手工凭证的冲销申请(`journal_entry_reversal_route` 回 `request`)。那张申请
 (`journal_requests.amount_base`,以及它审批留痕上的 `amount_base`)抄着被冲销那张分录的合计 —— 一期一个人时就是一个人的实发工资。
@@ -10246,7 +10305,17 @@ U1-A 遮的是【分录】(Q1:每一张工资分录的每一行,含冲销件),�
 **删除条件:** `journal_requests` 对工资分录的冲销申请按 `data.view_pay` 遮金额(一个 `journal_requests_masked` + 审批留痕 `apr_amount` 多一支),
 或 Tim 裁定冲销申请本来就只有财务看。
 
-## U1A-MEDICAL-EXPENSE-AMOUNT-ON-FINANCE-SIDE —— 一张医疗报销生成的那张费用单,在财务那一侧照旧读得到金额(U1-A 登记,2026-10-05)
+## ✅ 已关闭(U1-B,2026-10-05)· U1A-MEDICAL-EXPENSE-AMOUNT-ON-FINANCE-SIDE —— 一张医疗报销生成的那张费用单,在财务那一侧照旧读得到金额(U1-A 登记,2026-10-05)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05,Tim 的裁定:给财务看金额是付它的正当需要,保留;任何健康的字 —— 事由、诊断、理由 —— 跟 `data.view_health` 走)**。
+> **量下来(代码与线上):费用单自己的列与它的分录里没有健康的字** —— `pay_medical_claim` 只写系统的一句 "Medical claim MC-… (EMP-…)"、
+> 收款人(员工姓名)与科目 6120;报销的事由(`description`)从来不进费用单。**从费用单那一页出去的健康的字是报销单的【批准 / 驳回理由】**:
+> 费用页的审计记录把它生成自的那张报销单整行带过来,`decision_notes` 当理由印给每一个持 `module.hr.view` 的财务读者(cto · gm);
+> 同一段字在审批留痕的 `note` 上又有一份,而自批报表(`self_approved_decisions`,gm · auditor)连金额带说明原样给。
+> 处置:`medical_claims.decision_notes` 与 `approval_log.note` 从列授权里拿掉,经 `medical_claims_masked` / `approval_log_masked` 读
+> (`data.view_health` 或本人;`approval_log_note_visible` 只遮医疗那一类);变更记录多两条规则(`code_or_self` 与 `apr_note`);自批报表问同两道判据;
+> 审计记录里受限的理由说 Restricted,不再消失;搜索不再按医疗报销的理由找(见 U1A-SEARCH-NO-HEALTH-OR-NOTES)。fixture 248 MC1–MC5。
+> 附带登记(同一个形状,不在"这张费用单"的范围):`U1B-LEAVE-DECISION-NOTE-HEALTH-TEXT` · `U1B-EXPENSE-CLAIM-DESCRIPTION-IN-EXPENSE-NOTES`。
 
 U1-A 把医疗报销的金额收到 `data.view_health`(Q8);报销单那一页(`/hr/claims/[id]`)上由它生成的费用单的金额、已付与税额一起遮。
 **但那张费用单本身**(`expenses`,以及它的分录)在 `/finance/expenses`、分录页上照旧给每一个持 `module.finance.view` 的人 ——
@@ -10254,7 +10323,12 @@ U1-A 把医疗报销的金额收到 `data.view_health`(Q8);报销单那一页(`/
 "Medical claim MC-… (EMP-…)",不带病由。cto 与 gm 持 `module.finance.view`,所以读得到"某人某天报销了多少医疗费"。
 **删除条件:** Tim 裁定医疗报销生成的费用单要不要按 `data.view_health` 遮(那会是总账里第二种按行遮金额的单据,形状同工资分录),或裁定这一处可以接受。
 
-## U1A-SELF-GATE-NULL-TRAP —— 九支请假函数的"持码或本人"门,对【没有员工档案】的账号从来没有关过(U1-A 量到,2026-10-05)
+## ✅ 已关闭(U1-B,2026-10-05)· U1A-SELF-GATE-NULL-TRAP —— 九支请假函数的"持码或本人"门,对【没有员工档案】的账号从来没有关过(U1-A 量到,2026-10-05)
+
+> ★ **✅ 已关闭(U1-B,`v1.4.36`,2026-10-05)**:九支都改成 `COALESCE(p_employee_id = current_user_employee(), false)`。fixture 248 LV 臂(一个没有员工档案、
+> 不持 hr.view 的账号九支都被按名拒;本人照旧读得到自己的);注入落在叶子 `consumed_from_accrual` 上(`leave_balance` 往下调
+> `leave_balance_internal`,在它上面注入不咬人 —— 实测,写在注入脚本里)。**门关上之后量到的一处**:fixture 233 的布景以 postgres、
+> 不带会话读 `leave_balance_internal` —— 那正是 NULL 陷阱放行的形状 —— 改成以它的 HR 读者身份读。线上没有任何一条无会话的调用路。
 
 `IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN RAISE …` —— 一个没有员工档案的账号,
 `current_user_employee()` 是 NULL,于是 `p_employee_id = NULL` 是 NULL,`NOT (false OR NULL)` 也是 NULL,`IF NULL` 不进分支:**门是开的**。
@@ -10270,3 +10344,26 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 `document_types` 的 `match_columns` / `label_column` 必须对 `authenticated` 可读(fixture 100/8 · 199F 的判据:一个只对持码人可读的列做搜索,
 等于让不持码的人用搜索框去试出那段字)。U1-A 把那几列收起来之后,搜索也跟着不认它们了:员工不按 `notes` 找;请假单不按事由与病假单号找、
 搜索结果只印编号;医疗报销不按事由找、只印编号。**这是买来的代价,不是缺陷。** **删除条件:** 无 —— 若要恢复,要先有一条按读者的码过滤的搜索路(另一刀)。
+★ **U1-B(2026-10-05)再收一列**:医疗报销的搜索也不再按 `decision_notes`(批准 / 驳回理由)找 —— 那一列也收到了 `data.view_health`。
+
+## U1B-LEAVE-DECISION-NOTE-HEALTH-TEXT —— 一张病假的批准 / 驳回理由,对持 module.hr.view 而不持 data.view_health 的读者照旧读得到(U1-B 登记,2026-10-05)
+
+与医疗报销的批准理由同一个形状(U1-B 收了那一处,见 `U1A-MEDICAL-EXPENSE-AMOUNT-ON-FINANCE-SIDE` 的关闭说明):`leave_requests.decision_notes`
+与审批留痕上请假那几行的 `note` 是 HR 写下的理由,一张病假的理由可能说到病情。U1-A 收的是请假的【事由】、病假单号与例外理由,
+没有收【决定的理由】;U1-B 的裁定(Tim)管的是"医疗报销生成的那张费用单与它的页面",不覆盖请假。**没有修。**
+线上 6 张请假单(以 postgres 读 `leave_requests`,2026-10-05)。**删除条件:** Tim 裁定请假的决定理由要不要跟 `data.view_health` 走
+(那会是 `leave_requests_masked` 多一列、`approval_log_note_visible` 多一支 `leave_request`、搜索再少一列)。
+
+## U1B-EXPENSE-CLAIM-DESCRIPTION-IN-EXPENSE-NOTES —— 一张普通报销单的说明被抄进它生成的费用单的备注(U1-B 量到,2026-10-05)
+
+`decide_expense_claim` 批准时建费用单,`notes` = `'Expense claim <单号> (<员工编号>) — <报销说明>'` —— 报销说明是员工自己写的字,
+费用页把它当"理由"印给每一个持 `module.finance.view` 的人。**它不是医疗报销**(医疗报销走 `pay_medical_claim`,不抄事由),
+而报销单没有"医疗"这一类;只有员工把看病的钱当成普通报销提交时,这里才会出现健康的字 —— 那是一个流程上的口子,不是一条代码路。
+**没有修**(不在 Tim 对医疗报销费用单那条裁定的范围里)。**删除条件:** Tim 裁定普通报销的说明在财务那一侧算不算可读(或报销单加一个"医疗"类)。
+
+## U1B-ALLOCATION-PRICE-INDEX-LEGS —— 分摊成本时,合计按指数过滤、逐金属的那一段与 skipped_metals 不过滤(UNBLOCK-1 Step 0 §3 5.1 的附带发现,Tim 的 Q26:登记)
+
+`allocate_processing_costs` 求合计时按 `price_index` 过滤报价(约 `:356-360`),而逐金属的 CTE(约 `:425-437`)与 `skipped_metals`(约 `:398-405`)
+不过滤 —— 一旦两条指数在同一天都有价,逐金属的那几条腿与合计会对不上。**今天不显形 —— 量过**(以 postgres 读 `metal_prices` 基表,
+2026-10-05 20:3x CST):12 行,`price_index` **全部为 NULL**(2026-06-25 → 2026-08-10),同一金属同一天有两条指数的 **0** 天。**没有修**(Tim 的 Q26:它要一支自带两条指数的 fixture,单独一刀)。
+**删除条件:** 三处用同一个过滤,带一支两条指数同日都有价的 fixture。

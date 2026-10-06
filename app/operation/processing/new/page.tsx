@@ -117,6 +117,21 @@ export default async function NewProcessingPage() {
             materials: material_id && nameOf.has(material_id) ? { name: nameOf.get(material_id) as string } : null,
             available_qty: availByBatch.get(b.id) ?? 0,
         }))
+    // UNBLOCK-1 Q21:「用了哪台机器」的选项。读 equipment_usage(属主权限视图,
+    // 财务或加工两个模块任一即可读 —— 机器卡在财务,干活的人在加工)。
+    // 【已处置的不列】commit_processing_run 会按名拒(EQUIPMENT_DISPOSED),
+    // 这里不画一个必然被拒的选项。尚未购入那一条(EQUIPMENT_NOT_ACQUIRED)取决于
+    // 加工日期,而日期在表单里会变 —— 那一条留给服务端说,不在这里预判。
+    const equipment = (mustRows(
+        await supabase
+            .from('equipment_usage')
+            .select('equipment_id, equipment_code, equipment_description')
+            .neq('equipment_status', 'disposed')
+            .order('equipment_code'),
+        'equipment_usage'
+    ) as unknown as { equipment_id: string; equipment_code: string; equipment_description: string | null }[])
+        .map((e) => ({ id: e.equipment_id, code: e.equipment_code, description: e.equipment_description }))
+
     // ROLE-1 Batch 3b:建加工单 = commit_processing_run;没有收货码的人,「先去建收货单」那条链接也按不动
     const [canCommit, canReceive] = await Promise.all([can('action.processing_commit'), can('action.receive_goods')])
 
@@ -132,6 +147,7 @@ export default async function NewProcessingPage() {
             workOrders={mustRows(workOrdersRes, 'work_orders') as unknown as
                 { id: string; code: string; scheduled_date: string | null }[]}
             operations={operations}
+            equipment={equipment}
             canCommit={canCommit}
             canReceive={canReceive}
         />

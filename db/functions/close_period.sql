@@ -32,13 +32,10 @@ BEGIN
 
     -- ★ INV-VAL-1 R8:第五条 —— 已提交但从未分摊成本的加工单挡住关账。
     -- 与折旧那一条同形(都是"这个月还欠着一件必须做完的事"),所以紧挨着它。
-    SELECT count(*), string_agg(r.code, ', ' ORDER BY r.process_date, r.code)
+    -- U1-B:判据抽成 processing_runs_blocking_close —— 月结清单读同一支,两边从此数的是同一样东西。
+    SELECT b.run_count, b.run_codes
       INTO v_run_n, v_runs
-      FROM processing_runs r
-     WHERE r.deleted_at IS NULL
-       AND r.status = 'committed'
-       AND r.allocated_at IS NULL
-       AND r.process_date <= p_period_end;
+      FROM processing_runs_blocking_close(p_period_end) b;
     IF COALESCE(v_run_n, 0) > 0 THEN
         RAISE EXCEPTION 'PROCESSING_COSTS_UNALLOCATED|%|%|%', p_period_end, v_run_n, v_runs
           USING HINT = '这些加工单已提交但从未分摊成本 —— 料已经动了,而 1200 还没有被解除。'

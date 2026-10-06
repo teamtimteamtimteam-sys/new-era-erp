@@ -4455,6 +4455,9 @@ export type Database = {
           started_at: string
           updated_at: string
           updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           created_at?: string
@@ -4468,6 +4471,9 @@ export type Database = {
           started_at: string
           updated_at?: string
           updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           created_at?: string
@@ -4481,6 +4487,9 @@ export type Database = {
           started_at?: string
           updated_at?: string
           updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -15454,7 +15463,9 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           category: string
+          close_reason: string | null
           closed_at: string | null
+          closed_by: string | null
           code: string
           contract_id: string | null
           created_at: string
@@ -15471,6 +15482,9 @@ export type Database = {
           incoterm: string | null
           notes: string | null
           order_date: string
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
           status: string
           supplier_id: string
           tax_total_ccy: number | null
@@ -15486,7 +15500,9 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category: string
+          close_reason?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           code: string
           contract_id?: string | null
           created_at?: string
@@ -15503,6 +15519,9 @@ export type Database = {
           incoterm?: string | null
           notes?: string | null
           order_date: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           status?: string
           supplier_id: string
           tax_total_ccy?: number | null
@@ -15518,7 +15537,9 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category?: string
+          close_reason?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           code?: string
           contract_id?: string | null
           created_at?: string
@@ -15535,6 +15556,9 @@ export type Database = {
           incoterm?: string | null
           notes?: string | null
           order_date?: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           status?: string
           supplier_id?: string
           tax_total_ccy?: number | null
@@ -21159,7 +21183,7 @@ export type Database = {
           id?: string | null
           is_reconstructed?: boolean | null
           level?: number | null
-          note?: string | null
+          note?: never
           reconstruction_note?: string | null
           self_decided?: boolean | null
           seq?: number | null
@@ -21179,7 +21203,7 @@ export type Database = {
           id?: string | null
           is_reconstructed?: boolean | null
           level?: number | null
-          note?: string | null
+          note?: never
           reconstruction_note?: string | null
           self_decided?: boolean | null
           seq?: number | null
@@ -23825,6 +23849,104 @@ export type Database = {
           },
         ]
       }
+      journal_requests_masked: {
+        Row: {
+          amount_base: number | null
+          amount_restricted: boolean | null
+          created_at: string | null
+          created_by: string | null
+          credits_bank: boolean | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          entry_date: string | null
+          id: string | null
+          kind: string | null
+          label: string | null
+          lines: Json | null
+          memo: string | null
+          result_journal_entry_id: string | null
+          status: string | null
+          target_entry_id: string | null
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base?: never
+          amount_restricted?: never
+          created_at?: string | null
+          created_by?: string | null
+          credits_bank?: boolean | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          entry_date?: string | null
+          id?: string | null
+          kind?: string | null
+          label?: string | null
+          lines?: Json | null
+          memo?: string | null
+          result_journal_entry_id?: string | null
+          status?: string | null
+          target_entry_id?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: never
+          amount_restricted?: never
+          created_at?: string | null
+          created_by?: string | null
+          credits_bank?: boolean | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          entry_date?: string | null
+          id?: string | null
+          kind?: string | null
+          label?: string | null
+          lines?: Json | null
+          memo?: string | null
+          result_journal_entry_id?: string | null
+          status?: string | null
+          target_entry_id?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "journal_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "journal_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_employee_linkage_matrix: {
         Row: {
           cycle_id: string | null
@@ -24391,7 +24513,7 @@ export type Database = {
           created_by?: string | null
           decided_at?: string | null
           decided_by?: string | null
-          decision_notes?: string | null
+          decision_notes?: never
           deleted_at?: string | null
           description?: never
           employee_id?: string | null
@@ -24412,7 +24534,7 @@ export type Database = {
           created_by?: string | null
           decided_at?: string | null
           decided_by?: string | null
-          decision_notes?: string | null
+          decision_notes?: never
           deleted_at?: string | null
           description?: never
           employee_id?: string | null
@@ -28572,7 +28694,9 @@ export type Database = {
           cancelled_by: string | null
           carries_tax: boolean | null
           category: string | null
+          close_reason: string | null
           closed_at: string | null
+          closed_by: string | null
           code: string | null
           contract_id: string | null
           created_at: string | null
@@ -28590,6 +28714,9 @@ export type Database = {
           incoterm: string | null
           notes: string | null
           order_date: string | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
           status: string | null
           supplier_id: string | null
           tax_total_ccy: number | null
@@ -28606,7 +28733,9 @@ export type Database = {
           cancelled_by?: string | null
           carries_tax?: never
           category?: string | null
+          close_reason?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           code?: string | null
           contract_id?: string | null
           created_at?: string | null
@@ -28624,6 +28753,9 @@ export type Database = {
           incoterm?: string | null
           notes?: string | null
           order_date?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           status?: string | null
           supplier_id?: string | null
           tax_total_ccy?: never
@@ -28640,7 +28772,9 @@ export type Database = {
           cancelled_by?: string | null
           carries_tax?: never
           category?: string | null
+          close_reason?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           code?: string | null
           contract_id?: string | null
           created_at?: string | null
@@ -28658,6 +28792,9 @@ export type Database = {
           incoterm?: string | null
           notes?: string | null
           order_date?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           status?: string | null
           supplier_id?: string | null
           tax_total_ccy?: never
@@ -30233,6 +30370,10 @@ export type Database = {
         Args: { p_subject_id: string; p_subject_type: string }
         Returns: boolean
       }
+      approval_log_note_visible: {
+        Args: { p_subject_id: string; p_subject_type: string }
+        Returns: boolean
+      }
       approval_log_readable: {
         Args: { p_subject_type: string }
         Returns: boolean
@@ -30269,6 +30410,16 @@ export type Database = {
           p_action_function: string
           p_level: number
           p_refusal: string
+          p_subject_type: string
+        }
+        Returns: undefined
+      }
+      assert_other_decider_for_subject: {
+        Args: {
+          p_action_function: string
+          p_level: number
+          p_refusal: string
+          p_subject_employee: string
           p_subject_type: string
         }
         Returns: undefined
@@ -31315,6 +31466,10 @@ export type Database = {
           source_type: string
         }[]
       }
+      journal_request_amount_visible: {
+        Args: { p_request_id: string }
+        Returns: boolean
+      }
       journal_request_dry_run: { Args: { p_request_id: string }; Returns: Json }
       journal_request_post_internal: {
         Args: { p_request_id: string }
@@ -31740,6 +31895,13 @@ export type Database = {
       pricing_terms_of_formula: {
         Args: { p_formula_id: string }
         Returns: Json
+      }
+      processing_runs_blocking_close: {
+        Args: { p_period_end: string }
+        Returns: {
+          run_codes: string
+          run_count: number
+        }[]
       }
       promote_task_to_team: { Args: { p_task_id: string }; Returns: undefined }
       purchase_order_kind: {
@@ -32624,6 +32786,10 @@ export type Database = {
         Args: { p_expected_date?: string; p_term_id: string }
         Returns: Json
       }
+      set_po_line_deep_discharge: {
+        Args: { p_code: string; p_line_id: string }
+        Returns: Json
+      }
       set_review_conclusion: {
         Args: {
           p_rating_code: string
@@ -33147,6 +33313,10 @@ export type Database = {
           p_voided_by?: string
         }
         Returns: undefined
+      }
+      void_equipment_downtime: {
+        Args: { p_downtime_id: string; p_reason: string }
+        Returns: Json
       }
       void_invoice: {
         Args: {

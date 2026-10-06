@@ -33,20 +33,21 @@
 //   「幽灵 admin 授权」一节(66 → 21 → 8 三次清扫)。
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup } from './ephemeral.mjs'
+import { acquireOrExit, release } from './liveLock.mjs'
 
 // ★ LEAK-1(2026-09-06):这一支从前【一个信号处理器都没有】—— finally 里的
 //   两句 DELETE 只在正常跑完时管用,Ctrl-C / 管道断掉一律留下一个一次性 admin。
-//   ★ 它也【不持 live-lock】(与 smoke / survey / avatar / gate 不同)。那是另一件事,
-//     不在 LEAK-1 的范围里,已按名记进 docs/known-issues.md。
-installExitHooks()
+// ★ U1-B(2026-10-05)took the live-lock:与 smoke / u1a 一样 acquireOrExit(…, { ownExit: false }),
+//   放锁接在 installExitHooks 的 onFinish 上(清理跑完之后才放)。此前它造一次性账号与授权而【不持锁】
+//   —— 于是它能与冒烟 / 探针同时对着线上库造授权。锁被别人占着时退 5(liveLock 的约定),那时什么都还没造。
+installExitHooks({ onFinish: () => { try { release() } catch {} } })
 
 const ROOT = process.cwd()
 const PORT = Number(process.env.PORT ?? 3199)
 const BASE = `http://localhost:${PORT}`
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 const outArg = process.argv.indexOf('--out')
@@ -107,27 +108,17 @@ const DOCS = [
 ]
 
 const main = async () => {
+    acquireOrExit('scripts/render-pdf-samples.mjs', { ownExit: false })
     mkdirSync(OUT, { recursive: true })
     openPlan('scripts/render-pdf-samples.mjs')
     await reapStalePlans()
 
-    // ── 一次性 admin 会话(形状取自 scripts/smoke-routes.mjs)────────────────
-    const stamp = Date.now()
-    const email = `pdfsample-${stamp}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'pdf-pass-1', email_confirm: true }) })).json()
-    // ★ LEAK-1:计划先于它要清的东西落盘,顺序是先收权限再删账号。
-    planDelete(`/rest/v1/user_roles?user_id=eq.${cu.id}`, '收尾:收回一次性 admin 授权', ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${cu.id}`, '收尾:删一次性 admin 账号', ORDER.ACCOUNT)
-    const roleRows = await rows('/rest/v1/roles?select=id&code=eq.admin', 'roles ← admin')
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(cu.id, roleRows[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'pdf-pass-1' }) })).json()
-    if (!sess?.access_token) throw new Error(`登录失败:${JSON.stringify(sess).slice(0, 200)}`)
-    const cookie = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token=base64-'
-        + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ── 一次性全码会话(形状取自 scripts/smoke-routes.mjs)──────────────────
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】(而且不看授权那一句的返回码);现在经 mintThrowaway
+    //   造一个一次性全码角色(probe-pdfsample-all-<stamp>)授给它 —— 删除步先落盘(先收权限、再删角色、再删账号),
+    //   每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'pdfsample', label: 'all', codes: 'all', password: 'pdf-pass-1' })
+    const cookie = tw.cookie
 
     const results = []
     try {

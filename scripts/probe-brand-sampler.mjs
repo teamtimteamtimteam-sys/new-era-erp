@@ -162,7 +162,7 @@ if (process.argv.includes('--compare')) {
 // §MEASURE
 // ════════════════════════════════════════════════════════════════════════════
 const { acquireOrExit, release } = await import('./liveLock.mjs')
-const { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, ORDER } = await import('./ephemeral.mjs')
+const { openPlan, mintThrowaway, runPlan, reapStalePlans } = await import('./ephemeral.mjs')
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3204                 // 3198 survey · 3199 冒烟 · 3201 avatar · 3202/3203 两支 probe
@@ -172,7 +172,6 @@ const OUT = arg('--out') || '/tmp/brand-sampler-census.json'
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
@@ -271,22 +270,11 @@ async function main() {
     if (!existsSync(CHROME)) throw new Error('chrome-headless-shell not at ' + CHROME)
     try { execSync(`lsof -ti tcp:${PORT} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {}
 
-    const email = `sampler-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'sampler-probe-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'sampler-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败: ' + JSON.stringify(sess).slice(0, 200))
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一次性全码角色(probe-sampler-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'sampler', label: 'all', codes: 'all', password: 'sampler-probe-1' })
+    accountId = tw.userId
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     server = spawn('npx', ['next', 'start', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
     server.stderr.on('data', () => {})

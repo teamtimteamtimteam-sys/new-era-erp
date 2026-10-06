@@ -109,6 +109,7 @@ REVOKE ALL ON public.document_types FROM anon;
 --   一个只对持码人可读的列做搜索,等于让一个不持码的人用搜索框去试出那段字(页面刻意扣住的东西)。
 --   employee:match 去掉 notes(人事备注,Q6);leave_request:label 从 reason 改成空(只印编号)、match 去掉 reason 与 certificate_ref;
 --   medical_claim:label 从 description 改成空、match 去掉 description(Q8 的健康数据)。代价照直说:HR 不能再用请假事由或看病事由搜单据。
+--   ★ U1-B(2026-10-05):medical_claim 的 match 再去掉 decision_notes(批准 / 驳回理由也收到了 data.view_health)。
 INSERT INTO public.document_types
     (key, prefix, table_name, numbering, sequence_name, route, link_mode, label_column, match_columns, view_permission)
 VALUES
@@ -122,7 +123,7 @@ VALUES
     ('fixed_asset', 'FA', 'fixed_assets', 'gapless', NULL, '/finance/assets', 'detail', 'description', ARRAY['description', 'category', 'notes']::text[], ARRAY['module.finance.view']::text[]),
     ('cash_forecast', 'FCST', 'cash_forecasts', 'gapless', NULL, '/finance/cash-forecast', 'list', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
     ('leave_request', 'LV', 'leave_requests', 'gapless', NULL, '/hr/leave', 'detail', NULL, ARRAY['decision_notes']::text[], ARRAY['module.hr.view']::text[]),
-    ('medical_claim', 'MC', 'medical_claims', 'gapless', NULL, '/hr/claims', 'detail', NULL, ARRAY['receipt_ref', 'decision_notes']::text[], ARRAY['module.hr.view']::text[]),
+    ('medical_claim', 'MC', 'medical_claims', 'gapless', NULL, '/hr/claims', 'detail', NULL, ARRAY['receipt_ref']::text[], ARRAY['module.hr.view']::text[]),
     ('payroll_period', 'PAY', 'payroll_periods', 'gapless', NULL, '/hr/payroll', 'detail', 'notes', ARRAY['source_note', 'notes']::text[], ARRAY['module.hr.view']::text[]),
     ('pricing_formula', 'PF', 'pricing_formulas', 'gapless', NULL, '/tools/pricing/formulas', 'list', 'name', ARRAY['name', 'notes']::text[], ARRAY['module.pricing.view']::text[]),
     ('purchase_order', 'PO', 'purchase_orders', 'gapless', NULL, '/purchasing/orders', 'detail', 'notes', ARRAY['terms_text', 'notes', 'delivery_location']::text[], ARRAY['module.purchasing.view']::text[]),

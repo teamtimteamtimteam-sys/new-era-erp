@@ -16,6 +16,7 @@ export const MASKED_TABLES: ReadonlySet<string> = new Set([
     'invoice_lines',
     'invoices',
     'journal_lines',
+    'journal_requests',
     'leave_requests',
     'medical_claims',
     'payment_term_template_lines',

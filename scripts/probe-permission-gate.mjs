@@ -30,7 +30,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3205, CDP_PORT = 9341
@@ -41,11 +41,7 @@ const FAULT = process.env.PROBE_FAULT || ''
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
-const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
-    apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', ...(o.headers || {}) } })
 
 const results = [], fail = []
 const probe = (id, ok, detail) => { results.push({ id, ok }); if (!ok) fail.push(`${id}: ${detail}`)
@@ -68,26 +64,17 @@ function killChildren() {
 }
 installExitHooks({ onFinish: () => { killChildren(); try { release() } catch {} } })
 
+// ★ U1-B(2026-10-05,GHOST-GRANTS):此前两条臂各授一个【真角色】(auditor / finance),而且不看授权那一句的
+//   返回码;现在经 scripts/ephemeral.mjs 的 mintThrowaway 授一个一次性克隆 —— probe-pgprobe-<tag>-<stamp>,
+//   恰好持那个真角色此刻的码({ cloneOf })。
+//   为什么克隆就够、不必真角色:本探针判的是控件【按不按得动、旁边有没有话、有没有消失】,
+//   而那道门是页面按【码】问的(canEdit / requireEditPermission:module.finance.edit 之类);
+//   没有一处按角色码认人,也不测审批人 / 决定者。克隆源不存在或零码,mintThrowaway 当场抛。
+//   perms 读的是这个会话【实际持有】的码(克隆时从真角色读来、写进一次性角色的那一组)。
 async function mint(roleCode, tag) {
-    const email = `pgprobe-${tag}-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'pg-probe-1', email_confirm: true }) })).json()
-    if (!cu.id) throw new Error(`账号建不出来(${tag}): ` + JSON.stringify(cu).slice(0, 200))
-    // ★ LEAK-1:先删授权再删账号。
-    planDelete(`/rest/v1/user_roles?user_id=eq.${cu.id}`, `revoke pgprobe grant ${cu.id}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${cu.id}`, `delete pgprobe account ${cu.id}`, ORDER.ACCOUNT)
-    const roles = await (await rest(`/rest/v1/roles?select=id,code&code=eq.${roleCode}`)).json()
-    if (!roles?.[0]?.id) throw new Error(`线上没有 ${roleCode} 角色`)
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(cu.id, roles[0].id)) })
-    const perms = new Set((await (await rest(
-        `/rest/v1/role_permissions?select=permission_code&role_id=eq.${roles[0].id}`)).json() || [])
-        .map((r) => r.permission_code))
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'pg-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error(`登录失败(${tag})`)
-    accounts.push(cu.id)
-    return { perms, sess }
+    const tw = await mintThrowaway({ prefix: 'pgprobe', label: tag, codes: { cloneOf: roleCode }, password: 'pg-probe-1' })
+    accounts.push(tw.userId)
+    return { perms: new Set(tw.codes), sess: tw.session }
 }
 
 try {

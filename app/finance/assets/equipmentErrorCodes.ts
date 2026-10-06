@@ -102,6 +102,14 @@ const EQUIPMENT_ERROR_CODES = new Set([
     // 它由 refuseFromCoded 的分支 ① 在本地化器【之前】接住(六个本地化器都
     // 没有那一支,这是那个函数抬头逐字记着的分工)。放进来会是第二份实现。
     'ASSET_NOT_FOUND',
+    // ── U1-B(2026-10-05,UNBLOCK-1 Q15):停机可以更正、可以作废,永远不硬删 ─────────
+    // guard_downtime_write 抛前三条(删 · 改一段已作废的 · 直连写作废那三列);
+    // void_equipment_downtime 抛后三条;约束 equipment_downtime_void_shape 是第四层兜底
+    // (作废三列要么全空,要么带着时刻与理由)。参数 {0} 是那一段的【起始时刻】(新加坡时间,
+    // YYYY-MM-DD HH24:MI —— 与 formatAuditStamp 同一个长相),DOWNTIME_NOT_FOUND 的 {0} 是 id。
+    'DOWNTIME_NEVER_DELETED', 'DOWNTIME_VOIDED', 'DOWNTIME_VOID_THROUGH_FUNCTION_ONLY',
+    'DOWNTIME_NOT_FOUND', 'DOWNTIME_ALREADY_VOIDED', 'DOWNTIME_VOID_REASON_REQUIRED',
+    'equipment_downtime_void_shape',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

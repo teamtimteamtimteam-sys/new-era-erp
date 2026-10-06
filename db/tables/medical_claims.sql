@@ -77,7 +77,9 @@ CREATE POLICY "medical_claims delete by permission"
 --   表级 SELECT 授权蕴含所有列,所以先整表收回、再逐列授回(employees 与 payroll_lines 同一个做法);写权限不动。
 --   列授权不随 ADD COLUMN 自动延伸:给这张表加列,要回到这一行,并把它放进 medical_claims_masked(gate 的 colgrant)。
 REVOKE SELECT ON public.medical_claims FROM authenticated, anon;
-GRANT SELECT (id, code, employee_id, claim_date, claim_year, receipt_ref, status, decided_at, decided_by, decision_notes,
+-- ★ U1-B(2026-10-05,Tim 对医疗报销费用单的裁定):decision_notes(HR 写的批准 / 驳回理由)也是健康的字 —— 从列授权里拿掉,
+--   与 description 同一个判据(data.view_health,或本人)。它此前经费用单那一页的审计记录给了每一个持 module.hr.view 的财务读者。
+GRANT SELECT (id, code, employee_id, claim_date, claim_year, receipt_ref, status, decided_at, decided_by,
               expense_id, deleted_at, created_at, created_by, updated_at, updated_by, withdrawn_at)
     ON public.medical_claims TO authenticated;
 

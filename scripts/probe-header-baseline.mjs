@@ -30,11 +30,11 @@
 // 用法:node scripts/probe-header-baseline.mjs --tag=before|after
 // 输出:scratchpad JSON + 人读的摘要
 // ════════════════════════════════════════════════════════════════════════════
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const OUT_DIR = process.env.SURVEY_OUT || join(ROOT, '.survey-out')
@@ -43,10 +43,6 @@ const PORT = 3204          // 3198 survey-phone · 3199 smoke · 3201 avatar · 
 const CDP_PORT = 9340
 const TAG = (process.argv.find(a => a.startsWith('--tag=')) || '--tag=run').split('=')[1]
 
-const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
-const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
-const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 // ★ 取样路由 —— §4.3 要求「至少三条裸 <Button> 调用点的路由」,这里给了四条,
 //   外加三种【别的形状】做对照:div 容器 · 带 shrink-0 的 div · 裸 fragment。
@@ -61,7 +57,7 @@ const ROUTES = [
 ]
 const WIDTHS = [390, 1280]
 
-let dev = null, chrome = null, accountId = null
+let dev = null, chrome = null
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 function killChildren() {
     for (const c of [dev, chrome]) { try { if (c?.pid) process.kill(-c.pid, 'SIGKILL') } catch {} try { c?.kill('SIGKILL') } catch {} }
@@ -87,9 +83,6 @@ class Cdp {
             setTimeout(() => { if (this.waiting.has(id)) { this.waiting.delete(id); rej(new Error('CDP timeout ' + method)) } }, 60000)
         })
     }
-}
-async function rest(path, opts = {}) {
-    return fetch(URL_ + path, { ...opts, headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', ...(opts.headers || {}) } })
 }
 
 // ── 页面里跑的那段:找抬头、量两段字的墨迹底边 ──────────────────────────────
@@ -147,21 +140,12 @@ async function main() {
         }
     } catch (e) { if (/held by a LIVE/.test(e.message)) throw e }
 
-    const email = `hdrbase-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST', body: JSON.stringify({ email, password: 'hdrbase-pass-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('could not create probe account: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke hdrbase grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete hdrbase account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', {
-        method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'hdrbase-pass-1' }) })).json()
-    if (!sess?.access_token) throw new Error('probe sign-in failed')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
-    console.error('· ephemeral admin session ready')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】(而且不看授权那一句的返回码);现在经 mintThrowaway
+    //   造一个一次性全码角色(probe-hdrbase-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'hdrbase', label: 'all', codes: 'all', password: 'hdrbase-pass-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
+    console.error('· ephemeral all-codes session ready')
 
     console.error('· starting next dev on :' + PORT)
     dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })

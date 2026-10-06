@@ -72,7 +72,7 @@ export default async function PurchaseOrderDetailPage({
 
     const { data: poRaw, error } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by, delivery_location, category, deleted_at')
+        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by, closed_at, closed_by, close_reason, reopened_at, reopened_by, reopen_reason, delivery_location, category, deleted_at')
         .eq('id', id)
         .single()
 
@@ -105,6 +105,10 @@ export default async function PurchaseOrderDetailPage({
     const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw) as unknown as
         (Tables<'purchase_orders'> & { tax_total_ccy: number | null; gross_total_ccy: number | null; carries_tax: boolean })
 
+    // 改单的那几种历史行 —— 与 purchase_order_history 的 change_type CHECK 对照着列;
+    // 不在这里的(cancelled / closed / reopened)是状态转换。
+    const PO_AMEND_TYPES = ['header_update', 'line_update', 'line_add', 'line_remove',
+                            'payment_term_add', 'payment_term_update', 'payment_term_remove']
     const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes, historyRes,
            contractTermsRes, contractOptionsRes, contractCountRes] = await Promise.all([
         // ★ FIX-2b:查名视图。基表要 module.suppliers.view,本页的门是采购 ——
@@ -139,9 +143,13 @@ export default async function PurchaseOrderDetailPage({
         // PUR-2:编辑史。最新一行的时点用来判断"已改、未重发"
         // ★ HISTORY-1(Tim 的 Q20):读【遮蔽视图】—— 基表的价格列已从 authenticated 收回
         //   (与采购行 / 采购单同一个码 data.view_purchase_prices)。本段只画数量与理由,不画价格。
+        // ★ U1-B(UNBLOCK-1 Q25):【只数改单那几种】—— closed / reopened / cancelled 是状态转换,
+        //   不改供应商手里那张纸上的字。关单与重开从此各记一行历史,不筛掉的话,
+        //   关一次单就会让"已改、未重发"亮起来。集合是 PO_AMEND_TYPES(就在下面这句查询上方)。
         supabase.from('purchase_order_history_masked')
             .select('id, change_type, line_no, amend_reason, changed_at, old_quantity, new_quantity, old_estimated_unit_price, new_estimated_unit_price, old_estimated_total_ccy, new_estimated_total_ccy, payment_term_seq')
-            .eq('purchase_order_id', id).order('changed_at', { ascending: false }).limit(50),
+            .eq('purchase_order_id', id).in('change_type', PO_AMEND_TYPES)
+            .order('changed_at', { ascending: false }).limit(50),
         // ── PUR-1:这张单挂在哪一份合同之下 ─────────────────────────────────
         // ★【读的是【抄下来的那一份】】★ contract_document_terms.contract_code
         //   是挂接那一刻抄下来的【值】。顺着 purchase_orders.contract_id 回查
@@ -206,7 +214,8 @@ export default async function PurchaseOrderDetailPage({
     // PUR-2:【已改、未重发】。比较【最新一次签发】与【最新一条编辑史】的时点 ——
     // 修改不作废那次签发(它确实发出去过),但供应商手里那份已经不是现在这张单了。
     // AUDEL-3:取名与兜底只有一处 —— app/components/ActorName.tsx。
-    const cancelNames = await loadActorNames(supabase, [po.cancelled_by])
+    // U1-B(Q25):关单人与重开人也走同一处取名(两条横幅/附注用一张表)。
+    const statusActorNames = await loadActorNames(supabase, [po.cancelled_by, po.closed_by, po.reopened_by])
 
     const history = mustRows(historyRes, 'purchase_order_history_masked') as unknown as {
         id: string; change_type: string; line_no: number | null; amend_reason: string | null
@@ -698,11 +707,45 @@ export default async function PurchaseOrderDetailPage({
                     {po.cancelled_by && (
                         <>
                             {' · '}
-                            <ActorName userId={po.cancelled_by} names={cancelNames} />
+                            <ActorName userId={po.cancelled_by} names={statusActorNames} />
                         </>
                     )}
                     {po.cancel_reason ? `:${po.cancel_reason}` : ''}
                 </div>
+            )}
+
+            {/* U1-B(UNBLOCK-1 Q25):关单与取消同形 —— 什么时候、谁、为什么。
+                理由从前被追加进备注(还印上发给供应商的 PDF);现在住在 close_reason。
+                没写理由是一个【正当】的答案(没有未抵扣预付时可以不写),所以说出来,不留白。
+                旧单备注里那句 "[… closed] …" 后缀照旧留着(Tim:不改历史备注)。 */}
+            {po.status === 'closed' && (
+                <div className="bg-gray-100 border border-gray-400 text-gray-800 px-4 py-3 rounded mb-4 text-sm">
+                    {t('purchasing.status.closed')}
+                    {po.closed_at ? ` · ${formatAuditStamp(po.closed_at)}` : ''}
+                    {po.closed_by && (
+                        <>
+                            {' · '}
+                            <ActorName userId={po.closed_by} names={statusActorNames} />
+                        </>
+                    )}
+                    {po.close_reason
+                        ? `:${po.close_reason}`
+                        : <span className="block text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.closeReasonNone')}</span>}
+                </div>
+            )}
+            {/* 重开过、而此刻没有关着:一行小字,不是横幅 —— 这张单现在是活的。 */}
+            {po.reopened_at && po.status !== 'closed' && (
+                <p className="mb-4 text-xs text-[color:var(--brand-muted-text)]">
+                    {t('purchasing.reopenedLabel')}
+                    {` · ${formatAuditStamp(po.reopened_at)}`}
+                    {po.reopened_by && (
+                        <>
+                            {' · '}
+                            <ActorName userId={po.reopened_by} names={statusActorNames} />
+                        </>
+                    )}
+                    {po.reopen_reason ? `:${po.reopen_reason}` : ''}
+                </p>
             )}
                 </>
             }
@@ -889,6 +932,7 @@ export default async function PurchaseOrderDetailPage({
                 poId={id}
                 ddOptions={ddOptions}
                 canEditPurchasing={canEditPurchasing}
+                poCancelled={isCancelled}
                 isEquipmentOrder={isEquipmentOrder}
             />
 

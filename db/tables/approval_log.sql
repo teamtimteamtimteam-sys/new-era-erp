@@ -300,8 +300,10 @@ REVOKE SELECT ON public.approval_log FROM authenticated, anon;
 -- ★ U1-A(UNBLOCK-1 Q8 · Q10):amount_ccy 与 amount_base 从列授权里拿掉 —— 工资申请那一行的金额是一期的工资合计,
 --   医疗报销那一行是报销的金额;两样只经 approval_log_masked 读(approval_log_amount_visible 判)。
 --   从此这张表有了 _masked 伴生视图,colgrant 要求它的【每一列】都在那张视图里。
+-- ★ U1-B(2026-10-05):note 也从列授权里拿掉 —— 一张医疗报销的批准 / 驳回说明是健康的字,只经 approval_log_masked 读
+--   (approval_log_note_visible:data.view_health,或本人)。其余种类的说明在视图里原样给。
 GRANT SELECT (id, seq, subject_type, subject_id, subject_code, decision, level,
-              actor_user_id, decided_at, note, currency, fx_rate,
+              actor_user_id, decided_at, currency, fx_rate,
               is_reconstructed, reconstruction_note, created_at,
               self_decided)
     ON public.approval_log TO authenticated;

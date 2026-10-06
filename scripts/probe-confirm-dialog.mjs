@@ -46,7 +46,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, planDelete, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3203                 // 3198 survey-phone · 3199 冒烟 · 3201 avatar · 3202 button-tiers
@@ -59,7 +59,6 @@ const FAULT = process.env.PROBE_FAULT || ''
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
@@ -89,25 +88,12 @@ try {
     openPlan('scripts/probe-confirm-dialog.mjs')
     await reapStalePlans()
 
-    // ── 一次性 admin ──────────────────────────────────────────────────────
-    const email = `cfmprobe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'cfm-probe-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    // ★ LEAK-1:先删授权再删账号 —— 顺序反了留下的正是一条认不到人的授权。
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke cfmprobe grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete cfmprobe account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'cfm-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ── 一次性会话(全码)────────────────────────────────────────────────
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一次性全码角色(probe-cfmprobe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'cfmprobe', label: 'all', codes: 'all', password: 'cfm-probe-1' })
+    accountId = tw.userId
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     // ── 取两个真的 id ────────────────────────────────────────────────────
     // ★ 取不到就【响亮中止】,不当成跳过 —— 一次失败不是一个空集(AGENTS.md)。
@@ -128,7 +114,7 @@ try {
     //
     // 【第一版】把步骤挂到线上**别人的**任务上 → 对话框全绿,而 T6「行真的没了」红。
     //   查明:`task_nodes delete` 策略是 `can_edit_task()`,它要求任务归你(私人)
-    //   或你是参与者(团队)。一次性 admin 没有 employees 行,
+    //   或你是参与者(团队)。一次性账号(全码)没有 employees 行,
     //   `current_user_employee()` 是 NULL,DELETE **命中 0 行**。
     //   ★ RLS 不报错,它只是让那条 DELETE 什么都删不到。★
     //   **权限是对的,是探针没站在一个删得动的人身上。**

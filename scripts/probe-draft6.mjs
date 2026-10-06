@@ -49,20 +49,16 @@
 //   ☞ ★★ 而 ③ 最值得留着:**它与这一刀在【产品】那一侧刚刚修掉的是同一个病** ——
 //     同一个字形,两种意思。在代码里把它治好了,转手在自己的判据里又犯了一次。
 // ════════════════════════════════════════════════════════════════════════════
-import { readFileSync, existsSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3209, CDP_PORT = 9345
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.75/chrome-headless-shell-mac-arm64/chrome-headless-shell')
-const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
-const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
-const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 // 只读清点(2026-09-21,一次写都没发,以 `postgres` 身份读,`rolbypassrls = true`)
 // 挑出来的落点 —— 每一个都写着它为什么是这一个。
@@ -73,8 +69,6 @@ const ROLE_ID = '3aea20f5-2ffd-4add-a3f0-47a0ad505ed7'  // cfo:15 个模块里�
 //   · hr 两个都没授(「未授予」)。☞ 一页上同时证得了那三种状态分得开。
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
-    apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', ...(o.headers || {}) } })
 const fail = []
 const probe = (id, ok, detail) => {
     if (!ok) fail.push(`${id}: ${detail}`)
@@ -104,21 +98,10 @@ async function main() {
     if (!existsSync(CHROME)) throw new Error('chrome not at ' + CHROME)
     for (const p of [PORT, CDP_PORT]) { try { execSync(`lsof -ti tcp:${p} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {} }
 
-    const email = `draft6probe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'draft6-probe-1', email_confirm: true }) })).json()
-    const accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'draft6-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一次性全码角色(probe-draft6probe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'draft6probe', label: 'all', codes: 'all', password: 'draft6-probe-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     server = spawn(join(ROOT, 'node_modules/.bin/next'), ['start', '-p', String(PORT)], { cwd: ROOT, stdio: 'ignore' })
     if (!await waitPort(PORT, 120000)) throw new Error('next start 没起来')

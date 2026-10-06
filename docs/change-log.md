@@ -910,3 +910,43 @@ Anonymisation erases the free text on the person's salary-change requests (`reas
 `ANONYMISED` where a constraint forbids null) and in their log rows (JSON null, through the same guarded redaction, once
 per row). **Amounts are kept**: they are accounting records with statutory retention, and once the person is anonymised
 they belong to "a former employee". Fixture 247 AN arm pins it.
+
+## 11. Workflow doors and the last leaks (U1-B, v1.4.36, 2026-10-05)
+
+Tim's UNBLOCK-1 rulings Q14–Q25 and the three U1-A close-out items (hand-back `docs/handbacks/U1-B.md`). Fixture 248 pins every rule
+below; `scripts/check-trail-wording.mjs` arm ⑭ pins every sentence.
+
+### 11.1 Masking (two more data classes follow §10's rules)
+
+- **A payroll journal's reversal request** follows `data.view_pay`, exactly as the journal itself does (§10.1).
+  `journal_requests.amount_base` is revoked; pages read `journal_requests_masked` (`amount_base` null, `amount_restricted`
+  true). One judgement, `journal_request_amount_visible(id)` — the reader holds `data.view_pay`, or the request does not
+  reverse a `source_type = 'payroll'` entry — serves the view, the approval-log amounts (`approval_log_amount_visible` gains a
+  `journal_request` arm), the change log (new rule form **`jr_amount`**) and the return values of `submit_journal_reversal_request`
+  and `decide_journal_request`.
+- **A medical claim's decision text** follows `data.view_health` (Tim: finance keeps seeing the expense's amount — paying it is
+  the need; any health text on that expense or its pages does not). Measured: the expense a claim generates carries no health
+  text in its own columns or journal; what reached its page was the claim's approve / reject reason, through the page's audit
+  trail. `medical_claims.decision_notes` and `approval_log.note` are revoked; `medical_claims_masked` and `approval_log_masked`
+  carry them under `code_or_self:data.view_health:employee_id` and the new rule form **`apr_note`**
+  (`approval_log_note_visible` — medical-claim rows only; every other kind's note is unchanged). `self_approved_decisions()`
+  asks the same two judgements. Medical claims are no longer searchable by their decision text.
+- The mask list grew **101 → 104** rows; `change_log_mask_gaps()` is zero.
+
+### 11.2 Wording on the trails
+
+| event | sentence | reason line |
+|---|---|---|
+| a downtime period voided | **Downtime voided** (with the period's start) | the void reason |
+| a downtime period's times or reason changed | **Downtime corrected** (before → after per field) — also when an already-set end time changes, which used to read as a second "Downtime ended" | — |
+| a purchase order closed / reopened | **Purchase order closed / reopened** — the history row folds in; no reasonless "Purchase order amended" any more | `close_reason` / `reopen_reason` |
+| a deep-discharge judgement on a PO line | **Deep discharge judgement recorded** (a key event, never folded into an amendment) | — |
+| a masked reason (medical decision text, approval note) | the block's reason reads **Restricted** — it used to disappear silently | |
+
+### 11.3 New records on the log
+
+`equipment_downtime` gained `voided_at` · `voided_by` · `void_reason` (labels "Voided on" · "Voided by" · "Reason voided");
+`purchase_orders` gained `closed_by` · `close_reason` · `reopened_at` · `reopened_by` · `reopen_reason`; `purchase_order_history`
+gained the change types `closed` and `reopened`. All are captured by the existing triggers; no table was added or excluded.
+**A downtime period is never deleted** (`guard_downtime_write`, statement-level `DOWNTIME_NEVER_DELETED`), so its trail is never
+cut short by a delete.

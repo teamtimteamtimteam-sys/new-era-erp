@@ -43,7 +43,12 @@ BEGIN
            COALESCE(ae.legal_name, au.email::text, a.actor_user_id::text) AS actor_name,
            s.employee_id,
            se.legal_name,
-           a.amount_ccy, a.currency, a.amount_base, a.note
+           -- ★ U1-B(2026-10-05):属主身份读,所以留痕那两道遮蔽要在这里再问一次 —— 自批报表的读者(gm · auditor)不一定持
+           --   data.view_health,而一张自批的医疗报销,金额与说明都是健康数据(approval_log_masked 同一对判据)。
+           CASE WHEN approval_log_amount_visible(a.subject_type, a.subject_id) THEN a.amount_ccy END,
+           a.currency,
+           CASE WHEN approval_log_amount_visible(a.subject_type, a.subject_id) THEN a.amount_base END,
+           CASE WHEN approval_log_note_visible(a.subject_type, a.subject_id) THEN a.note END
       FROM approval_log a
       LEFT JOIN auth.users au ON au.id = a.actor_user_id
       LEFT JOIN employees ae ON ae.id = account_person(a.actor_user_id)

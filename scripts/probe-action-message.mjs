@@ -22,7 +22,9 @@
 //   线上 `auditor` 角色正是这个形状(实测:materials/finance/suppliers 三个模块
 //   view 全有、edit 全无)。一次性账号挂上它,就站在了那六个真人里
 //   Phua / Sandra / Fu Sheng 每天所在的位置上。
-//   ☞ 不新建角色、不改任何人的授权;账号与授权都进 ephemeral 计划,按反序回收。
+//   ☞ U1-B(2026-10-05):不再挂【真】auditor —— 挂一个一次性克隆(同一组码,probe- 命名空间,非系统),
+//     经 scripts/ephemeral.mjs 的 mintThrowaway 造。不改任何人的授权;账号、克隆角色与授权都进
+//     ephemeral 计划,按反序回收。
 //   ☞ **不写任何业务数据**:本探针驱动的每一个动作【都是要被拒绝的】,
 //     所以它按定义不会留下痕迹 —— 而这正是"拒绝路"能被安全驱动的原因。
 //
@@ -65,7 +67,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3204                 // 3198 phone · 3199 冒烟 · 3201 avatar · 3202 tiers · 3203 confirm
@@ -77,7 +79,6 @@ const FAULT = process.env.PROBE_FAULT || ''
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
@@ -92,7 +93,7 @@ const waitPort = (p, ms) => new Promise((res) => { const t0 = Date.now()
         s.on('connect', () => { s.destroy(); res(true) })
         s.on('error', () => { s.destroy(); Date.now() - t0 > ms ? res(false) : setTimeout(tick, 300) }) })() })
 
-let server, chrome, accountId
+let server, chrome
 function killChildren() {
     try { if (chrome?.pid) process.kill(-chrome.pid) } catch {}
     try { if (server?.pid) process.kill(-server.pid) } catch {}
@@ -108,35 +109,23 @@ try {
     await reapStalePlans()
 
     // ── 一个【看得见、改不动】的一次性会话 ────────────────────────────────
-    const email = `almprobe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'alm-probe-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    // ★ LEAK-1:先删授权再删账号。
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke almprobe grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete almprobe account ${accountId}`, ORDER.ACCOUNT)
-
-    const roles = await (await rest('/rest/v1/roles?select=id,code&code=eq.auditor')).json()
-    if (!roles?.[0]?.id) throw new Error('线上没有 auditor 角色 —— 本探针无从驱动')
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 auditor】(而且不看授权那一句的返回码);现在经 mintThrowaway
+    //   授一个一次性克隆 —— probe-almprobe-auditor-<stamp>,恰好持 auditor 此刻的码({ cloneOf })。
+    //   为什么克隆就够、不必真角色:本探针驱动的每一次拒绝都是【码】决定的(表的 UPDATE 策略
+    //   USING(has_permission(...)),页面的 requireEditPermission),没有一处按角色码认人 ——
+    //   它不测审批人 / 决定者。克隆源不存在或零码,mintThrowaway 当场抛。
+    const tw = await mintThrowaway({ prefix: 'almprobe', label: 'auditor', codes: { cloneOf: 'auditor' }, password: 'alm-probe-1' })
 
     // ★ 断言这个会话【真的是】那个形状 —— 不然整支探针在测一个错的前提。
-    const perms = await (await rest(
-        `/rest/v1/role_permissions?select=permission_code&role_id=eq.${roles[0].id}`)).json()
-    const codes = new Set((perms || []).map((r) => r.permission_code))
+    //   (U1-B:读的是这个会话【实际持有】的码 —— 即克隆时从 auditor 读来、写进一次性角色的那一组。)
+    const codes = new Set(tw.codes)
     const shapeOk = codes.has('module.materials.view') && !codes.has('module.materials.edit')
                  && codes.has('module.finance.view')   && !codes.has('module.finance.edit')
                  && codes.has('module.suppliers.view') && !codes.has('module.suppliers.edit')
     if (!shapeOk) throw new Error('auditor 不再是"看得见改不动"的形状 —— 前提没了,判词无效')
 
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'alm-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     // ── 取真的 id(取不到就响亮中止,不当成跳过)──────────────────────────
     const mats = await (await rest('/rest/v1/materials?select=id,name&deleted_at=is.null&limit=1')).json()
@@ -269,7 +258,7 @@ try {
     const BARE_CODE = /(^|\s)[A-Z][A-Z_]{6,}(\s|$)/ // 光秃秃一串大写
 
     console.log(`\n== 探针:告知横幅(ALERT-1)${FAULT ? `  · ★ 注入 PROBE_FAULT=${FAULT}` : ''} ==`)
-    console.log(`   会话:一次性账号 + auditor(三个模块 view 有 / edit 无)\n`)
+    console.log(`   会话:一次性账号 + auditor 的一次性克隆(三个模块 view 有 / edit 无)\n`)
 
     // ════════════════════════════════════════════════════════════════════
     // A —— 【本刀之前【一个字都不会出现】的那一条】:物料软删被 RLS 静默挡下

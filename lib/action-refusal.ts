@@ -1,7 +1,7 @@
 import 'server-only'
 import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
-import { fallbackTextFor } from '@/lib/machine-text'
+import { fallbackTextFor, sharedCodeText } from '@/lib/machine-text'
 
 // ════════════════════════════════════════════════════════════════════════════
 // ALERT-1(2026-09-08)· 一次拒绝【回给界面的形状】
@@ -78,6 +78,14 @@ export async function refuseFromDriver(rawMessage: string): Promise<ActionRefusa
     const denied = raw.match(/^PERMISSION_DENIED\|(.*)$/)
     if (denied) return refusePermission(denied[1] ?? '')
 
+    // ★ U1-B(2026-10-05):PERIOD_LOCKED / YEAR_CLOSED 同理 —— 它们是【有码】的拒绝,
+    //   而它们的那句话住在 lib/machine-text.ts 的 sharedCodeText(一处,横跨所有模块)。
+    //   没有这一支,一个不认识它们的映射器经 refuseFromCoded 走到这里时,
+    //   屏幕上会是 driverFallback("这一步没有发生"),两个日期一个都不说。
+    //   【不进 detail】它是认出来了,不是读不懂 —— 与 PERMISSION_DENIED 那一支同形。
+    const shared = await sharedCodeText(raw)
+    if (shared !== null) return { error: shared }
+
     return {
         error: t('common.actionMessage.driverFallback'),
         detail: raw === '' ? undefined : raw,
@@ -152,6 +160,15 @@ export async function refuseNothingChanged(permissionCode: string): Promise<Acti
  *     ALERT-1 的裁定(标题是人话、原文进 detail),那条裁定比本刀早,本刀不动它。
  *   ⚠ **它是被【读】出来的,不是被测出来的** —— 没有任何一道闸会为这条契约变红:
  *     它是一条写在注释里的约定,而注释不参与编译。
+ *
+ * ★★【U1-B(2026-10-05):兜底那一层现在【认得】两个码 —— 这条判据为什么仍然成立】★★
+ *   `fallbackTextFor` 对 `PERIOD_LOCKED|…|…` / `YEAR_CLOSED|…|…` 不再给 errUnexpected,
+ *   给的是 sharedCodeText 那句点名两个日期的话。于是对这两个码:
+ *     · 映射器【自带】那一句(finance 等十几支)→ localized 与 fallback 不同 → 分支 ② 用它自己的话;
+ *     · 映射器【不认识】它(还原样或走了共用兜底)→ localized 等于 raw 或等于 fallback →
+ *       仍然判为"没认出来",落进 refuseFromDriver —— ★ 而 refuseFromDriver 现在先问 sharedCodeText,
+ *       于是屏幕上是那句点名两个日期的话,**不是** driverFallback,也不把原文降级进 detail。
+ *   ☞ 判据本身一个字没改:"等于兜底 = 映射器没认出来"仍然精确;改的是"没认出来之后说什么"。
  */
 export async function refuseFromCoded(
     rawMessage: string,
@@ -174,5 +191,6 @@ export async function refuseFromCoded(
     if (localized !== raw && localized !== fallback) return { error: localized }
 
     // 走到这里 = 本地化器【没认出来】(把原文还了回来,或者只给出了那句共用兜底)。
+    // U1-B:共用的 PERIOD_LOCKED / YEAR_CLOSED 由 refuseFromDriver 的 sharedCodeText 那一支接住。
     return refuseFromDriver(raw)
 }

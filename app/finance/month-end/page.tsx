@@ -47,7 +47,7 @@ export default async function MonthEndPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes, reconRes] = await Promise.all([
+    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes, reconRes, blockingRes] = await Promise.all([
         supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
             .gte('rate_date', start).lte('rate_date', end),
         // FIX-2a:见 /finance/payroll-payments —— 挂 hr.view,关账的人读不到。
@@ -77,6 +77,11 @@ export default async function MonthEndPage({
         // AP-RECON-1 Batch B(Tim Q11):清单 ↔ 总账。全账、不截日 —— 它说的是【此刻】,
         // 不是所选月份;它【不】挡锁期(挡不挡关账是以后的决定),所以永远不是 blocked。
         supabase.rpc('list_ledger_reconciliation'),
+        // ★ U1-B(UNBLOCK-1 Step 0 §3 5.1):close_period 按名拒 PROCESSING_COSTS_UNALLOCATED 时数的【就是这一支】——
+        //   已提交、从未分摊、日期不晚于月末。清单此前自己数另一样东西(下面 staleAllocation 那一步),
+        //   于是一张从没有成本条目的已提交单:清单说"做完了",关账却拒。现在两边调同一支,数的是同一样东西。
+        //   (属主身份数 —— 不持加工码的财务读者经基表读会静默少行;门是 module.finance.view,与本页同一扇。)
+        supabase.rpc('processing_runs_blocking_close', { p_period_end: end }).maybeSingle(),
     ])
 
     // 【每一步的信号都必须真的读到】读不出来就抛,不许把失败渲染成 'done' ——
@@ -103,9 +108,19 @@ export default async function MonthEndPage({
         .map((r) => r.code as string)
         .filter((c) => !midHave.has(c))
     const midMissing = midMissingCcy.length > 0
-    // 过期 + 从未分摊却已有成本,都算"批次成本对不上"
+    // ★ U1-B:这一步【只】数"分摊过、之后成本又动了"(is_stale —— 视图里它要求 allocated_at 非空)。
+    //   "从未分摊"那一半从前也算在这里,而它与关账真正挡的那件事(下面 unallocated 那一步)是同一批单子的
+    //   一个子集 —— 两步各数一半、口径不同,读的人会把它们读成同一件事。现在:
+    //     · unallocated —— 从未分摊(close_period 挡的正是它,blocked);
+    //     · staleAllocation —— 分摊过但已过期(关账【不】挡它,outstanding:该重分摊,但锁得进去)。
     const allocProblems = mustRows(allocRes, 'processing_run_allocation_status')
-        .filter((r) => r.is_stale || (!r.allocated_at && r.last_cost_change))
+        .filter((r) => r.is_stale)
+    // 一行(RETURNS TABLE + count(*) 恒有一行);读不出来就抛,不许把失败画成"没有挡着的单"。
+    // 【零行也抛】count(*) 不可能不给行 —— 真没有行,就是这一支变了形,而那不是"没有挡着的单"。
+    const blocking = mustOne(blockingRes, 'processing_runs_blocking_close') as { run_count: number | null; run_codes: string | null } | null
+    if (!blocking) throw new Error('processing_runs_blocking_close returned no row — the month-end checklist cannot tell whether close_period would refuse')
+    const blockingCount = Number(blocking.run_count ?? 0)
+    const blockingCodes = blocking.run_codes ?? ''
     const settings = mustOne(settingsRes, 'finance_settings')
     // 折旧:应提 > 0 = 还没跑(或有新资产);0 = 已提平/无在役资产
     const depPreview = mustOne(depPreviewRes, 'preview_depreciate_fixed_assets') as unknown as
@@ -161,6 +176,15 @@ export default async function MonthEndPage({
             detail: accruals.length === 0 ? '' : t('finance.monthEnd.accrualsDetail', { n: accruals.length }),
         },
         {
+            // ★ U1-B:关账真正挡的那一件 —— 与 close_period 同一支判据(processing_runs_blocking_close)。
+            //   blocked 而不是 outstanding:锁期那一步按下去会被 PROCESSING_COSTS_UNALLOCATED 按名拒。
+            key: 'unallocated', href: '/operation/processing',
+            state: blockingCount > 0 ? 'blocked' : 'done',
+            detail: blockingCount > 0
+                ? t('finance.monthEnd.unallocatedDetail', { n: blockingCount, codes: blockingCodes })
+                : '',
+        },
+        {
             key: 'staleAllocation', href: '/operation/processing',
             state: allocProblems.length === 0 ? 'done' : 'outstanding',
             detail: allocProblems.length === 0 ? ''
@@ -199,14 +223,18 @@ export default async function MonthEndPage({
             // "锁进去的月份都要包含它",而 lock 只看重估,折旧欠着照样锁得进去。
             // 所以这里的 blocked 也要把折旧算进去,否则牌子说"可以锁了"、
             // 按下去却被拒 —— 页面与服务端对同一件事给两个答案(AGENTS.md 那条)。
+            // ★ U1-B:未分摊的加工单也挡锁期(close_period 的 PROCESSING_COSTS_UNALLOCATED)——
+            //   与折旧同一个理由:牌子说"可以锁了",按下去却被拒,就是页面与服务端各说各的。
             key: 'lock', href: '/finance/close',
             state: locked ? 'done'
                  : (depHasAssets && depDelta !== 0) ? 'blocked'
+                 : blockingCount > 0 ? 'blocked'
                  : revalued ? 'outstanding' : 'blocked',
             detail: locked ? ''
                  : (depHasAssets && depDelta !== 0)
                      ? t('finance.monthEnd.blockedByDepreciation',
                          { 0: formatAmount(depDelta, baseCurrency) })
+                 : blockingCount > 0 ? t('finance.monthEnd.blockedByUnallocated', { n: blockingCount })
                  : revalued ? '' : t('finance.monthEnd.blockedByReval'),
         },
     ]

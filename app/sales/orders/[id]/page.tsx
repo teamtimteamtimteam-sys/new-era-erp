@@ -109,10 +109,19 @@ export default async function SalesOrderPage({ params, searchParams }: {
               'quotes') as { id: string; code: string } | null)
         : null
 
-    // 改单入口的三个状态,与 amend_sales_order 的闸【同一份表】。
-    // (shipped 在数据库那边还开着一条"只许加行"的缝,但它今天没有入口 ——
-    //  见 docs/known-issues.md。界面永远不该比数据库更宽松,反过来是允许的。)
-    const amendable = !deleted && ['draft', 'confirmed', 'partially_shipped'].includes(o.status)
+    // 改单入口的四个状态,与 amend_sales_order 的闸【同一份表】。
+    // shipped 那一格只开一条缝:【只许加行】—— 加一行会让状态按"已发 vs 已订"重算,
+    // 自己翻回 partially_shipped。从前这条缝有引擎、有页面却没有入口;
+    // Tim 在 UNBLOCK-1 Q14(2026-10-05)裁定把入口画出来,文案说明只能加行。
+    const amendable = !deleted && ['draft', 'confirmed', 'partially_shipped', 'shipped'].includes(o.status)
+    const amendLabel =
+        o.status === 'draft' ? t('sales.amend.editDraft')
+        : o.status === 'shipped' ? t('sales.amend.addLinesAction')
+        : t('sales.amend.action')
+    const amendHint =
+        o.status === 'draft' ? t('sales.amend.editDraftHint')
+        : o.status === 'shipped' ? t('sales.amend.addLinesActionHint')
+        : t('sales.amend.actionHint')
 
     return (
         <>
@@ -167,16 +176,17 @@ export default async function SalesOrderPage({ params, searchParams }: {
                 <TransitionPanel orderId={o.id} status={o.status} nextStates={nextStates} />
 
                 {/* SO-1b:改单入口。【与转换按钮并排,但不是一个转换】—— 改单不动状态,
-                    它动的是这张单说了什么。三个状态才画,与数据库那道闸同一份表。 */}
+                    它动的是这张单说了什么。四个状态才画,与数据库那道闸同一份表
+                    (shipped 只许加行,UNBLOCK-1 Q14)。 */}
                 {amendable && (
                     <div className="mt-3 flex flex-wrap items-baseline gap-x-3">
                         <Button asChild variant="outline">
                             <Link href={`/sales/orders/${o.id}/amend`}>
-                                {o.status === 'draft' ? t('sales.amend.editDraft') : t('sales.amend.action')}
+                                {amendLabel}
                             </Link>
                         </Button>
                         <span className="text-xs text-[color:var(--brand-muted-text)]">
-                            {o.status === 'draft' ? t('sales.amend.editDraftHint') : t('sales.amend.actionHint')}
+                            {amendHint}
                         </span>
                     </div>
                 )}

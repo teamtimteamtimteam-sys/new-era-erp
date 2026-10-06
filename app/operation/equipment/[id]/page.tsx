@@ -44,7 +44,11 @@ type Work = {
     id: string; performed_on: string; kind: string; description: string; performed_by_name: string | null
     performed_by_employee_id: string | null; performed_by_supplier_id: string | null; capitalised: boolean
 }
-type Down = { id: string; started_at: string; ended_at: string | null; reason: string; notes: string | null }
+// U1-B(Q15):voided_at / void_reason —— 作废的那一段照旧列出、标着「已作废」与理由,而【不】画成"还在停"。
+type Down = {
+    id: string; started_at: string; ended_at: string | null; reason: string; notes: string | null
+    voided_at: string | null; void_reason: string | null
+}
 type Run = { id: string; code: string; process_date: string | null; total_input: number | null; total_output: number | null }
 
 export default async function EquipmentPage({ params, searchParams }: {
@@ -70,7 +74,7 @@ export default async function EquipmentPage({ params, searchParams }: {
             .select('id, performed_on, kind, description, performed_by_name, performed_by_employee_id, performed_by_supplier_id, capitalised')
             .eq('equipment_id', id).order('performed_on', { ascending: false }),
         supabase.from('equipment_downtime')
-            .select('id, started_at, ended_at, reason, notes').eq('equipment_id', id).order('started_at', { ascending: false }),
+            .select('id, started_at, ended_at, reason, notes, voided_at, void_reason').eq('equipment_id', id).order('started_at', { ascending: false }),
         supabase.from('processing_runs_masked')
             .select('id, code, process_date, total_input, total_output')
             .eq('equipment_id', id).is('deleted_at', null).order('process_date', { ascending: false }).limit(10),
@@ -128,9 +132,27 @@ export default async function EquipmentPage({ params, searchParams }: {
             cap: w.capitalised ? t('equipment.maint.capitalised') : '—',
         },
     }))
+    // U1-B:作废的一段没有发生过 —— 起止划掉、「已作废」一枚(在"回来"那一格,它在手机上留着),
+    //   原因划掉、下面一行是作废的理由。开着却作废了的一段【不】说"还在停"。
     const downTable: CellRow[] = downRows.map((d) => ({
         id: d.id,
-        cells: {
+        cells: d.voided_at ? {
+            from: <span className="line-through text-gray-400">{formatDateTime(d.started_at, locale)}</span>,
+            to: (
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                    {d.ended_at && <span className="line-through text-gray-400">{formatDateTime(d.ended_at, locale)}</span>}
+                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600" data-downtime-voided="1">{t('equipment.down.voidedBadge')}</span>
+                </span>
+            ),
+            reason: (
+                <span className="break-words">
+                    <span className="line-through text-gray-400">{d.reason}</span>
+                    <span className="block text-xs text-[color:var(--brand-muted-text)]">
+                        {t('equipment.down.voidedBecause', { reason: d.void_reason ?? '—', when: formatDateTime(d.voided_at, locale) })}
+                    </span>
+                </span>
+            ),
+        } : {
             from: formatDateTime(d.started_at, locale),
             to: d.ended_at ? formatDateTime(d.ended_at, locale)
                 : <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">{t('equipment.down.stillDown')}</span>,

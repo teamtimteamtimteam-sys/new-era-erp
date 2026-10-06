@@ -1135,3 +1135,11 @@ behind `document_types`, live).
 ## §11 · Stop
 
 No code edits and no migrations. Waiting on Tim's answers to Q1–Q96.
+
+## §12 · Tim's answers
+
+Tim's answers, 2026-10-05: all Q1–Q96 accepted as recommended.
+
+Recorded by U1-B (`v1.4.36`), which also queued the 15 cuts in `docs/forward-queue.md` («⬜ ★ MES 组» after UNBLOCK-1): Q3 → 15 cuts in §8.2's
+order; Q2 → scheduling out of scope; Q16 → the Supabase project moves to a paid plan before the first gateway connects — Tim's own action,
+a hard prerequisite of MES-1's gateway path on live; Q1 → U1-B first, unchanged.

@@ -35,6 +35,8 @@
 //   node scripts/sweep-ghost-grants.mjs --apply    # 真的删
 // 退出码:0 = 没有要扫的 / 扫干净了;1 = 有扫不掉的(逐条印出)
 import { readFileSync } from 'node:fs'
+// U1-B(2026-10-05):一次性账号的前缀与一次性角色的命名空间从 mintThrowaway 那一份读,不在这里另抄一份。
+import { THROWAWAY_EMAIL_PREFIXES, THROWAWAY_LEGACY_EMAIL_PREFIXES, THROWAWAY_ROLE_PREFIX, THROWAWAY_EMAIL_DOMAIN } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const env = readFileSync(ROOT + '.env.local', 'utf8')
@@ -81,7 +83,7 @@ if (authUsers.length >= 1000) {
 }
 const authIds = new Set(authUsers.map((u) => u.id))
 
-const roleRows = await rows('/rest/v1/roles?select=id,code,is_system', '角色码')
+const roleRows = await rows('/rest/v1/roles?select=id,code,is_system,created_at', '角色码')
 const roleCode = new Map(roleRows.map((r) => [r.id, r.code]))
 const systemRoleIds = new Set(roleRows.filter((r) => r.is_system).map((r) => r.id))
 
@@ -119,27 +121,64 @@ for (const g of ghosts) {
 
 // ── 一次性账号(@test.local),先收权限再删账号 ─────────────────────────────
 // 【顺序反了就变成一条幽灵授权】—— 这正是这堆东西的来源。
-const EPHEMERAL = /^(survey|probe|smoke|pdf)-/
-const stale = authUsers.filter((u) => {
+// ★ U1-B(2026-10-05):这里从前是 /^(survey|probe|smoke|pdf)-/ —— 认不得 pdfsample- / u1aprobe- / at1*probe- /
+//   roleprobe- / pgprobe- / searchres- …(三十多支脚本里大多数的前缀)。现在从 mintThrowaway 的名单生成。
+//   ★ 而名单一扩大,这一段就成了一次【按命名认】的清扫 —— 它分不出"残骸"与"另一支探针此刻正在用的账号"。
+//     所以它【补上】check-scratch-rows 那道两小时的年龄门槛(抬头那句「不要把这个豁免抄到别的类别上」
+//     说的正是这一类):不到两小时的只报告,不动手。幽灵授权那一段照旧不设门槛(判据构造上可核实)。
+const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const EPHEMERAL = new RegExp(`^(${[...THROWAWAY_EMAIL_PREFIXES, ...THROWAWAY_LEGACY_EMAIL_PREFIXES].map(escapeRe).join('|')})-`)
+const STRANDED_AFTER_MS = 2 * 60 * 60 * 1000   // 与 check-scratch-rows 同一个数,理由见那边
+const recognised = authUsers.filter((u) => {
     const e = u.email ?? ''
-    return e.endsWith('@test.local') && EPHEMERAL.test(e)
+    return e.endsWith(THROWAWAY_EMAIL_DOMAIN) && EPHEMERAL.test(e)
 })
+const young = recognised.filter((u) => now - new Date(u.created_at).getTime() < STRANDED_AFTER_MS)
+const stale = recognised.filter((u) => !young.includes(u))
+if (young.length) {
+    console.log(`\n【一次性账号 @test.local · 不到两小时】${young.length} 个 —— 可能是【正在跑的那一次】,不动手:`)
+    for (const u of young) {
+        const held = live.filter((g) => g.user_id === u.id).map((g) => roleCode.get(g.role_id) ?? '?')
+        console.log(`  · ${u.email}  (${((now - new Date(u.created_at).getTime()) / 3600000).toFixed(1)}h)  持有:${held.length ? held.join(',') : '(无)'}`)
+    }
+}
 console.log(`\n【一次性账号 @test.local】${stale.length} 个` + (APPLY ? '  —— 正在删(先收权限,再删账号)' : '  (只报告)'))
 let okAccounts = 0
+const deletedAccounts = new Set()
 for (const u of stale) {
     const ageH = ((now - new Date(u.created_at).getTime()) / 3600000).toFixed(1)
     const held = live.filter((g) => g.user_id === u.id).map((g) => roleCode.get(g.role_id) ?? '?')
     console.log(`  · ${u.email}  (${ageH}h)  持有:${held.length ? held.join(',') : '(无)'}`)
     const a = await del(`/rest/v1/user_roles?user_id=eq.${u.id}`, `收权限 ${u.email}`)
     const b = await del(`/auth/v1/admin/users/${u.id}`, `删账号 ${u.email}`)
-    if (a && b) okAccounts++
+    if (a && b) { okAccounts++; deletedAccounts.add(u.id) }
+}
+
+// ── 一次性角色(mintThrowaway 的 probe-* 命名空间)─────────────────────────────
+// ★ U1-B:角色是授权的另一头。只在三件事都成立时才删:① 不是 is_system;② 超过两小时;
+//   ③ 指着它的每一条未撤销授权,持有人要么是幽灵(上面删了)、要么是上面刚删掉的一次性账号。
+//   有任何一条落在【还在的、没被删的】账号手里 —— 年轻的一次性账号(可能正在跑)或者一个真人 —— 就只报告。
+const twRoles = roleRows.filter((r) => String(r.code).startsWith(THROWAWAY_ROLE_PREFIX) && !r.is_system)
+console.log(`\n【一次性角色 ${THROWAWAY_ROLE_PREFIX}*】${twRoles.length} 个` + (APPLY ? '  —— 满足条件的正在删' : '  (只报告)'))
+let okRoles = 0, keptRoles = 0
+for (const r of twRoles) {
+    const ageMs = now - new Date(r.created_at).getTime()
+    const holders = live.filter((g) => g.role_id === r.id)
+    const blocking = holders.filter((g) => authIds.has(g.user_id) && !(APPLY ? deletedAccounts : new Set(stale.map((u) => u.id))).has(g.user_id))
+    const why = ageMs < STRANDED_AFTER_MS ? '不到两小时' : blocking.length ? `还被 ${blocking.length} 个在的账号持着` : null
+    console.log(`  · ${r.code}  (${(ageMs / 3600000).toFixed(1)}h)  持有人 ${holders.length}${why ? `  —— 不动手:${why}` : ''}`)
+    if (why) { keptRoles++; continue }
+    const a = await del(`/rest/v1/user_roles?role_id=eq.${r.id}`, `收回指着 ${r.code} 的授权`)
+    const b = a && await del(`/rest/v1/roles?id=eq.${r.id}`, `删一次性角色 ${r.code}`)
+    if (a && b) okRoles++
 }
 
 if (!APPLY) {
     console.log('\n【本次没有动手】加 --apply 才真的删。')
     process.exit(0)
 }
-console.log(`\n扫掉授权 ${okGrants}/${ghosts.length} 条 · 账号 ${okAccounts}/${stale.length} 个`)
+console.log(`\n扫掉授权 ${okGrants}/${ghosts.length} 条 · 账号 ${okAccounts}/${stale.length} 个 · 一次性角色 ${okRoles}/${twRoles.length - keptRoles} 个`
+    + `(另有 ${young.length} 个年轻账号、${keptRoles} 个角色按门槛没动)`)
 if (failures.length) {
     console.error(`\n✗ ${failures.length} 处失败:`)
     for (const f of failures) console.error('   ' + f)

@@ -23,20 +23,16 @@
 //   桌面档最右那格是动作列,**两者都没有列头**。DRAFT-4 在这里四条一起红过,
 //   而红的是探针 —— 四个读数逐字都是对的,错的是拿来比的那个整数。
 // ════════════════════════════════════════════════════════════════════════════
-import { readFileSync, existsSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3208, CDP_PORT = 9344
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.75/chrome-headless-shell-mac-arm64/chrome-headless-shell')
-const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
-const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
-const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 // 只读普查(2026-09-21,一次写都没发)挑出来的落点 —— 每一个都写着它为什么是这一个。
 // ⚠ **这个落点换过一次,而换的理由要记下来:** 第一版挑的是 `INV-2026-0004`
@@ -49,8 +45,6 @@ const CUSTOMER_ID = 'fdfefcd3-d313-4314-b8fc-b6e0fc96afab'  // ST Engineering:1 
 const SUPPLIER_ID = '6fd51aec-177d-4912-9973-7c195a3fc87a'  // Acme:2 张在途采购单 → #15 与 #16 【同时】渲染
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
-    apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', ...(o.headers || {}) } })
 const fail = []
 const probe = (id, ok, detail) => {
     if (!ok) fail.push(`${id}: ${detail}`)
@@ -80,21 +74,10 @@ async function main() {
     if (!existsSync(CHROME)) throw new Error('chrome not at ' + CHROME)
     for (const p of [PORT, CDP_PORT]) { try { execSync(`lsof -ti tcp:${p} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {} }
 
-    const email = `draft5probe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'draft5-probe-1', email_confirm: true }) })).json()
-    const accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'draft5-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一次性全码角色(probe-draft5probe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'draft5probe', label: 'all', codes: 'all', password: 'draft5-probe-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     server = spawn(join(ROOT, 'node_modules/.bin/next'), ['start', '-p', String(PORT)], { cwd: ROOT, stdio: 'ignore' })
     if (!await waitPort(PORT, 120000)) throw new Error('next start 没起来')

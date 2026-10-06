@@ -36,6 +36,8 @@
 //   ⑬ 工资与评审(AUDIT-TRAIL-1d-3):六个主语与员工页上评审定的调薪,同一个办法(工资行按员工配对 · 撤销那一行备注是理由 ·
 //      审批说明后面那一截中英两段剥掉 · label 里原样的种类不上屏 · 分录按结构认 · 年度评审以它的轮次开头 · 批准按评审自己的几列说结论 ·
 //      审核人那一份里审批是 Restricted · KPI 一次生成是一条)外加按那一页的机器字扫描(两种审批的每一种决定、申请与评审的每一种状态)。
+//   ⑭ U1-B 的工作流与泄漏:停机的作废与更正 · 采购单关闭 / 重开的理由 · 深度放电判断 · 工资分录冲销申请的金额 Restricted ·
+//      医疗报销的批准理由 Restricted(报销单页与费用页)。
 //   ⑩ 期末、设置与清单页(AUDIT-TRAIL-1c-3):同一个办法 —— 十二个主语的金句(两块面板各看各的列 · 月结 / 反结 · 年结 ·
 //      Q16 的合并 · Q30 · M8 的报销人)外加按【那一页】的机器字扫描(describeLedger3)。
 //
@@ -44,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -4257,6 +4259,239 @@ if (FAULT === 'wording-drift-1d3') dict.text = { ...dict.text, 'prl.unposted': '
     if (FAULT === 'wording-drift-1d3' && !problems.gold13.length) problems.gold13.push('(注入 wording-drift-1d3 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑭ U1-B 的工作流与剩下的泄漏(UNBLOCK-1 Q15 · Q20 · Q25 · U1-A close-out 两件)────────────────────────
+// 每一句都先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/U1-B.md 逐条列出。
+//   停机作废(带理由,不是"恢复运行"也不是"更正")· 一段已结束的停机被改了结束时刻是"更正",不是第二次"恢复运行" ·
+//   采购单关闭 / 重开的理由来自它们自己的列(与修改史那一行并成一条,不再说成一次没有理由的"修改")·
+//   深度放电判断是一条关键事件 · 工资分录的冲销申请对不持 data.view_pay 的读者金额是 Restricted ·
+//   医疗报销的批准理由与审批说明对不持 data.view_health 的读者是 Restricted(不是消失)。
+//   注入 wording-drift-u1b → 这一臂必须红。
+problems.gold14 = []
+if (FAULT === 'wording-drift-u1b') dict.text = { ...dict.text, 'eq.downVoided': 'Downtime deleted' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const R14 = { $restricted: true }
+    // ── 停机(固定资产页与设备页同一支造句器)──
+    const fa = id('fa'), dt = id('dt')
+    const dtRow = { equipment_id: fa, started_at: '2026-10-01T01:00:00Z', ended_at: null, reason: 'Belt snapped' }
+    const E = { subject: 'equipment', recordId: fa, currency: 'SGD' }
+    add('downtime · voided with a reason (not "came back up", not "corrected")', E, [
+        { table: 'equipment_downtime', op: 'UPDATE', key: { id: dt }, cols: ['voided_at', 'voided_by', 'void_reason', 'updated_by'],
+          old: { voided_at: null, voided_by: null, void_reason: null }, new: { voided_at: '2026-10-05T02:00:00Z', voided_by: id('u1'), void_reason: 'Entered on the wrong machine' }, ctx: dtRow }])
+    add('downtime · a closed period whose end time is corrected (a correction, not a second "came back up")', E, [
+        { table: 'equipment_downtime', op: 'UPDATE', key: { id: dt }, cols: ['ended_at', 'updated_by'],
+          old: { ended_at: '2026-10-01T05:00:00Z' }, new: { ended_at: '2026-10-01T04:30:00Z' }, ctx: { ...dtRow, ended_at: '2026-10-01T05:00:00Z' } }])
+    add('downtime · start time and reason corrected', E, [
+        { table: 'equipment_downtime', op: 'UPDATE', key: { id: dt }, cols: ['started_at', 'reason', 'updated_by'],
+          old: { started_at: '2026-10-01T01:00:00Z', reason: 'Belt snapped' }, new: { started_at: '2026-10-01T00:30:00Z', reason: 'Belt snapped on the feeder' }, ctx: dtRow }])
+    add('downtime · ended (the first end time is still "came back up")', E, [
+        { table: 'equipment_downtime', op: 'UPDATE', key: { id: dt }, cols: ['ended_at', 'updated_by'],
+          old: { ended_at: null }, new: { ended_at: '2026-10-01T05:00:00Z' }, ctx: dtRow }])
+    // ── 销售单(Q14):给一张发完的单加一行 —— 状态翻回部分发货是改单的结果,标题是改单 ──
+    const so14 = id('so')
+    add('sales order · a line added to a fully shipped order (the status flip sits under the amendment)', { subject: 'sales_order', recordId: so14, currency: 'SGD' }, [
+        { table: 'sales_orders', op: 'UPDATE', key: { id: so14 }, cols: ['status', 'updated_by'], old: { status: 'shipped' }, new: { status: 'partially_shipped' },
+          ctx: { code: 'SO-2026-0031', currency: 'SGD', status: 'shipped' } },
+        { table: 'sales_order_history', op: 'INSERT', key: { id: id('soh') }, new: { sales_order_id: so14, change_type: 'line_add', line_no: 2,
+          new_quantity: 5, new_unit_price: 10, amend_reason: 'The customer wants 5 more' } }])
+    // ── 采购单 ──
+    const po = id('po'), ln = id('ln')
+    const poRow = { code: 'PO-2026-0031', status: 'receiving', currency: 'SGD', notes: 'Deliver to bay 2' }
+    const P = { subject: 'purchase_order', recordId: po, currency: 'SGD' }
+    add('purchase order · closed with a reason (the history row folds in; Notes untouched)', P, [
+        { table: 'purchase_orders', op: 'UPDATE', key: { id: po }, cols: ['status', 'closed_at', 'closed_by', 'close_reason', 'updated_by'],
+          old: { status: 'receiving', closed_at: null, closed_by: null, close_reason: null },
+          new: { status: 'closed', closed_at: '2026-10-05T03:00:00Z', closed_by: id('u1'), close_reason: 'Supplier cannot deliver the rest' }, ctx: poRow },
+        { table: 'purchase_order_history', op: 'INSERT', key: { id: id('h1') }, new: { purchase_order_id: po, change_type: 'closed', amend_reason: 'Supplier cannot deliver the rest' } }])
+    add('purchase order · reopened with a reason', P, [
+        { table: 'purchase_orders', op: 'UPDATE', key: { id: po }, cols: ['status', 'closed_at', 'closed_by', 'close_reason', 'reopened_at', 'reopened_by', 'reopen_reason', 'updated_by'],
+          old: { status: 'closed', closed_at: '2026-10-05T03:00:00Z', closed_by: id('u1'), close_reason: 'Supplier cannot deliver the rest', reopened_at: null, reopened_by: null, reopen_reason: null },
+          new: { status: 'receiving', closed_at: null, closed_by: null, close_reason: null, reopened_at: '2026-10-06T03:00:00Z', reopened_by: id('u1'), reopen_reason: 'Supplier found the remaining stock' }, ctx: poRow },
+        { table: 'purchase_order_history', op: 'INSERT', key: { id: id('h2') }, new: { purchase_order_id: po, change_type: 'reopened', amend_reason: 'Supplier found the remaining stock' } }])
+    add('purchase order · closed with no reason given', P, [
+        { table: 'purchase_orders', op: 'UPDATE', key: { id: po }, cols: ['status', 'closed_at', 'closed_by', 'updated_by'],
+          old: { status: 'receiving', closed_at: null, closed_by: null }, new: { status: 'closed', closed_at: '2026-10-05T03:00:00Z', closed_by: id('u1') }, ctx: poRow },
+        { table: 'purchase_order_history', op: 'INSERT', key: { id: id('h3') }, new: { purchase_order_id: po, change_type: 'closed', amend_reason: null } }])
+    add('purchase order · deep discharge judgement recorded on a line (a key event, not an amendment)', P, [
+        { table: 'purchase_order_lines', op: 'UPDATE', key: { id: ln }, cols: ['deep_discharge_judgement_code'],
+          old: { deep_discharge_judgement_code: null }, new: { deep_discharge_judgement_code: 'cannot' },
+          ctx: { purchase_order_id: po, line_no: 1, material_id: id('mat') },
+          refs: { material_id: { [id('mat')]: { label: 'MAT-2026-0001 · NMC Cathode Foil' } }, deep_discharge_judgement_code: { cannot: { label: 'Cannot be deep-discharged' } } } }])
+    // ── 工资分录的冲销申请 ──
+    const jr = id('jr'), je = id('je')
+    const J = { subject: 'journal_request', recordId: jr, currency: 'SGD' }
+    const jrNew = { kind: 'reversal', status: 'submitted', label: 'Reversal of JE-2026-0018', entry_date: '2026-10-05', memo: 'Paid twice', target_entry_id: je, credits_bank: true }
+    add('journal request · a payroll reversal read without data.view_pay (the amount is Restricted)', J, [
+        { table: 'journal_requests', op: 'INSERT', key: { id: jr }, new: { ...jrNew, amount_base: R14 },
+          refs: { target_entry_id: { [je]: { label: 'JE-2026-0018', href: `/finance/journal/${je}` } } } }])
+    add('journal request · the same request read with data.view_pay', J, [
+        { table: 'journal_requests', op: 'INSERT', key: { id: jr }, new: { ...jrNew, amount_base: 4677 },
+          refs: { target_entry_id: { [je]: { label: 'JE-2026-0018', href: `/finance/journal/${je}` } } } }])
+    // ── 医疗报销(报销单页与它生成的费用单页)──
+    const mc = id('mc')
+    const M = { subject: 'medical_claim', recordId: mc, currency: 'SGD' }
+    const mcRow = { code: 'MC-2026-0007', employee_id: id('emp'), status: 'submitted' }
+    add('medical claim · approved, read without data.view_health (the reason is Restricted, never dropped)', M, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'submitted' }, new: { status: 'approved', decision_notes: R14 }, ctx: mcRow },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('ap1') }, new: { subject_type: 'medical_claim', subject_id: mc, subject_code: 'MC-2026-0007', decision: 'approved', level: 1, note: R14, amount_ccy: R14, amount_base: R14 } }])
+    add('medical claim · approved, read with data.view_health', M, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Covered under the outpatient benefit' }, ctx: mcRow },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('ap2') }, new: { subject_type: 'medical_claim', subject_id: mc, subject_code: 'MC-2026-0007', decision: 'approved', level: 1, note: 'Covered under the outpatient benefit', amount_ccy: 120, amount_base: 120 } }])
+    const ex = id('ex')
+    add('expense page · the medical claim it came from is approved, read without data.view_health', { subject: 'expense', recordId: ex, currency: 'SGD' }, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'submitted' }, new: { status: 'approved', decision_notes: R14 }, ctx: { ...mcRow, expense_id: ex } }])
+    const WANT = {
+        "sales order · a line added to a fully shipped order (the status flip sits under the amendment)": {
+            "title": "Sales order amended · line added · Line 2",
+            "part": null,
+            "lines": [
+                "Quantity: (empty) → 5",
+                "Unit price: (empty) → 10.00 SGD",
+                "[Sales order status changed]",
+                "Status: Shipped → Partially shipped"
+            ],
+            "reason": "The customer wants 5 more",
+            "who": "Sandra"
+        },
+        "downtime · voided with a reason (not \"came back up\", not \"corrected\")": {
+            "title": "Downtime voided",
+            "part": null,
+            "lines": [
+                "Went down: 01/10/2026 09:00"
+            ],
+            "reason": "Entered on the wrong machine",
+            "who": "Sandra"
+        },
+        "downtime · a closed period whose end time is corrected (a correction, not a second \"came back up\")": {
+            "title": "Downtime corrected",
+            "part": null,
+            "lines": [
+                "Came back up: 01/10/2026 13:00 → 01/10/2026 12:30"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "downtime · start time and reason corrected": {
+            "title": "Downtime corrected",
+            "part": null,
+            "lines": [
+                "Went down: 01/10/2026 09:00 → 01/10/2026 08:30",
+                "Reason: Belt snapped → Belt snapped on the feeder"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "downtime · ended (the first end time is still \"came back up\")": {
+            "title": "Downtime ended",
+            "part": null,
+            "lines": [
+                "Came back up: 01/10/2026 13:00"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "purchase order · closed with a reason (the history row folds in; Notes untouched)": {
+            "title": "Purchase order closed",
+            "part": null,
+            "lines": [],
+            "reason": "Supplier cannot deliver the rest",
+            "who": "Sandra"
+        },
+        "purchase order · reopened with a reason": {
+            "title": "Purchase order reopened",
+            "part": null,
+            "lines": [],
+            "reason": "Supplier found the remaining stock",
+            "who": "Sandra"
+        },
+        "purchase order · closed with no reason given": {
+            "title": "Purchase order closed",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "purchase order · deep discharge judgement recorded on a line (a key event, not an amendment)": {
+            "title": "Deep discharge judgement recorded",
+            "part": null,
+            "lines": [
+                "[Line 1 · MAT-2026-0001 · NMC Cathode Foil]",
+                "Deep discharge judgement: (empty) → Cannot be deep-discharged"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "journal request · a payroll reversal read without data.view_pay (the amount is Restricted)": {
+            "title": "Reversal sent for approval",
+            "part": "Reversal of JE-2026-0018",
+            "lines": [
+                "Entry date: 05/10/2026",
+                "Amount (sum of debits): Restricted"
+            ],
+            "reason": "Paid twice",
+            "who": "Sandra"
+        },
+        "journal request · the same request read with data.view_pay": {
+            "title": "Reversal sent for approval",
+            "part": "Reversal of JE-2026-0018",
+            "lines": [
+                "Entry date: 05/10/2026",
+                "Amount (sum of debits): 4,677.00 SGD"
+            ],
+            "reason": "Paid twice",
+            "who": "Sandra"
+        },
+        "medical claim · approved, read without data.view_health (the reason is Restricted, never dropped)": {
+            "title": "Medical claim approved",
+            "part": null,
+            "lines": [],
+            "reason": "Restricted",
+            "who": "Sandra"
+        },
+        "medical claim · approved, read with data.view_health": {
+            "title": "Medical claim approved",
+            "part": null,
+            "lines": [],
+            "reason": "Covered under the outpatient benefit",
+            "who": "Sandra"
+        },
+        "expense page · the medical claim it came from is approved, read without data.view_health": {
+            "title": "Medical claim approved · MC-2026-0007",
+            "part": null,
+            "lines": [],
+            "reason": "Restricted",
+            "who": "Sandra"
+        }
+    }
+    const got14 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 13) problems.gold14.push(`⑭ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD14', order: 1, prelog: false, at: '2026-10-05T02:00:00+00:00', key: { id: uuid() },
+            actor: c.actor ?? { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold14.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD14')
+        if (mine.length !== 1) { problems.gold14.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got14[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold14.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold14.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold14.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD14_PRINT) console.log(JSON.stringify(got14, null, 8))
+    if (FAULT === 'wording-drift-u1b' && !problems.gold14.length) problems.gold14.push('(注入 wording-drift-u1b 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -4264,7 +4499,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

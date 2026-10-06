@@ -165,21 +165,6 @@ export async function addQuoteLine(
     return {}
 }
 
-export async function updateQuoteHeader(
-    quoteId: string, validUntil: string, notes: string, terms: string
-): Promise<QuoteFormState> {
-    // 【有效期空着不兜底】它是承诺日 —— 见 quotes.valid_until 的列注释。
-    if (validUntil.trim() === '') return { error: (await getTranslations())('quotes.form.errValidUntil') }
-    const supabase = await createClient()
-    const { error } = await supabase.from('quotes')
-        .update({ valid_until: validUntil, notes: notes.trim() || null,
-                  terms_text: terms.trim() || null })
-        .eq('id', quoteId)
-    if (error) return { error: await localizeQuoteError(error.message) }
-    revalidatePath(`/sales/quotes/${quoteId}`)
-    return {}
-}
-
 // ── 三件有【真正判据】的事,各自一个 RPC ────────────────────────────────────
 export async function convertQuote(quoteId: string, orderDate: string): Promise<QuoteFormState> {
     const supabase = await createClient()

@@ -14,6 +14,8 @@
 //   一支只跑 admin 的探针会对着一条从来没有被求值过的代码路径报绿。
 //   ☞ 所以这一支起**两个**一次性账号:一个 admin,一个 **operations**,
 //     而那条泄漏线只在后者身上量得到。
+//   ★ U1-B(2026-10-05,GHOST-GRANTS):两位都不再授真角色 —— 「admin」是一次性全码角色,
+//     被挡住的那位是真 warehouse 的一次性克隆(同码,见 makeAccount)。
 //   (这与 AGENTS.md 记的 fixture 26 那一课同形:fixture 跑在 postgres 上、
 //    绕过 RLS,于是两条臂是空的 —— **判据必须走那个真的被挡住的人走的路。**)
 //
@@ -40,7 +42,7 @@ import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
 import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
@@ -50,7 +52,6 @@ const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/ma
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -186,24 +187,16 @@ async function main() {
     try { execSync(`lsof -ti tcp:${PORT} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {}
 
     // ── 两个一次性账号:admin 与一个【真的被挡住】的角色 ────────────────────
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前两位都授【真角色】(含真 admin)。现在经 mintThrowaway:
+    //   admin → 一次性全码角色('all':这一位就是"什么都看得见、被扣下计数恒为 0"的那一侧);
+    //   warehouse → 一次性克隆({ cloneOf }:恰好持真 warehouse 此刻的码)。搜索扣不扣下一行只看码
+    //   (app/components/search/actions.ts 不读角色名),所以那条泄漏线照样量在"真的被挡住的人"身上。
+    //   邮箱前缀不变(searchres-),形状变成 searchres-<stamp>-<角色>@test.local。
     async function makeAccount(roleCode) {
-        const email = `searchres-${roleCode}-${Date.now()}@test.local`
-        const pw = 'search-results-1'
-        const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-            body: JSON.stringify({ email, password: pw, email_confirm: true }) })).json()
-        if (!cu.id) throw new Error(`账号建不出来(${roleCode}): ` + JSON.stringify(cu).slice(0, 300))
-        planDelete(`/rest/v1/user_roles?user_id=eq.${cu.id}`, `revoke grant ${cu.id}`, ORDER.GRANT)
-        planDelete(`/auth/v1/admin/users/${cu.id}`, `delete account ${cu.id}`, ORDER.ACCOUNT)
-        const roles = await (await rest(`/rest/v1/roles?select=id&code=eq.${roleCode}`)).json()
-        if (!roles?.[0]?.id) throw new Error(`角色 ${roleCode} 在库里找不到 —— 这一次读数不作数`)
-        await rest('/rest/v1/user_roles', { method: 'POST',
-            body: JSON.stringify(ephemeralGrantBody(cu.id, roles[0].id)) })
-        const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-            headers: { apikey: ANON, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password: pw }) })).json()
-        if (!sess?.access_token) throw new Error(`登录失败(${roleCode}): ` + JSON.stringify(sess).slice(0, 200))
-        accounts.push({ roleCode, id: cu.id })
-        return 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+        const tw = await mintThrowaway({ prefix: 'searchres', label: roleCode, password: 'search-results-1',
+            codes: roleCode === 'admin' ? 'all' : { cloneOf: roleCode } })
+        accounts.push({ roleCode, id: tw.userId })
+        return tw.cookieValue
     }
     const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
     const adminCookie = await makeAccount('admin')

@@ -466,6 +466,10 @@ function changed(r: TrailRow, col: string): boolean {
 function typed(v: Json | undefined): Val | null {
     return typeof v === 'string' && v.trim() ? truncate(v, true) : null
 }
+/** U1-B:一段理由被遮(受限标记)时说「受限」—— typed() 会把标记读成"没写",那一行理由于是悄悄消失(U1-A 在请假事由上的同一句) */
+function typedOrRestricted(d: TrailDict, v: Json | undefined): Val | null {
+    return isRestricted(v) ? { text: tx(d, 'restricted'), restricted: true } : typed(v)
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // 一条记录里的一块:一个标题 + 几行 + 可能的理由 + 是不是关键事件
@@ -563,8 +567,10 @@ function describePurchaseOrder(d: TrailDict, rows: TrailRow[], opts: BuildOption
 
     // ③ 单头:状态类的关键事件(A06–A09 · A22),其余是字段编辑
     for (const r of po) {
+        // U1-B(Q25):关闭 / 重开的人与理由有了自己的列 —— 理由说成那一条的 Reason,人与时刻就是这一条本身,都不再逐列印
         const ls = changeLines(d, r, opts, new Set(['status', 'approval_status', 'cancel_reason', 'cancelled_at', 'cancelled_by',
-            'closed_at', 'deleted_at', 'deleted_by', 'delete_reason', 'approved_at', 'approved_by']))
+            'closed_at', 'deleted_at', 'deleted_by', 'delete_reason', 'approved_at', 'approved_by',
+            'closed_by', 'close_reason', 'reopened_at', 'reopened_by', 'reopen_reason']))
         const from = str(r, 'status', 'old'), to = str(r, 'status', 'new')
         let ev: string | null = null
         let reason: Val | null = null
@@ -572,8 +578,8 @@ function describePurchaseOrder(d: TrailDict, rows: TrailRow[], opts: BuildOption
             ev = tx(d, 'po.deleted'); reason = typed(r.new?.['delete_reason'])
         } else if (changed(r, 'status') || (r.prelog && r.cols?.includes('closed_at'))) {
             if (to === 'cancelled') { ev = tx(d, 'po.cancelled'); reason = typed(r.new?.['cancel_reason']) }
-            else if (to === 'closed' || (r.prelog && r.new?.['closed_at'])) ev = tx(d, 'po.closed')
-            else if (from === 'closed') ev = tx(d, 'po.reopened')
+            else if (to === 'closed' || (r.prelog && r.new?.['closed_at'])) { ev = tx(d, 'po.closed'); reason = typed(r.new?.['close_reason']) }
+            else if (from === 'closed') { ev = tx(d, 'po.reopened'); reason = typed(r.new?.['reopen_reason']) }
             else if (from === 'confirmed' && to === 'receiving') ev = tx(d, 'po.firstReceipt')
             else if (!appr.length) {
                 ev = tx(d, 'po.statusChanged')
@@ -591,9 +597,11 @@ function describePurchaseOrder(d: TrailDict, rows: TrailRow[], opts: BuildOption
     for (const h of hist) {
         const ct = str(h, 'change_type', 'new') ?? ''
         const reason = typed(h.new?.['amend_reason'])
-        if (ct === 'cancelled') {
-            if (!blocks.some((b) => b.title === tx(d, 'po.cancelled'))) blocks.push({ title: tx(d, 'po.cancelled'), lines: [], reason, key: true, weight: 80 })
-            else blocks.forEach((b) => { if (b.title === tx(d, 'po.cancelled') && !b.reason) b.reason = reason })
+        // U1-B(Q25):关闭与重开从此也各有一行修改史(理由在 amend_reason)—— 与取消同一个形状:并进那一条,不另说一次"修改"
+        const statusEv = ct === 'cancelled' ? 'po.cancelled' : ct === 'closed' ? 'po.closed' : ct === 'reopened' ? 'po.reopened' : null
+        if (statusEv) {
+            if (!blocks.some((b) => b.title === tx(d, statusEv))) blocks.push({ title: tx(d, statusEv), lines: [], reason, key: true, weight: 80 })
+            else blocks.forEach((b) => { if (b.title === tx(d, statusEv) && !b.reason) b.reason = reason })
             continue
         }
         const ls: Line[] = []
@@ -614,7 +622,9 @@ function describePurchaseOrder(d: TrailDict, rows: TrailRow[], opts: BuildOption
         else if (r.op === 'DELETE') blocks.push({ title: tx(d, 'po.lineRemoved'), lines: [head, ...valueLines(d, r, r.old, opts, new Set(['line_no', 'material_id', 'asset_id', 'purchase_order_id', 'unit']))], key: false, weight: 40 })
         else {
             const ls = changeLines(d, r, opts)
-            if (ls.length) blocks.push({ title: tx(d, 'po.lineChanged'), lines: [head, ...ls], key: false, weight: 40 })
+            // U1-B(Q20):买的时候的深度放电判断是一行上的【质量判断】,不是一次改单 —— 自己一条关键事件,不并进"修改"
+            if (changed(r, 'deep_discharge_judgement_code')) blocks.push({ title: tx(d, 'po.deepDischargeJudged'), lines: [head, ...ls], key: true, weight: 60 })
+            else if (ls.length) blocks.push({ title: tx(d, 'po.lineChanged'), lines: [head, ...ls], key: false, weight: 40 })
         }
     }
     // ⑥ 付款计划(A15–A17 · A19)
@@ -1226,7 +1236,7 @@ function describeApproval(d: TrailDict, rows: TrailRow[]): Block2[] {
             case 'auto_approved': title = tx(d, 'approval.auto', { thing: what }); break
             default: title = tx(d, 'approval.other', { thing: what, decision: enumLabel(d, 'approval_log', 'decision', decision).toLowerCase() })
         }
-        out.push({ title, lines: [], reason: decision === 'auto_approved' || MACHINE_NOTE_SUBJECTS.has(st) ? null : typed(a.new?.['note']), key: true, weight: 50,
+        out.push({ title, lines: [], reason: decision === 'auto_approved' || MACHINE_NOTE_SUBJECTS.has(st) ? null : typedOrRestricted(d, a.new?.['note']), key: true, weight: 50,
                    approvalFor: str(a, 'subject_id') ?? undefined })
     }
     return out
@@ -1624,15 +1634,22 @@ function describeEquipment(d: TrailDict, rows: TrailRow[], opts: BuildOptions, s
             if (ls.length) out.push({ title: tx(d, 'eq.workChanged'), lines: ls, key: false, weight: 40 })
         }
     }
+    // U1-B(Q15):一段停机可以作废(带理由)、可以更正;永远不删。作废先问 —— 那一次 UPDATE 不是"恢复运行",也不是"更正"。
+    //   更正:之前已经有过的结束时刻被改掉,同样是更正(isSet 只问"有了值",那会把它说成第二次"恢复运行")。
+    const downVoid = new Set(['duration', 'voided_at', 'voided_by', 'void_reason', 'updated_at', 'updated_by'])
     for (const r of by('equipment_downtime')) {
+        const downStart = imgOf(r)['started_at']
+        const which: Line[] = downStart !== undefined ? valueLines(d, r, { started_at: downStart }, opts) : []
         if (r.op === 'INSERT') {
             out.push({ title: tx(d, 'eq.down'), lines: valueLines(d, r, r.new, opts, new Set(['duration', 'notes', ...skipEq])),
                        reason: typed(r.new?.['notes']), key: true, weight: 80 })
-        } else if (isSet(r, 'ended_at')) {
+        } else if (isSet(r, 'voided_at')) {
+            out.push({ title: tx(d, 'eq.downVoided'), lines: which, reason: typed(r.new?.['void_reason']), key: true, weight: 85 })
+        } else if (isSet(r, 'ended_at') && isEmpty(r.old?.['ended_at'] ?? null)) {
             out.push({ title: tx(d, 'eq.up'), lines: valueLines(d, r, { ended_at: r.new?.['ended_at'] ?? null }, opts), key: true, weight: 80 })
         } else if (r.op === 'UPDATE') {
-            const ls = changeLines(d, r, opts, new Set(['duration']))
-            if (ls.length) out.push({ title: tx(d, 'eq.downChanged'), lines: ls, key: false, weight: 40 })
+            const ls = changeLines(d, r, opts, downVoid)
+            if (ls.length) out.push({ title: tx(d, 'eq.downCorrected'), lines: ls, key: true, weight: 60 })
         } else out.push(describeGeneric(d, r, opts))
     }
     for (const r of by('equipment_service_intervals')) {
@@ -1941,7 +1958,10 @@ function describeSalesOrder(d: TrailDict, rows: TrailRow[], opts: BuildOptions):
             if (key === 'so.statusChanged') ls.unshift({ t: 'change', label: fieldMeta(d, 'sales_orders', 'status')[0],
                 old: formatValue(d, 'sales_orders', 'status', r.old?.['status'], imgOf(r), r.refs, r.op, opts),
                 new: formatValue(d, 'sales_orders', 'status', r.new?.['status'], imgOf(r), r.refs, r.op, opts) })
-            out.push({ title: tx(d, key), lines: ls, reason: to === 'cancelled' ? typed(r.new?.['cancel_reason']) : null, key: true, weight: 85 })
+            // U1-B(Q14):给一张发完的单加一行,状态由"已发 vs 已订"推导着翻回 partially_shipped —— 那是改单的【结果】,
+            //   不是这一次的事件;同一次操作里有改单的事件史时,它排在改单之下(标题是 "Sales order amended · line added")。
+            const derived = key === 'so.statusChanged' && [...types].some((t) => SO_AMEND.has(t))
+            out.push({ title: tx(d, key), lines: ls, reason: to === 'cancelled' ? typed(r.new?.['cancel_reason']) : null, key: true, weight: derived ? 60 : 85 })
         } else if (ls.length) out.push({ title: tx(d, 'so.edited'), lines: ls, key: false, weight: 30 })
     }
     // ④ 明细:改单那几种事件史已经带着前后值与理由 —— 在它们旁边的明细行改动不再逐列说第二遍
@@ -4097,7 +4117,8 @@ function describeTime(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block
         if (r.op === 'DELETE') { out.push(describeGeneric(d, r, opts)); continue }
         const st = changed(r, 'status') ? str(r, 'status', 'new') : null
         if (st === 'approved' || st === 'rejected') {
-            out.push({ title: withPart(tx(d, st === 'approved' ? 'mc.approved' : 'mc.rejected'), code), lines: [], reason: typed(r.new?.['decision_notes']),
+            // U1-B:批准 / 驳回的理由是健康的字(data.view_health,或本人)—— 受限就说受限
+            out.push({ title: withPart(tx(d, st === 'approved' ? 'mc.approved' : 'mc.rejected'), code), lines: [], reason: typedOrRestricted(d, r.new?.['decision_notes']),
                        key: true, weight: 100, recordId: id, absorbsApproval: true })
             continue
         }

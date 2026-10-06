@@ -77,7 +77,19 @@ CREATE TABLE public.purchase_orders (
     -- 资产行与电池料行只能在 equipment_goods 里(guard_po_line_category)。
     -- 线上既有的 11 张单全部回填 equipment_goods(grilling Q5:量过,每一张买的都是电池原料或设备)。
     -- **不敏感**,进下面的列清单授权。
-    category text NOT NULL CHECK (category IN ('consumables', 'equipment_goods', 'office'))
+    category text NOT NULL CHECK (category IN ('consumables', 'equipment_goods', 'office')),
+    -- ── U1-B(2026-10-05,UNBLOCK-1 Q25):关闭 / 重开的理由有自己的列,不再拼进 notes ──────────────
+    -- 从前 close_purchase_order / reopen_purchase_order 把 "[YYYY-MM-DD HH:MI closed] 理由" 追加到 notes 的末尾:
+    -- 人写的备注被系统改写,而那段字还被印到发给供应商的 PDF 上。现在理由进这五列,notes 只归人。
+    -- 【描述的是最近一次】关单写 closed_by / close_reason;重开把 closed_at / closed_by / close_reason 清掉(单子不再是关着的),
+    --   写 reopened_at / reopened_by / reopen_reason;再关一次时重开那三列留着,说的是"上一次重开"。
+    --   每一次的全貌在 purchase_order_history 的 closed / reopened 行与变更记录里,不在这五列。
+    -- 线上既有两张单 notes 里的旧后缀【原样留着】(测试数据;Tim 的 Q25)。**不敏感**,进下面的列清单授权。
+    closed_by     uuid,
+    close_reason  text,
+    reopened_at   timestamptz,
+    reopened_by   uuid,
+    reopen_reason text
 );
 
 COMMENT ON COLUMN public.purchase_orders.delivery_location IS
@@ -131,7 +143,9 @@ GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currenc
     -- PUR-1:交货地点【不敏感】(一个地址,不是钱)—— 进列清单授权。
     delivery_location,
     -- APR-10:品类【不敏感】(一个分类)—— 进列清单授权。
-    category)
+    category,
+    -- U1-B:关闭 / 重开的人与理由【不敏感】—— 进列清单授权。
+    closed_by, close_reason, reopened_at, reopened_by, reopen_reason)
     ON public.purchase_orders TO authenticated;
 
 -- APR-2 决定 4:金额被改到需要更高一级审批时,原审批作废并重新路由。

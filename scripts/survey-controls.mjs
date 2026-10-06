@@ -105,7 +105,7 @@ import { createRequire } from 'node:module'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
 import { assertPopulation, assertPinned } from './lib/selfproof.mjs'
 
 const SELF = 'survey-controls'
@@ -210,20 +210,10 @@ if (MODE === 'compare') {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
-const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
-const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-let dev = null, chrome = null, accountId = null
+let dev = null, chrome = null
 
-async function rest(path, opts = {}) {
-    return fetch(URL_ + path, {
-        ...opts,
-        headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json', ...(opts.headers || {}) },
-    })
-}
 
 // ── 路由 ────────────────────────────────────────────────────────────────────
 function* walk(dir) {
@@ -646,25 +636,13 @@ async function main() {
         }
     } catch (e) { if (/held by a LIVE/.test(e.message)) throw e }
 
-    // ── 用完即删的 admin ────────────────────────────────────────────────────
-    const email = `input0-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', {
-        method: 'POST', body: JSON.stringify({ email, password: 'input0-pass-1', email_confirm: true }),
-    })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('could not create probe account: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke input0 grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete input0 account ${accountId}`, ORDER.ACCOUNT)
-    const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', {
-        method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'input0-pass-1' }),
-    })).json()
-    if (!sess?.access_token) throw new Error('probe sign-in failed: ' + JSON.stringify(sess).slice(0, 200))
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
-    console.error('· ephemeral admin session ready')
+    // ── 用完即删的全码会话 ──────────────────────────────────────────────────
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】(而且不看授权那一句的返回码);现在经 mintThrowaway
+    //   造一个一次性全码角色(probe-input0-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'input0', label: 'all', codes: 'all', password: 'input0-pass-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
+    console.error('· ephemeral all-codes session ready')
 
     console.error('· starting next dev on :' + PORT)
     dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })

@@ -720,6 +720,9 @@ equipment_downtime,created_by,audit_std,hide: the trail entry already says who a
 equipment_downtime,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
 equipment_downtime,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
 equipment_downtime,duration,time,HH:MM / duration in words [generated column],,,Duration,,,interval
+equipment_downtime,voided_at,timestamp_audit,"U1-B (2026-10-05): when a downtime period was voided",,,Voided on,,,timestamp with time zone
+equipment_downtime,voided_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Voided by,,,uuid
+equipment_downtime,void_reason,text,verbatim,,,Reason voided,,,text
 equipment_maintenance,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 equipment_maintenance,equipment_id,fk_document,"fixed_assets.code (document number, prefix FA)",assets.category.equipment,Equipment,,text-only,,uuid
 equipment_maintenance,performed_on,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Performed on,,,date
@@ -2253,6 +2256,11 @@ purchase_orders,contract_id,fk_document,"contracts.code (document number, prefix
 purchase_orders,tax_total_ccy,money,"formatAmount(n, row.currency) (lib/format.ts:32)",purchasing.colTaxTotal,GST,,high,app/purchasing/orders/[id]/page.tsx:511,numeric
 purchase_orders,delivery_location,text,verbatim,purchasing.form.deliveryLocation,Delivery location,,high,app/purchasing/orders/new/NewOrderForm.tsx:672,text
 purchase_orders,category,enum,"message keys poCategory.name.<v> (registered in scripts/check-i18n.mjs, build-checked)",poCategory.label,Category,,high,app/purchasing/orders/[id]/page.tsx:724,text
+purchase_orders,closed_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Closed by,,,uuid
+purchase_orders,close_reason,text,verbatim,,,Reason for closing,,,text
+purchase_orders,reopened_at,timestamp_audit,"U1-B (2026-10-05): when a closed purchase order was reopened",,,Reopened on,,,timestamp with time zone
+purchase_orders,reopened_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Reopened by,,,uuid
+purchase_orders,reopen_reason,text,verbatim,,,Reason for reopening,,,text
 qt_issues,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 qt_issues,quote_id,fk_document,"quotes.code (document number, prefix QT)",,,Quote,,,uuid
 qt_issues,version,technical,hide,,,Version,,,integer

@@ -142,10 +142,14 @@ export default async function JournalListPage({
     // 申请表的读策略是 module.finance.view —— 进得了这一页的人都读得到,所以"读不到"只会是一次真的失败
     // (mustRows 抛),不会被当成"没有申请"。批 / 驳要 data.view_prices(门的另一半),撤回要
     // module.finance.edit 或是提单人本人(库那一侧按人判,这里只画钮)。
-    const reqCols = 'id, label, kind, status, entry_date, memo, lines, target_entry_id, amount_base, credits_bank, result_journal_entry_id, decision_notes, withdraw_reason, created_at, created_by'
+    // ★ U1-B(Tim:data.view_pay 的规矩):amount_base 在基表上已从 authenticated 收回 —— 读遮蔽伴生视图
+    //   journal_requests_masked。一张工资分录(发薪 · 公积金 · 扣款)的冲销申请,金额就是那张分录的合计;
+    //   不持 data.view_pay 的人那一格是 NULL,amount_restricted 说出"这个 NULL 是受限,不是零"。
+    //   行谓词与基表的读策略同一个(module.finance.view),所以"读不到"仍然只会是一次真的失败。
+    const reqCols = 'id, label, kind, status, entry_date, memo, lines, target_entry_id, amount_base, amount_restricted, credits_bank, result_journal_entry_id, decision_notes, withdraw_reason, created_at, created_by'
     const [openReqRes, histReqRes, settingsRes, canDecideRequest, canEditJournal, accountsRes] = await Promise.all([
-        supabase.from('journal_requests').select(reqCols).eq('status', 'submitted').order('created_at', { ascending: true }),
-        supabase.from('journal_requests').select(reqCols).neq('status', 'submitted').order('created_at', { ascending: false }).limit(10),
+        supabase.from('journal_requests_masked').select(reqCols).eq('status', 'submitted').order('created_at', { ascending: true }),
+        supabase.from('journal_requests_masked').select(reqCols).neq('status', 'submitted').order('created_at', { ascending: false }).limit(10),
         supabase.from('finance_settings').select('locked_before').maybeSingle(),
         canViewPrices(),
         can('module.finance.edit'),
@@ -155,13 +159,14 @@ export default async function JournalListPage({
     const myUserId = meErr ? null : (meData.user?.id ?? null)
     type RawJournalRequest = {
         id: string; label: string; kind: JournalRequestView['kind']; status: JournalRequestView['status']
-        entry_date: string; memo: string; lines: unknown; target_entry_id: string | null; amount_base: number
+        entry_date: string; memo: string; lines: unknown; target_entry_id: string | null
+        amount_base: number | null; amount_restricted: boolean
         credits_bank: boolean; result_journal_entry_id: string | null
         decision_notes: string | null; withdraw_reason: string | null; created_at: string; created_by: string
     }
     const rawRequests = [
-        ...(mustRows(openReqRes, 'journal_requests') as unknown as RawJournalRequest[]),
-        ...(mustRows(histReqRes, 'journal_requests') as unknown as RawJournalRequest[]),
+        ...(mustRows(openReqRes, 'journal_requests_masked') as unknown as RawJournalRequest[]),
+        ...(mustRows(histReqRes, 'journal_requests_masked') as unknown as RawJournalRequest[]),
     ]
     const lockedBefore = mustOne(settingsRes, 'finance_settings')?.locked_before ?? null
     const accountName = new Map(mustRows(accountsRes, 'accounts').map((a) => [a.code, locale === 'zh' ? a.name_zh : a.name_en]))
@@ -175,7 +180,9 @@ export default async function JournalListPage({
         id: r.id, label: r.label, kind: r.kind, status: r.status,
         entryDateText: formatDate(r.entry_date, locale),
         memo: r.memo,
-        amountBase: Number(r.amount_base),
+        // 受限 → null + amountRestricted:面板印「受限」,不印一个由 NULL 变出来的 0.00(AGENTS.md「0.00 and 受限」)。
+        amountBase: r.amount_restricted || r.amount_base === null ? null : Number(r.amount_base),
+        amountRestricted: !!r.amount_restricted,
         creditsBank: r.credits_bank,
         periodLocked: lockedBefore !== null && r.entry_date < lockedBefore,
         lines: (Array.isArray(r.lines) ? (r.lines as RawLine[]) : []).map((l, i) => {

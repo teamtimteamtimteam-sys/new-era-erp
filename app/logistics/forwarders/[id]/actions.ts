@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { localizeLogisticsError } from '../../logisticsErrorCodes'
+import { refuseNothingChanged } from '@/lib/action-refusal'
 
 // LOG-1c:货代详情页的服务端动作。每一处失败都经 localizeLogisticsError ——
 // 重叠报价那条拒绝是数据库抛的,原样印出来是一串机器码。
@@ -63,11 +64,15 @@ export async function addRateQuote(
 // 软删 —— 报价是一份说过的话,留痕比抹掉有用
 export async function removeRateQuote(supplierId: string, quoteId: string): Promise<Result> {
     const supabase = await createClient()
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('forwarder_rate_quotes')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', quoteId)
+        .select('id')
     if (error) return fail(error.message)
+    // ★ 零行落地 = 什么都没撤(ALERT-1)。RLS 的 USING 不放行时 PostgREST 不报错、
+    //   只返回零行 —— 报告成功就是屏幕说了一句假话。判据与该表写策略同一个权限码。
+    if (!data || data.length === 0) return refuseNothingChanged('module.purchasing.edit')
     revalidatePath(`/logistics/forwarders/${supplierId}`)
     return { success: true }
 }

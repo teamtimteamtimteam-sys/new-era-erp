@@ -7,7 +7,9 @@
 // 【受测的人】八个一次性账号,与冒烟同一套 ephemeral 计划,跑完收走 —— 线上那七个真账号一个都不碰:
 //   七个各持一个真角色(admin · cfo · finance · cco · cto · gm · warehouse —— 线上七个账号各自的那一个),
 //   第八个不持任何角色,绑一个一次性的员工档案(ZZ-SMOKE- 前缀,随计划删掉)—— "一个没有 HR 权限的普通员工"。
-// 【只读】不写任何一张单据;唯一的写是账号、授权与那一个员工档案,全部经计划收回。
+//   ★ U1-B(2026-10-05,GHOST-GRANTS):那七个现在持的是各自真角色的【一次性克隆】(同码、probe- 命名空间、非系统),
+//     不是真角色本身 —— 连 admin 也是克隆(不是全码:本探针要的正是 admin 那三个码看见什么)。
+// 【只读】不写任何一张单据;唯一的写是账号、一次性角色、授权与那一个员工档案,全部经计划收回。
 // 【判据】每一格都对着裁定写:持 data.view_pay 的人看得见工资分录与工资期的数,不持的人是「受限」(API:工资分录的行不在、
 //   遮蔽视图里是 null;屏幕:Restricted);健康数据同理按 data.view_health(本人除外);设备保养的钱按 module.finance.view。
 // 退出码:0 = 全过;1 = 有断言失败;2 = 探针自己坏了。★ 判决只从日志里那一行 `U1A_PROBE_EXIT=` 读。
@@ -18,7 +20,7 @@ import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3187            // 不与冒烟(3199)、版式(3198)、1b-1 … 1d-3(3196 … 3188)探针撞
@@ -113,14 +115,23 @@ async function main() {
     // ── 八个一次性账号 ─────────────────────────────────────────────────────────────────────────────
     const stamp = Date.now()
     const who = {}
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前七位各授【真角色】本身(含真 admin —— 一条 is_system 授权)。
+    //   现在七位一律是一次性克隆({ cloneOf }):恰好持那个真角色此刻的码,不是真角色本身。
+    //   ☞ admin 这里【不】换成全码('all'):本探针量的是"线上七个真账号各自看见什么",而它的判据就是从
+    //     那个真角色的码推出来的(下面的 perms)—— 换成全码,admin 那一行量的就是另一个人了。
+    //     克隆 admin 得到的是一个 probe- 命名空间里、非系统的角色,同样三个码;GHOST-GRANTS 要关的是
+    //     "一条认不到归属的真 admin 授权",它关得住。
+    //   本探针没有一格问"这个人是不是审批人"(读的是 data.view_pay / data.view_health / module.* 这几道码门),
+    //   所以不需要真角色码。第八位(普通员工)不持任何角色、不碰 user_roles,照旧直接建。
+    const perms = {}
     for (const roleCode of [...ROLES, 'employee']) {
-        const email = `u1aprobe-${stamp}-${roleCode}@test.local`
-        const r = await rest('/auth/v1/admin/users', { method: 'POST', body: JSON.stringify({ email, password: 'u1a-probe-1', email_confirm: true }) })
-        if (!r.ok) throw new Error(`建 ${roleCode} 账号失败:HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
-        const u = await r.json()
-        planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `revoke ${roleCode} grant ${u.id}`, ORDER.GRANT)
-        planDelete(`/auth/v1/admin/users/${u.id}`, `delete ${roleCode} account ${u.id}`, ORDER.ACCOUNT)
         if (roleCode === 'employee') {
+            const email = `u1aprobe-${stamp}-${roleCode}@test.local`
+            const r = await rest('/auth/v1/admin/users', { method: 'POST', body: JSON.stringify({ email, password: 'u1a-probe-1', email_confirm: true }) })
+            if (!r.ok) throw new Error(`建 ${roleCode} 账号失败:HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
+            const u = await r.json()
+            planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `revoke ${roleCode} grant ${u.id}`, ORDER.GRANT)
+            planDelete(`/auth/v1/admin/users/${u.id}`, `delete ${roleCode} account ${u.id}`, ORDER.ACCOUNT)
             // 普通员工:不持任何角色,绑一个一次性的员工档案(ZZ-SMOKE- 前缀,check-scratch-rows 认得)
             const e = await rest('/rest/v1/employees', { method: 'POST', headers: { Prefer: 'return=representation' },
                 body: JSON.stringify({ code: `ZZ-SMOKE-U1A-${stamp}`, legal_name: 'ZZ U1A Probe', employment_type: 'full_time',
@@ -128,18 +139,15 @@ async function main() {
             if (!e.ok) throw new Error(`建员工档案失败:HTTP ${e.status} ${(await e.text()).slice(0, 200)}`)
             const row = (await e.json())[0]
             planDelete(`/rest/v1/employees?id=eq.${row.id}`, `delete probe employee ${row.code}`, ORDER.EMPLOYEE)
+            who[roleCode] = await signIn(email, 'u1a-probe-1')
         } else {
-            const rr = await restRows(`/rest/v1/roles?select=id&code=eq.${roleCode}`, `roles ← ${roleCode}`)
-            const g = await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(u.id, rr[0].id)) })
-            if (!g.ok) throw new Error(`授 ${roleCode} 失败:HTTP ${g.status} ${(await g.text()).slice(0, 200)}`)
+            const tw = await mintThrowaway({ prefix: 'u1aprobe', label: roleCode, stamp, password: 'u1a-probe-1',
+                codes: { cloneOf: roleCode } })
+            who[roleCode] = { token: tw.token, cookie: tw.cookie }
+            // 每个读者持什么 —— 取【这个一次性账号实际被授的码】(克隆时从真角色的 role_permissions 读来的那一份):
+            //   判据从这里推,不从记忆里写死;也不再按角色码回头读一次(读一次,就是授出去的那一份)。
+            perms[roleCode] = new Set(tw.codes)
         }
-        who[roleCode] = await signIn(email, 'u1a-probe-1')
-    }
-    // 每个读者持什么(以 service_role 读真角色的码 —— 判据从这里推,不从记忆里写死)
-    const perms = {}
-    for (const roleCode of ROLES) {
-        const rr = await restRows(`/rest/v1/role_permissions?select=permission_code,roles!inner(code)&roles.code=eq.${roleCode}`, `perms ← ${roleCode}`)
-        perms[roleCode] = new Set(rr.map((x) => x.permission_code))
     }
     perms.employee = new Set()
     const has = (r, c) => perms[r].has(c)

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ════════════════════════════════════════════════════════════════════════════
-// AUDIT-TRAIL-1b-3 · 页面这一层的探针 —— 「以【真角色】的身份把那几页取回来,看屏幕上说了什么」
+// AUDIT-TRAIL-1b-3 · 页面这一层的探针 —— 「以【真角色的码】的身份把那几页取回来,看屏幕上说了什么」
 // ════════════════════════════════════════════════════════════════════════════
 // 【为什么在 fixture 之外还要它】fixture 240 证的是读法与被删记录那张视图;删掉的记录【打不打得开、谁打得开、横幅说了什么、
 //   是不是只读】住在页面上,而那一条门(data.view_deleted)是页面问的,不是库问的。冒烟以 admin 登录(admin 持那个码),
@@ -8,6 +8,8 @@
 //
 // 【受测的人】三个一次性账号:一个授【真的】auditor(持 data.view_deleted、各模块的 view 与人事 view)、一个授真的 gm
 //   (各模块的 view 都有,【不持】data.view_deleted)、一个授 admin(新页面的审计记录)。
+//   ★ U1-B(2026-10-05,GHOST-GRANTS):上面说的「授某角色」现在是【一次性克隆】—— 恰好持那个真角色此刻的码,
+//     不是真角色本身;「admin」那一位是一次性全码角色(admin 自 ROLE-1 起只剩三个系统码)。没有一格依赖真角色码。
 // 【受测的行】按种类挑线上【真有】的删掉的记录:一家客户、一家供应商、一种物料、那一张报价(线上只有 ZZ-SMOKE-QT-CJK,它记着谁删的);
 //   删掉的定价公式 / 销售订单 / 采购单线上 0 张 —— 照直报 SKIP,由 fixture 240 与代码审读兜着。
 //
@@ -29,14 +31,13 @@ import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup } from './ephemeral.mjs'
 import { machineTokens } from '../lib/trail/machineTokens.ts'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3194            // 不与冒烟(3199)、版式(3198)、角色探针(3197)、1b-1(3196)、1b-2(3195)探针撞
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const INJECT = (process.argv.find((a) => a.startsWith('--inject=')) || '').slice(9) || null
 const INJECTIONS = {
@@ -62,13 +63,6 @@ async function restRows(path, ctx) {
     try { rows = JSON.parse(body) } catch { /* 下面统一报 */ }
     if (!r.ok || !Array.isArray(rows)) throw new Error(`${ctx}: HTTP ${r.status} ${body.slice(0, 300)}`)
     return rows
-}
-async function signIn(email, password) {
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', {
-        method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }),
-    })).json()
-    if (!sess?.access_token) throw new Error(`登录失败(${email}):${JSON.stringify(sess).slice(0, 200)}`)
-    return 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token=base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
 }
 function sweepStalePort() {
     let pids = []
@@ -139,16 +133,14 @@ async function main() {
     const stamp = Date.now()
     const cookies = {}
     for (const roleCode of ['auditor', 'gm', 'admin']) {
-        const email = `at1b3probe-${stamp}-${roleCode}@test.local`
-        const r = await rest('/auth/v1/admin/users', { method: 'POST', body: JSON.stringify({ email, password: 'at1b3-probe-1', email_confirm: true }) })
-        if (!r.ok) throw new Error(`建 ${roleCode} 账号失败:HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
-        const u = await r.json()
-        planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `revoke ${roleCode} grant ${u.id}`, ORDER.GRANT)
-        planDelete(`/auth/v1/admin/users/${u.id}`, `delete ${roleCode} account ${u.id}`, ORDER.ACCOUNT)
-        const rr = await restRows(`/rest/v1/roles?select=id&code=eq.${roleCode}`, `roles ← ${roleCode}`)
-        const g = await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(u.id, rr[0].id)) })
-        if (!g.ok) throw new Error(`授 ${roleCode} 失败:HTTP ${g.status} ${(await g.text()).slice(0, 200)}`)
-        cookies[roleCode] = await signIn(email, 'at1b3-probe-1')
+        // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真角色】本身(含真 admin)。现在经 mintThrowaway:
+        //   admin → 一次性全码角色('all' —— 本探针拿 admin 当"什么都看得见"的那位读者);
+        //   其余 → 一次性克隆({ cloneOf }:恰好持那个真角色此刻的码)。本探针的每一格都是"持这些码的人
+        //   页面上看见什么"(打不打得开、横幅、受限、具名拒绝),没有一格问"这个人是不是审批人",
+        //   所以不需要真角色码。邮箱形状不变:at1b3probe-<stamp>-<角色>@test.local。
+        const tw = await mintThrowaway({ prefix: 'at1b3probe', label: roleCode, stamp, password: 'at1b3-probe-1',
+            codes: roleCode === 'admin' ? 'all' : { cloneOf: roleCode } })
+        cookies[roleCode] = tw.cookie
     }
     const holder = INJECT === 'holder-is-gm' ? 'gm' : 'auditor'
     const refused = INJECT === 'refusal-is-auditor' ? 'auditor' : 'gm'

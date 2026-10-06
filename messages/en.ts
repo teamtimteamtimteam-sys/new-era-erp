@@ -511,6 +511,8 @@ const en = {
         quotesNoEditDoor: 'A quote cannot be edited in place — it is a thing somebody said, so it is added and withdrawn, never rewritten. To change the free days, withdraw this quote and add the corrected one.',
         addQuote: 'Add quote',
         removeQuote: 'Remove',
+        removeQuoteConfirm: 'Remove this rate quote?',
+        removeQuoteConfirmBody: 'The quote is withdrawn, not erased: it stays on record but leaves this list. There is no restore — if this was a mistake, add the quote again.',
         lanesTitle: 'Lanes and document checklists',
         addPort: 'Add port',
         addLane: 'Add lane',
@@ -1095,6 +1097,11 @@ const en = {
         //   ☞ 判据与风险写在 lib/machine-text.ts 的抬头;它【只】换生码与数据库
         //     报错原文,数据库返回的人话句子原样留着(那归 POLISH-1)。
         errUnexpected: 'This step could not be completed (code {code}). Please pass this code to your administrator.',
+        // U1-B (UNBLOCK-1 Step 0 §3 3.12): the two posting-date refusals every module can hit
+        // (assert_posting_allowed), translated once in lib/machine-text.ts sharedCodeText.
+        // Mappers with their own PERIOD_LOCKED sentence keep theirs.
+        periodLocked: 'That date falls in a locked period: {date} is before the lock date {lockedBefore}. Pick a date in the open month, or ask finance to reopen the period.',
+        yearClosed: 'That date falls in a closed financial year: {date} is in the year ended {yearEnd}. Pick a date after it, or ask finance to reopen the year — reopening a month is not enough.',
         // ALERT-1 (2026-09-08) · wording for the "telling" family.
         // A refusal states three things: what did not happen, why, and what to do
         // next. The yardstick in this repo is finance.gstSwitch.authUnknown and
@@ -2352,6 +2359,7 @@ const en = {
         capHint: 'A cap is an action, not a score. The original score stays on the row, so afterwards it is still clear whether someone scored 2 or was capped at 2. A cap without a reason is indistinguishable from a low score.',
         weightIs: 'Weight {0}%',
         ownTarget: 'Quantifiable target / standard',
+        showTargets: 'Show targets',
         unknownEmployee: 'Employee not visible to you',
         generateWhat: 'These people have no KPI entries in this month. Generating copies the five KPIs from their position and freezes that wording — later edits to the position template will not change what they were measured against.',
         generateAction: 'Generate five',
@@ -3294,6 +3302,8 @@ const en = {
             equipmentTitle: 'Equipment state',
             equipmentReference: 'These tick boxes POINT AT downtime already recorded in equipment downtime — the handover references them, it does not restate them. One event recorded twice eventually disagrees with itself, and the wrong copy is the one people read.',
             downtimeOngoing: 'still open',
+            // U1-B (Q15): a referenced downtime period voided after the handover was written. The handover is not changed.
+            downtimeVoidedLater: 'voided later',
             noDowntime: 'No equipment downtime on record.',
             emptyNoStaff: 'No handovers yet — and that is expected: there are zero shopfloor staff on file today, so nobody hands over and nobody takes over. The shape that carries it is built; the content waits for the first technician.',
         },
@@ -3467,6 +3477,9 @@ const en = {
             workOrderLabel: 'Work order (optional)',
             workOrderNone: 'None — unplanned run',
             workOrderHint: 'Only RELEASED work orders can be worked against. Inputs are NOT prefilled from the plan: a plan names materials, a run names batches, and a batch the system guessed would be a plausible wrong answer.',
+            machine: 'Machine used (optional)',
+            machineNone: 'Not recorded',
+            machineHint: 'Which machine this run was on. Leave it as Not recorded if you do not know — a run without a machine is not counted in any machine\'s usage. Disposed machines are not listed.',
             groupInbound: 'Inbound batches',
             groupOutput: 'Output batches (re-process)',
             basisLabel: 'Cost allocation basis',
@@ -3569,6 +3582,20 @@ const en = {
             // ROLE-1 Batch 3b
             WO_NO_OTHER_RELEASER: 'Nobody but you can release a work order — ask an administrator to give Release work orders to someone else first.',
             PROCESSING_THROUGH_FUNCTION_ONLY: 'Processing records ({0}, {1}) can only be changed through the processing screens — nothing was changed.',
+            // U1-B (UNBLOCK-1 Step 0 §3 5.1): refusals that used to fall through to the generic fallback.
+            // allocate_processing_costs, state-changing runs (deep discharge: no output batch). {0} = run code.
+            ALLOCATION_STATE_CHANGING_BASIS: 'Run {0} changes the state of its input (such as deep discharge) and produces no output batch, so it cannot be allocated by metal value \u2014 that basis reads the metal content of output batches, and there are none. Nothing was allocated. Allocate this run by weight.',
+            ALLOCATION_STATE_CHANGING_OUTPUT_INPUT: 'Run {0} changes the state of its input, but {1} of its inputs are output batches from earlier runs. This kind of run can only put its processing cost back onto inbound batches \u2014 there is no place yet to carry it on an output batch \u2014 so nothing was allocated rather than the cost being silently dropped. Roll the run back and record it with inbound batches only.',
+            ALLOCATION_STATE_CHANGING_NO_INPUT: 'Run {0} has no inbound batch among its inputs, and this kind of run produces no output batch \u2014 so its processing cost has nowhere to go. Nothing was allocated. Check the run\u2019s inputs; if it was recorded wrongly, roll it back and record it again.',
+            ALLOCATION_STATE_CHANGING_NO_BASIS: 'Run {0}: its inbound inputs add up to zero, so there is nothing to split its processing cost by. Nothing was allocated. Check the consumed quantities on the run.',
+            ALLOCATION_LEDGER_DIVERGED: 'Run {0}\u2019s capitalisation journal entry was reversed by hand, so the cost already recorded for it no longer matches the general ledger, and re-allocating would build on a wrong base. Nothing was changed. Ask finance to put this right with a manual journal entry before the run is allocated again.',
+            // commit_processing_run, the machine picked for the run. {1} and {2} are dates.
+            EQUIPMENT_NOT_FOUND: 'The machine picked for this run ({0}) is not on the books \u2014 it may have been removed, or the page is out of date. Nothing was saved. Reload the page and pick the machine again, or leave it as Not recorded.',
+            EQUIPMENT_NOT_ACQUIRED: 'Machine {0} was acquired on {1}, but this run is dated {2} \u2014 on that day the machine was not ours yet. Nothing was saved. Check the processing date, or pick the machine that was actually used.',
+            EQUIPMENT_DISPOSED: 'Machine {0} was disposed of on {1}, but this run is dated {2} \u2014 by then it was gone. Nothing was saved. Check the processing date, or pick the machine that was actually used.',
+            // submit_shift_handover, the downtime periods ticked on the handover.
+            HANDOVER_DOWNTIME_NOT_FOUND: 'One of the downtime periods ticked on this handover no longer exists. Nothing was saved \u2014 reload the page and tick them again.',
+            HANDOVER_DOWNTIME_VOIDED: 'One of the downtime periods ticked on this handover has since been voided \u2014 it never happened, so a handover cannot refer to it. Nothing was saved. Reload the page (voided periods are not listed) and tick the others again.',
             WO_NO_LINES: 'A work order needs at least one planned line — otherwise it plans nothing.',
             WO_LINE_QTY_INVALID: 'A planned quantity must be greater than zero.',
             WO_MATERIAL_NOT_FOUND: 'Material {0} does not exist.',
@@ -3980,6 +4007,8 @@ const en = {
             actionHint: 'Changes quantities, prices, lines, notes and terms. Requires a reason; the status is not affected.',
             editDraft: 'Edit draft',
             editDraftHint: 'A draft edits freely — no reason, no amendment history.',
+            addLinesAction: 'Add lines',
+            addLinesActionHint: 'This order is fully shipped. You can only add new lines; adding one puts the order back to partially shipped.',
             notAmendable: 'This order is {status}, so it cannot be amended. That is a final state — raise a new order instead.',
             addOnly: 'This order is fully shipped. The only amendment it still accepts is a NEW line — the header and every existing line are settled. Adding a line puts the order back to partially shipped, because it is no longer fully delivered.',
             reason: 'Reason for this amendment',
@@ -5405,6 +5434,8 @@ const en = {
             EXPENSE_CLAIM_AMOUNT_INVALID: '{0} is not an amount anyone can have spent.',
             EXPENSE_CLAIM_CURRENCY_UNKNOWN: '\u201c{0}\u201d is not a currency this system holds.',
             EXPENSE_CLAIM_DESCRIPTION_REQUIRED: 'Say what it was for. It is the only thing the approver has to judge by.',
+            // U1-B: submit_expense_claim refuses a claim nobody else could decide. {0} = claim code.
+            EXPENSE_CLAIM_NO_OTHER_DECIDER: 'Claim {0} was not submitted: with approvals on, nobody other than you (and the person claimed for) can decide it, so it would wait forever. Ask an administrator to give a second person the deciding role first.',
             EXPENSE_CLAIM_NOT_FOUND: 'No expense claim with id {0}.',
             EXPENSE_CLAIM_NOT_SUBMITTED: 'Claim {0} is {1}, so there is nothing to decide or withdraw.',
             EXPENSE_CLAIM_REJECT_REASON_REQUIRED: 'Rejecting {0} needs a reason \u2014 without one the claimant cannot tell whether to fix something and resubmit, or drop it.',
@@ -5846,7 +5877,7 @@ const en = {
         cancelHasReceipts: 'Cannot cancel: {n} inbound batch(es) are already linked to this order.',
         cancelNeedsFinance: 'Cancelling an order needs finance edit rights.',
         reopenNeedsReason: 'A reason is required.',
-        closeNeedsNotes: 'Write a note first - this order is being closed with prepayment still unapplied.',
+        closeNeedsNotes: 'Write a reason first - this order is being closed with prepayment still unapplied.',
             equipmentOrderNote: 'This is an equipment order. A machine arriving is not a goods receipt — it creates no batch, has no assay and does not enter a location, so there is no “receive” action here. Record what the machine cost as an expense against its order line; its arrival and commissioning live on its asset card under Finance → Assets.',
             colMachine: 'Machine',
             releaseDate: 'Release date',
@@ -6003,14 +6034,17 @@ const en = {
         close: 'Close order',
         closeConfirm: 'Close this purchase order?',
         closeConsequence: 'The order stops being offered for receiving, so nothing further can be booked against it there. Nothing already received or invoiced changes, and it can be reopened later with a reason. If money was prepaid against this order and not yet applied, closing asks for a written explanation first: that cash stays in prepayments and this order will never absorb it.',
-        closeNotes: 'How is the unapplied prepayment being resolved?',
+        closeNotes: 'Reason for closing',
+        closeReasonHint: 'Recorded with the close and shown on this order — it is not added to the order notes. Required while prepayment is unapplied (say how it is being resolved); otherwise optional.',
+        closeReasonNone: 'No reason was given when it was closed.',
+        reopenedLabel: 'Reopened',
         closeWithPrepaymentWarning:
             'This order still has {amount} of unapplied prepayment. Explain how it is being resolved — the amount stays in Prepayments until it is applied elsewhere.',
         closeWithPrepaymentUnknown:
             'Whether this order still has unapplied prepayment cannot be shown with your permissions. Explain how any remaining prepayment is being resolved — it stays in Prepayments until applied elsewhere.',
         reopen: 'Reopen',
         reopenConfirm: 'Reopen this purchase order?',
-        reopenConsequence: 'The order goes back to receiving if anything has already been received against it, or to confirmed if nothing has, and it appears in the receiving list again. Your reason is added to the order notes. Nothing already received, invoiced or paid is changed.',
+        reopenConsequence: 'The order goes back to receiving if anything has already been received against it, or to confirmed if nothing has, and it appears in the receiving list again. Your reason is recorded with the reopening and shown on the order — it is not added to the order notes. Nothing already received, invoiced or paid is changed.',
         reopenReason: 'Reason',
         unappliedMarker: 'Unapplied prepayment',
         applyPrepayment: 'Apply prepayment',
@@ -6248,8 +6282,11 @@ const en = {
             APPROVAL_SUBJECT_TYPE_UNKNOWN: '"{0}" is not a kind of thing this system records approvals for',
             PO_NOT_CLOSED: 'Purchase order {0} is not closed',
             CLOSE_NOTES_REQUIRED:
-                'This order has {0} of unapplied prepayment — a note explaining how it is resolved is required to close',
+                'This order has {0} of unapplied prepayment — a reason for closing that explains how it is resolved is required',
             REASON_REQUIRED: 'A reason is required',
+            PO_LINE_NOT_FOUND: 'That purchase order line was not found, or its order has been deleted ({0}).',
+            DEEP_DISCHARGE_JUDGEMENT_REQUIRED: 'Choose a deep-discharge judgement. Once a line has one it cannot go back to blank — if nobody has looked, choose “Not assessed”.',
+            DEEP_DISCHARGE_JUDGEMENT_UNKNOWN: '“{0}” is not an active deep-discharge judgement. Reload the page and choose from the list.',
         },
     },
     tasks: {
@@ -8150,6 +8187,8 @@ const en = {
         journalRequest: {
             title: 'Manual journals awaiting approval',
             noneWaiting: 'No manual journal or reversal is waiting for approval.',
+            // U1-B (Tim: data.view_pay): a reversal of a payroll entry carries that entry's total.
+            amountRestrictedHint: 'This reverses a payroll entry, and its amount is pay data \u2014 it needs the data.view_pay permission. An administrator grants it under Settings \u2192 Roles.',
             openTitle: {
                 entry: 'A manual journal is waiting for the CFO',
                 reversal: 'A reversal is waiting for the CFO',
@@ -8399,9 +8438,10 @@ const en = {
             // object for the code before adding one.
             // The three below genuinely had none, and each states the next step.
             PROCESSING_COSTS_UNALLOCATED:
-                'Period {0} has {1} submitted processing run(s) whose costs were never allocated '
-                + '({2} in total). The material has moved but work in progress is still sitting in '
-                + '1200 — allocate those costs under Operations → Processing, then close the period.',
+                // U1-B: {2} is the comma-separated list of run codes (not a total) — name them.
+                'Period {0} cannot be closed: {1} submitted processing run(s) up to that date never had '
+                + 'their costs allocated — {2}. The material has moved but work in progress is still sitting in '
+                + '1200. Allocate those runs under Operations → Processing, then close the period.',
             JOURNAL_IMMUTABLE:
                 'A posted journal entry cannot be edited or deleted — once the books accept it, it '
                 + 'is read-only. To correct it, reverse it and post a correct entry; both stay on '
@@ -8635,8 +8675,14 @@ const en = {
             step_cpf: 'CPF remitted',
             step_deductions: 'Deductions remitted',
             step_accruals: 'Processing accruals settled',
-            step_staleAllocation: 'Batch costs match cost entries',
-            staleAllocationDetail: '{n} run(s) allocated before their costs changed',
+            // U1-B: two different things, kept apart. step_unallocated is what close_period refuses on
+            // (PROCESSING_COSTS_UNALLOCATED, same function processing_runs_blocking_close); step_staleAllocation
+            // is runs allocated once whose costs moved afterwards — worth re-allocating, but it does not block the lock.
+            step_unallocated: 'Every submitted processing run up to month-end has its costs allocated',
+            unallocatedDetail: '{n} run(s) never allocated — closing the period will be refused until they are: {codes}',
+            blockedByUnallocated: 'blocked: {n} submitted processing run(s) up to month-end were never allocated — allocate them first',
+            step_staleAllocation: 'Allocated runs still match their cost entries',
+            staleAllocationDetail: '{n} run(s) allocated before their costs changed — re-allocate to refresh unit costs (this does not block the lock)',
             step_depreciation: 'Depreciation posted',
             depreciationDetail: 'to post: {0}',
             step_revaluation: 'Revaluation run',
@@ -9763,6 +9809,17 @@ const en = {
             startedAt: 'Went down at',
             reason: 'Reason',
             openHint: 'Leave the return time for later \u2014 a period with no end is an OPEN period, and the screen shows it as one. It is not a period with a missing field.',
+            // U1-B (UNBLOCK-1 Q15): correct and void a downtime period. Never deleted.
+            correct: 'Correct',
+            correctTitle: 'Correct the period that started {since}',
+            correctOpenHint: 'This period is still open, so its return time is not edited here \u2014 close it with \u201cClose this period\u201d when the machine comes back.',
+            correctHint: 'The change history keeps the old times and reason. If this period never happened at all, void it instead.',
+            void: 'Void',
+            voidConfirm: 'Void this downtime period?',
+            voidConsequence: 'Use this when the period never happened (entered by mistake, wrong machine). It stays on the list marked as voided, with your reason; it no longer counts as open, no longer blocks overlapping periods, and new handovers cannot refer to it. A void cannot be undone \u2014 to fix wrong times, use Correct instead.',
+            voidReasonPlaceholder: 'e.g. entered on the wrong machine \u2014 it was line 2 that stopped',
+            voidedBadge: 'Voided',
+            voidedBecause: 'Voided {when}: {reason}',
         },
         errors: {
             DOWNTIME_START_IN_FUTURE: 'That downtime starts at {0}, which has not happened yet. A downtime period records something that DID happen - if you are planning a future window, that is a plan, and this column cannot hold one.',
@@ -9780,6 +9837,14 @@ const en = {
             equipment_downtime_period_order: 'The machine cannot come back before it went down. Check the two times.',
             equipment_downtime_reason_stated: 'Say why the machine went down \u2014 the reason cannot be blank.',
             uq_equipment_downtime_open: 'This machine already has an open downtime period. A machine can only be down once at a time \u2014 close the open period before starting another. If you did not expect this, somebody else has just opened one; reload the page to see it.',
+            // U1-B (UNBLOCK-1 Q15): downtime is corrected or voided, never deleted. {0} = the period's start (Singapore time).
+            DOWNTIME_NEVER_DELETED: 'The downtime period that started {0} cannot be deleted \u2014 handovers and the maintenance history may point at it. If it never happened, void it (with a reason); if its times are wrong, correct it.',
+            DOWNTIME_VOIDED: 'The downtime period that started {0} has been voided, so it can no longer be changed \u2014 a voided record is frozen so nobody has to guess which version was voided. Nothing was changed. If the machine really was down, record a new period.',
+            DOWNTIME_VOID_THROUGH_FUNCTION_ONLY: 'A downtime period can only be voided with the Void button, which records who voided it and why. Nothing was changed.',
+            DOWNTIME_NOT_FOUND: 'That downtime period ({0}) is not on this machine \u2014 it may belong to another machine, or the page is out of date. Reload the page and try again.',
+            DOWNTIME_ALREADY_VOIDED: 'The downtime period that started {0} was already voided \u2014 probably by someone else just now. Nothing was changed; reload the page to see their reason.',
+            DOWNTIME_VOID_REASON_REQUIRED: 'Say why this period is being voided. A downtime record that disappears with no reason leaves the next reader nothing to go on.',
+            equipment_downtime_void_shape: 'A voided downtime period must carry both the time it was voided and a reason. Nothing was changed \u2014 use the Void button, which records both.',
             equipment_service_intervals_at_least_one: 'State an interval in kilograms, in days, or both \u2014 at least one is required. An interval row with neither reads as configured and would never report anything.',
             equipment_service_intervals_lead_kg_shape: 'The kilogram early warning must be at least zero and smaller than the interval itself, and it must be stated whenever the kilogram interval is. A warning equal to the interval is a light that is on from the first day.',
             equipment_service_intervals_lead_days_shape: 'The day early warning must be at least zero and smaller than the interval itself, and it must be stated whenever the day interval is. A warning equal to the interval is a light that is on from the first day.',

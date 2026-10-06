@@ -14,9 +14,13 @@
 //   算式逐字照原表:分 ÷ 5 × 权重,封顶后取 LEAST —— 与 kpi_employee_rollup
 //   和 score_kpi_entry 里那两处是同一个式子。
 //
-// ★【目标原文贴着输入放,不是折叠起来】★
-//   Tim:没有它,她得开着表格再开着这一屏。所以 target_text / 证据来源 /
-//   所链组织 KPI 的 M3 与 M6 目标,全部画在【她打分那一格的左边】。
+// ★【目标原文贴着输入放 —— 但【收进每一行的「显示目标」里】】★
+//   C-2 当初的裁定是不折叠:没有它,她得开着表格再开着这一屏。
+//   Tim 在 UNBLOCK-1 Q17(2026-10-05)改判:折起来。三十行每行一整段目标原文,
+//   把打分那一列推出了屏幕。现在标题 / 权重 / 暂定标记仍然一直看得见,
+//   target_text / 证据来源 / 所链组织 KPI 的 M3 与 M6 目标收进【逐行】的
+//   原生 <details> —— 仍然在她打分那一格的左边,点一下就展开,不用离开这一屏。
+//   打分输入框不折。
 import { CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -88,7 +92,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             ),
         },
         {
-            // ★★ 目标原文就住在这里 —— 贴着她打分的地方。见抬头。 ★★
+            // ★★ 目标原文就住在这里 —— 贴着她打分的地方,收在「显示目标」里。见抬头。 ★★
             key: 'kpi',
             header: t('kpi.colKpiAndTarget'),
             priority: true,
@@ -104,27 +108,34 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
                             {t('kpi.provisionalTag')}
                         </span>
                     )}
-                    {r.isProvisional && r.provisionalNote && (
-                        <p className="mt-1 text-xs text-amber-900 bg-amber-50 border-l-2 border-amber-400 p-1">
-                            {r.provisionalNote}
-                        </p>
-                    )}
-                    <dl className="mt-1.5 text-xs">
-                        <dt className="text-xs text-gray-500">{t('kpi.ownTarget')}</dt>
-                        <dd className="text-gray-800">{r.targetText}</dd>
-                        <dt className="text-xs text-gray-500 mt-1">{t('kpi.evidence')}</dt>
-                        {/* ★ 三十格全空是原表的事实,不是一个待办 —— 说出来,不留白 */}
-                        <dd className="text-gray-800">{r.evidenceSource ?? t('kpi.noEvidenceSource')}</dd>
-                    </dl>
-                    {r.orgTargets.map((o) => (
-                        <div key={o.code} className="mt-1.5 border-l-2 border-gray-300 pl-2">
-                            <div className="text-xs text-gray-500">
-                                <span>{o.code}</span> · {o.title}
+                    {/* UNBLOCK-1 Q17:逐行折叠。原生 <details>,与 AuditTrail 的行内留痕同形 ——
+                        键盘与读屏天然可用,不需要自己管展开状态。
+                        U1-B 实测(survey-controls,1440px):临时目标那一段说明留在外面时,9 行临时 KPI 每一行 216px,
+                        其余 82px —— 说明也收进来,"临时"那枚标签留在外面(它说的是这一行的状态,不是目标的内容)。 */}
+                    <details className="mt-1.5">
+                        <summary className="cursor-pointer text-xs text-[color:var(--brand-muted-text)]">{t('kpi.showTargets')}</summary>
+                        {r.isProvisional && r.provisionalNote && (
+                            <p className="mt-1.5 text-xs text-amber-900 bg-amber-50 border-l-2 border-amber-400 p-1">
+                                {r.provisionalNote}
+                            </p>
+                        )}
+                        <dl className="mt-1.5 text-xs">
+                            <dt className="text-xs text-gray-500">{t('kpi.ownTarget')}</dt>
+                            <dd className="text-gray-800">{r.targetText}</dd>
+                            <dt className="text-xs text-gray-500 mt-1">{t('kpi.evidence')}</dt>
+                            {/* ★ 三十格全空是原表的事实,不是一个待办 —— 说出来,不留白 */}
+                            <dd className="text-gray-800">{r.evidenceSource ?? t('kpi.noEvidenceSource')}</dd>
+                        </dl>
+                        {r.orgTargets.map((o) => (
+                            <div key={o.code} className="mt-1.5 border-l-2 border-gray-300 pl-2">
+                                <div className="text-xs text-gray-500">
+                                    <span>{o.code}</span> · {o.title}
+                                </div>
+                                <div className="text-xs"><span className="text-gray-500">{t('kpi.month3')}:</span> {o.month3}</div>
+                                <div className="text-xs"><span className="text-gray-500">{t('kpi.month6')}:</span> {o.month6}</div>
                             </div>
-                            <div className="text-xs"><span className="text-gray-500">{t('kpi.month3')}:</span> {o.month3}</div>
-                            <div className="text-xs"><span className="text-gray-500">{t('kpi.month6')}:</span> {o.month6}</div>
-                        </div>
-                    ))}
+                        ))}
+                    </details>
                 </>
             ),
         },

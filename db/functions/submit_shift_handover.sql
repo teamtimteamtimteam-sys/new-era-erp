@@ -92,6 +92,12 @@ BEGIN
                     WHERE NOT EXISTS (SELECT 1 FROM equipment_downtime e WHERE e.id = d)) THEN
             RAISE EXCEPTION 'HANDOVER_DOWNTIME_NOT_FOUND';
         END IF;
+        -- U1-B(Q15):一段作废了的停机没有发生过,交接单不能引用它(新建交接单的勾选里本来就不列它)。
+        IF EXISTS (SELECT 1 FROM unnest(p_downtime_ids) d
+                     JOIN equipment_downtime e ON e.id = d
+                    WHERE e.voided_at IS NOT NULL) THEN
+            RAISE EXCEPTION 'HANDOVER_DOWNTIME_VOIDED';
+        END IF;
         INSERT INTO shift_handover_equipment_refs (handover_id, downtime_id, created_by)
         SELECT v_id, d, v_user FROM unnest(p_downtime_ids) d
         ON CONFLICT DO NOTHING;

@@ -270,6 +270,13 @@
 >    分录页、试算表、结账预览、分录导出、明细账对不持 `data.view_pay` 的读者(cto · gm)静默少掉工资分录行,直到新代码改读 `_masked` 视图与 DEFINER 合计。
 >    下一刀 **U1-B · unblock the workflows(`v1.4.36`)**。
 >
+> 35. **✅ 工作流上的几扇门与剩下的几处泄漏 —— U1-B(`v1.4.36`,2026-10-05)。** UNBLOCK-1 的后一半(Tim 2026-10-05:Step 0 的 Q14–Q25
+>    全按推荐答;U1-A close-out 另加三件;MES-0 Q1 的共用一次性账号帮手)。发布那一行、逐角色读数表与页面清单在 `docs/handbacks/U1-B.md`。
+>    迁移 `db/migrations/2026-10-05-u1b-workflow-fixes.sql`;fixture 248(八臂,19 格注入全红在点名的那一臂)。
+>    ★ **破窗**:起点见 `db/migration-windows.tsv` 的 U1-B 那一行(`apply_migration.sh` 打出来);终点 = Tim 在 Vercel 上看到部署成功的那一刻
+>    (转述,不是本机测量 —— 下一次 close-out 补记)。**UNBLOCK-1 至此两刀都关闭。** 下一刀 **MES-1 · Entry point**(见下面「⬜ ★ MES 组」;
+>    它的网关那条路在线上被用之前,Supabase 要先换到付费档 —— Q16,Tim 自己的动作)。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
@@ -2367,7 +2374,8 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
   真正的修法是**给文件选择器建一个库组件**(§八(b):库里缺能力先加进库),
   让那个钮画的是 `bg-primary` —— 那是一次色板刀,不是本刀的范围。
 
-* **`BTN5B-RECONCILE-UNREACHABLE` —— `/finance/bank/statements/[id]/reconcile`
+* ★ **【U1-B 改判,Tim 的 Q22,2026-10-05】不是缺陷,挪到丙:线上没有一张开着的对账单;软删的对账单今天跳回详情页(AT-1c-2 起),不是 `notFound()`。** 原文:
+  **`BTN5B-RECONCILE-UNREACHABLE` —— `/finance/bank/statements/[id]/reconcile`
   今天【任何人都打不开】,而这是数据问题不是路由问题。**
   实测(只读,2026-09-07):线上一共两张对账单 —— `BS-2026-0001` 已软删
   (那条路由 `notFound()`),`BS-2026-0002` 已对账完成(那条路由 `redirect()` 走)。
@@ -4305,7 +4313,12 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 
 **触发条件:** 无前置。一个键 + 中英两句,很小。
 
-### ⬜ PERIOD-LOCK-RAW-CODE · 31 支 `*ErrorCodes.ts` 不认 `PERIOD_LOCKED`,于是机器字打到屏幕上
+### ✅ ~~PERIOD-LOCK-RAW-CODE · 31 支 `*ErrorCodes.ts` 不认 `PERIOD_LOCKED`,于是机器字打到屏幕上~~
+
+> ★ **✅ U1-B 关闭(2026-10-05)**:不是逐支补码,而是在共用兜底里认一次 —— `lib/machine-text.ts` 的 `sharedCodeText` 把
+> `PERIOD_LOCKED|<日期>|<锁期线>` 与 `YEAR_CLOSED|<日期>|<年末>` 说成点名两个日期、说出下一步的一句话;`lib/action-refusal.ts` 的
+> `refuseFromDriver` 先问它,于是 `refuseFromCoded` 那条契约不变。**重量(U1-B,`find app lib -iname "*errorcodes.ts"`):48 支,37 支不带
+> `'PERIOD_LOCKED'`**(其中至少 29 支只靠兜底)—— 今天都被接住。原文与 SMALL-BATCH-1 的读数原样留在下面。
 
 **这【不是】SILENT-1 那一族(什么都不说),是 ALERT-1 那一族(机器字当句子)。**
 
@@ -4408,14 +4421,14 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | ~~★★ **`FIXED-ASSETS-NO-UPDATE-POLICY`**~~ | ~~RLS 开着而 `fixed_assets` **一条 UPDATE 策略都没有** → 那个「计划投用日」控件对**所有人**改零行~~ ★★ **B3 已修(2026-09-20)。** Tim 裁定走函数、不补策略:新增 `set_asset_planned_in_service()`(SECURITY DEFINER + `require_permission('module.finance.edit')`),`actions.ts` 从直连表换成 `.rpc()`。☞ **策略仍然只有那一条 SELECT** —— 这是【有意的】:这张表从此只有一扇写门。⚠ **本刀没有做到留痕** —— 见 `known-issues` 的 `FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED`。 | — | ~~`known-issues` 同名条~~ |
 | ~~★★ **线上八行物料全部改不动**~~ ★★ **【就地更正 —— 谁:BLOCKERS-0 勘察(线上只读实测,2026-09-19);哪一天:B3 close-out 转记 2026-09-20】那个「八」在今天是【假】的。**<br>★ 原文留着划掉、不删 —— **一条被悄悄改掉的旧读数,与一条从来没写过的读数,在读的人眼里没有区别。** | ~~`materials_kind_stated` 是 NOT VALID CHECK,而 **NOT VALID 的 CHECK 整行重算** → 8/8 行改名字、改安全库存、改备注一律被拒。**同一个根因也关着加工**~~<br>★ **约束本体 CONFIRMED,一个字不改**(`materials_kind_stated` · `NOT VALID` · UPDATE 时重算整条 CHECK)。★ **而一处措辞要更准:这条 CHECK 只看【两列】** —— `kind_code` 与 `may_be_processed`。☞ **这个区别有后果:只要这两列在同一次 UPDATE 里被填上,那次 UPDATE 就过。**<br>★★ **真数(线上 `public.materials` 全表 **9** 行):未软删 **5** · ★ 未软删【且】违反约束 **3** · 已软删且违反 4 · 满足约束 2。**<br>★★ ~~**而真的业务物料是【两行】**~~ ★ **【全部线上数据都是测试数据 —— Tim,2026-09-20】** —— **这两行同样是测试数据**;`ZZ-` 与非 `ZZ-` 的区别**不是「假 / 真」**,是**两种测试数据**(`ZZ-*` 是验证工具残留)。原文留着:**~~而真的业务物料是【两行】:`MAT-2026-0001` NMC Cathode Foil · `MAT-2026-0002` Special Battery Material~~**(两行的 `kind_code` 与 `may_be_processed` 都是 NULL)。第三行 `ZZ-SMOKE-PROBE` 也挡着,**但它是一行 `ZZ-` 验证残留**,不是业务物料。<br>~~★★ **它押着的真实库存:13 批 / 15,318 kg**~~ ★★ **【全部线上数据都是测试数据 —— Tim,2026-09-20】** —— **「真实库存」这四个字在今天是【假】的**:线上没有一公斤真实库存,那 13 批 / 15,318 kg **全部是测试数据**。⚠ **数字本身没有变,变的是它读起来是什么意思** ——它押着的是一条**测试数据上的**路径,不是一条产线。★ 原文留着划掉,不删。<br>~~★★ **它押着的真实库存:13 批 / 15,318 kg**~~ —— 8 个进料批 / 余 **14,488 kg**(NMC Cathode Foil)+ 5 个进料批 / 余 **830 kg**(Special Battery Material)。**8+5=13,14,488+830=15,318,分母对得上。**<br>★★★ **而最要紧的更正是这一条:门【不是关着的】。** `app/materials/[id]/edit/actions.ts` 实测 —— 那扇门**打得开、按得动**,而且它**不许你不答种类**(`errKind` / `errProcessable` 两条必填校验)。☞ 一个人**改不了一条备注**,准确的说法不是「数据库拒绝他」,而是:**表单要他在同一次保存里把种类和可不可投料一起说出来,而他不知道答案。**<br>★ **因此 BLOCKERS-0 把它从【甲】改判为【乙】** —— **软件没有挡住任何人,它在等一个人答两个问题。**⚠ **而这【不是】在说它不要紧**:它挡的不是一个屏幕,是一条产线。<br>⚠ **一处【不精确】也要更正**:「同一个根因也关着加工」——★ **结构上不成立**,`ZZ-SMOKE-NTF`(100 kg)今天就投得了料。~~**准确的说法是:没有任何一批【真实】库存投得了料。**~~ ★ **【全部线上数据都是测试数据 —— Tim,2026-09-20】** —— **今天更准确的说法是:没有任何一批库存投得了料,而它们全都是测试数据。** | ★ **有人说出那【两】行物料的种类** —— ★★ **【Tim 裁定,2026-09-20】这是 Tim 自己的一次【数据录入】,在 `/materials/<id>/edit` 上点,不是一刀。** ☞ **它连一次数据库写入都不需要工程师去做。**<br>⚠⚠ **`ZZ-SMOKE-PROBE` 那一行【不许填】。** 它归 **ZZ 残留清扫**那一族,不归这一格 —— **答它等于把一行验证残留转正**,而它上面那 **99,970 kg** 今天正在污染库存合计。见 BLOCKERS-0 §6 Q9 与 `known-issues` 的 `SMOKE-SCRATCH-ROWS-STALE`。 | `known-issues` 同名条;★ **读数逐行在 `docs/handbacks/BLOCKERS-0-stopgate.md` §3「★★ B2 · 那些改不动的物料」** |
 | ✅ ~~★ **收货库位录不进去**~~ | ~~ctx 机制到不了 PostgREST 的插入~~ ★ **【就地更正 —— UNBLOCK-1 Step 0 实测,2026-10-05;U1-A 划掉】这一行早就不成立了:IOD-1b(2026-08-13,`2026-08-13-iod1b-batch-creation-rpcs.sql`)把三个建批次的表单收归三支 RPC,每一支先 `set_config('evoltrya.location_ctx', …)` 再插入,三个表单都画 `<LocationPicker>`。** 证据见 `docs/surveys/UNBLOCK-1/STEP0-HANDBACK.md` §3 3.2 | ~~未做~~ ✅ IOD-1b | `known-issues`(IOD-1,同一处待删)|
-| ★ **`shipped` 上的加行没有入口** | 引擎有、页面有、**入口没有** | 未做 | `known-issues`(SO-1b)|
-| ★ **`/finance/bank/…/reconcile` 任何人打不开** | 线上两张对账单:一张已软删(`notFound()`)、一张已对账(`redirect()`)。本条**是数据问题,不是路由问题**;★ **不要为了让它可达去造一行** | 一张真的开着的对账单,或一次带 fixture 的走查 | 「BTN-5b 留下的三条」|
-| ★★ **`/hr/kpi/score` 接近不能用** | Tim 走查的原话。★ **而 POLISH-1 round 3 实测那条列宽规矩【治不了它】** —— 真正难用的是**行高**(桌面 252–504px,手机 722–1699px,30 行) | ★ **一次单独的裁定**(行高,不是列宽) | 「POLISH-1 · w」 |
+| ✅ ~~★ **`shipped` 上的加行没有入口**~~ | ~~引擎有、页面有、**入口没有**~~ ★ **U1-B 做了(Q14)**:订单页对 `shipped` 画 "Add lines" 与只许加行的提示 | ✅ U1-B | `known-issues`(SO-1b,已关闭)|
+| ✅ ~~★ **`/finance/bank/…/reconcile` 任何人打不开**~~ ★ **【U1-B 挪到丙(Tim 的 Q22),2026-10-05】不是缺陷:线上没有一张开着的对账单。** 机制那一句也更正:软删的对账单今天是**跳回**它的详情页(AT-1c-2 起),不是 `notFound()`。原行留着: | 线上两张对账单:一张已软删(`notFound()`)、一张已对账(`redirect()`)。本条**是数据问题,不是路由问题**;★ **不要为了让它可达去造一行** | 一张真的开着的对账单,或一次带 fixture 的走查 | 「BTN-5b 留下的三条」|
+| ✅ ~~★★ **`/hr/kpi/score` 接近不能用**~~ ★ **U1-B 做了(Q17)**:每一行的目标、证据与第 3 / 第 6 月的组织目标收进"Show targets",默认只露标题、权重与分数框;前后读数见 `docs/handbacks/U1-B.md`。原行: | Tim 走查的原话。★ **而 POLISH-1 round 3 实测那条列宽规矩【治不了它】** —— 真正难用的是**行高**(桌面 252–504px,手机 722–1699px,30 行) | ★ **一次单独的裁定**(行高,不是列宽) | 「POLISH-1 · w」 |
 | ✅ ~~★ **PayrollGrid @ 390px**~~ | ~~横拖 **414px** 才看得到最后一列,而那时**身份列早已离场** —— 一张录入工资的表~~ ★ **【就地更正 —— UNBLOCK-1 Step 0 实测,2026-10-05;U1-A 划掉】DRAFT-6(2026-09-21,`57f07504`)已经把 PayrollGrid 搬上 `<EditableTable phone={{mode:'columns'}}>`,身份列是唯一留在 390px 那一行的列(表壳 326/326,`PROBE_OWN_EXIT=0`);`known-issues` 那一条早已划掉。** | ✅ DRAFT-6 | `TABLE-CONVERT-SWEEP` §四 · `docs/handbacks/DRAFT-6.md` §4 |
-| ★ **`ForwarderPanels:167` 删除钮只露一半** | maxScroll 24px,而那一列正是删除钮。R1 的原话:「**够不着的动作等于不存在**」 | ★ **一句裁定**(TABLE-STYLE-2 实测穿上 `tableC` 会更差)| 同上 |
-| ★★ **两个账号前置** | ① 那个**只持字典编辑权**的账号**仍然不存在**(走查 §12 第 1 步与 §15 第 1 步都卡在它上面);② **全系统只有一个人登得进来**,而**应用里没有任何一条路能把管理员权限重新授出去** | ★ **一个有名字的人**,在发账号那一天 | 「内部验收」(e)|
-| ★ **`GHOST-GRANTS`** | 幽灵 admin 授权会再长回来:**66 → 21 → 8**,第三次清扫 | 产地那一层已由 LEAK-1 关掉;**这一条本身仍开着** | `known-issues` 同名条 |
-| ★ **`PERIOD-LOCK-RAW-CODE`** | 42 支 `*ErrorCodes.ts` 里 **31 支不认 `PERIOD_LOCKED`** → 屏幕上出现 `PERIOD_LOCKED\|2026-07-15\|2026-08-01`,**已举证一条真路** | **没有前置**(而它是一刀,不是补几个码)| 本文件同名条 |
+| ✅ ~~★ **`ForwarderPanels:167` 删除钮只露一半**~~ ★ **U1-B 做了(Q16)**:报价表换成共用的 DataTable(手机按列),Remove 在一列永远露着的动作格里(带确认)。原行: | maxScroll 24px,而那一列正是删除钮。R1 的原话:「**够不着的动作等于不存在**」 | ★ **一句裁定**(TABLE-STYLE-2 实测穿上 `tableC` 会更差)| 同上 |
+| ✅ ~~★★ **两个账号前置**~~ ★ **U1-B 结清(Q18)**:① 早就不成立(cco · cto · finance 持字典编辑权而不持授权管理,Step 0 §3 3.11);② 写成一份破窗程序 `docs/operations/admin-break-glass.md`(admin@ 与 tim@ 是同一个人,程序不加第二个持有人;Tim 保管)。「全系统只有一个人登得进来」是假的(线上 7 个账号)。原行: | ① 那个**只持字典编辑权**的账号**仍然不存在**(走查 §12 第 1 步与 §15 第 1 步都卡在它上面);② **全系统只有一个人登得进来**,而**应用里没有任何一条路能把管理员权限重新授出去** | ★ **一个有名字的人**,在发账号那一天 | 「内部验收」(e)|
+| ✅ ~~★ **`GHOST-GRANTS`**~~ ★ **U1-B 关闭(Q23)**:共用的 `mintThrowaway` 拒绝授 `is_system` 角色,37 支脚本改走它,`check-throwaway-grants` 进构建。原行: | 幽灵 admin 授权会再长回来:**66 → 21 → 8**,第三次清扫 | 产地那一层已由 LEAK-1 关掉;**这一条本身仍开着** | `known-issues` 同名条 |
+| ✅ ~~★ **`PERIOD-LOCK-RAW-CODE`**~~ ★ **U1-B 做了**:`lib/machine-text.ts` 在共用兜底里认 `PERIOD_LOCKED` 与 `YEAR_CLOSED`,说出两个日期与下一步;实测 48 支 `*ErrorCodes.ts` 里 37 支不带它,今天都由这一处接住。原行: | 42 支 `*ErrorCodes.ts` 里 **31 支不认 `PERIOD_LOCKED`** → 屏幕上出现 `PERIOD_LOCKED\|2026-07-15\|2026-08-01`,**已举证一条真路** | **没有前置**(而它是一刀,不是补几个码)| 本文件同名条 |
 | ✅ ~~★★ **DATE-1 的选择器那一半**~~ | ~~**130 个原生日期框 / 85 个文件**按 HTML 规范渲染成**操作系统 locale** 的格式~~ —— **✅ DATE-PICK-1(`v1.4.34`,2026-10-05)做完**:134 处(125 日期 · 5 月份 · 4 日期时间,90 个文件)全部换成 `app/components/ui/date-picker.tsx`;`check-date-format` 维度③判零(两条独立的路 + 金丝雀) | ✅ Tim 已答(2026-09-29,AUDIT-TRAIL-0 Q35–Q39);交回 `docs/handbacks/DATE-PICK-1.md` | 「HISTORY family」一节的 ✅ DATE-PICK-1 |
 
 ### 乙 · ★★ 排它不会让它前进 —— **等一句裁定**
@@ -4447,6 +4460,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 
 | 族 | 在哪儿 | 规模(**各自的量法见正文**) |
 |---|---|---|
+| ★ **`/finance/bank/…/reconcile` 没有可对账的单**(U1-B 从甲挪来,Tim 的 Q22,2026-10-05)| 「BTN-5b 留下的三条」· `BTN5B-RECONCILE-UNREACHABLE` | 线上 0 张开着的对账单;不为它造一行 |
 | **行内错误显示** | `ALERT-2b` | ~250 处 / 69 种画法 · 267 处没有 `role` · ★ **Tim 裁定排在审批链之后** |
 | **POLISH-1 的余量** | 「POLISH-1」那一节 | ~~`o p s u w` · `z① z①-b z② z③ z④ z⑤ z⑥ z⑧` · 接手的 ② ③ ④ ⑤~~ ✅ 【就地更正 —— HISTORY-0 fold-in,2026-09-28】`z② z③ z④ z⑤ z⑥`(info 蓝)· `u` · 接手的 ② 在 round 2 已结清(`docs/handbacks/POLISH-1.md` §3.1–§3.4,R8 · R10 · R11 · R12 · R13;逐件证据在「POLISH-1」一节 B3 close-out 那张更正表)。**今天开着的:`o p s w` · `z①`(= 接手的 ③)· `z①-b`**;`v` · `z⑧` · 接手的 ④ ⑤ 是出局不是待办(Tim R1 / R9 / R10)。另见 round 3 交出去的 `POLISH1R3-NO-48PX-BUTTON-STEP` · `POLISH1R3-DATATABLE-PAGER-NO-STEP`(★ **round 1 自己数过:23 件不同的东西 = 11 + 8 + 5 − 1**)|
 | **按钮那一族的余量** | 下面「五 · 按钮那一族」 | ★ **17 处手写 `<button>`(全部故意)· 15 处按钮态链接 · 1 处裸触发钮(故意)** |
@@ -6732,18 +6746,20 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     (Q35 · Q37);5 个月份框(MM/YYYY)与 4 个日期时间框(DD/MM/YYYY HH:MM,改按新加坡时间)一起换(Q36);中文界面的月名周名用中文、
     输入格式仍是 DD/MM/YYYY(Q39);**134 个原生日期框一个不剩**,检查改成"零个",两种独立的数法,`check-date-data-paths.mjs` 改瞄选择器,
     两处都做故障注入(Q38)。勘察 `docs/surveys/AUDIT-TRAIL-0/dates.md`。不动数据库。
-* **◐ ★ UNBLOCK-1 · 量到了、没修、等一个裁定的几件**(AUDIT-TRAIL-1b-1 起立这一条,2026-09-29;DATE-PICK-1 之后排在最前)
+* **✅ ★ UNBLOCK-1 · 量到了、没修、等一个裁定的几件**(AUDIT-TRAIL-1b-1 起立这一条,2026-09-29;DATE-PICK-1 之后排在最前)
+  ★ **✅ 两刀都关闭(2026-10-05):U1-A(`v1.4.35`)· U1-B(`v1.4.36`,交回 `docs/handbacks/U1-B.md`)。** 原文留着,逐条标 ✅。
   ★ **Tim 2026-10-05 把它切成两刀**(`docs/surveys/UNBLOCK-1/STEP0-HANDBACK.md` §6):**✅ U1-A · pay and personal data(`v1.4.35`,本节下面
-  划掉的五条全部由它关闭,交回 `docs/handbacks/U1-A.md`)**;**⬜ ★ 下一刀 U1-B · unblock the workflows(`v1.4.36`)** —— Step 0 的 Q14–Q25
+  划掉的五条全部由它关闭,交回 `docs/handbacks/U1-A.md`)**;**✅ U1-B · unblock the workflows(`v1.4.36`,2026-10-05,交回 `docs/handbacks/U1-B.md`)** —— Step 0 的 Q14–Q25
   (已发货单补行 · 停机更正 / 作废 · 报销的另一位决定人 · 深放电函数 · 加工单上的机器 · 删死动作 · PO 关闭 / 重开的理由 · `PERIOD_LOCKED`
   共用映射 · 月结清单与加工错误码 · ForwarderPanels · KPI 打分行 · GHOST-GRANTS 脚本),逐条见 Step 0 交回 §6 那张表。
   Q26 是 Tim 自己的数据录入,不在任何一刀里。
   ★ **U1-B 另加三件(Tim 2026-10-05,U1-A close-out;U1-A 量到、登记、没修):**
-  * **⬜ 工资分录的冲销申请带着那张分录的金额**,对不持 `data.view_pay` 的财务读者可读 —— **必须照 `data.view_pay` 那条规矩遮**(Tim)。
+  * **✅ ~~工资分录的冲销申请带着那张分录的金额~~(★ ✅ U1-B:`journal_requests_masked`,金额照 `data.view_pay` 遮,API · 页面 · 审批留痕 · 变更记录 · 函数返回值一起)**,对不持 `data.view_pay` 的财务读者可读 —— **必须照 `data.view_pay` 那条规矩遮**(Tim)。
     `docs/known-issues.md` 的 `U1A-PAYROLL-REVERSAL-REQUEST-SHOWS-AMOUNT`。
-  * **⬜ 一张医疗报销生成的那张费用单,在财务那一侧照旧读得到金额** —— **留给 U1-B 的 grilling 判:是泄漏,还是财务正当的需要**(Tim)。
+  * **✅ ~~一张医疗报销生成的那张费用单,在财务那一侧照旧读得到金额~~** —— ★ **Tim 的裁定(U1-B 委托书):金额给财务是付它的正当需要,保留;
+    健康的字跟 `data.view_health` 走。** ✅ U1-B 量下来费用单自己没有健康的字;从它那一页出去的是报销单的批准 / 驳回理由 —— 收了(见 known-issues 那一条的关闭说明)。
     `docs/known-issues.md` 的 `U1A-MEDICAL-EXPENSE-AMOUNT-ON-FINANCE-SIDE`。
-  * **⬜ 九支请假函数的"持码或本人"门,对没有员工档案的账号是开的**(NULL 陷阱;`medical_claim_balance` 那一支 U1-A 已修)——
+  * **✅ ~~九支请假函数的"持码或本人"门,对没有员工档案的账号是开的~~(★ ✅ U1-B,fixture 248 LV)**(NULL 陷阱;`medical_claim_balance` 那一支 U1-A 已修)——
     `docs/known-issues.md` 的 `U1A-SELF-GATE-NULL-TRAP`(那一条早已写"归 U1-B";本行是它在队列里的位置,U1-A close-out 补上)。
   * **✅ ~~★ 第一条(Tim 的 AT-1c Q11,2026-10-03):工资过账的分录行只给持 `data.view_pay` 的人看一个人的金额~~**(★ ✅ U1-A) —— 其余的人看到 "Restricted"。
     今天持 `module.finance.view` 而不持 `data.view_pay` 的 cto 与 gm 在分录页上读得到每一个人的实发工资(`pay_payroll_lines` 一人一行)。
@@ -6759,6 +6775,30 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(U1-B 已推送;**MES-1 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+  **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
+  逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
+  ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
+  今天是免费档(会自动暂停、没有 PITR,见本文件「列出来了,但 Tim 选择不排期」)。在那之前设备页写明这个风险。
+  ☞ **排程(厂商十二个模块里的第十二个)不在范围内**(Q2):31 项里没有一项依赖它;Tim 点名时另起一项。
+  | 顺序 | 刀 | 功能(勘察 §1 的编号) | 估时 |
+  |---|---|---|---|
+  | 1 | ⬜ **MES-1 · Entry point** | 采集层地基:设备登记、网关钥匙、收件箱、传输日志、心跳、数据类与转换层;`/operation/devices`、`/operation/capture/inbox`、`/settings/pending-values` | 7 h 15 m – 13 h 45 m |
+  | 2 | ⬜ **MES-2 · Confirmation, weighing, calibration** | 1(地磅单)· 20(校准)· 草稿 / 确认 | 7 h 40 m – 13 h 30 m |
+  | 3 | ⬜ **MES-3a · Storage safety** | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
+  | 4 | ⬜ **MES-3b · Labels and scanning** | 7(标签)· 8(扫码) | 6 h 00 m – 10 h 15 m |
+  | 5 | ⬜ **MES-4a · Processing record** | 11(参数与配方)· 13(计数)· 规格书 §4.1(平衡与容差;机器在挂了机器的工序上变成必填 —— 收紧 U1-B 的可选选择器,Q41) | 8 h 40 m – 15 h 30 m |
+  | 6 | ⬜ **MES-4b · New fields and products** | 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
+  | 7 | ⬜ **MES-5a · Discharge and energy** | 2(逐模组放电)· 3(电表与按用途的电费) | 7 h 10 m – 12 h 30 m |
+  | 8 | ⬜ **MES-5b · Balance, yield, blending** | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
+  | 9 | ⬜ **MES-6a · Samples, arbitration, F/Cl** | 15(样品)· 16(仲裁)· 19(氟与氯) | 5 h 15 m – 8 h 45 m |
+  | 10 | ⬜ **MES-6b · NCR, quality hold, CoA** | 17(不合格报告)· 18(分析证书) | 6 h 25 m – 11 h 30 m |
+  | 11 | ⬜ **MES-7a · Spare parts and reliability** | 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m |
+  | 12 | ⬜ **MES-7b · Inspections and incidents** | 23(安全巡检)· 24(热失控 / 排放) | 8 h 05 m – 15 h 15 m |
+  | 13 | ⬜ **MES-8a · Supplier scorecards and statements** | 25(评分卡)· 26(供应商对账单) | 5 h 45 m – 9 h 45 m |
+  | 14 | ⬜ **MES-8b · Analysis and display** | 28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏) | 5 h 25 m – 10 h 00 m |
+  | 15 | ⬜ **MES-9 · Supplier portal**(最后) | 27(供应商门户;先做内部专用的那次清扫,Q86) | 7 h 35 m – 13 h 15 m |
+  合计 **≈ 97 h 40 m – 174 h 45 m**(勘察 §8.2;其中底 22 h 30 m – 37 h 30 m)。依赖图见勘察 §8.2 末尾。
 * **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;
   触发条件(那个历史机制存在)**今天已经成立**。
 

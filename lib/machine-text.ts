@@ -45,7 +45,8 @@
 //   那条 `[nav] …` 同一个写法。屏幕上看不见 SQL 原文,而追查它的人仍然拿得到。
 // ════════════════════════════════════════════════════════════════════════════
 
-import { getTranslations } from '@/lib/i18n/server'
+import { getLocale, getTranslations } from '@/lib/i18n/server'
+import { formatDate } from '@/lib/dates'
 
 /** 整串恰好是一个码(可带 `|detail`)。★ 注意是 `^…$`,不是串尾匹配 —— 见抬头。 */
 const WHOLE_CODE_RE = /^([A-Z][A-Z0-9_]{2,})(?:\|[\s\S]*)?$/
@@ -106,6 +107,38 @@ export function classifyRawError(message: string): RawShape {
     return { kind: 'human' }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【U1-B(2026-10-05,UNBLOCK-1 Step 0 §3 3.12):两条【横跨所有模块】的码,在这里翻一次】★★
+// ════════════════════════════════════════════════════════════════════════════
+//   `PERIOD_LOCKED|<日期>|<锁期线>` 与 `YEAR_CLOSED|<日期>|<年末>` 都由 assert_posting_allowed 抛 ——
+//   **任何一条过账的路都可能撞上它们**,而它们从来不属于某一个模块。
+//   此前没有自己那一支的映射器(实测 U1-B:见交回报告里的计数)把它们交给兜底,
+//   屏幕上于是是「代码 PERIOD_LOCKED,请转告管理员」—— 一句把【人自己就能解决的事】
+//   推给管理员的话,而且两个日期一个都没说。
+//   ☞ 所以兜底在【换成 errUnexpected 之前】先认这两个码,说出两个日期与下一步。
+//   ☞ 已经自带 PERIOD_LOCKED 那一句的映射器【不受影响】—— 它们在走到兜底之前就返回了。
+//   ★ 日期是库里的 ISO 原值,在这里格式化一次(lib/dates.ts formatDate → DD/MM/YYYY),
+//     **绝不**把格式化过的输出再拿去解析(display-date-as-data 那一族)。
+//   ★ 这是一个【认出来了】的结果,不是一次兜底:它不写 `[machine-text]` 日志,
+//     而 lib/action-refusal.ts 的 refuseFromDriver 也先问这里(见那里的 U1-B 一段),
+//     于是 refuseFromCoded 不会把它当成"读不懂的驱动消息"降级。
+const SHARED_DATE_CODE_RE = /^(PERIOD_LOCKED|YEAR_CLOSED)\|([^|]+)\|([^|]+)$/
+
+/**
+ * 横跨所有模块、在兜底这一层统一翻译的码(今天:PERIOD_LOCKED · YEAR_CLOSED)。
+ * 认得出 → 那句人话;认不出 → `null`。
+ */
+export async function sharedCodeText(message: string): Promise<string | null> {
+    const m = (message ?? '').trim().match(SHARED_DATE_CODE_RE)
+    if (!m) return null
+    const [t, locale] = await Promise.all([getTranslations(), getLocale()])
+    const date = formatDate(m[2], locale)
+    const other = formatDate(m[3], locale)
+    return m[1] === 'PERIOD_LOCKED'
+        ? t('common.periodLocked', { date, lockedBefore: other })
+        : t('common.yearClosed', { date, yearEnd: other })
+}
+
 /**
  * ★ 这一串【如果】要被兜底,兜出来的是哪句话 —— 人话句子返回 `null`。
  *
@@ -117,10 +150,15 @@ export function classifyRawError(message: string): RawShape {
  *     再比对本地化器给的话:相等 = 它是兜底,不是认出来了。
  *   **同一个输入 + 同一种语言 ⇒ 同一句输出**,所以这个比对是精确的,不是启发式的。
  *   ★ 它【不写日志】—— 那一支只是在问一个问题,不是在报告一次失败。
+ *   ★ U1-B:对 PERIOD_LOCKED / YEAR_CLOSED,"兜底会说什么"就是 sharedCodeText 那一句 ——
+ *     比对仍然精确(映射器给的正是这一句 ⇔ 它没有自己的话),而说什么由 refuseFromDriver 再问一次。
  */
 export async function fallbackTextFor(message: string): Promise<string | null> {
     const shape = classifyRawError(message)
     if (shape.kind === 'human') return null
+    // U1-B:共用的那两条码,兜底说的就是它们那一句(与 fallbackForRawError 同一个顺序)。
+    const shared = await sharedCodeText(message)
+    if (shared !== null) return shared
     return (await getTranslations())('common.errUnexpected', { code: shape.marker })
 }
 
@@ -136,6 +174,9 @@ export async function fallbackForRawError(message: string, where: string): Promi
     const raw = (message ?? '').trim()
     const shape = classifyRawError(raw)
     if (shape.kind === 'human') return message
+    // U1-B:PERIOD_LOCKED / YEAR_CLOSED 是【认出来了】,不是一次失败 —— 不进日志,说出两个日期。
+    const shared = await sharedCodeText(raw)
+    if (shared !== null) return shared
     // 原文去日志 —— 屏幕上没有它了,追查的人仍然要拿得到。
     console.error(`[machine-text] ${where} (${shape.kind}/${shape.marker}): ${raw}`)
     return (await getTranslations())('common.errUnexpected', { code: shape.marker })
@@ -146,6 +187,10 @@ export async function fallbackForRawError(message: string, where: string): Promi
  * (日历的来源汇总与导出路由的正文各自有自己的形状)。
  * ★ 它【不】翻译 —— 翻译要 `await`;调用方自己把 `marker` 喂进 `t()`。
  * 返回 `null` 表示「这是人话,原样用」。
+ *
+ * ⚠ U1-B:sharedCodeText(PERIOD_LOCKED / YEAR_CLOSED)【不在】这一支里 —— 那句话要 `await` 翻译,
+ *   而本函数是同步的。实测 2026-10-05:本函数在 app/ 与 lib/ 里【零个调用点】,所以今天没有
+ *   一条路会因此把那两个码说成短码;有了调用点,先在那里调 sharedCodeText。
  */
 export function markerForRawError(message: string, where: string): string | null {
     const raw = (message ?? '').trim()

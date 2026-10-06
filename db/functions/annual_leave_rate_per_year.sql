@@ -13,7 +13,9 @@ CREATE OR REPLACE FUNCTION public.annual_leave_rate_per_year(p_employee_id uuid,
 AS $function$
 BEGIN
     -- 【本人或 HR】与 leave_balance 同一道口径。
-    IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN
+    -- U1-B(U1A-SELF-GATE-NULL-TRAP):没有员工档案的账号,current_user_employee() 是 NULL,
+    --   NOT (false OR NULL) 是 NULL,IF NULL 不进分支 —— 门曾经是开的。COALESCE 把「未知」读成「不是本人」。
+    IF NOT (has_permission('module.hr.view') OR COALESCE(p_employee_id = current_user_employee(), false)) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.view';
     END IF;
     RETURN (SELECT (leave_accrual_rate(

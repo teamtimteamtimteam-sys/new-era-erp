@@ -25,6 +25,7 @@ export async function cancelOrder(
 }
 
 // 结束采购单(cut 4c):有未抵扣预付时说明必填 —— 校验在 DB(CLOSE_NOTES_REQUIRED)
+// U1-B(Q25):这句说明就是关单的理由 —— 存进 close_reason / closed_by,不再追加进备注。
 export async function closeOrder(
     poId: string,
     notes: string
@@ -109,25 +110,26 @@ export async function rejectOrder(
 
 // ── PROC-1B-iii(R1):采购行上的那个判断 —— 这批料能不能深度放电 ──────────────
 //
-// ★【为什么它是一次【直接 UPDATE】,而不是一支 RPC】★
-//   这条轴【没有任何守卫要执行】—— R3 明令它不拦收货,而它与到货实际的关系是
-//   "两个值都活着,谁也不覆盖谁"。给一件没有规则要守的事包一支 SECURITY DEFINER
-//   函数,只会让下一个人以为那里有一条规则(而去找它、找不到、然后加一条)。
-//   写入的门是 purchase_order_lines 的 UPDATE 策略(module.purchasing.edit),
-//   那正是这条判断该有的那道门:做这个判断的人就是买货的人。
-//
-// 【空串 = 清掉这条轴】而"看过了但没下判断"要选 not_assessed —— 那是一个
-//   **记下来的事实**,不是一个空值。两者在库里是两个不同的东西,在这里也是。
+// ★【U1-B(UNBLOCK-1 Q20,2026-10-05):它从直连 UPDATE 改走一支 RPC —— 上面那段
+//   "为什么不是 RPC"的理由已经不成立,所以删掉而不是留着】★
+//   APR-10 起 purchase_order_lines 只经函数写(guard_po_direct_write 按名拒
+//   PO_THROUGH_FUNCTION_ONLY),于是这个控件从那天起【一次都没存进去过】。
+//   set_po_line_deep_discharge 是它的门:module.purchasing.edit;作废的单拒
+//   (PO_CANCELLED);找不到的行拒(PO_LINE_NOT_FOUND);空拒
+//   (DEEP_DISCHARGE_JUDGEMENT_REQUIRED —— NULL 的意思是"早于这条轴",
+//   "看过了但没下判断"要选 not_assessed);字典里没有的码拒
+//   (DEEP_DISCHARGE_JUDGEMENT_UNKNOWN)。四条都经 localizePurchasingError 说人话。
+//   【空串原样送下去】不在这里拦 —— 拒绝的权威是函数,界面那一道是不画空选项。
 export async function setDeepDischargeJudgement(
     poId: string,
     lineId: string,
     code: string,
 ): Promise<{ error?: string }> {
     const supabase = await createClient()
-    const { error } = await supabase
-        .from('purchase_order_lines')
-        .update({ deep_discharge_judgement_code: code === '' ? null : code })
-        .eq('id', lineId)
+    const { error } = await supabase.rpc('set_po_line_deep_discharge', {
+        p_line_id: lineId,
+        p_code: code,
+    })
     if (error) {
         return { error: await localizePurchasingError(error.message) }
     }

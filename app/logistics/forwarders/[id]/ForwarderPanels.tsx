@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
@@ -79,6 +81,54 @@ canEdit: boolean
             else { form.reset(); setQuoteKey((k) => k + 1) }
         })
     }
+
+    function onRemoveQuote(quoteId: string) {
+        setError(null)
+        start(async () => {
+            const res = await removeRateQuote(supplierId, quoteId)
+            if ('error' in res) setError(res.error)
+        })
+    }
+
+    // UNBLOCK-1 Q16:裸 <table> → 共享 DataTable。手机上留航段(身份)与操作列;
+    // 操作列画的是【要按的控件】,按 R1 必须 priority —— 折进展开区就等于够不着。
+    const quoteColumns: Column<Quote>[] = [
+        { key: 'lane', header: labels.lane, priority: true, render: (q) => laneLabel.get(q.lane_id) ?? q.lane_id },
+        {
+            key: 'amount', header: labels.amount, align: 'right', singleValue: true, className: 'tabular-nums',
+            render: (q) => `${q.amount_ccy} ${q.currency}`,
+        },
+        { key: 'validFrom', header: labels.validFrom, singleValue: true, render: (q) => formatDate(q.valid_from, locale) },
+        { key: 'validTo', header: labels.validTo, singleValue: true, render: (q) => formatDate(q.valid_to, locale) },
+        {
+            // 【三态各有各的样子】数字 / "未写明"。空单元格会被读成 0,而 0 是另一件事。
+            key: 'freeDays', header: labels.freeDays, align: 'right', singleValue: true, className: 'tabular-nums',
+            render: (q) => q.free_days === null
+                ? <span className="text-gray-500 italic">{labels.freeDaysNotStated}</span>
+                : q.free_days,
+        },
+        {
+            key: 'actions', header: '', priority: true, className: 'whitespace-nowrap',
+            render: (q) => (
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+                    {/* 这一列每行都长得一样,所以确认框要说出【哪一份】—— 航段 + 金额 + 有效期 */}
+                    <ConfirmButton
+                        subject={`${laneLabel.get(q.lane_id) ?? q.lane_id} · ${q.amount_ccy} ${q.currency} · ${formatDate(q.valid_from, locale)} → ${formatDate(q.valid_to, locale)}`}
+                        title={labels.removeQuoteConfirm}
+                        body={labels.removeQuoteConfirmBody}
+                        confirmLabel={labels.removeQuote}
+                        tier="destructive"
+                        disabled={pending}
+                        triggerVariant="destructive" triggerSize="inline"
+                        className="text-xs"
+                        onConfirm={() => onRemoveQuote(q.id)}
+                    >
+                        {labels.removeQuote}
+                    </ConfirmButton>
+                </PermissionGate>
+            ),
+        },
+    ]
 
     return (
         <>
@@ -172,43 +222,12 @@ canEdit: boolean
                 {quotes.length === 0 ? (
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.quotesEmpty}</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-300 text-sm">
-                            <tbody>
-                                {quotes.map((q) => (
-                                    <tr key={q.id}>
-                                        <td className="border border-gray-300 px-3 py-1">{laneLabel.get(q.lane_id) ?? q.lane_id}</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">{q.amount_ccy} {q.currency}</td>
-                                        <td className="border border-gray-300 px-3 py-1">{formatDate(q.valid_from, locale)} → {formatDate(q.valid_to, locale)}</td>
-                                        {/* 【三态各有各的样子】数字 / "未写明"。
-                                            空单元格会被读成 0,而 0 是另一件事。 */}
-                                        <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">
-                                            {q.free_days === null
-                                                ? <span className="text-gray-500 italic">{labels.freeDaysNotStated}</span>
-                                                : q.free_days}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-1">
-                                            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
-                                            <Button
-                                                variant="destructive"
-                                                size="inline"
-                                                type="button"
-                                                disabled={pending}
-                                                onClick={() => start(async () => {
-                                                    const res = await removeRateQuote(supplierId, q.id)
-                                                    if ('error' in res) setError(res.error)
-                                                })}
-                                                className="text-xs"
-                                            >
-                                                {labels.removeQuote}
-                                            </Button>
-                                            </PermissionGate>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <DataTable
+                        rows={quotes}
+                        columns={quoteColumns}
+                        rowKey={(q) => q.id}
+                        phone={{ mode: 'columns' }}
+                    />
                 )}
             </section>
         </>

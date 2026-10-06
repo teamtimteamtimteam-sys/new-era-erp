@@ -19,6 +19,7 @@ import { FN } from '@/lib/modules'
 import { mustRows } from '@/lib/db-helpers'
 import { formatAuditStamp } from '@/lib/dates'
 import { formatAmount } from '@/lib/format'
+import { can } from '@/lib/permissions'
 import SelfApprovedTable, { type SelfApprovedRow } from './SelfApprovedTable'
 
 type Row = {
@@ -30,6 +31,7 @@ type Row = {
     decision: string
     level: number | null
     actor_name: string | null
+    subject_employee_id: string | null
     subject_name: string | null
     amount_ccy: number | null
     currency: string | null
@@ -54,6 +56,17 @@ export default async function SelfApprovedPage() {
 
     const rows = mustRows<Row>(await supabase.rpc('self_approved_decisions'), 'self-approved decisions')
 
+    // ★ U1-B(Tim:健康的字跟 data.view_health 走):一张医疗报销的金额与【说明】(note)对不持 data.view_health、
+    //   又不是那位员工本人的读者,在 self_approved_decisions 里是 NULL(approval_log_amount_visible /
+    //   approval_log_note_visible 同一对判据)。而 note 本来就可能是空的 —— 两种 NULL 在屏幕上必须分得开:
+    //   受限印「受限」,空着印空。判据照抄那两支函数的 medical_claim 臂(与 /hr/claims/[id] 的 canSeeHealth 同一个):
+    //   持 data.view_health,或主角就是读者本人。其余种类那两支函数恒为真,所以 NULL 就是真的空。
+    const [hasHealth, meRes] = await Promise.all([can('data.view_health'), supabase.rpc('current_user_employee')])
+    if (meRes.error) throw new Error(`current_user_employee: ${meRes.error.message}`)
+    const myEmployeeId = (meRes.data as string | null) ?? null
+    const healthHidden = (r: Row) =>
+        r.subject_type === 'medical_claim' && !hasHealth && (myEmployeeId === null || r.subject_employee_id !== myEmployeeId)
+
     const view: SelfApprovedRow[] = rows.map((r) => ({
         seq: String(r.seq),
         decidedAt: formatAuditStamp(r.decided_at),
@@ -67,7 +80,9 @@ export default async function SelfApprovedPage() {
         decider: r.actor_name ?? '—',
         subject: r.subject_name ?? '—',
         amount: formatAmount(r.amount_ccy, r.currency),
+        amountRestricted: r.amount_ccy === null && healthHidden(r),
         note: r.note ?? '',
+        noteRestricted: r.note === null && healthHidden(r),
     }))
 
     return (

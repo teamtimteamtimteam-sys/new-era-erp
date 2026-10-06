@@ -72,12 +72,15 @@ export default function PoLinesTable({
     poId,
     ddOptions,
     canEditPurchasing,
+    poCancelled,
     isEquipmentOrder,
 }: {
     rows: readonly PoLineRow[]
     poId: string
     ddOptions: { code: string; label: string }[]
     canEditPurchasing: boolean
+    /** 作废的单 —— 记录状态,与 canEditPurchasing(权限)分开传,不合成一个布尔。 */
+    poCancelled: boolean
     isEquipmentOrder: boolean
 }) {
     const t = useTranslations()
@@ -114,6 +117,7 @@ export default function PoLinesTable({
                                 current={r.ddCurrent}
                                 options={ddOptions}
                                 canEdit={canEditPurchasing}
+                                poCancelled={poCancelled}
                             />
                         )}
                     </>

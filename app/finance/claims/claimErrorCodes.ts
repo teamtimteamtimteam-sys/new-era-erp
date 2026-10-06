@@ -34,6 +34,9 @@ export const EXPENSE_CLAIM_ERROR_CODES = new Set([
     'APPROVAL_NOT_AUTHORISED',
     'APPROVALS_NOT_ENABLED',
     'EMPLOYEE_NOT_FOUND',
+    // U1-B:审批开着、而除了提单人(与报销的主角)之外没有一个人能决定它 —— submit_expense_claim 先拒,
+    //   不让一张注定没人能批的单子进队列。{0} 是单号。
+    'EXPENSE_CLAIM_NO_OTHER_DECIDER',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

@@ -63,18 +63,19 @@ BEGIN
     -- 整个事务余下的时间里【一直是关着的】:跑过一次 close_purchase_order 之后,
     -- 同一事务里一条直连的 UPDATE ... SET status 就畅通无阻(实测过)。
     PERFORM set_config('evoltrya.po_status_ctx', '1', true);
+    -- ★ U1-B(UNBLOCK-1 Q25):关单的理由进它自己的列(close_reason / closed_by),【notes 不再被改写】——
+    --   从前这里把 "[YYYY-MM-DD HH:MI closed] 理由" 追加进人写的备注(还被印到发给供应商的 PDF 上),
+    --   历史触发器把它记成一次没有理由的 header_update。现在 notes 一个字不动,历史另记一行 closed,理由在 amend_reason。
     UPDATE purchase_orders
     SET status = 'closed',
         closed_at = now(),
-        -- 追加而不覆盖:关单说明带时间戳进 notes,原有内容原样保留
-        notes = CASE
-            WHEN p_notes IS NULL OR btrim(p_notes) = '' THEN notes
-            ELSE COALESCE(notes || E'\n', '')
-                 || '[' || to_char(now(), 'YYYY-MM-DD HH24:MI') || ' closed] ' || btrim(p_notes)
-        END,
+        closed_by = v_user,
+        close_reason = NULLIF(btrim(COALESCE(p_notes, '')), ''),
         updated_by = v_user
     WHERE id = p_purchase_order_id;
     PERFORM set_config('evoltrya.po_status_ctx', '', true);
+    INSERT INTO purchase_order_history (purchase_order_id, change_type, amend_reason, changed_by)
+    VALUES (p_purchase_order_id, 'closed', NULLIF(btrim(COALESCE(p_notes, '')), ''), v_user);
 
 
     RETURN jsonb_build_object(

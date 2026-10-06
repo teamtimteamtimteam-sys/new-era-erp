@@ -75,6 +75,8 @@ BEGIN
                               'kind', v_r.kind,
                               'entry_id', v_post->>'entry_id',
                               'journal_code', v_post->>'journal_code',
-                              'amount_base', v_post->'amount_base');
+                              -- U1-B:返回值也是一扇读的门(journal_request_amount_visible)。
+                              'amount_base', CASE WHEN journal_request_amount_visible(p_request_id)
+                                                  THEN v_post->'amount_base' END);
 END;
 $function$;

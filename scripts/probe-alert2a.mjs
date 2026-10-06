@@ -45,7 +45,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3205                 // 3198 phone · 3199 冒烟 · 3201 avatar · 3202 tiers · 3203 confirm · 3204 action-message
@@ -57,7 +57,6 @@ const FAULT = process.env.PROBE_FAULT || ''
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
@@ -72,7 +71,7 @@ const waitPort = (p, ms) => new Promise((res) => { const t0 = Date.now()
         s.on('connect', () => { s.destroy(); res(true) })
         s.on('error', () => { s.destroy(); Date.now() - t0 > ms ? res(false) : setTimeout(tick, 300) }) })() })
 
-let server, chrome, accountId
+let server, chrome
 function killChildren() {
     try { if (chrome?.pid) process.kill(-chrome.pid) } catch {}
     try { if (server?.pid) process.kill(-server.pid) } catch {}
@@ -113,26 +112,12 @@ try {
     probe('A0 软删说明不再承诺"可以恢复"', !softLies,
         softLies ? `★ 仍然承诺恢复:${SOFT_EN}` : '两种语言都只说"记录留着",不说"恢复得了"')
 
-    // ── 一个一次性会话(admin —— 本探针只【打开】对话框,一律取消,不写任何东西)──
-    const email = `a2aprobe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'a2a-probe-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke a2aprobe grant ${accountId}`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete a2aprobe account ${accountId}`, ORDER.ACCOUNT)
-
-    const roles = await (await rest('/rest/v1/roles?select=id,code&code=eq.admin')).json()
-    if (!roles?.[0]?.id) throw new Error('线上没有 admin 角色 —— 本探针无从驱动')
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
-
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'a2a-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    // ── 一个一次性会话(全码 —— 本探针只【打开】对话框,一律取消,不写任何东西)──
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 admin】;现在经 mintThrowaway 造一个一次性
+    //   全码角色(probe-a2aprobe-all-<stamp>)授给它 —— 删除步先落盘,每一句往返看返回码。
+    const tw = await mintThrowaway({ prefix: 'a2aprobe', label: 'all', codes: 'all', password: 'a2a-probe-1' })
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     // ── 起服务器与浏览器 ──────────────────────────────────────────────────
     server = spawn('npx', ['next', 'start', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })

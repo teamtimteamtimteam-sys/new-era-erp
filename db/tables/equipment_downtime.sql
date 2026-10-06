@@ -44,7 +44,16 @@ CREATE TABLE public.equipment_downtime (
     CONSTRAINT equipment_downtime_period_order
         CHECK (ended_at IS NULL OR ended_at >= started_at),
     CONSTRAINT equipment_downtime_reason_stated
-        CHECK (btrim(reason) <> '')
+        CHECK (btrim(reason) <> ''),
+    -- ── U1-B(2026-10-05,UNBLOCK-1 Q15):一段【从来没有发生过】的停机可以作废,带理由;永远不硬删 ──────────
+    -- 作废只经 void_equipment_downtime()(guard_downtime_write 拒直连改这三列);作废之后这一行冻住。
+    -- 读的人:开着的那一段、重叠判据、交接单的勾选都跳过作废的行;资产页把它列出来、标上"已作废"与理由。
+    voided_at    timestamptz,
+    voided_by    uuid,
+    void_reason  text,
+    CONSTRAINT equipment_downtime_void_shape
+        CHECK ((voided_at IS NULL AND voided_by IS NULL AND void_reason IS NULL)
+            OR (voided_at IS NOT NULL AND void_reason IS NOT NULL AND btrim(void_reason) <> ''))
 );
 
 COMMENT ON TABLE public.equipment_downtime IS 'EQP-2a:一行 = 一台机器【没有在跑】的一段时间。
@@ -70,9 +79,10 @@ COMMENT ON CONSTRAINT equipment_downtime_period_order ON public.equipment_downti
 
 -- 一台机器同时只能有一段没结束的停机(先例:uq_expenses_live_po_line /
 -- idx_year_closes_active —— 同一个"活着的那一条只能有一条"的形状)。
+-- U1-B:作废的那一段不算"开着"—— 否则一段作废了的开口会永远挡住这台机器的下一段。
 CREATE UNIQUE INDEX uq_equipment_downtime_open
     ON public.equipment_downtime (equipment_id)
-    WHERE ended_at IS NULL;
+    WHERE ended_at IS NULL AND voided_at IS NULL;
 
 CREATE INDEX idx_equipment_downtime_equipment ON public.equipment_downtime (equipment_id);
 
@@ -108,6 +118,17 @@ CREATE POLICY "equipment_downtime update by permission"
 CREATE TRIGGER trg_equipment_downtime_period
     BEFORE INSERT OR UPDATE ON public.equipment_downtime
     FOR EACH ROW EXECUTE FUNCTION public.guard_downtime_period();
+
+-- U1-B(Q15):【更正】走 UPDATE 策略(加工编辑权,起止与原因;变更记录留着旧值);【作废】只经 void_equipment_downtime();
+-- 作废过的行冻住;【任何人】都删不掉一行停机(交接单与保养记录的外键指着它)—— 包括属主:一段停机是一件发生过
+-- (或被说成发生过)的事,它的去处是作废,不是消失。函数体与理由在 db/functions/guard_downtime_write.sql。
+CREATE TRIGGER trg_equipment_downtime_write
+    BEFORE UPDATE ON public.equipment_downtime
+    FOR EACH ROW EXECUTE FUNCTION public.guard_downtime_write();
+-- 删:语句级 —— 零行也触发(没有 DELETE 策略时 authenticated 的 DELETE 在 RLS 那里就是零行,行级触发器不会醒)。
+CREATE TRIGGER trg_equipment_downtime_no_delete
+    BEFORE DELETE ON public.equipment_downtime
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_downtime_write();
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

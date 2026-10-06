@@ -127,7 +127,11 @@ BEGIN
     INSERT INTO leave_accrual_rates (employee_id, days_per_year, effective_from, reason)
     SELECT e, 24, DATE '2000-01-01', 'fixture 233' FROM unnest(ARRAY[e_emp, e_two]) e;
 
+    -- ★ U1-B(U1A-SELF-GATE-NULL-TRAP):这一句原来没有会话(以 postgres、不带 JWT 读)—— 那正是 NULL 陷阱放行的形状:
+    --   current_user_employee() 是 NULL,"持码或本人"那道门从来没有关上。门关上之后,读的人要说出自己是谁 —— 以 HR 的身份读。
+    PERFORM pg_temp.f233_as(u_hr);
     v_bal := leave_balance_internal(e_emp, 'annual', DATE '2030-04-01');
+    PERFORM set_config('request.jwt.claims', '', true);
     IF (v_bal->>'available')::numeric <> 6 THEN
         RAISE EXCEPTION 'FIXTURE 233 布景失败:2030-04-01 的年假累积应为 6,实为 %', v_bal->>'available';
     END IF;

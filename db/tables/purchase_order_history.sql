@@ -23,7 +23,9 @@ CREATE TABLE public.purchase_order_history (
                        -- PUR-1:付款计划的三种改动。**按期记,不整份记** ——
                        -- 删了重灌在档案里读起来是"整份计划被换掉了",而真相常常是
                        -- "第二期从 40% 改成了 30%"。
-                       'payment_term_add','payment_term_update','payment_term_remove')),
+                       'payment_term_add','payment_term_update','payment_term_remove',
+                       -- U1-B(Q25):关闭与重开各一行,理由在 amend_reason —— 与 cancelled 同一个形状。
+                       'closed','reopened')),
     -- 表头侧
     old_order_date    date,          new_order_date    date,
     old_expected_delivery_date date,  new_expected_delivery_date date,

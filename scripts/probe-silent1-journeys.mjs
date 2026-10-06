@@ -23,6 +23,7 @@
 // 【一次性账号,不碰任何人的授权】procurement 角色两样都有
 // (module.suppliers.edit / module.tasks.edit),而它【不参与】任何既有任务 ——
 // 于是 T 那一条的"看得见、改不动"是天然的,不需要制造。
+// ★ U1-B(2026-10-05):授的是 procurement 的【一次性克隆】(同一组码,probe- 命名空间),不是真角色。
 //
 // ★【必须能红,而且要能演示】★
 //     PROBE_FAULT=blind      选择器全瞎     → 全红
@@ -34,7 +35,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3205
@@ -46,7 +47,6 @@ const FAULT = process.env.PROBE_FAULT || ''
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rest = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
@@ -60,7 +60,7 @@ const waitPort = (p, ms) => new Promise((res) => { const t0 = Date.now()
         s.on('connect', () => { s.destroy(); res(true) })
         s.on('error', () => { s.destroy(); Date.now() - t0 > ms ? res(false) : setTimeout(tick, 300) }) })() })
 
-let server, chrome, accountId
+let server, chrome
 const killChildren = () => { try { if (chrome?.pid) process.kill(-chrome.pid) } catch {}
                              try { if (server?.pid) process.kill(-server.pid) } catch {} }
 installExitHooks({ onFinish: () => { killChildren(); try { release() } catch {} } })
@@ -72,31 +72,22 @@ try {
     openPlan('scripts/probe-silent1-journeys.mjs')
     await reapStalePlans()
 
-    // ── 一次性账号:procurement(suppliers.edit + tasks.edit,且不参与任何任务)──
-    const email = `s1probe-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 's1-probe-1', email_confirm: true }) })).json()
-    accountId = cu.id
-    if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
-    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke s1probe grant`, ORDER.GRANT)
-    planDelete(`/auth/v1/admin/users/${accountId}`, `delete s1probe account`, ORDER.ACCOUNT)
-
-    const roles = await (await rest('/rest/v1/roles?select=id,code&code=eq.procurement')).json()
-    if (!roles?.[0]?.id) throw new Error('线上没有 procurement 角色')
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
+    // ── 一次性账号:procurement 的码(suppliers.edit + tasks.edit,且不参与任何任务)──
+    // ★ U1-B(2026-10-05,GHOST-GRANTS):此前授的是【真 procurement】(而且不看授权那一句的返回码);现在经
+    //   mintThrowaway 授一个一次性克隆 —— probe-s1probe-procurement-<stamp>,恰好持 procurement 此刻的码。
+    //   为什么克隆就够、不必真角色:S 那条拒绝是 set_supplier_status 的状态机(supplier_status_moves 里每一步
+    //   要的是【码】,require_permission),T 那条是 can_edit_task(has_permission('module.tasks.edit') + 行);
+    //   两条都不按角色码认人,本探针也不测审批人 / 决定者。克隆源不存在或零码,mintThrowaway 当场抛。
+    const tw = await mintThrowaway({ prefix: 's1probe', label: 'procurement', codes: { cloneOf: 'procurement' }, password: 's1-probe-1' })
 
     // ★ 断言前提:这个会话【真的】两样都持有 —— 否则整支探针在测一个错的前提。
-    const perms = await (await rest(`/rest/v1/role_permissions?select=permission_code&role_id=eq.${roles[0].id}`)).json()
-    const codes = new Set((perms || []).map((r) => r.permission_code))
+    //   (U1-B:读的是这个会话【实际持有】的码 —— 即克隆时从 procurement 读来、写进一次性角色的那一组。)
+    const codes = new Set(tw.codes)
     if (!(codes.has('module.suppliers.edit') && codes.has('module.tasks.edit')))
         throw new Error('procurement 不再同时持有 suppliers.edit 与 tasks.edit —— 前提没了')
 
-    const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
-        headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 's1-probe-1' }) })).json()
-    if (!sess?.access_token) throw new Error('登录失败')
-    const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
-    const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    const cookieName = tw.cookieName
+    const cookieValue = tw.cookieValue
 
     // ── 一张一次性的供应商:不碰任何既有记录 ──────────────────────────────
     const supRes = await rest('/rest/v1/suppliers', { method: 'POST',

@@ -497,6 +497,8 @@ const zh = {
         quotesNoEditDoor: '报价不能就地修改 —— 它是【某个人说过的一句话】,所以只有新增与撤回,没有改写。要改免柜天数,把这一份撤回,再加一份改好的。',
         addQuote: '新增报价',
         removeQuote: '删除',
+        removeQuoteConfirm: '删除这份报价?',
+        removeQuoteConfirmBody: '报价是撤回,不是抹掉:记录仍留在库里,只是不再出现在这张列表上。没有恢复 —— 删错了就重新加一份。',
         lanesTitle: '航段与单据清单',
         addPort: '新增港口',
         addLane: '新增航段',
@@ -1012,6 +1014,10 @@ const zh = {
         //   ☞ 判据与风险写在 lib/machine-text.ts 的抬头;它【只】换生码与数据库
         //     报错原文,数据库返回的人话句子原样留着(那归 POLISH-1)。
         errUnexpected: '这一步没能完成(代码 {code}),请把代码告诉管理员。',
+        // U1-B(UNBLOCK-1 Step 0 §3 3.12):每个模块都可能撞上的两条过账日期拒绝(assert_posting_allowed),
+        // 在 lib/machine-text.ts 的 sharedCodeText 里翻一次。自带 PERIOD_LOCKED 那一句的映射器照用自己的。
+        periodLocked: '这个日期落在已锁定的期间里:{date} 早于锁期日 {lockedBefore}。请选一个未锁月份里的日期,或请财务重开那个期间。',
+        yearClosed: '这个日期落在已年结的财年里:{date} 属于截至 {yearEnd} 的那一年。请选一个更晚的日期,或请财务重开那一年 —— 只重开月份不够。',
         // ══════════════════════════════════════════════════════════════════
         // ALERT-1(2026-09-08)· 【告知】那一族的措辞
         // ══════════════════════════════════════════════════════════════════
@@ -2246,6 +2252,7 @@ const zh = {
         capHint: '封顶是一个【动作】,不是一个分数。原始分留在这一行上,所以事后仍然分得清"他本来就 2 分"与"他被封到 2 分"。一次没有理由的封顶,事后与一次低分长得一模一样。',
         weightIs: '权重 {0}%',
         ownTarget: '量化目标 / 标准',
+        showTargets: '显示目标',
         unknownEmployee: '你看不到这位员工',
         generateWhat: '这几个人在这个月还没有 KPI 条目。生成会把他们职位上的五条【复制】过来并冻住措辞 —— 日后改职位模板,不会改变他们当时被考核的标准。',
         generateAction: '生成五条',
@@ -3183,6 +3190,8 @@ const zh = {
             equipmentTitle: '设备状态',
             equipmentReference: '这里勾的是【已经记在设备停机里】的那几段 —— 交接班【指向】它们,不再抄一遍。同一件事记两遍,迟早会有一份是错的,而那一份恰好会是被人读到的。',
             downtimeOngoing: '还没结束',
+            // U1-B(Q15):交接之后才被作废的那一段。交接单本身不动。
+            downtimeVoidedLater: '后来作废了',
             noDowntime: '没有记录在案的设备停机。',
             // 【空态说出在等什么,不说"暂无数据"】
             emptyNoStaff: '还没有交接班记录 —— 而这是意料之中的:今天在册的车间人员是 0 人,没有人交班,也没有人接班。这一块承载它的形状已经建好了,内容要等第一位技师上岗。',
@@ -3356,6 +3365,9 @@ const zh = {
             workOrderLabel: '工单(可选)',
             workOrderNone: '不选 —— 临时起意的加工',
             workOrderHint: '只有【已放行】的工单可以开工。投料【不会】按计划预填:计划写的是物料,加工填的是批次 —— 系统替你挑一个批次,会是一个看起来合理、而当天未必是这么投的答案。',
+            machine: '所用机器(可选)',
+            machineNone: '未记录',
+            machineHint: '这一炉在哪台机器上跑。不确定就留「未记录」—— 没有记机器的加工不计入任何一台机器的用量。已处置的机器不在列表里。',
             groupInbound: '进料批次',
             groupOutput: '产出批次(再加工)',
             basisLabel: '成本分摊基准',
@@ -3457,6 +3469,20 @@ const zh = {
             // ROLE-1 Batch 3b
             WO_NO_OTHER_RELEASER: '除了你没有别人能放行工单 —— 请先让管理员把「放行工单」给另一个人。',
             PROCESSING_THROUGH_FUNCTION_ONLY: '加工记录({0},{1})只能通过加工页面来改 —— 什么都没有改动。',
+            // U1-B(UNBLOCK-1 Step 0 §3 5.1):此前掉进共用兜底的那几条。
+            // allocate_processing_costs 的状态改变型(深度放电:没有产出批)。{0} 是单号。
+            ALLOCATION_STATE_CHANGING_BASIS: '加工单 {0} 改变的是投料的状态(例如深度放电),不产出新批次,所以不能按金属价值分摊 \u2014\u2014 那个基准读的是产出批的金属含量,而这里没有产出批。什么都没有分摊。请按重量分摊这张单。',
+            ALLOCATION_STATE_CHANGING_OUTPUT_INPUT: '加工单 {0} 改变的是投料的状态,但它有 {1} 条投料是之前加工单的产出批。这类加工单的加工成本只能挂回进料批上 \u2014\u2014 产出批上还没有地方承接它 \u2014\u2014 所以宁可什么都不分摊,也不悄悄把这笔成本丢掉。请回滚这张单,只用进料批重新录入。',
+            ALLOCATION_STATE_CHANGING_NO_INPUT: '加工单 {0} 的投料里没有任何进料批,而这类加工单又不产出新批次 \u2014\u2014 它的加工成本无处可挂。什么都没有分摊。请检查这张单的投料;如果录错了,回滚后重新录入。',
+            ALLOCATION_STATE_CHANGING_NO_BASIS: '加工单 {0}:进料批的投料量合计为零,加工成本没有可以拆分的依据。什么都没有分摊。请检查这张单上的消耗数量。',
+            ALLOCATION_LEDGER_DIVERGED: '加工单 {0} 的资本化分录被人手工冲销了,于是它已记录的成本与总账对不上,再分摊就是建立在错误的基数上。什么都没有改动。请先让财务用一张手工分录把它理顺,再重新分摊。',
+            // commit_processing_run:这张单选的机器。{1} {2} 是日期。
+            EQUIPMENT_NOT_FOUND: '这张单选的机器({0})不在账上 \u2014\u2014 可能已被移除,或页面已经过时。什么都没有保存。请刷新页面重新选机器,或者留成「未记录」。',
+            EQUIPMENT_NOT_ACQUIRED: '机器 {0} 是 {1} 购入的,而这张单的日期是 {2} \u2014\u2014 那天这台机器还不是我们的。什么都没有保存。请检查加工日期,或者选实际用的那台机器。',
+            EQUIPMENT_DISPOSED: '机器 {0} 已于 {1} 处置,而这张单的日期是 {2} \u2014\u2014 那时它已经不在了。什么都没有保存。请检查加工日期,或者选实际用的那台机器。',
+            // submit_shift_handover:交接班上勾选的停机。
+            HANDOVER_DOWNTIME_NOT_FOUND: '这张交接班勾选的停机里,有一段已经不存在了。什么都没有保存 \u2014\u2014 请刷新页面重新勾选。',
+            HANDOVER_DOWNTIME_VOIDED: '这张交接班勾选的停机里,有一段后来被作废了 \u2014\u2014 它没有发生过,交接班不能引用它。什么都没有保存。请刷新页面(作废的停机不再列出),重新勾选其余几段。',
             WO_NOT_AMENDABLE: '工单 {0} 是{1} —— 计划不再改得动。',
             WO_NO_LINES: '一张工单至少要有一条计划投料行 —— 否则它什么也没计划。',
             WO_LINE_QTY_INVALID: '计划量要大于零。',
@@ -3866,6 +3892,8 @@ const zh = {
             actionHint: '改数量、单价、行、备注与条款。要写理由;不影响状态。',
             editDraft: '编辑草稿',
             editDraftHint: '草稿可随便改 —— 不要理由,不留改单历史。',
+            addLinesAction: '加行',
+            addLinesActionHint: '这张单已经整单发完,只能新增行;加一行后,订单会退回【部分发货】。',
             notAmendable: '这张单是【{status}】,改不了。那是终态 —— 要改就另开一张。',
             addOnly: '这张单已经整单发完。它还收的只有【新增行】—— 表头与既有的每一行都已经落定。加一行会让这张单退回【部分发货】,因为它不再是发完了。',
             reason: '本次修改的理由',
@@ -5256,6 +5284,8 @@ const zh = {
             EXPENSE_CLAIM_AMOUNT_INVALID: '{0} 不是一个花得出去的金额。',
             EXPENSE_CLAIM_CURRENCY_UNKNOWN: '“{0}”不是本系统里的币种。',
             EXPENSE_CLAIM_DESCRIPTION_REQUIRED: '写清楚花在什么上。这是审批人唯一能据以判断的东西。',
+            // U1-B:submit_expense_claim 拒收一张除了你没人能决定的报销单。{0} 是单号。
+            EXPENSE_CLAIM_NO_OTHER_DECIDER: '报销单 {0} 没有提交:审批开着,而除了你(以及被报销的那个人)之外,没有任何人能决定它,它只会一直等下去。请先让管理员把决定的角色给第二个人。',
             EXPENSE_CLAIM_NOT_FOUND: '找不到 id 为 {0} 的报销。',
             EXPENSE_CLAIM_NOT_SUBMITTED: '报销 {0} 现在是{1},没有可决定或可撤回的东西。',
             EXPENSE_CLAIM_REJECT_REASON_REQUIRED: '驳回 {0} 要给理由 —— 没有理由,提报的人无从判断该改了再交还是算了。',
@@ -5674,7 +5704,7 @@ const zh = {
         cancelHasReceipts: '不能取消:已经有 {n} 张进料批次挂在这张单上。',
         cancelNeedsFinance: '取消采购单需要财务编辑权限。',
         reopenNeedsReason: '要填理由。',
-        closeNeedsNotes: '先写一句说明 —— 这张单还有预付没抵扣就要关掉。',
+        closeNeedsNotes: '先写一句理由 —— 这张单还有预付没抵扣就要关掉。',
             equipmentOrderNote: '这是一张设备采购单。机器到厂【不是一次收货】—— 它不产生批次、没有化验、不进库位,所以这里没有「收货」这个动作。机器的花费记成一笔挂在这条订单行上的开支;它的到厂与投用记在【财务 → 固定资产】的资产卡上。',
             colMachine: '机器',
             releaseDate: '冲抵日',
@@ -5825,14 +5855,17 @@ const zh = {
         close: '结束采购单',
         closeConfirm: '结束该采购单?',
         closeConsequence: '这张单不再出现在收货列表里,于是不能再按它收货。已经收过的货、已经开过的票都不变,之后可以带理由重新打开。如果有预付款打到这张单上而还没抵扣,关单会先要一句书面说明:那笔钱留在预付款项里,而这张单永远不会再吸收它。',
-        closeNotes: '未抵扣的预付款如何处理?',
+        closeNotes: '结束的理由',
+        closeReasonHint: '理由随这次结束一起记下,显示在这张单上 —— 不会加进单据备注。还有预付款未抵扣时必填(写明如何处理);否则可以不写。',
+        closeReasonNone: '结束时没有写理由。',
+        reopenedLabel: '已重新打开',
         closeWithPrepaymentWarning:
             '该采购单还有 {amount} 预付款未抵扣。请说明如何处理 —— 该金额将一直留在预付款项科目中,直到被抵扣。',
         closeWithPrepaymentUnknown:
             '以你的权限看不到该采购单是否还有未抵扣的预付款。请说明剩余预付款如何处理 —— 未抵扣的金额会一直留在预付款项科目中。',
         reopen: '重新打开',
         reopenConfirm: '重新打开该采购单?',
-        reopenConsequence: '这张单回到【收货中】(如果已经收过货)或【已确认】(如果一车都没收过),并重新出现在收货列表里。你写的理由会加进单据备注。已经收过的货、开过的票、付过的款都不变。',
+        reopenConsequence: '这张单回到【收货中】(如果已经收过货)或【已确认】(如果一车都没收过),并重新出现在收货列表里。你写的理由随这次重开一起记下,显示在这张单上 —— 不会加进单据备注。已经收过的货、开过的票、付过的款都不变。',
         reopenReason: '原因',
         unappliedMarker: '有未抵扣预付款',
         applyPrepayment: '抵扣预付款',
@@ -6062,6 +6095,9 @@ const zh = {
             PO_NOT_CLOSED: '采购单 {0} 不是已结束状态',
             CLOSE_NOTES_REQUIRED: '该采购单还有 {0} 预付款未抵扣 —— 结束前必须写明处理方式',
             REASON_REQUIRED: '必须填写原因',
+            PO_LINE_NOT_FOUND: '找不到这条采购单行,或它所在的采购单已被删除({0})。',
+            DEEP_DISCHARGE_JUDGEMENT_REQUIRED: '请选择一个深度放电判断。一行一旦有了判断,就不能再回到空白 —— 还没人看过的话,选「未评估」。',
+            DEEP_DISCHARGE_JUDGEMENT_UNKNOWN: '「{0}」不是一个启用中的深度放电判断。请刷新页面后从列表里选。',
         },
     },
     tasks: {
@@ -7936,6 +7972,8 @@ const zh = {
         journalRequest: {
             title: '待批的手工凭证',
             noneWaiting: '没有在等批准的手工凭证或冲销。',
+            // U1-B(Tim:data.view_pay):冲销一张工资分录的申请,金额就是那张分录的合计。
+            amountRestrictedHint: '这是一张工资分录的冲销,金额属于薪资数据 \u2014\u2014 要有 data.view_pay 权限才看得到。管理员在「设置 \u2192 角色」里授予。',
             openTitle: {
                 entry: '一张手工凭证在等 CFO 批准',
                 reversal: '一张冲销在等 CFO 批准',
@@ -8190,7 +8228,8 @@ const zh = {
             // Tim 在 ALERT-1 闸上裁定:「已经对过账了」这半句话不算一句拒绝。
             // ══════════════════════════════════════════════════════════
             PROCESSING_COSTS_UNALLOCATED:
-                '{0} 这个期间有 {1} 张加工单已提交、但成本从未分摊(共 {2} 张)。'
+                // U1-B:{2} 是逗号分隔的单号清单(不是张数)—— 把它们点出来。
+                '{0} 这个期间关不了:截至那天有 {1} 张已提交的加工单成本从未分摊 —— {2}。'
                 + '料已经动了,而在制品还挂在 1200 上没有解除 —— 去「生产 → 加工」'
                 + '把这些单子的成本分摊掉,再回来关账。',
             JOURNAL_IMMUTABLE:
@@ -8425,8 +8464,13 @@ const zh = {
             step_cpf: 'CPF 已汇缴',
             step_deductions: '代扣款已汇出',
             step_accruals: '加工成本应计已结',
-            step_staleAllocation: '批次成本与成本条目一致',
-            staleAllocationDetail: '有 {n} 张加工单在成本变动后没有重跑分摊',
+            // U1-B:两件事,分开说。step_unallocated 是 close_period 真正挡的那一件(PROCESSING_COSTS_UNALLOCATED,
+            // 同一支 processing_runs_blocking_close);step_staleAllocation 是分摊过、之后成本又动了 —— 该重跑,但不挡锁期。
+            step_unallocated: '月末以前提交的加工单都已分摊成本',
+            unallocatedDetail: '有 {n} 张加工单从未分摊 —— 分摊之前关账会被拒:{codes}',
+            blockedByUnallocated: '被挡:月末以前有 {n} 张已提交的加工单从未分摊 —— 先把它们分摊掉',
+            step_staleAllocation: '已分摊的加工单与成本条目仍然一致',
+            staleAllocationDetail: '有 {n} 张加工单在分摊之后成本又变了 —— 重跑分摊以更新单位成本(这一项不挡锁期)',
             step_depreciation: '折旧已计提',
             depreciationDetail: '应提:{0}',
             step_revaluation: '期末重估已跑',
@@ -9532,6 +9576,17 @@ const zh = {
             startedAt: '停机时间',
             reason: '原因',
             openHint: '恢复时间可以留到以后填 \u2014\u2014 **一段没有结束时间的停机是一段【开着的】停机**,屏幕上会照这个样子显示它,而不是显示成一段「少填了一栏」的记录。',
+            // U1-B(UNBLOCK-1 Q15):停机可以更正、可以作废,永远不删。
+            correct: '更正',
+            correctTitle: '更正 {since} 开始的这一段',
+            correctOpenHint: '这一段还开着,恢复时间不在这里改 \u2014\u2014 机器回来时用「结束这一段」把它关上。',
+            correctHint: '变更记录会留着原来的时间与原因。如果这一段根本没有发生过,请用「作废」。',
+            void: '作废',
+            voidConfirm: '作废这一段停机?',
+            voidConsequence: '用于这一段根本没有发生过的情形(记错了、记到了别的机器上)。它会留在列表里、标着「已作废」和你写的理由;它不再算开着、不再挡住与它重叠的停机,新的交接班也不能再引用它。作废不能撤销 \u2014\u2014 只是时间记错了的话,请用「更正」。',
+            voidReasonPlaceholder: '例如:记错了机器 \u2014\u2014 停的是 2 号线',
+            voidedBadge: '已作废',
+            voidedBecause: '{when} 作废:{reason}',
         },
         errors: {
             DOWNTIME_START_IN_FUTURE: '这段停机的开始时间是 {0},那个时刻【还没到】。停机记录的是【已经发生的事】—— 如果你是在计划将来的一个窗口,那是一个【计划】,而这一列装不下计划。',
@@ -9549,6 +9604,14 @@ const zh = {
             equipment_downtime_period_order: '机器不可能在停机之前就恢复。请检查这两个时间。',
             equipment_downtime_reason_stated: '请说明机器为什么停 \u2014\u2014 原因不能是空的。',
             uq_equipment_downtime_open: '**这台机器已经有一段开着的停机了。** 一台机器同时只能停一次 \u2014\u2014 先把开着的那一段结束掉,再开新的一段。如果你并不觉得有开着的停机,那多半是刚刚有别人开了一段;刷新一下页面就看得见。',
+            // U1-B(UNBLOCK-1 Q15):停机只更正或作废,永远不删。{0} 是那一段的开始时刻(新加坡时间)。
+            DOWNTIME_NEVER_DELETED: '{0} 开始的这一段停机不能删除 \u2014\u2014 交接班和保养记录可能指着它。如果它根本没有发生过,请作废它(写明理由);如果只是时间记错了,请更正。',
+            DOWNTIME_VOIDED: '{0} 开始的这一段停机已经作废,不能再改 \u2014\u2014 作废的记录是冻住的,免得后来的人猜不出作废的是哪一个版本。什么都没有改动。如果机器真的停过,请另记一段新的。',
+            DOWNTIME_VOID_THROUGH_FUNCTION_ONLY: '停机只能用「作废」按钮来作废 \u2014\u2014 它会记下是谁、为什么作废的。什么都没有改动。',
+            DOWNTIME_NOT_FOUND: '这一段停机({0})不在这台机器上 \u2014\u2014 它可能属于另一台机器,或者页面已经过时。刷新页面后再试一次。',
+            DOWNTIME_ALREADY_VOIDED: '{0} 开始的这一段停机已经作废了 \u2014\u2014 多半是刚刚有别人作废的。什么都没有改动;刷新页面就能看到他写的理由。',
+            DOWNTIME_VOID_REASON_REQUIRED: '请写明为什么作废这一段。一条没有理由就消失的停机记录,让后来读它的人无从查起。',
+            equipment_downtime_void_shape: '作废的停机必须同时带着作废时间和理由。什么都没有改动 \u2014\u2014 请用「作废」按钮,它会把两样都记下。',
             equipment_service_intervals_at_least_one: '公斤、天数,**至少写一个**。两个都空的间隔行读起来像是配好了,而它什么都不会报。',
             equipment_service_intervals_lead_kg_shape: '公斤的提前量必须不小于 0 且【小于间隔本身】,并且间隔写了它就必须写。提前量等于间隔,等于一盏从第一天起就亮着的灯。',
             equipment_service_intervals_lead_days_shape: '天数的提前量必须不小于 0 且【小于间隔本身】,并且间隔写了它就必须写。提前量等于间隔,等于一盏从第一天起就亮着的灯。',

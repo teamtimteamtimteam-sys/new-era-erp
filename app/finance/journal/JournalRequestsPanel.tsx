@@ -18,6 +18,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Refusal } from '@/app/components/ui/refusal'
 import { formatAmount } from '@/lib/format'
 import { decideJournalRequest, withdrawJournalRequest } from './requestActions'
 
@@ -36,7 +37,13 @@ export type JournalRequestView = {
     status: 'submitted' | 'approved' | 'rejected' | 'withdrawn'
     entryDateText: string
     memo: string
-    amountBase: number
+    /**
+     * U1-B(Tim:data.view_pay):一张工资分录的冲销申请,金额就是那张分录的合计 ——
+     * 不持 data.view_pay 的人读到的是 null,并且 amountRestricted 为真。
+     * 【null ≠ 0】受限印「受限」,不印 0.00,也不印 —(AGENTS.md「0.00 and 受限 are not the same thing」)。
+     */
+    amountBase: number | null
+    amountRestricted: boolean
     creditsBank: boolean
     /** 冻结的日期落在已锁的期间里 —— 批准会被引擎按 PERIOD_LOCKED 拒(Q4:锁永远赢) */
     periodLocked: boolean
@@ -72,6 +79,11 @@ export default function JournalRequestsPanel({
     const router = useRouter()
     const [pending, start] = useTransition()
     const notDone = t('common.actionMessage.headline.notDecided')
+    // U1-B:金额那一格 —— 受限是一句权限答复(Refusal + 一句为什么),不是 0.00、不是 —。
+    const amountCell = (r: JournalRequestView) =>
+        r.amountRestricted
+            ? <Refusal why={t('finance.journalRequest.amountRestrictedHint')}>{t('common.restricted')}</Refusal>
+            : r.amountBase === null ? '—' : formatAmount(r.amountBase, baseCurrency)
 
     function run(subject: string, fn: () => Promise<{ error?: string; detail?: string }>) {
         start(async () => {
@@ -106,7 +118,7 @@ export default function JournalRequestsPanel({
                             <span className="font-mono">{r.label}</span> · {t('finance.journalRequest.kind.' + r.kind)} · {r.createdText}
                         </dd>
                         <dt className="text-[color:var(--brand-muted-text)]">{t('finance.journalRequest.amount')}</dt>
-                        <dd>{formatAmount(r.amountBase, baseCurrency)}</dd>
+                        <dd>{amountCell(r)}</dd>
                         <dt className="text-[color:var(--brand-muted-text)]">{t('finance.journalRequest.date.' + r.kind)}</dt>
                         <dd>{r.entryDateText}</dd>
                         {r.targetEntry && (
@@ -207,7 +219,7 @@ export default function JournalRequestsPanel({
                         {history.map((h) => (
                             <li key={h.id}>
                                 <span className="font-mono">{h.label}</span> · {t('finance.journalRequest.kind.' + h.kind)} ·{' '}
-                                {formatAmount(h.amountBase, baseCurrency)} · {t('finance.journalRequest.status.' + h.status)} · {h.createdText}
+                                {amountCell(h)} · {t('finance.journalRequest.status.' + h.status)} · {h.createdText}
                                 {h.resultEntry && (
                                     <>
                                         {' '}·{' '}

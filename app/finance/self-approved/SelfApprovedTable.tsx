@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Refusal } from '@/app/components/ui/refusal'
 
 export type SelfApprovedRow = {
     seq: string
@@ -20,7 +21,11 @@ export type SelfApprovedRow = {
     decider: string
     subject: string
     amount: string
+    /** U1-B:一张医疗报销的金额对不持 data.view_health(又不是本人)的读者是受限 —— 印「受限」,不印 —。 */
+    amountRestricted: boolean
     note: string
+    /** U1-B:同一个判据下的说明(批准 / 驳回的理由)。受限 ≠ 空着。 */
+    noteRestricted: boolean
 }
 
 export default function SelfApprovedTable({ rows, empty }: { rows: SelfApprovedRow[]; empty: React.ReactNode }) {
@@ -38,8 +43,8 @@ export default function SelfApprovedTable({ rows, empty }: { rows: SelfApprovedR
         { key: 'decision', header: t('finance.selfApproved.colDecision'), render: (r) => r.decision },
         { key: 'decider', header: t('finance.selfApproved.colDecider'), priority: true, render: (r) => r.decider },
         { key: 'subject', header: t('finance.selfApproved.colSubject'), render: (r) => r.subject },
-        { key: 'amount', header: t('finance.selfApproved.colAmount'), align: 'right', render: (r) => r.amount },
-        { key: 'note', header: t('finance.selfApproved.colNote'), render: (r) => r.note },
+        { key: 'amount', header: t('finance.selfApproved.colAmount'), align: 'right', render: (r) => (r.amountRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.amount) },
+        { key: 'note', header: t('finance.selfApproved.colNote'), render: (r) => (r.noteRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.note) },
     ]
     return (
         <DataTable

@@ -11,7 +11,9 @@ CREATE OR REPLACE FUNCTION public.leave_balance(p_employee_id uuid, p_leave_type
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 BEGIN
-    IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN
+    -- U1-B(U1A-SELF-GATE-NULL-TRAP):没有员工档案的账号,current_user_employee() 是 NULL,
+    --   NOT (false OR NULL) 是 NULL,IF NULL 不进分支 —— 门曾经是开的。COALESCE 把「未知」读成「不是本人」。
+    IF NOT (has_permission('module.hr.view') OR COALESCE(p_employee_id = current_user_employee(), false)) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.view';
     END IF;
     RETURN leave_balance_internal(p_employee_id, p_leave_type_code, p_as_of);

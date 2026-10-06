@@ -88,6 +88,9 @@ const OVERRIDES = {
         cancel_reason: 'Cancellation reason', deleted_at: 'Deleted on', deleted_by: 'Deleted by', delete_reason: 'Reason for deletion',
         cancelled_by: 'Cancelled by', contract_id: 'Contract', tax_total_ccy: 'GST', delivery_location: 'Delivery location',
         category: 'Category', gross_total_ccy: 'Total including GST', carries_tax: 'Carries GST',
+        // U1-B(Q25):关闭 / 重开的人与理由
+        closed_by: 'Closed by', close_reason: 'Reason for closing', reopened_at: 'Reopened on', reopened_by: 'Reopened by',
+        reopen_reason: 'Reason for reopening',
     },
     purchase_order_lines: {
         purchase_order_id: 'Purchase order', line_no: 'Line', material_id: 'Material', quantity: 'Quantity', unit: 'Unit',
@@ -185,7 +188,9 @@ const OVERRIDES = {
     certificates_of_destruction: { code: 'Certificate number', completed_on: 'Processing completed on',
         replaced_by_cod_id: 'Replaced by certificate', snapshot: 'Certificate details', void_reason: 'Reason voided' },
     cod_issues: { cod_id: 'Certificate' },
-    equipment_downtime: { ended_at: 'Came back up', started_at: 'Went down', reason: 'Reason', duration: 'Duration' },
+    equipment_downtime: { ended_at: 'Came back up', started_at: 'Went down', reason: 'Reason', duration: 'Duration',
+        // U1-B(Q15):作废一段没有发生过的停机
+        voided_at: 'Voided on', voided_by: 'Voided by', void_reason: 'Reason voided' },
     equipment_maintenance: { description: 'What was done', expense_id: 'Expense', performed_by_employee_id: 'Done by (employee)',
         performed_by_name: 'Done by (name)', performed_by_supplier_id: 'Done by (supplier)', performed_on: 'Done on',
         capitalised_expense_id: 'Capitalised through expense' },
@@ -802,7 +807,7 @@ const ENUM_OVERRIDES = {
     'purchase_order_history#change_type': {
         header_update: 'Order details changed', line_add: 'Line added', line_update: 'Line changed', line_remove: 'Line removed',
         payment_term_add: 'Instalment added', payment_term_update: 'Instalment changed', payment_term_remove: 'Instalment removed',
-        cancelled: 'Cancelled',
+        cancelled: 'Cancelled', closed: 'Closed', reopened: 'Reopened',
     },
     'processing_cost_entry_history#change_type': {
         create: 'Cost recorded', update: 'Cost changed', delete: 'Cost removed', restore: 'Cost restored',
