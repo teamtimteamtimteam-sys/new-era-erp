@@ -298,6 +298,17 @@
 >    (cto · admin),本库第二支、也是最后一支匿名可执行的函数 `ingest_submit`(authenticated 与 service_role 都调不到)。
 >    给厂商的接口文档 `docs/integration/gateway-interface.md`;待补的标准值 `docs/mes-pending-values.md`(V5 · V6)。
 >    ★ **破窗**:起点 **2026-10-06 11:39:23 CST**(`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,下一次 close-out 补记)。
+>    ★ **部署:Tim 在 Vercel 上确认 `95b43594` 已部署(MES-1 close-out + MES-2 Step 0 委托书,2026-10-06)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-06 11:39:23 CST**(测量:`db/migration-windows.tsv`,`2026-10-06-mes1-entry-point.sql`)·
+>    终点下界 **2026-10-06 16:07:50 CST**(测量:推送把 `origin/main` 移到 `95b43594`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`95b43594 … {2026-10-06 16:07:50 +0800}: update by push`)·
+>    终点上界 **2026-10-06 16:16:05 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 4 h 28 min 27 s,至多 4 h 36 min 42 s。** 窗口长,是因为线上验证(探针、逐角色读数、冒烟两轮、前后读数)整个跑在窗口里,
+>    中间还按 Tim 的要求停过一次(`docs/handbacks/MES-1.md` §5.1)。
+>    窗口里坏掉的(**推导**:按旧代码读的对象与本迁移的改动对出来,没有在线上量):**没有**。迁移只加东西(新表、视图、函数、一个码、
+>    两行单据类型、两条提醒臂),旧应用没有一条路由读它们;两条新提醒臂从 15:08(探针网关)起才有行,而旧的 `/tools/reminders` 只按自己的
+>    `REMINDERS` 画格子、其余 `operations_now` 的读者按点名的类型过滤 —— 那两条提醒在部署之前看不见,仅此而已(`docs/handbacks/MES-1.md` §5.1)。
 >    ★ **Q30**:三处过期的"GHOST-GRANTS 仍开着 / Remove 只露一半"在本刀第一个提交里划掉、指向 U1-B(旧句划线留着)。
 >    ★ **硬前提照旧(Q16,Tim 自己的动作)**:第一批真实业务数据或第一台真实网关之前,Supabase 换到付费档;设备页上那一行免费档的说明在 Tim 说可以去掉之前一直在。
 >    **下一刀 MES-2 · Confirmation, weighing, calibration**(见下面「⬜ ★ MES 组」)。
@@ -6814,7 +6825,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 顺序 | 刀 | 功能(勘察 §1 的编号) | 估时 |
   |---|---|---|---|
   | 1 | ✅ **MES-1 · Entry point**(2026-10-06,`v1.4.37`,`docs/handbacks/MES-1.md`) | 采集层地基:设备登记、网关钥匙、收件箱、传输日志、心跳、数据类与转换层;`/operation/devices`、`/operation/capture/inbox`、`/settings/pending-values` | 7 h 15 m – 13 h 45 m |
-  | 2 | ⬜ **MES-2 · Confirmation, weighing, calibration**(★ 下一刀;手工录入的完整路径也在这一刀 —— MES-1 只建了收件箱的 `source` 列与 CHECK,Q14) | 1(地磅单)· 20(校准)· 草稿 / 确认 | 7 h 40 m – 13 h 30 m |
+  | 2 | ⬜ **MES-2 · Confirmation, weighing, calibration**(★ 下一刀;手工录入的完整路径也在这一刀 —— MES-1 只建了收件箱的 `source` 列与 CHECK,Q14;★ **Tim(MES-1 close-out,2026-10-06):在线上给一次【满 500 条消息】的网关调用计时,对着 `anon` 角色 3 秒的语句上限;太慢就在本刀解决** —— `docs/known-issues.md` 的 `MES1-ANON-STATEMENT-TIMEOUT-3S`) | 1(地磅单)· 20(校准)· 草稿 / 确认 | 7 h 40 m – 13 h 30 m |
   | 3 | ⬜ **MES-3a · Storage safety** | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
   | 4 | ⬜ **MES-3b · Labels and scanning** | 7(标签)· 8(扫码) | 6 h 00 m – 10 h 15 m |
   | 5 | ⬜ **MES-4a · Processing record** | 11(参数与配方)· 13(计数)· 规格书 §4.1(平衡与容差;机器在挂了机器的工序上变成必填 —— 收紧 U1-B 的可选选择器,Q41) | 8 h 40 m – 15 h 30 m |
