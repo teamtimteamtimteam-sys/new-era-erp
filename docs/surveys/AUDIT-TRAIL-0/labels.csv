@@ -3023,3 +3023,89 @@ ingest_data_classes,transform_function,technical,hide: an internal function name
 ingest_data_classes,manual_entry_code,text,verbatim,,,Permission for manual entry,,,text
 ingest_data_classes,is_active,boolean,Yes / No,,,Active,,,boolean
 ingest_data_classes,sort_order,technical,hide: display order,,,Sort order,,,integer
+capture_drafts,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+capture_drafts,inbox_id,technical,hide: the inbox row number (the queue shows it),,,Inbox row,,,bigint
+capture_drafts,data_class,dict,ingest_data_classes (data class name),,,Data class,,,text
+capture_drafts,source,enum,message keys capture.source.<v>,,,Source,,,text
+capture_drafts,device_id,fk_document,"devices.code (document number, prefix DEV)",,,Instrument,,,uuid
+capture_drafts,station,text,verbatim,,,Station,,,text
+capture_drafts,proposed,jsonb,no generic rendering: needs a per-column renderer or hide (never raw JSON),,,Reading as received,,,jsonb
+capture_drafts,status,enum_like,Pending / Confirmed / Rejected,,,Status,,,text
+capture_drafts,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+capture_drafts,confirmed_at,timestamp_audit,formatAuditStamp,,,Confirmed on,,,timestamp with time zone
+capture_drafts,confirmed_by,actor,person who acted,,,Confirmed by,,,uuid
+capture_drafts,rejected_at,timestamp_audit,formatAuditStamp,,,Rejected on,,,timestamp with time zone
+capture_drafts,rejected_by,actor,person who acted,,,Rejected by,,,uuid
+capture_drafts,reject_reason,text,verbatim,,,Reason for rejecting,,,text
+capture_draft_changes,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+capture_draft_changes,draft_id,technical,hide: the draft it belongs to,,,Draft,,,uuid
+capture_draft_changes,field,text,verbatim,,,Field,,,text
+capture_draft_changes,original_value,jsonb,no generic rendering: needs a per-column renderer or hide (never raw JSON),,,Original value,,,jsonb
+capture_draft_changes,confirmed_value,jsonb,no generic rendering: needs a per-column renderer or hide (never raw JSON),,,Confirmed value,,,jsonb
+capture_draft_changes,reason,text,verbatim,,,Reason for the change,,,text
+capture_draft_changes,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+capture_draft_changes,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+weighbridge_tickets,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+weighbridge_tickets,code,own_key,show as-is: the record's own business key (code/number),,,Ticket number,,,text
+weighbridge_tickets,direction,enum,message keys weighbridge.direction.<v>,,,Direction,,,text
+weighbridge_tickets,vehicle_reg,text,verbatim,,,Vehicle registration,,,text
+weighbridge_tickets,notes,text,verbatim,,,Notes,,,text
+weighbridge_tickets,completed_at,timestamp_audit,formatAuditStamp,,,Completed on,,,timestamp with time zone
+weighbridge_tickets,voided_at,timestamp_audit,formatAuditStamp,,,Voided on,,,timestamp with time zone
+weighbridge_tickets,voided_by,actor,person who acted,,,Voided by,,,uuid
+weighbridge_tickets,void_reason,text,verbatim,,,Reason for voiding,,,text
+weighbridge_tickets,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+weighbridge_tickets,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+weighbridge_tickets,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+weighbridge_tickets,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+weighings,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+weighings,inbox_id,technical,hide: the inbox row number,,,Inbox row,,,bigint
+weighings,draft_id,technical,hide: the draft it confirmed,,,Draft,,,uuid
+weighings,device_id,fk_document,"devices.code (document number, prefix DEV)",,,Instrument,,,uuid
+weighings,source,enum,message keys capture.source.<v>,,,Source,,,text
+weighings,weight_kg,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Weight (kg),,,numeric
+weighings,role,enum,message keys weighing.role.<v>,,,Weighing,,,text
+weighings,ticket_id,fk_document,"weighbridge_tickets.code (document number, prefix WB)",,,Weighbridge ticket,,,uuid
+weighings,site_from,timestamp_audit,formatAuditStamp,,,Weighed from,,,timestamp with time zone
+weighings,site_to,timestamp_audit,formatAuditStamp,,,Weighed until,,,timestamp with time zone
+weighings,site_dataset_ref,text,verbatim,,,Raw data at site,,,text
+weighings,captured_at,timestamp_audit,formatAuditStamp,,,Weighed at,,,timestamp with time zone
+weighings,confirmed_at,timestamp_audit,formatAuditStamp,,,Confirmed on,,,timestamp with time zone
+weighings,confirmed_by,actor,person who acted,,,Confirmed by,,,uuid
+weighings,corrects_id,technical,hide: the weighing it corrects (the block says Corrected),,,Corrects,,,uuid
+weighings,correction_reason,text,verbatim,,,Reason for the correction,,,text
+weighbridge_ticket_shares,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+weighbridge_ticket_shares,ticket_id,fk_document,"weighbridge_tickets.code (document number, prefix WB)",,,Weighbridge ticket,,,uuid
+weighbridge_ticket_shares,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,Receipt,,,uuid
+weighbridge_ticket_shares,shipment_line_id,fk_other,shipment_lines (the shipment's code),,,Shipment line,,,uuid
+weighbridge_ticket_shares,kg,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Share (kg),,,numeric
+weighbridge_ticket_shares,receipt_quantity_reason,text,verbatim,,,Why the receipt quantity differs,,,text
+weighbridge_ticket_shares,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+weighbridge_ticket_shares,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+weighbridge_ticket_photos,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+weighbridge_ticket_photos,ticket_id,fk_document,"weighbridge_tickets.code (document number, prefix WB)",,,Weighbridge ticket,,,uuid
+weighbridge_ticket_photos,file_path,technical,hide: a storage key,,,File,,,text
+weighbridge_ticket_photos,file_name,text,verbatim,,,File name,,,text
+weighbridge_ticket_photos,mime_type,technical,hide: a file type,,,File type,,,text
+weighbridge_ticket_photos,size_bytes,technical,hide: a file size,,,File size,,,integer
+weighbridge_ticket_photos,uploaded_at,timestamp_audit,formatAuditStamp,,,Uploaded on,,,timestamp with time zone
+weighbridge_ticket_photos,uploaded_by,actor,person who acted,,,Uploaded by,,,uuid
+weighbridge_ticket_photos,withdrawn_at,timestamp_audit,formatAuditStamp,,,Withdrawn on,,,timestamp with time zone
+weighbridge_ticket_photos,withdrawn_by,actor,person who acted,,,Withdrawn by,,,uuid
+weighbridge_ticket_photos,withdraw_reason,text,verbatim,,,Reason for withdrawing,,,text
+instrument_calibrations,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+instrument_calibrations,device_id,fk_document,"devices.code (document number, prefix DEV)",,,Instrument,,,uuid
+instrument_calibrations,calibrated_on,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Calibrated on,,,date
+instrument_calibrations,valid_until,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Valid until,,,date
+instrument_calibrations,result,enum,message keys calibration.result.<v>,,,Result,,,text
+instrument_calibrations,certificate_no,text,verbatim,,,Certificate number,,,text
+instrument_calibrations,calibrating_body,text,verbatim,,,Calibrated by,,,text
+instrument_calibrations,notes,text,verbatim,,,Notes,,,text
+instrument_calibrations,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+instrument_calibrations,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+instrument_calibrations,voided_at,timestamp_audit,formatAuditStamp,,,Voided on,,,timestamp with time zone
+instrument_calibrations,voided_by,actor,person who acted,,,Voided by,,,uuid
+instrument_calibrations,void_reason,text,verbatim,,,Reason for voiding,,,text
+ingest_settings,require_calibrated_since,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Calibration rule applies from,,,date
+ingest_settings,calibration_lead_days,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Calibration reminder lead (days),,,integer
+ingest_data_classes,creates_draft,boolean,Yes / No,,,Waits for confirmation,,,boolean

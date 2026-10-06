@@ -19,6 +19,7 @@ import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import TicketShareFields, { type TicketOption } from '../TicketShareFields'
 
 const initialState: CreateInboundState = {}
 
@@ -63,6 +64,7 @@ export default function NewInboundForm({
     currencies,
     pricingGate,
     canReceive,
+    tickets,
     initialPoId = '',
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
@@ -87,6 +89,8 @@ export default function NewInboundForm({
     /** ROLE-1 Batch 3b:建收货单归 action.receive_goods(库里 create_inbound_batch 按码拒)。
      *  页面仍是 inbound.view 就进得来;缺码时【只挡保存钮】,取消照常。 */
     canReceive: boolean
+    /** MES-2(Q19):完成了的、还有没分出去的公斤数的进厂地磅单 */
+    tickets: TicketOption[]
     initialPoId?: string
 }) {
     const t = useTranslations()
@@ -105,6 +109,9 @@ export default function NewInboundForm({
     const [lineId, setLineId] = useState('')
     const [materialId, setMaterialId] = useState('')
     const [quantity, setQuantity] = useState('')
+    const [ticketId, setTicketId] = useState('')
+    const [shareKg, setShareKg] = useState('')
+    const [quantityReason, setQuantityReason] = useState('')
 
     const supplierPoLines = poLines.filter((l) => l.supplier_id === supplierId)
     // 该供应商的可收货采购单(按 po 去重,保持 view 的顺序)
@@ -314,6 +321,11 @@ export default function NewInboundForm({
                         </p>
                     )}
                 </div>
+
+                {/* MES-2(Q19):挂一张地磅单的份 —— 数量预填成这一份,改了要写理由(单位必须是 kg) */}
+                <TicketShareFields tickets={tickets} ticketId={ticketId} setTicketId={setTicketId} shareKg={shareKg} setShareKg={setShareKg}
+                                   quantity={quantity} setQuantity={setQuantity} reason={quantityReason} setReason={setQuantityReason}
+                                   fieldCls={`${CONTROL_INPUT} w-full`} labelCls="block mb-1" error={state.fieldErrors?.ticket} />
 
                 {/* GRN-1b:申报量【可选】。供应商说要来多少,与上面磅秤说的多少是
                     两回事。【绝不从采购行预填】—— 上面那个数量框预填 remaining_qty

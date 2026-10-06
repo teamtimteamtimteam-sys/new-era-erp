@@ -1,4 +1,8 @@
-CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_currency text DEFAULT NULL::text)
+-- db/functions/create_inbound_batch.sql
+-- MES-2(2026-10-06,MES-2 Step 0 Q19,Tim):末尾多三个参数(p_ticket_id · p_ticket_share_kg · p_quantity_reason),都带默认值 ——
+--   签名变了,所以迁移是 DROP + CREATE(preflight 不许 CREATE OR REPLACE 换签名);已部署的旧应用不传它们,照样解析到这一支。
+
+CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_currency text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -26,6 +30,23 @@ BEGIN
     -- 【不给默认值】:CURRENT_DATE 会让留空比填对更容易通过。
     IF p_arrival_date IS NULL THEN
         RAISE EXCEPTION 'ARRIVAL_DATE_REQUIRED';
+    END IF;
+
+    -- MES-2(Tim 2026-10-06,MES-0 Q21 · MES-2 Step 0 Q19):建单【那一刻】挂一张地磅单的份 —— 数量默认 = 这一份,
+    --   人填了别的数要写理由(收货单两个都留着:份的公斤数在 weighbridge_ticket_shares,数量在这里)。写入之前按名拒。
+    IF p_ticket_id IS NULL AND (p_ticket_share_kg IS NOT NULL OR p_quantity_reason IS NOT NULL) THEN
+        RAISE EXCEPTION 'TICKET_SHARE_WITHOUT_TICKET';
+    END IF;
+    IF p_ticket_id IS NOT NULL THEN
+        IF COALESCE(p_unit, 'kg') <> 'kg' THEN
+            RAISE EXCEPTION 'RECEIPT_TICKET_NEEDS_KG|%', p_unit;
+        END IF;
+        IF p_ticket_share_kg IS NULL OR p_ticket_share_kg <= 0 THEN
+            RAISE EXCEPTION 'TICKET_SHARE_KG_INVALID';
+        END IF;
+        IF p_quantity IS DISTINCT FROM p_ticket_share_kg AND btrim(COALESCE(p_quantity_reason, '')) = '' THEN
+            RAISE EXCEPTION 'RECEIPT_QUANTITY_REASON_REQUIRED|%|%', p_quantity, p_ticket_share_kg;
+        END IF;
     END IF;
 
     -- 【顺序要紧】库位先校验再落库:拒绝必须发生在写入之前,否则一次被拒的
@@ -69,6 +90,12 @@ BEGIN
     -- 用毕即清 —— 同 commit_processing_run 的 movement_ctx:免得同事务内后续的
     -- 插入把这个库位当成自己的(那正是 ctx 这种机制唯一的锋利处)。
     PERFORM set_config('evoltrya.location_ctx', '', true);
+
+    -- MES-2:地磅单的份【先于】定价落下 —— 建单带价时的定价会过校准闸,闸要看得见这张单的读数。
+    IF p_ticket_id IS NOT NULL THEN
+        PERFORM weighbridge_share_internal(p_ticket_id, v_id, NULL, p_ticket_share_kg,
+                                           CASE WHEN p_quantity IS DISTINCT FROM p_ticket_share_kg THEN p_quantity_reason END);
+    END IF;
 
     -- INB-PAY-1:建单带价 = 建单 + 定价,【同一事务】。
     -- ★ ROLE-1 Batch 4b(Tim 的 Q4):建单带价从此是【建单(不带价)+ 同一事务里提一张定价申请】

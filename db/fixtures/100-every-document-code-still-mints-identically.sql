@@ -2,6 +2,8 @@
 -- ★ PAY-REQ-1(2026-09-23):40 → 41 —— 新增 payment_request / PREQ(无洞,next_payment_request_code)。
 -- ★ MES-1(2026-10-06):41 → 42 —— 新增 device / DEV(有洞,device_code_seq;铸码是 generate_device_code 触发器,
 --   与 task 同形 nextval_year)。有洞的 9 → 10。它也是新单据,锚里那一条就是它今天的前缀。
+-- ★ MES-2(2026-10-06):42 → 43 —— 新增 weighbridge_ticket / WB(有洞,weighbridge_ticket_code_seq;铸码是
+--   generate_weighbridge_ticket_code 触发器,与 device 同形 nextval_year)。有洞的 10 → 11。新单据,锚里那一条就是它今天的前缀。
 --   它是新单据,没有"变换之前"的字面量可比;锚里那一条就是它今天的前缀。
 -- fixture 100 —— 停止条件 (g):【每一个单据码仍然铸得一模一样】,逐前缀,40 个
 -- ════════════════════════════════════════════════════════════════════════════
@@ -77,7 +79,8 @@ DECLARE
         ['journal_entry','JE'],            ['expense','EXP'],
         ['freight_document','FRT'],        ['wht_remittance','WHT'],
         ['payment_receipt','RCPT'],        ['payment_out','PMT'],
-        ['payment_request','PREQ'],        ['device','DEV']
+        ['payment_request','PREQ'],        ['device','DEV'],
+        ['weighbridge_ticket','WB']
     ];
 
     -- 铸码的【形状】—— 与 numbering 是两件事,不要合并。
@@ -105,6 +108,7 @@ DECLARE
         ['output_batch','nextval_year'],   ['processing_run','nextval_year'],
         ['stocktake','nextval_year'],      ['supplier','nextval_year'],
         ['task','nextval_year'],           ['device','nextval_year'],
+        ['weighbridge_ticket','nextval_year'],
         ['management_pack','count_month'], ['wht_remittance','count_month'],
         ['attendance_period','period_month'],
         ['gst_period','period_quarter']
@@ -137,16 +141,16 @@ DECLARE
 BEGIN
     -- ══ 第 1 臂 · 登记表的形状 ══════════════════════════════════════════════
     SELECT count(*) INTO v_n FROM document_types;
-    IF v_n <> 42 THEN
-        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 42 行,实有 %', v_n;
+    IF v_n <> 43 THEN
+        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 43 行,实有 %', v_n;
     END IF;
     SELECT count(DISTINCT prefix) INTO v_n FROM document_types;
-    IF v_n <> 42 THEN
+    IF v_n <> 43 THEN
         RAISE EXCEPTION 'FIXTURE 100/1 失败:前缀不唯一(distinct %)', v_n;
     END IF;
     SELECT count(*) INTO v_n FROM document_types WHERE numbering = 'gapped';
-    IF v_n <> 10 THEN
-        RAISE EXCEPTION 'FIXTURE 100/1 失败:有洞的应有 10 种,实有 %', v_n;
+    IF v_n <> 11 THEN
+        RAISE EXCEPTION 'FIXTURE 100/1 失败:有洞的应有 11 种,实有 %', v_n;
     END IF;
     -- 有洞的那 9 条序列必须真的存在 —— 一个打错的序列名会让期望值算在
     -- 一条不存在的序列上,而 pg_sequence_last_value 对不存在的对象直接抛。
@@ -172,8 +176,8 @@ BEGIN
                 ANCHOR[v_n][1], ANCHOR[v_n][2], v_actual;
         END IF;
     END LOOP;
-    IF array_length(ANCHOR, 1) <> 42 THEN
-        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 42', array_length(ANCHOR, 1);
+    IF array_length(ANCHOR, 1) <> 43 THEN
+        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 43', array_length(ANCHOR, 1);
     END IF;
     -- ★ 覆盖率本身是一条断言:登记表里若出现一个锚里没有的 key,这一臂必须红,
     --   而不是安静地不检查它。
@@ -237,8 +241,8 @@ BEGIN
             v_codes := v_codes || (k || ' → ' || v_expect);
         END;
     END LOOP;
-    IF array_length(v_codes, 1) <> 42 THEN
-        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 42', array_length(v_codes, 1);
+    IF array_length(v_codes, 1) <> 43 THEN
+        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 43', array_length(v_codes, 1);
     END IF;
 
     -- ══ 第 4 臂 · 那 22 支【真的调用一遍】,与公式对上 ══════════════════════

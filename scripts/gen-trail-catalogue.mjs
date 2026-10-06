@@ -682,6 +682,10 @@ const HIDE = {
 const TABLE_NAMES = {
     // MES-1(2026-10-06)
     devices: 'device', gateway_keys: 'gateway key', ingest_settings: 'ingestion limits', ingest_data_classes: 'data class',
+    // MES-2(2026-10-06)
+    capture_drafts: 'draft reading', capture_draft_changes: 'change at confirmation', weighings: 'weighing',
+    weighbridge_tickets: 'weighbridge ticket', weighbridge_ticket_shares: 'ticket share', weighbridge_ticket_photos: 'ticket photo',
+    instrument_calibrations: 'calibration',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -757,7 +761,7 @@ const TABLE_NAMES = {
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
     // MES-1:设备登记与采集层归加工(/operation/devices)
-    [/^(devices|gateway_key|ingest_)/, 'Processing'],
+    [/^(devices|gateway_key|ingest_|capture_|weighing|weighbridge_|instrument_calibration)/, 'Processing'],
     [/^(company_profile|list_ledger)/, 'Finance'],
     [/^(counterparty_contact|qt_issue|so_issue|statement_issue)/, 'Sales'],
     [/^(document_relation|document_type|import_batch)/, 'Settings'],

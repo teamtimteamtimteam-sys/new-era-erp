@@ -140,7 +140,7 @@ BEGIN
     gC := (pg_temp.f249_read('DEV', u_mgr, $q$SELECT to_jsonb(save_device('{"name":"ZZF249 gateway C","kind":"gateway"}'::jsonb))$q$)) #>> '{}';
     gD := (pg_temp.f249_read('DEV', u_mgr, $q$SELECT to_jsonb(save_device('{"name":"ZZF249 gateway D","kind":"gateway","heartbeat_interval_s":60}'::jsonb))$q$)) #>> '{}';
     dA := (pg_temp.f249_read('DEV', u_mgr, format($q$SELECT to_jsonb(save_device(jsonb_build_object('name','ZZF249 scale A','kind','scale','gateway_id',%L,'data_class','connection_test')))$q$, gA))) #>> '{}';
-    dA2 := (pg_temp.f249_read('DEV', u_mgr, format($q$SELECT to_jsonb(save_device(jsonb_build_object('name','ZZF249 scale A2','kind','scale','gateway_id',%L,'data_class','weighing')))$q$, gA))) #>> '{}';
+    dA2 := (pg_temp.f249_read('DEV', u_mgr, format($q$SELECT to_jsonb(save_device(jsonb_build_object('name','ZZF249 scale A2','kind','scale','gateway_id',%L,'data_class','meter_reading')))$q$, gA))) #>> '{}';
     dB := (pg_temp.f249_read('DEV', u_mgr, format($q$SELECT to_jsonb(save_device(jsonb_build_object('name','ZZF249 scale B','kind','scale','gateway_id',%L,'data_class','connection_test')))$q$, gB))) #>> '{}';
     SELECT code INTO cA FROM devices WHERE id = gA; SELECT code INTO cB FROM devices WHERE id = gB;
     SELECT code INTO cC FROM devices WHERE id = gC; SELECT code INTO cD FROM devices WHERE id = gD;
@@ -265,7 +265,7 @@ BEGIN
     v_msgs := jsonb_build_array(
         pg_temp.f249_msg(1, cdA, 'connection_test', '{"text":"hello"}'),
         pg_temp.f249_msg(2, cdA, 'connection_test', '{}'),
-        pg_temp.f249_msg(5, cdA2, 'weighing', '{"text":"12.5 kg"}'),
+        pg_temp.f249_msg(5, cdA2, 'meter_reading', '{"text":"12.5 kg"}'),  -- MES-2:weighing 接上了转换器,"还没有转换器的类"改用 meter_reading
         pg_temp.f249_msg(6, cdB, 'connection_test', '{"text":"not mine"}'),
         pg_temp.f249_msg(7, cdA, 'no_such_class', '{"text":"?"}'),
         '{"device":"x","class":"connection_test","payload":{}}'::jsonb,
@@ -476,7 +476,7 @@ BEGIN
     IF v_t IS DISTINCT FROM 'failed' OR (SELECT attempts FROM ingest_inbox WHERE id = v_x) IS DISTINCT FROM 2 THEN
         RAISE EXCEPTION 'FIXTURE 249 XF: a retry of a bad payload gave % (attempts %)', v_t, (SELECT attempts FROM ingest_inbox WHERE id = v_x); END IF;
     -- 一类刚接上转换器(只经迁移;这里以属主身份改字典,只为证重试那一条路)
-    UPDATE ingest_data_classes SET transform_function = 'transform_connection_test_v1' WHERE code = 'weighing';
+    UPDATE ingest_data_classes SET transform_function = 'transform_connection_test_v1' WHERE code = 'meter_reading';
     v_t := pg_temp.f249_read('XF', u_mgr, format('SELECT to_jsonb(retry_inbox_row(%s))',
         (SELECT id FROM ingest_inbox WHERE gateway_id = gA AND stream = 's1' AND seq = 5))) #>> '{}';
     IF v_t IS DISTINCT FROM 'transformed' THEN RAISE EXCEPTION 'FIXTURE 249 XF: an awaiting row did not transform once its class had a transformer: %', v_t; END IF;

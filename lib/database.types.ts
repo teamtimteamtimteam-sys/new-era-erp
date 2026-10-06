@@ -1240,6 +1240,134 @@ export type Database = {
         }
         Relationships: []
       }
+      capture_draft_changes: {
+        Row: {
+          confirmed_value: Json
+          created_at: string
+          created_by: string | null
+          draft_id: string
+          field: string
+          id: string
+          original_value: Json | null
+          reason: string
+        }
+        Insert: {
+          confirmed_value: Json
+          created_at?: string
+          created_by?: string | null
+          draft_id: string
+          field: string
+          id?: string
+          original_value?: Json | null
+          reason: string
+        }
+        Update: {
+          confirmed_value?: Json
+          created_at?: string
+          created_by?: string | null
+          draft_id?: string
+          field?: string
+          id?: string
+          original_value?: Json | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_draft_changes_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "capture_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capture_drafts: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          data_class: string
+          device_id: string | null
+          id: string
+          inbox_id: number
+          proposed: Json
+          reject_reason: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          source: string
+          station: string | null
+          status: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          data_class: string
+          device_id?: string | null
+          id?: string
+          inbox_id: number
+          proposed: Json
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          source: string
+          station?: string | null
+          status?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          data_class?: string
+          device_id?: string | null
+          id?: string
+          inbox_id?: number
+          proposed?: Json
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          source?: string
+          station?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_drafts_data_class_fkey"
+            columns: ["data_class"]
+            isOneToOne: false
+            referencedRelation: "ingest_data_classes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "capture_drafts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_drafts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "capture_drafts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "capture_drafts_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: true
+            referencedRelation: "ingest_inbox"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_forecast_lines: {
         Row: {
           amount_ccy: number
@@ -3983,6 +4111,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gateway_health"
             referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "devices_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
           },
         ]
       }
@@ -6906,6 +7041,13 @@ export type Database = {
             referencedRelation: "gateway_health"
             referencedColumns: ["gateway_id"]
           },
+          {
+            foreignKeyName: "gateway_keys_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       gateway_outages: {
@@ -6947,6 +7089,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gateway_health"
             referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "gateway_outages_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
           },
         ]
       }
@@ -7863,6 +8012,7 @@ export type Database = {
       ingest_data_classes: {
         Row: {
           code: string
+          creates_draft: boolean
           is_active: boolean
           manual_entry_code: string | null
           name_en: string
@@ -7873,6 +8023,7 @@ export type Database = {
         }
         Insert: {
           code: string
+          creates_draft?: boolean
           is_active?: boolean
           manual_entry_code?: string | null
           name_en: string
@@ -7883,6 +8034,7 @@ export type Database = {
         }
         Update: {
           code?: string
+          creates_draft?: boolean
           is_active?: boolean
           manual_entry_code?: string | null
           name_en?: string
@@ -8012,6 +8164,13 @@ export type Database = {
             referencedColumns: ["gateway_id"]
           },
           {
+            foreignKeyName: "ingest_inbox_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
             foreignKeyName: "ingest_inbox_gateway_id_fkey"
             columns: ["gateway_id"]
             isOneToOne: false
@@ -8026,6 +8185,13 @@ export type Database = {
             referencedColumns: ["gateway_id"]
           },
           {
+            foreignKeyName: "ingest_inbox_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
             foreignKeyName: "ingest_inbox_transmission_id_fkey"
             columns: ["transmission_id"]
             isOneToOne: false
@@ -8036,6 +8202,7 @@ export type Database = {
       }
       ingest_settings: {
         Row: {
+          calibration_lead_days: number | null
           clock_ahead_s: number
           fail_budget: number
           fail_window_s: number
@@ -8043,10 +8210,12 @@ export type Database = {
           id: boolean
           max_messages: number
           max_payload_bytes: number
+          require_calibrated_since: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          calibration_lead_days?: number | null
           clock_ahead_s?: number
           fail_budget?: number
           fail_window_s?: number
@@ -8054,10 +8223,12 @@ export type Database = {
           id?: boolean
           max_messages?: number
           max_payload_bytes?: number
+          require_calibrated_since?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          calibration_lead_days?: number | null
           clock_ahead_s?: number
           fail_budget?: number
           fail_window_s?: number
@@ -8065,6 +8236,7 @@ export type Database = {
           id?: boolean
           max_messages?: number
           max_payload_bytes?: number
+          require_calibrated_since?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -8157,6 +8329,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gateway_health"
             referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "ingest_transmissions_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      instrument_calibrations: {
+        Row: {
+          calibrated_on: string
+          calibrating_body: string | null
+          certificate_no: string | null
+          device_id: string
+          id: number
+          notes: string | null
+          recorded_at: string
+          recorded_by: string | null
+          result: string
+          valid_until: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          calibrated_on: string
+          calibrating_body?: string | null
+          certificate_no?: string | null
+          device_id: string
+          id?: never
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          result: string
+          valid_until: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          calibrated_on?: string
+          calibrating_body?: string | null
+          certificate_no?: string | null
+          device_id?: string
+          id?: never
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          result?: string
+          valid_until?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instrument_calibrations_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instrument_calibrations_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "instrument_calibrations_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
           },
         ]
       }
@@ -21200,6 +21449,364 @@ export type Database = {
         }
         Relationships: []
       }
+      weighbridge_ticket_photos: {
+        Row: {
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          ticket_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          ticket_id: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          ticket_id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighbridge_ticket_photos_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["ticket_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_photos_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weighbridge_ticket_shares: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string | null
+          kg: number
+          receipt_quantity_reason: string | null
+          shipment_line_id: string | null
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          kg: number
+          receipt_quantity_reason?: string | null
+          shipment_line_id?: string | null
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          kg?: number
+          receipt_quantity_reason?: string | null
+          shipment_line_id?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_shipment_line_id_fkey"
+            columns: ["shipment_line_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["ticket_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weighbridge_tickets: {
+        Row: {
+          code: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+          vehicle_reg: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          code: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vehicle_reg: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          code?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vehicle_reg?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: []
+      }
+      weighings: {
+        Row: {
+          captured_at: string
+          confirmed_at: string
+          confirmed_by: string
+          correction_reason: string | null
+          corrects_id: string | null
+          device_id: string | null
+          draft_id: string
+          id: string
+          inbox_id: number
+          role: string
+          site_dataset_ref: string | null
+          site_from: string | null
+          site_to: string | null
+          source: string
+          ticket_id: string | null
+          weight_kg: number
+        }
+        Insert: {
+          captured_at: string
+          confirmed_at?: string
+          confirmed_by: string
+          correction_reason?: string | null
+          corrects_id?: string | null
+          device_id?: string | null
+          draft_id: string
+          id?: string
+          inbox_id: number
+          role: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source: string
+          ticket_id?: string | null
+          weight_kg: number
+        }
+        Update: {
+          captured_at?: string
+          confirmed_at?: string
+          confirmed_by?: string
+          correction_reason?: string | null
+          corrects_id?: string | null
+          device_id?: string | null
+          draft_id?: string
+          id?: string
+          inbox_id?: number
+          role?: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          ticket_id?: string | null
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["gross_weighing_id"]
+          },
+          {
+            foreignKeyName: "weighings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["tare_weighing_id"]
+          },
+          {
+            foreignKeyName: "weighings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "weighing_calibration"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "weighings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "weighing_calibration_all"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "weighings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "weighings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "weighings_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: true
+            referencedRelation: "capture_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: true
+            referencedRelation: "ingest_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["ticket_id"]
+          },
+          {
+            foreignKeyName: "weighings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wht_natures: {
         Row: {
           code: string
@@ -23450,6 +24057,13 @@ export type Database = {
             referencedRelation: "gateway_health"
             referencedColumns: ["gateway_id"]
           },
+          {
+            foreignKeyName: "gateway_keys_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       grn_discrepancies: {
@@ -24058,6 +24672,13 @@ export type Database = {
             referencedRelation: "gateway_health"
             referencedColumns: ["gateway_id"]
           },
+          {
+            foreignKeyName: "ingest_inbox_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
         ]
       }
       ingest_transmission_anomalies: {
@@ -24071,6 +24692,30 @@ export type Database = {
           presented_gateway: string | null
           seq: number | null
           transmission_id: number | null
+        }
+        Relationships: []
+      }
+      instrument_calibration_now: {
+        Row: {
+          approaching: boolean | null
+          calibrated_on: string | null
+          calibrating_body: string | null
+          calibration_id: number | null
+          capacity: number | null
+          certificate_no: string | null
+          code: string | null
+          device_id: string | null
+          in_use: boolean | null
+          interface_status: string | null
+          kind: string | null
+          lead_days: number | null
+          name: string | null
+          registered_at: string | null
+          result: string | null
+          station: string | null
+          status: string | null
+          unit: string | null
+          valid_until: string | null
         }
         Relationships: []
       }
@@ -30805,6 +31450,143 @@ export type Database = {
           },
         ]
       }
+      weighbridge_ticket_weights: {
+        Row: {
+          code: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_receipt_shares: number | null
+          difference_kg: number | null
+          direction: string | null
+          gross_at: string | null
+          gross_kg: number | null
+          gross_weighing_id: string | null
+          net_kg: number | null
+          notes: string | null
+          share_count: number | null
+          shared_kg: number | null
+          status: string | null
+          tare_at: string | null
+          tare_kg: number | null
+          tare_weighing_id: string | null
+          ticket_id: string | null
+          vehicle_reg: string | null
+          void_reason: string | null
+          voided_at: string | null
+        }
+        Relationships: []
+      }
+      weighing_calibration: {
+        Row: {
+          calibration_id: number | null
+          calibration_result: string | null
+          captured_at: string | null
+          captured_on: string | null
+          device_code: string | null
+          device_id: string | null
+          is_current: boolean | null
+          role: string | null
+          source: string | null
+          status: string | null
+          ticket_id: string | null
+          valid_until: string | null
+          weighing_id: string | null
+          weight_kg: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "weighings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["ticket_id"]
+          },
+          {
+            foreignKeyName: "weighings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weighing_calibration_all: {
+        Row: {
+          calibration_id: number | null
+          calibration_result: string | null
+          captured_at: string | null
+          captured_on: string | null
+          device_code: string | null
+          device_id: string | null
+          is_current: boolean | null
+          role: string | null
+          source: string | null
+          status: string | null
+          ticket_id: string | null
+          valid_until: string | null
+          weighing_id: string | null
+          weight_kg: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "weighings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["ticket_id"]
+          },
+          {
+            foreignKeyName: "weighings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wht_liability_by_month: {
         Row: {
           due_date: string | null
@@ -31089,6 +31871,10 @@ export type Database = {
         Args: { p_entry_date: string; p_source_type: string }
         Returns: undefined
       }
+      assert_receipt_reading_calibrated: {
+        Args: { p_inbound_batch_id: string }
+        Returns: undefined
+      }
       assert_segregated: {
         Args: { p_code: string; p_first_actors: string[]; p_subject: string }
         Returns: undefined
@@ -31286,6 +32072,10 @@ export type Database = {
         }
         Returns: Json
       }
+      calibration_status_from: {
+        Args: { p_on: string; p_result: string; p_valid_until: string }
+        Returns: string
+      }
       can_edit_task: { Args: { p_task_id: string }; Returns: boolean }
       can_view_task: { Args: { p_task_id: string }; Returns: boolean }
       can_write_task: { Args: { p_task_id: string }; Returns: boolean }
@@ -31304,6 +32094,17 @@ export type Database = {
       cancel_work_order: {
         Args: { p_reason: string; p_work_order_id: string }
         Returns: Json
+      }
+      capture_confirm_internal: {
+        Args: {
+          p_correction_reason: string
+          p_corrects: string
+          p_draft_id: string
+          p_overrides: Json
+          p_reasons: Json
+          p_subject: Json
+        }
+        Returns: string
       }
       carry_forward_annual_leave: {
         Args: { p_leave_year: number }
@@ -31485,6 +32286,15 @@ export type Database = {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: Json
       }
+      confirm_capture_draft: {
+        Args: {
+          p_draft_id: string
+          p_overrides?: Json
+          p_reasons?: Json
+          p_subject?: Json
+        }
+        Returns: string
+      }
       consumed_from_accrual: {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
@@ -31525,6 +32335,10 @@ export type Database = {
         Returns: Json
       }
       correct_task_type: { Args: { p_task_id: string }; Returns: undefined }
+      correct_weighing: {
+        Args: { p_reason: string; p_weighing_id: string; p_weight_kg: number }
+        Returns: string
+      }
       counterparty_overlap_report: { Args: never; Returns: Json }
       create_container: {
         Args: {
@@ -31580,11 +32394,14 @@ export type Database = {
           p_purchase_order_id?: string
           p_purchase_order_line_id?: string
           p_quantity: number
+          p_quantity_reason?: string
           p_safety_states?: string[]
           p_source_reason_code?: string
           p_source_reason_note?: string
           p_stage?: string
           p_supplier_id: string
+          p_ticket_id?: string
+          p_ticket_share_kg?: number
           p_unit?: string
           p_unit_price?: number
         }
@@ -32644,10 +33461,13 @@ export type Database = {
           p_purchase_order_id?: string
           p_purchase_order_line_id?: string
           p_quantity: number
+          p_quantity_reason?: string
           p_safety_states?: string[]
           p_source_reason_code?: string
           p_source_reason_note?: string
           p_supplier_id: string
+          p_ticket_id?: string
+          p_ticket_share_kg?: number
         }
         Returns: Json
       }
@@ -32816,6 +33636,18 @@ export type Database = {
         Args: { p_filed_on?: string; p_period_id: string; p_reference?: string }
         Returns: Json
       }
+      record_instrument_calibration: {
+        Args: {
+          p_calibrated_on: string
+          p_calibrating_body?: string
+          p_certificate_no?: string
+          p_device_id: string
+          p_notes?: string
+          p_result: string
+          p_valid_until: string
+        }
+        Returns: number
+      }
       record_invoice_issue: {
         Args: { p_file_path: string; p_invoice_id: string; p_sha256: string }
         Returns: Json
@@ -32907,6 +33739,16 @@ export type Database = {
         }
         Returns: Json
       }
+      record_ticket_photo: {
+        Args: {
+          p_file_name: string
+          p_file_path: string
+          p_mime_type: string
+          p_size_bytes: number
+          p_ticket_id: string
+        }
+        Returns: string
+      }
       record_traceability_report_issue: {
         Args: {
           p_file_path: string
@@ -32939,6 +33781,10 @@ export type Database = {
       }
       refresh_cod_for_batch: {
         Args: { p_inbound_batch_id: string }
+        Returns: undefined
+      }
+      reject_capture_draft: {
+        Args: { p_draft_id: string; p_reason: string }
         Returns: undefined
       }
       reject_purchase_order: {
@@ -33497,6 +34343,15 @@ export type Database = {
         Args: { p_reason?: string; p_role_ids: string[]; p_user_id: string }
         Returns: Json
       }
+      share_weighbridge_ticket: {
+        Args: {
+          p_inbound_batch_id?: string
+          p_kg: number
+          p_shipment_line_id?: string
+          p_ticket_id: string
+        }
+        Returns: string
+      }
       ship_order: {
         Args: { p_lines: Json; p_sales_order_id: string; p_ship_date: string }
         Returns: Json
@@ -33664,6 +34519,17 @@ export type Database = {
           p_reason?: string
           p_start: string
           p_start_half?: boolean
+        }
+        Returns: Json
+      }
+      submit_manual_capture: {
+        Args: {
+          p_data_class: string
+          p_device_id?: string
+          p_payload: Json
+          p_site_from?: string
+          p_site_to?: string
+          p_subject?: Json
         }
         Returns: Json
       }
@@ -33918,6 +34784,7 @@ export type Database = {
         }[]
       }
       transform_connection_test_v1: { Args: { p_payload: Json }; Returns: Json }
+      transform_weighing_v1: { Args: { p_payload: Json }; Returns: Json }
       trial_balance_totals: {
         Args: never
         Returns: {
@@ -33994,6 +34861,10 @@ export type Database = {
         Args: { p_downtime_id: string; p_reason: string }
         Returns: Json
       }
+      void_instrument_calibration: {
+        Args: { p_id: number; p_reason: string }
+        Returns: undefined
+      }
       void_invoice: {
         Args: {
           p_invoice_id: string
@@ -34013,6 +34884,10 @@ export type Database = {
       void_review: {
         Args: { p_reason: string; p_review_id: string }
         Returns: Json
+      }
+      void_weighbridge_ticket: {
+        Args: { p_reason: string; p_ticket_id: string }
+        Returns: undefined
       }
       warehouse_request_conflict: {
         Args: { p_kind: string; p_subject: string }
@@ -34072,6 +34947,16 @@ export type Database = {
           withdrawn_at: string
         }[]
       }
+      weighbridge_share_internal: {
+        Args: {
+          p_inbound_batch_id: string
+          p_kg: number
+          p_reason: string
+          p_shipment_line_id: string
+          p_ticket_id: string
+        }
+        Returns: string
+      }
       wht_rate_for: {
         Args: { p_date: string; p_nature: string }
         Returns: number
@@ -34122,6 +35007,10 @@ export type Database = {
       withdraw_terms_request: {
         Args: { p_reason?: string; p_request_id: string }
         Returns: Json
+      }
+      withdraw_ticket_photo: {
+        Args: { p_photo_id: string; p_reason: string }
+        Returns: undefined
       }
       withdraw_warehouse_request: {
         Args: { p_reason?: string; p_request_id: string }

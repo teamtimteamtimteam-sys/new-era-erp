@@ -171,4 +171,8 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- ── MES-1(2026-10-06,MES-0 Q90 · MES-1 Step 0,Tim):采集层的入口 —— 登记设备与网关、发 / 撤网关钥匙、
     -- 处理收件箱里失败或待转换的行(重试 / 丢弃)、改采集层的传输上限。持有人 admin · cto(admin 与此前每一个新码一样只在迁移里授)。
     -- 读设备、收件箱、传输日志不要新码:module.processing.view(MES-0 §3.10)。
-    ('action.manage_devices', 'action', 'Manage devices and gateway keys', '管理设备与网关钥匙', 'Register devices and gateways, retire them, issue and revoke gateway keys (each secret is shown once), retry or discard rows in the data inbox, and change the ingestion limits. Reading devices, the inbox and the transmission log needs only Processing (view).', '登记设备与网关、停用它们、发放与撤销网关钥匙(每一把密钥只显示一次)、重试或丢弃数据收件箱里的行,以及修改采集层的传输上限。读设备、收件箱与传输日志只要「加工(查看)」。', 1220);
+    ('action.manage_devices', 'action', 'Manage devices and gateway keys', '管理设备与网关钥匙', 'Register devices and gateways, retire them, issue and revoke gateway keys (each secret is shown once), retry or discard rows in the data inbox, and change the ingestion limits. Reading devices, the inbox and the transmission log needs only Processing (view).', '登记设备与网关、停用它们、发放与撤销网关钥匙(每一把密钥只显示一次)、重试或丢弃数据收件箱里的行,以及修改采集层的传输上限。读设备、收件箱与传输日志只要「加工(查看)」。', 1220),
+    -- ── MES-2(2026-10-06,MES-0 Q11 · Q90 · MES-2 Step 0 Q8 · Q15 · Q21,Tim):确认采集到的数 —— 确认 / 驳回草稿、手工录入一次称重、
+    -- 更正一次称重、开 / 作废地磅单、传 / 撤地磅单照片。持有人 warehouse · cto · admin(admin 与此前每一个新码一样只在迁移里授)。
+    -- 读草稿只要 module.processing.view(Q8)。
+    ('action.confirm_capture', 'action', 'Confirm captured readings', '确认采集到的数据', 'Confirm or reject the drafts that scales and other devices send (a changed value keeps the original and needs a reason), enter a weighing by hand, correct a confirmed weighing, open and void weighbridge tickets, and add or withdraw ticket photos. Reading the queue needs only Processing (view).', '确认或驳回秤与其他设备送来的草稿(改过的值留着原值并要写理由)、手工录入一次称重、更正一次已确认的称重、开出与作废地磅单、传上或撤下地磅单的照片。读确认队列只要「加工(查看)」。', 1230);

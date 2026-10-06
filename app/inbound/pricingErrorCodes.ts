@@ -4,6 +4,7 @@
 // 于是两条路抛同一组码,也必须翻成同一句话 —— 一份清单、一个翻译器。
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { isCaptureErrorCode, localizeCaptureError } from '@/app/operation/capture/captureErrorCodes'
 
 // set_inbound_unit_price 抛出的错误码(镜像 saleErrorCodes 的宽松解析)
 export const PRICING_ERROR_CODES = new Set([
@@ -23,6 +24,8 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 
 export async function localizePricingError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
+    // MES-2(Q27):校准闸落在定价引擎里 —— 那三句拒绝(读数的仪器不在期内 / 没记录仪器 / 没挂称重)由采集那一支翻,一句码只翻一次
+    if (isCaptureErrorCode(raw)) return await localizeCaptureError(raw)
     const t = await getTranslations()
     const match = raw.match(CODE_RE)
 
@@ -50,5 +53,5 @@ export async function localizePricingError(message: string): Promise<string> {
 // 这条消息是不是定价那一组的码(建单那条路据此决定走哪个翻译器)
 export function isPricingErrorCode(message: string | undefined | null): boolean {
     const m = (message ?? '').trim().match(CODE_RE)
-    return !!m && PRICING_ERROR_CODES.has(m[1])
+    return !!m && (PRICING_ERROR_CODES.has(m[1]) || isCaptureErrorCode(message))
 }

@@ -65,7 +65,8 @@ const ROOT = new URL('..', import.meta.url).pathname
 const MIRROR = join(ROOT, 'db/tables/document_types.sql')
 // PAY-REQ-1(2026-09-23):40 → 41。新增 'payment_request'(/finance/payment-requests,detail)。
 // MES-1(2026-10-06):41 → 42。新增 'device'(/operation/devices,detail;DEV,有洞)。
-const EXPECTED_ROWS = 42
+// MES-2(2026-10-06):42 → 43。新增 'weighbridge_ticket'(/operation/weighbridge,detail;WB,有洞)。
+const EXPECTED_ROWS = 43
 // ★ SEARCH-5:`type_list` 那 5 种单据的落点。**一张共享页,不是每种一张。**
 const TYPE_LIST_PAGE = join(ROOT, 'app/documents/[key]/page.tsx')
 

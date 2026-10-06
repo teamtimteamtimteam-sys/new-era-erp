@@ -217,3 +217,4 @@
 2026-10-05T16:40:23+0800	2026-10-05-u1a-pay-and-personal-data.sql	05e26c45
 2026-10-05T20:46:41+0800	2026-10-05-u1b-workflow-fixes.sql	4995f49b
 2026-10-06T11:39:23+0800	2026-10-06-mes1-entry-point.sql	ed6d2f11
+2026-10-06T19:44:03+0800	2026-10-06-mes2-confirmation-weighing-calibration.sql	31e3b3e4

@@ -11,7 +11,7 @@ recorded in `docs/handbacks/HISTORY-1.md`.
 
 ## 1. What is recorded
 
-One trigger function, `change_log_capture()`, is attached to ~~**238 of the 242 public tables**~~ **242 of the 249 public tables** (MES-1, 2026-10-06) (two triggers each):
+One trigger function, `change_log_capture()`, is attached to ~~**238 of the 242 public tables**~~ ~~**242 of the 249 public tables** (MES-1, 2026-10-06)~~ **249 of the 256 public tables** (MES-2, 2026-10-06) (two triggers each):
 
 | trigger | fires | writes |
 |---|---|---|
@@ -983,3 +983,27 @@ permission. The same column is outside the table's column-level SELECT grant and
 (`CASE WHEN false THEN key_hash END`), so the three readers agree. The mask list grew **104 → 105** rows;
 `change_log_mask_gaps()` is zero.
 
+## 13. Weighing and calibration (MES-2, v1.4.38, 2026-10-06)
+
+Hand-back `docs/handbacks/MES-2.md`; fixture 250 pins every rule below.
+
+### 13.1 Logged, excluded
+
+- **Logged** (two triggers each, bound in `db/views/zzz_change_log_triggers.sql`): all seven new tables —
+  `capture_drafts`, `capture_draft_changes`, `weighbridge_tickets`, `weighings`, `weighbridge_ticket_shares`,
+  `weighbridge_ticket_photos`, `instrument_calibrations`. Public tables 249 → **256**; bound 242 → **249**; exclusions stay **7** (§2).
+  None of them is an ingestion log: each row is a person's decision (a confirmation, a change with its reason, a ticket, a share,
+  a photo, a calibration certificate), which is exactly what the log is for. The inbox row a draft came from stays excluded (§2).
+- **No new mask rule.** No column on the seven tables is a secret or a price; the mask list stays **105** rows and
+  `change_log_mask_gaps()` is zero.
+- **Trail subjects.** A new subject **`weighbridge_ticket`** (readers `module.inbound.view` or `module.logistics.view`) shows the
+  ticket and, as its members, its weighings (including corrections), shares and photos (recorded, withdrawn). Calibration
+  certificates (recorded, voided) are members of the existing **`device`** subject, so the instrument's page shows them in its trail.
+  The two new settings (`require_calibrated_since`, `calibration_lead_days`) are columns of `ingest_settings`, so every change to
+  them appears under the existing **`ingest_settings`** subject.
+
+### 13.2 What the log does not need to say
+
+`capture_draft_changes` is itself the record of a confirmed change — field, original value, confirmed value, reason — and is
+append-only by its guard. The log records its insert like any other row; the confirmation queue and the trail read the
+table, not the log, so the reason is shown even to a reader who cannot read the change log.

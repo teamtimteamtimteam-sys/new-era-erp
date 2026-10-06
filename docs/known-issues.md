@@ -10372,14 +10372,19 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 2026-10-05 20:3x CST):12 行,`price_index` **全部为 NULL**(2026-06-25 → 2026-08-10),同一金属同一天有两条指数的 **0** 天。**没有修**(Tim 的 Q26:它要一支自带两条指数的 fixture,单独一刀)。
 **删除条件:** 三处用同一个过滤,带一支两条指数同日都有价的 fixture。
 
-## MES1-ANON-STATEMENT-TIMEOUT-3S —— 网关那一次调用跑在 anon 的 3 秒语句上限里,而满额一批(500 条)没有在上限处量过(MES-1 量到,2026-10-06)
+## ~~MES1-ANON-STATEMENT-TIMEOUT-3S~~ —— 【已关,MES-2 2026-10-06 量过】网关那一次调用跑在 anon 的 3 秒语句上限里,而满额一批(500 条)没有在上限处量过(MES-1 量到,2026-10-06)
 
 `ingest_submit` 以 `anon` 跑;线上 `anon` 的 `statement_timeout = 3s`(以 postgres 读 `pg_roles.rolconfig`,2026-10-06 15:09 CST,与逐角色读数表同一条命令;
 `authenticated` 是 8s)。一次调用逐条看信封、逐条查 `(网关, 流, 序号)`,然后插收件箱 —— 线上验证里每一次调用都在 1 秒以内回来
-(探针:1–3 条一批),fixture 249 的 SIZE 臂在本地跑过 500 条一批,**但线上 500 条一批、在上限附近的时延没有量过**。
+(探针:1–3 条一批),~~fixture 249 的 SIZE 臂在本地跑过 500 条一批~~ **【这半句是假的 —— MES-2 Step 0 §14 第 1 条、Q34】那一臂送的是 **501** 条(`db/fixtures/249-…sql` 的 `generate_series(1, 501)`),在 `ingest_submit` 逐条循环【之前】就按 `too_many` 整批拒掉;fixture 里没有别的批。所以写下这一条时,一次被接收的 500 条调用【本地与线上都从来没有被计过时】。****但线上 500 条一批、在上限附近的时延没有量过**。
 超时会让那一次调用整支回滚、网关拿到一个非 200 —— 按厂商文档 §6 那正是"重发同一批"的情形,不会丢数据,只会重复失败。
 **没有修。** **删除条件:** 在一台探针网关上以 500 条一批量一次线上时延;超过 ~1.5 s 就把 `ingest_settings.max_messages` 的引导值降下来
 (或给 `ingest_submit` 一个函数级的 `SET statement_timeout`,那要 Tim 的裁定:它放宽的是匿名入口的资源上限)。
+
+**★ 关闭(MES-2,2026-10-06,Tim 的 Step 0 Q31:线上第一步、任何 DDL 之前)—— 量到的数,带量法:**
+* **服务端语句时长**(`db/scripts/2026-10-06-mes2-batch-timing-server.sql`,对线上、整支回滚;admin@ 的 JWT 在事务里给一台探针网关发钥匙,然后 `SET LOCAL ROLE anon`、清空 JWT —— 与 PostgREST 给网关的身份相同 —— 以 `clock_timestamp()` 前后差计时 `ingest_submit` 本身):500 条、每条一个小载荷(批 51,827 B)三次 **234.3 / 218.9 / 219.6 ms**;500 条、批贴着 256 KB 上限(257,827 B)三次 **252.1 / 253.2 / 253.5 ms**。六次都 `ok true · accepted 500 · rejected 0`。`SERVERTIME_OWN_EXIT=0`。
+* **经 HTTPS 的整次调用**(`db/scripts/2026-10-06-mes2-batch-timing.mjs`,探针网关 DEV-2026-0003 · 设备 DEV-2026-0004,真的走 `/rest/v1/rpc/ingest_submit`):小批 47,456 B 三次客户端墙钟 2338 / 2169 / 1250 ms,近上限一批 252,459 B 一次 **25,462 ms** —— 四次都 HTTP 200、accepted 500。那 25 秒是**这台机器的上行**(同一时刻的心跳往返 350 ms;服务端语句本身见上一条 ≈ 250 ms):语句上限只管语句,不管上传。第五次调用死在本机网络(`TypeError: fetch failed`),清理随之没跑完,由 `npm run reap:ephemeral` 照盘上的计划补删(交回报告 MES-2 记着)。
+* **判定:** 服务端最慢的一次 253.5 ms,远低于 ~1.5 s 的门槛,也远低于 anon 的 3 s 上限 → **`max_messages` 引导值不动,也不加函数级 `statement_timeout`**(Tim 的 Q31:那一条永远要他点头,这里也用不着)。这一条从此关闭;探针留下的行记在 `docs/known-wrong-until-cutover.md`。
 
 ## MES1-I18N-TSARRAY-READS-FIRST-MENTION —— check-i18n 的 tsArray 认的是文件里【第一次出现】的那个名字,注释也算(MES-1 量到,2026-10-06)
 

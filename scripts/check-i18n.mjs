@@ -535,6 +535,16 @@ const MANIFEST = {
     'inbox.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/ingest_inbox.sql', 'status') },
     'pendingValues.value.':    { kind: 'enum', values: () => sqlLiteralAs('db/views/pending_values.sql', 'value_code') },
     'pendingValues.supplier.': { kind: 'enum', values: () => sqlLiteralAs('db/views/pending_values.sql', 'value_code') },
+    // ── MES-2(2026-10-06):确认队列 · 地磅单 · 校准 —— 每一个后缀集合都读它的真源 ──────────────────────────
+    //   方向 / 角色 / 来源 / 校准结论 → 表上的 CHECK;地磅单状态 → weighbridge_ticket_weights 那一句 CASE;
+    //   读数的校准状态 → captureFields 里那个 as const 数组(calibration_status_from 的四种 + not_recorded);错误 → 映射器的 Set。
+    'weighbridge.direction.': { kind: 'enum', values: () => sqlEnum('db/tables/weighbridge_tickets.sql', 'direction') },
+    'weighbridge.status.':    { kind: 'enum', values: () => sqlCaseAs('db/views/weighbridge_ticket_weights.sql', 'status') },
+    'weighing.role.':         { kind: 'enum', values: () => sqlEnum('db/tables/weighings.sql', 'role') },
+    'capture.source.':        { kind: 'enum', values: () => sqlEnum('db/tables/weighings.sql', 'source') },
+    'calibration.result.':    { kind: 'enum', values: () => sqlEnum('db/tables/instrument_calibrations.sql', 'result') },
+    'calibration.status.':    { kind: 'enum', values: () => tsArray('app/operation/capture/captureFields.ts', 'CALIBRATION_STATUSES') },
+    'capture.errors.':        { kind: 'enum', values: () => tsSet('app/operation/capture/captureErrorCodes.ts', 'CAPTURE_ERROR_CODES') },
     // IMPORT-1:加一条导入拒绝而不配句子,这里当场红。
     'import.errors.': { kind: 'enum', values: () => tsSet('app/settings/import/importErrorCodes.ts', 'IMPORT_ERROR_CODES') },
     'import.table.':  { kind: 'enum', values: () => tsArray('lib/importTables.ts', 'IMPORT_TABLES') },

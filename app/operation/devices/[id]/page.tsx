@@ -20,12 +20,14 @@ import { FN } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
-import { formatAuditStamp } from '@/lib/dates'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import DeviceControls from '../DeviceControls'
 import KeysPanel, { type KeyRow } from '../KeysPanel'
 import { TERM_KEYS, type DeviceValues, type Option } from '../deviceFields'
+import { INSTRUMENT_KINDS } from '@/app/operation/capture/captureFields'
+import { RecordCalibrationForm, VoidCalibration } from '@/app/operation/calibration/CalibrationControls'
 
 type Device = {
     id: string; code: string; name: string; kind: string; gateway_id: string | null; data_class: string | null
@@ -239,6 +241,65 @@ export default async function DevicePage({ params, searchParams }: {
         )
     }
 
+    // MES-2(Q23 · Q24 · Q25):秤 / 地磅 / 电表 / 在线仪表 —— 今天在不在校准期内,与它的每一条校准记录(只追加;记错的作废)
+    let calibrationBlock: ReactNode = null
+    if ((INSTRUMENT_KINDS as readonly string[]).includes(d.kind)) {
+        const [recRes, nowRes] = await Promise.all([
+            supabase.from('instrument_calibrations')
+                .select('id, calibrated_on, valid_until, result, certificate_no, calibrating_body, notes, recorded_at, voided_at, void_reason')
+                .eq('device_id', id).order('calibrated_on', { ascending: false }).order('id', { ascending: false }),
+            supabase.from('instrument_calibration_now').select('status, approaching').eq('device_id', id).maybeSingle(),
+        ])
+        const records = mustRows(recRes, 'instrument_calibrations') as {
+            id: number; calibrated_on: string; valid_until: string; result: string; certificate_no: string | null
+            calibrating_body: string | null; notes: string | null; recorded_at: string; voided_at: string | null; void_reason: string | null
+        }[]
+        const now = mustOne(nowRes, 'instrument_calibration_now') as { status: string; approaching: boolean } | null
+        const recRows: CellRow[] = records.map((r) => ({
+            id: String(r.id),
+            cells: {
+                calibrated: <span className={r.voided_at ? 'line-through' : ''}>{formatDate(r.calibrated_on, locale)}</span>,
+                validUntil: formatDate(r.valid_until, locale),
+                result: t('calibration.result.' + r.result),
+                certificate: [r.certificate_no, r.calibrating_body].filter(Boolean).join(' · ') || '—',
+                recorded: (
+                    <span>{formatAuditStamp(r.recorded_at)}
+                        {r.voided_at && <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('calibration.voidedNote', { reason: r.void_reason ?? '' })}</span>}
+                    </span>
+                ),
+                actions: r.voided_at || d.retired_at ? null
+                    : <VoidCalibration id={r.id} deviceId={id} label={`${d.code} · ${r.calibrated_on}`} canManage={canManage} />,
+            },
+        }))
+        calibrationBlock = (
+            <section className="mt-8">
+                <h2 className="mb-2">{t('calibration.deviceTitle')}</h2>
+                <p className="mb-2 text-sm" data-calibration-status={now?.status ?? ''}>
+                    {now ? t('calibration.status.' + now.status) : '—'}
+                    {now?.approaching && <span className="ml-2 text-amber-700">{t('calibration.approaching')}</span>}
+                </p>
+                <CellsTable
+                    columns={[
+                        { key: 'calibrated', header: t('calibration.colCalibratedOn'), priority: true },
+                        { key: 'validUntil', header: t('calibration.colValidUntil'), priority: true },
+                        { key: 'result', header: t('calibration.colResult') },
+                        { key: 'certificate', header: t('calibration.colCertificate') },
+                        { key: 'recorded', header: t('calibration.colRecorded') },
+                        { key: 'actions', header: '', priority: true },
+                    ]}
+                    rows={recRows}
+                    empty={t('calibration.noRecords')}
+                />
+                {!d.retired_at && (
+                    <div className="mt-3">
+                        <RecordCalibrationForm instruments={[]} canManage={canManage} presetDeviceId={id} />
+                    </div>
+                )}
+                <p className="mt-2 text-sm"><Link href="/operation/calibration" className="app-link hover:underline">{t('calibration.title')}</Link></p>
+            </section>
+        )
+    }
+
     const gw = d.gateway_id ? byId.get(d.gateway_id) ?? null : null
     const dataClass = d.data_class ? classes.find((c) => c.code === d.data_class) ?? null : null
 
@@ -275,6 +336,7 @@ export default async function DevicePage({ params, searchParams }: {
 
             {gatewayBlocks}
             {messagesBlock}
+            {calibrationBlock}
 
             <section className="mt-8">
                 <h2 className="mb-2">{t('devices.terms.title')}</h2>

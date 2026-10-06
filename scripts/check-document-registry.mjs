@@ -108,8 +108,11 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // MES-1(2026-10-06):242 → 249。七张采集层的表(devices · gateway_keys · ingest_settings · ingest_data_classes ·
 // ingest_inbox · ingest_transmissions · gateway_outages)。两张带 code 列:devices(DEV,登记进 document_types)与
 // ingest_data_classes(数据类目录,登记进 document_type_exceptions),所以 EXPECTED_CODE_TABLES 76 → 78。
-const EXPECTED_TABLES = 249   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 78
+// MES-2(2026-10-06):249 → 256。七张确认 / 称重 / 校准的表(capture_drafts · capture_draft_changes · weighings ·
+// weighbridge_tickets · weighbridge_ticket_shares · weighbridge_ticket_photos · instrument_calibrations)。只有一张带 code 列:
+// weighbridge_tickets(WB,登记进 document_types),所以 EXPECTED_CODE_TABLES 78 → 79。
+const EXPECTED_TABLES = 256   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 79
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

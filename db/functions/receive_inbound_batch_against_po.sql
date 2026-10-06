@@ -1,4 +1,8 @@
-CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_arrival_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text)
+-- db/functions/receive_inbound_batch_against_po.sql
+-- MES-2(2026-10-06,MES-2 Step 0 Q19,Tim):末尾多三个参数(p_ticket_id · p_ticket_share_kg · p_quantity_reason),都带默认值 ——
+--   签名变了,迁移是 DROP + CREATE;已部署的旧应用不传它们,照样解析到这一支。
+
+CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_arrival_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -15,6 +19,19 @@ BEGIN
     -- IOD-2-fu1:同上 —— 现场收货这条路一样进得到 FIN-32 的约束。
     IF p_arrival_date IS NULL THEN
         RAISE EXCEPTION 'ARRIVAL_DATE_REQUIRED';
+    END IF;
+
+    -- MES-2(MES-2 Step 0 Q19):见 create_inbound_batch 里同一段 —— 份在建单那一刻给,数量与份不同要写理由。
+    IF p_ticket_id IS NULL AND (p_ticket_share_kg IS NOT NULL OR p_quantity_reason IS NOT NULL) THEN
+        RAISE EXCEPTION 'TICKET_SHARE_WITHOUT_TICKET';
+    END IF;
+    IF p_ticket_id IS NOT NULL THEN
+        IF p_ticket_share_kg IS NULL OR p_ticket_share_kg <= 0 THEN
+            RAISE EXCEPTION 'TICKET_SHARE_KG_INVALID';
+        END IF;
+        IF p_quantity IS DISTINCT FROM p_ticket_share_kg AND btrim(COALESCE(p_quantity_reason, '')) = '' THEN
+            RAISE EXCEPTION 'RECEIPT_QUANTITY_REASON_REQUIRED|%|%', p_quantity, p_ticket_share_kg;
+        END IF;
     END IF;
 
     PERFORM set_config('evoltrya.location_ctx',
@@ -53,6 +70,10 @@ BEGIN
     END IF;
 
     PERFORM set_config('evoltrya.location_ctx', '', true);
+    IF p_ticket_id IS NOT NULL THEN
+        PERFORM weighbridge_share_internal(p_ticket_id, v_id, NULL, p_ticket_share_kg,
+                                           CASE WHEN p_quantity IS DISTINCT FROM p_ticket_share_kg THEN p_quantity_reason END);
+    END IF;
     RETURN jsonb_build_object('batch_id', v_id, 'warnings', to_jsonb(v_warn));
 END;
 $function$

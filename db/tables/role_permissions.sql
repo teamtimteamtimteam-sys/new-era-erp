@@ -71,7 +71,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.manage_permissions', 'action.bulk_import', 'action.anonymise_employee',
         -- MES-1(2026-10-06):网关钥匙是凭据 —— 发 / 撤一把钥匙与授一个角色同一类管理动作,所以引导的 admin 也持它
         --   (线上的持有人 admin · cto 在迁移里授;引导里没有 cto 这个角色,ROLE1-BOOTSTRAP-MISSING-ROLES)。
-        'action.manage_devices'
+        'action.manage_devices',
+        -- MES-2(2026-10-06):确认采集到的数(线上持有人 warehouse · cto · admin 在迁移里授;引导里没有 cto)
+        'action.confirm_capture'
 ) WHERE r.code = 'admin';
 
 -- gm:看得见整个生意,包括成本与利润;【但不操作任何东西】。
@@ -209,7 +211,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- ── APR-10(Tim 2026-09-27,grilling Q6):工厂耗材采购单归仓库开;要读得到采购模块才开得了 ─────
         'action.raise_po_consumables', 'module.purchasing.view',
         -- ── OVERTIME-1(Tim 2026-09-28):现场员工的加班由仓库整批批(仓库不拿 module.hr.view)─────
-        'action.overtime_approve'
+        'action.overtime_approve',
+        -- ── MES-2(Tim 2026-10-06,MES-0 Q11):过磅的人确认秤送来的数、手工录称重、开地磅单 ─────
+        'action.confirm_capture'
 ) WHERE r.code = 'warehouse';
 
 -- hr(8):人力资源 + 薪酬 + 身份信息 + 绩效正文 + 健康数据。这五类正是 HR 的工作对象,也正是别人不该看见的。

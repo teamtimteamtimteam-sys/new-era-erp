@@ -156,4 +156,7 @@ VALUES
     -- PAY-REQ-1(2026-09-23):付款申请 —— 钱离开之前的那一格在途态
     ('payment_request', 'PREQ', 'payment_requests', 'gapless', NULL, '/finance/payment-requests', 'detail', 'notes', ARRAY['notes', 'decision_notes']::text[], ARRAY['module.finance.view']::text[]),
     -- MES-1(2026-10-06,MES-0 Q53 · MES-1 Q28):设备登记 —— 有洞(device_code_seq,保存时生成),人读的名字是 name
-    ('device', 'DEV', 'devices', 'gapped', 'device_code_seq', '/operation/devices', 'detail', 'name', ARRAY['name', 'station', 'notes']::text[], ARRAY['module.processing.view']::text[]);
+    ('device', 'DEV', 'devices', 'gapped', 'device_code_seq', '/operation/devices', 'detail', 'name', ARRAY['name', 'station', 'notes']::text[], ARRAY['module.processing.view']::text[]),
+    -- MES-2(2026-10-06,MES-0 Q53 · MES-2 Step 0 Q16):地磅单 —— 有洞(weighbridge_ticket_code_seq,保存时生成),人读的标签是车牌;
+    --   读码与表的读策略逐字同一对(收货或物流,Q22)
+    ('weighbridge_ticket', 'WB', 'weighbridge_tickets', 'gapped', 'weighbridge_ticket_code_seq', '/operation/weighbridge', 'detail', 'vehicle_reg', ARRAY['vehicle_reg', 'notes']::text[], ARRAY['module.inbound.view','module.logistics.view']::text[]);

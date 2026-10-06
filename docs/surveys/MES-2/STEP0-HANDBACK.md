@@ -6,6 +6,8 @@ time estimate (j) §13 · assertions found false §14 · stop §15.
 **STOP GATE.** No code, no migration, no live read or write. The only writes are docs: `docs/forward-queue.md` (close-out, commit
 `e4318683`) and this file. Waiting on Tim's answers to Q1–Q35 (§12).
 
+> **★ Tim's answers (2026-10-06, the MES-2 build brief):** "Every recommendation in docs/surveys/MES-2/STEP0-HANDBACK.md, Q1 to Q35, is accepted exactly as stated there." "All MES-0 (Q1–Q96) and MES-1 (Q1–Q30) rulings stand, as amended by these answers." Built as `v1.4.38`; hand-back `docs/handbacks/MES-2.md`. One conflict between §7 and the brief (whether `READING_INSTRUMENT_NOT_CALIBRATED` refuses while `require_calibrated_since` is empty) was resolved in the brief's favour — "nothing refuses when it is NULL" — and is listed there among the decisions taken without asking.
+
 **Opening check.** This session's first command printed **2026-10-06 16:16:05 CST**. Tree clean. After `git fetch`: `HEAD` = `origin/main` =
 `git ls-remote origin main` = **`95b43594bf8e08c14735365568980e41c93d2e5c`** (MES-1, `v1.4.37`). Files staged by explicit path only.
 

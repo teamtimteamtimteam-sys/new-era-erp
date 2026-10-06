@@ -604,3 +604,16 @@ REVOKE EXECUTE ON FUNCTION public.ingest_submit(text, text, jsonb) FROM authenti
 --   给了 authenticated,就是一支"随便哪一行收件箱都替你转换"的后门,也绕开了处理按钮的那一道码。
 REVOKE EXECUTE ON FUNCTION public.ingest_transform_row(bigint) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.transform_connection_test_v1(jsonb) FROM authenticated;
+
+-- MES-2(2026-10-06):四支【内层】—— 没有调用者检查,只由各自查过码的 DEFINER 函数以属主身份调。
+--   transform_weighing_v1:称重的转换器(分派器与确认按名字调它)。
+--   capture_confirm_internal:确认一张草稿(confirm_capture_draft · submit_manual_capture · correct_weighing)。给了 authenticated,
+--     就是一支绕开 action.confirm_capture 把草稿写成正式记录的后门。
+--   weighbridge_share_internal:把地磅单分一份出去(两支收货函数 · share_weighbridge_ticket)—— 给了,就绕开收货与发货那两个码。
+--   assert_receipt_reading_calibrated:校准闸(reprice_inbound_batch · preview_reprice_inbound_batch · issue_cod)。
+--   calibration_status_from【不收】:它是一句纯判断(IMMUTABLE,不读任何表),属主视图里由读者的身份执行 —— 收了它,
+--   weighing_calibration / instrument_calibration_now 对每一个读者 42501(AGENTS.md「属主视图替得了表,替不了函数的 EXECUTE」)。
+REVOKE EXECUTE ON FUNCTION public.transform_weighing_v1(jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.capture_confirm_internal(uuid, jsonb, jsonb, jsonb, uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.weighbridge_share_internal(uuid, uuid, uuid, numeric, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_receipt_reading_calibrated(uuid) FROM authenticated;

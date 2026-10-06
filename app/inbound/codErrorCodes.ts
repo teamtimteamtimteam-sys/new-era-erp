@@ -1,5 +1,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { isCaptureErrorCode, localizeCaptureError } from '@/app/operation/capture/captureErrorCodes'
 
 // app/inbound/codErrorCodes.ts
 // COD-1:销毁证书那几支函数抛出的错误码,端口自 traceabilityErrorCodes.ts。
@@ -50,6 +51,9 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizeCodError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
+
+    // MES-2(Q27):校准闸 —— 证书证的是收货数量,那三句拒绝由采集那一支翻
+    if (isCaptureErrorCode(raw)) return await localizeCaptureError(raw)
 
     // 权限拒绝不是错误,是这个人不该看见。
     if (match && match[1] === 'PERMISSION_DENIED') {

@@ -22,6 +22,8 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', COALESCE(p_inbound_batch_id::text, '?');
     END IF;
+    -- MES-2(Q27):与 reprice_inbound_batch 同一道校准闸 —— 提交会被拒的,试算也不许说"可以"
+    PERFORM assert_receipt_reading_calibrated(p_inbound_batch_id);
     IF p_new_unit_price IS NULL OR p_new_unit_price <= 0 THEN
         RAISE EXCEPTION 'PRICE_INVALID';
     END IF;

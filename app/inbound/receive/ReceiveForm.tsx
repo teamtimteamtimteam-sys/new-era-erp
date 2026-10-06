@@ -17,6 +17,7 @@ import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_TOUCH } from '@/app/components/ui/control-style'
 import { formatDate } from '@/lib/dates'
+import TicketShareFields, { type TicketOption } from '../TicketShareFields'
 
 const initialState: ReceiveState = {}
 
@@ -73,6 +74,7 @@ export default function ReceiveForm({
     materialAxes,
     sourceReasons,
     canReceive,
+    tickets,
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
     locations: LocationChoice[]
@@ -88,6 +90,8 @@ export default function ReceiveForm({
     sourceReasons: SourceReasonOption[]
     /** ROLE-1 Batch 3b:建收货单归 action.receive_goods;缺码时提交钮看得见、按不动、点名那个码。 */
     canReceive: boolean
+    /** MES-2(Q19):完成了的、还有没分出去的公斤数的进厂地磅单 —— 选一张,数量预填成它的份 */
+    tickets: TicketOption[]
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -100,6 +104,9 @@ export default function ReceiveForm({
     const [lineId, setLineId] = useState('')
     const [materialId, setMaterialId] = useState('')
     const [quantity, setQuantity] = useState('')
+    const [ticketId, setTicketId] = useState('')
+    const [shareKg, setShareKg] = useState('')
+    const [quantityReason, setQuantityReason] = useState('')
 
     const supplierPoLines = poLines.filter((l) => l.supplier_id === supplierId)
     const supplierPos = supplierPoLines.reduce<{ po_id: string; po_code: string; order_date: string }[]>(
@@ -276,6 +283,11 @@ export default function ReceiveForm({
                 </div>
                 {state.fieldErrors?.quantity && <p className={errCls}>{state.fieldErrors.quantity}</p>}
             </div>
+
+            {/* MES-2(Q19):挂一张地磅单的份 —— 数量预填成这一份,改了要写理由 */}
+            <TicketShareFields tickets={tickets} ticketId={ticketId} setTicketId={setTicketId} shareKg={shareKg} setShareKg={setShareKg}
+                               quantity={quantity} setQuantity={setQuantity} reason={quantityReason} setReason={setQuantityReason}
+                               fieldCls={fieldCls} labelCls={labelCls} error={state.fieldErrors?.ticket} />
 
             {/* GRN-1b:申报量【可选】。供应商说要来多少,与上面磅秤说的多少是两回事。
                 【绝不从采购行预填】—— 上面那个数量框预填 remaining_qty 是便利

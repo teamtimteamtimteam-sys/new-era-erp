@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -4617,6 +4617,175 @@ if (FAULT === 'wording-drift-mes1') dict.text = { ...dict.text, 'dev.keyRevoked'
     if (FAULT === 'wording-drift-mes1' && !problems.gold15.length) problems.gold15.push('(注入 wording-drift-mes1 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑯ MES-2 的校准记录与地磅单(MES-2 Step 0 Q11 · Q16 · Q19 · Q21 · Q24 · Q33)────────────────────────────────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-2.md 列出。
+//   设备主语多了校准记录(记一次 · 作废带理由);地磅单是新主语:开单(方向与车牌)· 一磅(角色、读数、仪器)·
+//   更正一磅(带理由,不说成"修改")· 完成(第二磅落下那一次,不说成"修改")· 分一份(收货单的数量与份不同的理由)·
+//   照片(只说文件名)· 撤下照片与作废地磅单带理由。注入 wording-drift-mes2 → 这一臂必须红。
+problems.gold16 = []
+if (FAULT === 'wording-drift-mes2') dict.text = { ...dict.text, 'wb.weighingCorrected': 'Weighing edited' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const dev = id('dev')
+    const D16 = { subject: 'device', recordId: dev, currency: null }
+    add('calibration · recorded', D16, [
+        { table: 'instrument_calibrations', op: 'INSERT', key: { id: 7 },
+          new: { id: 7, device_id: dev, calibrated_on: '2026-10-01', valid_until: '2027-09-30', result: 'passed', certificate_no: 'CAL-2026-118',
+                 calibrating_body: 'Accredited Lab', notes: null, recorded_at: '2026-10-06T02:00:00Z', recorded_by: id('u') } }])
+    add('calibration · voided with a reason', D16, [
+        { table: 'instrument_calibrations', op: 'UPDATE', key: { id: 7 }, cols: ['voided_at', 'voided_by', 'void_reason'],
+          old: { voided_at: null, voided_by: null, void_reason: null },
+          new: { voided_at: '2026-10-06T03:00:00Z', voided_by: id('u'), void_reason: 'Certificate belonged to another scale' },
+          ctx: { device_id: dev, calibrated_on: '2026-10-01' } }])
+    const tk = id('tk')
+    const T16 = { subject: 'weighbridge_ticket', recordId: tk, currency: null }
+    add('ticket · opened', T16, [
+        { table: 'weighbridge_tickets', op: 'INSERT', key: { id: tk },
+          new: { code: 'WB-2026-0001', direction: 'inbound', vehicle_reg: 'GBA 1234 X', notes: null, completed_at: null } }])
+    add('ticket · the gross weighing', T16, [
+        { table: 'weighings', op: 'INSERT', key: { id: id('w1') },
+          new: { ticket_id: tk, role: 'gross', weight_kg: 12000, source: 'device', device_id: null, captured_at: '2026-10-06T01:00:00Z',
+                 confirmed_at: '2026-10-06T01:05:00Z', confirmed_by: id('u'), corrects_id: null, correction_reason: null } }])
+    add('ticket · a weighing corrected with a reason', T16, [
+        { table: 'weighings', op: 'INSERT', key: { id: id('w2') },
+          new: { ticket_id: tk, role: 'gross', weight_kg: 11980, source: 'manual', device_id: null, captured_at: '2026-10-06T01:00:00Z',
+                 confirmed_at: '2026-10-06T01:20:00Z', confirmed_by: id('u'), corrects_id: id('w1'), correction_reason: 'Pallet was still on the deck' } }])
+    add('ticket · completed by the second weighing', T16, [
+        { table: 'weighbridge_tickets', op: 'UPDATE', key: { id: tk }, cols: ['completed_at', 'updated_at', 'updated_by'],
+          old: { completed_at: null }, new: { completed_at: '2026-10-06T02:00:00Z' }, ctx: { code: 'WB-2026-0001', direction: 'inbound' } }])
+    add('ticket · shared to a receipt, with the quantity reason', T16, [
+        { table: 'weighbridge_ticket_shares', op: 'INSERT', key: { id: id('s1') },
+          new: { ticket_id: tk, inbound_batch_id: null, shipment_line_id: null, kg: 8000, receipt_quantity_reason: 'Two bags torn, swept and weighed apart' } }])
+    add('ticket · a photo added', T16, [
+        { table: 'weighbridge_ticket_photos', op: 'INSERT', key: { id: id('p1') },
+          new: { ticket_id: tk, file_path: 'x/y-ticket.jpg', file_name: 'ticket-front.jpg', mime_type: 'image/jpeg', size_bytes: 120000 } }])
+    add('ticket · a photo withdrawn with a reason', T16, [
+        { table: 'weighbridge_ticket_photos', op: 'UPDATE', key: { id: id('p1') }, cols: ['withdrawn_at', 'withdrawn_by', 'withdraw_reason'],
+          old: { withdrawn_at: null, withdrawn_by: null, withdraw_reason: null },
+          new: { withdrawn_at: '2026-10-06T03:00:00Z', withdrawn_by: id('u'), withdraw_reason: 'Wrong truck' }, ctx: { file_name: 'ticket-front.jpg' } }])
+    add('ticket · voided with a reason', T16, [
+        { table: 'weighbridge_tickets', op: 'UPDATE', key: { id: tk }, cols: ['voided_at', 'voided_by', 'void_reason', 'updated_at', 'updated_by'],
+          old: { voided_at: null, voided_by: null, void_reason: null },
+          new: { voided_at: '2026-10-06T04:00:00Z', voided_by: id('u'), void_reason: 'Opened for the wrong vehicle' }, ctx: { code: 'WB-2026-0001' } }])
+    const WANT = {
+        "calibration · recorded": {
+            "title": "Calibration recorded",
+            "part": null,
+            "lines": [
+                "Calibrated on: 01/10/2026",
+                "Valid until: 30/09/2027",
+                "Result: Passed",
+                "Certificate number: CAL-2026-118",
+                "Calibrated by: Accredited Lab"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "calibration · voided with a reason": {
+            "title": "Calibration voided",
+            "part": null,
+            "lines": [],
+            "reason": "Certificate belonged to another scale",
+            "who": "Fu Sheng"
+        },
+        "ticket · opened": {
+            "title": "Ticket opened",
+            "part": null,
+            "lines": [
+                "Direction: Inbound",
+                "Vehicle registration: GBA 1234 X"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "ticket · the gross weighing": {
+            "title": "Weighing recorded",
+            "part": null,
+            "lines": [
+                "Weighing: Gross",
+                "Weight (kg): 12,000",
+                "Source: From the instrument",
+                "Weighed at: 06/10/2026 09:00"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "ticket · a weighing corrected with a reason": {
+            "title": "Weighing corrected",
+            "part": null,
+            "lines": [
+                "Weighing: Gross",
+                "Weight (kg): 11,980",
+                "Source: Entered by hand",
+                "Weighed at: 06/10/2026 09:00"
+            ],
+            "reason": "Pallet was still on the deck",
+            "who": "Fu Sheng"
+        },
+        "ticket · completed by the second weighing": {
+            "title": "Ticket completed",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "ticket · shared to a receipt, with the quantity reason": {
+            "title": "Share allocated",
+            "part": null,
+            "lines": [
+                "Share (kg): 8,000"
+            ],
+            "reason": "Two bags torn, swept and weighed apart",
+            "who": "Fu Sheng"
+        },
+        "ticket · a photo added": {
+            "title": "Photo added",
+            "part": "ticket-front.jpg",
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "ticket · a photo withdrawn with a reason": {
+            "title": "Photo withdrawn",
+            "part": "ticket-front.jpg",
+            "lines": [],
+            "reason": "Wrong truck",
+            "who": "Fu Sheng"
+        },
+        "ticket · voided with a reason": {
+            "title": "Ticket voided",
+            "part": null,
+            "lines": [],
+            "reason": "Opened for the wrong vehicle",
+            "who": "Fu Sheng"
+        }
+    }
+    const got16 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 10) problems.gold16.push(`⑯ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD16', order: 1, prelog: false, at: '2026-10-06T02:00:00+00:00', key: { id: uuid() },
+            actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold16.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD16')
+        if (mine.length !== 1) { problems.gold16.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got16[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold16.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold16.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold16.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD16_PRINT) console.log(JSON.stringify(got16, null, 8))
+    if (FAULT === 'wording-drift-mes2' && !problems.gold16.length) problems.gold16.push('(注入 wording-drift-mes2 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -4624,7 +4793,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

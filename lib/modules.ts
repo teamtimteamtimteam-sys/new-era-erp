@@ -380,6 +380,9 @@ const P_PRICING = 'module.pricing.view'
  *  【谁因此新看得见这条入口】auditor 与 sales(两者都持 materials.view)——
  *  他们看到的是【只读】的字典页。Tim 知情并接受(C-1b 的 Q4)。 */
 const P_DICTIONARIES = { all: [], any: ['module.materials.view', 'module.inbound.view'] } as const
+/** MES-2(2026-10-06,MES-0 Q20 · MES-2 Step 0 Q22):地磅单 —— 收货或物流查看码任一(与 weighbridge_tickets 的读策略、照片桶的读策略
+ *  与 document_types 那一行的 view_permission 逐字同一对)。 */
+const P_WEIGHBRIDGE = { all: [], any: ['module.inbound.view', 'module.logistics.view'] } as const
 const P_MANAGE_PERMISSIONS = 'action.manage_permissions'
 /** NAV-CLEANUP-1 ①:被删记录【自己的】码。当初只授 admin 与 auditor —— 理由见那一条。
  *  ★ PAY-REQ-1(Tim 2026-09-23)取代了那句「只授」:cfo 持有每一个 view 码(只读),
@@ -458,6 +461,11 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/operation/devices', navKey: 'processing.subnav.devices', modules: ['operation'], permission: P_PROCESSING },
     // MES-1:数据收件箱 —— 设备页上一键可达(parent),所以不在二级菜单里另起一条;"Process received" 那一个按钮要的也是加工查看码(Q11)。
     { href: '/operation/capture/inbox', navKey: 'processing.subnav.captureInbox', modules: ['operation'], permission: P_PROCESSING, parent: '/operation/devices' },
+    // MES-2(2026-10-06,MES-2 Step 0 Q2 · Q8 · Q22):确认队列(读 module.processing.view;确认 / 驳回 / 录入 / 更正要 action.confirm_capture)·
+    //   地磅单(收货或物流查看码任一 —— 与表与照片桶的读策略逐字同一对)· 校准(加工查看;记录与设定要 action.manage_devices)。
+    { href: '/operation/capture', navKey: 'processing.subnav.capture', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation/weighbridge', navKey: 'processing.subnav.weighbridge', modules: ['operation', 'inventory', 'logistics'], permission: P_WEIGHBRIDGE },
+    { href: '/operation/calibration', navKey: 'processing.subnav.calibration', modules: ['operation'], permission: P_PROCESSING, parent: '/operation/devices' },
 
     // ══ 销售 Sales ══════════════════════════════════════════════════════════
     // ★【CONV-6 ⑤c:销售也【此前没有模块根】,与物流同一处缺席】★
@@ -1054,5 +1062,9 @@ export const FN = {
     /** MES-1:设备登记 · 数据收件箱 · 还没给的标准值。 */
     devices: fnByHref('/operation/devices'),
     captureInbox: fnByHref('/operation/capture/inbox'),
+    /** MES-2:确认队列 · 地磅单 · 校准。 */
+    capture: fnByHref('/operation/capture'),
+    weighbridge: fnByHref('/operation/weighbridge'),
+    calibration: fnByHref('/operation/calibration'),
     pendingValues: fnByHref('/settings/pending-values'),
 } as const

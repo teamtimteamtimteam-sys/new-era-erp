@@ -313,6 +313,21 @@
 >    ★ **硬前提照旧(Q16,Tim 自己的动作)**:第一批真实业务数据或第一台真实网关之前,Supabase 换到付费档;设备页上那一行免费档的说明在 Tim 说可以去掉之前一直在。
 >    **下一刀 MES-2 · Confirmation, weighing, calibration**(见下面「⬜ ★ MES 组」)。
 >
+> 37. **✅ 称重与校准 —— MES-2(`v1.4.38`,2026-10-06)。** MES 组的第二刀(Tim 2026-10-06:Step 0 的 Q1–Q35 全按推荐答,
+>    `docs/surveys/MES-2/STEP0-HANDBACK.md`;MES-0 Q1–Q96 与 MES-1 Q1–Q30 照旧)。发布那一行、Q31 计时、逐角色读数表、页面清单与
+>    未经询问的决定在 `docs/handbacks/MES-2.md`。迁移 `db/migrations/2026-10-06-mes2-confirmation-weighing-calibration.sql`;
+>    fixture 250(15 臂,41 格注入全红在点名的那一臂)。七张表(`capture_drafts` · `capture_draft_changes` · `weighbridge_tickets` · `weighings` ·
+>    `weighbridge_ticket_shares` · `weighbridge_ticket_photos` · `instrument_calibrations`),`ingest_settings` 两列(`require_calibrated_since` 线上保持空 ·
+>    `calibration_lead_days` = V8),`ingest_data_classes.creates_draft` 并进 `SEED_TABLES`;一个新码 `action.confirm_capture`(warehouse · cto · admin);
+>    私有桶 `capture-photos`;三条新路由(`/operation/capture` · `/operation/weighbridge` · `/operation/weighbridge/[id]`)加 `/operation/calibration`;
+>    三支提醒臂;V8 · V33。
+>    ★ **Q31(线上第一步、任何 DDL 之前)**:500 条一批,服务端语句 219–254 ms(六次),远低于 1.5 s —— 什么都不改;`MES1-ANON-STATEMENT-TIMEOUT-3S` 关闭,
+>    `docs/known-issues.md:10379` 那句假话按 Q34 划掉并写上实测。
+>    ★ **破窗**:起点 **2026-10-06 19:44:03 CST**(`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,下一次 close-out 补记)。
+>    窗口里坏掉的(**推导**,没有在线上量):**没有** —— 两支收货函数换了签名但新参数都有默认值(旧应用照样调得通),定价与证书在开关为空时与从前同一个结果,
+>    新表、新视图旧应用都不读,`operations_now` 列不变;唯一的行为变化是收件箱的 `weighing` 类此刻起落草稿,而线上没有一行 weighing 类的收件箱。
+>    **下一刀 MES-3a · Storage safety**(见下面「⬜ ★ MES 组」)。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
@@ -6813,7 +6828,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);**MES-2 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);**MES-3a 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -6825,8 +6840,8 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 顺序 | 刀 | 功能(勘察 §1 的编号) | 估时 |
   |---|---|---|---|
   | 1 | ✅ **MES-1 · Entry point**(2026-10-06,`v1.4.37`,`docs/handbacks/MES-1.md`) | 采集层地基:设备登记、网关钥匙、收件箱、传输日志、心跳、数据类与转换层;`/operation/devices`、`/operation/capture/inbox`、`/settings/pending-values` | 7 h 15 m – 13 h 45 m |
-  | 2 | ⬜ **MES-2 · Confirmation, weighing, calibration**(★ 下一刀;手工录入的完整路径也在这一刀 —— MES-1 只建了收件箱的 `source` 列与 CHECK,Q14;★ **Tim(MES-1 close-out,2026-10-06):在线上给一次【满 500 条消息】的网关调用计时,对着 `anon` 角色 3 秒的语句上限;太慢就在本刀解决** —— `docs/known-issues.md` 的 `MES1-ANON-STATEMENT-TIMEOUT-3S`) | 1(地磅单)· 20(校准)· 草稿 / 确认 | 7 h 40 m – 13 h 30 m |
-  | 3 | ⬜ **MES-3a · Storage safety** | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
+  | 2 | ✅ **MES-2 · Confirmation, weighing, calibration**(2026-10-06,`v1.4.38`,`docs/handbacks/MES-2.md`;~~★ 下一刀;~~手工录入的完整路径也在这一刀 —— MES-1 只建了收件箱的 `source` 列与 CHECK,Q14;★ **Tim(MES-1 close-out,2026-10-06):在线上给一次【满 500 条消息】的网关调用计时,对着 `anon` 角色 3 秒的语句上限;太慢就在本刀解决** —— `docs/known-issues.md` 的 `MES1-ANON-STATEMENT-TIMEOUT-3S`) | 1(地磅单)· 20(校准)· 草稿 / 确认 | 7 h 40 m – 13 h 30 m |
+  | 3 | ⬜ **MES-3a · Storage safety**(★ 下一刀) | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
   | 4 | ⬜ **MES-3b · Labels and scanning** | 7(标签)· 8(扫码) | 6 h 00 m – 10 h 15 m |
   | 5 | ⬜ **MES-4a · Processing record** | 11(参数与配方)· 13(计数)· 规格书 §4.1(平衡与容差;机器在挂了机器的工序上变成必填 —— 收紧 U1-B 的可选选择器,Q41) | 8 h 40 m – 15 h 30 m |
   | 6 | ⬜ **MES-4b · New fields and products** | 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |

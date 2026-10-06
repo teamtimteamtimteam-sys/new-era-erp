@@ -56,6 +56,7 @@ DECLARE
         'assay_unapplied',
         'asset_disposal_pending',  -- APR-9(2026-09-27):第四十五支
         'awaiting_assay','bank_unmatched','batch_unpriced',
+        'capture_draft_pending',  -- MES-2(2026-10-06):第五十支
         'capture_inbox_failed',  -- MES-1(2026-10-06):第四十八支
         'claim_pending','company_licence_expiring',
         'container_documents_late','container_eta_overdue',
@@ -63,7 +64,10 @@ DECLARE
         'equipment_service_due','free_time_expiring','fx_rate_gap',
         'gateway_silent',  -- MES-1(2026-10-06):第四十九支
         'gst_filing_pending',  -- APR-10(2026-09-27):第四十七支
-        'import_permit_unverified','invoice_overdue',
+        'import_permit_unverified',
+        'instrument_calibration_approaching',  -- MES-2(2026-10-06):第五十二支
+        'instrument_calibration_due',  -- MES-2(2026-10-06):第五十一支
+        'invoice_overdue',
         'invoice_request_pending',  -- APR-5a(2026-09-25):第三十九支
         'journal_request_pending',  -- APR-6(2026-09-25):第四十二支
         'leave_pending','margin_cost_not_allocated','metal_quote_stale',
@@ -325,7 +329,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这四十九支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这五十二支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

@@ -1009,14 +1009,16 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     review_rating_scale: ['review_rating_scale'],
     kpi_entry: ['kpi_entries'],
     // MES-1(2026-10-06):设备(网关钥匙是它的成员)· 采集上限(单行设置)。收件箱、传输日志与中断不进变更记录(MES-0 Q14)。
-    device: ['devices', 'gateway_keys'],
+    device: ['devices', 'gateway_keys', 'instrument_calibrations'],
+    // MES-2(2026-10-06):地磅单 —— 它的两磅(含更正)、分出去的份、照片
+    weighbridge_ticket: ['weighbridge_tickets', 'weighings', 'weighbridge_ticket_shares', 'weighbridge_ticket_photos'],
     ingest_settings: ['ingest_settings'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
-    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1043,6 +1045,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     kpi_entry: 'kpi',
     // MES-1
     device: 'device', ingest_settings: 'settings',
+    // MES-2
+    weighbridge_ticket: 'ticket',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1126,7 +1130,9 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (REVIEW_TABLES.has(t)) return 'review'
     if (t === 'kpi_entries') return 'kpi'
     // MES-1
-    if (t === 'devices' || t === 'gateway_keys') return 'device'
+    if (t === 'devices' || t === 'gateway_keys' || t === 'instrument_calibrations') return 'device'
+    // MES-2
+    if (t === 'weighbridge_tickets' || t === 'weighings' || t === 'weighbridge_ticket_shares' || t === 'weighbridge_ticket_photos') return 'ticket'
     if (t === 'review_rating_scale') return 'dict'
     return null
 }
@@ -1698,6 +1704,57 @@ function describeDevice(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Blo
                 out.push({ title: tx(d, 'dev.keyIssued'), part, lines: [], key: true, weight: 80 })
             } else if (isSet(r, 'revoked_at')) {
                 out.push({ title: tx(d, 'dev.keyRevoked'), part, lines: [], reason: typed(r.new?.['revoke_reason']), key: true, weight: 80 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'instrument_calibrations') {
+            // MES-2:校准记录 —— 记一次(日期、有效期、结论、证书号、机构都在行里)· 作废(带理由)。只追加,没有"改"。
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'dev.calibrationRecorded'), lines: valueLines(d, r, r.new, opts, new Set(['id', 'device_id'])), key: true, weight: 75 })
+            } else if (isSet(r, 'voided_at')) {
+                out.push({ title: tx(d, 'dev.calibrationVoided'), lines: [], reason: typed(r.new?.['void_reason']), key: true, weight: 75 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+// ── MES-2(2026-10-06):地磅单 —— 开单 · 一磅(第一磅开单、第二磅完成;更正带理由)· 分一份 · 照片 · 作废 ─────────────
+// 【一磅只说它的角色与读数】草稿、收件箱那一层不进这里(草稿的读码是加工查看,不是地磅单的门);改过的值与理由在确认队列上。
+// 【完成】是第二磅落下时 completed_at 被记下的那一次 UPDATE —— 它自己一块"Ticket completed",不说成"修改"。
+function describeTicket(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows) {
+        if (r.table === 'weighbridge_tickets') {
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'wb.opened'), lines: valueLines(d, r, r.new, opts, new Set(['code', 'completed_at'])), key: true, weight: 90 })
+            } else if (isSet(r, 'voided_at')) {
+                out.push({ title: tx(d, 'wb.voided'), lines: [], reason: typed(r.new?.['void_reason']), key: true, weight: 85 })
+            } else if (isSet(r, 'completed_at')) {
+                out.push({ title: tx(d, 'wb.completed'), lines: [], key: true, weight: 80 })
+            } else if (r.op === 'UPDATE') {
+                const ls = changeLines(d, r, opts)
+                if (ls.length) out.push({ title: tx(d, 'wb.changed'), lines: ls, key: true, weight: 50 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'weighings') {
+            if (r.op === 'INSERT') {
+                const corrected = str(r, 'corrects_id', 'new') !== null
+                out.push({ title: tx(d, corrected ? 'wb.weighingCorrected' : 'wb.weighingRecorded'),
+                           // 谁、何时确认的就是这一条记录的人与时刻 —— 不在行里再说一遍
+                           lines: valueLines(d, r, r.new, opts, new Set(['corrects_id', 'correction_reason', 'ticket_id', 'inbox_id', 'draft_id',
+                               'confirmed_at', 'confirmed_by'])),
+                           reason: corrected ? typed(r.new?.['correction_reason']) : null, key: true, weight: 70 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'weighbridge_ticket_shares') {
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'wb.shared'), lines: valueLines(d, r, r.new, opts, new Set(['ticket_id', 'receipt_quantity_reason'])),
+                           reason: typed(r.new?.['receipt_quantity_reason']), key: true, weight: 65 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'weighbridge_ticket_photos') {
+            // 撤下那一次 UPDATE 的 new 里只有撤下那三列 —— 文件名从上下文(ctx)读
+            const part = typed(str(r, 'file_name') ?? undefined)
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'wb.photoAdded'), part, lines: [], key: true, weight: 40 })
+            } else if (isSet(r, 'withdrawn_at')) {
+                out.push({ title: tx(d, 'wb.photoWithdrawn'), part, lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 40 })
             } else out.push(describeGeneric(d, r, opts))
         } else out.push(describeGeneric(d, r, opts))
     }
@@ -4902,6 +4959,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'review': bs = describeReview(d, list, opts, hc); break
                 case 'kpi': bs = describeKpi(d, list, opts); break
                 case 'device': bs = describeDevice(d, list, opts); break
+                case 'ticket': bs = describeTicket(d, list, opts); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它

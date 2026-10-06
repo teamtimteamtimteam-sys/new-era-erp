@@ -1,4 +1,6 @@
 
+-- MES-2(2026-10-06,MES-2 Step 0 Q27):校准闸在这里 —— 每一条收货定价路径都落进本引擎,所以只问一次
+-- (assert_receipt_reading_calibrated;试算 preview_reprice_inbound_batch 问同一支)。
 -- FIN-21(2026-08-06):改问 fx_rate_asof —— 同一条解析规则,多拿一个【取自哪一天】,
 -- 与所用侧(恒 tt_sell)一起记进 price_history.rate_as_of / rate_type。
 -- 缺牌价仍拒:再调一次 fx_rate_for 抛唯一的 FX_RATE_MISSING(重估写入侧同一模式)。
@@ -40,6 +42,8 @@ BEGIN
     IF NOT FOUND OR v_deleted IS NOT NULL THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', p_inbound_batch_id;
     END IF;
+    -- MES-2(Q26 · Q27):校准闸 —— 这张收货单的读数可不可以拿去定价。开关空着时什么都不拒;判据只在那一支函数里。
+    PERFORM assert_receipt_reading_calibrated(p_inbound_batch_id);
     IF p_unit_price IS NULL OR p_unit_price <= 0 THEN
         RAISE EXCEPTION 'PRICE_INVALID';
     END IF;

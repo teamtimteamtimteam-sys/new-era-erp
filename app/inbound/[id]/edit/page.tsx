@@ -45,6 +45,7 @@ import DiscrepancyKinds, {
 } from '@/app/components/receiving/DiscrepancyKinds'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import TicketSharesPanel from './TicketSharesPanel'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -950,6 +951,9 @@ export default async function EditInboundPage({
                 软删三处)。这里只是把它显示出来,并给签发与作废两个动作。 */}
             <CertificatePanel batchId={id} data={codPanel} canIssue={canIssueCod}
                 openRequestLabel={(codPanel.code ? openWarehouseRequest.get(codPanel.code) : null) ?? openWarehouseRequest.get(batch.code) ?? null} />
+
+            {/* MES-2(Q19 · Q28):挂着的地磅单的份,与读数那一刻仪器的校准状态(只标;规则开着时定价与证书才拒) */}
+            <TicketSharesPanel batchId={id} quantity={Number(batch.quantity)} createdAt={batch.created_at} />
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 

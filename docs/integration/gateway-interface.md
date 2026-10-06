@@ -193,6 +193,31 @@ message is then checked by its data class's transformer:
 
 Nothing is ever deleted. None of this changes what the gateway sees — the receipt answer (§5) is final for the gateway.
 
+### 7a. The `weighing` class — scale and weighbridge readings (from release v1.4.38)
+
+A `weighing` message carries **one number and nothing else**:
+
+```json
+{ "seq": 1041, "device": "DEV-2026-0008", "class": "weighing",
+  "payload": { "weight_kg": 12340.5 },
+  "site_from": "2026-10-06T09:14:02+08:00", "site_to": "2026-10-06T09:14:05+08:00" }
+```
+
+| rule | if broken, the inbox row is **failed** with |
+|---|---|
+| `payload` is a JSON object whose **only** key is `weight_kg` | `WEIGHING_PAYLOAD_INVALID` |
+| `weight_kg` is a JSON **number** (not a string) **greater than 0**, in **kilograms** — convert tonnes or grams on the gateway | `WEIGHING_WEIGHT_INVALID` |
+
+* **Do not send gross / tare / net, a vehicle registration or a ticket number in the payload.** Which ticket a reading belongs to,
+  and whether it is the gross or the tare, is chosen by the person at the station when they confirm it. Your own reference may go in
+  `dataset_ref` (§3); it is kept but not interpreted.
+* A valid reading does **not** become a record by itself: it becomes a **draft** in Evoltrya's confirmation queue. Staff confirm it
+  (and may correct the number — the original you sent is kept, with their reason) or reject it. Drafts never expire.
+* If the device is registered with a **capacity**, a reading above it is refused at confirmation (`WEIGHING_ABOVE_CAPACITY`); that is
+  a station-side decision and does not affect the receipt answer you got.
+* Messages of this class received **before** v1.4.38 were kept as *awaiting transform*; they are processed with this rule the next
+  time staff process the inbox.
+
 ---
 
 ## 8. The `connection_test` class — commissioning check

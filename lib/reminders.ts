@@ -214,6 +214,18 @@ export const REMINDERS = [
     { itemType: 'capture_inbox_failed', permission: 'module.processing.view', href: '/operation/capture/inbox?status=failed',
       itemHref: () => '/operation/capture/inbox?status=failed' },
 
+    // ══ MES-2(2026-10-06,MES-0 Q13 · MES-2 Step 0 Q29 · Q32):确认与校准的三支 ═════════════════════════
+    // 【capture_draft_pending】一张秤送来的草稿还没人确认 —— 一张一行,天数就是它的年龄(草稿永不过期)。门是 action.confirm_capture:
+    //   能确认它的人才需要被催。门牌指确认队列。
+    // 【instrument_calibration_due】一台在用的仪器今天不在校准期内(过期 · 没通过 · 从来没校过)。门牌指它的设备页(校准记录在那里)。
+    // 【instrument_calibration_approaching】在期内、有效期落在 V8 给的提前天数里;V8 没给就没有这一支。门牌同上。
+    { itemType: 'capture_draft_pending', permission: 'action.confirm_capture', href: '/operation/capture',
+      itemHref: () => '/operation/capture' },
+    { itemType: 'instrument_calibration_due', permission: 'module.processing.view', href: '/operation/calibration',
+      itemHref: (r: OpsRow) => `/operation/devices/${r.item_id}` },
+    { itemType: 'instrument_calibration_approaching', permission: 'module.processing.view', href: '/operation/calibration',
+      itemHref: (r: OpsRow) => `/operation/devices/${r.item_id}` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

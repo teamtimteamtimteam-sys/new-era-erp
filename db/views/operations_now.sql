@@ -173,6 +173,14 @@
 --   · capture_inbox_failed:收件箱里有转换失败的行 —— 按设备合成一块(item_id = 设备,subject = 设备名 · 失败行数,
 --     item_date = 最早的那一行)。不为 awaiting_transform 上牌:那是每一个还没接上转换器的类的正常状态(Q23)。
 --   两支都只要 module.processing.view;规格在 docs/dashboard-arm-inventory.md。
+-- MES-2(2026-10-06,MES-0 Q13;MES-2 Step 0 Q29 · Q32,Tim):第 50–52 支 ——
+--   · capture_draft_pending:一张网关送来的草稿还没人确认 —— 一张一行,item_date = 落草稿那一天,所以 days_waiting 就是它的年龄
+--     (草稿永不过期,MES-0 Q13)。门是 action.confirm_capture(能确认它的人才需要被催)。手工录入的草稿生下来就确认了,不上牌。
+--   · instrument_calibration_due:一台【在用的】仪器(interface_status 不是 reserved,没停用)今天不在校准期内 —— 过期、没通过、
+--     或从来没校过。item_date = 有效期(从来没校过的取它登记那一天)。
+--   · instrument_calibration_approaching:在期内、有效期落在 V8 给的提前天数里。V8(calibration_lead_days)没给 → 这一支恒为空,
+--     过期本身照样由上一支上牌(每一条记录自己的有效期是必填的)。
+--   后两支读 instrument_calibration_now(属主视图,一份挑法、一句判据),门是 module.processing.view。
 CREATE VIEW public.operations_now AS
  SELECT item_type,
     permission,
@@ -557,6 +565,37 @@ CREATE VIEW public.operations_now AS
                      JOIN devices d ON d.id = b.device_id
                   WHERE b.status = 'failed'::text
                   GROUP BY b.device_id, d.code, d.name) f
+        UNION ALL
+         SELECT 'capture_draft_pending'::text AS item_type,
+            'action.confirm_capture'::text AS permission,
+            cd.id AS item_id,
+            NULL::text AS doc_kind,
+            COALESCE(dv.code, cd.data_class) AS item_code,
+            (COALESCE(dv.name, cd.data_class) || ' · '::text) || COALESCE((cd.proposed ->> 'weight_kg'::text) || ' kg'::text, cd.data_class) AS subject,
+            cd.created_at::date AS item_date
+           FROM capture_drafts cd
+             LEFT JOIN devices dv ON dv.id = cd.device_id
+          WHERE cd.status = 'pending'::text
+        UNION ALL
+         SELECT 'instrument_calibration_due'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            ic.device_id AS item_id,
+            NULL::text AS doc_kind,
+            ic.code AS item_code,
+            (ic.name || ' · '::text) || ic.status AS subject,
+            COALESCE(ic.valid_until, ic.registered_at::date) AS item_date
+           FROM instrument_calibration_now ic
+          WHERE ic.in_use AND ic.status <> 'in_calibration'::text
+        UNION ALL
+         SELECT 'instrument_calibration_approaching'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            ic.device_id AS item_id,
+            NULL::text AS doc_kind,
+            ic.code AS item_code,
+            ic.name AS subject,
+            ic.valid_until AS item_date
+           FROM instrument_calibration_now ic
+          WHERE ic.in_use AND ic.approaching
         UNION ALL
          SELECT 'promise_overdue'::text AS item_type,
             'module.finance.view'::text AS permission,

@@ -45,6 +45,10 @@ BEGIN
         RAISE EXCEPTION '%|%', v_lic->>'reason', v_lic->>'detail';
     END IF;
 
+    -- MES-2(Q27):校准闸 —— 证书证的是这张收货单的数量(cod_certificate_data 印 ib.quantity),它的读数要过同一支判据。
+    -- 【放在这里,不放进 cod_delivery_completion】那一支与 refresh_cod_for_batch 共用,在那里拒会去作废证书。
+    PERFORM assert_receipt_reading_calibrated(v_cod.inbound_batch_id);
+
     v_code  := next_cod_code();
     v_token := gen_random_uuid();
     v_now   := clock_timestamp();

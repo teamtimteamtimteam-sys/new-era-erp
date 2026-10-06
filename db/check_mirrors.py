@@ -187,6 +187,12 @@ SEED_TABLES = {
     # 会写它**:那三个取值是 record_output_sale / ship_order 里同一句 CASE WHEN
     # 算出来的,多一行只会得到一个永远零行的状态。所以线上多出一行【就是】真漂移。
     "output_batch_states": (None, "code, name_en, name_zh, is_active, sort_order"),
+    # MES-2(2026-10-06,MES-2 Step 0 Q5,Tim):采集层的数据类字典 —— INSTALL SEED(没有写策略,只经迁移改)。
+    # 它【点名一支会按名字被执行的函数】(transform_function),也决定这一类要不要落草稿(creates_draft)、
+    # 手工录入要持哪个码(manual_entry_code)。MES-1 起它的表头就写着"check_mirrors 逐行比对",而这里一直没有它 ——
+    # MES-2 改这份种子(weighing 接上转换器),所以从这一刀起它真的被比:一行写错就是生产上那一类走错函数。
+    "ingest_data_classes": (None, "code, name_en, name_zh, target_en, COALESCE(transform_function,'') AS transform_function, "
+                                  "COALESCE(manual_entry_code,'') AS manual_entry_code, is_active, sort_order, creates_draft"),
     # accounts 是【混合表】:引擎点名的 34 行跟踪线上,其余是建账的人的地盘。
     # FIN-30:is_cash / cash_flow_section 也纳入比对 —— 它们决定现金流量表取哪些
     # 科目、归哪一段;线上被人翻了标记而无人察觉,报表会安静地算错一整类活动。

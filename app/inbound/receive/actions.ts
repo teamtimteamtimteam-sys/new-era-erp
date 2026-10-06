@@ -11,6 +11,7 @@ import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 import { isStockErrorCode, localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 import { refusePermission } from '@/lib/action-refusal'
+import { isCaptureErrorCode, localizeCaptureError } from '@/app/operation/capture/captureErrorCodes'
 import { CERTAINTY_UNCHOSEN, FIELD_SAFETY_STATES, FIELD_CERTAINTY } from '../IntakeConditionFields'
 
 export type ReceiveState = {
@@ -54,6 +55,10 @@ export async function createFieldReceipt(
     // set_inbound_safety_states 的函数注释里的一条【已知缺口】,PROC-3 会碰它。
     const safety_states = formData.getAll(FIELD_SAFETY_STATES)
         .map((v) => String(v).trim()).filter((v) => v !== '')
+    // MES-2(Q19):挂一张地磅单的份 —— 没选单就三个都不送(与从前一字不差)
+    const ticket_id = (formData.get('ticket_id') as string)?.trim() || null
+    const ticket_share_raw = (formData.get('ticket_share_kg') as string)?.trim() || ''
+    const quantity_reason = (formData.get('quantity_reason') as string)?.trim() || null
     const certainty_raw = String(formData.get(FIELD_CERTAINTY) ?? '').trim()
     const chemistry_certainty =
         certainty_raw === '' || certainty_raw === CERTAINTY_UNCHOSEN ? null : certainty_raw
@@ -77,6 +82,16 @@ export async function createFieldReceipt(
         const n = Number(quantity_raw)
         if (Number.isNaN(n) || n <= 0) fieldErrors.quantity = t('receive.errQuantity')
         else quantity = n
+    }
+
+    let ticket_share_kg: number | null = null
+    if (ticket_id) {
+        const k = Number(ticket_share_raw)
+        if (!ticket_share_raw || Number.isNaN(k) || k <= 0) fieldErrors.ticket = t('capture.form.needPositiveKg')
+        else {
+            ticket_share_kg = k
+            if (quantity !== null && quantity !== k && !quantity_reason) fieldErrors.ticket = t('capture.errors.RECEIPT_QUANTITY_REASON_REQUIRED', { 0: String(quantity), 1: String(k) })
+        }
     }
 
     if (!arrival_date) fieldErrors.arrival_date = t('receive.errArrivalDate')
@@ -117,6 +132,9 @@ export async function createFieldReceipt(
             // RECV-SOURCE-1:理由与说明 —— 没填就不传,库里落 NULL(挂了采购行时合法)
             ...(source_reason_code === null ? {} : { p_source_reason_code: source_reason_code }),
             ...(source_reason_note === null ? {} : { p_source_reason_note: source_reason_note }),
+            // MES-2(Q19):份与它的理由 —— 没选单就整个不传
+            ...(ticket_id && ticket_share_kg !== null ? { p_ticket_id: ticket_id, p_ticket_share_kg: ticket_share_kg } : {}),
+            ...(ticket_id && quantity_reason ? { p_quantity_reason: quantity_reason } : {}),
         })
 
     if (error || !data) {
@@ -131,6 +149,8 @@ export async function createFieldReceipt(
         const deniedCode = (error?.message ?? '').trim().match(/^PERMISSION_DENIED\|(.*)$/)
         if (deniedCode) return { error: (await refusePermission(deniedCode[1] ?? '')).error }
 
+        // MES-2:地磅单的份那几条具名拒绝(方向、没完成、理由、份)
+        if (isCaptureErrorCode(error?.message)) return { error: await localizeCaptureError(error!.message) }
         if (isStockErrorCode(error?.message)) {
 
             return { error: await localizeStockError(error!.message) }

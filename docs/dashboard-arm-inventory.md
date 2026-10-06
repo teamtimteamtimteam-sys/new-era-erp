@@ -97,6 +97,9 @@ module's own page.
 | 43 | `gst_filing_pending` | 一张 GST 申报申请已提交、等 CFO 批(APR-10,Tim 的矩阵「GST 申报与更正 | 财务 | CFO」;批的是报出去之前的那一组数,批准当场写快照) | `module.finance.view` —— 与 `decide_gst_filing_request` 的门同一个码;谁能批由那支函数裁(二级、不是提单人) | `gst_filing_requests`(主语是提单人的附言,可空) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。★ `item_id` 是**期间**的 id —— 申请住在那一期的页面上 |
 | M1a | `gateway_silent` | 一台网关此刻在沉默:心跳间隔给了,而最后一次听到它已经超过那个间隔(`gateway_health.status = 'silent'`,读的时候算,没有调度器)。**「还没听到过」与「间隔没给」都不上提醒**(MES-1 Step 0 Q16 · Q17)—— 登记了还没调试是正常状态,间隔没给就判不了沉默 | `module.processing.view` | `gateway_health` | 没停用、间隔已给的网关 |
 | M1b | `capture_inbox_failed` | 数据收件箱里有【转换失败】的行(`ingest_inbox.status = 'failed'`)—— 按设备合成一块,subject = 设备名 · 失败行数(MES-1,MES-1 Step 0 Q23)。`awaiting_transform`(这个数据类还没有转换器)**不是**这一支:那是设计如此的等待,不是一件要人去做的事 | `module.processing.view` | `ingest_inbox` | 只算 failed;重试或带理由丢弃之后消失 |
+| M2a | `capture_draft_pending` | 一张秤或地磅经网关送来的读数还是【草稿】,没人确认(MES-2,Step 0 Q12 · Q32)—— 一张一行,`item_date` = 落草稿那一天,所以等待天数就是它的年龄(草稿永不过期,MES-0 Q13)。没有审批链:确认本身就是那个动作 | `action.confirm_capture` —— 只有能确认的人看得见(warehouse · cto · admin);读得到队列却按不动的人看见它只会多一块清不掉的牌子(与 `supplier_pending_approval` 同一个理由) | `capture_drafts` | `status = 'pending'`;确认或驳回之后自动消失 |
+| M2b | `instrument_calibration_due` | 一台【在用】的仪器(秤 · 地磅 · 电表 · 在线仪表,没停用、不是 `reserved`)今天不在校准期内:过期、最近一次没通过、或从来没校过(MES-2,Step 0 Q29)。读的时候算(`instrument_calibration_now`,`calibration_status_from` 在 `CURRENT_DATE`),没有调度器 | `module.processing.view` | `instrument_calibration_now` | `in_use AND status <> 'in_calibration'`;记一次通过的、有效期覆盖今天的校准之后消失。`item_date` = 有效期,从来没校过的取它登记那一天 |
+| M2c | `instrument_calibration_approaching` | 一台在用的仪器在期内,但有效期落在 V8(`ingest_settings.calibration_lead_days`)给的提前天数里(MES-2,Step 0 Q29 · Q30)。**V8 没给就没有这一支的行** —— 不猜提前多久 | `module.processing.view` | `instrument_calibration_now` | `in_use AND approaching`;续上一次校准、或过了期变成 M2b 之后消失 |
 
 
 
@@ -329,6 +332,9 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `margin_cost_not_allocated` | `/processing/[runId]` | where allocation happens |
 | `gateway_silent` | `/operation/devices/[id]` | the gateway's page: status, last heard, outages, keys (MES-1) |
 | `capture_inbox_failed` | `/operation/capture/inbox?status=failed` | the inbox filtered to failed rows; retry / discard happen there (MES-1) |
+| `capture_draft_pending` | `/operation/capture` | the confirmation queue: every pending draft with its reading, instrument and age; Confirm (with any change and its reason) / Reject (MES-2) |
+| `instrument_calibration_due` | `/operation/devices/[id]` | the instrument's page, whose calibration section records the next certificate (MES-2) |
+| `instrument_calibration_approaching` | `/operation/devices/[id]` | same as above (MES-2) |
 
 ### One mechanism, not two
 

@@ -11,6 +11,7 @@ import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 import { refusePermission } from '@/lib/action-refusal'
 import { CERTAINTY_UNCHOSEN, FIELD_SAFETY_STATES, FIELD_CERTAINTY } from '../IntakeConditionFields'
 import { isPricingErrorCode, localizePricingError } from '../pricingErrorCodes'
+import { isCaptureErrorCode, localizeCaptureError } from '@/app/operation/capture/captureErrorCodes'
 
 export type CreateInboundState = {
     error?: string
@@ -65,6 +66,10 @@ export async function createInbound(
     // 表单那道 required 可以被绕过,这一道不能;库里的触发器是第三道(R5)。
     const source_reason_code = (formData.get('source_reason_code') as string)?.trim() || null
     const source_reason_note = (formData.get('source_reason_note') as string)?.trim() || null
+    // MES-2(Q19):挂一张地磅单的份 —— 没选单就三个都不送(与从前一字不差)
+    const ticket_id = (formData.get('ticket_id') as string)?.trim() || null
+    const ticket_share_raw = (formData.get('ticket_share_kg') as string)?.trim() || ''
+    const quantity_reason = (formData.get('quantity_reason') as string)?.trim() || null
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
@@ -80,6 +85,16 @@ export async function createInbound(
             fieldErrors.quantity = t('inbound.form.errQuantityPositive')
         } else {
             quantity = n
+        }
+    }
+
+    let ticket_share_kg: number | null = null
+    if (ticket_id) {
+        const k = Number(ticket_share_raw)
+        if (!ticket_share_raw || Number.isNaN(k) || k <= 0) fieldErrors.ticket = t('capture.form.needPositiveKg')
+        else {
+            ticket_share_kg = k
+            if (quantity !== null && quantity !== k && !quantity_reason) fieldErrors.ticket = t('capture.errors.RECEIPT_QUANTITY_REASON_REQUIRED', { 0: String(quantity), 1: String(k) })
         }
     }
 
@@ -145,6 +160,9 @@ export async function createInbound(
         // PROC-2c:两条轴跟着建批次【一笔写完】—— 建批次成功而状态没记上,
         // 或者反过来,都不可能发生(RPC 是一个事务)。
         ...(safety_states.length === 0 ? {} : { p_safety_states: safety_states }),
+        // MES-2(Q19):份与它的理由 —— 没选单就整个不传
+        ...(ticket_id && ticket_share_kg !== null ? { p_ticket_id: ticket_id, p_ticket_share_kg: ticket_share_kg } : {}),
+        ...(ticket_id && quantity_reason ? { p_quantity_reason: quantity_reason } : {}),
         ...(chemistry_certainty === null ? {} : { p_chemistry_certainty: chemistry_certainty }),
         // RECV-SOURCE-1:理由与说明 —— 没填就不传,库里落 NULL(挂了采购行时这是合法的)
         ...(source_reason_code === null ? {} : { p_source_reason_code: source_reason_code }),
@@ -169,6 +187,8 @@ export async function createInbound(
             return { fieldErrors: { unit_price: await localizePricingError(error.message) } }
         }
 
+        // MES-2:地磅单的份与校准闸(建单带价会过定价引擎)那几条具名拒绝
+        if (isCaptureErrorCode(error?.message)) return { error: await localizeCaptureError(error!.message) }
         if (isStockErrorCode(error?.message)) {
 
             return { error: await localizeStockError(error!.message) }

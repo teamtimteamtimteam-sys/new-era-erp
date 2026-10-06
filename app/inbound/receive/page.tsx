@@ -10,6 +10,7 @@ import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
+import { loadShareableTickets } from '../ticketQuery'
 
 export default async function ReceivePage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -60,11 +61,13 @@ export default async function ReceivePage() {
     ) as unknown as { id: string; code: string; name: string }[]
 
     // PROC-2c:门口就问的两条轴 —— 与 /inbound/new 读同一支(见 intakeConditionQuery)。
-    const [condition, materialAxes, sourceReasons] = await Promise.all([
+    const [condition, materialAxes, sourceReasons, tickets] = await Promise.all([
         loadIntakeConditionOptions(supabase),
         loadMaterialAxes(supabase),
         // RECV-SOURCE-1:无单收货的理由字典
         loadSourceReasons(supabase, locale),
+        // MES-2(Q19):可以挂的进厂地磅单
+        loadShareableTickets(supabase),
     ])
     // ROLE-1 Batch 3b:提交 = 建收货单,归 action.receive_goods(页面本身仍是 inbound.view)
     const canReceive = await can('action.receive_goods')
@@ -82,6 +85,7 @@ export default async function ReceivePage() {
             <ReceiveForm
             sourceReasons={sourceReasons}
             canReceive={canReceive}
+            tickets={tickets}
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}
