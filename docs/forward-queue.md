@@ -276,6 +276,19 @@
 >    ★ **破窗**:起点见 `db/migration-windows.tsv` 的 U1-B 那一行(`apply_migration.sh` 打出来);终点 = Tim 在 Vercel 上看到部署成功的那一刻
 >    (转述,不是本机测量 —— 下一次 close-out 补记)。**UNBLOCK-1 至此两刀都关闭。** 下一刀 **MES-1 · Entry point**(见下面「⬜ ★ MES 组」;
 >    它的网关那条路在线上被用之前,Supabase 要先换到付费档 —— Q16,Tim 自己的动作)。
+>    ★ **部署:Tim 在 Vercel 上确认 `57893aa7` 已部署(U1-B close-out + MES-1 Step 0 委托书,2026-10-06)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-05 20:46:41 CST**(测量:`db/migration-windows.tsv`,`2026-10-05-u1b-workflow-fixes.sql`)·
+>    终点下界 **2026-10-06 09:54:18 CST**(测量:推送把 `origin/main` 移到 `57893aa7`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`57893aa7 … {2026-10-06 09:54:18 +0800}: update by push`)·
+>    终点上界 **2026-10-06 09:59:51 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 13 h 07 min 37 s,至多 13 h 13 min 10 s。** 窗口长,是因为它跨了一夜:迁移在 2026-10-05 20:46 提交之后,Tim 让会话
+>    停到第二天早上(约 21:05 → 09:11,`docs/handbacks/U1-B.md` §5.1),推送在停之后。
+>    窗口里坏掉的(**推导**:按旧代码读的列与本迁移收回的授权对出来,没有在线上量):**旧的 `/finance/journal` 从基表直读
+>    `journal_requests.amount_base`,而那一列已经从 `authenticated` 收回 —— 那一页对每一个读者 42501,【整夜如此】**(线上 0 张申请,
+>    但那条查询不论有没有行都被拒);旧的深度放电控件照旧存不进去(APR-10 起本来就存不进);旧的关闭 / 重开控件调的是同一支函数,理由落进
+>    新列、旧页面不显示(备注不再被改写)。其余没有读被收回列的地方(U1-B 交回 §5.1 量过:应用不读 `medical_claims.decision_notes`
+>    与 `approval_log.note`)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6799,6 +6812,12 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 14 | ⬜ **MES-8b · Analysis and display** | 28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏) | 5 h 25 m – 10 h 00 m |
   | 15 | ⬜ **MES-9 · Supplier portal**(最后) | 27(供应商门户;先做内部专用的那次清扫,Q86) | 7 h 35 m – 13 h 15 m |
   合计 **≈ 97 h 40 m – 174 h 45 m**(勘察 §8.2;其中底 22 h 30 m – 37 h 30 m)。依赖图见勘察 §8.2 末尾。
+* **⬜ 下一次隐私整理(Tim 排期;U1-B close-out 立这一条,2026-10-06)** —— U1-B 量到、登记、没修的两处,同一个形状(人写的字带着健康信息,
+  走到了不持 `data.view_health` 的读者面前),都在 Tim 对医疗报销费用单那条裁定的范围之外,所以作为一项等 Tim 定界线:
+  * **病假的批准 / 驳回理由** —— `leave_requests.decision_notes` 与审批留痕上请假那几行的 `note`,对持 `module.hr.view` 而不持
+    `data.view_health` 的读者照旧读得到。`docs/known-issues.md` 的 `U1B-LEAVE-DECISION-NOTE-HEALTH-TEXT`。
+  * **普通报销的说明被抄进它生成的费用单的备注** —— `decide_expense_claim` 把员工写的说明拼进 `expenses.notes`,费用页印给每一个持
+    `module.finance.view` 的人。`docs/known-issues.md` 的 `U1B-EXPENSE-CLAIM-DESCRIPTION-IN-EXPENSE-NOTES`。
 * **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;
   触发条件(那个历史机制存在)**今天已经成立**。
 
