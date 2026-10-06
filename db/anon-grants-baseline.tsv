@@ -5,8 +5,9 @@
 # 生成:python3 db/check_grants.py --write-baseline
 #
 # kind	identity
-# ── function:1 ──
+# ── function:2 ──
 function	cod_verification(text)
+function	ingest_submit(text,text,jsonb)
 # ── bucket:0 ──
 # ── column:0 ──
 # ── relation:326 ──

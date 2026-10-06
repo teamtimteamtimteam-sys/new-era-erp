@@ -3843,6 +3843,149 @@ export type Database = {
           },
         ]
       }
+      devices: {
+        Row: {
+          capacity: number | null
+          code: string
+          created_at: string
+          created_by: string | null
+          data_class: string | null
+          equipment_id: string | null
+          gateway_id: string | null
+          heartbeat_interval_s: number | null
+          id: string
+          interface_status: string
+          kind: string
+          name: string
+          notes: string | null
+          protection_rating: string | null
+          resolution: number | null
+          retire_reason: string | null
+          retired_at: string | null
+          retired_by: string | null
+          station: string | null
+          term_documentation: string
+          term_no_charge: string
+          term_point_list: string
+          term_protocol: string
+          term_retention_export: string
+          term_timestamp_precision: string
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          capacity?: number | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          data_class?: string | null
+          equipment_id?: string | null
+          gateway_id?: string | null
+          heartbeat_interval_s?: number | null
+          id?: string
+          interface_status?: string
+          kind: string
+          name: string
+          notes?: string | null
+          protection_rating?: string | null
+          resolution?: number | null
+          retire_reason?: string | null
+          retired_at?: string | null
+          retired_by?: string | null
+          station?: string | null
+          term_documentation?: string
+          term_no_charge?: string
+          term_point_list?: string
+          term_protocol?: string
+          term_retention_export?: string
+          term_timestamp_precision?: string
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          capacity?: number | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          data_class?: string | null
+          equipment_id?: string | null
+          gateway_id?: string | null
+          heartbeat_interval_s?: number | null
+          id?: string
+          interface_status?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          protection_rating?: string | null
+          resolution?: number | null
+          retire_reason?: string | null
+          retired_at?: string | null
+          retired_by?: string | null
+          station?: string | null
+          term_documentation?: string
+          term_no_charge?: string
+          term_point_list?: string
+          term_protocol?: string
+          term_retention_export?: string
+          term_timestamp_precision?: string
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_data_class_fkey"
+            columns: ["data_class"]
+            isOneToOne: false
+            referencedRelation: "ingest_data_classes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "devices_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "devices_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "devices_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devices_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "devices_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devices_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+        ]
+      }
       document_relation_exceptions: {
         Row: {
           column_a: string
@@ -6714,6 +6857,99 @@ export type Database = {
           },
         ]
       }
+      gateway_keys: {
+        Row: {
+          gateway_id: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          key_hash: string
+          key_prefix: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          gateway_id: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          key_hash: string
+          key_prefix: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          gateway_id?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          key_hash?: string
+          key_prefix?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_keys_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_keys_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+        ]
+      }
+      gateway_outages: {
+        Row: {
+          gateway_id: string
+          id: number
+          interval_s: number
+          recorded_at: string
+          silent_from: string
+          silent_to: string
+        }
+        Insert: {
+          gateway_id: string
+          id?: never
+          interval_s: number
+          recorded_at?: string
+          silent_from: string
+          silent_to: string
+        }
+        Update: {
+          gateway_id?: string
+          id?: never
+          interval_s?: number
+          recorded_at?: string
+          silent_from?: string
+          silent_to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_outages_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_outages_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+        ]
+      }
       gst_filing_requests: {
         Row: {
           boxes: Json
@@ -7621,6 +7857,306 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "metal_price_indices"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      ingest_data_classes: {
+        Row: {
+          code: string
+          is_active: boolean
+          manual_entry_code: string | null
+          name_en: string
+          name_zh: string
+          sort_order: number
+          target_en: string
+          transform_function: string | null
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          manual_entry_code?: string | null
+          name_en: string
+          name_zh: string
+          sort_order: number
+          target_en: string
+          transform_function?: string | null
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          manual_entry_code?: string | null
+          name_en?: string
+          name_zh?: string
+          sort_order?: number
+          target_en?: string
+          transform_function?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingest_data_classes_manual_entry_code_fkey"
+            columns: ["manual_entry_code"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      ingest_inbox: {
+        Row: {
+          attempts: number
+          clock_ahead: boolean
+          data_class: string
+          device_id: string | null
+          discard_reason: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          entered_by: string | null
+          error_code: string | null
+          gateway_id: string | null
+          id: number
+          last_attempt_at: string | null
+          last_attempt_by: string | null
+          payload: Json
+          payload_bytes: number
+          payload_sha256: string
+          received_at: string
+          seq: number | null
+          site_dataset_ref: string | null
+          site_from: string | null
+          site_to: string | null
+          source: string
+          status: string
+          stream: string | null
+          transform_result: Json | null
+          transformed_with: string | null
+          transmission_id: number | null
+        }
+        Insert: {
+          attempts?: number
+          clock_ahead?: boolean
+          data_class: string
+          device_id?: string | null
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          entered_by?: string | null
+          error_code?: string | null
+          gateway_id?: string | null
+          id?: never
+          last_attempt_at?: string | null
+          last_attempt_by?: string | null
+          payload: Json
+          payload_bytes: number
+          payload_sha256: string
+          received_at?: string
+          seq?: number | null
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source: string
+          status?: string
+          stream?: string | null
+          transform_result?: Json | null
+          transformed_with?: string | null
+          transmission_id?: number | null
+        }
+        Update: {
+          attempts?: number
+          clock_ahead?: boolean
+          data_class?: string
+          device_id?: string | null
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          entered_by?: string | null
+          error_code?: string | null
+          gateway_id?: string | null
+          id?: never
+          last_attempt_at?: string | null
+          last_attempt_by?: string | null
+          payload?: Json
+          payload_bytes?: number
+          payload_sha256?: string
+          received_at?: string
+          seq?: number | null
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          status?: string
+          stream?: string | null
+          transform_result?: Json | null
+          transformed_with?: string | null
+          transmission_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingest_inbox_data_class_fkey"
+            columns: ["data_class"]
+            isOneToOne: false
+            referencedRelation: "ingest_data_classes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ingest_inbox_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_inbox_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "ingest_inbox_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_inbox_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "ingest_inbox_transmission_id_fkey"
+            columns: ["transmission_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_transmissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingest_settings: {
+        Row: {
+          clock_ahead_s: number
+          fail_budget: number
+          fail_window_s: number
+          global_reject_budget: number
+          id: boolean
+          max_messages: number
+          max_payload_bytes: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          clock_ahead_s?: number
+          fail_budget?: number
+          fail_window_s?: number
+          global_reject_budget?: number
+          id?: boolean
+          max_messages?: number
+          max_payload_bytes?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          clock_ahead_s?: number
+          fail_budget?: number
+          fail_window_s?: number
+          global_reject_budget?: number
+          id?: boolean
+          max_messages?: number
+          max_payload_bytes?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ingest_transmissions: {
+        Row: {
+          accepted_count: number | null
+          bucket_bytes: number | null
+          bucket_count: number | null
+          bucket_first_at: string | null
+          bucket_last_at: string | null
+          bucket_start: string | null
+          bytes: number | null
+          client_address: string
+          duplicate_count: number | null
+          first_seq: number | null
+          gateway_id: string | null
+          id: number
+          kind: string
+          last_seq: number | null
+          message_count: number | null
+          presented_gateway: string | null
+          presented_key_prefix: string | null
+          received_at: string
+          rejected_count: number | null
+          rejections: Json | null
+          result: string | null
+          stream: string | null
+        }
+        Insert: {
+          accepted_count?: number | null
+          bucket_bytes?: number | null
+          bucket_count?: number | null
+          bucket_first_at?: string | null
+          bucket_last_at?: string | null
+          bucket_start?: string | null
+          bytes?: number | null
+          client_address?: string
+          duplicate_count?: number | null
+          first_seq?: number | null
+          gateway_id?: string | null
+          id?: never
+          kind: string
+          last_seq?: number | null
+          message_count?: number | null
+          presented_gateway?: string | null
+          presented_key_prefix?: string | null
+          received_at?: string
+          rejected_count?: number | null
+          rejections?: Json | null
+          result?: string | null
+          stream?: string | null
+        }
+        Update: {
+          accepted_count?: number | null
+          bucket_bytes?: number | null
+          bucket_count?: number | null
+          bucket_first_at?: string | null
+          bucket_last_at?: string | null
+          bucket_start?: string | null
+          bytes?: number | null
+          client_address?: string
+          duplicate_count?: number | null
+          first_seq?: number | null
+          gateway_id?: string | null
+          id?: never
+          kind?: string
+          last_seq?: number | null
+          message_count?: number | null
+          presented_gateway?: string | null
+          presented_key_prefix?: string | null
+          received_at?: string
+          rejected_count?: number | null
+          rejections?: Json | null
+          result?: string | null
+          stream?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingest_transmissions_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_transmissions_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
           },
         ]
       }
@@ -22850,6 +23386,72 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_health: {
+        Row: {
+          active_keys: number | null
+          code: string | null
+          gateway_id: string | null
+          heartbeat_interval_s: number | null
+          last_call_at: string | null
+          last_heard_at: string | null
+          last_heartbeat_at: string | null
+          name: string | null
+          retired_at: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
+      gateway_keys_masked: {
+        Row: {
+          gateway_id: string | null
+          id: string | null
+          issued_at: string | null
+          issued_by: string | null
+          key_hash: string | null
+          key_prefix: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          gateway_id?: string | null
+          id?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          key_hash?: never
+          key_prefix?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          gateway_id?: string | null
+          id?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          key_hash?: never
+          key_prefix?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_keys_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_keys_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+        ]
+      }
       grn_discrepancies: {
         Row: {
           arrival_date: string | null
@@ -23431,6 +24033,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ingest_sequence_gaps: {
+        Row: {
+          gateway_id: string | null
+          last_received_at: string | null
+          missing_count: number | null
+          missing_from: number | null
+          missing_to: number | null
+          stream: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingest_inbox_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_inbox_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+        ]
+      }
+      ingest_transmission_anomalies: {
+        Row: {
+          anomaly: string | null
+          client_address: string | null
+          gateway_id: string | null
+          inbox_id: number | null
+          occurred_at: string | null
+          occurrences: number | null
+          presented_gateway: string | null
+          seq: number | null
+          transmission_id: number | null
+        }
+        Relationships: []
       }
       invoice_document_totals: {
         Row: {
@@ -25759,6 +26401,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pending_values: {
+        Row: {
+          href: string | null
+          item_code: string | null
+          item_id: string | null
+          item_label: string | null
+          permission: string | null
+          value_code: string | null
+        }
+        Relationships: []
       }
       performance_reviews_masked: {
         Row: {
@@ -31139,6 +31792,10 @@ export type Database = {
         Args: { p_reason: string; p_shipment_id: string }
         Returns: Json
       }
+      discard_inbox_row: {
+        Args: { p_id: number; p_reason: string }
+        Returns: undefined
+      }
       discard_overtime_batch: { Args: { p_batch_id: string }; Returns: Json }
       dispose_fixed_asset: {
         Args: {
@@ -31364,6 +32021,12 @@ export type Database = {
         }
         Returns: Json
       }
+      ingest_process_pending: { Args: { p_limit?: number }; Returns: Json }
+      ingest_submit: {
+        Args: { p_body: Json; p_gateway: string; p_key: string }
+        Returns: Json
+      }
+      ingest_transform_row: { Args: { p_id: number }; Returns: string }
       instantiate_container_documents: {
         Args: { p_container_id: string }
         Returns: Json
@@ -31409,6 +32072,7 @@ export type Database = {
         }
         Returns: Json
       }
+      issue_gateway_key: { Args: { p_gateway_id: string }; Returns: Json }
       journal_activity_lines: {
         Args: { p_from: string; p_include_year_close: boolean; p_to: string }
         Returns: {
@@ -32436,6 +33100,11 @@ export type Database = {
         }
         Returns: string
       }
+      retire_device: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
+      retry_inbox_row: { Args: { p_id: number }; Returns: string }
       revalue_foreign_balances: {
         Args: { p_period_end: string }
         Returns: Json
@@ -32496,6 +33165,10 @@ export type Database = {
       review_approval_code: {
         Args: { p_employee_id: string; p_submitted_by: string }
         Returns: string
+      }
+      revoke_gateway_key: {
+        Args: { p_key_id: string; p_reason: string }
+        Returns: undefined
       }
       role_can_see_amounts: { Args: { p_role_code: string }; Returns: boolean }
       rollback_processing_run: {
@@ -32579,6 +33252,7 @@ export type Database = {
         }
         Returns: Json
       }
+      save_device: { Args: { p_fields: Json; p_id?: string }; Returns: string }
       save_employee: {
         Args: { p_fields: Json; p_history?: Json; p_id: string }
         Returns: string
@@ -32761,6 +33435,7 @@ export type Database = {
         }
         Returns: Json
       }
+      set_ingest_settings: { Args: { p_fields: Json }; Returns: undefined }
       set_initial_salary: {
         Args: {
           p_amount: number
@@ -33242,6 +33917,7 @@ export type Database = {
           view_codes: string[]
         }[]
       }
+      transform_connection_test_v1: { Args: { p_payload: Json }; Returns: Json }
       trial_balance_totals: {
         Args: never
         Returns: {

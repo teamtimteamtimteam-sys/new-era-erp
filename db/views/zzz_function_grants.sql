@@ -581,3 +581,26 @@ REVOKE EXECUTE ON FUNCTION public.trail_actor(text, uuid, uuid) FROM authenticat
 --   (与 trail_subjects 同一个理由:fixture 与检查脚本会调)。save_employee【不收】:它是员工表单的那一次写入,
 --   按调用者的身份跑(SECURITY INVOKER),表的策略与守卫照常管。
 REVOKE EXECUTE ON FUNCTION public.trail_root_gate(text, text, jsonb) FROM authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★★ MES-1(2026-10-06):本仓库【第二条】、也是 MES 组里【唯一一条】给 anon 的 EXECUTE ★★★
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【它是什么】ingest_submit(text, text, jsonb) —— 车间网关唯一够得着的东西(MES-0 Q4,Tim)。网关带着项目的公开 apikey
+--   POST /rest/v1/rpc/ingest_submit;它的"权限"是那把 244 位随机的网关钥匙,函数里只比 sha256(MES-0 Q5)。
+-- 【它碰得到什么】白名单:只插入收件箱、传输日志与网关中断(两种桶的四个计数列除外),一行设备都不改,不跑转换代码,
+--   只回调用者自己的序号与固定的码。函数抬头逐条写着;fixture 249 按事务内的逐表计数证"它只写了这三张"。
+-- 【为什么给 anon,不给一个登录角色或一个 Supabase 账号】MES-0 §3.3:authenticated 默认执行每一支函数、44 条策略
+--   USING (true) —— 一个登录的网关第一天就读得到内部的表;而 db/check_grants.py 只看 anon,一个登录角色它看不见。
+-- ⚠★【必须写在这里,写在本文件第一句 REVOKE 的后面】与 cod_verification 同一个理由:apply_migration.sh 把本文件拼在
+--   COMMIT 之前、同一个事务里重跑,一条只写在迁移里的 GRANT 会被那句 REVOKE 冲掉,而迁移报告成功。
+GRANT EXECUTE ON FUNCTION public.ingest_submit(text, text, jsonb) TO anon;
+-- ★ 而且【只】给 anon(MES-1 Step 0 Q4,Tim):本文件第 31 行把每一支函数授给 authenticated 与 service_role ——
+--   给了 authenticated,任何一个登录的人都能冒充网关送数(只要拿得到钥匙)而且绕开网关那条路的全部语义;
+--   service_role 是服务端的钥匙,没有一条合法的服务端路径要调它。两个都收回;fixture 249 GRANT 臂两个都断言。
+--   ☞ 这两句写在第 31 行【之后】,所以每一次重放都是"先全授、再收回"—— 顺序就是判据。
+REVOKE EXECUTE ON FUNCTION public.ingest_submit(text, text, jsonb) FROM authenticated, service_role;
+
+-- MES-1:分派器与转换器是【内层】—— 没有调用者检查,只由 ingest_process_pending / retry_inbox_row(各自查码)以属主身份调。
+--   给了 authenticated,就是一支"随便哪一行收件箱都替你转换"的后门,也绕开了处理按钮的那一道码。
+REVOKE EXECUTE ON FUNCTION public.ingest_transform_row(bigint) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.transform_connection_test_v1(jsonb) FROM authenticated;

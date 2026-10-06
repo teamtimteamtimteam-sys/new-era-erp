@@ -166,6 +166,13 @@
 --     **它不拦任何东西**:拦的那一半由 nea_import 的 block 处置在收货上做
 --     (supplier_receiving_blocked → trg_inbound_batches_po_receivable),
 --     这一支说的是"这一票还欠一次人工核对"。理由见 db/tables/inbound_batches.sql 的列注。
+-- MES-1(2026-10-06,MES-1 Step 0 Q16 · Q17 · Q23,Tim):第 48–49 支 ——
+--   · gateway_silent:一台网关此刻在沉默 —— 它的心跳间隔给了,而最后一次听到它已经超过那个间隔(gateway_health.status = silent)。
+--     一次都没听到过的("Not yet heard from")与间隔没给的("Not yet set")【不上牌】:前者是还没调试的正常状态(Q16),
+--     后者是沉默无从判断(Q17)。item_id = 那台网关(/operation/devices/[id])。
+--   · capture_inbox_failed:收件箱里有转换失败的行 —— 按设备合成一块(item_id = 设备,subject = 设备名 · 失败行数,
+--     item_date = 最早的那一行)。不为 awaiting_transform 上牌:那是每一个还没接上转换器的类的正常状态(Q23)。
+--   两支都只要 module.processing.view;规格在 docs/dashboard-arm-inventory.md。
 CREATE VIEW public.operations_now AS
  SELECT item_type,
     permission,
@@ -523,6 +530,33 @@ CREATE VIEW public.operations_now AS
             ess_1.baseline_date AS item_date
            FROM equipment_service_status ess_1
           WHERE ess_1.monitored AND ess_1.disposition = 'warn'::text AND ess_1.equipment_status <> 'disposed'::text AND ess_1.is_approaching
+        UNION ALL
+         SELECT 'gateway_silent'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            gh.gateway_id AS item_id,
+            NULL::text AS doc_kind,
+            gh.code AS item_code,
+            gh.name AS subject,
+            gh.last_heard_at::date AS item_date
+           FROM gateway_health gh
+          WHERE gh.status = 'silent'::text
+        UNION ALL
+         SELECT 'capture_inbox_failed'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            f.device_id AS item_id,
+            NULL::text AS doc_kind,
+            f.device_code AS item_code,
+            (f.device_name || ' · '::text) || f.failed_rows::text AS subject,
+            f.first_failed AS item_date
+           FROM ( SELECT b.device_id,
+                    d.code AS device_code,
+                    d.name AS device_name,
+                    count(*) AS failed_rows,
+                    min(b.received_at)::date AS first_failed
+                   FROM ingest_inbox b
+                     JOIN devices d ON d.id = b.device_id
+                  WHERE b.status = 'failed'::text
+                  GROUP BY b.device_id, d.code, d.name) f
         UNION ALL
          SELECT 'promise_overdue'::text AS item_type,
             'module.finance.view'::text AS permission,

@@ -4,9 +4,9 @@
 --
 -- 【为什么住在 db/views/ 而不是各自的表镜像里】与 zzz_function_grants.sql 同一个理由:重放顺序是
 --   functions → tables → views,而 views 阶段按名字排、zzz 排最后 —— 到这里每一张表都已经建好。
---   一份文件放 238 张表的绑定,比在 238 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
+--   一份文件放 242 张表的绑定,比在 242 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
 --   与它们写在哪个文件里无关。
--- 【豁免】change_log_exclusions() 里那 4 张不在这里(理由写在那支函数里)。
+-- 【豁免】change_log_exclusions() 里那 7 张不在这里(理由写在那支函数里)。
 -- 【名字以 zzz 开头】同一张表上的 AFTER 触发器按名字排序触发 —— 记录最后一个看到那一行。
 -- 【参数是主键列名】change_log_capture 用它们拼 row_key;复合主键就是多个参数。
 
@@ -214,6 +214,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.departm
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.departments
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.devices
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.devices
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.document_relation_exceptions
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('owner_table', 'column_a', 'column_b');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.document_relation_exceptions
@@ -318,6 +322,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.fx_rate
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.fx_rates
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.gateway_keys
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.gateway_keys
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.gst_filing_requests
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.gst_filing_requests
@@ -369,6 +377,14 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.inbound_source_r
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.index_market_calendar
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('index_code', 'calendar_date');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.index_market_calendar
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.ingest_data_classes
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.ingest_data_classes
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.ingest_settings
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.ingest_settings
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.inventory_movements
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');

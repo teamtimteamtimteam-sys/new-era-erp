@@ -1008,12 +1008,15 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     review_cycle: ['review_cycles'],
     review_rating_scale: ['review_rating_scale'],
     kpi_entry: ['kpi_entries'],
+    // MES-1(2026-10-06):设备(网关钥匙是它的成员)· 采集上限(单行设置)。收件箱、传输日志与中断不进变更记录(MES-0 Q14)。
+    device: ['devices', 'gateway_keys'],
+    ingest_settings: ['ingest_settings'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
-    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1038,6 +1041,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     // AUDIT-TRAIL-1d-3(评分刻度是 M11 集合,与字典同一种说法:"Rating added / changed / deactivated")
     payroll_period: 'pay', performance_review: 'review', my_review: 'review', review_cycle: 'review', review_rating_scale: 'dict',
     kpi_entry: 'kpi',
+    // MES-1
+    device: 'device', ingest_settings: 'settings',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1120,6 +1125,8 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (PAY_TABLES.has(t)) return 'pay'
     if (REVIEW_TABLES.has(t)) return 'review'
     if (t === 'kpi_entries') return 'kpi'
+    // MES-1
+    if (t === 'devices' || t === 'gateway_keys') return 'device'
     if (t === 'review_rating_scale') return 'dict'
     return null
 }
@@ -1662,6 +1669,37 @@ function describeEquipment(d: TrailDict, rows: TrailRow[], opts: BuildOptions, s
     for (const r of by('shift_handover_equipment_refs')) {
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
         out.push({ title: tx(d, 'eq.handoverNote'), lines: valueLines(d, r, r.new, opts), key: false, weight: 30 })
+    }
+    return out
+}
+
+// ── MES-1(2026-10-06):设备与网关钥匙 ──────────────────────────────────────────
+// 【钥匙那一块只说前缀】"Gateway key issued · 1a2b3c4d…" —— 前缀是 typed 的那一截(不拼进固定措辞,机器字检出器不扫它);
+//   哈希在变更记录里被 never 规则遮住(Q20),这里一个字都不提它。撤销那一块带理由。
+// 【停用】先问:停用那一次 UPDATE 不是一次"修改"(同一次里网关的钥匙一并撤销,各自一块)。
+// 【编号】编号在标题里已经说了(这一页就是它),新登记那一块不再印 code。
+function describeDevice(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows) {
+        if (r.table === 'devices') {
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'dev.registered'), lines: valueLines(d, r, r.new, opts, new Set(['code'])), key: true, weight: 90 })
+            } else if (isSet(r, 'retired_at')) {
+                out.push({ title: tx(d, 'dev.retired'), lines: [], reason: typed(r.new?.['retire_reason']), key: true, weight: 85 })
+            } else if (r.op === 'UPDATE') {
+                const ls = changeLines(d, r, opts)
+                if (ls.length) out.push({ title: tx(d, 'dev.changed'), lines: ls, key: true, weight: 50 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'gateway_keys') {
+            const prefix = str(r, 'key_prefix')
+            // 只给那 8 个字符:'ngk_' 前缀是一个机器标识的样子(机器字检出器会认它),而它对每一把钥匙都一样,不帮人认出哪一把
+            const part = prefix ? typed(`${prefix}…`) : null
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'dev.keyIssued'), part, lines: [], key: true, weight: 80 })
+            } else if (isSet(r, 'revoked_at')) {
+                out.push({ title: tx(d, 'dev.keyRevoked'), part, lines: [], reason: typed(r.new?.['revoke_reason']), key: true, weight: 80 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else out.push(describeGeneric(d, r, opts))
     }
     return out
 }
@@ -2614,6 +2652,8 @@ function describeTask(d: TrailDict, rows: TrailRow[], opts: BuildOptions, titles
 // ── 三个阈值面板(每一块只看它自己编辑的那几列,M6)───────────────────────────
 const SETTINGS_TITLE: Record<string, TrailTextKey> = {
     processing_settings: 'set.processing', pricing_settings: 'set.pricing', receiving_settings: 'set.receiving',
+    // MES-1(Q22):采集上限的修改史就是变更记录
+    ingest_settings: 'set.ingest',
 }
 function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     return rows.map((r) => r.op === 'UPDATE'
@@ -4861,6 +4901,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'pay': bs = describePay(d, list, opts, hc); break
                 case 'review': bs = describeReview(d, list, opts, hc); break
                 case 'kpi': bs = describeKpi(d, list, opts); break
+                case 'device': bs = describeDevice(d, list, opts); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它

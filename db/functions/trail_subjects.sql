@@ -142,6 +142,11 @@
 --                      根表的读规则是 (hr.view 且 view_reviews) 或本人 —— 不持 view_reviews 的读者在页面那一支就进不来
 -- 【后面几刀加主语】加一行这里、在 trail_subject_members 里登记它的子行与相关行、需要的话在
 --   trail_prelog_sources 里登记"记录开始之前"的来源,然后在 lib/trail/ 里补它的措辞 —— 见 docs/change-log.md §9。
+-- MES-1(2026-10-06,MES-1 Step 0 Q21 · Q22,Tim):
+--   device          → /operation/devices/[id]           requireModule(MOD.processing) = module.processing.view
+--                     成员 gateway_keys(钥匙的发放与撤销;哈希被 never 规则遮住)。收件箱、传输日志与中断不进变更记录(MES-0 Q14),
+--                     所以不在这里 —— 设备页把中断单独列成一块(Q21)。
+--   ingest_settings → /operation/devices 上的传输上限面板  module.processing.view;单行设置作根(M5),修改史就是变更记录(Q22)
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])
  LANGUAGE sql
@@ -246,6 +251,9 @@ AS $function$
         ('my_review',           ARRAY[]::text[],                  'performance_reviews', 'id', 'gate:reviewer', NULL),
         ('review_cycle',        ARRAY['module.hr.view'],          'review_cycles',       'id', 'table', NULL),
         ('review_rating_scale', ARRAY['module.hr.view'],          'review_rating_scale', 'code', 'collection', NULL),
-        ('kpi_entry',           ARRAY['module.hr.view'],          'kpi_entries',         'id', 'table', NULL)
+        ('kpi_entry',           ARRAY['module.hr.view'],          'kpi_entries',         'id', 'table', NULL),
+        -- MES-1
+        ('device',              ARRAY['module.processing.view'],  'devices',             'id', 'table', NULL),
+        ('ingest_settings',     ARRAY['module.processing.view'],  'ingest_settings',     'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

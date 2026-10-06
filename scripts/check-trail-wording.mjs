@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -4492,6 +4492,131 @@ if (FAULT === 'wording-drift-u1b') dict.text = { ...dict.text, 'eq.downVoided': 
     if (FAULT === 'wording-drift-u1b' && !problems.gold14.length) problems.gold14.push('(注入 wording-drift-u1b 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑮ MES-1 的设备与网关钥匙(MES-1 Step 0 Q20 · Q21 · Q22)────────────────────────────────────────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-1.md 列出。
+//   登记一台网关是一条关键事件(编号在标题里,不再印)· 给心跳间隔是一次"修改" · 停用带理由 ·
+//   发钥匙与撤钥匙各一块,只说那 8 个字符的前缀(哈希一个字都不提 —— 它在变更记录里被 never 规则遮住)·
+//   采集上限的修改是"Ingestion limits changed"。注入 wording-drift-mes1 → 这一臂必须红。
+problems.gold15 = []
+if (FAULT === 'wording-drift-mes1') dict.text = { ...dict.text, 'dev.keyRevoked': 'Gateway key deleted' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const gw = id('gw')
+    const gwRow = { code: 'DEV-2026-0001', name: 'Line 1 gateway', kind: 'gateway', interface_status: 'reserved', heartbeat_interval_s: null }
+    const D15 = { subject: 'device', recordId: gw, currency: null }
+    add('device · a gateway registered', D15, [
+        { table: 'devices', op: 'INSERT', key: { id: gw }, new: { ...gwRow, term_protocol: 'not_confirmed', station: 'Line 1' } }])
+    add('device · its heartbeat interval set', D15, [
+        { table: 'devices', op: 'UPDATE', key: { id: gw }, cols: ['heartbeat_interval_s', 'updated_at', 'updated_by'],
+          old: { heartbeat_interval_s: null }, new: { heartbeat_interval_s: 60 }, ctx: gwRow }])
+    add('device · a contract term confirmed', D15, [
+        { table: 'devices', op: 'UPDATE', key: { id: gw }, cols: ['term_point_list', 'updated_at', 'updated_by'],
+          old: { term_point_list: 'not_confirmed' }, new: { term_point_list: 'confirmed' }, ctx: gwRow }])
+    add('device · retired with a reason', D15, [
+        { table: 'devices', op: 'UPDATE', key: { id: gw }, cols: ['retired_at', 'retired_by', 'retire_reason', 'updated_at', 'updated_by'],
+          old: { retired_at: null, retired_by: null, retire_reason: null },
+          new: { retired_at: '2026-10-06T02:00:00Z', retired_by: id('u'), retire_reason: 'Replaced by the new gateway' }, ctx: gwRow }])
+    add('gateway key · issued (the prefix only, never the hash)', D15, [
+        { table: 'gateway_keys', op: 'INSERT', key: { id: id('k1') },
+          new: { gateway_id: gw, key_prefix: '1a2b3c4d', key_hash: { $restricted: true }, issued_at: '2026-10-06T01:00:00Z', issued_by: id('u') } }])
+    add('gateway key · revoked with a reason', D15, [
+        { table: 'gateway_keys', op: 'UPDATE', key: { id: id('k1') }, cols: ['revoked_at', 'revoked_by', 'revoke_reason'],
+          old: { revoked_at: null, revoked_by: null, revoke_reason: null },
+          new: { revoked_at: '2026-10-06T03:00:00Z', revoked_by: id('u'), revoke_reason: 'Rotated to the new key' },
+          ctx: { gateway_id: gw, key_prefix: '1a2b3c4d' } }])
+    add('ingestion limits · the payload cap changed', { subject: 'ingest_settings', recordId: 'true', currency: null }, [
+        { table: 'ingest_settings', op: 'UPDATE', key: { id: true }, cols: ['max_payload_bytes', 'updated_at', 'updated_by'],
+          old: { max_payload_bytes: 262144 }, new: { max_payload_bytes: 524288 }, ctx: { id: true } }])
+    const WANT = {
+        "device · a gateway registered": {
+            "title": "Device registered",
+            "part": null,
+            "lines": [
+                "Name: Line 1 gateway",
+                "Kind: Gateway",
+                "Interface: Not yet connected — entered by hand",
+                "Standard industrial protocol: Not yet confirmed",
+                "Station: Line 1"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "device · its heartbeat interval set": {
+            "title": "Device changed",
+            "part": null,
+            "lines": [
+                "Heartbeat interval (seconds): (empty) → 60"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "device · a contract term confirmed": {
+            "title": "Device changed",
+            "part": null,
+            "lines": [
+                "Complete list of readable parameters: Not yet confirmed → Confirmed"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "device · retired with a reason": {
+            "title": "Device retired",
+            "part": null,
+            "lines": [],
+            "reason": "Replaced by the new gateway",
+            "who": "Phua"
+        },
+        "gateway key · issued (the prefix only, never the hash)": {
+            "title": "Gateway key issued",
+            "part": "1a2b3c4d…",
+            "lines": [],
+            "reason": null,
+            "who": "Phua"
+        },
+        "gateway key · revoked with a reason": {
+            "title": "Gateway key revoked",
+            "part": "1a2b3c4d…",
+            "lines": [],
+            "reason": "Rotated to the new key",
+            "who": "Phua"
+        },
+        "ingestion limits · the payload cap changed": {
+            "title": "Ingestion limits changed",
+            "part": null,
+            "lines": [
+                "Largest call (bytes): 262,144 → 524,288"
+            ],
+            "reason": null,
+            "who": "Phua"
+        }
+    }
+    const got15 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 7) problems.gold15.push(`⑮ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD15', order: 1, prelog: false, at: '2026-10-06T02:00:00+00:00', key: { id: uuid() },
+            actor: c.actor ?? { state: 'person', name: 'Phua' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold15.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD15')
+        if (mine.length !== 1) { problems.gold15.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got15[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold15.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold15.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold15.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+        if (JSON.stringify(got).includes('key_hash') || /Key hash/i.test(JSON.stringify(got))) problems.gold15.push(`${c.label}:钥匙的哈希出现在记录里`)
+    }
+    if (process.env.TRAIL_GOLD15_PRINT) console.log(JSON.stringify(got15, null, 8))
+    if (FAULT === 'wording-drift-mes1' && !problems.gold15.length) problems.gold15.push('(注入 wording-drift-mes1 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -4499,7 +4624,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

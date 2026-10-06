@@ -35,6 +35,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'leave_request' | 'my_leave_request' | 'leave_grant' | 'leave_types' | 'public_holidays' | 'medical_claim' | 'my_medical_claim'
     | 'overtime_batch' | 'attendance_period'
     | 'payroll_period' | 'performance_review' | 'my_review' | 'review_cycle' | 'review_rating_scale' | 'kpi_entry'
+    | 'device' | 'ingest_settings'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -130,6 +131,9 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     review_cycle: 'review_cycles',
     review_rating_scale: 'review_rating_scale',
     kpi_entry: 'kpi_entries',
+    // MES-1
+    device: 'devices',
+    ingest_settings: 'ingest_settings',
 }
 
 export const PAGE = 20

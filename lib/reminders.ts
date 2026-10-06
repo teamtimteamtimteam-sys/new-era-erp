@@ -205,6 +205,15 @@ export const REMINDERS = [
       permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/operation/equipment',
       itemHref: (r: OpsRow) => `/operation/equipment/${r.item_id}` },
 
+    // ══ MES-1(2026-10-06,MES-1 Step 0 Q16 · Q17 · Q23):采集层的两支 ═════════════════════════
+    // 【gateway_silent】一台网关的心跳间隔给了,而最后一次听到它已经超过那个间隔。门牌指那台网关的设备页(状态、
+    //   最后一次听到、中断那一块都在那里)。从没听到过的与间隔没给的不上牌(Q16 · Q17)。
+    // 【capture_inbox_failed】收件箱里有转换失败的行 —— 按设备合成一块;门牌指收件箱、只列失败的那几行(重试 / 丢弃在那一页)。
+    { itemType: 'gateway_silent', permission: 'module.processing.view', href: '/operation/devices',
+      itemHref: (r: OpsRow) => `/operation/devices/${r.item_id}` },
+    { itemType: 'capture_inbox_failed', permission: 'module.processing.view', href: '/operation/capture/inbox?status=failed',
+      itemHref: () => '/operation/capture/inbox?status=failed' },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

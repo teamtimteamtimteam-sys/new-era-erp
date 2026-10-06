@@ -68,7 +68,10 @@ CREATE POLICY "role_permissions delete by permission"
 --     在四眼上被当成自批拒掉(同一个人两个账号)—— 拿掉它们,那一整类尴尬就不存在了。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'action.manage_permissions', 'action.bulk_import', 'action.anonymise_employee'
+        'action.manage_permissions', 'action.bulk_import', 'action.anonymise_employee',
+        -- MES-1(2026-10-06):网关钥匙是凭据 —— 发 / 撤一把钥匙与授一个角色同一类管理动作,所以引导的 admin 也持它
+        --   (线上的持有人 admin · cto 在迁移里授;引导里没有 cto 这个角色,ROLE1-BOOTSTRAP-MISSING-ROLES)。
+        'action.manage_devices'
 ) WHERE r.code = 'admin';
 
 -- gm:看得见整个生意,包括成本与利润;【但不操作任何东西】。

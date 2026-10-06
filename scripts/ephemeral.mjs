@@ -234,7 +234,7 @@ export const THROWAWAY_EMAIL_PREFIXES = Object.freeze([
     'sampler', 'btnprobe', 'hdrbase', 'almprobe', 's1probe', 'stylec', 'cfmprobe', 'datepick1probe',
     'input0', 'a2aprobe', 'navprobe', 'avatarprobe',
     'draft1probe', 'draft2probe', 'draft3probe', 'draft3before', 'draft4probe', 'draft5probe',
-    'draft6probe', 'draft7probe',
+    'draft6probe', 'draft7probe', 'mes1probe',
 ])
 /** U1-B 之前用过、现在没人再造的前缀 —— 清扫仍然要认得它们留下的东西。 */
 export const THROWAWAY_LEGACY_EMAIL_PREFIXES = Object.freeze(['probe', 'pdf'])

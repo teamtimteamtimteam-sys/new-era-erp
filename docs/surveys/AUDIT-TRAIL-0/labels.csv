@@ -2969,3 +2969,57 @@ year_closes,reopened_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) →
 year_closes,reopened_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Reopened by,,,uuid
 year_closes,reopen_reason,text,verbatim,finance.yearClose.reopenReason,Reason (required),,high,app/finance/close/YearClosePanel.tsx:78,text
 year_closes,reversal_journal_id,fk_document,"journal_entries.code (document number, prefix JE)",,,Reversal journal,,,uuid
+devices,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+devices,code,own_key,show as-is: the record's own business key (code/number),,,Device code,,,text
+devices,name,text,verbatim,devices.form.name,Name,,high,app/operation/devices/DeviceForm.tsx,text
+devices,kind,enum,message keys devices.kind.<v>,devices.form.kind,Kind,,high,app/operation/devices/DeviceForm.tsx,text
+devices,gateway_id,fk_document,"devices.code (document number, prefix DEV)",devices.form.gateway,Carried by gateway,,high,app/operation/devices/DeviceForm.tsx,uuid
+devices,data_class,dict,ingest_data_classes (data class name),devices.form.dataClass,Data class,,high,app/operation/devices/DeviceForm.tsx,text
+devices,equipment_id,fk_document,"fixed_assets.code (document number, prefix FA)",devices.form.machine,Machine,,high,app/operation/devices/DeviceForm.tsx,uuid
+devices,station,text,verbatim,devices.form.station,Station,,high,app/operation/devices/DeviceForm.tsx,text
+devices,capacity,number,"number with unit (qty kg, %, rate); Intl en-US grouping",devices.form.capacity,Capacity,,high,app/operation/devices/DeviceForm.tsx,numeric
+devices,resolution,number,"number with unit (qty kg, %, rate); Intl en-US grouping",devices.form.resolution,Resolution,,high,app/operation/devices/DeviceForm.tsx,numeric
+devices,unit,text,verbatim,devices.form.unit,Unit,,high,app/operation/devices/DeviceForm.tsx,text
+devices,protection_rating,text,verbatim,devices.form.protection,Dust and corrosion protection rating,,high,app/operation/devices/DeviceForm.tsx,text
+devices,interface_status,enum,message keys devices.interface.<v>,devices.form.interfaceStatus,Interface,,high,app/operation/devices/DeviceForm.tsx,text
+devices,term_protocol,enum,message keys devices.termState.<v>,devices.terms.term_protocol,Standard industrial protocol,,high,app/operation/devices/DeviceForm.tsx,text
+devices,term_point_list,enum,message keys devices.termState.<v>,devices.terms.term_point_list,Complete list of readable parameters,,high,app/operation/devices/DeviceForm.tsx,text
+devices,term_timestamp_precision,enum,message keys devices.termState.<v>,devices.terms.term_timestamp_precision,Sampling rate and timestamp precision,,high,app/operation/devices/DeviceForm.tsx,text
+devices,term_no_charge,enum,message keys devices.termState.<v>,devices.terms.term_no_charge,Data interface at no extra charge,,high,app/operation/devices/DeviceForm.tsx,text
+devices,term_retention_export,enum,message keys devices.termState.<v>,devices.terms.term_retention_export,Local history retention and bulk export,,high,app/operation/devices/DeviceForm.tsx,text
+devices,term_documentation,enum,message keys devices.termState.<v>,devices.terms.term_documentation,Interface documentation delivered,,high,app/operation/devices/DeviceForm.tsx,text
+devices,heartbeat_interval_s,number,"number with unit (qty kg, %, rate); Intl en-US grouping",devices.form.heartbeat,Heartbeat interval (seconds),,high,app/operation/devices/DeviceForm.tsx,integer
+devices,notes,text,verbatim,devices.form.notes,Notes,,high,app/operation/devices/DeviceForm.tsx,text
+devices,retired_at,timestamp_audit,formatAuditStamp,,,Retired on,,,timestamp with time zone
+devices,retired_by,actor,person who acted,,,Retired by,,,uuid
+devices,retire_reason,text,verbatim,,,Reason for retiring,,,text
+devices,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+devices,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+devices,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+devices,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+gateway_keys,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+gateway_keys,gateway_id,fk_document,"devices.code (document number, prefix DEV)",,,Gateway,,,uuid
+gateway_keys,key_prefix,text,verbatim,devices.keys.colKey,Key,,high,app/operation/devices/KeysPanel.tsx,text
+gateway_keys,key_hash,technical,hide: a one-way hash nobody is shown (MES-1 Q20),,,Key hash,,,bytea
+gateway_keys,issued_at,timestamp_audit,formatAuditStamp,devices.keys.colIssued,Issued,,high,app/operation/devices/KeysPanel.tsx,timestamp with time zone
+gateway_keys,issued_by,actor,person who acted,,,Issued by,,,uuid
+gateway_keys,revoked_at,timestamp_audit,formatAuditStamp,devices.keys.colRevoked,Revoked,,high,app/operation/devices/KeysPanel.tsx,timestamp with time zone
+gateway_keys,revoked_by,actor,person who acted,,,Revoked by,,,uuid
+gateway_keys,revoke_reason,text,verbatim,,,Reason for revoking,,,text
+ingest_settings,id,own_key,show as-is: the record's own business key (code/number),,,ID,,,boolean
+ingest_settings,fail_budget,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Failed calls per gateway code before they stop being listed,,,integer
+ingest_settings,fail_window_s,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Failure window (seconds),,,integer
+ingest_settings,global_reject_budget,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Failed calls in all before they stop being listed,,,integer
+ingest_settings,max_payload_bytes,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Largest call (bytes),,,integer
+ingest_settings,max_messages,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Most messages in one call,,,integer
+ingest_settings,clock_ahead_s,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Clock-ahead threshold (seconds),,,integer
+ingest_settings,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+ingest_settings,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+ingest_data_classes,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+ingest_data_classes,name_en,text,verbatim,,,Name (EN),,,text
+ingest_data_classes,name_zh,text,verbatim,,,Name (ZH),,,text
+ingest_data_classes,target_en,text,verbatim,,,Becomes,,,text
+ingest_data_classes,transform_function,technical,hide: an internal function name,,,Transformer,,,text
+ingest_data_classes,manual_entry_code,text,verbatim,,,Permission for manual entry,,,text
+ingest_data_classes,is_active,boolean,Yes / No,,,Active,,,boolean
+ingest_data_classes,sort_order,technical,hide: display order,,,Sort order,,,integer

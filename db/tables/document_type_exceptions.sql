@@ -59,6 +59,7 @@ INSERT INTO public.document_type_exceptions (table_name, reason) VALUES
     ('deep_discharge_judgements',     '深放电判定的取值目录,进料检验行引用它'),
     ('departments',                   '组织架构的部门节点,不是一张开得出来的单据'),
     ('handover_item_types',           '交接班检查项的种类目录'),
+    ('ingest_data_classes',           '采集层的数据类目录(MES-1):code 是数据类代号,收件箱行与设备引用它'),
     ('inbound_chemistry_certainties', '进料化学确定度的取值目录'),
     ('inbound_safety_states',         '进料安全状态的取值目录'),
     ('inbound_source_reasons',        '进料来源原因的取值目录'),

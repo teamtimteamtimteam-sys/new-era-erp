@@ -131,8 +131,9 @@ BEGIN
 
     -- ══════════════ O · 覆盖 ══════════════
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j->'gaps') IS DISTINCT FROM 0 OR COALESCE((v_j->>'examined')::int, 0) < 200 OR (v_j->>'excluded')::int IS DISTINCT FROM 4 THEN
-        RAISE EXCEPTION 'FIXTURE 235O1 失败:重建库应零缺口(看了 ≥ 200 张、4 张豁免),实为 %', v_j;
+    IF jsonb_array_length(v_j->'gaps') IS DISTINCT FROM 0 OR COALESCE((v_j->>'examined')::int, 0) < 200 OR (v_j->>'excluded')::int IS DISTINCT FROM 7 THEN
+        -- ★ MES-1(2026-10-06,MES-0 Q14):4 → 7 —— 采集层的三份日志(收件箱 · 传输日志 · 网关中断)豁免,理由在 change_log_exclusions()
+        RAISE EXCEPTION 'FIXTURE 235O1 失败:重建库应零缺口(看了 ≥ 200 张、7 张豁免),实为 %', v_j;
     END IF;
     BEGIN
         CREATE TABLE public.fx235_orphan (id integer PRIMARY KEY);

@@ -492,14 +492,16 @@ BEGIN
         RAISE EXCEPTION 'B1 失败:匿名请求从 % 个关系里读到了行:%', v_univ, v_leak;
     END IF;
 
-    -- 函数那一半:anon 能执行的必须【正好】是那一支
+    -- 函数那一半:anon 能执行的必须【正好】是那两支(按签名认 —— 一支同名重载在这里会红,B1/B2 的名单按名字认看不见它)
+    -- ★ MES-1(2026-10-06):1 → 2 —— ingest_submit(text,text,jsonb),车间网关的入口(MES-0 Q4,Tim)。
+    --   仍然是【恰好】,不是"至少":多出第三支,这一格照样红。
     SELECT COALESCE(string_agg(p.oid::regprocedure::text, ', ' ORDER BY p.proname), '')
       INTO v_fns
       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'public' AND p.prokind = 'f'
        AND has_function_privilege('anon', p.oid, 'EXECUTE');
-    IF v_fns <> 'cod_verification(text)' THEN
-        RAISE EXCEPTION 'B2 失败:anon 能执行的函数不是【正好那一支】,而是:%', v_fns;
+    IF v_fns <> 'cod_verification(text), ingest_submit(text,text,jsonb)' THEN
+        RAISE EXCEPTION 'B2 失败:anon 能执行的函数不是【正好那两支】,而是:%', v_fns;
     END IF;
     SELECT count(*) INTO v_rows FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'public' AND p.prokind = 'f';

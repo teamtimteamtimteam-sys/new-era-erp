@@ -12,6 +12,7 @@ export const MASKED_TABLES: ReadonlySet<string> = new Set([
     'company_profile',
     'employees',
     'employment_history',
+    'gateway_keys',
     'inbound_batches',
     'invoice_lines',
     'invoices',

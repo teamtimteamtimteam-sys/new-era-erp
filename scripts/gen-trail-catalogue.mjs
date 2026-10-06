@@ -680,6 +680,8 @@ const HIDE = {
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
 const TABLE_NAMES = {
+    // MES-1(2026-10-06)
+    devices: 'device', gateway_keys: 'gateway key', ingest_settings: 'ingestion limits', ingest_data_classes: 'data class',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -754,6 +756,8 @@ const TABLE_NAMES = {
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
+    // MES-1:设备登记与采集层归加工(/operation/devices)
+    [/^(devices|gateway_key|ingest_)/, 'Processing'],
     [/^(company_profile|list_ledger)/, 'Finance'],
     [/^(counterparty_contact|qt_issue|so_issue|statement_issue)/, 'Sales'],
     [/^(document_relation|document_type|import_batch)/, 'Settings'],
@@ -797,6 +801,18 @@ function humanTable(t) {
 // ── 取值的英文 ───────────────────────────────────────────────────────────────
 // 【没登记在 check-i18n 里、而这一刀三个主语要用的】—— 措辞写在这里,交回报告列出。
 const ENUM_OVERRIDES = {
+    // MES-1(2026-10-06):数据类的英文名(字典 ingest_data_classes 的 name_en,只经迁移改 —— 与它逐字同一份);
+    //   采购合同的六条条款共用一组状态词,check-i18n 只把 devices.termState.* 登记在 term_protocol 上,其余五列在这里给同一组
+    'devices#data_class': {
+        connection_test: 'Connection test', weighing: 'Weighing', discharge_module: 'Discharge result per module',
+        controller_summary: 'Controller batch summary', meter_reading: 'Meter reading', workstation_event: 'Workstation event',
+        scan: 'Scan', inline_quality: 'Inline quality reading', safety_alarm: 'Safety alarm',
+    },
+    'devices#term_point_list': { not_confirmed: 'Not yet confirmed', confirmed: 'Confirmed', not_offered: 'Not offered by the vendor' },
+    'devices#term_timestamp_precision': { not_confirmed: 'Not yet confirmed', confirmed: 'Confirmed', not_offered: 'Not offered by the vendor' },
+    'devices#term_no_charge': { not_confirmed: 'Not yet confirmed', confirmed: 'Confirmed', not_offered: 'Not offered by the vendor' },
+    'devices#term_retention_export': { not_confirmed: 'Not yet confirmed', confirmed: 'Confirmed', not_offered: 'Not offered by the vendor' },
+    'devices#term_documentation': { not_confirmed: 'Not yet confirmed', confirmed: 'Confirmed', not_offered: 'Not offered by the vendor' },
     'approval_log#decision': {
         submitted: 'Submitted for approval', approved: 'Approved', rejected: 'Rejected', auto_approved: 'Approved automatically',
         approval_voided: 'Approval withdrawn', recalled: 'Recalled', withdrawn: 'Withdrawn', countersigned: 'Countersigned',

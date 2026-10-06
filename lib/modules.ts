@@ -453,6 +453,11 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/operation/handovers', navKey: 'processing.subnav.handovers', modules: ['operation'], permission: P_PROCESSING },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
+    // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
+    //   重试 / 丢弃收件箱的行要 action.manage_devices(页内的控件看得见、按不动、说出缺哪个码 —— DBLOCK-1)。
+    { href: '/operation/devices', navKey: 'processing.subnav.devices', modules: ['operation'], permission: P_PROCESSING },
+    // MES-1:数据收件箱 —— 设备页上一键可达(parent),所以不在二级菜单里另起一条;"Process received" 那一个按钮要的也是加工查看码(Q11)。
+    { href: '/operation/capture/inbox', navKey: 'processing.subnav.captureInbox', modules: ['operation'], permission: P_PROCESSING, parent: '/operation/devices' },
 
     // ══ 销售 Sales ══════════════════════════════════════════════════════════
     // ★【CONV-6 ⑤c:销售也【此前没有模块根】,与物流同一处缺席】★
@@ -888,6 +893,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   放在设置(它是审计性质的,与被删记录挨着),也放在财务的「报表」一组 —— cfo 的日常在财务,
     //   从那里也够得着。判据只有 data.view_change_log 一个码。
     { href: '/settings/change-history', navKey: 'changeHistory.title', modules: ['settings', 'finance'], permission: P_VIEW_CHANGE_LOG, group: 'finance.group.reports' },
+    // ★ MES-1(2026-10-06,MES-0 Q92 · MES-1 Step 0 Q1 · Q2):还没给的标准值 —— 一支一个值,每一支带它自己的码(pending_values 视图)。
+    //   MES-1 的两支(V5 网关心跳间隔 · V6 班次时刻)都要 module.processing.view,所以这一页的门今天就是它;
+    //   之后哪一刀加了一支别的码的值,这里的判据随之放宽成 { all: [], widen: [...] }(注册表是权威的)。
+    { href: '/settings/pending-values', navKey: 'pendingValues.title', modules: ['settings'], permission: P_PROCESSING },
 
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1042,4 +1051,8 @@ export const FN = {
     salesHome: fnByHref('/sales'),
     /** OVERTIME-1:加班 —— 人力与运营两个属主,三个码任一(见 FUNCTIONS 共有区那一条)。 */
     overtime: fnByHref('/hr/overtime'),
+    /** MES-1:设备登记 · 数据收件箱 · 还没给的标准值。 */
+    devices: fnByHref('/operation/devices'),
+    captureInbox: fnByHref('/operation/capture/inbox'),
+    pendingValues: fnByHref('/settings/pending-values'),
 } as const

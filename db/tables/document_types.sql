@@ -154,4 +154,6 @@ VALUES
     ('payment_receipt', 'RCPT', 'payments', 'gapless', NULL, '/finance/payments', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.finance.view']::text[]),
     ('payment_out', 'PMT', 'payments', 'gapless', NULL, '/finance/payments', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.finance.view']::text[]),
     -- PAY-REQ-1(2026-09-23):付款申请 —— 钱离开之前的那一格在途态
-    ('payment_request', 'PREQ', 'payment_requests', 'gapless', NULL, '/finance/payment-requests', 'detail', 'notes', ARRAY['notes', 'decision_notes']::text[], ARRAY['module.finance.view']::text[]);
+    ('payment_request', 'PREQ', 'payment_requests', 'gapless', NULL, '/finance/payment-requests', 'detail', 'notes', ARRAY['notes', 'decision_notes']::text[], ARRAY['module.finance.view']::text[]),
+    -- MES-1(2026-10-06,MES-0 Q53 · MES-1 Q28):设备登记 —— 有洞(device_code_seq,保存时生成),人读的名字是 name
+    ('device', 'DEV', 'devices', 'gapped', 'device_code_seq', '/operation/devices', 'detail', 'name', ARRAY['name', 'station', 'notes']::text[], ARRAY['module.processing.view']::text[]);

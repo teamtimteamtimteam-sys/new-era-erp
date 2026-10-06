@@ -105,8 +105,11 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // OVERTIME-1(2026-09-28):239 → 241。新增 `overtime_batches`(加班月批次,财务录、仓库整批批)与
 // `overtime_lines`(一个员工一天一行),见 db/tables/ 下同名文件。两张都【没有 code 列】(人读的名字是
 // label:OT <月份> #n),与各张申请表同一条理由不进 document_types,所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 242   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 76
+// MES-1(2026-10-06):242 → 249。七张采集层的表(devices · gateway_keys · ingest_settings · ingest_data_classes ·
+// ingest_inbox · ingest_transmissions · gateway_outages)。两张带 code 列:devices(DEV,登记进 document_types)与
+// ingest_data_classes(数据类目录,登记进 document_type_exceptions),所以 EXPECTED_CODE_TABLES 76 → 78。
+const EXPECTED_TABLES = 249   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 78
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

@@ -370,6 +370,16 @@ ANON_EXECUTE_ALLOWED: dict = {
         "door in this system. Its authority is possession of a 122-bit token; its "
         "reachable surface is an allowlisted subset of one frozen snapshot; its abuse "
         "budget lives in the function body. Granted in db/views/zzz_function_grants.sql.",
+    # ★ MES-1(2026-10-06,MES-0 Q4 · Q5,Tim):车间网关的入口 —— 本库第二支 anon 可执行的函数。
+    #   它的"权限"是那把 244 位随机的网关钥匙(函数里只比 sha256);它够得着的东西是白名单:只插入收件箱、
+    #   传输日志与网关中断,只回调用者自己的序号与固定的码。失败预算住在函数体里,持有效钥匙的调用永不被限。
+    #   EXECUTE 只给 anon —— authenticated 与 service_role 都收回(MES-1 Q4;fixture 249 断言两个都调不到)。
+    #   ⚠ 本表按【名字】认:一支同名重载会安静地过 B1。fixture 196 B2 按签名认那两支,那一格挡得住。
+    "ingest_submit":
+        "MES-1: the plant gateway entry point — the second anonymous door. Its authority is possession of a "
+        "244-bit gateway key compared by sha256; it only inserts into the inbox, the transmission log and the "
+        "outage log, returns only the caller's own sequence numbers and fixed codes, and keeps its abuse budget "
+        "in the function body. Granted to anon only in db/views/zzz_function_grants.sql.",
 }
 
 # B2:SECURITY DEFINER 函数要么自己查调用者,要么谁都执行不了。
@@ -447,6 +457,11 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
         "APR-6: the journal page reads it to grey the reverse button with the right reason, and the request "
         "engine calls it inside approval and dry-run where the caller may hold no finance code; returns one "
         "route word (reversed/source_path/request), no amount, no line",
+    # ★ MES-1:ingest_submit 没有调用者检查,而那是【正确的】—— 它的调用者按定义是一台网关,不是本系统的用户。
+    #   理由全文见上面 ANON_EXECUTE_ALLOWED。两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    "ingest_submit":
+        "MES-1: the anonymous gateway entry point; the caller's authority IS the 244-bit gateway key, and "
+        "requiring a permission would make it answer no gateway",
 }
 
 # AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,

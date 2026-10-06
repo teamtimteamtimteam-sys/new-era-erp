@@ -11,7 +11,7 @@ recorded in `docs/handbacks/HISTORY-1.md`.
 
 ## 1. What is recorded
 
-One trigger function, `change_log_capture()`, is attached to **238 of the 242 public tables** (two triggers each):
+One trigger function, `change_log_capture()`, is attached to ~~**238 of the 242 public tables**~~ **242 of the 249 public tables** (MES-1, 2026-10-06) (two triggers each):
 
 | trigger | fires | writes |
 |---|---|---|
@@ -53,6 +53,15 @@ each entry with its reason:
 | `festival_doodles` | home-screen holiday artwork; screen decoration with no business meaning |
 | `home_greetings` | home-screen greeting text; screen decoration with no business meaning |
 | `notification_reads` | per-viewer "seen" marks on notifications; screen state with no business meaning |
+| `gateway_outages` | **ingestion log (MES-1)**: itself an append-only record of gateway silences; logging it again doubles the volume and adds no fact |
+| `ingest_inbox` | **ingestion log (MES-1)**: itself an append-only landing table; its status changes are recorded on the row (attempts, last attempt, who, discard reason) |
+| `ingest_transmissions` | **ingestion log (MES-1)**: itself an append-only log of every gateway call; logging it again doubles the volume and adds no fact |
+
+**Ingestion logs are the second accepted kind of exclusion (MES-0 Q14, built in MES-1, 2026-10-06; outages on the page, MES-1 Step 0 Q21).** A gateway may call
+every few seconds; each of these three tables is already the record of what arrived, when, from where and what became of
+it, and each is append-only by its own guard (`guard_ingest_*_write`, `guard_gateway_outages_append_only`). The register of
+**devices and gateways**, their **keys**, the **ingestion settings** and the **data classes** are business configuration and
+**are** logged like any other table.
 
 **TRUNCATE captures the fact, not the rows.** A `TRUNCATE` on a covered table writes one row (`op = 'TRUNCATE'`,
 `row_key` null, with the actor), but **the rows it removed are not recorded**. Row triggers do not fire for `TRUNCATE`.
@@ -194,8 +203,8 @@ When you add a table:
    `python3 db/scripts/gen_change_log_bindings.py --only <table>` (run it after the table exists, or copy the shape;
    the arguments are the primary-key column names).
 2. Add the same two lines to `db/views/zzz_change_log_triggers.sql`.
-3. **Or** add a line to `change_log_exclusions()` with the reason. A screen-state table with no business meaning is the
-   only accepted kind so far.
+3. **Or** add a line to `change_log_exclusions()` with the reason. Two kinds are accepted so far: a screen-state table
+   with no business meaning, and an **ingestion log** that is itself an append-only record (MES-1, §2).
 4. If the table is **masked** (a `<table>_masked` view), add its masked columns to `change_log_mask_rules()` in the
    same commit.
 
@@ -950,3 +959,27 @@ below; `scripts/check-trail-wording.mjs` arm ⑭ pins every sentence.
 gained the change types `closed` and `reopened`. All are captured by the existing triggers; no table was added or excluded.
 **A downtime period is never deleted** (`guard_downtime_write`, statement-level `DOWNTIME_NEVER_DELETED`), so its trail is never
 cut short by a delete.
+
+## 12. The entry point for plant equipment (MES-1, v1.4.37, 2026-10-06)
+
+Hand-back `docs/handbacks/MES-1.md`; fixture 249 pins every rule below.
+
+### 12.1 Logged, excluded
+
+- **Logged** (two triggers each, bound in `db/views/zzz_change_log_triggers.sql`): `devices`, `gateway_keys`,
+  `ingest_settings`, `ingest_data_classes`. Public tables 242 → **249**; bound 238 → **242**; exclusions 4 → **7** (§2).
+- **Excluded** as ingestion logs (§2): `ingest_transmissions`, `ingest_inbox`, `gateway_outages`.
+- On the device page the trail subject **`device`** shows the device and, for a gateway, its keys (issued, revoked — by
+  their 8-character prefix only); the settings panel's trail subject **`ingest_settings`** shows every change to the
+  ingestion limits.
+
+### 12.2 The "never" mask rule
+
+`change_log_mask_rules()` gained a fourth rule form, **`never`**: the column's value is replaced by `{"$restricted": true}`
+for **every** reader, whatever they hold. Its one use is **`gateway_keys.key_hash`** (the one-way hash of a gateway's
+secret): it is not a secret in the strict sense, but it is the only thing that verifies a key, and no screen, export or
+log reader has a reason to show it. `change_log_rule_visible()` answers `false` for `never` before it looks at any
+permission. The same column is outside the table's column-level SELECT grant and is `NULL` in `gateway_keys_masked`
+(`CASE WHEN false THEN key_hash END`), so the three readers agree. The mask list grew **104 → 105** rows;
+`change_log_mask_gaps()` is zero.
+

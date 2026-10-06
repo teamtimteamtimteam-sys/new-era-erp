@@ -200,6 +200,9 @@ const ID_SOURCES = {
         // AUDIT-TRAIL-1b-1(Q22 · Q23):设备页读 fixed_assets 的 id(equipment_usage 的键就是它);交接班页读 shift_handovers。
         //   线上 shift_handovers 今天零行(车间还没有人交接),故 /operation/handovers/[id] 同时列在 EXPECTED_SKIPS 里。
         '/operation/equipment': 'fixed_assets', '/operation/handovers': 'shift_handovers',
+        // MES-1(2026-10-06):设备与网关。线上零行(机制先于第一台设备落地;MES-1 的探针网关在冒烟之后才登记),
+        //   故同时列在 EXPECTED_SKIPS 里 —— 登记了第一台的那天,那条断言会响。
+        '/operation/devices': 'devices',
         '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
@@ -661,6 +664,10 @@ const MUST_CONTAIN = {
     '/hr/leave/[id]': [{ trail: 'audit-trail', why: '请假页底的审计记录(申请 · 决定 · 取消)' }],
     '/hr/claims/[id]': [{ trail: 'audit-trail', why: '医疗报销页底的审计记录(Q37:付款建的费用单)' }],
     '/hr/overtime/[id]': [{ trail: 'audit-trail', why: '加班批页底的审计记录(M1 · Q35)' }],
+    // MES-1(2026-10-06):设备页底的审计记录(登记 · 修改 · 停用 · 钥匙的发与撤);设备清单页底那一块是采集上限(单行设置,M5)——
+    //   线上一行改动都还没有,所以 emptyOk(与三个阈值面板同一条)
+    '/operation/devices/[id]': [{ trail: 'audit-trail', why: '设备页底的审计记录(MES-1)' }],
+    '/operation/devices': [{ trail: 'audit-trail', emptyOk: true, why: '采集上限的审计记录(MES-1 Q22,M5)' }],
     '/hr/attendance/[id]': [{ trail: 'audit-trail', why: '考勤期间页底的审计记录(Q12:之前那一段只剩最近一次)' }],
     '/hr/leave/types': [{ trail: 'audit-trail', why: '整张假别表一段(M11)' }],
     '/hr/leave/holidays': [{ trail: 'audit-trail', why: '整张公共假期表一段(M11 —— 硬删的假期只在这一段里)' }],
@@ -1179,6 +1186,8 @@ const QUERY_PROBES = [
 ]
 
 const EXPECTED_SKIPS = new Set([
+    // ~~MES-1(2026-10-06):线上 devices 零行~~ —— 同一天由 MES-1 的线上验证登记了探针网关 ZZ-PROBE-GW-…(DEV-2026-0001,
+    //   停用,行留着当测试数据),这一条于是摘掉:/operation/devices/[id] 从此每一次冒烟都真的打开一台设备。
     // AUDIT-TRAIL-1b-1(Q23):线上 shift_handovers 零行(车间还没有人交接)。第一张交接班提交的那天,这条断言会响。
     '/operation/handovers/[id]',
     // (EQP-1c-b 曾在这里挂过 '/finance/assets/[id]' —— 线上 fixed_assets 零行。

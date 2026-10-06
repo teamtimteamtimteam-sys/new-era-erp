@@ -95,6 +95,8 @@ module's own page.
 | 41 | `asset_disposal_pending` | 一张固定资产处置申请已提交、等 CFO 批(APR-9,Tim 的矩阵「处置 | 财务 | CFO」;批准当场处置,处置日 = 批准日) | `module.finance.view` —— 与 `decide_asset_disposal_request` 的门同一个码;谁能批由它在服务端裁 | `asset_disposal_requests`(主语是提单人的理由) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**申请**的 id(申请住在资产页顶上那一块)|
 | 42 | `salary_change_pending` | 一张调薪申请已提交、等批(APR-9,Tim 的矩阵「调薪 | 只经评估或调薪申请 | CFO」;CFO 是当事人时 cco 批;批准当场改月薪) | `data.view_pay` —— 看得见工资的人(财务、CFO、cco);谁能批由 `decide_salary_change_request` 按人裁(`pay_decision_code`) | `salary_change_requests`(主语是提单人的理由;月薪数不进视图) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。★ `item_id` 是**员工**的 id —— 申请住在那个人的档案页上 |
 | 43 | `gst_filing_pending` | 一张 GST 申报申请已提交、等 CFO 批(APR-10,Tim 的矩阵「GST 申报与更正 | 财务 | CFO」;批的是报出去之前的那一组数,批准当场写快照) | `module.finance.view` —— 与 `decide_gst_filing_request` 的门同一个码;谁能批由那支函数裁(二级、不是提单人) | `gst_filing_requests`(主语是提单人的附言,可空) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。★ `item_id` 是**期间**的 id —— 申请住在那一期的页面上 |
+| M1a | `gateway_silent` | 一台网关此刻在沉默:心跳间隔给了,而最后一次听到它已经超过那个间隔(`gateway_health.status = 'silent'`,读的时候算,没有调度器)。**「还没听到过」与「间隔没给」都不上提醒**(MES-1 Step 0 Q16 · Q17)—— 登记了还没调试是正常状态,间隔没给就判不了沉默 | `module.processing.view` | `gateway_health` | 没停用、间隔已给的网关 |
+| M1b | `capture_inbox_failed` | 数据收件箱里有【转换失败】的行(`ingest_inbox.status = 'failed'`)—— 按设备合成一块,subject = 设备名 · 失败行数(MES-1,MES-1 Step 0 Q23)。`awaiting_transform`(这个数据类还没有转换器)**不是**这一支:那是设计如此的等待,不是一件要人去做的事 | `module.processing.view` | `ingest_inbox` | 只算 failed;重试或带理由丢弃之后消失 |
 
 
 
@@ -325,6 +327,8 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `fx_rate_gap` | `/finance/fx?currency=<ccy>` | **no row exists** — the subject is a missing rate. An honestly-filtered list, which is not the same thing as a code search |
 | `bank_unmatched` | `/finance/bank/statements/[id]/reconcile` | where matching happens |
 | `margin_cost_not_allocated` | `/processing/[runId]` | where allocation happens |
+| `gateway_silent` | `/operation/devices/[id]` | the gateway's page: status, last heard, outages, keys (MES-1) |
+| `capture_inbox_failed` | `/operation/capture/inbox?status=failed` | the inbox filtered to failed rows; retry / discard happen there (MES-1) |
 
 ### One mechanism, not two
 

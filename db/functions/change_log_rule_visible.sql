@@ -8,6 +8,9 @@
 -- ★ U1-B(2026-10-05)两种新写法,同一个道理:
 --   apr_note           approval_log_note_visible(subject_type, subject_id)(approval_log_masked 的 note;医疗报销的说明是健康的字)。
 --   jr_amount          journal_request_amount_visible(这一行的 id)(journal_requests_masked;工资分录的冲销申请要 data.view_pay)。
+-- ★ MES-1(2026-10-06,Q20)一种新写法:
+--   never              谁都看不见(gateway_keys_masked 里那一列恒为空)。它与"认不出的规则"答的是同一个 false,
+--                       而它在这里点名写出来 —— 一条只因为认不出才成立的规则,是一份只写在注释里的契约。
 CREATE OR REPLACE FUNCTION public.change_log_rule_visible(p_rule text, p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -18,7 +21,9 @@ DECLARE
     v_part text[] := string_to_array(p_rule, ':');
     v_fid  text;
 BEGIN
-    IF v_part[1] = 'code' THEN
+    IF p_rule = 'never' THEN
+        RETURN false;
+    ELSIF v_part[1] = 'code' THEN
         RETURN has_permission(v_part[2]);
     ELSIF v_part[1] = 'code_or_self' THEN
         RETURN has_permission(v_part[2])

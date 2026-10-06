@@ -14,6 +14,8 @@
 --   apr_amount                   approval_log_amount_visible(subject_type, subject_id)(approval_log_masked;U1-A,Q8 · Q10)
 --   apr_note                     approval_log_note_visible(subject_type, subject_id)(approval_log_masked;U1-B)
 --   jr_amount                    journal_request_amount_visible(id)(journal_requests_masked;U1-B)
+--   never                        谁都看不见(gateway_keys_masked 里 CASE WHEN false;MES-1 Q20:网关钥匙的哈希)
+-- ★ MES-1(2026-10-06)加了 1 行(104 → 105):网关钥匙的哈希 —— never(Q20:任何读者、任何一份记录都不给)。
 -- ★ U1-B(2026-10-05)加了 3 行(101 → 104):工资分录冲销申请的金额 · 医疗报销的批准 / 驳回理由(在报销单上与在审批留痕上)。
 -- ★ U1-A(UNBLOCK-1,2026-10-05)加了 20 行(81 → 101):工资分录的金额(Q1)· 审批留痕上的金额(Q8 · Q10)· 人事备注(Q6)·
 --   健康数据(Q8)· 工资期的合计与工资申请的快照和金额(Q9 · Q10)。每一行都抄自它那张 _masked 视图里的 CASE。
@@ -28,6 +30,7 @@ CREATE OR REPLACE FUNCTION public.change_log_mask_rules()
 AS $function$
     VALUES
         ('approval_log'::text, 'amount_ccy'::text, 'apr_amount'::text),
+        ('gateway_keys', 'key_hash', 'never'),
         ('approval_log', 'amount_base', 'apr_amount'),
         ('approval_log', 'note', 'apr_note'),
         ('company_profile', 'bank_name', 'code:data.view_banking'),

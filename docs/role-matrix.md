@@ -122,6 +122,7 @@ MD = `gm`(Vince,只读)。
 | 工单 · work orders | 仓库建 · created by warehouse | 财务下达 · released by finance | ✅ done(ROLE-1 Batch 3b,2026-09-25:`action.wo_create` → 仓库与 admin;`action.wo_release` → 财务与 admin,建单人永远不能下达(`SELF_APPROVAL_FORBIDDEN\|raiser`,按人认);改 / 取消 / 关闭 = `action.wo_create` 或 `module.processing.edit`(Q6);建单人之外没有真持有人持下达码时建单按名拒 `WO_NO_OTHER_RELEASER`(Batch 3b Q3);工单页的下达钮对建单人自己的账号说出理由(Q6);改一张已下达的工单不送回重新下达,登记 `ROLE1B3-AMEND-RELEASED-WO`) |
 | 加工提交 · processing commit | 仓库 · warehouse | — | ✅ done(ROLE-1 Batch 3b,2026-09-25:`action.processing_commit` → 仓库与 admin;仓库拿 `module.processing.view`、不拿 `module.materials.view`,建工单 · 提交加工 · 加工单详情三页改读 `material_lookup`(它的谓词加上 `module.processing.view`,Batch 3b Q4);加工三张表不许绕过函数写 —— runs / outputs 的 INSERT 与三张表的 DELETE 策略拿掉,直连插 / 删 / 改状态与改挂工单按名拒 `PROCESSING_THROUGH_FUNCTION_ONLY`(Q7 · Batch 3b Q1);损耗分类与交接班 = 新码 `action.processing_aftercare`(仓库与 admin)或 `module.processing.edit`(Batch 3b Q2);加工费用条目仍归 `module.processing.edit`) |
 | 加工回滚 · rollback | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):✅ done(ROLE-1 Batch 3b,2026-09-25:`action.processing_rollback` → 仓库与 admin)· 批:✅ done(APR-7,2026-09-26:`warehouse_requests` 的 `rollback` —— 仓库提 `submit_rollback_request`,CFO 批每一张,**批即回滚**;在等的时候它的产出批冻结;落在已锁期间里的单照旧准许,CFO 那一块先说出来,连同会被一并作废的证书号;`rollback_processing_run` 一张都不回滚,按名拒 `WAREHOUSE_NEEDS_APPROVED_REQUEST`;没有新码) |
+| 设备与网关、网关钥匙 · devices, gateways, gateway keys | cto · admin | — | ✅ done(MES-1,2026-10-06:新码 `action.manage_devices` → cto 与 admin;读与处理收件箱只要 `module.processing.view`;网关自己只经匿名函数 `ingest_submit`,凭钥匙、只插入) |
 
 ## 10 · 销售 · Sales
 
@@ -213,3 +214,4 @@ warehouse (B4 — ✅ ROLE-1 Batch 4a, 2026-09-25: receipt pricing was the last 
 | `action.overtime_approve` | 整批批准或驳回现场员工的加班(驳回要备注);交的人与批里的人按人认不能批;审批开关不影响(OVERTIME-1)| warehouse · admin |
 | `data.view_health` | 健康数据:医疗报销的事由与金额(及其额度、它生成的费用在报销页上的数)、请假单的事由 · 病假单号 · 例外理由;审批留痕上医疗报销那一行的金额;★ U1-B 起加上医疗报销的批准 / 驳回理由(`decision_notes` 与审批留痕的 `note`)。**每个人照旧看得见自己的**(U1-A,Tim 的 UNBLOCK-1 Q8,2026-10-05)| admin · hr · cco · cfo · finance(决定 HR 申请的人;**cto · gm · warehouse 不持** —— 他们从此读不到别人看病与请假的事由)|
 | `data.view_change_log` | 变更记录 `/settings/change-history`:全系统每一次新增、修改、删除 —— 谁做的、改之前是什么;受遮蔽的值跟源屏幕问同一批数据码,别人的个人任务整行受限(HISTORY-1,Tim 的 Q10 · Q1)| cfo · admin(**只授这两个,不捆进任何别的角色**)|
+| `action.manage_devices` | 采集层的写:登记 / 修改 / 停用设备与网关、发放与撤销网关钥匙(每把密钥只显示一次;停用网关连同它的钥匙一起撤)、收件箱里重试或带理由丢弃一行、改传输上限。**读**设备页、收件箱、传输日志与「待补的标准值」,以及按「Process received」处理收件箱,只要 `module.processing.view`(MES-1,2026-10-06,MES-1 Step 0 Q11)| cto · admin |

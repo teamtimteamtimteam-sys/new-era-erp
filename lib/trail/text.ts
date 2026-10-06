@@ -461,6 +461,13 @@ export const TRAIL_TEXT = {
     'set.processing': 'Variance thresholds changed',
     'set.pricing': 'Price anomaly warning changed',
     'set.receiving': 'Discrepancy thresholds changed',
+    // MES-1(2026-10-06):采集上限 · 设备与网关钥匙
+    'set.ingest': 'Ingestion limits changed',
+    'dev.registered': 'Device registered',
+    'dev.changed': 'Device changed',
+    'dev.retired': 'Device retired',
+    'dev.keyIssued': 'Gateway key issued',
+    'dev.keyRevoked': 'Gateway key revoked',
     // ══ AUDIT-TRAIL-1c-1 · 账上的单据(分录 · 发票 · 贷项通知 · 收付款 · 付款申请 · 费用 · 应付)═════════════
     // ── 结束了的单据(Q8):作废 / 冲销的横幅;链到镜像单的那一行 ─────────────────────────
     'banner.voided': 'Voided on {date} by {who}',

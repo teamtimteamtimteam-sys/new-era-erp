@@ -518,6 +518,23 @@ const MANIFEST = {
     // 加一条 CHECK 就要来那个 Set 里加一个名字,于是这道检查立刻要求两个语言
     // 都补上句子 —— 与 logistics.milestoneLabel 接表上那条 CHECK 是同一种接法。
     'equipment.errors.': { kind: 'enum', values: () => tsSet('app/finance/assets/equipmentErrorCodes.ts', 'EQUIPMENT_ERROR_CODES') },
+    // ── MES-1(2026-10-06):设备登记 · 网关 · 收件箱 · 还没给的标准值 —— 每一个后缀集合都读它的真源 ──────────
+    //   种类 / 接口 / 条款状态 / 调用结果 / 收件箱状态 → 表上的 CHECK;网关状态 → gateway_health 那一句 CASE;
+    //   异常 → 调用结果 ∪ 异常视图自己合成的三种;条款与上限的键 → 表单里那两个 as const 数组;错误 → 映射器的 Set;
+    //   标准值 → pending_values 每一支的 value_code 字面量(之后每一刀加一支,这里自动跟着要两种语言的句子)。
+    'devices.kind.':      { kind: 'enum', values: () => sqlEnum('db/tables/devices.sql', 'kind') },
+    'devices.interface.': { kind: 'enum', values: () => sqlEnum('db/tables/devices.sql', 'interface_status') },
+    'devices.termState.': { kind: 'enum', values: () => sqlEnum('db/tables/devices.sql', 'term_protocol') },
+    'devices.terms.':     { kind: 'enum', values: () => tsArray('app/operation/devices/deviceFields.ts', 'TERM_KEYS') },
+    'devices.settings.':  { kind: 'enum', values: () => tsArray('app/operation/devices/IngestSettingsPanel.tsx', 'SETTING_KEYS') },
+    'devices.status.':    { kind: 'enum', values: () => sqlCaseAs('db/views/gateway_health.sql', 'status') },
+    'devices.result.':    { kind: 'enum', values: () => sqlEnum('db/tables/ingest_transmissions.sql', 'result') },
+    'devices.anomaly.':   { kind: 'enum', values: union(() => sqlEnum('db/tables/ingest_transmissions.sql', 'result'),
+                                                        () => sqlLiteralAs('db/views/ingest_transmission_anomalies.sql', 'anomaly')) },
+    'devices.errors.':    { kind: 'enum', values: () => tsSet('app/operation/devices/deviceErrorCodes.ts', 'DEVICE_ERROR_CODES') },
+    'inbox.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/ingest_inbox.sql', 'status') },
+    'pendingValues.value.':    { kind: 'enum', values: () => sqlLiteralAs('db/views/pending_values.sql', 'value_code') },
+    'pendingValues.supplier.': { kind: 'enum', values: () => sqlLiteralAs('db/views/pending_values.sql', 'value_code') },
     // IMPORT-1:加一条导入拒绝而不配句子,这里当场红。
     'import.errors.': { kind: 'enum', values: () => tsSet('app/settings/import/importErrorCodes.ts', 'IMPORT_ERROR_CODES') },
     'import.table.':  { kind: 'enum', values: () => tsArray('lib/importTables.ts', 'IMPORT_TABLES') },
