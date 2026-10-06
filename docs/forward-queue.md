@@ -326,7 +326,19 @@
 >    ★ **破窗**:起点 **2026-10-06 19:44:03 CST**(`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,下一次 close-out 补记)。
 >    窗口里坏掉的(**推导**,没有在线上量):**没有** —— 两支收货函数换了签名但新参数都有默认值(旧应用照样调得通),定价与证书在开关为空时与从前同一个结果,
 >    新表、新视图旧应用都不读,`operations_now` 列不变;唯一的行为变化是收件箱的 `weighing` 类此刻起落草稿,而线上没有一行 weighing 类的收件箱。
->    **下一刀 MES-3a · Storage safety**(见下面「⬜ ★ MES 组」)。
+>    ★ **部署:Tim 在 Vercel 上确认 `3c024e82` 已部署(MES-2 close-out + MES-3a Step 0 委托书,2026-10-06)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-06 19:44:03 CST**(测量:`db/migration-windows.tsv`,`2026-10-06-mes2-confirmation-weighing-calibration.sql`)·
+>    终点下界 **2026-10-06 20:40:21 CST**(测量:推送把 `origin/main` 移到 `3c024e82`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`3c024e82 … {2026-10-06 20:40:21 +0800}: update by push`)·
+>    终点上界 **2026-10-06 20:46:35 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 56 min 18 s,至多 1 h 02 min 32 s。** 迁移之后的验证(生成类型、tsc、构建、整门、两次版式探针、冒烟、三支线上证明脚本、
+>    前后读数)整个跑在窗口里(`docs/handbacks/MES-2.md` §5 · §6.5)。
+>    窗口里坏掉的(**推导**,同上一行,没有在线上量):**没有**。
+>    ★ **close-out 的核对(`docs/handbacks/MES-2.md` §10)**:a–h 里 **a 只做了一半** —— 更正保留原行 ✅、地磅单读最新那一磅 ✅,
+>    但【收货单自己那一页】不显示更正带来的差额(只有地磅单页显示净重 − 已分)。按委托书的停止规则,**MES-3a Step 0 没有开工**,等 Tim 对 a 的裁定。
+>    同一节写全了 Step 0 §7 与 MES-2 委托书在校准开关为空时的冲突。
+>    **下一刀 MES-3a · Storage safety**(见下面「⬜ ★ MES 组」)—— Step 0 等 Tim 对上面 a 的裁定。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6841,7 +6853,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   |---|---|---|---|
   | 1 | ✅ **MES-1 · Entry point**(2026-10-06,`v1.4.37`,`docs/handbacks/MES-1.md`) | 采集层地基:设备登记、网关钥匙、收件箱、传输日志、心跳、数据类与转换层;`/operation/devices`、`/operation/capture/inbox`、`/settings/pending-values` | 7 h 15 m – 13 h 45 m |
   | 2 | ✅ **MES-2 · Confirmation, weighing, calibration**(2026-10-06,`v1.4.38`,`docs/handbacks/MES-2.md`;~~★ 下一刀;~~手工录入的完整路径也在这一刀 —— MES-1 只建了收件箱的 `source` 列与 CHECK,Q14;★ **Tim(MES-1 close-out,2026-10-06):在线上给一次【满 500 条消息】的网关调用计时,对着 `anon` 角色 3 秒的语句上限;太慢就在本刀解决** —— `docs/known-issues.md` 的 `MES1-ANON-STATEMENT-TIMEOUT-3S`) | 1(地磅单)· 20(校准)· 草稿 / 确认 | 7 h 40 m – 13 h 30 m |
-  | 3 | ⬜ **MES-3a · Storage safety**(★ 下一刀) | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
+  | 3 | ⬜ **MES-3a · Storage safety**(★ 下一刀;★ **Step 0 等 Tim 对 MES-2 close-out 核对项 a 的裁定**,见上面第 37 条与 `docs/handbacks/MES-2.md` §10;★ **Tim 的并入(MES-2 close-out + MES-3a Step 0 委托书,2026-10-06):收货定价码**按 `docs/role-matrix.md` §8(Tim 2026-09-23:财务定价、CFO 批)在本刀授出 —— 委托书转述:线上只有 admin@ 持它,而 admin@ 与 tim@ 是同一个人,所以每一张定价申请都按自批被拒(`RECEIPT_PRICE_NO_OTHER_DECIDER`,`docs/handbacks/MES-2.md` §6.1 实测过拒绝那一句;「只有 admin@ 持它」那半句**本次 close-out 没有重量**,而 `docs/role-matrix.md:199` 写的持有人是 finance · admin —— 两者对不上,正是 Step 0 要先量的);哪个码、今天谁持、该谁持、admin 留什么,由 Step 0 的 grilling 核实;矩阵说的若不是「财务定价、CFO 批」,报告,不改) | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
   | 4 | ⬜ **MES-3b · Labels and scanning** | 7(标签)· 8(扫码) | 6 h 00 m – 10 h 15 m |
   | 5 | ⬜ **MES-4a · Processing record** | 11(参数与配方)· 13(计数)· 规格书 §4.1(平衡与容差;机器在挂了机器的工序上变成必填 —— 收紧 U1-B 的可选选择器,Q41) | 8 h 40 m – 15 h 30 m |
   | 6 | ⬜ **MES-4b · New fields and products** | 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |

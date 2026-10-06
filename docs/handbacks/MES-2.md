@@ -359,3 +359,92 @@ inbox row now becomes a draft — had nothing to act on: live has no `weighing` 
 `docs/known-issues.md` (Q34 strike; `MES1-ANON-STATEMENT-TIMEOUT-3S` closed with the timing) · `docs/known-wrong-until-cutover.md`
 (the Q31 probe's rows; the gapped numbers) · `docs/surveys/MES-2/STEP0-HANDBACK.md` (Tim's acceptance) ·
 `docs/surveys/AUDIT-TRAIL-0/labels.csv` (+86 rows) · this file.
+
+---
+
+## §10 · Close-out (2026-10-06, the MES-2 close-out + MES-3a Step 0 brief)
+
+Session's first command **2026-10-06 20:46:35 CST** (`date`). Opening check: tree clean; after `git fetch`, `HEAD` = `origin/main` =
+`git ls-remote origin main` = **`3c024e829cdd7a646a67d8651b1cf70a9423644c`**. No database connection, no build, no code change: read-only
+reading of the repo, and docs written. Tim confirmed on Vercel that `3c024e82` is deployed.
+
+### §10.1 · Broken window — closed (`docs/forward-queue.md` item 37)
+
+- start **2026-10-06 19:44:03 CST** [measured: `db/migration-windows.tsv:220`, `2026-10-06T19:44:03+0800 2026-10-06-mes2-confirmation-weighing-calibration.sql 31e3b3e4`];
+- end, lower bound **2026-10-06 20:40:21 CST** [measured: `git reflog show --date=iso refs/remotes/origin/main` →
+  `3c024e82 refs/remotes/origin/main@{2026-10-06 20:40:21 +0800}: update by push`];
+- end, upper bound **2026-10-06 20:46:35 CST** — this session's first command; it rests on Tim's "deployed", not on a Vercel reading.
+- **Window: at least 56 min 18 s, at most 1 h 02 min 32 s.** The post-migration verification (§5 steps 4–12) ran inside it. Broken in it
+  (derived, §6.5): nothing.
+
+### §10.2 · The conflict between Step 0 and the MES-2 brief, in full
+
+**What Step 0 said** (`docs/surveys/MES-2/STEP0-HANDBACK.md`, which Tim accepted "exactly as stated", Q1–Q35):
+- §7 table, receipt pricing "after MES-2": **refuses** `READING_INSTRUMENT_NOT_CALIBRATED|<device code>|<date>` "when any linked weighing
+  (gross and tare of every share's ticket) was taken by an instrument not in calibration at its capture time" — no condition on the switch.
+  The COD row: "refuses the same way".
+- §7 "No instrument recorded" and **Q26**: the switch `require_calibrated_since` governs only the two *absence* cases — "for receipts
+  created on or after that date, pricing and COD **also** refuse `READING_INSTRUMENT_NOT_RECORDED` … and `RECEIPT_READING_NOT_RECORDED`".
+  The word "also" is the point: the out-of-calibration refusal was meant to stand with the switch empty.
+- **Q25**: an instrument with no record (`never_calibrated`) counts as out of calibration — so under Step 0 it too refused while the switch
+  was empty.
+- **Q27** lists the three codes and where they sit; Q30 (MES-0) refuses "an instrument that was out of calibration at capture time".
+
+**What the brief said:** the switch is off while `require_calibrated_since` is NULL and "nothing refuses when it is NULL" (quoted in the
+gate's own header, `db/functions/assert_receipt_reading_calibrated.sql:5`; the brief itself is not in the repo).
+
+**What was built:** the brief. `assert_receipt_reading_calibrated` returns at once when the switch is NULL (`:29-31`) and, when set, skips
+every receipt created before the switch date (`:33-36`); only then do any of the three codes fire (`:37-52`). All three codes behave
+alike. Fixture 250 GATE pins it in both directions. MES-2 §7 decision 1 records the choice in one sentence.
+
+**What follows while `require_calibrated_since` is NULL (as on live, and as it must stay):**
+1. **No pricing path and no certificate of destruction refuses on calibration — at all.** A receipt whose ticket weighings came from an
+   instrument that is expired, failed or never calibrated is priced (preview, engine, every request path) and certified exactly as a
+   receipt with an in-calibration reading. Under Step 0's text the same receipt would have been refused `READING_INSTRUMENT_NOT_CALIBRATED`.
+2. **The status is still visible, not enforced:** the receipt page's ticket panel marks each current reading in amber with its status
+   (`app/inbound/[id]/edit/TicketSharesPanel.tsx:50-54`) and says "The calibration rule is off: calibration status is shown, nothing is
+   refused." (`messages/en.ts:10113`); the ticket page and `/operation/calibration` show status; the `instrument_calibration_due`
+   reminder fires for an in-use instrument out of calibration regardless of the switch (`db/views/operations_now.sql:179`, `:580`).
+3. **Live today this changes nothing measurable:** live holds no weighing and no ticket (the seven new tables had 0 rows after the cut,
+   §6.4), so no receipt carries a reading to judge.
+4. **A consequence for later, worth naming:** when the switch is set to a date D, receipts created **before** D stay ungated **for all
+   three codes** — including an out-of-calibration reading, which Step 0 would have refused regardless of date. A reading taken on an
+   uncalibrated scale before D is therefore never refused by this gate.
+
+**Recorded here in full** because MES-2 §7 decision 1 states the choice but not these consequences. Whether the built behaviour stands,
+or `READING_INSTRUMENT_NOT_CALIBRATED` should refuse with the switch empty (Step 0's text), is Tim's; nothing was changed.
+
+### §10.3 · Read-only verification of items the MES-2 report did not spell out
+
+| | item | verdict | evidence [measured: file:line read this session] |
+|---|---|---|---|
+| a | `correct_weighing` keeps the original and moves the ticket to the newest weighing; a receipt shows the difference | **⚠ partly** | **Keeps the original:** `db/functions/correct_weighing.sql:34-36` refuses `WEIGHING_SUPERSEDED` once corrected; `:45-56` writes a **new** inbox row → same transformer → `capture_confirm_internal(…, v_orig.id, p_reason)`; nothing updates the old row. Fixture 250 CORRECT `:307-315` asserts the new row is 1,490 with `corrects_id` = the original and the original still 1,500. **Ticket moves to the newest:** `capture_confirm_internal.sql:94-98` copies the original's `ticket_id`, `role`, `captured_at`; the ticket's gross / tare are the rows "没被更正过" (`db/views/weighbridge_ticket_weights.sql:37-48`), net and difference from them (`:31-33`); completion re-checks net > 0 on the newest (`capture_confirm_internal.sql:145-153`); fixture `:318-319` "current follows the correction". **A receipt shows the difference — only on the ticket page:** `app/operation/weighbridge/[id]/page.tsx:162-163` shows net, shared and `difference_kg`, and `:135-137` each receipt's quantity beside its share. **The receipt's own page** (`/inbound/[id]/edit`, `TicketSharesPanel.tsx`) reads the share's `kg` and reason (`:16`) and, for the current readings, only `role, device_code, status` (`:32`) — **no weight, no ticket net, no difference**; its line is "{kg} kg shared to this receipt (quantity {qty} kg)" (`:48`, `messages/en.ts:10068`), which is the share frozen at sharing time. After a correction that line is unchanged. The function header places the difference "在单上" (on the ticket, `correct_weighing.sql:7-8`); Step 0 Q11 says "receipts … show the difference" |
+| b | `ingest_process_pending` takes `awaiting_transform` rows once a transformer exists | ✅ | `db/functions/ingest_process_pending.sql:26-31` `WHERE b.status = 'received' OR (b.status = 'awaiting_transform' AND EXISTS (… c.transform_function IS NOT NULL))`; fixture 250 AWAIT `:233-241` (waits; a class without a transformer is not re-handed; picked up once it has one) |
+| c | Capacity refuses at confirmation when set; V33 lists in-use instruments without capacity | ✅ | `capture_confirm_internal.sql:82-91` (`IF v_dev.capacity IS NOT NULL` → kg / t / g → `RAISE EXCEPTION 'WEIGHING_ABOVE_CAPACITY|%|%'`); fixture CAP `:350-360` (150 on 100 refused, 99 passes, t units, no capacity → no check, a changed value above capacity refused). `db/views/pending_values.sql:52-60` V33 arm `kind IN (scale, weighbridge, meter, inline_instrument) AND retired_at IS NULL AND interface_status <> 'reserved' AND capacity IS NULL`; `docs/mes-pending-values.md:24` |
+| d | A manual entry whose transform fails is refused with nothing stored | ✅ | `db/functions/submit_manual_capture.sql:54-57` `IF v_state <> 'transformed' THEN … RAISE EXCEPTION` (the inbox insert rolls back with it; header `:9-10` "整笔回滚 —— 什么都不留"); fixture MANUAL `:327-328` counts inbox / drafts / weighings before and after: "a refused manual entry left rows behind" |
+| e | Ticket lifecycle: net ≤ 0 refused; void only with no shares; `WB-YYYY-NNNN` gapped | ✅ | `capture_confirm_internal.sql:150-153` `IF v_gross - v_tare <= 0 THEN RAISE EXCEPTION 'TICKET_NET_NOT_POSITIVE…'`; `db/functions/void_weighbridge_ticket.sql:18` reason required, `:27-28` `IF EXISTS (… weighbridge_ticket_shares …) THEN RAISE EXCEPTION 'TICKET_HAS_SHARES|%'`; `db/functions/generate_weighbridge_ticket_code.sql:15-16` prefix + year + `LPAD(nextval('weighbridge_ticket_code_seq'), 4, '0')`; `db/tables/document_types.sql:162` `('weighbridge_ticket', 'WB', …, 'gapped', 'weighbridge_ticket_code_seq', …)`; fixture TICKET `:373` (tare above gross), `:472` (shared ticket not voided) |
+| f | Shipment shares made from the ticket page, with no money moved | ✅ | `db/functions/share_weighbridge_ticket.sql:4` "发货、开票、过账一样都不动 —— 不挪钱", `:27-32` `require_permission('action.ship_goods')` → `weighbridge_share_internal`, whose only write is `INSERT INTO weighbridge_ticket_shares` (`weighbridge_share_internal.sql:43`; grep for INSERT / UPDATE / DELETE → that one line); `ship_order.sql` last changed `e8a054f8` (APR-5b, 2026-09-25), not in `3c024e82`; ticket page control `app/operation/weighbridge/[id]/TicketControls.tsx:32` `PermissionGate code={… 'action.ship_goods'}`; fixture SHARE `:427-433` (direction checked both ways) |
+| g | Calibration derived on read, incl. "never calibrated" and late-entered certificates | ✅ | `db/functions/calibration_status_from.sql:19-24` (no record → `never_calibrated`; failed; ≤ valid-until → `in_calibration`; else `expired`); `db/views/weighing_calibration_all.sql:32-38` picks, at read time, the latest non-void record with `calibrated_on ≤` the reading's Singapore date — nothing is stored on the weighing; fixture CAL `:502-506` (four statuses), `:515-520` (a reading three days old is `never_calibrated`, then a certificate entered afterwards covering that day makes it `in_calibration`) |
+| h | Weighing payload schema in `docs/integration/gateway-interface.md`; V8 and V33 in `docs/mes-pending-values.md`; role matrix and change log updated | ✅ | `gateway-interface.md:196-215` "§7a The `weighing` class" (only key `weight_kg`, number > 0 in kg, the two failure codes, no gross / tare / ticket in the payload, draft not record, capacity); `mes-pending-values.md:23` (V8), `:24` (V33), plus "What V8 / V33 holds back"; `docs/role-matrix.md:126` (row: confirm readings, manual weighing, tickets — warehouse · cto · admin) and `:219` (code `action.confirm_capture`); `docs/change-log.md:14` (249 of 256) and `:986-1007` "§13 Weighing and calibration (MES-2)" |
+| i | Self-taken decisions (§7), titles | — | 1 The calibration gate refuses only when the switch applies — all three codes. 2 No `capture_drafts.weighing_id`. 3 Choosing a subject is not a "change". 4 Gross or tare is derived from the ticket's direction. 5 Vehicle registration is upper-cased. 6 Capacity units kg / t / g; no unit = kg. 7 A correction keeps the original reading's instrument and capture time. 8 Shares and photos are append-only (a share cannot be undone). 9 The two calibration settings live on `/operation/calibration`. 10 The capture queue does not process the inbox when it loads. 11 Bucket objects cannot be deleted. 12 The weighbridge menu entry sits under Operation, Inventory and Logistics. 13 The Q31 probe's rows stay as test data. 14 The gateway arm of the live proof ran as `anon` in the rolled-back transaction, not over HTTPS. 15 Pricing on live proven at the preview and the engine. 16 `/operation/weighbridge/[id]` not surveyed or smoke-tested with a row. 17 The photo proof's fault injection was not run on live. 18 C6 runs in its own top-level block. 19 `set_ingest_settings` impossible-date bug, fixed. 20 The local scratch cluster kept running during the cut |
+
+### §10.4 · Judgement on the stop rule
+
+**Item a is only partly done**: the original is kept and the ticket follows the newest weighing, but after a correction **the receipt's
+own page shows no difference** — it keeps showing the share as it was when shared and the receipt quantity; the corrected net and the
+gap appear only on the ticket page. Under the brief's stop rule (step 1.5), **MES-3a Step 0 was not started.** Not fixed.
+
+If Tim reads Q11's "receipts … show the difference" as "the ticket page shows each receipt beside the net", a is present as built and
+MES-3a Step 0 can start. If it means the receipt's page, the fix is small and belongs to whichever cut Tim names: the panel also reads
+the ticket's `net_kg` / `difference_kg` from `weighbridge_ticket_weights` (same row predicate as the panel's other reads) and states the
+ticket's current net beside the share — a few lines in `TicketSharesPanel.tsx` plus two message keys, no migration.
+
+### §10.5 · Assertions measured and found false or imprecise (this close-out)
+
+- **`db/functions/ingest_process_pending.sql:4`** "MES-2 的确认队列打开时会调它" — false as built: §7 decision 10, the queue does not process
+  on load; it carries the Process received button. A stale comment, not a behaviour; not fixed here (no code change in this block).
+- **The brief's "on live, only admin@ holds the pricing permission"** — not re-measured in this block (no database connection).
+  `docs/role-matrix.md:199` lists `action.price_receipts` as held by **finance · admin**; MES-2 §6.1 measured only the
+  `RECEIPT_PRICE_NO_OTHER_DECIDER` refusal and wrote "only admin@". The two disagree; MES-3a Step 0 must measure it (who holds
+  `action.price_receipts` and `data.view_purchase_prices` on live, as postgres from `role_permissions` / `user_roles`) before it reasons
+  about the fold-in.
