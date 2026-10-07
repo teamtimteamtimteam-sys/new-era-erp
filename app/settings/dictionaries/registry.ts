@@ -31,12 +31,17 @@ export type DictTable =
     | 'substances' | 'battery_chemistries' | 'material_kinds'
     | 'inbound_safety_states' | 'laboratories' | 'inbound_source_reasons'
     | 'nea_waste_categories'   // MES-3a(2026-10-06,V29):第七张 —— 同样只有那六列
+    | 'dangerous_goods_codes' | 'label_templates'   // MES-3b(2026-10-07,V30 · Q5):第八、九张 —— 同样有那六列
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
     column: string
-    /** MES-3a 加了 number(滞留提醒天数):空 = NULL = "Not yet set",不是 0。 */
-    kind: 'boolean' | 'text' | 'number'
+    /** MES-3a 加了 number(滞留提醒天数):空 = NULL = "Not yet set",不是 0。
+     *  MES-3b 加了 choice(标签模板的"给哪一种东西 / 纸多大"):只能在 options 里挑 —— 表上的 CHECK 是同一张清单,
+     *  这里只是不让人去敲一个必然被拒的字。 */
+    kind: 'boolean' | 'text' | 'number' | 'choice'
+    /** kind = choice 时的取值,每一个带一个字面量的文案键(check-i18n 按字面量核对)。 */
+    options?: { value: string; labelKey: string }[]
     labelKey: string
     /** 这个开关到底管什么 —— 画在勾选框旁边,不是 tooltip。 */
     hintKey: string
@@ -179,6 +184,53 @@ export const DICTIONARIES: DictSpec[] = [
             { table: 'materials', column: 'nea_waste_category_code' },
             { table: 'licence_storage_limits', column: 'category_code' },
         ],
+    },
+    {
+        // ★ MES-3b(2026-10-07,MES-0 Q38 · V30;MES-3b Step 0 Q11,Tim):危险品 UN 编号 —— 引导四行(UN3480 · UN3481 · UN3090 · UN3091,第 9 类)。
+        //   包装标记文字、包装说明、标签尺寸三列【从空开始】:由有 DG 资质的货代在第一次出口之前给(V30);清单里空的写 Not yet set。
+        //   写码与那张表的写策略同一个(module.materials.edit);读的门更宽(库存、进料、产出、物流、销售也要读)。
+        table: 'dangerous_goods_codes',
+        titleKey: 'dict.dangerous_goods_codes',
+        permission: 'module.materials.edit',
+        viewPermission: 'module.materials.view',
+        extras: [
+            { column: 'dg_class', kind: 'text', required: true, showInTable: true,
+              labelKey: 'dict.f.dg_class', hintKey: 'dict.h.dg_class' },
+            { column: 'marking_text', kind: 'text', showInTable: true,
+              labelKey: 'dict.f.marking_text', hintKey: 'dict.h.marking_text' },
+            { column: 'packing_instruction', kind: 'text', showInTable: true,
+              labelKey: 'dict.f.packing_instruction', hintKey: 'dict.h.packing_instruction' },
+            { column: 'label_size', kind: 'text', showInTable: true,
+              labelKey: 'dict.f.label_size', hintKey: 'dict.h.label_size' },
+        ],
+        referencedBy: [{ table: 'materials', column: 'dg_code' }],
+    },
+    {
+        // ★ MES-3b(2026-10-07,MES-0 Q40;MES-3b Step 0 Q5,Tim):标签模板 —— 固定形状里选:给哪一种东西、A6 还是 A5、印不印危险品那一行。
+        //   引导六行(三种东西 × A6 / A5)。版式只有一份(labelHtml.ts),模板永远塞不进一段标记。
+        //   写码与那张表的写策略同一个(module.inventory.edit —— 标签是仓库的事);读要库存查看码。
+        table: 'label_templates',
+        titleKey: 'dict.label_templates',
+        permission: 'module.inventory.edit',
+        viewPermission: 'module.inventory.view',
+        extras: [
+            { column: 'object_kind', kind: 'choice', required: true, showInTable: true,
+              labelKey: 'dict.f.object_kind', hintKey: 'dict.h.object_kind',
+              options: [
+                  { value: 'inbound_batch', labelKey: 'dict.o.inbound_batch' },
+                  { value: 'output_batch', labelKey: 'dict.o.output_batch' },
+                  { value: 'storage_location', labelKey: 'dict.o.storage_location' },
+              ] },
+            { column: 'page_size', kind: 'choice', required: true, showInTable: true,
+              labelKey: 'dict.f.page_size', hintKey: 'dict.h.page_size',
+              options: [
+                  { value: 'A6', labelKey: 'dict.o.A6' },
+                  { value: 'A5', labelKey: 'dict.o.A5' },
+              ] },
+            { column: 'show_dg', kind: 'boolean', required: true, showInTable: true,
+              labelKey: 'dict.f.show_dg', hintKey: 'dict.h.show_dg' },
+        ],
+        referencedBy: [{ table: 'label_prints', column: 'template_code' }],
     },
 ]
 

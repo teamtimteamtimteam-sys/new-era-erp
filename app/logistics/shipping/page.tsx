@@ -38,6 +38,10 @@ type QueueRow = {
     location_code: string | null
     location_name: string | null
     reserved_qty: number | null
+    // MES-3b(Q13 · Q15 · Q16):物料选的 UN 编号 · 电池料没选 · 预留那一批开着的要隔离的状态(标出来,不拒)
+    dg_code: string | null
+    dg_missing: boolean
+    quarantine_states: string | null
 }
 
 export default async function ShippingQueuePage() {
@@ -47,7 +51,14 @@ export default async function ShippingQueuePage() {
     const locale = await getLocale()
     const supabase = await createClient()
 
-    const rows = mustRows(await supabase.rpc('shipping_queue_rows'), 'shipping_queue_rows') as unknown as QueueRow[]
+    const [queueRes, statesRes] = await Promise.all([
+        supabase.rpc('shipping_queue_rows'),
+        supabase.from('inbound_safety_states').select('code, name_en, name_zh'),
+    ])
+    const rows = mustRows(queueRes, 'shipping_queue_rows') as unknown as QueueRow[]
+    const stateNames = new Map((mustRows(statesRes, 'inbound_safety_states') as { code: string; name_en: string; name_zh: string }[])
+        .map((x) => [x.code, locale === 'zh' ? x.name_zh : x.name_en]))
+    const statesText = (codes: string) => codes.split(',').map((c) => stateNames.get(c) ?? c).join(', ')
 
     // 按订单、再按行分组(读者已经排好序:放行时刻、订单、行号、批次)
     type Line = { head: QueueRow; reservations: QueueRow[] }
@@ -99,6 +110,8 @@ export default async function ShippingQueuePage() {
                                             <span className="font-medium">
                                                 #{l.head.line_no} {l.head.material_code} — {l.head.material_name}
                                             </span>
+                                            {l.head.dg_code && <span data-queue-dg={l.head.dg_code}>{t('logistics.shipping.dg', { code: l.head.dg_code })}</span>}
+                                            {l.head.dg_missing && <span className="text-amber-700" data-queue-dg-missing>{t('logistics.shipping.dgMissing')}</span>}
                                             <span>
                                                 {t('logistics.shipping.quantities', {
                                                     released: String(l.head.released_qty),
@@ -124,6 +137,11 @@ export default async function ShippingQueuePage() {
                                                                 unit: l.head.unit,
                                                             })}
                                                         </p>
+                                                        {r.quarantine_states && (
+                                                            <p className="mb-1 text-amber-700" data-queue-quarantine={r.quarantine_states}>
+                                                                {t('logistics.shipping.quarantineFlag', { states: statesText(r.quarantine_states) })}
+                                                            </p>
+                                                        )}
                                                         <ShipQueueControl
                                                             orderId={o.head.sales_order_id}
                                                             reservationId={r.reservation_id as string}
@@ -131,6 +149,7 @@ export default async function ShippingQueuePage() {
                                                             remainingQty={Number(l.head.remaining_qty)}
                                                             unit={l.head.unit}
                                                             subject={`${o.head.order_code} #${l.head.line_no} · ${r.output_batch_code ?? ''}`}
+                                                            batchCode={r.output_batch_code}
                                                         />
                                                     </li>
                                                 ))}

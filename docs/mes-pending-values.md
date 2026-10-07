@@ -27,6 +27,9 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | V3 | Dwell warning days per safety state | `/settings/dictionaries` (intake safety states) | each active safety state whose `dwell_warning_days` is empty | `module.materials.view` | Tim with the WSH officer; licence storage conditions | NEA licence issued, or the first swollen / leaking receipt | MES-3a |
 | V4 | Whether a safety state requires quarantine | `/settings/dictionaries` (intake safety states) | each active safety state whose `requires_quarantine` is empty (seeded: swollen / leaking = yes, discharged = no) | `module.materials.view` | Tim / WSH officer | before the first receipt of damaged stock | MES-3a |
 | V34 | A quarantine location | `/inventory/locations` (the location editor's "Quarantine location" box) | one row while any active safety state requires quarantine and no active location is marked quarantine | `module.inventory.view` | Tim / the warehouse | before the first swollen / leaking receipt | MES-3a |
+| V30 | Marking text, packing instruction and label size per UN dangerous-goods number | `/settings/dictionaries` (UN dangerous-goods numbers) | each active `dangerous_goods_codes` row with any of `marking_text`, `packing_instruction`, `label_size` empty | `module.materials.view` | a DG-qualified forwarder | before the first export | MES-3b |
+| V31 | HS code of each battery material | the material editor (`/materials/<id>/edit`) | each live material of a battery kind (`material_kinds.has_condition_axes`) with `hs_code` empty | `module.materials.view` | the customs broker | before the first export | MES-3b |
+| V35 | UN dangerous-goods number of each battery material | the material editor (`/materials/<id>/edit`) | each live material of a battery kind with `dg_code` empty | `module.materials.view` | the forwarder, with Tim | before the first export or the first dangerous-goods shipment | MES-3b |
 
 **What "Not yet set" means for V5.** A gateway with no heartbeat interval cannot be judged silent: its status reads
 **"Not yet set — silence cannot be judged"**, it raises no `gateway_silent` reminder, and no outage is recorded for it.
@@ -65,3 +68,16 @@ damaged, water-exposed and charged states today). Swollen / leaking is seeded **
 quarantine, **every swollen or leaking delivery is refused** (`QUARANTINE_LOCATION_REQUIRED`), and a batch recorded swollen or leaking
 after it was placed can only move into a quarantine location. Marking one location in the location editor clears this row.
 
+**What V30 holds back (MES-3b, Step 0 Q11 · Q14).** The four UN numbers (UN3480, UN3481, UN3090, UN3091, class 9, with their UN proper
+shipping names) are seeded; what the forwarder requires on the package — the marking text, the packing instruction and the label size —
+is not. Until it is supplied a batch label prints the UN number, the class and the proper shipping name only, marked "data, not a
+regulated package mark". The system never prints a regulated mark (the class-9 hazard label or the lithium battery mark) on its own.
+
+**What V31 holds back (MES-3b, Q17).** A material's HS code (6–12 digits, dots allowed — a shape check, not a standard) prints on the
+material page, the material list and export, the shipment page and the delivery note. Until it is supplied those places carry none. It is
+not printed on labels and not on the sales invoice in this cut.
+
+**What V35 holds back (MES-3b, Q12 · Q15).** The UN number cannot be worked out from a material's chemistry or form (nothing records
+lithium-ion against lithium-metal, or "contained in equipment"), so a person chooses it on each material. Until then a battery material's
+labels, its delivery-note lines and the shipping queue say **"DG code not set"**. Nothing is refused — there is no export flag yet to key
+a refusal on; the refusal arrives with the first-export / Basel item.

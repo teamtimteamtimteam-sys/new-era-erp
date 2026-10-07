@@ -17,6 +17,10 @@
 // 【CONTROLLED 那一栏的颜色保留原样】#991b1b 是一个刻意的警示红,不属于品牌调色板,
 // 也【不该】被换成品牌色:它要的就是"和这张纸上别的东西都不一样"。
 // 【文字与数字一个都没有改】列头、'not classified'、页脚那段话逐字保留(R3)。
+// ── MES-3b(2026-10-07,MES-3b Step 0 Q13 · Q15 · Q16 · Q17,Tim):物料那一格下面多三行小字 ──
+//   危险品:物料选了 UN 编号 → "UN3480 · Class 9 — <联合国正式运输名称>";电池料没选 → "DG: not set"(只提示,不拒);
+//   HS 编码(有就印);那一批开着要隔离的状态 → "Open safety state: …"(标出来,不拒)。
+//   【这些是数据,不是受监管的包装标记】(Q14)—— 页脚那段话照旧逐字,DG 一句另起。
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import {
     docStyles, DocumentLetterhead, DocumentFooter, TableHeader, NoSignatureNote,
@@ -37,12 +41,17 @@ export type DeliveryNoteData = {
         unit: string
         classification: string | null
         is_controlled: boolean | null
+        dg: string | null
+        dg_missing: boolean
+        hs: string | null
+        quarantine: string | null
     }[]
 }
 
 // 【只有送货单有的一条】受控标记的警示红 —— 见抬头,刻意不用品牌色。
 const styles = StyleSheet.create({
     controlled: { color: '#991b1b', fontWeight: 'bold' },
+    sub: { fontSize: 7, color: '#333' },
 })
 
 const COLS = [
@@ -86,7 +95,13 @@ export default function DeliveryNoteDocument({
                 {d.lines.map((l) => (
                     <View key={l.line_no} style={docStyles.row}>
                         <Text style={[docStyles.cell, { width: COLS[0].width }]}>{l.line_no}</Text>
-                        <Text style={[docStyles.cell, { width: COLS[1].width }]}>{l.material}</Text>
+                        <View style={[docStyles.cell, { width: COLS[1].width }]}>
+                            <Text>{l.material}</Text>
+                            {l.dg && <Text style={styles.sub}>{l.dg}</Text>}
+                            {!l.dg && l.dg_missing && <Text style={styles.sub}>DG: not set</Text>}
+                            {l.hs && <Text style={styles.sub}>HS {l.hs}</Text>}
+                            {l.quarantine && <Text style={[styles.sub, styles.controlled]}>Open safety state: {l.quarantine}</Text>}
+                        </View>
                         <Text style={[docStyles.cell, { width: COLS[2].width }]}>{l.batch_code}</Text>
                         <Text style={[docStyles.cell, { width: COLS[3].width },
                                       l.is_controlled ? styles.controlled : {}]}>

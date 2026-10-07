@@ -12,7 +12,9 @@ export async function shipFromQueue(
     orderId: string,
     reservationId: string,
     qty: string,
-    shipDate: string
+    shipDate: string,
+    // MES-3b(Q24):可选的核对扫码 —— 扫了就随这一行送去,对不上由 ship_order 按名拒 SHIP_SCAN_MISMATCH;没扫就不送
+    scannedCode = ''
 ): Promise<{ error?: string; shipmentId?: string; code?: string }> {
     const supabase = await createClient()
     const trimmed = qty.trim()
@@ -21,11 +23,11 @@ export async function shipFromQueue(
         // 【空串不是日期】空着就让服务端按名拒(SHIP_DATE_REQUIRED)
         p_ship_date: (shipDate.trim() === '' ? null : shipDate) as unknown as string,
         // 【数量留空 = 整条预留】—— 不传 qty,函数就整条消耗
-        p_lines: [
-            trimmed === ''
-                ? { reservation_id: reservationId }
-                : { reservation_id: reservationId, qty: Number(trimmed) },
-        ],
+        p_lines: [{
+            reservation_id: reservationId,
+            ...(trimmed === '' ? {} : { qty: Number(trimmed) }),
+            ...(scannedCode.trim() === '' ? {} : { scanned_code: scannedCode.trim() }),
+        }],
     })
     if (error) return { error: await localizeSalesOrderError(error.message) }
     revalidatePath('/logistics/shipping')

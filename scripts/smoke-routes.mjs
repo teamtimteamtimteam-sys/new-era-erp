@@ -1118,6 +1118,9 @@ const SPECIAL_ID_ROUTES = new Set([
     // ID_SOURCES 一律 select=id,所以它结构上走不了那条路(known-issues 记过)。
     // 主循环里现造一枚,并且【只读地证明它匹配不到任何一张证书】。
     '/verify/cod/[token]',
+    // MES-3b(Q9):两条短链接 —— 段里放的是【批号 / 库位号】(文本),不是 id;而且它们【不在这里走】,见 EXPECTED_SKIPS 那一段。
+    '/b/[code]',
+    '/loc/[code]',
     // ★★ SEARCH-5(2026-09-19):关联记录那两条地址 ★★
     //   段里放的是 `document_types.key`(文本),**不是任何一行的 id** ——
     //   ID_SOURCES 一律 `select=id`,所以它们结构上走不了那条路,
@@ -1191,6 +1194,10 @@ const QUERY_PROBES = [
 ]
 
 const EXPECTED_SKIPS = new Set([
+    // MES-3b(2026-10-07,Q9 · Q20):两条短链接【刻意】不走 —— 每打开一次都往只追加的 scan_events 写一行(理由在主循环里那一段)。
+    //   这两行不是"等数据到位",它们永远在这里;要拿掉,先让冒烟有一个不留痕的办法证它们。
+    '/b/[code]',
+    '/loc/[code]',
     // MES-2(2026-10-06):线上 weighbridge_tickets 零行 —— MES-2 的线上验证(开单、完成、分给收货单)全部在回滚的事务里跑,
     //   一张都不留。第一张真的地磅单开出来的那天,这条断言会响,这一行随之删掉。
     '/operation/weighbridge/[id]',
@@ -2328,6 +2335,15 @@ async function main() {
                     '五次随机 UUID 全部匹配到了证书 —— 122 位随机撞不出这个结果,' +
                     '坏掉的是那条查询,不是运气。停下来,不要把它当成一次"取不到令牌"。')
                 url = route.replace('[token]', tok)
+            }
+            // MES-3b(Q9 · Q20):短链接【不在冒烟里走】—— 每打开一次,resolve_scan_code 就往只追加的 scan_events 写一行,
+            //   而那一行谁都删不掉(连属主也删不掉)。冒烟每天跑,冒烟的一次性账号会在线上留下永远删不掉的行 ——
+            //   与"冒烟不论成败都不在线上留东西"(PAY-REQ-1)相撞。它们的证明在别处,而且更强:
+            //   fixture 252 的 LINK 臂(四种结果、看不见的人拿不到 id)与 MES-3b 交回 §1 的逐角色表(七个真账号,回滚的事务里)。
+            if (route === '/b/[code]' || route === '/loc/[code]') {
+                skipped.add(route); PROGRESS.skipped.push(route)
+                console.log(`  SKIP ${route}  (writes an append-only scan row — proved by fixture 252 LINK and the MES-3b role table)`)
+                continue
             }
             // 状态门路由:取同一行的 id 和 status,预期值算出来、精确断言
             let exact = null

@@ -89,6 +89,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                 const v = r[x.column]
                 if (v === null || v === undefined) return <span className="text-amber-700" data-not-set={x.column}>{t('dict.notYetSet')}</span>
                 if (x.kind === 'boolean') return v === true ? t('common.yes') : t('common.no')
+                if (x.kind === 'choice') { const o = x.options?.find((p) => p.value === v); return o ? t(o.labelKey) : String(v) }
                 return String(v)
             },
         } as Column<DictRow>)),
@@ -231,6 +232,18 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                                             <option value="" disabled={!!x.required}>{x.required ? t('dict.pickYesNo') : t('dict.notYetSet')}</option>
                                             <option value="true">{t('common.yes')}</option>
                                             <option value="false">{t('common.no')}</option>
+                                        </select>
+                                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</p>
+                                    </div>
+                                ) : x.kind === 'choice' ? (
+                                    <div>
+                                        <span className={flabel}>{t(x.labelKey)}</span>
+                                        {/* MES-3b:只能在固定的几种里挑(表上的 CHECK 是同一张清单) */}
+                                        <select value={extras[x.column] ?? ''}
+                                                onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
+                                                className={fieldSelect}>
+                                            <option value="" disabled>{t('dict.pickOne')}</option>
+                                            {(x.options ?? []).map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
                                         </select>
                                         <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</p>
                                     </div>

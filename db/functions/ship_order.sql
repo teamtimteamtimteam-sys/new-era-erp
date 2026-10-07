@@ -33,6 +33,8 @@ DECLARE
     v_cust     record;
     v_ceiling  numeric;
     v_taken    jsonb := '{}'::jsonb;
+    v_scanned  text;
+    v_bcode    text;
 BEGIN
     -- ════════════════════════════════════════════════════════════════════════
     -- ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q7):【发货归仓库,在 CFO 放行之后】
@@ -97,6 +99,20 @@ BEGIN
         IF NOT FOUND OR v_res.sales_order_id <> p_sales_order_id
            OR v_res.released_at IS NOT NULL OR v_res.consumed_at IS NOT NULL THEN
             RAISE EXCEPTION 'SO_SHIP_NOT_RESERVED|%', COALESCE(v_res_id::text, '?');
+        END IF;
+
+        -- ════════════════════════════════════════════════════════════════════
+        -- ★ MES-3b(2026-10-07,MES-3b Step 0 Q24,Tim):【一次可选的核对扫码】—— 发货队列的那一行可以带上
+        --   scanned_code(页面经 resolve_scan_code 认出来的那个批号);带了而与这条预留的批次不是同一个
+        --   → SHIP_SCAN_MISMATCH|<扫到的>|<该发的>。不带照常发(Q24:不必扫;要必扫以后是一个开关,不是改码)。
+        --   比的是批号本身(不分大小写、去掉两头空白)—— 不在这里再解析一遍短链接:认身份只有 resolve_scan_code 一处。
+        -- ════════════════════════════════════════════════════════════════════
+        v_scanned := NULLIF(btrim(v_item->>'scanned_code', E' \t\r\n'), '');
+        IF v_scanned IS NOT NULL THEN
+            SELECT ob.code INTO v_bcode FROM output_batches ob WHERE ob.id = v_res.output_batch_id;
+            IF upper(v_scanned) IS DISTINCT FROM upper(v_bcode) THEN
+                RAISE EXCEPTION 'SHIP_SCAN_MISMATCH|%|%', v_scanned, v_bcode;
+            END IF;
         END IF;
 
         -- ════════════════════════════════════════════════════════════════════

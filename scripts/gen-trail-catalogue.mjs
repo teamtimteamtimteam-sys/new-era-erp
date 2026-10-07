@@ -688,6 +688,8 @@ const TABLE_NAMES = {
     instrument_calibrations: 'calibration',
     // MES-3a(2026-10-06)
     nea_waste_categories: 'NEA waste category', licence_storage_limits: 'storage ceiling', receipt_ceiling_checks: 'storage ceiling check',
+    // MES-3b(2026-10-07)
+    dangerous_goods_codes: 'UN dangerous-goods number', label_templates: 'label template', label_prints: 'label print',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -808,6 +810,9 @@ function humanTable(t) {
 // 【没登记在 check-i18n 里、而这一刀三个主语要用的】—— 措辞写在这里,交回报告列出。
 const ENUM_OVERRIDES = {
     // MES-3a(2026-10-06):进厂那一刻库存上限怎么判的(receipt_ceiling_checks.outcome 的 CHECK)
+    // MES-3b(2026-10-07):标签模板给哪一种东西 · 印标签那一行是哪一种东西(两列同一张 CHECK 清单)
+    'label_templates#object_kind': { inbound_batch: 'Inbound batch', output_batch: 'Output batch', storage_location: 'Storage location' },
+    'label_prints#object_kind': { inbound_batch: 'Inbound batch', output_batch: 'Output batch', storage_location: 'Storage location' },
     'receipt_ceiling_checks#outcome': {
         within: 'Within the ceiling', ceiling_not_set: 'Ceiling not set', category_not_set: 'No NEA category',
         licence_not_in_force: 'No licence in force', unit_not_convertible: 'Unit not convertible to tonnes',

@@ -23,5 +23,6 @@ AS $function$
         ('home_greetings', 'Home-screen greeting text; screen decoration with no business meaning.'),
         ('ingest_inbox', 'Ingestion log (MES-1): itself an append-only landing table; its status changes are recorded on the row (attempts, last attempt, discard).'),
         ('ingest_transmissions', 'Ingestion log (MES-1): itself an append-only log of every gateway call; logging it again doubles the volume and adds no fact.'),
-        ('notification_reads', 'Per-viewer "seen" marks on notifications; screen state with no business meaning.');
+        ('notification_reads', 'Per-viewer "seen" marks on notifications; screen state with no business meaning.'),
+        ('scan_events', 'Scan log (MES-3b): itself an append-only record of every scan resolved on a page; logging it again doubles the volume and adds no fact.');
 $function$;

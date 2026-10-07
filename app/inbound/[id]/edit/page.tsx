@@ -47,6 +47,7 @@ import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import TicketSharesPanel from './TicketSharesPanel'
 import SafetyStateHistory from '@/app/components/safety/SafetyStateHistory'
+import LabelPrintHistory from '@/app/components/labels/LabelPrintHistory'
 import CeilingCheckPanel from '@/app/components/safety/CeilingCheckPanel'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
@@ -881,6 +882,9 @@ export default async function EditInboundPage({
                     ) : null
                 }
             />
+
+            {/* MES-3b(Q7):这一批的标签印过几次、最近一次补印与理由;旁边是打印页 */}
+            <LabelPrintHistory kind="inbound_batch" id={batch.id} locale={locale} />
 
             {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
             <PrepaymentPanel canEdit={canEditGate} batchId={batch.id} applicable={applicable} history={prepaymentHistory}

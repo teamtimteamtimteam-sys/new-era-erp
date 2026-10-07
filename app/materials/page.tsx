@@ -81,7 +81,7 @@ export default async function MaterialsPage({
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
     const baseQuery = supabase
         .from('materials')
-        .select('id, code, name, kind_code, may_be_processed, chemistry, unit, status, created_at, safety_stock_qty, waste_classification_code, material_kinds ( name_en, name_zh ), waste_classifications ( name_en, name_zh, is_controlled )')
+        .select('id, code, name, kind_code, may_be_processed, chemistry, unit, status, created_at, safety_stock_qty, waste_classification_code, dg_code, hs_code, material_kinds ( name_en, name_zh ), waste_classifications ( name_en, name_zh, is_controlled )')
 
     const { data: materials, error } = await applyMaterialFilters(
         baseQuery,
@@ -159,6 +159,9 @@ export default async function MaterialsPage({
             unitLabel: display(UNIT_OPTIONS, m.unit),
             safetyStockLabel:
                 m.safety_stock_qty === null ? null : `${m.safety_stock_qty} ${display(UNIT_OPTIONS, m.unit)}`,
+            // MES-3b(Q17):UN 编号与 HS 编码(都可以没有 —— 没有就是没人给过)
+            dgCode: m.dg_code ?? null,
+            hsCode: m.hs_code ?? null,
             status: m.status,
             createdLabel: formatAuditStamp(m.created_at),
         }

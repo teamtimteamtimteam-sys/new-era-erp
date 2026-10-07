@@ -1,6 +1,7 @@
 'use server'
 
 import { parseNeaCategoryField } from '@/app/materials/neaCategoryOptions'
+import { parseDgField, parseHsField } from '@/app/materials/dgOptions'
 import { KIND_UNCHOSEN, parseProcessableField } from '../../materialKindOptions'
 import { parseAxisField } from '../../materialAxesOptions'
 import { localizeMaterialError } from '../../materialErrorCodes'
@@ -40,6 +41,9 @@ export async function updateMaterial(
     const waste_classification_code = parseWasteClassField(formData.get('waste_classification_code'))
     // MES-3a(V29):NEA 废物类别 —— 空 = 没人分过(收货照收,记 category_not_set)
     const nea_waste_category_code = parseNeaCategoryField(formData.get('nea_waste_category_code'))
+    // MES-3b(V35 · V31):危险品 UN 编号(空 = 没人选过)与 HS 编码(空 = 没给;形状由表上的 CHECK 判)
+    const dg_code = parseDgField(formData.get('dg_code'))
+    const hs_code = parseHsField(formData.get('hs_code'))
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const spec = (formData.get('spec') as string)?.trim() || null
     // SS-1:安全库存阈值。【留空 = 不监控】,所以空字符串必须落成 NULL 而不是 0 ——
@@ -87,6 +91,8 @@ export async function updateMaterial(
             chemistry,
             waste_classification_code,
             nea_waste_category_code,
+            dg_code,
+            hs_code,
             unit,
             spec,
             safety_stock_qty,

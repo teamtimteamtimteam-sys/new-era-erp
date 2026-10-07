@@ -14,6 +14,8 @@ import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { formatDate } from '@/lib/dates'
+import ScanField from '@/app/components/scan/ScanField'
+import type { ScanResult } from '@/app/components/scan/actions'
 
 export type InboundBatchOption = {
     id: string
@@ -127,6 +129,19 @@ export default function NewProcessingForm({
     const [lossOverride, setLossOverride] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
+    // MES-3b(Q23):每一行投料一个扫码框 —— 扫到的批次在这张表单的选项里才选得上(有剩余、可投);不在就说为什么。
+    //   投料的闸一条都没有搬到这里:可不可投、状态允不允许、够不够,照旧在提交时由 commit_processing_run / guard_processing_input 判。
+    const [scanMiss, setScanMiss] = useState<Record<number, string>>({})
+    function scanInto(key: number, r: ScanResult) {
+        const ref = r.kind === 'inbound_batch' ? 'in:' + r.id : r.kind === 'output_batch' ? 'out:' + r.id : ''
+        const listed = r.kind === 'inbound_batch' ? inboundBatches.some((b) => b.id === r.id) : outputBatches.some((b) => b.id === r.id)
+        if (ref && listed) {
+            updateInputRow(key, { batch_ref: ref })
+            setScanMiss((m) => ({ ...m, [key]: '' }))
+        } else {
+            setScanMiss((m) => ({ ...m, [key]: t('processing.form.scanNotFeedable', { code: r.code ?? '' }) }))
+        }
+    }
 
     // 派生值(每次渲染重算)
     const totalInput = inputRows.reduce((sum, r) => {
@@ -429,7 +444,10 @@ export default function NewProcessingForm({
                             qtyNum > selectedBatch.available_qty
                         return (
                             <div key={row.key}>
-                                <div className="flex flex-wrap gap-2 items-start">
+                                <ScanField context="feed" accept={['inbound_batch', 'output_batch']} compact
+                                           onFound={(r) => scanInto(row.key, r)} testId={`scan-feed-${row.key}`} />
+                                {scanMiss[row.key] && <p className="text-sm text-amber-700 mb-1">{scanMiss[row.key]}</p>}
+                                <div className="flex flex-wrap gap-2 items-start mt-1">
                                     <select
                                         value={row.batch_ref}
                                         onChange={(e) =>

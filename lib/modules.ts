@@ -379,7 +379,9 @@ const P_PRICING = 'module.pricing.view'
  *
  *  【谁因此新看得见这条入口】auditor 与 sales(两者都持 materials.view)——
  *  他们看到的是【只读】的字典页。Tim 知情并接受(C-1b 的 Q4)。 */
-const P_DICTIONARIES = { all: [], any: ['module.materials.view', 'module.inbound.view'] } as const
+//  ★ MES-3b(2026-10-07):+ module.inventory.view —— 标签模板那一节的查看码(registry.ts 的 DICT_VIEW_PERMISSIONS 跟着多了它)。
+//  【谁因此新看得见这条入口】没有人:持 inventory.view 的十一个角色都已经持 materials.view 或 inbound.view(MES-3b 线上读数)。
+const P_DICTIONARIES = { all: [], any: ['module.materials.view', 'module.inbound.view', 'module.inventory.view'] } as const
 /** MES-2(2026-10-06,MES-0 Q20 · MES-2 Step 0 Q22):地磅单 —— 收货或物流查看码任一(与 weighbridge_tickets 的读策略、照片桶的读策略
  *  与 document_types 那一行的 view_permission 逐字同一对)。 */
 const P_WEIGHBRIDGE = { all: [], any: ['module.inbound.view', 'module.logistics.view'] } as const
@@ -597,6 +599,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/inventory/locations', navKey: 'inventory.subnav.locations', modules: ['inventory'], permission: P_INVENTORY },
     // MES-3a(Q1 · Q32):库存安全 —— 上限、滞留、隔离一页看全。门 = module.inventory.view;每一段的行带它自己的谓词。
     { href: '/inventory/storage-safety', navKey: 'inventory.subnav.storageSafety', modules: ['inventory'], permission: P_INVENTORY },
+    // MES-3b(Q22):扫码 —— 扫一批、看它在哪、扫目的库位把它搬过去;页面最下面是"你最近的扫码"。门 = module.inventory.view(搬要 edit,函数自己查)。
+    { href: '/inventory/scan', navKey: 'inventory.subnav.scan', modules: ['inventory'], permission: P_INVENTORY },
     // ★ M6:盘点降成库存的二级。**它自带 module.stocktakes.view,而模块可进性是
     //   从二级条目推导的,所以"只有盘点权限的人进得去库存"自动成立。**
     { href: '/stocktakes', navKey: 'nav.stocktakes', modules: ['inventory'], permission: P_STOCKTAKES },

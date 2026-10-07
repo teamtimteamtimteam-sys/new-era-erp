@@ -32,6 +32,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'account' | 'approval_policy' | 'employee' | 'department' | 'training_record' | 'import_batch'
     | 'dictionary_substances' | 'dictionary_battery_chemistries' | 'dictionary_material_kinds' | 'dictionary_inbound_safety_states'
     | 'dictionary_laboratories' | 'dictionary_inbound_source_reasons' | 'dictionary_nea_waste_categories'
+    | 'dictionary_dangerous_goods_codes' | 'dictionary_label_templates'
     | 'leave_request' | 'my_leave_request' | 'leave_grant' | 'leave_types' | 'public_holidays' | 'medical_claim' | 'my_medical_claim'
     | 'overtime_batch' | 'attendance_period'
     | 'payroll_period' | 'performance_review' | 'my_review' | 'review_cycle' | 'review_rating_scale' | 'kpi_entry'
@@ -114,6 +115,7 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     dictionary_laboratories: 'laboratories',
     dictionary_inbound_source_reasons: 'inbound_source_reasons',
     dictionary_nea_waste_categories: 'nea_waste_categories',
+    dictionary_dangerous_goods_codes: 'dangerous_goods_codes', dictionary_label_templates: 'label_templates',
     // AUDIT-TRAIL-1d-2(假别与公共假期是 M11 集合,页面交 'all';my_* 是 /me 上本人那几张 —— M8)
     leave_request: 'leave_requests',
     my_leave_request: 'leave_requests',

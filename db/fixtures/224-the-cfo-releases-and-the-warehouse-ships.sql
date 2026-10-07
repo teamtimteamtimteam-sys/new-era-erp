@@ -62,7 +62,10 @@ LANGUAGE sql AS $f$
                    ARRAY['sales_order_id', 'order_code', 'order_date', 'customer_name', 'delivery_address',
                          'released_at', 'sales_order_line_id', 'line_no', 'material_code', 'material_name', 'unit',
                          'released_qty', 'shipped_qty', 'remaining_qty', 'reservation_id', 'output_batch_code',
-                         'location_code', 'location_name', 'reserved_qty']::text[] AS want) x
+                         'location_code', 'location_name', 'reserved_qty',
+                         -- ★ MES-3b(2026-10-07,MES-3b Step 0 Q13 · Q15 · Q16):物料与批次的属性,不是客户的 —— 危险品编号、
+                         --   电池料没选编号、预留那一批开着的要隔离的状态。还是一个价格都没有。
+                         'dg_code', 'dg_missing', 'quarantine_states']::text[] AS want) x
 $f$;
 
 DO $$

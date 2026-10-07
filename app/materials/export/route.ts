@@ -12,7 +12,7 @@ import { formatCsvTimestamp } from '@/lib/dates'
 // kind_code / chemistry / unit 导出【规范存储值】(而非翻译标签)—— 稳定、机器可读,
 // 与 suppliers 导出 status 规范值一致。
 const EXPORT_COLUMNS =
-    'code, name, kind_code, may_be_processed, chemistry, unit, spec, status, notes, created_at'
+    'code, name, kind_code, may_be_processed, chemistry, unit, spec, status, notes, created_at, dg_code, hs_code'
 
 // CSV 表头:用稳定、机器可读的英文。
 const CSV_HEADERS = [
@@ -26,6 +26,9 @@ const CSV_HEADERS = [
     'Status',
     'Notes',
     'Created At',
+    // MES-3b(Q17):危险品 UN 编号与 HS 编码 —— 加在末尾,前面十列的位置一个都不动(读这份导出的人按列位读)
+    'UN Number',
+    'HS Code',
 ]
 
 // 把任意值转成安全的 CSV 字段:一律加双引号,内部双引号翻倍 ——
@@ -91,6 +94,8 @@ export async function GET(request: NextRequest) {
                 csvCell(r.status),
                 csvCell(r.notes),
                 csvCell(formatCsvTimestamp(r.created_at)),
+                csvCell(r.dg_code),
+                csvCell(r.hs_code),
             ].join(',')
         )
     }

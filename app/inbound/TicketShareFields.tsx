@@ -6,6 +6,10 @@
 //   就要写一句理由;收货单两个都留着:份的公斤数挂在地磅单上,数量与理由在收货单上(理由落在那一份上)。
 //   不选 = 与从前一字不差(三个字段都不送)。判据在库里(create_inbound_batch / receive_inbound_batch_against_po):
 //   只从完成了的进厂单分、单位是 kg、数量与份不同时理由必填。
+//   ★ MES-3b(2026-10-07,MES-3b Step 0 Q21):地磅单号可以【敲或扫】—— 一个小框,回车后在同一份选项里按单号找(WB-…,不分大小写),
+//     找到就等于在下拉里选了它。地磅单没有我们印的标签(那张纸是地磅自己出的),所以这不经 resolve_scan_code:
+//     它只在这张表单已经列出的那几张里找,找不到就说找不到,不另造一条认身份的路。
+import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 
 export type TicketOption = { id: string; code: string; vehicle_reg: string; net_kg: number; remaining_kg: number }
@@ -20,19 +24,31 @@ export default function TicketShareFields({ tickets, ticketId, setTicketId, shar
     fieldCls: string; labelCls: string; error?: string
 }) {
     const t = useTranslations()
+    const [typed, setTyped] = useState('')
+    const [typedMiss, setTypedMiss] = useState('')
     if (tickets.length === 0) return null
+    function choose(id: string) {
+        setTicketId(id)
+        const tk = tickets.find((x) => x.id === id)
+        if (tk) { setShareKg(String(tk.remaining_kg)); setQuantity(String(tk.remaining_kg)) }
+        else { setShareKg('') }
+    }
+    function byCode() {
+        const code = typed.trim().toUpperCase()
+        if (code === '') return
+        const tk = tickets.find((x) => x.code.toUpperCase() === code)
+        if (tk) { choose(tk.id); setTyped(''); setTypedMiss('') }
+        else setTypedMiss(t('receive.ticketCodeMiss', { code: typed.trim() }))
+    }
     const differs = ticketId !== '' && shareKg.trim() !== '' && quantity.trim() !== '' && Number(shareKg) !== Number(quantity)
     return (
         <div className="space-y-2" data-receipt-ticket="1">
             <label className={labelCls}>{t('receive.ticket')}</label>
-            <select name="ticket_id" value={ticketId} className={fieldCls}
-                    onChange={(e) => {
-                        const id = e.target.value
-                        setTicketId(id)
-                        const tk = tickets.find((x) => x.id === id)
-                        if (tk) { setShareKg(String(tk.remaining_kg)); setQuantity(String(tk.remaining_kg)) }
-                        else { setShareKg('') }
-                    }}>
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t('receive.ticketCodePlaceholder')}
+                   aria-label={t('receive.ticketCodePlaceholder')} autoComplete="off" spellCheck={false} className={fieldCls}
+                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); byCode() } }} onBlur={byCode} data-ticket-code />
+            {typedMiss && <p className="text-sm text-amber-700">{typedMiss}</p>}
+            <select name="ticket_id" value={ticketId} className={fieldCls} onChange={(e) => choose(e.target.value)}>
                 <option value="">{t('receive.noTicket')}</option>
                 {tickets.map((x) => (
                     <option key={x.id} value={x.id}>

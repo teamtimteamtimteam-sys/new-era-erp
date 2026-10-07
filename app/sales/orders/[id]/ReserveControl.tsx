@@ -9,12 +9,18 @@
 // 【页面不做服务端会做的判断,只是不给人看见一个必然被拒的按钮】
 // 数量超过桶里的可用、或超过这一行还能许的量时禁钮并说原因;真正的判决在
 // reserve_stock 里(那里的数是现算的,这里的只是上一次渲染的快照)。
+//
+// ★ MES-3b(2026-10-07,MES-3b Step 0 Q24,Tim):【发哪一批是在预留这一步定的】—— 所以扫码在这里是"选":
+//   扫到一批产出批 → 下拉只剩它的桶;只有一个桶就直接选上。这一批在这一行的候选里没有可用的货 → 说出来。
+//   预留的拒绝一条都没有搬到这里(只认产出批、物料对得上、只取 available),照旧由 reserve_stock 判。
 import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { reserveForLine } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import ScanField from '@/app/components/scan/ScanField'
+import type { ScanResult } from '@/app/components/scan/actions'
 
 export type BucketOption = {
     outputBatchId: string
@@ -47,6 +53,17 @@ export default function ReserveControl({
     const [error, setError] = useState('')
     const [pick, setPick] = useState('')
     const [qty, setQty] = useState('')
+    const [scanOnly, setScanOnly] = useState<string | null>(null)
+    const [scanMiss, setScanMiss] = useState('')
+    const shown = scanOnly ? buckets.filter((b) => b.outputBatchId === scanOnly) : buckets
+
+    function scanned(r: ScanResult) {
+        const mine = buckets.filter((b) => b.outputBatchId === r.id)
+        if (mine.length === 0) { setScanMiss(t('sales.reserve.scanNoBucket', { code: r.code ?? '' })); setScanOnly(null); return }
+        setScanMiss('')
+        setScanOnly(r.id)
+        setPick(mine.length === 1 ? bucketKey(mine[0]) : '')
+    }
 
     const chosen = buckets.find((b) => bucketKey(b) === pick) ?? null
     const qtyN = Number(qty)
@@ -77,7 +94,11 @@ export default function ReserveControl({
     return (
         <div className="mt-2 border-t border-gray-200 pt-2">
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-            <div className="flex flex-wrap items-end gap-2">
+            {buckets.length > 0 && (
+                <ScanField context="reserve" accept={['output_batch']} compact onFound={scanned} testId={`scan-reserve-${lineId}`} />
+            )}
+            {scanMiss && <p className="text-sm text-amber-700 mb-1">{scanMiss}</p>}
+            <div className="flex flex-wrap items-end gap-2 mt-1">
                 <div className="min-w-[18rem]">
                     <label className="block mb-1">{t('sales.reserve.batchLabel')}</label>
                     <select
@@ -86,7 +107,7 @@ export default function ReserveControl({
                         className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('sales.reserve.pickBucket')}</option>
-                        {buckets.map((b) => (
+                        {shown.map((b) => (
                             <option key={bucketKey(b)} value={bucketKey(b)}>
                                 {b.batchCode} · {b.locationLabel} · {b.available} {b.unit}
                             </option>

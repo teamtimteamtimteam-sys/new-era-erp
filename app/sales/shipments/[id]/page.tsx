@@ -74,20 +74,25 @@ export default async function ShipmentDetailPage({
     // 分开了:失败会抛,到不了这里。
     if (!head) notFound()
 
-    const [docRes, issuesRes] = await Promise.all([
+    const [docRes, issuesRes, statesRes] = await Promise.all([
         supabase.rpc('shipment_document', { p_shipment_id: id }),
         supabase
             .from('shipment_issues')
             .select('version, issued_at, sha256')
             .eq('shipment_id', id)
             .order('version', { ascending: false }),
+        // MES-3b(Q16):开着的要隔离的状态按字典里的名字说,不印状态码
+        supabase.from('inbound_safety_states').select('code, name_en, name_zh'),
     ])
+    const stateNames = new Map((mustRows(statesRes, 'inbound_safety_states') as { code: string; name_en: string; name_zh: string }[])
+        .map((x) => [x.code, locale === 'zh' ? x.name_zh : x.name_en]))
 
     const doc = mustOne(docRes, 'shipment_document') as unknown as {
         order_id: string; order_code: string; customer_code: string | null; customer_name: string | null
         lines: { id: string; qty: number; line_no: number | null; batch_code: string | null; unit: string | null
                  material_code: string | null; material_name: string | null
-                 location_code: string | null; location_name: string | null }[]
+                 location_code: string | null; location_name: string | null
+                 dg_code: string | null; dg_class: string | null; dg_missing: boolean; hs_code: string | null; quarantine_states: string | null }[]
     } | null
     const lines = doc?.lines ?? []
     const issues = mustRows(issuesRes, 'shipment_issues') as unknown as {
@@ -109,6 +114,11 @@ export default async function ShipmentDetailPage({
         locationCode: l.location_code ?? '',
         locationName: l.location_name ?? '',
         qtyText: `${l.qty} ${l.unit ?? ''}`.trim(),
+        dgText: l.dg_code ? t('sales.shipDetail.dg', { code: l.dg_code, cls: l.dg_class ?? '' }) : '',
+        dgMissing: !!l.dg_missing,
+        hsCode: l.hs_code ?? '',
+        quarantineText: l.quarantine_states
+            ? t('sales.shipDetail.quarantineFlag', { states: l.quarantine_states.split(',').map((c) => stateNames.get(c) ?? c).join(', ') }) : '',
     }))
 
     return (

@@ -7,6 +7,9 @@
 -- 于是它发得了货、印不出它刚发的那张单。这里读全量,先按调用者的码把关。
 -- 【没有价格】发货单本来就不带价(发货单行没有价格列);客户只给编号与法定名称(常设决定 3 的展示标签)。
 -- 【门】module.sales.view 或 action.ship_goods —— 与三张发货表的读策略同一对码。
+-- ★ MES-3b(2026-10-07,MES-3b Step 0 Q13 · Q15 · Q16 · Q17,Tim):每一行再带物料的危险品数据与 HS 编码,以及那一批身上开着的要隔离的状态 ——
+--   dg_code · dg_class · dg_name_en · dg_name_zh(物料选的 UN 编号与联合国正式运输名称)· dg_missing(电池料没选编号 → 只提示,Q15)·
+--   hs_code(V31,可空)· quarantine_states(batch_quarantine_states:标出来,不拒 —— Q16)。签名与返回类型一字未动(jsonb 多了键)。
 -- NOTE: introduced by db/migrations/2026-09-25-apr5b-the-cfo-releases-and-the-warehouse-ships.sql.
 
 CREATE OR REPLACE FUNCTION public.shipment_document(p_shipment_id uuid)
@@ -53,11 +56,20 @@ BEGIN
                        'material_name', m.name,
                        'waste_classification_code', m.waste_classification_code,
                        'location_code', loc.code,
-                       'location_name', loc.name) ORDER BY sl.created_at, sol.line_no)
+                       'location_name', loc.name,
+                       'dg_code', m.dg_code,
+                       'dg_class', g.dg_class,
+                       'dg_name_en', g.name_en,
+                       'dg_name_zh', g.name_zh,
+                       'dg_missing', COALESCE(mk.has_condition_axes, false) AND m.dg_code IS NULL,
+                       'hs_code', m.hs_code,
+                       'quarantine_states', batch_quarantine_states(ob.id)) ORDER BY sl.created_at, sol.line_no)
               FROM shipment_lines sl
               JOIN sales_order_lines sol ON sol.id = sl.sales_order_line_id
               JOIN output_batches ob ON ob.id = sl.output_batch_id
               LEFT JOIN materials m ON m.id = ob.material_id
+              LEFT JOIN material_kinds mk ON mk.code = m.kind_code
+              LEFT JOIN dangerous_goods_codes g ON g.code = m.dg_code
               LEFT JOIN storage_locations loc ON loc.id = sl.location_id
              WHERE sl.shipment_id = v_s.id), '[]'::jsonb));
 END;

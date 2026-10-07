@@ -3266,6 +3266,12 @@ quote-driven / 两者都是),三处旧文案(`fxPage.gapsTitle`、`fxPage.gapsMi
 
 ## CODE-WIDTH-4 · 三支取号函数的编号【只装得下四位】,越过就静默截短(IMPORT-1 实测,2026-08-24)
 
+> ★ **MES-3b(2026-10-07,MES-3b Step 0 §12.4)补一句:不止三支。** 进料批与产出批的批号触发器是同一个写法 ——
+> `LPAD(nextval('inbound_code_seq')::TEXT, 4, '0')`(`db/tables/inbound_batches.sql:142`)、`output_code_seq` 同(`output_batches.sql:98`)。
+> 序列跨年不清零,过了 9,999 就截短、撞 UNIQUE、整张收货被拒。线上今天产出到 `OUT-2026-0381`,远着。
+> **而从 MES-3b 起,批号还印在标签的二维码里(`/b/<批号>`)、扫码按它认** —— 去处仍是 MES-4b 的位宽那一刀(MES-0 Q57),
+> 那一刀要连这两支触发器一起改。
+
 **`generate_material_code` / `generate_supplier_code` / `generate_customer_code` 都写着
 `LPAD(nextval(...)::TEXT, 4, '0')`,而 PostgreSQL 的 `LPAD` **会截断**:**
 

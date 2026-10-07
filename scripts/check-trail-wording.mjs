@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -2749,7 +2749,8 @@ if (FAULT === 'wording-drift-1d1') dict.text = { ...dict.text, 'acct.grantedTo':
     // 机器字扫描:十二个主语(与角色页的授权)各自的表,按【这一页】的说法(subject)造样本跑一遍
     const SUBS11 = ['account', 'approval_policy', 'employee', 'department', 'training_record', 'import_batch', 'role',
         'dictionary_substances', 'dictionary_battery_chemistries', 'dictionary_material_kinds', 'dictionary_inbound_safety_states',
-        'dictionary_laboratories', 'dictionary_inbound_source_reasons', 'dictionary_nea_waste_categories']
+        'dictionary_laboratories', 'dictionary_inbound_source_reasons', 'dictionary_nea_waste_categories',
+        'dictionary_dangerous_goods_codes', 'dictionary_label_templates']
     let s11 = 0
     for (const sub of SUBS11) {
         for (const t of R.SUBJECT_TABLES[sub] ?? []) {
@@ -4926,6 +4927,114 @@ if (FAULT === 'wording-drift-mes3a') dict.text = { ...dict.text, 'batch.safetyEn
     if (FAULT === 'wording-drift-mes3a' && !problems.gold17.length) problems.gold17.push('(注入 wording-drift-mes3a 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑱ MES-3b 的标签与两本新字典(MES-3b Step 0 Q7 · Q11 · Q27)─────────────────────────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-3b.md 列出。
+//   一次印标签:第一次说 "Label issued for printing"(浏览器不报纸出没出来),之后说 "Label reprinted",理由在理由那一格;
+//   在批次页与库位页上同一句话。危险品 UN 编号字典:货代给了标记文字(V30)。标签模板字典:换纸。
+//   注入 wording-drift-mes3b → 这一臂必须红。
+problems.gold18 = []
+if (FAULT === 'wording-drift-mes3b') dict.text = { ...dict.text, 'label.reprinted': 'Label printed' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const b = id('b'), loc = id('loc')
+    const B18 = { subject: 'inbound_batch', recordId: b, currency: null }
+    const L18 = { subject: 'storage_location', recordId: loc, currency: null }
+    const tpl = { template_code: { inbound_a6: { label: 'Inbound batch · A6' }, inbound_a5: { label: 'Inbound batch · A5' }, location_a6: { label: 'Location · A6' } } }
+    const lp = (k, extra) => ({ id: id(k), object_kind: 'inbound_batch', inbound_batch_id: b, output_batch_id: null, storage_location_id: null,
+        template_code: 'inbound_a6', page_size: 'A6', copies: 2, is_reprint: false, reprint_reason: null, qr_payload: '/b/IN-2026-0012',
+        printed_fields: { code: 'IN-2026-0012' }, printed_at: '2026-10-07T02:00:00Z', printed_by: id('u'), ...extra })
+    add('label · first print', B18, [{ table: 'label_prints', op: 'INSERT', key: { id: id('p1') }, refs: tpl, new: lp('p1', {}) }])
+    add('label · reprint with a reason', B18, [{ table: 'label_prints', op: 'INSERT', key: { id: id('p2') }, refs: tpl,
+        new: lp('p2', { template_code: 'inbound_a5', page_size: 'A5', copies: 1, is_reprint: true, reprint_reason: 'Label torn by the forklift' }) }])
+    add('location label · reprint', L18, [{ table: 'label_prints', op: 'INSERT', key: { id: id('p3') }, refs: tpl,
+        new: lp('p3', { object_kind: 'storage_location', inbound_batch_id: null, storage_location_id: loc, template_code: 'location_a6',
+                        copies: 1, is_reprint: true, reprint_reason: 'Rack relabelled', qr_payload: '/loc/SG-A1' }) }])
+    add('DG number · marking text given', { subject: 'dictionary_dangerous_goods_codes', recordId: null, currency: null }, [
+        { table: 'dangerous_goods_codes', op: 'UPDATE', key: { code: 'UN3480' }, cols: ['marking_text', 'updated_at'],
+          old: { marking_text: null }, new: { marking_text: 'UN3480 lithium battery mark, 100 x 100 mm' },
+          ctx: { code: 'UN3480', name_en: 'LITHIUM ION BATTERIES (including lithium ion polymer batteries)' } }])
+    add('label template · paper changed', { subject: 'dictionary_label_templates', recordId: null, currency: null }, [
+        { table: 'label_templates', op: 'UPDATE', key: { code: 'inbound_a5' }, cols: ['page_size', 'updated_at'],
+          old: { page_size: 'A5' }, new: { page_size: 'A6' }, ctx: { code: 'inbound_a5', name_en: 'Inbound batch · A5' } }])
+    const WANT = {
+        "label · first print": {
+            "title": "Label issued for printing",
+            "part": null,
+            "lines": [
+                "Template: Inbound batch · A6",
+                "Paper size: A6",
+                "Copies: 2"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "label · reprint with a reason": {
+            "title": "Label reprinted",
+            "part": null,
+            "lines": [
+                "Template: Inbound batch · A5",
+                "Paper size: A5",
+                "Copies: 1"
+            ],
+            "reason": "Label torn by the forklift",
+            "who": "Fu Sheng"
+        },
+        "location label · reprint": {
+            "title": "Label reprinted",
+            "part": null,
+            "lines": [
+                "Template: Location · A6",
+                "Paper size: A6",
+                "Copies: 1"
+            ],
+            "reason": "Rack relabelled",
+            "who": "Fu Sheng"
+        },
+        "DG number · marking text given": {
+            "title": "UN dangerous-goods number changed",
+            "part": "LITHIUM ION BATTERIES (including lithium ion polymer batteries)",
+            "lines": [
+                "Marking text: (empty) → UN3480 lithium battery mark, 100 x 100 mm"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "label template · paper changed": {
+            "title": "Label template changed",
+            "part": "Inbound batch · A5",
+            "lines": [
+                "Paper size: A5 → A6"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        }
+    }
+    const got18 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 5) problems.gold18.push(`⑱ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD18', order: 1, prelog: false, at: '2026-10-07T02:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold18.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD18')
+        if (mine.length !== 1) { problems.gold18.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got18[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold18.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold18.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold18.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD18_PRINT) console.log(JSON.stringify(got18, null, 8))
+    if (FAULT === 'wording-drift-mes3b' && !problems.gold18.length) problems.gold18.push('(注入 wording-drift-mes3b 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -4933,7 +5042,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

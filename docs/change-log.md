@@ -1065,3 +1065,27 @@ request's submit — whatever `ingest_settings.require_calibrated_since` says. T
 which refuse only for receipts created on or after the switch date. The switch stays empty on live. Wording on
 `/operation/calibration` and the receipt page says so (Step 0 Q26).
 
+
+## 15. Labels and scanning (MES-3b, v1.4.40, 2026-10-07)
+
+Hand-back `docs/handbacks/MES-3b.md`; fixture 252 pins every rule below (and fixtures 224 and 235 were re-pinned:
+the shipping queue's column list and the exclusion count).
+
+### 15.1 Logged, excluded
+
+- **Logged** (two triggers each): three of the four new tables — `dangerous_goods_codes` (keyed by `code`), `label_templates`
+  (keyed by `code`) and `label_prints` (keyed by `id`). The two new `materials` columns (`dg_code`, `hs_code`) ride its existing
+  triggers. Public tables 259 → **263**; bound 252 → **255**.
+- **Excluded: `scan_events`** (MES-3b Step 0 Q20), with its reason in `change_log_exclusions()`: it is itself an append-only log of
+  every scan resolved on a page; logging it again doubles the volume and adds no fact (the MES-0 Q14 precedent for `ingest_inbox`).
+  Exclusions 7 → **8**. Its rows are shown only as "your recent scans" on `/inventory/scan`.
+- **No new mask rule.** No new column is a secret, a price or a personal identifier; the mask list stays **105** rows.
+- **A MES-3a binding corrected.** `nea_waste_categories` was bound `change_log_capture('id')`, but its primary key is `code` —
+  every change to it would have logged an empty key, and its dictionary trail would have found nothing. Re-bound to `'code'`
+  (live had 0 rows, so nothing to repair). The migration's own proof now asserts that **every** bound table's key is its primary
+  key (measured before: 1 mismatch of 252 bound tables, this one).
+- **Trail subjects.** Label prints (`label_prints`) are members of **`inbound_batch`** (home), **`output_batch`** and
+  **`storage_location`**: "Label issued for printing" for the first print (the browser does not report whether paper came out,
+  so it never says "printed"), "Label reprinted" with the reason for every later one; template, paper and copies as value lines.
+  The two dictionaries are new dictionary subjects **`dictionary_dangerous_goods_codes`** and **`dictionary_label_templates`**.
+  `scripts/check-trail-wording.mjs` arm ⑱ pins the wording (fault `wording-drift-mes3b` turns it red).

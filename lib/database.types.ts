@@ -3801,6 +3801,54 @@ export type Database = {
           },
         ]
       }
+      dangerous_goods_codes: {
+        Row: {
+          code: string
+          created_at: string
+          dg_class: string
+          is_active: boolean
+          label_size: string | null
+          marking_text: string | null
+          name_en: string
+          name_zh: string
+          notes: string | null
+          packing_instruction: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          dg_class: string
+          is_active?: boolean
+          label_size?: string | null
+          marking_text?: string | null
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          packing_instruction?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          dg_class?: string
+          is_active?: boolean
+          label_size?: string | null
+          marking_text?: string | null
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          packing_instruction?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       deep_discharge_judgements: {
         Row: {
           code: string
@@ -9904,6 +9952,208 @@ export type Database = {
           },
         ]
       }
+      label_prints: {
+        Row: {
+          copies: number
+          id: string
+          inbound_batch_id: string | null
+          is_reprint: boolean
+          object_kind: string
+          output_batch_id: string | null
+          page_size: string
+          printed_at: string
+          printed_by: string
+          printed_fields: Json
+          qr_payload: string
+          reprint_reason: string | null
+          storage_location_id: string | null
+          template_code: string
+        }
+        Insert: {
+          copies: number
+          id?: string
+          inbound_batch_id?: string | null
+          is_reprint: boolean
+          object_kind: string
+          output_batch_id?: string | null
+          page_size: string
+          printed_at?: string
+          printed_by?: string
+          printed_fields: Json
+          qr_payload: string
+          reprint_reason?: string | null
+          storage_location_id?: string | null
+          template_code: string
+        }
+        Update: {
+          copies?: number
+          id?: string
+          inbound_batch_id?: string | null
+          is_reprint?: boolean
+          object_kind?: string
+          output_batch_id?: string | null
+          page_size?: string
+          printed_at?: string
+          printed_by?: string
+          printed_fields?: Json
+          qr_payload?: string
+          reprint_reason?: string | null
+          storage_location_id?: string | null
+          template_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_storage_location_id_fkey"
+            columns: ["storage_location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_prints_template_code_fkey"
+            columns: ["template_code"]
+            isOneToOne: false
+            referencedRelation: "label_templates"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      label_templates: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          object_kind: string
+          page_size: string
+          show_dg: boolean
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          object_kind: string
+          page_size: string
+          show_dg?: boolean
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          object_kind?: string
+          page_size?: string
+          show_dg?: boolean
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       laboratories: {
         Row: {
           code: string
@@ -11116,7 +11366,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          dg_code: string | null
           form_code: string | null
+          hs_code: string | null
           id: string
           kind_code: string | null
           may_be_processed: boolean | null
@@ -11139,7 +11391,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          dg_code?: string | null
           form_code?: string | null
+          hs_code?: string | null
           id?: string
           kind_code?: string | null
           may_be_processed?: boolean | null
@@ -11162,7 +11416,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          dg_code?: string | null
           form_code?: string | null
+          hs_code?: string | null
           id?: string
           kind_code?: string | null
           may_be_processed?: boolean | null
@@ -11185,6 +11441,13 @@ export type Database = {
             columns: ["chemistry"]
             isOneToOne: false
             referencedRelation: "battery_chemistries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "materials_dg_code_fkey"
+            columns: ["dg_code"]
+            isOneToOne: false
+            referencedRelation: "dangerous_goods_codes"
             referencedColumns: ["code"]
           },
           {
@@ -18596,6 +18859,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scan_events: {
+        Row: {
+          context: string
+          id: number
+          method: string
+          outcome: string
+          parsed_code: string | null
+          raw_value: string
+          resolved_id: string | null
+          resolved_kind: string | null
+          scanned_at: string
+          scanned_by: string
+        }
+        Insert: {
+          context: string
+          id?: number
+          method: string
+          outcome: string
+          parsed_code?: string | null
+          raw_value: string
+          resolved_id?: string | null
+          resolved_kind?: string | null
+          scanned_at?: string
+          scanned_by?: string
+        }
+        Update: {
+          context?: string
+          id?: number
+          method?: string
+          outcome?: string
+          parsed_code?: string | null
+          raw_value?: string
+          resolved_id?: string | null
+          resolved_kind?: string | null
+          scanned_at?: string
+          scanned_by?: string
+        }
+        Relationships: []
       }
       shift_handover_equipment_refs: {
         Row: {
@@ -32648,6 +32950,10 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }
+      batch_quarantine_states: {
+        Args: { p_output_batch_id: string }
+        Returns: string
+      }
       batch_write_off_needs_request: {
         Args: { p_inbound_batch_id: string; p_output_batch_id: string }
         Returns: boolean
@@ -33581,6 +33887,18 @@ export type Database = {
         }
         Returns: Json
       }
+      label_object_data: {
+        Args: { p_id: string; p_kind: string }
+        Returns: Json
+      }
+      label_print_context: {
+        Args: { p_id: string; p_kind: string; p_template: string }
+        Returns: Json
+      }
+      label_print_preview: {
+        Args: { p_id: string; p_kind: string; p_template?: string }
+        Returns: Json
+      }
       leave_accrual_rate: {
         Args: {
           p_employee_id: string
@@ -34274,6 +34592,16 @@ export type Database = {
         Args: { p_file_path: string; p_invoice_id: string; p_sha256: string }
         Returns: Json
       }
+      record_label_print: {
+        Args: {
+          p_copies?: number
+          p_id: string
+          p_kind: string
+          p_reason?: string
+          p_template?: string
+        }
+        Returns: Json
+      }
       record_output_sale: {
         Args: {
           p_currency: string
@@ -34558,6 +34886,10 @@ export type Database = {
       resolve_review_reviewer: {
         Args: { p_employee_id: string }
         Returns: string
+      }
+      resolve_scan_code: {
+        Args: { p_context?: string; p_method?: string; p_value: string }
+        Returns: Json
       }
       resolve_tax_code: {
         Args: {
@@ -34997,6 +35329,8 @@ export type Database = {
         Returns: {
           customer_name: string
           delivery_address: string
+          dg_code: string
+          dg_missing: boolean
           line_no: number
           location_code: string
           location_name: string
@@ -35005,6 +35339,7 @@ export type Database = {
           order_code: string
           order_date: string
           output_batch_code: string
+          quarantine_states: string
           released_at: string
           released_qty: number
           remaining_qty: number

@@ -29,7 +29,10 @@ type ShipmentDoc = {
     code: string; ship_date: string; order_code: string
     customer_code: string | null; customer_name: string | null
     lines: { qty: number; batch_code: string; unit: string; material_code: string | null
-             material_name: string | null; waste_classification_code: string | null }[]
+             material_name: string | null; waste_classification_code: string | null
+             // MES-3b:危险品、HS、那一批开着的要隔离的状态
+             dg_code: string | null; dg_class: string | null; dg_name_en: string | null; dg_missing: boolean
+             hs_code: string | null; quarantine_states: string | null }[]
 }
 
 async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
@@ -40,6 +43,7 @@ async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
     if (!row) return null
     const lines = row.lines.map((l) => ({
         qty: l.qty,
+        doc: l,
         output_batches: {
             code: l.batch_code, unit: l.unit,
             materials: l.material_code
@@ -57,6 +61,9 @@ async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
               'waste_classifications') as unknown as { code: string; name_en: string; is_controlled: boolean }[])
         : []
     const clsBy = new Map(cls.map((c) => [c.code, c]))
+    // MES-3b:状态的英文名取自字典(这是一份对外单据,正文一律英文)
+    const states = new Map((mustRows(await supabase.from('inbound_safety_states').select('code, name_en'), 'inbound_safety_states') as
+        { code: string; name_en: string }[]).map((x) => [x.code, x.name_en]))
 
     return {
         code: row.code,
@@ -74,6 +81,11 @@ async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
                 unit: l.output_batches?.unit ?? '',
                 classification: c?.name_en ?? null,
                 is_controlled: c?.is_controlled ?? null,
+                dg: l.doc.dg_code ? `${l.doc.dg_code} · Class ${l.doc.dg_class ?? ''} — ${l.doc.dg_name_en ?? ''}` : null,
+                dg_missing: !!l.doc.dg_missing,
+                hs: l.doc.hs_code,
+                quarantine: l.doc.quarantine_states
+                    ? l.doc.quarantine_states.split(',').map((x) => states.get(x) ?? x).join(', ') : null,
             }
         }),
     }
@@ -86,6 +98,8 @@ function collectStrings(d: DeliveryNoteData): PdfTextField[] {
         { where: 'customer legal_name', text: d.customer.legal_name },
         ...d.lines.map((l) => ({ where: `line ${l.line_no} material`, text: l.material })),
         ...d.lines.map((l) => ({ where: `line ${l.line_no} classification`, text: l.classification })),
+        ...d.lines.map((l) => ({ where: `line ${l.line_no} dangerous goods`, text: l.dg })),
+        ...d.lines.map((l) => ({ where: `line ${l.line_no} safety state`, text: l.quarantine })),
     ]
 }
 

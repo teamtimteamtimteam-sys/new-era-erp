@@ -47,6 +47,8 @@ const SALES_ORDER_ERROR_CODES = new Set([
     'SO_SHIP_NOT_RELEASED',
     'SO_SHIP_CUSTOMER_ON_HOLD',
     'SO_SHIP_EXCEEDS_RELEASABLE',
+    // MES-3b(Q24):发货时那一次可选的核对扫码,扫到的批号与这条预留的批次对不上
+    'SHIP_SCAN_MISMATCH',
     // APR-5b:发货放行的提、批、撤。【前五条 cco 真会撞上】—— 已经挂着一张、单子不在可发状态、
     // 没有已开票的行、点名了不属于这张单的行、点名了已经放行过的行;NO_OTHER_DECIDER 是 admin@ 那一种。
     'SHIPPING_RELEASE_OPEN',

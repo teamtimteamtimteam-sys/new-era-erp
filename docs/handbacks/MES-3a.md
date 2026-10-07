@@ -237,6 +237,12 @@ old pages. Nothing else.
 19. **The old `materials.errors.inbound_batch_safety_states_pkey` message was removed** — that constraint now names the id; the duplicate is
     `<table>_open_once`, with its own message.
 20. **A defect found by the dry run was fixed in the builder** (§4), and the migration rebuilt before apply.
+21. **The ceilings section of `/inventory/storage-safety` admits `module.suppliers.view` OR `module.inventory.view`**
+    (`db/views/storage_ceiling_status.sql:67`), wider than Step 0 Q32's "ceilings `module.suppliers.view`". Found at the MES-3a
+    close-out (`docs/surveys/MES-3b/STEP0-HANDBACK.md` §0.3 a) and **accepted as built by Tim (MES-3b Step 0 Q0, 2026-10-07)**: ceilings
+    are regulatory facts copied from the licence, the `storage_ceiling_exceeded` reminder already shows them to inventory viewers (Q13),
+    and narrowing would make the page disagree with its own reminder. Measured effect on live: none — all 7 accounts hold
+    `module.suppliers.view`; the widening reaches only the `operations` and `sales` roles, which no live account holds.
 
 ---
 

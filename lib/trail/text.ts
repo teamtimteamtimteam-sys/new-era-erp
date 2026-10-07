@@ -184,6 +184,9 @@ export const TRAIL_TEXT = {
     'batch.safetyEnded': 'Safety state ended',
     'batch.safetyReopened': 'Safety state reopened by a rollback',
     'batch.ceilingChecked': 'Storage ceiling checked on arrival',
+    // MES-3b(Q7):一次印标签 —— 浏览器不报纸出没出来,所以第一次说 "issued for printing",不说 "printed"
+    'label.printed': 'Label issued for printing',
+    'label.reprinted': 'Label reprinted',
     'lic.limitSet': 'Storage ceiling set',
     'lic.limitChanged': 'Storage ceiling changed',
     'lic.limitCleared': 'Storage ceiling cleared',

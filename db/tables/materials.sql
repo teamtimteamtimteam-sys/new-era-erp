@@ -66,7 +66,13 @@ CREATE TABLE public.materials (
     -- ── MES-3a 追加(2026-10-06,MES-0 Q32 · V29;MES-3a Step 0 Q4)────────────────────────────
     -- 这个物料属于 NEA 执照上的哪一类废物 —— 库存上限按"执照 × 类别"判。NULL = 没人分过(V29),
     -- 收货照收并记 category_not_set。不是 waste_classification_code(那一列决定货架收什么)。
-    nea_waste_category_code text REFERENCES public.nea_waste_categories (code)
+    nea_waste_category_code text REFERENCES public.nea_waste_categories (code),
+    -- ── MES-3b 追加(2026-10-07,MES-0 Q38 · Q39 · V31;MES-3b Step 0 Q12 · Q17 · V35)──────────────
+    -- 危险品 UN 编号:一种物料选一个,批次跟着物料(推不出来 —— 见 dangerous_goods_codes 的抬头)。NULL = 没人选过(V35):
+    -- 标签与发货单上提示"没给",不拒(Q15)。HS 编码:可空(V31,报关行给);6–12 位数字,可带点 —— 那是形状,不是一条标准。
+    dg_code                 text REFERENCES public.dangerous_goods_codes (code),
+    hs_code                 text CONSTRAINT materials_hs_code_shape
+                                 CHECK (hs_code ~ '^[0-9]+(\.[0-9]+)*$' AND length(replace(hs_code, '.', '')) BETWEEN 6 AND 12)
 );
 
 
@@ -129,6 +135,12 @@ CREATE POLICY "materials delete by permission"
 
 COMMENT ON COLUMN public.materials.nea_waste_category_code IS
     'MES-3a(MES-0 Q32 · V29):这个物料属于 NEA 执照上的哪一类废物。库存上限按执照 × 类别判(licence_storage_limits),存量按这一列的【现值】归类。NULL = 没人分过:收货照收,记 category_not_set。不是 waste_classification_code —— 那一列决定货架收什么。';
+
+COMMENT ON COLUMN public.materials.dg_code IS
+    'MES-3b(MES-0 Q38 · V35):这个物料的危险品 UN 编号(dangerous_goods_codes),人选的 —— 从化学、形态都推不出来。批次跟着物料走:标签、发货单、发货队列都印它。NULL = 没人选过:电池料上提示"没给",不拒(Q15)。';
+
+COMMENT ON COLUMN public.materials.hs_code IS
+    'MES-3b(MES-0 Q39 · V31):HS 编码,可空,报关行在第一次出口之前给。6–12 位数字,可带点(materials_hs_code_shape —— 形状,不是标准)。物料页、清单、导出与发货单上印它;标签上不印(Q17)。';
 
 COMMENT ON COLUMN public.materials.waste_classification_code IS
 $$MAT-1:这个物料的受控废物分类。

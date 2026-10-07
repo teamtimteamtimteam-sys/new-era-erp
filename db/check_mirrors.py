@@ -301,6 +301,15 @@ RUNTIME_CONFIG_TABLES = [
     #   第六页的逐格转录,是"全新安装的默认值",不是线上快照。Tim 在界面上改一句
     #   措辞,线上就与本文件不同 —— 那是系统在正常工作,不是漂移。
     "kpi_score_rubric",
+    # ★ MES-3b(2026-10-07,MES-3b Step 0 Q3,Tim 的并入):MES-3a 的 NEA 废物类别字典 —— 它自己的抬头说它是 RUNTIME CONFIG,
+    #   而它【两张清单都不在】(MES-3b Step 0 §1.14 实测:grep -c nea_waste 本文件 = 0)。加一类是加一行(module.materials.edit)。
+    #   ☞ 它的引导【刻意是空的】(V29:类别由 NEA 执照给),所以它同时在下面的 BOOTSTRAP_MAY_BE_EMPTY 里 —— 两句一起才是一个决定。
+    "nea_waste_categories",
+    # MES-3b:危险品 UN 编号字典 —— 引导四行(UN3480 · UN3481 · UN3090 · UN3091,第 9 类);标记文字等三列由货代填(V30),
+    #   填一次线上就与本文件不同,那是系统在正常工作。
+    "dangerous_goods_codes",
+    # MES-3b:标签模板 —— 引导六行(三种东西 × A6 / A5);改名、停用、换默认都是改一行(module.inventory.edit)。
+    "label_templates",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),
@@ -309,7 +318,12 @@ RUNTIME_CONFIG_TABLES = [
 # 那条 WHERE 改成一个错的角色码,重建出来的库管理员一个权限都没有,而本脚本报"体检通过"。
 # 所以对每张 RUNTIME CONFIG 表:重放之后行数必须 > 0。
 # 若将来某张表【确实】应当空着引导,把它写进下面这个集合,让那件事是一次明写的决定。
-BOOTSTRAP_MAY_BE_EMPTY: set = set()
+BOOTSTRAP_MAY_BE_EMPTY: set = {
+    # ★ MES-3b(2026-10-07,MES-3b Step 0 Q3):NEA 废物类别【从空开始】是 MES-3a 的一个决定(V29:类别的代号与名字是 NEA 执照条件里写的,
+    #   不是这里能编的 —— db/tables/nea_waste_categories.sql 的抬头)。这一行就是那件事的"明写"。
+    #   ☞ 故障注入(MES-3b 交回 §4):从这里拿掉它,gate --offline 的 bootstrap 那一行当场红,点名这张表。
+    "nea_waste_categories",
+}
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 【SECURITY DEFINER 必须自己查调用者】(OPS-3)

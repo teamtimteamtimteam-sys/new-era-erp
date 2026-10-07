@@ -626,3 +626,13 @@ REVOKE EXECUTE ON FUNCTION public.assert_receipt_reading_calibrated(uuid) FROM a
 --   storage_licence_in_force【不收】:它是 DEFINER,只回一个 id;storage_ceiling_status 与 pending_values 以读者身份调它。
 REVOKE EXECUTE ON FUNCTION public.receipt_ceiling_check_internal(uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.assert_quarantine_landing(text[], uuid) FROM authenticated;
+
+-- MES-3b(2026-10-07):三支【内层】—— 没有调用者检查,只由各自查过码的 DEFINER 函数以属主身份调。
+--   label_object_data:一张标签上印什么(物料名与供应商名以属主身份读 —— Q2 的并入)。给了 authenticated,就是一支绕开 materials /
+--     suppliers 的 RLS、按 id 读任何一批物料名与供应商名的后门。调用方:label_print_context。
+--   label_print_context:印标签之前的全部判断(种类、查看码、模板、以前印过几次)。调用方:label_print_preview · record_label_print。
+--   batch_quarantine_states:一批身上开着的要隔离的状态。调用方:shipment_document · shipping_queue_rows。
+--   resolve_scan_code / label_print_preview / record_label_print【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+REVOKE EXECUTE ON FUNCTION public.label_object_data(text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.label_print_context(text, uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.batch_quarantine_states(uuid) FROM authenticated;

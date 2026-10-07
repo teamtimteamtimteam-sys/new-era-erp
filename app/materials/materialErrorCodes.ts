@@ -54,6 +54,9 @@ const MATERIAL_ERROR_CODES = new Set([
     // ── 唯一索引:多值那一条的"同一个状态,开着的只记一次"(MES-3a 起不再是主键,而是开着那几行上的部分唯一索引)──
     'inbound_batch_safety_states_open_once',
     'output_batch_safety_states_open_once',
+    // ── 约束名:MES-3b(Q12 · Q17)—— HS 编码的形状(6–12 位数字,可带点)· 危险品编号要在字典里 ─────────────
+    'materials_hs_code_shape',
+    'materials_dg_code_fkey',
     // ── MES-3a(Q22 · Q23):状态有历史 —— 结束要理由、只经函数写、永不删、只结束一次 ─────────────
     'SAFETY_STATE_END_REASON_REQUIRED',
     'SAFETY_STATES_THROUGH_FUNCTION_ONLY',

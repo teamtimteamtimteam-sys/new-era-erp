@@ -85,6 +85,8 @@ export async function addDictValue(input: {
             if (raw !== '' && !Number.isFinite(Number(raw))) return { error: t('dict.errNumber', { 0: t(f.labelKey) }) }
             row[f.column] = raw === '' ? null : Number(raw)
         } else {
+            // MES-3b:必填的文本 / 选项不许空着走(dg_class · object_kind · page_size)—— 空着让库拒,句子是一串约束名
+            if (f.required && (v ?? '').trim() === '') return { error: t('dict.errRuleUnset', { 0: t(f.labelKey) }) }
             row[f.column] = (v ?? '').trim() || null
         }
     }
@@ -122,6 +124,7 @@ export async function updateDictValue(input: {
             if (raw !== '' && !Number.isFinite(Number(raw))) return { error: t('dict.errNumber', { 0: t(f.labelKey) }) }
             patch[f.column] = raw === '' ? null : Number(raw)
         } else {
+            if (f.required && (v ?? '').trim() === '') return { error: t('dict.errRuleUnset', { 0: t(f.labelKey) }) }
             patch[f.column] = (v ?? '').trim() || null
         }
     }

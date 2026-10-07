@@ -28,6 +28,11 @@ export type ShipmentLineRow = {
     locationCode: string
     locationName: string
     qtyText: string
+    // MES-3b(Q13 · Q15 · Q16 · Q17):物料的 UN 编号与类别 · 电池料没选编号(只提示)· HS 编码 · 那一批开着的要隔离的状态(标,不拒)
+    dgText: string
+    dgMissing: boolean
+    hsCode: string
+    quarantineText: string
 }
 
 export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLineRow[] }) {
@@ -69,6 +74,19 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
                 ) : (
                     '—'
                 ),
+        },
+        {
+            key: 'dg',
+            header: t('sales.shipDetail.colDg'),
+            render: (r) => (
+                <span data-ship-line-dg={r.dgText || (r.dgMissing ? 'missing' : 'none')}>
+                    {r.dgText ? <span className="block">{r.dgText}</span>
+                        : r.dgMissing ? <span className="block text-amber-700">{t('sales.shipDetail.dgMissing')}</span> : null}
+                    {r.hsCode && <span className="block">{t('sales.shipDetail.hs', { code: r.hsCode })}</span>}
+                    {r.quarantineText && <span className="block text-amber-700">{r.quarantineText}</span>}
+                    {!r.dgText && !r.dgMissing && !r.hsCode && !r.quarantineText && '—'}
+                </span>
+            ),
         },
         {
             key: 'qty',

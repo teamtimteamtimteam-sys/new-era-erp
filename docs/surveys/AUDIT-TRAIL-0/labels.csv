@@ -3159,3 +3159,44 @@ output_batch_safety_states,ended_by,actor,person who acted,,,Ended by,,,uuid
 output_batch_safety_states,end_reason,text,verbatim,,,Reason for ending,,,text
 output_batch_safety_states,ended_by_run_id,technical,hide: the run (the reason names it),,,Ended by processing run,,,uuid
 output_batch_safety_states,reopened_from_id,technical,hide: the earlier row it reopens,,,Reopens,,,uuid
+materials,dg_code,dict,dangerous_goods_codes.name_en (via code),materials.form.dgCode,UN dangerous-goods number,,high,app/materials/DgHsFields.tsx:22,text
+materials,hs_code,text,verbatim,materials.form.hsCode,HS code,,high,app/materials/DgHsFields.tsx:33,text
+dangerous_goods_codes,code,own_key,show as-is: the record's own business key (code/number),,,UN number,,,text
+dangerous_goods_codes,name_en,text,verbatim,dict.f.nameEn,Name (EN),,high,app/settings/dictionaries/DictSection.tsx:199,text
+dangerous_goods_codes,name_zh,text,verbatim,dict.f.nameZh,Name (ZH),,high,app/settings/dictionaries/DictSection.tsx:204,text
+dangerous_goods_codes,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,dict.f.isActive,Status,,high,app/settings/dictionaries/DictSection.tsx:86,boolean
+dangerous_goods_codes,sort_order,technical,hide,,,Sort order,,,integer
+dangerous_goods_codes,notes,text,verbatim,,,Notes,,,text
+dangerous_goods_codes,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+dangerous_goods_codes,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+dangerous_goods_codes,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+dangerous_goods_codes,dg_class,text,verbatim,,,Class,,,text
+dangerous_goods_codes,marking_text,text,verbatim,,,Marking text,,,text
+dangerous_goods_codes,packing_instruction,text,verbatim,,,Packing instruction,,,text
+dangerous_goods_codes,label_size,text,verbatim,,,Label size,,,text
+label_templates,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+label_templates,name_en,text,verbatim,dict.f.nameEn,Name (EN),,high,app/settings/dictionaries/DictSection.tsx:199,text
+label_templates,name_zh,text,verbatim,dict.f.nameZh,Name (ZH),,high,app/settings/dictionaries/DictSection.tsx:204,text
+label_templates,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,dict.f.isActive,Status,,high,app/settings/dictionaries/DictSection.tsx:86,boolean
+label_templates,sort_order,technical,hide,,,Sort order,,,integer
+label_templates,notes,text,verbatim,,,Notes,,,text
+label_templates,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+label_templates,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+label_templates,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+label_templates,object_kind,enum,ENUM_OVERRIDES label_templates#object_kind,,,Prints for,,,text
+label_templates,page_size,text,verbatim,,,Paper size,,,text
+label_templates,show_dg,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Prints the dangerous-goods line,,,boolean
+label_prints,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+label_prints,object_kind,enum,ENUM_OVERRIDES label_prints#object_kind,,,Label for,,,text
+label_prints,inbound_batch_id,technical,hide: the batch (the trail is the batch's),,,Inbound batch,,,uuid
+label_prints,output_batch_id,technical,hide: the batch (the trail is the batch's),,,Output batch,,,uuid
+label_prints,storage_location_id,technical,hide: the location (the trail is the location's),,,Storage location,,,uuid
+label_prints,template_code,dict,label_templates.name_en (via code),,,Template,,,text
+label_prints,page_size,text,verbatim,,,Paper size,,,text
+label_prints,copies,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Copies,,,integer
+label_prints,is_reprint,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Reprint,,,boolean
+label_prints,reprint_reason,text,verbatim,,,Reason for reprinting,,,text
+label_prints,qr_payload,technical,hide: the label's own link (shown on the label itself),,,QR link,,,text
+label_prints,printed_fields,technical,hide: the printed snapshot (it is the label itself),,,Printed fields,,,jsonb
+label_prints,printed_at,audit_std,hide: the trail entry already says who and when,,,Printed on,,,timestamp with time zone
+label_prints,printed_by,audit_std,hide: the trail entry already says who and when,,,Printed by,,,uuid

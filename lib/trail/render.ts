@@ -901,13 +901,13 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
         'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log'],
     role: ['roles', 'role_permissions', 'user_roles'],
-    inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks',
+    inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
         'pricing_term_commitment_metals', 'inventory_movements', 'stocktake_lines', 'stocktake_counts', 'processing_inputs',
         'batch_processing_cost_allocations', 'certificates_of_destruction', 'cod_issues', 'warehouse_requests', 'freight_allocations',
         'payment_allocations', 'finance_attachments', 'purchase_order_history', 'processing_cost_entry_history', 'work_order_history',
         'journal_entries'],
-    output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks',
+    output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
         'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements', 'processing_cost_entry_history',
@@ -933,7 +933,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     company_licence: ['company_compliance', 'licence_storage_limits'],
     // AUDIT-TRAIL-1b-3
     material: ['materials', 'material_attachments', 'material_required_metals'],
-    storage_location: ['storage_locations', 'storage_location_allowed_classes'],
+    storage_location: ['storage_locations', 'storage_location_allowed_classes', 'label_prints'],
     metal_price: ['metal_prices'],
     pricing_formula: ['pricing_formulas', 'pricing_formula_metals', 'pricing_formula_history', 'terms_requests', 'approval_log'],
     task: ['tasks', 'task_nodes', 'task_participants', 'task_history'],
@@ -990,6 +990,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     dictionary_material_kinds: ['material_kinds'],
     dictionary_inbound_safety_states: ['inbound_safety_states'],
     dictionary_nea_waste_categories: ['nea_waste_categories'],
+    dictionary_dangerous_goods_codes: ['dangerous_goods_codes'],
+    dictionary_label_templates: ['label_templates'],
     dictionary_laboratories: ['laboratories'],
     dictionary_inbound_source_reasons: ['inbound_source_reasons'],
     // AUDIT-TRAIL-1d-2
@@ -1039,6 +1041,7 @@ const PAGE_FAMILY: Record<string, Family> = {
     dictionary_substances: 'dict', dictionary_battery_chemistries: 'dict', dictionary_material_kinds: 'dict',
     dictionary_inbound_safety_states: 'dict', dictionary_laboratories: 'dict', dictionary_inbound_source_reasons: 'dict',
     dictionary_nea_waste_categories: 'dict',
+    dictionary_dangerous_goods_codes: 'dict', dictionary_label_templates: 'dict',
     // AUDIT-TRAIL-1d-2(假别与公共假期是 M11 集合,与六本字典同一种说法:"<Thing> added / changed / deactivated")
     leave_request: 'time', my_leave_request: 'time', leave_grant: 'time', medical_claim: 'time', my_medical_claim: 'time',
     overtime_batch: 'time', attendance_period: 'time', leave_types: 'dict', public_holidays: 'dict',
@@ -1055,7 +1058,7 @@ const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batc
     'prepayment_applications', 'pricing_term_commitment_metals', 'inventory_movements', 'certificates_of_destruction', 'cod_issues',
     'freight_allocations', 'payment_allocations', 'finance_attachments', 'sales_records', 'sales_record_movements', 'sales_attribution_log',
     'invoice_lines', 'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements',
-    'receipt_ceiling_checks'])
+    'receipt_ceiling_checks', 'label_prints'])
 /** 这三张属于加工单;但在批次页上,它们说的是"这个批次被用了 / 被产出 / 分到了成本",从批次这一边说 */
 const BATCH_VIEW_OF_RUN = new Set(['processing_inputs', 'processing_outputs', 'batch_processing_cost_allocations'])
 const WO_TABLES = new Set(['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history'])
@@ -1097,6 +1100,8 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (RUN_TABLES.has(t)) return 'run'
     if (t === 'roles' || t === 'role_permissions') return 'role'
     if (t === 'shift_handover_equipment_refs' && subject === 'equipment') return 'equipment'
+    // MES-3b:库位页上它的标签从库位这一边说(在别处 —— 批次页、变更记录总表 —— 照批次那一族的说法,两边是同一句话)
+    if (subject === 'storage_location' && t === 'label_prints') return 'location'
     if (BATCH_TABLES.has(t)) return 'batch'
     if (WO_TABLES.has(t)) return 'wo'
     if (ST_TABLES.has(t)) return 'stocktake'
@@ -1444,6 +1449,9 @@ function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subj
         out.push({ title: withPart(tx(d, 'batch.ceilingChecked'), outcome),
                    lines: valueLines(d, r, r.new, opts, new Set(['outcome', 'inbound_batch_id', 'output_batch_id'])), key: false, weight: 44 })
     }
+
+    // ⑦c MES-3b(Q7):这一批的标签 —— 发去打印了 / 补印(与理由)
+    out.push(...describeLabelPrints(d, by('label_prints'), opts))
 
     // ⑧ 收货定价申请 · 预付款 · 运费 · 付款 · 附件
     for (const r of by('receipt_price_requests')) {
@@ -2503,6 +2511,24 @@ function describeLocation(d: TrailDict, rows0: TrailRow[], opts: BuildOptions): 
                    lines: addedRemovedLines(d, codeNames(d, addedC, 'classification_code'), codeNames(d, removedC, 'classification_code')), key: true, weight: 60 })
     }
     for (const r of cls) if (r.op === 'UPDATE') out.push(describeGeneric(d, r, opts))
+    // MES-3b(Q4 · Q7):这个库位的标签 —— 发去打印了 / 补印(与理由)
+    out.push(...describeLabelPrints(d, by('label_prints'), opts))
+    return out
+}
+
+// ── MES-3b(2026-10-07,MES-3b Step 0 Q7 · Q27):一次印标签 —— 挂在它印的那样东西(进料批 · 产出批 · 库位)下面。
+//   只追加,所以只有 INSERT:第一次说 "Label issued for printing"(浏览器不报纸出没出来,所以不说 "printed"),
+//   之后每一次说 "Label reprinted",理由放在理由那一格(人敲的字)。模板、纸、份数作值行;快照与二维码路径不进记录(它们是印出去的东西本身)。
+function describeLabelPrints(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const skip = new Set(['object_kind', 'inbound_batch_id', 'output_batch_id', 'storage_location_id', 'is_reprint', 'reprint_reason',
+        'qr_payload', 'printed_fields', 'printed_at', 'printed_by'])
+    const out: Block2[] = []
+    for (const r of rows) {
+        if (r.op !== 'INSERT') continue
+        const reprint = r.new?.['is_reprint'] === true
+        out.push({ title: tx(d, reprint ? 'label.reprinted' : 'label.printed'), lines: valueLines(d, r, r.new, opts, skip),
+                   reason: reprint ? typed(r.new?.['reprint_reason']) : null, key: true, weight: 42 })
+    }
     return out
 }
 
@@ -3871,7 +3897,7 @@ function describeLedger3(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Bl
 const ACCESS_TABLES = new Set(['auth.users', 'user_roles', 'employee_accounts', 'employee_account_history'])
 const HR1_TABLES = new Set(['employees', 'employment_history', 'salary_change_requests', 'training_records', 'departments'])
 const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kinds', 'inbound_safety_states', 'laboratories', 'inbound_source_reasons',
-    'nea_waste_categories'])
+    'nea_waste_categories', 'dangerous_goods_codes', 'label_templates'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {

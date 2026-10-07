@@ -29,6 +29,9 @@ export type MaterialTableRow = {
     unitLabel: string
     /** null = 【没有人设过这个阈值】,不是"没事"。 */
     safetyStockLabel: string | null
+    /** MES-3b:null = 没人选过 / 没给过(V35 · V31),不是"不是危险品"。 */
+    dgCode: string | null
+    hsCode: string | null
     status: string
     createdLabel: string
 }
@@ -98,6 +101,13 @@ export default function MaterialsTable({
                 ) : (
                     <span className="text-xs">{r.assayMetals.map((c) => t('metals.' + c)).join(', ')}</span>
                 ),
+        },
+        {
+            // MES-3b(Q17):危险品 UN 编号 · HS 编码 —— 一格两行;都没给就说没给(没人给过,不是"不是危险品")
+            key: 'shippingIds', header: t('materials.colShippingIds'),
+            render: (r) => (r.dgCode || r.hsCode)
+                ? <>{r.dgCode && <span className="block">{r.dgCode}</span>}{r.hsCode && <span className="block">HS {r.hsCode}</span>}</>
+                : <span className="text-gray-400">{t('materials.shippingIdsNotSet')}</span>,
         },
         { key: 'unit', header: t('materials.colUnit'), render: (r) => r.unitLabel },
         {

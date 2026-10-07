@@ -18,6 +18,8 @@ import {
 } from '../options'
 import { useTranslations } from '@/lib/i18n/client'
 import NeaCategoryPicker, { type NeaCategory } from '@/app/materials/NeaCategoryPicker'
+import DgHsFields from '@/app/materials/DgHsFields'
+import type { DgCode } from '@/app/materials/dgOptions'
 import WasteClassPicker from '../WasteClassPicker'
 import type { WasteClass } from '../wasteClassOptions'
 import { Button } from '@/app/components/ui/button'
@@ -28,6 +30,7 @@ export default function NewMaterialForm({
     chemistryOptions,
     wasteClasses,
     neaCategories,
+    dgCodes,
     kinds,
     forms,
     sources,
@@ -38,6 +41,7 @@ export default function NewMaterialForm({
     chemistryOptions: DictOption[]
     wasteClasses: WasteClass[]
     neaCategories: NeaCategory[]
+    dgCodes: DgCode[]
     kinds: MaterialKind[]
     forms: MaterialForm[]
     sources: MaterialSource[]
@@ -153,6 +157,9 @@ export default function NewMaterialForm({
 
                 {/* MES-3a(V29):NEA 执照上的废物类别 —— 库存上限按它判;没有类别 = 没人分过 */}
                 <NeaCategoryPicker categories={neaCategories} defaultValue={null} locale={locale} />
+
+                {/* MES-3b(V35 · V31):危险品 UN 编号(人选的,推不出来)与 HS 编码 */}
+                <DgHsFields codes={dgCodes} dgDefault={null} hsDefault={null} locale={locale} />
 
                 {/* 单位(固定列表)*/}
                 <div>

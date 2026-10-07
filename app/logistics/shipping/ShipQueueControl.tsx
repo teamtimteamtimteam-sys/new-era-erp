@@ -8,6 +8,10 @@
 //
 // 【后果写在按钮旁边,而且它是【不可撤】的那一种】货离开台账、发票从此作废不了。
 // ★ 按按钮的人看不见价格:后果句只说"货离开了、收入由系统过账",不说金额。
+//
+// ★ MES-3b(2026-10-07,MES-3b Step 0 Q24,Tim):【一次可选的核对扫码】—— 扫手上那一箱的标签;对得上就说对得上,
+//   对不上就说对不上。扫了的那个批号随发货一起送去 ship_order,对不上它按名拒 SHIP_SCAN_MISMATCH(判据只在函数里一处)。
+//   不扫照常发(Q24:不必扫)。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -16,6 +20,7 @@ import { showActionMessage } from '@/app/components/ui/action-message'
 import { shipFromQueue } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
+import ScanField from '@/app/components/scan/ScanField'
 
 export default function ShipQueueControl({
     orderId,
@@ -24,6 +29,7 @@ export default function ShipQueueControl({
     remainingQty,
     unit,
     subject,
+    batchCode,
 }: {
     orderId: string
     reservationId: string
@@ -33,6 +39,8 @@ export default function ShipQueueControl({
     unit: string
     /** CONFIRM-1:发的是【哪一张单的哪一条预留】 */
     subject: string
+    /** MES-3b:这条预留的批号 —— 核对扫码拿它比(只用来在屏幕上先说一句;真正的判决在 ship_order) */
+    batchCode: string | null
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -41,6 +49,8 @@ export default function ShipQueueControl({
     const [shipDate, setShipDate] = useState('')
     // 日期框里敲着一个不合法的日子:shipDate 还是上一个合法值,按钮靠这一位关上
     const [dateBad, setDateBad] = useState(false)
+    const [scanned, setScanned] = useState('')
+    const scanMatches = scanned !== '' && batchCode !== null && scanned.toUpperCase() === batchCode.toUpperCase()
 
     const qtyN = Number(qty)
     // 【数量留空 = 整条预留】—— 不是 0。
@@ -55,18 +65,28 @@ export default function ShipQueueControl({
 
     function go() {
         startTransition(async () => {
-            const res = await shipFromQueue(orderId, reservationId, qty, shipDate)
+            const res = await shipFromQueue(orderId, reservationId, qty, shipDate, scanned)
             if (res.error) {
                 showActionMessage({ subject, headline: t('common.actionMessage.headline.notShipped'), body: res.error })
                 return
             }
-            setQty(''); setShipDate('')
+            setQty(''); setShipDate(''); setScanned('')
             router.refresh()
         })
     }
 
     return (
         <div>
+            <ScanField context="ship" accept={['output_batch']} compact label={t('logistics.shipping.verifyScan')}
+                       onFound={(r) => setScanned(r.code ?? '')} testId={`scan-ship-${reservationId}`} />
+            {scanned !== '' && (
+                <p className={`text-sm mb-1 ${scanMatches ? '' : 'text-amber-700'}`} data-ship-scan={scanMatches ? 'match' : 'mismatch'}>
+                    {scanMatches ? t('logistics.shipping.scanMatches', { code: scanned })
+                                 : t('logistics.shipping.scanMismatch', { code: scanned, expected: batchCode ?? '—' })}
+                    {' '}
+                    <Button type="button" variant="link" size="inline" onClick={() => setScanned('')}>{t('logistics.shipping.scanClear')}</Button>
+                </p>
+            )}
             <div className="flex flex-wrap items-end gap-2">
                 <div className="w-36">
                     <label className="block mb-1">{t('logistics.shipping.qtyLabel', { unit })}</label>

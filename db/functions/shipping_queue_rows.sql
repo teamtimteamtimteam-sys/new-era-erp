@@ -16,10 +16,13 @@
 --
 -- 【门】action.ship_goods(warehouse · admin)。仓库不持 module.sales.view(Q7):属主权限读订单、客户与
 --   放行,在函数体里先按调用者的码把关 —— 零行永远是"没有要发的",不会是"你看不见"。
+-- ★ MES-3b(2026-10-07,MES-3b Step 0 Q13 · Q15 · Q16,Tim):末尾三列 —— dg_code(那一行物料选的 UN 编号)· dg_missing(电池料没选,
+--   只提示)· quarantine_states(预留的那一批身上开着的要隔离的状态,batch_quarantine_states;标出来,不拒)。
+--   这三样是【物料与批次】的属性,不是客户的 —— 上面那条"不带任何别的客户属性"一字未动。fixture 224 照新清单重钉。
 -- NOTE: introduced by db/migrations/2026-09-25-apr5b-the-cfo-releases-and-the-warehouse-ships.sql.
 
 CREATE OR REPLACE FUNCTION public.shipping_queue_rows()
- RETURNS TABLE(sales_order_id uuid, order_code text, order_date date, customer_name text, delivery_address text, released_at timestamp with time zone, sales_order_line_id uuid, line_no integer, material_code text, material_name text, unit text, released_qty numeric, shipped_qty numeric, remaining_qty numeric, reservation_id uuid, output_batch_code text, location_code text, location_name text, reserved_qty numeric)
+ RETURNS TABLE(sales_order_id uuid, order_code text, order_date date, customer_name text, delivery_address text, released_at timestamp with time zone, sales_order_line_id uuid, line_no integer, material_code text, material_name text, unit text, released_qty numeric, shipped_qty numeric, remaining_qty numeric, reservation_id uuid, output_batch_code text, location_code text, location_name text, reserved_qty numeric, dg_code text, dg_missing boolean, quarantine_states text)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
@@ -36,6 +39,7 @@ BEGIN
                   JOIN shipping_releases r ON r.id = rl.release_id
                  WHERE rl.sales_order_line_id = sol.id AND r.status = 'approved') AS rel_at,
                sol.id AS sol_id, sol.line_no AS sol_no, m.code AS m_code, m.name AS m_name, m.unit AS m_unit,
+               m.dg_code AS m_dg, COALESCE(mk.has_condition_axes, false) AND m.dg_code IS NULL AS m_dg_missing,
                (SELECT ra.releasable_qty FROM sales_order_line_releasable_all ra
                  WHERE ra.sales_order_line_id = sol.id LIMIT 1) AS rel_qty,
                COALESCE((SELECT sum(sl.qty) FROM shipment_lines sl WHERE sl.sales_order_line_id = sol.id), 0) AS shp_qty
@@ -43,6 +47,7 @@ BEGIN
           JOIN sales_orders so ON so.id = sol.sales_order_id
           JOIN customers c ON c.id = so.customer_id
           JOIN materials m ON m.id = sol.material_id
+          LEFT JOIN material_kinds mk ON mk.code = m.kind_code
          WHERE so.deleted_at IS NULL
            AND so.status IN ('confirmed', 'partially_shipped')
            AND EXISTS (SELECT 1 FROM shipping_release_lines rl
@@ -55,7 +60,8 @@ BEGIN
     SELECT l.so_id, l.so_code, l.so_date, l.cust_name, l.cust_address, l.rel_at,
            l.sol_id, l.sol_no, l.m_code, l.m_name, l.m_unit,
            l.rel_qty, l.shp_qty, l.rel_qty - l.shp_qty,
-           res.id, ob.code, loc.code, loc.name, res.qty
+           res.id, ob.code, loc.code, loc.name, res.qty,
+           l.m_dg, l.m_dg_missing, CASE WHEN ob.id IS NOT NULL THEN batch_quarantine_states(ob.id) END
       FROM lines l
       LEFT JOIN sales_order_reservations res
              ON res.sales_order_line_id = l.sol_id AND res.released_at IS NULL AND res.consumed_at IS NULL

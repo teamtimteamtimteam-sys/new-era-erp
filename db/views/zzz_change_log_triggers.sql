@@ -214,6 +214,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.custome
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.customers
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.dangerous_goods_codes
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.dangerous_goods_codes
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.deep_discharge_judgements
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.deep_discharge_judgements
@@ -454,6 +458,14 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.kpi_tem
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('template_id', 'org_code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.kpi_template_org_links
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.label_prints
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.label_prints
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.label_templates
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.label_templates
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.laboratories
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.laboratories
@@ -551,7 +563,7 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.metal_p
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.metal_prices
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.nea_waste_categories
-    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.nea_waste_categories
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.notifications

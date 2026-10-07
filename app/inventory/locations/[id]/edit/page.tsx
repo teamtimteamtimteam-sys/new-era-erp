@@ -12,6 +12,7 @@ import LocationForm from '../../LocationForm'
 import LocationActiveToggle from '../../LocationActiveToggle'
 import { updateLocation } from '../../actions'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import LabelPrintHistory from '@/app/components/labels/LabelPrintHistory'
 
 export default async function EditLocationPage({
     params, searchParams,
@@ -58,6 +59,8 @@ export default async function EditLocationPage({
                 {t('locations.editTitle')}
                 <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{loc.code}</span>
             </h1>
+            {/* MES-3b(Q4 · Q7):库位标签 —— 扫一个库位要先有一张印着它的标签;印过几次、最近一次补印与理由 */}
+            <LabelPrintHistory kind="storage_location" id={id} locale={locale} />
 
             {!loc.is_active && (
                 <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-100 border border-gray-300 rounded px-3 py-2 mb-6 max-w-2xl">
