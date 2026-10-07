@@ -636,3 +636,20 @@ REVOKE EXECUTE ON FUNCTION public.assert_quarantine_landing(text[], uuid) FROM a
 REVOKE EXECUTE ON FUNCTION public.label_object_data(text, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.label_print_context(text, uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.batch_quarantine_states(uuid) FROM authenticated;
+
+-- MES-4a(2026-10-07):五支【内层】—— 没有调用者检查,只由各自查过码的 DEFINER 函数以属主身份调。
+--   assert_run_header:一张新加工单的表头说不说得通(commit_processing_run · correct_run_header;以及 processing_runs 的 INSERT 触发器 ——
+--     直连插入早在 guard_processing_direct_write 那一步就按名拒了,触发器只在属主路径上真的跑到它)。
+--   assert_run_equipment:这一炉的机器(EQP-2a 的三条 + 工序 ↔ 资产)。调用方:commit_processing_run · correct_run_header。给了 authenticated,
+--     就是一支按 id 探 fixed_assets(只给财务读)的后门。
+--   record_manual_weighing_internal:在提交那一刻落一条手工称重(收件箱 → 转换 → 草稿 → 确认)。给了,就绕开 action.confirm_capture。
+--   record_run_value_internal:给一炉记 / 更正一个值。调用方:commit_processing_run · record_run_value · correct_run_value。给了,就绕开
+--     action.processing_aftercare 与"加工单必须已提交"那一句。
+--   run_event_check:一件异常事件的五样(record_run_event · correct_run_event)。
+--   record_run_value / correct_run_value / record_run_event / correct_run_event / record_run_loss / correct_run_loss / close_run_balance /
+--   correct_run_header / create_recipe_version / processing_runs_unclosed_balance【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+REVOKE EXECUTE ON FUNCTION public.assert_run_header(date, timestamp with time zone, timestamp with time zone, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_run_equipment(text, uuid, date) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.record_manual_weighing_internal(numeric, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.record_run_value_internal(uuid, text, jsonb, text, bigint, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.run_event_check(text, timestamp with time zone, numeric, text, text) FROM authenticated;

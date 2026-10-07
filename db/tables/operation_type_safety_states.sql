@@ -52,6 +52,9 @@ INSERT INTO public.operation_type_safety_states (operation_type_code, safety_sta
     ('manual_disassembly', 'discharged_verified', false, NULL),
     ('electrode_line', 'discharged_verified', false, NULL),
     ('electrode_powder_line', 'discharged_verified', false, NULL),
+    -- MES-4a(MES-0 Q37 · MES-4a Step 0 Q3):两段新工序与 electrode_line 同一条 —— 只受理已放电并核实的料
+    ('casing_removal', 'discharged_verified', false, NULL),
+    ('electrode_separation', 'discharged_verified', false, NULL),
 
     -- 【整电池粉料线】R2 明写它收"放不了电的整包/模组/3C/损坏电池" ——
     -- 所以它受理"未放电"与"变形损坏",而那正是它与极片粉料线是【两台设备】的理由。

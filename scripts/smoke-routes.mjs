@@ -670,6 +670,8 @@ const MUST_CONTAIN = {
     // MES-1(2026-10-06):设备页底的审计记录(登记 · 修改 · 停用 · 钥匙的发与撤);设备清单页底那一块是采集上限(单行设置,M5)——
     //   线上一行改动都还没有,所以 emptyOk(与三个阈值面板同一条)
     '/operation/devices/[id]': [{ trail: 'audit-trail', why: '设备页底的审计记录(MES-1)' }],
+    // emptyOk:一道引导播下、之后没人改过的工序,审计记录本来就是空的(冒烟读的是第一道在用的工序);要断言的是它画得出、不是受限或报错
+    '/operation/operation-types/[code]': [{ trail: 'audit-trail', why: '工序页底的审计记录(MES-4a)', emptyOk: true }],
     // MES-2(2026-10-06):地磅单页底的审计记录(开单 · 两磅与更正 · 份 · 照片 · 作废)
     '/operation/weighbridge/[id]': [{ trail: 'audit-trail', why: '地磅单页底的审计记录(MES-2)' }],
     '/operation/devices': [{ trail: 'audit-trail', emptyOk: true, why: '采集上限的审计记录(MES-1 Q22,M5)' }],
@@ -1131,6 +1133,8 @@ const SPECIAL_ID_ROUTES = new Set([
     //     主循环里因此**现读**一组真的有行的三元组,取不到就【中止】,不算跳过。
     '/documents/[key]',
     '/related/[subject]/[id]/[target]',
+    // MES-4a:一道工序的页面 —— 段里放的是【工序代号】(operation_types.code,文本),不是 id。主循环里现读一个在用的代号。
+    '/operation/operation-types/[code]',
 ])
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2335,6 +2339,13 @@ async function main() {
                     '五次随机 UUID 全部匹配到了证书 —— 122 位随机撞不出这个结果,' +
                     '坏掉的是那条查询,不是运气。停下来,不要把它当成一次"取不到令牌"。')
                 url = route.replace('[token]', tok)
+            }
+            // MES-4a:工序页 —— 现读一个在用的工序代号(读不到就是量具拿不到输入,中止,不算跳过)
+            if (route === '/operation/operation-types/[code]') {
+                const rows = await restRows(`/rest/v1/operation_types?select=code&is_active=eq.true&order=sort_order&limit=1`,
+                    `${route} ← operation_types`)
+                if (!rows[0]) throw new Error(`${route}:一道在用的工序都读不到 —— 这条冒烟证明不了任何东西,不许当成跳过`)
+                url = route.replace('[code]', encodeURIComponent(rows[0].code))
             }
             // MES-3b(Q9 · Q20):短链接【不在冒烟里走】—— 每打开一次,resolve_scan_code 就往只追加的 scan_events 写一行,
             //   而那一行谁都删不掉(连属主也删不掉)。冒烟每天跑,冒烟的一次性账号会在线上留下永远删不掉的行 ——

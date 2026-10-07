@@ -574,6 +574,14 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.operati
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.operation_kinds
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.operation_type_equipment
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('operation_type_code', 'fixed_asset_id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.operation_type_equipment
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.operation_type_fields
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('operation_type_code', 'field_code');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.operation_type_fields
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.operation_type_input_forms
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('operation_type_code', 'form_code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.operation_type_input_forms
@@ -714,6 +722,14 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.pricing
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.pricing_term_commitments
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.process_recipe_versions
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.process_recipe_versions
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.process_recipes
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.process_recipes
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_cost_entries
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_cost_entries
@@ -721,6 +737,10 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_cost_
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_cost_entry_history
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_cost_entry_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_event_types
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_event_types
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_inputs
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
@@ -730,9 +750,25 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.process
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_outputs
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_run_closures
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_run_closures
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_run_corrections
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_run_corrections
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_run_events
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_run_events
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_run_losses
-    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('run_id', 'loss_category_code');
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_run_losses
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_run_values
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.processing_run_values
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.processing_runs
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');

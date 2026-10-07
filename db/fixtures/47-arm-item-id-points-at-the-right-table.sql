@@ -56,7 +56,10 @@ DECLARE
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
         'claim_pending','credit_over_limit','fx_rate_gap','invoice_overdue',
         'leave_pending','margin_cost_not_allocated','output_unsold_aging',
-        'po_awaiting_receipt','qualification_expiring','qualification_missing',
+        'po_awaiting_receipt',
+        -- MES-4a(2026-10-07):本 fixture 的加工单是 MES-4a 之后记的、转化型、还没结平 → processing_balance_unclosed 也在场
+        'processing_balance_unclosed',
+        'qualification_expiring','qualification_missing',
         'review_submitted','safety_stock_below','stocktake_open'];
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
@@ -137,8 +140,8 @@ BEGIN
     -- 表上那条 NOT VALID 的 CHECK 对【任何写入者】都成立,包括这一句。
     -- 选 manual_disassembly 是因为它是转化型:本臂测的是分摊与看板臂,
     -- 换一道状态改变型工序会顺带改变这张单的语义。
-    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
-    VALUES ('ZZFIX47-RUN', 'committed', now() - interval '10 days', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
+    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code, started_at, ended_at, shift_code)
+    VALUES ('ZZFIX47-RUN', 'committed', now() - interval '10 days', 'metal_value', 'manual_disassembly', now() - interval '2 hours', now() - interval '1 hour', 'day') RETURNING id INTO v_run;
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, created_at, updated_at)
     VALUES (v_run, 'electricity', 100, now(), now());
 
@@ -243,9 +246,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run_margin := commit_processing_run(CURRENT_DATE, 'fixture 47', 0,
+    v_run_margin := commit_processing_run(CURRENT_DATE, 'fixture 47', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_run, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 80)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT po.output_batch_id INTO v_ob_margin
       FROM processing_outputs po WHERE po.run_id = v_run_margin;
     IF v_ob_margin IS NULL THEN
@@ -275,7 +278,7 @@ BEGIN
     SELECT COALESCE(array_agg(DISTINCT e->>'t' ORDER BY e->>'t'), '{}')
       INTO v_types FROM jsonb_array_elements(v_rows) e;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 47A 失败:应恰好看见二十支 %,实得 % —— 少一支,它那条门牌断言就没跑过(空转的断言与通过的断言长得一模一样);多一支说明支列表变了而本 fixture 没跟上,规格见 docs/dashboard-arm-inventory.md',
+        RAISE EXCEPTION 'FIXTURE 47A 失败:应恰好看见二十一支(MES-4a 起多一支 processing_balance_unclosed) %,实得 % —— 少一支,它那条门牌断言就没跑过(空转的断言与通过的断言长得一模一样);多一支说明支列表变了而本 fixture 没跟上,规格见 docs/dashboard-arm-inventory.md',
             v_expected::text, v_types::text;
     END IF;
 
@@ -309,6 +312,7 @@ BEGIN
             WHEN 'work_order_variance_beyond' THEN 'work_orders'
             -- SS-1:补救动作在物料页上(改阈值,或从那里出发去补货)
             WHEN 'safety_stock_below'        THEN 'materials'
+            WHEN 'processing_balance_unclosed' THEN 'processing_runs'   -- MES-4a:门牌指那张加工单
             WHEN 'leave_pending'             THEN 'leave_requests'
             WHEN 'claim_pending'             THEN 'medical_claims'
             WHEN 'review_submitted'          THEN 'performance_reviews'

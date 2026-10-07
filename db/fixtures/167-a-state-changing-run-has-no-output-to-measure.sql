@@ -29,7 +29,7 @@ DECLARE
     r_all uuid; v_ccy text; v_sup uuid; v_mat uuid;
     v_ib uuid; v_ib2 uuid; v_ib3 uuid;
     v_run_sc uuid; v_run_tr uuid; v_run_no uuid;
-    v_d date := DATE '2027-10-14';
+    v_d date := DATE '2021-10-14';
     v_sc text; v_tr text; v_no text;
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
@@ -60,9 +60,9 @@ BEGIN
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source)
     VALUES (v_ib, 'co', 10, 'manual');
 
-    v_run_sc := commit_processing_run(v_d, 'f163 discharge', 0,
+    v_run_sc := commit_processing_run(v_d, 'f163 discharge', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     -- 【先证明前提成立】这道工序确实【不产出】,而这一行确实是投入测过、产出没有。
     IF (SELECT k.produces_outputs FROM operation_types ot JOIN operation_kinds k ON k.code = ot.kind_code
@@ -85,10 +85,10 @@ BEGIN
     VALUES (v_ib2, 'discharged_verified');
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source)
     VALUES (v_ib2, 'co', 10, 'manual');
-    v_run_tr := commit_processing_run(v_d, 'f163 disassembly', 0,
+    v_run_tr := commit_processing_run(v_d, 'f163 disassembly', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-        NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+        NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT recovery_blocked_by INTO v_tr FROM processing_metal_recovery_all
      WHERE run_id = v_run_tr AND metal = 'co';
     IF v_tr IS DISTINCT FROM 'output_not_measured' THEN
@@ -117,9 +117,9 @@ BEGIN
     -- 【为什么不改成"断言历史单"就算了】重建库里没有那 14 张单(它们是线上
     -- 数据,不是种子),README 第 2 条:每个用例自带数据,无处可借。
     -- ════════════════════════════════════════════════════════════════════════
-    v_run_no := commit_processing_run(v_d, 'f163 no op', 0,
+    v_run_no := commit_processing_run(v_d, 'f163 no op', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 10)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     ALTER TABLE processing_runs DROP CONSTRAINT processing_runs_operation_type_required;
     UPDATE processing_runs SET operation_type_code = NULL WHERE id = v_run_no;
     ALTER TABLE processing_runs

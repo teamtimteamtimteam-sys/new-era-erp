@@ -80,9 +80,9 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 1, (SELECT code FROM currencies WHERE is_base), NULL, 'f121');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(CURRENT_DATE - 1, 'f121', 0,
+        PERFORM commit_processing_run(CURRENT_DATE - 1, 'f121', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 100)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE - 1)::timestamptz, p_ended_at => LEAST((CURRENT_DATE - 1)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
         RAISE EXCEPTION 'FIXTURE 121F2 失败:进入 F2 —— 新加的那个状态 may_be_fed = false,**PROC-3 的闸必须立刻按它拦**(PROC-SUPPORT-1 起这条码是 _NOT_ACCEPTED:工序必填之后,受理由 operation_type_safety_states 回答 —— 新加一个状态没有被任何工序列进清单,所以它照样被拦)。加一行字典要连它的【规则】一起生效,否则那扇门只是把值放进去、规则留在外面。实得「%」', COALESCE(v_msg,'(放行了)');
@@ -99,9 +99,9 @@ BEGIN
     -- 而那条【规则】也照旧成立 —— PROC-3 定死过:停用的安全状态照样拦货
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(CURRENT_DATE - 1, 'f121 after deactivate', 0,
+        PERFORM commit_processing_run(CURRENT_DATE - 1, 'f121 after deactivate', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 100)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE - 1)::timestamptz, p_ended_at => LEAST((CURRENT_DATE - 1)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
         RAISE EXCEPTION 'FIXTURE 121F3 失败:进入 F3 —— **一个被停用的安全状态照样拦住这车货**(PROC-3 定死的那一条)。这一臂在防的是把 is_active 读成"这条规则作废了" —— 那会是一条无痕迹、且一次性对所有批次生效的释放路径。实得「%」', COALESCE(v_msg,'(放行了)');

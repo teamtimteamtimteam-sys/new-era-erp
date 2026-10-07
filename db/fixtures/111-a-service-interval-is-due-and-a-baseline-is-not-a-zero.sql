@@ -75,6 +75,7 @@ DECLARE
         'payment_request_pending',  -- PAY-REQ-1(2026-09-23):第三十五支
         'payroll_request_pending',  -- PAYROLL-APR-1(2026-09-24):第三十七支
         'po_awaiting_receipt',
+        'processing_balance_unclosed',  -- MES-4a(2026-10-07):第五十六支
         'promise_overdue',
         'qualification_expiring','qualification_missing',
         'quarantine_required',  -- MES-3a(2026-10-06):第五十五支
@@ -150,34 +151,34 @@ BEGIN
         (a_day_under, CURRENT_DATE - 1,   'repair',  'f111 wrong-kind decoy', 'ZZ-F111');
 
     -- ── 加工:公斤那一半 ────────────────────────────────────────────────────
-    INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis, equipment_id, operation_type_code)
+    INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis, equipment_id, operation_type_code, started_at, ended_at, shift_code)
     VALUES
         -- F2 恰好到线:600 + 400 = 1000
-        ('ZZF111-R01', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_due, 'manual_disassembly'),
-        ('ZZF111-R02', CURRENT_DATE - 80, 400, 'committed', 'weight', a_kg_due, 'manual_disassembly'),
+        ('ZZF111-R01', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_due, 'manual_disassembly', (CURRENT_DATE - 90)::timestamptz, LEAST((CURRENT_DATE - 90)::timestamptz + interval '1 hour', now()), 'day'),
+        ('ZZF111-R02', CURRENT_DATE - 80, 400, 'committed', 'weight', a_kg_due, 'manual_disassembly', (CURRENT_DATE - 80)::timestamptz, LEAST((CURRENT_DATE - 80)::timestamptz + interval '1 hour', now()), 'day'),
         -- F2 差一个单位:600 + 399 = 999
-        ('ZZF111-R03', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_under, 'manual_disassembly'),
-        ('ZZF111-R04', CURRENT_DATE - 80, 399, 'committed', 'weight', a_kg_under, 'manual_disassembly'),
+        ('ZZF111-R03', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_under, 'manual_disassembly', (CURRENT_DATE - 90)::timestamptz, LEAST((CURRENT_DATE - 90)::timestamptz + interval '1 hour', now()), 'day'),
+        ('ZZF111-R04', CURRENT_DATE - 80, 399, 'committed', 'weight', a_kg_under, 'manual_disassembly', (CURRENT_DATE - 80)::timestamptz, LEAST((CURRENT_DATE - 80)::timestamptz + interval '1 hour', now()), 'day'),
         -- F6 提前量:850
-        ('ZZF111-R05', CURRENT_DATE - 90, 850, 'committed', 'weight', a_lead, 'manual_disassembly'),
+        ('ZZF111-R05', CURRENT_DATE - 90, 850, 'committed', 'weight', a_lead, 'manual_disassembly', (CURRENT_DATE - 90)::timestamptz, LEAST((CURRENT_DATE - 90)::timestamptz + interval '1 hour', now()), 'day'),
         -- F5 基线:取得日【之后】的两炉 = 750
-        ('ZZF111-R06', CURRENT_DATE - 100, 300, 'committed', 'weight', a_fresh, 'manual_disassembly'),
-        ('ZZF111-R07', CURRENT_DATE - 80,  450, 'committed', 'weight', a_fresh, 'manual_disassembly'),
+        ('ZZF111-R06', CURRENT_DATE - 100, 300, 'committed', 'weight', a_fresh, 'manual_disassembly', (CURRENT_DATE - 100)::timestamptz, LEAST((CURRENT_DATE - 100)::timestamptz + interval '1 hour', now()), 'day'),
+        ('ZZF111-R07', CURRENT_DATE - 80,  450, 'committed', 'weight', a_fresh, 'manual_disassembly', (CURRENT_DATE - 80)::timestamptz, LEAST((CURRENT_DATE - 80)::timestamptz + interval '1 hour', now()), 'day'),
         -- F5 取得日【之前】的一炉,7777 公斤,而且【归给了这台机器】。
         -- 【这一行经由那扇门是造不出来的】commit_processing_run 会按名拒
         -- (EQUIPMENT_NOT_ACQUIRED)。这里直插,为的是正面钉住【窗口的下沿】:
         -- 少了 process_date >= baseline_date 那一句,kg_since 会读成 8527。
-        ('ZZF111-R08', CURRENT_DATE - 500, 7777, 'committed', 'weight', a_fresh, 'manual_disassembly'),
+        ('ZZF111-R08', CURRENT_DATE - 500, 7777, 'committed', 'weight', a_fresh, 'manual_disassembly', (CURRENT_DATE - 500)::timestamptz, LEAST((CURRENT_DATE - 500)::timestamptz + interval '1 hour', now()), 'day'),
         -- F5「看不见的磨损」:窗口【之内】、谁都没归属的一炉
-        ('ZZF111-R09', CURRENT_DATE - 50, 999, 'committed', 'weight', NULL, 'manual_disassembly');
+        ('ZZF111-R09', CURRENT_DATE - 50, 999, 'committed', 'weight', NULL, 'manual_disassembly', (CURRENT_DATE - 50)::timestamptz, LEAST((CURRENT_DATE - 50)::timestamptz + interval '1 hour', now()), 'day');
     -- 已冲销的一炉【不算数】(EQP-2a 那条"status 与 deleted_at 两标记同源"),
     -- 归给 a_kg_under —— 算进去它就从 999 变成 1999,当场越过 F2 的下沿。
     -- 【直接带着 deleted_at 插】软删守卫只管 UPDATE 那一刻(从在册变成已删),
     -- 而本 fixture 要的是一行"生来就是已冲销"的状态,不是走一遍删除流程。
     INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis,
-        equipment_id, deleted_at, deleted_by, delete_reason, operation_type_code)
+        equipment_id, deleted_at, deleted_by, delete_reason, operation_type_code, started_at, ended_at, shift_code)
     VALUES ('ZZF111-R10', CURRENT_DATE - 70, 1000, 'reversed', 'weight',
-            a_kg_under, now(), v_user, 'f111 reversed run must not count', 'manual_disassembly');
+            a_kg_under, now(), v_user, 'f111 reversed run must not count', 'manual_disassembly', (CURRENT_DATE - 70)::timestamptz, LEAST((CURRENT_DATE - 70)::timestamptz + interval '1 hour', now()), 'day');
 
     -- ══════════ 读回一律切角色(README 第 6 条)══════════════════════════════
     PERFORM set_config('request.jwt.claims',
@@ -332,14 +333,16 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这五十五支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这五十六支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。
     --    少了这一条,一支新臂完全可能顺手把别人的行也吐出来,而 ① 看不见。
     EXECUTE 'SET LOCAL ROLE authenticated';
+    -- MES-4a:本 fixture 的加工单(直插的脚手架)带着开始时刻、是转化型、没结平 → processing_balance_unclosed 也会在场;
+    --   那是那一支自己的事(fixture 253 钉它),这里只数设备那两支与其余一切。
     SELECT COALESCE(array_agg(DISTINCT item_type ORDER BY item_type), '{}'), count(*)
-      INTO v_types, v_n FROM operations_now;
+      INTO v_types, v_n FROM operations_now WHERE item_type <> 'processing_balance_unclosed';
     RESET ROLE;
     IF v_types <> ARRAY['equipment_service_approaching','equipment_service_due'] THEN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 本 fixture 只立了设备的数据,所以看板上只该有新的那两支,实得 %。**其余二十八支必须一行都不多** —— 这是"既有的支在内容上没有变"的行为那一半(文本那一半由拼接脚本在构建时反证:把新块原样拿掉必须逐字节还原)', v_types::text;

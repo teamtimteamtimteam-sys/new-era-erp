@@ -83,9 +83,9 @@ BEGIN
     -- 不是走一遍加工的全部闸门;fixture 195 的 I 臂走真路径)
     FOR v_n IN 1..4 LOOP
         INSERT INTO processing_runs (process_date, total_input, total_output, loss_qty, status,
-                                     allocation_basis, operation_type_code, created_by)
+                                     allocation_basis, operation_type_code, created_by, started_at, ended_at, shift_code)
         VALUES (CASE v_n WHEN 1 THEN d_old ELSE d_new END, 100, 80, 20, 'committed',
-                'weight', 'manual_disassembly', v_issuer)
+                'weight', 'manual_disassembly', v_issuer, (CASE v_n WHEN 1 THEN d_old ELSE d_new END)::timestamptz, LEAST((CASE v_n WHEN 1 THEN d_old ELSE d_new END)::timestamptz + interval '1 hour', now()), 'day')
         RETURNING id INTO run_id;
         INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed)
         VALUES (run_id, CASE v_n WHEN 1 THEN b_old WHEN 2 THEN b_new

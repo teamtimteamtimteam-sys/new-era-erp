@@ -72,9 +72,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(v_process, 'fixture 25 run', 0,
+    v_run := commit_processing_run(v_process, 'fixture 25 run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'metal_value', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 100)), 'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => (v_process)::timestamptz, p_ended_at => LEAST((v_process)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT output_batch_id INTO v_ob FROM processing_outputs WHERE run_id = v_run;
 
     SELECT business_date INTO v_bd FROM inventory_movements
@@ -150,9 +150,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run2 := commit_processing_run(v_process, 'fixture 25 rollback run', 0,
+    v_run2 := commit_processing_run(v_process, 'fixture 25 rollback run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 40)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 40)), 'metal_value', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 40)), 'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => (v_process)::timestamptz, p_ended_at => LEAST((v_process)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT output_batch_id INTO v_ob2 FROM processing_outputs WHERE run_id = v_run2;
 
     PERFORM rollback_processing_run_internal(v_run2, 'fixture:AUDEL-1b 之后理由必填');

@@ -205,10 +205,10 @@ BEGIN
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
     SELECT commit_processing_run(
-        CURRENT_DATE, 'fixture 57 H', 0,
+        CURRENT_DATE, 'fixture 57 H', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib, 'quantity_consumed', 70)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 70)),
-        'weight', NULL, NULL, 'manual_disassembly') INTO run1;
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 70)),
+        'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day') INTO run1;
 
     SELECT count(*) INTO v_n FROM inventory_movements
      WHERE run_id = run1 AND movement_type = 'processing_consume';

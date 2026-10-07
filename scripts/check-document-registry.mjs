@@ -116,8 +116,12 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // MES-3b(2026-10-07):259 → 263。四张标签与扫码的表(dangerous_goods_codes · label_templates · label_prints · scan_events)。
 // 两张带 code 列:dangerous_goods_codes(UN 编号目录)与 label_templates(模板目录),都登记进 document_type_exceptions,
 // 所以 EXPECTED_CODE_TABLES 80 → 82。label_prints 与 scan_events 没有 code —— 它们不铸号(MES-3b Step 0 Q31)。
-const EXPECTED_TABLES = 263   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 82
+// MES-4a(2026-10-07):263 → 272。九张加工记录的表(operation_type_fields · operation_type_equipment · process_recipes ·
+// process_recipe_versions · processing_run_values · processing_event_types · processing_run_events · processing_run_closures ·
+// processing_run_corrections)。两张带 code 列:process_recipes(配方代号,由人敲,不铸号)与 processing_event_types(种类目录),
+// 都登记进 document_type_exceptions,所以 EXPECTED_CODE_TABLES 82 → 84。
+const EXPECTED_TABLES = 272   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 84
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

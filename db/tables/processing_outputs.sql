@@ -17,8 +17,15 @@ CREATE TABLE public.processing_outputs (
     unit_cost_base      numeric,
     -- ── FIN-25 追加(ALTER 加的列排在末尾)──────────────────────────────────
     -- 不完整成本标记:单位成本含计 0 的无价投料,或上游产出带着此标记(传染)。
-    cost_incomplete boolean NOT NULL DEFAULT false
+    cost_incomplete boolean NOT NULL DEFAULT false,
+    -- ── MES-4a 追加(2026-10-07,MES-0 Q22 · MES-4a Step 0 Q24,Tim)────────────────────────────
+    -- 这条产出腿的数量来自【哪一次称重】。一次称重只能给一条腿用(唯一);MES-4a 起提交的转化型加工单每一条腿都必须有
+    -- (OUTPUT_WEIGHING_REQUIRED,在 commit_processing_run 里)—— 之前的单为空,不回填。
+    weighing_id     uuid UNIQUE REFERENCES public.weighings (id)
 );
+
+COMMENT ON COLUMN public.processing_outputs.weighing_id IS
+    'MES-4a(MES-0 Q22):这条产出腿的数量来自哪一次称重(一条确认了的、单独的、没被更正过的净重;quantity_produced = 它的 weight_kg)。提交时选一条,或敲一个重量 —— 后者在同一笔事务里经正常的录入路径落一条手工称重。一次称重只给一条腿用。挂上之后那条称重不能再更正(WEIGHING_IN_USE):数量的更正是回滚 + 新单。之前的单为空。';
 
 -- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
 --(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
@@ -38,16 +45,15 @@ CREATE POLICY "processing_outputs select by permission"
 --   提交与回滚只经 commit_processing_run / rollback_processing_run(SECURITY DEFINER);直连写按名拒
 --   PROCESSING_THROUGH_FUNCTION_ONLY(guard_processing_direct_write,见文末)。
 
-CREATE POLICY "processing_outputs update by permission"
-    ON public.processing_outputs
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+-- ★ MES-4a(2026-10-07,MES-4a Step 0 Q32,Tim):UPDATE 策略也拿掉了 —— 产出腿只经 commit_processing_run 写、只经
+--   allocate_processing_costs 改成本列;直连改按名拒(见文末)。ROLE1B3B-PROCESSING-UPDATE-POLICIES 关闭。
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_outputs_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.processing_outputs FROM authenticated, anon;
-GRANT SELECT (id, run_id, output_batch_id, quantity_produced, created_at, cost_incomplete)
+-- MES-4a:weighing_id 进清单,也进 processing_outputs_masked(同一支迁移 —— 三件事一起)。
+GRANT SELECT (id, run_id, output_batch_id, quantity_produced, created_at, cost_incomplete, weighing_id)
     ON public.processing_outputs TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
@@ -68,6 +74,7 @@ CREATE TRIGGER enforce_write_permission
 CREATE TRIGGER trg_processing_outputs_direct_write
     BEFORE INSERT ON public.processing_outputs
     FOR EACH ROW EXECUTE FUNCTION public.guard_processing_direct_write();
-CREATE TRIGGER trg_processing_outputs_direct_delete
-    BEFORE DELETE ON public.processing_outputs
+-- ★ MES-4a:直连 UPDATE 也按名拒(语句级,与 DELETE 同一支)。
+CREATE TRIGGER trg_processing_outputs_direct_change
+    BEFORE UPDATE OR DELETE ON public.processing_outputs
     FOR EACH STATEMENT EXECUTE FUNCTION public.guard_processing_direct_write();

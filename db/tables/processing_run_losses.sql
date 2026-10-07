@@ -1,22 +1,42 @@
 -- db/tables/processing_run_losses.sql
--- PROC-BUILD-1:一张加工单上【分了类的那部分损耗】,一类一行。
--- **processing_runs.loss_qty 本刀一列都没动** —— 两者不必相等,但分类之和不许超过它。
--- 【它答不了"过磅误差不是损耗"】—— 见表注,那是一条记在案的遗留缺口。
+-- PROC-BUILD-1:一张加工单上【分了类的那部分损耗】,一类一条。
+-- ★ MES-4a(2026-10-07,规格 §4.2;MES-0 Q49;MES-4a Step 0 Q17 · Q28,Tim):【只追加】。
+--   此前页面直连 upsert / 硬删(一行"真的没了")—— 规格说加工记录写了就不改。现在:
+--   · 一条有名字的损耗 = 一行原始记录(corrects_id 为空),一张单的同一类只能有一条原始记录(processing_run_losses_one_original);
+--   · 改它 = 一条新行指回它(corrects_id 唯一 —— 一行只被更正一次,读链的末端)+ 必填理由;撤回 = 更正成 0;
+--   · 只经 record_run_loss / correct_run_loss(module.processing.edit 或 action.processing_aftercare,与此前同一组码)写 ——
+--     authenticated 只剩 SELECT;UPDATE / DELETE / TRUNCATE 语句级拒(APPEND_ONLY)。
+--   · 主键从 (run_id, loss_category_code) 换成 id(identity —— 也是结平水位线读的那个序号);变更记录的绑定键跟着换。
+-- 【与 loss_qty 的关系】MES-4a 起新单的 loss_qty = 投入 − 产出(推出来的,不再收一个敲进来的不同的数 —— Q17);
+--   有名字的损耗(每一类【当前】那一条之和)不许超过它 —— LOSS_CATEGORIES_EXCEED_LOSS_QTY。剩下的就是【没解释的余数】,由结平说出来。
 --
--- NOTE: introduced by db/migrations/2026-08-30-procbuild1-loss-categories-forms-and-saleability.sql.
+-- NOTE: introduced by db/migrations/2026-08-30-procbuild1-loss-categories-forms-and-saleability.sql;
+--       reshaped append-only by db/migrations/2026-10-07-mes4a-processing-record.sql (ALTER-added columns at the end).
 -- First-run script (plain CREATEs).
 
 CREATE TABLE public.processing_run_losses (
     run_id             uuid NOT NULL REFERENCES public.processing_runs (id) ON DELETE CASCADE,
     loss_category_code text NOT NULL REFERENCES public.loss_categories (code),
-    quantity           numeric NOT NULL CHECK (quantity > 0),
+    quantity           numeric NOT NULL,
     notes              text,
     created_at         timestamptz NOT NULL DEFAULT now(),
     created_by         uuid DEFAULT auth.uid(),
-    -- 【一张单的同一个类别只记一行】与 inbound_batch_safety_states 同一条:
-    -- 重复一行不是"更确定",它只会让任何按类别求和的读法开始骗人。
-    PRIMARY KEY (run_id, loss_category_code)
+    -- ── MES-4a 追加的列 ──────────────────────────────────────────────────────
+    id                 bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    corrects_id        bigint UNIQUE REFERENCES public.processing_run_losses (id),
+    correction_reason  text,
+    -- 原始记录必须为正(一条为零的损耗与"没有这一类"分不开);更正可以是 0 —— 那就是撤回
+    CONSTRAINT processing_run_losses_quantity_shape
+        CHECK (quantity > 0 OR (quantity = 0 AND corrects_id IS NOT NULL)),
+    CONSTRAINT processing_run_losses_correction_shape
+        CHECK ((corrects_id IS NULL) = (correction_reason IS NULL)
+               AND (correction_reason IS NULL OR btrim(correction_reason) <> ''))
 );
+
+-- 【一张单的同一个类别只有一条原始记录】(PROC-BUILD-1 那条规矩,原来由复合主键执行):重复一条不是"更确定",
+-- 它只会让任何按类别求和的读法开始骗人。之后的改动是更正链,不是第二条原始记录。
+CREATE UNIQUE INDEX processing_run_losses_one_original ON public.processing_run_losses (run_id, loss_category_code)
+    WHERE corrects_id IS NULL;
 
 COMMENT ON TABLE public.processing_run_losses IS
 'PROC-BUILD-1:一张加工单上【分了类的那部分损耗】,一类一行。
@@ -41,39 +61,28 @@ COMMENT ON TABLE public.processing_run_losses IS
 记为遗留缺口,归属:称重与对账那一刀。';
 
 COMMENT ON COLUMN public.processing_run_losses.quantity IS
-'PROC-BUILD-1:这一类损耗的量,单位与加工单一致。**必须为正** ——
-一笔为零的损耗与"没有这一类"分不开,而后者由"没有这一行"表示。';
+'PROC-BUILD-1:这一类损耗的量,单位与加工单一致。原始记录**必须为正** ——
+一笔为零的损耗与"没有这一类"分不开,而后者由"没有这一行"表示。
+MES-4a:更正行可以是 0 —— 那就是撤回这一类(链的末端是 0,当前之和不算它)。';
 
 ALTER TABLE public.processing_run_losses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_run_losses select by permission"
     ON public.processing_run_losses AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.processing.view'::text));
--- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3b grilling Q2):损耗分类 = module.processing.edit 或
---   action.processing_aftercare(仓库 —— 提交加工的人记它的损耗)。
-CREATE POLICY "processing_run_losses insert by permission"
-    ON public.processing_run_losses AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]));
-CREATE POLICY "processing_run_losses update by permission"
-    ON public.processing_run_losses AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]))
-    WITH CHECK (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]));
-CREATE POLICY "processing_run_losses delete by permission"
-    ON public.processing_run_losses AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]));
+-- ★ MES-4a(2026-10-07,Q28 · Q32):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 只经 record_run_loss / correct_run_loss(SECURITY DEFINER,
+--   module.processing.edit 或 action.processing_aftercare,与此前那三条策略同一组码)写。authenticated 只剩 SELECT,所以直连写
+--   在权限那一步就是 42501(不是零行、不是"成功的空操作")。
 
+-- 有名字的损耗(每一类当前那一条之和)不许超过 loss_qty。只追加之后只剩 INSERT 会动它。
 CREATE CONSTRAINT TRIGGER trg_processing_run_losses_within_total
-    AFTER INSERT OR UPDATE OR DELETE ON public.processing_run_losses
+    AFTER INSERT ON public.processing_run_losses
     DEFERRABLE INITIALLY IMMEDIATE
     FOR EACH ROW EXECUTE FUNCTION public.guard_processing_run_losses();
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.processing_run_losses TO authenticated;
+-- 只追加:UPDATE / DELETE / TRUNCATE 一律语句级拒 —— 连属主路径也不改它(更正是新行)。
+CREATE TRIGGER trg_processing_run_losses_append_only
+    BEFORE UPDATE OR DELETE OR TRUNCATE ON public.processing_run_losses
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_append_only_log();
 
--- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
--- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
--- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
--- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
--- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
--- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
-CREATE TRIGGER enforce_write_permission
-    BEFORE UPDATE OR DELETE ON public.processing_run_losses
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit', 'action.processing_aftercare');
+REVOKE ALL ON public.processing_run_losses FROM authenticated, anon;
+GRANT SELECT ON public.processing_run_losses TO authenticated;

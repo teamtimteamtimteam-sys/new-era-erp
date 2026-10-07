@@ -13,8 +13,15 @@ CREATE TABLE public.operation_types (
     resulting_safety_state_code text REFERENCES public.inbound_safety_states (code),
     is_active                   boolean NOT NULL DEFAULT true,
     sort_order                  integer NOT NULL DEFAULT 0,
-    notes                       text
+    notes                       text,
+    -- ── MES-4a 追加的列(2026-10-07,规格 §4.1;MES-0 Q46 · Q47;MES-4a Step 0 Q18,Tim)──────────
+    -- 这道工序一炉的物料平衡允许多大的余数(投入的百分比)。为空 = Not yet set(V1,Tim 与 cto 在每一段调试结束时给)——
+    -- 没给的时候,任何不为零的余数都要一句书面说明才能结平(Q46);给了,超出它的也要(Q47)。结平时抄进那一行。
+    balance_tolerance_pct       numeric CHECK (balance_tolerance_pct IS NULL OR balance_tolerance_pct >= 0)
 );
+
+COMMENT ON COLUMN public.operation_types.balance_tolerance_pct IS
+    'MES-4a(规格 §4.1 · MES-0 Q46 · Q47):这道工序一炉物料平衡允许的余数,投入的百分比。为空 = Not yet set(V1)—— 不是 0:没给的时候任何不为零的余数都要书面说明。结平时抄进 processing_run_closures.tolerance_pct。只对转化型有意义(状态改变型投入恒等于产出)。';
 
 COMMENT ON TABLE public.operation_types IS
 'PROC-WIRE-1B-i:一道【工序】。R2 的五道,一台机器一道。RUNTIME CONFIG。
@@ -69,7 +76,13 @@ INSERT INTO public.operation_types (code, name_en, name_zh, kind_code, resulting
 【TIDY-1(2026-09-01):code 与英文名【故意】对不上】英文名按行业叫法从 “Electrode powder line” 改成 “Foil processing line”,而 code 仍是 electrode_powder_line。**Tim 的裁定:改 code 会波及每一处引用,改一个显示标签不该波及任何东西。**所以这个错位是一次【决定】,不是没人来得及改。中文名(极片粉料线)一直是对的,未动。'),
     ('battery_powder_line', 'Battery processing line', '整电池粉料线', 'transforming', NULL, 5,
      '【R2】**不同的设备**,专收放不了电的整包/模组/3C 电池/损坏电池。它与极片粉料线是两道工序,理由就是"一台机器一道工序"。
-【TIDY-1(2026-09-01):code 与英文名【故意】对不上】英文名按行业叫法从 “Battery powder line” 改成 “Battery processing line”,而 code 仍是 battery_powder_line。**Tim 的裁定:改 code 会波及每一处引用,改一个显示标签不该波及任何东西。**所以这个错位是一次【决定】,不是没人来得及改。中文名(整电池粉料线)一直是对的,未动。');
+【TIDY-1(2026-09-01):code 与英文名【故意】对不上】英文名按行业叫法从 “Battery powder line” 改成 “Battery processing line”,而 code 仍是 battery_powder_line。**Tim 的裁定:改 code 会波及每一处引用,改一个显示标签不该波及任何东西。**所以这个错位是一次【决定】,不是没人来得及改。中文名(整电池粉料线)一直是对的,未动。'),
+    -- ── MES-4a(2026-10-07,MES-0 Q37;MES-4a Step 0 Q3,Tim):规格书把开壳与极片分离写成【两段、两台设备】(§3.3 · §3.4)。
+    --   electrode_line(两段合在一台机器上)照旧留着 —— 买哪一种机器是 Tim 的事,换的是配置,不是代码。
+    ('casing_removal', 'Casing removal', '开壳', 'transforming', NULL, 6,
+     '【MES-4a · 规格 §3.3】电芯 → 已开壳电芯 + 壳体。硬壳与软包是两台设备;先分类(分类本身是一条记录)。只受理已放电并核实的料。'),
+    ('electrode_separation', 'Electrode separation', '极片分离', 'transforming', NULL, 7,
+     '【MES-4a · 规格 §3.4】已开壳电芯 → 正极片 / 负极片 / 隔膜(三路分开称)。卷绕与叠片是两台设备。电解液在这一段挥发或回收 —— 它是一个损耗类别,不是产出形态。只受理已放电并核实的料。');
 
 ALTER TABLE public.operation_types ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_types select all" ON public.operation_types

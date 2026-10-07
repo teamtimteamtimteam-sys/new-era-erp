@@ -59,9 +59,9 @@ BEGIN
 
     PERFORM set_sales_order_status(v_so, 'confirmed');
     PERFORM reprice_inbound_batch(v_ib, 5, v_base, NULL, 'f214');
-    v_run := commit_processing_run(d, 'f214 放电', 0,
+    v_run := commit_processing_run(d, 'f214 放电', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate)
     VALUES (v_run, 'electricity', 40, true) RETURNING id INTO v_pce1;
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate)

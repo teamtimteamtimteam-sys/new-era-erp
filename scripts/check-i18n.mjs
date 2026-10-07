@@ -788,6 +788,16 @@ const MANIFEST = {
     // STATEMENT-1:对账单一族的错误码,真源是那支 Set(逐条从函数体枚举出来的)。
     'statements.errors.':   { kind: 'enum', values: () => tsSet('app/finance/statements/statementErrorCodes.ts', 'STATEMENT_ERROR_CODES') },
     'processing.errors.':   { kind: 'enum', values: () => tsSet('app/operation/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
+    // MES-4a(2026-10-07):工序页的字段种类 / 值的类型(表上那两条 CHECK)· 工序页上库直接抛的约束名(actions.ts 的那张清单)·
+    //   一炉的平衡状态与它那一句说明(processing_run_balance_all 的 CASE)· 值从哪儿来(processing_run_values.source 的 CHECK)·
+    //   抬头更正的六个字段(processing_run_corrections.field 的 CHECK)。加一种,这里当场要求两个语言都补上。
+    'processing.opType.kind.':      { kind: 'enum', values: () => sqlCheckIn('db/tables/operation_type_fields.sql', 'kind') },
+    'processing.opType.valueType.': { kind: 'enum', values: () => sqlCheckIn('db/tables/operation_type_fields.sql', 'value_type') },
+    'processing.opType.errors.':    { kind: 'enum', values: () => tsArray('app/operation/operation-types/actions.ts', 'CONSTRAINTS') },
+    'processing.rec.balanceState.':     { kind: 'enum', values: () => sqlCaseAs('db/views/processing_run_balance_all.sql', 'balance_state') },
+    'processing.rec.balanceStateHint.': { kind: 'enum', values: () => sqlCaseAs('db/views/processing_run_balance_all.sql', 'balance_state') },
+    'processing.rec.source.':       { kind: 'enum', values: () => sqlCheckIn('db/tables/processing_run_values.sql', 'source') },
+    'processing.rec.headerField.':  { kind: 'enum', values: () => sqlCheckIn('db/tables/processing_run_corrections.sql', 'field') },
     // WO-1c:工单。状态与留痕类型都接真源的 CHECK —— 数据库里加一个状态 /
     // 一种改动类型,这条检查自动跟着变宽,而不是等屏幕上出现一个键名才有人发现。
     'processing.wo.status.':     { kind: 'enum', values: () => sqlEnum('db/tables/work_orders.sql', 'status') },

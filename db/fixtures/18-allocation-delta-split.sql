@@ -84,9 +84,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(v_today, 'fixture run B', 0,
+    v_run := commit_processing_run(v_today, 'fixture run B', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'metal_value', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 100)), 'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => (v_today)::timestamptz, p_ended_at => LEAST((v_today)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     PERFORM allocate_processing_costs(v_run, 'weight');   -- 首挂:1220=100 / 1200 贷 100
 
     -- 【fixture 的钟是冻的】整个 fixture 一个事务,now() 恒同值 —— 真实世界里
@@ -157,11 +157,11 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(v_today, 'fixture run C', 0,
+    v_run := commit_processing_run(v_today, 'fixture run C', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 400)),
         jsonb_build_array(
-            jsonb_build_object('material_id', v_matB, 'quantity', 100),
-            jsonb_build_object('material_id', v_matB, 'quantity', 300)), 'metal_value', NULL, NULL, 'manual_disassembly');
+            jsonb_build_object('material_id', v_matB, 'weight_kg', 100),
+            jsonb_build_object('material_id', v_matB, 'weight_kg', 300)), 'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => (v_today)::timestamptz, p_ended_at => LEAST((v_today)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     PERFORM allocate_processing_costs(v_run, 'weight');
     SELECT po.output_batch_id INTO v_obA FROM processing_outputs po
     JOIN output_batches ob ON ob.id = po.output_batch_id
@@ -253,11 +253,11 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(v_today, 'fixture run H', 0,
+    v_run := commit_processing_run(v_today, 'fixture run H', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 400)),
         jsonb_build_array(
-            jsonb_build_object('material_id', v_matB, 'quantity', 100),
-            jsonb_build_object('material_id', v_matB, 'quantity', 300)), 'metal_value', NULL, NULL, 'manual_disassembly');
+            jsonb_build_object('material_id', v_matB, 'weight_kg', 100),
+            jsonb_build_object('material_id', v_matB, 'weight_kg', 300)), 'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => (v_today)::timestamptz, p_ended_at => LEAST((v_today)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT po.output_batch_id INTO v_obA FROM processing_outputs po
     JOIN output_batches ob ON ob.id = po.output_batch_id
     WHERE po.run_id = v_run AND ob.quantity = 100 AND ob.deleted_at IS NULL;

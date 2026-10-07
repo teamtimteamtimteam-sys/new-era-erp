@@ -84,10 +84,10 @@ BEGIN
     -- deleted_at 会被 guard_soft_delete_provenance 拒掉(SOFT_DELETE_NO_DIRECT_UPDATE),
     -- 而那条守卫是对的:一次没有经办人、没有理由的软删,会被读成「没有人为此负责」。
     -- 所以本臂造的"被冲销的加工单"与产线上真的那一支【走的是同一条路】。
-    v_run := commit_processing_run(DATE '2025-02-10', 'fixture 182 run', 0,
+    v_run := commit_processing_run(DATE '2025-02-10', 'fixture 182 run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 50)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 40)), 'weight',
-        NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 40)), 'weight',
+        NULL, NULL, 'manual_disassembly', p_started_at => (DATE '2025-02-10')::timestamptz, p_ended_at => LEAST((DATE '2025-02-10')::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     EXECUTE 'SET LOCAL ROLE authenticated';
     SELECT count(*) INTO n FROM batch_audit_trail

@@ -33,7 +33,7 @@ DECLARE
     woOpen uuid; woClosed uuid; woNoExp uuid; woRev uuid;
     v_res jsonb; v_run uuid; v_n integer;
     def_view text; v_inj text;
-    d date := DATE '2029-03-10';
+    d date := DATE '2018-03-10';
     u_apr2  uuid := gen_random_uuid();   -- APR-2 四眼:替本支做决定的【第二个人】
     r_apr2  uuid;
     c_apr2  text;
@@ -115,9 +115,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    PERFORM commit_processing_run(d, 'f79 exactly at the line', 0,
+    PERFORM commit_processing_run(d, 'f79 exactly at the line', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 110)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', woOpen, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 100)), 'weight', woOpen, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     SELECT count(*) INTO v_n FROM operations_now
      WHERE item_type = 'work_order_variance_beyond' AND item_id = woOpen;
@@ -134,9 +134,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    PERFORM commit_processing_run(d, 'f79 one over the line', 0,
+    PERFORM commit_processing_run(d, 'f79 one over the line', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woOpen, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 1)), 'weight', woOpen, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT count(*) INTO v_n FROM operations_now
      WHERE item_type = 'work_order_variance_beyond' AND item_id = woOpen;
     IF v_n <> 1 THEN
@@ -179,9 +179,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    PERFORM commit_processing_run(d, 'f79 shortfall', 20,
+    PERFORM commit_processing_run(d, 'f79 shortfall', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'weight', woClosed, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 80)), 'weight', woClosed, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     -- 【收工之前:不报】"少"在这时只是"还没做完"
     SELECT count(*) INTO v_n FROM operations_now
@@ -217,9 +217,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    PERFORM commit_processing_run(d, 'f79 noexp', 9,
+    PERFORM commit_processing_run(d, 'f79 noexp', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woNoExp, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 1)), 'weight', woNoExp, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     PERFORM close_work_order(woNoExp, 'f79:收工(没估过产出)');
     -- 产出 1、没有预期 —— 一个把"没估过"当零的实现会说它短交 100%
     IF EXISTS (SELECT 1 FROM operations_now
@@ -247,9 +247,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(d, 'f79 to be reversed', 0,
+    v_run := commit_processing_run(d, 'f79 to be reversed', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 180)), 'weight', woRev, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 180)), 'weight', woRev, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF NOT EXISTS (SELECT 1 FROM operations_now
                     WHERE item_type = 'work_order_variance_beyond' AND item_id = woRev) THEN
         RAISE EXCEPTION 'FIXTURE 79E 前提不成立:吃掉 200 / 计划 100 应当先报出来';

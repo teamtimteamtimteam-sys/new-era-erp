@@ -37,6 +37,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'overtime_batch' | 'attendance_period'
     | 'payroll_period' | 'performance_review' | 'my_review' | 'review_cycle' | 'review_rating_scale' | 'kpi_entry'
     | 'device' | 'ingest_settings' | 'weighbridge_ticket'
+    | 'operation_type' | 'dictionary_processing_event_types' | 'dictionary_shifts'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -139,6 +140,8 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     ingest_settings: 'ingest_settings',
     // MES-2
     weighbridge_ticket: 'weighbridge_tickets',
+    // MES-4a(2026-10-07):工序页(字段 · 机器 · 配方 · 版本)与两本新字典(班次 · 异常事件种类)
+    operation_type: 'operation_types', dictionary_processing_event_types: 'processing_event_types', dictionary_shifts: 'shifts',
 }
 
 export const PAGE = 20

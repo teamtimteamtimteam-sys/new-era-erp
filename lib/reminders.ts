@@ -241,6 +241,12 @@ export const REMINDERS = [
       permissionWiden: ['module.inbound.view', 'module.output.view'], href: '/inventory/storage-safety',
       itemHref: (r: OpsRow) => (r.doc_kind === 'output' ? `/output/${r.item_id}/edit` : `/inbound/${r.item_id}/edit`) },
 
+    // ══ MES-4a(2026-10-07,MES-0 Q48;MES-4a Step 0 Q22,Tim):物料平衡还没结的加工单 ═════════════════════════════
+    // 【processing_balance_unclosed】一炉已提交、是转换型、MES-4a 之后记的,而它的平衡没有一次【当前】的结算(从没结过,
+    //   或结过之后损耗 / 值又被更正 —— 那会把它重新打开)。一炉一块,门牌指那一炉(平衡那一块在那一页)。只提醒,不挡锁期。
+    { itemType: 'processing_balance_unclosed', permission: 'module.processing.view', href: '/operation/processing',
+      itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

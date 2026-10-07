@@ -21,6 +21,8 @@ import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Button } from '@/app/components/ui/button'
 // LineageRow 这个名字页面自己已经用掉了(batch_lineage 的行形状),
 // 所以表那一侧的行类型换个名字进来 —— 不改页面既有的那个类型。
 import {
@@ -30,11 +32,15 @@ import {
     OutputsTable, type OutputLegRow,
     RecoveryTable, type RecoveryRow,
 } from './ProcessingTables'
-import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { formatAuditStamp, formatDate, formatDateTime } from '@/lib/dates'
 import { loadActorNames } from '@/app/components/ActorName'
 import { loadMaterialNames } from '../materialNames'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import EndedBanner, { EndedFieldset } from '@/app/components/trail/EndedBanner'
+import {
+    ValuesPanel, type ValueRow, EventsPanel, type EventRow, BalancePanel, type BalanceView,
+    HeaderCorrectionPanel, type CorrectionRow,
+} from './RunRecordPanels'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 // ROLE-1 Batch 3b:批次里不再嵌 materials ( name ) —— 仓库读不了 materials 基表,嵌入会静默成 null。
@@ -213,11 +219,160 @@ export default async function ProcessingDetailPage({
         supabase.from('loss_categories')
             .select('code, name_en, name_zh, metal_fate, is_true_loss')
             .eq('is_active', true).order('sort_order'),
+        // MES-4a(Q28):只追加 —— 一类损耗的【当前】那一条是更正链末端(没有别的行指着它)。
         supabase.from('processing_run_losses')
-            .select('loss_category_code, quantity, notes').eq('run_id', id).order('loss_category_code'),
+            .select('id, loss_category_code, quantity, notes, corrects_id, correction_reason').eq('run_id', id).order('id'),
     ])
     const lossCategories = mustRows(lossCatRes, 'loss_categories') as LossCategory[]
-    const lossRows = mustRows(lossRowRes, 'processing_run_losses') as LossRow[]
+    const allLossRows = mustRows(lossRowRes, 'processing_run_losses')
+    const supersededLoss = new Set(allLossRows.map((r) => r.corrects_id).filter((x): x is number => x !== null))
+    const lossRows: LossRow[] = allLossRows.filter((r) => !supersededLoss.has(r.id)).map((r) => ({
+        id: r.id, loss_category_code: r.loss_category_code, quantity: Number(r.quantity), notes: r.notes,
+        corrected: r.corrects_id !== null, correction_reason: r.correction_reason,
+    })).sort((a, b) => a.loss_category_code.localeCompare(b.loss_category_code))
+
+    // ── MES-4a(Step 0 Q7–Q31):抬头的时刻 / 班次 / 机器 / 配方,值、事件、平衡、更正 ──────────────────
+    const canCommitRun = await can('action.processing_commit')
+    const opCode = run.operation_type_code ?? null
+    const [opRes, shiftRes, eqRes, linkRes, recipeRes, versionRes, valuesRes, fieldRes, eventRes, eventTypeRes,
+           balanceRes, corrRes, correctedByRes] = await Promise.all([
+        supabase.from('operation_types').select('code, name_en, name_zh').order('sort_order'),
+        supabase.from('shifts').select('code, name_en, name_zh, is_active').order('sort_order'),
+        supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description, equipment_status').order('equipment_code'),
+        supabase.from('operation_type_equipment').select('operation_type_code, fixed_asset_id'),
+        supabase.from('process_recipes').select('id, code, operation_type_code, is_active'),
+        supabase.from('process_recipe_versions').select('id, recipe_id, version').order('version', { ascending: false }),
+        supabase.from('processing_run_values_current')
+            .select('value_id, field_code, name_en, name_zh, kind, value_type, unit, is_required, value_number, value_text, value_bool, source, out_of_range, range_min_at, range_max_at, corrected, correction_reason, recipe_value, differs_from_recipe')
+            .eq('run_id', id),
+        opCode
+            ? supabase.from('operation_type_fields')
+                .select('field_code, name_en, name_zh, kind, value_type, unit, is_required, is_active, range_min, range_max, sort_order')
+                .eq('operation_type_code', opCode).order('sort_order')
+            : Promise.resolve({ data: [], error: null }),
+        supabase.from('processing_run_events')
+            .select('id, event_type_code, occurred_at, duration_min, action_taken, responsible_person, notes, withdrawn, corrects_id, correction_reason')
+            .eq('run_id', id).order('occurred_at'),
+        supabase.from('processing_event_types').select('code, name_en, name_zh, is_active').order('sort_order'),
+        supabase.from('processing_run_balance')
+            .select('balance_state, input_qty, output_qty, loss_qty, named_loss_qty, remainder_qty, tolerance_pct, within_tolerance, required_missing, outputs_unweighed, last_closure_id, last_closed_at')
+            .eq('run_id', id).maybeSingle(),
+        supabase.from('processing_run_corrections')
+            .select('id, field, old_value, new_value, reason, corrected_at').eq('run_id', id).order('id'),
+        supabase.from('processing_runs_masked').select('id, code').eq('corrects_run_id', id),
+    ])
+    const ops = mustRows(opRes, 'operation_types')
+    const shiftRows = mustRows(shiftRes, 'shifts')
+    const eqRows = mustRows(eqRes, 'equipment_usage')
+    const linkRows = mustRows(linkRes, 'operation_type_equipment')
+    const recipeRows = mustRows(recipeRes, 'process_recipes')
+    const versionRows = mustRows(versionRes, 'process_recipe_versions')
+    const valueRowsDb = mustRows(valuesRes, 'processing_run_values_current')
+    const fieldRows = mustRows(fieldRes as { data: { field_code: string; name_en: string; name_zh: string; kind: string; value_type: string; unit: string | null; is_required: boolean; is_active: boolean; range_min: number | null; range_max: number | null; sort_order: number }[] | null; error: { message: string } | null }, 'operation_type_fields')
+    const eventRowsDb = mustRows(eventRes, 'processing_run_events')
+    const eventTypes = mustRows(eventTypeRes, 'processing_event_types')
+    const balance = mustOne(balanceRes, 'processing_run_balance')
+    const corrRows = mustRows(corrRes, 'processing_run_corrections')
+    const correctedBy = mustRows(correctedByRes, 'processing_runs_masked')
+    const correctsRun = run.corrects_run_id
+        ? mustOne<{ id: string | null; code: string | null }>(await supabase.from('processing_runs_masked').select('id, code').eq('id', run.corrects_run_id).maybeSingle(), 'processing_runs_masked')
+        : null
+
+    const nm = (r: { name_en: string | null; name_zh: string | null }) => (locale === 'zh' ? r.name_zh : r.name_en) ?? '—'
+    const op = ops.find((o) => o.code === opCode) ?? null
+    const shift = shiftRows.find((x) => x.code === run.shift_code) ?? null
+    const machine = eqRows.find((e) => e.equipment_id === run.equipment_id) ?? null
+    const versionLabel = (vid: string | null) => {
+        const v = versionRows.find((x) => x.id === vid)
+        const rc = v ? recipeRows.find((r) => r.id === v.recipe_id) : null
+        return v && rc ? `${rc.code} v${v.version}` : null
+    }
+    const fmtStamp = (iso: string | null) => (iso ? formatDateTime(iso, locale) : '—')
+
+    // ① 值:这道工序的每个在用字段一行(没记的也列,才看得见缺了什么);停用了但这一炉记过的也列。
+    const fmtValue = (vt: string, n: number | null, tx: string | null, b: boolean | null): string | null =>
+        vt === 'yes_no' ? (b === null ? null : b ? t('common.yes') : t('common.no'))
+            : vt === 'text' ? tx : (n === null ? null : String(n))
+    const rawValue = (vt: string, n: number | null, tx: string | null, b: boolean | null): string =>
+        vt === 'yes_no' ? (b === null ? '' : String(b)) : vt === 'text' ? (tx ?? '') : (n === null ? '' : String(n))
+    const recipeDisplay = (vt: string, v: unknown): string | null =>
+        v === null || v === undefined ? null : vt === 'yes_no' ? (v === true ? t('common.yes') : t('common.no')) : String(v)
+    const rangeText = (min: number | null, max: number | null) =>
+        min === null && max === null ? null : t('processing.rec.range', { min: min ?? '—', max: max ?? '—' })
+    const valueRows: ValueRow[] = fieldRows
+        .filter((f) => f.is_active || valueRowsDb.some((v) => v.field_code === f.field_code))
+        .map((f) => {
+            const v = valueRowsDb.find((x) => x.field_code === f.field_code) ?? null
+            return {
+                field_code: f.field_code, name: nm(f), kind: f.kind, value_type: f.value_type, unit: f.unit,
+                is_required: f.is_required,
+                range_text: v ? rangeText(v.range_min_at, v.range_max_at) : rangeText(f.range_min, f.range_max),
+                value_id: v?.value_id ?? null,
+                display: v ? fmtValue(f.value_type, v.value_number, v.value_text, v.value_bool) : null,
+                raw: v ? rawValue(f.value_type, v.value_number, v.value_text, v.value_bool) : '',
+                source: v?.source ?? null,
+                out_of_range: v?.out_of_range ?? null,
+                differs_from_recipe: v?.differs_from_recipe ?? null,
+                recipe_display: v ? recipeDisplay(f.value_type, v.recipe_value) : null,
+                corrected: !!v?.corrected, correction_reason: v?.correction_reason ?? null,
+            }
+        })
+
+    // ② 事件:更正链末端
+    const supersededEv = new Set(eventRowsDb.map((e) => e.corrects_id).filter((x): x is number => x !== null))
+    const typeLabel = (code: string) => { const ty = eventTypes.find((x) => x.code === code); return ty ? nm(ty) : code }
+    const eventRows: EventRow[] = eventRowsDb.filter((e) => !supersededEv.has(e.id)).map((e) => ({
+        id: e.id, event_type_code: e.event_type_code, type_label: typeLabel(e.event_type_code),
+        occurred_display: fmtStamp(e.occurred_at), occurred_at: e.occurred_at,
+        duration_min: e.duration_min === null ? null : Number(e.duration_min),
+        action_taken: e.action_taken, responsible_person: e.responsible_person, notes: e.notes,
+        withdrawn: e.withdrawn, corrected: e.corrects_id !== null, correction_reason: e.correction_reason,
+    }))
+
+    // ③ 平衡:状态与数都由视图给;最后一次结算的解释读那一行结算记录
+    const lastClosure = balance?.last_closure_id
+        ? mustOne<{ explanation: string | null }>(await supabase.from('processing_run_closures').select('explanation').eq('id', balance.last_closure_id).maybeSingle(), 'processing_run_closures')
+        : null
+    const q = (n: number | null | undefined) => (n === null || n === undefined ? '—' : String(Number(n)))
+    const balanceView: BalanceView | null = balance ? {
+        state: balance.balance_state ?? 'not_applicable',
+        input: q(balance.input_qty), output: q(balance.output_qty), loss: q(balance.loss_qty),
+        named: q(balance.named_loss_qty), remainder: q(balance.remainder_qty),
+        tolerance: balance.tolerance_pct === null ? null : String(Number(balance.tolerance_pct)),
+        within: balance.within_tolerance,
+        required_missing: (balance.required_missing ?? []).map((code) => {
+            const f = fieldRows.find((x) => x.field_code === code); return f ? nm(f) : code
+        }),
+        outputs_unweighed: Number(balance.outputs_unweighed ?? 0),
+        last_closed: balance.last_closed_at ? fmtStamp(balance.last_closed_at) : null,
+        last_explanation: lastClosure?.explanation ?? null,
+    } : null
+
+    // ④ 抬头更正:选项只给这道工序的(机器:挂着的那几台,一台都没挂就全部没处置的;配方:这道工序的版本)
+    const linked = linkRows.filter((l) => l.operation_type_code === opCode).map((l) => l.fixed_asset_id)
+    const liveEq = eqRows.filter((e) => e.equipment_status !== 'disposed')
+    const machineOpts = (linked.some((idx) => liveEq.some((e) => e.equipment_id === idx))
+        ? liveEq.filter((e) => linked.includes(e.equipment_id as string)) : liveEq)
+        .map((e) => ({ value: e.equipment_id as string, label: `${e.equipment_code}${e.equipment_description ? ' — ' + e.equipment_description : ''}` }))
+    const recipeOpts = recipeRows.filter((r) => r.operation_type_code === opCode && r.is_active).flatMap((r) =>
+        versionRows.filter((v) => v.recipe_id === r.id).map((v) => ({ value: v.id, label: `${r.code} v${v.version}` })))
+    const fieldLabel = (f: string) => t('processing.rec.headerField.' + f)
+    const corrDisplay = (field: string, v: string | null): string => {
+        if (v === null || v === '') return '—'
+        if (field === 'started_at' || field === 'ended_at') return fmtStamp(v)
+        if (field === 'shift_code') { const x = shiftRows.find((y) => y.code === v); return x ? nm(x) : v }
+        if (field === 'equipment_id') return eqRows.find((e) => e.equipment_id === v)?.equipment_code ?? v
+        if (field === 'recipe_version_id') return versionLabel(v) ?? v
+        return v
+    }
+    const correctionRows: CorrectionRow[] = corrRows.map((c) => ({
+        id: c.id, field_label: fieldLabel(c.field), old_value: corrDisplay(c.field, c.old_value),
+        new_value: corrDisplay(c.field, c.new_value), reason: c.reason, when: fmtStamp(c.corrected_at),
+    }))
+    const headerCurrent: Record<string, string> = {
+        started_at: run.started_at ?? '', ended_at: run.ended_at ?? '', shift_code: run.shift_code ?? '',
+        equipment_id: run.equipment_id ?? '', recipe_version_id: run.recipe_version_id ?? '', notes: run.notes ?? '',
+    }
 
     const rawCosts = maskedRows<Tables<'processing_cost_entries'>, 'amount_base'>(mustRows(costsRes))
     // 改过条目的操作人姓名(一次取回,不逐行查)
@@ -455,6 +610,21 @@ export default async function ProcessingDetailPage({
                         ),
                     },
                     { label: t('processing.detail.processDate'), value: formatDate(run.process_date, dateLocale) ?? '—' },
+                    // MES-4a(Q7–Q9 · Q16):工序、机器、时刻、班次、配方。MES-4a 之前的单这几格是空的 —— 写「没有记」,不编一个。
+                    { label: t('processing.rec.operation'), value: op ? nm(op) : (opCode ?? '—') },
+                    { label: t('processing.rec.machineShort'), value: machine ? (machine.equipment_code ?? '—') : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.form.machineNone')}</span> },
+                    { label: t('processing.rec.startedAt'), value: run.started_at ? fmtStamp(run.started_at) : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.rec.predatesField')}</span> },
+                    { label: t('processing.rec.endedAt'), value: run.ended_at ? fmtStamp(run.ended_at) : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.rec.predatesField')}</span> },
+                    { label: t('processing.rec.shift'), value: shift ? nm(shift) : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.rec.predatesField')}</span> },
+                    { label: t('processing.rec.recipe'), value: versionLabel(run.recipe_version_id ?? null) ?? t('processing.rec.recipeNone') },
+                    ...(correctsRun ? [{
+                        label: t('processing.rec.corrects'),
+                        value: <Link href={`/operation/processing/${correctsRun.id}`} className="hover:underline app-link app-link-inline">{correctsRun.code}</Link>,
+                    }] : []),
+                    ...(correctedBy.length > 0 ? [{
+                        label: t('processing.rec.correctedBy'),
+                        value: <Link href={`/operation/processing/${correctedBy[0].id}`} className="hover:underline app-link app-link-inline">{correctedBy[0].code}</Link>,
+                    }] : []),
                     { label: t('processing.detail.totalInput'), value: run.total_input ?? '—' },
                     { label: t('processing.detail.totalOutput'), value: run.total_output ?? '—' },
                     {
@@ -515,6 +685,34 @@ export default async function ProcessingDetailPage({
 
                 {/* 成本条目(仅已提交单) */}
                 {isCommitted && <CostPanel runId={run.id} entries={costRows} canViewPrices={showPrices} />}
+
+                {/* MES-4a(Q31):一张已回滚、还没被更正过的单 —— 从这里去记它的更正(新单指着它)。 */}
+                {run.status === 'reversed' && correctedBy.length === 0 && (
+                    <p className="text-sm">
+                        <PermissionGate code="action.processing_commit" allowed={canCommitRun} inline>
+                            {canCommitRun ? (
+                                <Link href={`/operation/processing/new?corrects=${run.id}`} className="hover:underline app-link">
+                                    {t('processing.rec.recordCorrection')}
+                                </Link>
+                            ) : (
+                                <Button type="button" variant="link" size="inline" disabled>{t('processing.rec.recordCorrection')}</Button>
+                            )}
+                        </PermissionGate>
+                    </p>
+                )}
+
+                {/* MES-4a:值、事件、平衡、抬头更正 —— 只在已提交单上能记;回滚了的单是历史。 */}
+                {isCommitted && valueRows.length > 0 && <ValuesPanel runId={run.id} rows={valueRows} canEdit={canAftercare} />}
+                {isCommitted && (
+                    <EventsPanel runId={run.id} rows={eventRows} canEdit={canAftercare}
+                                 types={eventTypes.filter((e) => e.is_active).map((e) => ({ code: e.code, label: nm(e) }))} />
+                )}
+                {balanceView && <BalancePanel runId={run.id} b={balanceView} canClose={canAftercare} />}
+                {isCommitted && (
+                    <HeaderCorrectionPanel runId={run.id} canCorrect={canCommitRun} current={headerCurrent}
+                        shifts={shiftRows.filter((x) => x.is_active).map((x) => ({ value: x.code, label: nm(x) }))}
+                        machines={machineOpts} recipes={recipeOpts} history={correctionRows} predates={!run.started_at} />
+                )}
 
                 {/* PROC-BUILD-1:损耗分类 —— 就记在损耗被记下来的这一页。
                     只在【已提交】单上;reversed 单是历史,不可改(与 CostPanel 同一条)。 */}

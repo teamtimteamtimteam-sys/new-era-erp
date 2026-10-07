@@ -7,6 +7,8 @@
 --   两磅凑齐时净重照样要 > 0(TICKET_NET_NOT_POSITIVE)。已经分出去的份与收货单的数量一个字都不动(收货单数量不可改),
 --   差多少在单上照直显示。返回新那一行的 id。
 --
+--   ★ MES-4a(2026-10-07,Q26):挂在一条加工产出腿上的称重不再更正 → WEIGHING_IN_USE|<加工单>。
+--
 -- NOTE: introduced by db/migrations/2026-10-06-mes2-confirmation-weighing-calibration.sql.
 
 CREATE OR REPLACE FUNCTION public.correct_weighing(p_weighing_id uuid, p_weight_kg numeric, p_reason text)
@@ -33,6 +35,12 @@ BEGIN
     END IF;
     IF EXISTS (SELECT 1 FROM weighings x WHERE x.corrects_id = v_orig.id) THEN
         RAISE EXCEPTION 'WEIGHING_SUPERSEDED|%', v_orig.id;
+    END IF;
+    -- MES-4a(MES-0 Q49;MES-4a Step 0 Q26):一次已经给一条加工产出腿用了的称重不再更正 —— 那条腿的数量就是它;
+    -- 数量的更正是回滚申请(CFO)+ 一张新单(corrects_run_id)。
+    IF EXISTS (SELECT 1 FROM processing_outputs po WHERE po.weighing_id = v_orig.id) THEN
+        RAISE EXCEPTION 'WEIGHING_IN_USE|%', (SELECT r.code FROM processing_outputs po JOIN processing_runs r ON r.id = po.run_id
+                                               WHERE po.weighing_id = v_orig.id);
     END IF;
     IF v_orig.ticket_id IS NOT NULL AND EXISTS (SELECT 1 FROM weighbridge_tickets t WHERE t.id = v_orig.ticket_id AND t.voided_at IS NOT NULL) THEN
         RAISE EXCEPTION 'TICKET_VOIDED|%', (SELECT t.code FROM weighbridge_tickets t WHERE t.id = v_orig.ticket_id);

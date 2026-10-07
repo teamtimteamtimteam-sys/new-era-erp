@@ -103,6 +103,7 @@ module's own page.
 | M3a | `storage_ceiling_exceeded` | 今天在效的 gwdf 执照下,某一类 NEA 废物(或执照总量)的存量超过了上限(`storage_ceiling_status.status = 'exceeded'`)。收货与手工产出在超的时候就被拒了(MES-3a Step 0 Q9),所以它亮起来只有两条路:**加工产出**把它推过去,或**上限被调低**到存量以下(Q13)。只提醒 | `module.inventory.view` | `storage_ceiling_status` | 一类一行,总量一行(`item_code = '*'`);存量降下来或上限调高之后消失 |
 | M3b | `safety_state_dwell` | 还在厂里的一批身上,一条开着的安全状态被记下之后过的新加坡日历天数 ≥ 它的 `dwell_warning_days`(V3;MES-3a Step 0 Q14 · Q15)。**V3 没给就没有这一支的行**;时钟从那一条被记下的时刻起算,保存不会让它重来 | 按行:进料 `module.inbound.view`,产出 `module.output.view` | `safety_state_dwell` | `dwell_status = 'past' AND on_site`;状态被结束、或那一批的存量出清之后消失 |
 | M3c | `quarantine_required` | 一批开着一条 `requires_quarantine` 的状态(今天只有鼓包或漏液),却还有货在一个**没标隔离**的库位(或没指库位的那一桶)里(MES-3a Step 0 Q20)。记状态从不拒,于是由这一支说出来;它的下一次移动只能进隔离 | 按行:进料 `module.inbound.view`,产出 `module.output.view` | `quarantine_exposure` | 货全部挪进隔离库位、或那一条状态结束之后消失 |
+| M4a | `processing_balance_unclosed` | 一张已提交的【转换型】加工单(MES-4a 之后记的,开始时刻不空),物料平衡没有一次【当前】的结算:从没结过,或结过之后它的损耗 / 值又被更正了(那会把它重新打开,MES-4a Step 0 Q19 · Q22)。状态改变型的(深度放电)没有平衡可结,不进这一支;MES-4a 之前的单也不进 | `module.processing.view` | `processing_run_balance_all` | `balance_state = 'open'`;结算(`close_run_balance`)之后消失,之后再有更正就回来 |
 
 
 
@@ -341,6 +342,7 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `storage_ceiling_exceeded` | `/inventory/storage-safety` | every NEA category against its ceiling under today's licence, and the licence total (MES-3a) |
 | `safety_state_dwell` | `/inbound/[id]/edit` or `/output/[id]/edit` | the batch page: each open state's day count against its period, and its history (MES-3a) |
 | `quarantine_required` | `/inbound/[id]/edit` or `/output/[id]/edit` | the batch page's banner; its next move can only go into a quarantine location (MES-3a) |
+| `processing_balance_unclosed` | `/operation/processing/[id]` | the run page's material-balance section: input, outputs, named losses, remainder against the operation's tolerance; Close the balance (with an explanation when it is outside tolerance) (MES-4a) |
 
 ### One mechanism, not two
 

@@ -3200,3 +3200,118 @@ label_prints,qr_payload,technical,hide: the label's own link (shown on the label
 label_prints,printed_fields,technical,hide: the printed snapshot (it is the label itself),,,Printed fields,,,jsonb
 label_prints,printed_at,audit_std,hide: the trail entry already says who and when,,,Printed on,,,timestamp with time zone
 label_prints,printed_by,audit_std,hide: the trail entry already says who and when,,,Printed by,,,uuid
+processing_runs,started_at,timestamp_audit,formatAuditStamp,,,Started at,,,timestamp with time zone
+processing_runs,ended_at,timestamp_audit,formatAuditStamp,,,Ended at,,,timestamp with time zone
+processing_runs,shift_code,dict,shifts.name_en (via code),,,Shift,,,text
+processing_runs,recipe_version_id,fk_other,process_recipe_versions (no label column; a recipe version),,,Recipe version,,,uuid
+processing_runs,corrects_run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Corrects run,,,uuid
+processing_outputs,weighing_id,fk_other,weighings (no code; a weighing),,,Weighing,,,uuid
+processing_run_losses,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+processing_run_losses,corrects_id,technical,hide: the loss line it corrects (the block says Corrected),,,Corrects,,,bigint
+processing_run_losses,correction_reason,text,verbatim,,,Reason for the correction,,,text
+operation_types,balance_tolerance_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Balance tolerance (%),,,numeric
+operation_type_fields,operation_type_code,technical,hide: the operation (the trail is the operation's),,,Operation,,,text
+operation_type_fields,field_code,technical,hide: the field's key (the block names the field),,,Field code,,,text
+operation_type_fields,name_en,text,verbatim,,,Name (EN),,,text
+operation_type_fields,name_zh,text,verbatim,,,Name (ZH),,,text
+operation_type_fields,kind,enum,ENUM_OVERRIDES operation_type_fields#kind,,,Kind,,,text
+operation_type_fields,value_type,enum,ENUM_OVERRIDES operation_type_fields#value_type,,,Value type,,,text
+operation_type_fields,unit,text,verbatim,,,Unit,,,text
+operation_type_fields,is_required,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Required,,,boolean
+operation_type_fields,has_range,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Has a range,,,boolean
+operation_type_fields,range_min,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Range minimum,,,numeric
+operation_type_fields,range_max,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Range maximum,,,numeric
+operation_type_fields,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+operation_type_fields,sort_order,technical,hide,,,Sort order,,,integer
+operation_type_fields,notes,text,verbatim,,,Notes,,,text
+operation_type_fields,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+operation_type_fields,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+operation_type_fields,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+operation_type_fields,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+operation_type_equipment,operation_type_code,technical,hide: the operation (the trail is the operation's),,,Operation,,,text
+operation_type_equipment,fixed_asset_id,fk_document,"fixed_assets.code (document number, prefix FA)",,,Machine,,,uuid
+operation_type_equipment,notes,text,verbatim,,,Notes,,,text
+operation_type_equipment,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+operation_type_equipment,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+process_recipes,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+process_recipes,operation_type_code,technical,hide: the operation (the trail is the operation's),,,Operation,,,text
+process_recipes,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+process_recipes,name_en,text,verbatim,,,Name (EN),,,text
+process_recipes,name_zh,text,verbatim,,,Name (ZH),,,text
+process_recipes,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+process_recipes,notes,text,verbatim,,,Notes,,,text
+process_recipes,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+process_recipes,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+process_recipes,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+process_recipes,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+process_recipe_versions,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+process_recipe_versions,recipe_id,fk_other,process_recipes.name_en (via id),,,Recipe,,,uuid
+process_recipe_versions,version,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Version,,,integer
+process_recipe_versions,param_values,jsonb,only the shape it recognises; otherwise Details changed,,,Parameter values,,,jsonb
+process_recipe_versions,notes,text,verbatim,,,Notes,,,text
+process_recipe_versions,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+process_recipe_versions,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+processing_run_values,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+processing_run_values,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+processing_run_values,operation_type_code,technical,hide: the run's operation (shown on the run),,,Operation,,,text
+processing_run_values,field_code,dict,operation_type_fields (composite key; unresolved → a parameter),,,Parameter,,,text
+processing_run_values,value_number,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Value,,,numeric
+processing_run_values,value_text,text,verbatim,,,Value,,,text
+processing_run_values,value_bool,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Value,,,boolean
+processing_run_values,range_min_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Range minimum at the time,,,numeric
+processing_run_values,range_max_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Range maximum at the time,,,numeric
+processing_run_values,out_of_range,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Out of range,,,boolean
+processing_run_values,source,enum,ENUM_OVERRIDES processing_run_values#source,,,Source,,,text
+processing_run_values,inbox_id,technical,hide: the inbox row number,,,Inbox row,,,bigint
+processing_run_values,site_from,timestamp_audit,formatAuditStamp,,,Measured from,,,timestamp with time zone
+processing_run_values,site_to,timestamp_audit,formatAuditStamp,,,Measured until,,,timestamp with time zone
+processing_run_values,site_dataset_ref,text,verbatim,,,Raw data at site,,,text
+processing_run_values,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+processing_run_values,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+processing_run_values,corrects_id,technical,hide: the value it corrects (the block says Corrected),,,Corrects,,,bigint
+processing_run_values,correction_reason,text,verbatim,,,Reason for the correction,,,text
+processing_event_types,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+processing_event_types,name_en,text,verbatim,,,Name (EN),,,text
+processing_event_types,name_zh,text,verbatim,,,Name (ZH),,,text
+processing_event_types,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+processing_event_types,sort_order,technical,hide,,,Sort order,,,integer
+processing_event_types,notes,text,verbatim,,,Notes,,,text
+processing_run_events,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+processing_run_events,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+processing_run_events,event_type_code,dict,processing_event_types.name_en (via code),,,Event type,,,text
+processing_run_events,occurred_at,timestamp_audit,formatAuditStamp,,,Occurred at,,,timestamp with time zone
+processing_run_events,duration_min,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Duration (minutes),,,numeric
+processing_run_events,action_taken,text,verbatim,,,Action taken,,,text
+processing_run_events,responsible_person,text,verbatim,,,Responsible person,,,text
+processing_run_events,notes,text,verbatim,,,Notes,,,text
+processing_run_events,withdrawn,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Withdrawn,,,boolean
+processing_run_events,source,enum,ENUM_OVERRIDES processing_run_events#source,,,Source,,,text
+processing_run_events,inbox_id,technical,hide: the inbox row number,,,Inbox row,,,bigint
+processing_run_events,site_from,timestamp_audit,formatAuditStamp,,,Measured from,,,timestamp with time zone
+processing_run_events,site_to,timestamp_audit,formatAuditStamp,,,Measured until,,,timestamp with time zone
+processing_run_events,site_dataset_ref,text,verbatim,,,Raw data at site,,,text
+processing_run_events,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+processing_run_events,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+processing_run_events,corrects_id,technical,hide: the event it corrects (the block says Corrected),,,Corrects,,,bigint
+processing_run_events,correction_reason,text,verbatim,,,Reason for the correction,,,text
+processing_run_closures,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+processing_run_closures,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+processing_run_closures,input_qty,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Input,,,numeric
+processing_run_closures,output_qty,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Outputs,,,numeric
+processing_run_closures,named_loss_qty,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Named losses,,,numeric
+processing_run_closures,remainder_qty,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Remainder,,,numeric
+processing_run_closures,tolerance_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Tolerance (%),,,numeric
+processing_run_closures,within_tolerance,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Within tolerance,,,boolean
+processing_run_closures,explanation,text,verbatim,,,Explanation,,,text
+processing_run_closures,loss_watermark,technical,hide: internal watermark,,,Losses counted up to,,,bigint
+processing_run_closures,value_watermark,technical,hide: internal watermark,,,Values counted up to,,,bigint
+processing_run_closures,closed_at,audit_std,hide: the trail entry already says who and when,,,Closed on,,,timestamp with time zone
+processing_run_closures,closed_by,audit_std,hide: the trail entry already says who and when,,,Closed by,,,uuid
+processing_run_corrections,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+processing_run_corrections,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+processing_run_corrections,field,enum,ENUM_OVERRIDES processing_run_corrections#field,,,Field,,,text
+processing_run_corrections,old_value,technical,hide: raw stored value (the run's own change lines say it in words),,,Before,,,text
+processing_run_corrections,new_value,technical,hide: raw stored value (the run's own change lines say it in words),,,After,,,text
+processing_run_corrections,reason,text,verbatim,,,Reason,,,text
+processing_run_corrections,corrected_at,audit_std,hide: the trail entry already says who and when,,,Corrected on,,,timestamp with time zone
+processing_run_corrections,corrected_by,audit_std,hide: the trail entry already says who and when,,,Corrected by,,,uuid

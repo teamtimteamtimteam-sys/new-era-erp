@@ -36,7 +36,7 @@ DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
     r_all uuid; v_ccy text; v_sup uuid; v_mat uuid; v_matout uuid;
-    v_d date := DATE '2027-12-05';
+    v_d date := DATE '2021-12-05';
     v_ib uuid; v_run uuid;
     a1200 numeric; a1220 numeric; b1200 numeric; b1220 numeric;
     v_cap uuid; v_deltas jsonb; v_n numeric; v_base numeric;
@@ -74,10 +74,10 @@ BEGIN
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1220';
 
     -- 转化型:整电池粉料线,100kg 进、80kg 出、损耗 20
-    v_run := commit_processing_run(v_d, 'f162 粉料线', 20,
+    v_run := commit_processing_run(v_d, 'f162 粉料线', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matout, 'quantity', 80, 'unit', 'kg')),
-        'weight', NULL, NULL, 'battery_powder_line');
+        jsonb_build_array(jsonb_build_object('material_id', v_matout, 'weight_kg', 80, 'unit', 'kg')),
+        'weight', NULL, NULL, 'battery_powder_line', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run, 'electricity', 300);
     PERFORM allocate_processing_costs(v_run, 'weight');
 
@@ -136,9 +136,9 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 5, v_ccy, NULL, 'f162');
     SELECT COALESCE(SUM(signed_base),0) INTO a1200
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';
-    v_run := commit_processing_run(v_d, 'f162 放电', 0,
+    v_run := commit_processing_run(v_d, 'f162 放电', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run, 'electricity', 250);
     PERFORM allocate_processing_costs(v_run, 'weight');
     v_base := batch_processing_cost_base(v_ib);

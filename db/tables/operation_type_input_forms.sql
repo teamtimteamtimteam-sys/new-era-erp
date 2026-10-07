@@ -24,7 +24,10 @@ INSERT INTO public.operation_type_input_forms (operation_type_code, form_code, n
     ('electrode_powder_line', 'electrode_scrap', '边角料与废片走同一条粉料线。'),
     ('battery_powder_line', 'whole_pack', NULL),
     ('battery_powder_line', 'module', NULL),
-    ('battery_powder_line', 'mixed_unsorted', NULL);
+    ('battery_powder_line', 'mixed_unsorted', NULL),
+    -- MES-4a(MES-0 Q37 · MES-4a Step 0 Q3):electrode_line 那两行拆给两段
+    ('casing_removal', 'loose_cells', NULL),
+    ('electrode_separation', 'de_cased_cell', '【F2/R2】已开壳电芯也可以是【买进来的】——同一种物质,同一条下游路。');
 
 -- 产出形态(状态改变型【一行都没有】,那正是 R3)
 

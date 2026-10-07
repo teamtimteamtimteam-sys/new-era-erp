@@ -7,13 +7,12 @@ import {
     commitProcessingRun,
     type CommitProcessingPayload,
 } from './actions'
-import { UNIT_OPTIONS } from '../../../materials/options'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import DecimalInput from '../../../components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { formatDate } from '@/lib/dates'
+import { formatDate, formatDateTime } from '@/lib/dates'
 import ScanField from '@/app/components/scan/ScanField'
 import type { ScanResult } from '@/app/components/scan/actions'
 
@@ -38,7 +37,27 @@ export type OperationOption = {
     name_zh: string
     produces_outputs: boolean
     input_forms: { code: string; name_en: string; name_zh: string }[]
+    /** MES-4a(Q9):挂在这道工序上的、没处置的机器。非空 → 这一炉【必须】选其中一台(服务端 EQUIPMENT_REQUIRED_FOR_OPERATION)。 */
+    machine_ids: string[]
+    /** MES-4a(Q10–Q13):这道工序的参数与指标(只列在用的)。 */
+    fields: FieldOption[]
+    /** MES-4a(Q16):这道工序在用的配方的每一个版本(固定的、带编号的)。 */
+    recipes: RecipeVersionOption[]
 }
+
+// MES-4a:一个字段的定义 —— 照它画输入框;越界只标出来,不拒(Q12)。
+export type FieldOption = {
+    code: string; name_en: string; name_zh: string
+    kind: string; value_type: string; unit: string | null
+    is_required: boolean; range_min: number | null; range_max: number | null
+}
+export type RecipeVersionOption = { version_id: string; label: string; param_values: Record<string, unknown> }
+export type ShiftOption = { code: string; name_en: string; name_zh: string; starts_at: string | null; ends_at: string | null }
+export type WeighingOption = {
+    weighing_id: string; weight_kg: number; device_code: string | null
+    captured_at: string; calibration_status: string
+}
+export type DeviceOption = { id: string; code: string; name: string }
 
 type MaterialOption = {
     id: string
@@ -53,12 +72,34 @@ type InputRowState = {
     quantity_consumed: string
 }
 
+// MES-4a(Q24–Q25):每一条产出腿都是【称出来的】—— 挑一条现成的称重,或在这里敲一个重量(会记成一次手工称重)。
+//   单位只能是 kg(服务端 OUTPUT_UNIT_NOT_KG),所以这里不再给单位下拉。
 type OutputRowState = {
     key: number
     material_id: string
-    quantity: string
-    unit: string
+    mode: 'pick' | 'type'
+    weighing_id: string
+    weight_kg: string
+    device_id: string
     purity: string
+}
+
+const blankOutput = (key: number): OutputRowState =>
+    ({ key, material_id: '', mode: 'pick', weighing_id: '', weight_kg: '', device_id: '', purity: '' })
+
+/** 一个字段的值,照它的类型从输入框的字符串翻成 JSON;空 = 没记。 */
+function encodeValue(f: FieldOption, raw: string): unknown {
+    const v = raw.trim()
+    if (v === '') return null
+    if (f.value_type === 'number' || f.value_type === 'count') return Number(v)
+    if (f.value_type === 'yes_no') return v === 'true'
+    return v
+}
+/** 配方里存的值 → 输入框里的字符串(与 encodeValue 互逆)。 */
+function recipeString(v: unknown): string {
+    if (v === null || v === undefined) return ''
+    if (typeof v === 'boolean') return v ? 'true' : 'false'
+    return String(v)
 }
 
 function todayIsoLocal(): string {
@@ -77,6 +118,10 @@ export default function NewProcessingForm({
     workOrders,
     operations,
     equipment,
+    shifts,
+    weighingOptions,
+    devices,
+    corrects,
     canCommit,
     canReceive,
 }: {
@@ -93,6 +138,14 @@ export default function NewProcessingForm({
     operations: OperationOption[]
     /** UNBLOCK-1 Q21:可选的机器 —— 页面已滤掉已处置的(服务端也拒,EQUIPMENT_DISPOSED)。 */
     equipment: { id: string; code: string; description: string | null }[]
+    /** MES-4a(Q8):班次 —— 必选。 */
+    shifts: ShiftOption[]
+    /** MES-4a(Q24):挑得到的称重(run_weighing_options —— 与提交时的判据同一组)。 */
+    weighingOptions: WeighingOption[]
+    /** MES-4a:敲重量时可以说是哪一台秤(可选;没说就标"没有记录仪器")。 */
+    devices: DeviceOption[]
+    /** MES-4a(Q31):这一炉是在【更正】哪一张已回滚的单(从那张单上的链接进来)。 */
+    corrects: { id: string; code: string } | null
     /** ROLE-1 Batch 3b:提交 = commit_processing_run,归 action.processing_commit(页面 can() 算好传进来) */
     canCommit: boolean
     /** ROLE-1 Batch 3b:「先去建收货单」那条链接归 action.receive_goods */
@@ -115,18 +168,41 @@ export default function NewProcessingForm({
     const operation = operations.find((o) => o.code === operationCode) ?? null
     // 【产不产批由字典说了算】不是"是不是深度放电"这种写死的判断。
     const producesOutputs = operation ? operation.produces_outputs : true
+    // MES-4a(Q9):机器下拉只列这道工序挂着的那几台;一台都没挂时与服务端同一条规则 —— 任何一台都收,于是照旧全列。
+    const linkedMachines = operation && operation.machine_ids.length > 0
+        ? equipment.filter((m) => operation.machine_ids.includes(m.id))
+        : null
+    const machineOptions = linkedMachines ?? equipment
+    // MES-4a(Q7–Q8):开始、结束、班次 —— 新单必填,服务端按名拒(RUN_TIMES_REQUIRED / RUN_SHIFT_REQUIRED)。
+    const [startedAt, setStartedAt] = useState('')
+    const [endedAt, setEndedAt] = useState('')
+    const [shiftCode, setShiftCode] = useState('')
+    // MES-4a(Q16):配方版本 —— 选了就把它的参数预填进下面的值;改了的值照记,并标出与配方的差。
+    const [recipeVersionId, setRecipeVersionId] = useState('')
+    const recipe = operation?.recipes.find((r) => r.version_id === recipeVersionId) ?? null
+    const [values, setValues] = useState<Record<string, string>>({})
+    function pickOperation(code: string) {
+        setOperationCode(code)
+        // 换工序:机器、配方、值都是那道工序的 —— 清掉,不留一个挂在别的工序上的选择。
+        setEquipmentId(''); setRecipeVersionId(''); setValues({})
+    }
+    function pickRecipe(id: string) {
+        setRecipeVersionId(id)
+        const r = operation?.recipes.find((x) => x.version_id === id)
+        if (!r) return
+        const next: Record<string, string> = { ...values }
+        for (const [k, v] of Object.entries(r.param_values)) next[k] = recipeString(v)
+        setValues(next)
+    }
     const keyCounter = useRef(0)
     const nextKey = () => keyCounter.current++
 
     const [inputRows, setInputRows] = useState<InputRowState[]>(() => [
         { key: nextKey(), batch_ref: '', quantity_consumed: '' },
     ])
-    const [outputRows, setOutputRows] = useState<OutputRowState[]>(() => [
-        { key: nextKey(), material_id: '', quantity: '', unit: 'kg', purity: '' },
-    ])
+    const [outputRows, setOutputRows] = useState<OutputRowState[]>(() => [blankOutput(nextKey())])
     const [processDate, setProcessDate] = useState(todayIsoLocal)
     const [notes, setNotes] = useState('')
-    const [lossOverride, setLossOverride] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
     // MES-3b(Q23):每一行投料一个扫码框 —— 扫到的批次在这张表单的选项里才选得上(有剩余、可投);不在就说为什么。
@@ -148,12 +224,15 @@ export default function NewProcessingForm({
         const n = Number(r.quantity_consumed)
         return Number.isNaN(n) || n <= 0 ? sum : sum + n
     }, 0)
-    const totalOutput = outputRows.reduce((sum, r) => {
-        const n = Number(r.quantity)
-        return Number.isNaN(n) || n <= 0 ? sum : sum + n
-    }, 0)
+    // MES-4a:一条腿的重量就是那次称重的公斤数 —— 挑的读称重本身,敲的读敲进来的数。
+    const legKg = (r: OutputRowState): number => {
+        if (r.mode === 'pick') return weighingOptions.find((w) => w.weighing_id === r.weighing_id)?.weight_kg ?? 0
+        const n = Number(r.weight_kg)
+        return Number.isNaN(n) || n <= 0 ? 0 : n
+    }
+    const totalOutput = producesOutputs ? outputRows.reduce((sum, r) => sum + legKg(r), 0) : 0
+    // MES-4a(Q17):损耗【就是】投入 − 产出,由数据库算出来记下;这里只是把那个数先给人看,不能改。
     const autoLoss = totalInput - totalOutput
-    const displayLoss = lossOverride !== '' ? lossOverride : String(autoLoss)
 
     // 投入行操作
     function updateInputRow(key: number, patch: Partial<InputRowState>) {
@@ -184,18 +263,11 @@ export default function NewProcessingForm({
         )
     }
     function addOutputRow() {
-        setOutputRows((rows) => [
-            ...rows,
-            { key: nextKey(), material_id: '', quantity: '', unit: 'kg', purity: '' },
-        ])
+        setOutputRows((rows) => [...rows, blankOutput(nextKey())])
     }
     function removeOutputRow(key: number) {
         setOutputRows((rows) => {
-            if (rows.length === 1) {
-                return [
-                    { key: rows[0].key, material_id: '', quantity: '', unit: 'kg', purity: '' },
-                ]
-            }
+            if (rows.length === 1) return [blankOutput(rows[0].key)]
             return rows.filter((r) => r.key !== key)
         })
     }
@@ -235,47 +307,56 @@ export default function NewProcessingForm({
             }
         }
 
-        const validOutputs = outputRows
-            .filter((r) => r.material_id && Number(r.quantity) > 0)
-            .map((r) => ({
-                material_id: r.material_id,
-                quantity: Number(r.quantity),
-                unit: r.unit,
-                purity: r.purity.trim() || null,
-            }))
+        // MES-4a(Q4):【只有产出批的工序才要产出】—— 深度放电那一类不产批,从前这一行把它挡在了页面上。
+        const filled = outputRows.filter((r) => r.material_id && (r.mode === 'pick' ? r.weighing_id : Number(r.weight_kg) > 0))
+        const validOutputs = producesOutputs ? filled.map((r) => ({
+            material_id: r.material_id,
+            unit: 'kg',
+            purity: r.purity.trim() || null,
+            ...(r.mode === 'pick'
+                ? { weighing_id: r.weighing_id }
+                : { weight_kg: Number(r.weight_kg), device_id: r.device_id || null }),
+        })) : []
 
-        if (validOutputs.length === 0) {
+        if (producesOutputs && validOutputs.length === 0) {
             setError(t('processing.validation.needValidOutput'))
             return
         }
 
         const inSum = validInputs.reduce((s, r) => s + r.quantity_consumed, 0)
-        const outSum = validOutputs.reduce((s, r) => s + r.quantity, 0)
-        if (outSum > inSum) {
+        if (producesOutputs && totalOutput > inSum) {
             setError(t('processing.validation.outputExceedsInputClient'))
             return
         }
 
-        let loss_qty: number | null = null
-        if (lossOverride !== '') {
-            const n = Number(lossOverride)
-            if (Number.isNaN(n) || n < 0) {
-                setError(t('processing.validation.lossInvalidClient'))
-                return
-            }
-            loss_qty = n
+        // MES-4a(Q11 · Q16):只送【不是照配方】的那些值 —— 配方里的由数据库记成 source = recipe,
+        // 改了的、配方里没有的记成 manual。空的不送(没记 ≠ 记了一个空)。
+        const p_values: Record<string, unknown> = {}
+        for (const f of operation?.fields ?? []) {
+            const raw = values[f.code] ?? ''
+            if (raw.trim() === '') continue
+            const fromRecipe = recipe && Object.prototype.hasOwnProperty.call(recipe.param_values, f.code)
+                ? recipeString(recipe.param_values[f.code]) : null
+            if (fromRecipe !== null && fromRecipe === raw.trim()) continue
+            p_values[f.code] = encodeValue(f, raw)
         }
 
         const payload: CommitProcessingPayload = {
             process_date: processDate,
             notes: notes.trim() || null,
-            loss_qty,
             inputs: validInputs,
             outputs: validOutputs,
             allocation_basis: allocationBasis,
             work_order_id: workOrderId || null,
             equipment_id: equipmentId || null,
             operation_type_code: operationCode || null,
+            // 选择器交出的是新加坡钟面时刻 + 偏移的 ISO(与全库的日期时间框同一条);库里按新加坡日期判(Q8)。
+            started_at: startedAt || null,
+            ended_at: endedAt || null,
+            shift_code: shiftCode || null,
+            recipe_version_id: recipeVersionId || null,
+            values: Object.keys(p_values).length > 0 ? p_values : null,
+            corrects_run_id: corrects?.id ?? null,
         }
 
         startTransition(async () => {
@@ -301,6 +382,13 @@ export default function NewProcessingForm({
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {error}
+                </div>
+            )}
+
+            {/* MES-4a(Q31):从一张已回滚的单上点进来的 —— 这一炉是它的更正,两张单互相指着。 */}
+            {corrects && (
+                <div className="border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 rounded mb-4 text-sm" data-corrects={corrects.code}>
+                    {t('processing.rec.correctsBanner', { code: corrects.code })}
                 </div>
             )}
 
@@ -348,29 +436,6 @@ export default function NewProcessingForm({
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.form.workOrderHint')}</p>
                 </div>
 
-                {/* UNBLOCK-1 Q21:用了哪台机器 —— 【可选,今天绝不必填】。
-                    「未记录」是一个正当答案:不选就不归属任何机器,equipment_usage 不算它。
-                    MES-4a 会把它改成必填;在那之前这里不拦,也不预选。
-                    已处置 / 尚未购入的机器由 commit_processing_run 按名拒(EQUIPMENT_*)。 */}
-                <div>
-                    <label className="block mb-1">
-                        {t('processing.form.machine')}
-                    </label>
-                    <select
-                        value={equipmentId}
-                        onChange={(e) => setEquipmentId(e.target.value)}
-                        className={`${CONTROL_SELECT} w-full`}
-                    >
-                        <option value="">{t('processing.form.machineNone')}</option>
-                        {equipment.map((m) => (
-                            <option key={m.id} value={m.id}>
-                                {m.code}{m.description ? ` — ${m.description}` : ''}
-                            </option>
-                        ))}
-                    </select>
-                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.form.machineHint')}</p>
-                </div>
-
                 {/* 加工日期 —— 必填(决定分录期间)。预填今天是【便利】不是默认值:
                     记录加工的通常就是当天开工的人;清空则禁钮并在按钮旁点名。 */}
                 <div>
@@ -394,7 +459,7 @@ export default function NewProcessingForm({
                     </label>
                     <select
                         value={operationCode}
-                        onChange={(e) => setOperationCode(e.target.value)}
+                        onChange={(e) => pickOperation(e.target.value)}
                         className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('processing.form.operationPlaceholder')}</option>
@@ -420,6 +485,130 @@ export default function NewProcessingForm({
                         </p>
                     )}
                 </div>
+
+                {/* MES-4a(Q9):用了哪台机器。这道工序挂着机器时【必选】,而且只列挂着的那几台;
+                    一台都没挂时与今天一样可以留「未记录」。已处置的不列(服务端也拒,EQUIPMENT_*)。 */}
+                <div>
+                    <label className="block mb-1">
+                        {linkedMachines ? t('processing.rec.machineRequired') : t('processing.form.machine')}
+                        {linkedMachines && <span className="text-red-600"> *</span>}
+                    </label>
+                    <select
+                        value={equipmentId}
+                        onChange={(e) => setEquipmentId(e.target.value)}
+                        className={`${CONTROL_SELECT} w-full`}
+                        data-field="machine"
+                    >
+                        <option value="" disabled={!!linkedMachines}>
+                            {linkedMachines ? t('processing.rec.machinePick') : t('processing.form.machineNone')}
+                        </option>
+                        {machineOptions.map((m) => (
+                            <option key={m.id} value={m.id}>
+                                {m.code}{m.description ? ` — ${m.description}` : ''}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
+                        {linkedMachines ? t('processing.rec.machineLinkedHint') : t('processing.form.machineHint')}
+                    </p>
+                </div>
+
+                {/* MES-4a(Q7–Q8):这一炉几点开始、几点结束、哪一个班。三样都必填;加工日期必须落在开始与结束的新加坡日期之间。 */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label className="block">
+                        <span className="block mb-1">{t('processing.rec.startedAt')} <span className="text-red-600">*</span></span>
+                        <DatePicker kind="datetime" required value={startedAt} onChange={setStartedAt} className="flex" />
+                    </label>
+                    <label className="block">
+                        <span className="block mb-1">{t('processing.rec.endedAt')} <span className="text-red-600">*</span></span>
+                        <DatePicker kind="datetime" required value={endedAt} onChange={setEndedAt} className="flex" />
+                    </label>
+                    <label className="block">
+                        <span className="block mb-1">{t('processing.rec.shift')} <span className="text-red-600">*</span></span>
+                        <select value={shiftCode} onChange={(e) => setShiftCode(e.target.value)}
+                                className={`${CONTROL_SELECT} w-full`} data-field="shift_code">
+                            <option value="" disabled>{t('processing.rec.shiftPick')}</option>
+                            {shifts.map((sh) => (
+                                <option key={sh.code} value={sh.code}>
+                                    {locale === 'zh' ? sh.name_zh : sh.name_en}
+                                    {sh.starts_at && sh.ends_at ? ` (${sh.starts_at.slice(0, 5)}–${sh.ends_at.slice(0, 5)})` : ''}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+                <p className="text-xs text-[color:var(--brand-muted-text)] -mt-2">{t('processing.rec.timesHint')}</p>
+
+                {/* MES-4a(Q10–Q16):这道工序的参数与指标,以及配方。值照记,不拒:越界的只标出来,必填的到结算时才查。 */}
+                {operation && operation.fields.length > 0 && (
+                    <section className="border border-gray-200 rounded p-4 space-y-3" data-section="values">
+                        <h2>{t('processing.rec.valuesTitle')}</h2>
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.rec.valuesIntro')}</p>
+                        <label className="block">
+                            <span className="block mb-1">{t('processing.rec.recipe')}</span>
+                            <select value={recipeVersionId} onChange={(e) => pickRecipe(e.target.value)}
+                                    className={`${CONTROL_SELECT} w-full`} data-field="recipe_version_id">
+                                <option value="">{t('processing.rec.recipeNone')}</option>
+                                {operation.recipes.map((r) => (
+                                    <option key={r.version_id} value={r.version_id}>{r.label}</option>
+                                ))}
+                            </select>
+                            {operation.recipes.length === 0 && (
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.rec.recipeNoneDefined')}</span>
+                            )}
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {operation.fields.map((f) => {
+                                const raw = values[f.code] ?? ''
+                                const num = Number(raw)
+                                const isNum = f.value_type === 'number' || f.value_type === 'count'
+                                const outOfRange = isNum && raw.trim() !== '' && !Number.isNaN(num)
+                                    && ((f.range_min !== null && num < f.range_min) || (f.range_max !== null && num > f.range_max))
+                                const inRecipe = recipe && Object.prototype.hasOwnProperty.call(recipe.param_values, f.code)
+                                const recipeRaw = inRecipe ? recipeString(recipe!.param_values[f.code]) : null
+                                const differs = recipeRaw !== null && recipeRaw !== raw.trim()
+                                const set = (v: string) => setValues({ ...values, [f.code]: v })
+                                return (
+                                    <div key={f.code} data-value-field={f.code}>
+                                        <span className="block mb-1 text-sm">
+                                            {locale === 'zh' ? f.name_zh : f.name_en}
+                                            {f.unit ? ` (${f.unit})` : ''}
+                                            {f.is_required && <span className="text-red-600"> *</span>}
+                                            <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">
+                                                {t(f.kind === 'parameter' ? 'processing.rec.kindParameter' : 'processing.rec.kindIndicator')}
+                                            </span>
+                                        </span>
+                                        {f.value_type === 'yes_no' ? (
+                                            <select value={raw} onChange={(e) => set(e.target.value)} className={`${CONTROL_SELECT} w-full`}>
+                                                <option value="">{t('processing.rec.notRecorded')}</option>
+                                                <option value="true">{t('common.yes')}</option>
+                                                <option value="false">{t('common.no')}</option>
+                                            </select>
+                                        ) : isNum ? (
+                                            <DecimalInput value={raw} onChange={set} className="w-full" />
+                                        ) : (
+                                            <input value={raw} onChange={(e) => set(e.target.value)} className={`${CONTROL_INPUT} w-full`} />
+                                        )}
+                                        {(f.range_min !== null || f.range_max !== null) && (
+                                            <span className="block text-xs text-[color:var(--brand-muted-text)]">
+                                                {t('processing.rec.range', { min: f.range_min ?? '—', max: f.range_max ?? '—' })}
+                                            </span>
+                                        )}
+                                        {outOfRange && <span className="block text-xs text-amber-700">{t('processing.rec.outOfRange')}</span>}
+                                        {differs && (
+                                            <span className="block text-xs text-amber-700">
+                                                {t('processing.rec.differsFromRecipe', { value: recipeRaw === '' ? '—' : recipeRaw! })}
+                                            </span>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        {operation.fields.some((f) => f.is_required) && (
+                            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.rec.requiredHint')}</p>
+                        )}
+                    </section>
+                )}
 
                 {/* 投入 */}
                 <section className="border border-gray-200 rounded p-4 space-y-3">
@@ -552,63 +741,101 @@ export default function NewProcessingForm({
                             {t('processing.form.addOutputButton')}
                         </Button>
                     </div>
-                    {outputRows.map((row) => (
-                        <div key={row.key} className="flex flex-wrap gap-2 items-start">
-                            <select
-                                value={row.material_id}
-                                onChange={(e) =>
-                                    updateOutputRow(row.key, { material_id: e.target.value })
-                                }
-                                className={`${CONTROL_SELECT} flex-1`}
-                            >
-                                <option value="" disabled>
-                                    {t('processing.form.selectOutputMaterial')}
-                                </option>
-                                {materials.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                        {m.code} - {m.name}
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.rec.outputsWeighedHint')}</p>
+                    {outputRows.map((row) => {
+                        const takenElsewhere = new Set(outputRows.filter((r) => r.key !== row.key && r.mode === 'pick').map((r) => r.weighing_id))
+                        const picked = weighingOptions.find((w) => w.weighing_id === row.weighing_id) ?? null
+                        return (
+                        <div key={row.key} className="border-t border-gray-100 pt-3 space-y-2" data-output-row={row.key}>
+                            <div className="flex flex-wrap gap-2 items-start">
+                                <select
+                                    value={row.material_id}
+                                    onChange={(e) => updateOutputRow(row.key, { material_id: e.target.value })}
+                                    className={`${CONTROL_SELECT} flex-1 min-w-0`}
+                                >
+                                    <option value="" disabled>
+                                        {t('processing.form.selectOutputMaterial')}
                                     </option>
-                                ))}
-                            </select>
-                            <DecimalInput
-                                placeholder={t('processing.form.outputQtyPlaceholder')}
-                                value={row.quantity}
-                                onChange={(raw) => updateOutputRow(row.key, { quantity: raw })}
-                                className="w-28"
-                            />
-                            <select
-                                value={row.unit}
-                                onChange={(e) =>
-                                    updateOutputRow(row.key, { unit: e.target.value })
-                                }
-                                className={`${CONTROL_SELECT} w-24`}
-                            >
-                                {UNIT_OPTIONS.map((u) => (
-                                    <option key={u.value} value={u.value}>
-                                        {t(u.labelKey)}
-                                    </option>
-                                ))}
-                            </select>
-                            <input
-                                type="text"
-                                placeholder={t('processing.form.purityPlaceholder')}
-                                value={row.purity}
-                                onChange={(e) =>
-                                    updateOutputRow(row.key, { purity: e.target.value })
-                                }
-                                className={`${CONTROL_INPUT} w-36`}
-                            />
-                            <Button
-                                variant="secondary"
-                                size="inline"
-                                type="button"
-                                onClick={() => removeOutputRow(row.key)}
-                                className="text-sm"
-                            >
-                                {t('processing.form.rowDelete')}
-                            </Button>
+                                    {materials.map((m) => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.code} - {m.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="text"
+                                    placeholder={t('processing.form.purityPlaceholder')}
+                                    value={row.purity}
+                                    onChange={(e) => updateOutputRow(row.key, { purity: e.target.value })}
+                                    className={`${CONTROL_INPUT} w-36`}
+                                />
+                                <Button
+                                    variant="secondary"
+                                    size="inline"
+                                    type="button"
+                                    onClick={() => removeOutputRow(row.key)}
+                                    className="text-sm"
+                                >
+                                    {t('processing.form.rowDelete')}
+                                </Button>
+                            </div>
+                            {/* 这一条腿的重量从哪儿来:挑一条现成的称重,或者在这里敲(会记成一次手工称重) */}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                <label className="inline-flex items-center gap-1">
+                                    <input type="radio" name={`mode-${row.key}`} checked={row.mode === 'pick'}
+                                           onChange={() => updateOutputRow(row.key, { mode: 'pick', weight_kg: '', device_id: '' })} />
+                                    {t('processing.rec.modePick')}
+                                </label>
+                                <label className="inline-flex items-center gap-1">
+                                    <input type="radio" name={`mode-${row.key}`} checked={row.mode === 'type'}
+                                           onChange={() => updateOutputRow(row.key, { mode: 'type', weighing_id: '' })} />
+                                    {t('processing.rec.modeType')}
+                                </label>
+                            </div>
+                            {row.mode === 'pick' ? (
+                                <div>
+                                    <select value={row.weighing_id}
+                                            onChange={(e) => updateOutputRow(row.key, { weighing_id: e.target.value })}
+                                            className={`${CONTROL_SELECT} w-full`} data-field="weighing_id">
+                                        <option value="" disabled>{t('processing.rec.pickWeighing')}</option>
+                                        {weighingOptions.filter((w) => !takenElsewhere.has(w.weighing_id)).map((w) => (
+                                            <option key={w.weighing_id} value={w.weighing_id}>
+                                                {t('processing.rec.weighingOption', {
+                                                    kg: w.weight_kg,
+                                                    device: w.device_code ?? t('processing.rec.noInstrument'),
+                                                    when: formatDateTime(w.captured_at, locale),
+                                                    status: t('calibration.status.' + w.calibration_status),
+                                                })}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {weighingOptions.length === 0 && (
+                                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.rec.noWeighings')}</p>
+                                    )}
+                                    {picked && picked.calibration_status !== 'in_calibration' && picked.calibration_status !== 'not_recorded' && (
+                                        <p className="text-xs text-red-700 mt-1">{t('processing.rec.weighingNotCalibrated')}</p>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex flex-wrap gap-2 items-start">
+                                    <DecimalInput
+                                        placeholder={t('processing.rec.weightKg')}
+                                        value={row.weight_kg}
+                                        onChange={(raw) => updateOutputRow(row.key, { weight_kg: raw })}
+                                        className="w-32"
+                                    />
+                                    <span className="self-center text-sm">kg</span>
+                                    <select value={row.device_id}
+                                            onChange={(e) => updateOutputRow(row.key, { device_id: e.target.value })}
+                                            className={`${CONTROL_SELECT} flex-1 min-w-0`}>
+                                        <option value="">{t('processing.rec.deviceNone')}</option>
+                                        {devices.map((d) => <option key={d.id} value={d.id}>{d.code} — {d.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
                         </div>
-                    ))}
+                        )
+                    })}
                 </section>
                 )}
 
@@ -623,30 +850,13 @@ export default function NewProcessingForm({
                             <span className="text-sm text-[color:var(--brand-muted-text)] mr-1">{t('processing.form.totalOutputLabel')}</span>
                             <span className="font-medium">{totalOutput}</span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm text-[color:var(--brand-muted-text)]">{t('processing.form.lossLabel')}</span>
-                            {/* 自动损耗可能为负(产出大于投入),显示的就是它 ——
-                                故允许负号,否则用户没法编辑一个负值;
-                                负数的手工覆盖仍由提交前的 lossInvalidClient 拦下 */}
-                            <DecimalInput
-                                allowNegative
-                                value={displayLoss}
-                                onChange={setLossOverride}
-                                className="w-28"
-                            />
-                            {lossOverride !== '' && (
-                                <Button
-                                    variant="link"
-                                    size="inline"
-                                    type="button"
-                                    onClick={() => setLossOverride('')}
-                                    className="text-xs"
-                                >
-                                    {t('processing.form.resetToAuto')}
-                                </Button>
-                            )}
+                        <div>
+                            <span className="text-sm text-[color:var(--brand-muted-text)] mr-1">{t('processing.form.lossLabel')}</span>
+                            <span className="font-medium" data-derived-loss>{Number(autoLoss.toFixed(6))}</span>
                         </div>
                     </div>
+                    {/* MES-4a(Q17):损耗是投入 − 产出,不能手改 —— 少掉的去了哪儿,在单子上按类别记(损耗分类),差额在结算时写解释。 */}
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.rec.lossDerivedHint')}</p>
                     {autoLoss < 0 && (
                         <p className="text-red-600 text-xs">{t('processing.form.outputExceedsWarning')}</p>
                     )}
@@ -666,11 +876,17 @@ export default function NewProcessingForm({
                 {!processDate && (
                     <p className="text-sm text-amber-700">{t('processing.form.blockedProcessDate')}</p>
                 )}
+                {(!startedAt || !endedAt || !shiftCode) && (
+                    <p className="text-sm text-amber-700">{t('processing.rec.blockedHeader')}</p>
+                )}
+                {linkedMachines && !equipmentId && (
+                    <p className="text-sm text-amber-700">{t('processing.rec.blockedMachine')}</p>
+                )}
                 <div className="flex gap-3 pt-4">
                     <PermissionGate code="action.processing_commit" allowed={canCommit} inline>
                         <Button
                             type="submit"
-                            disabled={isPending || !processDate}
+                            disabled={isPending || !processDate || !startedAt || !endedAt || !shiftCode || (!!linkedMachines && !equipmentId)}
                         >
                             {isPending ? t('processing.form.saving') : t('processing.form.saveRun')}
                         </Button>

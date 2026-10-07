@@ -22,6 +22,8 @@ export type ProcessingRunRow = {
     statusLabel: string
     workOrderId: string | null
     workOrderCode: string
+    /** MES-4a:物料平衡的状态(open / closed / before_closure / not_applicable / reversed);读不到就是 null */
+    balanceState: string | null
 }
 
 export default function ProcessingTable({ rows, empty }: { rows: ProcessingRunRow[]; empty: React.ReactNode }) {
@@ -47,6 +49,15 @@ export default function ProcessingTable({ rows, empty }: { rows: ProcessingRunRo
         {
             key: 'status', header: t('processing.colStatus'),
             render: (r) => <span className="px-2 py-1 bg-gray-200 rounded text-xs">{r.statusLabel}</span>,
+        },
+        {
+            // MES-4a(Q19):平衡结了没有 —— "待结算"是要人去做的事,其余几种是一句状态。
+            key: 'balance', header: t('processing.rec.colBalance'),
+            render: (r) => r.balanceState === null ? '—' : (
+                <span className={r.balanceState === 'open' ? 'text-amber-700' : 'text-[color:var(--brand-muted-text)]'} data-balance={r.balanceState}>
+                    {t('processing.rec.balanceState.' + r.balanceState)}
+                </span>
+            ),
         },
         {
             // WO-1c:这次加工算在哪张计划上 —— 【没有就说"无计划",不留空】

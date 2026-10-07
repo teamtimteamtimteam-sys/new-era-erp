@@ -107,8 +107,8 @@ BEGIN
     END IF;
 
     -- ── 产出批 + 已过账 COGS → batch_margin 有一行可读 ───────────────────────
-    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
-    VALUES ('ZZFIX101-RUN', 'committed', '2025-05-10', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
+    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code, started_at, ended_at, shift_code)
+    VALUES ('ZZFIX101-RUN', 'committed', '2025-05-10', 'metal_value', 'manual_disassembly', now() - interval '2 hours', now() - interval '1 hour', 'day') RETURNING id INTO v_run;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX101-OB', v_mat, 100, 100, '2025-05-10') RETURNING id INTO v_ob;
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced,

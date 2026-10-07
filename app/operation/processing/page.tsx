@@ -91,6 +91,16 @@ export default async function ProcessingPage({
         woRows.forEach((w) => woCode.set(w.id, w.code))
     }
 
+    // MES-4a(Q19–Q21):这一页上每一炉的物料平衡状态 —— 读 processing_run_balance(结算函数读的是同一张底视图),一次 in() 取回。
+    const runIds = (runs ?? []).map((r) => r.id)
+    const balanceState = new Map<string, string>()
+    if (runIds.length > 0) {
+        const bRows = mustRows(
+            await supabase.from('processing_run_balance').select('run_id, balance_state').in('run_id', runIds),
+            'processing_run_balance')
+        bRows.forEach((b) => { if (b.run_id && b.balance_state) balanceState.set(b.run_id, b.balance_state) })
+    }
+
     // 分页链接:保留日期 + sort/dir,只改 page
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
@@ -129,6 +139,7 @@ export default async function ProcessingPage({
         statusLabel: statusLabel(r.status),
         workOrderId: r.work_order_id,
         workOrderCode: r.work_order_id ? (woCode.get(r.work_order_id) ?? '—') : '—',
+        balanceState: balanceState.get(r.id) ?? null,
     }))
 
     const canCommit = await can('action.processing_commit')

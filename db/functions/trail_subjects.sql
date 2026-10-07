@@ -13,6 +13,7 @@
 -- view_codes 与页面守卫逐字同一组码:
 --   purchase_order → /purchasing/orders/[id]        requireModule(MOD.purchasing) = module.purchasing.view
 --   processing_run → /operation/processing/[id]     requireModule(MOD.processing) = module.processing.view
+--   operation_type → /operation/operation-types/[code] requireModule(MOD.processing) = module.processing.view(MES-4a)
 --   role           → /settings/roles/[id]           requireManagePermissions()     = action.manage_permissions
 --   inbound_batch  → /inbound/[id]/edit             requireModule(MOD.inbound)     = module.inbound.view
 --   output_batch   → /output/[id]/edit              requireModule(MOD.output)      = module.output.view
@@ -240,6 +241,13 @@ AS $function$
         -- MES-3b(2026-10-07):危险品 UN 编号字典(module.materials.view)· 标签模板字典(module.inventory.view)
         ('dictionary_dangerous_goods_codes', ARRAY['module.materials.view'], 'dangerous_goods_codes', 'code', 'collection', NULL),
         ('dictionary_label_templates',      ARRAY['module.inventory.view'], 'label_templates',       'code', 'collection', NULL),
+        -- MES-4a(2026-10-07,MES-4a Step 0 Q33):一道工序 —— 它的参数与指标、挂着的机器、配方与每一版、容差(根行自己那几列);
+        --   页面 /operation/operation-types/[code],门 module.processing.view;根键 code(成员按 operation_type_code 挂在它下面)。
+        --   异常事件种类字典 —— 与别的字典同一个形状(清单块,/settings/dictionaries)。
+        ('operation_type',    ARRAY['module.processing.view'],    'operation_types',    'code', 'table', NULL),
+        ('dictionary_processing_event_types', ARRAY['module.processing.view'], 'processing_event_types', 'code', 'collection', NULL),
+        --   班次字典 —— MES-4a 把它放进 /settings/dictionaries(新的"时刻"字段:V6 · V7 的去处),于是它也有一段清单块的记录。
+        ('dictionary_shifts', ARRAY['module.processing.view'], 'shifts', 'code', 'collection', NULL),
         -- AUDIT-TRAIL-1d-2
         ('leave_request',     ARRAY['module.hr.view'],            'leave_requests',     'id', 'table', NULL),
         ('my_leave_request',  ARRAY[]::text[],                    'leave_requests',     'id', 'table', NULL),

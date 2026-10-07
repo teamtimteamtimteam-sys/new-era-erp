@@ -157,9 +157,9 @@ BEGIN
     PERFORM pg_temp.f238_as(u_all);
 
     -- 加工:把 ① 整批用完 → 产出批次、投入 / 产出、流水、阶段、销毁证书
-    v_run := commit_processing_run(CURRENT_DATE, 'fixture 238 run', 20,
+    v_run := commit_processing_run(CURRENT_DATE, 'fixture 238 run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'weight', v_wo, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 80)), 'weight', v_wo, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT output_batch_id INTO v_ob FROM processing_outputs WHERE run_id = v_run;
     -- 成本条目(→ 修改史 + processing_cost 分录)与分摊(→ allocation 分录 + 批次成本分摊)
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate, notes, created_by, updated_by)
@@ -185,9 +185,9 @@ BEGIN
     SELECT id INTO v_wr FROM warehouse_requests WHERE inbound_batch_id = v_ib2;
 
     -- N · Q 批次 ③ 被一张加工单消耗,那张单随后回滚
-    v_run2 := commit_processing_run(CURRENT_DATE, 'fixture 238 run 2', 0,
+    v_run2 := commit_processing_run(CURRENT_DATE, 'fixture 238 run 2', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 10)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 10)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 10)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     PERFORM rollback_processing_run_internal(v_run2, 'fixture 238 rollback');
 
     -- ══════════════ B · 逐行对照 ══════════════

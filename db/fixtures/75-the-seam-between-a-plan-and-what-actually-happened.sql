@@ -109,7 +109,7 @@ BEGIN
     -- 它按签名取函数体做故障注入,而签名一变,旧的 regprocedure 就解析不出来。
     -- (那正是本行存在的意义:它把"这份 fixture 注入的是哪一支函数"钉死,
     --  不让它悄悄注入到别的重载上。)
-    def_commit := pg_get_functiondef('public.commit_processing_run(date,text,numeric,jsonb,jsonb,text,uuid,uuid,text)'::regprocedure);
+    def_commit := pg_get_functiondef('public.commit_processing_run(date,text,numeric,jsonb,jsonb,text,uuid,uuid,text,timestamptz,timestamptz,text,uuid,jsonb,uuid)'::regprocedure);
     def_cancel := pg_get_functiondef('public.cancel_work_order(uuid,text)'::regprocedure);
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
@@ -165,10 +165,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(d, 'f75 run', 0,
+    v_run := commit_processing_run(d, 'f75 run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 80)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 75)), 'weight',
-        woOK, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 75)), 'weight',
+        woOK, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF (SELECT work_order_id FROM processing_runs WHERE id = v_run) IS DISTINCT FROM woOK THEN
         RAISE EXCEPTION 'FIXTURE 75A 失败:加工单应当认下它照的那张工单';
     END IF;
@@ -194,9 +194,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_runFree := commit_processing_run(d, 'f75 unplanned run', 0,
+    v_runFree := commit_processing_run(d, 'f75 unplanned run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 10)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 9)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF (SELECT work_order_id FROM processing_runs WHERE id = v_runFree) IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 75A 失败:不传工单参数时 work_order_id 应当留成 NULL';
     END IF;
@@ -212,10 +212,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    BEGIN PERFORM commit_processing_run(d, 'x', 0,
+    BEGIN PERFORM commit_processing_run(d, 'x', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight',
-        gen_random_uuid(), NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 1)), 'weight',
+        gen_random_uuid(), NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'WO_NOT_FOUND|%' THEN
         RAISE EXCEPTION 'FIXTURE 75B 失败:不存在的工单应当按名拒,实得 %', COALESCE(v_msg,'(提交了)');
@@ -235,9 +235,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    BEGIN PERFORM commit_processing_run(d, 'x', 0,
+    BEGIN PERFORM commit_processing_run(d, 'x', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woDraft, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 1)), 'weight', woDraft, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'WO_NOT_RELEASED|%|draft' THEN
         RAISE EXCEPTION 'FIXTURE 75B 失败:草稿工单不该开得了工,实得 %', COALESCE(v_msg,'(提交了)');
@@ -263,9 +263,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    BEGIN PERFORM commit_processing_run(d, 'x', 0,
+    BEGIN PERFORM commit_processing_run(d, 'x', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woClosed, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 1)), 'weight', woClosed, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'WO_NOT_RELEASED|%|closed' THEN
         RAISE EXCEPTION 'FIXTURE 75B 失败:已收工的工单不该再挂加工,实得 %', COALESCE(v_msg,'(提交了)');
@@ -286,9 +286,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    BEGIN PERFORM commit_processing_run(d, 'x', 0,
+    BEGIN PERFORM commit_processing_run(d, 'x', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woCancelled, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 1)), 'weight', woCancelled, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'WO_NOT_RELEASED|%|cancelled' THEN
         RAISE EXCEPTION 'FIXTURE 75B 失败:已取消的工单不该挂加工,实得 %', COALESCE(v_msg,'(提交了)');
@@ -336,10 +336,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    PERFORM commit_processing_run(d, 'f75 run noexp', 0,
+    PERFORM commit_processing_run(d, 'f75 run noexp', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 40)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 38)), 'weight',
-        woNoExp, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 38)), 'weight',
+        woNoExp, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT planned_or_expected_qty, actual_qty, variance_qty, has_plan
       INTO v_planned, v_actual, v_var, v_hasplan
       FROM work_order_fulfilment
@@ -380,10 +380,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run2 := commit_processing_run(d, 'f75 to be reversed', 0,
+    v_run2 := commit_processing_run(d, 'f75 to be reversed', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 70)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 65)), 'weight',
-        woRev, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 65)), 'weight',
+        woRev, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     -- 冲销之前:地板拦、取消拦、差异视图数得到
     v_denied := false; v_msg := NULL;
@@ -519,9 +519,9 @@ $g$, '');
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(d, '注入之后照草稿开工', 0,
+    v_run := commit_processing_run(d, '注入之后照草稿开工', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 5)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 4)), 'weight', woDraft, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 4)), 'weight', woDraft, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF (SELECT work_order_id FROM processing_runs WHERE id = v_run) IS DISTINCT FROM woDraft THEN
         RAISE EXCEPTION 'FIXTURE 75 注入1 失败:删掉那道门之后,照草稿开工【仍然】没写进去 —— 说明 B 臂拒它的不是那道门';
     END IF;
@@ -558,10 +558,10 @@ $g$, '');
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    BEGIN PERFORM commit_processing_run(d, '注入之后照一张不存在的工单开工', 0,
+    BEGIN PERFORM commit_processing_run(d, '注入之后照一张不存在的工单开工', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 3)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 2)), 'weight',
-        gen_random_uuid(), NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 2)), 'weight',
+        gen_random_uuid(), NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg LIKE 'WO_NOT_FOUND%' THEN
         RAISE EXCEPTION 'FIXTURE 75 注入3 失败:删掉函数那道门之后,拒绝【仍然】来自函数(实得 %)—— 说明 B 臂拒它的不是那道门',
@@ -607,9 +607,9 @@ $g$, '');
          WHERE mk.has_condition_axes
            AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                             WHERE s.inbound_batch_id = ib.id);
-        v_runx := commit_processing_run(d, 'f75 rev2 run', 0,
+        v_runx := commit_processing_run(d, 'f75 rev2 run', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ibx, 'quantity_consumed', 20)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 18)), 'weight', woRev2, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 18)), 'weight', woRev2, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
         PERFORM rollback_processing_run_internal(v_runx, 'fixture:AUDEL-1b 之后理由必填');
         -- 修好的版本:取消得掉(这是 D 臂已经验过的,这里只作注入的对照起点)
         IF (SELECT status FROM processing_runs WHERE id = v_runx) <> 'reversed' THEN

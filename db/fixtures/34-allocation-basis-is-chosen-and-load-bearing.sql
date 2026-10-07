@@ -31,7 +31,7 @@ DECLARE
     v_denied boolean; v_msg text;
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
-    UPDATE finance_settings SET locked_before = NULL, system_start_date = '2027-01-01';
+    UPDATE finance_settings SET locked_before = NULL, system_start_date = '2021-01-01';
 
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-34', 'f', 'f', true) RETURNING id INTO r;
@@ -53,13 +53,13 @@ BEGIN
     -- 一批有价的投料:100 kg,单价 10 → 材料成本 1000
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, pricing_status, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX34-IB', v_mat, v_sup, 100, 100, '2027-01-05', 10, 'final', 'other', 'fixture 34 自带数据')
+    VALUES ('ZZFIX34-IB', v_mat, v_sup, 100, 100, '2021-01-05', 10, 'final', 'other', 'fixture 34 自带数据')
     RETURNING id INTO ib1;
 
     -- metal_value 基准要拿金属行情算价值比 —— 没有行情它会 NO_METAL_VALUE。
     -- 自己设,不继承(README 第 4 条)。
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
-    VALUES ('ni', 20000, '2027-01-01', 'broker_quote');
+    VALUES ('ni', 20000, '2021-01-01', 'broker_quote');
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u), true);
@@ -73,8 +73,8 @@ BEGIN
     -- 【金属含量不走 commit_processing_run】它只收 material_id/quantity/unit;
     -- 含量在 output_batch_metals 上,提交之后再挂(界面上是化验/金属含量那一块)。
     v_outputs := jsonb_build_array(
-        jsonb_build_object('material_id', v_mat, 'quantity', 20, 'unit', 'kg'),
-        jsonb_build_object('material_id', v_mat, 'quantity', 20, 'unit', 'kg'));
+        jsonb_build_object('material_id', v_mat, 'weight_kg', 20, 'unit', 'kg'),
+        jsonb_build_object('material_id', v_mat, 'weight_kg', 20, 'unit', 'kg'));
 
     -- ══════════ A. 不给基准 → 点名拒绝 ══════════════════════════════════════
     v_denied := false;
@@ -94,7 +94,7 @@ BEGIN
          WHERE mk.has_condition_axes
            AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                             WHERE s.inbound_batch_id = ib.id);
-        PERFORM commit_processing_run('2027-02-01'::date, NULL, NULL, v_inputs, v_outputs, NULL, NULL, NULL, 'manual_disassembly');
+        PERFORM commit_processing_run('2021-02-01'::date, NULL, NULL, v_inputs, v_outputs, NULL, NULL, NULL, 'manual_disassembly', p_started_at => ('2021-02-01'::date)::timestamptz, p_ended_at => LEAST(('2021-02-01'::date)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM; v_denied := true;
     END;
@@ -115,7 +115,7 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run('2027-02-01'::date, NULL, NULL, v_inputs, v_outputs, 'metal_value', NULL, NULL, 'manual_disassembly');
+    v_run := commit_processing_run('2021-02-01'::date, NULL, NULL, v_inputs, v_outputs, 'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => ('2021-02-01'::date)::timestamptz, p_ended_at => LEAST(('2021-02-01'::date)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF (SELECT allocation_basis FROM processing_runs WHERE id = v_run) <> 'metal_value' THEN
         RAISE EXCEPTION 'FIXTURE 34B 失败:选了 metal_value,单据上记的却不是 —— 选择没有被记录下来';
     END IF;

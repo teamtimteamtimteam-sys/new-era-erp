@@ -139,10 +139,10 @@ BEGIN
     -- ══════════ D · ★★★ ROLE-1 Batch 3a:分摊的钱不取决于分摊的人看得见什么 ★★★ ══════════
     -- 一张转化型单吃 100kg;材料成本 = 100 × (5 + 500/200) = 750.00
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}',v_full), true);
-    v_run1 := commit_processing_run(v_d,'f163 粉料线 1',20,
+    v_run1 := commit_processing_run(v_d,'f163 粉料线 1',NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id',v_ib,'quantity_consumed',100)),
-        jsonb_build_array(jsonb_build_object('material_id',v_matout,'quantity',80,'unit','kg')),
-        'weight',NULL,NULL,'battery_powder_line');
+        jsonb_build_array(jsonb_build_object('material_id',v_matout,'weight_kg',80,'unit','kg')),
+        'weight',NULL,NULL,'battery_powder_line', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     -- 【先断言分摊人真的读不到运费】—— 否则下面那一句证明不了任何事
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}',v_edit), true);

@@ -1,4 +1,7 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-4a(2026-10-07,MES-0 Q48;MES-4a Step 0 Q22,Tim):加一支 processing_balance_unclosed —— 物料平衡还没结的加工单
+--   (MES-4a 起记的、转化型的、已提交没回滚的、最新结平不当前的;processing_run_balance_all 的 balance_state = 'open')。
+--   门 module.processing.view;点进去是那张加工单(平衡面板在上面)。只是提醒:月末那一行也只警告,不挡关账。
 -- ★ ROLE-1 Batch 2a(2026-09-24,Q9):加一支 supplier_pending_approval —— 等 CFO 批的供应商
 --   (action.supplier_approve;只有持这个码的人看得见,点进去由 set_supplier_status 裁)。
 --   等了多久从【最后一次送审】起算(supplier_status_history),没有那一行时退回 updated_at。
@@ -818,6 +821,16 @@ CREATE VIEW public.operations_now AS
             gq.created_at::date AS item_date
            FROM gst_filing_requests gq
           WHERE gq.status = 'submitted'::text
+        UNION ALL
+         SELECT 'processing_balance_unclosed'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            b.run_id AS item_id,
+            NULL::text AS doc_kind,
+            b.run_code AS item_code,
+            b.operation_type_code AS subject,
+            b.process_date AS item_date
+           FROM processing_run_balance_all b
+          WHERE b.balance_state = 'open'::text
         UNION ALL
          SELECT 'shipping_release_ready'::text AS item_type,
             'action.ship_goods'::text AS permission,

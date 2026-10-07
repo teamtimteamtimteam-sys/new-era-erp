@@ -1,7 +1,9 @@
 // app/operation/processing/new/page.tsx
 // 服务端组件:抓取可选投料批次 + 物料列表,渲染客户端表单
 import { createClient } from '@/lib/supabase/server'
-import NewProcessingForm, { type InboundBatchOption, type OperationOption } from './NewProcessingForm'
+import NewProcessingForm, {
+    type InboundBatchOption, type OperationOption, type FieldOption, type ShiftOption, type WeighingOption, type DeviceOption,
+} from './NewProcessingForm'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -9,7 +11,11 @@ import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { loadMaterialNames } from '../materialNames'
 
-export default async function NewProcessingPage() {
+export default async function NewProcessingPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ corrects?: string }>
+}) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.processing)
@@ -90,6 +96,34 @@ export default async function NewProcessingPage() {
                 'operation_type_input_forms ( material_forms ( code, name_en, name_zh ) )')
         .eq('is_active', true)
         .order('sort_order')
+    // MES-4a(Q9 · Q10–Q16):每道工序挂着的机器、它的字段、它在用的配方的各个版本 —— 一并读,按工序归位。
+    const [linksRes, fieldsRes, recipesRes, versionsRes, shiftsRes, weighRes, devicesRes] = await Promise.all([
+        supabase.from('operation_type_equipment').select('operation_type_code, fixed_asset_id'),
+        supabase.from('operation_type_fields')
+            .select('operation_type_code, field_code, name_en, name_zh, kind, value_type, unit, is_required, range_min, range_max')
+            .eq('is_active', true).order('sort_order'),
+        supabase.from('process_recipes').select('id, operation_type_code, code').eq('is_active', true).order('code'),
+        supabase.from('process_recipe_versions').select('id, recipe_id, version, param_values').order('version', { ascending: false }),
+        supabase.from('shifts').select('code, name_en, name_zh, starts_at, ends_at').eq('is_active', true).order('sort_order'),
+        supabase.from('run_weighing_options')
+            .select('weighing_id, weight_kg, device_code, captured_at, calibration_status')
+            .order('captured_at', { ascending: false }).limit(200),
+        supabase.from('devices').select('id, code, name, kind, retired_at')
+            .is('retired_at', null).in('kind', ['scale', 'weighbridge', 'meter', 'inline_instrument']).order('code'),
+    ])
+    const links = mustRows(linksRes, 'operation_type_equipment')
+    const fieldRows = mustRows(fieldsRes, 'operation_type_fields')
+    const recipeRows = mustRows(recipesRes, 'process_recipes')
+    const versionRows = mustRows(versionsRes, 'process_recipe_versions')
+    const fieldsOf = (code: string): FieldOption[] => fieldRows.filter((f) => f.operation_type_code === code).map((f) => ({
+        code: f.field_code, name_en: f.name_en, name_zh: f.name_zh, kind: f.kind, value_type: f.value_type, unit: f.unit,
+        is_required: f.is_required, range_min: f.range_min, range_max: f.range_max,
+    }))
+    const recipesOf = (code: string) => recipeRows.filter((r) => r.operation_type_code === code).flatMap((r) =>
+        versionRows.filter((v) => v.recipe_id === r.id).map((v) => ({
+            version_id: v.id, label: `${r.code} v${v.version}`,
+            param_values: (v.param_values ?? {}) as Record<string, unknown>,
+        })))
     const operations: OperationOption[] = (mustRows(operationsRes, 'operation_types') as unknown as {
         code: string; name_en: string; name_zh: string
         operation_kinds: { produces_outputs: boolean } | null
@@ -104,6 +138,10 @@ export default async function NewProcessingPage() {
         input_forms: o.operation_type_input_forms
             .map((r) => r.material_forms)
             .filter((f): f is { code: string; name_en: string; name_zh: string } => f !== null),
+        // 只算没处置的那几台 —— 与 assert_run_equipment 同一个判据(处置了的不让这条规则生效);下面 equipment 已滤掉处置的。
+        machine_ids: links.filter((l) => l.operation_type_code === o.code).map((l) => l.fixed_asset_id),
+        fields: fieldsOf(o.code),
+        recipes: recipesOf(o.code),
     }))
 
     // ROLE-1 Batch 3b:批次行只带 material_id,名字按 id 从 material_lookup 取一次再映射回去
@@ -132,6 +170,21 @@ export default async function NewProcessingPage() {
     ) as unknown as { equipment_id: string; equipment_code: string; equipment_description: string | null }[])
         .map((e) => ({ id: e.equipment_id, code: e.equipment_code, description: e.equipment_description }))
 
+    // 挂着的机器里处置了的不算 —— 把 machine_ids 收窄到下拉里真的有的那几台(与服务端判据同一条)。
+    const liveMachineIds = new Set(equipment.map((e) => e.id))
+    for (const o of operations) o.machine_ids = o.machine_ids.filter((id) => liveMachineIds.has(id))
+
+    // MES-4a(Q31):从一张已回滚的单上点进来 —— 只认【已回滚、还没被更正过】的那一张;别的情形不画横幅(服务端照样按名拒)。
+    const correctsId = (await searchParams).corrects ?? null
+    let corrects: { id: string; code: string } | null = null
+    if (correctsId) {
+        const c = mustOne(await supabase.from('processing_runs_masked').select('id, code, status')
+            .eq('id', correctsId).maybeSingle(), 'processing_runs_masked') as { id: string | null; code: string | null; status: string | null } | null
+        const takenBy = mustRows(await supabase.from('processing_runs_masked').select('id')
+            .eq('corrects_run_id', correctsId), 'processing_runs_masked')
+        if (c && c.status === 'reversed' && takenBy.length === 0 && c.id && c.code) corrects = { id: c.id, code: c.code }
+    }
+
     // ROLE-1 Batch 3b:建加工单 = commit_processing_run;没有收货码的人,「先去建收货单」那条链接也按不动
     const [canCommit, canReceive] = await Promise.all([can('action.processing_commit'), can('action.receive_goods')])
 
@@ -148,6 +201,10 @@ export default async function NewProcessingPage() {
                 { id: string; code: string; scheduled_date: string | null }[]}
             operations={operations}
             equipment={equipment}
+            shifts={mustRows(shiftsRes, 'shifts') as ShiftOption[]}
+            weighingOptions={mustRows(weighRes, 'run_weighing_options') as unknown as WeighingOption[]}
+            devices={(mustRows(devicesRes, 'devices') as unknown as DeviceOption[])}
+            corrects={corrects}
             canCommit={canCommit}
             canReceive={canReceive}
         />

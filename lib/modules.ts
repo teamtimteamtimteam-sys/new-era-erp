@@ -381,7 +381,8 @@ const P_PRICING = 'module.pricing.view'
  *  他们看到的是【只读】的字典页。Tim 知情并接受(C-1b 的 Q4)。 */
 //  ★ MES-3b(2026-10-07):+ module.inventory.view —— 标签模板那一节的查看码(registry.ts 的 DICT_VIEW_PERMISSIONS 跟着多了它)。
 //  【谁因此新看得见这条入口】没有人:持 inventory.view 的十一个角色都已经持 materials.view 或 inbound.view(MES-3b 线上读数)。
-const P_DICTIONARIES = { all: [], any: ['module.materials.view', 'module.inbound.view', 'module.inventory.view'] } as const
+//  ★ MES-4a(2026-10-07):+ module.processing.view —— 班次与异常事件种类那两节的查看码(registry.ts 的 DICT_VIEW_PERMISSIONS 跟着多了它)。
+const P_DICTIONARIES = { all: [], any: ['module.materials.view', 'module.inbound.view', 'module.inventory.view', 'module.processing.view'] } as const
 /** MES-2(2026-10-06,MES-0 Q20 · MES-2 Step 0 Q22):地磅单 —— 收货或物流查看码任一(与 weighbridge_tickets 的读策略、照片桶的读策略
  *  与 document_types 那一行的 view_permission 逐字同一对)。 */
 const P_WEIGHBRIDGE = { all: [], any: ['module.inbound.view', 'module.logistics.view'] } as const
@@ -456,6 +457,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/operation/processing', navKey: 'processing.subnav.runs', modules: ['operation'], permission: P_PROCESSING },
     { href: '/operation/wip', navKey: 'processing.subnav.wip', modules: ['operation'], permission: P_PROCESSING },
     { href: '/operation/handovers', navKey: 'processing.subnav.handovers', modules: ['operation'], permission: P_PROCESSING },
+    // MES-4a(2026-10-07,Step 0 Q1 · Q9–Q17,Tim):工序 —— 每道工序的参数与指标、挂着的机器、平衡容差、配方与版本。
+    //   读要 module.processing.view;改要 module.processing.edit(与那几张表的写策略同一个码;页内控件看得见、按不动、说出缺哪个码)。
+    { href: '/operation/operation-types', navKey: 'processing.subnav.operationTypes', modules: ['operation'], permission: P_PROCESSING },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
@@ -1073,4 +1077,6 @@ export const FN = {
     weighbridge: fnByHref('/operation/weighbridge'),
     calibration: fnByHref('/operation/calibration'),
     pendingValues: fnByHref('/settings/pending-values'),
+    /** MES-4a:工序(字段 · 机器 · 容差 · 配方)。 */
+    operationTypes: fnByHref('/operation/operation-types'),
 } as const

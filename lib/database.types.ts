@@ -1187,6 +1187,20 @@ export type Database = {
             foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -7613,6 +7627,20 @@ export type Database = {
             foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -7663,6 +7691,20 @@ export type Database = {
             columns: ["ended_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -8777,6 +8819,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -11902,6 +11958,137 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_type_equipment: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fixed_asset_id: string
+          notes: string | null
+          operation_type_code: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fixed_asset_id: string
+          notes?: string | null
+          operation_type_code: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fixed_asset_id?: string
+          notes?: string | null
+          operation_type_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_type_equipment_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "operation_type_equipment_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "operation_type_equipment_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_type_equipment_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "operation_type_equipment_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      operation_type_fields: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          field_code: string
+          has_range: boolean
+          is_active: boolean
+          is_required: boolean
+          kind: string
+          name_en: string
+          name_zh: string
+          notes: string | null
+          operation_type_code: string
+          range_max: number | null
+          range_min: number | null
+          sort_order: number
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+          value_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          field_code: string
+          has_range?: boolean
+          is_active?: boolean
+          is_required?: boolean
+          kind: string
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          operation_type_code: string
+          range_max?: number | null
+          range_min?: number | null
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value_type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          field_code?: string
+          has_range?: boolean
+          is_active?: boolean
+          is_required?: boolean
+          kind?: string
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          operation_type_code?: string
+          range_max?: number | null
+          range_min?: number | null
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_type_fields_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       operation_type_input_forms: {
         Row: {
           form_code: string
@@ -12006,6 +12193,7 @@ export type Database = {
       }
       operation_types: {
         Row: {
+          balance_tolerance_pct: number | null
           code: string
           is_active: boolean
           kind_code: string
@@ -12016,6 +12204,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          balance_tolerance_pct?: number | null
           code: string
           is_active?: boolean
           kind_code: string
@@ -12026,6 +12215,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          balance_tolerance_pct?: number | null
           code?: string
           is_active?: boolean
           kind_code?: string
@@ -12248,6 +12438,20 @@ export type Database = {
             foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -12298,6 +12502,20 @@ export type Database = {
             columns: ["ended_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -15404,6 +15622,94 @@ export type Database = {
           },
         ]
       }
+      process_recipe_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          param_values: Json
+          recipe_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          param_values: Json
+          recipe_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          param_values?: Json
+          recipe_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_recipe_versions_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "process_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_recipes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          operation_type_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          operation_type_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          operation_type_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_recipes_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       processing_cost_entries: {
         Row: {
           amount_base: number
@@ -15504,6 +15810,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -15633,6 +15953,20 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -15658,6 +15992,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      processing_event_types: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
       }
       processing_inputs: {
         Row: {
@@ -15808,6 +16169,20 @@ export type Database = {
             foreignKeyName: "processing_inputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -15844,6 +16219,7 @@ export type Database = {
           quantity_produced: number
           run_id: string
           unit_cost_base: number | null
+          weighing_id: string | null
         }
         Insert: {
           allocated_cost_base?: number | null
@@ -15854,6 +16230,7 @@ export type Database = {
           quantity_produced: number
           run_id: string
           unit_cost_base?: number | null
+          weighing_id?: string | null
         }
         Update: {
           allocated_cost_base?: number | null
@@ -15864,6 +16241,7 @@ export type Database = {
           quantity_produced?: number
           run_id?: string
           unit_cost_base?: number | null
+          weighing_id?: string | null
         }
         Relationships: [
           {
@@ -15933,6 +16311,20 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -15957,34 +16349,470 @@ export type Database = {
             referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "run_weighing_options"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["gross_weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["tare_weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighing_calibration"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighing_calibration_all"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_run_closures: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          explanation: string | null
+          id: number
+          input_qty: number
+          loss_watermark: number
+          named_loss_qty: number
+          output_qty: number
+          remainder_qty: number
+          run_id: string
+          tolerance_pct: number | null
+          value_watermark: number
+          within_tolerance: boolean | null
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          explanation?: string | null
+          id?: never
+          input_qty: number
+          loss_watermark?: number
+          named_loss_qty: number
+          output_qty: number
+          remainder_qty: number
+          run_id: string
+          tolerance_pct?: number | null
+          value_watermark?: number
+          within_tolerance?: boolean | null
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          explanation?: string | null
+          id?: never
+          input_qty?: number
+          loss_watermark?: number
+          named_loss_qty?: number
+          output_qty?: number
+          remainder_qty?: number
+          run_id?: string
+          tolerance_pct?: number | null
+          value_watermark?: number
+          within_tolerance?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_run_corrections: {
+        Row: {
+          corrected_at: string
+          corrected_by: string | null
+          field: string
+          id: number
+          new_value: string | null
+          old_value: string | null
+          reason: string
+          run_id: string
+        }
+        Insert: {
+          corrected_at?: string
+          corrected_by?: string | null
+          field: string
+          id?: never
+          new_value?: string | null
+          old_value?: string | null
+          reason: string
+          run_id: string
+        }
+        Update: {
+          corrected_at?: string
+          corrected_by?: string | null
+          field?: string
+          id?: never
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_run_events: {
+        Row: {
+          action_taken: string
+          correction_reason: string | null
+          corrects_id: number | null
+          duration_min: number | null
+          event_type_code: string
+          id: number
+          inbox_id: number | null
+          notes: string | null
+          occurred_at: string
+          recorded_at: string
+          recorded_by: string | null
+          responsible_person: string
+          run_id: string
+          site_dataset_ref: string | null
+          site_from: string | null
+          site_to: string | null
+          source: string
+          withdrawn: boolean
+        }
+        Insert: {
+          action_taken: string
+          correction_reason?: string | null
+          corrects_id?: number | null
+          duration_min?: number | null
+          event_type_code: string
+          id?: never
+          inbox_id?: number | null
+          notes?: string | null
+          occurred_at: string
+          recorded_at?: string
+          recorded_by?: string | null
+          responsible_person: string
+          run_id: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          withdrawn?: boolean
+        }
+        Update: {
+          action_taken?: string
+          correction_reason?: string | null
+          corrects_id?: number | null
+          duration_min?: number | null
+          event_type_code?: string
+          id?: never
+          inbox_id?: number | null
+          notes?: string | null
+          occurred_at?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          responsible_person?: string
+          run_id?: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          withdrawn?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_run_events_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_event_type_code_fkey"
+            columns: ["event_type_code"]
+            isOneToOne: false
+            referencedRelation: "processing_event_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_run_events_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       processing_run_losses: {
         Row: {
+          correction_reason: string | null
+          corrects_id: number | null
           created_at: string
           created_by: string | null
+          id: number
           loss_category_code: string
           notes: string | null
           quantity: number
           run_id: string
         }
         Insert: {
+          correction_reason?: string | null
+          corrects_id?: number | null
           created_at?: string
           created_by?: string | null
+          id?: never
           loss_category_code: string
           notes?: string | null
           quantity: number
           run_id: string
         }
         Update: {
+          correction_reason?: string | null
+          corrects_id?: number | null
           created_at?: string
           created_by?: string | null
+          id?: never
           loss_category_code?: string
           notes?: string | null
           quantity?: number
           run_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_run_losses_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_losses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processing_run_losses_loss_category_code_fkey"
             columns: ["loss_category_code"]
@@ -16024,6 +16852,20 @@ export type Database = {
             foreignKeyName: "processing_run_losses_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -16050,6 +16892,171 @@ export type Database = {
           },
         ]
       }
+      processing_run_values: {
+        Row: {
+          correction_reason: string | null
+          corrects_id: number | null
+          field_code: string
+          id: number
+          inbox_id: number | null
+          operation_type_code: string
+          out_of_range: boolean | null
+          range_max_at: number | null
+          range_min_at: number | null
+          recorded_at: string
+          recorded_by: string | null
+          run_id: string
+          site_dataset_ref: string | null
+          site_from: string | null
+          site_to: string | null
+          source: string
+          value_bool: boolean | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          correction_reason?: string | null
+          corrects_id?: number | null
+          field_code: string
+          id?: never
+          inbox_id?: number | null
+          operation_type_code: string
+          out_of_range?: boolean | null
+          range_max_at?: number | null
+          range_min_at?: number | null
+          recorded_at?: string
+          recorded_by?: string | null
+          run_id: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source: string
+          value_bool?: boolean | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          correction_reason?: string | null
+          corrects_id?: number | null
+          field_code?: string
+          id?: never
+          inbox_id?: number | null
+          operation_type_code?: string
+          out_of_range?: boolean | null
+          range_max_at?: number | null
+          range_min_at?: number | null
+          recorded_at?: string
+          recorded_by?: string | null
+          run_id?: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          value_bool?: boolean | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_run_values_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_values_current"
+            referencedColumns: ["value_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_operation_type_code_field_code_fkey"
+            columns: ["operation_type_code", "field_code"]
+            isOneToOne: false
+            referencedRelation: "operation_type_fields"
+            referencedColumns: ["operation_type_code", "field_code"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_runs: {
         Row: {
           allocated_at: string | null
@@ -16060,11 +17067,13 @@ export type Database = {
           capitalization_entry_id: string | null
           capitalized_cost_base: number | null
           code: string
+          corrects_run_id: string | null
           created_at: string
           created_by: string | null
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          ended_at: string | null
           equipment_id: string | null
           id: string
           loss_qty: number | null
@@ -16073,6 +17082,9 @@ export type Database = {
           operation_type_code: string | null
           process_cost_base: number | null
           process_date: string | null
+          recipe_version_id: string | null
+          shift_code: string | null
+          started_at: string | null
           status: string
           total_cost_base: number | null
           total_input: number | null
@@ -16090,11 +17102,13 @@ export type Database = {
           capitalization_entry_id?: string | null
           capitalized_cost_base?: number | null
           code: string
+          corrects_run_id?: string | null
           created_at?: string
           created_by?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          ended_at?: string | null
           equipment_id?: string | null
           id?: string
           loss_qty?: number | null
@@ -16103,6 +17117,9 @@ export type Database = {
           operation_type_code?: string | null
           process_cost_base?: number | null
           process_date?: string | null
+          recipe_version_id?: string | null
+          shift_code?: string | null
+          started_at?: string | null
           status: string
           total_cost_base?: number | null
           total_input?: number | null
@@ -16120,11 +17137,13 @@ export type Database = {
           capitalization_entry_id?: string | null
           capitalized_cost_base?: number | null
           code?: string
+          corrects_run_id?: string | null
           created_at?: string
           created_by?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          ended_at?: string | null
           equipment_id?: string | null
           id?: string
           loss_qty?: number | null
@@ -16133,6 +17152,9 @@ export type Database = {
           operation_type_code?: string | null
           process_cost_base?: number | null
           process_date?: string | null
+          recipe_version_id?: string | null
+          shift_code?: string | null
+          started_at?: string | null
           status?: string
           total_cost_base?: number | null
           total_input?: number | null
@@ -16154,6 +17176,76 @@ export type Database = {
             columns: ["capitalization_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
           {
@@ -16189,6 +17281,20 @@ export type Database = {
             columns: ["operation_type_code"]
             isOneToOne: false
             referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_runs_recipe_version_id_fkey"
+            columns: ["recipe_version_id"]
+            isOneToOne: false
+            referencedRelation: "process_recipe_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_shift_code_fkey"
+            columns: ["shift_code"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["code"]
           },
           {
@@ -22229,6 +23335,20 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -22566,6 +23686,13 @@ export type Database = {
           weight_kg?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "weighings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "run_weighing_options"
+            referencedColumns: ["weighing_id"]
+          },
           {
             foreignKeyName: "weighings_corrects_id_fkey"
             columns: ["corrects_id"]
@@ -24529,6 +25656,7 @@ export type Database = {
       equipment_usage: {
         Row: {
           acquisition_date: string | null
+          equipment_category: string | null
           equipment_code: string | null
           equipment_description: string | null
           equipment_id: string | null
@@ -29228,6 +30356,20 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -29351,6 +30493,20 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -29438,6 +30594,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -29612,6 +30782,20 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -29648,6 +30832,7 @@ export type Database = {
           quantity_produced: number | null
           run_id: string | null
           unit_cost_base: number | null
+          weighing_id: string | null
         }
         Insert: {
           allocated_cost_base?: never
@@ -29658,6 +30843,7 @@ export type Database = {
           quantity_produced?: number | null
           run_id?: string | null
           unit_cost_base?: never
+          weighing_id?: string | null
         }
         Update: {
           allocated_cost_base?: never
@@ -29668,6 +30854,7 @@ export type Database = {
           quantity_produced?: number | null
           run_id?: string | null
           unit_cost_base?: never
+          weighing_id?: string | null
         }
         Relationships: [
           {
@@ -29737,6 +30924,20 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -29761,6 +30962,48 @@ export type Database = {
             referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "run_weighing_options"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["gross_weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_ticket_weights"
+            referencedColumns: ["tare_weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighing_calibration"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighing_calibration_all"
+            referencedColumns: ["weighing_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_weighing_id_fkey"
+            columns: ["weighing_id"]
+            isOneToOne: true
+            referencedRelation: "weighings"
+            referencedColumns: ["id"]
+          },
         ]
       }
       processing_run_allocation_status: {
@@ -29774,6 +31017,76 @@ export type Database = {
           safe_to_reallocate: boolean | null
         }
         Relationships: []
+      }
+      processing_run_balance: {
+        Row: {
+          balance_state: string | null
+          closure_current: boolean | null
+          input_qty: number | null
+          last_closed_at: string | null
+          last_closure_id: number | null
+          loss_qty: number | null
+          named_loss_qty: number | null
+          operation_type_code: string | null
+          output_qty: number | null
+          outputs_total: number | null
+          outputs_unweighed: number | null
+          process_date: string | null
+          produces_outputs: boolean | null
+          remainder_qty: number | null
+          required_missing: string[] | null
+          run_code: string | null
+          run_id: string | null
+          started_at: string | null
+          status: string | null
+          tolerance_pct: number | null
+          within_tolerance: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      processing_run_balance_all: {
+        Row: {
+          balance_state: string | null
+          closure_current: boolean | null
+          input_qty: number | null
+          last_closed_at: string | null
+          last_closure_id: number | null
+          loss_qty: number | null
+          max_loss_id: number | null
+          max_value_id: number | null
+          named_loss_qty: number | null
+          operation_type_code: string | null
+          output_qty: number | null
+          outputs_total: number | null
+          outputs_unweighed: number | null
+          process_date: string | null
+          produces_outputs: boolean | null
+          remainder_qty: number | null
+          required_missing: string[] | null
+          run_code: string | null
+          run_id: string | null
+          started_at: string | null
+          status: string | null
+          tolerance_pct: number | null
+          within_tolerance: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       processing_run_lookup: {
         Row: {
@@ -29837,6 +31150,113 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_run_values_current: {
+        Row: {
+          corrected: boolean | null
+          correction_reason: string | null
+          differs_from_recipe: boolean | null
+          field_active: boolean | null
+          field_code: string | null
+          is_required: boolean | null
+          kind: string | null
+          name_en: string | null
+          name_zh: string | null
+          operation_type_code: string | null
+          out_of_range: boolean | null
+          range_max_at: number | null
+          range_min_at: number | null
+          recipe_value: Json | null
+          recorded_at: string | null
+          recorded_by: string | null
+          run_id: string | null
+          source: string | null
+          unit: string | null
+          value_bool: boolean | null
+          value_id: number | null
+          value_number: number | null
+          value_text: string | null
+          value_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_run_values_operation_type_code_field_code_fkey"
+            columns: ["operation_type_code", "field_code"]
+            isOneToOne: false
+            referencedRelation: "operation_type_fields"
+            referencedColumns: ["operation_type_code", "field_code"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_runs_masked: {
         Row: {
           allocated_at: string | null
@@ -29847,11 +31267,13 @@ export type Database = {
           capitalization_entry_id: string | null
           capitalized_cost_base: number | null
           code: string | null
+          corrects_run_id: string | null
           created_at: string | null
           created_by: string | null
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          ended_at: string | null
           equipment_id: string | null
           id: string | null
           loss_qty: number | null
@@ -29860,6 +31282,9 @@ export type Database = {
           operation_type_code: string | null
           process_cost_base: number | null
           process_date: string | null
+          recipe_version_id: string | null
+          shift_code: string | null
+          started_at: string | null
           status: string | null
           total_cost_base: number | null
           total_input: number | null
@@ -29877,11 +31302,13 @@ export type Database = {
           capitalization_entry_id?: string | null
           capitalized_cost_base?: never
           code?: string | null
+          corrects_run_id?: string | null
           created_at?: string | null
           created_by?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          ended_at?: string | null
           equipment_id?: string | null
           id?: string | null
           loss_qty?: number | null
@@ -29890,6 +31317,9 @@ export type Database = {
           operation_type_code?: string | null
           process_cost_base?: never
           process_date?: string | null
+          recipe_version_id?: string | null
+          shift_code?: string | null
+          started_at?: string | null
           status?: string | null
           total_cost_base?: never
           total_input?: number | null
@@ -29907,11 +31337,13 @@ export type Database = {
           capitalization_entry_id?: string | null
           capitalized_cost_base?: never
           code?: string | null
+          corrects_run_id?: string | null
           created_at?: string | null
           created_by?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          ended_at?: string | null
           equipment_id?: string | null
           id?: string | null
           loss_qty?: number | null
@@ -29920,6 +31352,9 @@ export type Database = {
           operation_type_code?: string | null
           process_cost_base?: never
           process_date?: string | null
+          recipe_version_id?: string | null
+          shift_code?: string | null
+          started_at?: string | null
           status?: string | null
           total_cost_base?: never
           total_input?: number | null
@@ -29941,6 +31376,76 @@ export type Database = {
             columns: ["capitalization_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
           {
@@ -29976,6 +31481,20 @@ export type Database = {
             columns: ["operation_type_code"]
             isOneToOne: false
             referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_runs_recipe_version_id_fkey"
+            columns: ["recipe_version_id"]
+            isOneToOne: false
+            referencedRelation: "process_recipe_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_shift_code_fkey"
+            columns: ["shift_code"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["code"]
           },
           {
@@ -31080,6 +32599,40 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      run_weighing_options: {
+        Row: {
+          calibration_status: string | null
+          captured_at: string | null
+          device_code: string | null
+          device_id: string | null
+          source: string | null
+          weighing_id: string | null
+          weight_kg: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "weighings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
           },
         ]
       }
@@ -32338,6 +33891,20 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -32793,6 +34360,23 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: undefined
       }
+      assert_run_equipment: {
+        Args: {
+          p_equipment_id: string
+          p_operation_type_code: string
+          p_process_date: string
+        }
+        Returns: undefined
+      }
+      assert_run_header: {
+        Args: {
+          p_ended_at: string
+          p_process_date: string
+          p_shift_code: string
+          p_started_at: string
+        }
+        Returns: undefined
+      }
       assert_segregated: {
         Args: { p_code: string; p_first_actors: string[]; p_subject: string }
         Returns: undefined
@@ -33160,6 +34744,10 @@ export type Database = {
         Args: { p_notes?: string; p_purchase_order_id: string }
         Returns: Json
       }
+      close_run_balance: {
+        Args: { p_explanation?: string; p_run_id: string }
+        Returns: number
+      }
       close_work_order: {
         Args: { p_reason: string; p_work_order_id: string }
         Returns: Json
@@ -33185,6 +34773,8 @@ export type Database = {
       commit_processing_run: {
         Args: {
           p_allocation_basis: string
+          p_corrects_run_id?: string
+          p_ended_at?: string
           p_equipment_id?: string
           p_inputs: Json
           p_loss_qty: number
@@ -33192,6 +34782,10 @@ export type Database = {
           p_operation_type_code?: string
           p_outputs: Json
           p_process_date: string
+          p_recipe_version_id?: string
+          p_shift_code?: string
+          p_started_at?: string
+          p_values?: Json
           p_work_order_id?: string
         }
         Returns: string
@@ -33255,6 +34849,37 @@ export type Database = {
       correct_gst_return: {
         Args: { p_original_period_id: string; p_reason: string }
         Returns: Json
+      }
+      correct_run_event: {
+        Args: {
+          p_action_taken: string
+          p_duration_min: number
+          p_event_id: number
+          p_event_type: string
+          p_notes: string
+          p_occurred_at: string
+          p_reason: string
+          p_responsible_person: string
+          p_withdraw: boolean
+        }
+        Returns: number
+      }
+      correct_run_header: {
+        Args: {
+          p_field: string
+          p_reason: string
+          p_run_id: string
+          p_value: string
+        }
+        Returns: number
+      }
+      correct_run_loss: {
+        Args: { p_loss_id: number; p_quantity: number; p_reason: string }
+        Returns: number
+      }
+      correct_run_value: {
+        Args: { p_reason: string; p_value: Json; p_value_id: number }
+        Returns: number
       }
       correct_task_type: { Args: { p_task_id: string }; Returns: undefined }
       correct_weighing: {
@@ -33384,6 +35009,10 @@ export type Database = {
           p_terms_text: string
         }
         Returns: Json
+      }
+      create_recipe_version: {
+        Args: { p_notes?: string; p_recipe_id: string; p_values: Json }
+        Returns: string
       }
       create_sales_order: {
         Args: {
@@ -34316,6 +35945,13 @@ export type Database = {
           run_count: number
         }[]
       }
+      processing_runs_unclosed_balance: {
+        Args: { p_period_end: string }
+        Returns: {
+          run_codes: string
+          run_count: number
+        }[]
+      }
       promote_task_to_team: { Args: { p_task_id: string }; Returns: undefined }
       purchase_order_kind: {
         Args: { p_purchase_order_id: string }
@@ -34602,6 +36238,10 @@ export type Database = {
         }
         Returns: Json
       }
+      record_manual_weighing_internal: {
+        Args: { p_device_id: string; p_weight_kg: number }
+        Returns: string
+      }
       record_output_sale: {
         Args: {
           p_currency: string
@@ -34658,6 +36298,42 @@ export type Database = {
       record_qt_issue: {
         Args: { p_file_path: string; p_quote_id: string; p_sha256: string }
         Returns: Json
+      }
+      record_run_event: {
+        Args: {
+          p_action_taken: string
+          p_duration_min: number
+          p_event_type: string
+          p_notes?: string
+          p_occurred_at: string
+          p_responsible_person: string
+          p_run_id: string
+        }
+        Returns: number
+      }
+      record_run_loss: {
+        Args: {
+          p_loss_category_code: string
+          p_notes?: string
+          p_quantity: number
+          p_run_id: string
+        }
+        Returns: number
+      }
+      record_run_value: {
+        Args: { p_field_code: string; p_run_id: string; p_value: Json }
+        Returns: number
+      }
+      record_run_value_internal: {
+        Args: {
+          p_corrects: number
+          p_field_code: string
+          p_reason: string
+          p_run_id: string
+          p_source: string
+          p_value: Json
+        }
+        Returns: number
       }
       record_sale_settlement: {
         Args: {
@@ -34977,6 +36653,16 @@ export type Database = {
       }
       rollback_processing_run_internal: {
         Args: { p_deleted_by?: string; p_reason: string; p_run_id: string }
+        Returns: undefined
+      }
+      run_event_check: {
+        Args: {
+          p_action_taken: string
+          p_duration_min: number
+          p_event_type: string
+          p_occurred_at: string
+          p_responsible_person: string
+        }
         Returns: undefined
       }
       salary_change_deciders: {

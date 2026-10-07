@@ -245,9 +245,9 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
     VALUES ('ZZ237-IB2', v_mat, v_sup, 20, 20, 'kg', CURRENT_DATE, 'other', 'fixture 237') RETURNING id INTO v_line;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code) VALUES (v_line, 'discharged_verified');
-    v_run := commit_processing_run(CURRENT_DATE, 'fixture 237 run', 0,
+    v_run := commit_processing_run(CURRENT_DATE, 'fixture 237 run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_line, 'quantity_consumed', 20)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 20)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 20)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     v_x := pg_temp.f237_trail(u_proc, 'processing_run', v_run::text);
     IF v_x ? 'error' OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_x) e WHERE e -> 'actor' ->> 'state' = 'restricted')
        OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_x) e WHERE e -> 'actor' ->> 'state' = 'person') THEN

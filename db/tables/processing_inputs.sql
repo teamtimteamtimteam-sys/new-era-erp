@@ -276,10 +276,8 @@ CREATE POLICY "processing_inputs insert by permission"
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.processing.edit'::text));
 
-CREATE POLICY "processing_inputs update by permission"
-    ON public.processing_inputs
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+-- ★ MES-4a(2026-10-07,MES-4a Step 0 Q32,Tim):UPDATE 策略拿掉了(ROLE1B3B-PROCESSING-UPDATE-POLICIES 关闭)—— 投入腿写下就不改;
+--   数量错了是回滚 + 新单(Q31)。直连改按名拒(见文末)。
 
 -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q7;Batch 3b grilling Q1):DELETE 写策略拿掉 ——
 --   提交与回滚只经 commit_processing_run / rollback_processing_run(SECURITY DEFINER);直连写按名拒
@@ -296,6 +294,7 @@ CREATE TRIGGER enforce_write_permission
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');
 
 -- ── ROLE-1 Batch 3b · 不许绕过函数删(guard_processing_direct_write;直连 INSERT 早由 guard_processing_input 拒)──
-CREATE TRIGGER trg_processing_inputs_direct_delete
-    BEFORE DELETE ON public.processing_inputs
+-- ★ MES-4a:直连 UPDATE 也按名拒(语句级,与 DELETE 同一支)。
+CREATE TRIGGER trg_processing_inputs_direct_change
+    BEFORE UPDATE OR DELETE ON public.processing_inputs
     FOR EACH STATEMENT EXECUTE FUNCTION public.guard_processing_direct_write();

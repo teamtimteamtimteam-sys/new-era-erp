@@ -79,6 +79,8 @@ INSERT INTO public.document_type_exceptions (table_name, reason) VALUES
     ('operation_types',               '作业类型目录,工单引用它'),
     ('output_batch_purposes',         '产出批用途的取值目录'),
     ('output_batch_states',           '产出批状态的取值目录'),
+    ('process_recipes',               '配方目录(MES-4a):code 是由人敲的配方名,加工单经它的版本引用它 —— 不是一张开得出来的单据(Q16)'),
+    ('processing_event_types',        '异常事件种类目录(MES-4a):code 是种类代号,加工单的异常事件引用它'),
     ('payment_trigger_events',        '付款触发事件目录,付款条款行引用它'),
     ('permissions',                   '权限码目录:code 是权限码,它是这套闸自己的字母表'),
     ('nea_waste_categories',          'NEA 批准的废物类别目录(MES-3a):code 是类别代号,物料与库存上限引用它'),

@@ -21,6 +21,12 @@
 --
 -- 【为什么是 INVOKER】要分出直连写与属主路径;理由见 guard_lock_reopen_path 的抬头。
 --
+-- ★ MES-4a(2026-10-07,MES-4a Step 0 Q32,Tim):【直连 UPDATE 也一律拒】—— 三张表的 UPDATE 策略拿掉了
+--   (ROLE1B3B-PROCESSING-UPDATE-POLICIES 关闭)。没有 UPDATE 策略时,直连 UPDATE 在 RLS 那里是零行、行级触发器不会醒,
+--   所以三张表都挂成【语句级 BEFORE UPDATE OR DELETE】(trg_<表>_direct_change),零行也照样按名拒;
+--   processing_runs / processing_outputs 的行级 BEFORE INSERT 照旧。此前"只在改 status 或 work_order_id 时拒"那一支删掉 ——
+--   表头能改的只剩 correct_run_header 那六个字段(留更正行),它是 SECURITY DEFINER,走属主路径。
+--
 -- NOTE: introduced by db/migrations/2026-09-25-role1b3b-the-warehouse-makes-finance-releases.sql.
 
 CREATE OR REPLACE FUNCTION public.guard_processing_direct_write()
@@ -35,16 +41,9 @@ BEGIN
         END IF;
         RETURN NULL;
     END IF;
-    -- 只挂在 processing_runs 的行级 UPDATE 上:别的列照旧走 UPDATE 策略。
-    IF TG_OP = 'UPDATE' THEN
-        IF NEW.status IS NOT DISTINCT FROM OLD.status
-           AND NEW.work_order_id IS NOT DISTINCT FROM OLD.work_order_id THEN
-            RETURN NEW;
-        END IF;
-    END IF;
     RAISE EXCEPTION 'PROCESSING_THROUGH_FUNCTION_ONLY|%|%', TG_TABLE_NAME, lower(TG_OP);
 END;
 $function$;
 
 COMMENT ON FUNCTION public.guard_processing_direct_write() IS
-'ROLE-1 Batch 3b:processing_runs / processing_outputs 的直连 INSERT、三张加工表(再加 processing_inputs)的直连 DELETE、以及 processing_runs 上直连改 status 或 work_order_id,按名拒 PROCESSING_THROUGH_FUNCTION_ONLY|表|动作。提交走 commit_processing_run(action.processing_commit),回滚走 rollback_processing_run(action.processing_rollback),两支都是 SECURITY DEFINER。属主路径放行。';
+'ROLE-1 Batch 3b · MES-4a:processing_runs / processing_outputs 的直连 INSERT,以及三张加工表(runs · inputs · outputs)的直连 UPDATE 与 DELETE,一律按名拒 PROCESSING_THROUGH_FUNCTION_ONLY|表|动作。提交走 commit_processing_run,回滚走 rollback_processing_run,表头更正走 correct_run_header,成本走 allocate_processing_costs —— 都是 SECURITY DEFINER。属主路径放行。';

@@ -30,7 +30,7 @@ DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
     r_all uuid; v_ccy text; v_sup uuid; v_mat uuid; v_ib uuid; v_run uuid;
-    v_d date := DATE '2027-09-05';
+    v_d date := DATE '2021-09-05';
     v_msg text; v_denied boolean; v_rem numeric; v_n int;
     v_in numeric; v_out numeric; v_loss numeric;
 BEGIN
@@ -75,7 +75,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f158 no op', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 100)), 'weight', NULL, NULL, NULL, p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_TYPE_REQUIRED%' THEN
         RAISE EXCEPTION 'FIXTURE 158A 失败(PROC-SUPPORT-1):**一张没有说出工序的加工单,必须在提交那一刻被按名拒**,而且是它【自己那一条码】—— 不是 NO_INPUTS、不是安全状态那几条。合并进任何一条既有拒绝,屏幕上就会有一句话对应两个去处。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -87,8 +87,8 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f158 electrode', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100)), 'weight',
-            NULL, NULL, 'electrode_line');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 100)), 'weight',
+            NULL, NULL, 'electrode_line', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_ACCEPTED|%' THEN
         RAISE EXCEPTION 'FIXTURE 158B 失败:转化型工序【不受理】未放电的料,而且拒绝必须是【另一条码】——"这道工序不收它"与"这批料不可投料"是两句话,下一步动作也不同。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -100,7 +100,7 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_d, 'f158 discharge', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; END;
     IF v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 158C 失败:**深度放电必须跑得起来。** 这是整份 fixture 的铰链,也是本刀存在的理由 —— 少了它,一刀会报告成功却什么都没演示。实得「%」', COALESCE(v_msg, '(返回空)');
@@ -149,8 +149,8 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f158 now ok', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 50)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight',
-            NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 50)), 'weight',
+            NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 158E 失败:**放完电之后,转化型工序必须收得下它** —— 那才叫死锁解开了。少了这一臂,一个"把放电做成什么都不改"的实现照样全绿。实得「%」', v_msg;

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid, p_equipment_id uuid DEFAULT NULL::uuid, p_operation_type_code text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid, p_equipment_id uuid DEFAULT NULL::uuid, p_operation_type_code text DEFAULT NULL::text, p_started_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_ended_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_shift_code text DEFAULT NULL::text, p_recipe_version_id uuid DEFAULT NULL::uuid, p_values jsonb DEFAULT NULL::jsonb, p_corrects_run_id uuid DEFAULT NULL::uuid)
  RETURNS uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -25,7 +25,6 @@ DECLARE
     v_purity       text;
     v_new_output_id uuid;
     v_wo           work_orders%ROWTYPE;   -- WO-1b
-    v_eq           fixed_assets%ROWTYPE;  -- EQP-2a:这一炉归给哪台机器
     -- PROC-WIRE-1B-i:这一炉跑的是哪道工序,以及那道工序【吃不吃料、产不产批】。
     -- 【分支读的是字典那两列,不是一个写死的字符串,也不是调用方传的旗标】
     -- 【PROC-SUPPORT-1】v_consumes / v_produces 不再有"没有工序时"的默认值 ——
@@ -35,6 +34,18 @@ DECLARE
     v_consumes     boolean;
     v_produces     boolean;
     v_result_state text;
+    -- MES-4a:机器的挂接、更正的原单、配方那一版、每条产出腿的称重
+    v_corr         processing_runs%ROWTYPE;
+    v_recipe       record;
+    v_since        date;
+    v_n            integer;
+    v_wid          uuid;
+    v_w            weighings%ROWTYPE;
+    v_wcal         record;
+    v_dev          uuid;
+    v_out_qty      numeric[] := ARRAY[]::numeric[];
+    v_out_wid      uuid[] := ARRAY[]::uuid[];
+    v_key          text;
 BEGIN
     -- ★ ROLE-1 Batch 3b(Tim 2026-09-25):提交加工归仓库 —— action.processing_commit(warehouse · admin)。
     PERFORM require_permission('action.processing_commit');
@@ -70,6 +81,12 @@ BEGIN
         RAISE EXCEPTION 'OPERATION_TYPE_REQUIRED'
           USING HINT = '从今天起每一张加工单必须说出它跑的是哪一道工序。产出有无、状态改变型的损耗守恒、逐工序安全状态受理、工序本身是否存在 —— 四道闸全都读这一列,而它为空时前三道要么关掉、要么降级成一条更弱的规则。历史上那 14 张没有工序的单是测试残留,刻意不回填,报表把它们显示成【未归属】。';
     END IF;
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★ MES-4a(2026-10-07,MES-0 Q42;MES-4a Step 0 Q7,Tim):【开始、结束、班次】与上面三条必填【一起】,在任何业务判断之前。
+    --   判据只有一份(assert_run_header):表上的 INSERT 触发器问的是同一支,correct_run_header 改时刻时也问它。
+    -- ════════════════════════════════════════════════════════════════════════
+    PERFORM assert_run_header(p_process_date, p_started_at, p_ended_at, p_shift_code);
 
     -- ════════════════════════════════════════════════════════════════════════
     -- PROC-WIRE-1B-i:解析工序类型。**分支由【工序】决定,不由调用方传旗标决定** ——
@@ -137,32 +154,47 @@ BEGIN
     --       —— 那才是真正的前置缺口,记在 docs/processing-support-as-built.md。
     -- 在那之前,空【是一个具名类别(未归属)】,不是零。
     -- ════════════════════════════════════════════════════════════════════════
-    IF p_equipment_id IS NOT NULL THEN
-        SELECT * INTO v_eq FROM fixed_assets WHERE id = p_equipment_id;
+    -- EQP-2a 的三条(没找到 · 早于取得 · 晚于处置)与 MES-4a 的工序 ↔ 资产规则,判据都在 assert_run_equipment ——
+    -- correct_run_header 改机器时问的是同一支。投用之前不拒、试车照收的理由见那支函数与上面这段。
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★ MES-4a(2026-10-07,MES-0 Q41;MES-4a Step 0 Q9,Tim):【上面那段等的前置条件到了】—— 工序 ↔ 资产的关联
+    --   (operation_type_equipment)。一道工序只要挂着【至少一台没处置的】机器,这一炉就必须说出是哪一台,而且必须是挂着的那几台之一。
+    --   处置掉的机器不算数(一道只挂着一台已处置机器的工序 = 没有挂机器)。没有挂任何机器的工序照旧:机器可选。
+    --   【为什么不在"没挂机器"时也拒一台被点名的机器】那正是 U1-B 的可选选择器今天的样子,而挂不挂是 Tim 的数据 ——
+    --   在他挂之前,一张记下了用哪台机器的单是更多的信息,不是错。
+    -- ════════════════════════════════════════════════════════════════════════
+    PERFORM assert_run_equipment(v_op, p_equipment_id, p_process_date);
+
+    -- ── MES-4a(MES-0 Q49;Q31):这一张来更正哪一张 —— 原单必须已经回滚,而且只能被更正一次 ─────────────
+    IF p_corrects_run_id IS NOT NULL THEN
+        SELECT * INTO v_corr FROM processing_runs WHERE id = p_corrects_run_id FOR UPDATE;
         IF NOT FOUND THEN
-            RAISE EXCEPTION 'EQUIPMENT_NOT_FOUND|%', p_equipment_id;
+            RAISE EXCEPTION 'RUN_NOT_FOUND|%', p_corrects_run_id;
         END IF;
-        -- 【拒绝的边界钉在"真的不可能"上,不钉在"还没投用"上】
-        -- 加工日早于取得日 = 那天这台机器还不是我们的。
-        IF p_process_date < v_eq.acquisition_date THEN
-            RAISE EXCEPTION 'EQUIPMENT_NOT_ACQUIRED|%|%|%',
-                v_eq.code, v_eq.acquisition_date, p_process_date
-              USING HINT = '这一炉的日期早于这台机器的取得日 —— 那天它还不是我们的';
+        IF v_corr.status <> 'reversed' THEN
+            RAISE EXCEPTION 'RUN_CORRECTS_NOT_REVERSED|%', v_corr.code
+              USING HINT = '数量的更正 = 先经回滚申请(CFO 批)把原单冲掉,再记这一张新单指回它。原单还没冲销。';
         END IF;
-        -- 处置之后它已经不在了。
-        IF v_eq.status = 'disposed' AND v_eq.disposal_date IS NOT NULL
-           AND p_process_date > v_eq.disposal_date THEN
-            RAISE EXCEPTION 'EQUIPMENT_DISPOSED|%|%|%',
-                v_eq.code, v_eq.disposal_date, p_process_date
-              USING HINT = '这一炉的日期晚于这台机器的处置日 —— 那时它已经不在了';
+        IF EXISTS (SELECT 1 FROM processing_runs r WHERE r.corrects_run_id = p_corrects_run_id) THEN
+            RAISE EXCEPTION 'RUN_ALREADY_CORRECTED|%|%', v_corr.code,
+                (SELECT r.code FROM processing_runs r WHERE r.corrects_run_id = p_corrects_run_id);
         END IF;
-        -- 【投用之前【不】拒 —— 这是 EQP-2a 对原设计改动最大的一处】
-        -- 原设计要拒"加工日那天机器不在役",而 in_service_date 是【投用】日。
-        -- 投用之前的试车是这盘生意里一件有名有姓的事:
-        -- docs/equipment-survey.md 的资本化边界那一节把"试车料"与安装、调试并列。
-        -- 拒掉它们,系统就【记不下那些正好用来证明投用日的加工】,也丢掉了
-        -- 那段真实的磨损 —— 而 EQP-2b 的保养间隔要读它。
-        -- 剩下被拒的两种都是真的不可能,所以它们【是拒绝,不是警告】。
+    END IF;
+
+    -- ── MES-4a(MES-0 Q44;Q16):配方的那一版 —— 必须是这道工序的、配方还启用着 ─────────────
+    IF p_recipe_version_id IS NOT NULL THEN
+        SELECT rv.id, rv.version, rv.param_values, rc.code, rc.operation_type_code, rc.is_active INTO v_recipe
+          FROM process_recipe_versions rv JOIN process_recipes rc ON rc.id = rv.recipe_id
+         WHERE rv.id = p_recipe_version_id;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'RECIPE_VERSION_NOT_FOUND|%', p_recipe_version_id;
+        END IF;
+        IF v_recipe.operation_type_code <> v_op THEN
+            RAISE EXCEPTION 'RECIPE_VERSION_NOT_FOR_OPERATION|%|%', v_recipe.code, v_op;
+        END IF;
+        IF NOT v_recipe.is_active THEN
+            RAISE EXCEPTION 'RECIPE_INACTIVE|%', v_recipe.code;
+        END IF;
     END IF;
 
     v_process_date := p_process_date;
@@ -254,15 +286,74 @@ BEGIN
     END LOOP;
 
     -- 2. 遍历产出:校验 + 累计产出合计
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★ MES-4a(2026-10-07,规格 §3.2 · §4.1;MES-0 Q22;MES-4a Step 0 Q24–Q26,Tim):【每一条产出腿都是称出来的】
+    --   一条腿二选一:
+    --     · weighing_id —— 挑一条现成的称重:确认了的、单独的净重(不挂地磅单)、没被更正过、没给别的腿用过;
+    --     · weight_kg(+ 可选 device_id)—— 在这里敲一个重量:经正常的录入路径在同一笔事务里落一条手工称重(record_manual_weighing_internal)。
+    --   腿的数量【就是】那次称重的公斤数(单位只能是 kg —— OUTPUT_UNIT_NOT_KG);再带一个不一样的 quantity → OUTPUT_QTY_NOT_WEIGHING。
+    --   两样都没有 → OUTPUT_WEIGHING_REQUIRED|<第几条>。
+    --   校准(MES-3a 的裁定 1,同一个判据 weighing_calibration_all):仪器在读数那一天【已知】不在校准期内 → 永远拒
+    --   (READING_INSTRUMENT_NOT_CALIBRATED);没有记录仪器 → 开关 require_calibrated_since 空着时只标出来,开关给了且加工日在它之后才拒。
+    -- ════════════════════════════════════════════════════════════════════════
+    SELECT s.require_calibrated_since INTO v_since FROM ingest_settings s WHERE s.id;
+    v_n := 0;
     FOR v_output IN SELECT * FROM jsonb_array_elements(p_outputs)
     LOOP
-        v_qty := (v_output->>'quantity')::numeric;
-        IF v_qty IS NULL OR v_qty <= 0 THEN
-            RAISE EXCEPTION 'OUTPUT_QTY_INVALID';
-        END IF;
+        v_n := v_n + 1;
         IF (v_output->>'material_id') IS NULL THEN
             RAISE EXCEPTION 'OUTPUT_NO_MATERIAL';
         END IF;
+        IF NULLIF(v_output->>'unit', '') IS NOT NULL AND v_output->>'unit' <> 'kg' THEN
+            RAISE EXCEPTION 'OUTPUT_UNIT_NOT_KG|%|%', v_n, v_output->>'unit';
+        END IF;
+        v_wid := NULLIF(v_output->>'weighing_id', '')::uuid;
+        IF v_wid IS NOT NULL AND NULLIF(v_output->>'weight_kg', '') IS NOT NULL THEN
+            RAISE EXCEPTION 'OUTPUT_WEIGHING_AMBIGUOUS|%', v_n;
+        END IF;
+        IF v_wid IS NULL THEN
+            IF NULLIF(v_output->>'weight_kg', '') IS NULL THEN
+                RAISE EXCEPTION 'OUTPUT_WEIGHING_REQUIRED|%', v_n
+                  USING HINT = 'MES-4a 起每一条产出腿都要有一次称重:挑一条现成的,或在这里敲重量(会记成一次手工称重)。';
+            END IF;
+            v_qty := (v_output->>'weight_kg')::numeric;
+            IF v_qty IS NULL OR v_qty <= 0 THEN
+                RAISE EXCEPTION 'OUTPUT_QTY_INVALID';
+            END IF;
+            v_dev := NULLIF(v_output->>'device_id', '')::uuid;
+            v_wid := record_manual_weighing_internal(v_qty, v_dev);
+        END IF;
+        SELECT * INTO v_w FROM weighings WHERE id = v_wid;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'WEIGHING_NOT_FOUND|%', v_wid;
+        END IF;
+        IF v_w.ticket_id IS NOT NULL OR v_w.role <> 'net' THEN
+            RAISE EXCEPTION 'WEIGHING_NOT_STANDALONE_NET|%', v_n;
+        END IF;
+        IF EXISTS (SELECT 1 FROM weighings x WHERE x.corrects_id = v_w.id) THEN
+            RAISE EXCEPTION 'WEIGHING_SUPERSEDED|%', v_w.id;
+        END IF;
+        IF v_wid = ANY (v_out_wid) THEN
+            RAISE EXCEPTION 'WEIGHING_ALREADY_USED|%', v_n;
+        END IF;
+        IF EXISTS (SELECT 1 FROM processing_outputs po WHERE po.weighing_id = v_wid) THEN
+            RAISE EXCEPTION 'WEIGHING_ALREADY_USED|%', (SELECT r.code FROM processing_outputs po JOIN processing_runs r ON r.id = po.run_id
+                                                         WHERE po.weighing_id = v_wid);
+        END IF;
+        SELECT wc.status, wc.device_code, wc.captured_on INTO v_wcal FROM weighing_calibration_all wc WHERE wc.weighing_id = v_wid;
+        IF v_wcal.status = 'not_recorded' THEN
+            IF v_since IS NOT NULL AND v_process_date >= v_since THEN
+                RAISE EXCEPTION 'OUTPUT_WEIGHING_INSTRUMENT_NOT_RECORDED|%', v_n;
+            END IF;
+        ELSIF v_wcal.status <> 'in_calibration' THEN
+            RAISE EXCEPTION 'READING_INSTRUMENT_NOT_CALIBRATED|%|%', v_wcal.device_code, to_char(v_wcal.captured_on, 'YYYY-MM-DD');
+        END IF;
+        v_qty := v_w.weight_kg;
+        IF NULLIF(v_output->>'quantity', '') IS NOT NULL AND (v_output->>'quantity')::numeric <> v_qty THEN
+            RAISE EXCEPTION 'OUTPUT_QTY_NOT_WEIGHING|%|%|%', v_n, v_output->>'quantity', v_qty;
+        END IF;
+        v_out_wid := array_append(v_out_wid, v_wid);
+        v_out_qty := array_append(v_out_qty, v_qty);
         v_total_output := v_total_output + v_qty;
     END LOOP;
 
@@ -281,6 +372,17 @@ BEGIN
     -- 【PROC-SUPPORT-1 实测:无工序时这一整段【从不执行】】—— v_produces 默认
     -- true,于是 NOT v_produces 永远为假。线上量到的那 3 公斤损耗就是这么来的。
     -- ════════════════════════════════════════════════════════════════════════
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★ MES-4a(2026-10-07,规格 §4.1;MES-4a Step 0 Q17,Tim):【loss_qty 是推出来的:投入 − 产出】
+    --   此前它是 COALESCE(p_loss_qty, 投入 − 产出)—— 调用方敲一个不同的数,那个数就被相信了,而它与投入 − 产出之间的差
+    --   没有任何人过问(规格 §4.1:一笔只以差额存在的损耗没有审计价值)。现在敲一个不同的数按名拒;
+    --   有名字的损耗(processing_run_losses)不许超过它,剩下的就是余数,由结平说出来。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF v_produces AND p_loss_qty IS NOT NULL AND p_loss_qty <> v_total_input - v_total_output THEN
+        RAISE EXCEPTION 'LOSS_QTY_NOT_INPUT_MINUS_OUTPUT|%|%', p_loss_qty, v_total_input - v_total_output
+          USING HINT = '损耗总量就是投入减产出,不另填。有名字的损耗在加工单页上分类记;剩下没解释的由结平说出来。';
+    END IF;
+
     IF NOT v_produces THEN
         v_total_output := v_total_input;
         IF COALESCE(p_loss_qty, 0) <> 0 THEN
@@ -293,14 +395,13 @@ BEGIN
     INSERT INTO processing_runs (
         process_date, total_input, total_output, loss_qty, notes, status,
         allocation_basis, work_order_id, created_by, updated_by, equipment_id,
-        operation_type_code
+        operation_type_code, started_at, ended_at, shift_code, recipe_version_id, corrects_run_id
     ) VALUES (
         v_process_date, v_total_input, v_total_output,
-        CASE WHEN v_produces THEN COALESCE(p_loss_qty, v_total_input - v_total_output)
-             ELSE 0 END,
+        CASE WHEN v_produces THEN v_total_input - v_total_output ELSE 0 END,
         p_notes, 'committed', p_allocation_basis, p_work_order_id, v_user_id, v_user_id,
         p_equipment_id,
-        v_op
+        v_op, p_started_at, p_ended_at, p_shift_code, p_recipe_version_id, p_corrects_run_id
     )
     RETURNING id INTO v_run_id;
 
@@ -426,11 +527,13 @@ BEGIN
     -- 6. 遍历产出:建产出批次 + 建产出腿
     --    产出的入库流水由 AFTER INSERT 触发器发出;先设置上下文标记本批产出属于本加工单。
     PERFORM set_config('evoltrya.movement_ctx', 'processing:' || v_run_id::text, true);
+    v_n := 0;
     FOR v_output IN SELECT * FROM jsonb_array_elements(p_outputs)
     LOOP
+        v_n := v_n + 1;
         v_material_id := (v_output->>'material_id')::uuid;
-        v_qty         := (v_output->>'quantity')::numeric;
-        v_unit        := COALESCE(NULLIF(v_output->>'unit', ''), 'kg');
+        v_qty         := v_out_qty[v_n];     -- MES-4a:称出来的公斤数(上面第 2 步定下的)
+        v_unit        := 'kg';
         v_purity      := NULLIF(v_output->>'purity', '');
 
         INSERT INTO output_batches (
@@ -442,13 +545,36 @@ BEGIN
         )
         RETURNING id INTO v_new_output_id;
 
-        INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced)
-        VALUES (v_run_id, v_new_output_id, v_qty);
+        INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced, weighing_id)
+        VALUES (v_run_id, v_new_output_id, v_qty, v_out_wid[v_n]);
     END LOOP;
 
     -- 用毕即清(price_ctx 同一条理由:免得同事务内后续的直改被误放行 ——
     -- fixture 19F 实测:不清,守卫触发器对残留 ctx 放行裸 INSERT)
     PERFORM set_config('evoltrya.movement_ctx', '', true);
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★ MES-4a(2026-10-07,MES-0 Q43 · Q44;MES-4a Step 0 Q11 · Q16,Tim):【这一炉记下的参数与指标】
+    --   配方那一版先预填它的参数(source = 'recipe');p_values 里给了的字段用给的值(source = 'manual')。
+    --   配方里一个后来退役了的字段不预填(退役 = 以后别再用它)。必填【不在这里判】—— 在结平时判(Q11)。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF p_values IS NOT NULL AND jsonb_typeof(p_values) <> 'object' THEN
+        RAISE EXCEPTION 'RUN_VALUES_INVALID';
+    END IF;
+    IF p_recipe_version_id IS NOT NULL THEN
+        FOR v_key IN SELECT k FROM jsonb_object_keys(v_recipe.param_values) k ORDER BY k LOOP
+            CONTINUE WHEN p_values IS NOT NULL AND p_values ? v_key;
+            CONTINUE WHEN NOT EXISTS (SELECT 1 FROM operation_type_fields f
+                                       WHERE f.operation_type_code = v_op AND f.field_code = v_key AND f.is_active);
+            PERFORM record_run_value_internal(v_run_id, v_key, v_recipe.param_values -> v_key, 'recipe', NULL, NULL);
+        END LOOP;
+    END IF;
+    IF p_values IS NOT NULL THEN
+        FOR v_key IN SELECT k FROM jsonb_object_keys(p_values) k ORDER BY k LOOP
+            CONTINUE WHEN jsonb_typeof(p_values -> v_key) = 'null';
+            PERFORM record_run_value_internal(v_run_id, v_key, p_values -> v_key, 'manual', NULL, NULL);
+        END LOOP;
+    END IF;
 
     -- ── COD-1:这一投料可能【刚好把某一票货加工完】────────────────────────
     -- 销毁证书是一条【必须存在】的记录(像化验报告),不等谁打开页面。

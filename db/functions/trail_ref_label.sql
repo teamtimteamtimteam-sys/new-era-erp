@@ -197,6 +197,9 @@ BEGIN
     ELSIF p_table = 'payroll_requests' THEN
         v_label := COALESCE((SELECT pp.code FROM payroll_periods pp WHERE pp.id::text = v_img ->> 'payroll_period_id') || ' ', '')
                    || CASE v_img ->> 'kind' WHEN 'reversal' THEN 'unposting request' ELSE 'posting request' END;
+    ELSIF p_table = 'process_recipe_versions' THEN
+        -- MES-4a(2026-10-07):一个配方版本说成"配方代号 v版本号"(CR-STD v2)—— 它自己没有 code / name 列
+        v_label := (SELECT rc.code FROM process_recipes rc WHERE rc.id::text = v_img ->> 'recipe_id') || ' v' || (v_img ->> 'version');
     ELSIF p_table = 'kpi_entries' THEN
         v_label := concat_ws(' · ', NULLIF(v_img ->> 'kpi_ref', ''), NULLIF(v_img ->> 'title', ''));
     ELSIF p_table = 'processing_runs' THEN

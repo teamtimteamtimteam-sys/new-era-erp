@@ -37,7 +37,7 @@ DECLARE
     r_all uuid; v_ccy text; v_sup uuid; v_mat uuid;
     v_ib uuid; v_ib_other uuid; v_ib_dn uuid;
     v_run1 uuid; v_run2 uuid; v_run_dn uuid; v_run_bp uuid;
-    v_d date := DATE '2027-10-04';
+    v_d date := DATE '2021-10-04';
     v_msg text; v_denied boolean;
     v_base numeric; v_before numeric; v_after numeric;
     v_price numeric; v_price_after numeric;
@@ -80,7 +80,7 @@ BEGIN
 
     v_run1 := commit_processing_run(v_d, 'f160 放电一', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run1, 'electricity', 300);
     PERFORM allocate_processing_costs(v_run1, 'weight');
 
@@ -90,7 +90,7 @@ BEGIN
 
     v_run2 := commit_processing_run(v_d, 'f160 放电二', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run2, 'electricity', 200);
     PERFORM allocate_processing_costs(v_run2, 'weight');
 
@@ -175,8 +175,8 @@ BEGIN
     -- 下游:一张【转化型】单吃掉它,并且分摊过(于是它有 allocated_at)
     v_run_dn := commit_processing_run(v_d, 'f160 下游转化', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_dn, 'quantity_consumed', 40)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 40)), 'weight',
-        NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 40)), 'weight',
+        NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     PERFORM allocate_processing_costs(v_run_dn, 'weight');
 
     -- 【先证明注入前它不过期】—— 否则这一臂对任何实现都成立
@@ -188,7 +188,7 @@ BEGIN
     -- 现在放电那批已经被吃掉的料,并把成本挂上去
     v_run_bp := commit_processing_run(v_d, 'f160 迟到的放电', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_dn, 'quantity_consumed', 10)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run_bp, 'electricity', 700);
     PERFORM allocate_processing_costs(v_run_bp, 'weight');
 
@@ -235,8 +235,8 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f160 粉料线收鼓包', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_other, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10)), 'weight',
-            NULL, NULL, 'battery_powder_line');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 10)), 'weight',
+            NULL, NULL, 'battery_powder_line', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 160F6 失败(前半):**R4 —— 鼓包漏液走整电池粉料线,与损坏料同一处置。** 它应当被受理,实得「%」', v_msg;
@@ -247,7 +247,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f160 放电不收鼓包', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_other, 'quantity_consumed', 10)),
-            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_ACCEPTED|%' THEN
         RAISE EXCEPTION 'FIXTURE 160F6 失败(后半):**深度放电仍然不受理鼓包漏液。** R4 放宽的是【整电池粉料线】那一行,不是那道闸本身 —— 一个把 R4 读成"鼓包漏液从此可投"的实现在这里绿,而它会把一块漏液的电池送进放电机。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -294,14 +294,14 @@ BEGIN
 
     v_run_zd := commit_processing_run(v_d, 'f160 下游(零成本臂)', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_z, 'quantity_consumed', 40)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 40)), 'weight',
-        NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 40)), 'weight',
+        NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     PERFORM allocate_processing_costs(v_run_zd, 'weight');
 
     -- 一张【没有任何成本条目】的放电单
     v_run_z := commit_processing_run(v_d, 'f160 零成本放电', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_z, 'quantity_consumed', 10)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     PERFORM allocate_processing_costs(v_run_z, 'weight');
 
     SELECT count(*) INTO v_cnt

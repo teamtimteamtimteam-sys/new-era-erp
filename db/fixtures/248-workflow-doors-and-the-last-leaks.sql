@@ -427,11 +427,11 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 248 MC5: the self-approval report shows a medical decision''s text or amount to a reader without data.view_health: %', v_j; END IF;
 
     -- ══════════════ ME · 月结清单数的就是关账拒的那一句 ══════════════
-    INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis, operation_type_code, allocated_at, deleted_at)
-    VALUES ('ZZF248-R1', v_end - 3, 100, 'committed', 'weight', 'manual_disassembly', NULL, NULL),      -- 挡
-           ('ZZF248-R2', v_end - 2, 100, 'committed', 'weight', 'manual_disassembly', now(), NULL),     -- 已分摊
-           ('ZZF248-R3', v_end + 2, 100, 'committed', 'weight', 'manual_disassembly', NULL, NULL),      -- 晚于月末
-           ('ZZF248-R4', v_end - 1, 100, 'committed', 'weight', 'manual_disassembly', NULL, now());     -- 已删
+    INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis, operation_type_code, allocated_at, deleted_at, started_at, ended_at, shift_code)
+    VALUES ('ZZF248-R1', v_end - 3, 100, 'committed', 'weight', 'manual_disassembly', NULL, NULL, (v_end - 3)::timestamptz, LEAST((v_end - 3)::timestamptz + interval '1 hour', now()), 'day'),      -- 挡
+           ('ZZF248-R2', v_end - 2, 100, 'committed', 'weight', 'manual_disassembly', now(), NULL, (v_end - 2)::timestamptz, LEAST((v_end - 2)::timestamptz + interval '1 hour', now()), 'day'),     -- 已分摊
+           ('ZZF248-R3', v_end + 2, 100, 'committed', 'weight', 'manual_disassembly', NULL, NULL, (v_end + 2)::timestamptz, LEAST((v_end + 2)::timestamptz + interval '1 hour', now()), 'day'),      -- 晚于月末
+           ('ZZF248-R4', v_end - 1, 100, 'committed', 'weight', 'manual_disassembly', NULL, now(), (v_end - 1)::timestamptz, LEAST((v_end - 1)::timestamptz + interval '1 hour', now()), 'day');     -- 已删
     SELECT count(*) INTO v_n FROM processing_runs r
      WHERE r.deleted_at IS NULL AND r.status = 'committed' AND r.allocated_at IS NULL AND r.process_date <= v_end;
     v_j := pg_temp.f248_read('ME', u_fin, format('SELECT (SELECT to_jsonb(b) FROM processing_runs_blocking_close(%L::date) b)', v_end));

@@ -27,7 +27,7 @@ DECLARE
     r_all uuid; v_ccy text;
     v_sup uuid; v_mat uuid; v_matB uuid;
     v_ib uuid; v_run uuid; v_run2 uuid;
-    v_process date := DATE '2027-07-02';
+    v_process date := DATE '2021-07-02';
     v_denied boolean; v_msg text;
     v_loss numeric; v_cat numeric; v_unexp numeric;
     v_fate text; v_true boolean; v_n int;
@@ -60,7 +60,7 @@ BEGIN
     RAISE NOTICE 'fixture 153 · 进入 F1';
     v_run := commit_processing_run(v_process, 'f153 run', 100,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 1000)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 900)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 900)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_process)::timestamptz, p_ended_at => LEAST((v_process)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 153F1 失败:一张【不分类】的加工单必须照旧提交得了。本刀不动 loss_qty,也不要求分类';
     END IF;
@@ -147,7 +147,7 @@ BEGIN
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     v_run2 := commit_processing_run(v_process, 'f153 run2', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 500)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 500)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 500)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_process)::timestamptz, p_ended_at => LEAST((v_process)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     -- 投入 500、产出 500,于是默认损耗是 0;把它改成 NULL 才谈得上这一臂。
     UPDATE processing_runs SET loss_qty = NULL WHERE id = v_run2;
     IF (SELECT loss_qty FROM processing_runs WHERE id = v_run2) IS NOT NULL THEN

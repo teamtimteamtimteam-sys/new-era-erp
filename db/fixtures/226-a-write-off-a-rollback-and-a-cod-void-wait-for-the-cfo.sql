@@ -142,14 +142,14 @@ BEGIN
 
     -- 两张真加工单(真路径):各自整批吃掉一票货 → 各成立一张证书;签发它们
     PERFORM pg_temp.f226_as(u_all);
-    run_r := commit_processing_run(d - 3, 'fixture 226 rollback run', 20,
+    run_r := commit_processing_run(d - 3, 'fixture 226 rollback run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', b_d1, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', mat, 'quantity', 80)),
-        'weight', NULL, NULL, 'manual_disassembly');
-    run_c := commit_processing_run(d - 3, 'fixture 226 cod run', 20,
+        jsonb_build_array(jsonb_build_object('material_id', mat, 'weight_kg', 80)),
+        'weight', NULL, NULL, 'manual_disassembly', p_started_at => (d - 3)::timestamptz, p_ended_at => LEAST((d - 3)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
+    run_c := commit_processing_run(d - 3, 'fixture 226 cod run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', b_d2, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', mat, 'quantity', 80)),
-        'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', mat, 'weight_kg', 80)),
+        'weight', NULL, NULL, 'manual_disassembly', p_started_at => (d - 3)::timestamptz, p_ended_at => LEAST((d - 3)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT output_batch_id INTO ob_r FROM processing_outputs WHERE run_id = run_r;
     SELECT output_batch_id INTO ob_c FROM processing_outputs WHERE run_id = run_c;
     -- G 臂的产出批要有一个单位成本(注销按它计价;这里直接写,被测的不是分摊)

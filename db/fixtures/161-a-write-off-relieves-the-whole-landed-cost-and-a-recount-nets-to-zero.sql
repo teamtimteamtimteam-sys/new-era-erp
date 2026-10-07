@@ -76,9 +76,9 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 5, v_ccy, NULL, 'f161');          -- 采购 500
     PERFORM record_freight_document(v_d, v_fwd, 250, v_ccy, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib)), 'f161');  -- 运费 250
-    v_run := commit_processing_run(v_d, 'f161 放电 A', 0,
+    v_run := commit_processing_run(v_d, 'f161 放电 A', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run, 'electricity', 400);
     PERFORM allocate_processing_costs(v_run, 'weight');                    -- 加工 400
 
@@ -127,9 +127,9 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 5, v_ccy, NULL, 'f161');
     PERFORM record_freight_document(v_d, v_fwd, 250, v_ccy, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib)), 'f161');
-    v_run := commit_processing_run(v_d, 'f161 放电 B', 0,
+    v_run := commit_processing_run(v_d, 'f161 放电 B', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run, 'electricity', 400);
     PERFORM allocate_processing_costs(v_run, 'weight');
     SELECT COALESCE(SUM(signed_base),0) INTO v_a
@@ -185,9 +185,9 @@ BEGIN
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
     PERFORM reprice_inbound_batch(v_ib, 5, v_ccy, NULL, 'f161');
-    v_run := commit_processing_run(v_d, 'f161 放电 C', 0,
+    v_run := commit_processing_run(v_d, 'f161 放电 C', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run, 'electricity', 400);
     PERFORM allocate_processing_costs(v_run, 'weight');
     SELECT COALESCE(SUM(signed_base),0) INTO v_a
@@ -222,9 +222,9 @@ BEGIN
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib2, 'discharged_verified');
     PERFORM reprice_inbound_batch(v_ib2, 5, v_ccy, NULL, 'f161');
-    v_run := commit_processing_run(v_d, 'f161 放电 E', 0,
+    v_run := commit_processing_run(v_d, 'f161 放电 E', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 100)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base) VALUES (v_run, 'electricity', 300);
     PERFORM allocate_processing_costs(v_run, 'weight');
     -- 【起点必须非零】0 → 0 对任何实现都成立(fixture 160 F3 同一条)

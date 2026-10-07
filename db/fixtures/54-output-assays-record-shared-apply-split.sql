@@ -117,12 +117,12 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    run1 := commit_processing_run(CURRENT_DATE, 'fixture 54 run1', 60,
+    run1 := commit_processing_run(CURRENT_DATE, 'fixture 54 run1', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib1, 'quantity_consumed', 100)),
         jsonb_build_array(
-            jsonb_build_object('material_id', v_mat, 'quantity', 20, 'unit', 'kg'),
-            jsonb_build_object('material_id', v_mat, 'quantity', 20, 'unit', 'kg')),
-        'metal_value', NULL, NULL, 'manual_disassembly');
+            jsonb_build_object('material_id', v_mat, 'weight_kg', 20, 'unit', 'kg'),
+            jsonb_build_object('material_id', v_mat, 'weight_kg', 20, 'unit', 'kg')),
+        'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT po.output_batch_id INTO ob_a FROM processing_outputs po
       JOIN output_batches ob ON ob.id = po.output_batch_id
      WHERE po.run_id = run1 ORDER BY ob.code LIMIT 1;
@@ -148,10 +148,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    run2 := commit_processing_run(CURRENT_DATE, 'fixture 54 run2', 50,
+    run2 := commit_processing_run(CURRENT_DATE, 'fixture 54 run2', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib2, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50, 'unit', 'kg')),
-        'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 50, 'unit', 'kg')),
+        'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT po.output_batch_id INTO ob_c FROM processing_outputs po
      WHERE po.run_id = run2 LIMIT 1;
     PERFORM allocate_processing_costs(run2, 'weight');

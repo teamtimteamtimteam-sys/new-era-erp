@@ -139,8 +139,8 @@ BEGIN
 
     -- FX195-DONE:整批被【一张活着的加工单】吃掉 → 判据应当说"成立"
     INSERT INTO processing_runs (process_date, total_input, total_output, loss_qty, status,
-                                 allocation_basis, operation_type_code, created_by)
-    VALUES (CURRENT_DATE - 10, 100, 80, 20, 'committed', 'weight', 'manual_disassembly', v_issuer)
+                                 allocation_basis, operation_type_code, created_by, started_at, ended_at, shift_code)
+    VALUES (CURRENT_DATE - 10, 100, 80, 20, 'committed', 'weight', 'manual_disassembly', v_issuer, (CURRENT_DATE - 10)::timestamptz, LEAST((CURRENT_DATE - 10)::timestamptz + interval '1 hour', now()), 'day')
     RETURNING id INTO run_a;
     INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed) VALUES (run_a, b_done, 100);
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
@@ -149,8 +149,8 @@ BEGIN
 
     -- FX195-PART:只吃掉 60,还剩 40 → "还没整批加工完"
     INSERT INTO processing_runs (process_date, total_input, total_output, loss_qty, status,
-                                 allocation_basis, operation_type_code, created_by)
-    VALUES (CURRENT_DATE - 9, 60, 50, 10, 'committed', 'weight', 'manual_disassembly', v_issuer)
+                                 allocation_basis, operation_type_code, created_by, started_at, ended_at, shift_code)
+    VALUES (CURRENT_DATE - 9, 60, 50, 10, 'committed', 'weight', 'manual_disassembly', v_issuer, (CURRENT_DATE - 9)::timestamptz, LEAST((CURRENT_DATE - 9)::timestamptz + interval '1 hour', now()), 'day')
     RETURNING id INTO run_b;
     INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed) VALUES (run_b, b_part, 60);
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
@@ -159,8 +159,8 @@ BEGIN
 
     -- FX195-ADJ:整批被吃掉,【而且流水史里还有一对盘点调整】→ 仍然"成立"
     INSERT INTO processing_runs (process_date, total_input, total_output, loss_qty, status,
-                                 allocation_basis, operation_type_code, created_by)
-    VALUES (CURRENT_DATE - 8, 100, 75, 25, 'committed', 'weight', 'manual_disassembly', v_issuer)
+                                 allocation_basis, operation_type_code, created_by, started_at, ended_at, shift_code)
+    VALUES (CURRENT_DATE - 8, 100, 75, 25, 'committed', 'weight', 'manual_disassembly', v_issuer, (CURRENT_DATE - 8)::timestamptz, LEAST((CURRENT_DATE - 8)::timestamptz + interval '1 hour', now()), 'day')
     RETURNING id INTO run_c;
     INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed) VALUES (run_c, b_adj, 100);
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
@@ -434,8 +434,8 @@ BEGIN
     v_run := commit_processing_run(
         CURRENT_DATE, 'fixture 195:整批拆解', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', b_auto, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', mat, 'quantity', 80)),
-        'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', mat, 'weight_kg', 80)),
+        'weight', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     -- ① 证书【自己成立了】
     SELECT id, status INTO v_cod3, v_status

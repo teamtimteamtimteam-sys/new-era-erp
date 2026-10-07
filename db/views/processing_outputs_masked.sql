@@ -11,6 +11,7 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
 -- FIN-25:追加 cost_incomplete(不敏感 —— 布尔标记,不是价格;列清单授权同步扩)。
+-- MES-4a:追加 weighing_id(不敏感 —— 一次称重的引用;列清单授权同一支迁移)。
 
 CREATE VIEW public.processing_outputs_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -26,6 +27,7 @@ CREATE VIEW public.processing_outputs_masked WITH (security_invoker = off) AS
             WHEN has_permission('data.view_prices'::text) THEN unit_cost_base
             ELSE NULL::numeric
         END AS unit_cost_base,
-    cost_incomplete
+    cost_incomplete,
+    weighing_id
    FROM processing_outputs
   WHERE has_permission('module.processing.view'::text);

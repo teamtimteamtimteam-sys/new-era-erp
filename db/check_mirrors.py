@@ -310,6 +310,11 @@ RUNTIME_CONFIG_TABLES = [
     "dangerous_goods_codes",
     # MES-3b:标签模板 —— 引导六行(三种东西 × A6 / A5);改名、停用、换默认都是改一行(module.inventory.edit)。
     "label_templates",
+    # MES-4a(2026-10-07,MES-0 Q43 · MES-4a Step 0 Q10 · Q13):一道工序的参数与指标 —— 引导是规格书点名的那些计数与指标(全部不必填、
+    #   没有范围);加一个字段、要它必填、给它范围,都是 Tim 在工序页上改一行(module.processing.edit)—— 线上与本文件不同是系统在正常工作。
+    "operation_type_fields",
+    # MES-4a(Q15):异常事件种类 —— 引导三行(非计划停机 · 设备报警 · 安全报警),没有 other;加一种是加一行(/settings/dictionaries)。
+    "processing_event_types",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

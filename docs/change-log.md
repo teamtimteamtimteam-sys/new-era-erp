@@ -1089,3 +1089,29 @@ the shipping queue's column list and the exclusion count).
   so it never says "printed"), "Label reprinted" with the reason for every later one; template, paper and copies as value lines.
   The two dictionaries are new dictionary subjects **`dictionary_dangerous_goods_codes`** and **`dictionary_label_templates`**.
   `scripts/check-trail-wording.mjs` arm ⑱ pins the wording (fault `wording-drift-mes3b` turns it red).
+
+## 16. Processing record (MES-4a, v1.4.41, 2026-10-07)
+
+Hand-back `docs/handbacks/MES-4a.md`; fixture 253 pins every rule below (and fixtures 222, 30, 47, 111 and 178 were re-pinned:
+the processing write paths, the reminder-arm counts and the historical-run scaffolds).
+
+### 16.1 Logged, excluded
+
+- **Logged** (two triggers each): all nine new tables — `operation_type_fields` (keyed by `operation_type_code, field_code`),
+  `operation_type_equipment` (`operation_type_code, fixed_asset_id`), `process_recipes` (`id`), `process_recipe_versions` (`id`),
+  `processing_event_types` (`code`), `processing_run_values` (`id`), `processing_run_events` (`id`), `processing_run_closures` (`id`)
+  and `processing_run_corrections` (`id`). Each binding key is the table's primary key (the migration's own proof asserts it for every
+  bound table). Public tables 263 → **272**; bound 255 → **264**. No exclusion added.
+- **`processing_run_losses` re-bound to `id`.** The table was reshaped append-only (Step 0 Q28): it gained an identity `id` primary key
+  and a correction pair (`corrects_id`, `correction_reason`), so its binding moved from `(run_id, loss_category_code)` to `id`
+  (live had 0 rows, nothing to repair). A changed quantity is now a new row with its reason, never an UPDATE; there is no DELETE.
+- **The new columns** on `processing_runs` (`started_at`, `ended_at`, `shift_code`, `recipe_version_id`, `corrects_run_id`),
+  `processing_outputs` (`weighing_id`) and `operation_types` (`balance_tolerance_pct`) ride the tables' existing triggers.
+- **No new mask rule.** No new column is a secret, a price or a personal identifier; the mask list stays **105** rows.
+- **Trail subjects.** The run page's `processing_run` subject now also holds values, exceptions, balance closures and header
+  corrections ("Value recorded · <field>", "Exception withdrawn", "Material balance closed", "Run header corrected · <field>").
+  A new **`operation_type`** subject (keyed by `code`) holds the operation's fields, linked machines, recipes and recipe versions.
+  Shifts and exception kinds are dictionary subjects **`dictionary_shifts`** and **`dictionary_processing_event_types`**.
+  `trail_refs` resolves a value's two-column field link to the field's name; `trail_ref_label` names a recipe version "<code> v<n>".
+  `scripts/check-trail-wording.mjs` arm ⑲ pins the wording (fault `wording-drift-mes4a` turns it red).
+

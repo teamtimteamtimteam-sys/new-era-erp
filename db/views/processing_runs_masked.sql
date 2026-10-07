@@ -11,7 +11,8 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
 -- PROC-WIRE-1B-i fu1:加了 operation_type_code(不遮蔽,原样透出)。
--- EQP-2a:加了 equipment_id(不遮蔽,原样透出)。**一旦一张表有了 _masked 伴生,
+-- EQP-2a:加了 equipment_id(不遮蔽,原样透出)。
+-- MES-4a:加了 started_at · ended_at · shift_code · recipe_version_id · corrects_run_id(都不遮蔽,原样透出;列清单授权同一支迁移)。**一旦一张表有了 _masked 伴生,
 -- 它的每一列都必须在这张视图里** —— 授没授权都一样(colgrant 的第二个分支)。
 
 CREATE VIEW public.processing_runs_masked WITH (security_invoker = off) AS
@@ -54,6 +55,11 @@ CREATE VIEW public.processing_runs_masked WITH (security_invoker = off) AS
     deleted_by,
     delete_reason,
     equipment_id,
-    operation_type_code
+    operation_type_code,
+    started_at,
+    ended_at,
+    shift_code,
+    recipe_version_id,
+    corrects_run_id
    FROM processing_runs
   WHERE has_permission('module.processing.view'::text);

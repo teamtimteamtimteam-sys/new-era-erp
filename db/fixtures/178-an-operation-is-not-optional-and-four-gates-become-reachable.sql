@@ -31,7 +31,7 @@ DECLARE
     r_all uuid; v_ccy text; v_sup uuid; v_mat uuid;
     v_ib uuid; v_ib2 uuid; v_ib3 uuid; v_ib4 uuid;
     v_run uuid; v_hist uuid;
-    v_d date := DATE '2027-12-01';
+    v_d date := DATE '2021-12-01';   -- MES-4a:原为 2027(一炉不许记在将来 —— RUN_IN_FUTURE),平移 6 年、星期不变
     v_msg text; v_denied boolean;
     v_a text; v_b text; v_c text; v_e text;
     v_valid boolean; v_op_after text;
@@ -66,10 +66,10 @@ BEGIN
     -- 少了这一句,一个"把所有单都拒掉"的实现会让 A 变绿。
     v_run := NULL; v_msg := NULL;
     BEGIN
-        v_run := commit_processing_run(v_d, 'f178 A control', 0,
+        v_run := commit_processing_run(v_d, 'f178 A control', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-            NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+            NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; END;
     IF v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 178A 前置失败:**同一份载荷点名工序必须提交得了。** 少了这一句,一个把所有加工单都拒掉的实现会让本臂变绿,而那不是"工序必填",那是"加工停摆"。实得「%」', COALESCE(v_msg, '(返回空)');
@@ -77,9 +77,9 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f178 A', 0,
+        PERFORM commit_processing_run(v_d, 'f178 A', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight', NULL, NULL, NULL, p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     v_a := split_part(COALESCE(v_msg, ''), '|', 1);
     IF NOT v_denied OR v_a <> 'OPERATION_TYPE_REQUIRED' THEN
@@ -93,8 +93,8 @@ BEGIN
     v_msg := NULL;
     BEGIN
         INSERT INTO processing_runs (process_date, status, allocation_basis,
-                                     total_input, total_output, loss_qty, operation_type_code)
-        VALUES (v_d, 'committed', 'weight', 0, 0, 0, 'manual_disassembly');
+                                     total_input, total_output, loss_qty, operation_type_code, started_at, ended_at, shift_code)
+        VALUES (v_d, 'committed', 'weight', 0, 0, 0, 'manual_disassembly', v_d::timestamptz, v_d::timestamptz + interval '1 hour', 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; END;
     IF v_msg IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 178B 前置失败:**带着工序的裸 INSERT 本来就该插得进去** —— 少了这一句,下面那一臂可能只是因为 RLS 不让写而变绿,与那条 CHECK 毫无关系。实得「%」', v_msg;
@@ -103,8 +103,8 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         INSERT INTO processing_runs (process_date, status, allocation_basis,
-                                     total_input, total_output, loss_qty)
-        VALUES (v_d, 'committed', 'weight', 0, 0, 0);
+                                     total_input, total_output, loss_qty, started_at, ended_at, shift_code)
+        VALUES (v_d, 'committed', 'weight', 0, 0, 0, v_d::timestamptz, v_d::timestamptz + interval '1 hour', 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%processing_runs_operation_type_required%' THEN
         RAISE EXCEPTION 'FIXTURE 178B 失败:**函数里那条拒绝不是唯一的门。** processing_runs 有一条 "insert by permission" 的 RLS 策略,于是任何拿到 module.processing.edit 的人都能直接插一张加工单绕开 commit_processing_run —— 而那张单会永远落在"未归属"里,没有任何报表能把它归给谁。表上那条 NOT VALID 的 CHECK 就是为这条路准备的。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -115,10 +115,13 @@ BEGIN
     -- 【注入:造一张"历史"单 —— 它必须是【绕过约束】造出来的】
     -- 这正是线上那 14 张单当初的样子。用 NOT VALID 的语义:先把约束丢掉、
     -- 插进去、再原样加回来(NOT VALID),重放一遍线上的历史。
+    -- MES-4a:历史单也没有开始、结束与班次 —— 表头闸(trg_processing_runs_header)只管新行,所以重放历史时把它一并绕开、再原样装回。
     ALTER TABLE processing_runs DROP CONSTRAINT processing_runs_operation_type_required;
+    ALTER TABLE processing_runs DISABLE TRIGGER trg_processing_runs_header;
     INSERT INTO processing_runs (process_date, status, allocation_basis,
                                  total_input, total_output, loss_qty)
     VALUES (v_d - 100, 'committed', 'weight', 10, 9, 1) RETURNING id INTO v_hist;
+    ALTER TABLE processing_runs ENABLE TRIGGER trg_processing_runs_header;
     ALTER TABLE processing_runs
         ADD CONSTRAINT processing_runs_operation_type_required
         CHECK (operation_type_code IS NOT NULL) NOT VALID;
@@ -155,10 +158,10 @@ BEGIN
     END IF;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f178 D1', 0,
+        PERFORM commit_processing_run(v_d, 'f178 D1', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-            NULL, NULL, 'deep_discharge');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+            NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     v_b := split_part(COALESCE(v_msg, ''), '|', 1);
     IF NOT v_denied OR v_b <> 'OPERATION_PRODUCES_NO_OUTPUTS' THEN
@@ -171,7 +174,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f178 D2', 3,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     v_c := split_part(COALESCE(v_msg, ''), '|', 1);
     IF NOT v_denied OR v_c <> 'STATE_CHANGE_LOSS_NOT_ZERO' THEN
@@ -218,10 +221,10 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f178 D3', 0,
+        PERFORM commit_processing_run(v_d, 'f178 D3', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-            NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+            NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     v_e := split_part(COALESCE(v_msg, ''), '|', 1);
     IF NOT v_denied OR v_e <> 'INPUT_SAFETY_STATE_NOT_ACCEPTED' THEN
@@ -233,10 +236,10 @@ BEGIN
     VALUES ('manual_disassembly', 'zz178_state', false, 'fixture 178 D3 反面');
     v_run := NULL; v_msg := NULL;
     BEGIN
-        v_run := commit_processing_run(v_d, 'f178 D3 control', 0,
+        v_run := commit_processing_run(v_d, 'f178 D3 control', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-            NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+            NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; END;
     IF v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 178D3 失败(闸③反面):把这个状态写进这道工序的受理清单之后,那一批必须投得进去。**规则是现读的** —— 同一笔事务里加一行字典,结论当场就动。实得「%」', COALESCE(v_msg, '(返回空)');
@@ -252,10 +255,10 @@ BEGIN
     VALUES (v_ib4, 'discharged_verified');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f178 D4', 0,
+        PERFORM commit_processing_run(v_d, 'f178 D4', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib4, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-            NULL, NULL, 'zz_no_such_operation');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+            NULL, NULL, 'zz_no_such_operation', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_TYPE_UNKNOWN|%' THEN
         RAISE EXCEPTION 'FIXTURE 178D4 失败(闸④):一个不存在的工序码必须被拒。**NULL 曾经是唯一一个绕开字典的取值** —— 旧代码把整段字典查询包在 IF ... IS NOT NULL 里,于是不给工序时这道闸【整个不发生】。实得「%」', COALESCE(v_msg, '(通过了)');

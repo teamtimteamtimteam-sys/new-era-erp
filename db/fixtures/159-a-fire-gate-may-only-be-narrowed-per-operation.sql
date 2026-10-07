@@ -32,7 +32,7 @@ DECLARE
     v_user uuid := gen_random_uuid();
     r_all uuid; v_ccy text; v_sup uuid; v_mat uuid;
     v_ib uuid; v_ib2 uuid; v_ib3 uuid; v_run uuid;
-    v_d date := DATE '2027-09-06';
+    v_d date := DATE '2021-09-06';
     v_msg text; v_denied boolean; v_num numeric;
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
@@ -63,7 +63,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f159 none', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 10)), 'weight', NULL, NULL, NULL, p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_TYPE_REQUIRED%' THEN
         RAISE EXCEPTION 'FIXTURE 159F1 失败(PROC-SUPPORT-1):**"没有工序类型"这个世界已经不存在了。**
@@ -99,8 +99,8 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f159 narrow', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10)), 'weight',
-            NULL, NULL, 'zz159_narrow');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 10)), 'weight',
+            NULL, NULL, 'zz159_narrow', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_ACCEPTED|%' THEN
         RAISE EXCEPTION 'FIXTURE 159F2 失败:**声明一道工序只会把闸收紧。** 一个 may_be_fed = true 的状态,只要没被这道工序列进清单,就必须被拒。一个"设了工序就放行"的实现在这里绿 —— 而那正是本 fixture 最要防的那一种。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -125,7 +125,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f159 dmg', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 10)),
-            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_ACCEPTED|%' THEN
         RAISE EXCEPTION 'FIXTURE 159F3 失败:**放电机解决不了鼓包漏液,所以深度放电不受理它。** 一个按 kind 放行(状态改变型一律放行)的实现在这里绿,而它会把一块漏液的电池送进放电机。这是全系统唯一一道失败后果是【起火】的闸。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -137,7 +137,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f159 noout', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-            '[]'::jsonb, 'weight', NULL, NULL, 'manual_disassembly');
+            '[]'::jsonb, 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'NO_OUTPUTS%' THEN
         RAISE EXCEPTION 'FIXTURE 159F4 失败:**会产出的工序少了产出,照旧 NO_OUTPUTS —— 一个字没松。** 本刀放松的只有"不产出的那一类"。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -149,8 +149,8 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f159 scout', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10)), 'weight',
-            NULL, NULL, 'deep_discharge');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 10)), 'weight',
+            NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_PRODUCES_NO_OUTPUTS|%' THEN
         RAISE EXCEPTION 'FIXTURE 159F5 失败:只放松一侧会让一张"放电还产出了黑粉"的单悄悄成立。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -162,7 +162,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f159 scloss', 5,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'STATE_CHANGE_LOSS_NOT_ZERO|%' THEN
         RAISE EXCEPTION 'FIXTURE 159F6 失败:状态改变型不带走质量,损耗只能是 0。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -178,7 +178,7 @@ BEGIN
     RAISE NOTICE 'fixture 159 · 进入 F7';
     v_run := commit_processing_run(v_d, 'f159 sc ok', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base)
     VALUES (v_run, 'electricity', 300);
     -- 【先证明起点不是零】—— 0 = 0 对任何实现都成立(fixture 101 B 臂的同一条)。
@@ -200,8 +200,8 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f159 now ok', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10)), 'weight',
-            NULL, NULL, 'zz159_narrow');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 10)), 'weight',
+            NULL, NULL, 'zz159_narrow', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 159F8 失败:受理清单是【数据】—— 加一行,拒绝就该消失。一个把码写死的实现在这里红。实得「%」', v_msg;

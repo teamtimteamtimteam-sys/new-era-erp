@@ -113,9 +113,9 @@ BEGIN
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
-    v_run := commit_processing_run(v_d, 'f156 run 1', 0,
+    v_run := commit_processing_run(v_d, 'f156 run 1', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 200)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 200)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT po.output_batch_id INTO v_ob2 FROM processing_outputs po WHERE po.run_id = v_run;
 
     -- 【先证明注入确实改变了东西】吃之前它是「库存中」且有余量。
@@ -134,9 +134,9 @@ BEGIN
     VALUES (v_ob2, 'discharged_verified');
 
     -- 整批吃光它。
-    v_run := commit_processing_run(v_d, 'f156 run 2', 0,
+    v_run := commit_processing_run(v_d, 'f156 run 2', NULL,
         jsonb_build_array(jsonb_build_object('output_batch_id', v_ob2, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 200)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 200)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
 
     SELECT state, remaining_qty INTO v_state, v_rem FROM output_batches WHERE id = v_ob2;
     IF v_rem <> 0 THEN

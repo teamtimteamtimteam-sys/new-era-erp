@@ -47,6 +47,8 @@ DECLARE
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
         'claim_pending','fx_rate_gap','invoice_overdue','leave_pending','metal_quote_stale',
         'orders_unfulfilled','output_unsold_aging','po_awaiting_receipt',
+        -- MES-4a(2026-10-07):本 fixture 的加工单是 MES-4a 之后记的(有开始时刻)、转化型、还没结平 → processing_balance_unclosed 也成立
+        'processing_balance_unclosed',
         'qualification_expiring','qualification_missing','review_submitted',
         'stocktake_open','work_order_overdue','work_order_variance_beyond'];
     -- 只持 module.inbound.view 的读者应看见的三支(同源 batch_assay_status,互斥)
@@ -136,8 +138,12 @@ BEGIN
     -- 表上那条 NOT VALID 的 CHECK 对【任何写入者】都成立,包括这一句。
     -- 选 manual_disassembly 是因为它是转化型:本臂测的是分摊与看板臂,
     -- 换一道状态改变型工序会顺带改变这张单的语义。
+    -- MES-4a:这一张脚手架单是【MES-4a 之前】那种形状(没有开始、结束、班次)—— 它只为分摊与看板臂而在,不进结平那一支;
+    --   表头闸只管新行,所以造它时把闸绕开、再装回(fixture 178 C 的同一个手法)。
+    ALTER TABLE processing_runs DISABLE TRIGGER trg_processing_runs_header;
     INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
     VALUES ('ZZFIX30-RUN', 'committed', '2025-01-01', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
+    ALTER TABLE processing_runs ENABLE TRIGGER trg_processing_runs_header;
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, created_at, updated_at)
     VALUES (v_run, 'electricity', 100, '2025-02-01', '2025-02-01');
 
@@ -375,9 +381,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_runwo := commit_processing_run(CURRENT_DATE, 'f30 overrun', 20,
+    v_runwo := commit_processing_run(CURRENT_DATE, 'f30 overrun', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ibw, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'quantity', 180)), 'weight', v_wo2, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'weight_kg', 180)), 'weight', v_wo2, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     -- 同一条理由:一张【从没分摊过】的加工单会点亮 allocation_stale。
     -- 这一支要测的是工单差异,不是分摊欠账 —— 所以把分摊时点盖上,让那盏灯归位。
     UPDATE processing_runs SET allocated_at = now() WHERE id = v_runwo;
@@ -391,7 +397,7 @@ BEGIN
     RESET ROLE;
 
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:二十一支条件全部成立,应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
+        RAISE EXCEPTION 'FIXTURE 30A 失败:二十二支条件全部成立(MES-4a 起多一支 processing_balance_unclosed),应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
             v_expected::text, v_types::text;
     END IF;
 
@@ -401,7 +407,8 @@ BEGIN
     EXECUTE 'SET LOCAL ROLE authenticated';
     SELECT count(*) INTO v_n FROM operations_now;
     RESET ROLE;
-    IF v_n <> 21 THEN
+    -- MES-4a:processing_balance_unclosed 一件(工单那一张 f30 overrun:MES-4a 之后记的、转化型、没结平),所以 22 支 22 行。
+    IF v_n <> 22 THEN
         -- 【把【哪一支】多了直接说出来】原来这句只说"某支数了两遍",于是每次
         -- 都要再跑一轮去找是哪一支 —— 而在慢链路上那一轮要八分钟。
         -- 一条说得出主语的失败信息,值它自己那几行代码。
@@ -411,7 +418,7 @@ BEGIN
         SELECT string_agg(item_type || '=' || c, ' ' ORDER BY item_type) INTO v_detail
           FROM (SELECT item_type, count(*) c FROM operations_now GROUP BY 1 HAVING count(*) > 1) q;
         RESET ROLE;
-        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 21 行(每支 1 件),实得 % 行 —— 多出来的是:%(进料三支互斥、AR 与发票同源不同粒度)',
+        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 22 行(每支 1 件),实得 % 行 —— 多出来的是:%(进料三支互斥、AR 与发票同源不同粒度)',
             v_n, COALESCE(v_detail, '(没有任何一支超过一行 —— 那么是支数对不上,看上一条断言)');
     END IF;
 
@@ -499,6 +506,9 @@ BEGIN
     RETURNING id INTO v_je;
     INSERT INTO payment_allocations (payment_id, inbound_batch_id, allocated_base, allocated_ccy, allocated_pay)
     VALUES (v_je, v_ib4, 1000, 1000, 1000);                          -- ap_over_90
+    -- MES-4a:processing_balance_unclosed 解除 = 结平那一张(余数不为零、容差没给 → 要一句说明)
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_all), true);
+    PERFORM close_run_balance(v_runwo, 'f30: the overrun is explained');
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_all), true);
@@ -513,7 +523,7 @@ BEGIN
         SELECT COALESCE(array_agg(DISTINCT item_type ORDER BY item_type), '{}') INTO v_types
           FROM operations_now;
         RESET ROLE;
-        RAISE EXCEPTION 'FIXTURE 30C 失败:二十一个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
+        RAISE EXCEPTION 'FIXTURE 30C 失败:二十二个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
             v_n, v_types::text;
     END IF;
 END $$;

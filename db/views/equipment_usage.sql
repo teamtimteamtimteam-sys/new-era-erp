@@ -24,6 +24,9 @@
 -- 【属主权限 + 两个模块的 OR】机器卡在财务、干活的人在加工,两边都要读得到。
 -- 这个 OR 是 AGENTS.md 第 2 条常设决定,batch_margin 里逐字实现着 ——
 -- 实测没有哪个业务角色两个都持。
+-- ★ MES-4a(2026-10-07,MES-4a Step 0 §1.7 · Q9):末尾多一列 equipment_category(fixed_assets.category)。此前加工单上的机器选择器
+--   读这张视图时【每一张资产卡都给】,车辆与办公资产也在里面;现在选择器只给这道工序挂着的机器,而工序页挂机器时只给设备类 ——
+--   两处都按这一列筛。只是加了一列,行不变。
 -- NOTE: introduced by db/migrations/2026-08-21-eqp2a-what-the-machine-did.sql.
 
 CREATE VIEW public.equipment_usage WITH (security_invoker = off) AS
@@ -38,8 +41,9 @@ CREATE VIEW public.equipment_usage WITH (security_invoker = off) AS
     COALESCE(sum(pr.total_output), 0::numeric) AS output_kg,
     COALESCE(sum(pr.loss_qty), 0::numeric) AS loss_kg,
     min(pr.process_date) AS first_run_date,
-    max(pr.process_date) AS last_run_date
+    max(pr.process_date) AS last_run_date,
+    fa.category AS equipment_category
    FROM fixed_assets fa
      LEFT JOIN processing_runs pr ON pr.equipment_id = fa.id AND pr.status = 'committed'::text AND pr.deleted_at IS NULL
   WHERE has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text)
-  GROUP BY fa.id, fa.code, fa.description, fa.acquisition_date, fa.in_service_date, fa.status;
+  GROUP BY fa.id, fa.code, fa.description, fa.acquisition_date, fa.in_service_date, fa.status, fa.category;

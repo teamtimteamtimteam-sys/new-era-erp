@@ -351,9 +351,9 @@ BEGIN
       FROM inbound_batches ib JOIN materials m ON m.id = ib.material_id JOIN material_kinds mk ON mk.code = m.kind_code
      WHERE ib.id = v_ib AND mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(CURRENT_DATE, 'fixture 236 run', 20,
+    v_run := commit_processing_run(CURRENT_DATE, 'fixture 236 run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 80)), 'metal_value', NULL, NULL, 'manual_disassembly', p_started_at => (CURRENT_DATE)::timestamptz, p_ended_at => LEAST((CURRENT_DATE)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT id INTO v_out FROM processing_outputs WHERE run_id = v_run;
     -- W2 字段编辑
     PERFORM pg_temp.f236_log(v_tx0 + 11, v_now + interval '11 min', 'processing_runs', jsonb_build_object('id', v_run), 'UPDATE',

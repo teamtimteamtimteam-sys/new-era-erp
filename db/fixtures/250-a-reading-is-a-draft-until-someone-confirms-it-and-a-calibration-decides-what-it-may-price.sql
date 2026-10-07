@@ -566,13 +566,13 @@ BEGIN
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     SELECT id, 'discharged_verified' FROM inbound_batches WHERE code IN ('FX250-OK', 'FX250-BAD', 'FX250-NONE', 'FX250-UNL');
     PERFORM pg_temp.f250_as(u_all);
-    run := commit_processing_run(d, 'fixture 250 cod run', 100,
+    run := commit_processing_run(d, 'fixture 250 cod run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', b_ok, 'quantity_consumed', 8000),
                           jsonb_build_object('inbound_batch_id', b_bad, 'quantity_consumed', 4000),
                           jsonb_build_object('inbound_batch_id', b_none, 'quantity_consumed', 2000),
                           jsonb_build_object('inbound_batch_id', b_unl, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', mat, 'quantity', 14000)),
-        'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', mat, 'weight_kg', 14000)),
+        'weight', NULL, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT id INTO cod_ok FROM certificates_of_destruction WHERE inbound_batch_id = b_ok AND status = 'pending';
     SELECT id INTO cod_bad FROM certificates_of_destruction WHERE inbound_batch_id = b_bad AND status = 'pending';
     SELECT id INTO cod_none FROM certificates_of_destruction WHERE inbound_batch_id = b_none AND status = 'pending';

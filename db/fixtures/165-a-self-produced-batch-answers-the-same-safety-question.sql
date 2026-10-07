@@ -45,7 +45,7 @@ DECLARE
     v_mat_noaxes uuid; -- ★ 种类明说"我没有状态轴" —— K5 的整个意义
     v_ib uuid; v_ob uuid; v_ob2 uuid; v_ob3 uuid; v_ob_nk uuid; v_ob_sc uuid;
     v_run uuid;
-    v_d date := DATE '2027-10-12';
+    v_d date := DATE '2021-10-12';
     v_msg text; v_denied boolean; v_n int;
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
@@ -91,9 +91,9 @@ BEGIN
     END IF;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 ok', 0,
+        PERFORM commit_processing_run(v_d, 'f161 ok', NULL,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 165K1 失败:**这是整份 fixture 的铰链** —— 一批记了【可投料】状态的自产料必须投得进去。没有它,一个"把自产料全拦住"的实现会全绿,而那不是抬高产出侧,是把产线停掉。实得「%」', v_msg;
@@ -109,9 +109,9 @@ BEGIN
     END IF;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 none', 0,
+        PERFORM commit_processing_run(v_d, 'f161 none', NULL,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob2, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PRODUCED_SAFETY_STATE_NOT_RECORDED|%' THEN
         RAISE EXCEPTION 'FIXTURE 165K2 失败:**一条安全状态都没有的意思是【没有人记过】,不是"它安全"。** 这与进料侧 INPUT_SAFETY_STATE_NOT_RECORDED 必须是同一个意思 —— 同一种"空"在两张表里若有相反的意思,就是本仓库反复付账的那一族。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -128,9 +128,9 @@ BEGIN
     END IF;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 bad', 0,
+        PERFORM commit_processing_run(v_d, 'f161 bad', NULL,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob3, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight', NULL, NULL, NULL, p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_TYPE_REQUIRED%' THEN
         RAISE EXCEPTION 'FIXTURE 165K3 失败(PROC-SUPPORT-1):这一臂原本钉 PRODUCED_SAFETY_STATE_NOT_FEEDABLE,也就是产出侧【没有工序时】那条 may_be_fed 规则。工序必填之后那一支到不了了,于是这一臂改钉站在它原位上的那条拒绝:**产出侧的单同样必须说出工序**。
@@ -146,10 +146,10 @@ BEGIN
     VALUES ('zz161_narrow', 'cathode_sheet');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 narrow', 0,
+        PERFORM commit_processing_run(v_d, 'f161 narrow', NULL,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-            NULL, NULL, 'zz161_narrow');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+            NULL, NULL, 'zz161_narrow', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PRODUCED_SAFETY_STATE_NOT_ACCEPTED|%' THEN
         RAISE EXCEPTION 'FIXTURE 165K4 失败:**声明一道工序只会把闸收紧,产出侧也一样。** 一个 may_be_fed = true 的状态,只要没被这道工序列进清单,就必须被拒。一个"设了工序就放行"的实现在这里绿。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -161,9 +161,9 @@ BEGIN
     VALUES ('ZZ165-NA', v_mat_noaxes, 100, 100, 'kg', v_d - 1, '库存中') RETURNING id INTO v_ob_nk;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 nokind', 0,
+        PERFORM commit_processing_run(v_d, 'f161 nokind', NULL,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob_nk, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PRODUCED_SAFETY_STATE_NOT_RECORDED|%' THEN
         RAISE EXCEPTION 'FIXTURE 165K5 失败:**这一臂是本 fixture 的解药。** 物料的种类明说【没有状态轴】时,产出侧【照样问】—— 一个照抄进料侧 has_condition_axes 那一行的实现在这里绿。而线上 20 批产出的物料 kind_code 全是 NULL(同样落进那一行的否定分支),于是整道闸会对【零】批货生效,别的臂全都对着空气变绿。对产出料,种类没分过 / 说了没有状态轴,意思都是**没有人回答过这个问题**,而那不是许可 —— 这是一道火闸。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -175,10 +175,10 @@ BEGIN
     VALUES ('zz161_narrow', 'discharged_verified', false);
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 now ok', 0,
+        PERFORM commit_processing_run(v_d, 'f161 now ok', NULL,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight',
-            NULL, NULL, 'zz161_narrow');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight',
+            NULL, NULL, 'zz161_narrow', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 165K6 失败:受理清单是【数据】—— 补一行,拒绝就该消失。一个把码写死的实现在这里红。实得「%」', v_msg;
@@ -192,9 +192,9 @@ BEGIN
     VALUES (v_ob_sc, 'charged_not_discharged');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 discharge', 0,
+        PERFORM commit_processing_run(v_d, 'f161 discharge', NULL,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob_sc, 'quantity_consumed', 10)),
-            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+            '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 165K7 失败:那条占位的拒绝(STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED)自己写着"等 1B-ii 的 output_batch_safety_states"。表建好了,它就必须消失 —— **一道工序因为料是自己产的就拒绝它,正是 M4 那处不对称本身。** 实得「%」', v_msg;
@@ -223,9 +223,9 @@ BEGIN
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM commit_processing_run(v_d, 'f161 inbound', 0,
+        PERFORM commit_processing_run(v_d, 'f161 inbound', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 9)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_d)::timestamptz, p_ended_at => LEAST((v_d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_RECORDED|%' THEN
         RAISE EXCEPTION 'FIXTURE 165K8 失败:**R1:抬高产出这一侧,绝不放低进料那一侧。** 进料侧那条拒绝必须一个字没变。实得「%」', COALESCE(v_msg, '(通过了)');

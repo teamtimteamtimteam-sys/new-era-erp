@@ -78,8 +78,8 @@ BEGIN
     v_entry := (v_je->>'entry_id')::uuid;
 
     INSERT INTO processing_runs (process_date, total_input, total_output, loss_qty, status, allocation_basis,
-                                 allocated_at, capitalization_entry_id, capitalized_cost_base, operation_type_code)
-        VALUES (DATE '2026-03-02', 100, 90, 10, 'committed', 'weight', now(), v_entry, 100, 'manual_disassembly')
+                                 allocated_at, capitalization_entry_id, capitalized_cost_base, operation_type_code, started_at, ended_at, shift_code)
+        VALUES (DATE '2026-03-02', 100, 90, 10, 'committed', 'weight', now(), v_entry, 100, 'manual_disassembly', (DATE '2026-03-02')::timestamptz, LEAST((DATE '2026-03-02')::timestamptz + interval '1 hour', now()), 'day')
         RETURNING id INTO v_run;
 
     -- 采购单 + 一笔已过账的预付,给 D 支一个【非零】的真值

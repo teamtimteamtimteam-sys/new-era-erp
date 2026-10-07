@@ -32,6 +32,7 @@ export type DictTable =
     | 'inbound_safety_states' | 'laboratories' | 'inbound_source_reasons'
     | 'nea_waste_categories'   // MES-3a(2026-10-06,V29):第七张 —— 同样只有那六列
     | 'dangerous_goods_codes' | 'label_templates'   // MES-3b(2026-10-07,V30 · Q5):第八、九张 —— 同样有那六列
+    | 'shifts' | 'processing_event_types'   // MES-4a(2026-10-07,Q5 · Q15):第十、十一张 —— 同样有那六列
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
@@ -39,7 +40,7 @@ export type ExtraField = {
     /** MES-3a 加了 number(滞留提醒天数):空 = NULL = "Not yet set",不是 0。
      *  MES-3b 加了 choice(标签模板的"给哪一种东西 / 纸多大"):只能在 options 里挑 —— 表上的 CHECK 是同一张清单,
      *  这里只是不让人去敲一个必然被拒的字。 */
-    kind: 'boolean' | 'text' | 'number' | 'choice'
+    kind: 'boolean' | 'text' | 'number' | 'choice' | 'time'
     /** kind = choice 时的取值,每一个带一个字面量的文案键(check-i18n 按字面量核对)。 */
     options?: { value: string; labelKey: string }[]
     labelKey: string
@@ -50,6 +51,9 @@ export type ExtraField = {
     required?: boolean
     /** MES-3a:这一列也画在清单里(规则列 —— 停用前、改之前就该看得见它现在是什么)。 */
     showInTable?: boolean
+    /** MES-4a(Q5):kind = time 的那一对(班次的开始 / 结束)—— 要么都给、要么都空(表上的 shifts_hours_paired 是同一句话)。
+     *  只有一头的班次说不出它覆盖哪一段,于是在这里按名拒,不让人撞上一串约束名。 */
+    pairedWith?: string
 }
 
 export type DictSpec = {
@@ -231,6 +235,36 @@ export const DICTIONARIES: DictSpec[] = [
               labelKey: 'dict.f.show_dg', hintKey: 'dict.h.show_dg' },
         ],
         referencedBy: [{ table: 'label_prints', column: 'template_code' }],
+    },
+    {
+        // ★ MES-4a(2026-10-07,MES-4a Step 0 Q5 · V6,Tim):班次 —— 从此在这里编辑(V6 的链接搬到这里)。
+        //   开始 / 结束两个时刻【可以空】:空的意思是"还没有人说过几点到几点"(V6),不是 00:00。要么都给、要么都空。
+        //   一炉从 MES-4a 起必须说出它是哪一个班(processing_runs.shift_code);交接班也指着它。
+        //   写码与那张表的写策略同一个(module.processing.edit);读要加工查看码。
+        table: 'shifts',
+        titleKey: 'dict.shifts',
+        permission: 'module.processing.edit',
+        viewPermission: 'module.processing.view',
+        extras: [
+            { column: 'starts_at', kind: 'time', showInTable: true, pairedWith: 'ends_at',
+              labelKey: 'dict.f.starts_at', hintKey: 'dict.h.starts_at' },
+            { column: 'ends_at', kind: 'time', showInTable: true, pairedWith: 'starts_at',
+              labelKey: 'dict.f.ends_at', hintKey: 'dict.h.ends_at' },
+        ],
+        referencedBy: [
+            { table: 'processing_runs', column: 'shift_code' },
+            { table: 'shift_handovers', column: 'shift_code' },
+        ],
+    },
+    {
+        // ★ MES-4a(2026-10-07,MES-4a Step 0 Q15,Tim):一炉里异常事件的种类 —— 引导三行(非计划停机 · 设备报警 · 安全报警),没有"其它"。
+        //   一件说不出是哪一种的异常没有审计价值;要一种新的,在这里加一行。表上的 CHECK 拒 code = other。
+        table: 'processing_event_types',
+        titleKey: 'dict.processing_event_types',
+        permission: 'module.processing.edit',
+        viewPermission: 'module.processing.view',
+        extras: [],
+        referencedBy: [{ table: 'processing_run_events', column: 'event_type_code' }],
     },
 ]
 

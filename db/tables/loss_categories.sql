@@ -62,7 +62,18 @@ INSERT INTO public.loss_categories (code, name_en, name_zh, metal_fate, is_true_
      'W2-(iii)。**它根本不是损耗** —— is_true_loss 为 false 就是这句话。它有重量、有去向、有一张处置费单据,归宿是一条带负价值的产出(U6)。在那之前记成一个具名类别,好过记成 loss_qty 里一个匿名的数。'),
     ('electrolyte_evaporation',
      'Electrolyte evaporation', '电解液挥发', 'unknown', true, 4,
-     '【R4,Tim 的工艺路线】电解液目前计划挥发掉 —— 它既不是产品也不是废物收据,是【消失掉的质量】。**它没有并进 moisture,理由是 metal_fate**:moisture 那一行断言"金属留着",而电解液带不带走金属【今天没有人知道】(线上产出批化验 0 条)。并进去等于免费送出一个未经证实的断言,而那个断言会直接流进回收率 —— 那正是 W2/F4 记过账的那一种污染。');
+     '【R4,Tim 的工艺路线】电解液目前计划挥发掉 —— 它既不是产品也不是废物收据,是【消失掉的质量】。**它没有并进 moisture,理由是 metal_fate**:moisture 那一行断言"金属留着",而电解液带不带走金属【今天没有人知道】(线上产出批化验 0 条)。并进去等于免费送出一个未经证实的断言,而那个断言会直接流进回收率 —— 那正是 W2/F4 记过账的那一种污染。'),
+    -- ── MES-4a(2026-10-07,MES-0 Q56 · 规格 §4.1;MES-4a Step 0 Q2,Tim:三类提前到本刀)──────────────────
+    -- 规格 §4.1 点名的可审计类别:取样消耗、留在设备里的料、回收的扫地料。仍然没有 other(规格:一笔叫"其它"的损耗没有审计价值)。
+    ('sampling_consumption',
+     'Sampling consumption', '取样消耗', 'leaves', true, 5,
+     '【MES-4a · 规格 §4.1】取样拿去化验、不回来的那部分 —— 质量与金属一起离开这一炉(去了化验室)。'),
+    ('equipment_holdup',
+     'Material held up in equipment', '留在设备里的料', 'stays', false, 6,
+     '【MES-4a · 规格 §4.1 · R7】一炉跑完留在机器里、被下一炉带走的料(heel)。Tim 的 R7:heel 是存货 —— 它没有离开工厂,所以 is_true_loss 为 false、金属留着。'),
+    ('sweepings',
+     'Sweepings recovered', '回收的扫地料', 'stays', false, 7,
+     '【MES-4a · 规格 §4.1】扫起来、收回来的料 —— 它没有丢,只是还没回到一条有名字的产出里,所以 is_true_loss 为 false、金属留着。');
 
 ALTER TABLE public.loss_categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "loss_categories select all" ON public.loss_categories

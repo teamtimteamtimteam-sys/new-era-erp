@@ -179,8 +179,11 @@ BEGIN
               FROM unnest(v_fkv) AS x(v)
              WHERE (trail_current_image(m.table_name, jsonb_build_object('id', x.v))).image @> m.match;
         ELSE
-            SELECT array_agg(DISTINCT u.k ->> 'id') INTO v_pids
-              FROM unnest(v_tabs, v_keys) AS u(t, k) WHERE u.t = m.parent_table AND u.k ? 'id';
+            -- MES-4a:父行的键不叫 id 而只有一列(operation_types 的 code)时,用那一列的值 —— 成员按它挂(operation_type_code)。
+            --   今天所有带成员的主语,父行键都是 id,所以它们的行为一个字不变;多列键的父行仍然不往下走。
+            SELECT array_agg(DISTINCT COALESCE(u.k ->> 'id', (SELECT e.value FROM jsonb_each_text(u.k) e))) INTO v_pids
+              FROM unnest(v_tabs, v_keys) AS u(t, k)
+             WHERE u.t = m.parent_table AND (u.k ? 'id' OR (SELECT count(*) FROM jsonb_object_keys(u.k)) = 1);
             CONTINUE WHEN v_pids IS NULL;
             v_pk := trail_pk_columns(m.table_name);
             EXECUTE format('SELECT array_agg(jsonb_build_object(%s)) FROM public.%I t WHERE t.%I::text = ANY ($1) AND to_jsonb(t) @> $2',

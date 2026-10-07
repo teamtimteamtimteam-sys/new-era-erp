@@ -696,7 +696,9 @@ function historyDiff(d: TrailDict, h: TrailRow, opts: BuildOptions): Line[] {
 
 // ── 加工单 ──────────────────────────────────────────────────────────────────
 const RUN_TABLES = new Set(['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries',
-    'processing_cost_entry_history', 'batch_processing_cost_allocations', 'processing_run_losses'])
+    'processing_cost_entry_history', 'batch_processing_cost_allocations', 'processing_run_losses',
+    // MES-4a(2026-10-07):一炉的值、异常事件、平衡结算、抬头更正 —— 全部只追加
+    'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections'])
 
 function batchLine(d: TrailDict, r: TrailRow, label: string, qtyCol: string, opts: BuildOptions): Line {
     const img = imgOf(r)
@@ -725,17 +727,37 @@ function describeRun(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block[
         for (const r of by('processing_outputs').filter((x) => x.op === 'INSERT')) ls.push(batchLine(d, r, tx(d, 'run.produced'), 'quantity_produced', o2))
         const loss = created.new?.['loss_qty']
         if (loss !== undefined && loss !== null && num(loss) !== 0) ls.push({ t: 'value', label: tx(d, 'run.loss'), value: formatValue(d, 'processing_runs', 'loss_qty', loss, imgOf(created), created.refs, 'INSERT', o2) })
-        for (const c of ['work_order_id', 'equipment_id', 'operation_type_code']) {
+        // MES-4a(Q7–Q9 · Q16 · Q31):开始 / 结束 / 班次 / 配方版本 / 它更正的那一张,与工单、机器、工序同一种说法
+        for (const c of ['work_order_id', 'equipment_id', 'operation_type_code', 'started_at', 'ended_at', 'shift_code', 'recipe_version_id', 'corrects_run_id']) {
             const v = created.new?.[c]
             if (!isEmpty(v)) ls.push({ t: 'value', label: fieldMeta(d, 'processing_runs', c)[0], value: formatValue(d, 'processing_runs', c, v, imgOf(created), created.refs, 'INSERT', o2) })
         }
+        // MES-4a(Q11 · Q16):提交时一并记下的参数与指标 —— 只说几个(每一个是哪个字段、什么值在这一单的"参数与指标"那一块)
+        const nVals = by('processing_run_values').filter((x) => x.op === 'INSERT').length
+        if (nVals) ls.push({ t: 'value', label: tx(d, 'run.values'), value: { text: plural(d, 'run.values.one', 'run.values.many', nVals) } })
         const notes = typed(created.new?.['notes'])
         if (notes) ls.push({ t: 'value', label: fieldMeta(d, 'processing_runs', 'notes')[0], value: notes })
         blocks.push({ title, lines: ls, key: true, weight: 100 })
     }
 
+    // MES-4a(Q30):抬头更正 —— 一行更正(哪一格、理由)与 processing_runs 那一次 UPDATE 同一笔:
+    //   标题由更正说("Run header corrected · Start time"),前后值由那一次 UPDATE 的列说(时刻、班次名、机器号都已解析成人话),理由最后。
+    const corrections = by('processing_run_corrections').filter((x) => x.op === 'INSERT')
+    const fieldPart = (c: TrailRow): Val | null => {
+        const f = str(c, 'field', 'new')
+        return f ? { text: enumLabel(d, 'processing_run_corrections', 'field', f) } : null
+    }
+    let correctionUsed = false
     for (const r of run) {
         if (r === created) continue
+        if (corrections.length && r.op === 'UPDATE' && !correctionUsed && !changed(r, 'allocated_at') && !changed(r, 'status')
+            && !changed(r, 'deleted_at') && !changed(r, 'allocation_basis')) {
+            correctionUsed = true
+            const c0 = corrections[0]
+            blocks.push({ title: tx(d, 'run.headerCorrected'), part: fieldPart(c0), lines: changeLines(d, r, o2),
+                          reason: typed(c0.new?.['reason']), key: true, weight: 75 })
+            continue
+        }
         const allocated = (changed(r, 'allocated_at') && r.new?.['allocated_at']) || (r.prelog && r.cols?.includes('allocated_at'))
         const rolledBack = (changed(r, 'status') && str(r, 'status', 'new') === 'reversed') ||
             (changed(r, 'deleted_at') && r.new?.['deleted_at']) || (r.prelog && r.cols?.includes('deleted_at')) || r.op === 'DELETE'
@@ -776,6 +798,44 @@ function describeRun(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block[
         }
     }
 
+    // MES-4a:一行更正没有配上 processing_runs 那一次 UPDATE(那一行这个读者看不见)时,照样说出它与理由
+    for (const c of corrections.slice(correctionUsed ? 1 : 0)) {
+        blocks.push({ title: tx(d, 'run.headerCorrected'), part: fieldPart(c), lines: [], reason: typed(c.new?.['reason']), key: true, weight: 75 })
+    }
+    // MES-4a(Q11 · Q29):提交之后记的值 —— 记一个 / 更正一个(更正 = 新的一行指着旧的,理由在理由那一格)。
+    //   字段名由 trail_refs 按(工序 + 字段代号)解析(组合外键,MES-4a 给它补了一支)—— 解析得出就挂在标题后面;
+    //   字段已不在(gone)或读不到时只说光标题(绝不印代号)。
+    if (!created) {
+        for (const r of by('processing_run_values')) {
+            if (r.op !== 'INSERT') { blocks.push(describeGeneric(d, r, o2)); continue }
+            const corrected = str(r, 'corrects_id', 'new') !== null
+            const name = refLabel(r, 'field_code')
+            blocks.push({ title: tx(d, corrected ? 'run.valueCorrected' : 'run.valueRecorded'), part: name ? { text: name } : null,
+                          lines: valueLines(d, r, r.new, o2, new Set(['run_id', 'field_code', 'correction_reason'])),
+                          reason: corrected ? typed(r.new?.['correction_reason']) : null, key: true, weight: 55 })
+        }
+    }
+    // MES-4a(Q15):异常事件 —— 记一件 / 更正一件 / 撤回一件(撤回 = 一行 withdrawn 的更正,带理由)
+    for (const r of by('processing_run_events')) {
+        if (r.op !== 'INSERT') { blocks.push(describeGeneric(d, r, o2)); continue }
+        const corrected = str(r, 'corrects_id', 'new') !== null
+        const withdrawn = r.new?.['withdrawn'] === true
+        const ty = str(r, 'event_type_code')
+        const part = ty ? formatValue(d, 'processing_run_events', 'event_type_code', ty, imgOf(r), r.refs, 'INSERT', o2) : null
+        const key: TrailTextKey = withdrawn ? 'run.eventWithdrawn' : corrected ? 'run.eventCorrected' : 'run.eventRecorded'
+        blocks.push({ title: tx(d, key), part,
+                      lines: withdrawn ? [] : valueLines(d, r, r.new, o2, new Set(['run_id', 'event_type_code', 'withdrawn', 'correction_reason'])),
+                      reason: corrected ? typed(r.new?.['correction_reason']) : null, key: true, weight: 55 })
+    }
+    // MES-4a(Q19 · Q20):物料平衡结算 —— 投入 = 产出 + 具名损耗 + 余数;余数在容差外时那一段解释就是理由
+    for (const r of by('processing_run_closures')) {
+        if (r.op !== 'INSERT') { blocks.push(describeGeneric(d, r, o2)); continue }
+        const within = r.new?.['within_tolerance']
+        const title = within === true ? `${tx(d, 'run.balanceClosed')} · ${tx(d, 'run.withinTolerance')}` : tx(d, 'run.balanceClosed')
+        blocks.push({ title, lines: valueLines(d, r, r.new, o2, new Set(['run_id', 'explanation', 'within_tolerance'])),
+                      reason: typed(r.new?.['explanation']), key: true, weight: 80 })
+    }
+
     // ② 成本条目与它的修改史(B18–B22):同一笔里两边都在时只说一次
     const costs = by('processing_cost_entries')
     const chist = by('processing_cost_entry_history')
@@ -810,8 +870,14 @@ function describeRun(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block[
     // ③ 损耗(B14 的一部分;单独改时)
     if (!created) {
         for (const r of by('processing_run_losses')) {
-            const ls = r.op === 'UPDATE' ? changeLines(d, r, o2) : valueLines(d, r, r.new ?? r.old, o2, new Set(['run_id']))
-            blocks.push({ title: tx(d, r.op === 'INSERT' ? 'run.lossRecorded' : r.op === 'DELETE' ? 'run.lossRemoved' : 'run.lossChanged'), lines: ls, key: false, weight: 40 })
+            // MES-4a(Q28):只追加 —— 改一个数是新的一行指着旧的(corrects_id),理由在理由那一格。UPDATE / DELETE 只出现在 MES-4a 之前的记录里。
+            const corrected = r.op === 'INSERT' && str(r, 'corrects_id', 'new') !== null
+            const ls = r.op === 'UPDATE' ? changeLines(d, r, o2)
+                : valueLines(d, r, r.new ?? r.old, o2, new Set(['run_id', 'correction_reason', ...(r.op === 'INSERT' ? ['loss_category_code'] : [])]))
+            const cat = r.op === 'INSERT' ? str(r, 'loss_category_code') : null
+            const part = cat ? formatValue(d, 'processing_run_losses', 'loss_category_code', cat, imgOf(r), r.refs, 'INSERT', o2) : null
+            blocks.push({ title: tx(d, corrected ? 'run.lossCorrected' : r.op === 'INSERT' ? 'run.lossRecorded' : r.op === 'DELETE' ? 'run.lossRemoved' : 'run.lossChanged'),
+                          part, lines: ls, reason: corrected ? typed(r.new?.['correction_reason']) : null, key: corrected, weight: 40 })
         }
         // 投入 / 产出单独出现(记录开始之前、或将来的更正)
         for (const r of [...by('processing_inputs'), ...by('processing_outputs')]) {
@@ -899,7 +965,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     purchase_order: ['purchase_orders', 'purchase_order_lines', 'purchase_order_payment_terms', 'purchase_order_line_retentions',
         'pricing_term_commitments', 'po_issues', 'contract_document_terms', 'approval_log', 'purchase_order_history'],
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
-        'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log'],
+        'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log',
+        'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections'],
     role: ['roles', 'role_permissions', 'user_roles'],
     inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
@@ -1016,12 +1083,16 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     // MES-2(2026-10-06):地磅单 —— 它的两磅(含更正)、分出去的份、照片
     weighbridge_ticket: ['weighbridge_tickets', 'weighings', 'weighbridge_ticket_shares', 'weighbridge_ticket_photos'],
     ingest_settings: ['ingest_settings'],
+    // MES-4a(2026-10-07):一道工序的配置(字段 · 机器 · 配方 · 版本)· 两本新字典
+    operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions'],
+    dictionary_processing_event_types: ['processing_event_types'],
+    dictionary_shifts: ['shifts'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
-    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1052,6 +1123,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     device: 'device', ingest_settings: 'settings',
     // MES-2
     weighbridge_ticket: 'ticket',
+    // MES-4a
+    operation_type: 'optype', dictionary_processing_event_types: 'dict', dictionary_shifts: 'dict',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1142,8 +1215,11 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     // MES-2
     if (t === 'weighbridge_tickets' || t === 'weighings' || t === 'weighbridge_ticket_shares' || t === 'weighbridge_ticket_photos') return 'ticket'
     if (t === 'review_rating_scale') return 'dict'
+    // MES-4a:工序页上那几张(工序这一行本身只在工序页上从工序这一边说;在别处照旧走通用的说法)
+    if (OPTYPE_TABLES.has(t) || (t === 'operation_types' && subject === 'operation_type')) return 'optype'
     return null
 }
+const OPTYPE_TABLES = new Set(['operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions'])
 
 /** "PO-2026-0010" —— 一组往上一跳够到的行属于哪一张单据(取它指着那张单据的那一列解析出来的单号) */
 const DOC_COLS: [string, string][] = [['purchase_order_id', 'purchase_orders'], ['run_id', 'processing_runs'],
@@ -1782,6 +1858,52 @@ function describeTicket(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Blo
             } else if (isSet(r, 'withdrawn_at')) {
                 out.push({ title: tx(d, 'wb.photoWithdrawn'), part, lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 40 })
             } else out.push(describeGeneric(d, r, opts))
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+// ── MES-4a(2026-10-07,Step 0 Q9–Q17):一道工序的配置 ────────────────────────────────────────────────
+// 字段:加上 · 改了 · 退役 / 恢复(退役不删)。机器:挂上 · 摘下。配方:加上 · 停用 / 恢复;一版:加上(写了不改)。
+// 工序这一行本身:平衡容差给了 / 改了(V1)。标题后面挂人认得的那一段:字段名、机器的资产号、配方码、"配方码 v版本"。
+function describeOpType(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows) {
+        if (r.table === 'operation_type_fields') {
+            const part = typed(str(r, 'name_en'))
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'opt.fieldAdded'), part, lines: valueLines(d, r, r.new, opts, new Set(['name_en'])), key: true, weight: 70 })
+            } else if (r.op === 'UPDATE') {
+                const act = changed(r, 'is_active') ? r.new?.['is_active'] : undefined
+                const ls = changeLines(d, r, opts, new Set(act === undefined ? [] : ['is_active']))
+                if (act !== undefined) out.push({ title: tx(d, act === true ? 'opt.fieldRestored' : 'opt.fieldRetired'), part, lines: ls, key: true, weight: 65 })
+                else if (ls.length) out.push({ title: tx(d, 'opt.fieldChanged'), part, lines: ls, key: false, weight: 40 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'operation_type_equipment') {
+            const a = str(r, 'fixed_asset_id')
+            const part = a ? formatValue(d, 'operation_type_equipment', 'fixed_asset_id', a, imgOf(r), r.refs, r.op, opts) : null
+            if (r.op === 'INSERT') out.push({ title: tx(d, 'opt.machineLinked'), part, lines: [], key: true, weight: 70 })
+            else if (r.op === 'DELETE') out.push({ title: tx(d, 'opt.machineUnlinked'), part, lines: [], key: true, weight: 70 })
+            else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'process_recipes') {
+            const part = typed(str(r, 'code'))
+            if (r.op === 'INSERT') {
+                out.push({ title: tx(d, 'opt.recipeAdded'), part, lines: valueLines(d, r, r.new, opts, new Set(['code'])), key: true, weight: 70 })
+            } else if (r.op === 'UPDATE') {
+                const act = changed(r, 'is_active') ? r.new?.['is_active'] : undefined
+                const ls = changeLines(d, r, opts, new Set(act === undefined ? [] : ['is_active']))
+                if (act !== undefined) out.push({ title: tx(d, act === true ? 'opt.recipeRestored' : 'opt.recipeRetired'), part, lines: ls, key: true, weight: 65 })
+                else if (ls.length) out.push({ title: tx(d, 'opt.recipeChanged'), part, lines: ls, key: false, weight: 40 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'process_recipe_versions') {
+            if (r.op === 'INSERT') {
+                const rc = refLabel(r, 'recipe_id')
+                const v = num(r.new?.['version'] ?? null)
+                const part = rc && v !== null ? { text: `${rc} v${v}` } : null
+                out.push({ title: tx(d, 'opt.versionAdded'), part, lines: valueLines(d, r, r.new, opts, new Set(['recipe_id', 'version'])), key: true, weight: 70 })
+            } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'operation_types' && r.op === 'UPDATE' && changed(r, 'balance_tolerance_pct')) {
+            out.push({ title: tx(d, 'opt.toleranceSet'), lines: changeLines(d, r, opts), key: true, weight: 60 })
         } else out.push(describeGeneric(d, r, opts))
     }
     return out
@@ -3897,7 +4019,9 @@ function describeLedger3(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Bl
 const ACCESS_TABLES = new Set(['auth.users', 'user_roles', 'employee_accounts', 'employee_account_history'])
 const HR1_TABLES = new Set(['employees', 'employment_history', 'salary_change_requests', 'training_records', 'departments'])
 const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kinds', 'inbound_safety_states', 'laboratories', 'inbound_source_reasons',
-    'nea_waste_categories', 'dangerous_goods_codes', 'label_templates'])
+    'nea_waste_categories', 'dangerous_goods_codes', 'label_templates',
+    // MES-4a(Q5 · Q15):班次(时刻是 time 列,说成 HH:MM)· 异常事件的种类
+    'shifts', 'processing_event_types'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {
@@ -5012,6 +5136,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'kpi': bs = describeKpi(d, list, opts); break
                 case 'device': bs = describeDevice(d, list, opts); break
                 case 'ticket': bs = describeTicket(d, list, opts); break
+                case 'optype': bs = describeOpType(d, list, opts); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它

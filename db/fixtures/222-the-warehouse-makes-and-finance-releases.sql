@@ -269,16 +269,16 @@ BEGIN
 
     -- ══════════ P · 加工 ══════════
     PERFORM pg_temp.f222_as(u_edit);
-    v_msg := pg_temp.f222_try(format($q$SELECT commit_processing_run(%L, 'f222', 5, %L::jsonb, %L::jsonb, 'weight', %L, NULL, 'manual_disassembly')$q$,
+    v_msg := pg_temp.f222_try(format($q$SELECT commit_processing_run(%L, 'f222', NULL, %L::jsonb, %L::jsonb, 'weight', %L, NULL, 'manual_disassembly', p_started_at => (%1$L)::timestamptz, p_ended_at => LEAST((%1$L)::timestamptz + interval '1 hour', now()), p_shift_code => 'day')$q$,
         v_today, jsonb_build_array(jsonb_build_object('inbound_batch_id', b_wo, 'quantity_consumed', 80)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 75)), wo1));
     IF v_msg <> 'PERMISSION_DENIED|action.processing_commit' THEN
         RAISE EXCEPTION 'FIXTURE 222P1 失败:只持 processing.edit 的人提交应当 PERMISSION_DENIED|action.processing_commit,实得 %', v_msg; END IF;
     PERFORM pg_temp.f222_as(u_wh);
-    v_run := commit_processing_run(v_today, 'f222', 5,
+    v_run := commit_processing_run(v_today, 'f222', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', b_wo, 'quantity_consumed', 80)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 75)), 'weight',
-        wo1, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 75)), 'weight',
+        wo1, NULL, 'manual_disassembly', p_started_at => (v_today)::timestamptz, p_ended_at => LEAST((v_today)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF (SELECT work_order_id FROM processing_runs WHERE id = v_run) IS DISTINCT FROM wo1
        OR (SELECT status FROM processing_runs WHERE id = v_run) <> 'committed' THEN
         RAISE EXCEPTION 'FIXTURE 222P2 失败:仓库照已下达的工单提交应当照成'; END IF;
@@ -295,9 +295,17 @@ BEGIN
     v_msg := pg_temp.f222_try(format($q$UPDATE processing_runs SET work_order_id = NULL WHERE id = %L$q$, v_run), true);
     IF v_msg <> 'PROCESSING_THROUGH_FUNCTION_ONLY|processing_runs|update' THEN
         RAISE EXCEPTION 'FIXTURE 222P3 失败:直连改挂工单应当按名拒,实得 %', v_msg; END IF;
+    -- ★ MES-4a(2026-10-07,MES-4a Step 0 Q32,Tim):【翻过来了】UPDATE 策略拿掉之后,连改备注也按名拒 —— 表头能改的只剩
+    --   correct_run_header 那六个字段(留更正行)。此前这一句断言"改备注照旧放行"(ROLE1B3B-PROCESSING-UPDATE-POLICIES 那条登记)。
     v_msg := pg_temp.f222_try(format($q$UPDATE processing_runs SET notes = 'f222 note' WHERE id = %L$q$, v_run), true);
-    IF v_msg <> 'OK' OR (SELECT notes FROM processing_runs WHERE id = v_run) <> 'f222 note' THEN
-        RAISE EXCEPTION 'FIXTURE 222P3 失败:同一行改备注应当照旧放行(UPDATE 策略留着),实得 %', v_msg; END IF;
+    IF v_msg <> 'PROCESSING_THROUGH_FUNCTION_ONLY|processing_runs|update' OR (SELECT notes FROM processing_runs WHERE id = v_run) = 'f222 note' THEN
+        RAISE EXCEPTION 'FIXTURE 222P3 失败:直连改备注应当按名拒(MES-4a 拿掉了 UPDATE 策略),实得 %', v_msg; END IF;
+    v_msg := pg_temp.f222_try(format('UPDATE processing_outputs SET quantity_produced = 1 WHERE run_id = %L', v_run), true);
+    IF v_msg <> 'PROCESSING_THROUGH_FUNCTION_ONLY|processing_outputs|update' THEN
+        RAISE EXCEPTION 'FIXTURE 222P3 失败:直连改产出数量应当按名拒(MES-4a),实得 %', v_msg; END IF;
+    v_msg := pg_temp.f222_try(format('UPDATE processing_inputs SET quantity_consumed = 1 WHERE run_id = %L', v_run), true);
+    IF v_msg <> 'PROCESSING_THROUGH_FUNCTION_ONLY|processing_inputs|update' THEN
+        RAISE EXCEPTION 'FIXTURE 222P3 失败:直连改投料数量应当按名拒(MES-4a),实得 %', v_msg; END IF;
     v_msg := pg_temp.f222_try(format('DELETE FROM processing_runs WHERE id = %L', v_run), true);
     IF v_msg <> 'PROCESSING_THROUGH_FUNCTION_ONLY|processing_runs|delete' THEN
         RAISE EXCEPTION 'FIXTURE 222P3 失败:直连删加工单应当按名拒,实得 %', v_msg; END IF;
@@ -312,25 +320,32 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 222P3 失败:直连删投料应当按名拒,实得 %', v_msg; END IF;
 
     -- ══════════ L · 损耗分类与交接班 ══════════
+    -- ★ MES-4a(2026-10-07,MES-4a Step 0 Q28 · Q32,Tim):【L1 翻过来了】损耗只追加 —— 三条写策略拿掉、authenticated 只剩 SELECT,
+    --   记与改只经 record_run_loss / correct_run_loss(同一组码:module.processing.edit 或 action.processing_aftercare)。
+    --   此前这一臂断言"仓库直连插 / 改 / 删损耗应当照成";现在三条直连路一条都不剩,改的是更正链,删的是"更正成 0"。
     PERFORM pg_temp.f222_as(u_view);
-    v_msg := pg_temp.f222_try(format($q$INSERT INTO processing_run_losses (run_id, loss_category_code, quantity) VALUES (%L, 'moisture', 1)$q$, v_run), true);
-    IF v_msg = 'OK' THEN
-        RAISE EXCEPTION 'FIXTURE 222L1 失败:只持 view 的人不该插得进损耗分类'; END IF;
+    v_msg := pg_temp.f222_try(format($q$SELECT record_run_loss(%L, 'moisture', 1)$q$, v_run), true);
+    IF v_msg <> 'PERMISSION_DENIED|action.processing_aftercare' THEN
+        RAISE EXCEPTION 'FIXTURE 222L1 失败:只持 view 的人记损耗应当 PERMISSION_DENIED|action.processing_aftercare,实得 %', v_msg; END IF;
     PERFORM pg_temp.f222_as(u_wh);
     v_msg := pg_temp.f222_try(format($q$INSERT INTO processing_run_losses (run_id, loss_category_code, quantity) VALUES (%L, 'moisture', 2)$q$, v_run), true);
-    IF v_msg <> 'OK' THEN
-        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库(aftercare)记损耗分类应当照成,实得 %', v_msg; END IF;
-    PERFORM pg_temp.f222_as(u_view);
+    IF v_msg NOT LIKE 'permission denied for table processing_run_losses%' THEN
+        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库直连插损耗应当在权限那一步就拒(42501),实得 %', v_msg; END IF;
+    v_msg := pg_temp.f222_try(format($q$SELECT record_run_loss(%L, 'moisture', 2)$q$, v_run), true);
+    IF v_msg <> 'OK' OR (SELECT quantity FROM processing_run_losses WHERE run_id = v_run AND corrects_id IS NULL) <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库(aftercare)经 record_run_loss 记损耗应当照成,实得 %', v_msg; END IF;
     v_msg := pg_temp.f222_try(format('UPDATE processing_run_losses SET quantity = 3 WHERE run_id = %L', v_run), true);
-    IF v_msg <> 'PERMISSION_DENIED|module.processing.edit' THEN
-        RAISE EXCEPTION 'FIXTURE 222L1 失败:只持 view 的人改损耗应当 PERMISSION_DENIED,实得 %', v_msg; END IF;
-    PERFORM pg_temp.f222_as(u_wh);
-    v_msg := pg_temp.f222_try(format('UPDATE processing_run_losses SET quantity = 3 WHERE run_id = %L', v_run), true);
-    IF v_msg <> 'OK' OR (SELECT quantity FROM processing_run_losses WHERE run_id = v_run) <> 3 THEN
-        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库改损耗应当照成,实得 %', v_msg; END IF;
+    IF v_msg NOT LIKE 'permission denied for table processing_run_losses%' THEN
+        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库直连改损耗应当在权限那一步就拒,实得 %', v_msg; END IF;
     v_msg := pg_temp.f222_try(format('DELETE FROM processing_run_losses WHERE run_id = %L', v_run), true);
-    IF v_msg <> 'OK' OR EXISTS (SELECT 1 FROM processing_run_losses WHERE run_id = v_run) THEN
-        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库删损耗应当照成,实得 %', v_msg; END IF;
+    IF v_msg NOT LIKE 'permission denied for table processing_run_losses%' THEN
+        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库直连删损耗应当在权限那一步就拒,实得 %', v_msg; END IF;
+    v_msg := pg_temp.f222_try(format($q$SELECT correct_run_loss((SELECT id FROM processing_run_losses WHERE run_id = %L AND corrects_id IS NULL), 3, 'f222 re-weighed')$q$, v_run), true);
+    IF v_msg <> 'OK' OR (SELECT count(*) FROM processing_run_losses WHERE run_id = v_run) <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 222L1 失败:仓库更正损耗应当落一条新行(原行留着),实得 %', v_msg; END IF;
+    v_msg := pg_temp.f222_try(format($q$SELECT correct_run_loss((SELECT id FROM processing_run_losses WHERE run_id = %L AND corrects_id IS NOT NULL), 0, 'f222 withdrawn')$q$, v_run), true);
+    IF v_msg <> 'OK' OR (SELECT categorised_qty FROM processing_run_loss_breakdown WHERE run_id = v_run) <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 222L1 失败:撤回 = 更正成 0,之后已分类之和应当是 0,实得 %', v_msg; END IF;
     PERFORM pg_temp.f222_as(u_view);
     v_msg := pg_temp.f222_try(format('SELECT acknowledge_shift_handover(%L)', gen_random_uuid()));
     IF v_msg <> 'PERMISSION_DENIED|action.processing_aftercare' THEN
@@ -372,7 +387,7 @@ BEGIN
 
     -- ══════════ P5 · 故障注入:拿掉直连删守卫 → 零行、不报错 ══════════
     PERFORM set_config('request.jwt.claims', '', true);
-    DROP TRIGGER trg_processing_runs_direct_delete ON processing_runs;
+    DROP TRIGGER trg_processing_runs_direct_change ON processing_runs;   -- MES-4a:守卫改名(UPDATE 与 DELETE 同一支)
     PERFORM pg_temp.f222_as(u_edit);
     v_msg := pg_temp.f222_try(format('DELETE FROM processing_runs WHERE id = %L', v_run), true);
     IF v_msg <> 'OK' OR NOT EXISTS (SELECT 1 FROM processing_runs WHERE id = v_run) THEN

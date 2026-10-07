@@ -11,6 +11,7 @@
 -- AUDIT-TRAIL-1c-2(Q10):资产卡的修改史(fixed_asset_history)把每一列存成一对 old_<列> / new_<列>,而这一对没有外键 ——
 --   于是"处置分录"、"来自哪张费用"在修改史里读不出名字。这里按 fixed_assets 自己那一列的外键去解析那一对,
 --   放在 old_<列> / new_<列> 那两格下(界面按资产卡的列说它们,同一个名字)。
+-- MES-4a(2026-10-07):processing_run_values.field_code 指着 (operation_type_code, field_code) 两列的外键 —— 单独解析(见末尾)。
 CREATE OR REPLACE FUNCTION public.trail_refs(p_table text, p_old jsonb, p_new jsonb, p_ctx jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -65,6 +66,23 @@ BEGIN
         END LOOP;
         IF v_col <> '{}'::jsonb THEN
             v_out := v_out || jsonb_build_object('allocations', v_col);
+        END IF;
+    END IF;
+    -- MES-4a(2026-10-07):一炉的一个值指着它的字段,而那条外键是两列(工序 + 字段代号)—— trail_fk_targets 只认单列的,
+    --   于是这里按影像里的工序把 field_code 解析成字段的英文名,放在 'field_code' 一格下("Value recorded · Blade speed")。
+    --   字段不删(只退役),所以一定解析得到;解析不到就照通用那一形状说 gone。
+    IF p_table = 'processing_run_values' THEN
+        v_col := '{}'::jsonb;
+        FOR f IN SELECT DISTINCT s.j ->> 'operation_type_code' AS op, s.j ->> 'field_code' AS fc
+                   FROM (SELECT p_old AS j UNION ALL SELECT p_new UNION ALL SELECT p_ctx) s
+                  WHERE s.j IS NOT NULL AND s.j ->> 'field_code' IS NOT NULL LOOP
+            v_col := v_col || jsonb_build_object(f.fc, COALESCE(
+                (SELECT jsonb_build_object('label', otf.name_en, 'gone', false) FROM operation_type_fields otf
+                  WHERE otf.operation_type_code = f.op AND otf.field_code = f.fc),
+                jsonb_build_object('label', NULL, 'gone', true)));
+        END LOOP;
+        IF v_col <> '{}'::jsonb THEN
+            v_out := v_out || jsonb_build_object('field_code', v_col);
         END IF;
     END IF;
     RETURN v_out;

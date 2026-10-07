@@ -287,9 +287,9 @@ BEGIN
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code) VALUES (v_ib, 'discharged_verified');
     PERFORM reprice_inbound_batch(v_ib, 5, v_base, NULL, 'f213');
-    v_run := commit_processing_run(D0, 'f213 放电', 0,
+    v_run := commit_processing_run(D0, 'f213 放电', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
+        '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (D0)::timestamptz, p_ended_at => LEAST((D0)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate)
     VALUES (v_run, 'electricity', 400, true) RETURNING id INTO v_pce;
     PERFORM relieve_processing_accruals(ARRAY[v_pce], 450, D1, 'unpaid', NULL, v_s_tx, NULL, 'f213 relief');

@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -5035,6 +5035,319 @@ if (FAULT === 'wording-drift-mes3b') dict.text = { ...dict.text, 'label.reprinte
     if (FAULT === 'wording-drift-mes3b' && !problems.gold18.length) problems.gold18.push('(注入 wording-drift-mes3b 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑲ MES-4a 的加工记录:值、异常事件、损耗的更正、平衡结算、抬头更正、工序的配置(MES-4a Step 0 Q5 · Q9–Q30)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-4a.md 列出。
+//   全部只追加:一次更正是新的一行指着旧的(corrects_id),理由在理由那一格;撤回一件事件是一行 withdrawn 的更正。
+//   抬头更正由那一行更正说标题("Run header corrected · Start time"),由 processing_runs 那一次 UPDATE 说前后值。
+//   一个值的字段名由 trail_refs 按(工序 + 字段代号)解析:解析得出挂在标题后面("Value recorded · Cell count"),gone 时是光标题(绝不印代号)。
+//   配方版本的更正:前后值由 processing_runs 那一次 UPDATE 的 recipe_version_id 引用说("CR-STD v1 → CR-STD v2")。
+//   注入 wording-drift-mes4a → 这一臂必须红。
+problems.gold19 = []
+if (FAULT === 'wording-drift-mes4a') dict.text = { ...dict.text, 'run.balanceClosed': 'Balance closed' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const run = id('run')
+    const R19 = { subject: 'processing_run', recordId: run, currency: null }
+    const O19 = { subject: 'operation_type', recordId: 'casing_removal', currency: null }
+    const runRef = { run_id: { [run]: { label: 'PROC-2026-0042' } } }
+    // 字段名由 trail_refs 按(工序 + 字段代号)解析(MES-4a 补的那一支)—— 解析得出就挂在标题后面;解析不出(gone)就是光标题
+    const fieldRef = { ...runRef, field_code: { cell_count: { label: 'Cell count', gone: false } } }
+    const fieldGone = { ...runRef, field_code: { cell_count: { label: null, gone: true } } }
+    add('value · recorded after commit', R19, [{ table: 'processing_run_values', op: 'INSERT', key: { id: 11 }, refs: fieldRef,
+        new: { id: 11, run_id: run, operation_type_code: 'casing_removal', field_code: 'cell_count', value_number: 48, value_text: null,
+               value_bool: null, range_min_at: null, range_max_at: null, out_of_range: null, source: 'manual', inbox_id: null,
+               site_from: null, site_to: null, site_dataset_ref: null, recorded_at: '2026-10-07T03:00:00Z', recorded_by: id('u'),
+               corrects_id: null, correction_reason: null } }])
+    add('value · corrected with a reason', R19, [{ table: 'processing_run_values', op: 'INSERT', key: { id: 12 }, refs: fieldGone,
+        new: { id: 12, run_id: run, operation_type_code: 'casing_removal', field_code: 'cell_count', value_number: 46, value_text: null,
+               value_bool: null, range_min_at: 40, range_max_at: 45, out_of_range: true, source: 'manual', inbox_id: null,
+               site_from: null, site_to: null, site_dataset_ref: null, recorded_at: '2026-10-07T03:10:00Z', recorded_by: id('u'),
+               corrects_id: 11, correction_reason: 'Two cells were counted twice' } }])
+    const evRef = { ...runRef, event_type_code: { unplanned_stop: { label: 'Unplanned stop' } } }
+    const ev = (k, extra) => ({ id: k, run_id: run, event_type_code: 'unplanned_stop', occurred_at: '2026-10-07T02:30:00Z', duration_min: 15,
+        action_taken: 'Cleared the jammed conveyor', responsible_person: 'Ah Kow', notes: null, withdrawn: false, source: 'manual',
+        inbox_id: null, site_from: null, site_to: null, site_dataset_ref: null, recorded_at: '2026-10-07T03:00:00Z', recorded_by: id('u'),
+        corrects_id: null, correction_reason: null, ...extra })
+    add('event · recorded', R19, [{ table: 'processing_run_events', op: 'INSERT', key: { id: 21 }, refs: evRef, new: ev(21, {}) }])
+    add('event · withdrawn', R19, [{ table: 'processing_run_events', op: 'INSERT', key: { id: 22 }, refs: evRef,
+        new: ev(22, { withdrawn: true, corrects_id: 21, correction_reason: 'Recorded on the wrong run' }) }])
+    const lossRef = { ...runRef, loss_category_code: { sampling_consumption: { label: 'Sampling consumption' } } }
+    add('loss · recorded', R19, [{ table: 'processing_run_losses', op: 'INSERT', key: { id: 31 }, refs: lossRef,
+        new: { id: 31, run_id: run, loss_category_code: 'sampling_consumption', quantity: 2.5, notes: null, created_at: '2026-10-07T03:00:00Z',
+               created_by: id('u'), corrects_id: null, correction_reason: null } }])
+    add('loss · corrected', R19, [{ table: 'processing_run_losses', op: 'INSERT', key: { id: 32 }, refs: lossRef,
+        new: { id: 32, run_id: run, loss_category_code: 'sampling_consumption', quantity: 1.5, notes: null, created_at: '2026-10-07T03:20:00Z',
+               created_by: id('u'), corrects_id: 31, correction_reason: 'Lab returned one sample' } }])
+    add('balance · closed with an explanation', R19, [{ table: 'processing_run_closures', op: 'INSERT', key: { id: 41 }, refs: runRef,
+        new: { id: 41, run_id: run, input_qty: 1000, output_qty: 940, named_loss_qty: 40, remainder_qty: 20, tolerance_pct: 1,
+               within_tolerance: false, explanation: 'Dust collector not emptied before weighing', loss_watermark: 32, value_watermark: 12,
+               closed_at: '2026-10-07T04:00:00Z', closed_by: id('u') } }])
+    add('balance · closed within tolerance', R19, [{ table: 'processing_run_closures', op: 'INSERT', key: { id: 42 }, refs: runRef,
+        new: { id: 42, run_id: run, input_qty: 1000, output_qty: 995, named_loss_qty: 0, remainder_qty: 5, tolerance_pct: 1,
+               within_tolerance: true, explanation: null, loss_watermark: null, value_watermark: null,
+               closed_at: '2026-10-07T04:00:00Z', closed_by: id('u') } }])
+    add('header · start time corrected', R19, [
+        { table: 'processing_runs', op: 'UPDATE', key: { id: run }, cols: ['started_at', 'updated_at', 'updated_by'],
+          old: { started_at: '2026-10-07T01:00:00+00:00' }, new: { started_at: '2026-10-07T00:30:00+00:00' }, ctx: { code: 'PROC-2026-0042' } },
+        { table: 'processing_run_corrections', op: 'INSERT', key: { id: 51 }, refs: runRef,
+          new: { id: 51, run_id: run, field: 'started_at', old_value: '2026-10-07 09:00:00+08', new_value: '2026-10-07 08:30:00+08',
+                 reason: 'Shift log shows the line started at 08:30', corrected_at: '2026-10-07T05:00:00Z', corrected_by: id('u') } }])
+    add('header · recipe version corrected', R19, [
+        { table: 'processing_runs', op: 'UPDATE', key: { id: run }, cols: ['recipe_version_id', 'updated_at', 'updated_by'],
+          old: { recipe_version_id: id('rv1') }, new: { recipe_version_id: id('rv2') }, ctx: { code: 'PROC-2026-0042' },
+          refs: { recipe_version_id: { [id('rv1')]: { label: 'CR-STD v1' }, [id('rv2')]: { label: 'CR-STD v2' } } } },
+        { table: 'processing_run_corrections', op: 'INSERT', key: { id: 52 }, refs: runRef,
+          new: { id: 52, run_id: run, field: 'recipe_version_id', old_value: id('rv1'), new_value: id('rv2'),
+                 reason: 'Picked the old version by mistake', corrected_at: '2026-10-07T05:10:00Z', corrected_by: id('u') } }])
+    add('operation · parameter added', O19, [{ table: 'operation_type_fields', op: 'INSERT', key: { operation_type_code: 'casing_removal', field_code: 'blade_speed' },
+        new: { operation_type_code: 'casing_removal', field_code: 'blade_speed', name_en: 'Blade speed', name_zh: '刀速', kind: 'parameter',
+               value_type: 'number', unit: 'rpm', is_required: true, has_range: true, range_min: 800, range_max: 1200, is_active: true,
+               sort_order: 4, notes: null, created_at: '2026-10-07T02:00:00Z', created_by: id('u'), updated_at: '2026-10-07T02:00:00Z', updated_by: id('u') } }])
+    add('operation · parameter retired', O19, [{ table: 'operation_type_fields', op: 'UPDATE', key: { operation_type_code: 'casing_removal', field_code: 'blade_speed' },
+        cols: ['is_active', 'updated_at', 'updated_by'], old: { is_active: true }, new: { is_active: false }, ctx: { name_en: 'Blade speed' } }])
+    const fa = id('fa')
+    const faRef = { fixed_asset_id: { [fa]: { label: 'FA-2026-0007' } } }
+    add('operation · machine linked', O19, [{ table: 'operation_type_equipment', op: 'INSERT', key: { operation_type_code: 'casing_removal', fixed_asset_id: fa },
+        refs: faRef, new: { operation_type_code: 'casing_removal', fixed_asset_id: fa, notes: null, created_at: '2026-10-07T02:00:00Z', created_by: id('u') } }])
+    add('operation · machine unlinked', O19, [{ table: 'operation_type_equipment', op: 'DELETE', key: { operation_type_code: 'casing_removal', fixed_asset_id: fa },
+        refs: faRef, old: { operation_type_code: 'casing_removal', fixed_asset_id: fa, notes: null, created_at: '2026-10-07T02:00:00Z', created_by: id('u') } }])
+    const rc = id('rc')
+    add('operation · recipe added', O19, [{ table: 'process_recipes', op: 'INSERT', key: { id: rc },
+        new: { id: rc, operation_type_code: 'casing_removal', code: 'CR-STD', name_en: 'Standard casing removal', name_zh: '标准拆壳', is_active: true,
+               notes: null, created_at: '2026-10-07T02:00:00Z', created_by: id('u'), updated_at: '2026-10-07T02:00:00Z', updated_by: id('u') } }])
+    add('operation · recipe version added', O19, [{ table: 'process_recipe_versions', op: 'INSERT', key: { id: id('rv') },
+        refs: { recipe_id: { [rc]: { label: 'CR-STD' } } },
+        new: { id: id('rv'), recipe_id: rc, version: 2, param_values: { blade_speed: 1000 }, notes: 'Slower blade for pouch cells',
+               created_at: '2026-10-07T02:00:00Z', created_by: id('u') } }])
+    add('operation · tolerance set', O19, [{ table: 'operation_types', op: 'UPDATE', key: { code: 'casing_removal' },
+        cols: ['balance_tolerance_pct'], old: { balance_tolerance_pct: null }, new: { balance_tolerance_pct: 1.5 } }])
+    add('shift · hours set', { subject: 'dictionary_shifts', recordId: null, currency: null }, [{ table: 'shifts', op: 'UPDATE', key: { code: 'day' },
+        cols: ['starts_at', 'ends_at', 'updated_at'], old: { starts_at: null, ends_at: null }, new: { starts_at: '07:00:00', ends_at: '19:00:00' },
+        ctx: { code: 'day', name_en: 'Day shift' } }])
+    add('exception type · added', { subject: 'dictionary_processing_event_types', recordId: null, currency: null }, [{ table: 'processing_event_types',
+        op: 'INSERT', key: { code: 'power_outage' },
+        new: { code: 'power_outage', name_en: 'Power outage', name_zh: '停电', is_active: true, sort_order: 40, notes: null } }])
+    const WANT = {
+        "value · recorded after commit": {
+            "title": "Value recorded",
+            "part": "Cell count",
+            "lines": [
+                "Value: 48",
+                "Source: Entered by hand"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "value · corrected with a reason": {
+            "title": "Value corrected",
+            "part": null,
+            "lines": [
+                "Value: 46",
+                "Range minimum at the time: 40",
+                "Range maximum at the time: 45",
+                "Out of range: Yes",
+                "Source: Entered by hand"
+            ],
+            "reason": "Two cells were counted twice",
+            "who": "Fu Sheng"
+        },
+        "event · recorded": {
+            "title": "Exception recorded",
+            "part": "Unplanned stop",
+            "lines": [
+                "Occurred at: 07/10/2026 10:30",
+                "Duration (minutes): 15",
+                "Action taken: Cleared the jammed conveyor",
+                "Responsible person: Ah Kow",
+                "Source: Entered by hand"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "event · withdrawn": {
+            "title": "Exception withdrawn",
+            "part": "Unplanned stop",
+            "lines": [],
+            "reason": "Recorded on the wrong run",
+            "who": "Fu Sheng"
+        },
+        "loss · recorded": {
+            "title": "Loss recorded",
+            "part": "Sampling consumption",
+            "lines": [
+                "Quantity: 2.5"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "loss · corrected": {
+            "title": "Loss corrected",
+            "part": "Sampling consumption",
+            "lines": [
+                "Quantity: 1.5"
+            ],
+            "reason": "Lab returned one sample",
+            "who": "Fu Sheng"
+        },
+        "balance · closed with an explanation": {
+            "title": "Material balance closed",
+            "part": null,
+            "lines": [
+                "Input: 1,000",
+                "Outputs: 940",
+                "Named losses: 40",
+                "Remainder: 20",
+                "Tolerance (%): 1"
+            ],
+            "reason": "Dust collector not emptied before weighing",
+            "who": "Fu Sheng"
+        },
+        "balance · closed within tolerance": {
+            "title": "Material balance closed · within tolerance",
+            "part": null,
+            "lines": [
+                "Input: 1,000",
+                "Outputs: 995",
+                "Named losses: 0",
+                "Remainder: 5",
+                "Tolerance (%): 1"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "header · start time corrected": {
+            "title": "Run header corrected",
+            "part": "Start time",
+            "lines": [
+                "Started at: 07/10/2026 09:00 → 07/10/2026 08:30"
+            ],
+            "reason": "Shift log shows the line started at 08:30",
+            "who": "Fu Sheng"
+        },
+        "header · recipe version corrected": {
+            "title": "Run header corrected",
+            "part": "Recipe version",
+            "lines": [
+                "Recipe version: CR-STD v1 → CR-STD v2"
+            ],
+            "reason": "Picked the old version by mistake",
+            "who": "Fu Sheng"
+        },
+        "operation · parameter added": {
+            "title": "Parameter added",
+            "part": "Blade speed",
+            "lines": [
+                "Name (ZH): 刀速",
+                "Kind: Parameter",
+                "Value type: Number",
+                "Unit: rpm",
+                "Required: Yes",
+                "Has a range: Yes",
+                "Range minimum: 800",
+                "Range maximum: 1,200",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "operation · parameter retired": {
+            "title": "Parameter retired",
+            "part": "Blade speed",
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "operation · machine linked": {
+            "title": "Machine linked",
+            "part": "FA-2026-0007",
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "operation · machine unlinked": {
+            "title": "Machine unlinked",
+            "part": "FA-2026-0007",
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "operation · recipe added": {
+            "title": "Recipe added",
+            "part": "CR-STD",
+            "lines": [
+                "Name (EN): Standard casing removal",
+                "Name (ZH): 标准拆壳",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "operation · recipe version added": {
+            "title": "Recipe version added",
+            "part": "CR-STD v2",
+            "lines": [
+                "Parameter values: Details recorded",
+                "Notes: Slower blade for pouch cells"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "operation · tolerance set": {
+            "title": "Balance tolerance set",
+            "part": null,
+            "lines": [
+                "Balance tolerance (%): (empty) → 1.5"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "shift · hours set": {
+            "title": "Shift changed",
+            "part": "Day shift",
+            "lines": [
+                "Starts at: (empty) → 07:00",
+                "Ends at: (empty) → 19:00"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "exception type · added": {
+            "title": "Exception type added",
+            "part": "Power outage",
+            "lines": [
+                "Name (ZH): 停电",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        }
+    }
+    const got19 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 19) problems.gold19.push(`⑲ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD19', order: 1, prelog: false, at: '2026-10-07T02:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold19.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD19')
+        if (mine.length !== 1) { problems.gold19.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got19[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold19.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold19.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold19.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD19_PRINT) console.log(JSON.stringify(got19, null, 8))
+    if (FAULT === 'wording-drift-mes4a' && !problems.gold19.length) problems.gold19.push('(注入 wording-drift-mes4a 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -5042,7 +5355,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

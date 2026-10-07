@@ -183,7 +183,22 @@ Tim 的 Q12:登记,本刀不修。线上 2026-09-25 读(postgres,基表):三张�
 登记,本刀不修(APR-5b 的发货放行会让"贷掉的那一截还能不能发"在 ship_order 上按名拒,Q8,但不给状态一个出口)。
 **删除条件:** 短装收尾(按贷项或按一次关单)让订单走到一个终态。
 
-## ROLE1B3B-PROCESSING-UPDATE-POLICIES · 加工三张表的 UPDATE 策略还开在 `module.processing.edit` 上(ROLE-1 Batch 3b 登记,2026-09-25)
+## MES4A-NOT-VALID-CHECK-BLOCKS-OLD-RUN-UPDATES · 没有工序的旧加工单,任何一次 UPDATE 都过不了 `processing_runs_operation_type_required`(MES-4a 登记,2026-10-07)
+
+`processing_runs_operation_type_required` 是一条 `CHECK (operation_type_code IS NOT NULL) NOT VALID`(PROC-SUPPORT-1,`db/tables/processing_runs.sql:155`)。
+**NOT VALID 只是不在建约束那一刻检查已有的行;之后对一行的每一次 UPDATE,PostgreSQL 照样检查那一行的新值。** 于是一张没有工序的旧单,
+任何一句 UPDATE(分摊写 `allocated_at`、回滚写 `status` / `deleted_at`、一次改备注)都会被这条约束拒 —— 不论那句 UPDATE 改的是哪一列。
+表头那一段注释(`processing_runs.sql:159`)说它"永远不要 VALIDATE"是对的;它没有说的是:不 VALIDATE 也拦不住对这些行的更新。
+**MES-4a 没有修它,也没有让它更坏:** 本刀的新必填(开始 / 结束 / 班次)刻意做成【INSERT 触发器】而不是又一条 NOT VALID 的 CHECK,理由正是这一条
+(迁移抬头与 `guard_processing_run_header` 的注释);`correct_run_header` 对 MES-4a 之前的单一个字段都不改(`RUN_HEADER_PREDATES_RECORD`),
+所以本刀的新路径一条都不撞它。**量过(本地重建,2026-10-07):** 一张无工序的旧单(先插、再以 NOT VALID 加回约束)上执行 `UPDATE processing_runs SET notes = 'x'` → `new row for relation "processing_runs" violates check constraint "processing_runs_operation_type_required"`。本刀写 `correct_run_header` 时撞见它,于是那支函数对旧单一律 `RUN_HEADER_PREDATES_RECORD`。**线上没有量** —— 要量就得对一张在册的单写一句 UPDATE,
+而本刀不许碰在册的单。线上没有工序的单的张数以 `processing_runs` 的读数为准(交回 §1)。
+**删除条件:** 那几张单要么由 Tim 裁定给一个工序(那是一次回填的决定,不是修 bug),要么约束改成只对 INSERT 生效的触发器(与 MES-4a 的表头必填同形)。
+
+## ~~ROLE1B3B-PROCESSING-UPDATE-POLICIES · 加工三张表的 UPDATE 策略还开在 `module.processing.edit` 上(ROLE-1 Batch 3b 登记,2026-09-25)~~ —— ✅ **关闭于 MES-4a(2026-10-07)**
+
+> ★ **关闭**(MES-4a Step 0 Q32,Tim):`processing_runs` / `processing_outputs` / `processing_inputs` 的 UPDATE 策略拿掉了,`processing_run_losses` 的写策略也拿掉了(它改成只追加,表上只剩 SELECT)。三张加工表的直连改 / 删一律按名拒 `PROCESSING_THROUGH_FUNCTION_ONLY|表|动作`(语句级的 `trg_processing_*_direct_change`,守卫 `guard_processing_direct_write`);每一处合法改动都经一支函数:损耗 `record_run_loss` / `correct_run_loss`,表头 `correct_run_header`(六个字段,各留一行更正)。fixture 222 的 P3 翻了过来(直连 UPDATE 现在被拒),L1 改写成经函数;fixture 253 的 POL 臂。见 `docs/handbacks/MES-4a.md`。原文保留:
+
 
 Batch 3b 拿掉了 `processing_runs` / `processing_outputs` 的 INSERT 策略与三张表(再加 `processing_inputs`)的 DELETE 策略,
 直连插、直连删、以及在 `processing_runs` 上直连改 `status` / `work_order_id` 一律按名拒 `PROCESSING_THROUGH_FUNCTION_ONLY|表|动作`

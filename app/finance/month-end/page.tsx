@@ -47,7 +47,7 @@ export default async function MonthEndPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes, reconRes, blockingRes] = await Promise.all([
+    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes, reconRes, blockingRes, unclosedRes] = await Promise.all([
         supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
             .gte('rate_date', start).lte('rate_date', end),
         // FIX-2a:见 /finance/payroll-payments —— 挂 hr.view,关账的人读不到。
@@ -82,6 +82,8 @@ export default async function MonthEndPage({
         //   于是一张从没有成本条目的已提交单:清单说"做完了",关账却拒。现在两边调同一支,数的是同一样东西。
         //   (属主身份数 —— 不持加工码的财务读者经基表读会静默少行;门是 module.finance.view,与本页同一扇。)
         supabase.rpc('processing_runs_blocking_close', { p_period_end: end }).maybeSingle(),
+        // MES-4a(Q23):这个月里物料平衡还没结的加工单 —— 一句提醒,【不】挡锁期(close_period 不读它)。
+        supabase.rpc('processing_runs_unclosed_balance', { p_period_end: end }).maybeSingle(),
     ])
 
     // 【每一步的信号都必须真的读到】读不出来就抛,不许把失败渲染成 'done' ——
@@ -120,6 +122,10 @@ export default async function MonthEndPage({
     const blocking = mustOne(blockingRes, 'processing_runs_blocking_close') as { run_count: number | null; run_codes: string | null } | null
     if (!blocking) throw new Error('processing_runs_blocking_close returned no row — the month-end checklist cannot tell whether close_period would refuse')
     const blockingCount = Number(blocking.run_count ?? 0)
+    // 同一个形状:count(*) 恒有一行,零行就是这一支变了形 —— 抛,不许画成"都结了"。
+    const unclosed = mustOne(unclosedRes, 'processing_runs_unclosed_balance') as { run_count: number | null; run_codes: string | null } | null
+    if (!unclosed) throw new Error('processing_runs_unclosed_balance returned no row — the month-end checklist cannot tell which runs are unclosed')
+    const unclosedCount = Number(unclosed.run_count ?? 0)
     const blockingCodes = blocking.run_codes ?? ''
     const settings = mustOne(settingsRes, 'finance_settings')
     // 折旧:应提 > 0 = 还没跑(或有新资产);0 = 已提平/无在役资产
@@ -190,6 +196,14 @@ export default async function MonthEndPage({
             detail: allocProblems.length === 0 ? ''
                  : t('finance.monthEnd.staleAllocationDetail', { n: allocProblems.length })
                    + ': ' + allocProblems.map((r) => r.code).join(', '),
+        },
+        {
+            // MES-4a(Q23):物料平衡还没结的单 —— outstanding,不是 blocked:锁期照样锁得进去,这一步只是让人看见。
+            key: 'unclosedBalance', href: '/operation/processing',
+            state: unclosedCount > 0 ? 'outstanding' : 'done',
+            detail: unclosedCount > 0
+                ? t('finance.monthEnd.unclosedBalanceDetail', { n: unclosedCount, codes: unclosed.run_codes ?? '' })
+                : '',
         },
         {
             // FIN-22:折旧排在重估与锁之前 —— 它动 6700/5xxx 与 1510,重估后的

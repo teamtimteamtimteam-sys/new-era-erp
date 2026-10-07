@@ -5,6 +5,8 @@ import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 import { fallbackForRawError, fallbackTextFor } from '@/lib/machine-text'
 import { localizeSelfApproval } from '@/lib/selfApproval'
 import { refusePermission } from '@/lib/action-refusal'
+import { isCaptureErrorCode, localizeCaptureError } from './capture/captureErrorCodes'
+import { LOSS_ERROR_CODES } from '@/app/operation/processing/[id]/lossErrorCodes'
 
 // commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的错误码,
 // 外加工单族与(PROC-SUPPORT-1 起)交接班族的具名拒绝。
@@ -91,6 +93,30 @@ const PROCESSING_ERROR_CODES = new Set([
     'EQUIPMENT_NOT_FOUND', 'EQUIPMENT_NOT_ACQUIRED', 'EQUIPMENT_DISPOSED',
     // submit_shift_handover:引用了一段不存在的 / 已作废的停机(后者 U1-B Q15)。
     'HANDOVER_DOWNTIME_NOT_FOUND', 'HANDOVER_DOWNTIME_VOIDED',
+    // ── MES-4a(2026-10-07,Step 0 Q7–Q32,Tim):一炉的时刻与班次、机器挂在工序上、每条产出腿都是称出来的、
+    //    参数与指标、异常事件、损耗与更正、物料平衡的结算、抬头更正、工序页上的字段 / 机器 / 配方。
+    //    每一条都是一句话、一个去处 —— 不合并(理由与上面工序那一族同一条)。
+    'RUN_TIMES_REQUIRED', 'RUN_SHIFT_REQUIRED', 'RUN_SHIFT_UNKNOWN', 'RUN_END_BEFORE_START', 'RUN_IN_FUTURE',
+    'RUN_DATE_OUTSIDE_RUN_TIME',
+    'EQUIPMENT_REQUIRED_FOR_OPERATION', 'EQUIPMENT_NOT_LINKED_TO_OPERATION',
+    'OUTPUT_UNIT_NOT_KG', 'OUTPUT_WEIGHING_AMBIGUOUS', 'OUTPUT_WEIGHING_REQUIRED', 'OUTPUT_WEIGHING_INSTRUMENT_NOT_RECORDED',
+    'OUTPUT_QTY_NOT_WEIGHING', 'WEIGHING_NOT_STANDALONE_NET', 'WEIGHING_ALREADY_USED',
+    'LOSS_QTY_NOT_INPUT_MINUS_OUTPUT',
+    'RECIPE_VERSION_NOT_FOUND', 'RECIPE_VERSION_NOT_FOR_OPERATION', 'RECIPE_INACTIVE', 'RECIPE_NOT_FOUND',
+    'RECIPE_VALUES_REQUIRED', 'RECIPE_FIELD_NOT_A_PARAMETER', 'RECIPE_VALUE_INVALID', 'RECIPE_KEY_FIXED', 'RECIPE_RETIRE_NOT_DELETE',
+    'RUN_CORRECTS_NOT_REVERSED', 'RUN_ALREADY_CORRECTED', 'RUN_VALUES_INVALID',
+    'RUN_VALUE_NOT_FOUND', 'RUN_VALUE_SUPERSEDED', 'RUN_VALUE_CORRECTION_REASON_REQUIRED', 'RUN_VALUE_FIELD_NOT_ON_OPERATION',
+    'RUN_VALUE_FIELD_RETIRED', 'RUN_VALUE_ALREADY_RECORDED', 'RUN_VALUE_INVALID',
+    'RUN_EVENT_TYPE_UNKNOWN', 'RUN_EVENT_TIME_REQUIRED', 'RUN_EVENT_DURATION_INVALID', 'RUN_EVENT_ACTION_REQUIRED',
+    'RUN_EVENT_RESPONSIBLE_REQUIRED', 'RUN_EVENT_NOT_FOUND', 'RUN_EVENT_SUPERSEDED', 'RUN_EVENT_CORRECTION_REASON_REQUIRED',
+    'RUN_LOSS_CATEGORY_UNKNOWN', 'RUN_LOSS_QTY_INVALID', 'RUN_LOSS_ALREADY_RECORDED', 'RUN_LOSS_NOT_FOUND',
+    'RUN_LOSS_SUPERSEDED', 'RUN_LOSS_CORRECTION_REASON_REQUIRED', 'RUN_LOSS_CORRECTION_SAME_VALUE',
+    'RUN_BALANCE_NOT_APPLICABLE', 'RUN_BALANCE_BEFORE_CLOSURE', 'RUN_BALANCE_ALREADY_CLOSED',
+    'RUN_REQUIRED_VALUES_MISSING', 'RUN_OUTPUT_WEIGHING_MISSING', 'RUN_BALANCE_EXPLANATION_REQUIRED',
+    'RUN_HEADER_FIELD_NOT_CORRECTABLE', 'RUN_HEADER_CORRECTION_REASON_REQUIRED', 'RUN_HEADER_PREDATES_RECORD',
+    'RUN_HEADER_VALUE_INVALID', 'RUN_HEADER_CORRECTION_SAME_VALUE',
+    'OPERATION_FIELD_RETIRE_NOT_DELETE', 'OPERATION_FIELD_KEY_FIXED', 'OPERATION_FIELD_IN_USE',
+    'EQUIPMENT_LINK_NOT_EQUIPMENT',
     // ★ PERIOD_LOCKED / YEAR_CLOSED【不在这里】—— 它们横跨所有模块,由共用兜底
     //   lib/machine-text.ts 的 sharedCodeText 翻一次(点名两个日期)。这里再收一份就是第二份实现。
 ])
@@ -117,6 +143,17 @@ export async function localizeProcessingError(message: string): Promise<string> 
     //   句子不新写:走 lib/action-refusal.ts 的 refusePermission(全库只此一句,点名那个码)。
     if (match && match[1] === 'PERMISSION_DENIED') {
         return (await refusePermission(match[2] ?? '')).error
+    }
+
+    // MES-4a:损耗分类那一条有它自己的句子(processing.loss.errors.*)—— 损耗面板改走函数之后,它与别的码从同一支动作里出来。
+    if (match && LOSS_ERROR_CODES.has(match[1])) {
+        const lp: Record<string, string> = {}
+        if (match[2]) match[2].split('|').forEach((v, i) => { lp[String(i)] = v })
+        return (await getTranslations())('processing.loss.errors.' + match[1], lp)
+    }
+    // MES-4a:产出腿的称重走称重那一支(校准闸、仪器、称重已更正 —— capture.errors.* 早就有那几句),一句码只翻一次。
+    if (match && !PROCESSING_ERROR_CODES.has(match[1]) && isCaptureErrorCode(raw)) {
+        return await localizeCaptureError(raw)
     }
 
     if (!match || !PROCESSING_ERROR_CODES.has(match[1])) {
@@ -169,6 +206,12 @@ export async function localizeProcessingError(message: string): Promise<string> 
         const locale = await getLocale()
         if (params['1']) params['1'] = formatDate(params['1'], locale)
         if (params['2']) params['2'] = formatDate(params['2'], locale)
+    }
+
+    // MES-4a:一炉的时刻与读数日带的是 ISO 日期 —— 格式化一次再进句子。
+    if (code === 'RUN_DATE_OUTSIDE_RUN_TIME' || code === 'RUN_IN_FUTURE') {
+        const locale = await getLocale()
+        for (const k of Object.keys(params)) if (/^\d{4}-\d{2}-\d{2}$/.test(params[k])) params[k] = formatDate(params[k], locale)
     }
 
     return t('processing.errors.' + code, params)

@@ -80,6 +80,8 @@ function clean(label) {
 
 // ── 本刀三个主语的表:人工核过的标签(页面上的说法优先;交回报告逐条列出)──────────
 const OVERRIDES = {
+    // MES-4a(2026-10-07):班次的两个时刻是钟点,不是日子 —— 勘察配上的 "Start" / "Ends on" 读起来像日期
+    shifts: { starts_at: 'Starts at', ends_at: 'Ends at' },
     purchase_orders: {
         code: 'Purchase order number', supplier_id: 'Supplier', order_date: 'Order date', expected_delivery_date: 'Expected delivery',
         currency: 'Currency', fx_rate: 'FX rate', estimated_total_ccy: 'Estimated total', status: 'Status',
@@ -690,6 +692,11 @@ const TABLE_NAMES = {
     nea_waste_categories: 'NEA waste category', licence_storage_limits: 'storage ceiling', receipt_ceiling_checks: 'storage ceiling check',
     // MES-3b(2026-10-07)
     dangerous_goods_codes: 'UN dangerous-goods number', label_templates: 'label template', label_prints: 'label print',
+    // MES-4a(2026-10-07):工序的字段 / 机器 / 配方 / 版本;一炉的值、异常事件、平衡结算、抬头更正;两本新字典
+    operation_type_fields: 'parameter', operation_type_equipment: 'machine link', process_recipes: 'recipe',
+    process_recipe_versions: 'recipe version', processing_run_values: 'recorded value', processing_run_events: 'exception',
+    processing_run_closures: 'balance closure', processing_run_corrections: 'header correction',
+    processing_event_types: 'exception type',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -776,7 +783,7 @@ const AREA_RULES = [
     [/^(waste_classification)/, 'Materials'],
     [/^(certificate_type)/, 'Output'],
     [/^(purchase_order|po_issues|pricing_term_commitments|company_compliance)/, 'Purchasing'],
-    [/^(processing|batch_processing|work_order|equipment|shift_handover|operation)/, 'Processing'],
+    [/^(processing|batch_processing|work_order|equipment|shift_handover|operation|process_recipe)/, 'Processing'],
     [/^(inbound|receipt|assay|receiving)/, 'Receiving'],
     [/^(output|certificates_of_destruction|traceability|cod_)/, 'Output'],
     [/^(inventory|storage_location|warehouse_request|stock)/, 'Inventory'],
@@ -809,6 +816,13 @@ function humanTable(t) {
 // ── 取值的英文 ───────────────────────────────────────────────────────────────
 // 【没登记在 check-i18n 里、而这一刀三个主语要用的】—— 措辞写在这里,交回报告列出。
 const ENUM_OVERRIDES = {
+    // MES-4a(2026-10-07):字段的种类与类型 · 一个值 / 一件事件从哪里来 · 抬头更正的是哪一格(四列各一张 CHECK 清单)
+    'operation_type_fields#kind': { parameter: 'Parameter', indicator: 'Indicator' },
+    'operation_type_fields#value_type': { number: 'Number', count: 'Count', text: 'Text', yes_no: 'Yes or no' },
+    'processing_run_values#source': { manual: 'Entered by hand', device: 'From a device', recipe: 'From the recipe' },
+    'processing_run_events#source': { manual: 'Entered by hand', device: 'From a device' },
+    'processing_run_corrections#field': { started_at: 'Start time', ended_at: 'End time', shift_code: 'Shift', equipment_id: 'Machine',
+        recipe_version_id: 'Recipe version', notes: 'Notes' },
     // MES-3a(2026-10-06):进厂那一刻库存上限怎么判的(receipt_ceiling_checks.outcome 的 CHECK)
     // MES-3b(2026-10-07):标签模板给哪一种东西 · 印标签那一行是哪一种东西(两列同一张 CHECK 清单)
     'label_templates#object_kind': { inbound_batch: 'Inbound batch', output_batch: 'Output batch', storage_location: 'Storage location' },

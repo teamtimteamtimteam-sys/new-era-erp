@@ -20,7 +20,13 @@ INSERT INTO public.operation_type_output_forms (operation_type_code, form_code, 
     ('electrode_line', 'anode_sheet', NULL),
     ('electrode_line', 'separator', '【R4】它是一个【出口】——离开这条线,不再往下走。'),
     ('electrode_powder_line', 'black_mass', NULL),
-    ('battery_powder_line', 'black_mass', NULL);
+    ('battery_powder_line', 'black_mass', NULL),
+    -- MES-4a(MES-0 Q37 · MES-4a Step 0 Q3):electrode_line 那四行拆给两段
+    ('casing_removal', 'de_cased_cell', NULL),
+    ('casing_removal', 'casing', NULL),
+    ('electrode_separation', 'cathode_sheet', NULL),
+    ('electrode_separation', 'anode_sheet', NULL),
+    ('electrode_separation', 'separator', '【R4】它是一个【出口】——离开这条线,不再往下走。');
 
 -- 安全状态受理 —— **本刀的核心**
 

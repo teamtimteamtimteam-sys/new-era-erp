@@ -108,10 +108,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    SELECT commit_processing_run(d, 'fixture 58 D', 0,
+    SELECT commit_processing_run(d, 'fixture 58 D', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', b, 'quantity_consumed', 80)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)),
-        'weight', NULL, NULL, 'manual_disassembly') INTO run1;
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'weight_kg', 80)),
+        'weight', NULL, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day') INTO run1;
     SELECT count(*) INTO v_n FROM processing_outputs WHERE run_id = run1;
     IF v_n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 58D 失败:撤掉 INSERT 策略之后 commit_processing_run 应当照样建得出产出批,实际 % 条产出腿 —— 这一刀把客户端的门关了,不该把加工那条内部路径一起关掉', v_n;

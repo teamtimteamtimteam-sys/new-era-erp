@@ -160,8 +160,8 @@ BEGIN
     v_res := create_output_batch(v_mat, 80, 'kg', d_arr);  v_ob_none := (v_res->>'batch_id')::uuid;
     v_res := create_output_batch(v_mat, 40, 'kg', d_arr);  v_ob_sold := (v_res->>'batch_id')::uuid;
 
-    INSERT INTO processing_runs (code, status, allocation_basis, process_date, allocated_at, operation_type_code)
-    VALUES ('ZZ172-RUN-COSTED', 'committed', 'weight', d_arr, now(), 'manual_disassembly') RETURNING id INTO v_run;
+    INSERT INTO processing_runs (code, status, allocation_basis, process_date, allocated_at, operation_type_code, started_at, ended_at, shift_code)
+    VALUES ('ZZ172-RUN-COSTED', 'committed', 'weight', d_arr, now(), 'manual_disassembly', (d_arr)::timestamptz, LEAST((d_arr)::timestamptz + interval '1 hour', now()), 'day') RETURNING id INTO v_run;
     -- 分摊过、在库 → 有数
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced, unit_cost_base)
     VALUES (v_run, v_ob_cost, 60, 2.5);
@@ -306,8 +306,8 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════
     -- ★ 陷阱②:先证【有那张单时被拒】,再拿掉它证【同一次关账能过】。
     --   只测前一半的话,"关账失败"可能是试算不平之类完全无关的理由。
-    INSERT INTO processing_runs (code, status, allocation_basis, process_date, allocated_at, operation_type_code)
-    VALUES ('ZZ172-RUN-UNALLOC', 'committed', 'weight', d_arr, NULL, 'manual_disassembly') RETURNING id INTO v_run;
+    INSERT INTO processing_runs (code, status, allocation_basis, process_date, allocated_at, operation_type_code, started_at, ended_at, shift_code)
+    VALUES ('ZZ172-RUN-UNALLOC', 'committed', 'weight', d_arr, NULL, 'manual_disassembly', (d_arr)::timestamptz, LEAST((d_arr)::timestamptz + interval '1 hour', now()), 'day') RETURNING id INTO v_run;
 
     -- 换成【没有过账的那个人】来关 —— 否则撞的是 SOD,不是本刀的闸。
     PERFORM set_config('request.jwt.claims',

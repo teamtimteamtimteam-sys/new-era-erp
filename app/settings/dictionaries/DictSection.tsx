@@ -68,6 +68,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
             const v = r[x.column]
             e[x.column] = x.kind === 'boolean' ? (v === true ? 'true' : v === false ? 'false' : '')
                         : x.kind === 'number' ? (v === null || v === undefined ? '' : String(v))
+                        // MES-4a:库里的 time 是 HH:MM:SS,框里只要 HH:MM
+                        : x.kind === 'time' ? (v === null || v === undefined ? '' : String(v).slice(0, 5))
                                                : ((v as string | null) ?? '')
         }
         setExtras(e); setEditing(r.code)
@@ -90,6 +92,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                 if (v === null || v === undefined) return <span className="text-amber-700" data-not-set={x.column}>{t('dict.notYetSet')}</span>
                 if (x.kind === 'boolean') return v === true ? t('common.yes') : t('common.no')
                 if (x.kind === 'choice') { const o = x.options?.find((p) => p.value === v); return o ? t(o.labelKey) : String(v) }
+                if (x.kind === 'time') return String(v).slice(0, 5)
                 return String(v)
             },
         } as Column<DictRow>)),
@@ -247,6 +250,15 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                                         </select>
                                         <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</p>
                                     </div>
+                                ) : x.kind === 'time' ? (
+                                    <label className="block">
+                                        <span className={flabel}>{t(x.labelKey)}</span>
+                                        {/* MES-4a(Q5):HH:MM,新加坡钟面。空 = 还没有人说过(V6),不是 00:00。 */}
+                                        <input inputMode="numeric" placeholder="HH:MM" value={extras[x.column] ?? ''}
+                                               onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
+                                               className={field} />
+                                        <span className="text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</span>
+                                    </label>
                                 ) : x.kind === 'number' ? (
                                     <label className="block">
                                         <span className={flabel}>{t(x.labelKey)}</span>

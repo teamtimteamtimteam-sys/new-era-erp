@@ -243,9 +243,9 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f113 price');
     v_denied := false; v_msg := NULL;
     BEGIN
-        v_run := commit_processing_run(v_process, 'f113 gate exists now', 0,
+        v_run := commit_processing_run(v_process, 'f113 gate exists now', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 100)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (v_process)::timestamptz, p_ended_at => LEAST((v_process)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
         RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— 带着「带电未放电」的一批货必须被按名拒,实得 denied=%、msg=「%」。

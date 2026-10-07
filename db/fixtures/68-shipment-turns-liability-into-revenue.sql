@@ -421,9 +421,9 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(d, 'fixture 68 K run', 0,
+    v_run := commit_processing_run(d, 'fixture 68 K run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 50)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matK, 'quantity', 50)), 'weight', NULL, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matK, 'weight_kg', 50)), 'weight', NULL, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     SELECT po.output_batch_id INTO obK FROM processing_outputs po WHERE po.run_id = v_run LIMIT 1;
 
     -- 【故意先发货、后分摊】—— 补挂存在的全部理由就是这个顺序:发货当刻

@@ -19,7 +19,7 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | # | value | where the page sends you | arm reads | permission | supplied by | trigger | added by |
 |---|---|---|---|---|---|---|---|
 | V5 | Heartbeat interval per gateway (seconds) | the gateway's device page (`/operation/devices/<id>`) | every gateway not retired whose `devices.heartbeat_interval_s` is empty | `module.processing.view` | integrator / device vendor | gateway commissioning | MES-1 |
-| V6 | Working hours for the transmission-anomaly listing | `/operation/handovers` (the shift dictionary) | every active shift whose `shifts.starts_at` and `ends_at` are both empty | `module.processing.view` | Tim | shift times decided | MES-1 |
+| V6 | Shift start and end times (working hours) | `/settings/dictionaries` (Shifts — **moved here by MES-4a, Step 0 Q5**; it used to point at `/operation/handovers`) | every active shift whose `shifts.starts_at` and `ends_at` are both empty | `module.processing.view` | Tim | shift times decided | MES-1 (relabelled MES-4a) |
 | V8 | Calibration reminder lead days (one number for every instrument) | `/operation/calibration` (the settings panel) | the single `ingest_settings` row while `calibration_lead_days` is empty | `module.processing.view` | Tim / the calibration body's recommended notice | before the first certificate nears its expiry | MES-2 |
 | V33 | Capacity (and its unit) of each instrument in use | the instrument's device page (`/operation/devices/<id>`) | every scale, weighbridge, meter or inline instrument not retired and not `reserved` whose `devices.capacity` is empty | `module.processing.view` | instrument vendor / nameplate | instrument installation | MES-2 |
 | V2 | Storage ceiling (t) per licence × NEA waste category | `/purchasing/licences` (the ceilings panel under each waste-disposal licence) | the waste-disposal licence in force today × each active NEA category with no `licence_storage_limits` row | `module.suppliers.view` | NEA licence conditions | NEA licence issued | MES-3a |
@@ -30,6 +30,8 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | V30 | Marking text, packing instruction and label size per UN dangerous-goods number | `/settings/dictionaries` (UN dangerous-goods numbers) | each active `dangerous_goods_codes` row with any of `marking_text`, `packing_instruction`, `label_size` empty | `module.materials.view` | a DG-qualified forwarder | before the first export | MES-3b |
 | V31 | HS code of each battery material | the material editor (`/materials/<id>/edit`) | each live material of a battery kind (`material_kinds.has_condition_axes`) with `hs_code` empty | `module.materials.view` | the customs broker | before the first export | MES-3b |
 | V35 | UN dangerous-goods number of each battery material | the material editor (`/materials/<id>/edit`) | each live material of a battery kind with `dg_code` empty | `module.materials.view` | the forwarder, with Tim | before the first export or the first dangerous-goods shipment | MES-3b |
+| V1 | Material-balance tolerance (% of input) per transforming operation | the operation's page (`/operation/operation-types/<code>`) | each active operation whose kind produces outputs and whose `operation_types.balance_tolerance_pct` is empty (state-changing operations — deep discharge — have no balance and no row) | `module.processing.view` | Tim with the process engineer | before balances are closed routinely | MES-4a |
+| V36 | Range (lower / upper bound) of a process parameter or indicator | the operation's page (`/operation/operation-types/<code>`, Parameters and indicators) | each active `operation_type_fields` row with `has_range` = true and both `range_min` and `range_max` empty (none of the 27 seeded fields declares a range, so the arm is empty until someone says a field has one) | `module.processing.view` | equipment vendor / process engineer | equipment commissioning | MES-4a |
 
 **What "Not yet set" means for V5.** A gateway with no heartbeat interval cannot be judged silent: its status reads
 **"Not yet set — silence cannot be judged"**, it raises no `gateway_silent` reminder, and no outage is recorded for it.
@@ -38,6 +40,20 @@ Nothing guesses an interval.
 **What V6 holds back.** `ingest_transmission_anomalies` lists refused calls, overflow buckets, sequence reuse and
 clock-ahead messages today. The **out-of-hours** arm (transmissions outside working hours) is not built until V6 is supplied — there is no
 definition of "working hours" to compare against, and inventing one would flag honest night shifts.
+
+**What V1 holds back (MES-4a, Step 0 Q18 · Q19).** A run's material balance (input = weighed outputs + named losses + remainder) can always be
+closed. The tolerance only decides whether the close needs a **written explanation**: within it, the explanation is optional; outside it — or with
+**no tolerance set** — `close_run_balance` refuses without one (`RUN_BALANCE_EXPLANATION_REQUIRED`). So an empty V1 makes every close of that
+operation's runs ask for a sentence. The tolerance in force is copied into each closure row, so changing V1 later never rewrites an old closure.
+Nothing guesses a tolerance.
+
+**What V36 holds back (MES-4a, Step 0 Q12).** A value outside its field's range is **recorded and flagged**, never refused. A field that has a
+range but no bounds yet is recorded with no flag at all (`out_of_range` is NULL — "could not be judged", not "within range"). The bounds in force
+are copied onto each recorded value (`range_min_at` / `range_max_at`), so a later range change does not re-judge old values.
+
+**What V6 holds back (relabelled by MES-4a, Step 0 Q5).** Since MES-4a every new run states its shift, and the shift's hours are edited in the
+Shifts dictionary (`/settings/dictionaries`, a time field). Until V6 is supplied a shift has no hours, so nothing compares a run's start and end
+with its shift; the out-of-hours transmission arm below stays unbuilt for the same reason.
 
 **What V8 holds back (MES-2).** Each calibration record carries its certificate's own **valid-until** (required), so
 "is this instrument in calibration today" never waits on V8. What V8 adds is the **warning before** expiry: with it empty,

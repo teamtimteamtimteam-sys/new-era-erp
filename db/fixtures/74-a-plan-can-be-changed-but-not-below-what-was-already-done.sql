@@ -329,10 +329,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(d, 'fixture 74 run', 0,
+    v_run := commit_processing_run(d, 'fixture 74 run', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 60)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 55)), 'weight',
-        woC, NULL, 'manual_disassembly');   -- ← WO-1b:真实路径,不再直改
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 55)), 'weight',
+        woC, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');   -- ← WO-1b:真实路径,不再直改
     IF (SELECT work_order_id FROM processing_runs WHERE id = v_run) IS DISTINCT FROM woC THEN
         RAISE EXCEPTION 'FIXTURE 74D 失败:加工单应当认下它照的那张工单';
     END IF;
@@ -533,10 +533,10 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(d, 'fixture 74 run 2', 0,
+    v_run := commit_processing_run(d, 'fixture 74 run 2', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 60)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 55)), 'weight',
-        woE, NULL, 'manual_disassembly');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'weight_kg', 55)), 'weight',
+        woE, NULL, 'manual_disassembly', p_started_at => (d)::timestamptz, p_ended_at => LEAST((d)::timestamptz + interval '1 hour', now()), p_shift_code => 'day');
     IF (SELECT status FROM work_orders WHERE id = woE) <> 'released'
        OR (SELECT count(*) FROM processing_runs WHERE work_order_id = woE AND status='committed') <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 74 注入1 前提不成立:要的是【released、且挂着一条已提交加工单】的工单';

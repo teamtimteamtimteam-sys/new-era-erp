@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 import { normaliseIdentityText, findNearDuplicate } from '@/lib/nearDuplicate'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
-import { DICTIONARIES } from './registry'
+import { DICTIONARIES, type ExtraField } from './registry'
 import { fallbackForRawError } from '@/lib/machine-text'
 
 export type DictState = { error?: string; success?: boolean }
@@ -84,6 +84,11 @@ export async function addDictValue(input: {
             const raw = (v ?? '').trim()
             if (raw !== '' && !Number.isFinite(Number(raw))) return { error: t('dict.errNumber', { 0: t(f.labelKey) }) }
             row[f.column] = raw === '' ? null : Number(raw)
+        } else if (f.kind === 'time') {
+            // MES-4a(Q5):HH:MM;空 = NULL = "还没有人说过"(V6),不是 00:00。
+            const r = timeValue(t, f, v, input.extras)
+            if ('error' in r) return r
+            row[f.column] = r.value
         } else {
             // MES-3b:必填的文本 / 选项不许空着走(dg_class · object_kind · page_size)—— 空着让库拒,句子是一串约束名
             if (f.required && (v ?? '').trim() === '') return { error: t('dict.errRuleUnset', { 0: t(f.labelKey) }) }
@@ -123,6 +128,10 @@ export async function updateDictValue(input: {
             const raw = (v ?? '').trim()
             if (raw !== '' && !Number.isFinite(Number(raw))) return { error: t('dict.errNumber', { 0: t(f.labelKey) }) }
             patch[f.column] = raw === '' ? null : Number(raw)
+        } else if (f.kind === 'time') {
+            const r = timeValue(t, f, v, input.extras)
+            if ('error' in r) return r
+            patch[f.column] = r.value
         } else {
             if (f.required && (v ?? '').trim() === '') return { error: t('dict.errRuleUnset', { 0: t(f.labelKey) }) }
             patch[f.column] = (v ?? '').trim() || null
@@ -132,6 +141,18 @@ export async function updateDictValue(input: {
     if (error) return { error: await dictError(error.message) }
     revalidatePath('/settings/dictionaries')
     return { success: true }
+}
+
+/** MES-4a(Q5):一个时刻 —— 空 = NULL;不是 HH:MM 的按名拒;成对的那一头空着而这一头给了(或反过来)也按名拒。 */
+function timeValue(t: (k: string, p?: Record<string, string>) => string, f: ExtraField, v: string | undefined,
+                   extras: Record<string, string>): { value: string | null } | { error: string } {
+    const raw = (v ?? '').trim()
+    if (raw !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(raw)) return { error: t('dict.errTime', { 0: t(f.labelKey) }) }
+    if (f.pairedWith) {
+        const other = (extras[f.pairedWith] ?? '').trim()
+        if ((raw === '') !== (other === '')) return { error: t('dict.errTimePaired') }
+    }
+    return { value: raw === '' ? null : raw }
 }
 
 /**

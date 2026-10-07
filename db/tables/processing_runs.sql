@@ -61,7 +61,18 @@ CREATE TABLE public.processing_runs (
     -- ── PROC-WIRE-1B-i 追加的列 ──────────────────────────────────────────
     -- 这一炉跑的是【哪一道工序】。列本身仍然可空 —— 那 13 张测试残留要留在原地;
     -- 【新行由下面那条 NOT VALID 的 CHECK 必填】(PROC-SUPPORT-1)。
-    operation_type_code text REFERENCES public.operation_types (code)
+    operation_type_code text REFERENCES public.operation_types (code),
+    -- ── MES-4a 追加的列(2026-10-07,MES-0 Q42 · Q44 · Q49;MES-4a Step 0 Q7 · Q16 · Q31)──────────
+    -- 这一炉从几点跑到几点、哪个班。【MES-4a 起提交的每一张都必填】(trg_processing_runs_header → assert_run_header,只管新行);
+    -- 之前的单一律留空(Q21:不回填,不猜)—— 而"开始时刻为空"正是读者认出"结平之前记下的单"的那一句判据。
+    started_at          timestamptz,
+    ended_at            timestamptz,
+    shift_code          text REFERENCES public.shifts (code),
+    -- 这一炉照配方的哪一版跑的(可空 —— 不用配方是合法的)。
+    recipe_version_id   uuid REFERENCES public.process_recipe_versions (id),
+    -- 这一张是来【更正】哪一张的:被更正的那张必须已经回滚(RUN_CORRECTS_NOT_REVERSED),而且只能被更正一次(唯一)。
+    corrects_run_id     uuid UNIQUE REFERENCES public.processing_runs (id),
+    CONSTRAINT processing_runs_end_after_start CHECK (ended_at IS NULL OR started_at IS NULL OR ended_at > started_at)
 );
 
 COMMENT ON COLUMN public.processing_runs.operation_type_code IS
@@ -159,10 +170,9 @@ CREATE POLICY "processing_runs select by permission"
 --   提交与回滚只经 commit_processing_run / rollback_processing_run(SECURITY DEFINER);直连写按名拒
 --   PROCESSING_THROUGH_FUNCTION_ONLY(guard_processing_direct_write,见文末)。
 
-CREATE POLICY "processing_runs update by permission"
-    ON public.processing_runs
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+-- ★ MES-4a(2026-10-07,MES-4a Step 0 Q32,Tim):UPDATE 策略也拿掉了(ROLE1B3B-PROCESSING-UPDATE-POLICIES 关闭)。
+--   表头只经函数改:commit_processing_run(建)· rollback 那一支(冲销)· allocate_processing_costs(成本)·
+--   correct_run_header(六个可更正的字段,留更正行)。直连改按名拒 PROCESSING_THROUGH_FUNCTION_ONLY(见文末)。
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_runs_masked 读取。
@@ -175,7 +185,8 @@ REVOKE SELECT ON public.processing_runs FROM authenticated, anon;
 -- EQP-2a:equipment_id 也在列清单里 —— 它不是钱,是一台机器的引用。
 -- 【而它同时也必须进 processing_runs_masked】:一旦一张表有了 _masked 伴生,
 -- 每一列都得在那张视图里,授没授权都一样(colgrant 的第二个分支,WO-1a-fu1 红过)。
-GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id, deleted_by, delete_reason, equipment_id, operation_type_code)
+-- MES-4a:started_at · ended_at · shift_code · recipe_version_id · corrects_run_id 五列进清单、也进 processing_runs_masked(同一支迁移)。
+GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id, deleted_by, delete_reason, equipment_id, operation_type_code, started_at, ended_at, shift_code, recipe_version_id, corrects_run_id)
     ON public.processing_runs TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
@@ -217,11 +228,26 @@ CREATE TRIGGER enforce_write_permission
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');
 
 -- ── ROLE-1 Batch 3b · 不许绕过函数写(guard_processing_direct_write)──────────
--- 直连 INSERT 按名拒;直连 UPDATE 只在改 status 或 work_order_id 时按名拒(别的列仍走 UPDATE 策略,
--- 登记 ROLE1B3B-PROCESSING-UPDATE-POLICIES);直连 DELETE(语句级,零行也触发)按名拒。
+-- 直连 INSERT 按名拒(行级);★ MES-4a:直连 UPDATE 与 DELETE 一律按名拒(语句级,零行也触发 —— UPDATE 策略已经拿掉,
+-- 没有它时直连 UPDATE 在 RLS 那里是零行、不报错,行级触发器不会醒;SILENT-1 那一族)。
 CREATE TRIGGER trg_processing_runs_direct_write
-    BEFORE INSERT OR UPDATE ON public.processing_runs
+    BEFORE INSERT ON public.processing_runs
     FOR EACH ROW EXECUTE FUNCTION public.guard_processing_direct_write();
-CREATE TRIGGER trg_processing_runs_direct_delete
-    BEFORE DELETE ON public.processing_runs
+CREATE TRIGGER trg_processing_runs_direct_change
+    BEFORE UPDATE OR DELETE ON public.processing_runs
     FOR EACH STATEMENT EXECUTE FUNCTION public.guard_processing_direct_write();
+
+-- ── MES-4a · 新单的表头:开始、结束、班次必填,时间合理,加工日落在两者之间(assert_run_header,只管 INSERT —— 旧单留空)──
+-- 【为什么是 INSERT 触发器,不是 NOT VALID 的 CHECK】NOT VALID 只是不检查【已有】的行;一旦有人 UPDATE 一张旧单
+-- (分摊成本、冲销),那一行的新版本照样要过这条 CHECK —— 于是每一张没有开始时刻的旧单都分摊不了、也冲销不了。
+-- 新单在 INSERT 那一刻过闸,旧单永远不被它碰。commit_processing_run 在一切业务判断之前先调同一支函数,给操作员同一句码。
+CREATE TRIGGER trg_processing_runs_header
+    BEFORE INSERT ON public.processing_runs
+    FOR EACH ROW EXECUTE FUNCTION public.guard_processing_run_header();
+
+COMMENT ON COLUMN public.processing_runs.started_at IS
+    'MES-4a(MES-0 Q42):这一炉开始的时刻。MES-4a 起提交的每一张必填(RUN_TIMES_REQUIRED);之前的单为空 —— 不回填。读者用"开始时刻为空"认出结平之前记下的单(processing_run_balance_all.balance_state = before_closure)。';
+COMMENT ON COLUMN public.processing_runs.shift_code IS
+    'MES-4a(MES-0 Q42):这一炉哪个班。选的,不是推的 —— 班次的起止时刻今天是空的(V6 · V7),推不出来。MES-4a 起提交的每一张必填(RUN_SHIFT_REQUIRED)。';
+COMMENT ON COLUMN public.processing_runs.corrects_run_id IS
+    'MES-4a(MES-0 Q49 · Q31):这一张是来更正哪一张的。数量的更正 = 回滚申请(CFO)冲掉原单 + 一张新单指回它;原单必须已经回滚,而且只能被更正一次。';
