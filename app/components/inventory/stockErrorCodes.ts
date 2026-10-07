@@ -32,6 +32,12 @@ const STOCK_ERROR_CODES = new Set([
     // 【为什么归在库存这一族而不是销售那一族】撞上它的是库存/产出侧的动作,
     // 判据只能有一份(IOD-2-fu1 的教训),所以它跟着抛出它的那扇门走。
     'SO_BATCH_HAS_RESERVATIONS',
+    // MES-3a(Q19 · Q9 · Q8 · Q3):隔离闸(收货与转移)· 库存上限(两支收货与手工产出)· 换算不成吨 · 流水不许直连插。
+    //   撞上它们的都是建批次或转移那几扇门,所以归在库存这一族(判据只有一份,跟着抛出它的门走)。
+    'QUARANTINE_LOCATION_REQUIRED',
+    'STORAGE_CEILING_EXCEEDED',
+    'STORAGE_CEILING_UNIT_NOT_CONVERTIBLE',
+    'MOVEMENTS_THROUGH_FUNCTION_ONLY',
 ])
 
 // IOD-2:【告警】的编码集合。与上面的拒绝分开,因为它们走的通道就不同 ——

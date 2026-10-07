@@ -617,3 +617,12 @@ REVOKE EXECUTE ON FUNCTION public.transform_weighing_v1(jsonb) FROM authenticate
 REVOKE EXECUTE ON FUNCTION public.capture_confirm_internal(uuid, jsonb, jsonb, jsonb, uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.weighbridge_share_internal(uuid, uuid, uuid, numeric, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.assert_receipt_reading_calibrated(uuid) FROM authenticated;
+
+-- MES-3a(2026-10-06):两支【内层】—— 没有调用者检查,只由各自查过码的 DEFINER 函数以属主身份调。
+--   receipt_ceiling_check_internal:库存上限的判法与那一行记录(两支收货函数 · create_output_batch)。给了 authenticated,
+--     就是一支随手往 receipt_ceiling_checks 里写判法、还能锁执照行的后门。
+--   assert_quarantine_landing:隔离闸(两支收货函数 · create_stock_transfer)。
+--   quantity_in_tonnes【不收】:一句纯换算(IMMUTABLE),属主视图里由读者的身份执行。
+--   storage_licence_in_force【不收】:它是 DEFINER,只回一个 id;storage_ceiling_status 与 pending_values 以读者身份调它。
+REVOKE EXECUTE ON FUNCTION public.receipt_ceiling_check_internal(uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_quarantine_landing(text[], uuid) FROM authenticated;

@@ -46,6 +46,8 @@ import DiscrepancyKinds, {
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import TicketSharesPanel from './TicketSharesPanel'
+import SafetyStateHistory from '@/app/components/safety/SafetyStateHistory'
+import CeilingCheckPanel from '@/app/components/safety/CeilingCheckPanel'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -96,8 +98,9 @@ export default async function EditInboundPage({
             .select('code, name_en, name_zh, may_be_fed').eq('is_active', true).order('sort_order'),
         supabase.from('inbound_chemistry_certainties')
             .select('code, name_en, name_zh, may_be_fed').eq('is_active', true).order('sort_order'),
+        // MES-3a(Q22):状态有历史 —— "现在身上有什么"只读开着的那几行。
         supabase.from('inbound_batch_safety_states')
-            .select('safety_state_code').eq('inbound_batch_id', id),
+            .select('safety_state_code').eq('inbound_batch_id', id).is('ended_at', null),
         supabase.from('deep_discharge_judgements')
             .select('code, name_en, name_zh').eq('is_active', true).order('sort_order'),
     ])
@@ -892,10 +895,14 @@ export default async function EditInboundPage({
                 【它也是能被【改】的那一块】:一批货到的时候带电,后来才放电并核验,
                 而那个转变正是 PROC-3 的闸要能被满足所依赖的东西。 */}
             {conditionApplicable ? (
-                <IntakeConditionPanel batchId={id} states={safetyStates as never[]}
-                    certainties={certainties as never[]} currentStates={pickedStates}
-                    currentCertainty={batch.chemistry_certainty_code ?? null}
-                    canEdit={canEditInbound} locale={locale} />
+                <>
+                    <IntakeConditionPanel batchId={id} states={safetyStates as never[]}
+                        certainties={certainties as never[]} currentStates={pickedStates}
+                        currentCertainty={batch.chemistry_certainty_code ?? null}
+                        canEdit={canEditInbound} locale={locale} />
+                    {/* MES-3a(Q16 · Q20 · Q22):隔离横幅 · 每一条开着的状态待了多久 · 结束了的那几条与理由 */}
+                    <SafetyStateHistory kind="inbound" batchId={id} unit={batch.unit} locale={locale} />
+                </>
             ) : (
                 /* 【不适用时说出是哪一种种类,而不是让这一块凭空消失】——
                    一块无声消失的界面读起来像"这个功能坏了",而不像一个答复。 */
@@ -952,7 +959,11 @@ export default async function EditInboundPage({
             <CertificatePanel batchId={id} data={codPanel} canIssue={canIssueCod}
                 openRequestLabel={(codPanel.code ? openWarehouseRequest.get(codPanel.code) : null) ?? openWarehouseRequest.get(batch.code) ?? null} />
 
-            {/* MES-2(Q19 · Q28):挂着的地磅单的份,与读数那一刻仪器的校准状态(只标;规则开着时定价与证书才拒) */}
+            {/* MES-3a(Q10):进厂那一刻库存上限是怎么判的 */}
+            <CeilingCheckPanel kind="inbound" batchId={id} locale={locale} />
+
+            {/* MES-2(Q19 · Q28):挂着的地磅单的份,与读数那一刻仪器的校准状态 —— MES-3a(裁定 1):不在期内的永远拒,开关只管两种缺席;
+                MES-3a(裁定 2):每一份下面多一行这张单此刻的净重与差额 */}
             <TicketSharesPanel batchId={id} quantity={Number(batch.quantity)} createdAt={batch.created_at} />
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />

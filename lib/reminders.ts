@@ -226,6 +226,21 @@ export const REMINDERS = [
     { itemType: 'instrument_calibration_approaching', permission: 'module.processing.view', href: '/operation/calibration',
       itemHref: (r: OpsRow) => `/operation/devices/${r.item_id}` },
 
+    // ══ MES-3a(2026-10-06,MES-0 Q32 · Q34 · Q35;MES-3a Step 0 Q13 · Q15 · Q20):库存安全的三支 —— 只提醒,不拒 ═════════════
+    // 【storage_ceiling_exceeded】今天在效执照下某一类(或总量)的存量超过了上限 —— 收货当时没超、后来上限被调低,
+    //   或加工产出把它推过去(上限只拦收货与手工产出,Q9)。一类一块,门牌指 /inventory/storage-safety(那一页列着每一类)。
+    // 【safety_state_dwell】还在厂里的一批身上,一条开着的安全状态已到它的提醒天数(V3;没给就没有这一支的行)。门牌指那一批。
+    // 【quarantine_required】一批开着要隔离的状态(鼓包或漏液),却还有货在非隔离库位 —— 记状态不拒(Q20),于是在这里说出来。门牌指那一批。
+    //   后两支的码按行:进料批 module.inbound.view,产出批 module.output.view(视图里一个 CASE);这里写主码,放宽到两者之一。
+    { itemType: 'storage_ceiling_exceeded', permission: 'module.inventory.view', href: '/inventory/storage-safety',
+      itemHref: () => '/inventory/storage-safety' },
+    { itemType: 'safety_state_dwell', permission: 'module.inbound.view',
+      permissionWiden: ['module.inbound.view', 'module.output.view'], href: '/inventory/storage-safety',
+      itemHref: (r: OpsRow) => (r.doc_kind === 'output' ? `/output/${r.item_id}/edit` : `/inbound/${r.item_id}/edit`) },
+    { itemType: 'quarantine_required', permission: 'module.inbound.view',
+      permissionWiden: ['module.inbound.view', 'module.output.view'], href: '/inventory/storage-safety',
+      itemHref: (r: OpsRow) => (r.doc_kind === 'output' ? `/output/${r.item_id}/edit` : `/inbound/${r.item_id}/edit`) },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

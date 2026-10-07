@@ -686,6 +686,8 @@ const TABLE_NAMES = {
     capture_drafts: 'draft reading', capture_draft_changes: 'change at confirmation', weighings: 'weighing',
     weighbridge_tickets: 'weighbridge ticket', weighbridge_ticket_shares: 'ticket share', weighbridge_ticket_photos: 'ticket photo',
     instrument_calibrations: 'calibration',
+    // MES-3a(2026-10-06)
+    nea_waste_categories: 'NEA waste category', licence_storage_limits: 'storage ceiling', receipt_ceiling_checks: 'storage ceiling check',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -805,6 +807,11 @@ function humanTable(t) {
 // ── 取值的英文 ───────────────────────────────────────────────────────────────
 // 【没登记在 check-i18n 里、而这一刀三个主语要用的】—— 措辞写在这里,交回报告列出。
 const ENUM_OVERRIDES = {
+    // MES-3a(2026-10-06):进厂那一刻库存上限怎么判的(receipt_ceiling_checks.outcome 的 CHECK)
+    'receipt_ceiling_checks#outcome': {
+        within: 'Within the ceiling', ceiling_not_set: 'Ceiling not set', category_not_set: 'No NEA category',
+        licence_not_in_force: 'No licence in force', unit_not_convertible: 'Unit not convertible to tonnes',
+    },
     // MES-1(2026-10-06):数据类的英文名(字典 ingest_data_classes 的 name_en,只经迁移改 —— 与它逐字同一份);
     //   采购合同的六条条款共用一组状态词,check-i18n 只把 devices.termState.* 登记在 term_protocol 上,其余五列在这里给同一组
     'devices#data_class': {

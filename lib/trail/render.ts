@@ -901,13 +901,13 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
         'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log'],
     role: ['roles', 'role_permissions', 'user_roles'],
-    inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states',
+    inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
         'pricing_term_commitment_metals', 'inventory_movements', 'stocktake_lines', 'stocktake_counts', 'processing_inputs',
         'batch_processing_cost_allocations', 'certificates_of_destruction', 'cod_issues', 'warehouse_requests', 'freight_allocations',
         'payment_allocations', 'finance_attachments', 'purchase_order_history', 'processing_cost_entry_history', 'work_order_history',
         'journal_entries'],
-    output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states',
+    output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
         'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements', 'processing_cost_entry_history',
@@ -930,7 +930,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     forwarder: ['suppliers', 'forwarder_details', 'forwarder_rate_quotes'],
     lane: ['lanes', 'lane_document_requirements'],
     port: ['ports', 'lanes'],
-    company_licence: ['company_compliance'],
+    company_licence: ['company_compliance', 'licence_storage_limits'],
     // AUDIT-TRAIL-1b-3
     material: ['materials', 'material_attachments', 'material_required_metals'],
     storage_location: ['storage_locations', 'storage_location_allowed_classes'],
@@ -989,6 +989,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     dictionary_battery_chemistries: ['battery_chemistries'],
     dictionary_material_kinds: ['material_kinds'],
     dictionary_inbound_safety_states: ['inbound_safety_states'],
+    dictionary_nea_waste_categories: ['nea_waste_categories'],
     dictionary_laboratories: ['laboratories'],
     dictionary_inbound_source_reasons: ['inbound_source_reasons'],
     // AUDIT-TRAIL-1d-2
@@ -1037,6 +1038,7 @@ const PAGE_FAMILY: Record<string, Family> = {
     account: 'access', approval_policy: 'policy', employee: 'hr', department: 'hr', training_record: 'hr', import_batch: 'import',
     dictionary_substances: 'dict', dictionary_battery_chemistries: 'dict', dictionary_material_kinds: 'dict',
     dictionary_inbound_safety_states: 'dict', dictionary_laboratories: 'dict', dictionary_inbound_source_reasons: 'dict',
+    dictionary_nea_waste_categories: 'dict',
     // AUDIT-TRAIL-1d-2(假别与公共假期是 M11 集合,与六本字典同一种说法:"<Thing> added / changed / deactivated")
     leave_request: 'time', my_leave_request: 'time', leave_grant: 'time', medical_claim: 'time', my_medical_claim: 'time',
     overtime_batch: 'time', attendance_period: 'time', leave_types: 'dict', public_holidays: 'dict',
@@ -1052,7 +1054,8 @@ const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batc
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
     'prepayment_applications', 'pricing_term_commitment_metals', 'inventory_movements', 'certificates_of_destruction', 'cod_issues',
     'freight_allocations', 'payment_allocations', 'finance_attachments', 'sales_records', 'sales_record_movements', 'sales_attribution_log',
-    'invoice_lines', 'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements'])
+    'invoice_lines', 'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements',
+    'receipt_ceiling_checks'])
 /** 这三张属于加工单;但在批次页上,它们说的是"这个批次被用了 / 被产出 / 分到了成本",从批次这一边说 */
 const BATCH_VIEW_OF_RUN = new Set(['processing_inputs', 'processing_outputs', 'batch_processing_cost_allocations'])
 const WO_TABLES = new Set(['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history'])
@@ -1109,7 +1112,7 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (SUPPLIER_TABLES.has(t)) return 'supplier'
     if (CONTAINER_TABLES.has(t)) return 'container'
     if (LANE_TABLES.has(t)) return 'lane'
-    if (t === 'company_compliance') return 'licence'
+    if (t === 'company_compliance' || t === 'licence_storage_limits') return 'licence'
     // AUDIT-TRAIL-1b-3
     if (MATERIAL_TABLES.has(t)) return 'material'
     if (t === 'storage_locations' || t === 'storage_location_allowed_classes') return 'location'
@@ -1420,11 +1423,26 @@ function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subj
         out.push({ title: withPart(tx(d, 'batch.assayChanged'), metal), lines: ls, key: false, weight: 40 })
     }
 
-    // ⑦ 安全状态(整组替换:前后一样的已经抵消)
+    // ⑦ 安全状态。MES-3a(Q22 · Q25):一条状态被【结束】(UPDATE 填上 ended_at,理由必填),不再被删;
+    //   回滚把加工结束掉的那一条重新开出来(INSERT,reopened_from_id 指回原行)。DELETE 只会出现在 MES-3a 之前的记录里。
     for (const r of by('inbound_batch_safety_states', 'output_batch_safety_states')) {
         const state = dictName(d, r, 'safety_state_code')
-        const title = tx(d, r.op === 'DELETE' ? 'batch.safetyRemoved' : 'batch.safetyAdded')
-        out.push({ title: withPart(title, state), lines: [], key: false, weight: 45 })
+        if (r.op === 'UPDATE' && isSet(r, 'ended_at')) {
+            out.push({ title: withPart(tx(d, 'batch.safetyEnded'), state), lines: [], reason: typed(r.new?.['end_reason']), key: true, weight: 46 })
+            continue
+        }
+        if (r.op === 'UPDATE') continue
+        const title = r.op === 'DELETE' ? 'batch.safetyRemoved'
+            : (r.new?.['reopened_from_id'] ? 'batch.safetyReopened' : 'batch.safetyAdded')
+        // MES-3a:记下 / 重新开出一个安全状态从此常常是一次单独的保存(只加变了的那一条),它自己就是那件事 —— key
+        out.push({ title: withPart(tx(d, title), state), lines: [], key: true, weight: 45 })
+    }
+    // ⑦b MES-3a(Q10):进厂那一刻库存上限怎么判的 —— 一批一行,只追加
+    for (const r of by('receipt_ceiling_checks')) {
+        if (r.op !== 'INSERT') continue
+        const outcome = enumLabel(d, 'receipt_ceiling_checks', 'outcome', String(r.new?.['outcome'] ?? ''))
+        out.push({ title: withPart(tx(d, 'batch.ceilingChecked'), outcome),
+                   lines: valueLines(d, r, r.new, opts, new Set(['outcome', 'inbound_batch_id', 'output_batch_id'])), key: false, weight: 44 })
     }
 
     // ⑧ 收货定价申请 · 预付款 · 运费 · 付款 · 附件
@@ -2384,6 +2402,13 @@ function describeLane(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block
 // ── 公司执照 ────────────────────────────────────────────────────────────────
 function describeLicence(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     return rows.map((r) => {
+        // MES-3a(Q12):这张执照对一类 NEA 废物的库存上限 —— 给 · 改 · 拿掉(拿掉 = 退回"没给")
+        if (r.table === 'licence_storage_limits') {
+            const cat = dictName(d, r, 'category_code')
+            if (r.op === 'INSERT') return { title: withPart(tx(d, 'lic.limitSet'), cat), lines: valueLines(d, r, r.new, opts, new Set(['category_code'])), key: true, weight: 60 }
+            if (r.op === 'DELETE') return { title: withPart(tx(d, 'lic.limitCleared'), cat), lines: [], key: true, weight: 60 }
+            return { title: withPart(tx(d, 'lic.limitChanged'), cat), lines: changeLines(d, r, opts), key: true, weight: 60 }
+        }
         const kind = refLabel(r, 'cert_type_code'), part = typed(str(r, 'cert_no'))
         if (r.op === 'INSERT') return { title: withPart(tx(d, 'lic.created'), kind), part, lines: valueLines(d, r, r.new, opts, new Set(['deleted_at', 'cert_no', 'cert_type_code'])), key: true, weight: 100 }
         if (isDeleted(r)) return { title: withPart(tx(d, 'lic.deleted'), kind), part, lines: [], key: true, weight: 90 }
@@ -3845,7 +3870,8 @@ function describeLedger3(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Bl
 //   前两种认出来、说成英文的一行;第三种整句不说(它说的那几样,履历那一行自己的几列已经说了)。
 const ACCESS_TABLES = new Set(['auth.users', 'user_roles', 'employee_accounts', 'employee_account_history'])
 const HR1_TABLES = new Set(['employees', 'employment_history', 'salary_change_requests', 'training_records', 'departments'])
-const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kinds', 'inbound_safety_states', 'laboratories', 'inbound_source_reasons'])
+const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kinds', 'inbound_safety_states', 'laboratories', 'inbound_source_reasons',
+    'nea_waste_categories'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {

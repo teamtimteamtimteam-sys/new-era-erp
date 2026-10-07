@@ -30,16 +30,21 @@ export type TableName = keyof Database['public']['Tables']
 export type DictTable =
     | 'substances' | 'battery_chemistries' | 'material_kinds'
     | 'inbound_safety_states' | 'laboratories' | 'inbound_source_reasons'
+    | 'nea_waste_categories'   // MES-3a(2026-10-06,V29):第七张 —— 同样只有那六列
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
     column: string
-    kind: 'boolean' | 'text'
+    /** MES-3a 加了 number(滞留提醒天数):空 = NULL = "Not yet set",不是 0。 */
+    kind: 'boolean' | 'text' | 'number'
     labelKey: string
     /** 这个开关到底管什么 —— 画在勾选框旁边,不是 tooltip。 */
     hintKey: string
-    /** boolean 且没有数据库默认值时必须显式选,不能靠"没勾就是 false"。 */
+    /** boolean 且没有数据库默认值时必须显式选,不能靠"没勾就是 false"。
+     *  不必填的 boolean(MES-3a 的 requires_quarantine)有第三个值:空 = NULL = "Not yet set"。 */
     required?: boolean
+    /** MES-3a:这一列也画在清单里(规则列 —— 停用前、改之前就该看得见它现在是什么)。 */
+    showInTable?: boolean
 }
 
 export type DictSpec = {
@@ -120,6 +125,12 @@ export const DICTIONARIES: DictSpec[] = [
         extras: [
             { column: 'may_be_fed', kind: 'boolean', required: true,
               labelKey: 'dict.f.may_be_fed', hintKey: 'dict.h.may_be_fed' },
+            // ★ MES-3a(2026-10-06,MES-0 Q35 · Q34;MES-3a Step 0 Q14 · Q18,Tim):滞留提醒天数(V3)与要不要隔离(V4)。
+            //   两列都可以是空的 —— 空的意思是"还没有人给",在 /settings/pending-values 上列着;没有一个数是编出来的。
+            { column: 'dwell_warning_days', kind: 'number', showInTable: true,
+              labelKey: 'dict.f.dwell_warning_days', hintKey: 'dict.h.dwell_warning_days' },
+            { column: 'requires_quarantine', kind: 'boolean', showInTable: true,
+              labelKey: 'dict.f.requires_quarantine', hintKey: 'dict.h.requires_quarantine' },
         ],
         referencedBy: [{ table: 'inbound_batch_safety_states', column: 'safety_state_code' }],
     },
@@ -154,6 +165,20 @@ export const DICTIONARIES: DictSpec[] = [
               labelKey: 'dict.f.requires_explanation', hintKey: 'dict.h.requires_explanation' },
         ],
         referencedBy: [{ table: 'inbound_batches', column: 'source_reason_code' }],
+    },
+    {
+        // ★ MES-3a(2026-10-06,MES-0 Q32 · V29;MES-3a Step 0 Q4 · Q12,Tim):NEA 批准的废物类别 —— 库存上限按"执照 × 类别"判。
+        //   【从空开始】类别的代号与名字由 NEA 执照给,不是这里编的;一个都没有时 /settings/pending-values 上有一行 V29。
+        //   写与其余几本同一个码(module.materials.edit,与那张表的写策略同一个);读的门更宽(执照、库存、进料、产出也要读)。
+        table: 'nea_waste_categories',
+        titleKey: 'dict.nea_waste_categories',
+        permission: 'module.materials.edit',
+        viewPermission: 'module.materials.view',
+        extras: [],
+        referencedBy: [
+            { table: 'materials', column: 'nea_waste_category_code' },
+            { table: 'licence_storage_limits', column: 'category_code' },
+        ],
     },
 ]
 

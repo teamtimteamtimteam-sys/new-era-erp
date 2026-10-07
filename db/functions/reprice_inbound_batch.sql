@@ -42,7 +42,7 @@ BEGIN
     IF NOT FOUND OR v_deleted IS NOT NULL THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', p_inbound_batch_id;
     END IF;
-    -- MES-2(Q26 · Q27):校准闸 —— 这张收货单的读数可不可以拿去定价。开关空着时什么都不拒;判据只在那一支函数里。
+    -- MES-2(Q26 · Q27)/ MES-3a(Tim 的裁定 1):校准闸 —— 不在校准期内的读数永远拒;开关只管两种缺席。判据只在那一支函数里。
     PERFORM assert_receipt_reading_calibrated(p_inbound_batch_id);
     IF p_unit_price IS NULL OR p_unit_price <= 0 THEN
         RAISE EXCEPTION 'PRICE_INVALID';

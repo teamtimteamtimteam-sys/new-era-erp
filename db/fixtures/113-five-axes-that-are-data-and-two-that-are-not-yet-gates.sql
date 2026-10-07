@@ -236,7 +236,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— 带电未放电的引导默认应当是"不许投料"(may_be_fed = false),实得 %', v_b;
     END IF;
     -- 给那一批料贴上"带电未放电",然后投 —— **现在应当被按名拒**。
-    DELETE FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib;
+    UPDATE inbound_batch_safety_states SET ended_at = now(), end_reason = 'fixture 113 reset (MES-3a: a state is ended, never deleted)' WHERE inbound_batch_id = v_ib AND ended_at IS NULL;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'charged_not_discharged');
     UPDATE inbound_batches SET chemistry_certainty_code = 'unknown_pending' WHERE id = v_ib;

@@ -39,11 +39,17 @@ CREATE TABLE public.storage_locations (
     updated_at  timestamptz NOT NULL DEFAULT now(),
     -- ── LOC-1 追加(ALTER 加的列排在末尾,与线上 ordinal 一致)──────────────
     zone        text,
-    is_active   boolean NOT NULL DEFAULT true
+    is_active   boolean NOT NULL DEFAULT true,
+    -- ── MES-3a 追加(2026-10-06,MES-0 Q34;MES-3a Step 0 Q17)── 这是一个【隔离库位】:
+    -- 带着 requires_quarantine 状态的批(鼓包或漏液)只能收进 / 移进这种库位。合规逻辑读这一列,永远不读 zone。
+    is_quarantine boolean NOT NULL DEFAULT false
 );
 
 COMMENT ON TABLE public.storage_locations IS
     'LOC-1:库位主数据。【没有硬删路径】—— 下架只有停用(is_active=false),由 guard_storage_location_no_hard_delete 具名拒绝,inventory_movements 的外键 RESTRICT 是第二道。code 约定以 "SG-" 起头,【故意不用 CHECK 钉死】:今天只有一个实体,把它焊进 schema 就是把"只有一个实体"变成一条 schema 事实,而多实体是计划中的。';
+
+COMMENT ON COLUMN public.storage_locations.is_quarantine IS
+    'MES-3a(MES-0 Q34):隔离库位。带着 requires_quarantine 状态的批只能收进 / 移进这里(QUARANTINE_LOCATION_REQUIRED);移进隔离永远准许。线上一个都没标 —— 标一个之前鼓包或漏液的料收不进来(V34)。';
 
 COMMENT ON COLUMN public.storage_locations.zone IS
     'LOC-1:【仅用于显示分组】(列表上分堆:A 区、冷库…)。合规逻辑永远不许读它 —— 决定这个库位能放什么的是 storage_location_allowed_classes,那是有外键、有唯一约束、断言得了的表;zone 是自由文本。读 zone 做合规判断,等于把一个排版决定当成一条规则。';

@@ -12,6 +12,7 @@ import {
     UNIT_OPTIONS,
 } from '../../options'
 import { useTranslations } from '@/lib/i18n/client'
+import NeaCategoryPicker, { type NeaCategory } from '@/app/materials/NeaCategoryPicker'
 import WasteClassPicker from '../../WasteClassPicker'
 import type { WasteClass } from '../../wasteClassOptions'
 import { Button } from '@/app/components/ui/button'
@@ -28,6 +29,7 @@ type Material = {
     size_format_code: string | null
     chemistry: string | null
     waste_classification_code: string | null
+    nea_waste_category_code: string | null
     unit: string
     spec: string | null
     notes: string | null
@@ -38,6 +40,7 @@ export default function EditMaterialForm({
     chemistryOptions,
     material,
     wasteClasses,
+    neaCategories,
     kinds,
     forms,
     sources,
@@ -48,6 +51,7 @@ export default function EditMaterialForm({
     chemistryOptions: DictOption[]
     material: Material
     wasteClasses: WasteClass[]
+    neaCategories: NeaCategory[]
     kinds: MaterialKind[]
     forms: MaterialForm[]
     sources: MaterialSource[]
@@ -155,6 +159,9 @@ export default function EditMaterialForm({
                         defaultValue={material.waste_classification_code} locale={locale} />
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.wasteClassHint')}</p>
                 </div>
+
+                {/* MES-3a(V29):NEA 执照上的废物类别 —— 库存上限按它判;没有类别 = 没人分过 */}
+                <NeaCategoryPicker categories={neaCategories} defaultValue={material.nea_waste_category_code} locale={locale} />
 
                 {/* 单位(固定列表)*/}
                 <div>

@@ -12,7 +12,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
-import { addOutputSafetyState, removeOutputSafetyState } from './safetyActions'
+import { setOutputSafetyStates } from './safetyActions'
 
 export type SafetyState = {
     code: string; name_en: string; name_zh: string; may_be_fed: boolean
@@ -34,12 +34,12 @@ export default function SafetyStatePanel({
     const label = (s: SafetyState) => (locale === 'zh' ? s.name_zh : s.name_en)
     const held = new Set(current)
 
-    function toggle(code: string, on: boolean) {
+    // MES-3a(Q22 · Q23):记 = 把它加进整组;拿掉 = 【结束】它,要一个理由(库里按名拒没有理由的结束)。
+    function toggle(code: string, on: boolean, reason?: string) {
         setError(null)
         startTransition(async () => {
-            const r = on
-                ? await addOutputSafetyState(batchId, code)
-                : await removeOutputSafetyState(batchId, code)
+            const next = on ? [...current, code] : current.filter((c) => c !== code)
+            const r = await setOutputSafetyStates(batchId, next, on ? undefined : reason)
             if (r.error) setError(r.error)
         })
     }
@@ -80,17 +80,14 @@ export default function SafetyStatePanel({
                             (on ? 'bg-gray-200 border-gray-300'
                                 : 'bg-white border-gray-300 hover:bg-gray-50')
                         // ★★【只有【拆】那一边有门,【记】那一边没有】★★(ALERT-2c,Tim 裁定 R4)
-                        //   记一条安全状态是【加】,而且再点一下就撤得掉;
-                        //   拆掉一条是【硬删】—— output_batch_safety_states 直接 .delete(),
-                        //   没有理由、没有墓碑、没有回头路。
-                        //   两个方向都弹框,是在教人把对话框当成一道过场 ——
-                        //   而那正是一个确认框失效的方式。
+                        //   记一条安全状态是【加】;拿掉一条 —— MES-3a 起是【结束】它(留在这一批的历史里,
+                        //   带着谁、什么时候、为什么),所以那一道门从"确认硬删"变成"写下理由"。
                         return on ? (
                             <ConfirmButton
                                 key={s.code}
                                 subject={label(s)}
                                 title={t('output.safety.removeConfirmTitle')}
-                                body={t('common.hardDeleteNote')}
+                                body={t('storageSafety.endReason.body')}
                                 /* ★ 后果那一段【走对话框自己的 token】,不新画一个琥珀盒子:
                                      本刀明令不碰 ALERT-2b 那 ~250 处行内色值,
                                      那就更不该往里【添】一处。 */
@@ -99,10 +96,11 @@ export default function SafetyStatePanel({
                                         {t('output.safety.removeConsequence')}
                                     </p>
                                 }
-                                confirmLabel={t('common.delete')}
+                                confirmLabel={t('output.safety.endConfirm')}
+                                reason={{ placeholder: t('storageSafety.endReason.placeholder') }}
                                 disabled={isPending}
                                 className={cls}
-                                onConfirm={() => toggle(s.code, false)}
+                                onConfirm={(reason) => toggle(s.code, false, reason)}
                             >
                                 {t('output.safety.remove', { name: label(s) })}
                             </ConfirmButton>

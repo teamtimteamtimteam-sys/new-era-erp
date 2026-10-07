@@ -30,6 +30,7 @@ import IntakeConditionFields, {
 } from '@/app/inbound/IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 export { CERTAINTY_UNCHOSEN }
 export type { SafetyState, Certainty }
@@ -55,10 +56,17 @@ export default function IntakeConditionPanel({
     function toggle(code: string) {
         setPicked((p) => (p.includes(code) ? p.filter((c) => c !== code) : [...p, code]))
     }
-    function save() {
+    // ★ MES-3a(Q22 · Q23):拿掉一条状态 = 【结束】它,而结束要一个理由 —— 库里按名拒没有理由的结束
+    //   (SAFETY_STATE_END_REASON_REQUIRED)。所以有拿掉的时候,保存经一个要理由的对话框;只加不拿时照旧一按就存。
+    const removed = currentStates.filter((c) => !picked.includes(c))
+    const nameOf = (code: string) => {
+        const s = states.find((x) => x.code === code)
+        return s ? (locale === 'zh' ? s.name_zh : s.name_en) : code
+    }
+    function save(endReason?: string) {
         setError(null)
         start(async () => {
-            const r = await setIntakeCondition({ batchId, safetyStates: picked, certainty })
+            const r = await setIntakeCondition({ batchId, safetyStates: picked, certainty, endReason })
             if (r.error) { setError(r.error); return }
             router.refresh()
         })
@@ -81,9 +89,24 @@ export default function IntakeConditionPanel({
 
                 <PermissionGate code="module.inbound.edit" allowed={canEdit}>
                     <div className="flex gap-2 items-center">
-                        <Button size="xs" type="button" disabled={pending} onClick={save}>
-                            {t('common.save')}
-                        </Button>
+                        {removed.length > 0 ? (
+                            <ConfirmButton
+                                subject={removed.map(nameOf).join(', ')}
+                                title={t('storageSafety.endReason.title')}
+                                body={t('storageSafety.endReason.body')}
+                                confirmLabel={t('common.save')}
+                                reason={{ placeholder: t('storageSafety.endReason.placeholder') }}
+                                triggerSize="xs"
+                                disabled={pending}
+                                onConfirm={(reason) => save(reason)}
+                            >
+                                {t('common.save')}
+                            </ConfirmButton>
+                        ) : (
+                            <Button size="xs" type="button" disabled={pending} onClick={() => save()}>
+                                {t('common.save')}
+                            </Button>
+                        )}
                         <span className="text-xs text-[color:var(--brand-muted-text)]">{t('inbound.condition.saveHint')}</span>
                     </div>
                 </PermissionGate>

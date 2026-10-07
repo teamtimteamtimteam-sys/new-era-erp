@@ -153,7 +153,7 @@ BEGIN
     END IF;
 
     -- (c) 确定度记成了一个不可投料的值 —— 而安全状态是干净的
-    DELETE FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib;
+    UPDATE inbound_batch_safety_states SET ended_at = now(), end_reason = 'fixture 115 reset (MES-3a: a state is ended, never deleted)' WHERE inbound_batch_id = v_ib AND ended_at IS NULL;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
     UPDATE inbound_batches SET chemistry_certainty_code = 'unknown_pending' WHERE id = v_ib;
@@ -205,8 +205,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 115F3 失败:进入 F3 —— 两条不可投料的状态【都】要出现在消息里,让人一趟清完。只报第一条的实现会让人清掉一条再撞上下一条。实得「%」', v_msg;
     END IF;
     -- 【反面:全部可投料 → 过】少了这一半,一个"有两条以上就拒"的实现也能绿。
-    DELETE FROM inbound_batch_safety_states
-     WHERE inbound_batch_id = v_ib AND safety_state_code IN ('water_exposed','swollen_leaking');
+    UPDATE inbound_batch_safety_states SET ended_at = now(), end_reason = 'fixture 115 reset (MES-3a: a state is ended, never deleted)'
+     WHERE inbound_batch_id = v_ib AND safety_state_code IN ('water_exposed','swollen_leaking') AND ended_at IS NULL;
     v_denied := false; v_msg := NULL;
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 all feedable', 0,

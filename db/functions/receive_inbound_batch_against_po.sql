@@ -1,6 +1,8 @@
 -- db/functions/receive_inbound_batch_against_po.sql
 -- MES-2(2026-10-06,MES-2 Step 0 Q19,Tim):末尾多三个参数(p_ticket_id · p_ticket_share_kg · p_quantity_reason),都带默认值 ——
 --   签名变了,迁移是 DROP + CREATE;已部署的旧应用不传它们,照样解析到这一支。
+-- MES-3a(2026-10-06,MES-3a Step 0 Q9 · Q10 · Q19,Tim):写入之前过隔离闸(请求里带着要隔离的状态,就只能收进隔离库位);
+--   落库之后对着执照的库存上限判一次并记下来(receipt_ceiling_check_internal)。签名不变;返回值多一个 'ceiling'(那一行)。
 
 CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_arrival_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text)
  RETURNS jsonb
@@ -9,6 +11,7 @@ CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
+    v_ceiling jsonb;
     v_user uuid := auth.uid();
     v_id   uuid;
     v_warn text[];
@@ -42,6 +45,10 @@ BEGIN
     -- NTF-1:告警留一份下来 —— 此前它渲染一次就没了,连响过的痕迹都没有。
     PERFORM notify_landing_warnings(v_warn, p_location_id, p_material_id);
 
+    -- MES-3a(2026-10-06,MES-0 Q34;MES-3a Step 0 Q19,Tim):带着要隔离的状态(鼓包或漏液)只能收进一个在用的隔离库位 ——
+    --   读的是【请求里】的状态(状态在落库之后才写,所以不能等它们),写入之前按名拒 QUARANTINE_LOCATION_REQUIRED。
+    PERFORM assert_quarantine_landing(p_safety_states, p_location_id);
+
     -- 单位固定 kg、stage 用默认值 —— 与收货表单今天的行为逐字一致。
     -- 【采购单侧的那一串拒绝(PO_NOT_RECEIVABLE / PO_LINE_MISMATCH /
     --  PO_NOT_APPROVED / SUPPLIER_QUALIFICATION_EXPIRED)仍由表上的触发器抛出】,
@@ -70,11 +77,16 @@ BEGIN
     END IF;
 
     PERFORM set_config('evoltrya.location_ctx', '', true);
+
+    -- MES-3a(2026-10-06,MES-0 Q32 · Q33;MES-3a Step 0 Q5–Q10,Tim):对着执照的库存上限判一次,并且【每一张都记下来】
+    --   (receipt_ceiling_checks)。在落库之后判 —— 这一批的入库流水已经在存量里;超过一个给了的上限就按名拒
+    --   STORAGE_CEILING_EXCEEDED,整笔回滚。没给上限 / 没有类别 / 没有在效执照:照收,记下是哪一种。
+    v_ceiling := receipt_ceiling_check_internal(v_id, NULL);
     IF p_ticket_id IS NOT NULL THEN
         PERFORM weighbridge_share_internal(p_ticket_id, v_id, NULL, p_ticket_share_kg,
                                            CASE WHEN p_quantity IS DISTINCT FROM p_ticket_share_kg THEN p_quantity_reason END);
     END IF;
-    RETURN jsonb_build_object('batch_id', v_id, 'warnings', to_jsonb(v_warn));
+    RETURN jsonb_build_object('batch_id', v_id, 'warnings', to_jsonb(v_warn), 'ceiling', v_ceiling);
 END;
 $function$
 

@@ -51,8 +51,16 @@ const MATERIAL_ERROR_CODES = new Set([
     'materials_size_format_code_fkey',
     'inbound_batches_chemistry_certainty_code_fkey',
     'inbound_batch_safety_states_safety_state_code_fkey',
-    // ── 主键:多值那一条的"同一个状态只记一次" ────────────────────────────
-    'inbound_batch_safety_states_pkey',
+    // ── 唯一索引:多值那一条的"同一个状态,开着的只记一次"(MES-3a 起不再是主键,而是开着那几行上的部分唯一索引)──
+    'inbound_batch_safety_states_open_once',
+    'output_batch_safety_states_open_once',
+    // ── MES-3a(Q22 · Q23):状态有历史 —— 结束要理由、只经函数写、永不删、只结束一次 ─────────────
+    'SAFETY_STATE_END_REASON_REQUIRED',
+    'SAFETY_STATES_THROUGH_FUNCTION_ONLY',
+    'SAFETY_STATE_NEVER_DELETED',
+    'SAFETY_STATE_ALREADY_ENDED',
+    'SAFETY_STATE_ROW_FIXED',
+    'OUTPUT_NOT_FOUND',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

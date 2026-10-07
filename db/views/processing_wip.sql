@@ -28,7 +28,7 @@ CREATE VIEW public.processing_wip WITH (security_invoker = off) AS
     -- 【安全状态记了没有】—— 这块屏要能回答"这批为什么投不进去"。
     -- 【0 的意思是"没有人记过",不是"安全"】与那道闸同一个意思。
     (SELECT count(*) FROM public.output_batch_safety_states s
-      WHERE s.output_batch_id = ob.id) AS safety_states_recorded
+      WHERE s.output_batch_id = ob.id AND s.ended_at IS NULL) AS safety_states_recorded
    FROM public.output_batches ob
    JOIN public.materials m ON m.id = ob.material_id
    JOIN public.output_batch_purposes p ON p.code = ob.purpose_code

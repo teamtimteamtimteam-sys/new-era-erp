@@ -18,7 +18,13 @@ CREATE TABLE public.inbound_safety_states (
     may_be_fed boolean NOT NULL,
     is_active  boolean NOT NULL DEFAULT true,
     sort_order integer NOT NULL DEFAULT 0,
-    notes      text
+    notes      text,
+    -- ★ MES-3a(2026-10-06,MES-0 Q35 · V3;MES-3a Step 0 Q14,Tim):带着这个状态的一批在厂里待多少天就提醒。
+    --   NULL = 没给(V3),不提醒;从不拒收、从不拦投料 —— 只是提醒。时钟从那一条状态【被记下的时刻】起算(新加坡日历天)。
+    dwell_warning_days  integer CHECK (dwell_warning_days > 0),
+    -- ★ MES-3a(MES-0 Q34 · V4;MES-3a Step 0 Q18):带着这个状态的一批【只能】收进 / 移进隔离库位
+    --   (storage_locations.is_quarantine)。true = 要;false = 不要;NULL = 没定(V4),当作不要。
+    requires_quarantine boolean
 );
 
 COMMENT ON TABLE public.inbound_safety_states IS
@@ -63,19 +69,25 @@ COMMENT ON COLUMN public.inbound_safety_states.may_be_fed IS
 【为什么不就这么留着】一列没人读的数据,读起来仍然像一条还在生效的规则 —— 下一个人会照着它做决定。waste_classifications.is_controlled 已经是这个病的一例,本仓库把它记成了债。**把死的东西宣告为死的**,所以这句话在这里,而不只是在某份文档里。
 【排队】要么给它找一个真正的消费者(例如:新增 operation_type_safety_states 行时用它做引导默认),要么删掉它。见 docs/processing-support-as-built.md。';
 
-INSERT INTO public.inbound_safety_states (code, name_en, name_zh, may_be_fed, sort_order, notes) VALUES
+COMMENT ON COLUMN public.inbound_safety_states.dwell_warning_days IS
+    'MES-3a(MES-0 Q35 · V3):带着这个状态的一批在厂里待多少天就提醒(提醒臂 safety_state_dwell、批次页、/inventory/storage-safety)。NULL = 没给(V3,不提醒)。只提醒,不拒收、不拦投料。时钟 = 那一条状态被记下的时刻,新加坡日历天;只算还有存量的批。';
+
+COMMENT ON COLUMN public.inbound_safety_states.requires_quarantine IS
+    'MES-3a(MES-0 Q34 · V4):带着这个状态的一批只能收进 / 移进隔离库位(QUARANTINE_LOCATION_REQUIRED)。引导:swollen_leaking = true(Q34),discharged_verified = false,其余三个 NULL = 没定(V4),当作不要。记下一个状态永远不拒;已经放在别处的会被标出来(提醒臂 quarantine_required)。';
+
+INSERT INTO public.inbound_safety_states (code, name_en, name_zh, may_be_fed, sort_order, notes, requires_quarantine) VALUES
     ('charged_not_discharged', 'Charged, not yet discharged', '带电未放电', false, 1,
      '还带着电。**未放电的电芯进破碎机就是一场火** —— 这是本轴存在的首要理由。'
      || '【注意它与 material_sources.implies_never_charged 的关系】厂内边角料从来没充过电,'
-     || '所以这个状态对它【不成立】,而不是"它已经放过电了"。两者不一样。'),
+     || '所以这个状态对它【不成立】,而不是"它已经放过电了"。两者不一样。', NULL),
     ('discharged_verified',    'Discharged and verified',     '已放电并核验', true,  2,
-     '放过电,而且有人核验过。【"核验过"是这个值的一半】—— 没核验的放电与没放电,在事故面前是同一件事。'),
+     '放过电,而且有人核验过。【"核验过"是这个值的一半】—— 没核验的放电与没放电,在事故面前是同一件事。', false),
     ('damaged_deformed',       'Damaged or deformed',         '破损或变形',   false, 3,
-     '外壳破损、变形。引导默认不许投料 —— Tim 改一行即可。'),
+     '外壳破损、变形。引导默认不许投料 —— Tim 改一行即可。', NULL),
     ('water_exposed',          'Water-exposed',               '进过水',       false, 4,
-     '泡过水或受潮。引导默认不许投料。【它可能在干燥后可投】,而那是一个判断 —— 改这一行,不要绕过它。'),
+     '泡过水或受潮。引导默认不许投料。【它可能在干燥后可投】,而那是一个判断 —— 改这一行,不要绕过它。', NULL),
     ('swollen_leaking',        'Swollen or leaking',          '鼓包或漏液',   false, 5,
-     '鼓包、漏液。引导默认不许投料。');
+     '鼓包、漏液。引导默认不许投料。', true);
 
 ALTER TABLE public.inbound_safety_states ENABLE ROW LEVEL SECURITY;
 -- 【目录不敏感】与 certificate_types / material_kinds / waste_classifications 同一处置。

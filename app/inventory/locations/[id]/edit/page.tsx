@@ -28,7 +28,7 @@ export default async function EditLocationPage({
 
     const { data: loc, error } = await supabase
         .from('storage_locations')
-        .select('id, code, name, zone, notes, is_active')
+        .select('id, code, name, zone, notes, is_active, is_quarantine')
         .eq('id', id)
         .single()
 
@@ -76,6 +76,7 @@ export default async function EditLocationPage({
                         zone: loc.zone ?? '',
                         notes: loc.notes ?? '',
                         allowedCodes,
+                        isQuarantine: !!loc.is_quarantine,
                     }}
                     submitLabel={t('locations.form.save')}
                 />

@@ -3109,3 +3109,53 @@ instrument_calibrations,void_reason,text,verbatim,,,Reason for voiding,,,text
 ingest_settings,require_calibrated_since,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Calibration rule applies from,,,date
 ingest_settings,calibration_lead_days,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Calibration reminder lead (days),,,integer
 ingest_data_classes,creates_draft,boolean,Yes / No,,,Waits for confirmation,,,boolean
+nea_waste_categories,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+nea_waste_categories,name_en,text,verbatim,dict.f.nameEn,Name (EN),,high,app/settings/dictionaries/DictSection.tsx:199,text
+nea_waste_categories,name_zh,text,verbatim,dict.f.nameZh,Name (ZH),,high,app/settings/dictionaries/DictSection.tsx:204,text
+nea_waste_categories,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,dict.f.isActive,Status,,high,app/settings/dictionaries/DictSection.tsx:86,boolean
+nea_waste_categories,sort_order,technical,hide,,,Sort order,,,integer
+nea_waste_categories,notes,text,verbatim,,,Notes,,,text
+nea_waste_categories,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+nea_waste_categories,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+nea_waste_categories,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+licence_storage_limits,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+licence_storage_limits,licence_id,technical,hide: the licence (the trail is the licence's),,,Licence,,,uuid
+licence_storage_limits,category_code,dict,nea_waste_categories.name_en (via code),,,NEA waste category,,,text
+licence_storage_limits,limit_tonnes,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Storage ceiling (tonnes),,,numeric
+licence_storage_limits,notes,text,verbatim,,,Notes,,,text
+licence_storage_limits,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+licence_storage_limits,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+licence_storage_limits,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+licence_storage_limits,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+receipt_ceiling_checks,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+receipt_ceiling_checks,inbound_batch_id,technical,hide: the batch (the trail is the batch's),,,Inbound batch,,,uuid
+receipt_ceiling_checks,output_batch_id,technical,hide: the batch (the trail is the batch's),,,Output batch,,,uuid
+receipt_ceiling_checks,licence_id,fk_other,company_compliance (the licence number),,,Licence,,,uuid
+receipt_ceiling_checks,category_code,dict,nea_waste_categories.name_en (via code),,,NEA waste category,,,text
+receipt_ceiling_checks,outcome,enum,ENUM_OVERRIDES receipt_ceiling_checks#outcome,,,Outcome,,,text
+receipt_ceiling_checks,quantity_t,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,This batch (tonnes),,,numeric
+receipt_ceiling_checks,on_hand_before_t,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,On site before (tonnes),,,numeric
+receipt_ceiling_checks,limit_t,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Category ceiling (tonnes),,,numeric
+receipt_ceiling_checks,total_on_hand_before_t,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,All categories on site before (tonnes),,,numeric
+receipt_ceiling_checks,total_limit_t,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Licence total ceiling (tonnes),,,numeric
+receipt_ceiling_checks,checked_on,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Checked for,,,date
+receipt_ceiling_checks,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+receipt_ceiling_checks,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+materials,nea_waste_category_code,dict,nea_waste_categories.name_en (via code),materials.form.neaCategory,NEA waste category,,high,app/materials/NeaCategoryPicker.tsx:24,text
+storage_locations,is_quarantine,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,locations.form.quarantine,Quarantine location,,high,app/inventory/locations/LocationForm.tsx:107,boolean
+inbound_safety_states,dwell_warning_days,number,"number with unit (qty kg, %, rate); Intl en-US grouping",dict.f.dwell_warning_days,Dwell warning (days),,high,app/settings/dictionaries/registry.ts:121,integer
+inbound_safety_states,requires_quarantine,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,dict.f.requires_quarantine,Requires quarantine,,high,app/settings/dictionaries/registry.ts:123,boolean
+inbound_batch_safety_states,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+inbound_batch_safety_states,created_by_run_id,technical,hide: the run (the block names it),,,Written by processing run,,,uuid
+inbound_batch_safety_states,ended_at,timestamp_audit,formatAuditStamp,,,Ended on,,,timestamp with time zone
+inbound_batch_safety_states,ended_by,actor,person who acted,,,Ended by,,,uuid
+inbound_batch_safety_states,end_reason,text,verbatim,,,Reason for ending,,,text
+inbound_batch_safety_states,ended_by_run_id,technical,hide: the run (the reason names it),,,Ended by processing run,,,uuid
+inbound_batch_safety_states,reopened_from_id,technical,hide: the earlier row it reopens,,,Reopens,,,uuid
+output_batch_safety_states,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+output_batch_safety_states,created_by_run_id,technical,hide: the run (the block names it),,,Written by processing run,,,uuid
+output_batch_safety_states,ended_at,timestamp_audit,formatAuditStamp,,,Ended on,,,timestamp with time zone
+output_batch_safety_states,ended_by,actor,person who acted,,,Ended by,,,uuid
+output_batch_safety_states,end_reason,text,verbatim,,,Reason for ending,,,text
+output_batch_safety_states,ended_by_run_id,technical,hide: the run (the reason names it),,,Ended by processing run,,,uuid
+output_batch_safety_states,reopened_from_id,technical,hide: the earlier row it reopens,,,Reopens,,,uuid

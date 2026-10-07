@@ -77,7 +77,13 @@ export async function addDictValue(input: {
             if (f.required && v !== 'true' && v !== 'false') {
                 return { error: t('dict.errRuleUnset', { 0: t(f.labelKey) }) }
             }
-            row[f.column] = v === 'true'
+            // MES-3a:不必填的布尔,空 = NULL = "还没有人决定"(V4),绝不读成"否"。
+            row[f.column] = v === 'true' ? true : v === 'false' ? false : (f.required ? false : null)
+        } else if (f.kind === 'number') {
+            // MES-3a:空 = NULL = "Not yet set"(V3),不是 0;别的形状按名拒,不猜。
+            const raw = (v ?? '').trim()
+            if (raw !== '' && !Number.isFinite(Number(raw))) return { error: t('dict.errNumber', { 0: t(f.labelKey) }) }
+            row[f.column] = raw === '' ? null : Number(raw)
         } else {
             row[f.column] = (v ?? '').trim() || null
         }
@@ -110,7 +116,11 @@ export async function updateDictValue(input: {
             if (f.required && v !== 'true' && v !== 'false') {
                 return { error: t('dict.errRuleUnset', { 0: t(f.labelKey) }) }
             }
-            patch[f.column] = v === 'true'
+            patch[f.column] = v === 'true' ? true : v === 'false' ? false : (f.required ? false : null)
+        } else if (f.kind === 'number') {
+            const raw = (v ?? '').trim()
+            if (raw !== '' && !Number.isFinite(Number(raw))) return { error: t('dict.errNumber', { 0: t(f.labelKey) }) }
+            patch[f.column] = raw === '' ? null : Number(raw)
         } else {
             patch[f.column] = (v ?? '').trim() || null
         }

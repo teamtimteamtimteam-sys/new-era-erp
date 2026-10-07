@@ -200,12 +200,18 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 165K7 失败:那条占位的拒绝(STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED)自己写着"等 1B-ii 的 output_batch_safety_states"。表建好了,它就必须消失 —— **一道工序因为料是自己产的就拒绝它,正是 M4 那处不对称本身。** 实得「%」', v_msg;
     END IF;
     -- ★【它必须【真的】改了状态,不是一炉什么都没改的放电】
+    -- MES-3a(Q36 · Q22):解决掉的状态被【结束】,不被删 —— 读开着的那几行。
     IF EXISTS (SELECT 1 FROM output_batch_safety_states
-                WHERE output_batch_id = v_ob_sc AND safety_state_code = 'charged_not_discharged') THEN
-        RAISE EXCEPTION 'FIXTURE 165K7 失败:深度放电【解决】未放电这个状态 —— 它必须从这批自产料身上被删掉。不删的话,一批放完电的自产料会永远带着"未放电",下一道工序仍然拒绝它:那就是 1B-i 解掉的那个死锁,原样搬到产出批上复发。';
+                WHERE output_batch_id = v_ob_sc AND safety_state_code = 'charged_not_discharged' AND ended_at IS NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 165K7 失败:深度放电【解决】未放电这个状态 —— 它必须在这批自产料身上被结束。不删的话,一批放完电的自产料会永远带着"未放电",下一道工序仍然拒绝它:那就是 1B-i 解掉的那个死锁,原样搬到产出批上复发。';
     END IF;
     IF NOT EXISTS (SELECT 1 FROM output_batch_safety_states
-                    WHERE output_batch_id = v_ob_sc AND safety_state_code = 'discharged_verified') THEN
+                    WHERE output_batch_id = v_ob_sc AND safety_state_code = 'charged_not_discharged'
+                      AND ended_at IS NOT NULL AND ended_by_run_id IS NOT NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 165K7 失败:【未放电】那一条必须还在、并且记着是哪一张加工单结束了它(MES-3a:状态有历史,不被删)';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM output_batch_safety_states
+                    WHERE output_batch_id = v_ob_sc AND safety_state_code = 'discharged_verified' AND ended_at IS NULL) THEN
         RAISE EXCEPTION 'FIXTURE 165K7 失败:放完电之后,结果状态(已放电并核验)必须写到这批自产料身上 —— 否则这一炉是一次静默的无操作。';
     END IF;
 

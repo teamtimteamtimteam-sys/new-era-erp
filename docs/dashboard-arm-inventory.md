@@ -100,6 +100,9 @@ module's own page.
 | M2a | `capture_draft_pending` | 一张秤或地磅经网关送来的读数还是【草稿】,没人确认(MES-2,Step 0 Q12 · Q32)—— 一张一行,`item_date` = 落草稿那一天,所以等待天数就是它的年龄(草稿永不过期,MES-0 Q13)。没有审批链:确认本身就是那个动作 | `action.confirm_capture` —— 只有能确认的人看得见(warehouse · cto · admin);读得到队列却按不动的人看见它只会多一块清不掉的牌子(与 `supplier_pending_approval` 同一个理由) | `capture_drafts` | `status = 'pending'`;确认或驳回之后自动消失 |
 | M2b | `instrument_calibration_due` | 一台【在用】的仪器(秤 · 地磅 · 电表 · 在线仪表,没停用、不是 `reserved`)今天不在校准期内:过期、最近一次没通过、或从来没校过(MES-2,Step 0 Q29)。读的时候算(`instrument_calibration_now`,`calibration_status_from` 在 `CURRENT_DATE`),没有调度器 | `module.processing.view` | `instrument_calibration_now` | `in_use AND status <> 'in_calibration'`;记一次通过的、有效期覆盖今天的校准之后消失。`item_date` = 有效期,从来没校过的取它登记那一天 |
 | M2c | `instrument_calibration_approaching` | 一台在用的仪器在期内,但有效期落在 V8(`ingest_settings.calibration_lead_days`)给的提前天数里(MES-2,Step 0 Q29 · Q30)。**V8 没给就没有这一支的行** —— 不猜提前多久 | `module.processing.view` | `instrument_calibration_now` | `in_use AND approaching`;续上一次校准、或过了期变成 M2b 之后消失 |
+| M3a | `storage_ceiling_exceeded` | 今天在效的 gwdf 执照下,某一类 NEA 废物(或执照总量)的存量超过了上限(`storage_ceiling_status.status = 'exceeded'`)。收货与手工产出在超的时候就被拒了(MES-3a Step 0 Q9),所以它亮起来只有两条路:**加工产出**把它推过去,或**上限被调低**到存量以下(Q13)。只提醒 | `module.inventory.view` | `storage_ceiling_status` | 一类一行,总量一行(`item_code = '*'`);存量降下来或上限调高之后消失 |
+| M3b | `safety_state_dwell` | 还在厂里的一批身上,一条开着的安全状态被记下之后过的新加坡日历天数 ≥ 它的 `dwell_warning_days`(V3;MES-3a Step 0 Q14 · Q15)。**V3 没给就没有这一支的行**;时钟从那一条被记下的时刻起算,保存不会让它重来 | 按行:进料 `module.inbound.view`,产出 `module.output.view` | `safety_state_dwell` | `dwell_status = 'past' AND on_site`;状态被结束、或那一批的存量出清之后消失 |
+| M3c | `quarantine_required` | 一批开着一条 `requires_quarantine` 的状态(今天只有鼓包或漏液),却还有货在一个**没标隔离**的库位(或没指库位的那一桶)里(MES-3a Step 0 Q20)。记状态从不拒,于是由这一支说出来;它的下一次移动只能进隔离 | 按行:进料 `module.inbound.view`,产出 `module.output.view` | `quarantine_exposure` | 货全部挪进隔离库位、或那一条状态结束之后消失 |
 
 
 
@@ -335,6 +338,9 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `capture_draft_pending` | `/operation/capture` | the confirmation queue: every pending draft with its reading, instrument and age; Confirm (with any change and its reason) / Reject (MES-2) |
 | `instrument_calibration_due` | `/operation/devices/[id]` | the instrument's page, whose calibration section records the next certificate (MES-2) |
 | `instrument_calibration_approaching` | `/operation/devices/[id]` | same as above (MES-2) |
+| `storage_ceiling_exceeded` | `/inventory/storage-safety` | every NEA category against its ceiling under today's licence, and the licence total (MES-3a) |
+| `safety_state_dwell` | `/inbound/[id]/edit` or `/output/[id]/edit` | the batch page: each open state's day count against its period, and its history (MES-3a) |
+| `quarantine_required` | `/inbound/[id]/edit` or `/output/[id]/edit` | the batch page's banner; its next move can only go into a quarantine location (MES-3a) |
 
 ### One mechanism, not two
 

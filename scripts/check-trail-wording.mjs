@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -2749,7 +2749,7 @@ if (FAULT === 'wording-drift-1d1') dict.text = { ...dict.text, 'acct.grantedTo':
     // 机器字扫描:十二个主语(与角色页的授权)各自的表,按【这一页】的说法(subject)造样本跑一遍
     const SUBS11 = ['account', 'approval_policy', 'employee', 'department', 'training_record', 'import_batch', 'role',
         'dictionary_substances', 'dictionary_battery_chemistries', 'dictionary_material_kinds', 'dictionary_inbound_safety_states',
-        'dictionary_laboratories', 'dictionary_inbound_source_reasons']
+        'dictionary_laboratories', 'dictionary_inbound_source_reasons', 'dictionary_nea_waste_categories']
     let s11 = 0
     for (const sub of SUBS11) {
         for (const t of R.SUBJECT_TABLES[sub] ?? []) {
@@ -4786,6 +4786,146 @@ if (FAULT === 'wording-drift-mes2') dict.text = { ...dict.text, 'wb.weighingCorr
     if (FAULT === 'wording-drift-mes2' && !problems.gold16.length) problems.gold16.push('(注入 wording-drift-mes2 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑰ MES-3a 的安全状态历史、库存上限与 NEA 类别(MES-3a Step 0 Q10 · Q12 · Q22 · Q25)─────────────────────────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-3a.md 列出。
+//   安全状态:记下 · 结束(带理由,不说成"删除")· 被回滚重新开出来(不说成"记下")。
+//   进厂那一刻的库存上限判法(一批一句,只追加)。执照对一类 NEA 废物的上限:给 · 改 · 拿掉。NEA 类别字典:加一类。
+//   注入 wording-drift-mes3a → 这一臂必须红。
+problems.gold17 = []
+if (FAULT === 'wording-drift-mes3a') dict.text = { ...dict.text, 'batch.safetyEnded': 'Safety state removed' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const b = id('b')
+    const B17 = { subject: 'inbound_batch', recordId: b, currency: null }
+    const st = { safety_state_code: { swollen_leaking: { label: 'Swollen or leaking' } } }
+    add('safety state · recorded', B17, [
+        { table: 'inbound_batch_safety_states', op: 'INSERT', key: { id: id('s1') }, refs: st,
+          new: { id: id('s1'), inbound_batch_id: b, safety_state_code: 'swollen_leaking', created_at: '2026-10-06T02:00:00Z', created_by: id('u'),
+                 created_by_run_id: null, ended_at: null, ended_by: null, end_reason: null, ended_by_run_id: null, reopened_from_id: null } }])
+    add('safety state · ended with a reason', B17, [
+        { table: 'inbound_batch_safety_states', op: 'UPDATE', key: { id: id('s1') }, refs: st, cols: ['ended_at', 'ended_by', 'end_reason'],
+          old: { ended_at: null, ended_by: null, end_reason: null },
+          new: { ended_at: '2026-10-07T02:00:00Z', ended_by: id('u'), end_reason: 'Re-inspected: casing intact, no electrolyte' },
+          ctx: { id: id('s1'), inbound_batch_id: b, safety_state_code: 'swollen_leaking' } }])
+    add('safety state · reopened by a rollback', B17, [
+        { table: 'inbound_batch_safety_states', op: 'INSERT', key: { id: id('s2') }, refs: st,
+          new: { id: id('s2'), inbound_batch_id: b, safety_state_code: 'swollen_leaking', created_at: '2026-10-06T02:00:00Z', created_by: id('u'),
+                 created_by_run_id: null, ended_at: null, ended_by: null, end_reason: null, ended_by_run_id: null, reopened_from_id: id('s1') } }])
+    add('ceiling · checked on arrival', B17, [
+        { table: 'receipt_ceiling_checks', op: 'INSERT', key: { id: id('c1') },
+          new: { id: id('c1'), inbound_batch_id: b, output_batch_id: null, licence_id: null, category_code: null, outcome: 'within',
+                 quantity_t: 0.8, on_hand_before_t: 4, limit_t: 5, total_on_hand_before_t: null, total_limit_t: null, checked_on: '2026-10-06' } }])
+    const lic = id('lic')
+    const L17 = { subject: 'company_licence', recordId: lic, currency: null }
+    const cat = { category_code: { HW1: { label: 'HW1 · Spent lithium batteries' } } }
+    add('licence · ceiling set', L17, [
+        { table: 'licence_storage_limits', op: 'INSERT', key: { id: id('l1') }, refs: cat,
+          new: { id: id('l1'), licence_id: lic, category_code: 'HW1', limit_tonnes: 50, notes: null } }])
+    add('licence · ceiling changed', L17, [
+        { table: 'licence_storage_limits', op: 'UPDATE', key: { id: id('l1') }, refs: cat, cols: ['limit_tonnes', 'updated_at', 'updated_by'],
+          old: { limit_tonnes: 50 }, new: { limit_tonnes: 40 }, ctx: { id: id('l1'), licence_id: lic, category_code: 'HW1' } }])
+    add('licence · ceiling cleared', L17, [
+        { table: 'licence_storage_limits', op: 'DELETE', key: { id: id('l1') }, refs: cat,
+          old: { id: id('l1'), licence_id: lic, category_code: 'HW1', limit_tonnes: 40, notes: null } }])
+    add('NEA category · added', { subject: 'dictionary_nea_waste_categories', recordId: null, currency: null }, [
+        { table: 'nea_waste_categories', op: 'INSERT', key: { code: 'HW1' },
+          new: { code: 'HW1', name_en: 'Spent lithium batteries', name_zh: '废锂电池', is_active: true, sort_order: 10, notes: null } }])
+    const WANT = {
+        "safety state · recorded": {
+            "title": "Safety state recorded · Swollen or leaking",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "safety state · ended with a reason": {
+            "title": "Safety state ended · Swollen or leaking",
+            "part": null,
+            "lines": [],
+            "reason": "Re-inspected: casing intact, no electrolyte",
+            "who": "Fu Sheng"
+        },
+        "safety state · reopened by a rollback": {
+            "title": "Safety state reopened by a rollback · Swollen or leaking",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "ceiling · checked on arrival": {
+            "title": "Storage ceiling checked on arrival · Within the ceiling",
+            "part": null,
+            "lines": [
+                "This batch (tonnes): 0.8",
+                "On site before (tonnes): 4",
+                "Category ceiling (tonnes): 5",
+                "Checked for: 06/10/2026"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "licence · ceiling set": {
+            "title": "Storage ceiling set · HW1 · Spent lithium batteries",
+            "part": null,
+            "lines": [
+                "Storage ceiling (tonnes): 50"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "licence · ceiling changed": {
+            "title": "Storage ceiling changed · HW1 · Spent lithium batteries",
+            "part": null,
+            "lines": [
+                "Storage ceiling (tonnes): 50 → 40"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "licence · ceiling cleared": {
+            "title": "Storage ceiling cleared · HW1 · Spent lithium batteries",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "NEA category · added": {
+            "title": "NEA waste category added",
+            "part": "Spent lithium batteries",
+            "lines": [
+                "Name (ZH): 废锂电池",
+                "Status: Yes"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        }
+    }
+    const got17 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 8) problems.gold17.push(`⑰ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD17', order: 1, prelog: false, at: '2026-10-06T02:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold17.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD17')
+        if (mine.length !== 1) { problems.gold17.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got17[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold17.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold17.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold17.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD17_PRINT) console.log(JSON.stringify(got17, null, 8))
+    if (FAULT === 'wording-drift-mes3a' && !problems.gold17.length) problems.gold17.push('(注入 wording-drift-mes3a 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -4793,7 +4933,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

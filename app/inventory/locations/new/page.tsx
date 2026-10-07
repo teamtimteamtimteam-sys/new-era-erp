@@ -30,7 +30,7 @@ export default async function NewLocationPage() {
                 action={createLocation}
                 classes={classes}
                 locale={locale}
-                defaults={{ code: '', name: '', zone: '', notes: '', allowedCodes: [] }}
+                defaults={{ code: '', name: '', zone: '', notes: '', allowedCodes: [], isQuarantine: false }}
                 submitLabel={t('locations.form.create')}
             />
         </div>

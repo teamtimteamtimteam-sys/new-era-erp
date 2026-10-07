@@ -536,6 +536,8 @@ DEFINER_NO_CHECK_ALLOWED = {
     # ROLE-1(2026-09-23):与 db/verify_rebuild.py 的 DEFINER_UNCHECKED_EXEC_ALLOWED 同改,理由见那里。
     "period_close_floor": "ROLE-1: called by an INVOKER trigger, so EXECUTE must stay with the caller; returns one date already shown on the close page",
     "review_approval_code": "ROLE-1: returns only the NAME of the permission code that approves a review; no review data",
+    # MES-3a(2026-10-06):与 db/verify_rebuild.py 同改,理由见那里。
+    "storage_licence_in_force": "MES-3a: returns only the id of the gwdf licence in force on a date; owner views call it as the reader",
     # PAYROLL-APR-1:工资过账的内层引擎与申请算子 —— 靠的是调不到(zzz_function_grants.sql)。
     "post_payroll_period_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "unpost_payroll_period_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",

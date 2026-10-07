@@ -1,13 +1,26 @@
-CREATE OR REPLACE FUNCTION public.set_inbound_safety_states(
-    p_inbound_batch_id uuid,
-    p_codes            text[]
-) RETURNS jsonb
+-- db/functions/set_inbound_safety_states.sql
+-- PROC-2c:一批货的安全状态,一笔事务。批次页面与两条建批次的路共用它。
+-- ★ MES-3a(2026-10-06,MES-0 Q36;MES-3a Step 0 Q15 · Q22 · Q23,Tim):【只加新勾上的、只结束拿掉的】。
+--   p_codes = 这一批此刻该有的全部状态(与从前一样)。与【开着的】那几条比:
+--     · 新出现的 → 插一条(记录时刻 = 现在,记录人 = 本人);
+--     · 不再出现的 → 结束那一条:ended_at = 现在、ended_by = 本人、end_reason = p_end_reason(必填,空 →
+--       SAFETY_STATE_END_REASON_REQUIRED|<状态,逗号分隔>,一条都不写);
+--     · 两边都有的 → 一个字节都不动(滞留时钟从它被记下的那一刻起算,不因保存重来 —— 此前每一次保存都删掉重插)。
+--   签名多了 p_end_reason(末尾、带默认值):迁移是 DROP + CREATE;已部署的旧页面不传它,勾上照样能存,拿掉会被要理由拒。
+--   重复的代码不去重 —— 让"开着的只有一条"那个唯一索引去拒(PROC-2c 的原理由:去重会把一个输入错误藏起来)。
+--
+-- NOTE: introduced by db/migrations/2026-08-22-proc2-intake-condition-axes.sql; rewritten by 2026-10-06-mes3a-storage-safety.sql.
+
+CREATE OR REPLACE FUNCTION public.set_inbound_safety_states(p_inbound_batch_id uuid, p_codes text[], p_end_reason text DEFAULT NULL::text)
+ RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
-    v_n int;
+    v_n      int;
+    v_codes  text[] := COALESCE(p_codes, ARRAY[]::text[]);
+    v_ending text;
 BEGIN
     PERFORM require_permission('module.inbound.edit');
 
@@ -18,30 +31,39 @@ BEGIN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', p_inbound_batch_id;
     END IF;
 
-    -- 【整组替换,而且【在一笔事务里】—— 这是本函数存在的全部理由】
-    -- PROC-2b 的写法是 app 侧"先删后插",而 PostgREST 一次一条语句 ——
-    -- 两步之间失败会留下一个【空集】,而空集的意思是"没有人记过"。
-    -- 也就是说一次失败的保存会把"有人记过"改写成"没有人记过",
-    -- 而那两件事在这套系统里差得很远。函数体是一笔事务,失败即整体回滚。
-    DELETE FROM inbound_batch_safety_states WHERE inbound_batch_id = p_inbound_batch_id;
-
-    IF p_codes IS NOT NULL AND array_length(p_codes, 1) > 0 THEN
-        -- 重复不去重 —— 让主键去拒(它自己有一句人话)。
-        -- 【去重会让"记了两次"静悄悄地变成"记了一次"】,而那是把一个输入错误
-        -- 藏起来,不是把它处理掉。
-        INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
-        SELECT p_inbound_batch_id, c FROM unnest(p_codes) c;
+    -- 要结束的那几条:开着、而这一次没再勾上。结束要理由 —— 在写任何东西之前问。
+    SELECT string_agg(s.safety_state_code, ',' ORDER BY s.safety_state_code) INTO v_ending
+      FROM inbound_batch_safety_states s
+     WHERE s.inbound_batch_id = p_inbound_batch_id AND s.ended_at IS NULL
+       AND NOT (s.safety_state_code = ANY (v_codes));
+    IF v_ending IS NOT NULL AND btrim(COALESCE(p_end_reason, '')) = '' THEN
+        RAISE EXCEPTION 'SAFETY_STATE_END_REASON_REQUIRED|%', v_ending;
     END IF;
 
-    SELECT count(*) INTO v_n FROM inbound_batch_safety_states WHERE inbound_batch_id = p_inbound_batch_id;
+    UPDATE inbound_batch_safety_states s
+       SET ended_at = now(), ended_by = auth.uid(), end_reason = btrim(p_end_reason)
+     WHERE s.inbound_batch_id = p_inbound_batch_id AND s.ended_at IS NULL
+       AND NOT (s.safety_state_code = ANY (v_codes));
+
+    -- 新勾上的:只插开着的里面还没有的。同一次请求里写了两遍的代码不去重,让唯一索引去拒。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT p_inbound_batch_id, c FROM unnest(v_codes) c
+     WHERE NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = p_inbound_batch_id AND s.ended_at IS NULL
+                          AND s.safety_state_code = c);
+
+    SELECT count(*) INTO v_n FROM inbound_batch_safety_states
+     WHERE inbound_batch_id = p_inbound_batch_id AND ended_at IS NULL;
     RETURN jsonb_build_object('inbound_batch_id', p_inbound_batch_id, 'count', v_n);
 END;
-$function$
+$function$;
 
-;
+COMMENT ON FUNCTION public.set_inbound_safety_states(uuid, text[], text) IS
+'★ MES-3a(2026-10-06,MES-3a Step 0 Q22 · Q23,Tim):从【整组替换】改成【只加新勾上的、只结束拿掉的】—— 没变的那几条一个字节都不动,
+于是它们的记录时刻(滞留时钟,Q15)不因每一次保存重来;拿掉的那几条被【结束】(ended_at · ended_by · end_reason),不被删掉,
+而结束要一个理由(p_end_reason,空 → SAFETY_STATE_END_REASON_REQUIRED|<状态>)。下面是 PROC-2c 的原注释,【整组替换】那一句从此按这一句读。
 
-COMMENT ON FUNCTION public.set_inbound_safety_states(uuid, text[]) IS
-'PROC-2c:一批货的安全状态【整组替换】,一笔事务。批次页面与两条建批次的路【共用它】。
+PROC-2c:一批货的安全状态【整组替换】,一笔事务。批次页面与两条建批次的路【共用它】。
 
 【它为什么存在】PROC-2b 在 app 侧"先删后插",而 PostgREST 一次一条语句 ——
 两步之间失败会留下一个空集。**而空集在这套系统里是一句有含义的话:"没有人记过"。**

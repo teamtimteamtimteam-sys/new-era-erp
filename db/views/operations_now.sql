@@ -181,6 +181,15 @@
 --   · instrument_calibration_approaching:在期内、有效期落在 V8 给的提前天数里。V8(calibration_lead_days)没给 → 这一支恒为空,
 --     过期本身照样由上一支上牌(每一条记录自己的有效期是必填的)。
 --   后两支读 instrument_calibration_now(属主视图,一份挑法、一句判据),门是 module.processing.view。
+-- MES-3a(2026-10-06,MES-0 Q13 · Q35 · Q34;MES-3a Step 0 Q13 · Q16 · Q20,Tim):第 53–55 支 —— 三支都【只提醒,不拒】——
+--   · storage_ceiling_exceeded:今天在效的执照下,一类 NEA 废物(或总量)的存量超过了给了的上限(storage_ceiling_status.status = exceeded)。
+--     收货在超之前就被拒了,所以走到这里的是别的路:加工把料变成了另一类、回滚还回了料、上限被调低了。item_id = 执照,
+--     item_code = 类别(总量是 *),门 module.inventory.view。
+--   · safety_state_dwell:一批还在厂里的货,身上一条开着的状态待满了它的 dwell_warning_days(V3;没给的不上牌)。
+--     一批 × 一条状态一行;item_date = 那条状态被记下的那一天,所以 days_waiting 就是它待了多久。doc_kind = inbound / output,
+--     门逐行:进料 module.inbound.view,产出 module.output.view。
+--   · quarantine_required:一批身上开着一条要隔离的状态(鼓包或漏液),却还有货放在非隔离库位(quarantine_exposure)。
+--     一批 × 一个库位桶一行;doc_kind 与门同上;item_date = 那条状态被记下的那一天。
 CREATE VIEW public.operations_now AS
  SELECT item_type,
     permission,
@@ -596,6 +605,41 @@ CREATE VIEW public.operations_now AS
             ic.valid_until AS item_date
            FROM instrument_calibration_now ic
           WHERE ic.in_use AND ic.approaching
+        UNION ALL
+         SELECT 'storage_ceiling_exceeded'::text AS item_type,
+            'module.inventory.view'::text AS permission,
+            sc.licence_id AS item_id,
+            NULL::text AS doc_kind,
+            COALESCE(sc.category_code, '*'::text) AS item_code,
+            (((sc.cert_no || ' · '::text) || sc.name_en) || ' · '::text) || round(sc.on_hand_t, 3)::text || ' / '::text || sc.limit_tonnes::text || ' t'::text AS subject,
+            (now() AT TIME ZONE 'Asia/Singapore'::text)::date AS item_date
+           FROM storage_ceiling_status sc
+          WHERE sc.status = 'exceeded'::text
+        UNION ALL
+         SELECT 'safety_state_dwell'::text AS item_type,
+                CASE dw.batch_kind
+                    WHEN 'inbound'::text THEN 'module.inbound.view'::text
+                    ELSE 'module.output.view'::text
+                END AS permission,
+            dw.batch_id AS item_id,
+            dw.batch_kind AS doc_kind,
+            dw.batch_code AS item_code,
+            dw.name_en AS subject,
+            dw.recorded_on AS item_date
+           FROM safety_state_dwell dw
+          WHERE dw.dwell_status = 'past'::text AND dw.on_site
+        UNION ALL
+         SELECT 'quarantine_required'::text AS item_type,
+                CASE qe.batch_kind
+                    WHEN 'inbound'::text THEN 'module.inbound.view'::text
+                    ELSE 'module.output.view'::text
+                END AS permission,
+            qe.batch_id AS item_id,
+            qe.batch_kind AS doc_kind,
+            qe.batch_code AS item_code,
+            (qe.name_en || ' · '::text) || COALESCE(qe.location_code, 'unspecified'::text) AS subject,
+            qe.recorded_on AS item_date
+           FROM quarantine_exposure qe
         UNION ALL
          SELECT 'promise_overdue'::text AS item_type,
             'module.finance.view'::text AS permission,

@@ -16,6 +16,8 @@ import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
 import PurposePanel, { type BatchPurpose, type OperationType } from './PurposePanel'
+import SafetyStateHistory from '@/app/components/safety/SafetyStateHistory'
+import CeilingCheckPanel from '@/app/components/safety/CeilingCheckPanel'
 import SafetyStatePanel, { type SafetyState } from './SafetyStatePanel'
 import OutputAssaySection from './OutputAssaySection'
 import TraceabilitySection, { type IssueRow } from './TraceabilitySection'
@@ -163,6 +165,7 @@ export default async function EditOutputPage({
         .from('output_batch_safety_states')
         .select('safety_state_code')
         .eq('output_batch_id', id)
+        .is('ended_at', null)   // MES-3a(Q22):状态有历史 —— "现在身上有什么"只读开着的那几行
 
     const marginRes = await supabase
         .from('batch_margin')
@@ -473,6 +476,11 @@ export default async function EditOutputPage({
                 canEdit={canEditSafety}
                 locale={locale}
             />
+            {/* MES-3a(Q16 · Q20 · Q22):隔离横幅 · 每一条开着的状态待了多久 · 结束了的那几条;进厂那一刻库存上限怎么判的 */}
+            <div className="mt-4">
+                <SafetyStateHistory kind="output" batchId={batch.id} unit={batch.unit} locale={locale} />
+                <CeilingCheckPanel kind="output" batchId={batch.id} locale={locale} />
+            </div>
 
             {batch.remaining_qty > 0 ? (
                 <SalePanel

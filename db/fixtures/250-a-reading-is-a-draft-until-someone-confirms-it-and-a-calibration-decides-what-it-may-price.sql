@@ -1,5 +1,6 @@
 -- 250 MES-2:一次读数在有人确认之前只是一张草稿;改过的值留着原值与理由;一张地磅单两磅成一张、分出去的份对着净重显示;
---     一台仪器在不在校准期内是读的时候推的,而开关开着时它决定这一次读数能不能拿去定价、拿去签证书(MES-2 Step 0 Q1–Q35;v1.4.38)
+--     一台仪器在不在校准期内是读的时候推的;不在期内的读数永远不能拿去定价、拿去签证书,开关只管两种缺席
+--     (MES-2 Step 0 Q1–Q35;v1.4.38 —— MES-3a 按 Tim 的裁定 1 还原成 Step 0 当初裁下的那一条,v1.4.39)
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【本支钉住的东西】一臂一组裁定;每一臂都有故障注入(db/scripts/2026-10-06-mes2-fixture-injections.py)必须让它红在它点名的那一臂。
@@ -16,7 +17,8 @@
 --   RECEIPT  建收货单那一刻挂一份:数量 = 份时不留理由;不同则理由必填并落在份上;没有单却给了份按名拒(Q19)
 --   CAL      读的时候推:在期内 · 过期 · 没通过 · 从来没校过 · 补录的证书对它覆盖的时间算数 · 作废的记录不算;两个读法(每次称重 /
 --            每台仪器今天)对同一台仪器同一天说同一句话(Q25)
---   GATE     开关空着:定价、试算、签证书【一个都不拒】;开着:三个码各按名拒,在期内的照过,开关之前建的收货单不管(Q26 · Q27)
+--   GATE     ★ MES-3a(Tim 的裁定 1):不在校准期内的读数【永远】拒 —— 开关空着、收货单建在开关之前,都一样;
+--            开关只管两种缺席(没记仪器 · 没挂称重),只管开关那一天及以后建的;在期内的照过(Q25 · Q26 · Q27)
 --   ARMS     capture_draft_pending(只给持确认码的人)· instrument_calibration_due(在用、不在期内)·
 --            instrument_calibration_approaching(V8 给了才有)(Q29 · Q32)
 --   PV       V8(提前天数没给)· V33(在用的仪器没给量程)各一支,给了就消失;不持加工查看码的人一行都看不见(Q12 · Q30)
@@ -149,6 +151,7 @@ DECLARE
     dr1 uuid; dr2 uuid; dr3 uuid; w1 uuid; w2 uuid; w3 uuid;
     t_ok uuid; t_bad uuid; t_none uuid; t_late uuid; t_r uuid; t_out uuid; t_void uuid; t_open uuid; t_code text;
     b_ok uuid; b_bad uuid; b_none uuid; b_unl uuid; b_old uuid; b_late uuid; b_r1 uuid; b_r2 uuid; b_extra uuid;
+    b_oldn uuid; b_oldu uuid;   -- MES-3a:开关之前建的、没记仪器 / 没挂称重的两张
     run uuid; cod_ok uuid; cod_bad uuid; cod_none uuid; cod_unl uuid;
     v_counts int[];
 BEGIN
@@ -523,7 +526,7 @@ BEGIN
     IF (SELECT status FROM weighing_calibration_all WHERE weighing_id = w2) IS DISTINCT FROM 'never_calibrated' THEN
         RAISE EXCEPTION 'FIXTURE 250 CAL: a certificate counted for a reading taken before it'; END IF;
 
-    -- ══════════════ GATE · 开关空着什么都不拒;开着三个码各按名拒 ══════════════
+    -- ══════════════ GATE · 不在期内的永远拒;开关只管两种缺席(MES-3a,Tim 的裁定 1)══════════════
     -- 四张地磅单:都在期内 · 毛重来自从没校过的秤 · 毛重没记仪器 · 一张三天前、证书补录过的
     t_bad := pg_temp.f250_mt('GATE', u_conf, s_never, 5000, now(),
               '{"new_ticket": {"direction": "inbound", "vehicle_reg": "GBF 4"}}'::jsonb);
@@ -541,17 +544,22 @@ BEGIN
            ('FX250-UNL', mat, sup, 100, 'kg', 100, d, 'other', 'fixture 250'),
            ('FX250-LATE', mat, sup, 1500, 'kg', 1500, d, 'other', 'fixture 250');
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note, created_at)
-    VALUES ('FX250-OLD', mat, sup, 100, 'kg', 100, d - 10, 'other', 'fixture 250', now() - interval '10 days');
+    VALUES ('FX250-OLD', mat, sup, 100, 'kg', 100, d - 10, 'other', 'fixture 250', now() - interval '10 days'),
+           ('FX250-OLDN', mat, sup, 100, 'kg', 100, d - 10, 'other', 'fixture 250', now() - interval '10 days'),
+           ('FX250-OLDU', mat, sup, 100, 'kg', 100, d - 10, 'other', 'fixture 250', now() - interval '10 days');
     SELECT id INTO b_ok FROM inbound_batches WHERE code = 'FX250-OK';
     SELECT id INTO b_bad FROM inbound_batches WHERE code = 'FX250-BAD';
     SELECT id INTO b_none FROM inbound_batches WHERE code = 'FX250-NONE';
     SELECT id INTO b_unl FROM inbound_batches WHERE code = 'FX250-UNL';
     SELECT id INTO b_late FROM inbound_batches WHERE code = 'FX250-LATE';
     SELECT id INTO b_old FROM inbound_batches WHERE code = 'FX250-OLD';
+    SELECT id INTO b_oldn FROM inbound_batches WHERE code = 'FX250-OLDN';
+    SELECT id INTO b_oldu FROM inbound_batches WHERE code = 'FX250-OLDU';
     PERFORM pg_temp.f250_as(u_conf);
     PERFORM weighbridge_share_internal(t_ok, b_ok, NULL, 8000, NULL);
     PERFORM weighbridge_share_internal(t_bad, b_bad, NULL, 4000, NULL);
     PERFORM weighbridge_share_internal(t_bad, b_old, NULL, 100, NULL);
+    PERFORM weighbridge_share_internal(t_none, b_oldn, NULL, 100, NULL);
     PERFORM weighbridge_share_internal(t_none, b_none, NULL, 2000, NULL);
     PERFORM weighbridge_share_internal(t_late, b_late, NULL, 1500, NULL);
     -- 四票整批加工掉 → 四张待签的销毁证书
@@ -572,18 +580,28 @@ BEGIN
     IF cod_ok IS NULL OR cod_bad IS NULL OR cod_none IS NULL OR cod_unl IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 250 GATE: setup — four fully processed receipts should each have a pending certificate'; END IF;
 
-    -- 开关空着:一个都不拒
+    -- 开关空着:不在期内的读数【照样拒】(Tim 的裁定 1);两种缺席与在期内的照过
     IF (SELECT require_calibrated_since FROM ingest_settings) IS NOT NULL THEN RAISE EXCEPTION 'FIXTURE 250 GATE: the switch does not start empty'; END IF;
-    FOR v_u IN SELECT unnest(ARRAY[b_ok, b_bad, b_none, b_unl, b_late, b_old]) LOOP
+    FOR v_u IN SELECT unnest(ARRAY[b_ok, b_none, b_unl, b_late, b_oldn, b_oldu]) LOOP
         v_msg := pg_temp.f250_dry(u_all, format('SELECT preview_reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy));
-        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty the preview refused: %', v_msg; END IF;
+        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty the preview refused a reading that is not out of calibration: %', v_msg; END IF;
         v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy), true);
-        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty pricing refused: %', v_msg; END IF;
+        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty pricing refused a reading that is not out of calibration: %', v_msg; END IF;
     END LOOP;
-    FOR v_u IN SELECT unnest(ARRAY[cod_ok, cod_bad, cod_none, cod_unl]) LOOP
+    v_t := 'READING_INSTRUMENT_NOT_CALIBRATED|' || s_never_code || '|' || to_char(d, 'YYYY-MM-DD');
+    FOR v_u IN SELECT unnest(ARRAY[b_bad, b_old]) LOOP
+        IF pg_temp.f250_dry(u_all, format('SELECT preview_reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy)) IS DISTINCT FROM v_t
+           OR pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy), true) IS DISTINCT FROM v_t THEN
+            RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty a never-calibrated reading was not refused by the preview / pricing (%, %)',
+                pg_temp.f250_dry(u_all, format('SELECT preview_reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy)),
+                pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy), true); END IF;
+    END LOOP;
+    FOR v_u IN SELECT unnest(ARRAY[cod_ok, cod_none, cod_unl]) LOOP
         v_msg := pg_temp.f250_dry(u_all, format('SELECT issue_cod(%L)', v_u));
-        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty a certificate refused: %', v_msg; END IF;
+        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty a certificate refused a reading that is not out of calibration: %', v_msg; END IF;
     END LOOP;
+    v_msg := pg_temp.f250_dry(u_all, format('SELECT issue_cod(%L)', cod_bad));
+    IF v_msg IS DISTINCT FROM v_t THEN RAISE EXCEPTION 'FIXTURE 250 GATE: with the switch empty a never-calibrated reading was certified: %', v_msg; END IF;
 
     -- 开关:只有 action.manage_devices 改得了;日期要像一个日期
     v_msg := pg_temp.f250_try(u_conf, format($q$SELECT set_ingest_settings(jsonb_build_object('require_calibrated_since', %L))$q$, d));
@@ -593,7 +611,7 @@ BEGIN
     PERFORM pg_temp.f250_read('GATE', u_mgr, format($q$SELECT to_jsonb(set_ingest_settings(jsonb_build_object('require_calibrated_since', %L)))$q$, d));
     IF (SELECT require_calibrated_since FROM ingest_settings) IS DISTINCT FROM d THEN RAISE EXCEPTION 'FIXTURE 250 GATE: the switch did not turn on'; END IF;
 
-    -- 开着:在期内的照过;三个码各按名拒;开关之前建的收货单不管
+    -- 开着:在期内的照过;三个码各按名拒;开关之前建的收货单只对【两种缺席】不管 —— 不在期内的照样拒
     v_msg := pg_temp.f250_dry(u_all, format('SELECT preview_reprice_inbound_batch(%L, 2, %L)', b_ok, v_ccy));
     IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: an in-calibration reading was refused by the preview: %', v_msg; END IF;
     v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', b_ok, v_ccy), true);
@@ -620,18 +638,28 @@ BEGIN
        OR pg_temp.f250_dry(u_all, format('SELECT issue_cod(%L)', cod_unl)) IS DISTINCT FROM v_t THEN
         RAISE EXCEPTION 'FIXTURE 250 GATE: a receipt with no weighing was not refused by name (certificate %)',
             pg_temp.f250_dry(u_all, format('SELECT issue_cod(%L)', cod_unl)); END IF;
+    v_t := 'READING_INSTRUMENT_NOT_CALIBRATED|' || s_never_code || '|' || to_char(d, 'YYYY-MM-DD');
     v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', b_old, v_ccy), true);
-    IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: a receipt created before the switch date was refused: %', v_msg; END IF;
+    IF v_msg IS DISTINCT FROM v_t THEN RAISE EXCEPTION 'FIXTURE 250 GATE: an out-of-calibration reading on a receipt created before the switch date was not refused: %', v_msg; END IF;
+    FOR v_u IN SELECT unnest(ARRAY[b_oldn, b_oldu]) LOOP
+        v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy), true);
+        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: a missing instrument / weighing on a receipt created before the switch date was refused: %', v_msg; END IF;
+    END LOOP;
     v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', b_late, v_ccy), true);
     IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: a reading covered by a late-entered certificate was refused: %', v_msg; END IF;
     PERFORM pg_temp.f250_read('GATE', u_mgr, format('SELECT to_jsonb(void_instrument_calibration(%s, %L))', c_late, 'certificate belonged to another scale'));
     v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', b_late, v_ccy), true);
     IF v_msg NOT LIKE 'READING_INSTRUMENT_NOT_CALIBRATED|%' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: a voided certificate still let the reading through: %', v_msg; END IF;
-    -- 开关清空:回到什么都不拒
+    -- 开关清空:两种缺席不再拒;不在期内的【照样拒】
     PERFORM pg_temp.f250_read('GATE', u_mgr, $q$SELECT to_jsonb(set_ingest_settings('{"require_calibrated_since": null}'::jsonb))$q$);
+    IF (SELECT require_calibrated_since FROM ingest_settings) IS NOT NULL THEN RAISE EXCEPTION 'FIXTURE 250 GATE: the switch did not clear'; END IF;
     v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', b_bad, v_ccy), true);
-    IF v_msg IS DISTINCT FROM 'OK' OR (SELECT require_calibrated_since FROM ingest_settings) IS NOT NULL THEN
-        RAISE EXCEPTION 'FIXTURE 250 GATE: clearing the switch did not stop the refusals: %', v_msg; END IF;
+    IF v_msg IS DISTINCT FROM 'READING_INSTRUMENT_NOT_CALIBRATED|' || s_never_code || '|' || to_char(d, 'YYYY-MM-DD') THEN
+        RAISE EXCEPTION 'FIXTURE 250 GATE: clearing the switch let an out-of-calibration reading through: %', v_msg; END IF;
+    FOR v_u IN SELECT unnest(ARRAY[b_none, b_unl]) LOOP
+        v_msg := pg_temp.f250_dry(u_all, format('SELECT reprice_inbound_batch(%L, 2, %L)', v_u, v_ccy), true);
+        IF v_msg IS DISTINCT FROM 'OK' THEN RAISE EXCEPTION 'FIXTURE 250 GATE: clearing the switch did not stop the missing-reading refusals: %', v_msg; END IF;
+    END LOOP;
 
     -- ══════════════ ARMS · 三支提醒 ══════════════
     v_n := (pg_temp.f250_read('ARMS', u_conf, $q$SELECT to_jsonb(count(*)) FROM operations_now WHERE item_type = 'capture_draft_pending' AND days_waiting = 0$q$))::int;

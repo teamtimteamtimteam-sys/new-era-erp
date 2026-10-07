@@ -120,17 +120,20 @@ CREATE INDEX idx_inventory_movements_status_pair ON public.inventory_movements (
 CREATE INDEX idx_inventory_movements_bucket
     ON public.inventory_movements (inbound_batch_id, output_batch_id, location_id, stock_status);
 
--- RLS: authenticated may SELECT and INSERT only — no UPDATE/DELETE policies exist.
+-- RLS: authenticated may SELECT only — no INSERT/UPDATE/DELETE policies exist.
+-- ★ MES-3a(2026-10-06,MES-3a Step 0 Q3,Tim):此前这里有一条 INSERT 策略(module.inventory.edit),于是持这个码的人
+--   可以从会话里手搭一对 transfer_out / transfer_in —— 过得了台账不变式,却绕过每一道落闸(货位分类、隔离)。
+--   app 里没有一处用它(全是读)。策略拿掉,直连 INSERT 由 trg_inventory_movements_through_function 按名拒
+--   MOVEMENTS_THROUGH_FUNCTION_ONLY;流水只由 SECURITY DEFINER 的函数与批次上的触发器写(属主路径放行)。
 ALTER TABLE public.inventory_movements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inventory_movements select by permission"
     ON public.inventory_movements
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.inventory.view'::text));
 
-CREATE POLICY "inventory_movements insert by permission"
-    ON public.inventory_movements
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.inventory.edit'::text));
+CREATE TRIGGER trg_inventory_movements_through_function
+    BEFORE INSERT ON public.inventory_movements
+    FOR EACH ROW EXECUTE FUNCTION public.guard_movement_direct_insert();
 
 -- Its own triggers (functions live in db/functions/inventory_ledger_triggers.sql):
 --   * immutability belt-and-braces

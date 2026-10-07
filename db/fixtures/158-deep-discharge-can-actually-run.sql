@@ -128,12 +128,18 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM inbound_batches WHERE id = v_ib AND code = 'ZZ158-IB') THEN
         RAISE EXCEPTION 'FIXTURE 158D4 失败:同一批进、同一批出 —— 批次的身份必须活下来';
     END IF;
+    -- MES-3a(Q36 · Q22):解决掉的状态从此被【结束】(记下是哪一张加工单),不再被删 —— "身上还有没有"读开着的那几行。
     IF EXISTS (SELECT 1 FROM inbound_batch_safety_states
-                WHERE inbound_batch_id = v_ib AND safety_state_code = 'charged_not_discharged') THEN
-        RAISE EXCEPTION 'FIXTURE 158D4 失败:放完电之后【未放电】这个状态必须被删掉 —— 不删的话这批货永远带着它,下一道工序仍然拒绝它,那个死锁只是换了个位置复发';
+                WHERE inbound_batch_id = v_ib AND safety_state_code = 'charged_not_discharged' AND ended_at IS NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 158D4 失败:放完电之后【未放电】这个状态必须被结束 —— 不结束的话这批货永远带着它,下一道工序仍然拒绝它,那个死锁只是换了个位置复发';
     END IF;
     IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states
-                    WHERE inbound_batch_id = v_ib AND safety_state_code = 'discharged_verified') THEN
+                    WHERE inbound_batch_id = v_ib AND safety_state_code = 'charged_not_discharged'
+                      AND ended_at IS NOT NULL AND ended_by_run_id IS NOT NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 158D4 失败:【未放电】那一条必须还在、并且记着是哪一张加工单结束了它(MES-3a:状态有历史,不被删)';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states
+                    WHERE inbound_batch_id = v_ib AND safety_state_code = 'discharged_verified' AND ended_at IS NULL) THEN
         RAISE EXCEPTION 'FIXTURE 158D4 失败:放完电之后必须【写上】已放电并核实 —— R3 的"改状态"就是这一件事';
     END IF;
 

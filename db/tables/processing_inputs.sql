@@ -105,7 +105,7 @@ BEGIN
             -- 这一条【与工序无关】:不管跑哪道工序,没人看过的料都不许进。
             SELECT count(*) INTO v_n
               FROM inbound_batch_safety_states s
-             WHERE s.inbound_batch_id = NEW.inbound_batch_id;
+             WHERE s.inbound_batch_id = NEW.inbound_batch_id AND s.ended_at IS NULL;
             IF v_n = 0 THEN
                 RAISE EXCEPTION 'INPUT_SAFETY_STATE_NOT_RECORDED|%', v_batch_code
                   USING HINT = '一条安全状态都没有的意思是【没有人记过】,不是"这批货安全"。到【进料 → 打开这一批 → 到货状态】那一块把它记上。';
@@ -137,7 +137,7 @@ BEGIN
                   INTO v_bad_zh, v_bad_en
                   FROM inbound_batch_safety_states s
                   JOIN inbound_safety_states d ON d.code = s.safety_state_code
-                 WHERE s.inbound_batch_id = NEW.inbound_batch_id;
+                 WHERE s.inbound_batch_id = NEW.inbound_batch_id AND s.ended_at IS NULL;
 
                 IF v_bad_zh IS NOT NULL THEN
                     RAISE EXCEPTION 'INPUT_SAFETY_STATE_NOT_FEEDABLE|%|%|%',
@@ -152,7 +152,7 @@ BEGIN
                   INTO v_bad_zh, v_bad_en
                   FROM inbound_batch_safety_states s
                   JOIN inbound_safety_states d ON d.code = s.safety_state_code
-                 WHERE s.inbound_batch_id = NEW.inbound_batch_id
+                 WHERE s.inbound_batch_id = NEW.inbound_batch_id AND s.ended_at IS NULL
                    AND NOT EXISTS (
                        SELECT 1 FROM operation_type_safety_states a
                         WHERE a.operation_type_code = v_op
@@ -206,7 +206,7 @@ BEGIN
         -- 【缺席 = 没有人记过,不是"安全"】与进料侧 D1 同一个意思。
         SELECT count(*) INTO v_n
           FROM output_batch_safety_states s
-         WHERE s.output_batch_id = NEW.output_batch_id;
+         WHERE s.output_batch_id = NEW.output_batch_id AND s.ended_at IS NULL;
         IF v_n = 0 THEN
             RAISE EXCEPTION 'PRODUCED_SAFETY_STATE_NOT_RECORDED|%', v_batch_code
               USING HINT = '这一批是【自己产出】的料,而它一条安全状态都没有 —— 那的意思是【没有人记过】,不是"它安全"。自产的料与买进来的料在这道火闸面前是同一个问题。到【产出 → 打开这一批 → 安全状态】那一块把它记上。';
@@ -226,7 +226,7 @@ BEGIN
               INTO v_bad_zh, v_bad_en
               FROM output_batch_safety_states s
               JOIN inbound_safety_states d ON d.code = s.safety_state_code
-             WHERE s.output_batch_id = NEW.output_batch_id;
+             WHERE s.output_batch_id = NEW.output_batch_id AND s.ended_at IS NULL;
 
             IF v_bad_zh IS NOT NULL THEN
                 RAISE EXCEPTION 'PRODUCED_SAFETY_STATE_NOT_FEEDABLE|%|%|%',
@@ -241,7 +241,7 @@ BEGIN
               INTO v_bad_zh, v_bad_en
               FROM output_batch_safety_states s
               JOIN inbound_safety_states d ON d.code = s.safety_state_code
-             WHERE s.output_batch_id = NEW.output_batch_id
+             WHERE s.output_batch_id = NEW.output_batch_id AND s.ended_at IS NULL
                AND NOT EXISTS (
                    SELECT 1 FROM operation_type_safety_states a
                     WHERE a.operation_type_code = v_op

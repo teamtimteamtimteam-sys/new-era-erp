@@ -4,7 +4,7 @@
 --
 -- 【为什么住在 db/views/ 而不是各自的表镜像里】与 zzz_function_grants.sql 同一个理由:重放顺序是
 --   functions → tables → views,而 views 阶段按名字排、zzz 排最后 —— 到这里每一张表都已经建好。
---   一份文件放 249 张表的绑定,比在 249 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
+--   一份文件放 252 张表的绑定,比在 252 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
 --   与它们写在哪个文件里无关。
 -- 【豁免】change_log_exclusions() 里那 7 张不在这里(理由写在那支函数里)。
 -- 【名字以 zzz 开头】同一张表上的 AFTER 触发器按名字排序触发 —— 记录最后一个看到那一行。
@@ -363,7 +363,7 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.inbound
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.inbound_batch_metals
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.inbound_batch_safety_states
-    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('inbound_batch_id', 'safety_state_code');
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.inbound_batch_safety_states
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.inbound_batches
@@ -486,6 +486,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.leave_t
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.leave_types
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.licence_storage_limits
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.licence_storage_limits
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.list_ledger_residue
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('side', 'doc_code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.list_ledger_residue
@@ -546,6 +550,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.metal_p
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.metal_prices
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.nea_waste_categories
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.nea_waste_categories
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.notifications
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.notifications
@@ -579,7 +587,7 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.output_
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.output_batch_purposes
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.output_batch_safety_states
-    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('output_batch_id', 'safety_state_code');
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.output_batch_safety_states
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.output_batch_states
@@ -761,6 +769,10 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.quote_lines
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.quotes
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.quotes
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.receipt_ceiling_checks
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.receipt_ceiling_checks
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.receipt_price_requests
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');

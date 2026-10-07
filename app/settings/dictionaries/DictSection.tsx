@@ -67,6 +67,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
         for (const x of spec.extras) {
             const v = r[x.column]
             e[x.column] = x.kind === 'boolean' ? (v === true ? 'true' : v === false ? 'false' : '')
+                        : x.kind === 'number' ? (v === null || v === undefined ? '' : String(v))
                                                : ((v as string | null) ?? '')
         }
         setExtras(e); setEditing(r.code)
@@ -81,6 +82,16 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
         { key: 'code', header: t('dict.f.code'), priority: true, className: 'text-xs', render: (r) => r.code },
         { key: 'name', header: t('dict.f.name'), priority: true, render: (r) => label(r) },
         { key: 'sortOrder', header: t('dict.f.sortOrder'), align: 'right', render: (r) => r.sort_order },
+        // MES-3a:规则列画在清单里 —— 空的写"Not yet set",不画成 0 或"否"
+        ...spec.extras.filter((x) => x.showInTable).map((x) => ({
+            key: 'x_' + x.column, header: t(x.labelKey),
+            render: (r: DictRow) => {
+                const v = r[x.column]
+                if (v === null || v === undefined) return <span className="text-amber-700" data-not-set={x.column}>{t('dict.notYetSet')}</span>
+                if (x.kind === 'boolean') return v === true ? t('common.yes') : t('common.no')
+                return String(v)
+            },
+        } as Column<DictRow>)),
         // D4:停用之前先看见有多少行带着它。
         { key: 'inUse', header: t('dict.inUse'), align: 'right', render: (r) => usage[r.code] ?? 0 },
         { key: 'isActive', header: t('dict.f.isActive'), render: (r) => (r.is_active ? t('dict.active') : t('dict.inactive')) },
@@ -216,12 +227,22 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                                         <select value={extras[x.column] ?? ''}
                                                 onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
                                                 className={fieldSelect}>
-                                            <option value="" disabled>{t('dict.pickYesNo')}</option>
+                                            {/* MES-3a:不必填的规则布尔,空是一个能选的值 ——"还没有人决定"(V4) */}
+                                            <option value="" disabled={!!x.required}>{x.required ? t('dict.pickYesNo') : t('dict.notYetSet')}</option>
                                             <option value="true">{t('common.yes')}</option>
                                             <option value="false">{t('common.no')}</option>
                                         </select>
                                         <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</p>
                                     </div>
+                                ) : x.kind === 'number' ? (
+                                    <label className="block">
+                                        <span className={flabel}>{t(x.labelKey)}</span>
+                                        <input type="number" min="1" step="1" inputMode="numeric" value={extras[x.column] ?? ''}
+                                               placeholder={t('dict.notYetSet')}
+                                               onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
+                                               className={field} />
+                                        <span className="text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</span>
+                                    </label>
                                 ) : (
                                     <label className="block">
                                         <span className={flabel}>{t(x.labelKey)}</span>

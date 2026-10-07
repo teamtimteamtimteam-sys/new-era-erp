@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditMaterialForm from './EditMaterialForm'
+import { getNeaCategories } from '@/app/materials/neaCategoryQuery'
 import { getWasteClassifications } from '../../wasteClassQuery'
 import { getMaterialKinds } from '../../materialKindQuery'
 import { getMaterialAxes } from '../../materialAxesQuery'
@@ -38,6 +39,7 @@ export default async function EditMaterialPage({
     const chemistryOptions = toDictOptions(await loadBatteryChemistries(supabase), locale)
     // MAT-1:分类选项从表里现读
     const wasteClasses = await getWasteClassifications()
+    const neaCategories = await getNeaCategories()
     const kinds = await getMaterialKinds()
     const axes = await getMaterialAxes()
 
@@ -114,7 +116,7 @@ export default async function EditMaterialPage({
             {/* 删掉的物料:下面每一个控件都按不下去,理由是上面那条横幅(EndedFieldset);链接照常可用 */}
             <EndedFieldset ended={deleted}>
                 <EditMaterialForm
-                    chemistryOptions={chemistryOptions} material={material} wasteClasses={wasteClasses} kinds={kinds}
+                    chemistryOptions={chemistryOptions} material={material} wasteClasses={wasteClasses} neaCategories={neaCategories} kinds={kinds}
                     forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
                 <RequiredMetalsPanel
                     substanceOptions={substanceOptions}

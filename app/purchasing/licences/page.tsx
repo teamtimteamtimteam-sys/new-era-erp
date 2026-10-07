@@ -33,13 +33,14 @@
 // 有权限那一支【恒为 ok】,「还没有执照」的空态住在 DataTable 自己的 empty,
 // 不住在 ListPage 的 empty 分支(那会把「新增执照」按钮一起藏掉)。
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { ListPage } from '@/app/components/ui/list-page'
 import LicencePanel, { type LicenceRow, type CertType } from './LicencePanel'
+import StorageLimitsPanel, { type StorageLimit } from './StorageLimitsPanel'
 import ListTrail from '@/app/components/trail/ListTrail'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 
@@ -75,6 +76,16 @@ export default async function CompanyLicencesPage({ searchParams }: { searchPara
             .select('code, name_en, name_zh').order('sort_order'),
         'certificate_types') as CertType[]
 
+    // MES-3a(Q12 · V2):每一张执照 × 每一类 NEA 废物的库存上限。类别从字典来(V29,今天是空的);上限表读规则同一个码。
+    const locale = await getLocale()
+    const categories = (mustRows(
+        await supabase.from('nea_waste_categories').select('code, name_en, name_zh').eq('is_active', true).order('sort_order'),
+        'nea_waste_categories') as { code: string; name_en: string; name_zh: string }[])
+        .map((c) => ({ code: c.code, label: `${c.code} · ${locale === 'zh' ? c.name_zh : c.name_en}` }))
+    const limits = mustRows(
+        await supabase.from('licence_storage_limits').select('id, licence_id, category_code, limit_tonnes'),
+        'licence_storage_limits') as StorageLimit[]
+
     // AUDIT-TRAIL-1b-2:执照没有详情页 —— 页底一块合起来的审计记录,每一张执照各读一次(删掉的也读:
     //   "被删掉了"正是审计记录要说的事)。这一块只在持 module.suppliers.view 的这一支里 —— 与这张表的读规则同一个码。
     const allLicences = mustRows(
@@ -87,6 +98,11 @@ export default async function CompanyLicencesPage({ searchParams }: { searchPara
     return (
         <ListPage title={t('company.licence.title')} state={{ kind: 'ok' }}>
             <LicencePanel rows={licences} certTypes={certTypes} canEdit={canEditLicences} />
+            <StorageLimitsPanel
+                /* 只有 gwdf(一般废物处置设施执照)判库存上限 —— storage_licence_in_force 的挑法,Q5 */
+                licences={licences.filter((l) => l.cert_type_code === 'gwdf').map((l) => ({ id: l.id, total: l.approved_storage_limit_tonnes,
+                    label: [certTypes.find((c) => c.code === l.cert_type_code)?.name_en ?? l.cert_type_code, l.cert_no].filter(Boolean).join(' · ') }))}
+                categories={categories} limits={limits} canEdit={canEditLicences} />
             <ListTrail records={trailRecords} intro="listTrail.intro.licences" show={trailCount((await searchParams).trail)} />
         </ListPage>
     )

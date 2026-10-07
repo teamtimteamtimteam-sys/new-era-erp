@@ -111,8 +111,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // MES-2(2026-10-06):249 → 256。七张确认 / 称重 / 校准的表(capture_drafts · capture_draft_changes · weighings ·
 // weighbridge_tickets · weighbridge_ticket_shares · weighbridge_ticket_photos · instrument_calibrations)。只有一张带 code 列:
 // weighbridge_tickets(WB,登记进 document_types),所以 EXPECTED_CODE_TABLES 78 → 79。
-const EXPECTED_TABLES = 256   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 79
+// MES-3a(2026-10-06):256 → 259。三张仓储安全的表(nea_waste_categories · licence_storage_limits · receipt_ceiling_checks)。
+// 只有一张带 code 列:nea_waste_categories(NEA 废物类别目录,登记进 document_type_exceptions),所以 EXPECTED_CODE_TABLES 79 → 80。
+const EXPECTED_TABLES = 259   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 80
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

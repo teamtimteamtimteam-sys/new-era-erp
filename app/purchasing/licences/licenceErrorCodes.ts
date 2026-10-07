@@ -18,11 +18,16 @@ const LICENCE_ERROR_CODES = new Set([
     'LICENCE_STORAGE_LIMIT_INVALID',
     'LICENCE_NOT_PERMITTED',
     'LICENCE_AUTH_UNAVAILABLE',
+    // MES-3a(Q12):执照 × NEA 类别的库存上限
+    'STORAGE_LIMIT_INVALID',
+    'STORAGE_LIMIT_DUPLICATE',
 ])
 
 const CONSTRAINT_TO_CODE: Record<string, string> = {
     company_compliance_status_check: 'LICENCE_STATUS_INVALID',
     company_compliance_approved_storage_limit_tonnes_check: 'LICENCE_STORAGE_LIMIT_INVALID',
+    licence_storage_limits_limit_tonnes_check: 'STORAGE_LIMIT_INVALID',
+    licence_storage_limits_one_per_category: 'STORAGE_LIMIT_DUPLICATE',
 }
 
 export async function localizeLicenceError(message: string): Promise<string> {

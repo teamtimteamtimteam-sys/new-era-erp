@@ -990,6 +990,8 @@ permission. The same column is outside the table's column-level SELECT grant and
 > out-of-calibration reading (expired, failed, never calibrated) **always** refuses pricing and `issue_cod`
 > (`READING_INSTRUMENT_NOT_CALIBRATED`); the switch governs only `READING_INSTRUMENT_NOT_RECORDED` and `RECEIPT_READING_NOT_RECORDED`.
 > **The code change lands in MES-3a**; until then the as-built behaviour applies. Details: `docs/handbacks/MES-2.md` §10.2.
+>
+> **Landed (MES-3a, v1.4.39, 2026-10-06):** the rule above is now the code — see §14.3.
 
 Hand-back `docs/handbacks/MES-2.md`; fixture 250 pins every rule below.
 
@@ -1013,3 +1015,53 @@ Hand-back `docs/handbacks/MES-2.md`; fixture 250 pins every rule below.
 `capture_draft_changes` is itself the record of a confirmed change — field, original value, confirmed value, reason — and is
 append-only by its guard. The log records its insert like any other row; the confirmation queue and the trail read the
 table, not the log, so the reason is shown even to a reader who cannot read the change log.
+
+## 14. Storage safety (MES-3a, v1.4.39, 2026-10-06)
+
+Hand-back `docs/handbacks/MES-3a.md`; fixture 251 pins every rule below (and fixtures 111, 113–115, 152, 158, 165 and 250 were
+re-pointed at the new shapes).
+
+### 14.1 Logged, excluded
+
+- **Logged** (two triggers each): the three new tables — `nea_waste_categories`, `licence_storage_limits`,
+  `receipt_ceiling_checks`. Public tables 256 → **259**; bound 249 → **252**; exclusions stay **7** (§2).
+- **No new mask rule.** No new column is a secret, a price or a personal identifier; the mask list stays **105** rows and
+  `change_log_mask_gaps()` is zero.
+- **Trail subjects.** Ceilings (`licence_storage_limits`) are members of **`company_licence`** ("Storage ceiling set · changed ·
+  cleared", naming the category). Each batch's arrival check (`receipt_ceiling_checks`) is a member of **`inbound_batch`** and
+  **`output_batch`** ("Storage ceiling checked on arrival · <outcome>"). The category list is a new dictionary subject
+  **`dictionary_nea_waste_categories`**, like the other dictionaries. The new dictionary columns (`dwell_warning_days`,
+  `requires_quarantine`), the material's category and the location's quarantine flag are columns of logged tables and ride their
+  existing triggers. `scripts/check-trail-wording.mjs` arm ⑰ pins the wording.
+
+### 14.2 Safety-state history (Q22–Q25)
+
+The two fact tables `inbound_batch_safety_states` and `output_batch_safety_states` used to be a **set** keyed by
+(batch, state): the intake panel deleted and re-inserted the whole set on every save, the output panel wrote straight from the
+browser, and a processing run deleted the states it resolved. Who took a state off, and why, was recorded nowhere
+(PROC-3 §1). Now:
+
+- **Rows are kept.** Each row has its own `id`; a state is **ended** (`ended_at`, `ended_by`, `end_reason`, and `ended_by_run_id`
+  when a processing run ended it), never deleted. At most one open row per (batch, state) (`<table>_open_once`). A guard refuses
+  DELETE / TRUNCATE (`SAFETY_STATE_NEVER_DELETED`), any rewrite of a row (`SAFETY_STATE_ROW_FIXED`), a second close
+  (`SAFETY_STATE_ALREADY_ENDED`) and a close with a blank reason (`SAFETY_STATE_END_REASON_REQUIRED`) — statement-level as well
+  as row-level, so a write that RLS reduces to zero rows is refused rather than "succeeding" (the SILENT-1 family).
+- **Writes go through functions only** (`SAFETY_STATES_THROUGH_FUNCTION_ONLY`): `set_inbound_safety_states` now adds and ends
+  **only what changed** (an unchanged state keeps its row and its clock), and the new `set_output_safety_states` does the same for
+  output batches. A person un-ticking a state must give a reason.
+- **Runs and rollbacks.** A processing run that resolves a state ends it with "resolved by processing run <code>" and records the
+  states it writes (`created_by_run_id`). Rolling the run back ends what the run wrote ("undone by rollback of <code>: <reason>") and
+  **re-opens** what it ended (a new row, `reopened_from_id` pointing at the ended one, with the original recorded time and person).
+- **The log is re-keyed to `id`** for both tables, so a close is an UPDATE of one row. On the trail: "Safety state recorded",
+  "Safety state ended" (with its reason), "Safety state reopened by a rollback". Rows from before MES-3a may still read "removed".
+- **Today's rows (Q24):** the one inbound and one output row on live stay open with their own recorded time; nothing is back-filled.
+
+### 14.3 The calibration rule, as restored (ruling 1)
+
+`assert_receipt_reading_calibrated` now refuses a reading from an instrument **out of calibration** (expired, failed, never
+calibrated) **always** — in pricing (`reprice_inbound_batch`), its preview and `issue_cod`, and through the engine at a price
+request's submit — whatever `ingest_settings.require_calibrated_since` says. The switch governs only the two **absence** codes:
+`READING_INSTRUMENT_NOT_RECORDED` (a reading with no instrument) and `RECEIPT_READING_NOT_RECORDED` (a receipt with no weighing),
+which refuse only for receipts created on or after the switch date. The switch stays empty on live. Wording on
+`/operation/calibration` and the receipt page says so (Step 0 Q26).
+

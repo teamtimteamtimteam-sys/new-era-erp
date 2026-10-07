@@ -1,6 +1,8 @@
 -- db/functions/create_inbound_batch.sql
 -- MES-2(2026-10-06,MES-2 Step 0 Q19,Tim):末尾多三个参数(p_ticket_id · p_ticket_share_kg · p_quantity_reason),都带默认值 ——
 --   签名变了,所以迁移是 DROP + CREATE(preflight 不许 CREATE OR REPLACE 换签名);已部署的旧应用不传它们,照样解析到这一支。
+-- MES-3a(2026-10-06,MES-3a Step 0 Q9 · Q10 · Q19,Tim):写入之前过隔离闸(请求里带着要隔离的状态,就只能收进隔离库位);
+--   落库之后对着执照的库存上限判一次并记下来(receipt_ceiling_check_internal)。签名不变;返回值多一个 'ceiling'(那一行)。
 
 CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_currency text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text)
  RETURNS jsonb
@@ -9,6 +11,7 @@ CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_sup
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
+    v_ceiling jsonb;
     v_user    uuid := auth.uid();
     v_id      uuid;
     v_warn    text[];
@@ -59,6 +62,10 @@ BEGIN
     -- NTF-1:告警留一份下来 —— 此前它渲染一次就没了,连响过的痕迹都没有。
     PERFORM notify_landing_warnings(v_warn, p_location_id, p_material_id);
 
+    -- MES-3a(2026-10-06,MES-0 Q34;MES-3a Step 0 Q19,Tim):带着要隔离的状态(鼓包或漏液)只能收进一个在用的隔离库位 ——
+    --   读的是【请求里】的状态(状态在落库之后才写,所以不能等它们),写入之前按名拒 QUARANTINE_LOCATION_REQUIRED。
+    PERFORM assert_quarantine_landing(p_safety_states, p_location_id);
+
     -- GRN-1a:p_declared_qty 原样落库,【不拒绝任何差异】,也【绝不从采购行推断】。
     -- PROC-2c:确定度随表头一起落 —— 适用性由 trg_inbound_batches_condition_applicable
     -- 判(它在库里,所以这条路、批次页面、直连 SQL 三条一起盖住)。
@@ -91,6 +98,11 @@ BEGIN
     -- 插入把这个库位当成自己的(那正是 ctx 这种机制唯一的锋利处)。
     PERFORM set_config('evoltrya.location_ctx', '', true);
 
+    -- MES-3a(2026-10-06,MES-0 Q32 · Q33;MES-3a Step 0 Q5–Q10,Tim):对着执照的库存上限判一次,并且【每一张都记下来】
+    --   (receipt_ceiling_checks)。在落库之后判 —— 这一批的入库流水已经在存量里;超过一个给了的上限就按名拒
+    --   STORAGE_CEILING_EXCEEDED,整笔回滚。没给上限 / 没有类别 / 没有在效执照:照收,记下是哪一种。
+    v_ceiling := receipt_ceiling_check_internal(v_id, NULL);
+
     -- MES-2:地磅单的份【先于】定价落下 —— 建单带价时的定价会过校准闸,闸要看得见这张单的读数。
     IF p_ticket_id IS NOT NULL THEN
         PERFORM weighbridge_share_internal(p_ticket_id, v_id, NULL, p_ticket_share_kg,
@@ -110,7 +122,7 @@ BEGIN
     -- INB-PAY-1:定价的分解随之返回;不带价时为 null。ROLE-1 Batch 4b 起它是那张申请
     -- (request_id / label / status;审批关着时还有 journal_code)。
     RETURN jsonb_build_object('batch_id', v_id, 'warnings', to_jsonb(v_warn),
-                              'pricing', v_pricing);
+                              'pricing', v_pricing, 'ceiling', v_ceiling);
 END;
 $function$
 

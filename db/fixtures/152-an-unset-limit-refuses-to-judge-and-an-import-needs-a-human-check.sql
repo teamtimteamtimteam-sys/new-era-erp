@@ -3,13 +3,8 @@
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【本支钉住的东西】
---   A ★ 三种缺法【三条不同的码】★ —— 合成一句就是 CHAIN-BUILD-1 刚修好的病
---       A1 两样都缺(**今天线上就是这一种**)
---       A2 只缺吨数(上限录了)
---       A3 只缺上限(吨数算得出来 —— 靠注入把它变成算得出来)
---   B  ★【会成功】的对照★ 两样都在时它【真的作判断】,而且两个方向都验
---       (在限内 true / 超限 false)—— 少了它,一个"永远抛"的实现能让 A 全绿
---   C  在场危废吨数【今天返回 NULL,而 NULL 不是 0】
+--   A/B/C ★ MES-3a 起:旧的上限判据(licence_storage_within_limit · hazardous_qty_on_hand_tonnes)已删 ★ ——
+--       这里只断言它们不在了;新的判法(收货时判、每次都记一行)由 fixture 251 钉住
 --   D  进口尽调的三个状态【分得开】,而空白【不等于】"不是进口货"
 --   E  约束:不是进口货就不许有核验记录;核验人与核验时刻同生同灭
 --   F  告警臂 import_permit_unverified 只对【是进口且未核】的那一票上牌
@@ -49,111 +44,20 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    -- ══════════ C 在场危废吨数今天【算不出来】(NULL ≠ 0)══════════
-    IF hazardous_qty_on_hand_tonnes() IS NOT NULL THEN
-        RAISE EXCEPTION 'FIXTURE 152C 失败:今天它应当返回 NULL(算不出来),实得 %',
-            hazardous_qty_on_hand_tonnes(); END IF;
-
-    -- ══════════ A1 两样都缺 —— 今天线上的真实状态 ══════════
-    -- 【先确认前提】公司一张带上限的执照都没有,否则这一臂验的不是"都缺"
-    SELECT count(*) INTO v_n FROM company_compliance
-     WHERE deleted_at IS NULL AND approved_storage_limit_tonnes IS NOT NULL;
-    IF v_n <> 0 THEN
-        RAISE EXCEPTION 'FIXTURE 152A1 失败:前提不成立 —— 已经有 % 张带上限的执照', v_n; END IF;
-
-    v_denied := false;
-    BEGIN PERFORM licence_storage_within_limit();
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
-    IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 152A1 失败:★两样输入都缺,它却给出了一个判断★ —— 一个"没录上限就一律通过"的检查比没有检查更坏,它制造出信心'; END IF;
-    IF v_msg <> 'LICENCE_STORAGE_INPUTS_BOTH_MISSING' THEN
-        RAISE EXCEPTION 'FIXTURE 152A1 失败:应报【两样都缺】那一条,实得「%」', v_msg; END IF;
-
-    -- ══════════ A2 只缺【吨数】—— 录一张带上限的执照 ══════════
-    -- 【这里的值是明显的测试值,不是样本值】样本执照属于另一家公司,
-    -- 它的任何一个数字都没有、也不会进到这个仓库里来。
+    -- ══════════ A · B · C(MES-3a,2026-10-06,改写)══════════
+    -- 这几臂原来钉的是 licence_storage_within_limit() 与 hazardous_qty_on_hand_tonnes():前者"读到空的上限就拒绝作判断"(R2),
+    -- 后者一律返回 NULL。两支都【没有任何调用方】,而前者与 MES-0 Q33(没给上限就照收、并记下"上限没给")正相反。
+    -- MES-3a(Step 0 Q11,Tim)把它们删了;判法住进 receipt_ceiling_check_internal(收货时判、每一次都记一行),
+    -- 五种结果、超限拒绝、总上限与并发由 fixture 251 逐臂钉住(带注入)。R2 的原则照旧成立在它该在的地方:
+    -- 没有任何东西【假设】一个上限 —— 没给就记下没给,不当成"无限",也不当成 0。
+    -- 这里只钉一件事:旧的两支真的不在了(一个"顺手留着"的旧判据,读起来仍像一条在生效的规矩)。
+    IF to_regprocedure('public.licence_storage_within_limit()') IS NOT NULL
+       OR to_regprocedure('public.hazardous_qty_on_hand_tonnes()') IS NOT NULL THEN
+        RAISE EXCEPTION 'FIXTURE 152A 失败:licence_storage_within_limit / hazardous_qty_on_hand_tonnes 应当已被 MES-3a 删掉';
+    END IF;
+    -- G 臂要一张公司执照(到期提醒)—— 这里的值是明显的测试值,不是样本值。
     INSERT INTO company_compliance (cert_type_code, cert_no, approved_storage_limit_tonnes, status)
     VALUES ('gwdf', 'ZZ-FIX152', 100, 'active') RETURNING id INTO v_lic;
-
-    v_denied := false;
-    BEGIN PERFORM licence_storage_within_limit();
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
-    IF NOT v_denied OR v_msg <> 'HAZARDOUS_QTY_NOT_COMPUTABLE' THEN
-        RAISE EXCEPTION 'FIXTURE 152A2 失败:上限录了、吨数算不出来时,应报【吨数算不出来】那一条,实得「%」—— 报成"没录上限"会把人送去录一个【已经录了】的东西', COALESCE(v_msg,'(没有报错)'); END IF;
-
-    -- ══════════ A3 只缺【上限】—— 注入①让吨数变得算得出来 ══════════
-    v_def := pg_get_functiondef('public.hazardous_qty_on_hand_tonnes()'::regprocedure);
-    v_inj := replace(v_def, 'RETURN NULL;', 'RETURN 5;');
-    IF v_inj = v_def THEN
-        RAISE EXCEPTION 'FIXTURE 152 注入① 失败:没找到 RETURN NULL —— 这个注入什么也没删'; END IF;
-    EXECUTE v_inj;
-    IF hazardous_qty_on_hand_tonnes() IS DISTINCT FROM 5 THEN
-        RAISE EXCEPTION 'FIXTURE 152 注入① 失败:注入之后吨数应当算得出来'; END IF;
-
-    UPDATE company_compliance SET approved_storage_limit_tonnes = NULL WHERE id = v_lic;
-    v_denied := false;
-    BEGIN PERFORM licence_storage_within_limit();
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
-    IF NOT v_denied OR v_msg <> 'LICENCE_STORAGE_LIMIT_NOT_SET' THEN
-        RAISE EXCEPTION 'FIXTURE 152A3 失败:吨数算得出、没录上限时,应报【没录上限】那一条,实得「%」', COALESCE(v_msg,'(没有报错)'); END IF;
-
-    -- ══════════ B ★【会成功】的对照,两个方向都验★ ══════════
-    -- 少了它,一个"永远抛"的实现能让 A1/A2/A3 全绿。
-    UPDATE company_compliance SET approved_storage_limit_tonnes = 10 WHERE id = v_lic;
-    v_b := licence_storage_within_limit();
-    IF v_b IS DISTINCT FROM true THEN
-        RAISE EXCEPTION 'FIXTURE 152B 失败:5 吨在 10 吨上限【之内】,应当判 true,实得 %', v_b; END IF;
-    UPDATE company_compliance SET approved_storage_limit_tonnes = 4 WHERE id = v_lic;
-    v_b := licence_storage_within_limit();
-    IF v_b IS DISTINCT FROM false THEN
-        RAISE EXCEPTION 'FIXTURE 152B 失败:5 吨【超过】4 吨上限,应当判 false,实得 % —— 一个永远返回 true 的实现会在这里被抓住', v_b; END IF;
-
-    -- 【过期/中止的执照不该再管着它】—— 上限只从【在效】的执照上取
-    UPDATE company_compliance SET status='revoked', approved_storage_limit_tonnes=10 WHERE id=v_lic;
-    v_denied := false;
-    BEGIN PERFORM licence_storage_within_limit();
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
-    IF NOT v_denied OR v_msg <> 'LICENCE_STORAGE_LIMIT_NOT_SET' THEN
-        RAISE EXCEPTION 'FIXTURE 152B 失败:一张【已吊销】执照上的上限不该还算数,应当退回"没录上限",实得「%」', COALESCE(v_msg,'(没有报错)'); END IF;
-    UPDATE company_compliance SET status='active' WHERE id=v_lic;
-
-    -- ══════════ 注入③(陷阱 f)把三分支合并成一条,断言 A 臂当场瞎掉 ══════════
-    -- A 臂宣称的是「三种缺法给三条【不同】的话」。光断言"抛了"管不住这件事。
-    v_def := pg_get_functiondef('public.licence_storage_within_limit()'::regprocedure);
-    v_inj := replace(v_def, 'RAISE EXCEPTION ''LICENCE_STORAGE_LIMIT_NOT_SET'';',
-                            'RAISE EXCEPTION ''LICENCE_STORAGE_INPUTS_BOTH_MISSING'';');
-    IF v_inj = v_def THEN
-        RAISE EXCEPTION 'FIXTURE 152 注入③ 失败:没找到那条码 —— 这个注入什么也没删'; END IF;
-    EXECUTE v_inj;
-    UPDATE company_compliance SET approved_storage_limit_tonnes = NULL WHERE id = v_lic;
-    v_msg := NULL;
-    BEGIN PERFORM licence_storage_within_limit();
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; END;
-    IF v_msg <> 'LICENCE_STORAGE_INPUTS_BOTH_MISSING' THEN
-        RAISE EXCEPTION 'FIXTURE 152 注入③ 失败:合并之后它应当退化成【两样都缺】那一句,实得「%」—— 说明 A3 断的不是那条码', COALESCE(v_msg,'(没有报错)'); END IF;
-    EXECUTE v_def;
-    v_msg := NULL;
-    BEGIN PERFORM licence_storage_within_limit();
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; END;
-    IF v_msg <> 'LICENCE_STORAGE_LIMIT_NOT_SET' THEN
-        RAISE EXCEPTION 'FIXTURE 152 注入③ 失败:恢复定义之后应当又报【没录上限】,实得「%」', COALESCE(v_msg,'(没有报错)'); END IF;
-
-    -- 恢复吨数函数,回到"今天算不出来"
-    EXECUTE (SELECT replace(pg_get_functiondef('public.hazardous_qty_on_hand_tonnes()'::regprocedure),
-                            'RETURN 5;', 'RETURN NULL;'));
-    IF hazardous_qty_on_hand_tonnes() IS NOT NULL THEN
-        RAISE EXCEPTION 'FIXTURE 152 失败:吨数函数没有恢复成 NULL'; END IF;
-
-    -- ══════════ G2(陷阱 c)它是 definer,所以自己查权限 —— 换个没权限的人 ══════════
-    PERFORM set_config('request.jwt.claims',
-        format('{"sub":"%s","role":"authenticated"}', gen_random_uuid()), true);
-    v_denied := false;
-    BEGIN PERFORM licence_storage_within_limit();
-    EXCEPTION WHEN OTHERS THEN v_denied := (SQLERRM LIKE 'PERMISSION_DENIED%'); END;
-    IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 152G2 失败:它是 SECURITY DEFINER,属主权限绕过 RLS,那句权限检查不是礼节'; END IF;
-    PERFORM set_config('request.jwt.claims',
-        format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
     -- ══════════ D/E 进口尽调:三个状态分得开,空白不等于"不是进口" ══════════
     INSERT INTO suppliers (code, legal_name, country, supplier_types, counterparty_type)

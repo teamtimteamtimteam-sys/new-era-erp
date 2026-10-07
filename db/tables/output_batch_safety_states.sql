@@ -10,9 +10,21 @@ CREATE TABLE public.output_batch_safety_states (
     safety_state_code text NOT NULL REFERENCES public.inbound_safety_states (code),
     created_at        timestamptz NOT NULL DEFAULT now(),
     created_by        uuid DEFAULT auth.uid(),
-    -- 【一批料的同一个状态只记一次】与进料侧逐字同源:重复一行不是"更确定",
-    -- 它只会让任何按状态计数的读法开始骗人。
-    PRIMARY KEY (output_batch_id, safety_state_code)
+    -- ★ MES-3a(2026-10-06,MES-0 Q36;MES-3a Step 0 Q22 · Q2,Tim):与进料侧逐字同形 —— 状态被【结束】,不被删掉;
+    --   主键换成 id,"开着的只有一条"挪到部分唯一索引上。
+    id                uuid NOT NULL DEFAULT gen_random_uuid(),
+    created_by_run_id uuid REFERENCES public.processing_runs (id),
+    ended_at          timestamptz,
+    ended_by          uuid,
+    end_reason        text,
+    ended_by_run_id   uuid REFERENCES public.processing_runs (id),
+    reopened_from_id  uuid,
+    CONSTRAINT output_batch_safety_states_pkey PRIMARY KEY (id),
+    CONSTRAINT output_batch_safety_states_reopened_from_fkey
+        FOREIGN KEY (reopened_from_id) REFERENCES public.output_batch_safety_states (id),
+    CONSTRAINT output_batch_safety_states_end_shape
+        CHECK ((ended_at IS NULL AND ended_by IS NULL AND end_reason IS NULL AND ended_by_run_id IS NULL)
+               OR (ended_at IS NOT NULL AND end_reason IS NOT NULL AND btrim(end_reason) <> ''))
 );
 
 COMMENT ON TABLE public.output_batch_safety_states IS
@@ -45,6 +57,10 @@ PROC-1 的 may_be_processed)。缺席 → PRODUCED_SAFETY_STATE_NOT_RECORDED。
 CREATE INDEX idx_output_batch_safety_states_batch
     ON public.output_batch_safety_states (output_batch_id);
 
+-- 【一批料的同一个状态,开着的只有一条】与进料侧逐字同源(MES-3a 起在这里,此前是主键)。
+CREATE UNIQUE INDEX output_batch_safety_states_open_once
+    ON public.output_batch_safety_states (output_batch_id, safety_state_code) WHERE ended_at IS NULL;
+
 ALTER TABLE public.output_batch_safety_states ENABLE ROW LEVEL SECURITY;
 -- 【跟着父单据判】与 inbound_batch_safety_states 逐字同源:哪个模块能读/写父,
 -- 哪个就能读/写行。产出批的父模块是 output。
@@ -52,23 +68,17 @@ CREATE POLICY "output_batch_safety_states select by permission"
     ON public.output_batch_safety_states
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.output.view'::text));
-CREATE POLICY "output_batch_safety_states insert by permission"
-    ON public.output_batch_safety_states
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.output.edit'::text));
-CREATE POLICY "output_batch_safety_states delete by permission"
-    ON public.output_batch_safety_states
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.output.edit'::text));
+-- ★ MES-3a:写策略拿掉 —— 此前产出批页面从浏览器直连插 / 删(删 = 硬删,没有理由、没有墓碑)。
+--   从此写只经 set_output_safety_states(SECURITY DEFINER,module.output.edit)与加工的提交 / 回滚;
+--   直连写按名拒 SAFETY_STATES_THROUGH_FUNCTION_ONLY,删除一律拒 SAFETY_STATE_NEVER_DELETED。
+--   表授权照旧(SELECT · INSERT · DELETE):拿掉它会让直连写变成一句没名字的 42501,而不是那句按名的拒绝。
 
 GRANT SELECT, INSERT, DELETE ON public.output_batch_safety_states TO authenticated;
 
--- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
--- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
--- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
--- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
--- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
--- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
-CREATE TRIGGER enforce_write_permission
-    BEFORE UPDATE OR DELETE ON public.output_batch_safety_states
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.output.edit');
+-- ── MES-3a(2026-10-06,MES-3a Step 0 Q22):状态行只经函数写;一行只结束一次;永远不删(与进料侧同一支守卫)──
+CREATE TRIGGER trg_output_safety_states_rows
+    BEFORE INSERT OR UPDATE ON public.output_batch_safety_states
+    FOR EACH ROW EXECUTE FUNCTION public.guard_safety_state_rows();
+CREATE TRIGGER trg_output_safety_states_statement
+    BEFORE UPDATE OR DELETE OR TRUNCATE ON public.output_batch_safety_states
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_safety_state_rows();

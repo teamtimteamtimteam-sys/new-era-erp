@@ -90,3 +90,35 @@ export async function softDeleteLicence(id: string) {
     revalidatePath('/finance/company')
     return { success: true }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// MES-3a(2026-10-06,MES-0 Q32 · V2;MES-3a Step 0 Q12,Tim):一张执照对一类 NEA 废物的库存上限(吨)。
+//   一行 = 执照 × 类别(唯一);空着 = "上限没给"(收货照收、记 ceiling_not_set),所以【拿掉】一条就是把它退回"没给"。
+//   码与执照本身同一个:module.suppliers.edit(表的写策略);历史在变更记录里(Q12)。
+//   ★ 每一次写都带 .select('id') —— 被 RLS 挡下的写是一次"成功的空操作"(ALERT-1),零行不许报告成功。
+// ════════════════════════════════════════════════════════════════════════════
+export async function saveStorageLimit(input: { licenceId: string; categoryCode: string; limitTonnes: string }) {
+    const supabase = await createClient()
+    const v = input.limitTonnes.trim()
+    const n = Number(v)
+    if (v === '' || !Number.isFinite(n) || n <= 0) {
+        return { error: await localizeLicenceError('STORAGE_LIMIT_INVALID') }
+    }
+    const { data, error } = await supabase.from('licence_storage_limits')
+        .upsert({ licence_id: input.licenceId, category_code: input.categoryCode, limit_tonnes: n },
+                { onConflict: 'licence_id,category_code' })
+        .select('id')
+    if (error) return { error: await localizeLicenceError(error.message) }
+    if (!data || data.length === 0) return { error: await localizeLicenceError('LICENCE_NOT_PERMITTED') }
+    revalidatePath('/purchasing/licences')
+    return { success: true }
+}
+
+export async function removeStorageLimit(id: string) {
+    const supabase = await createClient()
+    const { data, error } = await supabase.from('licence_storage_limits').delete().eq('id', id).select('id')
+    if (error) return { error: await localizeLicenceError(error.message) }
+    if (!data || data.length === 0) return { error: await localizeLicenceError('LICENCE_NOT_PERMITTED') }
+    revalidatePath('/purchasing/licences')
+    return { success: true }
+}

@@ -1,3 +1,8 @@
+-- db/functions/create_stock_transfer.sql
+-- MES-3a(2026-10-06,MES-0 Q34;MES-3a Step 0 Q19 · Q20,Tim):一批身上开着一个要隔离的状态(鼓包或漏液),
+--   它的下一次移动只能进一个在用的隔离库位 —— 入腿过 assert_quarantine_landing,拒绝 QUARANTINE_LOCATION_REQUIRED。
+--   移进隔离永远准许;从隔离移到另一个隔离也准许。签名不变。
+
 CREATE OR REPLACE FUNCTION public.create_stock_transfer(p_qty numeric, p_to_location_id uuid, p_inbound_batch_id uuid DEFAULT NULL::uuid, p_output_batch_id uuid DEFAULT NULL::uuid, p_from_location_id uuid DEFAULT NULL::uuid, p_stock_status text DEFAULT 'available'::text, p_note text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -55,6 +60,17 @@ BEGIN
     v_warn := check_location_class(p_to_location_id, v_material);
     -- NTF-1:告警留一份下来(入腿的库位/物料)。返回值那一份不变。
     PERFORM notify_landing_warnings(v_warn, p_to_location_id, v_material);
+
+    -- MES-3a(Q19 · Q20):这一批身上【开着的】状态里有要隔离的 → 入腿只能是在用的隔离库位。出腿不查(与分类同一条:
+    --   拦住一批放错地方的货【离开】,只会把它焊死在错的地方)。
+    PERFORM assert_quarantine_landing(
+        CASE WHEN p_inbound_batch_id IS NOT NULL
+             THEN ARRAY(SELECT s.safety_state_code FROM inbound_batch_safety_states s
+                         WHERE s.inbound_batch_id = p_inbound_batch_id AND s.ended_at IS NULL)
+             ELSE ARRAY(SELECT s.safety_state_code FROM output_batch_safety_states s
+                         WHERE s.output_batch_id = p_output_batch_id AND s.ended_at IS NULL)
+        END,
+        p_to_location_id);
 
     -- 成对:出源库位、进目的库位。【状态原样带过去】—— 转移搬的是位置,
     -- 不是状态;一批被扣住的货换个货架仍然是被扣住的。

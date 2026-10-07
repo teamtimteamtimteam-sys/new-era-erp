@@ -12,7 +12,9 @@
 --   集合一条都没变的保存不再叫 —— 原来那一次是"整体重写"的副作用,不是一个新的配置。
 -- 【SECURITY DEFINER 的理由】notify_class_violations 对 authenticated 收回了执行权;门在函数第一行
 --   (require_permission('module.inventory.edit'),与两张表的写策略同一个码)。change_log 的"谁"取自登录,不受影响。
-CREATE OR REPLACE FUNCTION public.save_storage_location(p_code text, p_name text, p_classes text[], p_id uuid DEFAULT NULL::uuid, p_zone text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
+-- ★ MES-3a(2026-10-06,MES-0 Q34;MES-3a Step 0 Q17,Tim):末尾多一个 p_is_quarantine(隔离库位)。NULL = 不改(修改时)/
+--   否(新建时)—— 已部署的旧页面不传它,照样解析,也不会把一个已标的隔离库位悄悄改回去。签名变了:迁移是 DROP + CREATE。
+CREATE OR REPLACE FUNCTION public.save_storage_location(p_code text, p_name text, p_classes text[], p_id uuid DEFAULT NULL::uuid, p_zone text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_is_quarantine boolean DEFAULT NULL::boolean)
  RETURNS uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -26,17 +28,19 @@ DECLARE
 BEGIN
     PERFORM require_permission('module.inventory.edit');
     IF v_id IS NULL THEN
-        INSERT INTO storage_locations (code, name, zone, notes)
-        VALUES (p_code, p_name, p_zone, p_notes)
+        INSERT INTO storage_locations (code, name, zone, notes, is_quarantine)
+        VALUES (p_code, p_name, p_zone, p_notes, COALESCE(p_is_quarantine, false))
         RETURNING id INTO v_id;
     ELSE
         IF NOT EXISTS (SELECT 1 FROM storage_locations WHERE id = v_id) THEN
             RAISE EXCEPTION 'LOCATION_NOT_FOUND|%', v_id;
         END IF;
         UPDATE storage_locations
-           SET code = p_code, name = p_name, zone = p_zone, notes = p_notes
+           SET code = p_code, name = p_name, zone = p_zone, notes = p_notes,
+               is_quarantine = COALESCE(p_is_quarantine, is_quarantine)
          WHERE id = v_id
-           AND (code, name, zone, notes) IS DISTINCT FROM (p_code, p_name, p_zone, p_notes);
+           AND (code, name, zone, notes, is_quarantine)
+               IS DISTINCT FROM (p_code, p_name, p_zone, p_notes, COALESCE(p_is_quarantine, is_quarantine));
     END IF;
 
     DELETE FROM storage_location_allowed_classes

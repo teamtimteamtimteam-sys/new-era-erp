@@ -595,6 +595,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // ══ 库存 Inventory ══════════════════════════════════════════════════════
     { href: '/inventory', navKey: 'inventory.subnav.overview', modules: ['inventory'], permission: P_INVENTORY },
     { href: '/inventory/locations', navKey: 'inventory.subnav.locations', modules: ['inventory'], permission: P_INVENTORY },
+    // MES-3a(Q1 · Q32):库存安全 —— 上限、滞留、隔离一页看全。门 = module.inventory.view;每一段的行带它自己的谓词。
+    { href: '/inventory/storage-safety', navKey: 'inventory.subnav.storageSafety', modules: ['inventory'], permission: P_INVENTORY },
     // ★ M6:盘点降成库存的二级。**它自带 module.stocktakes.view,而模块可进性是
     //   从二级条目推导的,所以"只有盘点权限的人进得去库存"自动成立。**
     { href: '/stocktakes', navKey: 'nav.stocktakes', modules: ['inventory'], permission: P_STOCKTAKES },

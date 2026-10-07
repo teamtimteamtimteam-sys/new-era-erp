@@ -15,6 +15,8 @@ export type LocationRow = {
     name: string
     zone: string
     isActive: boolean
+    /** MES-3a(Q17):隔离库位 */
+    isQuarantine: boolean
     /** 【未配置 ≠ 无】零行的意思是还没有人决定过,服务端已经判好。 */
     unconfigured: boolean
     allowedLabels: string[]
@@ -38,6 +40,9 @@ export default function LocationsTable({ rows, empty }: { rows: LocationRow[]; e
         { key: 'name', header: t('locations.colName'), render: (r) => r.name },
         // zone 只是显示分组;没填就是没填
         { key: 'zone', header: t('locations.colZone'), render: (r) => r.zone },
+        // MES-3a(Q17):隔离库位 —— 鼓包或漏液的料只能收进 / 移进这种库位
+        { key: 'quarantine', header: t('locations.colQuarantine'),
+          render: (r) => (r.isQuarantine ? <span data-quarantine="1">{t('locations.quarantineYes')}</span> : '—') },
         {
             key: 'allowed', header: t('locations.colAllowed'), priority: true,
             render: (r) =>

@@ -1,5 +1,6 @@
 'use server'
 
+import { parseNeaCategoryField } from '@/app/materials/neaCategoryOptions'
 import { KIND_UNCHOSEN, parseProcessableField } from '../materialKindOptions'
 import { parseAxisField } from '../materialAxesOptions'
 import { localizeMaterialError } from '../materialErrorCodes'
@@ -38,6 +39,8 @@ export async function createMaterial(
     // MAT-1:受控废物分类。【未分类 → NULL】,而 NULL 的意思是"没有人分过类",
     // 不是"非受控" —— 一个合规判断会踩在这个区别上。
     const waste_classification_code = parseWasteClassField(formData.get('waste_classification_code'))
+    // MES-3a(V29):NEA 废物类别 —— 空 = 没人分过(收货照收,记 category_not_set)
+    const nea_waste_category_code = parseNeaCategoryField(formData.get('nea_waste_category_code'))
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const spec = (formData.get('spec') as string)?.trim() || null
     // SS-1:安全库存阈值。【留空 = 不监控】,所以空字符串必须落成 NULL 而不是 0 ——
@@ -85,6 +88,7 @@ export async function createMaterial(
         size_format_code,
         chemistry,
         waste_classification_code,
+        nea_waste_category_code,
         unit,
         spec,
         safety_stock_qty,

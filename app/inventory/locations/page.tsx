@@ -32,6 +32,7 @@ type FetchRow = {
     name: string
     zone: string | null
     is_active: boolean
+    is_quarantine: boolean
     storage_location_allowed_classes: { classification_code: string }[] | null
 }
 
@@ -47,7 +48,7 @@ export default async function LocationsPage() {
     const [rowsRes, classes] = await Promise.all([
         supabase
             .from('storage_locations')
-            .select('id, code, name, zone, is_active, storage_location_allowed_classes ( classification_code )')
+            .select('id, code, name, zone, is_active, is_quarantine, storage_location_allowed_classes ( classification_code )')
             .order('code'),
         getWasteClassifications(),
     ])
@@ -58,6 +59,7 @@ export default async function LocationsPage() {
         name: r.name,
         zone: r.zone,
         is_active: r.is_active,
+        is_quarantine: r.is_quarantine,
         allowed_codes: (r.storage_location_allowed_classes ?? []).map((c) => c.classification_code),
     }))
 
@@ -73,6 +75,7 @@ export default async function LocationsPage() {
         name: r.name,
         zone: r.zone ?? '—',
         isActive: r.is_active,
+        isQuarantine: r.is_quarantine,
         unconfigured: isUnconfigured(r),
         // 分类名的语言在服务端选好 —— classes/locale 都不过 RSC 边界
         allowedLabels: r.allowed_codes.map(classLabel),

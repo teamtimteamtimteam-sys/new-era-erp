@@ -7496,22 +7496,155 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          created_by_run_id: string | null
+          end_reason: string | null
+          ended_at: string | null
+          ended_by: string | null
+          ended_by_run_id: string | null
+          id: string
           inbound_batch_id: string
+          reopened_from_id: string | null
           safety_state_code: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          created_by_run_id?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_by_run_id?: string | null
+          id?: string
           inbound_batch_id: string
+          reopened_from_id?: string | null
           safety_state_code: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          created_by_run_id?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_by_run_id?: string | null
+          id?: string
           inbound_batch_id?: string
+          reopened_from_id?: string | null
           safety_state_code?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -7567,6 +7700,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_reopened_from_fkey"
+            columns: ["reopened_from_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_safety_states"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inbound_batch_safety_states_safety_state_code_fkey"
@@ -7911,29 +8051,35 @@ export type Database = {
       inbound_safety_states: {
         Row: {
           code: string
+          dwell_warning_days: number | null
           is_active: boolean
           may_be_fed: boolean
           name_en: string
           name_zh: string
           notes: string | null
+          requires_quarantine: boolean | null
           sort_order: number
         }
         Insert: {
           code: string
+          dwell_warning_days?: number | null
           is_active?: boolean
           may_be_fed: boolean
           name_en: string
           name_zh: string
           notes?: string | null
+          requires_quarantine?: boolean | null
           sort_order?: number
         }
         Update: {
           code?: string
+          dwell_warning_days?: number | null
           is_active?: boolean
           may_be_fed?: boolean
           name_en?: string
           name_zh?: string
           notes?: string | null
+          requires_quarantine?: boolean | null
           sort_order?: number
         }
         Relationships: []
@@ -10470,6 +10616,57 @@ export type Database = {
         }
         Relationships: []
       }
+      licence_storage_limits: {
+        Row: {
+          category_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          licence_id: string
+          limit_tonnes: number
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licence_id: string
+          limit_tonnes: number
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licence_id?: string
+          limit_tonnes?: number
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licence_storage_limits_category_code_fkey"
+            columns: ["category_code"]
+            isOneToOne: false
+            referencedRelation: "nea_waste_categories"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "licence_storage_limits_licence_id_fkey"
+            columns: ["licence_id"]
+            isOneToOne: false
+            referencedRelation: "company_compliance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_ledger_residue: {
         Row: {
           amount_base: number
@@ -10924,6 +11121,7 @@ export type Database = {
           kind_code: string | null
           may_be_processed: boolean | null
           name: string
+          nea_waste_category_code: string | null
           notes: string | null
           safety_stock_qty: number | null
           size_format_code: string | null
@@ -10946,6 +11144,7 @@ export type Database = {
           kind_code?: string | null
           may_be_processed?: boolean | null
           name: string
+          nea_waste_category_code?: string | null
           notes?: string | null
           safety_stock_qty?: number | null
           size_format_code?: string | null
@@ -10968,6 +11167,7 @@ export type Database = {
           kind_code?: string | null
           may_be_processed?: boolean | null
           name?: string
+          nea_waste_category_code?: string | null
           notes?: string | null
           safety_stock_qty?: number | null
           size_format_code?: string | null
@@ -10999,6 +11199,13 @@ export type Database = {
             columns: ["kind_code"]
             isOneToOne: false
             referencedRelation: "material_kinds"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "materials_nea_waste_category_code_fkey"
+            columns: ["nea_waste_category_code"]
+            isOneToOne: false
+            referencedRelation: "nea_waste_categories"
             referencedColumns: ["code"]
           },
           {
@@ -11300,6 +11507,42 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      nea_waste_categories: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       notification_reads: {
         Row: {
@@ -11673,22 +11916,155 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          created_by_run_id: string | null
+          end_reason: string | null
+          ended_at: string | null
+          ended_by: string | null
+          ended_by_run_id: string | null
+          id: string
           output_batch_id: string
+          reopened_from_id: string | null
           safety_state_code: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          created_by_run_id?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_by_run_id?: string | null
+          id?: string
           output_batch_id: string
+          reopened_from_id?: string | null
           safety_state_code: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          created_by_run_id?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_by_run_id?: string | null
+          id?: string
           output_batch_id?: string
+          reopened_from_id?: string | null
           safety_state_code?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "output_batch_safety_states_output_batch_id_fkey"
             columns: ["output_batch_id"]
@@ -11723,6 +12099,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_wip"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_reopened_from_fkey"
+            columns: ["reopened_from_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_safety_states"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "output_batch_safety_states_safety_state_code_fkey"
@@ -16667,6 +17050,163 @@ export type Database = {
           },
         ]
       }
+      receipt_ceiling_checks: {
+        Row: {
+          category_code: string | null
+          checked_on: string
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string | null
+          licence_id: string | null
+          limit_t: number | null
+          on_hand_before_t: number | null
+          outcome: string
+          output_batch_id: string | null
+          quantity_t: number | null
+          total_limit_t: number | null
+          total_on_hand_before_t: number | null
+        }
+        Insert: {
+          category_code?: string | null
+          checked_on: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          licence_id?: string | null
+          limit_t?: number | null
+          on_hand_before_t?: number | null
+          outcome: string
+          output_batch_id?: string | null
+          quantity_t?: number | null
+          total_limit_t?: number | null
+          total_on_hand_before_t?: number | null
+        }
+        Update: {
+          category_code?: string | null
+          checked_on?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          licence_id?: string | null
+          limit_t?: number | null
+          on_hand_before_t?: number | null
+          outcome?: string
+          output_batch_id?: string | null
+          quantity_t?: number | null
+          total_limit_t?: number | null
+          total_on_hand_before_t?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_ceiling_checks_category_code_fkey"
+            columns: ["category_code"]
+            isOneToOne: false
+            referencedRelation: "nea_waste_categories"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_licence_id_fkey"
+            columns: ["licence_id"]
+            isOneToOne: false
+            referencedRelation: "company_compliance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+        ]
+      }
       receipt_price_requests: {
         Row: {
           amount_base: number
@@ -19291,6 +19831,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          is_quarantine: boolean
           name: string
           notes: string | null
           updated_at: string
@@ -19303,6 +19844,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_quarantine?: boolean
           name: string
           notes?: string | null
           updated_at?: string
@@ -19315,6 +19857,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_quarantine?: boolean
           name?: string
           notes?: string | null
           updated_at?: string
@@ -26177,6 +26720,23 @@ export type Database = {
           },
         ]
       }
+      nea_category_on_hand_all: {
+        Row: {
+          batches: number | null
+          category_code: string | null
+          tonnes: number | null
+          unconvertible_batches: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_nea_waste_category_code_fkey"
+            columns: ["category_code"]
+            isOneToOne: false
+            referencedRelation: "nea_waste_categories"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       operations_now: {
         Row: {
           days_waiting: number | null
@@ -30138,6 +30698,21 @@ export type Database = {
           },
         ]
       }
+      quarantine_exposure: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          location_code: string | null
+          location_id: string | null
+          name_en: string | null
+          name_zh: string | null
+          qty: number | null
+          recorded_on: string | null
+          safety_state_code: string | null
+        }
+        Relationships: []
+      }
       quote_status: {
         Row: {
           amended_since_issue: boolean | null
@@ -30205,6 +30780,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      safety_state_dwell: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          days_recorded: number | null
+          dwell_status: string | null
+          dwell_warning_days: number | null
+          name_en: string | null
+          name_zh: string | null
+          on_site: boolean | null
+          recorded_at: string | null
+          recorded_by: string | null
+          recorded_on: string | null
+          requires_quarantine: boolean | null
+          safety_state_code: string | null
+          sort_order: number | null
+          state_row_id: string | null
+        }
+        Relationships: []
       }
       sales_order_line_releasable_all: {
         Row: {
@@ -30683,6 +31279,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      storage_ceiling_status: {
+        Row: {
+          batches: number | null
+          category_code: string | null
+          cert_no: string | null
+          licence_id: string | null
+          limit_tonnes: number | null
+          name_en: string | null
+          name_zh: string | null
+          on_hand_t: number | null
+          sort_order: number | null
+          status: string | null
+          unconvertible_batches: number | null
+        }
+        Relationships: []
       }
       supplier_lookup: {
         Row: {
@@ -31871,6 +32483,10 @@ export type Database = {
         Args: { p_entry_date: string; p_source_type: string }
         Returns: undefined
       }
+      assert_quarantine_landing: {
+        Args: { p_location_id: string; p_states: string[] }
+        Returns: undefined
+      }
       assert_receipt_reading_calibrated: {
         Args: { p_inbound_batch_id: string }
         Returns: undefined
@@ -32767,7 +33383,6 @@ export type Database = {
       gst_registered: { Args: never; Returns: boolean }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
-      hazardous_qty_on_hand_tonnes: { Args: never; Returns: number }
       hold_stock: {
         Args: {
           p_inbound_batch_id?: string
@@ -32990,7 +33605,6 @@ export type Database = {
         }
         Returns: Json
       }
-      licence_storage_within_limit: { Args: never; Returns: boolean }
       line_spoken_for: {
         Args: { p_sales_order_line_id: string }
         Returns: number
@@ -33389,6 +34003,10 @@ export type Database = {
         Args: { p_purchase_order_id: string }
         Returns: string
       }
+      quantity_in_tonnes: {
+        Args: { p_qty: number; p_unit: string }
+        Returns: number
+      }
       quotational_period: {
         Args: { p_base_date: string; p_qp_months: number }
         Returns: {
@@ -33413,6 +34031,10 @@ export type Database = {
       rebalance_task_nodes: {
         Args: { p_parent_id: string; p_task_id: string }
         Returns: number
+      }
+      receipt_ceiling_check_internal: {
+        Args: { p_inbound_batch_id: string; p_output_batch_id: string }
+        Returns: Json
       }
       receipt_price_fingerprint: {
         Args: { p_inbound_batch_id: string }
@@ -34117,6 +34739,7 @@ export type Database = {
           p_classes: string[]
           p_code: string
           p_id?: string
+          p_is_quarantine?: boolean
           p_name: string
           p_notes?: string
           p_zone?: string
@@ -34268,7 +34891,11 @@ export type Database = {
         Returns: Json
       }
       set_inbound_safety_states: {
-        Args: { p_codes: string[]; p_inbound_batch_id: string }
+        Args: {
+          p_codes: string[]
+          p_end_reason?: string
+          p_inbound_batch_id: string
+        }
         Returns: Json
       }
       set_inbound_unit_price: {
@@ -34300,6 +34927,14 @@ export type Database = {
           p_awaiting_operation_type_code?: string
           p_output_batch_id: string
           p_purpose_code: string
+        }
+        Returns: Json
+      }
+      set_output_safety_states: {
+        Args: {
+          p_codes: string[]
+          p_end_reason?: string
+          p_output_batch_id: string
         }
         Returns: Json
       }
@@ -34417,6 +35052,7 @@ export type Database = {
         Args: { p_batch_id: string; p_deleted_by?: string; p_reason: string }
         Returns: Json
       }
+      storage_licence_in_force: { Args: { p_on: string }; Returns: string }
       submit_asset_disposal_request: {
         Args: {
           p_asset_id: string

@@ -4,6 +4,7 @@
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import NewMaterialForm from './NewMaterialForm'
+import { getNeaCategories } from '@/app/materials/neaCategoryQuery'
 import { getWasteClassifications } from '../wasteClassQuery'
 import { getMaterialKinds } from '../materialKindQuery'
 import { getMaterialAxes } from '../materialAxesQuery'
@@ -19,6 +20,7 @@ export default async function NewMaterialPage() {
 
     // MAT-1:分类选项从表里现读 —— 加一种分类是加一行,不是改代码
     const wasteClasses = await getWasteClassifications()
+    const neaCategories = await getNeaCategories()
     // PROC-1:种类同样从表里现读 —— 加一种是加一行
     const kinds = await getMaterialKinds()
     // PROC-2b:三条状态轴同样从表里现读 —— 加一个取值是加一行
@@ -28,6 +30,6 @@ export default async function NewMaterialPage() {
     // PROC-5:化学体系字典 —— 加一种是加一行,这一页不必改
     const chemistryOptions = toDictOptions(await loadBatteryChemistries(await createClient()), await getLocale())
     return <NewMaterialForm
-                chemistryOptions={chemistryOptions} wasteClasses={wasteClasses} kinds={kinds}
+                chemistryOptions={chemistryOptions} wasteClasses={wasteClasses} neaCategories={neaCategories} kinds={kinds}
         forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
 }

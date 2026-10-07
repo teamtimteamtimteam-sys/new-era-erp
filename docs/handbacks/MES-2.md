@@ -212,10 +212,17 @@ All three scripts run on live **inside one transaction each that ends in ROLLBAC
 | ④ calibration and the gate | phua@ records a calibration on the weighbridge (warehouse is refused `PERMISSION_DENIED\|action.manage_devices`). A second receipt whose gross came from a never-calibrated scale. Both receipts fully processed by fusheng@ → two pending certificates. **Rule off:** the never-calibrated receipt — preview (tim@) OK, engine (tim@) OK, certificate (fusheng@) OK. phua@ sets `require_calibrated_since` = today. **Rule on, in calibration:** preview, engine, certificate all OK. **Rule on, out of calibration:** preview, engine and certificate all refused **`READING_INSTRUMENT_NOT_CALIBRATED\|DEV-2026-0012\|2026-10-06`** |
 
 **Pricing on live is proven at the preview and the engine, not through a price request — measured, and not this cut's doing.** With
-approvals on, a price is a request by the holder of `action.price_receipts` (only admin@) approved by the CFO (only tim@). admin@ and tim@
-are **one person** (`account_person` equal), so every submission on live is refused `RECEIPT_PRICE_NO_OTHER_DECIDER` — ROLE-1 measured the
+approvals on, a price is a request by the holder of `action.price_receipts` ~~(only admin@)~~ approved by the CFO (only tim@). ~~admin@ and tim@
+are **one person** (`account_person` equal), so every submission on live is refused `RECEIPT_PRICE_NO_OTHER_DECIDER`~~ — ROLE-1 measured the
 same (`docs/handbacks/ROLE-1.md:1130`); this run measured it again (`…|IN-2026-0478`). Both the submit and the approve path call the two
-places the gate sits (the dry run → preview; the posting → engine), so the gate is proven where both paths pass. The full
+places the gate sits (~~the dry run → preview~~ the submit-time dry run runs the **engine**; the posting → engine), so the gate is proven where both paths pass.
+
+> **Corrected (MES-3a Step 0 §9 · §15 items 1–3, Q28; measured on live 2026-10-06):** `action.price_receipts` is held by the roles
+> **admin and finance** — accounts **admin@ and chooer@**. Only a request raised by **admin@** is refused (admin@ and tim@ are one person,
+> which is correct); **chooer@'s requests are decided by tim@** (`approval_deciders`), and ROLE-1 ran exactly that (JE-2026-0080). So
+> "finance prices, CFO approves" already worked; no grant changed. The submit-time dry run reaches the engine
+> (`receipt_price_submit_internal` → `receipt_price_request_dry_run` → `receipt_price_post_internal` → `reprice_inbound_batch`), not the
+> preview. MES-3a's live proof ran chooer@ → tim@ end to end inside a rolled-back transaction (`docs/handbacks/MES-3a.md`). The full
 **request → approval → posting** path, gated, was run once on a local rebuild with the 7 accounts replayed with their live roles and
 approvals on: admin@ submitted, tim@ approved, the price posted; the out-of-calibration request was refused at submit with the same code.
 

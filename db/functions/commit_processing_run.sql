@@ -351,16 +351,21 @@ BEGIN
             -- 不删的话,一批放完电的货会永远带着"未放电",于是下一道工序
             -- 仍然拒绝它 —— 那正是本刀要解的那个死锁,只是换了个位置复发。
             -- ════════════════════════════════════════════════════════════
+            -- ★ MES-3a(2026-10-06,MES-0 Q36;MES-3a Step 0 Q22 · Q2,Tim):解决掉的状态被【结束】(记下是哪一张加工单),
+            --   不再被删;写上的结果状态记 created_by_run_id —— 回滚据这两列把这一炉做过的事原样撤回。
+            --   结果状态已经开着(批次本来就带着它)→ 不插(开着的只有一条),于是回滚也不会结束那条不是它写的。
             IF NOT v_produces AND v_result_state IS NOT NULL THEN
-                DELETE FROM inbound_batch_safety_states s
-                 WHERE s.inbound_batch_id = v_inbound_id
+                UPDATE inbound_batch_safety_states s
+                   SET ended_at = now(), ended_by = v_user_id, ended_by_run_id = v_run_id,
+                       end_reason = 'resolved by processing run ' || (SELECT pr.code FROM processing_runs pr WHERE pr.id = v_run_id)
+                 WHERE s.inbound_batch_id = v_inbound_id AND s.ended_at IS NULL
                    AND s.safety_state_code IN (
                        SELECT a.safety_state_code FROM operation_type_safety_states a
                         WHERE a.operation_type_code = v_op AND a.resolves);
 
-                INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
-                VALUES (v_inbound_id, v_result_state)
-                ON CONFLICT (inbound_batch_id, safety_state_code) DO NOTHING;
+                INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code, created_by_run_id)
+                VALUES (v_inbound_id, v_result_state, v_run_id)
+                ON CONFLICT (inbound_batch_id, safety_state_code) WHERE ended_at IS NULL DO NOTHING;
             END IF;
         ELSE
             -- ════════════════════════════════════════════════════════════
@@ -401,16 +406,19 @@ BEGIN
             -- 自产料会永远带着"未放电",下一道工序仍然拒绝它 —— 那就是
             -- 1B-i 解掉的那个死锁,换到产出批上原样复发。
             -- ════════════════════════════════════════════════════════════
+            -- ★ MES-3a:与进料侧逐字同形 —— 结束,不删;结果状态记 created_by_run_id。
             IF NOT v_produces AND v_result_state IS NOT NULL THEN
-                DELETE FROM output_batch_safety_states s
-                 WHERE s.output_batch_id = v_output_id
+                UPDATE output_batch_safety_states s
+                   SET ended_at = now(), ended_by = v_user_id, ended_by_run_id = v_run_id,
+                       end_reason = 'resolved by processing run ' || (SELECT pr.code FROM processing_runs pr WHERE pr.id = v_run_id)
+                 WHERE s.output_batch_id = v_output_id AND s.ended_at IS NULL
                    AND s.safety_state_code IN (
                        SELECT a.safety_state_code FROM operation_type_safety_states a
                         WHERE a.operation_type_code = v_op AND a.resolves);
 
-                INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code)
-                VALUES (v_output_id, v_result_state)
-                ON CONFLICT (output_batch_id, safety_state_code) DO NOTHING;
+                INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code, created_by_run_id)
+                VALUES (v_output_id, v_result_state, v_run_id)
+                ON CONFLICT (output_batch_id, safety_state_code) WHERE ended_at IS NULL DO NOTHING;
             END IF;
         END IF;
     END LOOP;

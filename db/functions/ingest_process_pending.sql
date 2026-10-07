@@ -1,7 +1,9 @@
 -- db/functions/ingest_process_pending.sql
 -- MES-1(2026-10-06,MES-1 Step 0 Q11,Tim):【"Process received"】—— 把收件箱里 status = received 的行按到达顺序交给分派器。
 --   转换只在员工的会话里跑(Q11),所以这是收件箱上的一个按钮,持 module.processing.view 的人能按;
---   MES-2 的确认队列打开时会调它。它只改状态那几列(守卫),处理一遍是幂等的:没有 received 的行就什么都不做。
+--   【谁按它】收件箱页面上那颗「Process received」(app/operation/capture/inbox/actions.ts);确认队列打开时【不】调它
+--   (MES-2 §7 决定 10:一次 GET 不该写 —— 此前这一行写着"确认队列打开时会调它",那是假的;MES-3a 按 Tim 的裁定 5 改正)。
+--   它只改状态那几列(守卫),处理一遍是幂等的:没有 received 的行就什么都不做。
 --   p_limit 一次最多几行(默认 200,1–1000);返回 {processed, transformed, failed, awaiting}。
 -- MES-2(2026-10-06,MES-2 Step 0 Q6,Tim):它也取 awaiting_transform 的行 —— 但【只取它那一类此刻已经有转换器的】。
 --   一类接上转换器之前送来的行(MES-1 起它们停在 awaiting_transform),从此由同一个按钮接着处理,不必由 cto / admin 一行一行重试;

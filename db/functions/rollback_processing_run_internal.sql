@@ -143,6 +143,40 @@ BEGIN
     -- AUDEL-1b:软删要走门 —— 标记 + deleted_by + delete_reason,否则
     -- guard_soft_delete_provenance 会按名拒。产出批的删除理由【就是这次回滚的
     -- 理由】:它们不是被单独注销的,是被这次回滚带走的。
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★ MES-3a(2026-10-06,MES-3a Step 0 Q2,Tim):【回滚也撤回这一炉对安全状态做过的事】。
+    --   此前回滚不碰状态:一炉深度放电回滚之后,那一批还挂着"已放电并核验",而"带电未放电"已经被删 ——
+    --   一批屏幕上说放过电的料可以被投进破碎机。现在:
+    --     · 这一炉写上的结果状态(created_by_run_id = 本单)→ 结束,理由写明是哪一次回滚;
+    --     · 这一炉结束掉的状态(ended_by_run_id = 本单)→ 重新开一条,记录时刻与记录人照抄原行(滞留时钟不因回滚重来),
+    --       reopened_from_id 指回原行。那一类状态此刻已经开着(之后有人又记了一次)就不重开。
+    --   进料批与产出批两张表同一套。
+    -- ════════════════════════════════════════════════════════════════════════
+    UPDATE inbound_batch_safety_states s
+       SET ended_at = now(), ended_by = v_user_id,
+           end_reason = 'undone by rollback of ' || COALESCE((SELECT pr.code FROM processing_runs pr WHERE pr.id = p_run_id), '?')
+                        || ': ' || btrim(p_reason)
+     WHERE s.created_by_run_id = p_run_id AND s.ended_at IS NULL;
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code, created_at, created_by, reopened_from_id)
+    SELECT s.inbound_batch_id, s.safety_state_code, s.created_at, s.created_by, s.id
+      FROM inbound_batch_safety_states s
+     WHERE s.ended_by_run_id = p_run_id
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states o
+                        WHERE o.inbound_batch_id = s.inbound_batch_id AND o.safety_state_code = s.safety_state_code
+                          AND o.ended_at IS NULL);
+    UPDATE output_batch_safety_states s
+       SET ended_at = now(), ended_by = v_user_id,
+           end_reason = 'undone by rollback of ' || COALESCE((SELECT pr.code FROM processing_runs pr WHERE pr.id = p_run_id), '?')
+                        || ': ' || btrim(p_reason)
+     WHERE s.created_by_run_id = p_run_id AND s.ended_at IS NULL;
+    INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code, created_at, created_by, reopened_from_id)
+    SELECT s.output_batch_id, s.safety_state_code, s.created_at, s.created_by, s.id
+      FROM output_batch_safety_states s
+     WHERE s.ended_by_run_id = p_run_id
+       AND NOT EXISTS (SELECT 1 FROM output_batch_safety_states o
+                        WHERE o.output_batch_id = s.output_batch_id AND o.safety_state_code = s.safety_state_code
+                          AND o.ended_at IS NULL);
+
     PERFORM set_config('evoltrya.soft_delete_ctx', '1', true);
     UPDATE output_batches
     SET deleted_at = now(),

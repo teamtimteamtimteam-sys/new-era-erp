@@ -35,6 +35,8 @@ export async function setIntakeCondition(input: {
     batchId: string
     safetyStates: string[]
     certainty: string
+    /** MES-3a(Q23):拿掉的状态被【结束】,要一个理由;只加不拿时不传。 */
+    endReason?: string
 }): Promise<IntakeConditionState> {
     const supabase = await createClient()
 
@@ -54,6 +56,7 @@ export async function setIntakeCondition(input: {
     const { error } = await supabase.rpc('set_inbound_safety_states', {
         p_inbound_batch_id: input.batchId,
         p_codes: input.safetyStates,
+        ...(input.endReason !== undefined ? { p_end_reason: input.endReason } : {}),
     })
     if (error) return { error: await localizeMaterialError(error.message) }
 

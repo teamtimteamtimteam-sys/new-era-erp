@@ -428,6 +428,14 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "review_approval_code":
         "ROLE-1: returns only the NAME of the permission code that approves a review; "
         "no review data; the page and approve_review both ask it",
+    # MES-3a(2026-10-06):storage_licence_in_force —— "那一天按哪一张执照判库存上限"。它【必须】是 DEFINER,
+    #   也【必须】留给 authenticated:属主视图(storage_ceiling_status · pending_values)以【读者】的身份执行函数,
+    #   INVOKER 里读 company_compliance,不持 module.suppliers.view 的读者拿到 NULL,库存那一侧的读者于是看见"没有在效执照"
+    #   —— 一句假话。它吐出的只有一张执照的 id(那张执照本身仍过它自己的读规则),不含号码、范围、上限。
+    #   两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    "storage_licence_in_force":
+        "MES-3a: returns only the id of the gwdf licence in force on a date (no number, scope or limit); "
+        "owner views call it as the reader, so INVOKER would read 'no licence' for inventory-side readers",
     # PAYROLL-APR-1(2026-09-24):调它的是两支 INVOKER 守卫(guard_payroll_period_direct_write ·
     #   guard_payroll_line_direct_write),EXECUTE 按当前用户判 —— 与 period_close_floor 同一条。
     #   它【必须】是 DEFINER:INVOKER 里读 payroll_requests,不持 hr.view 的写入者读到零行,守卫静默放行。

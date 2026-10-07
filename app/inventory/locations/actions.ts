@@ -32,6 +32,8 @@ function readForm(formData: FormData) {
         zone: String(formData.get('zone') ?? '').trim() || null,
         notes: String(formData.get('notes') ?? '').trim() || null,
         classes: formData.getAll('allowed_class').map(String).filter((s) => s !== ''),
+        // MES-3a(Q17):隔离库位。复选框没勾时表单里没有这个键 —— 那是"否",不是"不改"(这张表单总是画着它)。
+        isQuarantine: formData.get('is_quarantine') === 'on',
     }
 }
 
@@ -51,6 +53,7 @@ async function saveLocation(id: string | null, f: ReturnType<typeof readForm>) {
     return supabase.rpc('save_storage_location', {
         p_code: f.code, p_name: f.name, p_classes: f.classes,
         p_id: id ?? undefined, p_zone: f.zone ?? undefined, p_notes: f.notes ?? undefined,
+        p_is_quarantine: f.isQuarantine,
     })
 }
 

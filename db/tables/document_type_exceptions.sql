@@ -79,6 +79,7 @@ INSERT INTO public.document_type_exceptions (table_name, reason) VALUES
     ('output_batch_states',           '产出批状态的取值目录'),
     ('payment_trigger_events',        '付款触发事件目录,付款条款行引用它'),
     ('permissions',                   '权限码目录:code 是权限码,它是这套闸自己的字母表'),
+    ('nea_waste_categories',          'NEA 批准的废物类别目录(MES-3a):code 是类别代号,物料与库存上限引用它'),
     ('ports',                         '港口名录:code 是港口代号,运输单据引用它'),
     ('positions',                     '岗位名录:code 是岗位代号,员工(employees)才是单据'),
     ('review_rating_scale',           '绩效评分标尺的取值目录'),

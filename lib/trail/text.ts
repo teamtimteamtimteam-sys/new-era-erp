@@ -180,6 +180,13 @@ export const TRAIL_TEXT = {
     'batch.assayChanged': 'Assay changed',
     'batch.safetyAdded': 'Safety state recorded',
     'batch.safetyRemoved': 'Safety state removed',
+    // MES-3a(Q22 · Q25 · Q10 · Q12)
+    'batch.safetyEnded': 'Safety state ended',
+    'batch.safetyReopened': 'Safety state reopened by a rollback',
+    'batch.ceilingChecked': 'Storage ceiling checked on arrival',
+    'lic.limitSet': 'Storage ceiling set',
+    'lic.limitChanged': 'Storage ceiling changed',
+    'lic.limitCleared': 'Storage ceiling cleared',
     'batch.priceRequested': 'Receipt price request raised',
     'batch.priceRequestWithdrawn': 'Receipt price request withdrawn',
     'batch.priceRequestChanged': 'Receipt price request updated',

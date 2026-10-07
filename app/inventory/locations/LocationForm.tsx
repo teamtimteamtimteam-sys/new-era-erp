@@ -2,7 +2,7 @@
 
 // LOC-1:库位表单 —— 新建与编辑共用一个组件(字段完全相同,差别只有初值与
 // 提交动作)。写成两份的那一天,两份就会开始漂开。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -29,6 +29,8 @@ export default function LocationForm({
         zone: string
         notes: string
         allowedCodes: string[]
+        /** MES-3a(Q17):隔离库位 —— 鼓包或漏液的料只能收进 / 移进这里 */
+        isQuarantine: boolean
     }
     // 【传译好的字符串,不传 key】t(变量) 是一次动态取键,而动态前缀必须在
     // check-i18n 的 MANIFEST 里登记;这里根本不需要动态 —— 服务端已经有 t 了。
@@ -101,6 +103,17 @@ export default function LocationForm({
                     defaultValue={defaults.notes}
                     className={`${CONTROL_INPUT} w-full`}
                 />
+            </div>
+
+            <div className="border-t pt-5">
+                <label className="flex items-start gap-2">
+                    <input type="checkbox" name="is_quarantine" defaultChecked={defaults.isQuarantine}
+                           className={`${CONTROL_CHECKBOX} mt-0.5`} data-field="is_quarantine" />
+                    <span>
+                        <span className="block">{t('locations.form.quarantine')}</span>
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('locations.form.quarantineHint')}</span>
+                    </span>
+                </label>
             </div>
 
             <div className="border-t pt-5">

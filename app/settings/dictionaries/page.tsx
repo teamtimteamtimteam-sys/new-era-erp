@@ -39,6 +39,7 @@ const DICT_SUBJECT: Record<string, TrailSubject> = {
     substances: 'dictionary_substances', battery_chemistries: 'dictionary_battery_chemistries',
     material_kinds: 'dictionary_material_kinds', inbound_safety_states: 'dictionary_inbound_safety_states',
     laboratories: 'dictionary_laboratories', inbound_source_reasons: 'dictionary_inbound_source_reasons',
+    nea_waste_categories: 'dictionary_nea_waste_categories',
 }
 
 export default async function DictionariesPage({

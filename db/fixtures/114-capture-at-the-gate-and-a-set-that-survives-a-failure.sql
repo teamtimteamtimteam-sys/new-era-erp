@@ -90,38 +90,38 @@ BEGIN
         PERFORM set_inbound_safety_states(v_ib2, ARRAY['water_exposed','water_exposed']);
     EXCEPTION WHEN OTHERS THEN v_denied := true; END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 114F2 失败:进入 F2 —— 同一个状态给两次必须被拒(主键)。**去重会把"记了两次"变成"记了一次"** —— 那是把输入错误藏起来,不是处理掉';
+        RAISE EXCEPTION 'FIXTURE 114F2 失败:进入 F2 —— 同一个状态给两次必须被拒(MES-3a 起是开着的那一行的部分唯一索引,此前是主键)。**去重会把"记了两次"变成"记了一次"** —— 那是把输入错误藏起来,不是处理掉';
     END IF;
 
     -- ══════════ F3 原子性 —— 并排造出旧写法的那个洞 ═════════════════════════
     PERFORM set_inbound_safety_states(v_ib2, ARRAY['water_exposed','damaged_deformed']);
 
-    -- 【先把旧写法的洞造出来】PostgREST 一次一条语句,所以 DELETE 与 INSERT
-    -- 各自是一个单元。这里用两个独立的子块【逐字复现】那个形状。
+    -- 【旧写法的那个洞(先删后插,两条独立语句)从 MES-3a 起在结构上不可能了】—— 安全状态行永远不删
+    -- (guard_safety_state_rows:SAFETY_STATE_NEVER_DELETED,属主路径也拒)。这里证明那个"删"本身就过不去,
+    -- 而且什么都没少;此前这一步复现的是那个洞,现在它复现的是那个洞被焊死。
+    v_msg := NULL;
     BEGIN
         DELETE FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib2;
-    EXCEPTION WHEN OTHERS THEN NULL; END;
-    BEGIN
-        INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
-        VALUES (v_ib2, 'no_such_code');
-    EXCEPTION WHEN OTHERS THEN NULL; END;
-    SELECT count(*) INTO v_n FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib2;
-    IF v_n <> 0 THEN
-        RAISE EXCEPTION 'FIXTURE 114F3 前置失败:进入 F3 —— 旧写法(先删后插,两条独立语句)本应留下一个【空集】,实得 % 行。**这一步不是在测新代码,是在证明那个洞真的存在** —— 没有它,下面那条断言拦住的是什么就说不清了', v_n;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; END;
+    SELECT count(*) INTO v_n FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib2 AND ended_at IS NULL;
+    IF v_msg IS DISTINCT FROM 'SAFETY_STATE_NEVER_DELETED|inbound_batch_safety_states' OR v_n <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 114F3 前置失败:进入 F3 —— 删一行安全状态必须按名拒(SAFETY_STATE_NEVER_DELETED,MES-3a),两条状态原样开着。实得「%」、开着 % 行', COALESCE(v_msg, '(删掉了)'), v_n;
     END IF;
 
-    -- 【现在换成 RPC:同样的半路失败,前一组必须原样还在】
+    -- 【现在走 RPC:同样的半路失败(结束两条、写一条好的、再写一条坏的),前一组必须原样还在】
+    -- MES-3a:拿掉的状态要一个理由 —— 给上,才走得到那个坏代码那一步。
     PERFORM set_inbound_safety_states(v_ib2, ARRAY['water_exposed','damaged_deformed']);
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM set_inbound_safety_states(v_ib2, ARRAY['discharged_verified','no_such_code']);
+        PERFORM set_inbound_safety_states(v_ib2, ARRAY['discharged_verified','no_such_code'], 'f114 half-way failure');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 114F3 失败:进入 F3 —— 数组里带一个不存在的状态码必须被拒';
     END IF;
     SELECT array_agg(safety_state_code ORDER BY safety_state_code) INTO v_codes
-      FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib2;
-    IF v_codes IS DISTINCT FROM ARRAY['damaged_deformed','water_exposed'] THEN
+      FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib2 AND ended_at IS NULL;
+    IF v_codes IS DISTINCT FROM ARRAY['damaged_deformed','water_exposed']
+       OR EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib2 AND ended_at IS NOT NULL) THEN
         RAISE EXCEPTION 'FIXTURE 114F3 失败:进入 F3 —— 一次半路失败的整组写,留下的必须是【前一组】,不是空集。实得 %。**空集在这套系统里是一句有含义的话:"没有人记过"** —— 一次失败的保存把"有人记过"改写成"没有人记过",是一个静默的、方向明确的谎', COALESCE(v_codes::text,'NULL(空集 —— 正是那个洞)');
     END IF;
 
