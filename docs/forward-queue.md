@@ -402,6 +402,27 @@
 >    ★ **破窗**:起点 **2026-10-07 19:03:15 CST**(`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,下一次 close-out 补记)。
 >    窗口里坏掉的(**推导**,没有在线上量):旧表单提交一炉会被拒(`RUN_TIMES_REQUIRED` —— 它不送时刻);旧损耗面板的直写被拒(写策略已拿掉);读的一切照常。
 >    **下一刀 MES-4b · New fields and products**(见下面「⬜ ★ MES 组」)。
+>    ★ **部署:Tim 在 Vercel 上确认 `51bbdb42` 已部署(MES-4a close-out + MES-4b Step 0 委托书,2026-10-07)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-07 19:03:15 CST**(测量:`db/migration-windows.tsv:223`,`2026-10-07-mes4a-processing-record.sql`)·
+>    终点下界 **2026-10-07 20:32:27 CST**(测量:推送把 `origin/main` 移到 `51bbdb42`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`51bbdb42 … {2026-10-07 20:32:27 +0800}: update by push`)·
+>    终点上界 **2026-10-07 20:52:44 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 29 min 12 s,至多 1 h 49 min 29 s。** 迁移之后的验证(生成类型、tsc、构建、整门、版式探针、两次冒烟、线上证明与逐角色读数、
+>    前后读数)整个跑在窗口里(`docs/handbacks/MES-4a.md` §4 · §5)。
+>    窗口里坏掉的(**推导**,MES-4a 交回 §5.4,没有在线上量):旧表单提交一炉被拒(`RUN_TIMES_REQUIRED|start,end`);旧损耗面板的直写被拒;读的一切照常。
+>    close-out 的只读读数(20:58 CST,`postgres`,`rolbypassrls = true`,基表):MES-4a 起记的加工单 **0** 张 · 损耗行 0 · 称重 0 —— 窗口里没有人记过一炉。
+>    ★ **Tim 自己的动作(部署之后)**:① 在工序页(`/operation/operation-types/<code>`)上把机器挂到工序上 —— 挂上之后,那道工序的每一炉都必须选挂着的那一台
+>    (`EQUIPMENT_REQUIRED_FOR_OPERATION`);线上至今 0 条挂接,所以今天每道工序的机器都是可选的。② 在班次字典(`/settings/dictionaries` › 班次)里
+>    给每个班填开始与结束时刻(两个都给或都不给)—— 填上之后 V6 那两行消失;线上至今两个班都没有时刻。
+>    ★ **close-out 的核对:a 与 f 两项【只做了一部分】,所以 MES-4b Step 0 没有开始**(委托书第 5 条),等 Tim 裁定:
+>    **a** 交回 §0 记了加工单 14 行、损耗 0 行、班次 2 行,**没有记**委托书点名要报的【未提交 / 未分摊】那两个数 ——
+>    读数其实量过(`~/mes4a-work/logs/opening-readings.txt`,15:14:30:在册已提交 10 张、其中未分摊 8;已冲销 4 张、其中未分摊 3),只是没写进交回;
+>    close-out 20:58 重读同样是 10 / 8 · 4 / 3。**f** 冒烟对 `/operation/operation-types/[code]` 的审计记录断言,提交的版本一开始就是 `emptyOk: true`
+>    (更严的那一版只活在第一次冒烟时的工作树里);而 `emptyOk` 是【无条件】的 —— 冒烟读的是排第一的在用工序(深度放电),只要那一块画得出来、
+>    状态是 `empty` 就过,**不论那道工序有没有被改过**。所以"一道改过的工序没有审计记录时它仍然红"这句话【不成立】;它只在 `refused` 或整段没渲染时红。
+>    其余 b · c · d · e · g · h 逐项读到了;逐项证据在 `docs/surveys/MES-4b/MES-4a-CLOSEOUT.md`(读数的查询在同目录 `closeout-readings.sql`),c 与 d 各附一条说明(c:注入日志早于三支函数与 fixture 253 的最后一次修改;
+>    d:调 `commit_processing_run` 的 fixture 是 45 支,不是交回说的 46 支 —— 第 46 支(111)只在注释里提到它)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
