@@ -377,6 +377,21 @@
 >    窗口里坏掉的(**推导**,没有在线上量):没有。旧应用读到的三处变化都是【多出来】的(发货队列多三列、发货单行多几键、物料多两列),
 >    `ship_order` 新键可选;旧的两支标签路由照旧能印,只是不记录、不带 DG 行。
 >    **下一刀 MES-4a · Processing record**(见下面「⬜ ★ MES 组」)。
+>    ★ **部署:Tim 在 Vercel 上确认 `437359d2` 已部署(MES-3b close-out + MES-4a Step 0 委托书,2026-10-07)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-07 11:56:14 CST**(测量:`db/migration-windows.tsv:222`,`2026-10-07-mes3b-labels-scanning.sql`)·
+>    终点下界 **2026-10-07 13:36:35 CST**(测量:推送把 `origin/main` 移到 `437359d2`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`437359d2 … {2026-10-07 13:36:35 +0800}: update by push`)·
+>    终点上界 **2026-10-07 14:42:53 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 40 min 21 s,至多 2 h 46 min 39 s。** 迁移之后的验证(生成类型、tsc、构建、整门、版式探针、两次冒烟、线上证明与逐角色读数、
+>    前后读数)整个跑在窗口里(`docs/handbacks/MES-3b.md` §4 · §5)。
+>    窗口里坏掉的(**推导**,MES-3b 交回 §5.4,没有在线上量):没有 —— 旧应用读到的变化都是【多出来】的;旧的两支标签路由照旧能印,
+>    只是不记 `label_prints`、不带 DG 行。推送之后到上界那 1 h 06 min 18 s 没有任何读数。
+>    ★ **close-out 的核对(`docs/surveys/MES-4a/STEP0-HANDBACK.md` §0)**:委托书点名的 a–h 八项逐项读到了(文件:行号 / fixture 252 的臂 / 注入日志),
+>    **没有缺、没有半截**。
+>    ★ **Tim 自己的动作(部署之后)**:在一台 **Android 手机**上打开 `/inventory/scan`,用摄像头那颗按钮扫一张批次标签与一张库位标签,
+>    确认摄像头扫码真的认得出来(`ScanField` 只在浏览器自带 `BarcodeDetector` 的地方出现那颗按钮 —— headless Chrome 不是摄像头,
+>    这条路终端这边证不了,MES-3b Step 0 Q26)。iOS Safari 上那颗按钮【不出现】是设计如此(用扫码枪或手敲)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
