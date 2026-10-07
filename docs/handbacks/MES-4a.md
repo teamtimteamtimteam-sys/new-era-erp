@@ -21,6 +21,7 @@ Read on live 2026-10-07 16:51 CST, before the backup and the migration, as `post
 | Approvals | ON |
 | Pending documents | 1 — `expense_claim` CLM-2026-0004, 1,000.00; its decider (tim@) is not its submitter |
 | `processing_runs` | 14 rows, digest `87bae3cd8cc6` |
+| `processing_runs` by status (added by the close-out, Tim's ruling a) | **10 committed** (live), of which **8 unallocated** · **4 reversed** (deleted), of which **3 unallocated** — measured 15:14:30 by `docs/surveys/MES-4a/live-readings.sql` (log `~/mes4a-work/logs/opening-readings.txt`, off-repo); re-read identical 20:58 by `docs/surveys/MES-4b/closeout-readings.sql` (in-repo source: `docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 a) |
 | `processing_outputs` | 17 rows, digest `927614982981` |
 | `processing_run_losses` | 0 rows |
 | `weighings` | 0 rows |
@@ -119,7 +120,7 @@ registry, month-end step, pending-values labels, dictionary registry (shifts wit
 | 8 | i18n | `I18N_OWN_EXIT=0` |
 | 9 | Error swallowing | `SWALLOW_OWN_EXIT=0` |
 | 10 | Layout survey, 9 pages, 1280 px and 390 px | 1280: 9 / 9 usable. 390: 7 / 9 — `/operation/processing/new` +177 px (an input-batch `<select>`) and `/finance/month-end` +6 px (a table cell). **Both are pre-existing:** the same two pages on the pre-cut code (my four files shelved, then restored) measured +177 px and +6 px exactly. Not caused by this cut; not fixed here. |
-| 11 | Smoke (background) | first run `SMOKE_EXIT=1`: the one failure was my own new assertion requiring audit-trail **entries** on `/operation/operation-types/[code]` — the first operation (deep discharge) has never been changed, so its trail is legitimately empty. Changed it to `emptyOk` (still asserts the trail renders, not restricted or broken) and re-ran: **`SMOKE_EXIT=0`, 272 ok, 12 skipped (no data), 0 failed.** Scratch reading after: the same 6 stale rows as before the run (`ZZ-SMOKE-*`, 845–1,488 h old, four still referenced) — none from this cut; the run's own throwaway account was cleaned (0 throwaway accounts in the closing readings). |
+| 11 | Smoke (background) | first run `SMOKE_EXIT=1`: the one failure was my own new assertion requiring audit-trail **entries** on `/operation/operation-types/[code]` — the first operation (deep discharge) has never been changed, so its trail is legitimately empty. **Corrected by the close-out (Tim's ruling f):** the strict check existed only in the working tree for that first run; the **committed** check is `emptyOk: true` and accepts an empty trail for the **whole route**, whether or not the operation read has changes (it still fails on a refused or missing trail). Tightening it is folded into MES-4b (`docs/forward-queue.md`). Re-ran: **`SMOKE_EXIT=0`, 272 ok, 12 skipped (no data), 0 failed.** Scratch reading after: the same 6 stale rows as before the run (`ZZ-SMOKE-*`, 845–1,488 h old, four still referenced) — none from this cut; the run's own throwaway account was cleaned (0 throwaway accounts in the closing readings). |
 | 12 | Live verification | §5 |
 
 ## §5 · Live verification

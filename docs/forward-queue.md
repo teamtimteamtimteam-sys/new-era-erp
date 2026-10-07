@@ -424,6 +424,9 @@
 >    其余 b · c · d · e · g · h 逐项读到了;逐项证据在 `docs/surveys/MES-4b/MES-4a-CLOSEOUT.md`(读数的查询在同目录 `closeout-readings.sql`),c 与 d 各附一条说明(c:注入日志早于三支函数与 fixture 253 的最后一次修改;
 >    d:调 `commit_processing_run` 的 fixture 是 45 支,不是交回说的 46 支 —— 第 46 支(111)只在注释里提到它)。
 >
+>    ★ **Tim 的两条裁定(MES-4a close-out 裁定,2026-10-07)**:a —— 未提交 / 未分摊的两个开场数补进 `docs/handbacks/MES-4a.md` §0(10 张已提交、其中 8 未分摊;4 张已冲销、其中 3 未分摊;15:14 量、20:58 重读一致);f —— `emptyOk` 照现在的样子先收下,交回里的描述改正;收紧与重跑注入两件并入 MES-4b(见下面「⬜ ★ MES 组」第 6 行)。
+>    ☞ **只作记录(不是缺陷)**:线上今天【只有一批】在库的料过得了加工单的投料检查 —— `ZZ-PROCCOST1-DEMO`(100 kg,已放电并核实);另外 11 批坐在【没有被标成可投料】(`materials.may_be_processed` 为空)的物料上。这在 MES-4a 之前就是这样,是配置,不是缺陷(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 b)。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
@@ -6940,7 +6943,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 3 | ✅ **MES-3a · Storage safety**(2026-10-07,`v1.4.39`,`docs/handbacks/MES-3a.md`;~~★ 下一刀;~~~~★ **Step 0 等 Tim 对 MES-2 close-out 核对项 a 的裁定**~~ ★ **Tim 已裁(2026-10-06):a 与校准开关两条都在本刀里建;Step 0 交回 `docs/surveys/MES-3a/STEP0-HANDBACK.md`,等 Tim 答 Q1–Q33**;★ 实测:收货定价码线上 admin · finance 都持,chooer@ 提的申请 tim@ 批得动 —— 定价那一条并入【不用改授权】(Step 0 §9),★ **Tim 的并入(MES-2 close-out + MES-3a Step 0 委托书,2026-10-06):收货定价码**按 `docs/role-matrix.md` §8(Tim 2026-09-23:财务定价、CFO 批)在本刀授出 —— 委托书转述:线上只有 admin@ 持它,而 admin@ 与 tim@ 是同一个人,所以每一张定价申请都按自批被拒(`RECEIPT_PRICE_NO_OTHER_DECIDER`,`docs/handbacks/MES-2.md` §6.1 实测过拒绝那一句;「只有 admin@ 持它」那半句**本次 close-out 没有重量**,而 `docs/role-matrix.md:199` 写的持有人是 finance · admin —— 两者对不上,正是 Step 0 要先量的);哪个码、今天谁持、该谁持、admin 留什么,由 Step 0 的 grilling 核实;矩阵说的若不是「财务定价、CFO 批」,报告,不改) | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
   | 4 | ✅ **MES-3b · Labels and scanning**(2026-10-07,`v1.4.40`,`docs/handbacks/MES-3b.md`;~~★ 下一刀~~)| 7(标签)· 8(扫码) | 6 h 00 m – 10 h 15 m |
   | 5 | ✅ **MES-4a · Processing record**(2026-10-07,`v1.4.41`,`docs/handbacks/MES-4a.md`;~~★ 下一刀~~)| 11(参数与配方)· 13(计数)· 规格书 §4.1(平衡与容差;机器在挂了机器的工序上变成必填 —— 收紧 U1-B 的可选选择器,Q41) | 8 h 40 m – 15 h 30 m |
-  | 6 | ⬜ **MES-4b · New fields and products**(★ 下一刀)| 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
+  | 6 | ⬜ **MES-4b · New fields and products**(★ 下一刀;★ **Tim 的并入(MES-4a close-out 裁定,2026-10-07),不另起一刀**:① 冒烟对 `/operation/operation-types/[code]` 审计记录的断言收紧 —— 一道【有变更记录】的工序显示空审计记录时要红,一道没被改过的工序照旧可以是空的(今天的 `emptyOk: true` 对整条路由无条件放过,`scripts/smoke-routes.mjs:956-957`);② 对 16:11 那次注入之后改过的东西重跑 fixture 253 的故障注入(改码之后的 `correct_run_header`、fixture 253 本身、`trail_refs`、`trail_ref_label`),确认每一格仍然红在它所属的那一臂(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 c · f))| 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
   | 7 | ⬜ **MES-5a · Discharge and energy** | 2(逐模组放电)· 3(电表与按用途的电费) | 7 h 10 m – 12 h 30 m |
   | 8 | ⬜ **MES-5b · Balance, yield, blending** | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
   | 9 | ⬜ **MES-6a · Samples, arbitration, F/Cl** | 15(样品)· 16(仲裁)· 19(氟与氯) | 5 h 15 m – 8 h 45 m |

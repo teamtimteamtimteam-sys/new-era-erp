@@ -45,6 +45,9 @@ time, 0 loss rows, 0 weighings [M] — nobody recorded a run inside the window.
   never reached the hand-back. (Status has two values, `committed` and `reversed`; "uncommitted" = the 4 reversed.)
 - Re-read now [M, 20:58]: committed live **10**, unallocated **8**; reversed **4**, unallocated **3**; MES-4a-era runs **0**; loss rows **0**;
   shifts **2** (day, night, active, no times). Identical to the 15:14 log.
+- **In-repo source for these figures (Tim's ruling a):** this 20:58 re-read — query `closeout-readings.sql` part 1, the `runs` line
+  (`SELECT 'runs', status, (deleted_at IS NULL) AS live, count(*), count(*) FILTER (WHERE allocated_at IS NULL) …`). The figures are now also in
+  `docs/handbacks/MES-4a.md` §0.
 
 ### b · Usability on live today — **PRESENT: both kinds of run can be recorded**
 
@@ -179,3 +182,16 @@ used a temporary splice.
 ## 5 · Stop
 
 MES-4b Step 0 not started. Waiting on Tim's ruling on a and f.
+
+## 6 · Tim's rulings (2026-10-07)
+
+- **a:** the opening figures go into `docs/handbacks/MES-4a.md` §0 beside the existing readings (done); this file's 20:58 re-read is cited as
+  the in-repo source (§3 a).
+- **f:** `emptyOk` accepted as it stands for now; the hand-back's description corrected (§4 row 11: the strict check existed only in the
+  working tree; the committed check accepts an empty trail for the whole route).
+- **Folded into the MES-4b build cut** (recorded under MES-4b in `docs/forward-queue.md`): (1) tighten the smoke trail check so an operation
+  with recorded changes and an empty trail fails, while an unchanged operation may still show none; (2) re-run the fault injections touched
+  after 16:11 (`correct_run_header` after the rename, fixture 253, `trail_refs`, `trail_ref_label`) and confirm each goes red in its own arm.
+- **Information only** (`docs/forward-queue.md` item 40): one batch in stock (`ZZ-PROCCOST1-DEMO`) passes the input check; the others sit on
+  materials not marked processable — pre-MES-4a configuration, not a defect.
+- MES-4b Step 0 proceeds: `STEP0-HANDBACK.md` in this directory.
