@@ -88,6 +88,10 @@ CREATE TABLE public.inbound_batches (
     source_reason_note        text,
     source_reason_recorded_by uuid REFERENCES auth.users (id),
     source_reason_recorded_at timestamptz,
+    -- ── MES-4b 追加(2026-10-07,规格 §3.4;MES-4b Step 0 Q4–Q7,Tim;ALTER 加的列排在末尾)──────────────
+    -- 这一批电芯是卷绕还是叠片(cell_constructions)。收货时可选(两支收货函数末尾一个可缺省的参数),之后在批次页上补或改,
+    -- 直到这一批喂过一张已提交的加工单。只对仍装着电芯的形态成立。【遮蔽表加一列 = 三件事一支迁移】列 + 列级授权 + _masked 视图。
+    cell_construction_code    text REFERENCES public.cell_constructions (code),
     -- 记录人与记录时刻【同生同灭】—— 与 inbound_import_verified_pair 同形。
     CONSTRAINT inbound_source_recorded_pair
         CHECK ((source_reason_recorded_by IS NULL) = (source_reason_recorded_at IS NULL)),
@@ -138,8 +142,9 @@ CREATE OR REPLACE FUNCTION public.generate_inbound_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
 BEGIN
     IF NEW.code IS NULL OR NEW.code = '' THEN
+        -- MES-4b(CODE-WIDTH-4,Step 0 Q14):补到 4 位、【不截断】—— 超过 9,999 照实长出去;低于 10,000 的号逐字不变。
         NEW.code := document_type_prefix('inbound_batch') || '-' || EXTRACT(YEAR FROM NOW())::TEXT || '-' ||
-                    LPAD(nextval('inbound_code_seq')::TEXT, 4, '0');
+                    (SELECT LPAD(n, GREATEST(4, length(n)), '0') FROM (SELECT nextval('inbound_code_seq')::TEXT AS n) s);
     END IF;
     RETURN NEW;
 END;
@@ -148,6 +153,12 @@ $function$;
 CREATE TRIGGER trg_generate_inbound_code
     BEFORE INSERT ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION generate_inbound_code();
+
+-- MES-4b(Q4 · Q7):电芯结构只对装着电芯的形态成立;喂过一张已提交的加工单之后不再改(守卫函数在 db/functions/)。
+--   名字排在 trg_generate_inbound_code 之后(BEFORE 触发器按名字先后跑)—— 拒绝里要报出批号。
+CREATE TRIGGER trg_inbound_batches_cell_construction
+    BEFORE INSERT OR UPDATE OF cell_construction_code, material_id ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_cell_construction();
 
 -- 库存台账体系(函数见 db/functions/inventory_ledger_triggers.sql)
 CREATE TRIGGER trg_inbound_batches_emit_receipt
@@ -314,7 +325,9 @@ GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty,
     -- RECV-SOURCE-1:来源理由四列。不敏感(审计轨迹第一环,不是钱),
     -- 进列清单授权 —— 三件事(列 + 本授权 + _masked 视图)同一支迁移。
     source_reason_code, source_reason_note,
-    source_reason_recorded_by, source_reason_recorded_at)
+    source_reason_recorded_by, source_reason_recorded_at,
+    -- MES-4b:电芯结构。不敏感(工艺路由要用的事实),进列清单授权 —— 三件事(列 + 本授权 + _masked 视图)同一支迁移。
+    cell_construction_code)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
@@ -432,3 +445,9 @@ recorded_at 非空 = 事后补的,NULL = 收货当场说的,R4 要的"看得出�
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.inbound_batches
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.inbound.edit');
+
+COMMENT ON COLUMN public.inbound_batches.cell_construction_code IS
+'MES-4b(规格 §3.4;MES-4b Step 0 Q4–Q7):这一批电芯是卷绕还是叠片(cell_constructions)。为空 = 没记(收货时可选)。只对仍装着电芯的形态成立
+(material_forms.implies_dismantling;没有形态的物料不拦 —— 不知道不等于不适用),别的形态 CELL_CONSTRUCTION_NOT_APPLICABLE。
+在批次页上补或改(set_batch_cell_construction:进料编辑码或加工提交码),直到这一批喂过一张已提交、没回滚的加工单(CELL_CONSTRUCTION_LOCKED|<加工单>)。
+极片分离 / 自动极片线的投料必须带一个确定的值(INPUT_CELL_CONSTRUCTION_REQUIRED)。不遮蔽:列级授权 + _masked 视图原样透出。';

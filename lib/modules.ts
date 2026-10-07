@@ -359,6 +359,8 @@ const P_MATERIALS = 'module.materials.view'
 const P_INBOUND = 'module.inbound.view'
 const P_OUTPUT = 'module.output.view'
 const P_PROCESSING = 'module.processing.view'
+// MES-4b(2026-10-07,Step 0 Q25):交叉污染抽检的总表 —— 加工或产出查看码任一(极片批的买方关心的质量事实;读的视图带同一对码)
+const P_CONTAMINATION = { all: [], any: ['module.processing.view', 'module.output.view'] } as const
 const P_INVENTORY = 'module.inventory.view'
 const P_STOCKTAKES = 'module.stocktakes.view'
 const P_SALES = 'module.sales.view'
@@ -460,6 +462,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // MES-4a(2026-10-07,Step 0 Q1 · Q9–Q17,Tim):工序 —— 每道工序的参数与指标、挂着的机器、平衡容差、配方与版本。
     //   读要 module.processing.view;改要 module.processing.edit(与那几张表的写策略同一个码;页内控件看得见、按不动、说出缺哪个码)。
     { href: '/operation/operation-types', navKey: 'processing.subnav.operationTypes', modules: ['operation'], permission: P_PROCESSING },
+    // MES-4b(2026-10-07,Step 0 Q21–Q25,Tim):交叉污染抽检 —— 每一个班 × 每一条流抽过没有、污染率对着警戒线(V11)。只读;记在加工单页上。
+    { href: '/operation/contamination', navKey: 'processing.subnav.contamination', modules: ['operation'], permission: P_CONTAMINATION },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
@@ -1079,4 +1083,6 @@ export const FN = {
     pendingValues: fnByHref('/settings/pending-values'),
     /** MES-4a:工序(字段 · 机器 · 容差 · 配方)。 */
     operationTypes: fnByHref('/operation/operation-types'),
+    /** MES-4b:交叉污染抽检(班 × 流)。 */
+    contamination: fnByHref('/operation/contamination'),
 } as const

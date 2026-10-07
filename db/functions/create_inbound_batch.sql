@@ -3,8 +3,10 @@
 --   签名变了,所以迁移是 DROP + CREATE(preflight 不许 CREATE OR REPLACE 换签名);已部署的旧应用不传它们,照样解析到这一支。
 -- MES-3a(2026-10-06,MES-3a Step 0 Q9 · Q10 · Q19,Tim):写入之前过隔离闸(请求里带着要隔离的状态,就只能收进隔离库位);
 --   落库之后对着执照的库存上限判一次并记下来(receipt_ceiling_check_internal)。签名不变;返回值多一个 'ceiling'(那一行)。
+-- MES-4b(2026-10-07,MES-4b Step 0 Q4,Tim):末尾多一个可缺省的参数 p_cell_construction(电芯结构,收货时可选;空 = 没记)——
+--   签名变了,迁移是 DROP + CREATE;已部署的旧应用不传它,照样解析到这一支。适用性与锁由表上的 guard_batch_cell_construction 判。
 
-CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_currency text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_currency text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text, p_cell_construction text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -73,17 +75,23 @@ BEGIN
     -- SOURCE_REASON_EXPLANATION_REQUIRED)由 guard_receipt_source_stated 抛 ——
     -- 本函数一个字都不重复它们,重复一遍就是第二份会漂开的判断。
     -- INB-PAY-1:unit_price 【不在这里落】—— 见下面定价那一段。
+    -- MES-4b(Q4):电芯结构可选;给了就必须是一个在用的值(写入之前按名拒,不让外键报一串约束名)。
+    IF NULLIF(btrim(COALESCE(p_cell_construction, '')), '') IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM cell_constructions c WHERE c.code = btrim(p_cell_construction) AND c.is_active) THEN
+        RAISE EXCEPTION 'CELL_CONSTRUCTION_UNKNOWN|%', btrim(p_cell_construction);
+    END IF;
+
     INSERT INTO inbound_batches (
         material_id, supplier_id, quantity, unit, remaining_qty, arrival_date,
         stage, notes, purchase_order_id, purchase_order_line_id,
         declared_qty, chemistry_certainty_code, source_reason_code, source_reason_note,
-        created_by, updated_by)
+        created_by, updated_by, cell_construction_code)
     VALUES (
         p_material_id, p_supplier_id, p_quantity, COALESCE(p_unit,'kg'), p_quantity, p_arrival_date,
         COALESCE(p_stage,'待加工'), p_notes, p_purchase_order_id, p_purchase_order_line_id,
         p_declared_qty, p_chemistry_certainty, p_source_reason_code,
         NULLIF(btrim(COALESCE(p_source_reason_note, '')), ''),
-        v_user, v_user)
+        v_user, v_user, NULLIF(btrim(COALESCE(p_cell_construction, '')), ''))
     RETURNING id INTO v_id;
 
     -- PROC-2c:安全状态【只在给了参数时才碰】。

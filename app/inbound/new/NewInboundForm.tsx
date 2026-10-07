@@ -14,6 +14,8 @@ import SourceReasonFields from '../SourceReasonFields'
 import type { SourceReasonOption } from '../sourceReasonQuery'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
+import CellConstructionField from '../CellConstructionField'
+import type { CellConstructionData } from '../cellConstructionQuery'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -59,6 +61,7 @@ export default function NewInboundForm({
     safetyStates,
     certainties,
     materialAxes,
+    cellConstruction,
     sourceReasons,
     baseCurrency,
     currencies,
@@ -77,6 +80,8 @@ export default function NewInboundForm({
     safetyStates: SafetyState[]
     certainties: Certainty[]
     materialAxes: Record<string, MaterialAxis>
+    /** MES-4b(Q4):电芯结构的选项与每个物料装不装电芯 */
+    cellConstruction: CellConstructionData
     // RECV-SOURCE-1:无单收货的理由字典(R1:采购行或理由,永不两者皆无)
     sourceReasons: SourceReasonOption[]
     // INB-PAY-1:单价的币种。建单带价与之后再定价走【同一个】定价函数,
@@ -453,6 +458,8 @@ export default function NewInboundForm({
                     states={safetyStates} certainties={certainties}
                     materialAxes={materialAxes} materialId={materialId} locale={locale}
                 />
+                {/* MES-4b(Q4):电芯结构 —— 可选,空 = 没记;只对装电芯的形态摆出来 */}
+                <CellConstructionField data={cellConstruction} materialId={materialId} locale={locale} />
 
                 {/* 备注 */}
                 <div>

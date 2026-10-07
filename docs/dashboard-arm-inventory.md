@@ -104,6 +104,7 @@ module's own page.
 | M3b | `safety_state_dwell` | 还在厂里的一批身上,一条开着的安全状态被记下之后过的新加坡日历天数 ≥ 它的 `dwell_warning_days`(V3;MES-3a Step 0 Q14 · Q15)。**V3 没给就没有这一支的行**;时钟从那一条被记下的时刻起算,保存不会让它重来 | 按行:进料 `module.inbound.view`,产出 `module.output.view` | `safety_state_dwell` | `dwell_status = 'past' AND on_site`;状态被结束、或那一批的存量出清之后消失 |
 | M3c | `quarantine_required` | 一批开着一条 `requires_quarantine` 的状态(今天只有鼓包或漏液),却还有货在一个**没标隔离**的库位(或没指库位的那一桶)里(MES-3a Step 0 Q20)。记状态从不拒,于是由这一支说出来;它的下一次移动只能进隔离 | 按行:进料 `module.inbound.view`,产出 `module.output.view` | `quarantine_exposure` | 货全部挪进隔离库位、或那一条状态结束之后消失 |
 | M4a | `processing_balance_unclosed` | 一张已提交的【转换型】加工单(MES-4a 之后记的,开始时刻不空),物料平衡没有一次【当前】的结算:从没结过,或结过之后它的损耗 / 值又被更正了(那会把它重新打开,MES-4a Step 0 Q19 · Q22)。状态改变型的(深度放电)没有平衡可结,不进这一支;MES-4a 之前的单也不进 | `module.processing.view` | `processing_run_balance_all` | `balance_state = 'open'`;结算(`close_run_balance`)之后消失,之后再有更正就回来 |
+| M4b | `contamination_check_missing` | 一个(加工日, 班次, 流):那一天那一班有一张 MES-4a 之后记的、已提交没回滚的加工单产出了这条流的极片(`contamination_streams.sheet_form_code`),而同一天同一班任何一张单上都没有一条【当前】的抽检 —— 抽了(`sampled`)或这一班没抽并写了理由(`not_sampled`)都算(MES-4b Step 0 Q23 · Q24)。一格一行,`item_id` = 那一格最早的那一炉(fixture 47 的行号规矩),`subject` = 流。MES-4a 之前的单没有班次,不进这一支 | `module.processing.view` | `contamination_shift_status_all` | `check_state = 'missing'`;记一条抽检或一条"没抽"之后消失 |
 
 
 
@@ -343,6 +344,7 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `safety_state_dwell` | `/inbound/[id]/edit` or `/output/[id]/edit` | the batch page: each open state's day count against its period, and its history (MES-3a) |
 | `quarantine_required` | `/inbound/[id]/edit` or `/output/[id]/edit` | the batch page's banner; its next move can only go into a quarantine location (MES-3a) |
 | `processing_balance_unclosed` | `/operation/processing/[id]` | the run page's material-balance section: input, outputs, named losses, remainder against the operation's tolerance; Close the balance (with an explanation when it is outside tolerance) (MES-4a) |
+| `contamination_check_missing` | `/operation/processing/[id]` | the earliest run of that shift: its contamination panel records a check, or that the shift was not sampled with a reason; the whole shift × stream grid is at `/operation/contamination` (MES-4b) |
 
 ### One mechanism, not two
 

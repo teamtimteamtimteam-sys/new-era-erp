@@ -126,6 +126,10 @@ export const TRAIL_TEXT = {
     'run.eventCorrected': 'Exception corrected',
     'run.eventWithdrawn': 'Exception withdrawn',
     'run.balanceClosed': 'Material balance closed',
+    // MES-4b(2026-10-07):交叉污染抽检 —— 抽了 · 这一班没抽 · 更正
+    'run.contaminationRecorded': 'Contamination check recorded',
+    'run.contaminationNotSampled': 'Contamination not sampled this shift',
+    'run.contaminationCorrected': 'Contamination check corrected',
     'run.withinTolerance': 'within tolerance',
     'run.headerCorrected': 'Run header corrected',
     // MES-4a:一道工序的配置(工序页)

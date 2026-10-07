@@ -36,9 +36,10 @@ export default async function OperationTypePage({
     const supabase = await createClient()
 
     const op = mustOne(await supabase.from('operation_types')
-        .select('code, name_en, name_zh, is_active, balance_tolerance_pct, operation_kinds ( produces_outputs )')
+        .select('code, name_en, name_zh, is_active, balance_tolerance_pct, electrolyte_loss_applies, electrolyte_share_pct, requires_cell_construction, operation_kinds ( produces_outputs )')
         .eq('code', code).maybeSingle(), 'operation_types') as unknown as {
             code: string; name_en: string; name_zh: string; is_active: boolean; balance_tolerance_pct: number | null
+            electrolyte_loss_applies: boolean; electrolyte_share_pct: number | null; requires_cell_construction: boolean
             operation_kinds: { produces_outputs: boolean } | null
         } | null
     if (!op) notFound()
@@ -102,6 +103,9 @@ export default async function OperationTypePage({
                 code={op.code}
                 transforming={transforming}
                 tolerance={op.balance_tolerance_pct === null ? null : String(Number(op.balance_tolerance_pct))}
+                electrolyteApplies={op.electrolyte_loss_applies}
+                electrolyteShare={op.electrolyte_share_pct === null ? null : String(Number(op.electrolyte_share_pct))}
+                requiresCellConstruction={op.requires_cell_construction}
                 fields={editorFields}
                 machines={machines}
                 recipes={editorRecipes}

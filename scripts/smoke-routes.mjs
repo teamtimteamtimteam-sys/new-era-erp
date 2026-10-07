@@ -670,8 +670,12 @@ const MUST_CONTAIN = {
     // MES-1(2026-10-06):设备页底的审计记录(登记 · 修改 · 停用 · 钥匙的发与撤);设备清单页底那一块是采集上限(单行设置,M5)——
     //   线上一行改动都还没有,所以 emptyOk(与三个阈值面板同一条)
     '/operation/devices/[id]': [{ trail: 'audit-trail', why: '设备页底的审计记录(MES-1)' }],
-    // emptyOk:一道引导播下、之后没人改过的工序,审计记录本来就是空的(冒烟读的是第一道在用的工序);要断言的是它画得出、不是受限或报错
-    '/operation/operation-types/[code]': [{ trail: 'audit-trail', why: '工序页底的审计记录(MES-4a)', emptyOk: true }],
+    // ★ MES-4b(2026-10-07,Tim 的 MES-4a close-out 裁定 f · MES-4b Step 0 Q31):不再无条件 emptyOk。
+    //   冒烟【直接读那道工序的变更记录】(change_log —— 一条与 record_trail 无关的路:画页面的是 record_trail,
+    //   两边才可能各说各话):有行 → 必须是 entries;一行都没有 → 允许 empty;refused 或整段没画永远是红。
+    //   读哪一道:先挑一道【有】变更记录的在用工序(严的那一支真的被走到);都没有才退回第一道。SMOKE_OPTYPE_CODE 可以点名一道。
+    //   故障注入:SMOKE_TRAIL_BLANK=1 把那一段的状态改写成 empty(一道改过的工序显示空审计记录 → 必须红)。
+    '/operation/operation-types/[code]': [{ trail: 'audit-trail', why: '工序页底的审计记录(MES-4a)', emptyOkFrom: 'operationChangeLog' }],
     // MES-2(2026-10-06):地磅单页底的审计记录(开单 · 两磅与更正 · 份 · 照片 · 作废)
     '/operation/weighbridge/[id]': [{ trail: 'audit-trail', why: '地磅单页底的审计记录(MES-2)' }],
     '/operation/devices': [{ trail: 'audit-trail', emptyOk: true, why: '采集上限的审计记录(MES-1 Q22,M5)' }],
@@ -969,11 +973,45 @@ function trailMisses(html, which, why, emptyOk = false, anchor = null) {
     return out
 }
 
+// MES-4b(Q31):工序页那一条 —— 冒烟读到的那一道工序,以及它在变更记录里有几行(读不到 = null,永远算红)。
+//   读法:change_log_rows(全局变更记录的那一支读法,/settings/change-history 用它;门 data.view_change_log,冒烟的一次性管理员持它)
+//   —— 与画这一页的 record_trail 是【两条路】,两边才可能各说各话。change_log 对任何应用角色都没有直接授权(service key 也读不到),
+//   所以必须以那个人的身份调。按主键里的值找:工序这一行(code)· 它的字段与机器(主键含 operation_type_code)· 它的配方(主键 id)。
+//   配方的每一版不另数(建配方本身就落一行,一道只改过配方版本的工序照样数得到它的配方行)。
+const OPTYPE_TRAIL = { code: null, changeRows: null }
+let SMOKE_SESSION_TOKEN = null
+async function changeRowsAs(body, ctx) {
+    if (!SMOKE_SESSION_TOKEN) throw new Error(`${ctx}:冒烟还没有登录会话 —— 读不了变更记录`)
+    const res = await rpcAs(SMOKE_SESSION_TOKEN, 'change_log_rows', { p_limit: 200, ...body })
+    if (!res.ok) throw new Error(`${ctx}:change_log_rows 拒了(HTTP ${res.status}):${(await res.text()).slice(0, 200)}`)
+    const rows = await res.json()
+    if (!Array.isArray(rows)) throw new Error(`${ctx}:change_log_rows 没有返回一组行`)
+    return rows
+}
+async function operationChangeRows(code) {
+    const own = await changeRowsAs({ p_table: 'operation_types', p_record: code }, `operation-types/[code] ← change_log_rows(工序这一行)`)
+    const kids = await changeRowsAs({ p_tables: ['operation_type_fields', 'operation_type_equipment'], p_record: code },
+        `operation-types/[code] ← change_log_rows(字段 · 机器)`)
+    const recipes = await restRows(`/rest/v1/process_recipes?select=id&operation_type_code=eq.${encodeURIComponent(code)}`,
+        `operation-types/[code] ← process_recipes`)
+    const recipeRows = recipes.length
+        ? await changeRowsAs({ p_table: 'process_recipes', p_record_ids: recipes.map((r) => r.id) }, `operation-types/[code] ← change_log_rows(配方)`)
+        : []
+    return own.length + kids.length + recipeRows.length
+}
+
 async function contentMisses(route, html) {
     const misses = []
     for (const a of MUST_CONTAIN[route] ?? []) {
         if (a.trail) {
-            misses.push(...trailMisses(html, a.trail, a.why, a.emptyOk === true, a.anchor ?? null))
+            let emptyOk = a.emptyOk === true
+            if (a.emptyOkFrom === 'operationChangeLog') {
+                if (OPTYPE_TRAIL.changeRows === null) { misses.push(`${a.why}:那道工序的变更记录行数没有读到 —— 判不了该不该有记录`); continue }
+                emptyOk = OPTYPE_TRAIL.changeRows === 0
+                if (process.env.SMOKE_TRAIL_BLANK === '1') html = html.replace('data-audit-trail="entries"', 'data-audit-trail="empty"')
+                if (!emptyOk) a.why = `${a.why} —— 工序 ${OPTYPE_TRAIL.code} 在变更记录里有 ${OPTYPE_TRAIL.changeRows} 行`
+            }
+            misses.push(...trailMisses(html, a.trail, a.why, emptyOk, a.anchor ?? null))
             continue
         }
         if (a.needle) {
@@ -2068,6 +2106,7 @@ async function main() {
         throw new ForcedFailure(FORCE_FAIL_AT)
     }
     const adminSession = { token: mainTw.token, cookie: mainTw.cookie }
+    SMOKE_SESSION_TOKEN = mainTw.token   // MES-4b(Q31):工序页的审计记录判据要以这个人的身份读变更记录
     const cookie = adminSession.cookie
 
     // ── 第二个一次性会话:评估人视角 ─────────────────────────────────────────
@@ -2342,10 +2381,25 @@ async function main() {
             }
             // MES-4a:工序页 —— 现读一个在用的工序代号(读不到就是量具拿不到输入,中止,不算跳过)
             if (route === '/operation/operation-types/[code]') {
-                const rows = await restRows(`/rest/v1/operation_types?select=code&is_active=eq.true&order=sort_order&limit=1`,
+                const rows = await restRows(`/rest/v1/operation_types?select=code&is_active=eq.true&order=sort_order`,
                     `${route} ← operation_types`)
                 if (!rows[0]) throw new Error(`${route}:一道在用的工序都读不到 —— 这条冒烟证明不了任何东西,不许当成跳过`)
-                url = route.replace('[code]', encodeURIComponent(rows[0].code))
+                // MES-4b(Q31):点名的那一道;否则第一道有变更记录的;都没有才是第一道
+                let pick = null
+                if (process.env.SMOKE_OPTYPE_CODE) {
+                    pick = rows.find((r) => r.code === process.env.SMOKE_OPTYPE_CODE)?.code ?? null
+                    if (!pick) throw new Error(`${route}:SMOKE_OPTYPE_CODE=${process.env.SMOKE_OPTYPE_CODE} 不是一道在用的工序`)
+                    OPTYPE_TRAIL.changeRows = await operationChangeRows(pick)
+                } else {
+                    for (const r of rows) {
+                        const n = await operationChangeRows(r.code)
+                        if (n > 0) { pick = r.code; OPTYPE_TRAIL.changeRows = n; break }
+                    }
+                    if (!pick) { pick = rows[0].code; OPTYPE_TRAIL.changeRows = 0 }
+                }
+                OPTYPE_TRAIL.code = pick
+                console.log(`  operation-types/[code] → ${pick}(变更记录 ${OPTYPE_TRAIL.changeRows} 行:${OPTYPE_TRAIL.changeRows > 0 ? '审计记录必须有内容' : '允许为空'})`)
+                url = route.replace('[code]', encodeURIComponent(pick))
             }
             // MES-3b(Q9 · Q20):短链接【不在冒烟里走】—— 每打开一次,resolve_scan_code 就往只追加的 scan_events 写一行,
             //   而那一行谁都删不掉(连属主也删不掉)。冒烟每天跑,冒烟的一次性账号会在线上留下永远删不掉的行 ——

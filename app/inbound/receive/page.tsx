@@ -9,6 +9,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
+import { loadCellConstructionData } from '../cellConstructionQuery'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { loadShareableTickets } from '../ticketQuery'
 
@@ -61,13 +62,15 @@ export default async function ReceivePage() {
     ) as unknown as { id: string; code: string; name: string }[]
 
     // PROC-2c:门口就问的两条轴 —— 与 /inbound/new 读同一支(见 intakeConditionQuery)。
-    const [condition, materialAxes, sourceReasons, tickets] = await Promise.all([
+    const [condition, materialAxes, sourceReasons, tickets, cellConstruction] = await Promise.all([
         loadIntakeConditionOptions(supabase),
         loadMaterialAxes(supabase),
         // RECV-SOURCE-1:无单收货的理由字典
         loadSourceReasons(supabase, locale),
         // MES-2(Q19):可以挂的进厂地磅单
         loadShareableTickets(supabase),
+        // MES-4b(Q4):电芯结构 —— 可选;只对装电芯的形态摆出来
+        loadCellConstructionData(supabase),
     ])
     // ROLE-1 Batch 3b:提交 = 建收货单,归 action.receive_goods(页面本身仍是 inbound.view)
     const canReceive = await can('action.receive_goods')
@@ -89,6 +92,7 @@ export default async function ReceivePage() {
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}
+            cellConstruction={cellConstruction}
             locations={locationChoices}
                 suppliers={mustRows(suppliersRes) as unknown as { id: string; code: string; legal_name: string }[]}
                 materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}

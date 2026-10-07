@@ -75,8 +75,9 @@ BEGIN
 
     -- ══════════ F2 · 三类各一行,而金属去向【不同】 ══════════
     RAISE NOTICE 'fixture 153 · 进入 F2';
-    INSERT INTO processing_run_losses (run_id, loss_category_code, quantity)
-    VALUES (v_run, 'moisture', 40), (v_run, 'dust_spill', 25);
+    -- MES-4b:basis 必填、没有默认值(每一扇写它的门都明说自己是哪一种)—— 这里写的是量出来的
+    INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, basis)
+    VALUES (v_run, 'moisture', 40, 'measured'), (v_run, 'dust_spill', 25, 'measured');
     -- 【注入确实改变了东西】—— 先证明这一点,再断言它的后果。
     SELECT count(*) INTO v_n FROM processing_run_losses WHERE run_id = v_run;
     IF v_n <> 2 THEN
@@ -127,8 +128,8 @@ BEGIN
     -- 方向二:再加一行把和推到 110 > 100 —— **按名拒**。
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO processing_run_losses (run_id, loss_category_code, quantity)
-        VALUES (v_run, 'residue_disposal', 45);
+        INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, basis)
+        VALUES (v_run, 'residue_disposal', 45, 'measured');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 153F5 失败:已分类之和(110)超过 loss_qty(100)必须被拒。**这条不等式守得住,因为它不需要知道真实配比** —— 与 OUTPUT_EXCEEDS_INPUT 同一个形状';
@@ -155,8 +156,8 @@ BEGIN
     END IF;
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO processing_run_losses (run_id, loss_category_code, quantity)
-        VALUES (v_run2, 'moisture', 7);
+        INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, basis)
+        VALUES (v_run2, 'moisture', 7, 'measured');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 153F6 失败:loss_qty 为空时【不许拦】。空的意思是"没有人记过总量",不是"总量是零" —— 拿 0 去比就是 METAL-1 的 no_reference 那个错。实得「%」', v_msg;

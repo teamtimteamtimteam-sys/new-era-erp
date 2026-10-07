@@ -10,6 +10,8 @@
 --   required_missing:这道工序上必填、启用着、而这一炉没有当前值的字段码(结平时拒,Q11)。
 --   outputs_unweighed:没挂称重的产出腿条数(结平时拒,Q22 —— MES-4a 之后的单按构造是 0)。
 --   tolerance_pct:这道工序【此刻】的容差(为空 = Not yet set);within_tolerance:余数的绝对值不超过 投入 × 容差%(容差为空时 NULL)。
+--   derived_loss_qty(MES-4b,Step 0 Q20):有名字的损耗里【算出来的】那一截(basis = derived 的当前行之和)。算术不变 ——
+--   算出来的就是又一笔有名字的损耗,余数 = 投入 − 产出 − 有名字的损耗(不分 basis);面板单独报出这一截。列只在末尾加。
 --   【一份算术三个读者】close_run_balance(以属主身份读它)· processing_run_balance(带门的外壳,加工单页与清单读)·
 --   operations_now 的 processing_balance_unclosed 与月末那一行(processing_runs_unclosed_balance)。
 --   【属主视图、不带谓词、SELECT 从 authenticated 收回】—— 读者经 processing_run_balance。
@@ -48,11 +50,13 @@ CREATE VIEW public.processing_run_balance_all WITH (security_invoker = off) AS
             ELSE 'open'::text
         END AS balance_state,
     COALESCE(mx.max_loss_id, 0::bigint) AS max_loss_id,
-    COALESCE(mx.max_value_id, 0::bigint) AS max_value_id
+    COALESCE(mx.max_value_id, 0::bigint) AS max_value_id,
+    COALESCE(nl.derived_loss_qty, 0::numeric) AS derived_loss_qty
    FROM processing_runs r
      LEFT JOIN operation_types ot ON ot.code = r.operation_type_code
      LEFT JOIN operation_kinds k ON k.code = ot.kind_code
-     LEFT JOIN LATERAL ( SELECT sum(l.quantity) AS named_loss_qty
+     LEFT JOIN LATERAL ( SELECT sum(l.quantity) AS named_loss_qty,
+            sum(l.quantity) FILTER (WHERE l.basis = 'derived'::text) AS derived_loss_qty
            FROM processing_run_losses l
           WHERE l.run_id = r.id AND NOT (EXISTS ( SELECT 1
                    FROM processing_run_losses x

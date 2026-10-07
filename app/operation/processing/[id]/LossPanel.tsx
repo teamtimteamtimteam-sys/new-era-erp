@@ -18,7 +18,7 @@
 import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { recordRunLoss, correctRunLoss } from './lossActions'
+import { recordRunLoss, correctRunLoss, deriveElectrolyteLoss, rederiveElectrolyteLoss } from './lossActions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -26,21 +26,30 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 export type LossCategory = {
     code: string; name_en: string; name_zh: string
     metal_fate: string; is_true_loss: boolean
+    /** MES-4b(Q18):这一类能不能算出来(只有电解液挥发) */
+    may_be_derived: boolean
 }
+/** MES-4b(Q17 · Q18):这一炉的工序上「Electrolyte evaporates in this step」与份额(V10;空 = 还没给)。null = 状态改变型,无从谈起。 */
+export type ElectrolyteSetting = { applies: boolean; sharePct: number | null; operationCode: string } | null
 // MES-4a:一行 = 一类损耗的【当前】那一条(更正链末端);corrected = 它本身是一次更正(理由在 correction_reason)。
 export type LossRow = {
     id: number; loss_category_code: string; quantity: number; notes: string | null
     corrected: boolean; correction_reason: string | null
+    /** MES-4b(Q16):量出来的(measured)还是算出来的(derived,带当时用的份额) */
+    basis: 'measured' | 'derived'; derived_share_pct: number | null
 }
 
 export default function LossPanel({
-    runId, categories, rows, lossQty, canEdit, locale,
+    runId, categories, rows, lossQty, canEdit, canDerive, electrolyte, locale,
 }: {
     runId: string
     categories: LossCategory[]
     rows: LossRow[]
     lossQty: number | null
     canEdit: boolean
+    /** MES-4b(Q18):算一笔 / 重新算 —— action.processing_aftercare(库里同一个码) */
+    canDerive: boolean
+    electrolyte: ElectrolyteSetting
     locale: string
 }) {
     const t = useTranslations()
@@ -51,6 +60,7 @@ export default function LossPanel({
     const [fixing, setFixing] = useState<number | null>(null)
     const [fixQty, setFixQty] = useState('')
     const [fixReason, setFixReason] = useState('')
+    const [deriveNotes, setDeriveNotes] = useState('')
 
     const label = (c: LossCategory) => (locale === 'zh' ? c.name_zh : c.name_en)
     const byCode = (code: string) => categories.find((c) => c.code === code) ?? null
@@ -92,6 +102,13 @@ export default function LossPanel({
             priority: true,
             render: (r) => r.quantity,
         },
+        // MES-4b(Q16):每一行说出它是量出来的还是算出来的(算出来的带当时用的份额)
+        {
+            key: 'basis', header: t('processing.loss.colBasis'),
+            render: (r) => (r.basis === 'derived'
+                ? t('processing.loss.basisDerived', { share: r.derived_share_pct ?? '' })
+                : t('processing.loss.basisMeasured')),
+        },
         { key: 'notes', header: t('processing.loss.colNotes'), className: 'text-gray-600', render: (r) => r.notes ?? '—' },
         // MES-4a(Q28):每一行一个「更正」—— 没有删除。更正过的那一行把理由印在行上(旧的数在审计记录里)。
         {
@@ -132,6 +149,26 @@ export default function LossPanel({
         })
     }
     const fixingRow = rows.find((r) => r.id === fixing) ?? null
+    // MES-4b(Q18 · Q19):电解液挥发那一类 —— 能不能算、算过没有、份额在不在
+    const derivable = categories.find((c) => c.may_be_derived) ?? null
+    const derivedRecorded = derivable ? rows.some((r) => r.loss_category_code === derivable.code) : false
+    function derive() {
+        setError(null)
+        startTransition(async () => {
+            const r = await deriveElectrolyteLoss(runId, deriveNotes)
+            if (r.error) setError(r.error)
+            else setDeriveNotes('')
+        })
+    }
+    function rederive() {
+        if (fixing === null) return
+        setError(null)
+        startTransition(async () => {
+            const r = await rederiveElectrolyteLoss(runId, fixing, fixReason)
+            if (r.error) setError(r.error)
+            else setFixing(null)
+        })
+    }
     // 已经记过的类别不再出现在"记一类"的下拉里 —— 函数会按名拒(RUN_LOSS_ALREADY_RECORDED);要改它走那一行的「更正」。
     const unrecorded = categories.filter((c) => !rows.some((r) => r.loss_category_code === c.code))
 
@@ -179,10 +216,45 @@ export default function LossPanel({
                         <input type="text" value={fixReason} onChange={(e) => setFixReason(e.target.value)}
                                className={`${CONTROL_INPUT} w-full`} />
                     </div>
-                    <Button type="button" className="text-sm" disabled={isPending} onClick={saveFix}>{t('common.save')}</Button>
+                    <Button type="button" className="text-sm" disabled={isPending} onClick={saveFix}>
+                        {byCode(fixingRow.loss_category_code)?.may_be_derived ? t('processing.loss.saveMeasured') : t('common.save')}
+                    </Button>
+                    {/* MES-4b(Q19):电解液挥发那一行还可以按现在的份额重新算(同一个理由框) */}
+                    {byCode(fixingRow.loss_category_code)?.may_be_derived && electrolyte?.applies && electrolyte.sharePct !== null && canDerive && (
+                        <Button type="button" variant="secondary" className="text-sm" disabled={isPending} onClick={rederive}>
+                            {t('processing.loss.recalculate', { share: electrolyte.sharePct })}
+                        </Button>
+                    )}
                     <Button type="button" variant="secondary" className="text-sm" disabled={isPending} onClick={() => setFixing(null)}>
                         {t('common.cancel')}
                     </Button>
+                </div>
+            )}
+
+            {/* MES-4b(Q17 · Q18):电解液挥发 —— 说明它去了哪(Tim 的工厂事实),以及按份额算一笔的那一格 */}
+            {derivable && (
+                <div className="mt-4 border border-gray-200 rounded p-3 text-sm" data-section="electrolyte-loss">
+                    <p className="mb-2">{t('processing.loss.desc.electrolyte_evaporation')}</p>
+                    {electrolyte === null ? null : !electrolyte.applies ? (
+                        <p className="text-[color:var(--brand-muted-text)]">{t('processing.loss.deriveNotApplicable')}</p>
+                    ) : derivedRecorded ? (
+                        <p className="text-[color:var(--brand-muted-text)]">{t('processing.loss.deriveAlreadyRecorded')}</p>
+                    ) : electrolyte.sharePct === null ? (
+                        <p className="text-amber-700" data-not-set="electrolyte-share">{t('processing.loss.deriveShareUnset')}</p>
+                    ) : (
+                        <PermissionGate code="action.processing_aftercare" allowed={canDerive}>
+                            <div className="flex flex-wrap items-end gap-3">
+                                <div className="flex-1 min-w-[12rem]">
+                                    <label className="block mb-1">{t('processing.loss.colNotes')}</label>
+                                    <input type="text" value={deriveNotes} onChange={(e) => setDeriveNotes(e.target.value)}
+                                           className={`${CONTROL_INPUT} w-full`} />
+                                </div>
+                                <Button type="button" className="text-sm" disabled={isPending} onClick={derive}>
+                                    {t('processing.loss.derive', { share: electrolyte.sharePct })}
+                                </Button>
+                            </div>
+                        </PermissionGate>
+                    )}
                 </div>
             )}
 

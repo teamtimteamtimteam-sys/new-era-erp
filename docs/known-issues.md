@@ -3281,6 +3281,20 @@ quote-driven / 两者都是),三处旧文案(`fxPage.gapsTitle`、`fxPage.gapsMi
 
 ## CODE-WIDTH-4 · 三支取号函数的编号【只装得下四位】,越过就静默截短(IMPORT-1 实测,2026-08-24)
 
+> ★★ **MES-4b(`v1.4.42`,2026-10-08,MES-4b Step 0 Q14,Tim)—— 这一条【一半关闭、一半照旧】。**
+> **关闭的一半:11 支【有缺号、跨年不清零】的取号不再截短** —— 进料批(IN)、产出批(OUT,以及 MES-4b 新加的 12 个产出前缀,它们一开始就是五位)、
+> 加工单(PROC)、盘点(ST)、任务(TASK)、合同(CON)、设备(DEV)、地磅单(WB)、物料、供应商、客户。写法统一成
+> `LPAD(n, GREATEST(4, length(n)), '0')`:低于 10,000 的号与此前**逐字相同**(fixture 100 的形状照旧成立),过了 9,999 就长成五位而不是被截成四位。
+> fixture 254 的 NUM 臂钉住了 10000 → `…-10000`,并注入回旧写法让它红(`db/scripts/2026-10-07-mes4b-fixture-injections.py`)。
+> 导入那道 `IMPORT_CODE_NUMBER_TOO_HIGH`(fixture 124 H)**照旧留着**(Q14)。
+>
+> **照旧的一半:31 支【每年从 1 重来】的取号仍然写着 `LPAD(…, 4, '0')`,仍然会截短** —— 但它们的 9,999 是【每年、每种单据】一个上限,
+> 不是一辈子一个,所以今天离它们远得多。Tim 的裁定是**不动它们,记在这里**(Q14)。31 支(按文件名,`db/functions/`):
+> create_invoice · create_order_invoice · fin_next_payment_code · import_bank_statement · next_assay_code · next_chase_code · next_cod_code · next_container_code · next_credit_note_code · next_employee_code · next_expense_claim_code · next_fixed_asset_code · next_forecast_code · next_leave_request_code · next_medical_claim_code · next_payment_request_code · next_payroll_code · next_pricing_formula_code · next_purchase_order_code · next_quote_code · next_sales_order_code · next_shipment_code · next_statement_code · next_traceability_report_code · next_work_order_code · post_journal_entry · record_expense · record_export_freight_document · record_freight_document · relieve_processing_accruals · reverse_expense。
+> 量法:`grep -rlE "LPAD\([^;]*, *4, *'0'\)" db/functions db/tables` 得 33 个文件,去掉两个只在注释里提到旧写法的
+> (`db/tables/output_batches.sql:118` · `db/functions/master_import_apply.sql:90`)= 31;与 Step 0 的 42 = 11 + 31 对得上。
+> **返回条件(这 31 支):任一种单据一年之内的号接近 9,000。** 修法与上面那 11 支同一句,改的时候一支一支改,fixture 100 的形状照旧成立。
+
 > ★ **MES-3b(2026-10-07,MES-3b Step 0 §12.4)补一句:不止三支。** 进料批与产出批的批号触发器是同一个写法 ——
 > `LPAD(nextval('inbound_code_seq')::TEXT, 4, '0')`(`db/tables/inbound_batches.sql:142`)、`output_code_seq` 同(`output_batches.sql:98`)。
 > 序列跨年不清零,过了 9,999 就截短、撞 UNIQUE、整张收货被拒。线上今天产出到 `OUT-2026-0381`,远着。

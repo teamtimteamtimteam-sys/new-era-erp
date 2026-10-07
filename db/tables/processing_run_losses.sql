@@ -25,6 +25,15 @@ CREATE TABLE public.processing_run_losses (
     id                 bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     corrects_id        bigint UNIQUE REFERENCES public.processing_run_losses (id),
     correction_reason  text,
+    -- ── MES-4b 追加的列(2026-10-07,规格 §3.4;MES-0 Q51;MES-4b Step 0 Q16 · Q18 · Q19,Tim)─────────────
+    -- 这一条是【量出来的】(measured:敲进来的公斤数 —— record_run_loss / correct_run_loss)还是【算出来的】
+    -- (derived:电解液份额 × 这一炉的投入 —— record_derived_electrolyte_loss / rederive_electrolyte_loss)。必填,没有默认值:
+    -- 每一扇写它的门都明说自己是哪一种。MES-4b 之前的行(线上 0 行)在迁移里记成 measured。
+    basis              text NOT NULL CHECK (basis IN ('measured', 'derived')),
+    -- 算出来的那一条用的是【当时】哪一个份额(operation_types.electrolyte_share_pct,V10)—— 抄下来,改份额不重写旧行。
+    derived_share_pct  numeric,
+    CONSTRAINT processing_run_losses_basis_shape
+        CHECK ((basis = 'derived') = (derived_share_pct IS NOT NULL)),
     -- 原始记录必须为正(一条为零的损耗与"没有这一类"分不开);更正可以是 0 —— 那就是撤回
     CONSTRAINT processing_run_losses_quantity_shape
         CHECK (quantity > 0 OR (quantity = 0 AND corrects_id IS NOT NULL)),
@@ -86,3 +95,9 @@ CREATE TRIGGER trg_processing_run_losses_append_only
 
 REVOKE ALL ON public.processing_run_losses FROM authenticated, anon;
 GRANT SELECT ON public.processing_run_losses TO authenticated;
+
+COMMENT ON COLUMN public.processing_run_losses.basis IS
+'MES-4b(规格 §3.4 "marked measured or derived";MES-0 Q51;MES-4b Step 0 Q16):measured = 量出来的(敲进来的公斤数);derived = 算出来的
+(电解液份额 V10 × 这一炉的投入 / 100,derived_share_pct 记下用的份额)。**derived 永远不是余数**(投入 − 产出 − 别的损耗)——
+那会让每一炉按构造结平(AGENTS.md 的兜底桶)。只有 loss_categories.may_be_derived 为真的类别(electrolyte_evaporation)能是 derived。
+更正可以重新算(rederive_electrolyte_loss)或改成量出来的(correct_run_loss),都要理由;结平的算术不分 basis(平衡面板单独报出算出来的那一截)。';

@@ -142,7 +142,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
 
     return (
         <section className="mb-8">
-            <div className="mb-2 flex items-baseline gap-3">
+            {/* MES-4b:flex-wrap —— 两本新字典的标题较长,390px 上把 gatedBy 那一句推出页外(+19px,survey-phone 实测);换行后桌面逐字不变 */}
+            <div className="mb-2 flex flex-wrap items-baseline gap-3">
                 <h2 className="">{t(spec.titleKey)}</h2>
                 {!readOnly && (
                     <Button variant="secondary" className="text-xs" type="button" onClick={openNew} disabled={pending}>
@@ -262,7 +263,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                                 ) : x.kind === 'number' ? (
                                     <label className="block">
                                         <span className={flabel}>{t(x.labelKey)}</span>
-                                        <input type="number" min="1" step="1" inputMode="numeric" value={extras[x.column] ?? ''}
+                                        <input type="number" min={x.decimal ? '0' : '1'} step={x.decimal ? 'any' : '1'}
+                                               inputMode={x.decimal ? 'decimal' : 'numeric'} value={extras[x.column] ?? ''}
                                                placeholder={t('dict.notYetSet')}
                                                onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
                                                className={field} />

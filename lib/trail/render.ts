@@ -698,7 +698,9 @@ function historyDiff(d: TrailDict, h: TrailRow, opts: BuildOptions): Line[] {
 const RUN_TABLES = new Set(['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries',
     'processing_cost_entry_history', 'batch_processing_cost_allocations', 'processing_run_losses',
     // MES-4a(2026-10-07):一炉的值、异常事件、平衡结算、抬头更正 —— 全部只追加
-    'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections'])
+    'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections',
+    // MES-4b(2026-10-07):交叉污染抽检(只追加)—— 在产出批页上也从加工单这一边说("… · PROC-…")
+    'contamination_checks'])
 
 function batchLine(d: TrailDict, r: TrailRow, label: string, qtyCol: string, opts: BuildOptions): Line {
     const img = imgOf(r)
@@ -835,6 +837,19 @@ function describeRun(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block[
         blocks.push({ title, lines: valueLines(d, r, r.new, o2, new Set(['run_id', 'explanation', 'within_tolerance'])),
                       reason: typed(r.new?.['explanation']), key: true, weight: 80 })
     }
+    // MES-4b(Q21 · Q23):交叉污染抽检 —— 抽了 / 这一班没抽(理由)/ 更正(新的一行指着旧的,理由在理由那一格)。标题后面挂流的名字。
+    for (const r of by('contamination_checks')) {
+        if (r.op !== 'INSERT') { blocks.push(describeGeneric(d, r, o2)); continue }
+        const corrected = str(r, 'corrects_id', 'new') !== null
+        const notSampled = str(r, 'kind', 'new') === 'not_sampled'
+        const st = str(r, 'stream_code')
+        const part = st ? formatValue(d, 'contamination_checks', 'stream_code', st, imgOf(r), r.refs, 'INSERT', o2) : null
+        const key: TrailTextKey = corrected ? 'run.contaminationCorrected' : notSampled ? 'run.contaminationNotSampled' : 'run.contaminationRecorded'
+        blocks.push({ title: tx(d, key), part,
+                      lines: valueLines(d, r, r.new, o2, new Set(['run_id', 'stream_code', 'kind', 'correction_reason', 'not_sampled_reason'])),
+                      reason: corrected ? typed(r.new?.['correction_reason']) : notSampled ? typed(r.new?.['not_sampled_reason']) : null,
+                      key: true, weight: 55 })
+    }
 
     // ② 成本条目与它的修改史(B18–B22):同一笔里两边都在时只说一次
     const costs = by('processing_cost_entries')
@@ -966,7 +981,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'pricing_term_commitments', 'po_issues', 'contract_document_terms', 'approval_log', 'purchase_order_history'],
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
         'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log',
-        'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections'],
+        'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections', 'contamination_checks'],
     role: ['roles', 'role_permissions', 'user_roles'],
     inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
@@ -978,7 +993,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
         'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements', 'processing_cost_entry_history',
-        'work_order_history', 'sales_order_history', 'journal_entries'],
+        'work_order_history', 'sales_order_history', 'journal_entries', 'contamination_checks'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
@@ -1087,6 +1102,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions'],
     dictionary_processing_event_types: ['processing_event_types'],
     dictionary_shifts: ['shifts'],
+    // MES-4b(2026-10-07):两本新字典(电芯结构 · 交叉污染流)
+    dictionary_cell_constructions: ['cell_constructions'],
+    dictionary_contamination_streams: ['contamination_streams'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
@@ -1125,6 +1143,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     weighbridge_ticket: 'ticket',
     // MES-4a
     operation_type: 'optype', dictionary_processing_event_types: 'dict', dictionary_shifts: 'dict',
+    // MES-4b
+    dictionary_cell_constructions: 'dict', dictionary_contamination_streams: 'dict',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -4021,7 +4041,9 @@ const HR1_TABLES = new Set(['employees', 'employment_history', 'salary_change_re
 const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kinds', 'inbound_safety_states', 'laboratories', 'inbound_source_reasons',
     'nea_waste_categories', 'dangerous_goods_codes', 'label_templates',
     // MES-4a(Q5 · Q15):班次(时刻是 time 列,说成 HH:MM)· 异常事件的种类
-    'shifts', 'processing_event_types'])
+    'shifts', 'processing_event_types',
+    // MES-4b(Q3 · Q21):电芯结构 · 交叉污染流(警戒线 V11 是一个百分数)
+    'cell_constructions', 'contamination_streams'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {

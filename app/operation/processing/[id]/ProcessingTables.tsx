@@ -133,6 +133,8 @@ export type InputLegRow = {
     reprocessed: boolean
     material: string
     qtyText: string
+    /** MES-4b(Q4):这一批的电芯结构(名字或"没记");null = 这一种形态不装电芯,不说 */
+    construction: string | null
 }
 
 export function InputsTable({ rows }: { rows: readonly InputLegRow[] }) {
@@ -162,6 +164,7 @@ export function InputsTable({ rows }: { rows: readonly InputLegRow[] }) {
             ),
         },
         { key: 'material', header: t('processing.detail.colMaterial'), render: (r) => r.material },
+        { key: 'construction', header: t('cellConstruction.label'), render: (r) => r.construction ?? '—' },
         {
             key: 'qty',
             header: t('processing.detail.colConsumedQty'),

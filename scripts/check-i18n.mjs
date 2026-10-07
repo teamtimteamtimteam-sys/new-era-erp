@@ -795,6 +795,8 @@ const MANIFEST = {
     'processing.opType.valueType.': { kind: 'enum', values: () => sqlCheckIn('db/tables/operation_type_fields.sql', 'value_type') },
     'processing.opType.errors.':    { kind: 'enum', values: () => tsArray('app/operation/operation-types/actions.ts', 'CONSTRAINTS') },
     'processing.rec.balanceState.':     { kind: 'enum', values: () => sqlCaseAs('db/views/processing_run_balance_all.sql', 'balance_state') },
+    // MES-4b(2026-10-07):交叉污染一格的状态(checked · not_sampled · missing)—— 真源是基视图那一句 CASE
+    'contamination.state.':             { kind: 'enum', values: () => sqlCaseAs('db/views/contamination_shift_status_all.sql', 'check_state') },
     'processing.rec.balanceStateHint.': { kind: 'enum', values: () => sqlCaseAs('db/views/processing_run_balance_all.sql', 'balance_state') },
     'processing.rec.source.':       { kind: 'enum', values: () => sqlCheckIn('db/tables/processing_run_values.sql', 'source') },
     'processing.rec.headerField.':  { kind: 'enum', values: () => sqlCheckIn('db/tables/processing_run_corrections.sql', 'field') },

@@ -14,6 +14,20 @@
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
 CREATE SEQUENCE public.output_code_seq;
+-- MES-4b(2026-10-07,MES-0 Q54;MES-4b Step 0 Q12 · Q13):每一种产品前缀一条序列(document_types.sequence_name 登记它)。
+--   有洞、不按年重置,号从第一个起就是五位(generate_output_code)。OUT 仍用 output_code_seq。
+CREATE SEQUENCE public.output_cpw_code_seq;
+CREATE SEQUENCE public.output_apw_code_seq;
+CREATE SEQUENCE public.output_cuf_code_seq;
+CREATE SEQUENCE public.output_alf_code_seq;
+CREATE SEQUENCE public.output_sep_code_seq;
+CREATE SEQUENCE public.output_dst_code_seq;
+CREATE SEQUENCE public.output_cel_code_seq;
+CREATE SEQUENCE public.output_csg_code_seq;
+CREATE SEQUENCE public.output_str_code_seq;
+CREATE SEQUENCE public.output_hbb_code_seq;
+CREATE SEQUENCE public.output_cts_code_seq;
+CREATE SEQUENCE public.output_ans_code_seq;
 
 CREATE TABLE public.output_batches (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,7 +64,14 @@ CREATE TABLE public.output_batches (
     -- 【在制品:这一批在等哪一道工序】可空。**不建 WIP 表** —— 在制品那一行
     -- 就是本表这一行(PROC-WIRE-1A 立的),再存一份就会把同一批料数两遍。
     awaiting_operation_type_code text
-                  REFERENCES public.operation_types (code)
+                  REFERENCES public.operation_types (code),
+    -- ── MES-4b 追加的列(2026-10-07,规格 §3.4;MES-4b Step 0 Q4–Q7,Tim)─────────────────────────
+    -- 这一批电芯是卷绕还是叠片(cell_constructions)。只对仍装着电芯的形态成立(material_forms.implies_dismantling);
+    -- 别的形态填了按名拒(CELL_CONSTRUCTION_NOT_APPLICABLE)。为空 = 没记。提交时从投料继承(每一批投料都同一个值时);
+    -- 之后在批次页上改,直到这一批喂过一张已提交的加工单(CELL_CONSTRUCTION_LOCKED)。守卫:guard_batch_cell_construction。
+    -- 本表【不是】遮蔽表(没有列级授权、没有 _masked 伴生 —— MES-4b Step 0 §1.1 实测),所以只有这一列。
+    cell_construction_code text
+                  REFERENCES public.cell_constructions (code)
 );
 
 
@@ -90,12 +111,30 @@ COMMENT ON COLUMN public.output_batches.purpose_code IS
 而且消耗路(commit_processing_run)本来就只扣 remaining_qty。';
 
 
+-- MES-4b(2026-10-07,MES-0 Q54 · Q57;MES-4b Step 0 Q12–Q14,Tim):前缀与序列【从这一批物料的形态选】——
+--   materials.form_code → material_forms.output_document_key → document_types(前缀经 document_type_prefix,序列是登记的 sequence_name)。
+--   没有形态、或形态没映射 → output_batch(OUT,output_code_seq)。前缀字面量一个都不写在这里(fixture 100 第 6 臂)。
+--   号的宽度:OUT 照旧补到 4 位,新前缀补到 5 位 —— 两者都【不截断】:超过 9,999(或 99,999)就照实长出去
+--   (此前 LPAD(…, 4, '0') 会把 10000 截成 1000,CODE-WIDTH-4)。低于 10,000 的号与此前逐字相同。
 CREATE OR REPLACE FUNCTION public.generate_output_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
+DECLARE
+    v_key    text;
+    v_prefix text;
+    v_seq    text;
+    v_n      text;
+    v_width  integer;
 BEGIN
     IF NEW.code IS NULL OR NEW.code = '' THEN
-        NEW.code := document_type_prefix('output_batch') || '-' || EXTRACT(YEAR FROM NOW())::TEXT || '-' ||
-                    LPAD(nextval('output_code_seq')::TEXT, 4, '0');
+        SELECT f.output_document_key INTO v_key
+          FROM materials m JOIN material_forms f ON f.code = m.form_code
+         WHERE m.id = NEW.material_id;
+        v_key := COALESCE(v_key, 'output_batch');
+        v_prefix := document_type_prefix(v_key);
+        SELECT d.sequence_name INTO v_seq FROM document_types d WHERE d.key = v_key;
+        v_width := CASE WHEN v_key = 'output_batch' THEN 4 ELSE 5 END;
+        v_n := nextval(('public.' || v_seq)::regclass)::text;
+        NEW.code := v_prefix || '-' || EXTRACT(YEAR FROM NOW())::TEXT || '-' || LPAD(v_n, GREATEST(v_width, length(v_n)), '0');
     END IF;
     RETURN NEW;
 END;
@@ -104,6 +143,12 @@ $function$;
 CREATE TRIGGER trg_generate_output_code
     BEFORE INSERT ON public.output_batches
     FOR EACH ROW EXECUTE FUNCTION generate_output_code();
+
+-- MES-4b(Q4 · Q7):电芯结构只对装着电芯的形态成立;喂过一张已提交的加工单之后不再改(守卫函数在 db/functions/)。
+--   名字排在 trg_generate_output_code 之后(BEFORE 触发器按名字先后跑)—— 拒绝里要报出批号。
+CREATE TRIGGER trg_output_batches_cell_construction
+    BEFORE INSERT OR UPDATE OF cell_construction_code, material_id ON public.output_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_cell_construction();
 
 -- 库存台账体系(函数见 db/functions/inventory_ledger_triggers.sql)
 CREATE TRIGGER trg_output_batches_emit_receipt
@@ -204,3 +249,9 @@ CREATE TRIGGER guard_output_date_not_cleared
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.output_batches
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.output.edit');
+
+COMMENT ON COLUMN public.output_batches.cell_construction_code IS
+'MES-4b(规格 §3.4;MES-4b Step 0 Q4–Q7):这一批电芯是卷绕还是叠片(cell_constructions)。为空 = 没记。只对仍装着电芯的形态成立
+(material_forms.implies_dismantling;没有形态的物料不拦 —— 不知道不等于不适用),别的形态 CELL_CONSTRUCTION_NOT_APPLICABLE。
+提交加工单时从投料继承(每一批投料都是同一个值;否则留空,到批次页上补)。喂过一张已提交、没回滚的加工单之后不再改
+(CELL_CONSTRUCTION_LOCKED|<加工单>)—— 改它就是回滚那一张。极片分离的投料必须带一个确定的值(INPUT_CELL_CONSTRUCTION_REQUIRED)。';

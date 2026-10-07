@@ -247,6 +247,12 @@ export const REMINDERS = [
     { itemType: 'processing_balance_unclosed', permission: 'module.processing.view', href: '/operation/processing',
       itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
 
+    // ══ MES-4b(2026-10-07,规格 §3.4;MES-0 Q52;MES-4b Step 0 Q24,Tim):一个班、一条流没有交叉污染抽检 ═══════════════════
+    // 【contamination_check_missing】那一天那一班有一张 MES-4a 起记的单产出了这条流的极片,而同一天同一班没有一条当前的抽检
+    //   (抽了或"没抽 + 理由"都算)。一格一块,门牌指那一格最早的那一炉(抽检的面板在那一页);subject 是流。总表在 /operation/contamination。
+    { itemType: 'contamination_check_missing', permission: 'module.processing.view', href: '/operation/contamination',
+      itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

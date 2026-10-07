@@ -427,6 +427,25 @@
 >    ★ **Tim 的两条裁定(MES-4a close-out 裁定,2026-10-07)**:a —— 未提交 / 未分摊的两个开场数补进 `docs/handbacks/MES-4a.md` §0(10 张已提交、其中 8 未分摊;4 张已冲销、其中 3 未分摊;15:14 量、20:58 重读一致);f —— `emptyOk` 照现在的样子先收下,交回里的描述改正;收紧与重跑注入两件并入 MES-4b(见下面「⬜ ★ MES 组」第 6 行)。
 >    ☞ **只作记录(不是缺陷)**:线上今天【只有一批】在库的料过得了加工单的投料检查 —— `ZZ-PROCCOST1-DEMO`(100 kg,已放电并核实);另外 11 批坐在【没有被标成可投料】(`materials.may_be_processed` 为空)的物料上。这在 MES-4a 之前就是这样,是配置,不是缺陷(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 b)。
 >
+> 41. **✅ 电芯构造、六种新产品与编号、损耗的来由与电解液、交叉污染抽检 —— MES-4b(`v1.4.42`,2026-10-08)。** MES 组的第六刀(Tim 2026-10-07:
+>    Step 0 的 Q1–Q34 按 `docs/surveys/MES-4b/STEP0-HANDBACK.md` 收下,两处改动:Q9 六种形态 —— 集尘【暂不可售】,其余可售,负极粉可售;
+>    Q17 —— `operation_types.electrolyte_loss_applies` 标作 "Electrolyte evaporates in this step",在工序页上由 `module.processing.edit` 勾,引导一律不勾,Tim 自己勾)。
+>    发布那一行、开场读数、逐角色读数表、Q32 逐格结果、页面清单与未经询问的决定在 `docs/handbacks/MES-4b.md`。
+>    迁移 `db/migrations/2026-10-07-mes4b-fields-and-products.sql`;新 fixture 254(CC · FORM · NUM · LOSS · CONT · DUST · PV,37 格注入全红在点名的那一臂)。
+>    三张新表(电芯构造字典 · 交叉污染流 · 抽检,只追加);六张表加列;12 个产出前缀(CPW · APW · CUF · ALF · SEP · DST · CEL · CSG · STR · HBB · CTS · ANS,五位、有缺号、不按年清零);
+>    11 支有缺号的取号不再截短(`CODE-WIDTH-4` 关一半,另一半 31 支按年清零的照旧,见 `docs/known-issues.md`);新页 `/operation/contamination`;提醒臂 `contamination_check_missing`;V10 · V11。
+>    ★ **两件并入(MES-4a close-out 裁定)都关闭**:① 冒烟对 `/operation/operation-types/[code]` 的审计记录断言收紧(Q31)—— 默认挑一道【有变更记录】的工序,
+>    它的审计记录为空就红(`SMOKE_TRAIL_BLANK=1` 注入实测红),没被改过的工序(`SMOKE_OPTYPE_CODE=…`)照旧可以是空的;
+>    ② MES-4a 的故障注入对最终的 MES-4b 构建重跑(Q32):**71 格,0 格错**,其中点名的四件 —— 改码之后的 `correct_run_header`(新加一格:拿掉
+>    `RUN_HEADER_PREDATES_RECORD`)、fixture 253 本身、`trail_refs`(新加一格)、`trail_ref_label`(新加一格)—— 每一格红在它所属的那一臂(逐格见交回)。
+>    ★ **破窗**:起点 **2026-10-07 23:58:59 CST**(`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,下一次 close-out 补记)。
+>    窗口里坏掉的(**推导**,没有在线上量):旧代码自己的写调用一条都不会被拒(收货函数的新参数有默认值;`record_run_loss` / `correct_run_loss` 签名没变、改写 `measured`;提交的新拒绝只在极片分离 / 电极线遇到构造未定的投入时触发,线上没有这样的单);旧首页没有 `contamination_check_missing` 的句子 —— 有一行时会印出键名,线上一行都没有;读的一切照常(新列都是追加)。交回 §5.4。
+>    ★ **只作记录 —— 等 Tim 的现场事实(不是一刀)**:
+>    ① **哪几道工序的设备会放出电解液**(决定哪几道该勾 "Electrolyte evaporates in this step");
+>    ② **被抽走的电解液会不会凝成液体被装桶** —— 若会,之后某一刀把它当一条危险废物产出来称(那时它就不只是一条命名的损耗);
+>    ③ **风管上有没有流量计或称重**。
+>    **下一刀 MES-5a · Discharge and energy**(见下面「⬜ ★ MES 组」)。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
@@ -6927,7 +6946,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);**MES-4b 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);**MES-5a 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -6943,8 +6962,8 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 3 | ✅ **MES-3a · Storage safety**(2026-10-07,`v1.4.39`,`docs/handbacks/MES-3a.md`;~~★ 下一刀;~~~~★ **Step 0 等 Tim 对 MES-2 close-out 核对项 a 的裁定**~~ ★ **Tim 已裁(2026-10-06):a 与校准开关两条都在本刀里建;Step 0 交回 `docs/surveys/MES-3a/STEP0-HANDBACK.md`,等 Tim 答 Q1–Q33**;★ 实测:收货定价码线上 admin · finance 都持,chooer@ 提的申请 tim@ 批得动 —— 定价那一条并入【不用改授权】(Step 0 §9),★ **Tim 的并入(MES-2 close-out + MES-3a Step 0 委托书,2026-10-06):收货定价码**按 `docs/role-matrix.md` §8(Tim 2026-09-23:财务定价、CFO 批)在本刀授出 —— 委托书转述:线上只有 admin@ 持它,而 admin@ 与 tim@ 是同一个人,所以每一张定价申请都按自批被拒(`RECEIPT_PRICE_NO_OTHER_DECIDER`,`docs/handbacks/MES-2.md` §6.1 实测过拒绝那一句;「只有 admin@ 持它」那半句**本次 close-out 没有重量**,而 `docs/role-matrix.md:199` 写的持有人是 finance · admin —— 两者对不上,正是 Step 0 要先量的);哪个码、今天谁持、该谁持、admin 留什么,由 Step 0 的 grilling 核实;矩阵说的若不是「财务定价、CFO 批」,报告,不改) | 4(按执照的库存上限)· 5(滞留预警)· 6(隔离) | 5 h 45 m – 10 h 45 m |
   | 4 | ✅ **MES-3b · Labels and scanning**(2026-10-07,`v1.4.40`,`docs/handbacks/MES-3b.md`;~~★ 下一刀~~)| 7(标签)· 8(扫码) | 6 h 00 m – 10 h 15 m |
   | 5 | ✅ **MES-4a · Processing record**(2026-10-07,`v1.4.41`,`docs/handbacks/MES-4a.md`;~~★ 下一刀~~)| 11(参数与配方)· 13(计数)· 规格书 §4.1(平衡与容差;机器在挂了机器的工序上变成必填 —— 收紧 U1-B 的可选选择器,Q41) | 8 h 40 m – 15 h 30 m |
-  | 6 | ⬜ **MES-4b · New fields and products**(★ 下一刀;★ **Tim 的并入(MES-4a close-out 裁定,2026-10-07),不另起一刀**:① 冒烟对 `/operation/operation-types/[code]` 审计记录的断言收紧 —— 一道【有变更记录】的工序显示空审计记录时要红,一道没被改过的工序照旧可以是空的(今天的 `emptyOk: true` 对整条路由无条件放过,`scripts/smoke-routes.mjs:956-957`);② 对 16:11 那次注入之后改过的东西重跑 fixture 253 的故障注入(改码之后的 `correct_run_header`、fixture 253 本身、`trail_refs`、`trail_ref_label`),确认每一格仍然红在它所属的那一臂(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 c · f))| 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
-  | 7 | ⬜ **MES-5a · Discharge and energy** | 2(逐模组放电)· 3(电表与按用途的电费) | 7 h 10 m – 12 h 30 m |
+  | 6 | ✅ **MES-4b · New fields and products**(★ 已关闭,`v1.4.42`,2026-10-08,上面第 41 条;两件并入都关闭;★ **Tim 的并入(MES-4a close-out 裁定,2026-10-07),不另起一刀**:① 冒烟对 `/operation/operation-types/[code]` 审计记录的断言收紧 —— 一道【有变更记录】的工序显示空审计记录时要红,一道没被改过的工序照旧可以是空的(今天的 `emptyOk: true` 对整条路由无条件放过,`scripts/smoke-routes.mjs:956-957`);② 对 16:11 那次注入之后改过的东西重跑 fixture 253 的故障注入(改码之后的 `correct_run_header`、fixture 253 本身、`trail_refs`、`trail_ref_label`),确认每一格仍然红在它所属的那一臂(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 c · f))| 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
+  | 7 | ⬜ **MES-5a · Discharge and energy**(★ 下一刀) | 2(逐模组放电)· 3(电表与按用途的电费) | 7 h 10 m – 12 h 30 m |
   | 8 | ⬜ **MES-5b · Balance, yield, blending** | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
   | 9 | ⬜ **MES-6a · Samples, arbitration, F/Cl** | 15(样品)· 16(仲裁)· 19(氟与氯) | 5 h 15 m – 8 h 45 m |
   | 10 | ⬜ **MES-6b · NCR, quality hold, CoA** | 17(不合格报告)· 18(分析证书) | 6 h 25 m – 11 h 30 m |

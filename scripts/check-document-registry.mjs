@@ -120,8 +120,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // process_recipe_versions · processing_run_values · processing_event_types · processing_run_events · processing_run_closures ·
 // processing_run_corrections)。两张带 code 列:process_recipes(配方代号,由人敲,不铸号)与 processing_event_types(种类目录),
 // 都登记进 document_type_exceptions,所以 EXPECTED_CODE_TABLES 82 → 84。
-const EXPECTED_TABLES = 272   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 84
+// MES-4b(2026-10-07):272 → 275。三张新表(cell_constructions · contamination_streams · contamination_checks)。
+//   两本字典带 code 列(结构代号 · 流代号),都登记进 document_type_exceptions,所以 EXPECTED_CODE_TABLES 84 → 86。
+const EXPECTED_TABLES = 275   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 86
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

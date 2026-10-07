@@ -42,6 +42,7 @@ const DICT_SUBJECT: Record<string, TrailSubject> = {
     nea_waste_categories: 'dictionary_nea_waste_categories',
     dangerous_goods_codes: 'dictionary_dangerous_goods_codes', label_templates: 'dictionary_label_templates',
     shifts: 'dictionary_shifts', processing_event_types: 'dictionary_processing_event_types',
+    cell_constructions: 'dictionary_cell_constructions', contamination_streams: 'dictionary_contamination_streams',
 }
 
 export default async function DictionariesPage({

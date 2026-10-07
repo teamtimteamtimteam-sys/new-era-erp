@@ -10,6 +10,10 @@ import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
+import CellConstructionPanel from '@/app/components/batch/CellConstructionPanel'
+import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
+import ContaminationChecksList from '@/app/operation/contamination/ContaminationChecksList'
+import { CHECK_ROW_COLUMNS, labelsFor, toCheckListRows } from '@/app/operation/contamination/checkRows'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import EndedBanner, { EndedFieldset } from '@/app/components/trail/EndedBanner'
 import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
@@ -201,6 +205,16 @@ export default async function EditOutputPage({
     }
 
     const batch = batchRes.data
+
+    // MES-4b(Q4 · Q7 · Q22 · Q25):电芯结构(只对装电芯的形态)与这一批被抽过的交叉污染检查
+    const [cellConstruction, canSetCellConstruction, checkRes, checkLabels, canOpenRuns] = await Promise.all([
+        loadCellConstructionData(supabase),
+        (async () => (await can('module.output.edit')) || (await can('action.processing_commit')))(),
+        supabase.from('contamination_check_rows').select(CHECK_ROW_COLUMNS).eq('output_batch_id', id).eq('is_current', true).order('id'),
+        labelsFor(supabase, locale),
+        can('module.processing.view'),
+    ])
+    const checkRows = toCheckListRows(mustRows(checkRes, 'contamination_check_rows'), checkLabels, locale, canOpenRuns)
 
     // 本批在进行中盘点里的已录实点数(有则预填横幅)
     const openStocktake = stocktakeRes.data?.[0] ?? null
@@ -477,6 +491,23 @@ export default async function EditOutputPage({
                 canEdit={canEditSafety}
                 locale={locale}
             />
+            {/* MES-4b(Q4–Q7):电芯结构 —— 只对装电芯的形态摆出来(已开壳电芯、散电芯……);喂过一张已提交的加工单之后锁住(库里判) */}
+            {cellConstruction.carries[batch.material_id] !== false && (
+                <div className="mt-6">
+                    <CellConstructionPanel kind="output" batchId={batch.id} current={batch.cell_construction_code ?? null}
+                        options={cellConstruction.options} canEdit={canSetCellConstruction} gateCode="module.output.edit"
+                        required locale={locale} />
+                </div>
+            )}
+
+            {/* MES-4b(Q22 · Q25):这一批极片被抽过的交叉污染检查(买方关心的质量事实;加工或产出查看码都读得到) */}
+            {checkRows.length > 0 && (
+                <section className="mt-6" data-section="contamination-checks">
+                    <h2 className="mb-2">{t('contamination.batchTitle')}</h2>
+                    <ContaminationChecksList rows={checkRows} emptyKey="contamination.emptyBatch" />
+                </section>
+            )}
+
             {/* MES-3a(Q16 · Q20 · Q22):隔离横幅 · 每一条开着的状态待了多久 · 结束了的那几条;进厂那一刻库存上限怎么判的 */}
             <div className="mt-4">
                 {/* MES-3b(Q7):这一批的标签印过几次、最近一次补印与理由;旁边是打印页 */}

@@ -67,6 +67,17 @@ BEGIN
 END;
 $f$;
 
+-- MES-4b(2026-10-07,MES-4b Step 0 Q5):极片分离的投料必须带一个确定的电芯结构 —— 这一批是卷绕的(直写,以 postgres 跑)
+CREATE FUNCTION pg_temp.f253_ib_wound(p_code text, p_mat uuid, p_sup uuid, p_qty numeric, p_state text, p_d date) RETURNS uuid
+LANGUAGE plpgsql AS $f$
+DECLARE v uuid;
+BEGIN
+    v := pg_temp.f253_ib(p_code, p_mat, p_sup, p_qty, p_state, p_d);
+    UPDATE inbound_batches SET cell_construction_code = 'wound' WHERE id = v;
+    RETURN v;
+END;
+$f$;
+
 DO $$
 DECLARE
     u_all   uuid := gen_random_uuid();   -- 全部码
@@ -315,7 +326,7 @@ BEGIN
     v_msg := pg_temp.f253_do(format($q$UPDATE processing_run_losses SET quantity = 1 WHERE id = %s$q$, v_id));
     IF v_msg <> 'APPEND_ONLY|processing_run_losses|update' THEN RAISE EXCEPTION 'FIXTURE 253 LOSS: losses are append-only even for the owner, got %', v_msg; END IF;
     PERFORM pg_temp.f253_as(u_edit);
-    v_msg := pg_temp.f253_do(format($q$INSERT INTO processing_run_losses (run_id, loss_category_code, quantity) VALUES (%L, 'dust_spill', 1)$q$, run), true);
+    v_msg := pg_temp.f253_do(format($q$INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, basis) VALUES (%L, 'dust_spill', 1, 'measured')$q$, run), true);
     PERFORM pg_temp.f253_as(u_all);
     IF v_msg NOT LIKE 'permission denied for table processing_run_losses%' THEN RAISE EXCEPTION 'FIXTURE 253 LOSS: no direct write path should be left, got %', v_msg; END IF;
 
@@ -461,7 +472,7 @@ BEGIN
         pg_temp.f253_ib('ZZ253-IB4', m_cell, v_sup, 100, 'damaged_deformed', d), m_dec, t0, t1));
     IF v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_%' THEN RAISE EXCEPTION 'FIXTURE 253 NEWOPS: casing removal must not take damaged cells, got %', v_msg; END IF;
     v_msg := pg_temp.f253_do(format($q$SELECT commit_processing_run(%L::date, 'f253', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', %L, 'quantity_consumed', 50)), jsonb_build_array(jsonb_build_object('material_id', %L, 'weight_kg', 20)), 'weight', NULL, NULL, 'electrode_separation', p_started_at => %L::timestamptz, p_ended_at => %L::timestamptz, p_shift_code => 'day')$q$, d,
-        pg_temp.f253_ib('ZZ253-IB5', m_dec, v_sup, 100, 'discharged_verified', d), m_out, t0, t1));
+        pg_temp.f253_ib_wound('ZZ253-IB5', m_dec, v_sup, 100, 'discharged_verified', d), m_out, t0, t1));
     IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 253 NEWOPS: electrode separation should take discharged de-cased cells, got %', v_msg; END IF;
     v_msg := pg_temp.f253_do(format($q$SELECT commit_processing_run(%L::date, 'f253', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', %L, 'quantity_consumed', 50)), jsonb_build_array(jsonb_build_object('material_id', %L, 'weight_kg', 20)), 'weight', NULL, NULL, 'electrode_separation', p_started_at => %L::timestamptz, p_ended_at => %L::timestamptz, p_shift_code => 'day')$q$, d,
         pg_temp.f253_ib('ZZ253-IB6', m_dec, v_sup, 100, 'charged_not_discharged', d), m_out, t0, t1));
@@ -582,6 +593,16 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM record_trail('operation_type', 'manual_disassembly', 200) t WHERE t.table_name = 'operation_type_fields')
        OR NOT EXISTS (SELECT 1 FROM record_trail('operation_type', 'manual_disassembly', 200) t WHERE t.table_name = 'process_recipe_versions') THEN
         RAISE EXCEPTION 'FIXTURE 253 TRAIL: an operation''s trail should carry its fields and its recipe versions'; END IF;
+    -- MES-4b(2026-10-07,Tim 的 MES-4a close-out 裁定 c · MES-4b Step 0 Q32):两支在 MES-4a 注入之后才改过、而此前没有一格注入够得着的函数 ——
+    --   trail_refs 把一个值的字段解析成字段名(两列外键);trail_ref_label 把一个配方版本说成"配方代号 v版本号"。各自钉一句,各自有注入。
+    IF NOT EXISTS (SELECT 1 FROM record_trail('processing_run', run::text, 200) t
+                    WHERE t.table_name = 'processing_run_values'
+                      AND t.refs -> 'field_code' -> (COALESCE(t.new, t.old) ->> 'field_code') ->> 'label' IS NOT NULL
+                      AND (t.refs -> 'field_code' -> (COALESCE(t.new, t.old) ->> 'field_code') ->> 'gone')::boolean IS FALSE) THEN
+        RAISE EXCEPTION 'FIXTURE 253 TRAIL: a recorded value should name its field in the trail (trail_refs)'; END IF;
+    IF (trail_ref_label('process_recipe_versions', 'id', rv1::text) ->> 'label') IS DISTINCT FROM 'ZZ253-STD v1' THEN
+        RAISE EXCEPTION 'FIXTURE 253 TRAIL: a recipe version should be labelled "ZZ253-STD v1" (trail_ref_label), got %',
+            trail_ref_label('process_recipe_versions', 'id', rv1::text) ->> 'label'; END IF;
 
     RAISE NOTICE 'FIXTURE 253 全部通过:HDR · MACH · FIELD · EVENT · RECIPE · LOSS · CLOSE · WEIGH · DISCH · NEWOPS · CORR · POL · MONTH · COST · PV · SHIFT · TRAIL';
 END;

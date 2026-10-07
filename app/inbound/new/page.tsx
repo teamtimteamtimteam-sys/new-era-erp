@@ -8,6 +8,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
+import { loadCellConstructionData } from '../cellConstructionQuery'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { loadShareableTickets } from '../ticketQuery'
 import { getBaseCurrency, getCurrencyCodes } from '@/lib/currency'
@@ -106,13 +107,15 @@ export default async function NewInboundPage({
 
     // PROC-2c:门口就问的两条轴。字典与"哪些物料说得上它们"都由共用的一支取,
     // 三个页面(批次页 + 建批次两条路)读的是同一份实现。
-    const [condition, materialAxes, sourceReasons, tickets] = await Promise.all([
+    const [condition, materialAxes, sourceReasons, tickets, cellConstruction] = await Promise.all([
         loadIntakeConditionOptions(supabase),
         loadMaterialAxes(supabase),
         // RECV-SOURCE-1:无单收货的理由字典
         loadSourceReasons(supabase, locale),
         // MES-2(Q19):可以挂的进厂地磅单
         loadShareableTickets(supabase),
+        // MES-4b(Q4):电芯结构 —— 可选;只对装电芯的形态摆出来
+        loadCellConstructionData(supabase),
     ])
     // INB-PAY-1:单价的币种选择器 —— 本位币是数据(currencies.is_base),不是字面量
     // ROLE-1 Batch 4a:价格框归财务(Q4);判据在服务端,表单只画
@@ -131,6 +134,7 @@ export default async function NewInboundPage({
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}
+            cellConstruction={cellConstruction}
             locations={locationChoices}
             materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
             suppliers={mustRows(suppliersRes) as unknown as { id: string; code: string; legal_name: string }[]}

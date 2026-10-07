@@ -1,10 +1,11 @@
 // app/operation/processing/new/page.tsx
 // 服务端组件:抓取可选投料批次 + 物料列表,渲染客户端表单
+import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import { createClient } from '@/lib/supabase/server'
 import NewProcessingForm, {
     type InboundBatchOption, type OperationOption, type FieldOption, type ShiftOption, type WeighingOption, type DeviceOption,
 } from './NewProcessingForm'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -30,7 +31,7 @@ export default async function NewProcessingPage({
     const [batchesRes, outputBatchesRes, materialsRes, settingsRes, workOrdersRes] = await Promise.all([
         supabase
             .from('inbound_batches')
-            .select('id, code, remaining_qty, unit, material_id')
+            .select('id, code, remaining_qty, unit, material_id, cell_construction_code')
             .is('deleted_at', null)
             .gt('remaining_qty', 0) // 只看还有库存的批次
             .order('code'),
@@ -38,7 +39,7 @@ export default async function NewProcessingPage({
         // (ROLE-1 Batch 3b:两处批次都不再嵌 materials ( name ),名字在下面从 material_lookup 映射)
         supabase
             .from('output_batches')
-            .select('id, code, remaining_qty, unit, material_id')
+            .select('id, code, remaining_qty, unit, material_id, cell_construction_code')
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
             .order('code'),
@@ -92,7 +93,7 @@ export default async function NewProcessingPage({
     // 【嵌进来读,不在这里写死】加一道工序或者改它收什么,是加一行数据。
     const operationsRes = await supabase
         .from('operation_types')
-        .select('code, name_en, name_zh, operation_kinds ( produces_outputs ), ' +
+        .select('code, name_en, name_zh, requires_cell_construction, operation_kinds ( produces_outputs ), ' +
                 'operation_type_input_forms ( material_forms ( code, name_en, name_zh ) )')
         .eq('is_active', true)
         .order('sort_order')
@@ -125,7 +126,7 @@ export default async function NewProcessingPage({
             param_values: (v.param_values ?? {}) as Record<string, unknown>,
         })))
     const operations: OperationOption[] = (mustRows(operationsRes, 'operation_types') as unknown as {
-        code: string; name_en: string; name_zh: string
+        code: string; name_en: string; name_zh: string; requires_cell_construction: boolean
         operation_kinds: { produces_outputs: boolean } | null
         operation_type_input_forms: { material_forms: { code: string; name_en: string; name_zh: string } | null }[]
     }[]).map((o) => ({
@@ -135,6 +136,7 @@ export default async function NewProcessingPage({
         // 【读不到种类就当它产出】与服务端的默认方向一致(没有工序类型 = 今天的行为),
         // 而真正的权威是 commit_processing_run,不是这一屏。
         produces_outputs: o.operation_kinds?.produces_outputs ?? true,
+        requires_cell_construction: !!o.requires_cell_construction,
         input_forms: o.operation_type_input_forms
             .map((r) => r.material_forms)
             .filter((f): f is { code: string; name_en: string; name_zh: string } => f !== null),
@@ -145,16 +147,27 @@ export default async function NewProcessingPage({
     }))
 
     // ROLE-1 Batch 3b:批次行只带 material_id,名字按 id 从 material_lookup 取一次再映射回去
-    type BatchFetchRow = Omit<InboundBatchOption, 'materials' | 'available_qty'> & { material_id: string | null }
+    type BatchFetchRow = Omit<InboundBatchOption, 'materials' | 'available_qty' | 'cell'> & { material_id: string | null; cell_construction_code: string | null }
     const inboundRows = mustRows(batchesRes, 'inbound_batches') as unknown as BatchFetchRow[]
     const outputRows = mustRows(outputBatchesRes, 'output_batches') as unknown as BatchFetchRow[]
     const nameOf = await loadMaterialNames(supabase, [...inboundRows, ...outputRows].map((b) => b.material_id))
+    // MES-4b(Q4 · Q5):每一批的电芯结构 —— 判据与库里的守卫同一个(装电芯的形态;没有形态照常说)
+    const cc = await loadCellConstructionData(supabase)
+    const locale = await getLocale()
     const withAvailable = (rows: BatchFetchRow[]): InboundBatchOption[] =>
-        rows.map(({ material_id, ...b }) => ({
-            ...b,
-            materials: material_id && nameOf.has(material_id) ? { name: nameOf.get(material_id) as string } : null,
-            available_qty: availByBatch.get(b.id) ?? 0,
-        }))
+        rows.map(({ material_id, cell_construction_code, ...b }) => {
+            const opt = cc.options.find((o) => o.code === cell_construction_code) ?? null
+            return {
+                ...b,
+                materials: material_id && nameOf.has(material_id) ? { name: nameOf.get(material_id) as string } : null,
+                available_qty: availByBatch.get(b.id) ?? 0,
+                cell: {
+                    applicable: !material_id || cc.carries[material_id] !== false,
+                    label: opt ? (locale === 'zh' ? opt.name_zh : opt.name_en) : (cell_construction_code ?? null),
+                    determined: !!opt?.is_determined,
+                },
+            }
+        })
     // UNBLOCK-1 Q21:「用了哪台机器」的选项。读 equipment_usage(属主权限视图,
     // 财务或加工两个模块任一即可读 —— 机器卡在财务,干活的人在加工)。
     // 【已处置的不列】commit_processing_run 会按名拒(EQUIPMENT_DISPOSED),

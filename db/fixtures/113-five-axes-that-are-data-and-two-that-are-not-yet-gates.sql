@@ -46,7 +46,8 @@ BEGIN
     -- **这个数改了不是把断言放松,是引导真的多了七行** —— 这一行的用途没变:
     -- 数目本身是断言,少一行说明引导被动过。
     SELECT count(*) INTO v_n FROM material_forms;
-    IF v_n <> 13 THEN RAISE EXCEPTION 'FIXTURE 113F1 失败:进入 F1 —— 形态应当播 13 行,实得 %', v_n; END IF;
+    -- MES-4b(2026-10-07,MES-0 Q55 · MES-4b Step 0 Q9):13 → 19 —— 六种产出形态(正极粉 · 负极粉 · 铜箔 · 铝箔 · 收集的粉尘 · 线束/BMS/汇流排)
+    IF v_n <> 19 THEN RAISE EXCEPTION 'FIXTURE 113F1 失败:进入 F1 —— 形态应当播 19 行,实得 %', v_n; END IF;
     SELECT count(*) INTO v_n FROM material_sources;
     IF v_n <> 3 THEN RAISE EXCEPTION 'FIXTURE 113F1 失败:进入 F1 —— 来源应当播 3 行,实得 %', v_n; END IF;
     SELECT count(*) INTO v_n FROM material_size_formats;

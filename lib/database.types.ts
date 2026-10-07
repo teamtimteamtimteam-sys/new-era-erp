@@ -1513,6 +1513,36 @@ export type Database = {
           },
         ]
       }
+      cell_constructions: {
+        Row: {
+          code: string
+          is_active: boolean
+          is_determined: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          is_determined: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          is_determined?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       certificate_types: {
         Row: {
           code: string
@@ -2456,6 +2486,258 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lanes"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      contamination_checks: {
+        Row: {
+          above_warning: boolean | null
+          correction_reason: string | null
+          corrects_id: number | null
+          foreign_mass_g: number | null
+          id: number
+          kind: string
+          method: string | null
+          not_sampled_reason: string | null
+          output_batch_id: string | null
+          rate_pct: number | null
+          recorded_at: string
+          recorded_by: string | null
+          run_id: string
+          sample_mass_g: number | null
+          sampled_at: string | null
+          stream_code: string
+          warning_pct_at: number | null
+        }
+        Insert: {
+          above_warning?: boolean | null
+          correction_reason?: string | null
+          corrects_id?: number | null
+          foreign_mass_g?: number | null
+          id?: never
+          kind: string
+          method?: string | null
+          not_sampled_reason?: string | null
+          output_batch_id?: string | null
+          rate_pct?: number | null
+          recorded_at?: string
+          recorded_by?: string | null
+          run_id: string
+          sample_mass_g?: number | null
+          sampled_at?: string | null
+          stream_code: string
+          warning_pct_at?: number | null
+        }
+        Update: {
+          above_warning?: boolean | null
+          correction_reason?: string | null
+          corrects_id?: number | null
+          foreign_mass_g?: number | null
+          id?: never
+          kind?: string
+          method?: string | null
+          not_sampled_reason?: string | null
+          output_batch_id?: string | null
+          rate_pct?: number | null
+          recorded_at?: string
+          recorded_by?: string | null
+          run_id?: string
+          sample_mass_g?: number | null
+          sampled_at?: string | null
+          stream_code?: string
+          warning_pct_at?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contamination_checks_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "contamination_check_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "contamination_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_stream_code_fkey"
+            columns: ["stream_code"]
+            isOneToOne: false
+            referencedRelation: "contamination_shift_status"
+            referencedColumns: ["stream_code"]
+          },
+          {
+            foreignKeyName: "contamination_checks_stream_code_fkey"
+            columns: ["stream_code"]
+            isOneToOne: false
+            referencedRelation: "contamination_shift_status_all"
+            referencedColumns: ["stream_code"]
+          },
+          {
+            foreignKeyName: "contamination_checks_stream_code_fkey"
+            columns: ["stream_code"]
+            isOneToOne: false
+            referencedRelation: "contamination_streams"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contamination_streams: {
+        Row: {
+          code: string
+          foreign_form_code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sheet_form_code: string
+          sort_order: number
+          warning_pct: number | null
+        }
+        Insert: {
+          code: string
+          foreign_form_code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sheet_form_code: string
+          sort_order?: number
+          warning_pct?: number | null
+        }
+        Update: {
+          code?: string
+          foreign_form_code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sheet_form_code?: string
+          sort_order?: number
+          warning_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contamination_streams_foreign_form_code_fkey"
+            columns: ["foreign_form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "contamination_streams_sheet_form_code_fkey"
+            columns: ["sheet_form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -7810,6 +8092,7 @@ export type Database = {
       inbound_batches: {
         Row: {
           arrival_date: string | null
+          cell_construction_code: string | null
           chemistry_certainty_code: string | null
           code: string
           created_at: string
@@ -7846,6 +8129,7 @@ export type Database = {
         }
         Insert: {
           arrival_date?: string | null
+          cell_construction_code?: string | null
           chemistry_certainty_code?: string | null
           code: string
           created_at?: string
@@ -7882,6 +8166,7 @@ export type Database = {
         }
         Update: {
           arrival_date?: string | null
+          cell_construction_code?: string | null
           chemistry_certainty_code?: string | null
           code?: string
           created_at?: string
@@ -7917,6 +8202,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_batches_cell_construction_code_fkey"
+            columns: ["cell_construction_code"]
+            isOneToOne: false
+            referencedRelation: "cell_constructions"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "inbound_batches_chemistry_certainty_code_fkey"
             columns: ["chemistry_certainty_code"]
@@ -11005,6 +11297,7 @@ export type Database = {
           code: string
           is_active: boolean
           is_true_loss: boolean
+          may_be_derived: boolean
           metal_fate: string
           name_en: string
           name_zh: string
@@ -11015,6 +11308,7 @@ export type Database = {
           code: string
           is_active?: boolean
           is_true_loss: boolean
+          may_be_derived?: boolean
           metal_fate: string
           name_en: string
           name_zh: string
@@ -11025,6 +11319,7 @@ export type Database = {
           code?: string
           is_active?: boolean
           is_true_loss?: boolean
+          may_be_derived?: boolean
           metal_fate?: string
           name_en?: string
           name_zh?: string
@@ -11244,6 +11539,7 @@ export type Database = {
           name_en: string
           name_zh: string
           notes: string | null
+          output_document_key: string | null
           sort_order: number
         }
         Insert: {
@@ -11254,6 +11550,7 @@ export type Database = {
           name_en: string
           name_zh: string
           notes?: string | null
+          output_document_key?: string | null
           sort_order?: number
         }
         Update: {
@@ -11264,9 +11561,18 @@ export type Database = {
           name_en?: string
           name_zh?: string
           notes?: string | null
+          output_document_key?: string | null
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "material_forms_output_document_key_fkey"
+            columns: ["output_document_key"]
+            isOneToOne: false
+            referencedRelation: "document_types"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       material_kinds: {
         Row: {
@@ -12195,33 +12501,42 @@ export type Database = {
         Row: {
           balance_tolerance_pct: number | null
           code: string
+          electrolyte_loss_applies: boolean
+          electrolyte_share_pct: number | null
           is_active: boolean
           kind_code: string
           name_en: string
           name_zh: string
           notes: string | null
+          requires_cell_construction: boolean
           resulting_safety_state_code: string | null
           sort_order: number
         }
         Insert: {
           balance_tolerance_pct?: number | null
           code: string
+          electrolyte_loss_applies?: boolean
+          electrolyte_share_pct?: number | null
           is_active?: boolean
           kind_code: string
           name_en: string
           name_zh: string
           notes?: string | null
+          requires_cell_construction?: boolean
           resulting_safety_state_code?: string | null
           sort_order?: number
         }
         Update: {
           balance_tolerance_pct?: number | null
           code?: string
+          electrolyte_loss_applies?: boolean
+          electrolyte_share_pct?: number | null
           is_active?: boolean
           kind_code?: string
           name_en?: string
           name_zh?: string
           notes?: string | null
+          requires_cell_construction?: boolean
           resulting_safety_state_code?: string | null
           sort_order?: number
         }
@@ -12627,6 +12942,7 @@ export type Database = {
       output_batches: {
         Row: {
           awaiting_operation_type_code: string | null
+          cell_construction_code: string | null
           code: string
           created_at: string
           created_by: string | null
@@ -12650,6 +12966,7 @@ export type Database = {
         }
         Insert: {
           awaiting_operation_type_code?: string | null
+          cell_construction_code?: string | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -12673,6 +12990,7 @@ export type Database = {
         }
         Update: {
           awaiting_operation_type_code?: string | null
+          cell_construction_code?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -12700,6 +13018,13 @@ export type Database = {
             columns: ["awaiting_operation_type_code"]
             isOneToOne: false
             referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "output_batches_cell_construction_code_fkey"
+            columns: ["cell_construction_code"]
+            isOneToOne: false
+            referencedRelation: "cell_constructions"
             referencedColumns: ["code"]
           },
           {
@@ -16773,10 +17098,12 @@ export type Database = {
       }
       processing_run_losses: {
         Row: {
+          basis: string
           correction_reason: string | null
           corrects_id: number | null
           created_at: string
           created_by: string | null
+          derived_share_pct: number | null
           id: number
           loss_category_code: string
           notes: string | null
@@ -16784,10 +17111,12 @@ export type Database = {
           run_id: string
         }
         Insert: {
+          basis: string
           correction_reason?: string | null
           corrects_id?: number | null
           created_at?: string
           created_by?: string | null
+          derived_share_pct?: number | null
           id?: never
           loss_category_code: string
           notes?: string | null
@@ -16795,10 +17124,12 @@ export type Database = {
           run_id: string
         }
         Update: {
+          basis?: string
           correction_reason?: string | null
           corrects_id?: number | null
           created_at?: string
           created_by?: string | null
+          derived_share_pct?: number | null
           id?: never
           loss_category_code?: string
           notes?: string | null
@@ -24853,6 +25184,229 @@ export type Database = {
           },
         ]
       }
+      contamination_check_rows: {
+        Row: {
+          above_warning: boolean | null
+          correction_reason: string | null
+          corrects_id: number | null
+          foreign_mass_g: number | null
+          id: number | null
+          is_current: boolean | null
+          kind: string | null
+          method: string | null
+          not_sampled_reason: string | null
+          output_batch_code: string | null
+          output_batch_id: string | null
+          process_date: string | null
+          rate_pct: number | null
+          recorded_at: string | null
+          recorded_by: string | null
+          run_code: string | null
+          run_id: string | null
+          sample_mass_g: number | null
+          sampled_at: string | null
+          shift_code: string | null
+          stream_code: string | null
+          warning_pct_at: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contamination_checks_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "contamination_check_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "contamination_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_stream_code_fkey"
+            columns: ["stream_code"]
+            isOneToOne: false
+            referencedRelation: "contamination_shift_status"
+            referencedColumns: ["stream_code"]
+          },
+          {
+            foreignKeyName: "contamination_checks_stream_code_fkey"
+            columns: ["stream_code"]
+            isOneToOne: false
+            referencedRelation: "contamination_shift_status_all"
+            referencedColumns: ["stream_code"]
+          },
+          {
+            foreignKeyName: "contamination_checks_stream_code_fkey"
+            columns: ["stream_code"]
+            isOneToOne: false
+            referencedRelation: "contamination_streams"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_runs_shift_code_fkey"
+            columns: ["shift_code"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contamination_shift_status: {
+        Row: {
+          any_above_warning: boolean | null
+          check_state: string | null
+          first_run_code: string | null
+          first_run_id: string | null
+          max_rate_pct: number | null
+          not_sampled_count: number | null
+          process_date: string | null
+          run_codes: string[] | null
+          sampled_count: number | null
+          shift_code: string | null
+          stream_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_shift_code_fkey"
+            columns: ["shift_code"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contamination_shift_status_all: {
+        Row: {
+          any_above_warning: boolean | null
+          check_state: string | null
+          first_run_code: string | null
+          first_run_id: string | null
+          max_rate_pct: number | null
+          not_sampled_count: number | null
+          process_date: string | null
+          run_codes: string[] | null
+          sampled_count: number | null
+          shift_code: string | null
+          stream_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_shift_code_fkey"
+            columns: ["shift_code"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       contract_coverage: {
         Row: {
           contracts_active: number | null
@@ -26323,6 +26877,7 @@ export type Database = {
       inbound_batches_masked: {
         Row: {
           arrival_date: string | null
+          cell_construction_code: string | null
           chemistry_certainty_code: string | null
           code: string | null
           created_at: string | null
@@ -26359,6 +26914,7 @@ export type Database = {
         }
         Insert: {
           arrival_date?: string | null
+          cell_construction_code?: string | null
           chemistry_certainty_code?: string | null
           code?: string | null
           created_at?: string | null
@@ -26395,6 +26951,7 @@ export type Database = {
         }
         Update: {
           arrival_date?: string | null
+          cell_construction_code?: string | null
           chemistry_certainty_code?: string | null
           code?: string | null
           created_at?: string | null
@@ -26430,6 +26987,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_batches_cell_construction_code_fkey"
+            columns: ["cell_construction_code"]
+            isOneToOne: false
+            referencedRelation: "cell_constructions"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "inbound_batches_chemistry_certainty_code_fkey"
             columns: ["chemistry_certainty_code"]
@@ -27589,6 +28153,7 @@ export type Database = {
         Row: {
           code: string | null
           deleted_at: string | null
+          form_code: string | null
           id: string | null
           kind_code: string | null
           kind_name_en: string | null
@@ -27598,6 +28163,13 @@ export type Database = {
           waste_classification_code: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "materials_form_code_fkey"
+            columns: ["form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "materials_kind_code_fkey"
             columns: ["kind_code"]
@@ -31022,6 +31594,7 @@ export type Database = {
         Row: {
           balance_state: string | null
           closure_current: boolean | null
+          derived_loss_qty: number | null
           input_qty: number | null
           last_closed_at: string | null
           last_closure_id: number | null
@@ -31056,6 +31629,7 @@ export type Database = {
         Row: {
           balance_state: string | null
           closure_current: boolean | null
+          derived_loss_qty: number | null
           input_qty: number | null
           last_closed_at: string | null
           last_closure_id: number | null
@@ -34815,6 +35389,22 @@ export type Database = {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
       }
+      contamination_check_internal: {
+        Args: {
+          p_correction_reason: string
+          p_corrects_id: number
+          p_foreign_mass_g: number
+          p_kind: string
+          p_method: string
+          p_not_sampled_reason: string
+          p_output_batch_id: string
+          p_run_id: string
+          p_sample_mass_g: number
+          p_sampled_at: string
+          p_stream_code: string
+        }
+        Returns: number
+      }
       contract_activation_missing: {
         Args: { p_contract_id: string }
         Returns: string[]
@@ -34843,6 +35433,20 @@ export type Database = {
           p_moisture_pct: number
           p_to_basis: string
           p_weight: number
+        }
+        Returns: number
+      }
+      correct_contamination_check: {
+        Args: {
+          p_check_id: number
+          p_foreign_mass_g: number
+          p_kind: string
+          p_method: string
+          p_not_sampled_reason: string
+          p_output_batch_id: string
+          p_reason: string
+          p_sample_mass_g: number
+          p_sampled_at: string
         }
         Returns: number
       }
@@ -34932,6 +35536,7 @@ export type Database = {
       create_inbound_batch: {
         Args: {
           p_arrival_date?: string
+          p_cell_construction?: string
           p_chemistry_certainty?: string
           p_currency?: string
           p_declared_qty?: number
@@ -36029,6 +36634,7 @@ export type Database = {
       receive_inbound_batch_against_po: {
         Args: {
           p_arrival_date?: string
+          p_cell_construction?: string
           p_chemistry_certainty?: string
           p_declared_qty?: number
           p_location_id?: string
@@ -36142,6 +36748,24 @@ export type Database = {
           p_supersedes?: string
         }
         Returns: Json
+      }
+      record_contamination_check: {
+        Args: {
+          p_foreign_mass_g?: number
+          p_kind: string
+          p_method?: string
+          p_not_sampled_reason?: string
+          p_output_batch_id?: string
+          p_run_id: string
+          p_sample_mass_g?: number
+          p_sampled_at?: string
+          p_stream_code: string
+        }
+        Returns: number
+      }
+      record_derived_electrolyte_loss: {
+        Args: { p_notes?: string; p_run_id: string }
+        Returns: number
       }
       record_expense: {
         Args: {
@@ -36404,6 +37028,10 @@ export type Database = {
           seq: number
           table_name: string
         }[]
+      }
+      rederive_electrolyte_loss: {
+        Args: { p_loss_id: number; p_reason: string }
+        Returns: number
       }
       refresh_cod_for_batch: {
         Args: { p_inbound_batch_id: string }
@@ -36890,6 +37518,10 @@ export type Database = {
       set_asset_planned_in_service: {
         Args: { p_asset_id: string; p_date: string }
         Returns: Json
+      }
+      set_batch_cell_construction: {
+        Args: { p_batch_id: string; p_code: string; p_kind: string }
+        Returns: string
       }
       set_customer_credit: {
         Args: {

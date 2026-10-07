@@ -1115,3 +1115,29 @@ the processing write paths, the reminder-arm counts and the historical-run scaff
   `trail_refs` resolves a value's two-column field link to the field's name; `trail_ref_label` names a recipe version "<code> v<n>".
   `scripts/check-trail-wording.mjs` arm ⑲ pins the wording (fault `wording-drift-mes4a` turns it red).
 
+
+## 17. Products and processing detail (MES-4b, v1.4.42, 2026-10-08)
+
+Hand-back `docs/handbacks/MES-4b.md`; fixture 254 pins every rule below (and fixtures 100, 111, 113, 153, 195 and 253 were re-pinned:
+the document registry's shape, the reminder-arm list, the form count, the loss basis, the destruction-certificate output-code scan and
+the trail of a recorded value).
+
+### 17.1 Logged, excluded
+
+- **Logged** (two triggers each): the three new tables — `cell_constructions` (keyed by `code`), `contamination_streams` (`code`) and
+  `contamination_checks` (`id`). Each binding key is the table's primary key. Public tables 272 → **275**; bound 264 → **267**
+  (measured on the local rebuild: `pg_tables` in `public`, and tables carrying a `zzz_change_log` trigger). No exclusion added.
+- **`contamination_checks` is append-only** (`guard_append_only_log`): a correction is a new row pointing at the old one
+  (`corrects_id`, unique) with its reason, never an UPDATE; there is no DELETE.
+- **The new columns** on `inbound_batches` / `output_batches` (`cell_construction_code`), `processing_run_losses` (`basis`,
+  `derived_share_pct`), `loss_categories` (`may_be_derived`), `operation_types` (`electrolyte_share_pct`, `electrolyte_loss_applies`,
+  `requires_cell_construction`) and `material_forms` (`output_document_key`) ride the tables' existing triggers.
+- **No new mask rule.** No new column is a secret, a price or a personal identifier; the mask list stays **105** rows.
+  `inbound_batches.cell_construction_code` is added to the table's column-list SELECT grant **and** to `inbound_batches_masked`
+  in the same migration (the masked-table rule).
+- **Trail subjects.** The run page's `processing_run` subject now also holds contamination checks ("Contamination check recorded ·
+  <stream>", "Contamination not sampled this shift" with the reason, "Contamination check corrected"); the `output_batch` subject shows
+  a check that names one of its sheets. A loss row's basis and the share it used are value lines ("Basis: Calculated", "Electrolyte share
+  used (%): 12"). Setting a batch's construction is the batch's own change ("Cell construction: (empty) → Wound"). The two dictionaries
+  are new dictionary subjects **`dictionary_cell_constructions`** and **`dictionary_contamination_streams`**.
+  `scripts/check-trail-wording.mjs` arm ⑳ pins the wording (fault `wording-drift-mes4b` turns it red).

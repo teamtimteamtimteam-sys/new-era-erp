@@ -3315,3 +3315,45 @@ processing_run_corrections,new_value,technical,hide: raw stored value (the run's
 processing_run_corrections,reason,text,verbatim,,,Reason,,,text
 processing_run_corrections,corrected_at,audit_std,hide: the trail entry already says who and when,,,Corrected on,,,timestamp with time zone
 processing_run_corrections,corrected_by,audit_std,hide: the trail entry already says who and when,,,Corrected by,,,uuid
+processing_run_losses,basis,enum,ENUM_OVERRIDES processing_run_losses#basis,,,Basis,,,text
+processing_run_losses,derived_share_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Electrolyte share used (%),,,numeric
+inbound_batches,cell_construction_code,dict,cell_constructions.name_en (via code),,,Cell construction,,,text
+output_batches,cell_construction_code,dict,cell_constructions.name_en (via code),,,Cell construction,,,text
+operation_types,electrolyte_share_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Electrolyte share of input (%),,,numeric
+operation_types,electrolyte_loss_applies,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Electrolyte evaporates in this step,,,boolean
+operation_types,requires_cell_construction,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Requires cell construction,,,boolean
+material_forms,output_document_key,technical,hide: the batch-number family (set by migration only),,,Batch number family,,,text
+loss_categories,may_be_derived,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,May be calculated,,,boolean
+cell_constructions,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+cell_constructions,name_en,text,verbatim,dict.f.nameEn,Name (EN),,text-only,,text
+cell_constructions,name_zh,text,verbatim,dict.f.nameZh,Name (ZH),,text-only,,text
+cell_constructions,is_determined,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Determined construction,,,boolean
+cell_constructions,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+cell_constructions,sort_order,technical,hide,,,Sort order,,,integer
+cell_constructions,notes,text,verbatim,,,Notes,,,text
+contamination_streams,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+contamination_streams,name_en,text,verbatim,dict.f.nameEn,Name (EN),,text-only,,text
+contamination_streams,name_zh,text,verbatim,dict.f.nameZh,Name (ZH),,text-only,,text
+contamination_streams,sheet_form_code,dict,material_forms.name_en (via code),,,Sheet sampled,,,text
+contamination_streams,foreign_form_code,dict,material_forms.name_en (via code),,,Foreign material looked for,,,text
+contamination_streams,warning_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Warning level (%),,,numeric
+contamination_streams,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+contamination_streams,sort_order,technical,hide,,,Sort order,,,integer
+contamination_streams,notes,text,verbatim,,,Notes,,,text
+contamination_checks,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+contamination_checks,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+contamination_checks,stream_code,dict,contamination_streams.name_en (via code),,,Stream,,,text
+contamination_checks,kind,enum,ENUM_OVERRIDES contamination_checks#kind,,,Check,,,text
+contamination_checks,output_batch_id,fk_document,"output_batches.code (document number, output prefix)",,,Sampled batch,,,uuid
+contamination_checks,sample_mass_g,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Sample mass (g),,,numeric
+contamination_checks,foreign_mass_g,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Foreign material (g),,,numeric
+contamination_checks,rate_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Contamination rate (%),,,numeric
+contamination_checks,warning_pct_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Warning level at the time (%),,,numeric
+contamination_checks,above_warning,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Above the warning level,,,boolean
+contamination_checks,sampled_at,timestamp_audit,formatAuditStamp,,,Sampled at,,,timestamp with time zone
+contamination_checks,method,text,verbatim,,,Method,,,text
+contamination_checks,not_sampled_reason,text,verbatim,,,Reason not sampled,,,text
+contamination_checks,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+contamination_checks,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+contamination_checks,corrects_id,technical,hide: the check it corrects (the block says Corrected),,,Corrects,,,bigint
+contamination_checks,correction_reason,text,verbatim,,,Reason for the correction,,,text

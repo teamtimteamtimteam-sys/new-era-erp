@@ -46,6 +46,14 @@ DECLARE
     v_out_qty      numeric[] := ARRAY[]::numeric[];
     v_out_wid      uuid[] := ARRAY[]::uuid[];
     v_key          text;
+    -- MES-4b:电芯结构 —— 这道工序要不要它、每一批投料带着什么、产出继承什么
+    v_req_cc       boolean;
+    v_batch_code   text;
+    v_cc           text;
+    v_cc_vals      text[] := ARRAY[]::text[];
+    v_cc_any_null  boolean := false;
+    v_cc_inherit   text;
+    v_dismantles   boolean;
 BEGIN
     -- ★ ROLE-1 Batch 3b(Tim 2026-09-25):提交加工归仓库 —— action.processing_commit(warehouse · admin)。
     PERFORM require_permission('action.processing_commit');
@@ -95,8 +103,8 @@ BEGIN
     -- 【PROC-SUPPORT-1:这一段不再被 IF ... IS NOT NULL 包着】—— 上面那条拒绝
     -- 已经保证到得了这里就有工序。留着那个 IF 会读起来像"还有一条没有工序的路"。
     -- ════════════════════════════════════════════════════════════════════════
-    SELECT ot.code, k.consumes_input, k.produces_outputs, ot.resulting_safety_state_code
-      INTO v_op, v_consumes, v_produces, v_result_state
+    SELECT ot.code, k.consumes_input, k.produces_outputs, ot.resulting_safety_state_code, ot.requires_cell_construction
+      INTO v_op, v_consumes, v_produces, v_result_state, v_req_cc
       FROM operation_types ot
       JOIN operation_kinds k ON k.code = ot.kind_code
      WHERE ot.code = p_operation_type_code AND ot.is_active;
@@ -522,7 +530,33 @@ BEGIN
                 ON CONFLICT (output_batch_id, safety_state_code) WHERE ended_at IS NULL DO NOTHING;
             END IF;
         END IF;
+        -- ════════════════════════════════════════════════════════════════════
+        -- ★ MES-4b(2026-10-07,规格 §3.4;MES-0 Q45;MES-4b Step 0 Q5 · Q6,Tim):【分极片的工序要知道电芯是卷绕还是叠片】
+        --   operation_types.requires_cell_construction 为真(引导:electrode_separation · electrode_line)时,每一批投料都必须带一个
+        --   确定的结构(cell_constructions.is_determined)—— 没记或 unknown → INPUT_CELL_CONSTRUCTION_REQUIRED|<批号>。
+        --   是一个标志,不是这里的一张码表。【放在投入腿落下之后】—— 投入腿的守卫先判安全状态(起火那一道闸先说话:
+        --   一批没放电的料,要先听到"这道工序不收它",而不是"先记下它是卷绕还是叠片")。同时记下每一批的值,第 6 步据此决定产出继承什么。
+        -- ════════════════════════════════════════════════════════════════════
+        IF v_inbound_id IS NOT NULL THEN
+            SELECT b.code, b.cell_construction_code INTO v_batch_code, v_cc FROM inbound_batches b WHERE b.id = v_inbound_id;
+        ELSE
+            SELECT b.code, b.cell_construction_code INTO v_batch_code, v_cc FROM output_batches b WHERE b.id = v_output_id;
+        END IF;
+        IF v_req_cc AND (v_cc IS NULL OR NOT EXISTS (SELECT 1 FROM cell_constructions c WHERE c.code = v_cc AND c.is_determined)) THEN
+            RAISE EXCEPTION 'INPUT_CELL_CONSTRUCTION_REQUIRED|%', v_batch_code
+              USING HINT = '这道工序按电芯结构分设备(卷绕 / 叠片)。先在批次页上记下这一批是哪一种 —— 没记或"看过分不出"都过不去。';
+        END IF;
+        IF v_cc IS NULL THEN
+            v_cc_any_null := true;
+        ELSE
+            v_cc_vals := array_append(v_cc_vals, v_cc);
+        END IF;
     END LOOP;
+
+    -- MES-4b(Q6):每一批投料都带着【同一个】结构 → 装电芯的产出继承它;有一批没记、或彼此不同 → 留空,到批次页上补。
+    IF NOT v_cc_any_null AND (SELECT count(DISTINCT x) FROM unnest(v_cc_vals) x) = 1 THEN
+        v_cc_inherit := v_cc_vals[1];
+    END IF;
 
     -- 6. 遍历产出:建产出批次 + 建产出腿
     --    产出的入库流水由 AFTER INSERT 触发器发出;先设置上下文标记本批产出属于本加工单。
@@ -535,13 +569,16 @@ BEGIN
         v_qty         := v_out_qty[v_n];     -- MES-4a:称出来的公斤数(上面第 2 步定下的)
         v_unit        := 'kg';
         v_purity      := NULLIF(v_output->>'purity', '');
+        -- MES-4b(Q6):只有【明确装着电芯】的形态继承结构(没有形态的物料不继承 —— 不知道它装不装电芯)。
+        SELECT f.implies_dismantling INTO v_dismantles
+          FROM materials m JOIN material_forms f ON f.code = m.form_code WHERE m.id = v_material_id;
 
         INSERT INTO output_batches (
             material_id, quantity, unit, remaining_qty, output_date, state, purity,
-            created_by, updated_by
+            created_by, updated_by, cell_construction_code
         ) VALUES (
             v_material_id, v_qty, v_unit, v_qty, v_process_date, '库存中', v_purity,
-            v_user_id, v_user_id
+            v_user_id, v_user_id, CASE WHEN v_dismantles IS TRUE THEN v_cc_inherit END
         )
         RETURNING id INTO v_new_output_id;
 

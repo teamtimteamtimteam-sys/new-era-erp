@@ -33,6 +33,7 @@ export type DictTable =
     | 'nea_waste_categories'   // MES-3a(2026-10-06,V29):第七张 —— 同样只有那六列
     | 'dangerous_goods_codes' | 'label_templates'   // MES-3b(2026-10-07,V30 · Q5):第八、九张 —— 同样有那六列
     | 'shifts' | 'processing_event_types'   // MES-4a(2026-10-07,Q5 · Q15):第十、十一张 —— 同样有那六列
+    | 'cell_constructions' | 'contamination_streams'   // MES-4b(2026-10-07,Q3 · Q21):第十二、十三张 —— 同样有那六列
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
@@ -54,6 +55,8 @@ export type ExtraField = {
     /** MES-4a(Q5):kind = time 的那一对(班次的开始 / 结束)—— 要么都给、要么都空(表上的 shifts_hours_paired 是同一句话)。
      *  只有一头的班次说不出它覆盖哪一段,于是在这里按名拒,不让人撞上一串约束名。 */
     pairedWith?: string
+    /** MES-4b(V11):kind = number 时可以是 0 与小数(一个百分数),不是 MES-3a 那种从 1 起的天数。 */
+    decimal?: boolean
 }
 
 export type DictSpec = {
@@ -265,6 +268,49 @@ export const DICTIONARIES: DictSpec[] = [
         viewPermission: 'module.processing.view',
         extras: [],
         referencedBy: [{ table: 'processing_run_events', column: 'event_type_code' }],
+    },
+    {
+        // ★ MES-4b(2026-10-07,MES-0 Q45;MES-4b Step 0 Q3,Tim):电芯结构 —— 引导三行(卷绕 · 叠片 · 未知)。
+        //   "确定的结构"是一条规则开关:只有它为真的值过得了极片分离与自动极片线的投料闸(INPUT_CELL_CONSTRUCTION_REQUIRED)。
+        //   写码与那张表的写策略同一个(module.processing.edit —— 路由是加工的事实);读要加工查看码。
+        table: 'cell_constructions',
+        titleKey: 'dict.cell_constructions',
+        permission: 'module.processing.edit',
+        viewPermission: 'module.processing.view',
+        extras: [
+            { column: 'is_determined', kind: 'boolean', required: true, showInTable: true,
+              labelKey: 'dict.f.is_determined', hintKey: 'dict.h.is_determined' },
+        ],
+        referencedBy: [
+            { table: 'inbound_batches', column: 'cell_construction_code' },
+            { table: 'output_batches', column: 'cell_construction_code' },
+        ],
+    },
+    {
+        // ★ MES-4b(2026-10-07,MES-0 Q52 · V11;MES-4b Step 0 Q21,Tim):交叉污染抽检的流 —— 引导两行(正极 · 负极)。
+        //   警戒线(V11)【从空开始】:由 Tim / 第一份黑粉承购合同的规格给;空的时候一次抽检判不了超没超,不是"在范围内"。
+        //   抽哪一种极片、找哪一种外来物只在两种极片里挑(表上的外键 + "两者不同"那一句)。写码 module.processing.edit;读要加工查看码。
+        table: 'contamination_streams',
+        titleKey: 'dict.contamination_streams',
+        permission: 'module.processing.edit',
+        viewPermission: 'module.processing.view',
+        extras: [
+            { column: 'sheet_form_code', kind: 'choice', required: true, showInTable: true,
+              labelKey: 'dict.f.sheet_form_code', hintKey: 'dict.h.sheet_form_code',
+              options: [
+                  { value: 'cathode_sheet', labelKey: 'dict.o.cathode_sheet' },
+                  { value: 'anode_sheet', labelKey: 'dict.o.anode_sheet' },
+              ] },
+            { column: 'foreign_form_code', kind: 'choice', required: true, showInTable: true,
+              labelKey: 'dict.f.foreign_form_code', hintKey: 'dict.h.foreign_form_code',
+              options: [
+                  { value: 'anode_sheet', labelKey: 'dict.o.anode_sheet' },
+                  { value: 'cathode_sheet', labelKey: 'dict.o.cathode_sheet' },
+              ] },
+            { column: 'warning_pct', kind: 'number', decimal: true, showInTable: true,
+              labelKey: 'dict.f.warning_pct', hintKey: 'dict.h.warning_pct' },
+        ],
+        referencedBy: [{ table: 'contamination_checks', column: 'stream_code' }],
     },
 ]
 

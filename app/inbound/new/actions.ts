@@ -1,5 +1,6 @@
 'use server'
 
+import { localizeProcessingError } from '@/app/operation/errorCodes'
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
@@ -65,6 +66,7 @@ export async function createInbound(
     // RECV-SOURCE-1(R1):没挂采购行就必须给理由 —— 服务端【独立】拒空,
     // 表单那道 required 可以被绕过,这一道不能;库里的触发器是第三道(R5)。
     const source_reason_code = (formData.get('source_reason_code') as string)?.trim() || null
+    const cell_construction = (formData.get('cell_construction') as string)?.trim() || null
     const source_reason_note = (formData.get('source_reason_note') as string)?.trim() || null
     // MES-2(Q19):挂一张地磅单的份 —— 没选单就三个都不送(与从前一字不差)
     const ticket_id = (formData.get('ticket_id') as string)?.trim() || null
@@ -167,6 +169,8 @@ export async function createInbound(
         // RECV-SOURCE-1:理由与说明 —— 没填就不传,库里落 NULL(挂了采购行时这是合法的)
         ...(source_reason_code === null ? {} : { p_source_reason_code: source_reason_code }),
         ...(source_reason_note === null ? {} : { p_source_reason_note: source_reason_note }),
+        // MES-4b(Q4):电芯结构 —— 没选就整个参数不传(库里落 NULL = 没记)
+        ...(cell_construction === null ? {} : { p_cell_construction: cell_construction }),
     })
 
     if (error) {
@@ -180,6 +184,11 @@ export async function createInbound(
         // 句子走 refusePermission(全库只此一句,点名那个码)。
         const deniedCode = (error?.message ?? '').trim().match(/^PERMISSION_DENIED\|(.*)$/)
         if (deniedCode) return { error: (await refusePermission(deniedCode[1] ?? '')).error }
+
+        // MES-4b(Q4):电芯结构的两条拒绝(不认识的结构 · 这一种形态不装电芯)—— 句子住在加工那一支(批次页上同一扇门也抛它们)
+        if (/\bCELL_CONSTRUCTION_(UNKNOWN|NOT_APPLICABLE)\b/.test(error?.message ?? '')) {
+            return { error: await localizeProcessingError(error!.message) }
+        }
 
         // INB-PAY-1:带价建单的定价拒绝(PRICE_INVALID / CURRENCY_INVALID / FX_RATE_MISSING)
         // 与批次页上定价是同一个函数抛的,所以翻成同一句话、画在单价那一格上。

@@ -127,8 +127,9 @@ CREATE OR REPLACE FUNCTION public.generate_processing_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
 BEGIN
     IF NEW.code IS NULL OR NEW.code = '' THEN
+        -- MES-4b(CODE-WIDTH-4,Step 0 Q14):补到 4 位、【不截断】—— 超过 9,999 照实长出去;低于 10,000 的号逐字不变。
         NEW.code := document_type_prefix('processing_run') || '-' || EXTRACT(YEAR FROM NOW())::TEXT || '-' ||
-                    LPAD(nextval('processing_code_seq')::TEXT, 4, '0');
+                    (SELECT LPAD(n, GREATEST(4, length(n)), '0') FROM (SELECT nextval('processing_code_seq')::TEXT AS n) s);
     END IF;
     RETURN NEW;
 END;

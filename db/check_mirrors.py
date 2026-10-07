@@ -315,6 +315,13 @@ RUNTIME_CONFIG_TABLES = [
     "operation_type_fields",
     # MES-4a(Q15):异常事件种类 —— 引导三行(非计划停机 · 设备报警 · 安全报警),没有 other;加一种是加一行(/settings/dictionaries)。
     "processing_event_types",
+    # MES-4b(2026-10-07,MES-4b Step 0 Q30,Tim):损耗类别与它的"金属去向"字典 —— 两张的抬头一直写着 RUNTIME CONFIG,而它们【两张清单都不在】
+    #   (MES-4b Step 0 §1.8 实测:本文件里 loss 一个字都没有)。本刀给 loss_categories 加一列(may_be_derived),缺口在同一个提交里关上。
+    #   加一类损耗是加一行(module.processing.edit);线上与本文件不同是系统在正常工作。
+    "loss_categories", "loss_metal_fates",
+    # MES-4b(Q3 · Q21):电芯结构(卷绕 / 叠片 / 未知)与交叉污染流(正极 / 负极;警戒线 V11 由 Tim 给 —— 给一次线上就与本文件不同)——
+    #   都是 /settings/dictionaries 里改一行(module.processing.edit)。
+    "cell_constructions", "contamination_streams",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

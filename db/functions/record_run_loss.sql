@@ -5,6 +5,8 @@
 --   加工单必须已提交、没回滚(RUN_NOT_COMMITTED);类别必须启用着(RUN_LOSS_CATEGORY_UNKNOWN);量为正(RUN_LOSS_QTY_INVALID);
 --   这一类已经有一条(任何一条,哪怕撤回成 0)→ RUN_LOSS_ALREADY_RECORDED|<类别>(要改就更正它)。
 --   有名字的损耗之和不许超过 loss_qty(= 投入 − 产出)—— 表上的约束触发器 LOSS_CATEGORIES_EXCEED_LOSS_QTY。返回新行 id。
+--   MES-4b(2026-10-07,Step 0 Q16):这扇门记的永远是【量出来的】—— basis = 'measured',明写,不靠默认值。
+--   算出来的电解液挥发走 record_derived_electrolyte_loss。
 --
 -- NOTE: introduced by db/migrations/2026-10-07-mes4a-processing-record.sql.
 
@@ -34,8 +36,8 @@ BEGIN
     IF EXISTS (SELECT 1 FROM processing_run_losses l WHERE l.run_id = p_run_id AND l.loss_category_code = p_loss_category_code) THEN
         RAISE EXCEPTION 'RUN_LOSS_ALREADY_RECORDED|%', p_loss_category_code;
     END IF;
-    INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, notes)
-    VALUES (p_run_id, p_loss_category_code, p_quantity, NULLIF(btrim(COALESCE(p_notes, '')), ''))
+    INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, notes, basis)
+    VALUES (p_run_id, p_loss_category_code, p_quantity, NULLIF(btrim(COALESCE(p_notes, '')), ''), 'measured')
     RETURNING id INTO v_id;
     RETURN v_id;
 END;

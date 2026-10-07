@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -5348,6 +5348,136 @@ if (FAULT === 'wording-drift-mes4a') dict.text = { ...dict.text, 'run.balanceClo
     if (FAULT === 'wording-drift-mes4a' && !problems.gold19.length) problems.gold19.push('(注入 wording-drift-mes4a 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑳ MES-4b:交叉污染抽检、算出来的损耗、批次上的电芯构造(MES-4b Step 0 Q4 · Q7 · Q16–Q23)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-4b.md 列出。
+//   抽检只追加:抽了一行 / 这一班没抽一行(理由在理由那一格)/ 更正是新的一行指着旧的(理由在理由那一格);标题后面挂流的名字。
+//   损耗的来由(basis)与算它用的份额(derived_share_pct)是值行 —— "Basis: Calculated"、"Electrolyte share used (%): 12"。
+//   批次上的构造是批次那一次 UPDATE 的前后值,由字典的名字说("(empty) → Wound"),绝不印代号。
+//   注入 wording-drift-mes4b → 这一臂必须红。
+problems.gold20 = []
+if (FAULT === 'wording-drift-mes4b') dict.text = { ...dict.text, 'run.contaminationNotSampled': 'Not sampled' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const run = id('run')
+    const R20 = { subject: 'processing_run', recordId: run, currency: null }
+    const runRef = { run_id: { [run]: { label: 'PROC-2026-0042' } } }
+    const stRef = { ...runRef, stream_code: { cathode: { label: 'Cathode sheet (anode in it)' } } }
+    const chk = (k, extra) => ({ id: k, run_id: run, stream_code: 'cathode', kind: 'sampled', output_batch_id: null, sample_mass_g: 200, foreign_mass_g: 3,
+        rate_pct: 1.5, warning_pct_at: 1, above_warning: true, sampled_at: '2026-10-07T03:00:00Z', method: 'Sieve and weigh', not_sampled_reason: null,
+        recorded_at: '2026-10-07T03:10:00Z', recorded_by: id('u'), corrects_id: null, correction_reason: null, ...extra })
+    add('contamination · sampled', R20, [{ table: 'contamination_checks', op: 'INSERT', key: { id: 51 }, refs: stRef, new: chk(51) }])
+    add('contamination · not sampled with a reason', R20, [{ table: 'contamination_checks', op: 'INSERT', key: { id: 52 }, refs: stRef,
+        new: chk(52, { kind: 'not_sampled', sample_mass_g: null, foreign_mass_g: null, rate_pct: null, warning_pct_at: null, above_warning: null,
+                       sampled_at: null, method: null, not_sampled_reason: 'Lab scale out for calibration' }) }])
+    add('contamination · corrected with a reason', R20, [{ table: 'contamination_checks', op: 'INSERT', key: { id: 53 }, refs: stRef,
+        new: chk(53, { foreign_mass_g: 1, rate_pct: 0.5, above_warning: false, corrects_id: 51, correction_reason: 'Foreign mass keyed in grams twice' }) }])
+    const lossRef = { ...runRef, loss_category_code: { electrolyte_evaporation: { label: 'Electrolyte evaporation' } } }
+    add('loss · calculated from the share', R20, [{ table: 'processing_run_losses', op: 'INSERT', key: { id: 61 }, refs: lossRef,
+        new: { id: 61, run_id: run, loss_category_code: 'electrolyte_evaporation', quantity: 120, notes: null, created_at: '2026-10-07T04:00:00Z',
+               created_by: id('u'), corrects_id: null, correction_reason: null, basis: 'derived', derived_share_pct: 12 } }])
+    add('loss · calculated, corrected to a weighed figure', R20, [{ table: 'processing_run_losses', op: 'INSERT', key: { id: 62 }, refs: lossRef,
+        new: { id: 62, run_id: run, loss_category_code: 'electrolyte_evaporation', quantity: 118.4, notes: null, created_at: '2026-10-07T04:30:00Z',
+               created_by: id('u'), corrects_id: 61, correction_reason: 'Weighed the drum after extraction', basis: 'measured', derived_share_pct: null } }])
+    const b = id('b')
+    const B20 = { subject: 'inbound_batch', recordId: b, currency: null }
+    const ccRef = { cell_construction_code: { wound: { label: 'Wound' } } }
+    add('inbound batch · construction set', B20, [{ table: 'inbound_batches', op: 'UPDATE', key: { id: b }, refs: ccRef, cols: ['cell_construction_code'],
+        old: { id: b, code: 'IN-2026-0500', cell_construction_code: null }, new: { id: b, code: 'IN-2026-0500', cell_construction_code: 'wound' } }])
+    const WANT = {
+        "contamination · sampled": {
+            "title": "Contamination check recorded",
+            "part": "Cathode sheet (anode in it)",
+            "lines": [
+                "Sample mass (g): 200",
+                "Foreign material (g): 3",
+                "Contamination rate (%): 1.5",
+                "Warning level at the time (%): 1",
+                "Above the warning level: Yes",
+                "Sampled at: 07/10/2026 11:00",
+                "Method: Sieve and weigh"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "contamination · not sampled with a reason": {
+            "title": "Contamination not sampled this shift",
+            "part": "Cathode sheet (anode in it)",
+            "lines": [],
+            "reason": "Lab scale out for calibration",
+            "who": "Phua"
+        },
+        "contamination · corrected with a reason": {
+            "title": "Contamination check corrected",
+            "part": "Cathode sheet (anode in it)",
+            "lines": [
+                "Sample mass (g): 200",
+                "Foreign material (g): 1",
+                "Contamination rate (%): 0.5",
+                "Warning level at the time (%): 1",
+                "Above the warning level: No",
+                "Sampled at: 07/10/2026 11:00",
+                "Method: Sieve and weigh"
+            ],
+            "reason": "Foreign mass keyed in grams twice",
+            "who": "Phua"
+        },
+        "loss · calculated from the share": {
+            "title": "Loss recorded",
+            "part": "Electrolyte evaporation",
+            "lines": [
+                "Quantity: 120",
+                "Basis: Calculated",
+                "Electrolyte share used (%): 12"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "loss · calculated, corrected to a weighed figure": {
+            "title": "Loss corrected",
+            "part": "Electrolyte evaporation",
+            "lines": [
+                "Quantity: 118.4",
+                "Basis: Measured"
+            ],
+            "reason": "Weighed the drum after extraction",
+            "who": "Phua"
+        },
+        "inbound batch · construction set": {
+            "title": "Batch details changed",
+            "part": null,
+            "lines": [
+                "Cell construction: (empty) → Wound"
+            ],
+            "reason": null,
+            "who": "Phua"
+        }
+    }
+    const got20 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 6) problems.gold20.push(`⑳ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD20', order: 1, prelog: false, at: '2026-10-07T05:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Phua' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold20.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD20')
+        if (mine.length !== 1) { problems.gold20.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got20[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold20.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold20.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold20.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD20_PRINT) console.log(JSON.stringify(got20, null, 8))
+    if (FAULT === 'wording-drift-mes4b' && !problems.gold20.length) problems.gold20.push('(注入 wording-drift-mes4b 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -5355,7 +5485,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

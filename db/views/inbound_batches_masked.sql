@@ -71,7 +71,9 @@ CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
     source_reason_code,
     source_reason_note,
     source_reason_recorded_by,
-    source_reason_recorded_at
+    source_reason_recorded_at,
+    -- MES-4b:电芯结构。【不遮蔽,原样透出】—— 工艺路由要用的事实;三件事的第三件。
+    cell_construction_code
    FROM inbound_batches
   WHERE has_permission('module.inbound.view'::text);;
 

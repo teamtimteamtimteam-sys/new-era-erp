@@ -3,6 +3,8 @@
 --   码:module.processing.edit 或 action.processing_aftercare。理由必填(RUN_LOSS_CORRECTION_REASON_REQUIRED);只能更正链的末端
 --   (RUN_LOSS_SUPERSEDED|<id>);新量不为负(RUN_LOSS_QTY_INVALID)—— 0 就是【撤回】这一类;与原值相同按名拒(RUN_LOSS_CORRECTION_SAME_VALUE)。
 --   类别与加工单照抄原行。之和仍不许超过 loss_qty。之后结平的水位线被越过 → 那一炉回到"没结平"(Q19)。返回新行 id。
+--   MES-4b(2026-10-07,Step 0 Q19):这扇门落的更正永远是【量出来的】(basis = 'measured')—— 一笔算出来的电解液挥发
+--   改成量出来的就走这里;重新算走 rederive_electrolyte_loss。原行是算出来的时,与原值相同【不】拒:依据变了(量过了),那就是一次更正。
 --
 -- NOTE: introduced by db/migrations/2026-10-07-mes4a-processing-record.sql.
 
@@ -37,11 +39,11 @@ BEGIN
     IF p_quantity IS NULL OR p_quantity < 0 THEN
         RAISE EXCEPTION 'RUN_LOSS_QTY_INVALID|%', p_quantity;
     END IF;
-    IF p_quantity = v_orig.quantity THEN
+    IF p_quantity = v_orig.quantity AND v_orig.basis = 'measured' THEN
         RAISE EXCEPTION 'RUN_LOSS_CORRECTION_SAME_VALUE';
     END IF;
-    INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, notes, corrects_id, correction_reason)
-    VALUES (v_orig.run_id, v_orig.loss_category_code, p_quantity, v_orig.notes, v_orig.id, btrim(p_reason))
+    INSERT INTO processing_run_losses (run_id, loss_category_code, quantity, notes, corrects_id, correction_reason, basis)
+    VALUES (v_orig.run_id, v_orig.loss_category_code, p_quantity, v_orig.notes, v_orig.id, btrim(p_reason), 'measured')
     RETURNING id INTO v_id;
     RETURN v_id;
 END;

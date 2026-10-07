@@ -19,7 +19,10 @@ CREATE TABLE public.loss_categories (
     is_true_loss boolean NOT NULL,
     is_active    boolean NOT NULL DEFAULT true,
     sort_order   integer NOT NULL DEFAULT 0,
-    notes        text
+    notes        text,
+    -- ── MES-4b 追加的列(2026-10-07,MES-0 Q51;MES-4b Step 0 Q16 · Q18)──────────────────────────────
+    -- 【规则列 ③】这一类能不能是【算出来的】(processing_run_losses.basis = 'derived')。引导只有 electrolyte_evaporation 为真。
+    may_be_derived boolean NOT NULL DEFAULT false
 );
 
 COMMENT ON TABLE public.loss_categories IS
@@ -62,7 +65,8 @@ INSERT INTO public.loss_categories (code, name_en, name_zh, metal_fate, is_true_
      'W2-(iii)。**它根本不是损耗** —— is_true_loss 为 false 就是这句话。它有重量、有去向、有一张处置费单据,归宿是一条带负价值的产出(U6)。在那之前记成一个具名类别,好过记成 loss_qty 里一个匿名的数。'),
     ('electrolyte_evaporation',
      'Electrolyte evaporation', '电解液挥发', 'unknown', true, 4,
-     '【R4,Tim 的工艺路线】电解液目前计划挥发掉 —— 它既不是产品也不是废物收据,是【消失掉的质量】。**它没有并进 moisture,理由是 metal_fate**:moisture 那一行断言"金属留着",而电解液带不带走金属【今天没有人知道】(线上产出批化验 0 条)。并进去等于免费送出一个未经证实的断言,而那个断言会直接流进回收率 —— 那正是 W2/F4 记过账的那一种污染。'),
+     '【MES-4b,Tim 的工厂事实(Step 0 Q17)】挥发出来的电解液由抽风气流带走,经风管送到后端的环保(尾气处理)设备处理 —— 设备里一台压缩机让气体单向流动;压缩机是设备,不是工序,不挂在加工单上。它仍然是这一段的一笔【有名字的损耗】。哪几段挥发由工序上的「Electrolyte evaporates in this step」勾选说(Tim 自己勾);那一段给了电解液份额(V10)之后,这一笔可以按份额算出来(basis = derived),也可以量出来。
+【R4,Tim 的工艺路线】电解液目前计划挥发掉 —— 它既不是产品也不是废物收据,是【消失掉的质量】。**它没有并进 moisture,理由是 metal_fate**:moisture 那一行断言"金属留着",而电解液带不带走金属【今天没有人知道】(线上产出批化验 0 条)。并进去等于免费送出一个未经证实的断言,而那个断言会直接流进回收率 —— 那正是 W2/F4 记过账的那一种污染。'),
     -- ── MES-4a(2026-10-07,MES-0 Q56 · 规格 §4.1;MES-4a Step 0 Q2,Tim:三类提前到本刀)──────────────────
     -- 规格 §4.1 点名的可审计类别:取样消耗、留在设备里的料、回收的扫地料。仍然没有 other(规格:一笔叫"其它"的损耗没有审计价值)。
     ('sampling_consumption',
@@ -74,6 +78,9 @@ INSERT INTO public.loss_categories (code, name_en, name_zh, metal_fate, is_true_
     ('sweepings',
      'Sweepings recovered', '回收的扫地料', 'stays', false, 7,
      '【MES-4a · 规格 §4.1】扫起来、收回来的料 —— 它没有丢,只是还没回到一条有名字的产出里,所以 is_true_loss 为 false、金属留着。');
+
+-- MES-4b(Step 0 Q18):只有电解液挥发可以是算出来的(份额 × 投入)—— 其余每一类只能量出来。
+UPDATE public.loss_categories SET may_be_derived = true WHERE code = 'electrolyte_evaporation';
 
 ALTER TABLE public.loss_categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "loss_categories select all" ON public.loss_categories
@@ -96,3 +103,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.loss_categories TO authenticated;
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.loss_categories
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');
+
+COMMENT ON COLUMN public.loss_categories.may_be_derived IS
+'MES-4b(MES-0 Q51;MES-4b Step 0 Q18):这一类损耗能不能是【算出来的】(processing_run_losses.basis = derived)。引导只有 electrolyte_evaporation 为真 ——
+record_derived_electrolyte_loss 只认它。算出来的永远是 份额 × 投入,从来不是余数。';

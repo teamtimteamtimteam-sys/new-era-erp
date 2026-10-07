@@ -336,6 +336,8 @@ export function EventsPanel({ runId, rows, types, canEdit }: {
 export type BalanceView = {
     state: string
     input: string; output: string; loss: string; named: string; remainder: string
+    /** MES-4b(Q20):有名字的损耗里【算出来的】那一截(没有就 null) */
+    derived: string | null
     tolerance: string | null
     within: boolean | null
     required_missing: string[]
@@ -379,6 +381,7 @@ export function BalancePanel({ runId, b, canClose }: { runId: string; b: Balance
                     {line(t('processing.rec.balInput'), b.input)}
                     {line(t('processing.rec.balOutput'), b.output)}
                     {line(t('processing.rec.balNamedLoss'), b.named)}
+                    {b.derived !== null && line(t('processing.rec.balDerivedLoss'), b.derived)}
                     {line(t('processing.rec.balRemainder'), b.remainder)}
                     {line(t('processing.rec.balTolerance'), b.tolerance === null ? t('processing.rec.toleranceNotSet') : b.tolerance + '%')}
                     {b.within !== null && line(t('processing.rec.balWithin'), b.within ? t('common.yes') : t('common.no'))}

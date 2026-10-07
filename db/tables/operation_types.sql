@@ -17,7 +17,15 @@ CREATE TABLE public.operation_types (
     -- ── MES-4a 追加的列(2026-10-07,规格 §4.1;MES-0 Q46 · Q47;MES-4a Step 0 Q18,Tim)──────────
     -- 这道工序一炉的物料平衡允许多大的余数(投入的百分比)。为空 = Not yet set(V1,Tim 与 cto 在每一段调试结束时给)——
     -- 没给的时候,任何不为零的余数都要一句书面说明才能结平(Q46);给了,超出它的也要(Q47)。结平时抄进那一行。
-    balance_tolerance_pct       numeric CHECK (balance_tolerance_pct IS NULL OR balance_tolerance_pct >= 0)
+    balance_tolerance_pct       numeric CHECK (balance_tolerance_pct IS NULL OR balance_tolerance_pct >= 0),
+    -- ── MES-4b 追加的列(2026-10-07,规格 §3.4;MES-0 Q45 · Q51 · V10;MES-4b Step 0 Q5 · Q17,Tim)─────────────
+    -- V10:这一段一炉的电解液占投入质量的百分比 —— 算出来的电解液损耗 = 它 × 投入 / 100。为空 = Not yet set。
+    electrolyte_share_pct       numeric CHECK (electrolyte_share_pct IS NULL OR (electrolyte_share_pct >= 0 AND electrolyte_share_pct <= 100)),
+    -- 「Electrolyte evaporates in this step」—— 标的是【损耗发生在哪一段】,不是压缩机装在哪(Tim 的工厂事实,Q17)。
+    -- 引导【全部为假】:哪几段挥发由 Tim 自己在工序页上勾(module.processing.edit)。
+    electrolyte_loss_applies    boolean NOT NULL DEFAULT false,
+    -- 这一段的投料批必须带一个确定的电芯结构(卷绕 / 叠片)—— 规格 §3.4:两种结构走两台分离设备。引导:electrode_separation · electrode_line。
+    requires_cell_construction  boolean NOT NULL DEFAULT false
 );
 
 COMMENT ON COLUMN public.operation_types.balance_tolerance_pct IS
@@ -83,6 +91,16 @@ INSERT INTO public.operation_types (code, name_en, name_zh, kind_code, resulting
      '【MES-4a · 规格 §3.3】电芯 → 已开壳电芯 + 壳体。硬壳与软包是两台设备;先分类(分类本身是一条记录)。只受理已放电并核实的料。'),
     ('electrode_separation', 'Electrode separation', '极片分离', 'transforming', NULL, 7,
      '【MES-4a · 规格 §3.4】已开壳电芯 → 正极片 / 负极片 / 隔膜(三路分开称)。卷绕与叠片是两台设备。电解液在这一段挥发或回收 —— 它是一个损耗类别,不是产出形态。只受理已放电并核实的料。');
+
+-- MES-4b(Step 0 Q5):分极片的两道工序要求投料带确定的电芯结构。是一个标志,不是函数里的一张码表。
+UPDATE public.operation_types SET requires_cell_construction = true WHERE code IN ('electrode_separation', 'electrode_line');
+
+COMMENT ON COLUMN public.operation_types.electrolyte_share_pct IS
+    'MES-4b(V10;MES-0 Q51;MES-4b Step 0 Q17):这一段一炉电解液占投入质量的百分比(0–100)。为空 = Not yet set(电芯供应商的规格书 / 工艺工程师给,第一批极片分离之前)。只在 electrolyte_loss_applies 为真的工序上有意义:算出来的电解液损耗 = 份额 × total_input / 100(record_derived_electrolyte_loss),份额抄进那一行。';
+COMMENT ON COLUMN public.operation_types.electrolyte_loss_applies IS
+    'MES-4b(Tim 的工厂事实,Step 0 Q17):「Electrolyte evaporates in this step」—— 这一段有电解液挥发。它标的是损耗【发生】在哪一段,不是压缩机装在哪(压缩机是设备,不是工序)。引导全部为假,Tim 在工序页上自己勾。为真才可以记一笔算出来的电解液损耗;V10 只列为真而份额为空的工序。';
+COMMENT ON COLUMN public.operation_types.requires_cell_construction IS
+    'MES-4b(规格 §3.4;MES-0 Q45;MES-4b Step 0 Q5):这一段的每一批投料都必须带一个确定的电芯结构(cell_constructions.is_determined)—— 空或 unknown → INPUT_CELL_CONSTRUCTION_REQUIRED|<批号>。引导:electrode_separation 与 electrode_line。结构 ↔ 机器只记录、不校验(Q8)。';
 
 ALTER TABLE public.operation_types ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_types select all" ON public.operation_types

@@ -653,3 +653,11 @@ REVOKE EXECUTE ON FUNCTION public.assert_run_equipment(text, uuid, date) FROM au
 REVOKE EXECUTE ON FUNCTION public.record_manual_weighing_internal(numeric, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.record_run_value_internal(uuid, text, jsonb, text, bigint, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.run_event_check(text, timestamp with time zone, numeric, text, text) FROM authenticated;
+
+-- MES-4b(2026-10-07):一支【内层】—— 没有调用者检查,只由各自查过码的 DEFINER 函数以属主身份调。
+--   contamination_check_internal:一次交叉污染抽检的判据与落库(record_contamination_check · correct_contamination_check)。
+--     给了 authenticated,就绕开 action.processing_aftercare,也绕开"只能更正链的末端"那一句。
+--   set_batch_cell_construction / record_derived_electrolyte_loss / rederive_electrolyte_loss / record_contamination_check /
+--   correct_contamination_check【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+--   guard_batch_cell_construction 是触发器函数(与其余触发器同一条:EXECUTE 只在被直接调用时才有意义)。
+REVOKE EXECUTE ON FUNCTION public.contamination_check_internal(uuid, text, text, uuid, numeric, numeric, timestamp with time zone, text, text, bigint, text) FROM authenticated;

@@ -41,6 +41,9 @@ UNCL = "public.processing_runs_unclosed_balance(date)"
 ALLOC = "public.allocate_processing_costs(uuid, text)"
 MEMB = "public.trail_subject_members()"
 TRAIL = "public.record_trail(text, text, integer)"
+# MES-4b(2026-10-07,Tim 的 MES-4a close-out 裁定 c · MES-4b Step 0 Q32):16:11 那次注入之后改过的两支 —— 此前没有一格够得着它们
+REFS = "public.trail_refs(text, jsonb, jsonb, jsonb)"
+LABEL = "public.trail_ref_label(text, text, text)"
 
 
 def patch_fn(sig, old, new):
@@ -169,6 +172,11 @@ CASES = [
     ("CORR", "a correction leaves no row",
      patch_fn(CRH, "    INSERT INTO processing_run_corrections (run_id, field, old_value, new_value, reason)\n    VALUES (p_run_id, p_field, v_old, v_val, btrim(p_reason))\n    RETURNING id INTO v_id;",
               "    v_id := 0;")),
+    # MES-4b(Q32):correct_run_header 在改码(RUN_HEADER_BEFORE_MES4A → RUN_HEADER_PREDATES_RECORD)之后 —— 拿掉"MES-4a 之前的单不更正"那一句,
+    #   HDR 臂里那一格(一张旧单的抬头不许更正,按新码说)必须红。
+    ("HDR", "correct_run_header: a pre-MES-4a run header may be corrected (the renamed refusal is gone)",
+     patch_fn(CRH, "IF v_run.started_at IS NULL THEN\n        RAISE EXCEPTION 'RUN_HEADER_PREDATES_RECORD|%', v_run.code",
+              "IF false THEN\n        RAISE EXCEPTION 'RUN_HEADER_PREDATES_RECORD|%', v_run.code")),
     ("CORR", "a replacement may point at a live run", patch_fn(COMMIT, "IF v_corr.status <> 'reversed' THEN", "IF false THEN")),
     ("CORR", "a run can be corrected twice",
      patch_fn(COMMIT, "IF EXISTS (SELECT 1 FROM processing_runs r WHERE r.corrects_run_id = p_corrects_run_id) THEN", "IF false THEN")),
@@ -203,6 +211,13 @@ CASES = [
      patch_fn(MEMB, "('processing_run',     9, 'processing_run_values',", "('processing_run_x',   9, 'processing_run_values',")),
     ("TRAIL", "a code-keyed root has no members again",
      patch_fn(TRAIL, "(u.k ? 'id' OR (SELECT count(*) FROM jsonb_object_keys(u.k)) = 1)", "u.k ? 'id'")),
+    # MES-4b(Q32):trail_refs 不再把一个值的字段(两列外键)解析成名字 —— fixture 253 TRAIL 的新一句必须红
+    ("TRAIL", "trail_refs: a recorded value no longer names its field",
+     patch_fn(REFS, "    IF p_table = 'processing_run_values' THEN\n        v_col := '{}'::jsonb;",
+              "    IF false THEN\n        v_col := '{}'::jsonb;")),
+    # MES-4b(Q32):trail_ref_label 不再把配方版本说成"代号 v版本号"
+    ("TRAIL", "trail_ref_label: a recipe version is no longer labelled code + version",
+     patch_fn(LABEL, "|| ' v' || (v_img ->> 'version');", "|| ' version ' || (v_img ->> 'version');")),
 ]
 
 

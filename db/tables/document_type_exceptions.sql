@@ -50,11 +50,13 @@ CREATE POLICY document_type_exceptions_select ON public.document_type_exceptions
 REVOKE ALL ON public.document_type_exceptions FROM anon;
 GRANT SELECT ON public.document_type_exceptions TO authenticated;
 
--- ── 种子:36 行,今天实测的全部 ─────────────────────────────────────────────
+-- ── 种子:44 行(MES-4b 实数 —— 这里此前写着"36 行",而种子早已是 42 行,MES-4b Step 0 §12 第 6 条量到;本刀 +2)─────
 INSERT INTO public.document_type_exceptions (table_name, reason) VALUES
     ('accounts',                      '会计科目表:code 是科目号,它是一条【科目】不是一张单据'),
     ('battery_chemistries',           '电池化学体系的参考目录,进料/产出行引用它'),
+    ('cell_constructions',            '电芯结构目录(MES-4b):code 是卷绕 / 叠片 / 未知,批次引用它'),
     ('certificate_types',             '证书种类的参考目录,证书本身是别的表'),
+    ('contamination_streams',         '交叉污染抽检的流目录(MES-4b):code 是流代号(正极 / 负极),抽检记录引用它'),
     ('currencies',                    '币种目录:code 是 ISO 货币码'),
     ('dangerous_goods_codes',         '危险品 UN 编号目录(MES-3b):code 是 UN 编号,物料引用它'),
     ('deep_discharge_judgements',     '深放电判定的取值目录,进料检验行引用它'),

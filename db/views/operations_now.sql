@@ -1,4 +1,8 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-4b(2026-10-07,规格 §3.4;MES-0 Q52;MES-4b Step 0 Q24,Tim):加一支 contamination_check_missing —— 一个班、一条流没有抽检
+--   (那一天那一班有一张 MES-4a 起记的、已提交没回滚的单产出了这条流的极片,而同一天同一班任何一张单上都没有一条当前的抽检,
+--   两种都算 —— contamination_shift_status_all 的 check_state = 'missing')。门 module.processing.view;item_id = 那一格最早的那一炉
+--   (fixture 47:一行提醒要指着一条真实的行),subject = 流。记一条"没抽"(带理由)也关掉它。
 -- ★ MES-4a(2026-10-07,MES-0 Q48;MES-4a Step 0 Q22,Tim):加一支 processing_balance_unclosed —— 物料平衡还没结的加工单
 --   (MES-4a 起记的、转化型的、已提交没回滚的、最新结平不当前的;processing_run_balance_all 的 balance_state = 'open')。
 --   门 module.processing.view;点进去是那张加工单(平衡面板在上面)。只是提醒:月末那一行也只警告,不挡关账。
@@ -831,6 +835,16 @@ CREATE VIEW public.operations_now AS
             b.process_date AS item_date
            FROM processing_run_balance_all b
           WHERE b.balance_state = 'open'::text
+        UNION ALL
+         SELECT 'contamination_check_missing'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            cs.first_run_id AS item_id,
+            NULL::text AS doc_kind,
+            cs.first_run_code AS item_code,
+            cs.stream_code AS subject,
+            cs.process_date AS item_date
+           FROM contamination_shift_status_all cs
+          WHERE cs.check_state = 'missing'::text
         UNION ALL
          SELECT 'shipping_release_ready'::text AS item_type,
             'action.ship_goods'::text AS permission,

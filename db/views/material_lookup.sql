@@ -11,6 +11,8 @@
 --   替换用的是 CREATE OR REPLACE VIEW,而它【会丢掉 WITH (...)】——
 --   迁移末尾因此补了一句 ALTER VIEW ... SET (security_invoker = off)。
 
+-- MES-4b(2026-10-07,MES-4b Step 0 Q4):末尾多一列 form_code —— 收货表单与批次页据它判"这一批装不装电芯"
+--   (电芯结构那一格只对 implies_dismantling 的形态摆出来;页面与库里的守卫给同一个答案)。形态是一个字典码,不是成分或价。
 CREATE VIEW public.material_lookup WITH (security_invoker = off) AS
  SELECT m.id,
     m.code,
@@ -20,7 +22,8 @@ CREATE VIEW public.material_lookup WITH (security_invoker = off) AS
     m.kind_code,
     k.name_en AS kind_name_en,
     k.name_zh AS kind_name_zh,
-    m.waste_classification_code
+    m.waste_classification_code,
+    m.form_code
    FROM materials m
      LEFT JOIN material_kinds k ON k.code = m.kind_code
   WHERE has_permission('module.materials.view'::text) OR has_permission('module.inbound.view'::text) OR has_permission('module.output.view'::text) OR has_permission('module.inventory.view'::text) OR has_permission('module.purchasing.view'::text) OR has_permission('module.processing.view'::text);

@@ -25,6 +25,8 @@ export type InboundBatchOption = {
     unit: string
     // ROLE-1 Batch 3b:物料名由页面从 material_lookup 映射进来(仓库读不了 materials 基表,不再嵌入)
     materials: { name: string } | null
+    /** MES-4b(Q4 · Q5):这一批的电芯结构 —— applicable = 它的形态装电芯(或没有形态);label 空 = 没记;determined = 卷绕或叠片 */
+    cell: { applicable: boolean; label: string | null; determined: boolean }
 }
 
 // FIN-25:再加工 —— 可投料的产出批(同形;value 前缀区分来源)
@@ -37,6 +39,8 @@ export type OperationOption = {
     name_zh: string
     produces_outputs: boolean
     input_forms: { code: string; name_en: string; name_zh: string }[]
+    /** MES-4b(Q5):这道工序的每一批投料都必须带确定的电芯结构(服务端 INPUT_CELL_CONSTRUCTION_REQUIRED) */
+    requires_cell_construction: boolean
     /** MES-4a(Q9):挂在这道工序上的、没处置的机器。非空 → 这一炉【必须】选其中一台(服务端 EQUIPMENT_REQUIRED_FOR_OPERATION)。 */
     machine_ids: string[]
     /** MES-4a(Q10–Q13):这道工序的参数与指标(只列在用的)。 */
@@ -303,6 +307,11 @@ export default function NewProcessingForm({
             const batch = pool.find((b) => b.id === r.batch_ref.slice(r.batch_ref.indexOf(':') + 1))
             if (batch && Number(r.quantity_consumed) > batch.available_qty) {
                 setError(t('processing.validation.consumeExceedsClient', { code: batch.code }))
+                return
+            }
+            // MES-4b(Q5):分极片的工序要知道电芯是卷绕还是叠片 —— 与服务端同一句判据(没记或"未知"都过不去);权威仍是服务端
+            if (batch && operation?.requires_cell_construction && !batch.cell.determined) {
+                setError(t('processing.validation.cellConstructionRequired', { code: batch.code }))
                 return
             }
         }
@@ -699,6 +708,20 @@ export default function NewProcessingForm({
                                 </div>
                                 {exceeds && (
                                     <p className="text-red-600 text-xs mt-1 ml-1">{t('processing.form.rowExceeds')}</p>
+                                )}
+                                {/* MES-4b(Q4 · Q5):这一批的电芯结构;这道工序要求而它没有确定的结构时,说出来并指到批次页 */}
+                                {selectedBatch && selectedBatch.cell.applicable && (
+                                    <p className={`text-xs mt-1 ml-1 ${operation?.requires_cell_construction && !selectedBatch.cell.determined ? 'text-red-600' : 'text-[color:var(--brand-muted-text)]'}`}
+                                       data-cell-construction={selectedBatch.cell.determined ? 'determined' : 'missing'}>
+                                        {t('cellConstruction.label')}: {selectedBatch.cell.label ?? t('cellConstruction.notRecorded')}
+                                        {operation?.requires_cell_construction && !selectedBatch.cell.determined && (
+                                            <>
+                                                {' — '}{t('processing.form.cellConstructionNeeded')}{' '}
+                                                <a href={row.batch_ref.startsWith('out:') ? `/output/${selectedBatch.id}/edit` : `/inbound/${selectedBatch.id}/edit`}
+                                                   className="underline">{t('processing.form.openBatch')}</a>
+                                            </>
+                                        )}
+                                    </p>
                                 )}
                             </div>
                         )

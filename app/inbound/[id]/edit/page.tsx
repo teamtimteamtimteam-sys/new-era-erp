@@ -49,6 +49,8 @@ import TicketSharesPanel from './TicketSharesPanel'
 import SafetyStateHistory from '@/app/components/safety/SafetyStateHistory'
 import LabelPrintHistory from '@/app/components/labels/LabelPrintHistory'
 import CeilingCheckPanel from '@/app/components/safety/CeilingCheckPanel'
+import CellConstructionPanel from '@/app/components/batch/CellConstructionPanel'
+import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -259,6 +261,12 @@ export default async function EditInboundPage({
     const axis = materialAxes[batch.material_id]
     const conditionApplicable = axis ? axis.has_axes : true
     const conditionKindLabel = axis ? (locale === 'zh' ? axis.kind_zh : axis.kind_en) : ''
+    // MES-4b(Q4 · Q7):电芯结构 —— 只对装电芯的形态摆出来(没有形态照常摆;与库里的守卫同一个判据)。
+    //   改它要进料编辑码或加工提交码(set_batch_cell_construction 里同一对码)。
+    const [cellConstruction, canSetCellConstruction] = await Promise.all([
+        loadCellConstructionData(supabase),
+        (async () => (await can('module.inbound.edit')) || (await can('action.processing_commit')))(),
+    ])
 
 
     // 化验(cut 5b):本批次的化验单(新到旧)+ 会生效的定价公式
@@ -918,6 +926,13 @@ export default async function EditInboundPage({
                         </p>
                     </div>
                 </div>
+            )}
+
+            {/* MES-4b(Q4–Q7):电芯结构 —— 卷绕 / 叠片 / 未知,或没记;喂过一张已提交的加工单之后锁住(库里判) */}
+            {cellConstruction.carries[batch.material_id] !== false && (
+                <CellConstructionPanel kind="inbound" batchId={id} current={batch.cell_construction_code ?? null}
+                    options={cellConstruction.options} canEdit={canSetCellConstruction} gateCode="module.inbound.edit"
+                    required locale={locale} />
             )}
 
             {/* ★ PROC-1B-iii(R2):【实际到的货】能不能深度放电 —— 自己一块。 ★

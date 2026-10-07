@@ -159,4 +159,20 @@ VALUES
     ('device', 'DEV', 'devices', 'gapped', 'device_code_seq', '/operation/devices', 'detail', 'name', ARRAY['name', 'station', 'notes']::text[], ARRAY['module.processing.view']::text[]),
     -- MES-2(2026-10-06,MES-0 Q53 · MES-2 Step 0 Q16):地磅单 —— 有洞(weighbridge_ticket_code_seq,保存时生成),人读的标签是车牌;
     --   读码与表的读策略逐字同一对(收货或物流,Q22)
-    ('weighbridge_ticket', 'WB', 'weighbridge_tickets', 'gapped', 'weighbridge_ticket_code_seq', '/operation/weighbridge', 'detail', 'vehicle_reg', ARRAY['vehicle_reg', 'notes']::text[], ARRAY['module.inbound.view','module.logistics.view']::text[]);
+    ('weighbridge_ticket', 'WB', 'weighbridge_tickets', 'gapped', 'weighbridge_ticket_code_seq', '/operation/weighbridge', 'detail', 'vehicle_reg', ARRAY['vehicle_reg', 'notes']::text[], ARRAY['module.inbound.view','module.logistics.view']::text[]),
+    -- MES-4b(2026-10-07,MES-0 Q54;MES-4b Step 0 Q12 · Q13 · Q15):每一种产品一个前缀,从物料的【形态】选(material_forms.output_document_key)。
+    --   与 OUT 同一张表、同一个落点、同一个读码;各自一条序列,有洞、不按年重置,号从第一个起就是五位(generate_output_code)。
+    --   OUT 那一行【留着】:没映射的形态与没有形态的物料仍取 OUT,而每一个旧的 OUT- 号照样搜得到(Q15)。
+    --   同一张表挂着多行时,搜索按 code LIKE '<前缀>-%' 分开每一行(search_documents_sql)。
+    ('output_cathode_powder', 'CPW', 'output_batches', 'gapped', 'output_cpw_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_anode_powder', 'APW', 'output_batches', 'gapped', 'output_apw_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_copper_foil', 'CUF', 'output_batches', 'gapped', 'output_cuf_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_aluminium_foil', 'ALF', 'output_batches', 'gapped', 'output_alf_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_separator', 'SEP', 'output_batches', 'gapped', 'output_sep_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_collected_dust', 'DST', 'output_batches', 'gapped', 'output_dst_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_cell', 'CEL', 'output_batches', 'gapped', 'output_cel_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_casing', 'CSG', 'output_batches', 'gapped', 'output_csg_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_structural_parts', 'STR', 'output_batches', 'gapped', 'output_str_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_harness_bms_busbar', 'HBB', 'output_batches', 'gapped', 'output_hbb_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_cathode_sheet', 'CTS', 'output_batches', 'gapped', 'output_cts_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    ('output_anode_sheet', 'ANS', 'output_batches', 'gapped', 'output_ans_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]);

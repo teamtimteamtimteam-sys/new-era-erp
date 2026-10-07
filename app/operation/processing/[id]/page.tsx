@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DeleteButton from './DeleteButton'
 import CostPanel from './CostPanel'
-import LossPanel, { type LossCategory, type LossRow } from './LossPanel'
+import LossPanel, { type LossCategory, type LossRow, type ElectrolyteSetting } from './LossPanel'
+import ContaminationPanel, { type ContaminationStreamView, type ContaminationCheckView } from './ContaminationPanel'
 import AllocateButton from './AllocateButton'
 import { type CostEntryRow } from './costTypes'
 import { processingStatusLabelKey } from '../../status'
@@ -54,6 +55,7 @@ type ProcessingInputRow = {
         unit: string
         deleted_at: string | null
         material_id: string | null
+        cell_construction_code: string | null   // MES-4b
     } | null
     // FIN-25:再加工投料 —— 双亲恰一非空
     output_batches: {
@@ -62,6 +64,7 @@ type ProcessingInputRow = {
         unit: string
         deleted_at: string | null
         material_id: string | null
+        cell_construction_code: string | null   // MES-4b
     } | null
 }
 
@@ -114,7 +117,7 @@ export default async function ProcessingDetailPage({
             .single(),
         supabase
             .from('processing_inputs')
-            .select('id, quantity_consumed, inbound_batches ( id, code, unit, deleted_at, material_id ), output_batches ( id, code, unit, deleted_at, material_id )')
+            .select('id, quantity_consumed, inbound_batches ( id, code, unit, deleted_at, material_id, cell_construction_code ), output_batches ( id, code, unit, deleted_at, material_id, cell_construction_code )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
@@ -217,11 +220,11 @@ export default async function ProcessingDetailPage({
     const canAllocate = await can('module.finance.edit')
     const [lossCatRes, lossRowRes] = await Promise.all([
         supabase.from('loss_categories')
-            .select('code, name_en, name_zh, metal_fate, is_true_loss')
+            .select('code, name_en, name_zh, metal_fate, is_true_loss, may_be_derived')
             .eq('is_active', true).order('sort_order'),
         // MES-4a(Q28):只追加 —— 一类损耗的【当前】那一条是更正链末端(没有别的行指着它)。
         supabase.from('processing_run_losses')
-            .select('id, loss_category_code, quantity, notes, corrects_id, correction_reason').eq('run_id', id).order('id'),
+            .select('id, loss_category_code, quantity, notes, corrects_id, correction_reason, basis, derived_share_pct').eq('run_id', id).order('id'),
     ])
     const lossCategories = mustRows(lossCatRes, 'loss_categories') as LossCategory[]
     const allLossRows = mustRows(lossRowRes, 'processing_run_losses')
@@ -229,6 +232,8 @@ export default async function ProcessingDetailPage({
     const lossRows: LossRow[] = allLossRows.filter((r) => !supersededLoss.has(r.id)).map((r) => ({
         id: r.id, loss_category_code: r.loss_category_code, quantity: Number(r.quantity), notes: r.notes,
         corrected: r.corrects_id !== null, correction_reason: r.correction_reason,
+        basis: r.basis === 'derived' ? 'derived' as const : 'measured' as const,
+        derived_share_pct: r.derived_share_pct === null ? null : Number(r.derived_share_pct),
     })).sort((a, b) => a.loss_category_code.localeCompare(b.loss_category_code))
 
     // ── MES-4a(Step 0 Q7–Q31):抬头的时刻 / 班次 / 机器 / 配方,值、事件、平衡、更正 ──────────────────
@@ -236,7 +241,7 @@ export default async function ProcessingDetailPage({
     const opCode = run.operation_type_code ?? null
     const [opRes, shiftRes, eqRes, linkRes, recipeRes, versionRes, valuesRes, fieldRes, eventRes, eventTypeRes,
            balanceRes, corrRes, correctedByRes] = await Promise.all([
-        supabase.from('operation_types').select('code, name_en, name_zh').order('sort_order'),
+        supabase.from('operation_types').select('code, name_en, name_zh, electrolyte_loss_applies, electrolyte_share_pct').order('sort_order'),
         supabase.from('shifts').select('code, name_en, name_zh, is_active').order('sort_order'),
         supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description, equipment_status').order('equipment_code'),
         supabase.from('operation_type_equipment').select('operation_type_code, fixed_asset_id'),
@@ -255,7 +260,7 @@ export default async function ProcessingDetailPage({
             .eq('run_id', id).order('occurred_at'),
         supabase.from('processing_event_types').select('code, name_en, name_zh, is_active').order('sort_order'),
         supabase.from('processing_run_balance')
-            .select('balance_state, input_qty, output_qty, loss_qty, named_loss_qty, remainder_qty, tolerance_pct, within_tolerance, required_missing, outputs_unweighed, last_closure_id, last_closed_at')
+            .select('balance_state, input_qty, output_qty, loss_qty, named_loss_qty, remainder_qty, tolerance_pct, within_tolerance, required_missing, outputs_unweighed, last_closure_id, last_closed_at, derived_loss_qty')
             .eq('run_id', id).maybeSingle(),
         supabase.from('processing_run_corrections')
             .select('id, field, old_value, new_value, reason, corrected_at').eq('run_id', id).order('id'),
@@ -338,6 +343,7 @@ export default async function ProcessingDetailPage({
         state: balance.balance_state ?? 'not_applicable',
         input: q(balance.input_qty), output: q(balance.output_qty), loss: q(balance.loss_qty),
         named: q(balance.named_loss_qty), remainder: q(balance.remainder_qty),
+        derived: Number(balance.derived_loss_qty ?? 0) > 0 ? q(balance.derived_loss_qty) : null,
         tolerance: balance.tolerance_pct === null ? null : String(Number(balance.tolerance_pct)),
         within: balance.within_tolerance,
         required_missing: (balance.required_missing ?? []).map((code) => {
@@ -347,6 +353,53 @@ export default async function ProcessingDetailPage({
         last_closed: balance.last_closed_at ? fmtStamp(balance.last_closed_at) : null,
         last_explanation: lastClosure?.explanation ?? null,
     } : null
+
+    // ── MES-4b(Q17 · Q18):这一炉的工序上「Electrolyte evaporates in this step」与份额(状态改变型无从谈起)──────────
+    const electrolyte: ElectrolyteSetting = !op || balance?.balance_state === 'not_applicable' ? null : {
+        applies: !!op.electrolyte_loss_applies,
+        sharePct: op.electrolyte_share_pct === null ? null : Number(op.electrolyte_share_pct),
+        operationCode: op.code,
+    }
+
+    // ── MES-4b(Q21–Q25):交叉污染 —— 流(警戒线 V11)、这一炉每条流的极片产出、这一炉的抽检(经带门的属主视图)──────────
+    const [streamRes, checkRes, outFormRes, ccRes, formRes] = await Promise.all([
+        supabase.from('contamination_streams').select('code, name_en, name_zh, sheet_form_code, warning_pct').eq('is_active', true).order('sort_order'),
+        supabase.from('contamination_check_rows')
+            .select('id, stream_code, kind, output_batch_id, output_batch_code, sample_mass_g, foreign_mass_g, rate_pct, warning_pct_at, above_warning, sampled_at, method, not_sampled_reason, corrects_id, correction_reason, is_current')
+            .eq('run_id', id).order('id'),
+        supabase.from('material_lookup').select('id, form_code'),
+        supabase.from('cell_constructions').select('code, name_en, name_zh'),
+        supabase.from('material_forms').select('code, implies_dismantling'),
+    ])
+    const streamRows = mustRows(streamRes, 'contamination_streams')
+    const formOf = new Map((mustRows(outFormRes, 'material_lookup') as unknown as { id: string; form_code: string | null }[]).map((m) => [m.id, m.form_code]))
+    const contaminationStreams: ContaminationStreamView[] = streamRows.map((s) => ({
+        code: s.code, label: nm(s), warningPct: s.warning_pct === null ? null : Number(s.warning_pct),
+        batches: outputs.filter((leg) => leg.output_batches && formOf.get(leg.output_batches.material_id ?? '') === s.sheet_form_code)
+            .map((leg) => ({ id: leg.output_batches!.id, code: leg.output_batches!.code })),
+    })).filter((s) => s.batches.length > 0)
+    const streamLabel = (code: string) => { const s = streamRows.find((x) => x.code === code); return s ? nm(s) : code }
+    const contaminationChecks: ContaminationCheckView[] = (mustRows(checkRes, 'contamination_check_rows') as unknown as {
+        id: number; stream_code: string; kind: string; output_batch_id: string | null; output_batch_code: string | null
+        sample_mass_g: number | null; foreign_mass_g: number | null; rate_pct: number | null; warning_pct_at: number | null
+        above_warning: boolean | null; sampled_at: string | null; method: string | null; not_sampled_reason: string | null
+        corrects_id: number | null; correction_reason: string | null; is_current: boolean
+    }[]).filter((c) => c.is_current).map((c) => ({
+        id: c.id, stream: c.stream_code, streamLabel: streamLabel(c.stream_code), kind: c.kind === 'not_sampled' ? 'not_sampled' : 'sampled',
+        batchId: c.output_batch_id, batchCode: c.output_batch_code,
+        sampleG: c.sample_mass_g === null ? null : Number(c.sample_mass_g), foreignG: c.foreign_mass_g === null ? null : Number(c.foreign_mass_g),
+        ratePct: c.rate_pct === null ? null : Number(c.rate_pct), warningPctAt: c.warning_pct_at === null ? null : Number(c.warning_pct_at),
+        above: c.above_warning, sampledAtIso: c.sampled_at, sampledAt: c.sampled_at ? fmtStamp(c.sampled_at) : null,
+        method: c.method, notSampledReason: c.not_sampled_reason, corrected: c.corrects_id !== null, correctionReason: c.correction_reason,
+    }))
+    // MES-4b(Q4):投入那一格旁边说出每一批的电芯结构(没记就说没记 —— 只对装电芯的形态说)
+    const ccName = new Map((mustRows(ccRes, 'cell_constructions')).map((c) => [c.code, nm(c)]))
+    const dismantles = new Map(mustRows(formRes, 'material_forms').map((f) => [f.code, f.implies_dismantling]))
+    /** 与库里的守卫同一个判据:装电芯的形态说;不装的不说;没有形态的照常说 */
+    const formCarriesCells = (materialId: string | null | undefined) => {
+        const form = materialId ? formOf.get(materialId) : null
+        return form ? dismantles.get(form) !== false : true
+    }
 
     // ④ 抬头更正:选项只给这道工序的(机器:挂着的那几台,一台都没挂就全部没处置的;配方:这道工序的版本)
     const linked = linkRows.filter((l) => l.operation_type_code === opCode).map((l) => l.fixed_asset_id)
@@ -540,6 +593,9 @@ export default async function ProcessingDetailPage({
             reprocessed: !!leg.output_batches,
             material: nameFor(parent?.material_id),
             qtyText: `${leg.quantity_consumed} ${parent?.unit ?? ''}`.trim(),
+            construction: parent && formCarriesCells(parent.material_id)
+                ? (parent.cell_construction_code ? (ccName.get(parent.cell_construction_code) ?? parent.cell_construction_code) : t('cellConstruction.notRecorded'))
+                : null,
         }
     })
 
@@ -718,7 +774,14 @@ export default async function ProcessingDetailPage({
                     只在【已提交】单上;reversed 单是历史,不可改(与 CostPanel 同一条)。 */}
                 {isCommitted && (
                     <LossPanel runId={run.id} categories={lossCategories} rows={lossRows}
-                               lossQty={run.loss_qty ?? null} canEdit={canEditLosses} locale={locale} />
+                               lossQty={run.loss_qty ?? null} canEdit={canEditLosses} canDerive={canAftercare}
+                               electrolyte={electrolyte} locale={locale} />
+                )}
+
+                {/* MES-4b(Q21–Q25):交叉污染抽检 —— 每一班、每一条流至少一次;只在已提交单上能记 */}
+                {isCommitted && (
+                    <ContaminationPanel runId={run.id} streams={contaminationStreams} checks={contaminationChecks}
+                                        canRecord={canAftercare} predates={!run.started_at} />
                 )}
 
                 {/* FIN-25:血缘 —— 深度 >1 才值得占版面(一段加工的直接投入上面已经列了)。

@@ -32,6 +32,8 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | V35 | UN dangerous-goods number of each battery material | the material editor (`/materials/<id>/edit`) | each live material of a battery kind with `dg_code` empty | `module.materials.view` | the forwarder, with Tim | before the first export or the first dangerous-goods shipment | MES-3b |
 | V1 | Material-balance tolerance (% of input) per transforming operation | the operation's page (`/operation/operation-types/<code>`) | each active operation whose kind produces outputs and whose `operation_types.balance_tolerance_pct` is empty (state-changing operations — deep discharge — have no balance and no row) | `module.processing.view` | Tim with the process engineer | before balances are closed routinely | MES-4a |
 | V36 | Range (lower / upper bound) of a process parameter or indicator | the operation's page (`/operation/operation-types/<code>`, Parameters and indicators) | each active `operation_type_fields` row with `has_range` = true and both `range_min` and `range_max` empty (none of the 27 seeded fields declares a range, so the arm is empty until someone says a field has one) | `module.processing.view` | equipment vendor / process engineer | equipment commissioning | MES-4a |
+| V10 | Electrolyte share (% of the step's input) of each operation whose equipment releases electrolyte | the operation's page (`/operation/operation-types/<code>`, Electrolyte) | each active operation with `operation_types.electrolyte_loss_applies` ticked ("Electrolyte evaporates in this step") and `electrolyte_share_pct` empty — **seeded unticked everywhere, so the arm is empty until Tim ticks an operation himself** | `module.processing.view` | the cell supplier's datasheet / the process engineer | before the first electrode-separation batch | MES-4b |
+| V11 | Cross-contamination warning line (% foreign material) per stream — cathode sheet with anode in it, anode sheet with cathode in it | `/settings/dictionaries` (Contamination streams) | each active `contamination_streams` row whose `warning_pct` is empty (both seeded empty) | `module.processing.view` | Tim / the first black-mass offtake contract's specification | before the first offtake contract | MES-4b |
 
 **What "Not yet set" means for V5.** A gateway with no heartbeat interval cannot be judged silent: its status reads
 **"Not yet set — silence cannot be judged"**, it raises no `gateway_silent` reminder, and no outage is recorded for it.
@@ -97,3 +99,18 @@ not printed on labels and not on the sales invoice in this cut.
 lithium-ion against lithium-metal, or "contained in equipment"), so a person chooses it on each material. Until then a battery material's
 labels, its delivery-note lines and the shipping queue say **"DG code not set"**. Nothing is refused — there is no export flag yet to key
 a refusal on; the refusal arrives with the first-export / Basel item.
+
+**What V10 holds back (MES-4b, Step 0 Q17–Q20 · Q29, with Tim's change to Q17).** Whether a step releases electrolyte is a plant fact, so it is a tick
+on the operation (**"Electrolyte evaporates in this step"**, editable on the operation page under `module.processing.edit`), seeded **unticked
+everywhere** — Tim ticks it himself. On a ticked operation an electrolyte-evaporation loss can be **calculated** instead of weighed:
+`record_derived_electrolyte_loss` writes share × total input ÷ 100 (rounded to 3 decimals) as a loss row marked **derived**, carrying the share
+it used. With the share empty that refuses (`ELECTROLYTE_SHARE_NOT_SET`) and the loss can still be **measured** and recorded as before. A derived
+loss can be corrected to a measured one at any time; the correction reopens a closed balance exactly like any other loss correction. Nothing
+guesses a share. The evaporated electrolyte is carried by the extraction airflow to the back-end environmental equipment for treatment — it
+stays a named loss (`electrolyte_evaporation`); the compressor is equipment, not an operation, and is not linked to runs.
+
+**What V11 holds back (MES-4b, Step 0 Q21–Q24 · Q29).** Contamination checks are recorded per run and stream either way — a sampled row (sample mass,
+foreign mass, the rate computed by the database) or a `not_sampled` row with a reason. The warning line in force is **copied onto each check**,
+so changing V11 later never re-judges an old check. With it empty, `above_warning` is NULL ("could not be judged", not "within the line"),
+and the per-shift grid shows the rate with no flag. The reminder `contamination_check_missing` (a shift whose committed sheet-producing runs
+have no check for a stream) does **not** wait on V11.

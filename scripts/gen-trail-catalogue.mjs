@@ -697,6 +697,8 @@ const TABLE_NAMES = {
     process_recipe_versions: 'recipe version', processing_run_values: 'recorded value', processing_run_events: 'exception',
     processing_run_closures: 'balance closure', processing_run_corrections: 'header correction',
     processing_event_types: 'exception type',
+    // MES-4b(2026-10-07):电芯结构与交叉污染流两本字典;一次交叉污染抽检
+    cell_constructions: 'cell construction', contamination_streams: 'contamination stream', contamination_checks: 'contamination check',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -783,7 +785,7 @@ const AREA_RULES = [
     [/^(waste_classification)/, 'Materials'],
     [/^(certificate_type)/, 'Output'],
     [/^(purchase_order|po_issues|pricing_term_commitments|company_compliance)/, 'Purchasing'],
-    [/^(processing|batch_processing|work_order|equipment|shift_handover|operation|process_recipe)/, 'Processing'],
+    [/^(processing|batch_processing|work_order|equipment|shift_handover|operation|process_recipe|contamination|cell_construction)/, 'Processing'],
     [/^(inbound|receipt|assay|receiving)/, 'Receiving'],
     [/^(output|certificates_of_destruction|traceability|cod_)/, 'Output'],
     [/^(inventory|storage_location|warehouse_request|stock)/, 'Inventory'],
@@ -821,6 +823,9 @@ const ENUM_OVERRIDES = {
     'operation_type_fields#value_type': { number: 'Number', count: 'Count', text: 'Text', yes_no: 'Yes or no' },
     'processing_run_values#source': { manual: 'Entered by hand', device: 'From a device', recipe: 'From the recipe' },
     'processing_run_events#source': { manual: 'Entered by hand', device: 'From a device' },
+    // MES-4b(2026-10-07):一笔损耗是量出来的还是算出来的 · 一次抽检是抽了还是没抽(两列各一张 CHECK 清单)
+    'processing_run_losses#basis': { measured: 'Measured', derived: 'Calculated' },
+    'contamination_checks#kind': { sampled: 'Sampled', not_sampled: 'Not sampled' },
     'processing_run_corrections#field': { started_at: 'Start time', ended_at: 'End time', shift_code: 'Shift', equipment_id: 'Machine',
         recipe_version_id: 'Recipe version', notes: 'Notes' },
     // MES-3a(2026-10-06):进厂那一刻库存上限怎么判的(receipt_ceiling_checks.outcome 的 CHECK)

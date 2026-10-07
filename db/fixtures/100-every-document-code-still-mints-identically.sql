@@ -5,6 +5,12 @@
 -- ★ MES-2(2026-10-06):42 → 43 —— 新增 weighbridge_ticket / WB(有洞,weighbridge_ticket_code_seq;铸码是
 --   generate_weighbridge_ticket_code 触发器,与 device 同形 nextval_year)。有洞的 10 → 11。新单据,锚里那一条就是它今天的前缀。
 --   它是新单据,没有"变换之前"的字面量可比;锚里那一条就是它今天的前缀。
+-- ★ MES-4b(2026-10-07):43 → 55 —— 新增 12 种产出批前缀(CPW · APW · CUF · ALF · SEP · DST · CEL · CSG · STR · HBB · CTS · ANS),
+--   表都是 output_batches、都有洞(各自一条 output_<前缀>_code_seq),由 generate_output_code 按物料的【形态】选(material_forms.output_document_key)。
+--   有洞的 11 → 23。新前缀的号从第一个起就是【五位】(形状 nextval_year5);OUT 照旧四位。它们是新单据,锚里那一条就是它们今天的前缀。
+--   ★ 同一刀(CODE-WIDTH-4,MES-4b Step 0 Q14):有洞的 11 支取号函数不再截断 —— 补到 4 位、超过 9,999 照实长出去。
+--     所以第 3 臂的期望值公式从 LPAD(n, 4) 改成 LPAD(n, GREATEST(4, length(n))):低于 10,000 两者逐字相同(线上最高 705),
+--     高于它旧公式本身就是那个截断。fixture 254 NUM 臂真的把一条序列推过 9,999 看它不截断。
 -- fixture 100 —— 停止条件 (g):【每一个单据码仍然铸得一模一样】,逐前缀,40 个
 -- ════════════════════════════════════════════════════════════════════════════
 --
@@ -80,7 +86,14 @@ DECLARE
         ['freight_document','FRT'],        ['wht_remittance','WHT'],
         ['payment_receipt','RCPT'],        ['payment_out','PMT'],
         ['payment_request','PREQ'],        ['device','DEV'],
-        ['weighbridge_ticket','WB']
+        ['weighbridge_ticket','WB'],
+        -- MES-4b:十二种产出批前缀(MES-0 Q54)。它们之前没有字面量可比 —— 锚里这一条就是 Tim 在 Q54 定的那个码。
+        ['output_cathode_powder','CPW'],   ['output_anode_powder','APW'],
+        ['output_copper_foil','CUF'],      ['output_aluminium_foil','ALF'],
+        ['output_separator','SEP'],        ['output_collected_dust','DST'],
+        ['output_cell','CEL'],             ['output_casing','CSG'],
+        ['output_structural_parts','STR'], ['output_harness_bms_busbar','HBB'],
+        ['output_cathode_sheet','CTS'],    ['output_anode_sheet','ANS']
     ];
 
     -- 铸码的【形状】—— 与 numbering 是两件事,不要合并。
@@ -109,6 +122,13 @@ DECLARE
         ['stocktake','nextval_year'],      ['supplier','nextval_year'],
         ['task','nextval_year'],           ['device','nextval_year'],
         ['weighbridge_ticket','nextval_year'],
+        -- MES-4b:五位、有洞、不按年重置(MES-4b Step 0 Q13)
+        ['output_cathode_powder','nextval_year5'], ['output_anode_powder','nextval_year5'],
+        ['output_copper_foil','nextval_year5'],    ['output_aluminium_foil','nextval_year5'],
+        ['output_separator','nextval_year5'],      ['output_collected_dust','nextval_year5'],
+        ['output_cell','nextval_year5'],           ['output_casing','nextval_year5'],
+        ['output_structural_parts','nextval_year5'], ['output_harness_bms_busbar','nextval_year5'],
+        ['output_cathode_sheet','nextval_year5'],  ['output_anode_sheet','nextval_year5'],
         ['management_pack','count_month'], ['wht_remittance','count_month'],
         ['attendance_period','period_month'],
         ['gst_period','period_quarter']
@@ -141,16 +161,16 @@ DECLARE
 BEGIN
     -- ══ 第 1 臂 · 登记表的形状 ══════════════════════════════════════════════
     SELECT count(*) INTO v_n FROM document_types;
-    IF v_n <> 43 THEN
-        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 43 行,实有 %', v_n;
+    IF v_n <> 55 THEN
+        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 55 行,实有 %', v_n;
     END IF;
     SELECT count(DISTINCT prefix) INTO v_n FROM document_types;
-    IF v_n <> 43 THEN
+    IF v_n <> 55 THEN
         RAISE EXCEPTION 'FIXTURE 100/1 失败:前缀不唯一(distinct %)', v_n;
     END IF;
     SELECT count(*) INTO v_n FROM document_types WHERE numbering = 'gapped';
-    IF v_n <> 11 THEN
-        RAISE EXCEPTION 'FIXTURE 100/1 失败:有洞的应有 11 种,实有 %', v_n;
+    IF v_n <> 23 THEN
+        RAISE EXCEPTION 'FIXTURE 100/1 失败:有洞的应有 23 种,实有 %', v_n;
     END IF;
     -- 有洞的那 9 条序列必须真的存在 —— 一个打错的序列名会让期望值算在
     -- 一条不存在的序列上,而 pg_sequence_last_value 对不存在的对象直接抛。
@@ -176,8 +196,8 @@ BEGIN
                 ANCHOR[v_n][1], ANCHOR[v_n][2], v_actual;
         END IF;
     END LOOP;
-    IF array_length(ANCHOR, 1) <> 43 THEN
-        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 43', array_length(ANCHOR, 1);
+    IF array_length(ANCHOR, 1) <> 55 THEN
+        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 55', array_length(ANCHOR, 1);
     END IF;
     -- ★ 覆盖率本身是一条断言:登记表里若出现一个锚里没有的 key,这一臂必须红,
     --   而不是安静地不检查它。
@@ -215,7 +235,13 @@ BEGIN
                 --   序列没被用过时它是 NULL,而那时 nextval 会给 1 —— COALESCE 就是这件事。
                 EXECUTE format('SELECT COALESCE(pg_sequence_last_value(%L::regclass), 0) + 1',
                                'public.' || seqn) INTO nextno;
-                v_expect := pfx || '-' || v_year::text || '-' || LPAD(nextno::text, 4, '0');
+                v_expect := pfx || '-' || v_year::text || '-' || LPAD(nextno::text, GREATEST(4, length(nextno::text)), '0');
+
+            ELSIF shape = 'nextval_year5' THEN
+                -- MES-4b:与 nextval_year 同一条序列语义,只是从第一个号起补到五位(仍然不截断)。
+                EXECUTE format('SELECT COALESCE(pg_sequence_last_value(%L::regclass), 0) + 1',
+                               'public.' || seqn) INTO nextno;
+                v_expect := pfx || '-' || v_year::text || '-' || LPAD(nextno::text, GREATEST(5, length(nextno::text)), '0');
 
             ELSIF shape = 'count_month' THEN
                 -- 同一个月可以有多份,第二份起带序号(freeze_management_pack / remit_wht)。
@@ -241,8 +267,8 @@ BEGIN
             v_codes := v_codes || (k || ' → ' || v_expect);
         END;
     END LOOP;
-    IF array_length(v_codes, 1) <> 43 THEN
-        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 43', array_length(v_codes, 1);
+    IF array_length(v_codes, 1) <> 55 THEN
+        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 55', array_length(v_codes, 1);
     END IF;
 
     -- ══ 第 4 臂 · 那 22 支【真的调用一遍】,与公式对上 ══════════════════════
@@ -396,7 +422,7 @@ BEGIN
                         '要么列级遮蔽被撤了,要么这一臂看的是错的东西';
     END IF;
 
-    RAISE NOTICE 'FIXTURE 100 全部通过:40 个前缀逐个算出下一个号(其中 22 支真的调用过),前缀字面量种子外 0 处;match_columns 逐列 SELECT-granted。';
+    RAISE NOTICE 'FIXTURE 100 全部通过:55 个前缀逐个算出下一个号(其中 22 支真的调用过),前缀字面量种子外 0 处;match_columns 逐列 SELECT-granted。';
     RAISE NOTICE '  40 个号:%', array_to_string(v_codes, ' · ');
 END
 $fixture$;

@@ -29,6 +29,8 @@
 BEGIN;
 DO $fixture$
 DECLARE
+    v_out_re   text;     -- MES-4b(Q34):每一个产出批前缀拼成的判据
+    v_out_n    int;
     r jsonb := '{}'::jsonb;
     -- 三个会话,各自建自己的角色(不借引导角色 —— README 第 2 条)
     v_issuer uuid := gen_random_uuid();
@@ -306,7 +308,23 @@ BEGIN
     END IF;
 
     -- ★ 快照里【不许】有产出批、加工单、血缘、化验、人名 ★
-    IF v_snap::text ~ 'OUT-[0-9]{4}-'  THEN RAISE EXCEPTION 'E4 失败:快照里有产出批号'; END IF;
+    -- ★ MES-4b(2026-10-07,MES-4b Step 0 Q34,Tim):产出批不再只有 OUT- 一个前缀 —— 判据从登记表现读【每一个】产出批前缀
+    --   (document_types 里 table_name = 'output_batches' 的那些)。写死 'OUT-' 的旧判据会让一个 CEL-… 安安静静地漏过去。
+    SELECT '(' || string_agg(prefix, '|' ORDER BY prefix) || ')-[0-9]{4}-', count(*)
+      INTO v_out_re, v_out_n
+      FROM document_types WHERE table_name = 'output_batches';
+    -- 覆盖率本身是一条断言:一个读不到前缀的判据什么都不会匹配,而那会打印"通过"。
+    IF v_out_n < 13 OR v_out_re IS NULL THEN
+        RAISE EXCEPTION 'E4 失败:登记表里只读到 % 个产出批前缀 —— 判据瞎了,不是快照干净了', v_out_n;
+    END IF;
+    -- 故障注入(Q34):往快照的一份拷贝里塞一个 CEL- 号,判据必须咬住它;旧的写死判据咬不住(这一格说明为什么要换)。
+    IF NOT ((v_snap || jsonb_build_object('fx195_injected', 'CEL-2026-00001'))::text ~ v_out_re) THEN
+        RAISE EXCEPTION 'E4 失败:注入的 CEL- 号没有被判据认出来(%)', v_out_re;
+    END IF;
+    IF (v_snap || jsonb_build_object('fx195_injected', 'CEL-2026-00001'))::text ~ 'OUT-[0-9]{4}-' THEN
+        RAISE EXCEPTION 'E4 失败:对照格 —— 旧的写死判据居然认出了 CEL-,那这次加宽就没有证明任何东西';
+    END IF;
+    IF v_snap::text ~ v_out_re THEN RAISE EXCEPTION 'E4 失败:快照里有产出批号'; END IF;
     IF v_snap::text ~ 'PROC-[0-9]{4}-' THEN RAISE EXCEPTION 'E5 失败:快照里有加工单号'; END IF;
     IF v_snap ?| ARRAY['runs','chain','recovery','assay','outputs'] THEN
         RAISE EXCEPTION 'E6 失败:快照里有工序/血缘/回收/化验/产出的块';

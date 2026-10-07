@@ -136,6 +136,10 @@ DECLARE
     t4 timestamptz := TIMESTAMPTZ '2026-09-05 14:00:00+08';
     t5 timestamptz := TIMESTAMPTZ '2026-09-06 15:00:00+08';
     v_month date := date_trunc('month', CURRENT_DATE - 31)::date;   -- 上一个月:两行加班落在 1 号与 2 号,永远不在未来
+    -- MES-4b(2026-10-08):原来直接用 CURRENT_DATE + 30 —— 那一天落在周末/公假时 submit 按名拒 NO_WORKING_DAYS(2026-11-07 是周六,门在跨午夜后红)。
+    --   取 +30 起第一个工作日:与本支要证的东西无关,只是不再依赖今天是星期几(fixtures README 第 4 条)。
+    v_leave date := (SELECT d::date FROM generate_series(CURRENT_DATE + 30, CURRENT_DATE + 44, interval '1 day') d
+                      WHERE extract(isodow FROM d) < 6 AND is_business_day(d::date) ORDER BY d LIMIT 1);
     lv uuid; lv_pre uuid := gen_random_uuid(); lv_can uuid := gen_random_uuid(); al_pre uuid := gen_random_uuid();
     g1 uuid := gen_random_uuid(); g2 uuid := gen_random_uuid(); hol uuid;
     mc uuid; mc_w uuid := gen_random_uuid(); ex uuid;
@@ -165,7 +169,7 @@ BEGIN
 
     -- ══════════════ L · 请假:提交(本人)· 决定(另一个人)· 字段编辑 ══════════════
     v_r := pg_temp.f245_run(u_emp, format($q$SELECT submit_leave_request(%L::uuid, 'unpaid', %L::date, %L::date, false, false, 'fixture 245 trip')$q$,
-                                          e_emp, CURRENT_DATE + 30, CURRENT_DATE + 30));
+                                          e_emp, v_leave, v_leave));
     lv := (v_r ->> 'request_id')::uuid;
     IF lv IS NULL THEN RAISE EXCEPTION 'FIXTURE 245 L: submit_leave_request returned no id: %', v_r; END IF;
     PERFORM pg_temp.f245_run(u_all, format($q$SELECT decide_leave_request(%L::uuid, true, 'Enjoy')$q$, lv));

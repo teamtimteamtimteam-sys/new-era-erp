@@ -2,6 +2,7 @@
 
 // 现场收货:复用与 inbound/new 完全相同的建单路径(自动 code + 库存 receipt 流水 + 不变式),
 // 只是把 UI 精简成移动端一步式。单位固定 kg,不收 unit_price / stage(stage 用 DB 默认 '待加工')。
+import { localizeProcessingError } from '@/app/operation/errorCodes'
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
@@ -42,6 +43,7 @@ export async function createFieldReceipt(
     const purchase_order_line_id = (formData.get('purchase_order_line_id') as string) || null
     // RECV-SOURCE-1(R1):没挂采购行就必须给理由(服务端独立拒;库里触发器是第三道)
     const source_reason_code = (formData.get('source_reason_code') as string)?.trim() || null
+    const cell_construction = (formData.get('cell_construction') as string)?.trim() || null
     const source_reason_note = (formData.get('source_reason_note') as string)?.trim() || null
     // GRN-1b:申报量【可选】。空 = 没记录过,【不是 0】—— 所以空的时候
     // 整个 p_declared_qty 参数都不传(下面用展开),让库里落 NULL。
@@ -135,6 +137,8 @@ export async function createFieldReceipt(
             // MES-2(Q19):份与它的理由 —— 没选单就整个不传
             ...(ticket_id && ticket_share_kg !== null ? { p_ticket_id: ticket_id, p_ticket_share_kg: ticket_share_kg } : {}),
             ...(ticket_id && quantity_reason ? { p_quantity_reason: quantity_reason } : {}),
+            // MES-4b(Q4):电芯结构 —— 没选就整个参数不传(库里落 NULL = 没记)
+            ...(cell_construction === null ? {} : { p_cell_construction: cell_construction }),
         })
 
     if (error || !data) {
@@ -148,6 +152,11 @@ export async function createFieldReceipt(
         // 句子走 refusePermission(全库只此一句,点名那个码)。
         const deniedCode = (error?.message ?? '').trim().match(/^PERMISSION_DENIED\|(.*)$/)
         if (deniedCode) return { error: (await refusePermission(deniedCode[1] ?? '')).error }
+
+        // MES-4b(Q4):电芯结构的两条拒绝(不认识的结构 · 这一种形态不装电芯)—— 句子住在加工那一支(批次页上同一扇门也抛它们)
+        if (/\bCELL_CONSTRUCTION_(UNKNOWN|NOT_APPLICABLE)\b/.test(error?.message ?? '')) {
+            return { error: await localizeProcessingError(error!.message) }
+        }
 
         // MES-2:地磅单的份那几条具名拒绝(方向、没完成、理由、份)
         if (isCaptureErrorCode(error?.message)) return { error: await localizeCaptureError(error!.message) }

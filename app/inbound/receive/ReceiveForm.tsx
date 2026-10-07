@@ -11,6 +11,8 @@ import SourceReasonFields from '../SourceReasonFields'
 import type { SourceReasonOption } from '../sourceReasonQuery'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
+import CellConstructionField from '../CellConstructionField'
+import type { CellConstructionData } from '../cellConstructionQuery'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -72,6 +74,7 @@ export default function ReceiveForm({
     safetyStates,
     certainties,
     materialAxes,
+    cellConstruction,
     sourceReasons,
     canReceive,
     tickets,
@@ -86,6 +89,8 @@ export default function ReceiveForm({
     safetyStates: SafetyState[]
     certainties: Certainty[]
     materialAxes: Record<string, MaterialAxis>
+    /** MES-4b(Q4):电芯结构的选项与每个物料装不装电芯 */
+    cellConstruction: CellConstructionData
     // RECV-SOURCE-1:无单收货的理由字典(R1:采购行或理由,永不两者皆无)
     sourceReasons: SourceReasonOption[]
     /** ROLE-1 Batch 3b:建收货单归 action.receive_goods;缺码时提交钮看得见、按不动、点名那个码。 */
@@ -337,6 +342,8 @@ export default function ReceiveForm({
                 states={safetyStates} certainties={certainties}
                 materialAxes={materialAxes} materialId={materialId} locale={locale}
             />
+            {/* MES-4b(Q4):电芯结构 —— 可选,空 = 没记;只对装电芯的形态摆出来 */}
+            <CellConstructionField data={cellConstruction} materialId={materialId} locale={locale} />
 
             {/* 备注 */}
             <div>

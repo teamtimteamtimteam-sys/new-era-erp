@@ -32,6 +32,24 @@ export async function recordRunLoss(runId: string, formData: FormData): Promise<
     return {}
 }
 
+/** MES-4b(Q18):按工序的电解液份额算一笔电解液挥发(份额 × 这一炉的投入)。只在这里按下去才记 —— 从不在提交时自动算、从不取余数。 */
+export async function deriveElectrolyteLoss(runId: string, notes: string): Promise<{ error?: string }> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('record_derived_electrolyte_loss', { p_run_id: runId, p_notes: notes.trim() || undefined })
+    if (error) return { error: await localizeProcessingError(error.message) }
+    revalidatePath(`/operation/processing/${runId}`)
+    return {}
+}
+
+/** MES-4b(Q19):按【现在】的份额重新算那一笔(一条更正,理由必填)。改成量出来的走下面的 correctRunLoss。 */
+export async function rederiveElectrolyteLoss(runId: string, lossId: number, reason: string): Promise<{ error?: string }> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('rederive_electrolyte_loss', { p_loss_id: lossId, p_reason: reason })
+    if (error) return { error: await localizeProcessingError(error.message) }
+    revalidatePath(`/operation/processing/${runId}`)
+    return {}
+}
+
 /** 更正一类损耗的数(可以更正成 0 —— 那是"这一类其实没有",不是删除)。理由必填,函数按名拒。 */
 export async function correctRunLoss(runId: string, lossId: number, quantity: string, reason: string): Promise<{ error?: string }> {
     const t = await getTranslations()

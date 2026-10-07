@@ -26,7 +26,16 @@ INSERT INTO public.operation_type_output_forms (operation_type_code, form_code, 
     ('casing_removal', 'casing', NULL),
     ('electrode_separation', 'cathode_sheet', NULL),
     ('electrode_separation', 'anode_sheet', NULL),
-    ('electrode_separation', 'separator', '【R4】它是一个【出口】——离开这条线,不再往下走。');
+    ('electrode_separation', 'separator', '【R4】它是一个【出口】——离开这条线,不再往下走。'),
+    -- MES-4b(MES-0 Q37 · Q55;MES-4b Step 0 Q10):新产品的出处 —— 只是信息,与这张表的其余行一样【不在提交时校验】,
+    --   产出选择器也不按它过滤(线上 5 种物料里 4 种没有形态,一过滤它们就看不见了)。
+    ('electrode_powder_line', 'cathode_powder', '【MES-4b · 规格 §3.5】正负极分开剥。'),
+    ('electrode_powder_line', 'anode_powder', '【MES-4b · 规格 §3.5】'),
+    ('electrode_powder_line', 'copper_foil', '【MES-4b · 规格 §3.5】'),
+    ('electrode_powder_line', 'aluminium_foil', '【MES-4b · 规格 §3.5】'),
+    ('electrode_powder_line', 'collected_dust', '【MES-4b · 规格 §3.5】除尘收集、称过的粉尘 —— 产出,不是损耗。'),
+    ('battery_powder_line', 'collected_dust', '【MES-4b · 规格 §3.5】同上。'),
+    ('manual_disassembly', 'harness_bms_busbar', '【MES-4b · 规格 §3.2】线束、管理板与汇流排单独称。');
 
 -- 安全状态受理 —— **本刀的核心**
 

@@ -48,6 +48,13 @@ COMMENT ON COLUMN public.material_forms.implies_dismantling IS
 -- 「镜像 vs 线上」判词会把同一张表读成两张(AGENTS.md 的镜像规矩)。
 ALTER TABLE public.material_forms ADD COLUMN may_be_sold boolean NOT NULL;
 
+-- ── MES-4b(2026-10-07,MES-0 Q54 · Q55;MES-4b Step 0 Q12):这个形态的产出批【取哪一个号】────────────────
+-- 指向 document_types 的一行(那一行说前缀与序列)。为空 = 走通用的 output_batch(OUT)。
+-- 【为什么是数据,不是函数里的一张对照表】fixture 100 第 6 臂:前缀字面量只许活在 document_types 里 ——
+-- generate_output_code 读这一列,经 document_type_prefix 取前缀、经登记的 sequence_name 取号。改映射是迁移级动作(Tim 的话)。
+-- 【ALTER 加的列排在末尾】线上 attnum = 9。
+ALTER TABLE public.material_forms ADD COLUMN output_document_key text REFERENCES public.document_types (key);
+
 INSERT INTO public.material_forms (code, name_en, name_zh, implies_dismantling, may_be_sold, sort_order, notes) VALUES
     ('whole_pack',     'Whole pack',                '整包',       true,  true,  1, '整只电池包,带壳体与管理系统。拆解量最大。'),
     ('module',         'Module',                    '模组',       true,  true,  2, '已拆到模组一级。'),
@@ -62,6 +69,31 @@ INSERT INTO public.material_forms (code, name_en, name_zh, implies_dismantling, 
     ('casing',           'Casing',           '壳体',       false, true,  11, '【R2/R4】开壳与人工拆解都产出它,而且它是一个【出口】。**它去哪取决于它是什么材质做的,而那件事今天无从知道**(线上产出批化验 0 条)—— 所以只建这个形态,【不建】它的去向。'),
     ('structural_parts', 'Structural parts', '结构件',     false, true,  12, '【R2】人工拆解包与模组时【同时】产出的那些 —— 支架、螺栓、线束一类。它是一个【出口】。**它单独成一行而不并进 casing**,因为 R2 把两者并列点名,而它们的材质与去向不必相同。'),
     ('electrolyte',      'Electrolyte',      '电解液',     false, true,  13, '【R4】目前计划**挥发掉** —— 它既不是产品也不是废物收据,是【消失掉的质量】。环保设备可能后加,那时它才会变成一条真的物料流。**它同时也是一个损耗类别**(loss_categories.electrolyte_evaporation)。');
+
+-- ── MES-4b(2026-10-07,MES-0 Q55;MES-4b Step 0 Q9 —— Tim 改了推荐:负极粉【可售】,它是一种成品;收集的粉尘暂不可售)──────
+-- 六种新的产出形态,都不装电芯(implies_dismantling 为假)。不播任何物料:物料由 Tim 在物料编辑器里建(Q11)。
+INSERT INTO public.material_forms (code, name_en, name_zh, implies_dismantling, may_be_sold, sort_order, notes) VALUES
+    ('cathode_powder',     'Cathode powder',          '正极粉',           false, true,  14, '【MES-4b · 规格 §3.5】正极片粉化的产品(正负极分开剥)。可售(Q9)。'),
+    ('anode_powder',       'Anode powder',            '负极粉',           false, true,  15, '【MES-4b · 规格 §3.5】负极片粉化的产品。**可售 —— Tim 改了 Step 0 的推荐(Q9):它是一种成品。**'),
+    ('copper_foil',        'Copper foil',             '铜箔',             false, true,  16, '【MES-4b · 规格 §3.5】负极剥粉之后留下的集流体。可售(Q9)。'),
+    ('aluminium_foil',     'Aluminium foil',          '铝箔',             false, true,  17, '【MES-4b · 规格 §3.5】正极剥粉之后留下的集流体。可售(Q9)。'),
+    ('collected_dust',     'Collected dust',          '收集的粉尘',       false, false, 18, '【MES-4b · 规格 §3.5】除尘收集、称过的粉尘 —— 一条产出腿,进物料平衡。**它不是损耗 dust_spill**:收回来称过的是产出,跑掉的才是损耗。**暂不可售(Q9)。**'),
+    ('harness_bms_busbar', 'Harness / BMS / busbar',  '线束 / BMS / 汇流排', false, true, 19, '【MES-4b · 规格 §3.2】人工拆解时单独称的线束、管理板与汇流排。可售(Q9)。');
+
+-- 产出批的号(MES-4b Q12 · MES-0 Q54):loose_cells 与 de_cased_cell 共用 CEL;black_mass · electrode_scrap · whole_pack · module ·
+-- mixed_unsorted · electrolyte 与没有形态的物料仍走 OUT(output_document_key 为空)。
+UPDATE public.material_forms SET output_document_key = 'output_cathode_powder' WHERE code = 'cathode_powder';
+UPDATE public.material_forms SET output_document_key = 'output_anode_powder' WHERE code = 'anode_powder';
+UPDATE public.material_forms SET output_document_key = 'output_copper_foil' WHERE code = 'copper_foil';
+UPDATE public.material_forms SET output_document_key = 'output_aluminium_foil' WHERE code = 'aluminium_foil';
+UPDATE public.material_forms SET output_document_key = 'output_separator' WHERE code = 'separator';
+UPDATE public.material_forms SET output_document_key = 'output_collected_dust' WHERE code = 'collected_dust';
+UPDATE public.material_forms SET output_document_key = 'output_cell' WHERE code IN ('loose_cells', 'de_cased_cell');
+UPDATE public.material_forms SET output_document_key = 'output_casing' WHERE code = 'casing';
+UPDATE public.material_forms SET output_document_key = 'output_structural_parts' WHERE code = 'structural_parts';
+UPDATE public.material_forms SET output_document_key = 'output_harness_bms_busbar' WHERE code = 'harness_bms_busbar';
+UPDATE public.material_forms SET output_document_key = 'output_cathode_sheet' WHERE code = 'cathode_sheet';
+UPDATE public.material_forms SET output_document_key = 'output_anode_sheet' WHERE code = 'anode_sheet';
 
 ALTER TABLE public.material_forms ENABLE ROW LEVEL SECURITY;
 -- 【目录不敏感】与 certificate_types / material_kinds / waste_classifications 同一处置。
@@ -106,3 +138,8 @@ R6 已裁定买进来的与自己产的是同一种物质,所以两份可以互�
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.material_forms
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.materials.edit');
+
+COMMENT ON COLUMN public.material_forms.output_document_key IS
+'MES-4b(MES-0 Q54;MES-4b Step 0 Q12 · Q13):这个形态的产出批取哪一种号 —— document_types 的 key(那一行说前缀与序列)。
+为空 = 通用的 output_batch(OUT)。generate_output_code 读它;前缀字面量只许活在 document_types 里(fixture 100 第 6 臂)。
+新前缀的序列从第一个号起就是五位(CPW-2026-00001),有洞、不按年重置。改映射是迁移级动作。';

@@ -13,7 +13,7 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import type { Json } from '@/lib/database.types'
 import {
-    setTolerance, addField, updateField, setFieldActive, linkMachine, unlinkMachine,
+    setTolerance, setElectrolyte, addField, updateField, setFieldActive, linkMachine, unlinkMachine,
     addRecipe, setRecipeActive, addRecipeVersion, type FieldInput,
 } from '../actions'
 
@@ -34,10 +34,15 @@ const blankField: FieldInput = {
     is_required: false, has_range: false, range_min: '', range_max: '', sort_order: '', notes: '',
 }
 
-export default function OperationTypeEditor({ code, transforming, tolerance, fields, machines, recipes, canEdit }: {
+export default function OperationTypeEditor({ code, transforming, tolerance, electrolyteApplies, electrolyteShare, requiresCellConstruction,
+    fields, machines, recipes, canEdit }: {
     code: string
     transforming: boolean
     tolerance: string | null
+    /** MES-4b(Q17):「Electrolyte evaporates in this step」· 电解液份额(V10,空 = 还没给)· 投料要不要带电芯结构(Q5,只读) */
+    electrolyteApplies: boolean
+    electrolyteShare: string | null
+    requiresCellConstruction: boolean
     fields: EditorField[]
     machines: EditorMachine[]
     recipes: EditorRecipe[]
@@ -61,6 +66,9 @@ export default function OperationTypeEditor({ code, transforming, tolerance, fie
 
     // ── 容差 ─────────────────────────────────────────────────────────────
     const [tol, setTol] = useState(tolerance ?? '')
+    // ── 电解液(MES-4b)─────────────────────────────────────────────────
+    const [elApplies, setElApplies] = useState(electrolyteApplies)
+    const [elShare, setElShare] = useState(electrolyteShare ?? '')
 
     // ── 字段 ─────────────────────────────────────────────────────────────
     const [editingField, setEditingField] = useState<string | null>(null)   // field_code | '__new__'
@@ -191,6 +199,44 @@ export default function OperationTypeEditor({ code, transforming, tolerance, fie
                     </>
                 ) : (
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{t('processing.opType.toleranceNotApplicable')}</p>
+                )}
+            </section>
+
+            {/* ── 电解液挥发(MES-4b · V10)与电芯结构 ── */}
+            <section data-section="electrolyte">
+                <h2 className="mb-1">{t('processing.opType.electrolyteTitle')}</h2>
+                {transforming ? (
+                    <>
+                        <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('processing.opType.electrolyteIntro')}</p>
+                        <PermissionGate code={EDIT} allowed={canEdit}>
+                            <div className="flex flex-wrap items-end gap-4">
+                                <label className="inline-flex items-center gap-2 text-sm min-h-[44px]">
+                                    <input type="checkbox" checked={elApplies} onChange={(e) => setElApplies(e.target.checked)} />
+                                    {t('processing.opType.electrolyteApplies')}
+                                </label>
+                                <label className="block">
+                                    <span className={lbl}>{t('processing.opType.colElectrolyteShare')}</span>
+                                    <span className="inline-flex items-center gap-1">
+                                        <input type="number" min="0" max="100" step="any" value={elShare} placeholder={t('dict.notYetSet')}
+                                               onChange={(e) => setElShare(e.target.value)} className={`${CONTROL_INPUT} w-28`} />
+                                        <span>%</span>
+                                    </span>
+                                </label>
+                                <Button type="button" disabled={pending} onClick={() => run('electrolyte', () => setElectrolyte(code, elApplies, elShare))}>
+                                    {t('common.save')}
+                                </Button>
+                            </div>
+                        </PermissionGate>
+                        {electrolyteApplies && electrolyteShare === null && (
+                            <p className="mt-2 text-sm text-amber-700" data-not-set="electrolyte-share">{t('processing.opType.electrolyteShareUnset')}</p>
+                        )}
+                        {err('electrolyte')}
+                    </>
+                ) : (
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('processing.opType.electrolyteNotApplicable')}</p>
+                )}
+                {requiresCellConstruction && (
+                    <p className="mt-3 text-sm" data-requires="cell-construction">{t('processing.opType.requiresCellConstruction')}</p>
                 )}
             </section>
 

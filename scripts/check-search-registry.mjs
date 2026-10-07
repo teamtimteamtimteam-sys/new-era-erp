@@ -66,7 +66,9 @@ const MIRROR = join(ROOT, 'db/tables/document_types.sql')
 // PAY-REQ-1(2026-09-23):40 → 41。新增 'payment_request'(/finance/payment-requests,detail)。
 // MES-1(2026-10-06):41 → 42。新增 'device'(/operation/devices,detail;DEV,有洞)。
 // MES-2(2026-10-06):42 → 43。新增 'weighbridge_ticket'(/operation/weighbridge,detail;WB,有洞)。
-const EXPECTED_ROWS = 43
+// MES-4b(2026-10-07):43 → 55。新增 12 种产出批前缀(CPW · APW · CUF · ALF · SEP · DST · CEL · CSG · STR · HBB · CTS · ANS),
+//   都在 output_batches 上、都是 /output 的 list_q、都有洞(各自一条序列);OUT 那一行留着。
+const EXPECTED_ROWS = 55
 // ★ SEARCH-5:`type_list` 那 5 种单据的落点。**一张共享页,不是每种一张。**
 const TYPE_LIST_PAGE = join(ROOT, 'app/documents/[key]/page.tsx')
 

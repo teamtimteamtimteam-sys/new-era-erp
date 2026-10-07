@@ -22,7 +22,7 @@ const EDIT = 'module.processing.edit'
 const CONSTRAINTS = [
     'operation_type_fields_range_shape', 'operation_type_fields_field_code_check', 'operation_type_fields_pkey',
     'process_recipes_code_check', 'process_recipes_code_key', 'operation_types_balance_tolerance_pct_check',
-    'operation_type_equipment_pkey',
+    'operation_type_equipment_pkey', 'operation_types_electrolyte_share_pct_check',
 ] as const
 
 async function opError(message: string): Promise<string> {
@@ -54,6 +54,21 @@ export async function setTolerance(code: string, raw: string): Promise<OpState> 
     const supabase = await createClient()
     const { data, error } = await supabase.from('operation_types')
         .update({ balance_tolerance_pct: v }).eq('code', code).select('code')
+    if (error) return { error: await opError(error.message) }
+    if (!data || data.length === 0) return { error: (await refuseNothingChanged(EDIT)).error }
+    refresh(code)
+    return {}
+}
+
+/** MES-4b(Step 0 Q17,Tim):「Electrolyte evaporates in this step」与电解液份额(V10,投入质量的 %)。
+ *  勾选标的是损耗【发生】在哪一段(不是压缩机装在哪);份额空 = 还没给 —— 那时这一段的电解液挥发只能量出来。 */
+export async function setElectrolyte(code: string, applies: boolean, rawShare: string): Promise<OpState> {
+    const t = await getTranslations()
+    const v = numOrNull(rawShare)
+    if (v === 'bad' || (v !== null && (v < 0 || v > 100))) return { error: t('processing.opType.errElectrolyteShare') }
+    const supabase = await createClient()
+    const { data, error } = await supabase.from('operation_types')
+        .update({ electrolyte_loss_applies: applies, electrolyte_share_pct: v }).eq('code', code).select('code')
     if (error) return { error: await opError(error.message) }
     if (!data || data.length === 0) return { error: (await refuseNothingChanged(EDIT)).error }
     refresh(code)
