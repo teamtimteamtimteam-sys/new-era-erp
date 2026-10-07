@@ -193,7 +193,9 @@ Before: 2026-10-06 21:19:26 (`~/mes3a-work/logs/before.txt`); after: 2026-10-07 
 ### §5.4 · Broken window
 
 Start **2026-10-07 09:07:01 CST** (measured, `db/migration-windows.tsv`). End = the moment Tim sees the deployment succeed on Vercel
-(a report from Tim, to be recorded at the next close-out). Everything from step 4 on ran inside the window. What is broken in it
+(a report from Tim, to be recorded at the next close-out). **Closed at the close-out (2026-10-07):** end between **09:49:19** (measured,
+the push in `git reflog … refs/remotes/origin/main`) and **10:08:13** (the close-out's first command, holding Tim's "deployed" — a report,
+not a Vercel reading) → **42 min 18 s – 1 h 01 min 12 s**; `docs/forward-queue.md` item 38. Everything from step 4 on ran inside the window. What is broken in it
 (**derived**, Step 0 Q33, not measured on live): the output batch page's safety panel cannot add or end a state (the old page wrote
 directly; the policies are gone); the intake panel cannot un-tick a state (the old page sends no reason); new refusal codes show raw on the
 old pages. Nothing else.
