@@ -445,6 +445,32 @@
 >    ② **被抽走的电解液会不会凝成液体被装桶** —— 若会,之后某一刀把它当一条危险废物产出来称(那时它就不只是一条命名的损耗);
 >    ③ **风管上有没有流量计或称重**。
 >    **下一刀 MES-5a · Discharge and energy**(见下面「⬜ ★ MES 组」)。
+>    ★ **部署:Tim 在 Vercel 上确认 `2915f3f7` 已部署(MES-4b close-out + MES-5a Step 0 委托书,2026-10-08)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-07 23:58:59 CST**(测量:`db/migration-windows.tsv:224`,`2026-10-07-mes4b-fields-and-products.sql`)·
+>    终点下界 **2026-10-08 08:52:38 CST**(测量:推送把 `origin/main` 移到 `2915f3f7`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`2915f3f7 … {2026-10-08 08:52:38 +0800}: update by push`)·
+>    终点上界 **2026-10-08 09:02:44 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 8 h 53 min 39 s,至多 9 h 03 min 45 s。** 长,是因为推送晚了:MES-4b 的提交 01:22:56 落地,01:23:25 那一次 `git push`
+>    被自动模式的分类器拒(`[Out-of-Place Publication]`),直到 Tim 08:52:38 自己跑 `! git push origin main` —— 窗口里约 **7 h 29 min** 是在等那一次推送
+>    (MES-4b 会话记录末尾,`~/.claude/projects/-Users-timchen/33f1ea65-4929-42d0-93db-150773de6671.jsonl`,本机,不在仓库里)。
+>    迁移之后的验证(生成类型、tsc、构建、整门、版式探针、三次冒烟、Q32 重跑、线上证明与逐角色读数、前后读数)跑在窗口的头 1 h 21 min 里(`docs/handbacks/MES-4b.md` §4 · §5)。
+>    窗口里坏掉的(**推导**,MES-4b 交回 §5.4,没有在线上量):旧代码自己的写调用一条都不会被拒;旧首页没有 `contamination_check_missing` 的句子(线上一行都没有);读的一切照常。
+>    close-out 的只读读数(2026-10-08 09:14 CST,`postgres`,`rolbypassrls = true`,基表;`docs/surveys/MES-5a/closeout-readings.sql`,`READ_OWN_EXIT=0`):
+>    带电芯结构的批次 **0** · 勾了电解液挥发的工序 **0**、给了份额的 **0** · 六种新形态上的物料 **0** —— 窗口里没有人用过这一刀的新东西。
+>    ★ **Tim 自己的动作(部署之后)**:在物料编辑器(`/materials/new`)里为六种新形态各建物料 —— 正极粉 `cathode_powder` · 负极粉 `anode_powder` ·
+>    铜箔 `copper_foil` · 铝箔 `aluminium_foil` · 集尘 `collected_dust` · 线束 / BMS / 汇流排 `harness_bms_busbar`。MES-4b 一行物料都没播(Step 0 Q11),
+>    线上这六种形态上至今 **0** 行物料(上面的读数)。建的时候:种类选电池料(`battery_material`)、来源必填、**规格尺寸留空**(这六种都不需要拆解,
+>    填了会被 `MATERIAL_SIZE_FORMAT_NOT_APPLICABLE` 拒,编辑器本来就不摆那一格);要喂进加工就把"可投料"选成是。建好之后加工单的产出腿选这些物料,
+>    批号自动取 CPW / APW / CUF / ALF / DST / HBB(第一个号是 `…-00002`:`-00001` 被 MES-4b 的线上证明烧掉了,交回 §5.1)。
+>    要 `module.materials.edit`(线上 admin · cco · cto · finance · operations · procurement 持有,在册账号 4 个)。集尘【不可售】(Q9),其余五种可售。
+>    ★ **close-out 的核对(委托书第 3 条 a–j)**:a–i 逐项读到了,**没有缺、没有哪一项不像说的那样工作**;逐项证据(文件:行号、fixture 的臂、
+>    对着 HEAD 的本地重建【重跑】的故障注入 —— fixture 254 37 / 37、fixture 253 71 / 71、fixture 195 E4 2 / 2、引导清单 1 / 1 全红在点名处 —— 与线上只读读数)
+>    写在 MES-5a Step 0 交回的 §0(`docs/surveys/MES-5a/STEP0-HANDBACK.md`)。两条只在【措辞】上的说明,不是缺口:
+>    ① 委托书说四张表进了"两张镜像检查清单" —— 实际是进了 `RUNTIME_CONFIG_TABLES`(`db/check_mirrors.py:321,324`)这【一张】,它被两支检查器读
+>    (`check_mirrors.py:1077` 与 `db/gate.py:544`);它们【刻意不在】`SEED_TABLES` —— Q30 的裁定正是这样分类的(运行时配置不逐行比对线上)。
+>    ② "11 支取号过了 9,999 不截短":端到端铸出 `…-10000` 的只有进料批与产出批两支(fixture 254 NUM:322–336);另外 9 支是【读代码】—— 同一句
+>    `LPAD(n, GREATEST(4, length(n)), '0')`(逐支 file:line 见交回 §0 e),外加对那一句本身的求值(7 → 0007 · 9999 → 9999 · 10000 → 10000)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
