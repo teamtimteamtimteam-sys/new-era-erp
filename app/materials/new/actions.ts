@@ -56,6 +56,9 @@ export async function createMaterial(
         // 与 CHECK 同一条判据(NULL 或 > 0)—— 界面先说人话,数据库仍然兜底。
         safety_stock_qty = Number.isNaN(n) || n <= 0 ? NaN : n
     }
+    // MES-5a-1(V9):放电通过电压 —— 空 = 没设(NULL,结论"判不了");与表上的 CHECK 同一条(NULL 或 > 0)
+    const dpv_raw = (formData.get('discharge_pass_voltage_v') as string)?.trim() || ''
+    const discharge_pass_voltage_v: number | null = dpv_raw === '' ? null : (Number(dpv_raw) > 0 ? Number(dpv_raw) : NaN)
     const notes = (formData.get('notes') as string)?.trim() || null
 
     // 2. 校验
@@ -72,6 +75,9 @@ export async function createMaterial(
 
     if (safety_stock_qty !== null && Number.isNaN(safety_stock_qty)) {
         fieldErrors.safety_stock_qty = t('materials.form.errSafetyStock')
+    }
+    if (discharge_pass_voltage_v !== null && Number.isNaN(discharge_pass_voltage_v)) {
+        fieldErrors.discharge_pass_voltage_v = t('materials.form.errDischargePassV')
     }
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
@@ -98,6 +104,7 @@ export async function createMaterial(
         unit,
         spec,
         safety_stock_qty,
+        discharge_pass_voltage_v,
         notes,
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,

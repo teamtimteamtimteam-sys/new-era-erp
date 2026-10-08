@@ -44,6 +44,12 @@ export async function createFieldReceipt(
     // RECV-SOURCE-1(R1):没挂采购行就必须给理由(服务端独立拒;库里触发器是第三道)
     const source_reason_code = (formData.get('source_reason_code') as string)?.trim() || null
     const cell_construction = (formData.get('cell_construction') as string)?.trim() || null
+    // MES-5a-1(Q4):模组数 —— 可选;空就整个参数不传(库里落 NULL = 没记)。写不成正整数的按库里那条码说出来,不悄悄丢掉
+    const module_count_raw = (formData.get('module_count') as string)?.trim() || ''
+    const module_count = module_count_raw === '' ? null : Number(module_count_raw)
+    if (module_count !== null && !(Number.isInteger(module_count) && module_count > 0)) {
+        return { error: await localizeProcessingError(`MODULE_COUNT_INVALID|${module_count_raw}`) }
+    }
     const source_reason_note = (formData.get('source_reason_note') as string)?.trim() || null
     // GRN-1b:申报量【可选】。空 = 没记录过,【不是 0】—— 所以空的时候
     // 整个 p_declared_qty 参数都不传(下面用展开),让库里落 NULL。
@@ -139,6 +145,8 @@ export async function createFieldReceipt(
             ...(ticket_id && quantity_reason ? { p_quantity_reason: quantity_reason } : {}),
             // MES-4b(Q4):电芯结构 —— 没选就整个参数不传(库里落 NULL = 没记)
             ...(cell_construction === null ? {} : { p_cell_construction: cell_construction }),
+            // MES-5a-1(Q4):模组数 —— 没填就整个参数不传
+            ...(module_count === null ? {} : { p_module_count: module_count }),
         })
 
     if (error || !data) {
@@ -154,7 +162,7 @@ export async function createFieldReceipt(
         if (deniedCode) return { error: (await refusePermission(deniedCode[1] ?? '')).error }
 
         // MES-4b(Q4):电芯结构的两条拒绝(不认识的结构 · 这一种形态不装电芯)—— 句子住在加工那一支(批次页上同一扇门也抛它们)
-        if (/\bCELL_CONSTRUCTION_(UNKNOWN|NOT_APPLICABLE)\b/.test(error?.message ?? '')) {
+        if (/\b(CELL_CONSTRUCTION_(UNKNOWN|NOT_APPLICABLE)|MODULE_COUNT_(INVALID|NOT_APPLICABLE))\b/.test(error?.message ?? '')) {
             return { error: await localizeProcessingError(error!.message) }
         }
 

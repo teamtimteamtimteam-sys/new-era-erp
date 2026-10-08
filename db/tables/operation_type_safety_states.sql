@@ -65,7 +65,14 @@ INSERT INTO public.operation_type_safety_states (operation_type_code, safety_sta
      '【R2】"损坏电池"。同上,不解决 —— 料被粉碎掉了。'),
     -- 【PROC-COST-1 / R4】这一行就是上面那段表注在等的裁定。
     ('battery_powder_line', 'swollen_leaking', false,
-     '【R4,PROC-COST-1】Tim 裁定:鼓包与漏液同一处置,走整电池粉料线,与 damaged_deformed 同形。不解决 —— 料被粉碎掉了,不是被治好了。【深度放电仍然不受理它】:放电机解决不了起火风险(fixture 159 F3 钉着那一条)。');
+     '【R4,PROC-COST-1】Tim 裁定:鼓包与漏液同一处置,走整电池粉料线,与 damaged_deformed 同形。不解决 —— 料被粉碎掉了,不是被治好了。【深度放电仍然不受理它】:放电机解决不了起火风险(fixture 159 F3 钉着那一条)。'),
+    -- 【MES-5a-1 · Step 0 Q11】拆去隔离:原批还没核实(有模组放电失败),所以它带着"带电未放电";拆分不解决它 —— 拆出去的那一批照样带着它。
+    ('discharge_quarantine_split', 'charged_not_discharged', false,
+     '【MES-5a-1 · MES-0 Q23】从一批还没核实的料里拆出放电失败、处置为隔离的模组。不解决 —— 拆出去的那一批照样是"带电未放电",进隔离库位。'),
+    -- 已放电并核实的料也受理(不解决):fixture 178 D3 钉着的那个重合 —— "一般可投的状态被【每一道】启用的工序受理" —— 不因多一道工序而破。
+    --   拆分本身还要求点名的模组最新一条是"失败 · 隔离",一批核实了的料没有这样的模组,拆分函数照样会拒;这一行只是不让两条规则分家。
+    ('discharge_quarantine_split', 'discharged_verified', false,
+     '【MES-5a-1】受理、不解决 —— 保住 fixture 178 D3 的重合(一般可投的状态被每一道启用的工序受理)。拆分函数另外要求点名的模组是"失败 · 隔离"。');
 
 ALTER TABLE public.operation_type_safety_states ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_type_safety_states select all" ON public.operation_type_safety_states

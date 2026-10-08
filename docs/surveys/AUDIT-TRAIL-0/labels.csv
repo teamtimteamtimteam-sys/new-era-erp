@@ -3357,3 +3357,56 @@ contamination_checks,recorded_at,audit_std,hide: the trail entry already says wh
 contamination_checks,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
 contamination_checks,corrects_id,technical,hide: the check it corrects (the block says Corrected),,,Corrects,,,bigint
 contamination_checks,correction_reason,text,verbatim,,,Reason for the correction,,,text
+inbound_batches,module_count,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Module count,,,integer
+output_batches,module_count,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Module count,,,integer
+materials,discharge_pass_voltage_v,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Discharge pass voltage (V),,,numeric
+operation_types,verifies_by_unit,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Checked module by module,,,boolean
+operation_types,started_from_run_page,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Started from a run page,,,boolean
+discharge_module_results,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+discharge_module_results,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+discharge_module_results,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,Inbound batch,,,uuid
+discharge_module_results,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+discharge_module_results,module_ref,text,verbatim,,,Module,,,text
+discharge_module_results,channel_no,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Channel,,,integer
+discharge_module_results,outlet_voltage_v,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Outlet voltage (V),,,numeric
+discharge_module_results,start_voltage_v,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Start voltage (V),,,numeric
+discharge_module_results,verdict,enum,ENUM_OVERRIDES discharge_module_results#verdict,,,Verdict,,,text
+discharge_module_results,verdict_at,timestamp_audit,formatAuditStamp,,,Verdict at,,,timestamp with time zone
+discharge_module_results,disposition,enum,ENUM_OVERRIDES discharge_module_results#disposition,,,Disposition,,,text
+discharge_module_results,duration_min,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Duration (minutes),,,numeric
+discharge_module_results,energy_recovered_wh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Energy recovered (Wh),,,numeric
+discharge_module_results,pass_voltage_v_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Pass voltage at the time (V),,,numeric
+discharge_module_results,contradicts_pass_voltage,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Contradicts the pass voltage,,,boolean
+discharge_module_results,photo_path,technical,hide,,,Screen photo,,,text
+discharge_module_results,notes,text,verbatim,,,Notes,,,text
+discharge_module_results,source,enum,ENUM_OVERRIDES discharge_module_results#source,,,Source,,,text
+discharge_module_results,device_id,fk_document,"devices.code (document number, prefix DEV)",,,Discharge cabinet,,,uuid
+discharge_module_results,inbox_id,technical,hide: the inbox row number,,,Inbox row,,,bigint
+discharge_module_results,draft_id,technical,hide: the draft it came from,,,Draft,,,uuid
+discharge_module_results,site_from,timestamp_audit,formatAuditStamp,,,Measured from,,,timestamp with time zone
+discharge_module_results,site_to,timestamp_audit,formatAuditStamp,,,Measured until,,,timestamp with time zone
+discharge_module_results,site_dataset_ref,text,verbatim,,,Raw data at site,,,text
+discharge_module_results,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+discharge_module_results,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+discharge_module_results,corrects_id,technical,hide: the result it corrects (the block says Corrected),,,Corrects,,,bigint
+discharge_module_results,correction_reason,text,verbatim,,,Reason for the correction,,,text
+discharge_channel_assignments,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+discharge_channel_assignments,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+discharge_channel_assignments,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,Inbound batch,,,uuid
+discharge_channel_assignments,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+discharge_channel_assignments,channel_no,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Channel,,,integer
+discharge_channel_assignments,module_ref,text,verbatim,,,Module,,,text
+discharge_channel_assignments,withdrawn,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Withdrawn,,,boolean
+discharge_channel_assignments,assigned_at,audit_std,hide: the trail entry already says who and when,,,Assigned on,,,timestamp with time zone
+discharge_channel_assignments,assigned_by,audit_std,hide: the trail entry already says who and when,,,Assigned by,,,uuid
+discharge_channel_assignments,corrects_id,technical,hide: the assignment it corrects (the block says Corrected),,,Corrects,,,bigint
+discharge_channel_assignments,correction_reason,text,verbatim,,,Reason for the correction,,,text
+discharge_module_splits,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+discharge_module_splits,split_run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Split run,,,uuid
+discharge_module_splits,discharge_run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Discharge run,,,uuid
+discharge_module_splits,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,From inbound batch,,,uuid
+discharge_module_splits,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,From output batch,,,uuid
+discharge_module_splits,module_ref,text,verbatim,,,Module,,,text
+discharge_module_splits,new_output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Quarantine batch,,,uuid
+discharge_module_splits,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+discharge_module_splits,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid

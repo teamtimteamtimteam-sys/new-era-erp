@@ -19,6 +19,7 @@ import {
 import { useTranslations } from '@/lib/i18n/client'
 import NeaCategoryPicker, { type NeaCategory } from '@/app/materials/NeaCategoryPicker'
 import DgHsFields from '@/app/materials/DgHsFields'
+import DischargePassVoltageField from '@/app/materials/DischargePassVoltageField'
 import type { DgCode } from '@/app/materials/dgOptions'
 import WasteClassPicker from '../WasteClassPicker'
 import type { WasteClass } from '../wasteClassOptions'
@@ -203,6 +204,9 @@ export default function NewMaterialForm({
                     )}
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.safetyStockHint')}</p>
                 </div>
+
+                {/* MES-5a-1(V9):模组放电到多少伏以下算放完 —— 只标出矛盾的结论,从不判 */}
+                <DischargePassVoltageField defaultValue={null} error={state.fieldErrors?.discharge_pass_voltage_v} />
 
                 {/* 备注 */}
                 <div>

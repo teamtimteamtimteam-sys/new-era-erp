@@ -54,6 +54,8 @@ DECLARE
     v_cc_any_null  boolean := false;
     v_cc_inherit   text;
     v_dismantles   boolean;
+    -- MES-5a-1:这道工序的结果状态由逐件的结果判,不在提交时写
+    v_by_unit      boolean;
 BEGIN
     -- ★ ROLE-1 Batch 3b(Tim 2026-09-25):提交加工归仓库 —— action.processing_commit(warehouse · admin)。
     PERFORM require_permission('action.processing_commit');
@@ -103,8 +105,8 @@ BEGIN
     -- 【PROC-SUPPORT-1:这一段不再被 IF ... IS NOT NULL 包着】—— 上面那条拒绝
     -- 已经保证到得了这里就有工序。留着那个 IF 会读起来像"还有一条没有工序的路"。
     -- ════════════════════════════════════════════════════════════════════════
-    SELECT ot.code, k.consumes_input, k.produces_outputs, ot.resulting_safety_state_code, ot.requires_cell_construction
-      INTO v_op, v_consumes, v_produces, v_result_state, v_req_cc
+    SELECT ot.code, k.consumes_input, k.produces_outputs, ot.resulting_safety_state_code, ot.requires_cell_construction, ot.verifies_by_unit
+      INTO v_op, v_consumes, v_produces, v_result_state, v_req_cc, v_by_unit
       FROM operation_types ot
       JOIN operation_kinds k ON k.code = ot.kind_code
      WHERE ot.code = p_operation_type_code AND ot.is_active;
@@ -463,7 +465,10 @@ BEGIN
             -- ★ MES-3a(2026-10-06,MES-0 Q36;MES-3a Step 0 Q22 · Q2,Tim):解决掉的状态被【结束】(记下是哪一张加工单),
             --   不再被删;写上的结果状态记 created_by_run_id —— 回滚据这两列把这一炉做过的事原样撤回。
             --   结果状态已经开着(批次本来就带着它)→ 不插(开着的只有一条),于是回滚也不会结束那条不是它写的。
-            IF NOT v_produces AND v_result_state IS NOT NULL THEN
+            -- ★ MES-5a-1(2026-10-08,MES-0 Q23 · Q24;MES-5a Step 0 Q5 · Q6,Tim):【verifies_by_unit 的工序在这里不改状态】—— 提交只记下这一炉。
+            --   结果状态由逐件的结果判(discharge_verify_batch:每一个计数的模组都有一条当前的通过,或已被拆去隔离);一张单单靠提交永远核实不了。
+            --   这同时关掉了 P1:此前放 10 kg 一批 100 kg 的料,整批都会被写成已放电并核实。
+            IF NOT v_produces AND v_result_state IS NOT NULL AND NOT v_by_unit THEN
                 UPDATE inbound_batch_safety_states s
                    SET ended_at = now(), ended_by = v_user_id, ended_by_run_id = v_run_id,
                        end_reason = 'resolved by processing run ' || (SELECT pr.code FROM processing_runs pr WHERE pr.id = v_run_id)
@@ -491,20 +496,25 @@ BEGIN
             -- ════════════════════════════════════════════════════════════
             -- FIN-25:产出批投料。state 是【销售状态】(表注),消耗不碰它 ——
             -- 只扣 remaining_qty,流水挂 output_batch_id(XOR 的另一侧)。
-            SELECT remaining_qty INTO v_remaining
-            FROM output_batches WHERE id = v_output_id;
-            v_new_remaining := v_remaining - v_consumed;
+            -- ★ MES-5a-1(2026-10-08,P3;MES-5a Step 0 Q14,Tim):【直通式不扣库存 —— 产出批这一侧也一样】进料批那一侧一直有
+            --   IF v_consumes 这一道(上面 PROC-WIRE-1B-i 那一段),这一侧没有:一炉深度放电放一批自产的料,会把放过的那几公斤从库存里扣掉,
+            --   而那批货还在院子里。现在两侧同一句。投入腿照记(通过量)。
+            IF v_consumes THEN
+                SELECT remaining_qty INTO v_remaining
+                FROM output_batches WHERE id = v_output_id;
+                v_new_remaining := v_remaining - v_consumed;
 
-            UPDATE output_batches
-            SET remaining_qty = v_new_remaining,
-                updated_by = v_user_id,
-                updated_at = now()
-            WHERE id = v_output_id;
+                UPDATE output_batches
+                SET remaining_qty = v_new_remaining,
+                    updated_by = v_user_id,
+                    updated_at = now()
+                WHERE id = v_output_id;
 
-            PERFORM drain_stock(
-                p_qty => v_consumed, p_movement_type => 'processing_consume',
-                p_business_date => v_process_date, p_output_batch_id => v_output_id,
-                p_statuses => ARRAY['available'], p_run_id => v_run_id, p_created_by => v_user_id);
+                PERFORM drain_stock(
+                    p_qty => v_consumed, p_movement_type => 'processing_consume',
+                    p_business_date => v_process_date, p_output_batch_id => v_output_id,
+                    p_statuses => ARRAY['available'], p_run_id => v_run_id, p_created_by => v_user_id);
+            END IF;
 
             INSERT INTO processing_inputs (run_id, output_batch_id, quantity_consumed)
             VALUES (v_run_id, v_output_id, v_consumed);
@@ -515,8 +525,8 @@ BEGIN
             -- 自产料会永远带着"未放电",下一道工序仍然拒绝它 —— 那就是
             -- 1B-i 解掉的那个死锁,换到产出批上原样复发。
             -- ════════════════════════════════════════════════════════════
-            -- ★ MES-3a:与进料侧逐字同形 —— 结束,不删;结果状态记 created_by_run_id。
-            IF NOT v_produces AND v_result_state IS NOT NULL THEN
+            -- ★ MES-3a:与进料侧逐字同形 —— 结束,不删;结果状态记 created_by_run_id。MES-5a-1:verifies_by_unit 的工序同样不在这里改。
+            IF NOT v_produces AND v_result_state IS NOT NULL AND NOT v_by_unit THEN
                 UPDATE output_batch_safety_states s
                    SET ended_at = now(), ended_by = v_user_id, ended_by_run_id = v_run_id,
                        end_reason = 'resolved by processing run ' || (SELECT pr.code FROM processing_runs pr WHERE pr.id = v_run_id)

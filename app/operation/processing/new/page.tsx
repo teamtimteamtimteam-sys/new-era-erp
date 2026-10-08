@@ -31,7 +31,7 @@ export default async function NewProcessingPage({
     const [batchesRes, outputBatchesRes, materialsRes, settingsRes, workOrdersRes] = await Promise.all([
         supabase
             .from('inbound_batches')
-            .select('id, code, remaining_qty, unit, material_id, cell_construction_code')
+            .select('id, code, remaining_qty, unit, material_id, cell_construction_code, module_count')
             .is('deleted_at', null)
             .gt('remaining_qty', 0) // 只看还有库存的批次
             .order('code'),
@@ -39,7 +39,7 @@ export default async function NewProcessingPage({
         // (ROLE-1 Batch 3b:两处批次都不再嵌 materials ( name ),名字在下面从 material_lookup 映射)
         supabase
             .from('output_batches')
-            .select('id, code, remaining_qty, unit, material_id, cell_construction_code')
+            .select('id, code, remaining_qty, unit, material_id, cell_construction_code, module_count')
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
             .order('code'),
@@ -93,9 +93,11 @@ export default async function NewProcessingPage({
     // 【嵌进来读,不在这里写死】加一道工序或者改它收什么,是加一行数据。
     const operationsRes = await supabase
         .from('operation_types')
-        .select('code, name_en, name_zh, requires_cell_construction, operation_kinds ( produces_outputs ), ' +
+        .select('code, name_en, name_zh, requires_cell_construction, verifies_by_unit, operation_kinds ( produces_outputs ), ' +
                 'operation_type_input_forms ( material_forms ( code, name_en, name_zh ) )')
         .eq('is_active', true)
+        // MES-5a-1(Q11):拆去隔离那一道只从放电那一炉的页面上起(它要知道拆的是哪几个模组)—— 这张表单不列它
+        .eq('started_from_run_page', false)
         .order('sort_order')
     // MES-4a(Q9 · Q10–Q16):每道工序挂着的机器、它的字段、它在用的配方的各个版本 —— 一并读,按工序归位。
     const [linksRes, fieldsRes, recipesRes, versionsRes, shiftsRes, weighRes, devicesRes] = await Promise.all([
@@ -126,7 +128,7 @@ export default async function NewProcessingPage({
             param_values: (v.param_values ?? {}) as Record<string, unknown>,
         })))
     const operations: OperationOption[] = (mustRows(operationsRes, 'operation_types') as unknown as {
-        code: string; name_en: string; name_zh: string; requires_cell_construction: boolean
+        code: string; name_en: string; name_zh: string; requires_cell_construction: boolean; verifies_by_unit: boolean
         operation_kinds: { produces_outputs: boolean } | null
         operation_type_input_forms: { material_forms: { code: string; name_en: string; name_zh: string } | null }[]
     }[]).map((o) => ({
@@ -137,6 +139,7 @@ export default async function NewProcessingPage({
         // 而真正的权威是 commit_processing_run,不是这一屏。
         produces_outputs: o.operation_kinds?.produces_outputs ?? true,
         requires_cell_construction: !!o.requires_cell_construction,
+        verifies_by_unit: !!o.verifies_by_unit,
         input_forms: o.operation_type_input_forms
             .map((r) => r.material_forms)
             .filter((f): f is { code: string; name_en: string; name_zh: string } => f !== null),

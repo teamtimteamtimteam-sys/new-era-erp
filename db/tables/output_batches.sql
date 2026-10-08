@@ -71,7 +71,10 @@ CREATE TABLE public.output_batches (
     -- 之后在批次页上改,直到这一批喂过一张已提交的加工单(CELL_CONSTRUCTION_LOCKED)。守卫:guard_batch_cell_construction。
     -- 本表【不是】遮蔽表(没有列级授权、没有 _masked 伴生 —— MES-4b Step 0 §1.1 实测),所以只有这一列。
     cell_construction_code text
-                  REFERENCES public.cell_constructions (code)
+                  REFERENCES public.cell_constructions (code),
+    -- ── MES-5a-1 追加的列(2026-10-08,规格 §3.1;MES-5a Step 0 Q4,Tim)─────────────────────────
+    -- 这一批有几个模组(与 inbound_batches.module_count 同义同规矩,守卫 guard_batch_module_count)。拆去隔离的那一批由拆分函数写上拆出去的模组数。
+    module_count  integer CHECK (module_count IS NULL OR module_count > 0)
 );
 
 
@@ -149,6 +152,11 @@ CREATE TRIGGER trg_generate_output_code
 CREATE TRIGGER trg_output_batches_cell_construction
     BEFORE INSERT OR UPDATE OF cell_construction_code, material_id ON public.output_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_cell_construction();
+
+-- MES-5a-1(Q4):模组数,与进料批同一个守卫。
+CREATE TRIGGER trg_output_batches_module_count
+    BEFORE INSERT OR UPDATE OF module_count, material_id ON public.output_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_module_count();
 
 -- 库存台账体系(函数见 db/functions/inventory_ledger_triggers.sql)
 CREATE TRIGGER trg_output_batches_emit_receipt
@@ -255,3 +263,7 @@ COMMENT ON COLUMN public.output_batches.cell_construction_code IS
 (material_forms.implies_dismantling;没有形态的物料不拦 —— 不知道不等于不适用),别的形态 CELL_CONSTRUCTION_NOT_APPLICABLE。
 提交加工单时从投料继承(每一批投料都是同一个值;否则留空,到批次页上补)。喂过一张已提交、没回滚的加工单之后不再改
 (CELL_CONSTRUCTION_LOCKED|<加工单>)—— 改它就是回滚那一张。极片分离的投料必须带一个确定的值(INPUT_CELL_CONSTRUCTION_REQUIRED)。';
+
+COMMENT ON COLUMN public.output_batches.module_count IS
+'MES-5a-1(规格 §3.1;MES-5a Step 0 Q4 · Q6 · Q11):这一批有几个模组 —— 与 inbound_batches.module_count 同义同规矩(guard_batch_module_count)。
+拆去隔离的那一批(discharge_quarantine_split 的产出)由 split_failed_modules_to_quarantine 写上拆出去的模组数。';

@@ -213,10 +213,10 @@ CREATE TRIGGER trg_processing_runs_soft_delete_provenance
 
 COMMENT ON COLUMN public.processing_runs.equipment_id IS
     'EQP-2a:这一炉是哪台机器跑的。可空,而"空"是一个【具名类别】(未归属),不是零。
-★【PROC-SUPPORT-1 / R2:这一列【不】跟着 operation_type_code 一起变成必填 —— 不要"修"掉这处不对称】★
-理由是一次【测量】,不是一次对称性偏好:线上 fixed_assets 只有 2 行,两行都是深度放电机(FA-2026-0001 / FA-2026-0002,in_service_date 均为 NULL)。于是 deep_discharge 对应【两台】机器(工序推不出机器,不可派生),而另外【四道】工序 —— manual_disassembly、electrode_line、electrode_powder_line、battery_powder_line —— 【一台在册机器都没有】。一旦这一列必填,这四道工序的加工单一张都提交不了。
-所以:operation_type_code 的字典【完整】(5/5 已播种)→ 必填代价为零;equipment_id 的字典【残缺】(5 道里 4 道无资产可指)→ 必填代价是让四道工序停摆。**这是字典完整性判断,不是对称性判断。**
-【真正的前置条件,可查询而不是凭感觉】(1) 每一道启用的工序至少有一台在册在役资产;(2) 而那需要一条【工序 ↔ 资产】的关联 —— **今天这个库里没有这条关联**,那才是缺口本身。记在 docs/processing-support-as-built.md。';
+★【这一列在表上【不】跟着 operation_type_code 一起变成必填 —— 不要"修"掉这处不对称】★
+PROC-SUPPORT-1 / R2 的理由是当时的一次【测量】:线上 fixed_assets 只有 2 行,都是深度放电机,另外四道工序一台在册机器都没有 —— 表上必填会让那四道工序一张单都提交不了;而当时库里没有【工序 ↔ 资产】的关联,那才是缺口本身。
+MES-4a(2026-10-07)建了那条关联(operation_type_equipment),于是必填改成【按工序】判,不在表上:一道工序挂着至少一台没处置的机器,这一炉就必须给机器,而且只能是挂着的那几台之一(assert_run_equipment:EQUIPMENT_REQUIRED_FOR_OPERATION · EQUIPMENT_NOT_LINKED_TO_OPERATION);没挂机器的工序照旧可以留空。机器挂不挂在哪道工序上是数据(工序页),不是这一列的约束。
+(MES-5a-1 更正,MES-5a Step 0 §10.4 · Q36:此前这段写着"今天这个库里没有这条关联",MES-4a 之后已不成立。)';
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

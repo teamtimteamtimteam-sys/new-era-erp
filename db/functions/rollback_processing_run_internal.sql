@@ -3,6 +3,10 @@
 -- 只拿掉了码的检查、加了 p_deleted_by(grilling Q6:产出批与加工单的 deleted_by、还原流水的 created_by =
 -- 提单人;不给 = 调用者本人)。冲销分录的 created_by 是调用者(批准的 CFO)。
 -- 内层算子,无调用者检查;EXECUTE 已从 authenticated 收回。
+-- MES-5a-1(2026-10-08,P2;MES-5a Step 0 Q15,Tim):第 3 步只在这一炉的工序【吃料】时还原库存 —— 一炉深度放电从没扣过库存,
+--   此前回滚却照样"还原":批次满着时被封顶成 0 而碰巧没事;批次之后被别的单用掉一部分时,还原对不上原始流水,
+--   IOD_RESTORE_MISMATCH|<放过的量>|0,于是这一炉放电再也回滚不了。另:回滚之后照规则重判每一批投料的放电核实
+--   (discharge_verify_batch —— 回滚掉的结果、拆分不再算数)。
 -- NOTE: introduced by db/migrations/2026-09-25-apr7-write-offs-rollbacks-and-cod-voids-wait-for-the-cfo.sql.
 
 CREATE OR REPLACE FUNCTION public.rollback_processing_run_internal(p_run_id uuid, p_reason text, p_deleted_by uuid DEFAULT NULL::uuid)
@@ -23,6 +27,7 @@ DECLARE
     v_cap uuid;             -- 首挂的资本化分录
     v_delta_id uuid;        -- PROC-COST-2:重分摊的差额分录,逐张
     v_code text;
+    v_consumes boolean;     -- MES-5a-1(P2):这一炉的工序吃不吃料(没有工序的历史单按吃料算 —— 那正是它们当年做的事)
 BEGIN
     -- ★ APR-7:本支是回滚那一步【本身】,不问码 —— EXECUTE 已从 authenticated 收回。唯一的调用者是
     --   warehouse_request_execute_internal(CFO 批准的回滚申请;deleted_by = 提单人,grilling Q6)。
@@ -68,10 +73,14 @@ BEGIN
 
     -- 3. 还原进料：加回 remaining_qty，重判 stage，记 reversal_restore 流水。
     --    FIN-25:产出批投料同样还原(不碰 state —— 那是销售状态)。
+    --    MES-5a-1(P2):只在这一炉的工序吃料时 —— 状态改变型(深度放电)提交时没扣过,回滚就没有东西可还(commit_processing_run 的 v_consumes 那一道,两边同一个判据)。
+    SELECT COALESCE((SELECT k.consumes_input FROM processing_runs pr JOIN operation_types ot ON ot.code = pr.operation_type_code
+                       JOIN operation_kinds k ON k.code = ot.kind_code WHERE pr.id = p_run_id), true)
+      INTO v_consumes;
     FOR v_input IN
         SELECT pi.inbound_batch_id, pi.output_batch_id, pi.quantity_consumed
         FROM processing_inputs pi
-        WHERE pi.run_id = p_run_id
+        WHERE pi.run_id = p_run_id AND v_consumes
     LOOP
         IF v_input.inbound_batch_id IS NOT NULL THEN
             SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
@@ -258,6 +267,20 @@ BEGIN
      WHERE id = p_run_id;
 
     PERFORM set_config('evoltrya.movement_ctx', '', true);   -- 用毕即清(同 commit)
+
+    -- ── MES-5a-1(Step 0 Q6 · Q15):回滚之后,照规则重判这一炉每一批投料的放电核实 ────────────────────────
+    --   回滚掉的那一炉的结果、它做的拆分都不再算数;上面那一段已经撤回了它自己写过的状态,这里让剩下的结论说了算
+    --   (还有别的没回滚的放电结论时,可能重新核实;记的是那一批此刻最晚的那一炉)。一批从没有过结论的料不被碰。
+    FOR v_input IN
+        SELECT pi.inbound_batch_id, pi.output_batch_id FROM processing_inputs pi WHERE pi.run_id = p_run_id
+    LOOP
+        PERFORM discharge_verify_batch(
+            CASE WHEN v_input.inbound_batch_id IS NOT NULL THEN 'inbound' ELSE 'output' END,
+            COALESCE(v_input.inbound_batch_id, v_input.output_batch_id),
+            (SELECT s.latest_run_id FROM discharge_batch_status_all s
+              WHERE s.batch_id = COALESCE(v_input.inbound_batch_id, v_input.output_batch_id)),
+            'after rollback of ' || COALESCE(v_code, '?'));
+    END LOOP;
 
     -- ── COD-1:冲销之后,这几票货不再是"加工完"的 ────────────────────────
     -- 【已签发的证书在这里作废,而且没有替代品】—— 冲销说的是那次加工没发生。

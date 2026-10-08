@@ -21,6 +21,9 @@
 --   D3 质量账:投入 = 产出 = 通过量,损耗【真的是 0】
 --      (只放松 NO_OUTPUTS 的实现会记下一笔等于全部投入的损耗);
 --   D4 批次身份还在,而**状态变了**:未放电没了,已放电有了。
+--      ★ MES-5a-1(2026-10-08,MES-5a Step 0 Q5 · Q6 · Q34,Tim):状态【不再在提交时变】—— 深度放电由逐模组的结果核实。
+--      D4 先断言【一张单单靠提交不核实】(未放电还开着、已放电没写上),再记下这一批每一个模组的"通过",然后照原样断言状态变了
+--      (未放电被结束、记着是哪一炉;已放电写上)。原来那三条断言一条没删,只是挪到结果之后。
 -- E ★ 死锁真的解开了:**放完电之后,转化型工序收得下它。**
 --   少了这一臂,一个"把放电做成什么都不改"的实现照样绿。
 --
@@ -128,6 +131,17 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM inbound_batches WHERE id = v_ib AND code = 'ZZ158-IB') THEN
         RAISE EXCEPTION 'FIXTURE 158D4 失败:同一批进、同一批出 —— 批次的身份必须活下来';
     END IF;
+    -- ★ MES-5a-1:一张单单靠提交不核实 —— 未放电还开着,已放电没写上。
+    IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states
+                    WHERE inbound_batch_id = v_ib AND safety_state_code = 'charged_not_discharged' AND ended_at IS NULL)
+       OR EXISTS (SELECT 1 FROM inbound_batch_safety_states
+                   WHERE inbound_batch_id = v_ib AND safety_state_code = 'discharged_verified' AND ended_at IS NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 158D4 失败(MES-5a-1):一张深度放电单单靠提交就把这一批核实了 —— 核实要每一个模组都有一条通过(verifies_by_unit)';
+    END IF;
+    -- 这一批两个模组,两个都通过 → 核实(记下是这一炉)
+    PERFORM set_batch_module_count('inbound', v_ib, 2);
+    PERFORM record_discharge_module_result(v_run, 'inbound', v_ib, 'M01', 0.5, 'pass', (v_d)::timestamptz + interval '30 minutes');
+    PERFORM record_discharge_module_result(v_run, 'inbound', v_ib, 'M02', 0.4, 'pass', (v_d)::timestamptz + interval '30 minutes');
     -- MES-3a(Q36 · Q22):解决掉的状态从此被【结束】(记下是哪一张加工单),不再被删 —— "身上还有没有"读开着的那几行。
     IF EXISTS (SELECT 1 FROM inbound_batch_safety_states
                 WHERE inbound_batch_id = v_ib AND safety_state_code = 'charged_not_discharged' AND ended_at IS NULL) THEN

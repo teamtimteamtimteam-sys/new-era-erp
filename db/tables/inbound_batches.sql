@@ -92,6 +92,11 @@ CREATE TABLE public.inbound_batches (
     -- 这一批电芯是卷绕还是叠片(cell_constructions)。收货时可选(两支收货函数末尾一个可缺省的参数),之后在批次页上补或改,
     -- 直到这一批喂过一张已提交的加工单。只对仍装着电芯的形态成立。【遮蔽表加一列 = 三件事一支迁移】列 + 列级授权 + _masked 视图。
     cell_construction_code    text REFERENCES public.cell_constructions (code),
+    -- ── MES-5a-1 追加(2026-10-08,规格 §3.1;MES-5a Step 0 Q4,Tim;ALTER 加的列排在末尾)──────────────
+    -- 这一批有几个模组(深度放电逐模组判:一批要每一个模组都有一条当前的"通过",或已被拆去隔离,才算放电并核实)。
+    -- 收货时可选(两支收货函数末尾一个可缺省的参数),之后在批次页上补;记第一条模组结果之前必须有(BATCH_MODULE_COUNT_REQUIRED)。
+    -- 这一批核实之后锁住。只对仍装着电芯的形态成立。【遮蔽表加一列 = 三件事一支迁移】列 + 列级授权 + _masked 视图。
+    module_count              integer CHECK (module_count IS NULL OR module_count > 0),
     -- 记录人与记录时刻【同生同灭】—— 与 inbound_import_verified_pair 同形。
     CONSTRAINT inbound_source_recorded_pair
         CHECK ((source_reason_recorded_by IS NULL) = (source_reason_recorded_at IS NULL)),
@@ -159,6 +164,11 @@ CREATE TRIGGER trg_generate_inbound_code
 CREATE TRIGGER trg_inbound_batches_cell_construction
     BEFORE INSERT OR UPDATE OF cell_construction_code, material_id ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_cell_construction();
+
+-- MES-5a-1(Q4):模组数只对装着电芯的形态成立;不许低于已经记了结果的模组数;这一批核实之后锁住(守卫函数在 db/functions/)。
+CREATE TRIGGER trg_inbound_batches_module_count
+    BEFORE INSERT OR UPDATE OF module_count, material_id ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_module_count();
 
 -- 库存台账体系(函数见 db/functions/inventory_ledger_triggers.sql)
 CREATE TRIGGER trg_inbound_batches_emit_receipt
@@ -327,7 +337,9 @@ GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty,
     source_reason_code, source_reason_note,
     source_reason_recorded_by, source_reason_recorded_at,
     -- MES-4b:电芯结构。不敏感(工艺路由要用的事实),进列清单授权 —— 三件事(列 + 本授权 + _masked 视图)同一支迁移。
-    cell_construction_code)
+    cell_construction_code,
+    -- MES-5a-1:模组数。不敏感(放电核实要用的计数),进列清单授权 —— 三件事同一支迁移。
+    module_count)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
@@ -451,3 +463,9 @@ COMMENT ON COLUMN public.inbound_batches.cell_construction_code IS
 (material_forms.implies_dismantling;没有形态的物料不拦 —— 不知道不等于不适用),别的形态 CELL_CONSTRUCTION_NOT_APPLICABLE。
 在批次页上补或改(set_batch_cell_construction:进料编辑码或加工提交码),直到这一批喂过一张已提交、没回滚的加工单(CELL_CONSTRUCTION_LOCKED|<加工单>)。
 极片分离 / 自动极片线的投料必须带一个确定的值(INPUT_CELL_CONSTRUCTION_REQUIRED)。不遮蔽:列级授权 + _masked 视图原样透出。';
+
+COMMENT ON COLUMN public.inbound_batches.module_count IS
+'MES-5a-1(规格 §3.1;MES-5a Step 0 Q4 · Q6):这一批有几个模组。为空 = 没记(收货时可选,批次页上补:set_batch_module_count,进料编辑码或加工提交码)。
+记这一批第一条放电模组结果之前必须有(BATCH_MODULE_COUNT_REQUIRED)。这一批被核实为"已放电并核实"(每一个模组都有一条当前的通过,或已被拆去隔离)
+之后锁住(MODULE_COUNT_LOCKED);不许低于已经记了结果的模组数(MODULE_COUNT_BELOW_RESULTS)。只对仍装着电芯的形态成立(没有形态的物料不拦)。
+不遮蔽:列级授权 + _masked 视图原样透出。';

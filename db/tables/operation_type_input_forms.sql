@@ -27,7 +27,12 @@ INSERT INTO public.operation_type_input_forms (operation_type_code, form_code, n
     ('battery_powder_line', 'mixed_unsorted', NULL),
     -- MES-4a(MES-0 Q37 · MES-4a Step 0 Q3):electrode_line 那两行拆给两段
     ('casing_removal', 'loose_cells', NULL),
-    ('electrode_separation', 'de_cased_cell', '【F2/R2】已开壳电芯也可以是【买进来的】——同一种物质,同一条下游路。');
+    ('electrode_separation', 'de_cased_cell', '【F2/R2】已开壳电芯也可以是【买进来的】——同一种物质,同一条下游路。'),
+    -- MES-5a-1(Step 0 Q11):拆去隔离收深度放电收的那几种形态(拆的是放电失败的模组)
+    ('discharge_quarantine_split', 'whole_pack', NULL),
+    ('discharge_quarantine_split', 'module', NULL),
+    ('discharge_quarantine_split', 'loose_cells', NULL),
+    ('discharge_quarantine_split', 'mixed_unsorted', NULL);
 
 -- 产出形态(状态改变型【一行都没有】,那正是 R3)
 

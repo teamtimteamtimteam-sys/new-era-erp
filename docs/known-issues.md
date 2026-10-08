@@ -3,6 +3,41 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## MES5A1-VIEW-REPLAY-ORDER-NOT-TOPOLOGICAL · 重建时视图的重放顺序【不是】拓扑排序 —— 一张视图可能在它读的那张视图之前被建(MES-5a-1 登记,2026-10-08)
+
+`db/check_mirrors.py` 的 `view_replay_order` 按"这张视图的定义里提到了几张别的视图"排、同数按文件名排(`db/gate.py` 与 `db/verify_rebuild.py` 都经它)。
+**那不是依赖顺序:** A 读 B、B 读 C 时,A 与 B 各提到一张视图,于是打平,文件名靠前的先建 —— 若那是 A,重建当场报 `relation "B" does not exist`。
+**MES-5a-1 撞上了它(本地重建,2026-10-08):** 带门的读者原名 `discharge_batch_status`,读 `discharge_batch_status_all`(它又读 `discharge_module_current_all`),
+两者各提到一张视图、文件名 `…_status.sql` < `…_status_all.sql`,于是先建了读者 → 重建失败。**本刀的处置是改名**(`discharge_status_by_batch`,排在后面),
+不是在一刀里改门的工具 —— 一个刚被自己绊倒的人现写的排序,没有人验过(AGENTS.md「匆忙的检查者」)。
+**它不会悄悄放过什么:** 顺序错了的结果是重建【失败】、门变红,不是一个错的库;所以它是一个摩擦,不是一个盲区。
+**删除条件:** `view_replay_order` 改成真的拓扑排序(读 `pg_depend` 或解析每张视图引用的视图名、按依赖排),并加一格故障注入:造一对"读者文件名靠前"的视图,断言重建照样成功。
+
+## ~~MES5A-P1-PARTIAL-DISCHARGE-FLIPS-WHOLE-BATCH · 放了一部分电,整批被标成"已放电并核实"(MES-5a Step 0 量到,2026-10-08)~~ —— ✅ **关闭于 MES-5a-1(`v1.4.43`,2026-10-08)**
+
+**找到:** `commit_processing_run` 在一炉深度放电提交的那一刻就结束投料批的"带电未放电"、写上"已放电并核实",不看这一炉放了多少 ——
+100 kg 的一批只放 10 kg,`remaining_qty` 仍是 100,而【整批】开着 `discharged_verified`(Step 0 §1 第 2 条与 §10.7,本地重建上的探针 P1;MES-0 Q23 当时标的是 [I] 推断)。
+**修法(Tim 的 Q5 · Q6):** `operation_types.verifies_by_unit`(只在深度放电上)—— 这种工序的提交只记下这一炉、【不动】状态;状态由逐模组结果翻:
+一批记了模组数,并且每一个模组最新的结论是通过(那一炉没回滚)或已拆去隔离,才核实(`discharge_verify_batch`,记下是哪一炉)。部分放电永远凑不满。
+**钉住:** fixture 255 P1(10 kg / 100 kg、两个模组只记一个 → 不核实)与 VER;158 D4 · 165 K7 · 251 RUN · 253 DISCH 的状态断言挪到模组结果之后,并各加一句反证
+("提交之后、结果之前【还没】核实")。注入(`db/scripts/2026-10-08-mes5a1-fixture-injections.py`)把老的整批翻转放回去:255 的 COMMIT · P1 两格,
+以及 158 D4 · 165 K7 · 251 RUN · 253 DISCH 四支,各红在点名处(`INJECTIONS_OWN_EXIT=0`)。线上证明 ⑤。
+
+## ~~MES5A-P2-DISCHARGE-ROLLBACK-RESTORES-STOCK · 一炉放电之后这一批被别的单用掉一部分,那一炉放电就回滚不了(MES-5a Step 0 量到,2026-10-08)~~ —— ✅ **关闭于 MES-5a-1(`v1.4.43`,2026-10-08)**
+
+**找到:** `rollback_processing_run_internal` 对每一条投料都"还原"它的消耗量 —— 而深度放电是状态改变型、【从没扣过】库存。
+放 10 / 100 → 拆解用掉 50 → 回滚那一炉放电:`IOD_RESTORE_MISMATCH|10|0`(`mirror_consume_restore` 找不到它要还原的那笔消耗)。
+是【响亮的】拒绝,不是安静的错数;160 与 251 两支 fixture 只回滚整批,所以没撞到(Step 0 §1 第 3 条,本地重建上的探针 P2)。
+**修法(Q15):** 回滚只对【消耗型】工序(`operation_kinds.consumes_input`,读不到按消耗算)还原库存;状态改变型一克不动、不写 `reversal_restore`。
+**钉住:** fixture 255 P2(放电 → 拆解用掉 50 kg → 回滚放电:回得了、库存仍 50、没有还原流水);注入把还原放回所有工序,255 P2 红。线上证明 ⑥(申请 → CFO 批准那条真路)。
+
+## ~~MES5A-P3-SELF-PRODUCED-DISCHARGE-TAKES-STOCK · 放一批自产的(产出批)带电料,库存被扣掉(MES-5a Step 0 量到,2026-10-08)~~ —— ✅ **关闭于 MES-5a-1(`v1.4.43`,2026-10-08)**
+
+**找到:** `commit_processing_run` 在投料是【产出批】时无条件扣库存、写 `processing_consume` —— 进料批那一侧早就只对消耗型工序扣,产出批这一侧漏了那道判断。
+一批 100 kg 的产出批放 10 kg:`remaining_qty` 变成 90,多一笔 −10 的 `processing_consume`(Step 0 §1 第 3 条,本地重建上的探针 P3);165 K7 放过一批产出批,却从没读它的库存。
+**修法(Q14):** 产出批那一侧也包进 `IF v_consumes`(与进料批同一个判据)。
+**钉住:** fixture 255 P3 与 165 K7 新加的库存断言(自产批放电之后库存不变、没有消耗流水);注入把那道判断拿掉,255 P3 与 165 K7 各红。线上证明 ⑦。
+
 ## LEAVEBAL1-CALENDAR-WEEK-UNITS · 产假、陪产假、共享育儿假的额度是日历日,请假单存的是工作日(LEAVE-BAL-1 登记,2026-09-28,Tim Q3)
 
 `leave_types.default_days_per_year` 在这三个假别上是**日历日**(maternity 112 = 16 周 · paternity 28 = 4 周 · shared_parental 70 = 10 周),

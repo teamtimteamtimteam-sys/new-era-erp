@@ -27,6 +27,8 @@ export type InboundBatchOption = {
     materials: { name: string } | null
     /** MES-4b(Q4 · Q5):这一批的电芯结构 —— applicable = 它的形态装电芯(或没有形态);label 空 = 没记;determined = 卷绕或叠片 */
     cell: { applicable: boolean; label: string | null; determined: boolean }
+    /** MES-5a-1(Q4 · Q13):这一批记着的模组数(没记 = null)—— 逐模组核实的工序要它,结果记下第一条之前必须有 */
+    module_count: number | null
 }
 
 // FIN-25:再加工 —— 可投料的产出批(同形;value 前缀区分来源)
@@ -41,6 +43,8 @@ export type OperationOption = {
     input_forms: { code: string; name_en: string; name_zh: string }[]
     /** MES-4b(Q5):这道工序的每一批投料都必须带确定的电芯结构(服务端 INPUT_CELL_CONSTRUCTION_REQUIRED) */
     requires_cell_construction: boolean
+    /** MES-5a-1(Q5):这道工序按模组核实(深度放电)—— 提交只记下放过电,每个模组的结果在那一炉的页面上记 */
+    verifies_by_unit: boolean
     /** MES-4a(Q9):挂在这道工序上的、没处置的机器。非空 → 这一炉【必须】选其中一台(服务端 EQUIPMENT_REQUIRED_FOR_OPERATION)。 */
     machine_ids: string[]
     /** MES-4a(Q10–Q13):这道工序的参数与指标(只列在用的)。 */
@@ -717,6 +721,20 @@ export default function NewProcessingForm({
                                         {operation?.requires_cell_construction && !selectedBatch.cell.determined && (
                                             <>
                                                 {' — '}{t('processing.form.cellConstructionNeeded')}{' '}
+                                                <a href={row.batch_ref.startsWith('out:') ? `/output/${selectedBatch.id}/edit` : `/inbound/${selectedBatch.id}/edit`}
+                                                   className="underline">{t('processing.form.openBatch')}</a>
+                                            </>
+                                        )}
+                                    </p>
+                                )}
+                                {/* MES-5a-1(Q4 · Q13):逐模组核实的工序 —— 说出这一批的模组数;没记就指到批次页(结果记下第一条之前必须有) */}
+                                {selectedBatch && selectedBatch.cell.applicable && operation?.verifies_by_unit && (
+                                    <p className={`text-xs mt-1 ml-1 ${selectedBatch.module_count === null ? 'text-amber-700' : 'text-[color:var(--brand-muted-text)]'}`}
+                                       data-module-count={selectedBatch.module_count === null ? 'missing' : String(selectedBatch.module_count)}>
+                                        {t('discharge.moduleCount')}: {selectedBatch.module_count ?? t('discharge.countNotSet')}
+                                        {selectedBatch.module_count === null && (
+                                            <>
+                                                {' — '}{t('discharge.countNeededBeforeResults')}{' '}
                                                 <a href={row.batch_ref.startsWith('out:') ? `/output/${selectedBatch.id}/edit` : `/inbound/${selectedBatch.id}/edit`}
                                                    className="underline">{t('processing.form.openBatch')}</a>
                                             </>

@@ -57,7 +57,7 @@ CREATE POLICY document_relation_exceptions_select ON public.document_relation_ex
 REVOKE ALL ON public.document_relation_exceptions FROM anon;
 GRANT SELECT ON public.document_relation_exceptions TO authenticated;
 
--- ── 种子:6 条,每一条各有一份出处 ──────────────────────────────────────────
+-- ── 种子:8 条(MES-5a-1 加两条),每一条各有一份出处 ──────────────────────────────────────────
 INSERT INTO public.document_relation_exceptions (owner_table, column_a, column_b, reason) VALUES
     -- ① Q10 —— 页面已经做过相反的决定,而搜索不比页面松
     ('containers', 'forwarder_id', '',
@@ -78,5 +78,11 @@ INSERT INTO public.document_relation_exceptions (owner_table, column_a, column_b
     ('performance_reviews', 'employee_id', 'reviewer_employee_id',
      'Q3 残渣:考核人是这次考核的【参与方】,不是被考核人的一条关联单据。'),
     ('shift_handovers', 'incoming_employee_id', 'outgoing_employee_id',
-     'Q3 残渣:交接班的上下家是同一张交接单的两端,不是"这个员工关联那个员工"。')
+     'Q3 残渣:交接班的上下家是同一张交接单的两端,不是"这个员工关联那个员工"。'),
+    -- ⑦⑧ MES-5a-1(2026-10-08)—— 拆去隔离:原批与拆出来的那一批之间的关系走【拆分那一炉加工单】(投入 → 产出),两跳 ——
+    --   与 inbound_batches ↔ output_batches 不进图同一条裁定(SEARCH-4 ②;fixture 103 A)。拆分表上那两列只是记下"是哪几个模组"。
+    ('discharge_module_splits', 'inbound_batch_id', 'new_output_batch_id',
+     'MES-5a-1:原批 → 拆去隔离的那一批,关系走拆分那一炉加工单(两跳),与进料批 ↔ 产出批不进图同一条裁定(SEARCH-4 ②)。'),
+    ('discharge_module_splits', 'new_output_batch_id', 'output_batch_id',
+     'MES-5a-1:同上 —— 原批是一批自产料时,原批 → 拆出来的那一批同样走拆分那一炉加工单。')
 ON CONFLICT (owner_table, column_a, column_b) DO NOTHING;

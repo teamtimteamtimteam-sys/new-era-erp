@@ -35,7 +35,12 @@ INSERT INTO public.operation_type_output_forms (operation_type_code, form_code, 
     ('electrode_powder_line', 'aluminium_foil', '【MES-4b · 规格 §3.5】'),
     ('electrode_powder_line', 'collected_dust', '【MES-4b · 规格 §3.5】除尘收集、称过的粉尘 —— 产出,不是损耗。'),
     ('battery_powder_line', 'collected_dust', '【MES-4b · 规格 §3.5】同上。'),
-    ('manual_disassembly', 'harness_bms_busbar', '【MES-4b · 规格 §3.2】线束、管理板与汇流排单独称。');
+    ('manual_disassembly', 'harness_bms_busbar', '【MES-4b · 规格 §3.2】线束、管理板与汇流排单独称。'),
+    -- MES-5a-1(Step 0 Q11):拆去隔离产出同一物料的一批 —— 与投料同一个形态
+    ('discharge_quarantine_split', 'whole_pack', '【MES-5a-1】同一物料,拆出去的那几个模组。'),
+    ('discharge_quarantine_split', 'module', '【MES-5a-1】同上。'),
+    ('discharge_quarantine_split', 'loose_cells', '【MES-5a-1】同上。'),
+    ('discharge_quarantine_split', 'mixed_unsorted', '【MES-5a-1】同上。');
 
 -- 安全状态受理 —— **本刀的核心**
 

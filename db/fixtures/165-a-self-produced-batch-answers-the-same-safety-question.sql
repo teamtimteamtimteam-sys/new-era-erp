@@ -33,6 +33,10 @@
 -- K6 ★ 判据读的是【那张表】:补一行受理,拒绝就消失(证明不是写死的码)。
 -- K7 ★ 那条占位的拒绝【已经拆掉】:状态改变型工序现在收得下自产料,
 --    而且**它真的把状态改了** —— 不是一炉什么都没改的放电。
+--    ★ MES-5a-1(2026-10-08,MES-5a Step 0 Q5 · Q6 · Q14 · Q34,Tim):状态改变由逐模组的结果核实,不再在提交时 —— K7 先断言
+--    【提交本身不核实】,再断言【库存一克没动】(P3:此前产出批这一侧没有"这道工序吃不吃料"那一道,放 10 kg 就扣 10 kg),
+--    然后记下这一批每一个模组的"通过",再照原样断言状态被改了。原来的三条状态断言一条没删,只挪到结果之后。
+--    这一批改用一种【模组】形态的物料:模组数只对装电芯的形态成立(guard_batch_module_count),而正极片不装电芯。
 -- K8 进料侧一个字没动(R1:绝不放低进料那一侧)。
 --
 -- 日期:自带。
@@ -44,6 +48,8 @@ DECLARE
     v_mat uuid;        -- 有种类(battery_material,has_condition_axes = true)
     v_mat_noaxes uuid; -- ★ 种类明说"我没有状态轴" —— K5 的整个意义
     v_ib uuid; v_ob uuid; v_ob2 uuid; v_ob3 uuid; v_ob_nk uuid; v_ob_sc uuid;
+    v_mat_mod uuid;    -- MES-5a-1:K7 的那一批是模组(模组数只对装电芯的形态成立)
+    v_rem numeric;
     v_run uuid;
     v_d date := DATE '2021-10-12';
     v_msg text; v_denied boolean; v_n int;
@@ -186,8 +192,10 @@ BEGIN
 
     -- ══════════ K7 · ★ 占位拒绝已拆,而且状态【真的】被改了 ══════════
     RAISE NOTICE 'fixture 165 · 进入 K7';
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)
+    VALUES ('ZZ165-MOD', 'f165 modules', 'battery_material', true, 'module', 'end_of_life', 'ev_traction') RETURNING id INTO v_mat_mod;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, unit, output_date, state)
-    VALUES ('ZZ165-SC', v_mat, 100, 100, 'kg', v_d - 1, '库存中') RETURNING id INTO v_ob_sc;
+    VALUES ('ZZ165-SC', v_mat_mod, 100, 100, 'kg', v_d - 1, '库存中') RETURNING id INTO v_ob_sc;
     INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code)
     VALUES (v_ob_sc, 'charged_not_discharged');
     v_denied := false; v_msg := NULL;
@@ -199,6 +207,25 @@ BEGIN
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 165K7 失败:那条占位的拒绝(STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED)自己写着"等 1B-ii 的 output_batch_safety_states"。表建好了,它就必须消失 —— **一道工序因为料是自己产的就拒绝它,正是 M4 那处不对称本身。** 实得「%」', v_msg;
     END IF;
+    -- ★ MES-5a-1(P3):库存一克没动 —— 一炉深度放电不吃料,产出批这一侧也一样(remaining_qty 与台账都不扣)。
+    SELECT remaining_qty INTO v_rem FROM output_batches WHERE id = v_ob_sc;
+    IF v_rem <> 100 OR EXISTS (SELECT 1 FROM inventory_movements m JOIN processing_inputs pi ON pi.run_id = m.run_id
+                                WHERE pi.output_batch_id = v_ob_sc AND m.output_batch_id = v_ob_sc
+                                  AND m.movement_type = 'processing_consume') THEN
+        RAISE EXCEPTION 'FIXTURE 165K7 失败(P3):深度放电放一批自产料,不许扣它的库存 —— 那批货还在院子里。剩余 %,或者写下了一条 processing_consume', v_rem;
+    END IF;
+    -- ★ MES-5a-1:提交本身不核实 —— 未放电还开着,已放电没写上。
+    IF NOT EXISTS (SELECT 1 FROM output_batch_safety_states
+                    WHERE output_batch_id = v_ob_sc AND safety_state_code = 'charged_not_discharged' AND ended_at IS NULL)
+       OR EXISTS (SELECT 1 FROM output_batch_safety_states
+                   WHERE output_batch_id = v_ob_sc AND safety_state_code = 'discharged_verified' AND ended_at IS NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 165K7 失败(MES-5a-1):一张深度放电单单靠提交就把这一批自产料核实了';
+    END IF;
+    -- 这一批一个模组,通过 → 核实
+    PERFORM set_batch_module_count('output', v_ob_sc, 1);
+    PERFORM record_discharge_module_result(
+        (SELECT pi.run_id FROM processing_inputs pi WHERE pi.output_batch_id = v_ob_sc),
+        'output', v_ob_sc, 'M01', 0.3, 'pass', (v_d)::timestamptz + interval '30 minutes');
     -- ★【它必须【真的】改了状态,不是一炉什么都没改的放电】
     -- MES-3a(Q36 · Q22):解决掉的状态被【结束】,不被删 —— 读开着的那几行。
     IF EXISTS (SELECT 1 FROM output_batch_safety_states

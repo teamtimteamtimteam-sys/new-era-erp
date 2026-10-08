@@ -456,7 +456,15 @@ BEGIN
     run := (pg_temp.f251_read('RUN', u_all, format($q$SELECT to_jsonb(commit_processing_run(%L, 'f251 discharge', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', %L, 'quantity_consumed', 100)), '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge', p_started_at => (%1$L)::timestamptz, p_ended_at => LEAST((%1$L)::timestamptz + interval '1 hour', now()), p_shift_code => 'day'))$q$,
             d, b_r))) #>> '{}';
-    IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE id = v_x AND ended_by_run_id = run AND end_reason LIKE 'resolved by processing run PROC-%')
+    -- ★ MES-5a-1(2026-10-08,MES-5a Step 0 Q5 · Q6 · Q34,Tim):深度放电由逐模组的结果核实 —— 提交本身不改状态(先断言这一条),
+    --   记下这一批唯一一个模组的"通过"才核实;结束理由从此是"verified by module results (<那一炉>)",仍然点名那一炉、仍然记在
+    --   ended_by_run_id 上。下面原来那几条断言一条没删,只是挪到结果之后,理由的字样跟着改。
+    IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE id = v_x AND ended_at IS NULL)
+       OR EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = b_r AND safety_state_code = 'discharged_verified' AND ended_at IS NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 251 RUN: a discharge commit alone verified the batch (MES-5a-1: verification is by module results)'; END IF;
+    PERFORM pg_temp.f251_read('RUN', u_all, format($q$SELECT to_jsonb(set_batch_module_count('inbound', %L, 1))$q$, b_r));
+    PERFORM pg_temp.f251_read('RUN', u_all, format($q$SELECT record_discharge_module_result(%L, 'inbound', %L, 'M01', 0.2, 'pass', (%L)::timestamptz + interval '30 minutes')$q$, run, b_r, d));
+    IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE id = v_x AND ended_by_run_id = run AND end_reason LIKE 'verified by module results (PROC-%')
        OR NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = b_r AND safety_state_code = 'discharged_verified'
                         AND ended_at IS NULL AND created_by_run_id = run) THEN
         RAISE EXCEPTION 'FIXTURE 251 RUN: the discharge did not end charged (naming the run) and write discharged (owned by the run)'; END IF;

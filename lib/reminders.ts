@@ -253,6 +253,15 @@ export const REMINDERS = [
     { itemType: 'contamination_check_missing', permission: 'module.processing.view', href: '/operation/contamination',
       itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
 
+    // ══ MES-5a-1(2026-10-08,规格 §3.1;MES-5a Step 0 Q18,Tim):放电核实 ══════════════════════════════════════════
+    // 【discharge_unverified】一批做过一炉没回滚的深度放电(verifies_by_unit 的工序),却还没有"已放电并核实"
+    //   (模组数没记、还有模组没结论、或有失败的还没再放电 / 拆走)。【discharge_quarantine_pending】一批有模组判了失败 · 隔离,
+    //   还没拆去隔离库位。一批一块,门牌指那一批最晚的那一炉(模组结果与拆分都在那一页);subject 是批号。
+    { itemType: 'discharge_unverified', permission: 'module.processing.view', href: '/operation/processing',
+      itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
+    { itemType: 'discharge_quarantine_pending', permission: 'module.processing.view', href: '/operation/processing',
+      itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

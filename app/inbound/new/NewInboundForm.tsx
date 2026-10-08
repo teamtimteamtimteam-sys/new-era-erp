@@ -16,6 +16,7 @@ import LocationPicker, { type LocationChoice } from '@/app/components/inventory/
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import CellConstructionField from '../CellConstructionField'
 import type { CellConstructionData } from '../cellConstructionQuery'
+import ModuleCountField from '../ModuleCountField'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -460,6 +461,7 @@ export default function NewInboundForm({
                 />
                 {/* MES-4b(Q4):电芯结构 —— 可选,空 = 没记;只对装电芯的形态摆出来 */}
                 <CellConstructionField data={cellConstruction} materialId={materialId} locale={locale} />
+                <ModuleCountField data={cellConstruction} materialId={materialId} />
 
                 {/* 备注 */}
                 <div>

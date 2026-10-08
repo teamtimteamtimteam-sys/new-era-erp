@@ -1,4 +1,9 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-5a-1(2026-10-08,规格 §3.1;MES-0 Q23;MES-5a Step 0 Q18,Tim):加两支,都读 discharge_batch_status_all,门 module.processing.view。
+--   discharge_unverified —— 一批做过一炉没回滚的深度放电(verifies_by_unit 的工序),却还没有开着"已放电并核实"
+--   (逐模组的结论还没凑满:没记模组数、结果没记完、有模组要再放电)。item_id = 那一批最晚的那一炉;subject = 批号。
+--   discharge_quarantine_pending —— 一批里有模组最新一条结论是"失败、处置为隔离",还没拆走。item_id = 那一批最晚的那一炉(拆分从那一页上起);
+--   subject = 批号。拆走、或更正了那一条,它就消失。
 -- ★ MES-4b(2026-10-07,规格 §3.4;MES-0 Q52;MES-4b Step 0 Q24,Tim):加一支 contamination_check_missing —— 一个班、一条流没有抽检
 --   (那一天那一班有一张 MES-4a 起记的、已提交没回滚的单产出了这条流的极片,而同一天同一班任何一张单上都没有一条当前的抽检,
 --   两种都算 —— contamination_shift_status_all 的 check_state = 'missing')。门 module.processing.view;item_id = 那一格最早的那一炉
@@ -845,6 +850,26 @@ CREATE VIEW public.operations_now AS
             cs.process_date AS item_date
            FROM contamination_shift_status_all cs
           WHERE cs.check_state = 'missing'::text
+        UNION ALL
+         SELECT 'discharge_unverified'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            ds.latest_run_id AS item_id,
+            NULL::text AS doc_kind,
+            ds.latest_run_code AS item_code,
+            ds.batch_code AS subject,
+            ds.latest_run_date AS item_date
+           FROM discharge_batch_status_all ds
+          WHERE ds.latest_run_id IS NOT NULL AND NOT ds.currently_verified
+        UNION ALL
+         SELECT 'discharge_quarantine_pending'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            ds.latest_run_id AS item_id,
+            NULL::text AS doc_kind,
+            ds.latest_run_code AS item_code,
+            ds.batch_code AS subject,
+            ds.latest_run_date AS item_date
+           FROM discharge_batch_status_all ds
+          WHERE ds.failed_quarantine > 0 AND ds.latest_run_id IS NOT NULL
         UNION ALL
          SELECT 'shipping_release_ready'::text AS item_type,
             'action.ship_goods'::text AS permission,

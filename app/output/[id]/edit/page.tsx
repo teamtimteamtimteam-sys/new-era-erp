@@ -12,6 +12,8 @@ import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/meta
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
 import CellConstructionPanel from '@/app/components/batch/CellConstructionPanel'
 import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
+import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
+import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 import ContaminationChecksList from '@/app/operation/contamination/ContaminationChecksList'
 import { CHECK_ROW_COLUMNS, labelsFor, toCheckListRows } from '@/app/operation/contamination/checkRows'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
@@ -215,6 +217,8 @@ export default async function EditOutputPage({
         can('module.processing.view'),
     ])
     const checkRows = toCheckListRows(mustRows(checkRes, 'contamination_check_rows'), checkLabels, locale, canOpenRuns)
+    // MES-5a-1(Q4 · Q13):模组数与逐模组放电结论(拆去隔离拆出来的批也在这里说出从哪儿来)
+    const batchDischarge = await loadBatchDischarge(supabase, id, locale, canOpenRuns)
 
     // 本批在进行中盘点里的已录实点数(有则预填横幅)
     const openStocktake = stocktakeRes.data?.[0] ?? null
@@ -497,6 +501,13 @@ export default async function EditOutputPage({
                     <CellConstructionPanel kind="output" batchId={batch.id} current={batch.cell_construction_code ?? null}
                         options={cellConstruction.options} canEdit={canSetCellConstruction} gateCode="module.output.edit"
                         required locale={locale} />
+                </div>
+            )}
+            {/* MES-5a-1(Q4 · Q6 · Q13):模组数(放电结果之前必须有;核实之后锁住)与每个模组此刻的放电结论 */}
+            {cellConstruction.carries[batch.material_id] !== false && (
+                <div className="mt-6">
+                    <ModuleCountPanel kind="output" batchId={batch.id} current={batch.module_count ?? null} data={batchDischarge}
+                        canEdit={canSetCellConstruction} gateCode="module.output.edit" canOpenRuns={canOpenRuns} />
                 </div>
             )}
 

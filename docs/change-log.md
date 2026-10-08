@@ -968,6 +968,7 @@ Hand-back `docs/handbacks/MES-1.md`; fixture 249 pins every rule below.
 
 - **Logged** (two triggers each, bound in `db/views/zzz_change_log_triggers.sql`): `devices`, `gateway_keys`,
   `ingest_settings`, `ingest_data_classes`. Public tables 242 → **249**; bound 238 → **242**; exclusions 4 → **7** (§2).
+  *(Seven at the time; **eight** since MES-3b excluded `scan_events` — §15.1, fixture 235. Annotated by MES-5a-1, Step 0 §10.6 · Q36.)*
 - **Excluded** as ingestion logs (§2): `ingest_transmissions`, `ingest_inbox`, `gateway_outages`.
 - On the device page the trail subject **`device`** shows the device and, for a gateway, its keys (issued, revoked — by
   their 8-character prefix only); the settings panel's trail subject **`ingest_settings`** shows every change to the
@@ -1000,6 +1001,7 @@ Hand-back `docs/handbacks/MES-2.md`; fixture 250 pins every rule below.
 - **Logged** (two triggers each, bound in `db/views/zzz_change_log_triggers.sql`): all seven new tables —
   `capture_drafts`, `capture_draft_changes`, `weighbridge_tickets`, `weighings`, `weighbridge_ticket_shares`,
   `weighbridge_ticket_photos`, `instrument_calibrations`. Public tables 249 → **256**; bound 242 → **249**; exclusions stay **7** (§2).
+  *(Seven at the time; **eight** since MES-3b — §15.1. Annotated by MES-5a-1, Step 0 §10.6 · Q36.)*
   None of them is an ingestion log: each row is a person's decision (a confirmation, a change with its reason, a ticket, a share,
   a photo, a calibration certificate), which is exactly what the log is for. The inbox row a draft came from stays excluded (§2).
 - **No new mask rule.** No column on the seven tables is a secret or a price; the mask list stays **105** rows and
@@ -1141,3 +1143,32 @@ the trail of a recorded value).
   used (%): 12"). Setting a batch's construction is the batch's own change ("Cell construction: (empty) → Wound"). The two dictionaries
   are new dictionary subjects **`dictionary_cell_constructions`** and **`dictionary_contamination_streams`**.
   `scripts/check-trail-wording.mjs` arm ⑳ pins the wording (fault `wording-drift-mes4b` turns it red).
+
+## 18. Discharge by module (MES-5a-1, v1.4.43, 2026-10-08)
+
+Hand-back `docs/handbacks/MES-5a-1.md`; fixture 255 pins every rule below (and fixtures 111, 158, 165, 251 and 253 were re-pinned: the
+reminder-arm list and the four discharge scaffolds, whose state assertions now follow module results, each with a counter-assertion that a
+commit alone does not verify). Fixtures 103 and 178 pass unchanged because the seed carries what they assert: two relation exceptions for
+`discharge_module_splits`, and the split operation accepting the feedable state.
+
+### 18.1 Logged, excluded
+
+- **Logged** (two triggers each): the three new tables — `discharge_module_results`, `discharge_channel_assignments` and
+  `discharge_module_splits`, each keyed by `id` (its primary key). Public tables 275 → **278**; bound 267 → **270**; exclusions stay
+  **8**; the mask list stays **105** rows (measured on the local rebuild of the mirrors: `pg_tables` in `public`, tables carrying a
+  `zzz_change_log` trigger, `change_log_exclusions()`, `change_log_mask_rules()`). No exclusion added (Step 0 Q30).
+- **All three are append-only** (`guard_append_only_log`): a correction is a new row pointing at the old one (`corrects_id`, unique)
+  with its reason; a channel withdrawal is such a correction with `withdrawn`; there is no UPDATE and no DELETE.
+- **The new columns** — `inbound_batches.module_count`, `output_batches.module_count`, `materials.discharge_pass_voltage_v` (V9),
+  `operation_types.verifies_by_unit` and `operation_types.started_from_run_page` — ride the tables' existing triggers. The seeded
+  rows (the `discharge_quarantine_split` operation with its accepted states and forms, deep discharge's `verifies_by_unit`, two relation
+  exceptions) are in the log as the migration's own rows.
+- **No new mask rule.** No new column is a secret, a price or a personal identifier. `inbound_batches.module_count` is added to the
+  table's column-list SELECT grant **and** to `inbound_batches_masked` in the same migration (the masked-table rule).
+- **Trail subjects** (Step 0 Q31). The run page's `processing_run` subject holds the discharge run's module results ("Module discharge
+  result recorded · M03", "… corrected" with the reason) and channel assignments ("Discharge channel assigned · M03", "… assignment
+  corrected", "… withdrawn" with the reason), and the split run's "Module split out to quarantine · M03" (discharge run, parent batch and
+  quarantine batch as value lines). The `inbound_batch` and `output_batch` subjects show the results and splits that name the batch; the
+  `device` subject shows the results a discharge cabinet recorded (none today — manual entry leaves `device_id` empty unless chosen).
+  Setting a batch's module count is the batch's own change ("Module count: (empty) → 4"). `scripts/check-trail-wording.mjs` arm ㉑ pins
+  the wording (fault `wording-drift-mes5a1` turns it red).

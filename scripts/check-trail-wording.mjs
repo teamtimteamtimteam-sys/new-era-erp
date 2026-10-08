@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -5478,6 +5478,160 @@ if (FAULT === 'wording-drift-mes4b') dict.text = { ...dict.text, 'run.contaminat
     if (FAULT === 'wording-drift-mes4b' && !problems.gold20.length) problems.gold20.push('(注入 wording-drift-mes4b 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉑ MES-5a-1:逐模组放电结果、通道分配、拆去隔离、批次上的模组数(MES-5a Step 0 Q4 · Q7 · Q9 · Q11 · Q31)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-5a-1.md 列出。
+//   结果只追加:记一条(标题后面挂模组编号;判定、处置、电压、时刻是值行)/ 更正是新的一行指着旧的(理由在理由那一格)。
+//   通道分配只追加:分配 / 撤下(撤下没有值行)。拆去隔离:一个模组一行,说出从哪一批拆到哪一批。
+//   批次上的模组数是批次那一次 UPDATE 的前后值("(empty) → 4")。注入 wording-drift-mes5a1 → 这一臂必须红。
+problems.gold21 = []
+if (FAULT === 'wording-drift-mes5a1') dict.text = { ...dict.text, 'run.dischargeResultRecorded': 'Result recorded' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const run = id('run'), b = id('b'), nb = id('nb'), srun = id('srun')
+    const R21 = { subject: 'processing_run', recordId: run, currency: null }
+    const ref = { run_id: { [run]: { label: 'PROC-2026-0801' } }, inbound_batch_id: { [b]: { label: 'IN-2026-0600' } } }
+    const res = (k, extra) => ({ id: k, run_id: run, inbound_batch_id: b, output_batch_id: null, module_ref: 'M03', channel_no: 3,
+        outlet_voltage_v: 2.4, start_voltage_v: 48.1, verdict: 'pass', verdict_at: '2026-10-08T06:00:00Z', disposition: null,
+        duration_min: 95, energy_recovered_wh: 410, pass_voltage_v_at: null, contradicts_pass_voltage: null, photo_path: null, notes: null,
+        source: 'manual', device_id: null, inbox_id: null, draft_id: null, site_from: null, site_to: null, site_dataset_ref: null,
+        recorded_at: '2026-10-08T06:05:00Z', recorded_by: id('u'), corrects_id: null, correction_reason: null, ...extra })
+    add('module result · pass', R21, [{ table: 'discharge_module_results', op: 'INSERT', key: { id: 71 }, refs: ref, new: res(71) }])
+    add('module result · fail, to quarantine', R21, [{ table: 'discharge_module_results', op: 'INSERT', key: { id: 72 }, refs: ref,
+        new: res(72, { module_ref: 'M04', channel_no: null, outlet_voltage_v: 31.2, start_voltage_v: null, verdict: 'fail', disposition: 'quarantine',
+                       duration_min: null, energy_recovered_wh: null, pass_voltage_v_at: 3, contradicts_pass_voltage: false, notes: 'Swollen at the terminal' }) }])
+    add('module result · corrected with a reason', R21, [{ table: 'discharge_module_results', op: 'INSERT', key: { id: 73 }, refs: ref,
+        new: res(73, { outlet_voltage_v: 2.2, corrects_id: 71, correction_reason: 'Read the wrong channel display' }) }])
+    add('channel · assigned', R21, [{ table: 'discharge_channel_assignments', op: 'INSERT', key: { id: 81 }, refs: ref,
+        new: { id: 81, run_id: run, inbound_batch_id: b, output_batch_id: null, channel_no: 3, module_ref: 'M03', withdrawn: false,
+               assigned_at: '2026-10-08T05:00:00Z', assigned_by: id('u'), corrects_id: null, correction_reason: null } }])
+    add('channel · withdrawn with a reason', R21, [{ table: 'discharge_channel_assignments', op: 'INSERT', key: { id: 82 }, refs: ref,
+        new: { id: 82, run_id: run, inbound_batch_id: b, output_batch_id: null, channel_no: 3, module_ref: 'M03', withdrawn: true,
+               assigned_at: '2026-10-08T05:30:00Z', assigned_by: id('u'), corrects_id: 81, correction_reason: 'Module moved to another cabinet' } }])
+    const S21 = { subject: 'processing_run', recordId: srun, currency: null }
+    const sref = { split_run_id: { [srun]: { label: 'PROC-2026-0802' } }, discharge_run_id: { [run]: { label: 'PROC-2026-0801' } },
+                   inbound_batch_id: { [b]: { label: 'IN-2026-0600' } }, new_output_batch_id: { [nb]: { label: 'OUT-2026-0900' } } }
+    add('module · split out to quarantine', S21, [{ table: 'discharge_module_splits', op: 'INSERT', key: { id: 91 }, refs: sref,
+        new: { id: 91, split_run_id: srun, discharge_run_id: run, inbound_batch_id: b, output_batch_id: null, module_ref: 'M04',
+               new_output_batch_id: nb, created_at: '2026-10-08T07:00:00Z', created_by: id('u') } }])
+    const B21 = { subject: 'inbound_batch', recordId: b, currency: null }
+    add('inbound batch · module count set', B21, [{ table: 'inbound_batches', op: 'UPDATE', key: { id: b }, refs: {}, cols: ['module_count'],
+        old: { id: b, code: 'IN-2026-0600', module_count: null }, new: { id: b, code: 'IN-2026-0600', module_count: 4 } }])
+    const WANT = {
+            "module result · pass": {
+                    "title": "Module discharge result recorded",
+                    "part": "M03",
+                    "lines": [
+                            "Inbound batch: IN-2026-0600",
+                            "Channel: 3",
+                            "Outlet voltage (V): 2.4",
+                            "Start voltage (V): 48.1",
+                            "Verdict: Pass",
+                            "Verdict at: 08/10/2026 14:00",
+                            "Duration (minutes): 95",
+                            "Energy recovered (Wh): 410",
+                            "Source: Entered by hand"
+                    ],
+                    "reason": null,
+                    "who": "Phua"
+            },
+            "module result · fail, to quarantine": {
+                    "title": "Module discharge result recorded",
+                    "part": "M04",
+                    "lines": [
+                            "Inbound batch: IN-2026-0600",
+                            "Outlet voltage (V): 31.2",
+                            "Verdict: Fail",
+                            "Verdict at: 08/10/2026 14:00",
+                            "Disposition: Quarantine",
+                            "Pass voltage at the time (V): 3",
+                            "Contradicts the pass voltage: No",
+                            "Notes: Swollen at the terminal",
+                            "Source: Entered by hand"
+                    ],
+                    "reason": null,
+                    "who": "Phua"
+            },
+            "module result · corrected with a reason": {
+                    "title": "Module discharge result corrected",
+                    "part": "M03",
+                    "lines": [
+                            "Inbound batch: IN-2026-0600",
+                            "Channel: 3",
+                            "Outlet voltage (V): 2.2",
+                            "Start voltage (V): 48.1",
+                            "Verdict: Pass",
+                            "Verdict at: 08/10/2026 14:00",
+                            "Duration (minutes): 95",
+                            "Energy recovered (Wh): 410",
+                            "Source: Entered by hand"
+                    ],
+                    "reason": "Read the wrong channel display",
+                    "who": "Phua"
+            },
+            "channel · assigned": {
+                    "title": "Discharge channel assigned",
+                    "part": "M03",
+                    "lines": [
+                            "Inbound batch: IN-2026-0600",
+                            "Channel: 3"
+                    ],
+                    "reason": null,
+                    "who": "Phua"
+            },
+            "channel · withdrawn with a reason": {
+                    "title": "Discharge channel assignment withdrawn",
+                    "part": "M03",
+                    "lines": [],
+                    "reason": "Module moved to another cabinet",
+                    "who": "Phua"
+            },
+            "module · split out to quarantine": {
+                    "title": "Module split out to quarantine",
+                    "part": "M04",
+                    "lines": [
+                            "Discharge run: PROC-2026-0801",
+                            "From inbound batch: IN-2026-0600",
+                            "Quarantine batch: OUT-2026-0900"
+                    ],
+                    "reason": null,
+                    "who": "Phua"
+            },
+            "inbound batch · module count set": {
+                    "title": "Batch details changed",
+                    "part": null,
+                    "lines": [
+                            "Module count: (empty) → 4"
+                    ],
+                    "reason": null,
+                    "who": "Phua"
+            }
+    }
+    const got21 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 7) problems.gold21.push(`㉑ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD21', order: 1, prelog: false, at: '2026-10-08T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Phua' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold21.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD21')
+        if (mine.length !== 1) { problems.gold21.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got21[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold21.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold21.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold21.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD21_PRINT) console.log(JSON.stringify(got21, null, 8))
+    if (FAULT === 'wording-drift-mes5a1' && !problems.gold21.length) problems.gold21.push('(注入 wording-drift-mes5a1 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -5485,7 +5639,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

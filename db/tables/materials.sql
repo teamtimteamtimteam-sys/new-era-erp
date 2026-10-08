@@ -72,7 +72,12 @@ CREATE TABLE public.materials (
     -- 标签与发货单上提示"没给",不拒(Q15)。HS 编码:可空(V31,报关行给);6–12 位数字,可带点 —— 那是形状,不是一条标准。
     dg_code                 text REFERENCES public.dangerous_goods_codes (code),
     hs_code                 text CONSTRAINT materials_hs_code_shape
-                                 CHECK (hs_code ~ '^[0-9]+(\.[0-9]+)*$' AND length(replace(hs_code, '.', '')) BETWEEN 6 AND 12)
+                                 CHECK (hs_code ~ '^[0-9]+(\.[0-9]+)*$' AND length(replace(hs_code, '.', '')) BETWEEN 6 AND 12),
+    -- ── MES-5a-1 追加(2026-10-08,规格 §3.1;MES-0 V9;MES-5a Step 0 Q8,Tim)──────────────────────────────
+    -- V9:这一种物料的一个模组放电之后的通过电压(伏)—— 一个模组的终止电压取决于它串了几节,所以按物料给,不按工序。
+    -- 为空 = Not yet set(Bosch 文档 / 模组规格书给,放电调试时)。它【只标出】一条与它矛盾的判定(判通过却高于它、判失败却不高于它),
+    -- 从不拒、从不替人判;为空时那一格是"判不了"。记一条结果时抄进那一行(pass_voltage_v_at)。
+    discharge_pass_voltage_v numeric CHECK (discharge_pass_voltage_v IS NULL OR discharge_pass_voltage_v > 0)
 );
 
 
@@ -139,6 +144,9 @@ COMMENT ON COLUMN public.materials.nea_waste_category_code IS
 
 COMMENT ON COLUMN public.materials.dg_code IS
     'MES-3b(MES-0 Q38 · V35):这个物料的危险品 UN 编号(dangerous_goods_codes),人选的 —— 从化学、形态都推不出来。批次跟着物料走:标签、发货单、发货队列都印它。NULL = 没人选过:电池料上提示"没给",不拒(Q15)。';
+
+COMMENT ON COLUMN public.materials.discharge_pass_voltage_v IS
+    'MES-5a-1(V9;规格 §3.1;MES-5a Step 0 Q8):这一种物料的一个模组放电之后的通过电压(伏),按物料给 —— 模组的终止电压取决于串联节数。为空 = Not yet set(Bosch 文档 / 模组规格书,放电调试时)。只标出一条与它矛盾的放电判定(判通过而出口电压高于它,或判失败而不高于它),从不拒、从不替人判;为空 = 判不了。记一条模组结果时抄进 discharge_module_results.pass_voltage_v_at,之后改它不重判旧行。';
 
 COMMENT ON COLUMN public.materials.hs_code IS
     'MES-3b(MES-0 Q39 · V31):HS 编码,可空,报关行在第一次出口之前给。6–12 位数字,可带点(materials_hs_code_shape —— 形状,不是标准)。物料页、清单、导出与发货单上印它;标签上不印(Q17)。';

@@ -661,3 +661,20 @@ REVOKE EXECUTE ON FUNCTION public.run_event_check(text, timestamp with time zone
 --   correct_contamination_check【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
 --   guard_batch_cell_construction 是触发器函数(与其余触发器同一条:EXECUTE 只在被直接调用时才有意义)。
 REVOKE EXECUTE ON FUNCTION public.contamination_check_internal(uuid, text, text, uuid, numeric, numeric, timestamp with time zone, text, text, bigint, text) FROM authenticated;
+
+-- MES-5a-1(2026-10-08):四支【内层】—— 没有调用者检查,只由各自查过码的 DEFINER 函数以属主身份调。
+--   discharge_result_internal:一条放电模组结果的判据与落库(record / correct_discharge_module_result)—— 给了 authenticated,
+--     就绕开 action.confirm_capture,也绕开"只能更正链的末端"。
+--   discharge_channel_internal:一条通道分配的判据与落库(assign / correct_discharge_channel)—— 绕开 action.processing_aftercare。
+--   discharge_verify_batch:按逐模组结论改一批的安全状态 —— 给了 authenticated,任何人都能把一批"核实"成已放电(火闸的另一侧)。
+--   create_stock_transfer_internal:库存转移的函数体(create_stock_transfer 判 module.inventory.edit 后转交;拆去隔离判
+--     action.processing_aftercare 后转交)—— 给了 authenticated,就绕开库存编辑码。
+--   guard_batch_module_count 是 SECURITY DEFINER 的触发器函数(它要数放电结果、读安全状态,不能被 RLS 数成 0);
+--     触发器触发时不查 EXECUTE,所以收回它只关掉"被直接调用"那一条路。
+--   set_batch_module_count / record_discharge_module_result / correct_discharge_module_result / assign_discharge_channel /
+--   correct_discharge_channel / split_failed_modules_to_quarantine【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+REVOKE EXECUTE ON FUNCTION public.discharge_result_internal(uuid, text, uuid, text, numeric, text, timestamp with time zone, text, integer, numeric, numeric, numeric, uuid, text, text, bigint, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.discharge_channel_internal(uuid, text, uuid, integer, text, boolean, bigint, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.discharge_verify_batch(text, uuid, uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_stock_transfer_internal(numeric, uuid, uuid, uuid, uuid, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_batch_module_count() FROM authenticated;

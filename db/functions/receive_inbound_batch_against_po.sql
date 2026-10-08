@@ -6,7 +6,9 @@
 -- MES-4b(2026-10-07,MES-4b Step 0 Q4,Tim):末尾多一个可缺省的参数 p_cell_construction(电芯结构,收货时可选;空 = 没记)——
 --   签名变了,迁移是 DROP + CREATE;已部署的旧应用不传它,照样解析到这一支。适用性与锁由表上的 guard_batch_cell_construction 判。
 
-CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_arrival_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text, p_cell_construction text DEFAULT NULL::text)
+-- MES-5a-1(2026-10-08,MES-5a Step 0 Q4,Tim):末尾多一个可缺省的参数 p_module_count(这一批有几个模组,收货时可选;空 = 没记)——
+--   签名变了,迁移是 DROP + CREATE;已部署的旧应用不传它,照样解析到这一支。适用性由表上的 guard_batch_module_count 判。
+CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_arrival_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_ticket_id uuid DEFAULT NULL::uuid, p_ticket_share_kg numeric DEFAULT NULL::numeric, p_quantity_reason text DEFAULT NULL::text, p_cell_construction text DEFAULT NULL::text, p_module_count integer DEFAULT NULL::integer)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -65,18 +67,22 @@ BEGIN
        AND NOT EXISTS (SELECT 1 FROM cell_constructions c WHERE c.code = btrim(p_cell_construction) AND c.is_active) THEN
         RAISE EXCEPTION 'CELL_CONSTRUCTION_UNKNOWN|%', btrim(p_cell_construction);
     END IF;
+    -- MES-5a-1(Q4):模组数可选;给了就必须是正数(写入之前按名拒,不让 CHECK 报一串约束名)。适用性由 guard_batch_module_count 判。
+    IF p_module_count IS NOT NULL AND p_module_count <= 0 THEN
+        RAISE EXCEPTION 'MODULE_COUNT_INVALID|%', p_module_count;
+    END IF;
 
     INSERT INTO inbound_batches (
         material_id, supplier_id, quantity, remaining_qty, unit, arrival_date,
         notes, purchase_order_id, purchase_order_line_id, declared_qty,
         chemistry_certainty_code, source_reason_code, source_reason_note,
-        created_by, updated_by, cell_construction_code)
+        created_by, updated_by, cell_construction_code, module_count)
     VALUES (
         p_material_id, p_supplier_id, p_quantity, p_quantity, 'kg', p_arrival_date,
         p_notes, p_purchase_order_id, p_purchase_order_line_id, p_declared_qty,
         p_chemistry_certainty, p_source_reason_code,
         NULLIF(btrim(COALESCE(p_source_reason_note, '')), ''),
-        v_user, v_user, NULLIF(btrim(COALESCE(p_cell_construction, '')), ''))
+        v_user, v_user, NULLIF(btrim(COALESCE(p_cell_construction, '')), ''), p_module_count)
     RETURNING id INTO v_id;
 
     -- PROC-2c:见 create_inbound_batch 里同一段注释 —— NULL 与 '{}' 是两件事。

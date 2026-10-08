@@ -130,6 +130,13 @@ export const TRAIL_TEXT = {
     'run.contaminationRecorded': 'Contamination check recorded',
     'run.contaminationNotSampled': 'Contamination not sampled this shift',
     'run.contaminationCorrected': 'Contamination check corrected',
+    // MES-5a-1(2026-10-08):逐模组放电 —— 一个模组的结果 · 通道分配 · 拆去隔离
+    'run.dischargeResultRecorded': 'Module discharge result recorded',
+    'run.dischargeResultCorrected': 'Module discharge result corrected',
+    'run.dischargeChannelAssigned': 'Discharge channel assigned',
+    'run.dischargeChannelCorrected': 'Discharge channel assignment corrected',
+    'run.dischargeChannelWithdrawn': 'Discharge channel assignment withdrawn',
+    'run.dischargeModuleSplit': 'Module split out to quarantine',
     'run.withinTolerance': 'within tolerance',
     'run.headerCorrected': 'Run header corrected',
     // MES-4a:一道工序的配置(工序页)

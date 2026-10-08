@@ -700,7 +700,9 @@ const RUN_TABLES = new Set(['processing_runs', 'processing_inputs', 'processing_
     // MES-4a(2026-10-07):一炉的值、异常事件、平衡结算、抬头更正 —— 全部只追加
     'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections',
     // MES-4b(2026-10-07):交叉污染抽检(只追加)—— 在产出批页上也从加工单这一边说("… · PROC-…")
-    'contamination_checks'])
+    'contamination_checks',
+    // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组(全部只追加)—— 在批次页与放电柜页上也从加工单这一边说
+    'discharge_module_results', 'discharge_channel_assignments', 'discharge_module_splits'])
 
 function batchLine(d: TrailDict, r: TrailRow, label: string, qtyCol: string, opts: BuildOptions): Line {
     const img = imgOf(r)
@@ -850,6 +852,32 @@ function describeRun(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block[
                       reason: corrected ? typed(r.new?.['correction_reason']) : notSampled ? typed(r.new?.['not_sampled_reason']) : null,
                       key: true, weight: 55 })
     }
+    // MES-5a-1(Q7 · Q9 · Q11):逐模组放电 —— 一个模组的结果(记 / 更正,理由在理由那一格)、一个通道分配(分配 / 更正 / 撤下)、
+    //   一个模组拆去隔离。标题后面挂模组编号("… · M03");判定、处置、电压与时刻是值行。
+    for (const r of by('discharge_module_results')) {
+        if (r.op !== 'INSERT') { blocks.push(describeGeneric(d, r, o2)); continue }
+        const corrected = str(r, 'corrects_id', 'new') !== null
+        const m = str(r, 'module_ref', 'new')
+        blocks.push({ title: tx(d, corrected ? 'run.dischargeResultCorrected' : 'run.dischargeResultRecorded'), part: m ? { text: m } : null,
+                      lines: valueLines(d, r, r.new, o2, new Set(['run_id', 'module_ref', 'correction_reason', 'corrects_id'])),
+                      reason: corrected ? typed(r.new?.['correction_reason']) : null, key: true, weight: 55 })
+    }
+    for (const r of by('discharge_channel_assignments')) {
+        if (r.op !== 'INSERT') { blocks.push(describeGeneric(d, r, o2)); continue }
+        const corrected = str(r, 'corrects_id', 'new') !== null
+        const withdrawn = r.new?.['withdrawn'] === true
+        const m = str(r, 'module_ref', 'new')
+        const key: TrailTextKey = withdrawn ? 'run.dischargeChannelWithdrawn' : corrected ? 'run.dischargeChannelCorrected' : 'run.dischargeChannelAssigned'
+        blocks.push({ title: tx(d, key), part: m ? { text: m } : null,
+                      lines: withdrawn ? [] : valueLines(d, r, r.new, o2, new Set(['run_id', 'module_ref', 'withdrawn', 'correction_reason', 'corrects_id'])),
+                      reason: corrected ? typed(r.new?.['correction_reason']) : null, key: true, weight: 50 })
+    }
+    for (const r of by('discharge_module_splits')) {
+        if (r.op !== 'INSERT') { blocks.push(describeGeneric(d, r, o2)); continue }
+        const m = str(r, 'module_ref', 'new')
+        blocks.push({ title: tx(d, 'run.dischargeModuleSplit'), part: m ? { text: m } : null,
+                      lines: valueLines(d, r, r.new, o2, new Set(['split_run_id', 'module_ref'])), key: true, weight: 60 })
+    }
 
     // ② 成本条目与它的修改史(B18–B22):同一笔里两边都在时只说一次
     const costs = by('processing_cost_entries')
@@ -981,19 +1009,20 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'pricing_term_commitments', 'po_issues', 'contract_document_terms', 'approval_log', 'purchase_order_history'],
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
         'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log',
-        'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections', 'contamination_checks'],
+        'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections', 'contamination_checks',
+        'discharge_module_results', 'discharge_channel_assignments', 'discharge_module_splits'],
     role: ['roles', 'role_permissions', 'user_roles'],
     inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
         'pricing_term_commitment_metals', 'inventory_movements', 'stocktake_lines', 'stocktake_counts', 'processing_inputs',
         'batch_processing_cost_allocations', 'certificates_of_destruction', 'cod_issues', 'warehouse_requests', 'freight_allocations',
         'payment_allocations', 'finance_attachments', 'purchase_order_history', 'processing_cost_entry_history', 'work_order_history',
-        'journal_entries'],
+        'journal_entries', 'discharge_module_results', 'discharge_module_splits'],
     output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
         'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements', 'processing_cost_entry_history',
-        'work_order_history', 'sales_order_history', 'journal_entries', 'contamination_checks'],
+        'work_order_history', 'sales_order_history', 'journal_entries', 'contamination_checks', 'discharge_module_results', 'discharge_module_splits'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
@@ -1094,7 +1123,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     review_rating_scale: ['review_rating_scale'],
     kpi_entry: ['kpi_entries'],
     // MES-1(2026-10-06):设备(网关钥匙是它的成员)· 采集上限(单行设置)。收件箱、传输日志与中断不进变更记录(MES-0 Q14)。
-    device: ['devices', 'gateway_keys', 'instrument_calibrations'],
+    device: ['devices', 'gateway_keys', 'instrument_calibrations', 'discharge_module_results'],
     // MES-2(2026-10-06):地磅单 —— 它的两磅(含更正)、分出去的份、照片
     weighbridge_ticket: ['weighbridge_tickets', 'weighings', 'weighbridge_ticket_shares', 'weighbridge_ticket_photos'],
     ingest_settings: ['ingest_settings'],

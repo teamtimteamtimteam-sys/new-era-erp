@@ -51,6 +51,8 @@ import LabelPrintHistory from '@/app/components/labels/LabelPrintHistory'
 import CeilingCheckPanel from '@/app/components/safety/CeilingCheckPanel'
 import CellConstructionPanel from '@/app/components/batch/CellConstructionPanel'
 import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
+import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
+import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -267,6 +269,9 @@ export default async function EditInboundPage({
         loadCellConstructionData(supabase),
         (async () => (await can('module.inbound.edit')) || (await can('action.processing_commit')))(),
     ])
+    // MES-5a-1(Q4 · Q13):模组数与逐模组放电结论 —— 同一个适用判据、同一对码(set_batch_module_count)
+    const canOpenRunsFromBatch = await can('module.processing.view')
+    const batchDischarge = await loadBatchDischarge(supabase, id, locale, canOpenRunsFromBatch)
 
 
     // 化验(cut 5b):本批次的化验单(新到旧)+ 会生效的定价公式
@@ -933,6 +938,11 @@ export default async function EditInboundPage({
                 <CellConstructionPanel kind="inbound" batchId={id} current={batch.cell_construction_code ?? null}
                     options={cellConstruction.options} canEdit={canSetCellConstruction} gateCode="module.inbound.edit"
                     required locale={locale} />
+            )}
+            {/* MES-5a-1(Q4 · Q6 · Q13):模组数(放电结果之前必须有;核实之后锁住)与每个模组此刻的放电结论 */}
+            {cellConstruction.carries[batch.material_id] !== false && (
+                <ModuleCountPanel kind="inbound" batchId={id} current={batch.module_count ?? null} data={batchDischarge}
+                    canEdit={canSetCellConstruction} gateCode="module.inbound.edit" canOpenRuns={canOpenRunsFromBatch} />
             )}
 
             {/* ★ PROC-1B-iii(R2):【实际到的货】能不能深度放电 —— 自己一块。 ★

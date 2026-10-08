@@ -699,6 +699,9 @@ const TABLE_NAMES = {
     processing_event_types: 'exception type',
     // MES-4b(2026-10-07):电芯结构与交叉污染流两本字典;一次交叉污染抽检
     cell_constructions: 'cell construction', contamination_streams: 'contamination stream', contamination_checks: 'contamination check',
+    // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
+    discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
+    discharge_module_splits: 'quarantine split',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -826,6 +829,10 @@ const ENUM_OVERRIDES = {
     // MES-4b(2026-10-07):一笔损耗是量出来的还是算出来的 · 一次抽检是抽了还是没抽(两列各一张 CHECK 清单)
     'processing_run_losses#basis': { measured: 'Measured', derived: 'Calculated' },
     'contamination_checks#kind': { sampled: 'Sampled', not_sampled: 'Not sampled' },
+    // MES-5a-1(2026-10-08):一个模组的判定 · 失败的处置 · 一条结果从哪里来(三列各一张 CHECK 清单)
+    'discharge_module_results#verdict': { pass: 'Pass', fail: 'Fail' },
+    'discharge_module_results#disposition': { re_discharge: 'Re-discharge', quarantine: 'Quarantine' },
+    'discharge_module_results#source': { manual: 'Entered by hand', device: 'From a device' },
     'processing_run_corrections#field': { started_at: 'Start time', ended_at: 'End time', shift_code: 'Shift', equipment_id: 'Machine',
         recipe_version_id: 'Recipe version', notes: 'Notes' },
     // MES-3a(2026-10-06):进厂那一刻库存上限怎么判的(receipt_ceiling_checks.outcome 的 CHECK)

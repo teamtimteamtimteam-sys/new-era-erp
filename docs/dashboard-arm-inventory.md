@@ -105,6 +105,8 @@ module's own page.
 | M3c | `quarantine_required` | 一批开着一条 `requires_quarantine` 的状态(今天只有鼓包或漏液),却还有货在一个**没标隔离**的库位(或没指库位的那一桶)里(MES-3a Step 0 Q20)。记状态从不拒,于是由这一支说出来;它的下一次移动只能进隔离 | 按行:进料 `module.inbound.view`,产出 `module.output.view` | `quarantine_exposure` | 货全部挪进隔离库位、或那一条状态结束之后消失 |
 | M4a | `processing_balance_unclosed` | 一张已提交的【转换型】加工单(MES-4a 之后记的,开始时刻不空),物料平衡没有一次【当前】的结算:从没结过,或结过之后它的损耗 / 值又被更正了(那会把它重新打开,MES-4a Step 0 Q19 · Q22)。状态改变型的(深度放电)没有平衡可结,不进这一支;MES-4a 之前的单也不进 | `module.processing.view` | `processing_run_balance_all` | `balance_state = 'open'`;结算(`close_run_balance`)之后消失,之后再有更正就回来 |
 | M4b | `contamination_check_missing` | 一个(加工日, 班次, 流):那一天那一班有一张 MES-4a 之后记的、已提交没回滚的加工单产出了这条流的极片(`contamination_streams.sheet_form_code`),而同一天同一班任何一张单上都没有一条【当前】的抽检 —— 抽了(`sampled`)或这一班没抽并写了理由(`not_sampled`)都算(MES-4b Step 0 Q23 · Q24)。一格一行,`item_id` = 那一格最早的那一炉(fixture 47 的行号规矩),`subject` = 流。MES-4a 之前的单没有班次,不进这一支 | `module.processing.view` | `contamination_shift_status_all` | `check_state = 'missing'`;记一条抽检或一条"没抽"之后消失 |
+| M5a1 | `discharge_unverified` | 一批(进料或产出)做过一炉【已提交没回滚】的逐模组核实工序(`operation_types.verifies_by_unit`,今天只有深度放电),而它此刻【没有】开着那道工序的结果状态(`discharged_verified`)—— 模组数没记、还有模组没有结论、或有失败的还没再放电通过或拆去隔离(MES-5a Step 0 Q6 · Q18)。一批一行,`item_id` = 那一批最晚的那一炉(模组结果与拆分都在那一页),`subject` = 批号。MES-5a-1 之前提交就核实了的批开着结果状态,不进这一支 | `module.processing.view` | `discharge_batch_status_all` | `latest_run_id IS NOT NULL AND NOT currently_verified`;每个模组都通过或拆走之后消失 |
+| M5a2 | `discharge_quarantine_pending` | 一批有模组最新的结论是【失败 · 隔离】,而它还没被拆去隔离库位(MES-5a Step 0 Q11 · Q18)。一批一行,`item_id` = 那一批最晚的那一炉(拆分从那一页起),`subject` = 批号 | `module.processing.view` | `discharge_batch_status_all` | `failed_quarantine > 0`;拆分(`split_failed_modules_to_quarantine`)之后消失 |
 
 
 
@@ -345,6 +347,8 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `quarantine_required` | `/inbound/[id]/edit` or `/output/[id]/edit` | the batch page's banner; its next move can only go into a quarantine location (MES-3a) |
 | `processing_balance_unclosed` | `/operation/processing/[id]` | the run page's material-balance section: input, outputs, named losses, remainder against the operation's tolerance; Close the balance (with an explanation when it is outside tolerance) (MES-4a) |
 | `contamination_check_missing` | `/operation/processing/[id]` | the earliest run of that shift: its contamination panel records a check, or that the shift was not sampled with a reason; the whole shift × stream grid is at `/operation/contamination` (MES-4b) |
+| `discharge_unverified` | `/operation/processing/[id]` | the batch's latest discharge run: its module results panel shows each module's verdict and records the missing ones; the module count is set on the batch page (MES-5a-1) |
+| `discharge_quarantine_pending` | `/operation/processing/[id]` | the same run page: the quarantine split form lists the failed modules marked for quarantine, with the quarantine location to move them into (MES-5a-1) |
 
 ### One mechanism, not two
 

@@ -5,6 +5,8 @@ import DeleteButton from './DeleteButton'
 import CostPanel from './CostPanel'
 import LossPanel, { type LossCategory, type LossRow, type ElectrolyteSetting } from './LossPanel'
 import ContaminationPanel, { type ContaminationStreamView, type ContaminationCheckView } from './ContaminationPanel'
+import DischargePanel from './DischargePanel'
+import { loadDischargePanel, loadSplitOrigin } from './dischargeData'
 import AllocateButton from './AllocateButton'
 import { type CostEntryRow } from './costTypes'
 import { processingStatusLabelKey } from '../../status'
@@ -241,7 +243,7 @@ export default async function ProcessingDetailPage({
     const opCode = run.operation_type_code ?? null
     const [opRes, shiftRes, eqRes, linkRes, recipeRes, versionRes, valuesRes, fieldRes, eventRes, eventTypeRes,
            balanceRes, corrRes, correctedByRes] = await Promise.all([
-        supabase.from('operation_types').select('code, name_en, name_zh, electrolyte_loss_applies, electrolyte_share_pct').order('sort_order'),
+        supabase.from('operation_types').select('code, name_en, name_zh, electrolyte_loss_applies, electrolyte_share_pct, verifies_by_unit, started_from_run_page').order('sort_order'),
         supabase.from('shifts').select('code, name_en, name_zh, is_active').order('sort_order'),
         supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description, equipment_status').order('equipment_code'),
         supabase.from('operation_type_equipment').select('operation_type_code, fixed_asset_id'),
@@ -396,6 +398,15 @@ export default async function ProcessingDetailPage({
     const ccName = new Map((mustRows(ccRes, 'cell_constructions')).map((c) => [c.code, nm(c)]))
     const dismantles = new Map(mustRows(formRes, 'material_forms').map((f) => [f.code, f.implies_dismantling]))
     /** 与库里的守卫同一个判据:装电芯的形态说;不装的不说;没有形态的照常说 */
+    // ── MES-5a-1(Step 0 Q5–Q13):放电那一炉(verifies_by_unit)的逐模组结果 · 拆去隔离那一炉的来处 ──────────
+    const discharge = op?.verifies_by_unit
+        ? await loadDischargePanel(supabase, {
+            runId: id, inputs, fmtStamp, shifts: shiftRows.filter((x) => x.is_active).map((x) => ({ value: x.code, label: nm(x) })),
+        })
+        : null
+    const splitOrigin = op?.started_from_run_page ? await loadSplitOrigin(supabase, id) : null
+    const canConfirmCapture = await can('action.confirm_capture')
+
     const formCarriesCells = (materialId: string | null | undefined) => {
         const form = materialId ? formOf.get(materialId) : null
         return form ? dismantles.get(form) !== false : true
@@ -782,6 +793,25 @@ export default async function ProcessingDetailPage({
                 {isCommitted && (
                     <ContaminationPanel runId={run.id} streams={contaminationStreams} checks={contaminationChecks}
                                         canRecord={canAftercare} predates={!run.started_at} />
+                )}
+
+                {/* MES-5a-1(Q5–Q13):放电那一炉 —— 每个模组一条结论;凑满了这一批才算已放电并核实;失败 · 隔离的从这里拆出去 */}
+                {discharge && (
+                    <DischargePanel runId={run.id} editable={isCommitted} batches={discharge.batches} results={discharge.results}
+                                    channels={discharge.channels} splits={discharge.splits} canRecord={canConfirmCapture} canAftercare={canAftercare}
+                                    devices={discharge.devices} locations={discharge.locations} locationsVisible={discharge.locationsVisible}
+                                    shifts={discharge.shifts} processDate={run.process_date ?? ''} />
+                )}
+                {splitOrigin && (
+                    <section className="mt-6" data-section="discharge-split-origin">
+                        <h2 className="mb-1">{t('discharge.originTitle')}</h2>
+                        <p className="text-sm">
+                            {t('discharge.originLine', { modules: splitOrigin.modules.join(', ') })}{' '}
+                            {splitOrigin.dischargeRunId
+                                ? <Link href={`/operation/processing/${splitOrigin.dischargeRunId}`} className="hover:underline app-link app-link-inline">{splitOrigin.dischargeRunCode ?? '—'}</Link>
+                                : '—'}
+                        </p>
+                    </section>
                 )}
 
                 {/* FIN-25:血缘 —— 深度 >1 才值得占版面(一段加工的直接投入上面已经列了)。

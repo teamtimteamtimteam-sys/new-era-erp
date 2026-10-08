@@ -1166,6 +1166,20 @@ export type Database = {
             foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -2603,6 +2617,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "contamination_checks_run_id_fkey"
@@ -4462,6 +4490,887 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "instrument_calibration_now"
             referencedColumns: ["device_id"]
+          },
+        ]
+      }
+      discharge_channel_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          channel_no: number
+          correction_reason: string | null
+          corrects_id: number | null
+          id: number
+          inbound_batch_id: string | null
+          module_ref: string
+          output_batch_id: string | null
+          run_id: string
+          withdrawn: boolean
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          channel_no: number
+          correction_reason?: string | null
+          corrects_id?: number | null
+          id?: never
+          inbound_batch_id?: string | null
+          module_ref: string
+          output_batch_id?: string | null
+          run_id: string
+          withdrawn?: boolean
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          channel_no?: number
+          correction_reason?: string | null
+          corrects_id?: number | null
+          id?: never
+          inbound_batch_id?: string | null
+          module_ref?: string
+          output_batch_id?: string | null
+          run_id?: string
+          withdrawn?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discharge_channel_assignments_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_channel_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discharge_module_results: {
+        Row: {
+          channel_no: number | null
+          contradicts_pass_voltage: boolean | null
+          correction_reason: string | null
+          corrects_id: number | null
+          device_id: string | null
+          disposition: string | null
+          draft_id: string | null
+          duration_min: number | null
+          energy_recovered_wh: number | null
+          id: number
+          inbound_batch_id: string | null
+          inbox_id: number | null
+          module_ref: string
+          notes: string | null
+          outlet_voltage_v: number
+          output_batch_id: string | null
+          pass_voltage_v_at: number | null
+          photo_path: string | null
+          recorded_at: string
+          recorded_by: string | null
+          run_id: string
+          site_dataset_ref: string | null
+          site_from: string | null
+          site_to: string | null
+          source: string
+          start_voltage_v: number | null
+          verdict: string
+          verdict_at: string
+        }
+        Insert: {
+          channel_no?: number | null
+          contradicts_pass_voltage?: boolean | null
+          correction_reason?: string | null
+          corrects_id?: number | null
+          device_id?: string | null
+          disposition?: string | null
+          draft_id?: string | null
+          duration_min?: number | null
+          energy_recovered_wh?: number | null
+          id?: never
+          inbound_batch_id?: string | null
+          inbox_id?: number | null
+          module_ref: string
+          notes?: string | null
+          outlet_voltage_v: number
+          output_batch_id?: string | null
+          pass_voltage_v_at?: number | null
+          photo_path?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          run_id: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source: string
+          start_voltage_v?: number | null
+          verdict: string
+          verdict_at: string
+        }
+        Update: {
+          channel_no?: number | null
+          contradicts_pass_voltage?: boolean | null
+          correction_reason?: string | null
+          corrects_id?: number | null
+          device_id?: string | null
+          disposition?: string | null
+          draft_id?: string | null
+          duration_min?: number | null
+          energy_recovered_wh?: number | null
+          id?: never
+          inbound_batch_id?: string | null
+          inbox_id?: number | null
+          module_ref?: string
+          notes?: string | null
+          outlet_voltage_v?: number
+          output_batch_id?: string | null
+          pass_voltage_v_at?: number | null
+          photo_path?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          run_id?: string
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          start_voltage_v?: number | null
+          verdict?: string
+          verdict_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discharge_module_results_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_module_current_all"
+            referencedColumns: ["result_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_module_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_module_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "capture_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discharge_module_splits: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          discharge_run_id: string
+          id: number
+          inbound_batch_id: string | null
+          module_ref: string
+          new_output_batch_id: string
+          output_batch_id: string | null
+          split_run_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          discharge_run_id: string
+          id?: never
+          inbound_batch_id?: string | null
+          module_ref: string
+          new_output_batch_id: string
+          output_batch_id?: string | null
+          split_run_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          discharge_run_id?: string
+          id?: never
+          inbound_batch_id?: string | null
+          module_ref?: string
+          new_output_batch_id?: string
+          output_batch_id?: string | null
+          split_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -7888,6 +8797,20 @@ export type Database = {
             foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -7953,6 +8876,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
@@ -8108,6 +9045,7 @@ export type Database = {
           import_permit_verified_by: string | null
           imported: boolean | null
           material_id: string
+          module_count: number | null
           notes: string | null
           pricing_formula_id: string | null
           pricing_status: string
@@ -8145,6 +9083,7 @@ export type Database = {
           import_permit_verified_by?: string | null
           imported?: boolean | null
           material_id: string
+          module_count?: number | null
           notes?: string | null
           pricing_formula_id?: string | null
           pricing_status?: string
@@ -8182,6 +9121,7 @@ export type Database = {
           import_permit_verified_by?: string | null
           imported?: boolean | null
           material_id?: string
+          module_count?: number | null
           notes?: string | null
           pricing_formula_id?: string | null
           pricing_status?: string
@@ -9091,6 +10031,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "inventory_movements_run_id_fkey"
@@ -11729,6 +12683,7 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           dg_code: string | null
+          discharge_pass_voltage_v: number | null
           form_code: string | null
           hs_code: string | null
           id: string
@@ -11754,6 +12709,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           dg_code?: string | null
+          discharge_pass_voltage_v?: number | null
           form_code?: string | null
           hs_code?: string | null
           id?: string
@@ -11779,6 +12735,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           dg_code?: string | null
+          discharge_pass_voltage_v?: number | null
           form_code?: string | null
           hs_code?: string | null
           id?: string
@@ -12511,6 +13468,8 @@ export type Database = {
           requires_cell_construction: boolean
           resulting_safety_state_code: string | null
           sort_order: number
+          started_from_run_page: boolean
+          verifies_by_unit: boolean
         }
         Insert: {
           balance_tolerance_pct?: number | null
@@ -12525,6 +13484,8 @@ export type Database = {
           requires_cell_construction?: boolean
           resulting_safety_state_code?: string | null
           sort_order?: number
+          started_from_run_page?: boolean
+          verifies_by_unit?: boolean
         }
         Update: {
           balance_tolerance_pct?: number | null
@@ -12539,6 +13500,8 @@ export type Database = {
           requires_cell_construction?: boolean
           resulting_safety_state_code?: string | null
           sort_order?: number
+          started_from_run_page?: boolean
+          verifies_by_unit?: boolean
         }
         Relationships: [
           {
@@ -12732,6 +13695,20 @@ export type Database = {
             foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -12797,6 +13774,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
@@ -12952,6 +13943,7 @@ export type Database = {
           deleted_by: string | null
           id: string
           material_id: string
+          module_count: number | null
           notes: string | null
           output_date: string | null
           purity: string | null
@@ -12976,6 +13968,7 @@ export type Database = {
           deleted_by?: string | null
           id?: string
           material_id: string
+          module_count?: number | null
           notes?: string | null
           output_date?: string | null
           purity?: string | null
@@ -13000,6 +13993,7 @@ export type Database = {
           deleted_by?: string | null
           id?: string
           material_id?: string
+          module_count?: number | null
           notes?: string | null
           output_date?: string | null
           purity?: string | null
@@ -16120,6 +17114,20 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -16252,6 +17260,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
@@ -16473,6 +17495,20 @@ export type Database = {
             foreignKeyName: "processing_inputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -16610,6 +17646,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_outputs_run_id_fkey"
@@ -16776,6 +17826,20 @@ export type Database = {
             foreignKeyName: "processing_run_closures_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -16875,6 +17939,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_run_corrections_run_id_fkey"
@@ -17035,6 +18113,20 @@ export type Database = {
             foreignKeyName: "processing_run_events_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -17157,6 +18249,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_run_losses_run_id_fkey"
@@ -17322,6 +18428,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_run_values_run_id_fkey"
@@ -17515,6 +18635,20 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_runs_corrects_run_id_fkey"
@@ -23645,6 +24779,20 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -25270,6 +26418,20 @@ export type Database = {
             foreignKeyName: "contamination_checks_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -25552,6 +26714,438 @@ export type Database = {
           permission: string | null
           record_id: string | null
           record_kind: string | null
+        }
+        Relationships: []
+      }
+      discharge_batch_status_all: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          contradictions: number | null
+          currently_verified: boolean | null
+          failed_quarantine: number | null
+          failed_redischarge: number | null
+          latest_run_code: string | null
+          latest_run_date: string | null
+          latest_run_id: string | null
+          material_id: string | null
+          module_count: number | null
+          modules_recorded: number | null
+          passed: number | null
+          result_state: string | null
+          rule_verified: boolean | null
+          split_out: number | null
+        }
+        Relationships: []
+      }
+      discharge_module_current_all: {
+        Row: {
+          attempts: number | null
+          batch_id: string | null
+          batch_kind: string | null
+          channel_no: number | null
+          contradicts_pass_voltage: boolean | null
+          disposition: string | null
+          module_ref: string | null
+          new_output_batch_id: string | null
+          outlet_voltage_v: number | null
+          pass_voltage_v_at: number | null
+          redischarge_count: number | null
+          result_id: number | null
+          run_id: string | null
+          split_out: boolean | null
+          split_run_id: string | null
+          verdict: string | null
+          verdict_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discharge_module_rows: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          channel_no: number | null
+          contradicts_pass_voltage: boolean | null
+          correction_reason: string | null
+          corrects_id: number | null
+          device_id: string | null
+          disposition: string | null
+          duration_min: number | null
+          energy_recovered_wh: number | null
+          id: number | null
+          is_current: boolean | null
+          is_latest: boolean | null
+          module_ref: string | null
+          notes: string | null
+          outlet_voltage_v: number | null
+          pass_voltage_v_at: number | null
+          photo_path: string | null
+          process_date: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          run_code: string | null
+          run_id: string | null
+          run_status: string | null
+          source: string | null
+          split_out: boolean | null
+          start_voltage_v: number | null
+          verdict: string | null
+          verdict_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discharge_module_results_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_module_current_all"
+            referencedColumns: ["result_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_module_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_module_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discharge_status_by_batch: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          contradictions: number | null
+          currently_verified: boolean | null
+          failed_quarantine: number | null
+          failed_redischarge: number | null
+          latest_run_code: string | null
+          latest_run_date: string | null
+          latest_run_id: string | null
+          material_id: string | null
+          module_count: number | null
+          modules_recorded: number | null
+          passed: number | null
+          result_state: string | null
+          rule_verified: boolean | null
+          split_out: number | null
         }
         Relationships: []
       }
@@ -26893,6 +28487,7 @@ export type Database = {
           import_permit_verified_by: string | null
           imported: boolean | null
           material_id: string | null
+          module_count: number | null
           notes: string | null
           pricing_formula_id: string | null
           pricing_status: string | null
@@ -26930,6 +28525,7 @@ export type Database = {
           import_permit_verified_by?: string | null
           imported?: boolean | null
           material_id?: string | null
+          module_count?: number | null
           notes?: string | null
           pricing_formula_id?: string | null
           pricing_status?: string | null
@@ -26967,6 +28563,7 @@ export type Database = {
           import_permit_verified_by?: string | null
           imported?: boolean | null
           material_id?: string | null
+          module_count?: number | null
           notes?: string | null
           pricing_formula_id?: string | null
           pricing_status?: string | null
@@ -30907,6 +32504,20 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -31044,6 +32655,20 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -31146,6 +32771,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
@@ -31333,6 +32972,20 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -31470,6 +33123,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_outputs_run_id_fkey"
@@ -31770,6 +33437,20 @@ export type Database = {
             foreignKeyName: "processing_run_values_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -31958,6 +33639,20 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "batch_margin"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
           },
           {
             foreignKeyName: "processing_runs_corrects_run_id_fkey"
@@ -34444,6 +36139,20 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_metal_recovery"
             referencedColumns: ["run_id"]
           },
@@ -34993,6 +36702,16 @@ export type Database = {
           withdrawn_at: string
         }[]
       }
+      assign_discharge_channel: {
+        Args: {
+          p_batch_id: string
+          p_channel_no: number
+          p_kind: string
+          p_module_ref: string
+          p_run_id: string
+        }
+        Returns: number
+      }
       assign_position_kpis: {
         Args: { p_cycle_id: string; p_employee_id: string }
         Returns: Json
@@ -35450,6 +37169,34 @@ export type Database = {
         }
         Returns: number
       }
+      correct_discharge_channel: {
+        Args: {
+          p_channel_no: number
+          p_id: number
+          p_module_ref: string
+          p_reason: string
+          p_withdraw: boolean
+        }
+        Returns: number
+      }
+      correct_discharge_module_result: {
+        Args: {
+          p_channel_no: number
+          p_device_id: string
+          p_disposition: string
+          p_duration_min: number
+          p_energy_recovered_wh: number
+          p_id: number
+          p_notes: string
+          p_outlet_voltage_v: number
+          p_photo_path: string
+          p_reason: string
+          p_start_voltage_v: number
+          p_verdict: string
+          p_verdict_at: string
+        }
+        Returns: Json
+      }
       correct_gst_return: {
         Args: { p_original_period_id: string; p_reason: string }
         Returns: Json
@@ -35542,6 +37289,7 @@ export type Database = {
           p_declared_qty?: number
           p_location_id?: string
           p_material_id: string
+          p_module_count?: number
           p_notes?: string
           p_purchase_order_id?: string
           p_purchase_order_line_id?: string
@@ -35632,6 +37380,18 @@ export type Database = {
         Returns: Json
       }
       create_stock_transfer: {
+        Args: {
+          p_from_location_id?: string
+          p_inbound_batch_id?: string
+          p_note?: string
+          p_output_batch_id?: string
+          p_qty: number
+          p_stock_status?: string
+          p_to_location_id: string
+        }
+        Returns: Json
+      }
+      create_stock_transfer_internal: {
         Args: {
           p_from_location_id?: string
           p_inbound_batch_id?: string
@@ -35770,6 +37530,50 @@ export type Database = {
         Returns: undefined
       }
       discard_overtime_batch: { Args: { p_batch_id: string }; Returns: Json }
+      discharge_channel_internal: {
+        Args: {
+          p_batch_id: string
+          p_channel_no: number
+          p_correction_reason: string
+          p_corrects_id: number
+          p_kind: string
+          p_module_ref: string
+          p_run_id: string
+          p_withdraw: boolean
+        }
+        Returns: number
+      }
+      discharge_result_internal: {
+        Args: {
+          p_batch_id: string
+          p_channel_no: number
+          p_correction_reason: string
+          p_corrects_id: number
+          p_device_id: string
+          p_disposition: string
+          p_duration_min: number
+          p_energy_recovered_wh: number
+          p_kind: string
+          p_module_ref: string
+          p_notes: string
+          p_outlet_voltage_v: number
+          p_photo_path: string
+          p_run_id: string
+          p_start_voltage_v: number
+          p_verdict: string
+          p_verdict_at: string
+        }
+        Returns: number
+      }
+      discharge_verify_batch: {
+        Args: {
+          p_batch_id: string
+          p_kind: string
+          p_note?: string
+          p_run_id: string
+        }
+        Returns: boolean
+      }
       dispose_fixed_asset: {
         Args: {
           p_asset_id: string
@@ -36639,6 +38443,7 @@ export type Database = {
           p_declared_qty?: number
           p_location_id?: string
           p_material_id: string
+          p_module_count?: number
           p_notes?: string
           p_purchase_order_id?: string
           p_purchase_order_line_id?: string
@@ -36766,6 +38571,26 @@ export type Database = {
       record_derived_electrolyte_loss: {
         Args: { p_notes?: string; p_run_id: string }
         Returns: number
+      }
+      record_discharge_module_result: {
+        Args: {
+          p_batch_id: string
+          p_channel_no?: number
+          p_device_id?: string
+          p_disposition?: string
+          p_duration_min?: number
+          p_energy_recovered_wh?: number
+          p_kind: string
+          p_module_ref: string
+          p_notes?: string
+          p_outlet_voltage_v: number
+          p_photo_path?: string
+          p_run_id: string
+          p_start_voltage_v?: number
+          p_verdict: string
+          p_verdict_at: string
+        }
+        Returns: Json
       }
       record_expense: {
         Args: {
@@ -37523,6 +39348,10 @@ export type Database = {
         Args: { p_batch_id: string; p_code: string; p_kind: string }
         Returns: string
       }
+      set_batch_module_count: {
+        Args: { p_batch_id: string; p_count: number; p_kind: string }
+        Returns: string
+      }
       set_customer_credit: {
         Args: {
           p_credit_hold: boolean
@@ -37703,6 +39532,23 @@ export type Database = {
       }
       soft_delete_output_batch_internal: {
         Args: { p_batch_id: string; p_deleted_by?: string; p_reason: string }
+        Returns: Json
+      }
+      split_failed_modules_to_quarantine: {
+        Args: {
+          p_batch_id: string
+          p_discharge_run_id: string
+          p_ended_at: string
+          p_kind: string
+          p_location_id: string
+          p_module_refs: string[]
+          p_notes?: string
+          p_process_date: string
+          p_shift_code: string
+          p_started_at: string
+          p_weighing_id?: string
+          p_weight_kg?: number
+        }
         Returns: Json
       }
       storage_licence_in_force: { Args: { p_on: string }; Returns: string }

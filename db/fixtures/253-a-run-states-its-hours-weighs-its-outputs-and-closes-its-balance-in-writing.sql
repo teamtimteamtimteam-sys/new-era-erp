@@ -15,7 +15,7 @@
 --           放电与 MES-4a 之前的单不结;没有 aftercare 的人结不了(Q19–Q21)
 --   WEIGH   挑一条称重 · 敲一个重量(同一笔事务里落一条手工称重)· 两样都没有按名拒 · 不在校准期内拒 · 没记仪器只标出来(开关给了才拒)·
 --           被更正过的与用过的拒 · 用上之后那条称重不能再更正(Q24–Q26)
---   DISCH   放电记得进,而且不要产出(Q4 的并入)
+--   DISCH   放电记得进,而且不要产出(Q4 的并入);MES-5a-1:提交本身不核实,每一个模组通过之后才核实
 --   NEWOPS  开壳与极片分离两道新工序只受理已放电并核实的料(Q3)
 --   CORR    表头六个字段逐个可更正、各留一行;别的字段拒;corrects_run_id 只指回已回滚、还没被更正过的单(Q30 · Q31)
 --   POL     三张加工表的 UPDATE 策略与损耗的写策略都拿掉了,直连改按名拒(Q32)
@@ -458,6 +458,18 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 253 DISCH: a discharge run with no outputs should commit, loss 0, balance not applicable'; END IF;
     v_msg := pg_temp.f253_do(format($q$SELECT close_run_balance(%L, 'x')$q$, run_dis));
     IF v_msg NOT LIKE 'RUN_BALANCE_NOT_APPLICABLE|%' THEN RAISE EXCEPTION 'FIXTURE 253 DISCH: a state-changing run has no closure, got %', v_msg; END IF;
+    -- ★ MES-5a-1(2026-10-08,MES-5a Step 0 Q5 · Q6 · Q34,Tim):提交本身不核实 —— 这一批照旧"带电未放电",没有"已放电";
+    --   记下它每一个模组的"通过"之后才核实(状态断言在结果之后)。
+    IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = ib2 AND safety_state_code = 'charged_not_discharged' AND ended_at IS NULL)
+       OR EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = ib2 AND safety_state_code = 'discharged_verified' AND ended_at IS NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 253 DISCH: a discharge commit alone verified the batch (MES-5a-1: verification is by module results)'; END IF;
+    PERFORM set_batch_module_count('inbound', ib2, 2);
+    PERFORM record_discharge_module_result(run_dis, 'inbound', ib2, 'M01', 0.4, 'pass', t1);
+    PERFORM record_discharge_module_result(run_dis, 'inbound', ib2, 'M02', 0.5, 'pass', t1);
+    IF EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = ib2 AND safety_state_code = 'charged_not_discharged' AND ended_at IS NULL)
+       OR NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = ib2 AND safety_state_code = 'discharged_verified'
+                        AND ended_at IS NULL AND created_by_run_id = run_dis) THEN
+        RAISE EXCEPTION 'FIXTURE 253 DISCH: after every module passed the batch should read discharged and verified, owned by the run'; END IF;
 
     -- ══════════════ NEWOPS · 两道新工序 ══════════════
     RAISE NOTICE 'fixture 253 · NEWOPS';
