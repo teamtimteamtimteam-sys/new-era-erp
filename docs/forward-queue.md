@@ -533,6 +533,30 @@
 >    `min-w-0 max-w-full` 之外还要 `basis-full sm:basis-0`,不然它在 390 px 上缩成 95 px;390 px +177 → **0**,桌面逐颗未变)。
 >    逐角色读数表、页面清单、开场读数、三张表单的前后读数与未经询问的决定在 `docs/handbacks/MES-5a-2.md`。
 >    **下一刀 MES-5b · Balance, yield, blending**(见下面「⬜ ★ MES 组」表格第 8 行)。
+>    ★ **部署:Tim 在 Vercel 上确认 `6a12e569` 已部署(MES-5a-2 close-out + MES-5b Step 0 委托书,2026-10-08)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-08 16:05:51 CST**(测量:`db/migration-windows.tsv`,`2026-10-08-mes5a2-energy.sql`)·
+>    终点下界 **2026-10-08 16:56:54 CST**(测量:推送把 `origin/main` 移到 `6a12e569`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`6a12e569 … {2026-10-08 16:56:54 +0800}: update by push`)·
+>    终点上界 **2026-10-08 18:43:41 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 51 min 03 s,至多 2 h 37 min 50 s。** 迁移之后的验证(生成类型、tsc、构建、整门、版式探针、冒烟、线上证明与逐角色读数、
+>    前后读数)整个跑在窗口里(`docs/handbacks/MES-5a-2.md` §5 · §6);推送之后到上界那 1 h 46 min 47 s 没有任何读数,直到 close-out 那一次。
+>    窗口里坏掉的(**推导**,MES-5a-2 交回 §6.4,没有在线上量):旧代码自己的写调用一条都不会被拒;旧应用没有电表那一块、电量面板与
+>    `/finance/electricity`,所以新东西要等部署才用得上;6200 成了系统科目,新旧应用里删除 / 停用 / 改码 / 取消标记它都被拒;读的一切照常。
+>    close-out 的只读读数(2026-10-08 18:51 CST,`postgres`,`rolbypassrls = true`,基表;`docs/surveys/MES-5b/closeout-readings.sql`,`READ_OWN_EXIT=0`):
+>    电表 **0** · 读数 0 · 分摊 0 / 行 0 · V25 为空 · `energy_kwh` 值 0 · 窗口开始以来新建的加工单 **0** · 电费行 6 条在册 / 4 条未结估计 / 1 条已冲抵
+>    (与 MES-5a-2 前后读数相同)· `require_calibrated_since` NULL · 通知 2 · 七个账号、0 个停用 —— 窗口里没有人用过这一刀的新东西。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–g):a · c · d · e · g 逐项读到了;b 与 f【不过】—— 所以 MES-5b Step 0 没有开始**(委托书第 1.4 条),等 Tim:
+>    **b** fixture 256 只过了【未付】那一张账(贷 2000);委托书点名的"贷应付【或银行】"里**银行那一半没有任何一臂、也没有注入**(线上证明同样只过了未付)。
+>    那一支在 HEAD 的本地重建上量过是好的(已付一张:借 6200 250.00 · 贷 1000 250.00;外币银行 1010 按名拒 `ELECTRICITY_BANK_NOT_BASE`;对账两侧 0.00)——
+>    缺的是那一臂与它的注入,不是函数。注入对着 HEAD 的本地重建【重跑】:41 + 1 格,0 格错(记下的那一次早于 fixture 256 最后一次修改)。
+>    **f** 只持一个码的三种会话【都用不了】那一页:`action.manage_devices` 与 `action.confirm_capture` 进不了 `/operation/devices`(门是 `module.processing.view`,
+>    `devices` 的读策略同一个码,读到 0 行);`module.finance.edit` 进不了 `/finance/electricity`(门是 `module.finance.view`),预览被拒,"过账"在没有预览时按不下去 ——
+>    而直接调 `post_electricity_allocation` 【过得了】(它只问 edit,比它自己的预览少问一个 view)。三支函数本身对各自的码都放行。
+>    线上今天没有人处在这个位置:持这三个码的四个角色(admin · cto · finance · warehouse)都同时持着那一页要的查看码。
+>    推荐(没有做):b 补一臂已付的账与它的注入(可以随 MES-5b 的第一个提交,F1 的撤回本来就要撤两种);f 由 Tim 定 ——
+>    推荐 (A) 定一条"动作 / 编辑码只与那一页的查看码一起授"的常设规矩并做成机制(`role_permissions` 上一道闸 + fixture),顺手让过账也问 `module.finance.view`;
+>    (B) 把几页与几张读策略放宽给动作码持有人。逐项证据在 `docs/surveys/MES-5b/MES-5a-2-CLOSEOUT.md`。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -7053,7 +7077,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 6 | ✅ **MES-4b · New fields and products**(★ 已关闭,`v1.4.42`,2026-10-08,上面第 41 条;两件并入都关闭;★ **Tim 的并入(MES-4a close-out 裁定,2026-10-07),不另起一刀**:① 冒烟对 `/operation/operation-types/[code]` 审计记录的断言收紧 —— 一道【有变更记录】的工序显示空审计记录时要红,一道没被改过的工序照旧可以是空的(今天的 `emptyOk: true` 对整条路由无条件放过,`scripts/smoke-routes.mjs:956-957`);② 对 16:11 那次注入之后改过的东西重跑 fixture 253 的故障注入(改码之后的 `correct_run_header`、fixture 253 本身、`trail_refs`、`trail_ref_label`),确认每一格仍然红在它所属的那一臂(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 c · f))| 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
   | 7a | ✅ **MES-5a-1 · Discharge**(★ 已关闭,`v1.4.43`,2026-10-08,上面第 42 条;Tim 2026-10-08 裁定 Q2:MES-5a 拆成两刀,本刀只做放电) | 2(逐模组放电) | 3 h 30 m – 5 h 40 m(Step 0 §9) |
   | 7b | ✅ **MES-5a-2 · Energy**(★ 已关闭,`v1.4.44`,2026-10-08,上面第 43 条) | 3(电表与按用途的电费) | 3 h 00 m – 4 h 55 m(Step 0 §9) |
-  | 8 | ⬜ **MES-5b · Balance, yield, blending**(★ 下一刀) | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
+  | 8 | ⬜ **MES-5b · Balance, yield, blending**(★ 下一刀;★ **Step 0 等 Tim 对 MES-5a-2 close-out b 与 f 的裁定**,上面第 43 条 · `docs/surveys/MES-5b/MES-5a-2-CLOSEOUT.md`) | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
   | 9 | ⬜ **MES-6a · Samples, arbitration, F/Cl** | 15(样品)· 16(仲裁)· 19(氟与氯) | 5 h 15 m – 8 h 45 m |
   | 10 | ⬜ **MES-6b · NCR, quality hold, CoA** | 17(不合格报告)· 18(分析证书) | 6 h 25 m – 11 h 30 m |
   | 11 | ⬜ **MES-7a · Spare parts and reliability** | 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m |
