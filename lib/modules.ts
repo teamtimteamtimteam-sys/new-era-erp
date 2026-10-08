@@ -568,6 +568,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/list-vs-ledger', navKey: 'finance.subnav.listVsLedger', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/payroll-payments', navKey: 'finance.subnav.payrollPay', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/processing-costs', navKey: 'finance.subnav.costSettle', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
+    // MES-5a-2(2026-10-08,MES-5a Step 0 Q24 · Q27):电费单的分摊 —— 一张账单只过一次账,分给它覆盖的各炉。读的门与月结同一个;
+    //   新建一张要 module.finance.edit(页面上的按钮照 DBLOCK-1:看得见、按不下去、说出码)。/new 与 /[id] 在它下面,不必另登记。
+    { href: '/finance/electricity', navKey: 'finance.subnav.electricity', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/revaluation', navKey: 'finance.subnav.reval', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/cost-variance', navKey: 'finance.subnav.variance', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/close', navKey: 'finance.subnav.close', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },

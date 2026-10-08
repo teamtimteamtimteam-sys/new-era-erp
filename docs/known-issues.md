@@ -10323,7 +10323,7 @@ AT-1a(2026-09-29,Q16)把 `formatDate` 改成 `DD/MM/YYYY` 之后,这两处的状
 
 | 路由 | 整页溢出 | 元凶 | 已有的登记 |
 |---|--:|---|---|
-| `/operation/processing/new` | **+177px** | 一颗原生 `<select>`(`select.h-8 rounded-lg border border-input …`) | `docs/forward-queue.md` 「✅ INPUT-3」那一节 R6(a) 的读数(2026-09-11:416 → 194,单位与今天的 +177 不一定同口径,并排写不比较) |
+| ~~`/operation/processing/new`~~ ✅ **已关闭(MES-5a-2,`v1.4.44`,2026-10-08)** | ~~**+177px**~~ → **0** | 一颗原生 `<select>`(`select.h-8 rounded-lg border border-input …`)—— 投料批次那一颗;`min-w-0 max-w-full` + `basis-full sm:basis-0`(只加前两个它在 390px 上缩成 95px);桌面 1280px 逐颗宽度未变。前后读数在 `docs/handbacks/MES-5a-2.md` §3 | `docs/forward-queue.md` 「✅ INPUT-3」那一节 R6(a) 的读数(2026-09-11:416 → 194,单位与今天的 +177 不一定同口径,并排写不比较) |
 | `/finance/freight/new` | **+27px** | 一颗页面级原生 `<select>` | `FREIGHT-NEW-PHONE-OVERFLOW`(同一个 27px,同一个元凶) |
 | `/sales/orders/new` | **+8px** | 一颗原生 `<select>` | `docs/forward-queue.md` 「Round 2 停在哪、Round 3 怎么修的」那张表(当时 6,`NewOrderForm.tsx` 的 `flex gap-2` 行) |
 | `/sales/quotes/[id]` | **+8px** | 明细编辑器加行那一排的物料 `<select>` | `AT1B2-QUOTE-PAGE-390-OVERFLOW`(同一个 8px) |
@@ -10491,4 +10491,33 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 
 上限只拦两支收货与手工建的产出批(Step 0 Q9)。加工产出(`commit_processing_run`)**不拒** —— 一炉加工不该因为产出那一侧的存量
 而半途失败 —— 推过上限时由提醒臂 `storage_ceiling_exceeded` 说出来;上限被调低到存量以下时也一样(Q13)。
+
+## MES-5a-2 留下的(2026-10-08 记录)
+
+### MES5A2-RELIEVE-SGD-LITERAL · `relieve_processing_accruals` 把费用单的币种写死成 `'SGD', 1`;币种检查看不见 `VALUES` 里的字面量(MES-5a Step 0 Q35,Tim:登记)
+
+**是什么:** `db/functions/relieve_processing_accruals.sql` 建费用单那一句 `INSERT INTO expenses (…) VALUES (…, 'SGD', 1, …)` —— 币种与汇率是字面量,
+不是 `currencies.is_base`。今天本位币就是 SGD,所以写出来的数是对的;**本位币一改,这支函数会把一张本位币的费用单记成 SGD、汇率 1**,而什么都不会报错。
+**为什么检查没抓到:** `scripts/check-currency-literals.mjs` 认的是【判断】的形状(比较、分支、`??` / `||` 默认、`'SGD' AS`、`{USD: …}`)与 JSX 正文、消息文本;
+`INSERT … VALUES (…, 'SGD', …)` 里的一个字面量不是其中任何一种,所以它对这一句是【瞎的】。放宽检查去认 `VALUES` 是另一个决定 —— 它会要它自己的一轮
+放行清单(种子文件、fixture 的自带数据里这种写法很多,而那些是对的)。
+**本刀为什么没改它:** MES-5a-2 没有动 `relieve_processing_accruals`(电费分摊有自己的过账函数,本位币从 `currencies.is_base` 读,外币按名拒 ——
+`ELECTRICITY_BILL_CURRENCY_NOT_BASE`),所以 Q35 那条"动到就顺手改"没有被触发。
+**删除条件:** 那句字面量改成从 `currencies.is_base` 读(下一刀动到这支函数时顺手),并且检查要不要认 `VALUES` 由 Tim 定过。
+
+### MES5A2-NO-ALLOCATION-REVERSAL · 一次电费分摊撤不回(MES-5a-2 的决定,2026-10-08)
+
+**是什么:** `post_electricity_allocation` 在一笔事务里写了一张费用单、一张分录、每一炉一条已结的实际电费行、并冲掉了被覆盖的估计。
+本刀**没有**撤回它的路:`reverse_expense` 对这张费用单按名拒(`EXPENSE_IS_ELECTRICITY_ALLOCATION|<编号>`),因为单独冲掉费用单会留下已结的电费行
+与已冲掉的估计 —— 总账与成本两边各说各话。分摊页上照直写着"本版本里一次分摊撤不回"。
+**代价:** 一张录错的电费单今天只能靠人工分录改正(并且那几炉的电费行与估计停在分摊后的样子)。线上至今 **0** 次分摊。
+**删除条件:** 建一条完整的撤回(费用单、分录、电费行、估计的恢复在同一笔事务里),或 Tim 裁定不要。
+
+### MES5A2-RELIEF-REVERSAL-ORPHANS · 冲销一张【冲抵估计】的费用单,那些被冲掉的估计不会回来(MES-5a-2 读到的既有缺口,2026-10-08)
+
+**是什么:** `relieve_processing_accruals`(月结那一条路)与本刀的电费分摊都会把估计软删、盖上 `relieved_at` 与 `relief_expense_id`。
+`reverse_expense` 冲掉月结那一张费用单时,只冲它的分录 —— **被它冲掉的估计仍然是软删、仍然指着一张已冲销的费用单**,
+于是那几炉的成本里那一项既不是估计也不是实际,而什么都不会报错。读 `reverse_expense` 时读到的,**早于本刀**;本刀没有改它
+(电费分摊那一张本刀直接拒冲,见上一条)。线上今天 `relieved` 的电费行 **1** 条(开场读数)。
+**删除条件:** `reverse_expense` 冲一张冲抵费用单时把它冲掉的估计恢复(或拒绝并说出走法),附一支 fixture。
 

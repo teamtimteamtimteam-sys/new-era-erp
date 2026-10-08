@@ -678,3 +678,13 @@ REVOKE EXECUTE ON FUNCTION public.discharge_channel_internal(uuid, text, uuid, i
 REVOKE EXECUTE ON FUNCTION public.discharge_verify_batch(text, uuid, uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.create_stock_transfer_internal(numeric, uuid, uuid, uuid, uuid, text, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_batch_module_count() FROM authenticated;
+
+-- MES-5a-2(2026-10-08):两支【内层】—— 没有调用者检查,只由各自查过码的 DEFINER 函数以属主身份调。
+--   meter_reading_internal:一条电表读数的判据与落库(record / correct_meter_reading)—— 给了 authenticated,就绕开 action.confirm_capture,
+--     也绕开"只能更正链的末端"。
+--   electricity_allocation_compute:电费单怎么分(preview / post_electricity_allocation)—— 它自己不写任何东西,但它不查码,
+--     而它读的是电表读数、各炉的电量与运行时长、估计的金额(加工成本的金额要 data.view_prices);给了 authenticated 就是一支绕开那道遮蔽的读法。
+--   record_meter_reading / correct_meter_reading / preview_electricity_allocation / post_electricity_allocation / set_electricity_shared_pool_rule
+--   【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+REVOKE EXECUTE ON FUNCTION public.meter_reading_internal(uuid, timestamp with time zone, numeric, boolean, text, text, boolean, bigint, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.electricity_allocation_compute(date, date, numeric, numeric, text, text, text) FROM authenticated;

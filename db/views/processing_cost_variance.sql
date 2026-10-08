@@ -13,6 +13,10 @@
 -- HTTP 200。属主权限绕过列授权,所以把两道门原样写回视图体:
 --   module.finance.view(这一页挂在财务子导航下)AND data.view_prices(它吐的是金额)。
 -- 与 cut 2b 所有 _masked 视图同形、同理由。
+--
+-- MES-5a-2(2026-10-08):只算【留在炉上】的冲抵(deleted_at IS NULL)。一次电费分摊冲掉的估计被【软删】了(那一炉从此只带实际额,
+-- Q24),而它们的 relief_expense_id 指着那张账单的费用单 —— 照旧算进来,就会拿几条估计去比【整张账单】(含 6200 的余数与别的炉的份),
+-- 报出一个不存在的偏差。被冲抵过的估计不可能被别的路软删(guard_cost_entry_settled),所以这一句只排除分摊那一路。
 
 CREATE VIEW public.processing_cost_variance WITH (security_invoker = off) AS
  SELECT date_trunc('month'::text, e.expense_date::timestamp with time zone)::date AS month,
@@ -31,7 +35,7 @@ CREATE VIEW public.processing_cost_variance WITH (security_invoker = off) AS
             max(ex.amount_base) AS actual
            FROM processing_cost_entries pce
              JOIN expenses ex ON ex.id = pce.relief_expense_id
-          WHERE pce.relieved_at IS NOT NULL
+          WHERE pce.relieved_at IS NOT NULL AND pce.deleted_at IS NULL
           GROUP BY pce.relief_expense_id, pce.cost_type) x
      JOIN expenses e ON e.id = x.relief_expense_id
   WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text)

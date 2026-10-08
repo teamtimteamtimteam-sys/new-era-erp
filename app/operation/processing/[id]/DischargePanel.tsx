@@ -8,6 +8,8 @@
 //   【更正】新的一行指着旧的(理由必填),旧的留着。【通道分配】只追加,可选(手工录入时不必先分配)。码:action.processing_aftercare。
 //   【拆去隔离】失败 · 隔离的模组从这里拆成另一批、进一个隔离库位(新的一炉 discharge_quarantine_split;码:action.processing_aftercare,
 //     记那一炉本身另要 action.processing_commit)。没有隔离库位时库里永远拒 —— 这里照样摆出来,按得下去,拒绝会说去哪儿标一个。
+//   【390 px】(MES-5a-1 close-out 第 e 项,Tim 的裁定 2026-10-08):放电柜下拉、隔离库位下拉与它们的 label 带 min-w-0 max-w-full,
+//     照片的文件框带 max-w-full —— 原生控件的内在宽度由最长的选项(与浏览器的文件框)决定,在一个换行的容器里也会把整页撑宽。
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_FILE_BUTTON } from '@/app/components/ui/control-style'
 import { useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
@@ -294,9 +296,9 @@ export default function DischargePanel({
                                 <span className={lbl}>{t('discharge.energyWh')}</span>
                                 <input type="number" min="0" step="any" value={f.energyWh} onChange={(e) => setF({ ...f, energyWh: e.target.value })} className={`${CONTROL_INPUT} w-24`} />
                             </label>
-                            <label className="block">
+                            <label className="block min-w-0 max-w-full">
                                 <span className={lbl}>{t('discharge.colDevice')}</span>
-                                <select value={f.deviceId} onChange={(e) => setF({ ...f, deviceId: e.target.value })} className={CONTROL_SELECT}>
+                                <select value={f.deviceId} onChange={(e) => setF({ ...f, deviceId: e.target.value })} className={`${CONTROL_SELECT} max-w-full`}>
                                     <option value="">{t('discharge.noDevice')}</option>
                                     {devices.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                                 </select>
@@ -308,7 +310,7 @@ export default function DischargePanel({
                         </div>
                         <div>
                             <span className={lbl}>{t('discharge.photo')}</span>
-                            <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(',')} className={CONTROL_FILE_BUTTON} aria-label={t('discharge.photo')} />
+                            <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(',')} className={`${CONTROL_FILE_BUTTON} max-w-full`} aria-label={t('discharge.photo')} />
                             <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('discharge.photoHint')}</p>
                         </div>
                         {fixing && (
@@ -492,9 +494,9 @@ function SplitForm({ runId, batch, canSplit, locations, locationsVisible, shifts
                         ))}
                     </div>
                     <div className="flex flex-wrap items-end gap-3">
-                        <label className="block">
+                        <label className="block min-w-0 max-w-full">
                             <span className={lbl}>{t('discharge.quarantineLocation')}</span>
-                            <select value={s.locationId} onChange={(e) => setS({ ...s, locationId: e.target.value })} className={CONTROL_SELECT}>
+                            <select value={s.locationId} onChange={(e) => setS({ ...s, locationId: e.target.value })} className={`${CONTROL_SELECT} max-w-full`}>
                                 <option value="">{t('discharge.pickLocation')}</option>
                                 {locations.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
                             </select>

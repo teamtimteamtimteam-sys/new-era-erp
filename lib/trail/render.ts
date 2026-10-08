@@ -1010,7 +1010,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
         'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log',
         'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections', 'contamination_checks',
-        'discharge_module_results', 'discharge_channel_assignments', 'discharge_module_splits'],
+        'discharge_module_results', 'discharge_channel_assignments', 'discharge_module_splits', 'electricity_allocation_lines'],
     role: ['roles', 'role_permissions', 'user_roles'],
     inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
@@ -1123,9 +1123,12 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     review_rating_scale: ['review_rating_scale'],
     kpi_entry: ['kpi_entries'],
     // MES-1(2026-10-06):设备(网关钥匙是它的成员)· 采集上限(单行设置)。收件箱、传输日志与中断不进变更记录(MES-0 Q14)。
-    device: ['devices', 'gateway_keys', 'instrument_calibrations', 'discharge_module_results'],
+    device: ['devices', 'gateway_keys', 'instrument_calibrations', 'discharge_module_results', 'meter_readings'],
     // MES-2(2026-10-06):地磅单 —— 它的两磅(含更正)、分出去的份、照片
     weighbridge_ticket: ['weighbridge_tickets', 'weighings', 'weighbridge_ticket_shares', 'weighbridge_ticket_photos'],
+    // MES-5a-2(2026-10-08):一张电费单的分摊与它的各炉一行 · 分摊的设定(V25)
+    electricity_allocation: ['electricity_allocations', 'electricity_allocation_lines'],
+    electricity_settings: ['electricity_settings'],
     ingest_settings: ['ingest_settings'],
     // MES-4a(2026-10-07):一道工序的配置(字段 · 机器 · 配方 · 版本)· 两本新字典
     operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions'],
@@ -1139,7 +1142,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
-    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype' | 'energy'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1174,6 +1177,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     operation_type: 'optype', dictionary_processing_event_types: 'dict', dictionary_shifts: 'dict',
     // MES-4b
     dictionary_cell_constructions: 'dict', dictionary_contamination_streams: 'dict',
+    // MES-5a-2
+    electricity_allocation: 'energy', electricity_settings: 'settings',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1260,7 +1265,9 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (REVIEW_TABLES.has(t)) return 'review'
     if (t === 'kpi_entries') return 'kpi'
     // MES-1
-    if (t === 'devices' || t === 'gateway_keys' || t === 'instrument_calibrations') return 'device'
+    if (t === 'devices' || t === 'gateway_keys' || t === 'instrument_calibrations' || t === 'meter_readings') return 'device'
+    // MES-5a-2:一张电费单的分摊与分给一炉的那一份 —— 在分摊页、加工单页、变更记录总表上都照这一族说
+    if (t === 'electricity_allocations' || t === 'electricity_allocation_lines') return 'energy'
     // MES-2
     if (t === 'weighbridge_tickets' || t === 'weighings' || t === 'weighbridge_ticket_shares' || t === 'weighbridge_ticket_photos') return 'ticket'
     if (t === 'review_rating_scale') return 'dict'
@@ -1856,6 +1863,16 @@ function describeDevice(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Blo
             } else if (isSet(r, 'revoked_at')) {
                 out.push({ title: tx(d, 'dev.keyRevoked'), part, lines: [], reason: typed(r.new?.['revoke_reason']), key: true, weight: 80 })
             } else out.push(describeGeneric(d, r, opts))
+        } else if (r.table === 'meter_readings') {
+            // MES-5a-2:电表读数 —— 只追加。记一条(时刻、读数、是不是寄存器清零与理由、来源都在行里)· 更正是新的一行指着旧的
+            //   (理由在理由那一格)· 撤回(记在了错的表上)没有值行,只有理由。
+            if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+            const corrected = str(r, 'corrects_id', 'new') !== null
+            const withdrawn = r.new?.['withdrawn'] === true
+            const key: TrailTextKey = withdrawn ? 'dev.meterReadingWithdrawn' : corrected ? 'dev.meterReadingCorrected' : 'dev.meterReadingRecorded'
+            out.push({ title: tx(d, key),
+                       lines: withdrawn ? [] : valueLines(d, r, r.new, opts, new Set(['id', 'device_id', 'withdrawn', 'corrects_id', 'correction_reason'])),
+                       reason: corrected ? typed(r.new?.['correction_reason']) : null, key: true, weight: 70 })
         } else if (r.table === 'instrument_calibrations') {
             // MES-2:校准记录 —— 记一次(日期、有效期、结论、证书号、机构都在行里)· 作废(带理由)。只追加,没有"改"。
             if (r.op === 'INSERT') {
@@ -1863,6 +1880,25 @@ function describeDevice(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Blo
             } else if (isSet(r, 'voided_at')) {
                 out.push({ title: tx(d, 'dev.calibrationVoided'), lines: [], reason: typed(r.new?.['void_reason']), key: true, weight: 75 })
             } else out.push(describeGeneric(d, r, opts))
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+// ── MES-5a-2(2026-10-08):一张电费单的分摊 —— 过账(表头:时间段、账单、kWh 的几份、金额 —— 金额由遮蔽规则管)·
+//   分给一炉的那一份(标题后面挂那一炉的单号;依据、kWh、份额、金额是值行)。只追加,没有"改"。
+//   在加工单页上,那一份从加工单这一边读起来也是这一句("Electricity share allocated · PROC-…")。
+function describeEnergy(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        if (r.table === 'electricity_allocations') {
+            out.push({ title: tx(d, 'ea.posted'), lines: valueLines(d, r, r.new, opts, new Set(['id', 'expense_id', 'journal_entry_id'])), key: true, weight: 90 })
+        } else if (r.table === 'electricity_allocation_lines') {
+            const run = str(r, 'run_id', 'new')
+            const label = run ? r.refs?.['run_id']?.[run]?.label ?? null : null
+            out.push({ title: tx(d, 'ea.runShare'), part: label ? { text: label } : null,
+                       lines: valueLines(d, r, r.new, opts, new Set(['id', 'allocation_id', 'run_id', 'cost_entry_id'])), key: true, weight: 70 })
         } else out.push(describeGeneric(d, r, opts))
     }
     return out
@@ -2933,6 +2969,8 @@ const SETTINGS_TITLE: Record<string, TrailTextKey> = {
     processing_settings: 'set.processing', pricing_settings: 'set.pricing', receiving_settings: 'set.receiving',
     // MES-1(Q22):采集上限的修改史就是变更记录
     ingest_settings: 'set.ingest',
+    // MES-5a-2(Q32):V25 的修改史就是变更记录
+    electricity_settings: 'set.electricity',
 }
 function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     return rows.map((r) => r.op === 'UPDATE'
@@ -5186,6 +5224,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'review': bs = describeReview(d, list, opts, hc); break
                 case 'kpi': bs = describeKpi(d, list, opts); break
                 case 'device': bs = describeDevice(d, list, opts); break
+                case 'energy': bs = describeEnergy(d, list, opts); break
                 case 'ticket': bs = describeTicket(d, list, opts); break
                 case 'optype': bs = describeOpType(d, list, opts); break
                 default: bs = []

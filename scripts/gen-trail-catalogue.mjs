@@ -702,6 +702,9 @@ const TABLE_NAMES = {
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',
+    // MES-5a-2(2026-10-08):电表读数 · 一张电费单的分摊与分给一炉的那一份 · 分摊的设定(V25)
+    meter_readings: 'meter reading', electricity_allocations: 'electricity bill allocation',
+    electricity_allocation_lines: 'electricity share of a run', electricity_settings: 'electricity allocation settings',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -833,6 +836,10 @@ const ENUM_OVERRIDES = {
     'discharge_module_results#verdict': { pass: 'Pass', fail: 'Fail' },
     'discharge_module_results#disposition': { re_discharge: 'Re-discharge', quarantine: 'Quarantine' },
     'discharge_module_results#source': { manual: 'Entered by hand', device: 'From a device' },
+    // MES-5a-2(2026-10-08):一条读数从哪里来 · 一张账单付没付 · 一炉的份按什么分(三列各一张 CHECK 清单)
+    'meter_readings#source': { manual: 'Entered by hand', device: 'From a device' },
+    'electricity_allocations#payment_status': { paid: 'Paid', unpaid: 'Unpaid' },
+    'electricity_allocation_lines#basis': { recorded_energy: 'Recorded run energy', run_time: 'Run time' },
     'processing_run_corrections#field': { started_at: 'Start time', ended_at: 'End time', shift_code: 'Shift', equipment_id: 'Machine',
         recipe_version_id: 'Recipe version', notes: 'Notes' },
     // MES-3a(2026-10-06):进厂那一刻库存上限怎么判的(receipt_ceiling_checks.outcome 的 CHECK)

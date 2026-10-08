@@ -20,6 +20,7 @@
 --   (同一个不对称,月度例程用负差额封零表达过一次:向上的变化往前摊,
 --    向下的变化仍是一次更正、仍走人工分录。)
 -- 向下修正一台【已投用】资产的成本今天仍然没有任何路 —— docs/known-issues.md 有记录。
+-- * MES-5a-2(2026-10-08):一次电费分摊的费用单【不许】单独冲(EXPENSE_IS_ELECTRICITY_ALLOCATION)—— 理由在那一句旁边。
 
 CREATE OR REPLACE FUNCTION public.reverse_expense(p_expense_id uuid, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
@@ -52,6 +53,11 @@ BEGIN
     -- 资产(或者说资产背后那笔应付蒸发)。先处置资产,或走人工分录改正。
     IF EXISTS (SELECT 1 FROM fixed_assets fa WHERE fa.expense_id = p_expense_id) THEN
         RAISE EXCEPTION 'EXPENSE_HAS_ASSET|%', v_orig.code;
+    END IF;
+    -- MES-5a-2(2026-10-08):一次电费分摊的费用单不许单独冲 —— 它那张分录结掉了各炉的实际电费成本行(已结、冻住),
+    -- 冲掉费用单而留着那些行,2200 就再也对不上了;这一刀没有撤销一次分摊的路(docs/known-issues.md MES5A2-NO-ALLOCATION-REVERSAL)。
+    IF EXISTS (SELECT 1 FROM electricity_allocations ea WHERE ea.expense_id = p_expense_id) THEN
+        RAISE EXCEPTION 'EXPENSE_IS_ELECTRICITY_ALLOCATION|%', v_orig.code;
     END IF;
 
     -- ════════════════════════════════════════════════════════════════════════

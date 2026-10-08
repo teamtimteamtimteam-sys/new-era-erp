@@ -7,6 +7,8 @@
 //   传输上的异常(Q19)。
 // 【别的设备】带它的网关 · 数据类 · 最近收下的消息。
 // 【每一台】采购合同里的六条数据接口条款(规格 §8.1,"Not yet confirmed" 是默认)· 机器(经 equipment_usage,Q29)· 审计记录。
+// 【电表】(MES-5a-2,MES-5a Step 0 Q19 · Q20)它挂在哪台机器上(没挂 = 共用池)· 它的累计寄存器读数(记 / 更正 / 撤回,
+//   action.confirm_capture)。机器在上面的编辑表单里设(action.manage_devices,save_device —— MES-1 就有那一格)。
 // 【门】requireFunction(FN.devices);修改、停用、发 / 撤钥匙要 action.manage_devices。
 // ════════════════════════════════════════════════════════════════════════════
 import type { ReactNode } from 'react'
@@ -28,6 +30,7 @@ import KeysPanel, { type KeyRow } from '../KeysPanel'
 import { TERM_KEYS, type DeviceValues, type Option } from '../deviceFields'
 import { INSTRUMENT_KINDS } from '@/app/operation/capture/captureFields'
 import { RecordCalibrationForm, VoidCalibration } from '@/app/operation/calibration/CalibrationControls'
+import MeterPanel, { type MeterReadingView } from '../MeterPanel'
 
 type Device = {
     id: string; code: string; name: string; kind: string; gateway_id: string | null; data_class: string | null
@@ -300,6 +303,27 @@ export default async function DevicePage({ params, searchParams }: {
         )
     }
 
+    // MES-5a-2(Q19 · Q20):电表的读数(当前的;"比上一条多用了"是库里的视图算的)
+    let meterBlock: ReactNode = null
+    const isMeter = d.kind === 'meter'
+    if (isMeter) {
+        const [readRes, canRecord] = await Promise.all([
+            supabase.from('meter_readings_current')
+                .select('id, read_at, register_kwh, is_register_reset, reset_reason, source, notes, corrected, correction_reason, delta_kwh')
+                .eq('device_id', id).order('read_at', { ascending: false }).order('id', { ascending: false }),
+            can('action.confirm_capture'),
+        ])
+        const readings = (mustRows(readRes, 'meter_readings_current') as {
+            id: number; read_at: string; register_kwh: number; is_register_reset: boolean; reset_reason: string | null; source: string
+            notes: string | null; corrected: boolean; correction_reason: string | null; delta_kwh: number | null
+        }[]).map((r): MeterReadingView => ({
+            id: r.id, readAtIso: r.read_at, readAt: formatAuditStamp(r.read_at), registerKwh: Number(r.register_kwh),
+            delta: r.delta_kwh === null ? null : Number(r.delta_kwh), reset: r.is_register_reset, resetReason: r.reset_reason,
+            source: r.source, notes: r.notes, corrected: r.corrected, correctionReason: r.correction_reason,
+        }))
+        meterBlock = <MeterPanel deviceId={id} retired={!!d.retired_at} canRecord={canRecord} readings={readings} />
+    }
+
     const gw = d.gateway_id ? byId.get(d.gateway_id) ?? null : null
     const dataClass = d.data_class ? classes.find((c) => c.code === d.data_class) ?? null : null
 
@@ -320,7 +344,8 @@ export default async function DevicePage({ params, searchParams }: {
                         : [{ label: t('devices.colGateway'), value: gw ? link(gw) : t('devices.noGateway') },
                            { label: t('devices.colDataClass'), value: dataClass ? className(dataClass) : '—' }]),
                     { label: t('devices.colStation'), value: d.station ?? '—' },
-                    { label: t('devices.form.machine'), value: machine ? `${machine.equipment_code}${machine.equipment_description ? ` — ${machine.equipment_description}` : ''}` : '—' },
+                    { label: t('devices.form.machine'), value: machine ? `${machine.equipment_code}${machine.equipment_description ? ` — ${machine.equipment_description}` : ''}`
+                        : isMeter ? t('energy.sharedPool') : '—' },
                     ...(!isGateway ? [
                         { label: t('devices.form.capacity'), value: d.capacity != null ? `${d.capacity}${d.unit ? ` ${d.unit}` : ''}` : t('devices.notYetSet') },
                         { label: t('devices.form.resolution'), value: d.resolution != null ? `${d.resolution}${d.unit ? ` ${d.unit}` : ''}` : t('devices.notYetSet') },
@@ -330,6 +355,8 @@ export default async function DevicePage({ params, searchParams }: {
                 ]}
             />
             {d.notes && <p className="mb-4 text-sm">{d.notes}</p>}
+            {isMeter && <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]" data-meter-machine={d.equipment_id ? 'machine' : 'shared-pool'}>
+                {d.equipment_id ? t('energy.meterOnMachine') : t('energy.meterSharedPool')}</p>}
 
             <DeviceControls deviceId={id} code={d.code} initial={initial} gateways={gatewayOptions} classes={classOptions}
                             equipment={equipmentOptions} canManage={canManage} retired={!!d.retired_at} />
@@ -337,6 +364,7 @@ export default async function DevicePage({ params, searchParams }: {
             {gatewayBlocks}
             {messagesBlock}
             {calibrationBlock}
+            {meterBlock}
 
             <section className="mt-8">
                 <h2 className="mb-2">{t('devices.terms.title')}</h2>

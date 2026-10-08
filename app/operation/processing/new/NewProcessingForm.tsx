@@ -650,6 +650,9 @@ export default function NewProcessingForm({
                                            onFound={(r) => scanInto(row.key, r)} testId={`scan-feed-${row.key}`} />
                                 {scanMiss[row.key] && <p className="text-sm text-amber-700 mb-1">{scanMiss[row.key]}</p>}
                                 <div className="flex flex-wrap gap-2 items-start mt-1">
+                                    {/* MES-5a-2(MES-5a-1 close-out 第 e 项,Tim 的裁定 2026-10-08):min-w-0 max-w-full —— 这颗投料下拉的内在宽度由
+                                        最长的那一行批次决定,flex-1 与换行都压不住它(390 px 上 +177 px,MES-4a 起量到的那一处)。手机上它占满一行
+                                        (basis-full;sm 起回到 flex-1 的 0 基准 —— 桌面逐像素不变),不然它会被数量框挤成 95 px。 */}
                                     <select
                                         value={row.batch_ref}
                                         onChange={(e) =>
@@ -657,7 +660,7 @@ export default function NewProcessingForm({
                                                 batch_ref: e.target.value,
                                             })
                                         }
-                                        className={`${CONTROL_SELECT} flex-1`}
+                                        className={`${CONTROL_SELECT} flex-1 basis-full sm:basis-0 min-w-0 max-w-full`}
                                     >
                                         <option value="" disabled>
                                             {t('processing.form.selectInboundBatch')}

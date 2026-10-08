@@ -15,6 +15,8 @@
 --   apr_note                     approval_log_note_visible(subject_type, subject_id)(approval_log_masked;U1-B)
 --   jr_amount                    journal_request_amount_visible(id)(journal_requests_masked;U1-B)
 --   never                        谁都看不见(gateway_keys_masked 里 CASE WHEN false;MES-1 Q20:网关钥匙的哈希)
+-- ★ MES-5a-2(2026-10-08)加了 6 行(105 → 111):电费分摊的五列金额与分给一炉的金额 —— 加工成本那条规矩(data.view_prices,Q30),
+--   每一行抄自 electricity_allocations_masked / electricity_allocation_lines_masked 里那句 CASE。
 -- ★ MES-1(2026-10-06)加了 1 行(104 → 105):网关钥匙的哈希 —— never(Q20:任何读者、任何一份记录都不给)。
 -- ★ U1-B(2026-10-05)加了 3 行(101 → 104):工资分录冲销申请的金额 · 医疗报销的批准 / 驳回理由(在报销单上与在审批留痕上)。
 -- ★ U1-A(UNBLOCK-1,2026-10-05)加了 20 行(81 → 101):工资分录的金额(Q1)· 审批留痕上的金额(Q8 · Q10)· 人事备注(Q6)·
@@ -100,6 +102,12 @@ AS $function$
         ('pricing_term_commitments', 'treatment_charge_usd_per_tonne', 'code:data.view_purchase_prices'),
         ('pricing_term_commitments', 'flat_discount_pct', 'code:data.view_purchase_prices'),
         ('processing_cost_entries', 'amount_base', 'code:data.view_prices'),
+        ('electricity_allocations', 'bill_amount', 'code:data.view_prices'),
+        ('electricity_allocations', 'price_per_kwh', 'code:data.view_prices'),
+        ('electricity_allocations', 'allocated_amount', 'code:data.view_prices'),
+        ('electricity_allocations', 'overhead_amount', 'code:data.view_prices'),
+        ('electricity_allocations', 'relieved_estimate_amount', 'code:data.view_prices'),
+        ('electricity_allocation_lines', 'amount', 'code:data.view_prices'),
         ('processing_cost_entry_history', 'old_amount_base', 'code:data.view_prices'),
         ('processing_cost_entry_history', 'new_amount_base', 'code:data.view_prices'),
         ('processing_outputs', 'allocated_cost_base', 'code:data.view_prices'),

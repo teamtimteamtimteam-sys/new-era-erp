@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -5632,6 +5632,184 @@ if (FAULT === 'wording-drift-mes5a1') dict.text = { ...dict.text, 'run.discharge
     if (FAULT === 'wording-drift-mes5a1' && !problems.gold21.length) problems.gold21.push('(注入 wording-drift-mes5a1 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉒ MES-5a-2:电表读数、一张电费单的分摊、分给一炉的那一份、V25(MES-5a Step 0 Q20 · Q24 · Q31 · Q32)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-5a-2.md 列出。
+//   读数只追加:记一条(读数、时刻、寄存器清零与理由是值行)/ 更正是新的一行(理由在理由那一格)/ 撤回没有值行。
+//   一张单过账是一句(时间段、账单、kWh 的几份与金额是值行);分给一炉的那一份标题后面挂那一炉的单号 —— 在分摊页与加工单页上同一句。
+//   V25 改一次是设定那一类的一句("(empty) → …")。注入 wording-drift-mes5a2 → 这一臂必须红。
+problems.gold22 = []
+if (FAULT === 'wording-drift-mes5a2') dict.text = { ...dict.text, 'ea.runShare': 'Electricity allocated' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const dev = id('dev'), run = id('run'), al = id('al'), eq = id('eq'), sup = id('sup')
+    const D22 = { subject: 'device', recordId: dev, currency: null }
+    const rd = (k, extra) => ({ id: k, device_id: dev, read_at: '2026-10-01T01:00:00Z', register_kwh: 1600, is_register_reset: false, reset_reason: null,
+        withdrawn: false, source: 'manual', inbox_id: null, draft_id: null, site_from: null, site_to: null, site_dataset_ref: null, notes: null,
+        recorded_at: '2026-10-01T01:05:00Z', recorded_by: id('u'), corrects_id: null, correction_reason: null, ...extra })
+    add('meter reading · recorded', D22, [{ table: 'meter_readings', op: 'INSERT', key: { id: 11 }, refs: {}, new: rd(11) }])
+    add('meter reading · register reset with a reason', D22, [{ table: 'meter_readings', op: 'INSERT', key: { id: 12 }, refs: {},
+        new: rd(12, { register_kwh: 5, is_register_reset: true, reset_reason: 'Meter replaced by the contractor' }) }])
+    add('meter reading · corrected with a reason', D22, [{ table: 'meter_readings', op: 'INSERT', key: { id: 13 }, refs: {},
+        new: rd(13, { register_kwh: 1610, corrects_id: 11, correction_reason: 'Read the wrong register' }) }])
+    add('meter reading · withdrawn', D22, [{ table: 'meter_readings', op: 'INSERT', key: { id: 14 }, refs: {},
+        new: rd(14, { withdrawn: true, corrects_id: 11, correction_reason: 'Recorded on the wrong meter' }) }])
+    const A22 = { subject: 'electricity_allocation', recordId: al, currency: 'SGD' }
+    const aref = { supplier_id: { [sup]: { label: 'SUP-2026-0042' } } }
+    add('allocation · posted', A22, [{ table: 'electricity_allocations', op: 'INSERT', key: { id: al }, refs: aref,
+        new: { id: al, period_from: '2026-09-01', period_to: '2026-09-30', bill_date: '2026-10-03', invoice_ref: 'SP-889120', supplier_id: sup,
+               payee_name: null, currency: 'SGD', bill_amount: 1337.5, bill_kwh: 1200, price_per_kwh: 1.114583, metered_kwh: 1050, allocated_kwh: 1000,
+               shared_pool_kwh: 50, unallocated_metered_kwh: 0, unmetered_kwh: 150, allocated_amount: 1114.59, overhead_amount: 222.91,
+               relieved_estimate_amount: 50, relieved_estimate_count: 1, payment_status: 'unpaid', bank_account_code: null,
+               expense_id: id('exp'), journal_entry_id: id('je'), notes: null, created_at: '2026-10-03T02:00:00Z', created_by: id('u') } }])
+    const lref = { run_id: { [run]: { label: 'PROC-2026-0901' } }, equipment_id: { [eq]: { label: 'FA-2026-0001' } } }
+    const ln = { id: 31, allocation_id: al, run_id: run, equipment_id: eq, basis: 'run_time', run_energy_kwh: null, run_minutes: 180, weight: 180,
+                 share: 0.75, machine_kwh: 400, kwh: 300, amount: 334.38, cost_entry_id: id('ce'), created_at: '2026-10-03T02:00:00Z' }
+    add('allocation · a run\'s share (on the allocation)', A22, [{ table: 'electricity_allocation_lines', op: 'INSERT', key: { id: 31 }, refs: lref, new: ln }])
+    add('allocation · a run\'s share (on the run)', { subject: 'processing_run', recordId: run, currency: 'SGD' },
+        [{ table: 'electricity_allocation_lines', op: 'INSERT', key: { id: 31 }, refs: lref, new: ln }])
+    add('V25 · the shared-pool rule written', { subject: 'electricity_settings', recordId: 'true', currency: null }, [
+        { table: 'electricity_settings', op: 'UPDATE', key: { id: true }, cols: ['shared_pool_rule', 'updated_at', 'updated_by'],
+          old: { id: true, shared_pool_rule: null }, new: { id: true, shared_pool_rule: 'Spread by run time across metered machines' } }])
+    const WANT = {
+            "meter reading · recorded": {
+                    "title": "Meter reading recorded",
+                    "part": null,
+                    "lines": [
+                            "Read at: 01/10/2026 09:00",
+                            "Register (kWh): 1,600",
+                            "Register reset: No",
+                            "Source: Entered by hand"
+                    ],
+                    "reason": null,
+                    "who": "Chooer"
+            },
+            "meter reading · register reset with a reason": {
+                    "title": "Meter reading recorded",
+                    "part": null,
+                    "lines": [
+                            "Read at: 01/10/2026 09:00",
+                            "Register (kWh): 5",
+                            "Register reset: Yes",
+                            "Reason for the reset: Meter replaced by the contractor",
+                            "Source: Entered by hand"
+                    ],
+                    "reason": null,
+                    "who": "Chooer"
+            },
+            "meter reading · corrected with a reason": {
+                    "title": "Meter reading corrected",
+                    "part": null,
+                    "lines": [
+                            "Read at: 01/10/2026 09:00",
+                            "Register (kWh): 1,610",
+                            "Register reset: No",
+                            "Source: Entered by hand"
+                    ],
+                    "reason": "Read the wrong register",
+                    "who": "Chooer"
+            },
+            "meter reading · withdrawn": {
+                    "title": "Meter reading withdrawn",
+                    "part": null,
+                    "lines": [],
+                    "reason": "Recorded on the wrong meter",
+                    "who": "Chooer"
+            },
+            "allocation · posted": {
+                    "title": "Electricity bill allocated",
+                    "part": null,
+                    "lines": [
+                            "Period from: 01/09/2026",
+                            "Period to: 30/09/2026",
+                            "Bill date: 03/10/2026",
+                            "Bill number: SP-889120",
+                            "Supplier: SUP-2026-0042",
+                            "Currency: SGD",
+                            "Bill amount: 1,337.50 SGD",
+                            "Bill (kWh): 1,200",
+                            "Price per kWh: 1.1146",
+                            "Metered (kWh): 1,050",
+                            "To runs (kWh): 1,000",
+                            "Shared pool (kWh): 50",
+                            "Metered, no run (kWh): 0",
+                            "Unmetered (kWh): 150",
+                            "To runs: 1,114.59 SGD",
+                            "To overhead (6200): 222.91 SGD",
+                            "Estimates replaced: 50.00 SGD",
+                            "Estimates replaced (count): 1",
+                            "Payment: Unpaid"
+                    ],
+                    "reason": null,
+                    "who": "Chooer"
+            },
+            "allocation · a run's share (on the allocation)": {
+                    "title": "Electricity share allocated",
+                    "part": "PROC-2026-0901",
+                    "lines": [
+                            "Machine: FA-2026-0001",
+                            "Split by: Run time",
+                            "Run time (minutes): 180",
+                            "Weight: 180",
+                            "Share: 0.75",
+                            "Machine metered (kWh): 400",
+                            "Allocated (kWh): 300",
+                            "Amount: 334.38 SGD"
+                    ],
+                    "reason": null,
+                    "who": "Chooer"
+            },
+            "allocation · a run's share (on the run)": {
+                    "title": "Electricity share allocated",
+                    "part": "PROC-2026-0901",
+                    "lines": [
+                            "Machine: FA-2026-0001",
+                            "Split by: Run time",
+                            "Run time (minutes): 180",
+                            "Weight: 180",
+                            "Share: 0.75",
+                            "Machine metered (kWh): 400",
+                            "Allocated (kWh): 300",
+                            "Amount: 334.38 SGD"
+                    ],
+                    "reason": null,
+                    "who": "Chooer"
+            },
+            "V25 · the shared-pool rule written": {
+                    "title": "Shared-pool electricity rule changed",
+                    "part": null,
+                    "lines": [
+                            "Shared-pool rule (V25): (empty) → Spread by run time across metered machines"
+                    ],
+                    "reason": null,
+                    "who": "Chooer"
+            }
+    }
+    const got22 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 8) problems.gold22.push(`㉒ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD22', order: 1, prelog: false, at: '2026-10-08T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Chooer' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold22.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD22')
+        if (mine.length !== 1) { problems.gold22.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got22[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold22.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold22.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold22.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD22_PRINT) console.log(JSON.stringify(got22, null, 8))
+    if (FAULT === 'wording-drift-mes5a2' && !problems.gold22.length) problems.gold22.push('(注入 wording-drift-mes5a2 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -5639,7 +5817,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

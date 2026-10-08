@@ -509,8 +509,31 @@
 >    「拆去隔离」那张的隔离库位下拉同样随名字变宽(34 字时撑出它自己那一块 26 px,52 字时整页 +111 px);「通道分配」那张三种数据下都不溢出。
 >    在草稿副本里试过的修法(两个下拉与它们的 label 加 `min-w-0 max-w-full`、文件框加 `max-w-full`):390 px 上 182 → **0**,桌面宽度逐字未变。
 >    **没有修**(委托书第 5 条)。逐项证据与其余六项的读数在 `docs/surveys/MES-5a-2/MES-5a-1-CLOSEOUT.md`。
+>    ★ **e 已关闭(MES-5a-2,`v1.4.44`,2026-10-08,Tim 的 close-out 裁定:在 MES-5a-2 里修)** —— 放电柜下拉与它的 label、隔离库位下拉与它的 label
+>    加 `min-w-0 max-w-full`,照片文件框加 `max-w-full`;390 px 上「记结果」那张 +92(活数据长度)/ +182(58 字)→ **0 / 0**,「拆去隔离」那张同样 → **0**;
+>    桌面 1280 px 逐颗控件宽度未变。连同 `/operation/processing/new` 那颗 +177 px 的投料下拉一起关(下面第 43 条;前后读数在 `docs/handbacks/MES-5a-2.md` §3)。
+>    module_count 授权检查的【遮蔽视图】那一半补了它自己的故障注入(`inbound_batches_masked.module_count` 改名 → fixture 255 的 MC 臂红)。
 >    ☞ 一条只作记录的说明(不是缺口):MES-5a-1 记下的那次注入(11:39)早于它最后一处镜像改动(`processing_runs.sql` 的列注释,12:16),
 >    所以对着 HEAD 的本地重建【重跑】了一遍:**49 格(255 上 44 + 158 / 165 / 251 / 253 上 5),0 格错**,每一格红在它点名的那一臂。
+>
+> 43. **✅ 电表与读数、一炉的电量、电费单的分摊,390 px 上三张表单不再撑破 —— MES-5a-2 Energy(`v1.4.44`,2026-10-08)。** MES 组的第八刀
+>    (Tim 2026-10-08:MES-5a-1 close-out 裁定 + Q19–Q36 的答案,逐条收下;Q22 · Q24 由 Tim 裁定)。
+>    电表是一台 `meter` 设备,它的机器 = `devices.equipment_id`(空 = 共用池,设备页上设,`action.manage_devices`);累计寄存器读数只追加
+>    (`meter_readings`),更正与撤回是带理由的新一行,比上一条小的拒、除非标成寄存器清零并写理由;记读数要 `action.confirm_capture`,不规定频率;
+>    **设备转换器一个都没建**(没有电表给过数据格式;行上带着来源、收件箱与现场数据的指针)。一炉的电量 = 它自己记的 `energy_kwh`,没记才用分到的;
+>    放电回收的能量另列(`processing_run_energy`)。一台机器量到的 kWh:这段时间每一炉都记了电量就按电量分,否则整台按运行时长分,依据印在每一行;
+>    每吨按总投入。电费单在 `/finance/electricity` 上**只过一次账**:预览与过账是同一支 `electricity_allocation_compute`;一笔事务里一张费用单、
+>    每一炉一条实际电费行、一张分录结掉它们(借 2200 各炉 · 借 6200 余数 · 贷 2000 或银行)、被覆盖的炉上手敲的估计被冲掉;不计量与共用池留在 6200
+>    (V25 给出来之前 —— V25 只记规则,本刀不按它摊);只收本位币(从 `currencies.is_base` 读),外币按名拒;过账要 `module.finance.edit`;
+>    金额在 `data.view_prices` 之后(列级授权 + 遮蔽视图 + 遮蔽规则同一支迁移),kWh 不遮;四张新表都进变更记录(豁免仍是 8),
+>    审计记录:读数在电表上、一张单与它的行在那张单上、分给一炉的那一行也在那一炉上(措辞臂 ㉒)。
+>    迁移 `db/migrations/2026-10-08-mes5a2-energy.sql`,**破窗起点 2026-10-08 16:05:51 CST**(`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。
+>    验证十二步:离线门 `GATEOFF_EXIT=0`(第一次 4:fixture 100 的取号函数计数 31 → 32,`post_electricity_allocation`)· 备份 `BACKUP_EXIT=0` · 迁移 `APPLY_EXIT=0` · 类型 · tsc · 构建 `BUILD_OWN_EXIT=0` · 整门 `GATE_EXIT=0`(259 支 fixture;282 张表 · 274 张记录 · 8 张豁免;遮蔽 111 列)· i18n · 吞错 · 版式 12 处 × 两个宽度全部 0 / 0 · 冒烟 275 ok / 13 skipped / 0 failed。线上回滚的证明 `MES5A2_PROOF_EXIT=0`(一次性账号动手,七个真账号一个都没用),前后读数:277 张表里 275 张逐字不变,另两张是迁移自己的 6200 `is_system`(连同触发器的 `updated_at`)与冒烟记录在案的那一行 COD 轮换;没有电表、读数、分摊,V25 为空,`require_calibrated_since` 为 NULL,七个账号与角色不变,通知 2 → 2,对账两侧 0.00。
+>    **一并关闭:** MES-5a-1 close-out 的 e(上面第 42 条)· `/operation/processing/new` 那颗 +177 px 的投料下拉(MES-4a / 4b / 5a-1 量过的同一处:
+>    `min-w-0 max-w-full` 之外还要 `basis-full sm:basis-0`,不然它在 390 px 上缩成 95 px;390 px +177 → **0**,桌面逐颗未变)。
+>    逐角色读数表、页面清单、开场读数、三张表单的前后读数与未经询问的决定在 `docs/handbacks/MES-5a-2.md`。
+>    **下一刀 MES-5b · Balance, yield, blending**(见下面「⬜ ★ MES 组」表格第 8 行)。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
@@ -7011,7 +7034,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);**MES-5a-2 Energy 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);**MES-5b 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -7029,8 +7052,8 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 5 | ✅ **MES-4a · Processing record**(2026-10-07,`v1.4.41`,`docs/handbacks/MES-4a.md`;~~★ 下一刀~~)| 11(参数与配方)· 13(计数)· 规格书 §4.1(平衡与容差;机器在挂了机器的工序上变成必填 —— 收紧 U1-B 的可选选择器,Q41) | 8 h 40 m – 15 h 30 m |
   | 6 | ✅ **MES-4b · New fields and products**(★ 已关闭,`v1.4.42`,2026-10-08,上面第 41 条;两件并入都关闭;★ **Tim 的并入(MES-4a close-out 裁定,2026-10-07),不另起一刀**:① 冒烟对 `/operation/operation-types/[code]` 审计记录的断言收紧 —— 一道【有变更记录】的工序显示空审计记录时要红,一道没被改过的工序照旧可以是空的(今天的 `emptyOk: true` 对整条路由无条件放过,`scripts/smoke-routes.mjs:956-957`);② 对 16:11 那次注入之后改过的东西重跑 fixture 253 的故障注入(改码之后的 `correct_run_header`、fixture 253 本身、`trail_refs`、`trail_ref_label`),确认每一格仍然红在它所属的那一臂(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 c · f))| 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
   | 7a | ✅ **MES-5a-1 · Discharge**(★ 已关闭,`v1.4.43`,2026-10-08,上面第 42 条;Tim 2026-10-08 裁定 Q2:MES-5a 拆成两刀,本刀只做放电) | 2(逐模组放电) | 3 h 30 m – 5 h 40 m(Step 0 §9) |
-  | 7b | ⬜ **MES-5a-2 · Energy**(★ 下一刀;开放问题与两条等 Tim 的裁定见下面「⬜ MES-5a-2 · Energy」) | 3(电表与按用途的电费) | 3 h 00 m – 4 h 55 m(Step 0 §9) |
-  | 8 | ⬜ **MES-5b · Balance, yield, blending** | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
+  | 7b | ✅ **MES-5a-2 · Energy**(★ 已关闭,`v1.4.44`,2026-10-08,上面第 43 条) | 3(电表与按用途的电费) | 3 h 00 m – 4 h 55 m(Step 0 §9) |
+  | 8 | ⬜ **MES-5b · Balance, yield, blending**(★ 下一刀) | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
   | 9 | ⬜ **MES-6a · Samples, arbitration, F/Cl** | 15(样品)· 16(仲裁)· 19(氟与氯) | 5 h 15 m – 8 h 45 m |
   | 10 | ⬜ **MES-6b · NCR, quality hold, CoA** | 17(不合格报告)· 18(分析证书) | 6 h 25 m – 11 h 30 m |
   | 11 | ⬜ **MES-7a · Spare parts and reliability** | 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m |
@@ -7039,7 +7062,9 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 14 | ⬜ **MES-8b · Analysis and display** | 28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏) | 5 h 25 m – 10 h 00 m |
   | 15 | ⬜ **MES-9 · Supplier portal**(最后) | 27(供应商门户;先做内部专用的那次清扫,Q86) | 7 h 35 m – 13 h 15 m |
   合计 **≈ 97 h 40 m – 174 h 45 m**(勘察 §8.2;其中底 22 h 30 m – 37 h 30 m)。依赖图见勘察 §8.2 末尾。
-* **⬜ MES-5a-2 · Energy —— ★ MES 组的下一刀**(Tim 2026-10-08 裁定 Q2:MES-5a 拆成两刀;MES-5a-1 Discharge 已关闭,上面第 42 条)。
+* ~~**⬜ MES-5a-2 · Energy —— ★ MES 组的下一刀**~~ **✅ 已关闭(MES-5a-2,`v1.4.44`,2026-10-08,上面第 43 条)** —— Tim 2026-10-08 答了 Q19–Q36
+  (Q22 · Q24 照推荐裁定;Q20 改了一处:**不建设备转换器** —— 没有电表给过数据格式,不对着一个编出来的格式写 `transform_meter_reading_v1`);
+  下面是开工前的原文,保留作记录。(Tim 2026-10-08 裁定 Q2:MES-5a 拆成两刀;MES-5a-1 Discharge 已关闭,上面第 42 条)。
   **Tim 的原话:这一刀【不】含 Q19–Q28、Q35、V25、分摊的表与电表读数 —— 记在这里,归 MES-5a-2。** 推荐答案逐字在
   `docs/surveys/MES-5a/STEP0-HANDBACK.md` §12 C(Q19–Q28)与 §12 E(Q35);§4 是能源那一半的范围,§7 是 V25 那一行,§9 是它的工期(3 h 00 m – 4 h 55 m)。
   **★ 两条等 Tim 的裁定(他明说了要自己定,推荐答案只是推荐):**

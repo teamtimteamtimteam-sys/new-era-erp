@@ -347,8 +347,9 @@ BEGIN
     -- ★ 覆盖率本身是一条断言:一个瞎掉的扫描器和一棵干净的树都打印"通过"。
     --   实测(2026-09-13,变换前后同一个数):30 支。少于 30 = 判据瞎了,不是变干净了。
     -- ★ PAY-REQ-1:30 → 31(next_payment_request_code)。
-    IF v_n <> 31 THEN
-        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 31 支,这次只看见 % 支'
+    -- ★ MES-5a-2:31 → 32(post_electricity_allocation —— 电费单的费用单编号,与 relieve_processing_accruals 同一套 EXP 取号,带 LIKE 过滤)。
+    IF v_n <> 32 THEN
+        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 32 支,这次只看见 % 支'
                         ' —— 判据瞎了,不是树干净了', v_n;
     END IF;
 

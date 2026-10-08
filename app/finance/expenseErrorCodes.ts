@@ -26,6 +26,8 @@ const EXPENSE_ERROR_CODES = new Set([
     'ASSET_DISPOSAL_REQUESTED',
     'ASSET_DESCRIPTION_REQUIRED', 'ASSET_LIFE_INVALID', 'ASSET_RESIDUAL_INVALID',
     'ASSET_IN_SERVICE_BEFORE_ACQUISITION', 'EXPENSE_HAS_ASSET',
+    // MES-5a-2(2026-10-08):一次电费分摊的费用单不许单独冲(reverse_expense)
+    'EXPENSE_IS_ELECTRICITY_ALLOCATION',
     // EQP-1b-ii:支出挂上采购单行之后新出现的具名拒绝。
     // 三条单据守卫(PO_*)与 apply_prepayment 同码同义 —— 同一件事在两条路上
     // 说同一句话,不为了"这是费用侧"另起一套名字。

@@ -4,7 +4,7 @@
 --
 -- ════════════════════════════════════════════════════════════════════════════
 -- 【混合表:一半是安装种子,一半是记账员的地盘】(OPS-1 定的规矩)
---   is_system = true  的 34 行 = 自动记账引擎【按 code 点名依赖】的科目。
+--   is_system = true  的 36 行(MES-5a-2 实测:加 6200 之前线上与本文件都是 35 行,而这里写着 34 —— 一个过期的数,随本刀更正) = 自动记账引擎【按 code 点名依赖】的科目。
 --     它们与代码版本绑定,本文件【逐行跟踪线上】,check_mirrors.py 逐行比对,
 --     任何缺失 / 多余 / 内容不符都判失败。名单不靠人工维护 —— check_mirrors 会
 --     扫描 db/functions、db/views、db/tables 里的四位科目字面量,发现某个被点名
@@ -12,7 +12,7 @@
 --   其余科目(GST、权益、租金、水电……)是【正常可扩展的会计科目表】,由建账的人
 --     按需增删,线上与本文件不一致是【正常的】,不比对。
 --
--- 【为什么这 34 行删不得】见 guard_system_account:删除 / 改 code / 停用 / 摘标记
+-- 【为什么这些行删不得】见 guard_system_account:删除 / 改 code / 停用 / 摘标记
 --   四件事都拦下。任何一件都会让过账在运行时失败,而且错误离原因很远
 --   (例如少了 5190,finance_journal_triggers 的 ELSE 兜底就没有落点,
 --    所有未知成本类型的加工单一律过不了账)。名字与备注照旧可改。
@@ -164,7 +164,10 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     -- 【按 code 点名】读 2100,post_journal_entry 认它们做税科目,于是它们与
     -- 1500/1510/3100/6700/6300 同形:被写死引用的科目不能由建账的人删改停用。
     ('1400', 'GST Input Tax', 'GST 进项税', 'asset', true, true),          -- f5_return / 进项:对 IRAS 的定额债权,货币性
-    ('2100', 'GST Output Tax', 'GST 销项税', 'liability', true, true);     -- f5_return box6 按 code 点名读它;对 IRAS 的定额义务,货币性
+    ('2100', 'GST Output Tax', 'GST 销项税', 'liability', true, true),     -- f5_return box6 按 code 点名读它;对 IRAS 的定额义务,货币性
+    -- MES-5a-2(2026-10-08,MES-5a Step 0 Q24 · Q25):电费分摊的余数(不计量 / 共用池 / 有表无单的电)按 code 借进 6200 ——
+    -- electricity_allocation_compute 写死引用它,于是它从建账的人的地盘升成引擎科目(迁移里一句 UPDATE,名字与线上逐字相同)。
+    ('6200', 'Utilities', '水电杂费', 'expense', true, false);            -- electricity_allocation_compute(余数借 6200)
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【引导默认值 / BOOTSTRAP DEFAULT —— 非 is_system 行】(FIN-3-fu2)
 -- 全新安装该有的完整科目表:权益、GST、固定资产、在制品、常规收入与费用。
@@ -180,7 +183,6 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('4100', 'Disposal Service Income', '处置服务收入', 'revenue', false, false),
     ('4900', 'Other Income', '其他收入', 'revenue', false, false),
     ('6000', 'Rent', '租金', 'expense', false, false),
-    ('6200', 'Utilities', '水电杂费', 'expense', false, false),
     ('6400', 'Professional Fees', '专业服务费', 'expense', false, false),
     ('6500', 'Bank Charges', '银行手续费', 'expense', false, false),
     ('6900', 'Miscellaneous', '杂项开支', 'expense', false, false);

@@ -193,7 +193,7 @@ SEED_TABLES = {
     # MES-2 改这份种子(weighing 接上转换器),所以从这一刀起它真的被比:一行写错就是生产上那一类走错函数。
     "ingest_data_classes": (None, "code, name_en, name_zh, target_en, COALESCE(transform_function,'') AS transform_function, "
                                   "COALESCE(manual_entry_code,'') AS manual_entry_code, is_active, sort_order, creates_draft"),
-    # accounts 是【混合表】:引擎点名的 34 行跟踪线上,其余是建账的人的地盘。
+    # accounts 是【混合表】:引擎点名的那些行(is_system;MES-5a-2 起 36 行)跟踪线上,其余是建账的人的地盘。
     # FIN-30:is_cash / cash_flow_section 也纳入比对 —— 它们决定现金流量表取哪些
     # 科目、归哪一段;线上被人翻了标记而无人察觉,报表会安静地算错一整类活动。
     "accounts":    ("is_system", "code, name_en, name_zh, account_type, is_system, "
@@ -322,6 +322,9 @@ RUNTIME_CONFIG_TABLES = [
     # MES-4b(Q3 · Q21):电芯结构(卷绕 / 叠片 / 未知)与交叉污染流(正极 / 负极;警戒线 V11 由 Tim 给 —— 给一次线上就与本文件不同)——
     #   都是 /settings/dictionaries 里改一行(module.processing.edit)。
     "cell_constructions", "contamination_streams",
+    # MES-5a-2(2026-10-08,MES-5a Step 0 Q25 · Q32):电费分摊的设定(单行)—— 引导一行、V25(共用池怎么摊)为空;Tim 在 /finance/electricity
+    #   上写一次规则,线上就与本文件不同,那是系统在正常工作。
+    "electricity_settings",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

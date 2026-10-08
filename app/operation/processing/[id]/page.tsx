@@ -6,6 +6,7 @@ import CostPanel from './CostPanel'
 import LossPanel, { type LossCategory, type LossRow, type ElectrolyteSetting } from './LossPanel'
 import ContaminationPanel, { type ContaminationStreamView, type ContaminationCheckView } from './ContaminationPanel'
 import DischargePanel from './DischargePanel'
+import EnergyPanel, { type RunEnergyView } from './EnergyPanel'
 import { loadDischargePanel, loadSplitOrigin } from './dischargeData'
 import AllocateButton from './AllocateButton'
 import { type CostEntryRow } from './costTypes'
@@ -405,6 +406,30 @@ export default async function ProcessingDetailPage({
         })
         : null
     const splitOrigin = op?.started_from_run_page ? await loadSplitOrigin(supabase, id) : null
+    // ── MES-5a-2(Step 0 Q21–Q23):这一炉的电 —— 自己记的电量优先,没记才用电费单分到的;每吨;放电回收另列 ──────────
+    const [energyRes, lineRes] = await Promise.all([
+        supabase.from('processing_run_energy')
+            .select('own_kwh, allocated_kwh, allocation_basis, allocation_id, energy_kwh, energy_source, kwh_per_tonne, recovered_kwh')
+            .eq('run_id', id).maybeSingle(),
+        supabase.from('electricity_allocation_lines_masked').select('amount').eq('run_id', id).maybeSingle(),
+    ])
+    const er = mustOne(energyRes, 'processing_run_energy') as {
+        own_kwh: number | null; allocated_kwh: number | null; allocation_basis: string | null; allocation_id: string | null
+        energy_kwh: number | null; energy_source: string | null; kwh_per_tonne: number | null; recovered_kwh: number | null
+    } | null
+    const lineAmount = (mustOne(lineRes, 'electricity_allocation_lines_masked') as { amount: number | null } | null)?.amount ?? null
+    const allocHead = er?.allocation_id
+        ? mustOne(await supabase.from('electricity_allocations_masked').select('invoice_ref, period_from, period_to')
+            .eq('id', er.allocation_id).maybeSingle(), 'electricity_allocations_masked') as { invoice_ref: string; period_from: string; period_to: string } | null
+        : null
+    const n = (v: number | null | undefined) => (v === null || v === undefined ? null : Number(v))
+    const runEnergy: RunEnergyView = {
+        ownKwh: n(er?.own_kwh), allocatedKwh: n(er?.allocated_kwh), basis: er?.allocation_basis ?? null,
+        energyKwh: n(er?.energy_kwh), source: er?.energy_source ?? null, perTonne: n(er?.kwh_per_tonne), recoveredKwh: n(er?.recovered_kwh),
+        allocationId: er?.allocation_id ?? null,
+        allocationLabel: allocHead ? `${allocHead.invoice_ref} · ${formatDate(allocHead.period_from, locale)} – ${formatDate(allocHead.period_to, locale)}` : null,
+        amountText: lineAmount === null ? null : formatAmount(Number(lineAmount), baseCurrency),
+    }
     const canConfirmCapture = await can('action.confirm_capture')
 
     const formCarriesCells = (materialId: string | null | undefined) => {
@@ -901,6 +926,9 @@ export default async function ProcessingDetailPage({
                 )}
             </div>
             {/* AUDIT-TRAIL-1a:页底的审计记录 —— 这一单、它的投入、产出、成本条目与分摊 */}
+            {/* MES-5a-2(Q21–Q23):这一炉的电 */}
+            <EnergyPanel e={runEnergy} showPrices={showPrices} />
+
             <AuditTrail subject="processing_run" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )

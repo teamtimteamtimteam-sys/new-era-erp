@@ -3410,3 +3410,66 @@ discharge_module_splits,module_ref,text,verbatim,,,Module,,,text
 discharge_module_splits,new_output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Quarantine batch,,,uuid
 discharge_module_splits,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
 discharge_module_splits,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+electricity_allocation_lines,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+electricity_allocation_lines,allocation_id,technical,hide: the allocation it belongs to (the record names it),,,Allocation,,,uuid
+electricity_allocation_lines,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Processing run,,,uuid
+electricity_allocation_lines,equipment_id,fk_document,"fixed_assets.code (document number, prefix FA)",,,Machine,,,uuid
+electricity_allocation_lines,basis,enum,ENUM_OVERRIDES electricity_allocation_lines#basis,,,Split by,,,text
+electricity_allocation_lines,run_energy_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Run energy recorded (kWh),,,numeric
+electricity_allocation_lines,run_minutes,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Run time (minutes),,,numeric
+electricity_allocation_lines,weight,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Weight,,,numeric
+electricity_allocation_lines,share,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Share,,,numeric
+electricity_allocation_lines,machine_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Machine metered (kWh),,,numeric
+electricity_allocation_lines,kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Allocated (kWh),,,numeric
+electricity_allocation_lines,amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,Amount,,,numeric
+electricity_allocation_lines,cost_entry_id,technical,hide: the cost line it wrote (shown on the run),,,Cost line,,,uuid
+electricity_allocation_lines,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+electricity_allocations,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+electricity_allocations,period_from,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Period from,,,date
+electricity_allocations,period_to,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Period to,,,date
+electricity_allocations,bill_date,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Bill date,,,date
+electricity_allocations,invoice_ref,text,verbatim,,,Bill number,,,text
+electricity_allocations,supplier_id,fk_document,"suppliers.code (document number, prefix SUP)",,,Supplier,,,uuid
+electricity_allocations,payee_name,text,verbatim,,,Payee,,,text
+electricity_allocations,currency,text,verbatim,,,Currency,,,text
+electricity_allocations,bill_amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,Bill amount,,,numeric
+electricity_allocations,bill_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Bill (kWh),,,numeric
+electricity_allocations,price_per_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Price per kWh,,,numeric
+electricity_allocations,metered_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Metered (kWh),,,numeric
+electricity_allocations,allocated_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,To runs (kWh),,,numeric
+electricity_allocations,shared_pool_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Shared pool (kWh),,,numeric
+electricity_allocations,unallocated_metered_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,"Metered, no run (kWh)",,,numeric
+electricity_allocations,unmetered_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Unmetered (kWh),,,numeric
+electricity_allocations,allocated_amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,To runs,,,numeric
+electricity_allocations,overhead_amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,To overhead (6200),,,numeric
+electricity_allocations,relieved_estimate_amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,Estimates replaced,,,numeric
+electricity_allocations,relieved_estimate_count,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Estimates replaced (count),,,integer
+electricity_allocations,payment_status,enum,ENUM_OVERRIDES electricity_allocations#payment_status,,,Payment,,,text
+electricity_allocations,bank_account_code,text,verbatim,,,Paid from,,,text
+electricity_allocations,expense_id,fk_document,"expenses.code (document number, prefix EXP)",,,Expense,,,uuid
+electricity_allocations,journal_entry_id,fk_document,"journal_entries.code (document number, prefix JE)",,,Journal entry,,,uuid
+electricity_allocations,notes,text,verbatim,,,Notes,,,text
+electricity_allocations,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+electricity_allocations,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+electricity_settings,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,boolean
+electricity_settings,shared_pool_rule,text,verbatim,,,Shared-pool rule (V25),,,text
+electricity_settings,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+electricity_settings,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+meter_readings,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+meter_readings,device_id,fk_document,"devices.code (document number, prefix DEV)",,,Meter,,,uuid
+meter_readings,read_at,timestamp_audit,formatAuditStamp,,,Read at,,,timestamp with time zone
+meter_readings,register_kwh,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Register (kWh),,,numeric
+meter_readings,is_register_reset,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Register reset,,,boolean
+meter_readings,reset_reason,text,verbatim,,,Reason for the reset,,,text
+meter_readings,withdrawn,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Withdrawn,,,boolean
+meter_readings,source,enum,ENUM_OVERRIDES meter_readings#source,,,Source,,,text
+meter_readings,inbox_id,technical,hide: the inbox row number,,,Inbox row,,,bigint
+meter_readings,draft_id,technical,hide: the confirmation draft,,,Draft,,,uuid
+meter_readings,site_from,timestamp_audit,formatAuditStamp,,,Measured from,,,timestamp with time zone
+meter_readings,site_to,timestamp_audit,formatAuditStamp,,,Measured to,,,timestamp with time zone
+meter_readings,site_dataset_ref,text,verbatim,,,Site data reference,,,text
+meter_readings,notes,text,verbatim,,,Notes,,,text
+meter_readings,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+meter_readings,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+meter_readings,corrects_id,technical,hide: the reading it corrects (the block says Corrected),,,Corrects,,,bigint
+meter_readings,correction_reason,text,verbatim,,,Reason for the correction,,,text

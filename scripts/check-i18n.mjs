@@ -532,6 +532,8 @@ const MANIFEST = {
     'devices.anomaly.':   { kind: 'enum', values: union(() => sqlEnum('db/tables/ingest_transmissions.sql', 'result'),
                                                         () => sqlLiteralAs('db/views/ingest_transmission_anomalies.sql', 'anomaly')) },
     'devices.errors.':    { kind: 'enum', values: () => tsSet('app/operation/devices/deviceErrorCodes.ts', 'DEVICE_ERROR_CODES') },
+    // MES-5a-2(2026-10-08):电表读数与电费分摊的拒绝 → 映射器的 Set
+    'energy.errors.':     { kind: 'enum', values: () => tsSet('app/finance/electricity/energyErrorCodes.ts', 'ENERGY_ERROR_CODES') },
     'inbox.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/ingest_inbox.sql', 'status') },
     'pendingValues.value.':    { kind: 'enum', values: () => sqlLiteralAs('db/views/pending_values.sql', 'value_code') },
     'pendingValues.supplier.': { kind: 'enum', values: () => sqlLiteralAs('db/views/pending_values.sql', 'value_code') },

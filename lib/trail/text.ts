@@ -510,6 +510,8 @@ export const TRAIL_TEXT = {
     'set.receiving': 'Discrepancy thresholds changed',
     // MES-1(2026-10-06):采集上限 · 设备与网关钥匙
     'set.ingest': 'Ingestion limits changed',
+    // MES-5a-2(2026-10-08):V25 —— 共用池的电怎么摊
+    'set.electricity': 'Shared-pool electricity rule changed',
     'dev.registered': 'Device registered',
     'dev.changed': 'Device changed',
     'dev.retired': 'Device retired',
@@ -517,6 +519,13 @@ export const TRAIL_TEXT = {
     'dev.keyRevoked': 'Gateway key revoked',
     // MES-2(2026-10-06):校准记录(设备主语的成员)· 地磅单
     'dev.calibrationRecorded': 'Calibration recorded',
+    // MES-5a-2(2026-10-08):电表读数(只追加)
+    'dev.meterReadingRecorded': 'Meter reading recorded',
+    'dev.meterReadingCorrected': 'Meter reading corrected',
+    'dev.meterReadingWithdrawn': 'Meter reading withdrawn',
+    // MES-5a-2:一张电费单的分摊 · 分给一炉的那一份
+    'ea.posted': 'Electricity bill allocated',
+    'ea.runShare': 'Electricity share allocated',
     'dev.calibrationVoided': 'Calibration voided',
     'wb.opened': 'Ticket opened',
     'wb.completed': 'Ticket completed',

@@ -1172,3 +1172,30 @@ commit alone does not verify). Fixtures 103 and 178 pass unchanged because the s
   `device` subject shows the results a discharge cabinet recorded (none today — manual entry leaves `device_id` empty unless chosen).
   Setting a batch's module count is the batch's own change ("Module count: (empty) → 4"). `scripts/check-trail-wording.mjs` arm ㉑ pins
   the wording (fault `wording-drift-mes5a1` turns it red).
+
+## 19. Energy (MES-5a-2, v1.4.44, 2026-10-08)
+
+Hand-back `docs/handbacks/MES-5a-2.md`; fixture 256 pins every rule below (arms METER · READ · RUNE · SPLIT · TONNE · ALLOC · CCY · PERM ·
+MASK · LOG · V25 · REV, each fault-injected by `db/scripts/2026-10-08-mes5a2-fixture-injections.py`). Fixture 235 stays at **8** exclusions.
+
+### 19.1 Logged, excluded, masked
+
+- **Logged** (two triggers each): the four new tables — `meter_readings` (key `id`), `electricity_settings` (key `id`, the single row),
+  `electricity_allocations` (key `id`) and `electricity_allocation_lines` (key `id`). Public tables 278 → **282**; bound 270 → **274**;
+  exclusions stay **8** (measured on the local rebuild of the mirrors, same four readings as §18.1). No exclusion added (Step 0 Q31).
+- **Three are append-only** (`guard_append_only_log`): `meter_readings` (a correction or a withdrawal is a new row pointing at the old one,
+  `corrects_id` unique, with its reason), `electricity_allocations` and `electricity_allocation_lines` (an allocation is written once, by
+  `post_electricity_allocation`, and has no reversal path in this version — `docs/known-issues.md` `MES5A2-NO-ALLOCATION-REVERSAL`).
+  `electricity_settings` is RUNTIME CONFIG (one row; the rule changes only through `set_electricity_shared_pool_rule`).
+- **Six new mask rules** (105 → **111**): the five amount columns of `electricity_allocations` (`bill_amount`, `price_per_kwh`,
+  `allocated_amount`, `overhead_amount`, `relieved_estimate_amount`) and `electricity_allocation_lines.amount`, all `data.view_prices` — the
+  same code as the column grants and the `_masked` views, written in the same migration (Step 0 Q30). kWh columns are not masked.
+- **One existing row changes:** account `6200` becomes a system account (`is_system`), because the allocation posts to it by code. That is
+  the migration's only change to a pre-existing row and its one `change_log` row.
+- **Trail subjects** (Step 0 Q31). New subject `electricity_allocation` (the allocation and its lines: "Electricity bill allocated"
+  with period, kWh and amounts as value lines; "Electricity share allocated" per run). New subject `electricity_settings` (the V25 rule:
+  "Shared-pool electricity rule changed"). The `device`
+  subject shows a meter's readings ("Meter reading recorded / corrected / withdrawn", with the reason); the `processing_run` subject shows
+  the run's share line (it is not that line's home). `scripts/check-trail-wording.mjs` arm ㉒ pins the wording (fault
+  `wording-drift-mes5a2` turns it red).
+

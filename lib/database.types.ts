@@ -1215,6 +1215,13 @@ export type Database = {
             foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -2665,6 +2672,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -4692,6 +4706,13 @@ export type Database = {
             foreignKeyName: "discharge_channel_assignments_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -5017,6 +5038,13 @@ export type Database = {
             foreignKeyName: "discharge_module_results_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -5132,6 +5160,13 @@ export type Database = {
             columns: ["discharge_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -5348,6 +5383,13 @@ export type Database = {
             foreignKeyName: "discharge_module_splits_split_run_id_fkey"
             columns: ["split_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -5446,6 +5488,373 @@ export type Database = {
           sequence_name?: string | null
           table_name?: string
           view_permission?: string[]
+        }
+        Relationships: []
+      }
+      electricity_allocation_lines: {
+        Row: {
+          allocation_id: string
+          amount: number
+          basis: string
+          cost_entry_id: string
+          created_at: string
+          equipment_id: string
+          id: number
+          kwh: number
+          machine_kwh: number
+          run_energy_kwh: number | null
+          run_id: string
+          run_minutes: number | null
+          share: number
+          weight: number
+        }
+        Insert: {
+          allocation_id: string
+          amount: number
+          basis: string
+          cost_entry_id: string
+          created_at?: string
+          equipment_id: string
+          id?: never
+          kwh: number
+          machine_kwh: number
+          run_energy_kwh?: number | null
+          run_id: string
+          run_minutes?: number | null
+          share: number
+          weight: number
+        }
+        Update: {
+          allocation_id?: string
+          amount?: number
+          basis?: string
+          cost_entry_id?: string
+          created_at?: string
+          equipment_id?: string
+          id?: never
+          kwh?: number
+          machine_kwh?: number
+          run_energy_kwh?: number | null
+          run_id?: string
+          run_minutes?: number | null
+          share?: number
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_allocation_lines_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_allocations_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: true
+            referencedRelation: "processing_cost_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: true
+            referencedRelation: "processing_cost_entries_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: true
+            referencedRelation: "processing_cost_entry_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      electricity_allocations: {
+        Row: {
+          allocated_amount: number
+          allocated_kwh: number
+          bank_account_code: string | null
+          bill_amount: number
+          bill_date: string
+          bill_kwh: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          expense_id: string
+          id: string
+          invoice_ref: string
+          journal_entry_id: string
+          metered_kwh: number
+          notes: string | null
+          overhead_amount: number
+          payee_name: string | null
+          payment_status: string
+          period_from: string
+          period_to: string
+          price_per_kwh: number
+          relieved_estimate_amount: number
+          relieved_estimate_count: number
+          shared_pool_kwh: number
+          supplier_id: string | null
+          unallocated_metered_kwh: number
+          unmetered_kwh: number
+        }
+        Insert: {
+          allocated_amount: number
+          allocated_kwh: number
+          bank_account_code?: string | null
+          bill_amount: number
+          bill_date: string
+          bill_kwh: number
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          expense_id: string
+          id?: string
+          invoice_ref: string
+          journal_entry_id: string
+          metered_kwh: number
+          notes?: string | null
+          overhead_amount: number
+          payee_name?: string | null
+          payment_status: string
+          period_from: string
+          period_to: string
+          price_per_kwh: number
+          relieved_estimate_amount?: number
+          relieved_estimate_count?: number
+          shared_pool_kwh: number
+          supplier_id?: string | null
+          unallocated_metered_kwh: number
+          unmetered_kwh: number
+        }
+        Update: {
+          allocated_amount?: number
+          allocated_kwh?: number
+          bank_account_code?: string | null
+          bill_amount?: number
+          bill_date?: string
+          bill_kwh?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expense_id?: string
+          id?: string
+          invoice_ref?: string
+          journal_entry_id?: string
+          metered_kwh?: number
+          notes?: string | null
+          overhead_amount?: number
+          payee_name?: string | null
+          payment_status?: string
+          period_from?: string
+          period_to?: string
+          price_per_kwh?: number
+          relieved_estimate_amount?: number
+          relieved_estimate_count?: number
+          shared_pool_kwh?: number
+          supplier_id?: string | null
+          unallocated_metered_kwh?: number
+          unmetered_kwh?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_allocations_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: true
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      electricity_settings: {
+        Row: {
+          id: boolean
+          shared_pool_rule: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          shared_pool_rule?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          shared_pool_rule?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -8846,6 +9255,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -8924,6 +9340,13 @@ export type Database = {
             columns: ["ended_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -10079,6 +10502,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -13090,6 +13520,119 @@ export type Database = {
           },
         ]
       }
+      meter_readings: {
+        Row: {
+          correction_reason: string | null
+          corrects_id: number | null
+          device_id: string
+          draft_id: string | null
+          id: number
+          inbox_id: number | null
+          is_register_reset: boolean
+          notes: string | null
+          read_at: string
+          recorded_at: string
+          recorded_by: string | null
+          register_kwh: number
+          reset_reason: string | null
+          site_dataset_ref: string | null
+          site_from: string | null
+          site_to: string | null
+          source: string
+          withdrawn: boolean
+        }
+        Insert: {
+          correction_reason?: string | null
+          corrects_id?: number | null
+          device_id: string
+          draft_id?: string | null
+          id?: never
+          inbox_id?: number | null
+          is_register_reset?: boolean
+          notes?: string | null
+          read_at: string
+          recorded_at?: string
+          recorded_by?: string | null
+          register_kwh: number
+          reset_reason?: string | null
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          withdrawn?: boolean
+        }
+        Update: {
+          correction_reason?: string | null
+          corrects_id?: number | null
+          device_id?: string
+          draft_id?: string | null
+          id?: never
+          inbox_id?: number | null
+          is_register_reset?: boolean
+          notes?: string | null
+          read_at?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          register_kwh?: number
+          reset_reason?: string | null
+          site_dataset_ref?: string | null
+          site_from?: string | null
+          site_to?: string | null
+          source?: string
+          withdrawn?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_readings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "meter_readings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_readings_corrects_id_fkey"
+            columns: ["corrects_id"]
+            isOneToOne: true
+            referencedRelation: "meter_readings_current"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_readings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_readings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "meter_readings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "meter_readings_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "capture_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_readings_inbox_id_fkey"
+            columns: ["inbox_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_inbox"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nea_waste_categories: {
         Row: {
           code: string
@@ -13744,6 +14287,13 @@ export type Database = {
             foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -13822,6 +14372,13 @@ export type Database = {
             columns: ["ended_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -17163,6 +17720,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -17308,6 +17872,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -17544,6 +18115,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -17694,6 +18272,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -17875,6 +18460,13 @@ export type Database = {
             foreignKeyName: "processing_run_closures_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -17987,6 +18579,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -18162,6 +18761,13 @@ export type Database = {
             foreignKeyName: "processing_run_events_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -18297,6 +18903,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -18476,6 +19089,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -18683,6 +19303,13 @@ export type Database = {
             columns: ["corrects_run_id"]
             isOneToOne: true
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -24828,6 +25455,13 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -26467,6 +27101,13 @@ export type Database = {
             foreignKeyName: "contamination_checks_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -26820,6 +27461,13 @@ export type Database = {
             foreignKeyName: "discharge_module_results_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -26933,6 +27581,13 @@ export type Database = {
             columns: ["split_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -27101,6 +27756,13 @@ export type Database = {
             foreignKeyName: "discharge_module_results_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -27164,6 +27826,352 @@ export type Database = {
           via_to_column: string | null
         }
         Relationships: []
+      }
+      electricity_allocation_lines_masked: {
+        Row: {
+          allocation_id: string | null
+          amount: number | null
+          basis: string | null
+          cost_entry_id: string | null
+          created_at: string | null
+          equipment_id: string | null
+          id: number | null
+          kwh: number | null
+          machine_kwh: number | null
+          run_energy_kwh: number | null
+          run_id: string | null
+          run_minutes: number | null
+          share: number | null
+          weight: number | null
+        }
+        Insert: {
+          allocation_id?: string | null
+          amount?: never
+          basis?: string | null
+          cost_entry_id?: string | null
+          created_at?: string | null
+          equipment_id?: string | null
+          id?: number | null
+          kwh?: number | null
+          machine_kwh?: number | null
+          run_energy_kwh?: number | null
+          run_id?: string | null
+          run_minutes?: number | null
+          share?: number | null
+          weight?: number | null
+        }
+        Update: {
+          allocation_id?: string | null
+          amount?: never
+          basis?: string | null
+          cost_entry_id?: string | null
+          created_at?: string | null
+          equipment_id?: string | null
+          id?: number | null
+          kwh?: number | null
+          machine_kwh?: number | null
+          run_energy_kwh?: number | null
+          run_id?: string | null
+          run_minutes?: number | null
+          share?: number | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_allocation_lines_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_allocations_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: true
+            referencedRelation: "processing_cost_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: true
+            referencedRelation: "processing_cost_entries_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: true
+            referencedRelation: "processing_cost_entry_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      electricity_allocations_masked: {
+        Row: {
+          allocated_amount: number | null
+          allocated_kwh: number | null
+          bank_account_code: string | null
+          bill_amount: number | null
+          bill_date: string | null
+          bill_kwh: number | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          expense_id: string | null
+          id: string | null
+          invoice_ref: string | null
+          journal_entry_id: string | null
+          metered_kwh: number | null
+          notes: string | null
+          overhead_amount: number | null
+          payee_name: string | null
+          payment_status: string | null
+          period_from: string | null
+          period_to: string | null
+          price_per_kwh: number | null
+          relieved_estimate_amount: number | null
+          relieved_estimate_count: number | null
+          shared_pool_kwh: number | null
+          supplier_id: string | null
+          unallocated_metered_kwh: number | null
+          unmetered_kwh: number | null
+        }
+        Insert: {
+          allocated_amount?: never
+          allocated_kwh?: number | null
+          bank_account_code?: string | null
+          bill_amount?: never
+          bill_date?: string | null
+          bill_kwh?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          expense_id?: string | null
+          id?: string | null
+          invoice_ref?: string | null
+          journal_entry_id?: string | null
+          metered_kwh?: number | null
+          notes?: string | null
+          overhead_amount?: never
+          payee_name?: string | null
+          payment_status?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          price_per_kwh?: never
+          relieved_estimate_amount?: never
+          relieved_estimate_count?: number | null
+          shared_pool_kwh?: number | null
+          supplier_id?: string | null
+          unallocated_metered_kwh?: number | null
+          unmetered_kwh?: number | null
+        }
+        Update: {
+          allocated_amount?: never
+          allocated_kwh?: number | null
+          bank_account_code?: string | null
+          bill_amount?: never
+          bill_date?: string | null
+          bill_kwh?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          expense_id?: string | null
+          id?: string | null
+          invoice_ref?: string | null
+          journal_entry_id?: string | null
+          metered_kwh?: number | null
+          notes?: string | null
+          overhead_amount?: never
+          payee_name?: string | null
+          payment_status?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          price_per_kwh?: never
+          relieved_estimate_amount?: never
+          relieved_estimate_count?: number | null
+          shared_pool_kwh?: number | null
+          supplier_id?: string | null
+          unallocated_metered_kwh?: number | null
+          unmetered_kwh?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_allocations_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: true
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_directory: {
         Row: {
@@ -30069,6 +31077,47 @@ export type Database = {
           },
         ]
       }
+      meter_readings_current: {
+        Row: {
+          corrected: boolean | null
+          correction_reason: string | null
+          delta_kwh: number | null
+          device_id: string | null
+          id: number | null
+          is_register_reset: boolean | null
+          notes: string | null
+          previous_kwh: number | null
+          read_at: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          register_kwh: number | null
+          reset_reason: string | null
+          source: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meter_readings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meter_readings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_health"
+            referencedColumns: ["gateway_id"]
+          },
+          {
+            foreignKeyName: "meter_readings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "instrument_calibration_now"
+            referencedColumns: ["device_id"]
+          },
+        ]
+      }
       my_kpi_entries: {
         Row: {
           computed_basis: string | null
@@ -32553,6 +33602,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -32704,6 +33760,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -32819,6 +33882,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -33021,6 +34091,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -33171,6 +34248,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -33329,6 +34413,67 @@ export type Database = {
           },
         ]
       }
+      processing_run_energy: {
+        Row: {
+          allocated_kwh: number | null
+          allocation_basis: string | null
+          allocation_id: string | null
+          code: string | null
+          energy_kwh: number | null
+          energy_source: string | null
+          equipment_id: string | null
+          kwh_per_tonne: number | null
+          own_kwh: number | null
+          recovered_kwh: number | null
+          run_id: string | null
+          status: string | null
+          total_input: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_allocation_lines_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_allocation_id_fkey"
+            columns: ["allocation_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_allocations_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+        ]
+      }
       processing_run_lookup: {
         Row: {
           code: string | null
@@ -33480,6 +34625,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -33687,6 +34839,13 @@ export type Database = {
             columns: ["corrects_run_id"]
             isOneToOne: true
             referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
             referencedColumns: ["run_id"]
           },
           {
@@ -36188,6 +37347,13 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -37201,6 +38367,19 @@ export type Database = {
         Args: { p_original_period_id: string; p_reason: string }
         Returns: Json
       }
+      correct_meter_reading: {
+        Args: {
+          p_notes?: string
+          p_read_at?: string
+          p_reading_id: number
+          p_reason: string
+          p_register_kwh?: number
+          p_register_reset?: boolean
+          p_reset_reason?: string
+          p_withdraw?: boolean
+        }
+        Returns: Json
+      }
       correct_run_event: {
         Args: {
           p_action_taken: string
@@ -37608,6 +38787,18 @@ export type Database = {
           p_statuses?: string[]
         }
         Returns: string[]
+      }
+      electricity_allocation_compute: {
+        Args: {
+          p_bank_account: string
+          p_bill_amount: number
+          p_bill_kwh: number
+          p_currency: string
+          p_payment_status: string
+          p_period_from: string
+          p_period_to: string
+        }
+        Returns: Json
       }
       employee_work_category_at: {
         Args: { p_employee_id: string; p_month: string }
@@ -38035,6 +39226,20 @@ export type Database = {
           usd: number
         }[]
       }
+      meter_reading_internal: {
+        Args: {
+          p_correction_reason: string
+          p_corrects_id: number
+          p_device_id: string
+          p_notes: string
+          p_read_at: string
+          p_register_kwh: number
+          p_register_reset: boolean
+          p_reset_reason: string
+          p_withdraw: boolean
+        }
+        Returns: number
+      }
       mirror_consume_restore: {
         Args: {
           p_business_date: string
@@ -38261,6 +39466,23 @@ export type Database = {
       po_category_raise_code: { Args: { p_category: string }; Returns: string }
       po_document_data: { Args: { p_po_id: string }; Returns: Json }
       po_may_manage: { Args: { p_purchase_order_id: string }; Returns: boolean }
+      post_electricity_allocation: {
+        Args: {
+          p_bank_account?: string
+          p_bill_amount: number
+          p_bill_date: string
+          p_bill_kwh: number
+          p_currency: string
+          p_invoice_ref: string
+          p_notes?: string
+          p_payee_name?: string
+          p_payment_status: string
+          p_period_from: string
+          p_period_to: string
+          p_supplier_id?: string
+        }
+        Returns: Json
+      }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -38298,6 +39520,18 @@ export type Database = {
       }
       preview_depreciate_fixed_assets: {
         Args: { p_period_end: string }
+        Returns: Json
+      }
+      preview_electricity_allocation: {
+        Args: {
+          p_bank_account?: string
+          p_bill_amount: number
+          p_bill_kwh: number
+          p_currency: string
+          p_payment_status?: string
+          p_period_from: string
+          p_period_to: string
+        }
         Returns: Json
       }
       preview_metal_price_anomalies: {
@@ -38690,6 +39924,17 @@ export type Database = {
       record_manual_weighing_internal: {
         Args: { p_device_id: string; p_weight_kg: number }
         Returns: string
+      }
+      record_meter_reading: {
+        Args: {
+          p_device_id: string
+          p_notes?: string
+          p_read_at: string
+          p_register_kwh: number
+          p_register_reset?: boolean
+          p_reset_reason?: string
+        }
+        Returns: Json
       }
       record_output_sale: {
         Args: {
@@ -39358,6 +40603,10 @@ export type Database = {
           p_credit_limit_base: number
           p_customer_id: string
         }
+        Returns: Json
+      }
+      set_electricity_shared_pool_rule: {
+        Args: { p_rule: string }
         Returns: Json
       }
       set_finance_settings: { Args: { p_changes: Json }; Returns: Json }

@@ -123,7 +123,9 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // MES-4b(2026-10-07):272 → 275。三张新表(cell_constructions · contamination_streams · contamination_checks)。
 // MES-5a-1(2026-10-08):275 → 278。三张新表(discharge_module_results · discharge_channel_assignments · discharge_module_splits)。
 //   两本字典带 code 列(结构代号 · 流代号),都登记进 document_type_exceptions,所以 EXPECTED_CODE_TABLES 84 → 86。
-const EXPECTED_TABLES = 278   // HISTORY-1(2026-09-28):+ change_log
+// MES-5a-2(2026-10-08):278 → 282。四张新表(meter_readings · electricity_settings · electricity_allocations ·
+//   electricity_allocation_lines)。都不带 code 列(分摊的编号是它那张费用单的 EXP-…),所以 EXPECTED_CODE_TABLES 不变。
+const EXPECTED_TABLES = 282   // HISTORY-1(2026-09-28):+ change_log
 const EXPECTED_CODE_TABLES = 86
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
