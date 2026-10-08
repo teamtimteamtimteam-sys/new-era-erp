@@ -464,6 +464,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/operation/operation-types', navKey: 'processing.subnav.operationTypes', modules: ['operation'], permission: P_PROCESSING },
     // MES-4b(2026-10-07,Step 0 Q21–Q25,Tim):交叉污染抽检 —— 每一个班 × 每一条流抽过没有、污染率对着警戒线(V11)。只读;记在加工单页上。
     { href: '/operation/contamination', navKey: 'processing.subnav.contamination', modules: ['operation'], permission: P_CONTAMINATION },
+    // MES-5b-1(2026-10-08,Step 0 Q8 · Q13 · Q14,Tim):月度物料平衡(全厂 / 每道工序 / 库存滚动)与质量得率(工序 × 月 × 分组)。
+    //   只读;读 module.processing.view(两张页读的外壳另认财务 / 库存查看码 —— /inventory 的合计与月末那一步靠它)。
+    { href: '/operation/balance', navKey: 'processing.subnav.balance', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation/yield', navKey: 'processing.subnav.yield', modules: ['operation'], permission: P_PROCESSING },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
@@ -1088,4 +1092,7 @@ export const FN = {
     operationTypes: fnByHref('/operation/operation-types'),
     /** MES-4b:交叉污染抽检(班 × 流)。 */
     contamination: fnByHref('/operation/contamination'),
+    /** MES-5b-1:月度物料平衡 · 质量得率。 */
+    balance: fnByHref('/operation/balance'),
+    yield: fnByHref('/operation/yield'),
 } as const

@@ -3,7 +3,17 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## MES5A1-VIEW-REPLAY-ORDER-NOT-TOPOLOGICAL · 重建时视图的重放顺序【不是】拓扑排序 —— 一张视图可能在它读的那张视图之前被建(MES-5a-1 登记,2026-10-08)
+## ~~MES5A1-VIEW-REPLAY-ORDER-NOT-TOPOLOGICAL · 重建时视图的重放顺序【不是】拓扑排序 —— 一张视图可能在它读的那张视图之前被建(MES-5a-1 登记,2026-10-08)~~ —— ✅ **关闭于 MES-5b-1(`v1.4.45`,2026-10-08)**
+
+**怎么关的:** `db/check_mirrors.py` 的 `view_replay_order` 改按【依赖的深度】排(读零张视图 = 0,读的视图里最深的 + 1),同深度再按文件名 ——
+引用的判据一字未改(同一支 `strip_sql_strings`、同一条 `\b名字\b`),两张互相提到的视图当场按名报成一个环,不猜顺序。
+**删除条件里的那一格注入做了,两种做法各一次:** ① 三张临时视图 `a_reader → m_middle → z_base`(读者文件名排最前):旧函数(`git show HEAD:` 取出)
+排成 `z_base, a_reader, m_middle` —— 读者排在它读的那一张之前;新函数排成 `z_base, m_middle, a_reader`;把 `z_base` 改成读 `a_reader`,新函数报
+`view reference cycle: a_reader -> m_middle -> z_base -> a_reader`。② 真重建:本刀三对"外壳文件名排在基视图之前"的视图
+(`batch_balance_tree` / `_all` · `processing_balance_monthly` / `_all` · `processing_yield_summary` / `_all`)在 `db/gate.py` 的整门重建里照样建成(`GATE_EXIT=0`)。
+本条原文保留在下面。
+
+### (原文)MES5A1-VIEW-REPLAY-ORDER-NOT-TOPOLOGICAL · 重建时视图的重放顺序【不是】拓扑排序 —— 一张视图可能在它读的那张视图之前被建(MES-5a-1 登记,2026-10-08)
 
 `db/check_mirrors.py` 的 `view_replay_order` 按"这张视图的定义里提到了几张别的视图"排、同数按文件名排(`db/gate.py` 与 `db/verify_rebuild.py` 都经它)。
 **那不是依赖顺序:** A 读 B、B 读 C 时,A 与 B 各提到一张视图,于是打平,文件名靠前的先建 —— 若那是 A,重建当场报 `relation "B" does not exist`。
@@ -331,7 +341,7 @@ Tim 的裁定(Batch 3 grilling Q6):**登记,不在 3b 里造**。**删除条件:
 `db/tables/roles.sql` 与 `role_permissions.sql` 的引导默认值里没有 `cfo`、`cco`、`cto`(APR-0 已记 `cfo` 那一半)。
 ROLE-1 Batch 1 之后后果变重了:**全新安装里没有任何人持 `action.finance_reopen` / `action.approve_review` /
 `action.hr_reviews`** —— 重开已关的月、年结、批绩效评估、做绩效评估,在一个照镜像重建的库里谁都做不了。
-引导里的 `admin` 已按 Tim 的 Q8 改成只剩三码,`finance` 已接过人事(见那个文件里的注释)。
+~~引导里的 `admin` 已按 Tim 的 Q8 改成只剩三码~~ ★ **MES-5b-1(2026-10-08,Step 0 Q31)起引导的 `admin` 持目录里除 `module.tasks.view_all` 之外的每一个码**(与常设裁定一致,见下面 `MES5B1-BOOTSTRAP-ADMIN-MINIMAL`);`finance` 已接过人事(见那个文件里的注释),并且从 MES-5b-1 起持 `module.processing.view`。
 **删除条件:** 引导默认值补上 `cfo` / `cco` / `cto` 三个角色与它们的授权(Tim 要先裁引导是否照线上的七个职位走)。
 
 ## ROLE1-PAY-OWN-MEDICAL-CLAIM · 财务可以付【自己的】已批医疗申报 —— 已知、按矩阵允许、不改(ROLE-1 登记,2026-09-23)
@@ -10520,4 +10530,37 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 于是那几炉的成本里那一项既不是估计也不是实际,而什么都不会报错。读 `reverse_expense` 时读到的,**早于本刀**;本刀没有改它
 (电费分摊那一张本刀直接拒冲,见上一条)。线上今天 `relieved` 的电费行 **1** 条(开场读数)。
 **删除条件:** `reverse_expense` 冲一张冲抵费用单时把它冲掉的估计恢复(或拒绝并说出走法),附一支 fixture。
+
+## MES-5b-1 留下的(2026-10-08 记录)
+
+### MES5B1-INPUT-UNIT-NOT-CHECKED-AT-COMMIT · 投料腿在提交时不判单位(MES-5b Step 0 Q10,Tim:登记,不在本刀建)
+
+**是什么:** `commit_processing_run` 拒一条单位不是 kg 的【产出】腿(`OUTPUT_UNIT_NOT_KG`),而【投料】腿不判 —— `inbound_batches.unit` 没有 CHECK,
+一批按件(pcs)收的料可以被喂进一炉,表头的 `total_input` 于是把件数与公斤加在一起。
+**本刀的处置(Q10):** 平衡与得率两边都不合计这种单 —— `processing_run_flow_all.not_kg` 为真的那一炉整张不进任何合计(一炉里混着两种单位时它的投入、
+余数与得率都没有定义),月度平衡里另列成"有一条腿单位不是 kg 的单(不合计)",批次的树上是一条 `not_kg` 事件、批次的去向里是
+"喂进一张有一条腿单位不是 kg 的单(不合计)"。fixture 257 NOTKG 钉着。线上今天:进料 24 批、产出 20 批,**0 批**单位不是 kg(2026-10-08 量,`postgres`,基表)。
+**删除条件:** 提交时判投料腿的单位(拒,或要求换算)—— Tim 的一个决定;决定之前这一条一直在。
+
+### ~~MES5B1-BOOTSTRAP-ADMIN-MINIMAL · 引导的 admin 只有五个码,与"admin 持每一个码"的常设裁定相反(MES-5b Step 0 §1.5 量到)~~ —— ✅ **关闭于 MES-5b-1(`v1.4.45`,2026-10-08)**
+
+**是什么(原来):** `db/tables/role_permissions.sql` 的引导 admin 只有 `action.manage_permissions` / `bulk_import` / `anonymise_employee` / `manage_devices` /
+`confirm_capture` 五个码 —— 那是 ROLE-1 Q8 的引导版,而 Q8 在线上早已被 Tim 撤回(2026-09-23 23:33:27),常设裁定是 admin 持每一个码(`docs/role-matrix.md` §13)。
+直接后果:引导的 admin 持 `action.manage_devices` / `action.confirm_capture` 而不持 `module.processing.view`,引导的财务持 `action.wo_release` 而不持它 ——
+一份全新安装第一天就违反"动作码与它那一页的查看码一起授"。
+**怎么关的(Q31):** 引导的 admin 改成目录里的每一个码(`SELECT … FROM permissions`,以后的新码自动在内),**除了 `module.tasks.view_all`** ——
+常设裁定的原文是"保留 + 每一个新码",而那个码从来不在 admin 手里(要不要给是 Tim 的一句话);引导的财务加 `module.processing.view`。
+引导的自检加了"动作码蕴含查看码"那一条;fixture 257 FCHECK 断言两件事;注入脚本对镜像拷贝重建,拿掉财务那个码 → 重建按名失败
+(`BOOTSTRAP_ACTION_REQUIRES_VIEW|finance -> action.wo_release`)。**线上的角色一个都没动**(线上 admin 74 / 75,与引导逐码相同)。
+引导里仍然没有 `cco` / `cfo` / `cto`(`ROLE1-BOOTSTRAP-MISSING-ROLES`,不在本刀)。
+
+### MES5B1-V37-NOT-ON-OPERATION-TRAIL · 改一次预期得率(V37),工序页自己的审计记录上看不到(MES-5b-1 读到,2026-10-08)
+
+**是什么:** V37 住在 `operation_type_output_forms.expected_yield_pct`。那张表进变更记录(两支触发器,本刀之前就绑着),所以每一次改动都在
+`/settings/change-history` 上("Operation type output form edited · Expected yield (%): (empty) → 70",措辞臂 ㉓ 钉着);
+可是它【不是】`operation_type` 那个审计主语的成员(`trail_subject_members` 里没有它 —— 它的 `notes` 列从 PROC-WIRE-1B-i 起就是这样),
+所以在 `/operation/operation-types/<code>` 页底的审计记录里看不到。
+**为什么本刀没修:** 修法是给 `trail_subject_members` 加一行,而那是一次函数替换 —— 本刀只有一支迁移,而发现时它已经应用了。
+**删除条件:** 下一支替换 `trail_subject_members` 的迁移(MES-5b-2 会动审计主语)把 `operation_type_output_forms` 挂到 `operation_type` 主语下,
+措辞臂 ㉓ 加一句"在工序页上"的样例。
 

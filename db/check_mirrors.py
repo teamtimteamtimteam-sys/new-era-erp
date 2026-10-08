@@ -117,7 +117,9 @@ SEED_TABLES = {
     # table: (WHERE 子句 or None, 比对的列 —— 表名一律 {S}.,见上)
     "permissions": (None, "code, category, name_en, name_zh, "
                           "COALESCE(description_en,'') AS description_en, "
-                          "COALESCE(description_zh,'') AS description_zh, sort_order"),
+                          "COALESCE(description_zh,'') AS description_zh, sort_order, "
+                          # MES-5b-1:动作码的"要哪几个查看码之一"也是目录的一部分,逐行比对
+                          "COALESCE(array_to_string(requires_view_any, ','),'') AS requires_view_any"),
     "currencies":  (None, "code, name, is_base"),
     # ★★ SEARCH-2b(2026-09-13):单据种类目录 —— 与 permissions / tax_codes
     #   【逐字同一条理由,而且更硬一层】。这 40 行不是参考数据,它们是
@@ -836,13 +838,28 @@ def view_replay_order(view_files):
     【一处实现,两个调用方】check_mirrors 与 verify_rebuild 都要这一份顺序。
     此前两边各写了一遍,于是 RPT-1 修好了这边、那边照旧红 —— 正是本仓库反复
     付账的"第二份实现"。verify_rebuild 现在调这个函数。
+
+    【MES-5b-1(2026-10-08):按依赖的【深度】排,不再按"提到了几张"排】此前的键是"正文里提到了几张别的视图",
+    同数按文件名 —— 那不是依赖顺序:A 读 B、B 读 C 时两者各提到一张,打平,文件名靠前的先建(known-issues
+    MES5A1-VIEW-REPLAY-ORDER-NOT-TOPOLOGICAL;MES-5a-1 为它改过一次名)。现在的键是"它读的视图链有多长"
+    (读零张 = 0,读的视图里最深的 + 1),同深度再按文件名 —— 一张视图永远排在它读的每一张之后。
+    引用的判据一字未改(同一支 strip_sql_strings、同一条 \\b名字\\b)。两张互相提到的视图 = 一个环,当场按名报出来,
+    不猜一个顺序(那只可能是依赖扫描的误报,或真的环 —— 两种都要人看)。
     """
     txt = {f: strip_sql_strings(f.read_text()) for f in view_files}
     names = {f.stem for f in view_files}
-    return sorted(
-        view_files,
-        key=lambda f: (len([v for v in names - {f.stem} if re.search(rf"\b{v}\b", txt[f])]), f.name),
-    )
+    refs = {f.stem: {v for v in names - {f.stem} if re.search(rf"\b{v}\b", txt[f])} for f in view_files}
+    depth: dict = {}
+
+    def dep(n, chain):
+        if n in depth:
+            return depth[n]
+        if n in chain:
+            raise RuntimeError("view reference cycle: " + " -> ".join(chain + [n]))
+        depth[n] = 1 + max((dep(m, chain + [n]) for m in refs[n]), default=-1)
+        return depth[n]
+
+    return sorted(view_files, key=lambda f: (dep(f.stem, []), f.name))
 
 
 def strip_sql_strings(sql: str) -> str:

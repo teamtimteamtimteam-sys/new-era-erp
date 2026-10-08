@@ -1222,6 +1222,13 @@ export type Database = {
             foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -1230,6 +1237,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -2685,6 +2706,13 @@ export type Database = {
             foreignKeyName: "contamination_checks_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -2693,6 +2721,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -4713,6 +4755,13 @@ export type Database = {
             foreignKeyName: "discharge_channel_assignments_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -4721,6 +4770,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -5045,6 +5108,13 @@ export type Database = {
             foreignKeyName: "discharge_module_results_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -5053,6 +5123,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -5173,6 +5257,13 @@ export type Database = {
             foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
             columns: ["discharge_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -5181,6 +5272,20 @@ export type Database = {
             columns: ["discharge_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_discharge_run_id_fkey"
+            columns: ["discharge_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -5390,6 +5495,13 @@ export type Database = {
             foreignKeyName: "discharge_module_splits_split_run_id_fkey"
             columns: ["split_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -5398,6 +5510,20 @@ export type Database = {
             columns: ["split_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -5671,6 +5797,13 @@ export type Database = {
             foreignKeyName: "electricity_allocation_lines_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -5679,6 +5812,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: true
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -9262,6 +9409,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -9270,6 +9424,20 @@ export type Database = {
             columns: ["created_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -9353,6 +9521,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
             columns: ["ended_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -9361,6 +9536,20 @@ export type Database = {
             columns: ["ended_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -10515,6 +10704,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -10523,6 +10719,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -13930,16 +14140,19 @@ export type Database = {
       }
       operation_type_output_forms: {
         Row: {
+          expected_yield_pct: number | null
           form_code: string
           notes: string | null
           operation_type_code: string
         }
         Insert: {
+          expected_yield_pct?: number | null
           form_code: string
           notes?: string | null
           operation_type_code: string
         }
         Update: {
+          expected_yield_pct?: number | null
           form_code?: string
           notes?: string | null
           operation_type_code?: string
@@ -14294,6 +14507,13 @@ export type Database = {
             foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
             columns: ["created_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -14302,6 +14522,20 @@ export type Database = {
             columns: ["created_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_created_by_run_id_fkey"
+            columns: ["created_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -14385,6 +14619,13 @@ export type Database = {
             foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
             columns: ["ended_by_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -14393,6 +14634,20 @@ export type Database = {
             columns: ["ended_by_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_ended_by_run_id_fkey"
+            columns: ["ended_by_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -16532,6 +16787,7 @@ export type Database = {
           description_zh: string | null
           name_en: string
           name_zh: string
+          requires_view_any: string[] | null
           sort_order: number
         }
         Insert: {
@@ -16541,6 +16797,7 @@ export type Database = {
           description_zh?: string | null
           name_en: string
           name_zh: string
+          requires_view_any?: string[] | null
           sort_order?: number
         }
         Update: {
@@ -16550,6 +16807,7 @@ export type Database = {
           description_zh?: string | null
           name_en?: string
           name_zh?: string
+          requires_view_any?: string[] | null
           sort_order?: number
         }
         Relationships: []
@@ -17727,6 +17985,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -17735,6 +18000,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -17885,6 +18164,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -17893,6 +18179,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -18122,6 +18422,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -18130,6 +18437,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -18285,6 +18606,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -18293,6 +18621,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -18467,6 +18809,13 @@ export type Database = {
             foreignKeyName: "processing_run_closures_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -18475,6 +18824,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_closures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -18592,6 +18955,13 @@ export type Database = {
             foreignKeyName: "processing_run_corrections_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -18600,6 +18970,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_corrections_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -18768,6 +19152,13 @@ export type Database = {
             foreignKeyName: "processing_run_events_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -18776,6 +19167,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -18916,6 +19321,13 @@ export type Database = {
             foreignKeyName: "processing_run_losses_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -18924,6 +19336,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -19102,6 +19528,13 @@ export type Database = {
             foreignKeyName: "processing_run_values_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -19110,6 +19543,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -19316,6 +19763,13 @@ export type Database = {
             foreignKeyName: "processing_runs_corrects_run_id_fkey"
             columns: ["corrects_run_id"]
             isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -19324,6 +19778,20 @@ export type Database = {
             columns: ["corrects_run_id"]
             isOneToOne: true
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -25462,6 +25930,13 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -25470,6 +25945,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -26692,6 +27181,106 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_balance_tree: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          corrected_by_run_code: string | null
+          corrects_run_code: string | null
+          depth: number | null
+          era_mes4a: boolean | null
+          flow: string | null
+          form_code: string | null
+          line_key: string | null
+          loss_basis: string | null
+          loss_category_code: string | null
+          material_name: string | null
+          node_key: string | null
+          node_type: string | null
+          operation_type_code: string | null
+          parent_key: string | null
+          process_date: string | null
+          qty: number | null
+          remainder_state: string | null
+          reversed_at: string | null
+          root_code: string | null
+          root_id: string | null
+          root_kind: string | null
+          run_code: string | null
+          run_id: string | null
+          share_den: number | null
+          share_num: number | null
+          unit: string | null
+          x: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_form_code_fkey"
+            columns: ["form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      batch_balance_tree_all: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          corrected_by_run_code: string | null
+          corrects_run_code: string | null
+          depth: number | null
+          era_mes4a: boolean | null
+          flow: string | null
+          form_code: string | null
+          line_key: string | null
+          loss_basis: string | null
+          loss_category_code: string | null
+          material_name: string | null
+          node_key: string | null
+          node_type: string | null
+          operation_type_code: string | null
+          parent_key: string | null
+          process_date: string | null
+          qty: number | null
+          remainder_state: string | null
+          reversed_at: string | null
+          root_code: string | null
+          root_id: string | null
+          root_kind: string | null
+          run_code: string | null
+          run_id: string | null
+          share_den: number | null
+          share_num: number | null
+          unit: string | null
+          x: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_form_code_fkey"
+            columns: ["form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       batch_lineage: {
         Row: {
           depth: number | null
@@ -27108,6 +27697,13 @@ export type Database = {
             foreignKeyName: "contamination_checks_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -27116,6 +27712,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -27468,6 +28078,13 @@ export type Database = {
             foreignKeyName: "discharge_module_results_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -27476,6 +28093,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -27594,6 +28225,13 @@ export type Database = {
             foreignKeyName: "discharge_module_splits_split_run_id_fkey"
             columns: ["split_run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -27602,6 +28240,20 @@ export type Database = {
             columns: ["split_run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_split_run_id_fkey"
+            columns: ["split_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -27763,6 +28415,13 @@ export type Database = {
             foreignKeyName: "discharge_module_results_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -27771,6 +28430,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -28007,6 +28680,13 @@ export type Database = {
             foreignKeyName: "electricity_allocation_lines_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -28015,6 +28695,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: true
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "electricity_allocation_lines_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -33468,6 +34162,32 @@ export type Database = {
           },
         ]
       }
+      processing_balance_monthly: {
+        Row: {
+          basis: string | null
+          line: string | null
+          line_key: string | null
+          month: string | null
+          operation_type_code: string | null
+          qty: number | null
+          runs: number | null
+          scope: string | null
+        }
+        Relationships: []
+      }
+      processing_balance_monthly_all: {
+        Row: {
+          basis: string | null
+          line: string | null
+          line_key: string | null
+          month: string | null
+          operation_type_code: string | null
+          qty: number | null
+          runs: number | null
+          scope: string | null
+        }
+        Relationships: []
+      }
       processing_cost_entries_masked: {
         Row: {
           amount_base: number | null
@@ -33609,6 +34329,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -33617,6 +34344,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -33767,6 +34508,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -33775,6 +34523,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -33895,6 +34657,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -33903,6 +34672,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -34098,6 +34881,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -34106,6 +34896,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -34261,6 +35065,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -34269,6 +35080,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -34474,6 +35299,177 @@ export type Database = {
           },
         ]
       }
+      processing_run_flow_all: {
+        Row: {
+          balance_state: string | null
+          corrects_run_id: string | null
+          deleted_at: string | null
+          equipment_id: string | null
+          era_mes4a: boolean | null
+          flow: string | null
+          input_qty: number | null
+          month: string | null
+          named_loss_qty: number | null
+          not_kg: boolean | null
+          operation_type_code: string | null
+          output_qty: number | null
+          process_date: string | null
+          remainder_qty: number | null
+          remainder_state: string | null
+          run_code: string | null
+          run_id: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       processing_run_lookup: {
         Row: {
           code: string | null
@@ -34533,6 +35529,15 @@ export type Database = {
           run_code: string | null
           run_id: string | null
           unexplained_qty: number | null
+        }
+        Relationships: []
+      }
+      processing_run_origin_share_all: {
+        Row: {
+          root_id: string | null
+          root_kind: string | null
+          run_id: string | null
+          share: number | null
         }
         Relationships: []
       }
@@ -34638,6 +35643,13 @@ export type Database = {
             foreignKeyName: "processing_run_values_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -34646,6 +35658,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_values_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -34661,6 +35687,118 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_run_yield: {
+        Row: {
+          below_expected: boolean | null
+          equipment_id: string | null
+          era_mes4a: boolean | null
+          expected_yield_pct: number | null
+          input_qty: number | null
+          line_key: string | null
+          line_kind: string | null
+          month: string | null
+          operation_type_code: string | null
+          process_date: string | null
+          qty: number | null
+          recoverable: boolean | null
+          run_code: string | null
+          run_id: string | null
+          yield_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      processing_run_yield_all: {
+        Row: {
+          below_expected: boolean | null
+          equipment_id: string | null
+          era_mes4a: boolean | null
+          expected_yield_pct: number | null
+          input_qty: number | null
+          line_key: string | null
+          line_kind: string | null
+          month: string | null
+          operation_type_code: string | null
+          process_date: string | null
+          qty: number | null
+          recoverable: boolean | null
+          run_code: string | null
+          run_id: string | null
+          yield_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -34852,6 +35990,13 @@ export type Database = {
             foreignKeyName: "processing_runs_corrects_run_id_fkey"
             columns: ["corrects_run_id"]
             isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -34860,6 +36005,20 @@ export type Database = {
             columns: ["corrects_run_id"]
             isOneToOne: true
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -34998,6 +36157,62 @@ export type Database = {
             columns: ["purpose_code"]
             isOneToOne: false
             referencedRelation: "output_batch_purposes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      processing_yield_summary: {
+        Row: {
+          below_expected: boolean | null
+          expected_yield_pct: number | null
+          group_key: string | null
+          group_kind: string | null
+          group_label: string | null
+          group_label_restricted: boolean | null
+          input_qty: number | null
+          line_key: string | null
+          line_kind: string | null
+          month: string | null
+          operation_type_code: string | null
+          pre_mes4a_runs: number | null
+          qty: number | null
+          recoverable: boolean | null
+          runs: number | null
+          yield_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      processing_yield_summary_all: {
+        Row: {
+          below_expected: boolean | null
+          expected_yield_pct: number | null
+          group_key: string | null
+          group_kind: string | null
+          input_qty: number | null
+          line_key: string | null
+          line_kind: string | null
+          month: string | null
+          operation_type_code: string | null
+          pre_mes4a_runs: number | null
+          qty: number | null
+          recoverable: boolean | null
+          runs: number | null
+          yield_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
             referencedColumns: ["code"]
           },
         ]
@@ -36541,6 +37756,40 @@ export type Database = {
           },
         ]
       }
+      stock_rollforward_monthly: {
+        Row: {
+          adjusted: number | null
+          closing: number | null
+          consumed: number | null
+          month: string | null
+          moved: number | null
+          opening: number | null
+          produced: number | null
+          received: number | null
+          sold: number | null
+          unit: string | null
+          voided: number | null
+          written_off: number | null
+        }
+        Relationships: []
+      }
+      stock_rollforward_monthly_all: {
+        Row: {
+          adjusted: number | null
+          closing: number | null
+          consumed: number | null
+          month: string | null
+          moved: number | null
+          opening: number | null
+          produced: number | null
+          received: number | null
+          sold: number | null
+          unit: string | null
+          voided: number | null
+          written_off: number | null
+        }
+        Relationships: []
+      }
       stock_snapshot: {
         Row: {
           location_code: string | null
@@ -37354,6 +38603,13 @@ export type Database = {
             foreignKeyName: "warehouse_requests_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_lookup"
             referencedColumns: ["id"]
           },
@@ -37362,6 +38618,20 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
             referencedColumns: ["run_id"]
           },
           {

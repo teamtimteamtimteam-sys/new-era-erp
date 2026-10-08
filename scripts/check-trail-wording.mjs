@@ -5810,6 +5810,89 @@ if (FAULT === 'wording-drift-mes5a2') dict.text = { ...dict.text, 'ea.runShare':
     if (FAULT === 'wording-drift-mes5a2' && !problems.gold22.length) problems.gold22.push('(注入 wording-drift-mes5a2 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉓ MES-5b-1:V37、动作码的声明、拆去隔离那一炉自己结平(MES-5b Step 0 Q11 · Q15 · Q30 · Q32)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-5b-1.md 列出。
+//   V37 与声明块是变更记录页(/settings/change-history)上的一句 —— 那一页的造句器不带主语(page.tsx:140),这里同样不带;
+//   operation_type_output_forms 不是工序那条审计记录的成员,所以 V37 今天只在变更记录页上(known-issues MES5B1-V37-NOT-ON-OPERATION-TRAIL)。
+//   拆分那一炉的结平落在那一炉自己的审计记录上(processing_run 主语,⑲ 那一套措辞)。注入 wording-drift-mes5b1 → 这一臂必须红。
+problems.gold23 = []
+if (FAULT === 'wording-drift-mes5b1') dict.text = { ...dict.text, 'run.withinTolerance': 'in tolerance' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const run = id('run')
+    add('V37 · expected yield set (change history)', {}, [{ table: 'operation_type_output_forms', op: 'UPDATE',
+        key: { operation_type_code: 'battery_powder_line', form_code: 'black_mass' }, cols: ['expected_yield_pct'],
+        old: { expected_yield_pct: null }, new: { expected_yield_pct: 70 },
+        ctx: { operation_type_code: 'battery_powder_line', form_code: 'black_mass', notes: null } }])
+    add('catalogue · an action declares the views its pages need (change history)', {}, [{ table: 'permissions', op: 'UPDATE',
+        key: { code: 'action.manage_devices' }, cols: ['requires_view_any'],
+        old: { requires_view_any: null }, new: { requires_view_any: ['module.processing.view'] },
+        ctx: { code: 'action.manage_devices', category: 'action', name_en: 'Manage devices and gateway keys' } }],
+        { state: 'system', name: null })
+    add('split · its own balance closed (on the split run)', { subject: 'processing_run', recordId: run, currency: null },
+        [{ table: 'processing_run_closures', op: 'INSERT', key: { id: 51 }, refs: { run_id: { [run]: { label: 'PROC-2026-0730' } } },
+           new: { id: 51, run_id: run, input_qty: 90, output_qty: 90, named_loss_qty: 0, remainder_qty: 0, tolerance_pct: 0,
+                  within_tolerance: true, explanation: null, loss_watermark: 0, value_watermark: 0,
+                  closed_at: '2026-10-08T03:30:00Z', closed_by: id('u') } }])
+    const WANT = {
+        "V37 · expected yield set (change history)": {
+            "title": "Operation type output form edited",
+            "part": null,
+            "lines": [
+                "Expected yield (%): (empty) → 70"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "catalogue · an action declares the views its pages need (change history)": {
+            "title": "Permission edited",
+            "part": null,
+            "lines": [
+                "Needs one of these views: (empty) → module.processing.view"
+            ],
+            "reason": null,
+            "who": "System (automatic)"
+        },
+        "split · its own balance closed (on the split run)": {
+            "title": "Material balance closed · within tolerance",
+            "part": null,
+            "lines": [
+                "Input: 90",
+                "Outputs: 90",
+                "Named losses: 0",
+                "Remainder: 0",
+                "Tolerance (%): 0"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        }
+    }
+    const got23 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD23', order: 1, prelog: false, at: '2026-10-08T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold23.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD23')
+        if (mine.length !== 1) { problems.gold23.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got23[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold23.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold23.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold23.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold23.push(`㉓ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (process.env.TRAIL_GOLD23_PRINT) console.log(JSON.stringify(got23, null, 8))
+    if (FAULT === 'wording-drift-mes5b1' && !problems.gold23.length) problems.gold23.push('(注入 wording-drift-mes5b1 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -5817,7 +5900,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

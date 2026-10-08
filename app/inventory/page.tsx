@@ -149,10 +149,13 @@ export default async function InventoryPage() {
             .select('id, material_id, remaining_qty, unit')
             .is('deleted_at', null)
             .gt('remaining_qty', 0),
+        // MES-5b-1(Step 0 Q3 · Q12):平衡合计改读月度物料平衡的全期之和 —— 只算消耗型加工单(深度放电与拆去隔离是穿过去的质量,
+        //   回滚的单与有一条腿单位不是 kg 的单不算)。此前把每一张没删的单的表头加起来,于是把放电穿过去的量也当成了消耗。
+        //   "没有日期筛选"的约定不变:全期。外壳的门(加工 / 财务 / 库存查看任一)与 processing_run_lookup 给这几个数时同一组。
         supabase
-            .from('processing_run_lookup')
-            .select('total_input, total_output, loss_qty')
-            .is('deleted_at', null),
+            .from('processing_balance_monthly')
+            .select('line, qty, runs')
+            .eq('scope', 'plant'),
         // 产出腿:批次 → 单位成本(一个批次至多一条产出腿)
         supabase
             .from('processing_output_lookup')
@@ -322,10 +325,12 @@ export default async function InventoryPage() {
     const totalCostValue = rows.reduce((s, r) => s + (r.costValue ?? 0), 0)
     const totalMarketValue = rows.reduce((s, r) => s + (r.marketValue ?? 0), 0)
 
-    // 物料平衡合计
-    const balInput = runs.reduce((s, r) => s + (r.total_input ?? 0), 0)
-    const balOutput = runs.reduce((s, r) => s + (r.total_output ?? 0), 0)
-    const balLoss = runs.reduce((s, r) => s + (r.loss_qty ?? 0), 0)
+    // 物料平衡合计(MES-5b-1:月度平衡全厂那几条线的全期之和;损耗 = 有名字的损耗 + 余数)
+    const lineSum = (line: string) => runs.filter((r) => r.line === line).reduce((s, r) => s + Number(r.qty ?? 0), 0)
+    const balInput = lineSum('input')
+    const balOutput = lineSum('output')
+    const balLoss = lineSum('loss') + lineSum('remainder')
+    const balRuns = runs.filter((r) => r.line === 'input').reduce((s, r) => s + Number(r.runs ?? 0), 0)
     const lossRate = balInput > 0 ? ((balLoss / balInput) * 100).toFixed(1) : null
 
     // PROC-1:种类的标签由 material_kinds 直接给出(字典,不是自由文本反查)。
@@ -395,9 +400,13 @@ export default async function InventoryPage() {
                     </div>
                     <div>
                         <span className="text-[color:var(--brand-muted-text)]">{t('inventory.balRunCount')}</span>{' '}
-                        <span className="font-medium">{runs.length}</span>
+                        <span className="font-medium">{balRuns}</span>
                     </div>
                 </div>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1" data-balance-note>
+                    {t('massBalance.inventoryNote')}{' '}
+                    <Link href="/operation/balance" className="hover:underline app-link">{t('massBalance.inventoryLink')}</Link>
+                </p>
             </section>
 
             {/* 当前库存 */}

@@ -108,6 +108,12 @@ UPDATE public.operation_types SET requires_cell_construction = true WHERE code I
 UPDATE public.operation_types SET verifies_by_unit = true WHERE code = 'deep_discharge';
 UPDATE public.operation_types SET started_from_run_page = true WHERE code = 'discharge_quarantine_split';
 
+-- MES-5b-1(2026-10-08,MES-5b Step 0 Q11,Tim):拆去隔离那一炉的物料平衡容差 = 0。【不是一个编出来的数】:这道工序把质量原样搬给子批
+--   (称出来的产出 = 原批消耗的那一份,split_failed_modules_to_quarantine 用同一个重量记两条腿),所以任何不为 0 的余数按定义就是错的。
+--   拆分那一炉在同一步里自己结平(余数 0、在容差 0 里),于是它不再挂在"平衡没结"的提醒与月末那一行上,V1 那一支也不再列它。
+--   【引导默认值仍然正确】(AGENTS.md RUNTIME CONFIG 一条):这一列的含义没变,其余工序仍是 NULL(Not yet set)。
+UPDATE public.operation_types SET balance_tolerance_pct = 0 WHERE code = 'discharge_quarantine_split';
+
 COMMENT ON COLUMN public.operation_types.electrolyte_share_pct IS
     'MES-4b(V10;MES-0 Q51;MES-4b Step 0 Q17):这一段一炉电解液占投入质量的百分比(0–100)。为空 = Not yet set(电芯供应商的规格书 / 工艺工程师给,第一批极片分离之前)。只在 electrolyte_loss_applies 为真的工序上有意义:算出来的电解液损耗 = 份额 × total_input / 100(record_derived_electrolyte_loss),份额抄进那一行。';
 COMMENT ON COLUMN public.operation_types.electrolyte_loss_applies IS

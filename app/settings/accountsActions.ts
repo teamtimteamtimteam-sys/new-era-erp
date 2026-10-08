@@ -25,6 +25,11 @@ async function localize(message: string): Promise<string> {
             return t('permissions.errDenied')
         case 'EDIT_REQUIRES_VIEW':
             return t('permissions.errEditRequiresView', { 0: code[2] ?? '' })
+        // MES-5b-1(Step 0 Q30):ACTION_REQUIRES_VIEW|<动作码>|<查看码,…> —— 动作码要与用它那一页的查看码之一一起授
+        case 'ACTION_REQUIRES_VIEW': {
+            const [action, views] = (code[2] ?? '').split('|')
+            return t('permissions.errActionRequiresView', { 0: action ?? '', 1: (views ?? '').split(',').join(' / ') })
+        }
         case 'SYSTEM_ROLE_PROTECTED':
             return t('permissions.errSystemRole')
         case 'EMPLOYEE_ALREADY_LINKED':

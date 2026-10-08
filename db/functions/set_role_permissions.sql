@@ -4,9 +4,11 @@
 -- 【edit 蕴含 view 的强制在这里,不只在界面】。2b 的 fixture 量过:只授 edit 不授 view 时
 -- PostgREST 的 INSERT ... RETURNING 会 42501,整条写入路径断掉 —— 那是坏配置,不是审美问题。
 -- 界面挡不住 RPC 直调,所以守卫必须在数据库里。
+-- 【动作码蕴含查看码同理】(MES-5b-1):ACTION_REQUIRES_VIEW|<动作码>|<查看码,…> —— 持动作码就要持用它那一页的查看码之一。
 --
 -- NOTE: introduced by db/migrations/2026-08-02-perm3-banking-and-directory.sql;
 --       diff-aware since db/migrations/2026-09-28-history1-change-log.sql (HISTORY-1, Tim's Q16).
+--       action-implies-view since db/migrations/2026-10-08-mes5b1-balance-and-yield.sql (MES-5b-1, ruling f · Q30).
 
 CREATE OR REPLACE FUNCTION public.set_role_permissions(p_role_id uuid, p_permission_codes text[])
  RETURNS jsonb
@@ -19,6 +21,8 @@ DECLARE
     v_role    record;
     v_missing text;
     v_bad     text;
+    v_action  text;
+    v_views   text;
     v_added   integer;
     v_removed integer;
 BEGIN
@@ -47,6 +51,20 @@ BEGIN
     LIMIT 1;
     IF v_missing IS NOT NULL THEN
         RAISE EXCEPTION 'EDIT_REQUIRES_VIEW|%', v_missing;
+    END IF;
+
+    -- ★ MES-5b-1(MES-5a-2 close-out 裁定 f · Step 0 Q30,Tim):一个动作码只与【用它的那一页】的查看码一起授 ——
+    --   permissions.requires_view_any 列的是那几个码,持其中【任一】就够(页面由这个码自己把门的,列它自己)。
+    --   只持动作码的角色进不了那一页,给出去的是一个用不了的角色(close-out §2 f 量过三次)。按名拒,点出码与它要的查看码。
+    SELECT p.code, array_to_string(p.requires_view_any, ',') INTO v_action, v_views
+    FROM unnest(v_codes) c
+    JOIN permissions p ON p.code = c
+    WHERE p.requires_view_any IS NOT NULL
+      AND NOT (p.requires_view_any && v_codes)
+    ORDER BY p.code
+    LIMIT 1;
+    IF v_action IS NOT NULL THEN
+        RAISE EXCEPTION 'ACTION_REQUIRES_VIEW|%|%', v_action, v_views;
     END IF;
 
     -- 系统角色不可被摘掉管理权限 —— 否则一次保存就能把权限系统本身锁死

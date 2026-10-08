@@ -1199,3 +1199,26 @@ MASK · LOG · V25 · REV, each fault-injected by `db/scripts/2026-10-08-mes5a2-
   the run's share line (it is not that line's home). `scripts/check-trail-wording.mjs` arm ㉒ pins the wording (fault
   `wording-drift-mes5a2` turns it red).
 
+
+## 20. Material balance and yield, the action-implies-view check (MES-5b-1, v1.4.45, 2026-10-08)
+
+Hand-back `docs/handbacks/MES-5b-1.md`; fixture 257 pins every rule below (arms CONS · ATTR · BAL · PRE · INV · MONTH · NOTKG · ROLL ·
+YIELD · V37 · GROUP · READ · FCHECK · LOG) and fixture 255 SPLIT gains the split's own closure; each arm is fault-injected by
+`db/scripts/2026-10-08-mes5b1-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 20.1 Logged, excluded, masked
+
+- **No new table.** Public tables stay **282**; bound stay **274**; exclusions stay **8** (gate, live and rebuild, 2026-10-08 21:3x CST).
+  Every new object is a view, and views are not change-logged — their rows are computed, not recorded.
+- **Two new columns on logged tables.** `permissions.requires_view_any` (the declaration of which view codes an action code needs — the
+  migration wrote 33 rows, so `change_log` carries **33** `permissions` UPDATEs from it) and `operation_type_output_forms.expected_yield_pct`
+  (V37, empty — no row written). One `operation_types` UPDATE: the split operation's tolerance to 0. Those 34 rows are the migration's only
+  `change_log` rows (its proof asserts the counts).
+- **No new masked column; mask rules stay 111.** Balance and yield are mass, not money. The supplier name on the yield page is a display
+  label that follows the inbound batch's own view code (`module.inbound.view`; without it the reader gets `group_label_restricted = true`),
+  not a masked column.
+- **Trail.** The split's closure is a `processing_run_closures` row on its run's trail ("Material balance closed · within tolerance", ⑲'s
+  wording). A V37 change and a declaration change read on `/settings/change-history` ("Operation type output form edited · Expected yield (%):
+  (empty) → 70"; "Permission edited · Needs one of these views: (empty) → module.processing.view"). `operation_type_output_forms` is not a
+  member of the operation's own trail subject, so a V37 change does **not** show on `/operation/operation-types/<code>` — registered as
+  `MES5B1-V37-NOT-ON-OPERATION-TRAIL`. `scripts/check-trail-wording.mjs` arm ㉓ pins the three sentences (fault `wording-drift-mes5b1`).

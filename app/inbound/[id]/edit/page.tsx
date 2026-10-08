@@ -52,6 +52,7 @@ import CeilingCheckPanel from '@/app/components/safety/CeilingCheckPanel'
 import CellConstructionPanel from '@/app/components/batch/CellConstructionPanel'
 import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
+import BatchBalancePanel from '@/app/components/batch/BatchBalancePanel'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
@@ -944,6 +945,8 @@ export default async function EditInboundPage({
                 <ModuleCountPanel kind="inbound" batchId={id} current={batch.module_count ?? null} data={batchDischarge}
                     canEdit={canSetCellConstruction} gateCode="module.inbound.edit" canOpenRuns={canOpenRunsFromBatch} />
             )}
+            {/* MES-5b-1(Step 0 Q4 · Q5):这一批的质量去了哪里 —— 收进来的 = 各去向,消耗展开成它喂进的每一张单(按喂进的质量分) */}
+            <BatchBalancePanel kind="inbound" batchId={id} />
 
             {/* ★ PROC-1B-iii(R2):【实际到的货】能不能深度放电 —— 自己一块。 ★
                 摆在"到货状态"之后、进口尽调之前,因为它与到货状态是相邻的两个问题

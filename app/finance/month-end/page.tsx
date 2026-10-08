@@ -141,7 +141,8 @@ export default async function MonthEndPage({
     const reconAgrees = !!recon && !reconRefused
         && recon.sides.every((x) => Number(x.unexplained_base) === 0)
 
-    type Step = { key: string; state: 'done' | 'outstanding' | 'blocked' | 'na'; detail: string; href: string }
+    // MES-5b-1(Step 0 Q9):extra = 这一步旁边多给一条路(物料平衡那一步链到这个月的月度平衡)
+    type Step = { key: string; state: 'done' | 'outstanding' | 'blocked' | 'na'; detail: string; href: string; extra?: { href: string; label: string } }
     const steps: Step[] = [
         {
             key: 'rates', href: '/finance/fx',
@@ -200,6 +201,8 @@ export default async function MonthEndPage({
         {
             // MES-4a(Q23):物料平衡还没结的单 —— outstanding,不是 blocked:锁期照样锁得进去,这一步只是让人看见。
             key: 'unclosedBalance', href: '/operation/processing',
+            // MES-5b-1(Q9):仍然只警告、从不挡;旁边链到这个月的月度物料平衡(实时数,不冻结)
+            extra: { href: `/operation/balance?month=${end.slice(0, 7)}`, label: t('massBalance.monthEndLink') },
             state: unclosedCount > 0 ? 'outstanding' : 'done',
             detail: unclosedCount > 0
                 ? t('finance.monthEnd.unclosedBalanceDetail', { n: unclosedCount, codes: unclosed.run_codes ?? '' })
@@ -282,7 +285,12 @@ export default async function MonthEndPage({
                                     {t('finance.monthEnd.state_' + s.state)}
                                 </span>
                             </td>
-                            <td className={`${tableC.cell} text-gray-600`}>{s.detail}</td>
+                            <td className={`${tableC.cell} text-gray-600`}>
+                                {s.detail}
+                                {s.extra && (
+                                    <>{s.detail ? ' · ' : ''}<Link href={s.extra.href} className="hover:underline app-link" data-step-extra={s.key}>{s.extra.label}</Link></>
+                                )}
+                            </td>
                         </tr>
                     ))}
                 </tbody>

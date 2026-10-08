@@ -255,11 +255,24 @@ CREATE VIEW public.pending_values WITH (security_invoker = off) AS
            FROM electricity_settings es
           WHERE es.id AND es.shared_pool_rule IS NULL AND (EXISTS ( SELECT 1
                    FROM devices d
-                  WHERE d.kind = 'meter'::text AND d.equipment_id IS NULL AND d.retired_at IS NULL))) p
+                  WHERE d.kind = 'meter'::text AND d.equipment_id IS NULL AND d.retired_at IS NULL))
+        UNION ALL
+         SELECT 'V37'::text AS value_code,
+            'module.processing.view'::text AS permission,
+            NULL::uuid AS item_id,
+            (tf.operation_type_code || '/'::text) || tf.form_code AS item_code,
+            (ot.name_en || ' · '::text) || COALESCE(mf.name_en, tf.form_code) AS item_label,
+            '/operation/operation-types/'::text || tf.operation_type_code AS href
+           FROM operation_type_output_forms tf
+             JOIN operation_types ot ON ot.code = tf.operation_type_code
+             LEFT JOIN material_forms mf ON mf.code = tf.form_code
+          WHERE ot.is_active AND tf.expected_yield_pct IS NULL AND (EXISTS ( SELECT 1
+                   FROM processing_run_flow_all f
+                  WHERE f.operation_type_code = tf.operation_type_code AND f.flow = 'consumption'::text AND f.era_mes4a))) p
   WHERE has_permission(p.permission);
 
 COMMENT ON VIEW public.pending_values IS
-    'MES-1:还没给的标准值(/settings/pending-values)。一支一个值,每一支带自己的权限码;MES-1 播 V5(网关心跳间隔)与 V6(班次的起止时刻 —— 传输异常的工作时间);MES-2 加 V8(校准到期提醒的提前天数)与 V33(在用仪器的量程);MES-3a 加 V2(执照 × 类别的库存上限)、V29(NEA 类别与物料的类别)、V3(每个安全状态的滞留提醒天数)、V4(每个安全状态要不要隔离)与 V34(隔离库位);MES-3b 加 V30(危险品编号的标记 · 包装说明 · 标签尺寸)、V31(电池料的 HS 编码)与 V35(电池料的危险品编号);MES-4a 加 V1(转化型工序的物料平衡容差)与 V36(声明了有范围的参数的上下限),并把 V6 的去处搬到班次字典(V6 同时答 V7);MES-4b 加 V10(勾了电解液挥发的工序的电解液份额)与 V11(交叉污染流的警戒线)。MES-5a-1 加 V9(物料的放电通过电压,只在那种物料有了放电结果之后才列);MES-5a-2 加 V25(共用池的电怎么摊,有共用池电表而规则为空时一行)。之后每一刀加它自己的支,并在同一个提交里往 docs/mes-pending-values.md 加行。';
+    'MES-1:还没给的标准值(/settings/pending-values)。一支一个值,每一支带自己的权限码;MES-1 播 V5(网关心跳间隔)与 V6(班次的起止时刻 —— 传输异常的工作时间);MES-2 加 V8(校准到期提醒的提前天数)与 V33(在用仪器的量程);MES-3a 加 V2(执照 × 类别的库存上限)、V29(NEA 类别与物料的类别)、V3(每个安全状态的滞留提醒天数)、V4(每个安全状态要不要隔离)与 V34(隔离库位);MES-3b 加 V30(危险品编号的标记 · 包装说明 · 标签尺寸)、V31(电池料的 HS 编码)与 V35(电池料的危险品编号);MES-4a 加 V1(转化型工序的物料平衡容差)与 V36(声明了有范围的参数的上下限),并把 V6 的去处搬到班次字典(V6 同时答 V7);MES-4b 加 V10(勾了电解液挥发的工序的电解液份额)与 V11(交叉污染流的警戒线)。MES-5a-1 加 V9(物料的放电通过电压,只在那种物料有了放电结果之后才列);MES-5a-2 加 V25(共用池的电怎么摊,有共用池电表而规则为空时一行)。MES-5b-1 加 V37(每道工序 × 每种产出形态的预期质量得率;只在那道工序有了至少一张 MES-4a 之后的消耗炉次时才列 —— V9 的先例:没人能动手的行不列)。之后每一刀加它自己的支,并在同一个提交里往 docs/mes-pending-values.md 加行。';
 
 GRANT SELECT ON public.pending_values TO authenticated;
 REVOKE ALL ON public.pending_values FROM anon;

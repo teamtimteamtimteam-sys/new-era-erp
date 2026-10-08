@@ -22,7 +22,8 @@
 --   CHAN   通道分配只追加:一个通道一个模组、一个模组一个通道;结果带的通道号与分配矛盾拒;更正 / 撤回是新行;直连改拒;只有 aftercare 码(Q9)
 --   SPLIT  拆去隔离:没有隔离库位拒 · 拆一个不是"失败 · 隔离"的模组拒 · 拆走的质量从原批扣掉 · 新批同一物料、模组数 = 拆走的个数、
 --          带"带电未放电"、整批在那个隔离库位上 · 原批照规则核实(通过 + 拆走 = 模组数),记下是拆分那一炉 · 拆走的模组不能再在原批上记结果 ·
---          提醒臂 discharge_quarantine_pending 出现又消失 · 回滚拆分那一炉:原批不再核实、那个模组回到"待拆" · 没有 aftercare 码拒(Q11)
+--          提醒臂 discharge_quarantine_pending 出现又消失 · 回滚拆分那一炉:原批不再核实、那个模组回到"待拆" · 没有 aftercare 码拒(Q11)·
+--          ★ MES-5b-1(Step 0 Q11):拆分那一炉在同一步里自己结平(余数 0、容差 0、在容差里),不在"平衡没结"的提醒、月末那一行与 V1 里
 --   ING    discharge_module 这一类的设备转换器【没有建】(格式没人给过 —— MES-3b Q25 · MES-4a Q14):设备来的行只会停在 awaiting_transform,
 --          不会悄悄变成一条结果
 --
@@ -470,6 +471,22 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 255 SPLIT: two passed + one split out of three — the parent should verify, owned by the split run (%)', pg_temp.f255_states(bg); END IF;
     v_n := (pg_temp.f255_get(u_view, $q$SELECT to_jsonb(count(*)) FROM operations_now WHERE item_type = 'discharge_quarantine_pending' AND subject = 'ZZ255-G'$q$, u_all))::text::bigint;
     IF v_n <> 0 THEN RAISE EXCEPTION 'FIXTURE 255 SPLIT: discharge_quarantine_pending should clear after the split'; END IF;
+    -- ★ MES-5b-1(Step 0 Q11):拆分那一炉在同一步里自己结平 —— 余数 0、在容差 0 里、结平行带着那个 0;它不在"平衡没结"的提醒、
+    --   月末那一行与 V1 那一支里(这道工序的容差播成 0,不是 Not yet set)
+    IF (SELECT balance_state FROM processing_run_balance_all WHERE run_id = v_split) <> 'closed'
+       OR (v_j ->> 'balance_closure_id') IS NULL
+       OR NOT EXISTS (SELECT 1 FROM processing_run_closures c WHERE c.id = (v_j ->> 'balance_closure_id')::bigint AND c.run_id = v_split
+                        AND c.remainder_qty = 0 AND c.input_qty = 90 AND c.output_qty = 90 AND c.named_loss_qty = 0
+                        AND c.tolerance_pct = 0 AND c.within_tolerance AND c.explanation IS NULL) THEN
+        RAISE EXCEPTION 'FIXTURE 255 SPLIT: the split should close its own balance in the same step (remainder 0, tolerance 0, within)'; END IF;
+    IF (SELECT balance_tolerance_pct FROM operation_types WHERE code = 'discharge_quarantine_split') IS DISTINCT FROM 0 THEN
+        RAISE EXCEPTION 'FIXTURE 255 SPLIT: the split operation''s tolerance should be seeded 0'; END IF;
+    v_n := (pg_temp.f255_get(u_view, format($q$SELECT to_jsonb(count(*)) FROM operations_now WHERE item_type = 'processing_balance_unclosed' AND item_id = %L$q$,
+             v_split), u_all))::text::bigint;
+    IF v_n <> 0 OR COALESCE((SELECT run_codes FROM processing_runs_unclosed_balance(CURRENT_DATE)), '') LIKE '%' || (SELECT code FROM processing_runs WHERE id = v_split) || '%' THEN
+        RAISE EXCEPTION 'FIXTURE 255 SPLIT: a split run must be absent from the unclosed-balance reminder and the month-end warning'; END IF;
+    v_n := (pg_temp.f255_get(u_view, $q$SELECT to_jsonb(count(*)) FROM pending_values WHERE value_code = 'V1' AND item_code = 'discharge_quarantine_split'$q$, u_all))::text::bigint;
+    IF v_n <> 0 THEN RAISE EXCEPTION 'FIXTURE 255 SPLIT: V1 must not list the split operation (its tolerance is 0)'; END IF;
     run_x := pg_temp.f255_run('deep_discharge', jsonb_build_array(pg_temp.f255_in(bg, 210)), '[]'::jsonb, d);   -- 一炉新的放电:只有"已拆走"拦得住
     v_msg := pg_temp.f255_res(u_cap, run_x, 'inbound', bg, 'M03', 0.4, 'pass', t1030);
     IF v_msg NOT LIKE 'DISCHARGE_MODULE_SPLIT_OUT|M03|%' THEN RAISE EXCEPTION 'FIXTURE 255 SPLIT: a split-out module may not get a result on the parent, got %', v_msg; END IF;

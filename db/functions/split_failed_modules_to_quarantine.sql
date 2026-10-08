@@ -12,10 +12,12 @@
 --        (它们是同一批模组 —— 原批没核实,所以那里面一定有"带电未放电"),记 created_by_run_id = 拆分那一炉(回滚拆分就把它们结束)。
 --     ④ 把新批整批转进那个隔离库位(create_stock_transfer_internal —— 与库存转移同一份;门是本函数的码)。
 --     ⑤ 照规则重判原批(拆走的模组算已处置;凑满了就核实,记下是拆分那一炉)。
+--     ⑥ MES-5b-1(Step 0 Q11):拆分那一炉自己结平(close_run_balance;余数 0,容差 0)—— 它是一次搬运,没有损耗、没有余数,不该挂成"没结"。
 --   码:action.processing_aftercare(Tim 的 Q10);记那一炉本身照旧还要 action.processing_commit(每一炉都要)——线上两码同一批人持。
---   返回 {split_run_id, split_run_code, batch_id, batch_code, modules, parent_verified}。
+--   返回 {split_run_id, split_run_code, batch_id, batch_code, modules, parent_verified, parent_code, balance_closure_id}。
 --
 -- NOTE: introduced by db/migrations/2026-10-08-mes5a1-discharge-by-module.sql.
+--       replaced by db/migrations/2026-10-08-mes5b1-balance-and-yield.sql (MES-5b-1: the split closes its own balance).
 
 CREATE OR REPLACE FUNCTION public.split_failed_modules_to_quarantine(p_discharge_run_id uuid, p_kind text, p_batch_id uuid, p_module_refs text[], p_process_date date, p_started_at timestamp with time zone, p_ended_at timestamp with time zone, p_shift_code text, p_location_id uuid, p_weight_kg numeric DEFAULT NULL::numeric, p_weighing_id uuid DEFAULT NULL::uuid, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
@@ -37,6 +39,7 @@ DECLARE
     v_new      uuid;
     v_new_code text;
     v_ok       boolean;
+    v_closure  bigint;
 BEGIN
     PERFORM require_permission('action.processing_aftercare');
 
@@ -129,8 +132,13 @@ BEGIN
 
     v_ok := discharge_verify_batch(p_kind, p_batch_id, v_split, 'failed modules split to quarantine');
 
+    -- MES-5b-1(Step 0 Q11):拆分那一炉在同一步里结平。称出来的产出 = 原批消耗的那一份(上面同一个 v_qty 记两条腿),余数按构造是 0,
+    --   这道工序的容差是 0 —— 所以它在容差里,说明可选,而且不再挂在"平衡没结"的提醒与月末那一行上。经 close_run_balance(一份判据):
+    --   它若拒(例如有人给这道工序加了必填字段),整个拆分照样回滚,拒绝按名说出来。
+    v_closure := close_run_balance(v_split, NULL);
+
     RETURN jsonb_build_object('split_run_id', v_split, 'split_run_code', (SELECT pr.code FROM processing_runs pr WHERE pr.id = v_split),
                               'batch_id', v_new, 'batch_code', v_new_code, 'modules', to_jsonb(v_refs), 'parent_verified', v_ok,
-                              'parent_code', v_code);
+                              'parent_code', v_code, 'balance_closure_id', v_closure);
 END;
 $function$

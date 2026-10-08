@@ -23,6 +23,7 @@ const CONSTRAINTS = [
     'operation_type_fields_range_shape', 'operation_type_fields_field_code_check', 'operation_type_fields_pkey',
     'process_recipes_code_check', 'process_recipes_code_key', 'operation_types_balance_tolerance_pct_check',
     'operation_type_equipment_pkey', 'operation_types_electrolyte_share_pct_check',
+    'operation_type_output_forms_expected_yield_pct_check',
 ] as const
 
 async function opError(message: string): Promise<string> {
@@ -57,6 +58,22 @@ export async function setTolerance(code: string, raw: string): Promise<OpState> 
     if (error) return { error: await opError(error.message) }
     if (!data || data.length === 0) return { error: (await refuseNothingChanged(EDIT)).error }
     refresh(code)
+    return {}
+}
+
+/** MES-5b-1(V37;Step 0 Q15,Tim):这道工序 × 这一种产出形态的预期质量得率(占总投入的 %,0–100)。空 = 还没给。
+ *  只标不拒:得率页把低于它的一炉、一道工序的一个月标出来。写在 operation_type_output_forms 上,写策略与容差同一个码。 */
+export async function setExpectedYield(code: string, form: string, raw: string): Promise<OpState> {
+    const t = await getTranslations()
+    const v = numOrNull(raw)
+    if (v === 'bad' || (v !== null && (v < 0 || v > 100))) return { error: t('massBalance.opType.errExpectedYield') }
+    const supabase = await createClient()
+    const { data, error } = await supabase.from('operation_type_output_forms')
+        .update({ expected_yield_pct: v }).eq('operation_type_code', code).eq('form_code', form).select('operation_type_code')
+    if (error) return { error: await opError(error.message) }
+    if (!data || data.length === 0) return { error: (await refuseNothingChanged(EDIT)).error }
+    refresh(code)
+    revalidatePath('/operation/yield')
     return {}
 }
 

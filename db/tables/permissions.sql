@@ -23,8 +23,18 @@ CREATE TABLE public.permissions (
     name_zh        text NOT NULL,
     description_en text,
     description_zh text,
-    sort_order     integer NOT NULL DEFAULT 0
+    sort_order     integer NOT NULL DEFAULT 0,
+    -- ── MES-5b-1 追加(2026-10-08,MES-5a-2 close-out 裁定 f · MES-5b Step 0 Q30,Tim)────────────────────────────
+    -- 一个【动作码】的持有人要进得去用它的页面,得持哪几个查看码【之一】("动作码与它那一页的查看码一起授",docs/role-matrix.md 常设规矩)。
+    -- 只有 category = 'action' 的码声明它;一个页面由这个码自己把门的,写它自己(例:action.bulk_import —— 持它就进得去 /settings/import)。
+    -- 空 = 没有任何页面用这个码(今天只有 action.anonymise_employee:它没有屏幕)。
+    -- 四处执行同一条规矩:set_role_permissions(按名拒 ACTION_REQUIRES_VIEW)· role_permissions 引导的自检 · fixture 257 FCHECK 对重建库的
+    -- 每一个角色 · scripts/check-action-view-declared.mjs(每一个声明的查看码真的是一张用这个码的页面的门)。
+    requires_view_any text[]
 );
+
+COMMENT ON COLUMN public.permissions.requires_view_any IS
+    'MES-5b-1(MES-5a-2 close-out 裁定 f · MES-5b Step 0 Q30):一个动作码的持有人必须【至少】持其中一个码,才进得去用这个动作的页面。只有动作码声明;页面由这个码自己把门的写它自己;空 = 没有页面用它(action.anonymise_employee)。set_role_permissions 按名拒 ACTION_REQUIRES_VIEW|<码>|<查看码,…>。';
 
 ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "permissions select by permission"
@@ -176,3 +186,69 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- 更正一次称重、开 / 作废地磅单、传 / 撤地磅单照片。持有人 warehouse · cto · admin(admin 与此前每一个新码一样只在迁移里授)。
     -- 读草稿只要 module.processing.view(Q8)。
     ('action.confirm_capture', 'action', 'Confirm captured readings', '确认采集到的数据', 'Confirm or reject the drafts that scales and other devices send (a changed value keeps the original and needs a reason), enter a weighing by hand, correct a confirmed weighing, open and void weighbridge tickets, and add or withdraw ticket photos. Reading the queue needs only Processing (view).', '确认或驳回秤与其他设备送来的草稿(改过的值留着原值并要写理由)、手工录入一次称重、更正一次已确认的称重、开出与作废地磅单、传上或撤下地磅单的照片。读确认队列只要「加工(查看)」。', 1230);
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- MES-5b-1(2026-10-08,Step 0 Q30,Tim):每一个动作码声明【用它的页面】把门的查看码。
+-- 来源:Step 0 对 app/ 的静态普查(docs/surveys/MES-5b/action-view-readings.sql,STEP0-HANDBACK §0 表 2:线上 67 对全部满足),
+-- 由 scripts/check-action-view-declared.mjs 在每一次构建里重核 —— 每一个声明的码必须是至少一张用这个动作码的页面的门。
+-- 「读法」是【任一】,不是【全部】(Q30):全部会撞上仓库不持 module.sales.view(APR-5b),而 action.ship_goods 也出现在 /sales/orders/[id]。
+-- ═══════════════════════════════════════════════════════════════════════════
+UPDATE public.permissions p SET requires_view_any = d.views
+  FROM (VALUES
+    ('action.apply_assay',              ARRAY['module.inbound.view','module.output.view']),
+    ('action.approve_review',           ARRAY['module.hr.view']),
+    ('action.batch_write_off',          ARRAY['module.inbound.view','module.inventory.view','module.output.view']),
+    ('action.bulk_import',              ARRAY['action.bulk_import']),
+    ('action.confirm_capture',          ARRAY['module.inbound.view','module.logistics.view','module.processing.view']),
+    ('action.contract_terms',           ARRAY['module.suppliers.view']),
+    ('action.customer_credit',          ARRAY['module.customers.view']),
+    ('action.decide_hr_requests',       ARRAY['module.hr.view']),
+    ('action.direct_sale',              ARRAY['module.output.view']),
+    ('action.finance_reopen',           ARRAY['module.finance.view']),
+    ('action.finance_settings',         ARRAY['module.finance.view']),
+    ('action.hr_reviews',               ARRAY['module.hr.view']),
+    ('action.issue_cod',                ARRAY['module.inbound.view','module.inventory.view']),
+    ('action.manage_devices',           ARRAY['module.processing.view']),
+    ('action.manage_permissions',       ARRAY['action.manage_permissions']),
+    ('action.metal_prices',             ARRAY['action.metal_prices']),
+    ('action.overtime_approve',         ARRAY['action.overtime_approve']),
+    ('action.overtime_enter',           ARRAY['action.overtime_enter']),
+    ('action.price_receipts',           ARRAY['module.inbound.view']),
+    ('action.processing_aftercare',     ARRAY['module.processing.view']),
+    ('action.processing_commit',        ARRAY['module.inbound.view','module.output.view','module.processing.view']),
+    ('action.processing_rollback',      ARRAY['module.inventory.view','module.processing.view']),
+    ('action.raise_po_consumables',     ARRAY['module.purchasing.view']),
+    ('action.raise_po_equipment',       ARRAY['module.purchasing.view']),
+    ('action.raise_po_office',          ARRAY['module.purchasing.view']),
+    ('action.receive_goods',            ARRAY['module.inbound.view','module.logistics.view','module.processing.view','module.purchasing.view']),
+    ('action.request_shipping_release', ARRAY['module.sales.view']),
+    ('action.ship_goods',               ARRAY['action.ship_goods']),
+    ('action.stocktake_count',          ARRAY['module.inbound.view','module.output.view','module.stocktakes.view']),
+    ('action.stocktake_post',           ARRAY['module.stocktakes.view']),
+    ('action.supplier_approve',         ARRAY['module.suppliers.view']),
+    ('action.wo_create',                ARRAY['module.processing.view']),
+    ('action.wo_release',               ARRAY['module.processing.view'])
+  ) AS d(code, views)
+ WHERE p.code = d.code;
+
+-- 目录自己的自检:只有动作码声明;每一个声明的元素是目录里的一个码,而且是一个模块的查看码或这个码自己;不声明的动作码只有点名的那一个。
+DO $requires_view_check$
+DECLARE v_bad text;
+BEGIN
+    SELECT string_agg(p.code || ' -> ' || v, ', ' ORDER BY p.code, v) INTO v_bad
+      FROM permissions p CROSS JOIN LATERAL unnest(p.requires_view_any) v
+     WHERE p.category <> 'action'
+        OR NOT EXISTS (SELECT 1 FROM permissions q WHERE q.code = v)
+        OR NOT (v = p.code OR (v LIKE 'module.%.view' AND v <> 'module.tasks.view_all'));
+    IF v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'PERMISSIONS_REQUIRES_VIEW_INVALID|%', v_bad;
+    END IF;
+    SELECT string_agg(code, ', ' ORDER BY code) INTO v_bad FROM permissions
+     WHERE category = 'action' AND (requires_view_any IS NULL OR cardinality(requires_view_any) = 0)
+       AND code <> 'action.anonymise_employee';
+    IF v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'PERMISSIONS_REQUIRES_VIEW_UNDECLARED|%', v_bad;
+    END IF;
+END;
+$requires_view_check$;

@@ -36,6 +36,7 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | V11 | Cross-contamination warning line (% foreign material) per stream — cathode sheet with anode in it, anode sheet with cathode in it | `/settings/dictionaries` (Contamination streams) | each active `contamination_streams` row whose `warning_pct` is empty (both seeded empty) | `module.processing.view` | Tim / the first black-mass offtake contract's specification | before the first offtake contract | MES-4b |
 | V9 | Discharge pass voltage (V per module) of each material | the material editor (`/materials/<id>/edit`) | each live material with `materials.discharge_pass_voltage_v` empty **and at least one module discharge result on a batch of it** (listing every cell material before any discharge would fill the page with rows nobody can act on yet; live has no result, so the arm is empty) | `module.materials.view` | the cell / module supplier's datasheet, or the process engineer | before discharge results are judged routinely | MES-5a-1 |
 | V25 | How shared-pool electricity is spread (one rule for the whole plant) | `/finance/electricity` (the "Shared-pool electricity (V25)" panel) | the single `electricity_settings` row while `shared_pool_rule` is empty **and** at least one meter not retired has no machine (`devices.kind = 'meter' AND equipment_id IS NULL` — a shared-pool meter); with no shared-pool meter there is nothing to spread, so no row | `module.finance.view` | Tim | the first utility bill after meters are connected | MES-5a-2 |
+| V37 | Expected mass yield (% of a run's total input) per operation × output form | the operation's page (`/operation/operation-types/<code>`, "Expected yield per output form (V37)") | each output form of an active operation with `operation_type_output_forms.expected_yield_pct` empty **and at least one MES-4a-era consuming run of that operation** (`processing_run_flow_all`: flow = consumption, a start time recorded) — the V9 precedent: rows nobody can act on yet are not listed; live has no MES-4a-era run, so the arm is empty | `module.processing.view` | Tim with the process engineer | after the commissioning runs of each operation | MES-5b-1 |
 
 **What "Not yet set" means for V5.** A gateway with no heartbeat interval cannot be judged silent: its status reads
 **"Not yet set — silence cannot be judged"**, it raises no `gateway_silent` reminder, and no outage is recorded for it.
@@ -126,3 +127,12 @@ it never reaches a run's cost. Setting V25 **records the rule only**: this versi
 built once the rule is known (the rule is free text today because nobody has said what shape it takes — by run time, by tonnage, by machine rating).
 Writing or clearing it needs `module.finance.edit` and is change-logged on `electricity_settings` (its trail is at the foot of `/finance/electricity`).
 Live today: **no meter at all**, so the arm is empty.
+
+**What V37 holds back (MES-5b-1, Step 0 Q15 · Q33).** Yield is computed and shown either way — per run, per operation and month, and by
+machine, chemistry and supplier on `/operation/yield`, as a share of the total input (MES-5a Q23). V37 adds only the **flag**: an output form
+whose yield is below the expected figure is marked "Below expected" on the run, the operation and the month. With V37 empty the flag is NULL
+("cannot be judged", not "not below"), and the page shows "Not yet set" beside the form. **It never refuses anything** — a commit, a balance
+close or any other action goes through whatever the yield is. Setting it needs `module.processing.edit` (the operation page, the same code as
+the tolerance V1) and the change is in the change log. Nothing guesses a target: the repo's record is that a standard invented before real
+runs is fiction (`docs/forward-queue.md`, the recovery-rate items), and Tim ruled yield an estimate, not an auditable KPI.
+

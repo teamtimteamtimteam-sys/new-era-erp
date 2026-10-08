@@ -8,7 +8,12 @@ CREATE TABLE public.operation_type_output_forms (
     operation_type_code text NOT NULL REFERENCES public.operation_types (code) ON DELETE CASCADE,
     form_code           text NOT NULL REFERENCES public.material_forms (code),
     notes               text,
-    PRIMARY KEY (operation_type_code, form_code)
+    PRIMARY KEY (operation_type_code, form_code),
+    -- ── MES-5b-1 追加(2026-10-08,V37;MES-5b Step 0 Q15,Tim)────────────────────────────────────────────────────
+    -- 这道工序 × 这一种产出形态的【预期质量得率】(占总投入的 %,0–100)。为空 = Not yet set:Tim 与工艺工程师在试车之后给。
+    -- 只标不拒:一炉、一道工序的一个月低于它,得率页上标出来;它从不挡提交、结平或任何别的动作。
+    -- 引导默认值为空 —— 正确:今天没有人给过一个数,而一个在真实炉次之前编出来的标准是虚构(docs/forward-queue.md 的回收率那一条)。
+    expected_yield_pct  numeric CHECK (expected_yield_pct IS NULL OR (expected_yield_pct >= 0 AND expected_yield_pct <= 100))
 );
 
 INSERT INTO public.operation_type_output_forms (operation_type_code, form_code, notes) VALUES
@@ -43,6 +48,9 @@ INSERT INTO public.operation_type_output_forms (operation_type_code, form_code, 
     ('discharge_quarantine_split', 'mixed_unsorted', '【MES-5a-1】同上。');
 
 -- 安全状态受理 —— **本刀的核心**
+
+COMMENT ON COLUMN public.operation_type_output_forms.expected_yield_pct IS
+    'MES-5b-1(V37;MES-5b Step 0 Q15):这道工序 × 这一种产出形态的预期质量得率(占总投入的 %,0–100)。为空 = Not yet set(Tim 与工艺工程师在试车之后给)。只标不拒:得率页把低于它的一炉、一道工序的一个月标出来。改它要 module.processing.edit(工序页,与容差同一个码)。';
 
 ALTER TABLE public.operation_type_output_forms ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_type_output_forms select all" ON public.operation_type_output_forms

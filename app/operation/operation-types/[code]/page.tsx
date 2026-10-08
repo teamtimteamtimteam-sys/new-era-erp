@@ -19,6 +19,7 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import OperationTypeEditor, { type EditorField, type EditorMachine, type EditorRecipe } from './OperationTypeEditor'
+import ExpectedYieldPanel, { type ExpectedYieldRow } from './ExpectedYieldPanel'
 
 export default async function OperationTypePage({
     params,
@@ -57,6 +58,19 @@ export default async function OperationTypePage({
         supabase.from('process_recipe_versions').select('id, recipe_id, version, param_values, notes, created_at').order('version', { ascending: false }),
         can('module.processing.edit'),
     ])
+    // MES-5b-1(V37):这道工序每一种产出形态的预期得率 —— 形态的名字取自字典,按界面语言选一个
+    const [formRes, formNameRes] = await Promise.all([
+        supabase.from('operation_type_output_forms').select('form_code, expected_yield_pct').eq('operation_type_code', code),
+        supabase.from('material_forms').select('code, name_en, name_zh, sort_order'),
+    ])
+    const formNames = new Map(mustRows(formNameRes, 'material_forms').map((f) => [f.code, f]))
+    const expectedRows: ExpectedYieldRow[] = mustRows(formRes, 'operation_type_output_forms')
+        .sort((a, b) => (formNames.get(a.form_code)?.sort_order ?? 9999) - (formNames.get(b.form_code)?.sort_order ?? 9999))
+        .map((f) => {
+            const fn = formNames.get(f.form_code)
+            return { form: f.form_code, label: fn ? (locale === 'zh' ? fn.name_zh : fn.name_en) : f.form_code,
+                     expected: f.expected_yield_pct === null ? null : String(Number(f.expected_yield_pct)) }
+        })
     const fields = mustRows(fieldRes, 'operation_type_fields')
     const linkIds = new Set(mustRows(linkRes, 'operation_type_equipment').map((l) => l.fixed_asset_id))
     const eq = mustRows(eqRes, 'equipment_usage')
@@ -111,6 +125,7 @@ export default async function OperationTypePage({
                 recipes={editorRecipes}
                 canEdit={canEdit}
             />
+            {transforming && expectedRows.length > 0 && <ExpectedYieldPanel code={op.code} rows={expectedRows} canEdit={canEdit} />}
             <AuditTrail subject="operation_type" id={op.code} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )

@@ -56,25 +56,18 @@ CREATE POLICY "role_permissions delete by permission"
 -- 【自己验一遍】—— 一份连自己的规则都不满足的起点,比没有起点更糟。
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- ★★ OVERTIME-1(Tim 2026-09-28 要求更正):下面这段「只做系统管理」说的是【引导起点】,不是线上的 admin。
---   Tim 2026-09-23 23:33 把全部码还给了 admin,常设裁定(2026-09-24,docs/role-matrix.md §1 最后一行)是
---   `admin` 持每一个码、每一个新码都在同一支迁移里授给它 —— 那一半只在迁移里授,这份 RUNTIME CONFIG 引导不跟。
--- admin:【只做系统管理】—— ★ ROLE-1(Tim 的角色与审批矩阵,2026-09-23 · Q8)。
---   此前这里写着「admin(35):全部 —— 定义上如此,不然它就不是管理员」。Tim 裁定相反:
---   系统管理员账号只管权限、账号、角色码、账号↔员工关联、审批开关与策略、批量导入、
---   员工匿名化;【一个业务码都不持】,也【不读任何业务数据】。
---   Tim 的一切业务阅读与决定走他的 CFO 账号(tim@),不走 admin@。
---   ☞ 这不是减法里顺手的一步:admin@ 持全部业务码,才让"系统管理员建单、CFO 批"
---     在四眼上被当成自批拒掉(同一个人两个账号)—— 拿掉它们,那一整类尴尬就不存在了。
+-- ★★ MES-5b-1(2026-10-08,MES-5b Step 0 Q31,Tim):【引导的 admin 持每一个码】—— 与常设裁定一致(docs/role-matrix.md §13:
+--   `admin` 角色持每一个码、拿到每一个新码,Tim 2026-09-24)。此前这里是一份五个码的"只做系统管理"起点(ROLE-1 Q8 的引导版),
+--   而 Q8 在线上早已被 Tim 本人撤回(2026-09-23 23:33:27,45 个码还给 admin)—— 引导与线上从那天起就不是同一个设计;
+--   MES-5b Step 0 §1.5 量到它的直接后果:引导的 admin 持 action.manage_devices 与 action.confirm_capture 而不持 module.processing.view,
+--   一份全新安装会在第一天就违反"动作码与它那一页的查看码一起授"。所以现在是【目录里的每一个码】(SELECT 自 permissions,
+--   以后每一个新码自动在内 —— 不必再有人记得把它补进这一行),
+--   ★ 唯一例外,照常设裁定的原文:`module.tasks.view_all`(读【别人的私人任务】)admin 从来没有 —— 那条裁定说的是「保留 + 每一个新码」,
+--   而它不在 Tim 2026-09-23 还回去的 45 个码里;要不要加是 Tim 的一句话(docs/role-matrix.md §13)。线上 admin 今天持 74 / 75,本行与它逐码相同。
+--   ★ 线上的角色本刀一个都不动:这是【全新安装的起点】。
 INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'action.manage_permissions', 'action.bulk_import', 'action.anonymise_employee',
-        -- MES-1(2026-10-06):网关钥匙是凭据 —— 发 / 撤一把钥匙与授一个角色同一类管理动作,所以引导的 admin 也持它
-        --   (线上的持有人 admin · cto 在迁移里授;引导里没有 cto 这个角色,ROLE1-BOOTSTRAP-MISSING-ROLES)。
-        'action.manage_devices',
-        -- MES-2(2026-10-06):确认采集到的数(线上持有人 warehouse · cto · admin 在迁移里授;引导里没有 cto)
-        'action.confirm_capture'
-) WHERE r.code = 'admin';
+SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
+ WHERE r.code = 'admin' AND p.code <> 'module.tasks.view_all';
 
 -- gm:看得见整个生意,包括成本与利润;【但不操作任何东西】。
 -- ★★ APR-ROUTE-1 Batch B(Tim 裁定,2026-09-23):gm 变成【只读】。
@@ -123,7 +116,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q4):盘点过账归财务;要读得到盘点单才过得了。
         'action.stocktake_post', 'module.stocktakes.view',
         -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling):下达工单归财务;建单人永远不能下达(按人认)。
-        'action.wo_release',
+        -- ★ MES-5b-1(Step 0 Q31,Tim):下达在 /operation/orders/[id] 上,那一页的门是 module.processing.view —— 引导的财务此前不持它,
+        --   于是持下达码而进不了下达的那一页(线上的财务 ROLE-1 Batch 3b 起就持它)。动作码与它那一页的查看码一起授。
+        'action.wo_release', 'module.processing.view',
         -- ★ APR-10(Tim 2026-09-27,grilling Q6):办公用品采购单归财务开(module.purchasing.edit 不再开单)。
         'action.raise_po_office',
         -- ★ OVERTIME-1(Tim 2026-09-28):现场员工的加班由财务按月录。
@@ -255,7 +250,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 -- employee:【一个模块权限都不给】—— 员工自助是行级的,靠 current_user_employee()
 -- 限定到本人相关的行。给模块权限反而会把整张表打开。
 
--- 引导默认值的自检:edit 必须伴随同模块的 view。
+-- 引导默认值的自检:edit 必须伴随同模块的 view;动作码必须伴随用它那一页的查看码之一(MES-5b-1)。
 DO $bootstrap_check$
 DECLARE v_bad text;
 BEGIN
@@ -269,6 +264,19 @@ BEGIN
                         AND v.permission_code = replace(rp.permission_code, '.edit', '.view'));
     IF v_bad IS NOT NULL THEN
         RAISE EXCEPTION 'BOOTSTRAP_EDIT_REQUIRES_VIEW|%', v_bad;
+    END IF;
+    -- MES-5b-1(Step 0 Q30):动作码必须伴随用它那一页的查看码之一(permissions.requires_view_any —— set_role_permissions 那一道的同一条规矩)。
+    SELECT string_agg(r.code || ' -> ' || rp.permission_code, ', ' ORDER BY r.code, rp.permission_code)
+    INTO v_bad
+    FROM role_permissions rp
+    JOIN roles r ON r.id = rp.role_id
+    JOIN permissions p ON p.code = rp.permission_code
+    WHERE p.requires_view_any IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM role_permissions v
+                      WHERE v.role_id = rp.role_id
+                        AND v.permission_code = ANY (p.requires_view_any));
+    IF v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'BOOTSTRAP_ACTION_REQUIRES_VIEW|%', v_bad;
     END IF;
 END;
 $bootstrap_check$;

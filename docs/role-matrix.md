@@ -47,8 +47,25 @@ inside a page — is granted **together with the view code of the page where tha
 
 cfo · gm 不持以上任何一个码。16 对(角色 × 动作码)全部同时持有查看码,0 对缺。
 
-**机制(还没有建):** MES-5b 的并入 —— 一道自动检查(fixture 或 gate),任何角色持一个动作码而不持它那一页的查看码就红
-(`docs/forward-queue.md` 的「⬜ ★ MES 组」第 8 行)。在它落地之前,这一条是一条要人记的规矩。
+~~**机制(还没有建):** MES-5b 的并入 —— 一道自动检查(fixture 或 gate),任何角色持一个动作码而不持它那一页的查看码就红
+(`docs/forward-queue.md` 的「⬜ ★ MES 组」第 8 行)。在它落地之前,这一条是一条要人记的规矩。~~
+
+**★ 机制(✅ MES-5b-1,`v1.4.45`,2026-10-08,Step 0 Q30 · Q31):这一条从此是机制,不是要人记的规矩。**
+* **读法是【任一】**(Q30):一个动作码用在门不同的几张页面上(15 个码如此,Step 0 §1.5),持【其中一张】的查看码就够。
+  「全部」被否掉:它会撞上仓库不持 `module.sales.view`(APR-5b),而 `action.ship_goods` 也出现在 `/sales/orders/[id]` 上。
+* **声明在目录里**:`permissions.requires_view_any`(text[])—— 33 个动作码各列出用它的页面的门;页面由这个码自己把门的列它自己
+  (`action.bulk_import` · `action.manage_permissions` · `action.metal_prices` · `action.overtime_*` · `action.ship_goods`);
+  `action.anonymise_employee` 没有屏幕,不声明。只有动作码声明;`module.*.edit` 仍由原来那一道 `EDIT_REQUIRES_VIEW`(同模块的查看码)管。
+* **四处执行同一份声明:**
+  ① `set_role_permissions` 按名拒 `ACTION_REQUIRES_VIEW|<动作码>|<查看码,…>`(角色页上一句话说出缺哪一个,`permissions.errActionRequiresView`);
+  ② `role_permissions` 引导的自检(`BOOTSTRAP_ACTION_REQUIRES_VIEW`)与 `permissions` 目录自己的自检(`PERMISSIONS_REQUIRES_VIEW_INVALID` /
+     `_UNDECLARED` —— 以后加一个动作码而不声明,重建当场失败);
+  ③ fixture 257 FCHECK:重建库里【每一个】角色都满足;
+  ④ 构建里的 `scripts/check-action-view-declared.mjs`:每一个声明的码真的是一张【用这个动作码】的页面的门,用到了却没声明的、声明了却没人用的都红。
+* **线上核对(迁移自己的自证,2026-10-08 21:28 CST):七个有持有人的角色全部满足,0 对违反**(Step 0 §0 表 2 量的是 67 / 67)。
+* **引导(全新安装)修了两处(Q31):** 引导的 admin 持目录里除 `module.tasks.view_all` 之外的每一个码(与 §13 的常设裁定一致 —— 那一条说的是
+  「保留 + 每一个新码」,而 `module.tasks.view_all` 从来不在 admin 手里);引导的财务加上 `module.processing.view`(它持 `action.wo_release`,
+  下达在 `/operation/orders/[id]`)。**线上的角色本刀一个都没动。**
 
 ---
 
@@ -146,6 +163,7 @@ cfo · gm 不持以上任何一个码。16 对(角色 × 动作码)全部同时�
 | 电芯构造、新产品编号、损耗来由、交叉污染抽检 · cell construction, product numbering, loss basis, contamination checks | 见右 · see status | — | ✅ done(MES-4b,2026-10-08,Step 0 Q28:**没有新码、没有授权变动**。收货时选构造随收货本身的码(`create_inbound_batch` / `receive_inbound_batch_against_po` 原来的门);事后在批次页上补构造:进料批 `module.inbound.edit` 或 `action.processing_commit`,产出批 `module.output.edit` 或 `action.processing_commit`(`set_batch_cell_construction`);批次喂过一张已提交的单之后构造锁死,谁都改不了(`CELL_CONSTRUCTION_LOCKED`);算出电解液损耗、把它重算、记 / 更正抽检都归 `action.processing_aftercare`(与 MES-4a 记值、结平同一个码);工序页上的电解液那一段(勾 "Electrolyte evaporates in this step"、填份额)改 `module.processing.edit`;新页 `/operation/contamination`(每班一格 + 抽检清单)读 `module.processing.view` 或 `module.output.view`;两本新字典(电芯构造 · 交叉污染流)写 `module.processing.edit`,电芯构造读 `module.processing.view` / `module.inbound.view` / `module.output.view` 任一,交叉污染流读 `module.processing.view` / `module.output.view` 任一;提醒臂 `contamination_check_missing` 与 V10 · V11 读 `module.processing.view`。抽检表只开 SELECT,直写一律被拒。逐角色读数表在 `docs/handbacks/MES-4b.md`)|
 | 逐模组放电、模组数、拆去隔离 · discharge by module, module count, quarantine split | 见右 · see status | — | ✅ done(MES-5a-1,2026-10-08,Step 0 Q10 · Q29:**没有新码、没有新审批、没有授权变动**。记 / 更正一个模组的放电结果 `action.confirm_capture`(采集那条管道的码,线上 admin · cto · warehouse);通道分配(分配 / 更正 / 撤下)与拆去隔离 `action.processing_aftercare`(线上 admin · warehouse),拆分记下的那一炉另照常要 `action.processing_commit`(同一批人持);模组数:收货时随收货本身的码(`create_inbound_batch` / `receive_inbound_batch_against_po` 原来的门),事后在批次页上补:进料批 `module.inbound.edit` 或 `action.processing_commit`,产出批 `module.output.edit` 或 `action.processing_commit`(`set_batch_module_count`);核实之后锁死,谁都改不了(`MODULE_COUNT_LOCKED`);V9 在物料编辑器里改 `module.materials.edit`,待补的值 V9 读 `module.materials.view`;提醒臂 `discharge_unverified` · `discharge_quarantine_pending` 读 `module.processing.view`;放电结果与进度(`discharge_module_rows` · `discharge_status_by_batch` 与三张新表)读 `module.processing.view` / `module.inbound.view` / `module.output.view` 任一;屏幕照片传进 `capture-photos` 要 `action.confirm_capture`、打开要 `module.inbound.view` 或 `module.logistics.view`(那个桶 MES-2 起的读规则,本刀没动);拆分表单里的隔离库位清单读 `module.inventory.view`(读不到的人看到"受限",不是"没有隔离库位")。三张新表只开 SELECT,直写一律被拒。逐角色读数表在 `docs/handbacks/MES-5a-1.md`)|
 | 电表与读数、一炉的电量、电费单的分摊 · meters and readings, run energy, electricity bill allocation | 见右 · see status | — | ✅ done(MES-5a-2,2026-10-08,Step 0 Q19 · Q20 · Q27 · Q29 · Q30:**没有新码、没有新审批、没有授权变动**。把一台设备设成电表、挂到机器上或挂回共用池 `action.manage_devices`(设备页的同一支 `save_device`,线上 admin · cto);记 / 更正 / 撤回读数 `action.confirm_capture`(线上 admin · cto · warehouse);读数与一炉的电量(`meter_readings_current` · `processing_run_energy`)读 `module.processing.view`(读数视图另认 `module.finance.view`);电费单的预览读 `module.finance.view`,过账与 V25 的规则 `module.finance.edit`(线上 admin · finance);`/finance/electricity` 三页门 `module.finance.view`;分摊与它的行读 `module.finance.view` 或 `module.processing.view`,**金额在 `data.view_prices` 之后**(五列金额不在列级授权里,只经 `_masked` 视图;kWh 不遮);待补的值 V25 读 `module.finance.view`。付款走既有的付款申请(没有新审批,Q29)。四张新表只开 SELECT,直写一律被拒。逐角色读数表在 `docs/handbacks/MES-5a-2.md`)|
+| 物料平衡与得率 · material balance and yield | 见右 · see status | — | ✅ done(MES-5b-1,2026-10-08,Step 0 Q32:**没有新码、没有新审批、没有授权变动**。月度物料平衡与库存滚动(`/operation/balance`)门 `module.processing.view`,读的两张外壳(`processing_balance_monthly` · `stock_rollforward_monthly`)认加工 / 财务 / 库存查看码任一 —— `/inventory` 的平衡合计与月末那一步靠它,与此前 `processing_run_lookup` 给同样几个数时同一组码;得率(`/operation/yield`,`processing_run_yield` · `processing_yield_summary`)门与读都是 `module.processing.view`,**供应商的名字只给持 `module.inbound.view` 的人**(不持的读到「受限」,标签跟着进料批自己的查看码走 —— 七个真角色今天都持它);批次的去向树(`/inbound/[id]/edit` · `/output/[id]/edit` 上的平衡面板,`batch_balance_tree`)认 `module.processing.view` 或那一批自己那一页的查看码;七张基视图谁都读不到。V37(工序页)改 `module.processing.edit`、待补的值读 `module.processing.view`。拆分那一炉自己结平,照旧在拆分函数的码之下(`action.processing_aftercare` + `action.processing_commit`)。逐角色读数表在 `docs/handbacks/MES-5b-1.md`)|
 
 ## 9 · 加工 · Processing
 

@@ -1634,6 +1634,7 @@ operation_type_input_forms,notes,text,verbatim,assay.notes,Notes,,text-only,,tex
 operation_type_output_forms,operation_type_code,dict,operation_types.name_en (via code),,,Operation type,,,text
 operation_type_output_forms,form_code,dict,material_forms.name_en (via code),materials.form.formAxis,Form,,text-only,,text
 operation_type_output_forms,notes,text,verbatim,assay.notes,Notes,,text-only,,text
+operation_type_output_forms,expected_yield_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Expected yield (%),,,numeric
 operation_type_safety_states,operation_type_code,dict,operation_types.name_en (via code),,,Operation type,,,text
 operation_type_safety_states,safety_state_code,dict,inbound_safety_states.name_en (via code),inbound.condition.safety,Safety state,,text-only,,text
 operation_type_safety_states,resolves,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Resolves,,,boolean
@@ -1927,6 +1928,7 @@ permissions,name_zh,text,verbatim,dict.f.nameZh,Name (ZH),,text-only,,text
 permissions,description_en,text,verbatim,permissions.descriptionEn,Description (EN),,text-only,,text
 permissions,description_zh,text,verbatim,permissions.descriptionZh,Description (ZH),,text-only,,text
 permissions,sort_order,technical,hide,,,Sort order,,,integer
+permissions,requires_view_any,array,list joined with commas; resolve element codes if they are dictionary codes,,,Needs one of these views,,,text[]
 po_issues,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 po_issues,purchase_order_id,fk_document,"purchase_orders.code (document number, prefix PO)",deleted.kind.purchase_order,Purchase order,,text-only,,uuid
 po_issues,version,technical,hide,,,Version,,,integer
