@@ -485,6 +485,32 @@
 >    `/operation/processing/new` 那颗 +177 px 的投料下拉 —— MES-4a / 4b 量过的同一处,早于本刀);线上回滚的证明 `PROOF_OWN_EXIT=0`,
 >    前后读数逐项不变、对账两侧 0.00、线上只多了引导的那几行。逐角色读数表、页面清单、开场读数与未经询问的决定在 `docs/handbacks/MES-5a-1.md`。
 >    **下一刀 MES-5a-2 · Energy**(见下面「⬜ ★ MES 组」表格之后那一节)。
+>    ★ **部署:Tim 在 Vercel 上确认 `96a2219e` 已部署(MES-5a-1 close-out + MES-5a-2 委托书,2026-10-08)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-08 12:28:14 CST**(测量:`db/migration-windows.tsv:225`,`2026-10-08-mes5a1-discharge-by-module.sql`)·
+>    终点下界 **2026-10-08 13:18:49 CST**(测量:推送把 `origin/main` 移到 `96a2219e`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`96a2219e … {2026-10-08 13:18:49 +0800}: update by push`)·
+>    终点上界 **2026-10-08 13:38:17 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 50 min 35 s,至多 1 h 10 min 03 s。** 迁移之后的验证(生成类型、tsc、构建、整门、版式探针、冒烟、线上证明与逐角色读数、
+>    前后读数)整个跑在窗口里(`docs/handbacks/MES-5a-1.md` §4 · §5)。
+>    窗口里坏掉的(**推导**,MES-5a-1 交回 §5.4,没有在线上量):旧代码自己的写调用一条都不会被拒;旧应用提交的一炉深度放电不再核实那一批
+>    (新规矩),而旧页面没有记模组结果的面板 —— 那一批要等到部署之后;旧首页没有两支新提醒臂的句子(线上一行都没有);读的一切照常。
+>    close-out 的只读读数(2026-10-08 14:07 CST,`postgres`,`rolbypassrls = true`,基表;`docs/surveys/MES-5a-2/closeout-readings.sql`):
+>    模组结果 **0** · 通道分配 0 · 拆分 0 · 记了模组数的进料批 / 产出批 0 / 0 · 有 V9 的物料 0 · 隔离库位 **0** ·
+>    窗口开始以来新建的加工单 **0**(放电单仍只有已回滚的 PROC-2026-0494)· `require_calibrated_since` NULL —— 窗口里没有人用过这一刀的新东西。
+>    ★ **Tim 自己的动作(部署之后)**:在库位编辑器(`/inventory/locations`)里**标一个隔离库位**(编辑器里的「Quarantine location」那一格)。
+>    线上至今 **0** 个隔离库位(上面的读数),而「拆去隔离」(`discharge_quarantine_split`,在放电那一炉的页面上)**没有隔离库位就一律被拒**
+>    (`QUARANTINE_LOCATION_REQUIRED`;MES-5a Step 0 Q11 · V34)—— 标上之后,失败 · 隔离的模组才拆得出去,`/settings/pending-values` 的 V34 那一行同时消失。
+>    要 `module.inventory.edit`。
+>    ★ **close-out 的核对(委托书第 3 条 a–g):a · b · c · d · f · g 逐项读到了;e【不过】—— 所以 MES-5a-2 没有开始**(委托书第 5 条),等 Tim:
+>    **e** 放电那一炉页面上的三张表单,在 HEAD 的【本地重建】上用我自己的一炉已提交放电量(真组件 `DischargePanel` + 真读取 `loadDischargePanel`,
+>    数据是本地重建库里那一炉的行;仓库外的一份草稿副本里渲染,没有进仓库):**桌面 1280 px 三张都不溢出;390 px 上「记结果」那张溢出** ——
+>    照片的文件框自己就宽 350 px(**与数据无关,+5 px**),放电柜下拉随名字变宽(一个 46 字的标签 +92 px,58 字 +182 px);
+>    「拆去隔离」那张的隔离库位下拉同样随名字变宽(34 字时撑出它自己那一块 26 px,52 字时整页 +111 px);「通道分配」那张三种数据下都不溢出。
+>    在草稿副本里试过的修法(两个下拉与它们的 label 加 `min-w-0 max-w-full`、文件框加 `max-w-full`):390 px 上 182 → **0**,桌面宽度逐字未变。
+>    **没有修**(委托书第 5 条)。逐项证据与其余六项的读数在 `docs/surveys/MES-5a-2/MES-5a-1-CLOSEOUT.md`。
+>    ☞ 一条只作记录的说明(不是缺口):MES-5a-1 记下的那次注入(11:39)早于它最后一处镜像改动(`processing_runs.sql` 的列注释,12:16),
+>    所以对着 HEAD 的本地重建【重跑】了一遍:**49 格(255 上 44 + 158 / 165 / 251 / 253 上 5),0 格错**,每一格红在它点名的那一臂。
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
