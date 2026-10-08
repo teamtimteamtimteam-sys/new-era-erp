@@ -24,6 +24,32 @@ batch) and the "approves" half does not exist yet** — the action still complet
 财务 = `finance`(Choo Er)· CCO = `cco`(Sandra)· CTO = `cto`(Phua)· 仓库 = `warehouse`(Fu Sheng)·
 MD = `gm`(Vince,只读)。
 
+## ★ 常设规矩 · Standing rule — 一个动作码与它那一页的查看码一起授 · an action code is granted together with its page's view code
+
+**Tim 的裁定,2026-10-08(MES-5a-2 close-out 裁定 f,选项 A)。** 每一个动作码(`action.*`,以及在一页之内当动作用的 `module.*.edit`)
+**都与【用它的那一页的门】要的查看码一起授**。页面**不放宽**:门照旧是查看码,只持动作码的人进不了那一页。
+**Tim's ruling, 2026-10-08 (MES-5a-2 close-out ruling f, option A).** Every action code — `action.*`, and a `module.*.edit` used as an action
+inside a page — is granted **together with the view code of the page where that action is used**. Pages are **not** widened.
+
+**为什么:** MES-5a-2 close-out 在 HEAD 的本地重建上量过:只持 `action.manage_devices` / `action.confirm_capture` / `module.finance.edit` 一个码的会话,
+三支函数都放行,三页都进不去(门是 `module.processing.view` / `module.finance.view`,`devices` 的读策略同一个码)——
+`docs/surveys/MES-5b/MES-5a-2-CLOSEOUT.md` §2 f。**单独授一个动作码,给出去的是一个用不了的角色。**
+
+**线上核对(2026-10-08 18:58 CST,只读,`postgres`,基表;`docs/surveys/MES-5b/ruling-f-readings.sql`,`READ_OWN_EXIT=0`)—— 七个有在册持有人的角色全部满足:**
+
+| 页面 · 门 | 动作码 | 持它的角色(都同时持那个查看码)|
+|---|---|---|
+| `/operation/devices/[id]` · `module.processing.view` | `action.manage_devices` | admin · cto |
+| 同上 | `action.confirm_capture` | admin · cto · warehouse |
+| `/operation/processing/[id]` · `module.processing.view` | `action.processing_commit` · `action.processing_rollback` · `action.processing_aftercare` | admin · warehouse |
+| 同上 | `module.processing.edit` | admin · cco · cto |
+| `/finance/electricity` · `module.finance.view` | `module.finance.edit` | admin · finance |
+
+cfo · gm 不持以上任何一个码。16 对(角色 × 动作码)全部同时持有查看码,0 对缺。
+
+**机制(还没有建):** MES-5b 的并入 —— 一道自动检查(fixture 或 gate),任何角色持一个动作码而不持它那一页的查看码就红
+(`docs/forward-queue.md` 的「⬜ ★ MES 组」第 8 行)。在它落地之前,这一条是一条要人记的规矩。
+
 ---
 
 ## 1 · 权限、账号、审批设置 · Permissions, accounts, approval settings

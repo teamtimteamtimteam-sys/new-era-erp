@@ -557,6 +557,9 @@
 >    推荐(没有做):b 补一臂已付的账与它的注入(可以随 MES-5b 的第一个提交,F1 的撤回本来就要撤两种);f 由 Tim 定 ——
 >    推荐 (A) 定一条"动作 / 编辑码只与那一页的查看码一起授"的常设规矩并做成机制(`role_permissions` 上一道闸 + fixture),顺手让过账也问 `module.finance.view`;
 >    (B) 把几页与几张读策略放宽给动作码持有人。逐项证据在 `docs/surveys/MES-5b/MES-5a-2-CLOSEOUT.md`。
+>    ★ **Tim 的两条裁定(MES-5a-2 close-out 裁定,2026-10-08)**:b —— 已付电费单的 fixture 一臂并入 MES-5b,不挡 Step 0;
+>    f —— 选项 A:动作码与它那一页的查看码一起授,页面不放宽。线上只读核对(18:58 CST,`docs/surveys/MES-5b/ruling-f-readings.sql`):
+>    七个有在册持有人的角色、16 对(角色 × 动作码)全部同时持查看码,0 对缺 —— 规矩记进 `docs/role-matrix.md`,自动检查并入 MES-5b(下面「⬜ ★ MES 组」第 8 行)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -7077,7 +7080,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 6 | ✅ **MES-4b · New fields and products**(★ 已关闭,`v1.4.42`,2026-10-08,上面第 41 条;两件并入都关闭;★ **Tim 的并入(MES-4a close-out 裁定,2026-10-07),不另起一刀**:① 冒烟对 `/operation/operation-types/[code]` 审计记录的断言收紧 —— 一道【有变更记录】的工序显示空审计记录时要红,一道没被改过的工序照旧可以是空的(今天的 `emptyOk: true` 对整条路由无条件放过,`scripts/smoke-routes.mjs:956-957`);② 对 16:11 那次注入之后改过的东西重跑 fixture 253 的故障注入(改码之后的 `correct_run_header`、fixture 253 本身、`trail_refs`、`trail_ref_label`),确认每一格仍然红在它所属的那一臂(`docs/surveys/MES-4b/MES-4a-CLOSEOUT.md` §3 c · f))| 13(新字段)· 14(产出前缀,含 `CODE-WIDTH-4`) | 5 h 45 m – 10 h 45 m |
   | 7a | ✅ **MES-5a-1 · Discharge**(★ 已关闭,`v1.4.43`,2026-10-08,上面第 42 条;Tim 2026-10-08 裁定 Q2:MES-5a 拆成两刀,本刀只做放电) | 2(逐模组放电) | 3 h 30 m – 5 h 40 m(Step 0 §9) |
   | 7b | ✅ **MES-5a-2 · Energy**(★ 已关闭,`v1.4.44`,2026-10-08,上面第 43 条) | 3(电表与按用途的电费) | 3 h 00 m – 4 h 55 m(Step 0 §9) |
-  | 8 | ⬜ **MES-5b · Balance, yield, blending**(★ 下一刀;★ **Step 0 等 Tim 对 MES-5a-2 close-out b 与 f 的裁定**,上面第 43 条 · `docs/surveys/MES-5b/MES-5a-2-CLOSEOUT.md`) | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
+  | 8 | ⬜ **MES-5b · Balance, yield, blending**(★ 下一刀;~~Step 0 等 Tim 对 MES-5a-2 close-out b 与 f 的裁定~~ ★ **Tim 已裁(2026-10-08,MES-5a-2 close-out 裁定),两件并入本刀,不另起一刀**:① **b** —— fixture 补一臂【已付】的电费单(借 2200 / 借 6200 / 贷本位币银行;费用单 `paid` 带银行、不必有供应商;外币银行 `ELECTRICITY_BANK_NOT_BASE` 按名拒),带它自己的故障注入(`docs/surveys/MES-5b/MES-5a-2-CLOSEOUT.md` §2 b);② **f** —— 选项 A 成为常设规矩(`docs/role-matrix.md`「常设规矩」一节;线上 2026-10-08 18:58 核对七个角色全部满足),本刀加一道自动检查(fixture 或 gate):任何角色持一个动作码而不持它那一页的查看码就红,带它自己的故障注入。另有财务两件并入:F1 电费分摊的完整撤回 · F2 月结冲抵费用单冲销时恢复被冲掉的估计(`MES5A2-NO-ALLOCATION-REVERSAL` · `MES5A2-RELIEF-REVERSAL-ORPHANS`);Step 0 交回 `docs/surveys/MES-5b/STEP0-HANDBACK.md`) | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
   | 9 | ⬜ **MES-6a · Samples, arbitration, F/Cl** | 15(样品)· 16(仲裁)· 19(氟与氯) | 5 h 15 m – 8 h 45 m |
   | 10 | ⬜ **MES-6b · NCR, quality hold, CoA** | 17(不合格报告)· 18(分析证书) | 6 h 25 m – 11 h 30 m |
   | 11 | ⬜ **MES-7a · Spare parts and reliability** | 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m |
