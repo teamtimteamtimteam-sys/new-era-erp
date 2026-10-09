@@ -3,6 +3,10 @@
 // 收款方/状态)+ 关联分录链接 + 挂账开支的结算区(口径同 ap_open_items:已结只计
 // posted 收付款的核销;reversed 核销灰色删除线保留)+ 凭据附件面板(kind 'expense')。
 // posted → 冲销按钮;reversed → "已被 X 冲销"横幅;镜像单 → "冲销自 X"横幅回链原单。
+// MES-5b-2(2026-10-09,Step 0 Q21 · Q22 · Q24):冲销钮多知道三件事,全部问数据库 ——
+//   ① 这张是电费单的费用单 → 按不下去,指到那张电费单的页面(在那里整张撤回);
+//   ② 经付款结过(posted 付款的核销 > 0)或冲抵过预付款 → 按不下去,说出走法(先经付款冲销申请冲掉付款);
+//   ③ 这张是月结冲抵 → 按下之前说清:冲掉它会把它冲抵过的 N 条估计放回"未结",能再冲抵一次,不另过分录。
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
@@ -13,7 +17,7 @@ import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachments
 import ReverseExpenseButton from './ReverseExpenseButton'
 import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
 import { can } from '@/lib/permissions'
-import { mustOne, mustRows } from '@/lib/db-helpers'
+import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import EndedBanner, { ReversalOfBanner } from '@/app/components/trail/EndedBanner'
 import { reversalReasonText } from '@/lib/trail/render'
@@ -96,7 +100,7 @@ export default async function ExpenseDetailPage({
     }
 
     // 科目名 / 供应商 / 分录 / 核销行 / 镜像单双向 / 附件,页级小查询
-    const [accountRes, supplierRes, journalRes, allocsRes, reversedByRes, reversalOfRes, attachRes] =
+    const [accountRes, supplierRes, journalRes, allocsRes, reversedByRes, reversalOfRes, attachRes, elecRes, reliefRes, prepayRes] =
         await Promise.all([
             supabase
                 .from('accounts')
@@ -133,7 +137,14 @@ export default async function ExpenseDetailPage({
                 .eq('expense_id', id)
                 .is('deleted_at', null)
                 .order('created_at', { ascending: false }),
+            supabase.from('electricity_allocations_masked').select('id, invoice_ref').eq('expense_id', id).maybeSingle(),
+            supabase.from('processing_cost_entry_lookup').select('id', { count: 'exact', head: true }).eq('relief_expense_id', id).is('deleted_at', null),
+            supabase.from('prepayment_applications_masked').select('id', { count: 'exact', head: true }).eq('expense_id', id),
         ])
+
+    const elecAlloc = mustOne(elecRes, 'electricity_allocations_masked') as { id: string; invoice_ref: string } | null
+    const reliefCount = Number(mustCount(reliefRes, 'processing_cost_entry_lookup (relieved estimates)') ?? 0)
+    const prepaidCount = Number(mustCount(prepayRes, 'prepayment_applications_masked') ?? 0)
 
     const accountName = accountRes.data
         ? locale === 'zh'
@@ -165,6 +176,13 @@ export default async function ExpenseDetailPage({
         'ap_open_items (expense open amount)',
     ) as { open_base: number } | null
     const open = Number(openRow?.open_base ?? 0)
+    // MES-5b-2:服务端一定拒的情形,按不下去、说出走法(reverse_expense 的三条拒绝;页面不另判,只把库里的事实说出来)
+    const reverseBlocked = elecAlloc
+        ? <>{t('expense.reverseBlockedAllocation')} <Link href={`/finance/electricity/${elecAlloc.id}`} className="app-link hover:underline">{elecAlloc.invoice_ref}</Link></>
+        : settled > 0
+            ? t('expense.reverseBlockedSettled')
+            : prepaidCount > 0 ? t('expense.reverseBlockedPrepaid') : undefined
+    const reverseConsequence = reliefCount > 0 ? t('expense.reverseReliefConsequence', { n: reliefCount }) : undefined
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端水合不一致
     const attachments = (mustRows(attachRes)).map((a) => ({
@@ -295,7 +313,8 @@ export default async function ExpenseDetailPage({
             {/* ★ 记录抬头 —— 冲销钮住 actions 槽(一个动作不是一个值)。 */}
             <RecordHeader
                 fields={fields}
-                actions={expense.status === 'posted' ? <ReverseExpenseButton canEdit={canEdit} expenseId={expense.id} subject={expense.code} /> : undefined}
+                actions={expense.status === 'posted' ? <ReverseExpenseButton canEdit={canEdit} expenseId={expense.id} subject={expense.code}
+                                                                             consequence={reverseConsequence} blocked={reverseBlocked} /> : undefined}
             />
 
             {/* EQP-1c-b(P5):设备侧的冲抵门。只在【这张费用单确实挂在一条采购单行上】

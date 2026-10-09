@@ -12,6 +12,11 @@
 -- 一次冲抵限一个 cost_type(账单本来就是按类型来的;差异报表按类型分组)。
 --
 -- NOTE: introduced by db/migrations/2026-08-04-fin6-relieve-processing-accruals.sql.
+--
+-- MES-5b-2(2026-10-09,MES-5a Step 0 Q35 · MES-5b Step 0 Q21 · Q26,Tim):① 费用单的币种不再写死成 SGD 字面量(汇率 1)—— 读 base_currency_code()
+--   (currencies.is_base;本位币对自己的汇率是 1)。关掉 MES5A2-RELIEVE-SGD-LITERAL。② 盖冲抵戳之前设事务级标记
+--   evoltrya.cost_settlement_ctx(结算戳只许经财务函数改 —— guard_cost_entry_settled),用毕即清。③ 冲销这张费用单(reverse_expense)
+--   会把它冲抵掉的估计放回"未结",于是它们能再被冲抵一次(F2)。
 
 CREATE OR REPLACE FUNCTION public.relieve_processing_accruals(p_entry_ids uuid[], p_actual_amount numeric, p_expense_date date, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
@@ -102,13 +107,15 @@ BEGIN
     INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
                           amount_base, payment_status, bank_account_code, supplier_id,
                           payee_name, notes, journal_entry_id, created_by)
-    VALUES (v_expense_id, v_code, p_expense_date, fin_cost_account(v_type), p_actual_amount, 'SGD', 1,
+    VALUES (v_expense_id, v_code, p_expense_date, fin_cost_account(v_type), p_actual_amount, base_currency_code(), 1,
             p_actual_amount, p_payment_status, v_bank, p_supplier_id,
             p_payee_name, p_notes, (v_je->>'entry_id')::uuid, auth.uid());
 
+    PERFORM set_config('evoltrya.cost_settlement_ctx', '1', true);
     UPDATE processing_cost_entries
     SET relieved_at = p_expense_date, relief_expense_id = v_expense_id
     WHERE id = ANY (p_entry_ids);
+    PERFORM set_config('evoltrya.cost_settlement_ctx', '', true);
 
     RETURN jsonb_build_object('expense_id', v_expense_id, 'expense_code', v_code,
         'journal_code', v_je->>'code', 'cost_type', v_type,

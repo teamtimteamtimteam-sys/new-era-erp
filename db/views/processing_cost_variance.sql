@@ -18,6 +18,10 @@
 -- Q24),而它们的 relief_expense_id 指着那张账单的费用单 —— 照旧算进来,就会拿几条估计去比【整张账单】(含 6200 的余数与别的炉的份),
 -- 报出一个不存在的偏差。被冲抵过的估计不可能被别的路软删(guard_cost_entry_settled),所以这一句只排除分摊那一路。
 
+-- MES-5b-2(2026-10-09,MES-5b Step 0 Q21,Tim):【冲销过的冲抵不再算】(ex.status = 'posted')。从本刀起冲销一张冲抵会把它冲抵掉的估计放回
+-- "未结"(戳清掉),所以那几条本来就不会再进来;这一句管的是戳没清掉的那一种 —— 本刀之前就冲销了的冲抵(线上 0 条,开场读数),
+-- 以及任何一条将来绕过 reverse_expense 的路。一张已冲销的单不是一个偏差。
+
 CREATE VIEW public.processing_cost_variance WITH (security_invoker = off) AS
  SELECT date_trunc('month'::text, e.expense_date::timestamp with time zone)::date AS month,
     x.cost_type,
@@ -35,7 +39,7 @@ CREATE VIEW public.processing_cost_variance WITH (security_invoker = off) AS
             max(ex.amount_base) AS actual
            FROM processing_cost_entries pce
              JOIN expenses ex ON ex.id = pce.relief_expense_id
-          WHERE pce.relieved_at IS NOT NULL AND pce.deleted_at IS NULL
+          WHERE pce.relieved_at IS NOT NULL AND pce.deleted_at IS NULL AND ex.status = 'posted'::text
           GROUP BY pce.relief_expense_id, pce.cost_type) x
      JOIN expenses e ON e.id = x.relief_expense_id
   WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text)

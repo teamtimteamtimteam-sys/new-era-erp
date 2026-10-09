@@ -266,6 +266,10 @@ does not query.
    processing-costs settlement trail as a remittance and can never be remitted again.
 9. **Relieved estimates are soft-deleted** with `relieved_at` and `relief_expense_id` stamped (the same columns month-end relief uses); their
    reversal journal is dated by the existing trigger (CURRENT_DATE). `processing_cost_variance` now excludes soft-deleted estimates.
+   ★ **Correction (MES-5b-2, 2026-10-09, Step 0 §12 item 7 · Q36):** the *columns* are the same as month-end relief's; the *soft-delete* is the
+   allocation's alone — month-end relief only stamps the estimates and never soft-deletes them (`relieve_processing_accruals`). Read "the same
+   columns", not "the same treatment". MES-5b-2 builds the reversal of both paths on that distinction (`docs/known-issues.md`
+   `MES5A2-RELIEF-REVERSAL-ORPHANS`, corrected and closed).
 10. **`reverse_expense` refuses an allocation's expense**, and there is no reversal path for an allocation in this cut (known-issues
     `MES5A2-NO-ALLOCATION-REVERSAL`).
 11. **The expense's account is `fin_cost_account('electricity')` = 5110** (the month-end relief precedent); **no GST line** (same as relief).

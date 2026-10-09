@@ -10504,7 +10504,12 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 
 ## MES-5a-2 留下的(2026-10-08 记录)
 
-### MES5A2-RELIEVE-SGD-LITERAL · `relieve_processing_accruals` 把费用单的币种写死成 `'SGD', 1`;币种检查看不见 `VALUES` 里的字面量(MES-5a Step 0 Q35,Tim:登记)
+### ~~MES5A2-RELIEVE-SGD-LITERAL · `relieve_processing_accruals` 把费用单的币种写死成 `'SGD', 1`;币种检查看不见 `VALUES` 里的字面量(MES-5a Step 0 Q35,Tim:登记)~~ —— ✅ **关闭于 MES-5b-2(`v1.4.46`,2026-10-09)**
+
+**怎么关的:** MES-5b-2 动了这支函数(冲抵戳的标记),于是 Q35 那条"动到就顺手改"被触发:费用单的币种改读 `base_currency_code()`(`currencies.is_base`),汇率 1。fixture 258 CCY 把本位币在事务里换成另一种,冲抵出来的费用单就是那一种(字面量放回去 → 那一臂红,注入表里有这一格)。迁移的自证断言函数体里不再有那个字面量。**检查要不要认 `VALUES` 里的字面量,仍是 Tim 的一个决定,没有动**(下面原文的"删除条件"后半句)。
+
+原文:
+
 
 **是什么:** `db/functions/relieve_processing_accruals.sql` 建费用单那一句 `INSERT INTO expenses (…) VALUES (…, 'SGD', 1, …)` —— 币种与汇率是字面量,
 不是 `currencies.is_base`。今天本位币就是 SGD,所以写出来的数是对的;**本位币一改,这支函数会把一张本位币的费用单记成 SGD、汇率 1**,而什么都不会报错。
@@ -10515,7 +10520,12 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 `ELECTRICITY_BILL_CURRENCY_NOT_BASE`),所以 Q35 那条"动到就顺手改"没有被触发。
 **删除条件:** 那句字面量改成从 `currencies.is_base` 读(下一刀动到这支函数时顺手),并且检查要不要认 `VALUES` 由 Tim 定过。
 
-### MES5A2-NO-ALLOCATION-REVERSAL · 一次电费分摊撤不回(MES-5a-2 的决定,2026-10-08)
+### ~~MES5A2-NO-ALLOCATION-REVERSAL · 一次电费分摊撤不回(MES-5a-2 的决定,2026-10-08)~~ —— ✅ **关闭于 MES-5b-2(`v1.4.46`,2026-10-09)**
+
+**怎么关的(Step 0 Q22 · Q23):** `reverse_electricity_allocation`(`module.finance.edit`,理由必填)在一笔事务、一个冲销日里冲掉费用单与分录(`reverse_expense_internal`,与 `reverse_expense` 同一段;已付的借回银行)、各炉的实际电费行清戳并软删、被冲掉的估计清戳取消软删并明写重新计提,写一行 `electricity_allocation_reversals`。撤回过的分摊不再挡"同一段时间"与"这一炉已分过"(`run_id` 的唯一约束换成一道认撤回的守卫),所以改正过的账单过得去。`reverse_expense` 仍拒一张分摊的费用单,并在拒绝里点出那张分摊(页面指过去)。fixture 258 UNPAID · REPOST · PAID 钉着。
+
+原文:
+
 
 **是什么:** `post_electricity_allocation` 在一笔事务里写了一张费用单、一张分录、每一炉一条已结的实际电费行、并冲掉了被覆盖的估计。
 本刀**没有**撤回它的路:`reverse_expense` 对这张费用单按名拒(`EXPENSE_IS_ELECTRICITY_ALLOCATION|<编号>`),因为单独冲掉费用单会留下已结的电费行
@@ -10523,7 +10533,13 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 **代价:** 一张录错的电费单今天只能靠人工分录改正(并且那几炉的电费行与估计停在分摊后的样子)。线上至今 **0** 次分摊。
 **删除条件:** 建一条完整的撤回(费用单、分录、电费行、估计的恢复在同一笔事务里),或 Tim 裁定不要。
 
-### MES5A2-RELIEF-REVERSAL-ORPHANS · 冲销一张【冲抵估计】的费用单,那些被冲掉的估计不会回来(MES-5a-2 读到的既有缺口,2026-10-08)
+### ~~MES5A2-RELIEF-REVERSAL-ORPHANS · 冲销一张【冲抵估计】的费用单,那些被冲掉的估计不会回来(MES-5a-2 读到的既有缺口,2026-10-08)~~ —— ✅ **关闭于 MES-5b-2(`v1.4.46`,2026-10-09)**
+
+**先更正机制(Step 0 §1.1 · §12 第 2 条,Q36):下面原文说"月结那一条路……都会把估计软删"——那是错的。** 月结冲抵(`relieve_processing_accruals`)**只盖戳**(`relieved_at` / `relief_expense_id`),**不软删**;软删的只是电费分摊那一路。所以冲销一张月结冲抵之后的真实样子是:总账对(2200 还回来了),而那几条估计**仍然盖着"已结"、指着一张已冲销的费用单** —— 它们从月结那一步与结算页上消失,再也冲抵不了(`COST_ENTRY_ALREADY_SETTLED`),`processing_cost_variance` 还在算那一张被冲销的冲抵。线上当时那一条被冲抵的估计 `deleted = false`(量过)。
+**怎么关的(Q21):** `reverse_expense` 冲掉一张冲抵时,同一笔事务里清掉它冲抵过的估计上的戳(不过分录 —— 冲掉的那张分录已经把 2200 还回来);那一炉此后被一张没撤回的电费分摊覆盖了就按名拒 `RELIEF_ESTIMATE_NOW_ALLOCATED`(先撤回那张分摊);`processing_cost_variance` 只算 posted 的冲抵。fixture 258 F2 · VAR 与 fixture 213 的 A20a / A20b 钉着。
+
+原文(机制那一句是错的,留着是为了让更正看得见):
+
 
 **是什么:** `relieve_processing_accruals`(月结那一条路)与本刀的电费分摊都会把估计软删、盖上 `relieved_at` 与 `relief_expense_id`。
 `reverse_expense` 冲掉月结那一张费用单时,只冲它的分录 —— **被它冲掉的估计仍然是软删、仍然指着一张已冲销的费用单**,
@@ -10554,7 +10570,12 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 (`BOOTSTRAP_ACTION_REQUIRES_VIEW|finance -> action.wo_release`)。**线上的角色一个都没动**(线上 admin 74 / 75,与引导逐码相同)。
 引导里仍然没有 `cco` / `cfo` / `cto`(`ROLE1-BOOTSTRAP-MISSING-ROLES`,不在本刀)。
 
-### MES5B1-V37-NOT-ON-OPERATION-TRAIL · 改一次预期得率(V37),工序页自己的审计记录上看不到(MES-5b-1 读到,2026-10-08)
+### ~~MES5B1-V37-NOT-ON-OPERATION-TRAIL · 改一次预期得率(V37),工序页自己的审计记录上看不到(MES-5b-1 读到,2026-10-08)~~ —— ✅ **关闭于 MES-5b-2(`v1.4.46`,2026-10-09)**
+
+**怎么关的(并入):** `trail_subject_members` 把 `operation_type_output_forms` 挂到 `operation_type` 主语下(成员 5,按 `operation_type_code`,与字段同形),`lib/trail/render.ts` 的主语表同步。工序页上的那一句与变更记录页上的一字不差;措辞臂 ㉔ 钉着(注入 `wording-drift-mes5b2` → 红),fixture 258 LOG 断言它在工序的记录上。
+
+原文:
+
 
 **是什么:** V37 住在 `operation_type_output_forms.expected_yield_pct`。那张表进变更记录(两支触发器,本刀之前就绑着),所以每一次改动都在
 `/settings/change-history` 上("Operation type output form edited · Expected yield (%): (empty) → 70",措辞臂 ㉓ 钉着);
@@ -10575,4 +10596,24 @@ MES-5b-1 建的是 **74 / 75** —— 除了 `module.tasks.view_all`(`db/tables/
 **改法(一句话的事):** 若 Tim 说"给":引导那一行去掉 `AND p.code <> 'module.tasks.view_all'`,fixture 257 FCHECK 的断言改成"每一个码",线上补一行授权;
 若 Tim 说"不给":在 `docs/role-matrix.md:208` 把它写成 Tim 的例外。
 **删除条件:** Tim 说了其中一句,并照它落地。
+
+## MES-5b-2 留下的与关掉的(2026-10-09 记录)
+
+### ~~MES5B2-SETTLEMENT-STAMP-SIDE-DOOR · 加工编辑者经一次直连 PATCH 就能清掉财务结过的戳(MES-5b Step 0 §1.3 量到)~~ —— ✅ **关闭于 MES-5b-2(`v1.4.46`,2026-10-09)**
+
+**是什么(原来):** `authenticated` 对 `processing_cost_entries` 的 `remitted_at` / `remitted_journal_entry_id` / `relieved_at` / `relief_expense_id` 持 UPDATE
+(表级授权自动延伸到 ALTER 加的列),UPDATE 策略是 `module.processing.edit`(线上 admin · cco · cto),而 `guard_cost_entry_settled` 不看这四列 ——
+一个加工编辑者能把财务汇出或冲抵过的一行"放回去",应计与总账从此各说各话。没有发生过(线上读过,0 条孤儿戳)。
+**怎么关的(Q26):** 守卫拒任何对这四列的改动(以及带着戳的插入),除非事务级标记 `evoltrya.cost_settlement_ctx` 在场 —— 只有五支财务函数设它、用毕即清
+(`relieve_processing_accruals` · `remit_processing_costs` · `post_electricity_allocation` · `reverse_expense` · `reverse_electricity_allocation`)。
+按名拒 `COST_ENTRY_SETTLEMENT_THROUGH_FUNCTION_ONLY|remitted|relieved`;连属主也一样。fixture 258 GUARD 钉着(含"一支财务函数跑完标记不留下来"那一格),
+每一支函数去掉标记各有一格注入。
+
+### MES5B2-PREPAYMENT-APPLIED-EXPENSE-NOT-REVERSIBLE · 冲抵过预付款的费用单冲不掉(MES-5b-2 的决定,2026-10-09)
+
+**是什么:** Step 0 Q24 让经付款结过的费用单按名拒(先冲付款)。预付款冲抵是同一个形状 —— `ap_open_items` 把它算作已结,冲掉费用单而留着冲抵,
+清单与 2000 就差那一笔(fixture 258 的注入量过:放过去时 unexplained 当场不为 0)。而**一次预付款冲抵没有撤回的路**(`prepayment_applications` 不可变),
+所以这里没有"先撤冲抵"可说:`reverse_expense` 按名拒 `EXPENSE_HAS_PREPAYMENT_APPLIED`,句子说"用手工分录申请改正"。
+**线上:** 1 张(`EXP-2026-0006`,资本追加,冲抵过预付款;开场读数)—— 它从此冲不掉;此前冲得掉,但冲掉会让清单与总账分家。
+**删除条件:** 建一条撤回预付款冲抵的路(带它自己的分录),或 Tim 裁定这类单只走手工分录。
 

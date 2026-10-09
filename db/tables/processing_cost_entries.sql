@@ -49,9 +49,33 @@ CREATE INDEX processing_cost_entries_relief_expense_id_rel ON public.processing_
 CREATE INDEX processing_cost_entries_remitted_journal_entry_id_rel ON public.processing_cost_entries (remitted_journal_entry_id);
 
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)
+-- ★ MES-5b-2(2026-10-09,MES-5b Step 0 Q26,Tim):结算戳(remitted_at · remitted_journal_entry_id · relieved_at · relief_expense_id)
+--   【只许经五支财务函数改】—— relieve_processing_accruals · remit_processing_costs · post_electricity_allocation · reverse_expense ·
+--   reverse_electricity_allocation。它们在动戳之前把事务级标记 evoltrya.cost_settlement_ctx 设成 '1'、动完即清
+--   (reverse_freight_document 的先例:PostgREST 够不着这个标记 —— 一次请求是一笔事务,它没有路先 set_config 再 PATCH)。
+--   此前 authenticated 对这四列持 UPDATE(表级授权自动延伸),UPDATE 策略是 module.processing.edit,而这道守卫不看这四列 ——
+--   一个加工编辑者经一次直连 PATCH 就能把财务结掉的一行"放回去"(Step 0 §1.3 量过授权)。【插入】同一条:带着戳插进来的行
+--   (一条"生来已结"的成本)只有 post_electricity_allocation 写得出来。拒绝按名:COST_ENTRY_SETTLEMENT_THROUGH_FUNCTION_ONLY|<哪一列>。
 CREATE OR REPLACE FUNCTION public.guard_cost_entry_settled()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
+DECLARE
+    v_ctx boolean := current_setting('evoltrya.cost_settlement_ctx', true) IS NOT DISTINCT FROM '1';
 BEGIN
+    IF TG_OP = 'INSERT' THEN
+        IF NOT v_ctx AND num_nonnulls(NEW.remitted_at, NEW.remitted_journal_entry_id, NEW.relieved_at, NEW.relief_expense_id) > 0 THEN
+            RAISE EXCEPTION 'COST_ENTRY_SETTLEMENT_THROUGH_FUNCTION_ONLY|%',
+                CASE WHEN NEW.remitted_at IS NOT NULL OR NEW.remitted_journal_entry_id IS NOT NULL THEN 'remitted' ELSE 'relieved' END;
+        END IF;
+        RETURN NEW;
+    END IF;
+    IF NOT v_ctx AND (NEW.remitted_at IS DISTINCT FROM OLD.remitted_at
+                      OR NEW.remitted_journal_entry_id IS DISTINCT FROM OLD.remitted_journal_entry_id
+                      OR NEW.relieved_at IS DISTINCT FROM OLD.relieved_at
+                      OR NEW.relief_expense_id IS DISTINCT FROM OLD.relief_expense_id) THEN
+        RAISE EXCEPTION 'COST_ENTRY_SETTLEMENT_THROUGH_FUNCTION_ONLY|%',
+            CASE WHEN NEW.remitted_at IS DISTINCT FROM OLD.remitted_at
+                      OR NEW.remitted_journal_entry_id IS DISTINCT FROM OLD.remitted_journal_entry_id THEN 'remitted' ELSE 'relieved' END;
+    END IF;
     IF (OLD.remitted_at IS NOT NULL OR OLD.relieved_at IS NOT NULL)
        AND (NEW.amount_base IS DISTINCT FROM OLD.amount_base
             OR NEW.deleted_at IS DISTINCT FROM OLD.deleted_at
@@ -65,6 +89,10 @@ $fn$;
 
 CREATE TRIGGER trg_processing_cost_entries_settled_guard
     BEFORE UPDATE ON public.processing_cost_entries
+    FOR EACH ROW EXECUTE FUNCTION public.guard_cost_entry_settled();
+-- MES-5b-2(Step 0 Q26):插入那一半 —— 同一支函数(TG_OP 分两支)。
+CREATE TRIGGER trg_processing_cost_entries_settlement_insert_guard
+    BEFORE INSERT ON public.processing_cost_entries
     FOR EACH ROW EXECUTE FUNCTION public.guard_cost_entry_settled();
 
 -- FIN-31:【不许硬删】。这张表的删除语义是软删(UPDATE deleted_at)——它过冲销

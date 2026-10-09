@@ -151,6 +151,8 @@
 -- MES-5a-2(2026-10-08,MES-5a Step 0 Q31,Tim):
 --   electricity_allocation → /finance/electricity/[id]   requireModule(MOD.finance) = module.finance.view
 --                     成员 electricity_allocation_lines(一炉一行;它在加工单上也出现,但家在这里)。金额由 change_log_mask_rules 遮(data.view_prices)。
+--                     MES-5b-2:成员加 electricity_allocation_reversals(一张单最多一行;它在它覆盖过的每一炉上也出现,家在这里)。
+--                     (MES-5b-2 也把 operation_type_output_forms 挂到 operation_type 下 —— V37 的改动从此在工序页自己的审计记录上。)
 --   electricity_settings   → /finance/electricity 上的 V25 那一块  module.finance.view;单行设置作根(M5)
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])

@@ -11,7 +11,7 @@
 --   0  起点:两边都是空的,残留表是空的
 --   A  应付:带价建单 · 定价(外币)· 改价 · 带税费用(本位币 / 外币)· 部分付 · 付清 ·
 --      运费(外币)部分付 · 付清 · 出口运费 · 费用冲销 · 运费冲销 · 挂账付款及其冲销 ·
---      付款冲销 · 定金 → 冲抵(进料 / 费用)· 代扣 · 加工应计转应付
+--      付款冲销 · 定金 → 冲抵(进料 / 费用)· 代扣 · 加工应计转应付 · ★ MES-5b-2:冲掉那张冲抵、再冲抵一次(F2)
 --   B  那一分钱(APRECON1-FOREIGN-TAXED-EXPENSE-CENT):外币单据部分结清时,核销解除的本位币
 --      = 清单在这一笔之前与之后显示的差 —— 于是总账每一步都恰好等于清单,付清时恰好归零。
 --      每一组数先证【非空转】:按旧式 round(核销额 × 汇率) 解除,这组数真的会差一分。
@@ -62,7 +62,7 @@ DECLARE
     FX constant numeric := 1.2345;
     v_s_tx uuid; v_s_goods uuid; v_fwd uuid; v_s_nr uuid; v_cust uuid;
     v_mat uuid; v_mat2 uuid; v_ob1 uuid; v_ob2 uuid; v_ob3 uuid; v_ob4 uuid;
-    v_b1 uuid; v_b2 uuid; v_b3 uuid; v_ib uuid; v_run uuid; v_pce uuid;
+    v_b1 uuid; v_b2 uuid; v_b3 uuid; v_ib uuid; v_run uuid; v_pce uuid; v_rel uuid;
     v_exp uuid; v_exp_usd uuid; v_exp_open uuid; v_exp_rev uuid; v_exp_wht uuid; v_exp_pp uuid;
     v_fd uuid; v_fd_rev uuid; v_xfd uuid;
     v_po uuid; v_sale uuid; v_sale_usd uuid; v_sale_open uuid; v_sale_tax uuid;
@@ -294,6 +294,21 @@ BEGIN
     VALUES (v_run, 'electricity', 400, true) RETURNING id INTO v_pce;
     PERFORM relieve_processing_accruals(ARRAY[v_pce], 450, D1, 'unpaid', NULL, v_s_tx, NULL, 'f213 relief');
     PERFORM pg_temp.f213_agree('A20 加工应计转应付');
+    -- ★ MES-5b-2(Step 0 Q21 · Q35,F2):冲掉那张冲抵 —— 它冲抵过的估计清戳、回到"未结";两边仍是 0.00;
+    --   再冲抵一次(另一个数、另一天),两边仍是 0.00。冲销那张冲抵不另过分录(冲掉的那张分录已还回 2200)。
+    v_rel := (SELECT relief_expense_id FROM processing_cost_entries WHERE id = v_pce);
+    PERFORM reverse_expense(v_rel, 'f213 F2');
+    IF EXISTS (SELECT 1 FROM processing_cost_entries WHERE id = v_pce
+                 AND (relieved_at IS NOT NULL OR relief_expense_id IS NOT NULL OR deleted_at IS NOT NULL)) THEN
+        RAISE EXCEPTION 'FIXTURE 213-A20a 失败:冲掉一张冲抵之后,它冲抵过的估计应当回到未结(戳清掉、没软删)';
+    END IF;
+    PERFORM pg_temp.f213_agree('A20a 冲抵冲销');
+    PERFORM relieve_processing_accruals(ARRAY[v_pce], 430, D2, 'unpaid', NULL, v_s_tx, NULL, 'f213 relief again');
+    IF (SELECT relief_expense_id FROM processing_cost_entries WHERE id = v_pce) IS NULL
+       OR (SELECT relief_expense_id FROM processing_cost_entries WHERE id = v_pce) = v_rel THEN
+        RAISE EXCEPTION 'FIXTURE 213-A20b 失败:放回去的估计应当能被另一张冲抵再冲抵一次';
+    END IF;
+    PERFORM pg_temp.f213_agree('A20b 再冲抵一次');
 
     -- 留一张外币费用开着,给 D 的重估用
     v_res := record_expense(p_expense_date := D0, p_account_code := '6400', p_amount := 50,

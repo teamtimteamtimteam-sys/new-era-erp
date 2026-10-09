@@ -688,3 +688,11 @@ REVOKE EXECUTE ON FUNCTION public.guard_batch_module_count() FROM authenticated;
 --   【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
 REVOKE EXECUTE ON FUNCTION public.meter_reading_internal(uuid, timestamp with time zone, numeric, boolean, text, text, boolean, bigint, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.electricity_allocation_compute(date, date, numeric, numeric, text, text, text) FROM authenticated;
+
+-- MES-5b-2(2026-10-09):一支【内层】与一支触发器函数。
+--   reverse_expense_internal:冲一张费用单的那一段(reverse_expense 与 reverse_electricity_allocation 共用)—— 它不查码;给了 authenticated
+--     就是一支绕开 module.finance.edit、也绕开"电费分摊的费用单只许整张撤回"的冲销。
+--   guard_electricity_line_one_live_allocation:分摊行的插入守卫(触发器函数;触发时不查 EXECUTE,收掉只是让它不在 API 上)。
+--   reverse_electricity_allocation【不收】:它是 DEFINER,自己查码,员工就是要调它。
+REVOKE EXECUTE ON FUNCTION public.reverse_expense_internal(uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_electricity_line_one_live_allocation() FROM authenticated;

@@ -600,6 +600,25 @@
 >    (线上 2026-08:结平之前的余数 880);产出批面板没有那一句 —— 线上没有一批产出喂过下一炉,树上没有可标的炉。
 >    逐项证据在 `docs/surveys/MES-5b/MES-5b-1-CLOSEOUT.md`。
 >
+> 45. **✅ 撤回 —— MES-5b-2 Reversals(`v1.4.46`,2026-10-09)。** MES 组的第十刀(Tim 2026-10-09:MES-5b Step 0 的撤回那一部分 Q21–Q29 与 Q1 · Q32 ·
+>    Q34–Q36 的撤回部分全部照推荐;并入 `MES5B1-V37-NOT-ON-OPERATION-TRAIL`)。
+>    **F1 撤回一张电费单**(Q22):`reverse_electricity_allocation`(`module.finance.edit`,理由必填,没有审批 —— Q25)一笔事务、一个冲销日:冲掉费用单与分录
+>    (`reverse_expense_internal`,与 `reverse_expense` 同一段;已付的借回银行)、各炉的实际电费行清戳并软删、被它冲掉的手敲估计清戳取消软删并明写重新计提
+>    (借 5110 / 贷 2200,一条一张)、一行 `electricity_allocation_reversals`(金额遮蔽,同分摊);四个科目回到过账之前。`reverse_expense` 仍拒分摊的费用单,拒绝点出那张分摊。
+>    **Q23** `run_id` 的唯一约束换成"一炉最多在一张没撤回的分摊里"的守卫,"重叠"与"已分过"不认撤回过的 —— 同一段时间能再过一张改正过的。
+>    **F2**(Q21):冲掉一张月结冲抵,同一笔事务清掉它冲抵过的估计上的戳(不过分录),能再冲抵一次;那一炉此后被一张没撤回的分摊覆盖了就按名拒
+>    `RELIEF_ESTIMATE_NOW_ALLOCATED`;偏差视图只算 posted 的冲抵;`relieve_processing_accruals` 的币种从数据读。
+>    **Q24** 经付款结过的费用单【每一种】按名拒 `EXPENSE_HAS_SETTLEMENT`(先经付款冲销申请冲掉付款);冲抵过预付款的拒 `EXPENSE_HAS_PREPAYMENT_APPLIED`
+>    (`MES5B2-PREPAYMENT-APPLIED-EXPENSE-NOT-REVERSIBLE`)。**Q26** 结算戳只经五支财务函数改(`COST_ENTRY_SETTLEMENT_THROUGH_FUNCTION_ONLY`,插入也算);
+>    **Q28** 过账也要 `module.finance.view`;**Q29** fixture 256 ALLOC-PAID 与它的注入。审计记录:撤回在那张单上、也在它覆盖过的每一炉上;
+>    V37 在工序页自己的记录上(措辞臂 ㉔)。迁移 `db/migrations/2026-10-09-mes5b2-reversals.sql`,**破窗起点 2026-10-09 14:48:26 CST**(`db/migration-windows.tsv`),
+>    终点等 Tim 在 Vercel 上确认部署。验证十二步:离线门 · 备份 `BACKUP_EXIT=0` · 迁移 `APPLY_OWN_EXIT=0` · 类型 · tsc · 构建 `BUILD_EXIT=0` ·
+>    整门 `GATE_EXIT=0`(261 支 fixture;283 张表 · 275 张记录 · 8 张豁免;遮蔽 114 列)· i18n · 吞错 · 版式 9 处 × 两个宽度全部 0 / 0 ·
+>    冒烟 277 ok / 13 skipped / 0 failed;注入 42 + 2 格 0 格错(最后一次在最后一次修改之后)。线上回滚的证明 `MES5B2_PROOF_EXIT=0`(一次性账号动手,
+>    七个真账号一个都没用;每一步之后对账两侧 0.00);前后读数:除了冒烟记录在案的 COD 轮换,每一张在册表逐字不变;七个账号与角色不变,
+>    `require_calibrated_since` NULL,对账两侧 0.00。逐角色读数表、页面清单、开场读数与未经询问的决定在 `docs/handbacks/MES-5b-2.md`。
+>    **下一刀 MES-5b-3 · Blending**(将来那条线 —— Tim Q16:今天这条线不配料)。见下面「⬜ ★ MES 组」第 8c 行。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
@@ -7100,7 +7119,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);**MES-5b-2 Reversals 是下一刀**,然后 MES-5b-3 Blending(将来那条线))(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -7120,8 +7139,8 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 7a | ✅ **MES-5a-1 · Discharge**(★ 已关闭,`v1.4.43`,2026-10-08,上面第 42 条;Tim 2026-10-08 裁定 Q2:MES-5a 拆成两刀,本刀只做放电) | 2(逐模组放电) | 3 h 30 m – 5 h 40 m(Step 0 §9) |
   | 7b | ✅ **MES-5a-2 · Energy**(★ 已关闭,`v1.4.44`,2026-10-08,上面第 43 条) | 3(电表与按用途的电费) | 3 h 00 m – 4 h 55 m(Step 0 §9) |
   | 8a | ✅ **MES-5b-1 · Balance and yield**(★ 已关闭,`v1.4.45`,2026-10-08,上面第 44 条;Tim 2026-10-08 裁定 Q2:MES-5b 拆三刀;**f 的并入在这一刀关闭** —— 动作码蕴含查看码做成了机制,`docs/role-matrix.md` 常设规矩那一节)| 9(物料平衡)· 10(得率)| 4 h 05 m – 7 h 10 m(Step 0 §11)|
-  | 8b | ⬜ **MES-5b-2 · Reversals**(★ 下一刀:F1 电费分摊的完整撤回 · F2 冲抵费用单冲销时恢复估计 · 已付电费单那一臂(b 的并入)· 结算戳那扇侧门 · Q21–Q29 照 `docs/surveys/MES-5b/STEP0-HANDBACK.md` §14 E)| 财务并入 | 3 h 35 m – 6 h 05 m(Step 0 §11)|
-  | 8c | ⬜ **MES-5b-3 · Blending**(Tim Q16:今天这条线不配料,**将来的那条线会** —— 照 Step 0 Q16–Q20 的推荐建,单独一刀,排在 8b 之后)| 12(配料计划)| 3 h 40 m – 6 h 15 m(Step 0 §11)|
+  | 8b | ✅ **MES-5b-2 · Reversals**(★ 已关闭,`v1.4.46`,2026-10-09,上面第 45 条:F1 电费分摊的完整撤回 · F2 冲抵费用单冲销时恢复估计 · 已付电费单那一臂(b 的并入)· 结算戳那扇侧门 · 并入 `MES5B1-V37-NOT-ON-OPERATION-TRAIL` · Q21–Q29 照 `docs/surveys/MES-5b/STEP0-HANDBACK.md` §14 E)| 财务并入 | 3 h 35 m – 6 h 05 m(Step 0 §11)|
+  | 8c | ⬜ **MES-5b-3 · Blending**(★ 下一刀(将来那条线);Tim Q16:今天这条线不配料,**将来的那条线会** —— 照 Step 0 Q16–Q20 的推荐建,单独一刀,排在 8b 之后)| 12(配料计划)| 3 h 40 m – 6 h 15 m(Step 0 §11)|
   | ~~8~~ | ~~⬜ **MES-5b · Balance, yield, blending**~~ → 拆成上面 8a · 8b · 8c(Tim 2026-10-08 Q2)。原文:(~~Step 0 等 Tim 对 MES-5a-2 close-out b 与 f 的裁定~~ ★ **Tim 已裁(2026-10-08,MES-5a-2 close-out 裁定),两件并入本刀,不另起一刀**:① **b** —— fixture 补一臂【已付】的电费单(借 2200 / 借 6200 / 贷本位币银行;费用单 `paid` 带银行、不必有供应商;外币银行 `ELECTRICITY_BANK_NOT_BASE` 按名拒),带它自己的故障注入(`docs/surveys/MES-5b/MES-5a-2-CLOSEOUT.md` §2 b);② **f** —— 选项 A 成为常设规矩(`docs/role-matrix.md`「常设规矩」一节;线上 2026-10-08 18:58 核对七个角色全部满足),本刀加一道自动检查(fixture 或 gate):任何角色持一个动作码而不持它那一页的查看码就红,带它自己的故障注入。另有财务两件并入:F1 电费分摊的完整撤回 · F2 月结冲抵费用单冲销时恢复被冲掉的估计(`MES5A2-NO-ALLOCATION-REVERSAL` · `MES5A2-RELIEF-REVERSAL-ORPHANS`);Step 0 交回 `docs/surveys/MES-5b/STEP0-HANDBACK.md`) | 9(物料平衡)· 10(得率)· 12(配料计划) | 6 h 20 m – 10 h 45 m |
   | 9 | ⬜ **MES-6a · Samples, arbitration, F/Cl** | 15(样品)· 16(仲裁)· 19(氟与氯) | 5 h 15 m – 8 h 45 m |
   | 10 | ⬜ **MES-6b · NCR, quality hold, CoA** | 17(不合格报告)· 18(分析证书) | 6 h 25 m – 11 h 30 m |

@@ -5813,7 +5813,8 @@ if (FAULT === 'wording-drift-mes5a2') dict.text = { ...dict.text, 'ea.runShare':
 // ── ㉓ MES-5b-1:V37、动作码的声明、拆去隔离那一炉自己结平(MES-5b Step 0 Q11 · Q15 · Q30 · Q32)──────────
 // 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-5b-1.md 列出。
 //   V37 与声明块是变更记录页(/settings/change-history)上的一句 —— 那一页的造句器不带主语(page.tsx:140),这里同样不带;
-//   operation_type_output_forms 不是工序那条审计记录的成员,所以 V37 今天只在变更记录页上(known-issues MES5B1-V37-NOT-ON-OPERATION-TRAIL)。
+//   ~~operation_type_output_forms 不是工序那条审计记录的成员,所以 V37 今天只在变更记录页上(known-issues MES5B1-V37-NOT-ON-OPERATION-TRAIL)。~~
+//   ★ MES-5b-2 起它是(工序主语的成员 5):同一句也在工序页自己的审计记录上 —— ㉔ 钉那一句。
 //   拆分那一炉的结平落在那一炉自己的审计记录上(processing_run 主语,⑲ 那一套措辞)。注入 wording-drift-mes5b1 → 这一臂必须红。
 problems.gold23 = []
 if (FAULT === 'wording-drift-mes5b1') dict.text = { ...dict.text, 'run.withinTolerance': 'in tolerance' }
@@ -5893,6 +5894,102 @@ if (FAULT === 'wording-drift-mes5b1') dict.text = { ...dict.text, 'run.withinTol
     if (FAULT === 'wording-drift-mes5b1' && !problems.gold23.length) problems.gold23.push('(注入 wording-drift-mes5b1 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉔ MES-5b-2:一张电费单的撤回(在那张单上 · 在它覆盖过的一炉上)· V37 在工序页自己的审计记录上(MES-5b Step 0 Q22 · Q27 · Q32;
+//    并入 MES5B1-V37-NOT-ON-OPERATION-TRAIL)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-5b-2.md 列出。
+//   撤回是一句(冲销日、冲销费用单与分录、付没付、撤掉几份、放回几条是值行;金额由遮蔽规则管);理由在理由那一格;那张单与那一炉上同一句。
+//   V37 改一次:工序页上与变更记录页上(㉓)是同一句。结算戳的改动不另造一类(Q27)—— 它是成本行的一次修改,⑲ 那一族照旧。
+//   注入 wording-drift-mes5b2 → 这一臂必须红。
+problems.gold24 = []
+if (FAULT === 'wording-drift-mes5b2') dict.text = { ...dict.text, 'ea.reversed': 'Electricity bill undone' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const al = id('al'), run = id('run'), xe = id('xe'), xj = id('xj')
+    const rref = { reversal_expense_id: { [xe]: { label: 'EXP-2026-0012' } }, reversal_journal_entry_id: { [xj]: { label: 'JE-2026-0091' } } }
+    const rv = { id: id('rv'), allocation_id: al, reversal_date: '2026-10-09', reason: 'The utility re-issued the bill with the right meter total',
+                 reversal_expense_id: xe, reversal_journal_entry_id: xj, payment_status: 'unpaid', bank_account_code: null, bill_amount: 600,
+                 actual_line_count: 2, actual_line_amount: 450, restored_estimate_count: 2, restored_estimate_amount: 370,
+                 created_at: '2026-10-09T06:00:00Z', created_by: id('u') }
+    add('allocation · reversed (on the bill)', { subject: 'electricity_allocation', recordId: al, currency: 'SGD' },
+        [{ table: 'electricity_allocation_reversals', op: 'INSERT', key: { id: rv.id }, refs: rref, new: rv }])
+    add('allocation · reversed (on a run it covered)', { subject: 'processing_run', recordId: run, currency: 'SGD' },
+        [{ table: 'electricity_allocation_reversals', op: 'INSERT', key: { id: rv.id }, refs: rref, new: rv }])
+    add('V37 · expected yield set (on the operation page)', { subject: 'operation_type', recordId: 'battery_powder_line', currency: null },
+        [{ table: 'operation_type_output_forms', op: 'UPDATE',
+           key: { operation_type_code: 'battery_powder_line', form_code: 'black_mass' }, cols: ['expected_yield_pct'],
+           old: { expected_yield_pct: null }, new: { expected_yield_pct: 70 },
+           ctx: { operation_type_code: 'battery_powder_line', form_code: 'black_mass', notes: null } }])
+    const WANT = {
+        "allocation · reversed (on the bill)": {
+            "title": "Electricity bill reversed",
+            "part": null,
+            "lines": [
+                "Reversal date: 09/10/2026",
+                "Reversal expense: EXP-2026-0012",
+                "Reversal journal entry: JE-2026-0091",
+                "Payment: Unpaid (taken off payables)",
+                "Bill amount: 600.00 SGD",
+                "Run shares removed (count): 2",
+                "Run shares removed: 450.00 SGD",
+                "Estimates brought back (count): 2",
+                "Estimates brought back: 370.00 SGD"
+            ],
+            "reason": "The utility re-issued the bill with the right meter total",
+            "who": "Chooer"
+        },
+        "allocation · reversed (on a run it covered)": {
+            "title": "Electricity bill reversed",
+            "part": null,
+            "lines": [
+                "Reversal date: 09/10/2026",
+                "Reversal expense: EXP-2026-0012",
+                "Reversal journal entry: JE-2026-0091",
+                "Payment: Unpaid (taken off payables)",
+                "Bill amount: 600.00 SGD",
+                "Run shares removed (count): 2",
+                "Run shares removed: 450.00 SGD",
+                "Estimates brought back (count): 2",
+                "Estimates brought back: 370.00 SGD"
+            ],
+            "reason": "The utility re-issued the bill with the right meter total",
+            "who": "Chooer"
+        },
+        "V37 · expected yield set (on the operation page)": {
+            "title": "Operation type output form edited",
+            "part": null,
+            "lines": [
+                "Expected yield (%): (empty) → 70"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        }
+    }
+    const got24 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD24', order: 1, prelog: false, at: '2026-10-09T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Chooer' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold24.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD24')
+        if (mine.length !== 1) { problems.gold24.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got24[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold24.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold24.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold24.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold24.push(`㉔ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (process.env.TRAIL_GOLD24_PRINT) console.log(JSON.stringify(got24, null, 8))
+    if (FAULT === 'wording-drift-mes5b2' && !problems.gold24.length) problems.gold24.push('(注入 wording-drift-mes5b2 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -5900,7 +5997,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

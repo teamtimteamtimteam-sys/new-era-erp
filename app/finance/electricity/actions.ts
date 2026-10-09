@@ -100,3 +100,18 @@ export async function setSharedPoolRule(rule: string): Promise<{ error?: string 
     revalidatePath('/settings/pending-values')
     return {}
 }
+
+/** MES-5b-2(Q22):撤回一张电费单。理由原样送下去(库里 btrim 后为空就按名拒 ELECTRICITY_REVERSAL_REASON_REQUIRED)——
+ *  这里不判任何东西:撤回过没有、经付款结过没有、期间锁没锁,全部由 reverse_electricity_allocation 判(reverseFreight 的同一条)。 */
+export async function reverseAllocation(id: string, reason: string): Promise<{ error?: string }> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('reverse_electricity_allocation', { p_allocation_id: id, p_reason: reason })
+    if (error) return { error: await localizeEnergyError(error.message) }
+    revalidatePath('/finance/electricity')
+    revalidatePath(`/finance/electricity/${id}`)
+    revalidatePath('/finance/expenses')
+    revalidatePath('/finance/payables')
+    revalidatePath('/finance/processing-costs')
+    revalidatePath('/finance/month-end')
+    return {}
+}

@@ -4,6 +4,9 @@
 -- 不变量:本视图只改【行】谓词;每一列原样保留它已有的 data.* 遮蔽。
 -- NOTE: introduced by db/migrations/2026-09-05-fix2a-cross-module-lookup-views.sql.
 
+-- MES-5b-2(2026-10-09,Step 0 Q21):末尾加 relief_expense_id —— 费用单页要说出"冲掉这张月结冲抵会放回几条估计",而那一页的门是财务;
+--   基表的读策略是加工查看码,财务读它是零行(一个权限拒绝读成"零条")。它是一个指向费用单的键,不是钱。
+
 CREATE VIEW public.processing_cost_entry_lookup WITH (security_invoker = off) AS
  SELECT id,
     run_id,
@@ -16,7 +19,8 @@ CREATE VIEW public.processing_cost_entry_lookup WITH (security_invoker = off) AS
             ELSE NULL::numeric
         END AS amount_base,
     remitted_at,
-    relieved_at
+    relieved_at,
+    relief_expense_id
    FROM processing_cost_entries e
   WHERE has_permission('module.processing.view'::text) OR has_permission('module.finance.view'::text);
 

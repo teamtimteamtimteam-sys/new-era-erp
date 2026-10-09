@@ -3426,6 +3426,21 @@ electricity_allocation_lines,kwh,number,"number with unit (qty kg, %, rate); Int
 electricity_allocation_lines,amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,Amount,,,numeric
 electricity_allocation_lines,cost_entry_id,technical,hide: the cost line it wrote (shown on the run),,,Cost line,,,uuid
 electricity_allocation_lines,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+electricity_allocation_reversals,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+electricity_allocation_reversals,allocation_id,technical,hide: the allocation it reverses (the record names it),,,Allocation,,,uuid
+electricity_allocation_reversals,reversal_date,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Reversal date,,,date
+electricity_allocation_reversals,reason,text,verbatim,energy.reversalReason,Reason,,high,app/finance/electricity/[id]/page.tsx,text
+electricity_allocation_reversals,reversal_expense_id,fk_document,"expenses.code (document number, prefix EXP)",,,Reversal expense,,,uuid
+electricity_allocation_reversals,reversal_journal_entry_id,fk_document,"journal_entries.code (document number, prefix JE)",,,Reversal journal entry,,,uuid
+electricity_allocation_reversals,payment_status,enum,ENUM_OVERRIDES electricity_allocation_reversals#payment_status,,,Payment,,,text
+electricity_allocation_reversals,bank_account_code,text,verbatim,,,Taken back to bank,,,text
+electricity_allocation_reversals,bill_amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,Bill amount,,,numeric
+electricity_allocation_reversals,actual_line_count,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Run shares removed (count),,,integer
+electricity_allocation_reversals,actual_line_amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,Run shares removed,,,numeric
+electricity_allocation_reversals,restored_estimate_count,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Estimates brought back (count),,,integer
+electricity_allocation_reversals,restored_estimate_amount,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,Estimates brought back,,,numeric
+electricity_allocation_reversals,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+electricity_allocation_reversals,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
 electricity_allocations,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 electricity_allocations,period_from,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Period from,,,date
 electricity_allocations,period_to,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Period to,,,date

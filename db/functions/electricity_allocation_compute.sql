@@ -25,6 +25,9 @@
 --   ⑧ 分录(过账那一张,预览里原样给出):借 2200 各炉之和 · 借 6200 余数 · 贷 应付 2000(未付)或银行(已付)账单全额。
 --      各炉的成本行自己的录入分录(借 5110 / 贷 2200)与估计被冲掉时的冲销分录(借 2200 / 贷 5110)由 fin_journal_cost_entry 照旧过。
 --   返回 jsonb(见末尾)。
+--   ★ MES-5b-2(2026-10-09,MES-5b Step 0 Q23,Tim):"时间段重叠"与"这一炉已经分过"都【不认撤回过的分摊】
+--     (electricity_allocation_reversals 里有它那一行)—— 撤回之后,同一段时间可以再过一张改正过的账单。
+--     要冲掉的估计照旧只取"没软删、没冲抵、没汇出"的 —— 撤回把被冲掉的估计放回了这个样子,所以它们会被改正过的那一张再冲一次。
 --
 -- NOTE: introduced by db/migrations/2026-10-08-mes5a2-energy.sql.
 
@@ -117,6 +120,7 @@ BEGIN
     SELECT a.period_from, a.period_to, e.code INTO v_clash
       FROM electricity_allocations a JOIN expenses e ON e.id = a.expense_id
      WHERE daterange(a.period_from, a.period_to, '[]') && daterange(p_period_from, p_period_to, '[]')
+       AND NOT EXISTS (SELECT 1 FROM electricity_allocation_reversals v WHERE v.allocation_id = a.id)
      ORDER BY a.period_from LIMIT 1;
     IF FOUND THEN
         RAISE EXCEPTION 'ELECTRICITY_PERIOD_OVERLAPS|%|%|%', v_clash.code, v_clash.period_from, v_clash.period_to;
@@ -184,7 +188,9 @@ BEGIN
                                     ORDER BY v.id DESC LIMIT 1),
                        'minutes', CASE WHEN r.started_at IS NOT NULL AND r.ended_at IS NOT NULL
                                        THEN round(extract(epoch FROM (r.ended_at - r.started_at)) / 60.0, 2) END,
-                       'allocated', EXISTS (SELECT 1 FROM electricity_allocation_lines l WHERE l.run_id = r.id))
+                       'allocated', EXISTS (SELECT 1 FROM electricity_allocation_lines l WHERE l.run_id = r.id
+                                              AND NOT EXISTS (SELECT 1 FROM electricity_allocation_reversals v
+                                                               WHERE v.allocation_id = l.allocation_id)))
                      ORDER BY r.code), '[]'::jsonb)
               INTO v_mruns
               FROM processing_runs r

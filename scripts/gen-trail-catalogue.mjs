@@ -705,6 +705,8 @@ const TABLE_NAMES = {
     // MES-5a-2(2026-10-08):电表读数 · 一张电费单的分摊与分给一炉的那一份 · 分摊的设定(V25)
     meter_readings: 'meter reading', electricity_allocations: 'electricity bill allocation',
     electricity_allocation_lines: 'electricity share of a run', electricity_settings: 'electricity allocation settings',
+    // MES-5b-2(2026-10-09):一张电费单的撤回
+    electricity_allocation_reversals: 'electricity bill reversal',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -839,6 +841,7 @@ const ENUM_OVERRIDES = {
     // MES-5a-2(2026-10-08):一条读数从哪里来 · 一张账单付没付 · 一炉的份按什么分(三列各一张 CHECK 清单)
     'meter_readings#source': { manual: 'Entered by hand', device: 'From a device' },
     'electricity_allocations#payment_status': { paid: 'Paid', unpaid: 'Unpaid' },
+    'electricity_allocation_reversals#payment_status': { paid: 'Paid (taken back to the bank)', unpaid: 'Unpaid (taken off payables)' },
     'electricity_allocation_lines#basis': { recorded_energy: 'Recorded run energy', run_time: 'Run time' },
     'processing_run_corrections#field': { started_at: 'Start time', ended_at: 'End time', shift_code: 'Shift', equipment_id: 'Machine',
         recipe_version_id: 'Recipe version', notes: 'Notes' },

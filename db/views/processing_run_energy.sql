@@ -10,6 +10,9 @@
 --
 -- NOTE: introduced by db/migrations/2026-10-08-mes5a2-energy.sql.
 
+-- MES-5b-2(2026-10-09,MES-5b Step 0 Q23,Tim):分到的 kWh 只取【没撤回】的那一张分摊的那一行 —— 一炉的分摊撤回之后可以再分一次,
+-- 于是一炉可以有两行(撤回过的那一张一行、改正过的那一张一行);照旧 LEFT JOIN 会把那一炉读成两行,而撤回过的那一份不该再算。
+
 CREATE VIEW public.processing_run_energy WITH (security_invoker = off) AS
  SELECT r.id AS run_id,
     r.code,
@@ -40,7 +43,13 @@ CREATE VIEW public.processing_run_energy WITH (security_invoker = off) AS
                   WHERE x.corrects_id = v.id))
           ORDER BY v.id DESC
          LIMIT 1) own ON true
-     LEFT JOIN electricity_allocation_lines l ON l.run_id = r.id
+     LEFT JOIN LATERAL ( SELECT ll.kwh,
+            ll.basis,
+            ll.allocation_id
+           FROM electricity_allocation_lines ll
+          WHERE ll.run_id = r.id AND NOT (EXISTS ( SELECT 1
+                   FROM electricity_allocation_reversals v
+                  WHERE v.allocation_id = ll.allocation_id))) l ON true
      LEFT JOIN LATERAL ( SELECT round(sum(d.energy_recovered_wh) / 1000::numeric, 3) AS recovered_kwh
            FROM discharge_module_results d
           WHERE d.run_id = r.id AND d.energy_recovered_wh IS NOT NULL

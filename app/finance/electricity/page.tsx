@@ -7,6 +7,7 @@
 // 【电表】每一台电表挂在哪台机器上(没挂 = 共用池)、最近一条读数 —— 设备表要加工查看码;读不到时说「受限」,不说"没有电表"。
 // 【V25】共用池的电怎么摊(写下 / 清空,module.finance.edit);写下之后本版本仍然不按它摊 —— 页面照直说。
 // 【门】requireModule(MOD.finance)。新建一张在 /finance/electricity/new(过账要 module.finance.edit)。审计记录:V25 的修改史。
+// 【撤回】MES-5b-2(Step 0 Q22):撤回过的那一张照样列着(分摊只追加),账单号旁边标「已撤回」;撤回在那一张自己的页面上。
 // ════════════════════════════════════════════════════════════════════════════
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -40,14 +41,16 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
         can('module.finance.edit'), canViewPrices(), can('module.processing.view'), getBaseCurrency(),
     ])
 
-    const [allocRes, settingsRes] = await Promise.all([
+    const [allocRes, settingsRes, revRes] = await Promise.all([
         supabase.from('electricity_allocations_masked')
             .select('id, period_from, period_to, bill_date, invoice_ref, currency, bill_amount, bill_kwh, metered_kwh, allocated_kwh, allocated_amount, overhead_amount, relieved_estimate_count, payment_status, expense_id')
             .order('period_from', { ascending: false }),
         supabase.from('electricity_settings').select('shared_pool_rule').maybeSingle(),
+        supabase.from('electricity_allocation_reversals_masked').select('allocation_id'),
     ])
     const allocs = mustRows(allocRes, 'electricity_allocations_masked') as AllocRow[]
     const settings = mustOne(settingsRes, 'electricity_settings') as { shared_pool_rule: string | null } | null
+    const reversed = new Set((mustRows(revRes, 'electricity_allocation_reversals_masked') as { allocation_id: string }[]).map((r) => r.allocation_id))
     const expIds = [...new Set(allocs.map((a) => a.expense_id))]
     const exps = expIds.length ? mustRows(await supabase.from('expenses').select('id, code').in('id', expIds), 'expenses') as { id: string; code: string }[] : []
     const expCode = new Map(exps.map((e) => [e.id, e.code]))
@@ -57,7 +60,8 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
         id: a.id,
         cells: {
             period: <Link href={`/finance/electricity/${a.id}`} className="app-link hover:underline">{formatDate(a.period_from, locale)} – {formatDate(a.period_to, locale)}</Link>,
-            bill: `${a.invoice_ref} · ${formatDate(a.bill_date, locale)}`,
+            bill: <>{a.invoice_ref} · {formatDate(a.bill_date, locale)}
+                {reversed.has(a.id) && <span className="ml-2 text-[color:var(--brand-muted-text)]" data-allocation-reversed="1">· {t('energy.reversedTag')}</span>}</>,
             amount: money(a.bill_amount),
             kwh: `${Number(a.bill_kwh)} / ${Number(a.metered_kwh)} / ${Number(a.allocated_kwh)}`,
             runs: money(a.allocated_amount),

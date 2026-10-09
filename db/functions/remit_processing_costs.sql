@@ -9,6 +9,9 @@
 -- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
 -- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
 -- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+--
+-- MES-5b-2(2026-10-09,MES-5b Step 0 Q26):盖汇出戳之前设事务级标记 evoltrya.cost_settlement_ctx(结算戳只许经财务函数改 ——
+--   guard_cost_entry_settled),用毕即清。其余一个字不动。
 
 CREATE OR REPLACE FUNCTION public.remit_processing_costs(p_entry_ids uuid[], p_payment_date date DEFAULT NULL::date, p_bank_account text DEFAULT NULL::text)
  RETURNS jsonb
@@ -54,9 +57,11 @@ BEGIN
             jsonb_build_object('account_code', v_bank, 'side', 'credit', 'currency', base_currency_code(),
                                'amount_ccy', v_total)));
 
+    PERFORM set_config('evoltrya.cost_settlement_ctx', '1', true);
     UPDATE processing_cost_entries
     SET remitted_at = v_date, remitted_journal_entry_id = (v_je->>'entry_id')::uuid
     WHERE id = ANY (p_entry_ids);
+    PERFORM set_config('evoltrya.cost_settlement_ctx', '', true);
 
     RETURN jsonb_build_object('journal_code', v_je->>'code', 'entries', v_n, 'total', v_total);
 END;

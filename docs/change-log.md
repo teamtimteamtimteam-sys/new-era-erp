@@ -1222,3 +1222,29 @@ YIELD · V37 · GROUP · READ · FCHECK · LOG) and fixture 255 SPLIT gains the 
   (empty) → 70"; "Permission edited · Needs one of these views: (empty) → module.processing.view"). `operation_type_output_forms` is not a
   member of the operation's own trail subject, so a V37 change does **not** show on `/operation/operation-types/<code>` — registered as
   `MES5B1-V37-NOT-ON-OPERATION-TRAIL`. `scripts/check-trail-wording.mjs` arm ㉓ pins the three sentences (fault `wording-drift-mes5b1`).
+
+
+## 21. Reversals (MES-5b-2, v1.4.46, 2026-10-09)
+
+Hand-back `docs/handbacks/MES-5b-2.md`; fixture 258 pins every rule below (arms PERM · UNPAID · REPOST · PAID · F2 · VAR · CCY · LOCK ·
+KINDS · GUARD · MASK · LOG · AGREE), fixture 256 gains ALLOC-PAID and fixture 213 a relief-reversal arm; each arm is fault-injected by
+`db/scripts/2026-10-09-mes5b2-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 21.1 Logged, excluded, masked
+
+- **One new table, logged.** `electricity_allocation_reversals` (one row per reversed electricity bill; append-only; reason required) is bound
+  by its primary key (`id`): public tables **282 → 283**, bound **274 → 275**, exclusions stay **8** (Step 0 Q32 · Q34).
+- **Three new mask rules** (111 → **114**): `bill_amount`, `actual_line_amount` and `restored_estimate_amount` of the reversal, all
+  `data.view_prices` — the same code as the column grant and `electricity_allocation_reversals_masked`, in the same migration. Counts, the
+  reason and the dates are not masked.
+- **No new history kind for settlement stamps** (Step 0 Q27). Clearing or setting `remitted_*` / `relieved_*` on `processing_cost_entries`
+  is an UPDATE the existing change-log trigger already captures (who, when, before / after); `processing_cost_entry_history` keeps its four
+  kinds. The stamps can now only move through the five finance functions (`guard_cost_entry_settled`, Q26), so every such row in the change
+  log has one of them behind it.
+- **The migration writes no row**: its proof asserts `change_log` moved by **0**.
+- **Trail.** The reversal lives on the `electricity_allocation` subject (its home) and shows on each run it covered (`processing_run`, via the
+  run's share line → the allocation, a stepping stone): "Electricity bill reversed", with the date, reversal expense and journal, payment,
+  counts and (masked) amounts as value lines and the reason in the reason slot. **Fold-in `MES5B1-V37-NOT-ON-OPERATION-TRAIL`:**
+  `operation_type_output_forms` is now a member of the `operation_type` subject, so a V37 change shows on the operation's own page with the
+  same sentence as the change history ("Operation type output form edited · Expected yield (%): (empty) → 70"). `scripts/check-trail-wording.mjs`
+  arm ㉔ pins the three sentences (fault `wording-drift-mes5b2`).

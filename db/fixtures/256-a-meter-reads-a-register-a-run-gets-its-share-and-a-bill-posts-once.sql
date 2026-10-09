@@ -21,6 +21,10 @@
 --   LOG    四张新表都进变更记录(覆盖零缺口、豁免仍是 8);审计记录:读数在电表上,一张单与它的行在那张单上,分给一炉的那一行也在那一炉上(Q31)
 --   V25    有共用池电表而规则为空 → 待补的值那一行;写下规则那一行就消失;规则写下之后分摊【仍然】把共用池留在 6200(本刀不按它摊)(Q32)
 --   REV    一次分摊的费用单不许单独冲(EXPENSE_IS_ELECTRICITY_ALLOCATION)
+--   ALLOC-PAID ★ MES-5b-2(Step 0 Q29,MES-5a-2 close-out 裁定 b):一张【已付】的本位币电费单 —— 借 2200 / 借 6200 / 贷【本位币银行】;
+--          费用单 paid、带那个银行、不必有供应商;外币银行按名拒 ELECTRICITY_BANK_NOT_BASE;应付清单 = 总账,unexplained 0.00。
+--          数:时间段 今天往前 6 天到往前 4 天;机器 A 表 1600 → 1700 → 1800,段内 100 kWh,只有 r6(没记电量,60 分钟)→ 100 kWh;
+--          账单 250 / 200 kWh,单价 1.25:r6 125.00 · 6200 125.00(不计量 100 kWh);r6 的估计 e6 35 被冲掉。
 --
 -- 自带数据(README 第 2 条)。以 postgres 跑(绕过 RLS);员工的调用真的切成 authenticated + 那个人的 JWT。
 -- 日期:时间段 = 今天往前 20 天到往前 11 天(d0..d1);炉在 d0+3 / d0+4;段外的那一炉在今天往前 5 天。读数在段的头尾与中间。
@@ -103,7 +107,7 @@ DECLARE
     r1 uuid; r2 uuid; r3 uuid; r4 uuid; r5 uuid; r6 uuid; r7 uuid;
     e1 uuid; e5 uuid; e6 uuid; e7 uuid;
     v_msg text; v_j jsonb; v_p jsonb; v_n bigint; v_id bigint; v_num numeric; v_alloc uuid; v_exp uuid; v_je uuid;
-    v_other text; v_base text;
+    v_other text; v_base text; v_id_bank text; v_fbank text;
     v_b2200 numeric; v_b5110 numeric; v_b6200 numeric; v_b2000 numeric;
 BEGIN
     UPDATE finance_settings SET locked_before = NULL;
@@ -471,7 +475,44 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'electricity_settings' AND op = 'UPDATE') THEN
         RAISE EXCEPTION 'FIXTURE 256 V25: the rule change should be in the change log'; END IF;
 
-    RAISE NOTICE 'FIXTURE 256 全部通过: METER · READ · RUNE · SPLIT · TONNE · ALLOC · CCY · PERM · MASK · LOG · V25 · REV';
+    -- ══════════════ ALLOC-PAID · 一张已付的本位币电费单(MES-5b-2,Q29)══════════════
+    RAISE NOTICE 'fixture 256 · ALLOC-PAID';
+    SELECT c INTO v_id_bank FROM unnest(ARRAY['1000', '1010']) c WHERE bank_native_currency(c) = v_base LIMIT 1;
+    SELECT c INTO v_fbank FROM unnest(ARRAY['1000', '1010']) c WHERE bank_native_currency(c) IS DISTINCT FROM v_base LIMIT 1;
+    v_msg := pg_temp.f256_do(u_cap, format($q$SELECT record_meter_reading(%L, %L, 1700)$q$, mt_a, ((CURRENT_DATE - 6)::timestamp + interval '1 hour') AT TIME ZONE 'Asia/Singapore'))
+          || pg_temp.f256_do(u_cap, format($q$SELECT record_meter_reading(%L, %L, 1800)$q$, mt_a, ((CURRENT_DATE - 4)::timestamp + interval '23 hours') AT TIME ZONE 'Asia/Singapore'));
+    IF v_msg <> 'OKOK' THEN RAISE EXCEPTION 'FIXTURE 256 ALLOC-PAID: setup readings (%)', v_msg; END IF;
+    IF v_fbank IS NOT NULL THEN
+        v_msg := pg_temp.f256_do(u_all, format($q$SELECT post_electricity_allocation(%L, %L, %L, 'INV-256-P', 250, 200, %L, 'paid', %L)$q$,
+                                              CURRENT_DATE - 6, CURRENT_DATE - 4, CURRENT_DATE - 3, v_base, v_fbank));
+        IF v_msg NOT LIKE format('ELECTRICITY_BANK_NOT_BASE|%s|%s%%', v_fbank, v_base) THEN
+            RAISE EXCEPTION 'FIXTURE 256 ALLOC-PAID: a foreign-currency bank must be refused by name, got %', v_msg; END IF;
+    END IF;
+    v_b2200 := pg_temp.f256_bal('2200'); v_b6200 := pg_temp.f256_bal('6200'); v_b2000 := pg_temp.f256_bal('2000'); v_num := pg_temp.f256_bal(v_id_bank);
+    v_j := pg_temp.f256_get(u_all, format($q$SELECT post_electricity_allocation(%L, %L, %L, 'INV-256-P', 250, 200, %L, 'paid', %L)$q$,
+                                          CURRENT_DATE - 6, CURRENT_DATE - 4, CURRENT_DATE - 3, v_base, v_id_bank));
+    v_alloc := (v_j ->> 'allocation_id')::uuid; v_exp := (v_j ->> 'expense_id')::uuid;
+    SELECT journal_entry_id INTO v_je FROM electricity_allocations WHERE id = v_alloc;
+    SELECT jsonb_object_agg(a.code || ':' || CASE WHEN l.debit > 0 THEN 'debit' ELSE 'credit' END, l.debit + l.credit) INTO v_j
+      FROM journal_lines l JOIN accounts a ON a.id = l.account_id WHERE l.entry_id = v_je;
+    IF v_j IS DISTINCT FROM jsonb_build_object('2200:debit', 125.00, '6200:debit', 125.00, v_id_bank || ':credit', 250.00) THEN
+        RAISE EXCEPTION 'FIXTURE 256 ALLOC-PAID: a paid bill is Dr 2200 125 / Dr 6200 125 / Cr the base bank 250 (never 2000), got %', v_j; END IF;
+    IF NOT EXISTS (SELECT 1 FROM expenses e WHERE e.id = v_exp AND e.payment_status = 'paid' AND e.bank_account_code = v_id_bank
+                     AND e.supplier_id IS NULL AND e.amount_base = 250 AND e.currency = v_base)
+       OR NOT EXISTS (SELECT 1 FROM electricity_allocations WHERE id = v_alloc AND payment_status = 'paid' AND bank_account_code = v_id_bank) THEN
+        RAISE EXCEPTION 'FIXTURE 256 ALLOC-PAID: the expense and the allocation are paid from the base bank, with no supplier needed'; END IF;
+    IF pg_temp.f256_bal(v_id_bank) - v_num IS DISTINCT FROM -250.00 OR pg_temp.f256_bal('2000') - v_b2000 IS DISTINCT FROM 0
+       OR pg_temp.f256_bal('6200') - v_b6200 IS DISTINCT FROM 125.00 OR pg_temp.f256_bal('2200') - v_b2200 IS DISTINCT FROM 35.00 THEN
+        RAISE EXCEPTION 'FIXTURE 256 ALLOC-PAID: ledger moves should be bank −250 / 2000 0 / 6200 +125 / 2200 +35 (the relieved estimate), got % / % / % / %',
+            pg_temp.f256_bal(v_id_bank) - v_num, pg_temp.f256_bal('2000') - v_b2000, pg_temp.f256_bal('6200') - v_b6200, pg_temp.f256_bal('2200') - v_b2200; END IF;
+    IF NOT EXISTS (SELECT 1 FROM processing_cost_entries WHERE id = e6 AND deleted_at IS NOT NULL AND relief_expense_id = v_exp) THEN
+        RAISE EXCEPTION 'FIXTURE 256 ALLOC-PAID: r6''s typed estimate is relieved by the paid bill'; END IF;
+    v_j := pg_temp.f256_get(u_all, $q$SELECT list_ledger_reconciliation()$q$);
+    IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_j -> 'sides') s WHERE (s ->> 'unexplained_base')::numeric IS DISTINCT FROM 0)
+       OR EXISTS (SELECT 1 FROM ap_open_items WHERE doc_id = v_exp) THEN
+        RAISE EXCEPTION 'FIXTURE 256 ALLOC-PAID: a paid bill is never on the AP list; AP list = ledger with 0.00 unexplained, got %', v_j -> 'sides'; END IF;
+
+    RAISE NOTICE 'FIXTURE 256 全部通过: METER · READ · RUNE · SPLIT · TONNE · ALLOC · CCY · PERM · MASK · LOG · V25 · REV · ALLOC-PAID';
 END;
 $$;
 

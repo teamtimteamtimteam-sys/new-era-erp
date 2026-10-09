@@ -1010,7 +1010,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
         'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log',
         'processing_run_values', 'processing_run_events', 'processing_run_closures', 'processing_run_corrections', 'contamination_checks',
-        'discharge_module_results', 'discharge_channel_assignments', 'discharge_module_splits', 'electricity_allocation_lines'],
+        'discharge_module_results', 'discharge_channel_assignments', 'discharge_module_splits', 'electricity_allocation_lines',
+        'electricity_allocation_reversals'],
     role: ['roles', 'role_permissions', 'user_roles'],
     inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
@@ -1127,11 +1128,14 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     // MES-2(2026-10-06):地磅单 —— 它的两磅(含更正)、分出去的份、照片
     weighbridge_ticket: ['weighbridge_tickets', 'weighings', 'weighbridge_ticket_shares', 'weighbridge_ticket_photos'],
     // MES-5a-2(2026-10-08):一张电费单的分摊与它的各炉一行 · 分摊的设定(V25)
-    electricity_allocation: ['electricity_allocations', 'electricity_allocation_lines'],
+    // MES-5b-2(2026-10-09):+ 一张电费单的撤回(住在那张单下,也出现在它覆盖过的每一炉上)
+    electricity_allocation: ['electricity_allocations', 'electricity_allocation_lines', 'electricity_allocation_reversals'],
     electricity_settings: ['electricity_settings'],
     ingest_settings: ['ingest_settings'],
     // MES-4a(2026-10-07):一道工序的配置(字段 · 机器 · 配方 · 版本)· 两本新字典
-    operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions'],
+    // MES-5b-2(2026-10-09,并入 MES5B1-V37-NOT-ON-OPERATION-TRAIL):+ 每一种产出形态的预期得率(V37)
+    operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions',
+        'operation_type_output_forms'],
     dictionary_processing_event_types: ['processing_event_types'],
     dictionary_shifts: ['shifts'],
     // MES-4b(2026-10-07):两本新字典(电芯结构 · 交叉污染流)
@@ -1267,7 +1271,7 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     // MES-1
     if (t === 'devices' || t === 'gateway_keys' || t === 'instrument_calibrations' || t === 'meter_readings') return 'device'
     // MES-5a-2:一张电费单的分摊与分给一炉的那一份 —— 在分摊页、加工单页、变更记录总表上都照这一族说
-    if (t === 'electricity_allocations' || t === 'electricity_allocation_lines') return 'energy'
+    if (t === 'electricity_allocations' || t === 'electricity_allocation_lines' || t === 'electricity_allocation_reversals') return 'energy'
     // MES-2
     if (t === 'weighbridge_tickets' || t === 'weighings' || t === 'weighbridge_ticket_shares' || t === 'weighbridge_ticket_photos') return 'ticket'
     if (t === 'review_rating_scale') return 'dict'
@@ -1899,6 +1903,11 @@ function describeEnergy(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Blo
             const label = run ? r.refs?.['run_id']?.[run]?.label ?? null : null
             out.push({ title: tx(d, 'ea.runShare'), part: label ? { text: label } : null,
                        lines: valueLines(d, r, r.new, opts, new Set(['id', 'allocation_id', 'run_id', 'cost_entry_id'])), key: true, weight: 70 })
+        } else if (r.table === 'electricity_allocation_reversals') {
+            // MES-5b-2(Step 0 Q22 · Q32):撤回是一句(冲销日、冲销费用单与分录、已付的借回哪个银行、撤掉几行、放回几条估计是值行;金额由遮蔽规则管)
+            //   —— 在那张单与它覆盖过的每一炉上同一句;理由在理由那一格。
+            out.push({ title: tx(d, 'ea.reversed'), reason: typed(r.new?.['reason']),
+                       lines: valueLines(d, r, r.new, opts, new Set(['id', 'allocation_id', 'reason'])), key: true, weight: 90 })
         } else out.push(describeGeneric(d, r, opts))
     }
     return out

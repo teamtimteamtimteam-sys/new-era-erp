@@ -14,6 +14,10 @@
 --        (软删照旧过冲销分录 借 2200 / 贷 5110)。被覆盖之外的炉上的估计一条都不碰(Q26)。
 --   拒:账单日没给 / 在将来;账单号没给;未付却没有供应商(SUPPLIER_REQUIRED_FOR_UNPAID)。
 --   返回 {allocation_id, expense_id, expense_code, journal_code, runs, relieved}。
+--   ★ MES-5b-2(2026-10-09,MES-5b Step 0 Q28 · Q26 · Q23,Tim):① 过账也要 module.finance.view —— 它不再比自己的预览少问一个码
+--     (MES-5a-2 close-out §2 f;线上持 edit 的都持 view,没有人因此失去这一步);② 结算戳只许经财务函数写:写已结的实际行与冲掉估计之前
+--     设事务级标记 evoltrya.cost_settlement_ctx,用毕即清(guard_cost_entry_settled);③ "一炉只分一次"改成"一炉最多在一张没撤回的分摊里"
+--     (compute 与 guard_electricity_line_one_live_allocation)。一张分摊的撤回:reverse_electricity_allocation。
 --
 -- NOTE: introduced by db/migrations/2026-10-08-mes5a2-energy.sql.
 
@@ -38,6 +42,7 @@ DECLARE
     v_n        int := 0;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    PERFORM require_permission('module.finance.view');
     IF p_bill_date IS NULL THEN
         RAISE EXCEPTION 'EXPENSE_DATE_REQUIRED';
     END IF;
@@ -89,7 +94,8 @@ BEGIN
         (v ->> 'relieved_estimate_amount')::numeric, (v ->> 'relieved_estimate_count')::int, p_payment_status,
         CASE WHEN p_payment_status = 'paid' THEN p_bank_account END, v_exp_id, v_je_id, NULLIF(btrim(COALESCE(p_notes, '')), ''));
 
-    -- ④ 每一炉一条已结的实际电费成本行 + 一行分摊
+    -- ④ 每一炉一条已结的实际电费成本行 + 一行分摊(结算戳只许经财务函数写 —— 标记用毕即清,在 ⑤ 之后)
+    PERFORM set_config('evoltrya.cost_settlement_ctx', '1', true);
     FOR v_run IN SELECT x FROM jsonb_array_elements(v -> 'runs') x LOOP
         INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate, notes, created_by, updated_by,
                                              remitted_at, remitted_journal_entry_id)
@@ -119,6 +125,7 @@ BEGIN
            SET relieved_at = p_bill_date, relief_expense_id = v_exp_id, deleted_at = now(), updated_by = auth.uid()
          WHERE id = ANY (v_ids);
     END IF;
+    PERFORM set_config('evoltrya.cost_settlement_ctx', '', true);
 
     RETURN jsonb_build_object('allocation_id', v_alloc_id, 'expense_id', v_exp_id, 'expense_code', v_code,
                               'journal_code', v_je ->> 'code', 'runs', v_n, 'relieved', COALESCE(array_length(v_ids, 1), 0));

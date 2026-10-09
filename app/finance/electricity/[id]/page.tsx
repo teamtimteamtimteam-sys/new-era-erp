@@ -5,7 +5,10 @@
 // 【它是这张账单唯一的一笔】费用单(链过去)· 那张分录(借 2200 各炉 · 借 6200 余数 · 贷 应付或银行)· 各炉一行(依据印在每一行:
 //   按记下的电量 / 按运行时长)· 被冲掉的估计。kWh 分三份说清楚:量到的 = 分给各炉 + 共用池 + 有表无单;账单 = 量到的 + 不计量。
 // 【金额】只给看得见价格的人(data.view_prices,经 _masked 视图;没有就画「受限」,不画 0)。kWh 不遮。
-// 【门】requireModule(MOD.finance)(与审计记录主语 electricity_allocation 的读码同一个)。本刀没有撤销一次分摊的路 —— 页面照直说。
+// 【门】requireModule(MOD.finance)(与审计记录主语 electricity_allocation 的读码同一个)。
+// 【撤回】MES-5b-2(2026-10-09,Step 0 Q22 · Q23 · Q24 · Q32):一张没撤回的单上有「撤回这张电费单」(理由必填,module.finance.edit;
+//   没有那个码看得见、按不下去);撤回过的单上画那一次撤回(日期、理由、冲销费用单、件数,金额同样只给看得见价格的人),
+//   并说明同一段时间可以再过一张改正过的。经付款结过的、期间锁住的,由库按名拒,控件把那句话照直印出来。
 // ════════════════════════════════════════════════════════════════════════════
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -14,7 +17,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { canViewPrices } from '@/lib/permissions'
+import { can, canViewPrices } from '@/lib/permissions'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
@@ -23,6 +26,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import ReverseAllocationControl from './ReverseAllocationControl'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -37,6 +41,11 @@ type Line = {
     id: number; run_id: string; equipment_id: string; basis: string; run_energy_kwh: number | null; run_minutes: number | null
     share: number; machine_kwh: number; kwh: number; amount: number | null
 }
+type Reversal = {
+    reversal_date: string; reason: string; reversal_expense_id: string; reversal_journal_entry_id: string; payment_status: string
+    bank_account_code: string | null; bill_amount: number | null; actual_line_count: number; actual_line_amount: number | null
+    restored_estimate_count: number; restored_estimate_amount: number | null; created_at: string
+}
 
 export default async function ElectricityAllocationPage({ params, searchParams }: {
     params: Promise<{ id: string }>
@@ -49,14 +58,14 @@ export default async function ElectricityAllocationPage({ params, searchParams }
     const t = await getTranslations()
     const locale = await getLocale()
     const supabase = await createClient()
-    const [showPrices, baseCurrency] = await Promise.all([canViewPrices(), getBaseCurrency()])
+    const [showPrices, baseCurrency, canEdit] = await Promise.all([canViewPrices(), getBaseCurrency(), can('module.finance.edit')])
 
     const a = mustOne(await supabase.from('electricity_allocations_masked')
         .select('id, period_from, period_to, bill_date, invoice_ref, supplier_id, payee_name, currency, bill_amount, bill_kwh, price_per_kwh, metered_kwh, allocated_kwh, shared_pool_kwh, unallocated_metered_kwh, unmetered_kwh, allocated_amount, overhead_amount, relieved_estimate_amount, relieved_estimate_count, payment_status, bank_account_code, expense_id, journal_entry_id, notes, created_at')
         .eq('id', id).maybeSingle(), 'electricity_allocations_masked') as Alloc | null
     if (!a) notFound()
 
-    const [lineRes, expRes, jeRes, supRes, eqRes] = await Promise.all([
+    const [lineRes, expRes, jeRes, supRes, eqRes, revRes] = await Promise.all([
         supabase.from('electricity_allocation_lines_masked')
             .select('id, run_id, equipment_id, basis, run_energy_kwh, run_minutes, share, machine_kwh, kwh, amount')
             .eq('allocation_id', id).order('id'),
@@ -64,12 +73,22 @@ export default async function ElectricityAllocationPage({ params, searchParams }
         supabase.from('journal_entries').select('id, code').eq('id', a.journal_entry_id).maybeSingle(),
         a.supplier_id ? supabase.from('supplier_lookup').select('legal_name').eq('id', a.supplier_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         supabase.from('equipment_usage').select('equipment_id, equipment_code'),
+        supabase.from('electricity_allocation_reversals_masked')
+            .select('reversal_date, reason, reversal_expense_id, reversal_journal_entry_id, payment_status, bank_account_code, bill_amount, actual_line_count, actual_line_amount, restored_estimate_count, restored_estimate_amount, created_at')
+            .eq('allocation_id', id).maybeSingle(),
     ])
     const lines = mustRows(lineRes, 'electricity_allocation_lines_masked') as Line[]
     const exp = mustOne(expRes, 'expenses') as { id: string; code: string } | null
     const je = mustOne(jeRes, 'journal_entries') as { id: string; code: string } | null
     const sup = mustOne(supRes, 'supplier_lookup') as { legal_name: string } | null
     const eqs = mustRows(eqRes, 'equipment_usage') as { equipment_id: string; equipment_code: string }[]
+    const rev = mustOne(revRes, 'electricity_allocation_reversals_masked') as Reversal | null
+    const revDocs = rev ? await Promise.all([
+        supabase.from('expenses').select('id, code').eq('id', rev.reversal_expense_id).maybeSingle(),
+        supabase.from('journal_entries').select('id, code').eq('id', rev.reversal_journal_entry_id).maybeSingle(),
+    ]) : null
+    const revExp = revDocs ? mustOne(revDocs[0], 'expenses') as { id: string; code: string } | null : null
+    const revJe = revDocs ? mustOne(revDocs[1], 'journal_entries') as { id: string; code: string } | null : null
     const runIds = lines.map((l) => l.run_id)
     const runs = runIds.length ? mustRows(await supabase.from('processing_runs_masked').select('id, code').in('id', runIds), 'processing_runs_masked') as { id: string; code: string }[] : []
     const runCode = new Map(runs.map((r) => [r.id, r.code]))
@@ -142,7 +161,29 @@ export default async function ElectricityAllocationPage({ params, searchParams }
                     rows={lineRows}
                     empty={t('energy.noRunsCovered')}
                 />
-                <p className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{t('energy.noReversal')}</p>
+            </section>
+
+            <section className="mt-6" data-section="allocation-reversal">
+                <h2 className="mb-2">{t('energy.reversalTitle')}</h2>
+                {rev
+                    ? <div data-allocation-reversed="1">
+                        <p className="mb-2 text-sm">{t('energy.reversedNote')}</p>
+                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                            <dt className="text-[color:var(--brand-muted-text)]">{t('energy.reversalDate')}</dt><dd>{formatDate(rev.reversal_date, locale)} · {formatAuditStamp(rev.created_at)}</dd>
+                            <dt className="text-[color:var(--brand-muted-text)]">{t('energy.reversalReason')}</dt><dd className="break-words">{rev.reason}</dd>
+                            <dt className="text-[color:var(--brand-muted-text)]">{t('energy.reversalExpense')}</dt>
+                            <dd>{revExp ? <Link href={`/finance/expenses/${revExp.id}`} className="app-link hover:underline">{revExp.code}</Link> : '—'}
+                                {' · '}{revJe ? <Link href={`/finance/journal/${revJe.id}`} className="app-link hover:underline">{revJe.code}</Link> : '—'}</dd>
+                            <dt className="text-[color:var(--brand-muted-text)]">{t('energy.reversalPayment')}</dt>
+                            <dd>{rev.payment_status === 'paid' ? t('energy.reversalToBank', { bank: rev.bank_account_code ?? '' }) : t('energy.reversalToPayables')} · {money(rev.bill_amount)}</dd>
+                            <dt className="text-[color:var(--brand-muted-text)]">{t('energy.reversalLines')}</dt><dd>{rev.actual_line_count} · {money(rev.actual_line_amount)}</dd>
+                            <dt className="text-[color:var(--brand-muted-text)]">{t('energy.reversalEstimates')}</dt><dd>{rev.restored_estimate_count} · {money(rev.restored_estimate_amount)}</dd>
+                        </dl>
+                    </div>
+                    : <div>
+                        <p className="mb-2 text-sm text-[color:var(--brand-muted-text)]">{t('energy.reverseIntro')}</p>
+                        <ReverseAllocationControl id={id} code={exp?.code ?? a.invoice_ref} canEdit={canEdit} />
+                    </div>}
             </section>
 
             <AuditTrail subject="electricity_allocation" id={id} show={trailCount((await searchParams).trail)} />

@@ -270,6 +270,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.electri
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.electricity_allocation_lines
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.electricity_allocation_reversals
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.electricity_allocation_reversals
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.electricity_allocations
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.electricity_allocations

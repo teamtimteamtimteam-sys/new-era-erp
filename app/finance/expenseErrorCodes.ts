@@ -28,6 +28,8 @@ const EXPENSE_ERROR_CODES = new Set([
     'ASSET_IN_SERVICE_BEFORE_ACQUISITION', 'EXPENSE_HAS_ASSET',
     // MES-5a-2(2026-10-08):一次电费分摊的费用单不许单独冲(reverse_expense)
     'EXPENSE_IS_ELECTRICITY_ALLOCATION',
+    // MES-5b-2(Step 0 Q21 · Q24 · Q26):经付款结过 / 冲抵过预付款的拒;月结冲抵的那一炉此后被电费单覆盖了拒;结算戳只经财务函数改
+    'EXPENSE_HAS_SETTLEMENT', 'EXPENSE_HAS_PREPAYMENT_APPLIED', 'RELIEF_ESTIMATE_NOW_ALLOCATED', 'COST_ENTRY_SETTLEMENT_THROUGH_FUNCTION_ONLY',
     // EQP-1b-ii:支出挂上采购单行之后新出现的具名拒绝。
     // 三条单据守卫(PO_*)与 apply_prepayment 同码同义 —— 同一件事在两条路上
     // 说同一句话,不为了"这是费用侧"另起一套名字。

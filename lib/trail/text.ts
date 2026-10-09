@@ -526,6 +526,7 @@ export const TRAIL_TEXT = {
     // MES-5a-2:一张电费单的分摊 · 分给一炉的那一份
     'ea.posted': 'Electricity bill allocated',
     'ea.runShare': 'Electricity share allocated',
+    'ea.reversed': 'Electricity bill reversed',
     'dev.calibrationVoided': 'Calibration voided',
     'wb.opened': 'Ticket opened',
     'wb.completed': 'Ticket completed',

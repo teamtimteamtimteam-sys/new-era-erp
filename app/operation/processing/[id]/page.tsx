@@ -407,17 +407,18 @@ export default async function ProcessingDetailPage({
         : null
     const splitOrigin = op?.started_from_run_page ? await loadSplitOrigin(supabase, id) : null
     // ── MES-5a-2(Step 0 Q21–Q23):这一炉的电 —— 自己记的电量优先,没记才用电费单分到的;每吨;放电回收另列 ──────────
-    const [energyRes, lineRes] = await Promise.all([
-        supabase.from('processing_run_energy')
-            .select('own_kwh, allocated_kwh, allocation_basis, allocation_id, energy_kwh, energy_source, kwh_per_tonne, recovered_kwh')
-            .eq('run_id', id).maybeSingle(),
-        supabase.from('electricity_allocation_lines_masked').select('amount').eq('run_id', id).maybeSingle(),
-    ])
+    // ★ MES-5b-2(Step 0 Q23):一炉的分摊撤回之后可以再分一次,于是一炉可以有两行分摊行 —— 金额只取视图认的那一张(没撤回的)
+    const energyRes = await supabase.from('processing_run_energy')
+        .select('own_kwh, allocated_kwh, allocation_basis, allocation_id, energy_kwh, energy_source, kwh_per_tonne, recovered_kwh')
+        .eq('run_id', id).maybeSingle()
     const er = mustOne(energyRes, 'processing_run_energy') as {
         own_kwh: number | null; allocated_kwh: number | null; allocation_basis: string | null; allocation_id: string | null
         energy_kwh: number | null; energy_source: string | null; kwh_per_tonne: number | null; recovered_kwh: number | null
     } | null
-    const lineAmount = (mustOne(lineRes, 'electricity_allocation_lines_masked') as { amount: number | null } | null)?.amount ?? null
+    const lineAmount = er?.allocation_id
+        ? (mustOne(await supabase.from('electricity_allocation_lines_masked').select('amount').eq('run_id', id).eq('allocation_id', er.allocation_id)
+            .maybeSingle(), 'electricity_allocation_lines_masked') as { amount: number | null } | null)?.amount ?? null
+        : null
     const allocHead = er?.allocation_id
         ? mustOne(await supabase.from('electricity_allocations_masked').select('invoice_ref, period_from, period_to')
             .eq('id', er.allocation_id).maybeSingle(), 'electricity_allocations_masked') as { invoice_ref: string; period_from: string; period_to: string } | null
