@@ -10587,6 +10587,9 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 
 ### MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED · admin 持不持 `module.tasks.view_all`:常设裁定没有说,MES-5b-1 的委托书说"每一个码"(MES-5b-1 close-out 第 1.2 条 c,2026-10-09)
 
+★ **已裁(Tim,MES-5b-2 close-out + MES-5b-3 委托书第 1.2 条,2026-10-09):admin 持 `module.tasks.view_all`** —— admin 持【每一个】码,没有例外。
+落地在 MES-5b-3 的那一支迁移里(线上 admin 角色补一行授权 + 引导的 admin 去掉那一句排除),这一条在那一刀关闭。
+
 **是什么:** 常设裁定(`docs/role-matrix.md:208`,Tim 2026-09-24)的原文是"`admin` 角色**保留它全部的码,并拿到每一个新码**",标题"admin 角色持【每一个】码";
 同一格里那句"唯一例外,照直记:`module.tasks.view_all` …… admin 从来没有 …… 要不要加,是 Tim 的一句话"是实施者(ROLE-1 Batch 2b)照直记下的
 **事实与一个开着的问题**,不是 Tim 裁的例外。MES-5b-1 的委托书(Q31)写的是"引导的 admin 角色持**每一个**权限码,与 admin 持每一个码的常设裁定一致";
@@ -10609,7 +10612,10 @@ MES-5b-1 建的是 **74 / 75** —— 除了 `module.tasks.view_all`(`db/tables/
 按名拒 `COST_ENTRY_SETTLEMENT_THROUGH_FUNCTION_ONLY|remitted|relieved`;连属主也一样。fixture 258 GUARD 钉着(含"一支财务函数跑完标记不留下来"那一格),
 每一支函数去掉标记各有一格注入。
 
-### MES5B2-PREPAYMENT-APPLIED-EXPENSE-NOT-REVERSIBLE · 冲抵过预付款的费用单冲不掉(MES-5b-2 的决定,2026-10-09)
+### MES5B2-PREPAYMENT-APPLIED-EXPENSE-NOT-REVERSIBLE · 冲抵过预付款的费用单冲不掉(MES-5b-2 的决定,2026-10-09)—— ★ **已裁:Tim 收下这条作为裁定,不是开着的条目(MES-5b-2 close-out,2026-10-09)**
+
+**裁定(Tim,MES-5b-2 close-out + MES-5b-3 委托书第 1.2 条,2026-10-09):** 冲抵过预付款的费用单按名拒冲销(`EXPENSE_HAS_PREPAYMENT_APPLIED`,
+改正走手工分录申请)—— 这是一条**裁定**,不是一个待修的缺口。下面的"删除条件"因此不再是一张待办:它只在有人另立一刀去建"撤回预付款冲抵"时才重新打开。
 
 **是什么:** Step 0 Q24 让经付款结过的费用单按名拒(先冲付款)。预付款冲抵是同一个形状 —— `ap_open_items` 把它算作已结,冲掉费用单而留着冲抵,
 清单与 2000 就差那一笔(fixture 258 的注入量过:放过去时 unexplained 当场不为 0)。而**一次预付款冲抵没有撤回的路**(`prepayment_applications` 不可变),

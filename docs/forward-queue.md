@@ -618,6 +618,31 @@
 >    七个真账号一个都没用;每一步之后对账两侧 0.00);前后读数:除了冒烟记录在案的 COD 轮换,每一张在册表逐字不变;七个账号与角色不变,
 >    `require_calibrated_since` NULL,对账两侧 0.00。逐角色读数表、页面清单、开场读数与未经询问的决定在 `docs/handbacks/MES-5b-2.md`。
 >    **下一刀 MES-5b-3 · Blending**(将来那条线 —— Tim Q16:今天这条线不配料)。见下面「⬜ ★ MES 组」第 8c 行。
+>    ★ **部署:Tim 在 Vercel 上确认 `68aa5277` 已部署(MES-5b-2 close-out + MES-5b-3 委托书,2026-10-09)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-09 14:48:26 CST**(测量:`db/migration-windows.tsv`,`2026-10-09-mes5b2-reversals.sql`)·
+>    终点下界 **2026-10-09 15:45:02 CST**(测量:推送把 `origin/main` 移到 `68aa5277`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`68aa5277 … {2026-10-09 15:45:02 +0800}: update by push`)·
+>    终点上界 **2026-10-09 15:56:43 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 56 min 36 s,至多 1 h 08 min 17 s。** 窗口里坏掉的(**推导**,MES-5b-2 交回 §6.4,没有在线上量):旧代码自己的调用签名不变;
+>    旧费用页冲销一张月结冲抵时同时放回它的估计(更好,不坏);经付款结过 / 冲抵过预付款的冲销按名拒(旧应用印兜底句);结算戳的直连改被拒(旧应用不发);
+>    线上没有电费分摊,旧电费页没有撤回钮也无妨。
+>    close-out 的只读读数(2026-10-09 16:08 CST,`postgres`,基表与目录;`docs/surveys/MES-5b/mes5b2-closeout-readings.sql`,`READ_OWN_EXIT=0`):
+>    电费分摊 **0** · 撤回 0 · 已冲销的费用单 0 · 窗口开始以来新建的费用单 0 · 窗口开始以来盖戳的成本行 0 · `require_calibrated_since` NULL ·
+>    审批开 · 七个账号、0 个停用 —— 窗口里没有人用过这一刀的新东西。
+>    ★ **close-out 的核对(委托书第 1.3 条 a–g):a · b · c · d · e 逐项过;f 在已部署的应用上量得到的都过,委托书 f 的两条前提量下来不成立
+>    (都不是这一刀建的东西坏了,所以第 2 步照常开始 —— 委托书第 1.5 条);g 列出。**
+>    **a** V37 在工序页自己的审计记录上(`trail_subject_members` 成员 5,线上同一行;fixture 258 LOG 与它的注入格);措辞臂 ㉔ 今天在 HEAD 上绿 0 / 注入 1。
+>    **b** 过账也要 `module.finance.view`(函数 `:44-45`,线上同;258 PERM 与注入格)。**c** 偏差视图只算 posted 的冲抵(`:42`,线上同;258 VAR);
+>    冲抵费用单的币种读 `base_currency_code()`(线上函数体里没有 SGD 字面量;258 CCY)。**d** 258 REPOST:撤回之后同一段时间再过一张。
+>    **e** 三条已改正 / 已关闭。**f** 以 admin · finance · warehouse 三个真角色的一次性克隆从【已部署】的应用取页并在浏览器里按开冲销对话框(只取消、从不确认):
+>    admin 与 finance 在普通费用单与月结冲抵上都按得下去,对话框点出单号,冲抵那一张说出放回几条估计;warehouse 两页都在门口被拒、页面里没有冲销钮。
+>    **委托书的两条前提不成立:**① 线上 **0** 张电费分摊,分摊页在已部署的应用上无从渲染(一个不存在的 id:admin / finance 过门之后 404,
+>    warehouse 在门口被拒);那颗带理由的撤回钮 MES-5b-2 经真页面的草稿副本量过(交回 §5 第 10 行)。② **费用单的冲销从来没有理由栏** ——
+>    `reverse_expense` 不收理由(Q21 · Q24 没有要),只有电费单的撤回要理由(Q22);已部署的对话框量下来同样没有。要给每一次费用冲销加理由是一条新裁定。
+>    **g** 交回 §7 的 22 条决定逐条列出。逐项证据在 `docs/surveys/MES-5b/MES-5b-2-CLOSEOUT.md`。
+>    ★ **Tim 的两条裁定(同一份委托书)**:`MES5B2-PREPAYMENT-APPLIED-EXPENSE-NOT-REVERSIBLE` 作为裁定收下,不是开着的条目;
+>    `MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED` —— admin 持 `module.tasks.view_all`,在 MES-5b-3 的迁移里落地(线上 admin 角色与引导)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;

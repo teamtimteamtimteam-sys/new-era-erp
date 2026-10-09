@@ -223,6 +223,8 @@ went first and the deploy follows the push.
 2. **A prepayment-applied expense is refused too** (`EXPENSE_HAS_PREPAYMENT_APPLIED`). Same AP = ledger break as a payment (measured by an
    injection), and an application cannot be undone, so the sentence routes to a manual journal request. Registered
    `MES5B2-PREPAYMENT-APPLIED-EXPENSE-NOT-REVERSIBLE` (live: `EXP-2026-0006` becomes non-reversible).
+   ★ **Ruled (Tim, MES-5b-2 close-out + MES-5b-3 brief, 2026-10-09): accepted as a ruling, not an open item** — recorded in
+   `docs/known-issues.md` under the same name.
 3. **Part-settled counts as settled** (any posted payment allocation > 0), not only fully paid.
 4. **The settlement guard also covers inserts.** A cost line born with a stamp is refused unless the finance context is present (only
    `post_electricity_allocation` writes one).
