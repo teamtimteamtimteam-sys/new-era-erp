@@ -10585,7 +10585,12 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 **删除条件:** 下一支替换 `trail_subject_members` 的迁移(MES-5b-2 会动审计主语)把 `operation_type_output_forms` 挂到 `operation_type` 主语下,
 措辞臂 ㉓ 加一句"在工序页上"的样例。
 
-### MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED · admin 持不持 `module.tasks.view_all`:常设裁定没有说,MES-5b-1 的委托书说"每一个码"(MES-5b-1 close-out 第 1.2 条 c,2026-10-09)
+### ~~MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED · admin 持不持 `module.tasks.view_all`:常设裁定没有说,MES-5b-1 的委托书说"每一个码"(MES-5b-1 close-out 第 1.2 条 c,2026-10-09)~~ —— ✅ **关闭于 MES-5b-3(`v1.4.47`,2026-10-09)**
+
+**怎么关的:** Tim 裁定 admin 持 `module.tasks.view_all`(admin 持【每一个】码,没有例外)。MES-5b-3 的迁移给线上的 admin 角色补了那一行(本刀唯一的一处授权改动;迁移的自证断言授权恰好多了 `admin:module.tasks.view_all` 一行、admin 持 75 / 75);引导的 admin 去掉了那一句排除(`db/tables/role_permissions.sql`),fixture 257 FCHECK 改成断言"每一个码",fixture 259 ADMIN 断言引导的 admin 持每一个码、并且每一个码经 `set_role_permissions` 存得进去(动作码蕴含查看码照样成立);`docs/role-matrix.md` §13 那一格改成持每一个码。
+
+原文:
+
 
 ★ **已裁(Tim,MES-5b-2 close-out + MES-5b-3 委托书第 1.2 条,2026-10-09):admin 持 `module.tasks.view_all`** —— admin 持【每一个】码,没有例外。
 落地在 MES-5b-3 的那一支迁移里(线上 admin 角色补一行授权 + 引导的 admin 去掉那一句排除),这一条在那一刀关闭。

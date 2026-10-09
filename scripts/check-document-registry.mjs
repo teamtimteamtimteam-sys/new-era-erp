@@ -127,8 +127,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 //   electricity_allocation_lines)。都不带 code 列(分摊的编号是它那张费用单的 EXP-…),所以 EXPECTED_CODE_TABLES 不变。
 // MES-5b-2(2026-10-09):282 → 283。一张新表(electricity_allocation_reversals —— 一张电费单的撤回)。不带 code 列
 //   (它的编号是冲销那张费用单的 EXP-…),所以 EXPECTED_CODE_TABLES 不变。
-const EXPECTED_TABLES = 283   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 86
+// MES-5b-3(2026-10-09):283 → 286。三张配料的表(blending_plans · blending_plan_targets · blending_plan_lines)。一张带 code 列:
+//   blending_plans(BLD,登记进 document_types),所以 EXPECTED_CODE_TABLES 86 → 87。
+const EXPECTED_TABLES = 286   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 87
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

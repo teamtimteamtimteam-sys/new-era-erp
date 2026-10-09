@@ -5,6 +5,7 @@
 -- ★ MES-2(2026-10-06):42 → 43 —— 新增 weighbridge_ticket / WB(有洞,weighbridge_ticket_code_seq;铸码是
 --   generate_weighbridge_ticket_code 触发器,与 device 同形 nextval_year)。有洞的 10 → 11。新单据,锚里那一条就是它今天的前缀。
 --   它是新单据,没有"变换之前"的字面量可比;锚里那一条就是它今天的前缀。
+-- ★ MES-5b-3(2026-10-09):55 → 56 —— 新增 blending_plan / BLD(无洞,按年,next_blending_plan_code;与 WO 同形)。新单据,锚里那一条就是它今天的前缀。
 -- ★ MES-4b(2026-10-07):43 → 55 —— 新增 12 种产出批前缀(CPW · APW · CUF · ALF · SEP · DST · CEL · CSG · STR · HBB · CTS · ANS),
 --   表都是 output_batches、都有洞(各自一条 output_<前缀>_code_seq),由 generate_output_code 按物料的【形态】选(material_forms.output_document_key)。
 --   有洞的 11 → 23。新前缀的号从第一个起就是【五位】(形状 nextval_year5);OUT 照旧四位。它们是新单据,锚里那一条就是它们今天的前缀。
@@ -93,7 +94,8 @@ DECLARE
         ['output_separator','SEP'],        ['output_collected_dust','DST'],
         ['output_cell','CEL'],             ['output_casing','CSG'],
         ['output_structural_parts','STR'], ['output_harness_bms_busbar','HBB'],
-        ['output_cathode_sheet','CTS'],    ['output_anode_sheet','ANS']
+        ['output_cathode_sheet','CTS'],    ['output_anode_sheet','ANS'],
+        ['blending_plan','BLD']
     ];
 
     -- 铸码的【形状】—— 与 numbering 是两件事,不要合并。
@@ -131,10 +133,11 @@ DECLARE
         ['output_cathode_sheet','nextval_year5'],  ['output_anode_sheet','nextval_year5'],
         ['management_pack','count_month'], ['wht_remittance','count_month'],
         ['attendance_period','period_month'],
-        ['gst_period','period_quarter']
+        ['gst_period','period_quarter'],
+        ['blending_plan','seq_year']
     ];
 
-    -- 直接调用得了、而且【调用不留痕】的那 22 支:纯 SELECT + advisory lock。
+    -- 直接调用得了、而且【调用不留痕】的那 23 支(MES-5b-3 起;此前 22):纯 SELECT + advisory lock。
     CALLABLE constant text[][] := ARRAY[
         ['assay_result','next_assay_code'],
         ['collection_chase','next_chase_code'],
@@ -156,16 +159,17 @@ DECLARE
         ['customer_statement','next_statement_code'],
         ['traceability_report','next_traceability_report_code'],
         ['work_order','next_work_order_code'],
-        ['payment_request','next_payment_request_code']
+        ['payment_request','next_payment_request_code'],
+        ['blending_plan','next_blending_plan_code']
     ];
 BEGIN
     -- ══ 第 1 臂 · 登记表的形状 ══════════════════════════════════════════════
     SELECT count(*) INTO v_n FROM document_types;
-    IF v_n <> 55 THEN
-        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 55 行,实有 %', v_n;
+    IF v_n <> 56 THEN
+        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 56 行,实有 %', v_n;
     END IF;
     SELECT count(DISTINCT prefix) INTO v_n FROM document_types;
-    IF v_n <> 55 THEN
+    IF v_n <> 56 THEN
         RAISE EXCEPTION 'FIXTURE 100/1 失败:前缀不唯一(distinct %)', v_n;
     END IF;
     SELECT count(*) INTO v_n FROM document_types WHERE numbering = 'gapped';
@@ -196,8 +200,8 @@ BEGIN
                 ANCHOR[v_n][1], ANCHOR[v_n][2], v_actual;
         END IF;
     END LOOP;
-    IF array_length(ANCHOR, 1) <> 55 THEN
-        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 55', array_length(ANCHOR, 1);
+    IF array_length(ANCHOR, 1) <> 56 THEN
+        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 56', array_length(ANCHOR, 1);
     END IF;
     -- ★ 覆盖率本身是一条断言:登记表里若出现一个锚里没有的 key,这一臂必须红,
     --   而不是安静地不检查它。
@@ -267,11 +271,11 @@ BEGIN
             v_codes := v_codes || (k || ' → ' || v_expect);
         END;
     END LOOP;
-    IF array_length(v_codes, 1) <> 55 THEN
-        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 55', array_length(v_codes, 1);
+    IF array_length(v_codes, 1) <> 56 THEN
+        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 56', array_length(v_codes, 1);
     END IF;
 
-    -- ══ 第 4 臂 · 那 22 支【真的调用一遍】,与公式对上 ══════════════════════
+    -- ══ 第 4 臂 · 那 23 支【真的调用一遍】,与公式对上 ══════════════════════
     -- 纯 SELECT + advisory xact lock:调用不留痕,回滚干净。
     FOR v_n IN 1 .. array_length(CALLABLE, 1) LOOP
         DECLARE
@@ -348,8 +352,9 @@ BEGIN
     --   实测(2026-09-13,变换前后同一个数):30 支。少于 30 = 判据瞎了,不是变干净了。
     -- ★ PAY-REQ-1:30 → 31(next_payment_request_code)。
     -- ★ MES-5a-2:31 → 32(post_electricity_allocation —— 电费单的费用单编号,与 relieve_processing_accruals 同一套 EXP 取号,带 LIKE 过滤)。
-    IF v_n <> 32 THEN
-        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 32 支,这次只看见 % 支'
+    -- ★ MES-5b-3:32 → 33(next_blending_plan_code —— BLD 按年无洞,带 LIKE 过滤)。
+    IF v_n <> 33 THEN
+        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 33 支,这次只看见 % 支'
                         ' —— 判据瞎了,不是树干净了', v_n;
     END IF;
 
@@ -423,7 +428,7 @@ BEGIN
                         '要么列级遮蔽被撤了,要么这一臂看的是错的东西';
     END IF;
 
-    RAISE NOTICE 'FIXTURE 100 全部通过:55 个前缀逐个算出下一个号(其中 22 支真的调用过),前缀字面量种子外 0 处;match_columns 逐列 SELECT-granted。';
+    RAISE NOTICE 'FIXTURE 100 全部通过:56 个前缀逐个算出下一个号(其中 23 支真的调用过),前缀字面量种子外 0 处;match_columns 逐列 SELECT-granted。';
     RAISE NOTICE '  40 个号:%', array_to_string(v_codes, ' · ');
 END
 $fixture$;

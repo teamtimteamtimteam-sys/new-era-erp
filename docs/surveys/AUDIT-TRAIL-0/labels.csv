@@ -3490,3 +3490,37 @@ meter_readings,recorded_at,audit_std,hide: the trail entry already says who and 
 meter_readings,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
 meter_readings,corrects_id,technical,hide: the reading it corrects (the block says Corrected),,,Corrects,,,bigint
 meter_readings,correction_reason,text,verbatim,,,Reason for the correction,,,text
+blending_plans,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+blending_plans,code,text,verbatim,,,Blending plan number,,,text
+blending_plans,status,enum,ENUM_OVERRIDES blending_plans#status,,,Status,,,text
+blending_plans,output_material_id,fk_document,"materials.code (document number, prefix MAT)",inbound.colMaterial,Material,,text-only,,uuid
+blending_plans,source_contract_id,fk_document,"contracts.code (document number, prefix CON)",contracts.colContract,Contract,,text-only,,uuid
+blending_plans,notes,text,verbatim,,,Notes,,,text
+blending_plans,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+blending_plans,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+blending_plans,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+blending_plans,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+blending_plans,released_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Released,,,timestamp with time zone
+blending_plans,released_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Released by,,,uuid
+blending_plans,executed_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Executed,,,timestamp with time zone
+blending_plans,executed_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Executed by,,,uuid
+blending_plans,run_id,fk_document,"processing_runs.code (document number, prefix PROC)",,,Blending run,,,uuid
+blending_plans,cancelled_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Cancelled,,,timestamp with time zone
+blending_plans,cancelled_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Cancelled by,,,uuid
+blending_plans,cancel_reason,text,verbatim,,,Cancel reason,,,text
+blending_plan_targets,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+blending_plan_targets,plan_id,technical,hide: the plan it belongs to (the trail lives on that plan),,,Blending plan,,,uuid
+blending_plan_targets,metal,dict,substances.name_en (via code),assay.colMetal,Metal,,text-only,,text
+blending_plan_targets,min_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Min %,,,numeric
+blending_plan_targets,max_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Max %,,,numeric
+blending_plan_targets,source,enum,ENUM_OVERRIDES blending_plan_targets#source,,,Source,,,text
+blending_plan_targets,source_grade_spec_id,technical,hide: the contract grade spec it was copied from (the plan names the contract),,,Grade spec,,,uuid
+blending_plan_targets,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+blending_plan_targets,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+blending_plan_lines,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+blending_plan_lines,plan_id,technical,hide: the plan it belongs to (the trail lives on that plan),,,Blending plan,,,uuid
+blending_plan_lines,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,Inbound batch,,,uuid
+blending_plan_lines,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+blending_plan_lines,planned_kg,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Planned kg,,,numeric
+blending_plan_lines,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+blending_plan_lines,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid

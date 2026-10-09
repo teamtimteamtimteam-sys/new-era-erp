@@ -175,4 +175,6 @@ VALUES
     ('output_structural_parts', 'STR', 'output_batches', 'gapped', 'output_str_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
     ('output_harness_bms_busbar', 'HBB', 'output_batches', 'gapped', 'output_hbb_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
     ('output_cathode_sheet', 'CTS', 'output_batches', 'gapped', 'output_cts_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
-    ('output_anode_sheet', 'ANS', 'output_batches', 'gapped', 'output_ans_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]);
+    ('output_anode_sheet', 'ANS', 'output_batches', 'gapped', 'output_ans_code_seq', '/output', 'list_q', 'notes', ARRAY['purity', 'notes']::text[], ARRAY['module.output.view']::text[]),
+    -- MES-5b-3(2026-10-09,MES-5b Step 0 Q17):配料计划 —— 按年、无洞(next_blending_plan_code,与 WO 同形),读码与表的读策略同一个(module.processing.view)
+    ('blending_plan', 'BLD', 'blending_plans', 'gapless', NULL, '/operation/blending', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.processing.view']::text[]);

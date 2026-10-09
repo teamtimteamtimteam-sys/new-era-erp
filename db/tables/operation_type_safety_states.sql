@@ -72,7 +72,10 @@ INSERT INTO public.operation_type_safety_states (operation_type_code, safety_sta
     -- 已放电并核实的料也受理(不解决):fixture 178 D3 钉着的那个重合 —— "一般可投的状态被【每一道】启用的工序受理" —— 不因多一道工序而破。
     --   拆分本身还要求点名的模组最新一条是"失败 · 隔离",一批核实了的料没有这样的模组,拆分函数照样会拒;这一行只是不让两条规则分家。
     ('discharge_quarantine_split', 'discharged_verified', false,
-     '【MES-5a-1】受理、不解决 —— 保住 fixture 178 D3 的重合(一般可投的状态被每一道启用的工序受理)。拆分函数另外要求点名的模组是"失败 · 隔离"。');
+     '【MES-5a-1】受理、不解决 —— 保住 fixture 178 D3 的重合(一般可投的状态被每一道启用的工序受理)。拆分函数另外要求点名的模组是"失败 · 隔离"。'),
+    -- 【MES-5b-3】配料只收"已放电并核验"的粉料 —— 也保住 fixture 178 D3 的重合。别的状态(带电、破损、进水、鼓包)不是粉料该有的,一律不收。
+    ('blending', 'discharged_verified', false,
+     '【MES-5b-3】受理、不解决。粉料混合不改变安全状态;混出来那一批的状态照产出批的规矩另记。');
 
 ALTER TABLE public.operation_type_safety_states ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_type_safety_states select all" ON public.operation_type_safety_states

@@ -1132,6 +1132,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     electricity_allocation: ['electricity_allocations', 'electricity_allocation_lines', 'electricity_allocation_reversals'],
     electricity_settings: ['electricity_settings'],
     ingest_settings: ['ingest_settings'],
+    // MES-5b-3(2026-10-09):一份配料计划 · 它的目标品位 · 它的候选批次
+    blending_plan: ['blending_plans', 'blending_plan_targets', 'blending_plan_lines'],
     // MES-4a(2026-10-07):一道工序的配置(字段 · 机器 · 配方 · 版本)· 两本新字典
     // MES-5b-2(2026-10-09,并入 MES5B1-V37-NOT-ON-OPERATION-TRAIL):+ 每一种产出形态的预期得率(V37)
     operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions',

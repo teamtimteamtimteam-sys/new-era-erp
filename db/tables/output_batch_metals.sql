@@ -94,3 +94,9 @@ CREATE TRIGGER enforce_write_permission
 CREATE TRIGGER trg_output_batch_metals_assay_source
     BEFORE INSERT OR UPDATE ON public.output_batch_metals
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_metals_assay_source();
+
+-- MES-5b-3(2026-10-09,MES-5b Step 0 Q18):混出来那一批(一炉 blending 的产出)的含量只来自化验 —— 人填的一行按名拒
+-- (BLEND_CONTENT_FROM_ASSAY_ONLY)。
+CREATE TRIGGER trg_output_batch_metals_blended_from_assay
+    BEFORE INSERT OR UPDATE ON public.output_batch_metals
+    FOR EACH ROW EXECUTE FUNCTION public.guard_blended_batch_metals_from_assay();

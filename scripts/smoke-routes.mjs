@@ -209,6 +209,9 @@ const ID_SOURCES = {
         // MES-5a-2(2026-10-08):电费单的分摊。线上零行(MES-5a-2 的线上验证全部跑在回滚的事务里;本刀在线上不录任何账单),
         //   故同时列在 EXPECTED_SKIPS 里 —— 过账第一张电费单的那天,那条断言会响。
         '/finance/electricity': 'electricity_allocations',
+        // MES-5b-3(2026-10-09):配料计划。线上零行(本刀的线上验证全部在回滚的事务里跑;Tim Q16:今天这条线不配料),
+        //   故同时列在 EXPECTED_SKIPS 里 —— 建出第一份计划的那天,那条断言会响。
+        '/operation/blending': 'blending_plans',
         '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
@@ -685,6 +688,8 @@ const MUST_CONTAIN = {
     //   分摊详情页线上零张(在上面的跳过清单里),有数据那天它照下一条一起受检。
     '/finance/electricity': [{ trail: 'audit-trail', emptyOk: true, why: '共用池规则(V25)的审计记录(MES-5a-2)' }],
     '/finance/electricity/[id]': [{ trail: 'audit-trail', why: '电费单分摊页底的审计记录(MES-5a-2)' }],
+    // MES-5b-3(2026-10-09):配料计划页底的审计记录 —— 线上零份(在跳过清单里),有数据那天它照这一条受检。
+    '/operation/blending/[id]': [{ trail: 'audit-trail', why: '配料计划页底的审计记录(MES-5b-3)' }],
     '/operation/devices': [{ trail: 'audit-trail', emptyOk: true, why: '采集上限的审计记录(MES-1 Q22,M5)' }],
     '/hr/attendance/[id]': [{ trail: 'audit-trail', why: '考勤期间页底的审计记录(Q12:之前那一段只剩最近一次)' }],
     '/hr/leave/types': [{ trail: 'audit-trail', why: '整张假别表一段(M11)' }],
@@ -1253,6 +1258,9 @@ const EXPECTED_SKIPS = new Set([
     // MES-5a-2(2026-10-08):线上 electricity_allocations 零行 —— 本刀的线上验证(预览、过账、外币被拒)全部在回滚的事务里跑。
     //   第一张真的电费单过账那天,这条断言会响,这一行随之删掉。
     '/finance/electricity/[id]',
+    // MES-5b-3(2026-10-09):线上 blending_plans 零行 —— 本刀的线上验证(建、放行、执行、化验对着目标)全部在回滚的事务里跑。
+    //   第一份真的配料计划建出来那天,这条断言会响,这一行随之删掉。
+    '/operation/blending/[id]',
     // ~~MES-1(2026-10-06):线上 devices 零行~~ —— 同一天由 MES-1 的线上验证登记了探针网关 ZZ-PROBE-GW-…(DEV-2026-0001,
     //   停用,行留着当测试数据),这一条于是摘掉:/operation/devices/[id] 从此每一次冒烟都真的打开一台设备。
     // AUDIT-TRAIL-1b-1(Q23):线上 shift_handovers 零行(车间还没有人交接)。第一张交接班提交的那天,这条断言会响。

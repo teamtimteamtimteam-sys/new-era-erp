@@ -62,12 +62,13 @@ CREATE POLICY "role_permissions delete by permission"
 --   MES-5b Step 0 §1.5 量到它的直接后果:引导的 admin 持 action.manage_devices 与 action.confirm_capture 而不持 module.processing.view,
 --   一份全新安装会在第一天就违反"动作码与它那一页的查看码一起授"。所以现在是【目录里的每一个码】(SELECT 自 permissions,
 --   以后每一个新码自动在内 —— 不必再有人记得把它补进这一行),
---   ★ 唯一例外,照常设裁定的原文:`module.tasks.view_all`(读【别人的私人任务】)admin 从来没有 —— 那条裁定说的是「保留 + 每一个新码」,
---   而它不在 Tim 2026-09-23 还回去的 45 个码里;要不要加是 Tim 的一句话(docs/role-matrix.md §13)。线上 admin 今天持 74 / 75,本行与它逐码相同。
---   ★ 线上的角色本刀一个都不动:这是【全新安装的起点】。
+--   ~~★ 唯一例外,照常设裁定的原文:`module.tasks.view_all`(读【别人的私人任务】)admin 从来没有 —— 那条裁定说的是「保留 + 每一个新码」,
+--   而它不在 Tim 2026-09-23 还回去的 45 个码里;要不要加是 Tim 的一句话(docs/role-matrix.md §13)。线上 admin 今天持 74 / 75,本行与它逐码相同。~~
+--   ★★ MES-5b-3(2026-10-09,Tim 的裁定,关掉 MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED):【admin 也持 module.tasks.view_all】—— admin 持目录里的
+--   每一个码,没有例外。同一支迁移给线上的 admin 角色补了那一行(那是本刀唯一的一处授权改动);引导与线上从此逐码相同:75 / 75。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
- WHERE r.code = 'admin' AND p.code <> 'module.tasks.view_all';
+ WHERE r.code = 'admin';
 
 -- gm:看得见整个生意,包括成本与利润;【但不操作任何东西】。
 -- ★★ APR-ROUTE-1 Batch B(Tim 裁定,2026-09-23):gm 变成【只读】。

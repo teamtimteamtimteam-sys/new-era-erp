@@ -5990,6 +5990,141 @@ if (FAULT === 'wording-drift-mes5b2') dict.text = { ...dict.text, 'ea.reversed':
     if (FAULT === 'wording-drift-mes5b2' && !problems.gold24.length) problems.gold24.push('(注入 wording-drift-mes5b2 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉕ MES-5b-3:一份配料计划(在它自己的页上)—— 建出来 · 一条目标 · 一行批次 · 放行 · 执行 · 取消(MES-5b Step 0 Q32 · Q35)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-5b-3.md 列出。
+//   配料没有自己的造句族:三张表都走通用的那一族(「<表名> created / edited」),表名、列名与两列的取值来自目录(labels.csv · ENUM_OVERRIDES)。
+//   注入 wording-drift-mes5b3 → 这一臂必须红。
+problems.gold25 = []
+if (FAULT === 'wording-drift-mes5b3') dict.tables = { ...dict.tables, blending_plans: ['mixing plan', ...(dict.tables.blending_plans ?? []).slice(1)] }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const plan = id('plan'), mat = id('mat'), ib = id('ib'), run = id('run')
+    const pref = { output_material_id: { [mat]: { label: 'MAT-2026-0042' } } }
+    add('plan · created', { subject: 'blending_plan', recordId: plan, currency: null },
+        [{ table: 'blending_plans', op: 'INSERT', key: { id: plan }, refs: pref,
+           new: { id: plan, code: 'BLD-2026-0001', status: 'draft', output_material_id: mat, source_contract_id: null, notes: 'For the March offtake',
+                  created_at: '2026-10-09T06:00:00Z', created_by: id('u'), updated_at: '2026-10-09T06:00:00Z', updated_by: id('u'),
+                  released_at: null, released_by: null, executed_at: null, executed_by: null, run_id: null,
+                  cancelled_at: null, cancelled_by: null, cancel_reason: null } }])
+    add('plan · a target entered by hand', { subject: 'blending_plan', recordId: plan, currency: null },
+        [{ table: 'blending_plan_targets', op: 'INSERT', key: { id: id('t') }, refs: { metal: { ni: { label: 'Nickel' } } },
+           new: { id: id('t'), plan_id: plan, metal: 'ni', min_pct: 18, max_pct: 22, source: 'manual', source_grade_spec_id: null,
+                  created_at: '2026-10-09T06:00:00Z', created_by: id('u') } }])
+    add('plan · a candidate batch', { subject: 'blending_plan', recordId: plan, currency: null },
+        [{ table: 'blending_plan_lines', op: 'INSERT', key: { id: id('l') }, refs: { inbound_batch_id: { [ib]: { label: 'IN-2026-0501' } } },
+           new: { id: id('l'), plan_id: plan, inbound_batch_id: ib, output_batch_id: null, planned_kg: 300,
+                  created_at: '2026-10-09T06:00:00Z', created_by: id('u') } }])
+    add('plan · released', { subject: 'blending_plan', recordId: plan, currency: null },
+        [{ table: 'blending_plans', op: 'UPDATE', key: { id: plan }, cols: ['status', 'released_at', 'released_by', 'updated_at', 'updated_by'],
+           refs: { released_by: { [id('fin')]: { label: 'Choo Er' } } },
+           old: { status: 'draft', released_at: null, released_by: null }, new: { status: 'released', released_at: '2026-10-09T07:00:00Z', released_by: id('fin') } }])
+    add('plan · executed', { subject: 'blending_plan', recordId: plan, currency: null },
+        [{ table: 'blending_plans', op: 'UPDATE', key: { id: plan }, cols: ['status', 'executed_at', 'executed_by', 'run_id', 'updated_at', 'updated_by'],
+           refs: { run_id: { [run]: { label: 'PROC-2026-0750' } }, executed_by: { [id('wh')]: { label: 'Fu Sheng' } } },
+           old: { status: 'released', executed_at: null, executed_by: null, run_id: null },
+           new: { status: 'executed', executed_at: '2026-10-09T08:00:00Z', executed_by: id('wh'), run_id: run } }])
+    add('plan · cancelled', { subject: 'blending_plan', recordId: plan, currency: null },
+        [{ table: 'blending_plans', op: 'UPDATE', key: { id: plan }, cols: ['status', 'cancelled_at', 'cancelled_by', 'cancel_reason', 'updated_at', 'updated_by'],
+           refs: { cancelled_by: { [id('wh')]: { label: 'Fu Sheng' } } },
+           old: { status: 'draft', cancelled_at: null, cancelled_by: null, cancel_reason: null },
+           new: { status: 'cancelled', cancelled_at: '2026-10-09T09:00:00Z', cancelled_by: id('wh'), cancel_reason: 'The offtake moved to next quarter' } }])
+    const WANT = {
+        "plan · created": {
+            "title": "Blending plan created",
+            "part": null,
+            "lines": [
+                "Blending plan number: BLD-2026-0001",
+                "Status: Draft",
+                "Material: MAT-2026-0042",
+                "Notes: For the March offtake"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "plan · a target entered by hand": {
+            "title": "Blending target created",
+            "part": null,
+            "lines": [
+                "Metal: Nickel",
+                "Min %: 18",
+                "Max %: 22",
+                "Source: Entered by hand"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "plan · a candidate batch": {
+            "title": "Blending line created",
+            "part": null,
+            "lines": [
+                "Inbound batch: IN-2026-0501",
+                "Planned kg: 300"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "plan · released": {
+            "title": "Blending plan edited",
+            "part": null,
+            "lines": [
+                "Status: Draft → Released",
+                "Released: (empty) → 09/10/2026 15:00",
+                "Released by: (empty) → Choo Er"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "plan · executed": {
+            "title": "Blending plan edited",
+            "part": null,
+            "lines": [
+                "Status: Released → Executed",
+                "Executed: (empty) → 09/10/2026 16:00",
+                "Executed by: (empty) → Fu Sheng",
+                "Blending run: (empty) → PROC-2026-0750"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        },
+        "plan · cancelled": {
+            "title": "Blending plan edited",
+            "part": null,
+            "lines": [
+                "Status: Draft → Cancelled",
+                "Cancelled: (empty) → 09/10/2026 17:00",
+                "Cancelled by: (empty) → Fu Sheng",
+                "Cancel reason: (empty) → The offtake moved to next quarter"
+            ],
+            "reason": null,
+            "who": "Fu Sheng"
+        }
+    }
+    const got25 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD25', order: 1, prelog: false, at: '2026-10-09T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold25.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD25')
+        if (mine.length !== 1) { problems.gold25.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got25[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold25.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold25.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold25.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold25.push(`㉕ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (process.env.TRAIL_GOLD25_PRINT) console.log(JSON.stringify(got25, null, 8))
+    if (FAULT === 'wording-drift-mes5b3' && !problems.gold25.length) problems.gold25.push('(注入 wording-drift-mes5b3 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -5997,7 +6132,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

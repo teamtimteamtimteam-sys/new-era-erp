@@ -468,6 +468,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   只读;读 module.processing.view(两张页读的外壳另认财务 / 库存查看码 —— /inventory 的合计与月末那一步靠它)。
     { href: '/operation/balance', navKey: 'processing.subnav.balance', modules: ['operation'], permission: P_PROCESSING },
     { href: '/operation/yield', navKey: 'processing.subnav.yield', modules: ['operation'], permission: P_PROCESSING },
+    // MES-5b-3(2026-10-09,Step 0 Q17–Q20,Tim):配料计划(将来那条线)—— 读 module.processing.view;建与改 action.wo_create,
+    //   放行 action.wo_release(建单人永远不能放行),执行 action.processing_commit(页内控件看得见、按不动、说出缺哪个码)。
+    { href: '/operation/blending', navKey: 'processing.subnav.blending', modules: ['operation'], permission: P_PROCESSING },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
@@ -1095,4 +1098,5 @@ export const FN = {
     /** MES-5b-1:月度物料平衡 · 质量得率。 */
     balance: fnByHref('/operation/balance'),
     yield: fnByHref('/operation/yield'),
+    blending: fnByHref('/operation/blending'),
 } as const

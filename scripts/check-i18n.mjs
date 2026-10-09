@@ -806,6 +806,17 @@ const MANIFEST = {
     // 一种改动类型,这条检查自动跟着变宽,而不是等屏幕上出现一个键名才有人发现。
     'processing.wo.status.':     { kind: 'enum', values: () => sqlEnum('db/tables/work_orders.sql', 'status') },
     'processing.wo.changeType.': { kind: 'enum', values: () => sqlEnum('db/tables/work_order_history.sql', 'change_type') },
+    // MES-5b-3(2026-10-09):配料计划。状态接表的 CHECK;旗与判词接视图里那两句 CASE;来源 = 目标的来源(CHECK)∪ 含量的出处
+    //   (assay / manual 是两张含量表的 CHECK,unknown 是 blending_plan_line_metals_all 给没记出处的旧进料行起的名字);拒绝接映射器的 Set。
+    'blending.status.':   { kind: 'enum', values: () => sqlEnum('db/tables/blending_plans.sql', 'status') },
+    'blending.flag.':     { kind: 'enum', values: () => sqlCaseAs('db/views/blending_plan_prediction.sql', 'flag') },
+    'blending.verdict.':  { kind: 'enum', values: () => sqlCaseAs('db/views/blending_plan_outcome.sql', 'verdict') },
+    'blending.source.':   { kind: 'enum', values: union(() => sqlEnum('db/tables/blending_plan_targets.sql', 'source'),
+                                                        () => sqlEnum('db/tables/output_batch_metals.sql', 'content_source'),
+                                                        () => ['unknown']) },
+    'blending.kind.':     { kind: 'enum', values: () => ['inbound', 'output'] },
+    'blending.basis.':    { kind: 'enum', values: () => ['as_received', 'dry'] },
+    'blending.errors.':   { kind: 'enum', values: () => tsSet('app/operation/blending/blendingErrorCodes.ts', 'BLENDING_ERROR_CODES') },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },
     'finance.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/payments.sql', 'direction') },

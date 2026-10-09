@@ -99,7 +99,10 @@ INSERT INTO public.operation_types (code, name_en, name_zh, kind_code, resulting
      '【MES-4a · 规格 §3.4】已开壳电芯 → 正极片 / 负极片 / 隔膜(三路分开称)。卷绕与叠片是两台设备。电解液在这一段挥发或回收 —— 它是一个损耗类别,不是产出形态。只受理已放电并核实的料。'),
     -- ── MES-5a-1(2026-10-08,规格 §3.1;MES-0 Q23;MES-5a Step 0 Q11,Tim):放电失败、处置为隔离的模组,拆成同一物料的另一批进隔离库位。
     ('discharge_quarantine_split', 'Quarantine split of failed modules', '失效模组拆去隔离', 'transforming', NULL, 8,
-     '【MES-5a-1 · 规格 §3.1 · MES-0 Q23】放电失败、处置为隔离的模组,从原批里拆出来:称它们的重量,原批消耗这么多,产出同一物料的一批,带"带电未放电",放进隔离库位。只从放电那一炉的页面上起(split_failed_modules_to_quarantine),不在新建加工单的选单里。');
+     '【MES-5a-1 · 规格 §3.1 · MES-0 Q23】放电失败、处置为隔离的模组,从原批里拆出来:称它们的重量,原批消耗这么多,产出同一物料的一批,带"带电未放电",放进隔离库位。只从放电那一炉的页面上起(split_failed_modules_to_quarantine),不在新建加工单的选单里。'),
+    -- ── MES-5b-3(2026-10-09,MES-0 功能 12 · Q58;MES-5b Step 0 Q16 · Q18,Tim):配料 —— 将来那条线(Q16:今天这条线不配料)。
+    ('blending', 'Blending', '配料', 'transforming', NULL, 9,
+     '【MES-5b-3 · MES-0 Q58】几批可售的粉料(黑粉 · 正极粉 · 负极粉)按一份配料计划混成一批,好对上一份合同的品位。只从配料计划的页面上起(execute_blending_plan,经 commit_processing_run 记这一炉),不在新建加工单的选单里;直接拿它记一炉按名拒(BLEND_RUN_FROM_PLAN_ONLY)。混出来那一批的含量只来自化验,不来自预测。');
 
 -- MES-4b(Step 0 Q5):分极片的两道工序要求投料带确定的电芯结构。是一个标志,不是函数里的一张码表。
 UPDATE public.operation_types SET requires_cell_construction = true WHERE code IN ('electrode_separation', 'electrode_line');
@@ -107,6 +110,8 @@ UPDATE public.operation_types SET requires_cell_construction = true WHERE code I
 -- MES-5a-1(Step 0 Q5 · Q11):深度放电由逐模组的结果核实(提交不再改状态);拆去隔离只从加工单页上起。
 UPDATE public.operation_types SET verifies_by_unit = true WHERE code = 'deep_discharge';
 UPDATE public.operation_types SET started_from_run_page = true WHERE code = 'discharge_quarantine_split';
+-- MES-5b-3(Step 0 Q18):配料同样不在新建加工单的选单里 —— 只从配料计划的页面上起。
+UPDATE public.operation_types SET started_from_run_page = true WHERE code = 'blending';
 
 -- MES-5b-1(2026-10-08,MES-5b Step 0 Q11,Tim):拆去隔离那一炉的物料平衡容差 = 0。【不是一个编出来的数】:这道工序把质量原样搬给子批
 --   (称出来的产出 = 原批消耗的那一份,split_failed_modules_to_quarantine 用同一个重量记两条腿),所以任何不为 0 的余数按定义就是错的。

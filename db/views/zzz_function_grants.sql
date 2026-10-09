@@ -696,3 +696,14 @@ REVOKE EXECUTE ON FUNCTION public.electricity_allocation_compute(date, date, num
 --   reverse_electricity_allocation【不收】:它是 DEFINER,自己查码,员工就是要调它。
 REVOKE EXECUTE ON FUNCTION public.reverse_expense_internal(uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_electricity_line_one_live_allocation() FROM authenticated;
+
+-- MES-5b-3(2026-10-09):一支【内层】与两支触发器函数。
+--   blending_plan_write_children:配料计划的判据与落库(create / amend_blending_plan 共用;INVOKER,在它们里面以属主身份跑)—— 它不查码;给了 authenticated
+--     就是一支绕开 action.wo_create、也绕开"只有草稿改得动"的写法。
+--   guard_blending_run_from_plan · guard_blended_batch_metals_from_assay:触发器函数(触发时不查 EXECUTE,收掉只是让它们不在 API 上;
+--     后一支是 DEFINER,更不该在 API 上)。
+--   create / amend / release / cancel / execute_blending_plan【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+--   next_blending_plan_code【不收】:与 next_work_order_code 一样,是一支只读的取号函数(读 document_types 与编号的最大值)。
+REVOKE EXECUTE ON FUNCTION public.blending_plan_write_children(uuid, uuid, uuid, jsonb, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_blending_run_from_plan() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_blended_batch_metals_from_assay() FROM authenticated;

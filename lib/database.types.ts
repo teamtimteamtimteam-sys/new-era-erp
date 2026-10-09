@@ -1296,6 +1296,418 @@ export type Database = {
         }
         Relationships: []
       }
+      blending_plan_lines: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string | null
+          output_batch_id: string | null
+          plan_id: string
+          planned_kg: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          output_batch_id?: string | null
+          plan_id: string
+          planned_kg: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          output_batch_id?: string | null
+          plan_id?: string
+          planned_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plan_outcome"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blending_plan_targets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          max_pct: number | null
+          metal: string
+          min_pct: number | null
+          plan_id: string
+          source: string
+          source_grade_spec_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_pct?: number | null
+          metal: string
+          min_pct?: number | null
+          plan_id: string
+          source: string
+          source_grade_spec_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_pct?: number | null
+          metal?: string
+          min_pct?: number | null
+          plan_id?: string
+          source?: string
+          source_grade_spec_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blending_plan_targets_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "blending_plan_targets_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plan_outcome"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_targets_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plan_targets_source_grade_spec_id_fkey"
+            columns: ["source_grade_spec_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_specs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blending_plans: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          executed_at: string | null
+          executed_by: string | null
+          id: string
+          notes: string | null
+          output_material_id: string
+          released_at: string | null
+          released_by: string | null
+          run_id: string | null
+          source_contract_id: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          output_material_id: string
+          released_at?: string | null
+          released_by?: string | null
+          run_id?: string | null
+          source_contract_id?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          output_material_id?: string
+          released_at?: string | null
+          released_by?: string | null
+          run_id?: string | null
+          source_contract_id?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blending_plans_output_material_id_fkey"
+            columns: ["output_material_id"]
+            isOneToOne: false
+            referencedRelation: "material_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_output_material_id_fkey"
+            columns: ["output_material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_output_material_id_fkey"
+            columns: ["output_material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_output_material_id_fkey"
+            columns: ["output_material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_source_contract_id_fkey"
+            columns: ["source_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_draft_changes: {
         Row: {
           confirmed_value: Json
@@ -27463,6 +27875,406 @@ export type Database = {
           },
         ]
       }
+      blending_plan_execution: {
+        Row: {
+          actual_kg: number | null
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          difference_kg: number | null
+          line_id: string | null
+          plan_id: string | null
+          planned_kg: number | null
+          run_code: string | null
+          run_id: string | null
+          run_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plan_outcome"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blending_plan_line_metals: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          content_pct: number | null
+          content_restricted: boolean | null
+          content_source: string | null
+          line_id: string | null
+          metal: string | null
+          plan_id: string | null
+          planned_kg: number | null
+          source_assay_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plan_outcome"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blending_plan_line_metals_all: {
+        Row: {
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          content_pct: number | null
+          content_source: string | null
+          line_id: string | null
+          metal: string | null
+          plan_id: string | null
+          planned_kg: number | null
+          source_assay_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plan_outcome"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "blending_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blending_plan_outcome: {
+        Row: {
+          assay_code: string | null
+          assay_date: string | null
+          assay_id: string | null
+          batch_code: string | null
+          batch_id: string | null
+          content_pct: number | null
+          content_restricted: boolean | null
+          max_pct: number | null
+          metal: string | null
+          min_pct: number | null
+          plan_id: string | null
+          run_id: string | null
+          run_status: string | null
+          verdict: string | null
+          weight_basis: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blending_plan_targets_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_run_yield_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+        ]
+      }
+      blending_plan_prediction: {
+        Row: {
+          content_restricted: boolean | null
+          flag: string | null
+          has_target: boolean | null
+          line_count: number | null
+          lines_from_assay: number | null
+          lines_manual: number | null
+          lines_measured: number | null
+          lines_source_unknown: number | null
+          max_pct: number | null
+          metal: string | null
+          min_pct: number | null
+          not_measured: boolean | null
+          plan_id: string | null
+          planned_kg: number | null
+          predicted_pct: number | null
+          target_source: string | null
+        }
+        Relationships: []
+      }
       collection_promise_status: {
         Row: {
           channel: string | null
@@ -39075,6 +39887,17 @@ export type Database = {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
       }
+      amend_blending_plan: {
+        Args: {
+          p_lines: Json
+          p_notes?: string
+          p_output_material_id: string
+          p_plan_id: string
+          p_source_contract_id?: string
+          p_targets?: Json
+        }
+        Returns: Json
+      }
       amend_purchase_order: {
         Args: {
           p_header?: Json
@@ -39461,6 +40284,16 @@ export type Database = {
         Args: { p_inbound_batch_id: string; p_output_batch_id: string }
         Returns: boolean
       }
+      blending_plan_write_children: {
+        Args: {
+          p_lines: Json
+          p_output_material_id: string
+          p_plan_id: string
+          p_source_contract_id: string
+          p_targets: Json
+        }
+        Returns: undefined
+      }
       calculate_leave_days: {
         Args: {
           p_end: string
@@ -39504,6 +40337,10 @@ export type Database = {
       can_edit_task: { Args: { p_task_id: string }; Returns: boolean }
       can_view_task: { Args: { p_task_id: string }; Returns: boolean }
       can_write_task: { Args: { p_task_id: string }; Returns: boolean }
+      cancel_blending_plan: {
+        Args: { p_plan_id: string; p_reason: string }
+        Returns: Json
+      }
       cancel_leave_request: {
         Args: { p_reason?: string; p_request_id: string }
         Returns: Json
@@ -39877,6 +40714,16 @@ export type Database = {
         Returns: string
       }
       counterparty_overlap_report: { Args: never; Returns: Json }
+      create_blending_plan: {
+        Args: {
+          p_lines: Json
+          p_notes?: string
+          p_output_material_id: string
+          p_source_contract_id?: string
+          p_targets?: Json
+        }
+        Returns: Json
+      }
       create_container: {
         Args: {
           p_bl_number?: string
@@ -40267,6 +41114,20 @@ export type Database = {
       ensure_task_owner_participant: {
         Args: { p_actor?: string; p_owner_emp: string; p_task_id: string }
         Returns: string
+      }
+      execute_blending_plan: {
+        Args: {
+          p_actual: Json
+          p_ended_at: string
+          p_notes?: string
+          p_plan_id: string
+          p_process_date: string
+          p_shift_code: string
+          p_started_at: string
+          p_weighing_id?: string
+          p_weight_kg?: number
+        }
+        Returns: Json
       }
       expense_claim_amount_base: {
         Args: { p_claim_id: string }
@@ -40746,6 +41607,7 @@ export type Database = {
         }[]
       }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
+      next_blending_plan_code: { Args: { p_date?: string }; Returns: string }
       next_chase_code: { Args: { p_date?: string }; Returns: string }
       next_cod_code: { Args: { p_date?: string }; Returns: string }
       next_container_code: { Args: { p_date: string }; Returns: string }
@@ -41575,6 +42437,7 @@ export type Database = {
         Args: { p_po_id: string; p_reason: string }
         Returns: Json
       }
+      release_blending_plan: { Args: { p_plan_id: string }; Returns: Json }
       release_purchase_order_retention: {
         Args: {
           p_released_amount_ccy: number

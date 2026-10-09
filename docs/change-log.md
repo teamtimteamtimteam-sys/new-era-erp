@@ -1248,3 +1248,23 @@ KINDS · GUARD · MASK · LOG · AGREE), fixture 256 gains ALLOC-PAID and fixtur
   `operation_type_output_forms` is now a member of the `operation_type` subject, so a V37 change shows on the operation's own page with the
   same sentence as the change history ("Operation type output form edited · Expected yield (%): (empty) → 70"). `scripts/check-trail-wording.mjs`
   arm ㉔ pins the three sentences (fault `wording-drift-mes5b2`).
+
+## 22. Blending plans, admin holds every code (MES-5b-3, v1.4.47, 2026-10-09)
+
+Hand-back `docs/handbacks/MES-5b-3.md`; fixture 259 pins every rule below (arms PLAN · SALE · TGT · PRED · REL · EXEC · ASSAY · READ · LOG ·
+ADMIN), each fault-injected by `db/scripts/2026-10-09-mes5b3-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 22.1 Logged, excluded, masked
+
+- **Three new tables, logged.** `blending_plans`, `blending_plan_targets`, `blending_plan_lines` are bound by their primary key (`id`): public
+  tables **283 → 286**, bound **275 → 278**, exclusions stay **8** (Step 0 Q32 · Q34). A plan's create, edit (targets and lines replaced:
+  DELETE + INSERT rows), release, execute and cancel are all UPDATE / INSERT / DELETE rows on these tables — there is no separate history table.
+- **No masked column, no new mask rule** (114 stays). A plan carries kg and metal %, not money. Batch metal content is restricted **per reader**
+  in the views (`blending_plan_line_metals` / `_prediction` / `_outcome`), by the batch's own view code — not by a column mask.
+- **What the migration writes:** one `operation_types` row (`blending`), three input-form and three output-form rows, one safety-state row,
+  one `document_types` row (`BLD`) and the admin role's `module.tasks.view_all` grant — all INSERTs; its proof asserts `change_log` moved only by
+  those (9 or 10 rows, depending on whether `document_types` is logged).
+- **Trail.** New subject `blending_plan` (`/operation/blending/[id]`, `module.processing.view`) with members `blending_plan_targets` and
+  `blending_plan_lines`. The three tables speak through the generic family ("Blending plan created / edited", "Blending target created",
+  "Blending line created"); `scripts/check-trail-wording.mjs` arm ㉕ pins six sentences (created, a target, a line, released, executed,
+  cancelled; fault `wording-drift-mes5b3`). The blending **run** stays on the `processing_run` subject as usual.

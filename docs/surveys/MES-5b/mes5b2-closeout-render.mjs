@@ -25,10 +25,15 @@ const ROLES = ['admin', 'finance', 'warehouse']
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let locked = false, chrome = null
 installExitHooks({ onFinish: (code) => { try { if (chrome?.pid) process.kill(-chrome.pid) } catch {}; try { if (locked) release() } catch {}; console.log(`RENDER_PROBE_EXIT=${code}`) } })
-const waitPort = (p, ms) => new Promise((res) => { const t0 = Date.now()
-  ;(function tick() { const s = createConnection({ port: p, host: '127.0.0.1' })
+const waitPort = (p, ms) => new Promise((res) => {
+  const t0 = Date.now()
+  function tick() {
+    const s = createConnection({ port: p, host: '127.0.0.1' })
     s.on('connect', () => { s.destroy(); res(true) })
-    s.on('error', () => { s.destroy(); Date.now() - t0 > ms ? res(false) : setTimeout(tick, 300) }) })() })
+    s.on('error', () => { s.destroy(); if (Date.now() - t0 > ms) res(false); else setTimeout(tick, 300) })
+  }
+  tick()
+})
 
 async function fetchCell(cookie, path) {
   const res = await fetch(BASE + path, { headers: { cookie }, redirect: 'manual' })
@@ -58,7 +63,7 @@ async function main() {
   await new Promise((res, rej) => { sock.onopen = res; sock.onerror = rej })
   let msgId = 0; const pending = new Map()
   sock.onmessage = (m) => { const d = JSON.parse(m.data)
-    if (d.id && pending.has(d.id)) { const { res, rej } = pending.get(d.id); pending.delete(d.id); d.error ? rej(new Error(JSON.stringify(d.error))) : res(d.result) } }
+    if (d.id && pending.has(d.id)) { const { res, rej } = pending.get(d.id); pending.delete(d.id); if (d.error) rej(new Error(JSON.stringify(d.error))); else res(d.result) } }
   const send = (method, params = {}, sessionId) => new Promise((res, rej) => { const id = ++msgId; pending.set(id, { res, rej }); sock.send(JSON.stringify({ id, method, params, sessionId })) })
 
   const stamp = Date.now()

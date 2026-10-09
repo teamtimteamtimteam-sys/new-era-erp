@@ -246,6 +246,11 @@ CREATE TRIGGER trg_processing_runs_header
     BEFORE INSERT ON public.processing_runs
     FOR EACH ROW EXECUTE FUNCTION public.guard_processing_run_header();
 
+-- MES-5b-3(2026-10-09,MES-5b Step 0 Q18):配料那一炉只从配料计划上记(execute_blending_plan 设的事务级标记)。
+CREATE TRIGGER trg_processing_runs_blending_from_plan
+    BEFORE INSERT ON public.processing_runs
+    FOR EACH ROW EXECUTE FUNCTION public.guard_blending_run_from_plan();
+
 COMMENT ON COLUMN public.processing_runs.started_at IS
     'MES-4a(MES-0 Q42):这一炉开始的时刻。MES-4a 起提交的每一张必填(RUN_TIMES_REQUIRED);之前的单为空 —— 不回填。读者用"开始时刻为空"认出结平之前记下的单(processing_run_balance_all.balance_state = before_closure)。';
 COMMENT ON COLUMN public.processing_runs.shift_code IS

@@ -45,7 +45,11 @@ INSERT INTO public.operation_type_output_forms (operation_type_code, form_code, 
     ('discharge_quarantine_split', 'whole_pack', '【MES-5a-1】同一物料,拆出去的那几个模组。'),
     ('discharge_quarantine_split', 'module', '【MES-5a-1】同上。'),
     ('discharge_quarantine_split', 'loose_cells', '【MES-5a-1】同上。'),
-    ('discharge_quarantine_split', 'mixed_unsorted', '【MES-5a-1】同上。');
+    ('discharge_quarantine_split', 'mixed_unsorted', '【MES-5a-1】同上。'),
+    -- MES-5b-3(Step 0 Q18 · Q20):配料产出同样三种可售的粉料。计划的产出物料按这张表判(BLEND_OUTPUT_FORM_NOT_BLENDABLE)
+    ('blending', 'black_mass', '【MES-5b-3】'),
+    ('blending', 'cathode_powder', '【MES-5b-3】'),
+    ('blending', 'anode_powder', '【MES-5b-3】');
 
 -- 安全状态受理 —— **本刀的核心**
 

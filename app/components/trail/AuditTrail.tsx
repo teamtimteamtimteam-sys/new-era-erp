@@ -40,6 +40,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'operation_type' | 'dictionary_processing_event_types' | 'dictionary_shifts'
     | 'dictionary_cell_constructions' | 'dictionary_contamination_streams'   // MES-4b
     | 'electricity_allocation' | 'electricity_settings'   // MES-5a-2
+    | 'blending_plan'   // MES-5b-3
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -144,6 +145,8 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     weighbridge_ticket: 'weighbridge_tickets',
     // MES-5a-2(2026-10-08):一张电费单的分摊 · 分摊的设定(V25,单行)
     electricity_allocation: 'electricity_allocations', electricity_settings: 'electricity_settings',
+    // MES-5b-3(2026-10-09):一份配料计划
+    blending_plan: 'blending_plans',
     // MES-4a(2026-10-07):工序页(字段 · 机器 · 配方 · 版本)与两本新字典(班次 · 异常事件种类)
     operation_type: 'operation_types', dictionary_processing_event_types: 'processing_event_types', dictionary_shifts: 'shifts',
     // MES-4b(2026-10-07):电芯结构与交叉污染流两本字典

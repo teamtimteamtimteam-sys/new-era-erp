@@ -24,7 +24,7 @@
 --   READ   读者的门:月度平衡与滚动(加工 / 财务 / 库存查看任一)、批次树(加工查看,或根批次自己的查看码)、得率(加工查看);什么码都没有读到 0 行
 --   FCHECK 动作码蕴含查看码(Q30 · Q31):set_role_permissions 拒一个持动作码而不持它那一页任何一个查看码的角色(ACTION_REQUIRES_VIEW,
 --          点出码与它要的查看码),持其中【任一】就放行,页面由码自己把门的持码即可;目录的声明合法、除了没有屏幕的那一个都声明了;
---          重建库里【每一个】角色都满足;引导的 admin 持目录里除 module.tasks.view_all 之外的每一个码;引导的财务持 module.processing.view
+--          重建库里【每一个】角色都满足;引导的 admin 持目录里每一个码(MES-5b-3 起含 module.tasks.view_all);引导的财务持 module.processing.view
 --   LOG    没有新表 —— 变更记录覆盖零缺口、豁免仍是 8;V37 的改动进变更记录
 --
 -- 自带数据(README 第 2 条)。以 postgres 跑(绕过 RLS);读者那几臂真的切成 authenticated + 那个人的 JWT。日期 = 昨天,一炉从 09:00 跑到 11:00。
@@ -529,12 +529,12 @@ BEGIN
      WHERE p.requires_view_any IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM role_permissions v WHERE v.role_id = rp.role_id AND v.permission_code = ANY (p.requires_view_any));
     IF v_bad IS NOT NULL THEN RAISE EXCEPTION 'FIXTURE 257 FCHECK: a role holds an action without any of its views: %', v_bad; END IF;
-    -- 引导:admin 持目录里除 module.tasks.view_all 之外的每一个码;财务持 module.processing.view(它持下达工单,那一页的门)
+    -- 引导:admin 持目录里【每一个】码(MES-5b-3 起含 module.tasks.view_all —— Tim 2026-10-09 裁定,关掉 MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED;
+    --   此前这里断言的是"除它之外的每一个");财务持 module.processing.view(它持下达工单,那一页的门)
     SELECT string_agg(p.code, ', ') INTO v_bad FROM permissions p
-     WHERE p.code <> 'module.tasks.view_all'
-       AND NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'admin' AND rp.permission_code = p.code);
-    IF v_bad IS NOT NULL OR EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'admin' AND rp.permission_code = 'module.tasks.view_all') THEN
-        RAISE EXCEPTION 'FIXTURE 257 FCHECK: the bootstrap admin should hold every code but module.tasks.view_all; missing %', v_bad; END IF;
+     WHERE NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'admin' AND rp.permission_code = p.code);
+    IF v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'FIXTURE 257 FCHECK: the bootstrap admin should hold every code; missing %', v_bad; END IF;
     IF NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'finance' AND rp.permission_code = 'module.processing.view') THEN
         RAISE EXCEPTION 'FIXTURE 257 FCHECK: the bootstrap finance role should hold module.processing.view'; END IF;
 

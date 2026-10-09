@@ -51,6 +51,9 @@ closed. The tolerance only decides whether the close needs a **written explanati
 **no tolerance set** — `close_run_balance` refuses without one (`RUN_BALANCE_EXPLANATION_REQUIRED`). So an empty V1 makes every close of that
 operation's runs ask for a sentence. The tolerance in force is copied into each closure row, so changing V1 later never rewrites an old closure.
 Nothing guesses a tolerance.
+**MES-5b-3 (2026-10-09):** the new `blending` operation is transforming and its tolerance is deliberately left empty (the brief: nothing set on
+live but the operation itself), so it appears under V1 like every other transforming operation — not a new value, the same V1 (read in tim@'s
+session after the migration: 7 operations listed, `blending` among them; 6 before). Blending adds no new pending value (Step 0 §10).
 
 **What V36 holds back (MES-4a, Step 0 Q12).** A value outside its field's range is **recorded and flagged**, never refused. A field that has a
 range but no bounds yet is recorded with no flag at all (`out_of_range` is NULL — "could not be judged", not "within range"). The bounds in force

@@ -62,8 +62,9 @@ BEGIN
     -- ★ PAY-REQ-1(2026-09-23):43 → 44 —— payment_requests 登记了 module.finance.view。
     -- ★ MES-1(2026-10-06):44 → 45 —— devices 登记了 module.processing.view。
     -- ★ MES-2(2026-10-06):45 → 47 —— weighbridge_tickets 登记了两个码(module.inbound.view · module.logistics.view)。
-    IF v_n <> 47 THEN
-        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 47 —— '
+    -- ★ MES-5b-3(2026-10-09):47 → 48 —— blending_plans 登记了一个码(module.processing.view)。
+    IF v_n <> 48 THEN
+        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 48 —— '
                         '判据瞎了,或者登记表真的变了(那就同时改这个数与切次报告)', v_n;
     END IF;
 

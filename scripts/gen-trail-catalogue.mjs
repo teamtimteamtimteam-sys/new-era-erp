@@ -707,6 +707,8 @@ const TABLE_NAMES = {
     electricity_allocation_lines: 'electricity share of a run', electricity_settings: 'electricity allocation settings',
     // MES-5b-2(2026-10-09):一张电费单的撤回
     electricity_allocation_reversals: 'electricity bill reversal',
+    // MES-5b-3(2026-10-09):一份配料计划 · 它的目标品位 · 它的候选批次
+    blending_plans: 'blending plan', blending_plan_targets: 'blending target', blending_plan_lines: 'blending line',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -842,6 +844,9 @@ const ENUM_OVERRIDES = {
     'meter_readings#source': { manual: 'Entered by hand', device: 'From a device' },
     'electricity_allocations#payment_status': { paid: 'Paid', unpaid: 'Unpaid' },
     'electricity_allocation_reversals#payment_status': { paid: 'Paid (taken back to the bank)', unpaid: 'Unpaid (taken off payables)' },
+    // MES-5b-3(2026-10-09):一份配料计划的四态 · 一条目标品位从哪里来(两列各一张 CHECK 清单)
+    'blending_plans#status': { draft: 'Draft', released: 'Released', executed: 'Executed', cancelled: 'Cancelled' },
+    'blending_plan_targets#source': { contract: 'Copied from the contract', manual: 'Entered by hand' },
     'electricity_allocation_lines#basis': { recorded_energy: 'Recorded run energy', run_time: 'Run time' },
     'processing_run_corrections#field': { started_at: 'Start time', ended_at: 'End time', shift_code: 'Shift', equipment_id: 'Machine',
         recipe_version_id: 'Recipe version', notes: 'Notes' },
