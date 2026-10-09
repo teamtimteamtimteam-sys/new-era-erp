@@ -662,6 +662,35 @@
 >    每一步之后对账两侧 0.00);前后读数:除了迁移种的那几行、三张空的新表、admin 多的那一行与冒烟记录在案的 COD 轮换,每一张在册表逐字不变;
 >    七个账号启用,角色除 admin 75 / 75 外不变,`require_calibrated_since` NULL,对账两侧 0.00。逐角色读数表、页面清单、开场读数与未经询问的决定在
 >    `docs/handbacks/MES-5b-3.md`。**下一刀 MES-6a · Samples, arbitration, F/Cl**(见下面「⬜ ★ MES 组」第 9 行)。
+>    ★ **部署:Tim 在 Vercel 上确认 `45ca694c` 已部署(MES-5b-3 close-out + MES-6a Step 0 委托书,2026-10-09)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-09 17:21:45 CST**(测量:`db/migration-windows.tsv`,`2026-10-09-mes5b3-blending.sql`)·
+>    终点下界 **2026-10-09 18:18:14 CST**(测量:推送把 `origin/main` 移到 `45ca694c`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`45ca694c … {2026-10-09 18:18:14 +0800}: update by push`)·
+>    终点上界 **2026-10-09 18:40:39 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 56 min 29 s,至多 1 h 18 min 54 s。** 窗口里坏掉的(**推导**,MES-5b-3 交回 §6.4,没有在线上量):旧代码调用的东西一样都没坏 ——
+>    `blending` 是 `started_from_run_page`,旧的新建加工单表单不列它;两道新守卫只拒旧应用不走的路(计划之外的 blending 一炉、给混出来那一批人填含量 ——
+>    线上一批都没有);旧应用没有配料页;admin 多出的那个码旧应用照任何一个码读(admin@ 读得到别人的个人任务,正是那条裁定)。
+>    close-out 的只读读数(2026-10-09 18:45:23 CST,`postgres`,基表与目录;`docs/surveys/MES-5b/mes5b3-closeout-readings.sql`,`READ_OWN_EXIT=0`):
+>    配料计划 **0** · 目标 0 · 行 0 · blending 炉 0 · 窗口开始以来新建的炉 0 · `require_calibrated_since` NULL · 审批开(finance / cfo / 1,000)·
+>    七个账号、0 个停用 · admin 75 / 75 —— 窗口里没有人用过这一刀的新东西。
+>    ⚠ **信息,不处置(Tim 2026-10-09 告知):** 纯文档提交 `032f557a`("MES-5b-2 close-out")那一次 **Vercel 构建失败(1 m 49 s)**,而之后的
+>    `45ca694c` 部署成功了。Tim 没有给那次构建的日志。按 AGENTS.md「一刀的终端活【到推送为止】」这台机器不查、不复现、不调查它 —— 一句**转述**,
+>    不是这台机器的测量;**没有采取任何动作**。
+>    ★ **close-out 的核对(委托书第 1.3 条 a–e):a · b · c · d · e 逐项过;d 里放行那一条在已部署的应用上无从渲染(线上 0 份计划),
+>    不是这一刀建的东西坏了,所以第 2 步(MES-6a Step 0)照常开始 —— 委托书第 1.5 条。**
+>    **a** 清单逐条对上 fixture 与臂:259 的十个臂(PLAN · SALE · TGT · PRED · REL · EXEC · ASSAY · READ · LOG · ADMIN,37 格注入)· 100(55 → 56,
+>    注入一格)· 101(47 → 48)· 254 NUM(56 行)· 257 FCHECK(admin 持每一个码,注入一格)· 235 仍 8;两支注册表检查今天在 HEAD 上绿
+>    (`SR_OWN_EXIT=0` 56 / 56 · `DR_OWN_EXIT=0` 286 / 87)。**b** 审计主语 `blending_plan` 与两个成员(`trail_subjects.sql:288-289` ·
+>    `trail_subject_members.sql:518-519`,线上同);措辞臂 ㉕ 今天在 HEAD 上绿 0 / 注入 1(只红 ㉕);BLD 在登记表里(`document_types.sql:179-180`,
+>    线上同,56 行);变更记录豁免线上读数 8(`gaps []`,278 / 286)。**c** +107 px 在 `/operation/blending/[id]`(真组件的临时副本 —— 线上没有计划)
+>    取消理由那个输入框旁边的缺码那一句(`inline` 的门不折行)→ 两道门都加 `flex-wrap`(`BlendingPlanActions.tsx:39` · `:57`),390 px +107 → 0、
+>    1280 px 0;改前那个数是交回里的读数(副本没进仓库,重量不了)。**d** 以 warehouse · finance · admin 三个真角色的一次性克隆从【已部署】的应用取页
+>    并在浏览器里只读(什么都不按):三个角色 `/operation/blending` 与 `/new` 都 200;warehouse 与 admin「New blending plan」是能点的链接,finance 是
+>    按不动的按钮并说出 `action.wo_create`、表单整张按不动;不存在的计划 id 三个角色都过门之后 404;新建加工单的工序选单三个角色都是七道、**没有
+>    `blending`**。**委托书的一条前提不准:** 建单人看得见放行钮 —— 按不动、并说出理由(DBLOCK-1),不是看不见(`page.tsx:99` ·
+>    `BlendingPlanActions.tsx:39-52`);谁按得动在 MES-5b-3 的线上回滚证明里量过(交回 §2)。**e** 交回 §7 的 25 条决定逐条列出。
+>    逐项证据在 `docs/surveys/MES-5b/MES-5b-3-CLOSEOUT.md`。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
