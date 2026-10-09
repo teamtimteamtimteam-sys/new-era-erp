@@ -11,6 +11,7 @@ DECLARE
     v_calc   jsonb;
     v_unit   numeric;
     v_impact jsonb := NULL;
+    v_disp   uuid;
 BEGIN
     PERFORM require_permission('action.apply_assay');
     IF p_reference_date IS NULL THEN
@@ -22,6 +23,12 @@ BEGIN
     WHERE id = p_inbound_batch_id AND deleted_at IS NULL;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', COALESCE(p_inbound_batch_id::text, '?');
+    END IF;
+    -- ★ MES-6a-1(MES-6a Step 0 Q18):与 apply_assay_result 同一句拒 —— 这一批挂着一件开着的化验争议(fixture 40 F 臂:两侧同一个码)
+    SELECT d.id INTO v_disp FROM assay_disputes d WHERE d.inbound_batch_id = v_batch.id AND d.status = 'open';
+    IF FOUND THEN
+        RAISE EXCEPTION 'ASSAY_DISPUTE_OPEN|%|%', v_batch.code, v_disp
+          USING HINT = '这一批有一件开着的化验争议 —— 先在争议页上结案(点名哪一份说了算)或撤回,再应用';
     END IF;
 
     v_commit := resolve_pricing_commitment(v_batch.id);

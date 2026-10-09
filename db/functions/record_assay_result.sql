@@ -15,7 +15,10 @@ CREATE OR REPLACE FUNCTION public.record_assay_result(
     -- 这里【不】给业务默认值:默认会让"忘了填"静静变成一个可以拿去算钱的答案。
     p_weight_basis text DEFAULT NULL::text,
     p_moisture_pct numeric DEFAULT NULL::numeric,
-    p_result_party text DEFAULT NULL::text
+    p_result_party text DEFAULT NULL::text,
+    -- ── MES-6a-1 追加(2026-10-09,Step 0 Q9):这份结果化验的是哪一份实物样品 —— 尾部、带默认,今天的调用照旧走得通 ──
+    --   样品必须挂在同一批上(SAMPLE_NOT_FOR_BATCH);可空,sample_ref 那段自由文本照旧。
+    p_sample_id uuid DEFAULT NULL::uuid
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -66,14 +69,22 @@ BEGIN
           USING HINT = '这一份结果是我们出的、对手方出的、还是仲裁实验室出的?没有默认值 —— 默认会让"忘了改"变成"这是我们测的"。';
     END IF;
 
+    -- MES-6a-1(Q9):样品必须是同一批的 —— 在这里按名拒,而不是等表上的守卫抛(两道,同一句话)
+    IF p_sample_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM samples s WHERE s.id = p_sample_id
+           AND s.inbound_batch_id IS NOT DISTINCT FROM p_inbound_batch_id
+           AND s.output_batch_id IS NOT DISTINCT FROM p_output_batch_id) THEN
+        RAISE EXCEPTION 'SAMPLE_NOT_FOR_BATCH|%', COALESCE((SELECT code FROM samples WHERE id = p_sample_id), p_sample_id::text);
+    END IF;
+
     v_code := next_assay_code(p_assay_date);
     INSERT INTO assay_results (id, code, inbound_batch_id, output_batch_id, assay_date, lab_name,
                                certificate_ref, sample_ref, is_final, notes,
-                               weight_basis, moisture_pct, result_party,
+                               weight_basis, moisture_pct, result_party, sample_id,
                                created_by, updated_by)
     VALUES (v_id, v_code, p_inbound_batch_id, p_output_batch_id, p_assay_date, p_lab_name,
             p_certificate_ref, p_sample_ref, p_is_final, p_notes,
-            p_weight_basis, p_moisture_pct, p_result_party,
+            p_weight_basis, p_moisture_pct, p_result_party, p_sample_id,
             v_user, v_user);
 
     FOR v_el IN SELECT * FROM jsonb_array_elements(p_metals)

@@ -107,6 +107,9 @@ module's own page.
 | M4b | `contamination_check_missing` | 一个(加工日, 班次, 流):那一天那一班有一张 MES-4a 之后记的、已提交没回滚的加工单产出了这条流的极片(`contamination_streams.sheet_form_code`),而同一天同一班任何一张单上都没有一条【当前】的抽检 —— 抽了(`sampled`)或这一班没抽并写了理由(`not_sampled`)都算(MES-4b Step 0 Q23 · Q24)。一格一行,`item_id` = 那一格最早的那一炉(fixture 47 的行号规矩),`subject` = 流。MES-4a 之前的单没有班次,不进这一支 | `module.processing.view` | `contamination_shift_status_all` | `check_state = 'missing'`;记一条抽检或一条"没抽"之后消失 |
 | M5a1 | `discharge_unverified` | 一批(进料或产出)做过一炉【已提交没回滚】的逐模组核实工序(`operation_types.verifies_by_unit`,今天只有深度放电),而它此刻【没有】开着那道工序的结果状态(`discharged_verified`)—— 模组数没记、还有模组没有结论、或有失败的还没再放电通过或拆去隔离(MES-5a Step 0 Q6 · Q18)。一批一行,`item_id` = 那一批最晚的那一炉(模组结果与拆分都在那一页),`subject` = 批号。MES-5a-1 之前提交就核实了的批开着结果状态,不进这一支 | `module.processing.view` | `discharge_batch_status_all` | `latest_run_id IS NOT NULL AND NOT currently_verified`;每个模组都通过或拆走之后消失 |
 | M5a2 | `discharge_quarantine_pending` | 一批有模组最新的结论是【失败 · 隔离】,而它还没被拆去隔离库位(MES-5a Step 0 Q11 · Q18)。一批一行,`item_id` = 那一批最晚的那一炉(拆分从那一页起),`subject` = 批号 | `module.processing.view` | `discharge_batch_status_all` | `failed_quarantine > 0`;拆分(`split_failed_modules_to_quarantine`)之后消失 |
+| M6a1 | `sample_retention_due` | 一份样品的留样日(取样时按合同天数或 V16 抄下)已经过了,而它还没有一条处置记录(MES-6a Step 0 Q15)。留样日尚未设定(`not_set`)的样品没有日子可过,不进这一支。一份一行,`item_id` = 那份样品,`subject` = 批号,`item_date` = 留样日 | `module.quality.view` | `samples` + 最近一条 `sample_events` | `retain_until < CURRENT_DATE` 且没有 `disposed`;记一条处置之后消失 |
+| M6a2 | `assay_dispute_open` | 一件开着的化验争议 —— 它挡着进料那一侧的应用、试算与化验来源的定价过账,以及卖方结算(`ASSAY_DISPUTE_OPEN`;MES-6a Step 0 Q16 · Q18 · Q21)。一件一行,`item_id` = 那件争议,`item_code` = 批号,`subject` = 两份结果的单号 | `module.quality.view` | `assay_disputes` | `status = 'open'`;结案或撤回之后消失 |
+| M6a3 | `assay_results_disagree` | 卖方:一批产出批挂着一张销售单,那张单的合同副本写了分歧容差,而我们与对手方的结果在某一种元素上差得超过它,且没有开过争议(MES-0 Q62;MES-6a Step 0 Q17)。买方没有这一支。一批一行,`item_id` = 那一批产出批(立争议的入口在它的质量面板上),`subject` = 销售单号 | `module.quality.view` | `assay_disagreements_all` | 立一件争议之后消失 |
 
 
 
@@ -349,6 +352,9 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `contamination_check_missing` | `/operation/processing/[id]` | the earliest run of that shift: its contamination panel records a check, or that the shift was not sampled with a reason; the whole shift × stream grid is at `/operation/contamination` (MES-4b) |
 | `discharge_unverified` | `/operation/processing/[id]` | the batch's latest discharge run: its module results panel shows each module's verdict and records the missing ones; the module count is set on the batch page (MES-5a-1) |
 | `discharge_quarantine_pending` | `/operation/processing/[id]` | the same run page: the quarantine split form lists the failed modules marked for quarantine, with the quarantine location to move them into (MES-5a-1) |
+| `sample_retention_due` | `/quality/samples/[id]` | the sample page: its custody record, keep-until date and where it is; record the disposal there (MES-6a-1) |
+| `assay_dispute_open` | `/quality/disputes/[id]` | the dispute page: the three results side by side, the umpire, resolve or withdraw (MES-6a-1) |
+| `assay_results_disagree` | `/output/[id]/edit` | the output batch page: its quality panel opens a dispute on that batch (MES-6a-1) |
 
 ### One mechanism, not two
 

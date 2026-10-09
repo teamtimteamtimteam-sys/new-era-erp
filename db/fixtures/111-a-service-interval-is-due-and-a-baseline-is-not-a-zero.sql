@@ -53,6 +53,8 @@ DECLARE
     -- 这条断言【正是为此存在的】—— 它当场把它们报了出来,逼人来改这份清单,
     -- 而 dashboard.item.* 的 i18n 键集合读的是同一份真源,所以两边一起动了。
     v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
+        'assay_dispute_open',  -- MES-6a-1(2026-10-09):第六十一支
+        'assay_results_disagree',  -- MES-6a-1(2026-10-09):第六十二支
         'assay_unapplied',
         'asset_disposal_pending',  -- APR-9(2026-09-27):第四十五支
         'awaiting_assay','bank_unmatched','batch_unpriced',
@@ -89,6 +91,7 @@ DECLARE
         'safety_state_dwell',  -- MES-3a(2026-10-06):第五十四支
         'safety_stock_below',
         'salary_change_pending',  -- APR-9(2026-09-27):第四十六支
+        'sample_retention_due',  -- MES-6a-1(2026-10-09):第六十支
         'shipping_release_pending',  -- APR-5b(2026-09-25):第四十支
         'shipping_release_ready',    -- APR-5b(2026-09-25):第四十一支
         'stocktake_open',
@@ -338,7 +341,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这五十九支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这六十二支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

@@ -3524,3 +3524,63 @@ blending_plan_lines,output_batch_id,fk_document,"output_batches.code (document n
 blending_plan_lines,planned_kg,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Planned kg,,,numeric
 blending_plan_lines,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
 blending_plan_lines,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+samples,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+samples,code,text,verbatim,,,Sample number,,,text
+samples,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,Inbound batch,,,uuid
+samples,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+samples,kind,enum,"message keys quality.kind.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Kind,,,text
+samples,taken_on,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Taken on,,,date
+samples,mass_g,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Mass (g),,,numeric
+samples,sales_order_id,fk_document,"sales_orders.code (document number, prefix SO)",,,Sales order,,,uuid
+samples,contamination_check_id,fk_other,contamination_checks: composed description (see target table),,,Contamination check,,,bigint
+samples,retain_until,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,Keep until,,,date
+samples,retain_until_source,enum,ENUM_OVERRIDES samples#retain_until_source,,,Keep-until set by,,,text
+samples,retention_days_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Retention days,,,integer
+samples,notes,text,verbatim,,,Notes,,,text
+samples,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+samples,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+sample_events,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+sample_events,sample_id,technical,hide: the sample it belongs to (the trail lives on that sample),,,Sample,,,uuid
+sample_events,event_kind,enum,"message keys quality.event.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Event,,,text
+sample_events,occurred_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Happened,,,timestamp with time zone
+sample_events,laboratory_code,dict,laboratories.name_en (via code),,,Laboratory,,,text
+sample_events,lab_reference,text,verbatim,,,Laboratory's reference,,,text
+sample_events,storage_location_id,fk_other,storage_locations: composed description (see target table),,,Location,,,uuid
+sample_events,reason,text,verbatim,,,Reason,,,text
+sample_events,notes,text,verbatim,,,Notes,,,text
+sample_events,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+sample_events,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+assay_disputes,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+assay_disputes,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,Inbound batch,,,uuid
+assay_disputes,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+assay_disputes,our_assay_id,fk_document,"assay_results.code (document number, prefix ASY)",,,Our result,,,uuid
+assay_disputes,counterparty_assay_id,fk_document,"assay_results.code (document number, prefix ASY)",,,Counterparty's result,,,uuid
+assay_disputes,sales_order_id,fk_document,"sales_orders.code (document number, prefix SO)",,,Sales order,,,uuid
+assay_disputes,status,enum,"message keys quality.disputeStatus.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Status,,,text
+assay_disputes,opening_reason,text,verbatim,,,Why it was opened,,,text
+assay_disputes,limit_pct_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Splitting limit (points),,,numeric
+assay_disputes,fee_rule_at,enum,ENUM_OVERRIDES assay_disputes#fee_rule_at,,,Arbitration fee rule,,,text
+assay_disputes,umpire_sample_id,fk_document,"samples.code (document number, prefix SMP)",,,Umpire sample,,,uuid
+assay_disputes,umpire_assay_id,fk_document,"assay_results.code (document number, prefix ASY)",,,Umpire result,,,uuid
+assay_disputes,governing_assay_id,fk_document,"assay_results.code (document number, prefix ASY)",,,Result that governs,,,uuid
+assay_disputes,resolution_note,text,verbatim,,,Resolution note,,,text
+assay_disputes,resolved_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Resolved,,,timestamp with time zone
+assay_disputes,resolved_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Resolved by,,,uuid
+assay_disputes,withdrawn_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Withdrawn,,,timestamp with time zone
+assay_disputes,withdrawn_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Withdrawn by,,,uuid
+assay_disputes,withdraw_reason,text,verbatim,,,Withdrawal reason,,,text
+assay_disputes,fee_expense_id,fk_document,"expenses.code (document number, prefix EXP)",,,Arbitration fee expense,,,uuid
+assay_disputes,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+assay_disputes,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+assay_disputes,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+assay_disputes,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+quality_settings,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,boolean
+quality_settings,internal_retention_days,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Internal sample retention (days) (V16),,,integer
+quality_settings,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+quality_settings,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+assay_results,sample_id,fk_document,"samples.code (document number, prefix SMP)",,,Sample assayed,,,uuid
+laboratories,supplier_id,fk_document,"suppliers.code (document number, prefix SUP)",,,Supplier,,,uuid
+contract_settlement_terms,arbitration_fee_rule,enum,ENUM_OVERRIDES contract_settlement_terms#arbitration_fee_rule,,,Arbitration fee rule,,,text
+expenses,reversal_reason,text,verbatim,,,Reversal reason,,,text
+expenses,reversed_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Reversed,,,timestamp with time zone
+expenses,reversed_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Reversed by,,,uuid

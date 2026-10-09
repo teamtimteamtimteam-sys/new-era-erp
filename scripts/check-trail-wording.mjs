@@ -6125,6 +6125,210 @@ if (FAULT === 'wording-drift-mes5b3') dict.tables = { ...dict.tables, blending_p
     if (FAULT === 'wording-drift-mes5b3' && !problems.gold25.length) problems.gold25.push('(注入 wording-drift-mes5b3 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉖ MES-6a-1:样品与化验争议(在它们自己的页上、在它们那一批上)· V16 · 冲销理由(费用页与报销单页)· 中性的出具方说法
+//   (MES-6a Step 0 Q24 · Q25 · Q33–Q37 · Q39 · Q40)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-6a-1.md 列出。
+//   样品、保管记录与争议没有自己的造句族:三张表都走通用的那一族(「<表名> created / edited」),表名、列名与取值来自目录;
+//   V16 走设置那一族("Internal sample retention changed");冲销理由从原单的 reversal_reason 读(不再从镜像单 notes 里抠)。
+//   注入 wording-drift-mes6a1 → 这一臂必须红。
+problems.gold26 = []
+if (FAULT === 'wording-drift-mes6a1') dict.tables = { ...dict.tables, samples: ['specimen', ...(dict.tables.samples ?? []).slice(1)] }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const smp = id('smp'), ib = id('ib'), ob = id('ob'), so = id('so'), disp = id('disp'), ours = id('ours'), cp = id('cp'), ump = id('ump')
+    const exp = id('exp'), mirror = id('mirror'), claim = id('claim')
+    add('sample · taken', { subject: 'sample', recordId: smp, currency: null },
+        [{ table: 'samples', op: 'INSERT', key: { id: smp }, refs: { output_batch_id: { [ob]: { label: 'OUT-2026-0310' } }, sales_order_id: { [so]: { label: 'SO-2026-0042' } } },
+           new: { id: smp, code: 'SMP-2026-0001', inbound_batch_id: null, output_batch_id: ob, kind: 'counterparty', taken_on: '2026-10-09', mass_g: 250,
+                  sales_order_id: so, contamination_check_id: null, retain_until: '2027-01-07', retain_until_source: 'contract', retention_days_at: 90,
+                  notes: 'Sealed bag 3 of 3', created_at: '2026-10-09T06:00:00Z', created_by: id('u') } }])
+    add('sample · sent to a laboratory', { subject: 'sample', recordId: smp, currency: null },
+        [{ table: 'sample_events', op: 'INSERT', key: { id: 2 }, refs: { laboratory_code: { ahk: { label: 'Alex Stewart' } } },
+           new: { id: 2, sample_id: smp, event_kind: 'sent_to_lab', occurred_at: '2026-10-10T02:00:00Z', laboratory_code: 'ahk', lab_reference: 'AS-5512',
+                  storage_location_id: null, reason: null, notes: null, created_at: '2026-10-10T02:05:00Z', created_by: id('u') } }])
+    add('sample · disposed of early', { subject: 'sample', recordId: smp, currency: null },
+        [{ table: 'sample_events', op: 'INSERT', key: { id: 3 }, refs: {},
+           new: { id: 3, sample_id: smp, event_kind: 'disposed', occurred_at: '2026-11-02T03:00:00Z', laboratory_code: null, lab_reference: null,
+                  storage_location_id: null, reason: 'Bag split in storage', notes: null, created_at: '2026-11-02T03:01:00Z', created_by: id('u') } }])
+    add('dispute · opened', { subject: 'assay_dispute', recordId: disp, currency: null },
+        [{ table: 'assay_disputes', op: 'INSERT', key: { id: disp },
+           refs: { inbound_batch_id: { [ib]: { label: 'IN-2026-0501' } }, our_assay_id: { [ours]: { label: 'ASY-2026-0101' } }, counterparty_assay_id: { [cp]: { label: 'ASY-2026-0102' } } },
+           new: { id: disp, inbound_batch_id: ib, output_batch_id: null, our_assay_id: ours, counterparty_assay_id: cp, sales_order_id: null, status: 'open',
+                  opening_reason: 'Their copper is 1.8 points below ours', limit_pct_at: null, fee_rule_at: null, umpire_sample_id: null, umpire_assay_id: null,
+                  governing_assay_id: null, resolution_note: null, resolved_at: null, resolved_by: null, withdrawn_at: null, withdrawn_by: null, withdraw_reason: null,
+                  fee_expense_id: null, created_at: '2026-10-09T06:00:00Z', created_by: id('u'), updated_at: '2026-10-09T06:00:00Z', updated_by: id('u') } }])
+    add('dispute · resolved', { subject: 'assay_dispute', recordId: disp, currency: null },
+        [{ table: 'assay_disputes', op: 'UPDATE', key: { id: disp }, cols: ['status', 'governing_assay_id', 'resolution_note', 'resolved_at', 'resolved_by', 'updated_at', 'updated_by'],
+           refs: { governing_assay_id: { [ump]: { label: 'ASY-2026-0103' } }, resolved_by: { [id('cto')]: { label: 'Chooer' } } },
+           old: { status: 'open', governing_assay_id: null, resolution_note: null, resolved_at: null, resolved_by: null },
+           new: { status: 'resolved', governing_assay_id: ump, resolution_note: 'Umpire accepted by both parties', resolved_at: '2026-10-20T04:00:00Z', resolved_by: id('cto') } }])
+    add('dispute · on its batch page', { subject: 'inbound_batch', recordId: ib, currency: null },
+        [{ table: 'assay_disputes', op: 'UPDATE', key: { id: disp }, cols: ['status', 'withdrawn_at', 'withdrawn_by', 'withdraw_reason', 'updated_at', 'updated_by'],
+           refs: { withdrawn_by: { [id('cto')]: { label: 'Chooer' } } },
+           old: { status: 'open', withdrawn_at: null, withdrawn_by: null, withdraw_reason: null },
+           new: { status: 'withdrawn', withdrawn_at: '2026-10-12T04:00:00Z', withdrawn_by: id('cto'), withdraw_reason: 'Agreed at the counterparty figure' } }])
+    add('V16 · set', { subject: 'quality_settings', recordId: 'true', currency: null },
+        [{ table: 'quality_settings', op: 'UPDATE', key: { id: true }, cols: ['internal_retention_days', 'updated_at', 'updated_by'],
+           old: { internal_retention_days: null }, new: { internal_retention_days: 60 } }])
+    add('expense · reversed with a reason', { subject: 'expense', recordId: exp, currency: null },
+        [{ table: 'expenses', op: 'UPDATE', key: { id: exp }, cols: ['status', 'reversed_by_expense', 'reversal_reason', 'reversed_at', 'reversed_by'],
+           refs: { reversed_by_expense: { [mirror]: { label: 'EXP-2026-0413', href: `/finance/expenses/${mirror}` } } },
+           old: { code: 'EXP-2026-0412', status: 'posted', reversed_by_expense: null, reversal_reason: null },
+           new: { code: 'EXP-2026-0412', status: 'reversed', reversed_by_expense: mirror, reversal_reason: 'Entered twice — same invoice as EXP-2026-0398' } },
+         { table: 'expenses', op: 'INSERT', key: { id: mirror }, refs: {},
+           new: { id: mirror, code: 'EXP-2026-0413', status: 'posted', notes: 'REVERSAL: EXP-2026-0412', amount_ccy: -120 } }])
+    add('expense claim · its expense reversed', { subject: 'expense_claim', recordId: claim, currency: null },
+        [{ table: 'expenses', op: 'UPDATE', key: { id: exp }, cols: ['status', 'reversed_by_expense', 'reversal_reason', 'reversed_at', 'reversed_by'],
+           refs: { reversed_by_expense: { [mirror]: { label: 'EXP-2026-0413', href: `/finance/expenses/${mirror}` } } },
+           old: { code: 'EXP-2026-0412', status: 'posted', reversed_by_expense: null, reversal_reason: null },
+           new: { code: 'EXP-2026-0412', status: 'reversed', reversed_by_expense: mirror, reversal_reason: 'Claim paid to the wrong employee' } }])
+    add('contract · the assay that counts', { subject: 'contract', recordId: id('con'), currency: null },
+        [{ table: 'contract_settlement_terms', op: 'UPDATE', key: { id: id('cst') }, cols: ['settling_party', 'arbitration_fee_rule', 'updated_at', 'updated_by'],
+           old: { settling_party: 'ours', arbitration_fee_rule: null }, new: { settling_party: 'counterparty', arbitration_fee_rule: 'equal' } }])
+    const WANT = {
+        "sample · taken": {
+            "title": "Sample created",
+            "part": null,
+            "lines": [
+                "Sample number: SMP-2026-0001",
+                "Output batch: OUT-2026-0310",
+                "Kind: Counterparty",
+                "Taken on: 09/10/2026",
+                "Mass (g): 250",
+                "Sales order: SO-2026-0042",
+                "Keep until: 07/01/2027",
+                "Keep-until set by: The contract",
+                "Retention days: 90",
+                "Notes: Sealed bag 3 of 3"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "sample · sent to a laboratory": {
+            "title": "Sample custody record created",
+            "part": null,
+            "lines": [
+                "Event: Sent to a laboratory",
+                "Happened: 10/10/2026 10:00",
+                "Laboratory: Alex Stewart",
+                "Laboratory's reference: AS-5512"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "sample · disposed of early": {
+            "title": "Sample custody record created",
+            "part": null,
+            "lines": [
+                "Event: Disposed of",
+                "Happened: 02/11/2026 11:00",
+                "Reason: Bag split in storage"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "dispute · opened": {
+            "title": "Assay dispute created",
+            "part": null,
+            "lines": [
+                "Inbound batch: IN-2026-0501",
+                "Our result: ASY-2026-0101",
+                "Counterparty's result: ASY-2026-0102",
+                "Status: Open",
+                "Why it was opened: Their copper is 1.8 points below ours"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "dispute · resolved": {
+            "title": "Assay dispute edited",
+            "part": null,
+            "lines": [
+                "Status: Open → Resolved",
+                "Result that governs: (empty) → ASY-2026-0103",
+                "Resolution note: (empty) → Umpire accepted by both parties",
+                "Resolved: (empty) → 20/10/2026 12:00",
+                "Resolved by: (empty) → Chooer"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "dispute · on its batch page": {
+            "title": "Assay dispute edited",
+            "part": null,
+            "lines": [
+                "Status: Open → Withdrawn",
+                "Withdrawn: (empty) → 12/10/2026 12:00",
+                "Withdrawn by: (empty) → Chooer",
+                "Withdrawal reason: (empty) → Agreed at the counterparty figure"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "V16 · set": {
+            "title": "Internal sample retention changed",
+            "part": null,
+            "lines": [
+                "Internal sample retention (days) (V16): (empty) → 60"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "expense · reversed with a reason": {
+            "title": "Expense reversed · EXP-2026-0412",
+            "part": null,
+            "lines": [
+                "Reversing entry: EXP-2026-0413"
+            ],
+            "reason": "Entered twice — same invoice as EXP-2026-0398",
+            "who": "Chooer"
+        },
+        "expense claim · its expense reversed": {
+            "title": "Expense reversed · EXP-2026-0412",
+            "part": null,
+            "lines": [
+                "Reversing entry: EXP-2026-0413"
+            ],
+            "reason": "Claim paid to the wrong employee",
+            "who": "Chooer"
+        },
+        "contract · the assay that counts": {
+            "title": "Settlement basis changed",
+            "part": null,
+            "lines": [
+                "Assay that counts: Ours → Counterparty",
+                "Arbitration fee rule: (empty) → Split equally"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        }
+    }
+    const got26 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD26', order: 1, prelog: false, at: '2026-10-09T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Chooer' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold26.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD26')
+        if (mine.length !== 1) { problems.gold26.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got26[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold26.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold26.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold26.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold26.push(`㉖ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (process.env.TRAIL_GOLD26_PRINT) console.log(JSON.stringify(got26, null, 8))
+    if (FAULT === 'wording-drift-mes6a1' && !problems.gold26.length) problems.gold26.push('(注入 wording-drift-mes6a1 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -6132,7 +6336,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

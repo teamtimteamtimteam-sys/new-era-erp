@@ -41,7 +41,7 @@ export type ExtraField = {
     /** MES-3a 加了 number(滞留提醒天数):空 = NULL = "Not yet set",不是 0。
      *  MES-3b 加了 choice(标签模板的"给哪一种东西 / 纸多大"):只能在 options 里挑 —— 表上的 CHECK 是同一张清单,
      *  这里只是不让人去敲一个必然被拒的字。 */
-    kind: 'boolean' | 'text' | 'number' | 'choice' | 'time'
+    kind: 'boolean' | 'text' | 'number' | 'choice' | 'time' | 'supplier'
     /** kind = choice 时的取值,每一个带一个字面量的文案键(check-i18n 按字面量核对)。 */
     options?: { value: string; labelKey: string }[]
     labelKey: string
@@ -57,6 +57,8 @@ export type ExtraField = {
     pairedWith?: string
     /** MES-4b(V11):kind = number 时可以是 0 与小数(一个百分数),不是 MES-3a 那种从 1 起的天数。 */
     decimal?: boolean
+    /* MES-6a-1(Q23):kind = supplier —— 指向供应商表的一户(实验室的付款户)。选项由页面从 supplier_lookup 读好传进来(查名视图:
+       只有编号与法定名),空 = 没有人指过。读不到那一户的人在清单里看见「受限」,不是空。 */
 }
 
 export type DictSpec = {
@@ -159,7 +161,9 @@ export const DICTIONARIES: DictSpec[] = [
         titleKey: 'dict.laboratories',
         permission: 'module.materials.edit',
         viewPermission: 'module.inbound.view',
-        extras: [],
+        // ★ MES-6a-1(2026-10-09,MES-0 Q64 · MES-6a Step 0 Q23,Tim):实验室指向它在供应商表里的那一户 —— 仲裁费付给它。
+        //   写与这一节的写同一个码(module.materials.edit,表的 update 策略同一个);付款照常要那户供应商已批准。
+        extras: [{ column: 'supplier_id', kind: 'supplier', labelKey: 'dict.f.supplier_id', hintKey: 'dict.h.supplier_id', showInTable: true }],
         referencedBy: [{ table: 'assay_results', column: 'lab_name' }],
     },
     {

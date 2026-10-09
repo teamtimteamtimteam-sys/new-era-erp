@@ -709,6 +709,8 @@ const TABLE_NAMES = {
     electricity_allocation_reversals: 'electricity bill reversal',
     // MES-5b-3(2026-10-09):一份配料计划 · 它的目标品位 · 它的候选批次
     blending_plans: 'blending plan', blending_plan_targets: 'blending target', blending_plan_lines: 'blending line',
+    // MES-6a-1(2026-10-09):一份样品 · 它的一条保管记录 · 一件化验争议 · 内部留样天数(V16)
+    samples: 'sample', sample_events: 'sample custody record', assay_disputes: 'assay dispute', quality_settings: 'sample retention setting',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -796,6 +798,8 @@ const AREA_RULES = [
     [/^(certificate_type)/, 'Output'],
     [/^(purchase_order|po_issues|pricing_term_commitments|company_compliance)/, 'Purchasing'],
     [/^(processing|batch_processing|work_order|equipment|shift_handover|operation|process_recipe|contamination|cell_construction)/, 'Processing'],
+    // MES-6a-1:样品、它的保管记录、化验争议与留样天数归质量(/quality)—— 必须在 assay 那一条之前
+    [/^(sample|assay_dispute|quality_setting)/, 'Quality'],
     [/^(inbound|receipt|assay|receiving)/, 'Receiving'],
     [/^(output|certificates_of_destruction|traceability|cod_)/, 'Output'],
     [/^(inventory|storage_location|warehouse_request|stock)/, 'Inventory'],
@@ -847,6 +851,10 @@ const ENUM_OVERRIDES = {
     // MES-5b-3(2026-10-09):一份配料计划的四态 · 一条目标品位从哪里来(两列各一张 CHECK 清单)
     'blending_plans#status': { draft: 'Draft', released: 'Released', executed: 'Executed', cancelled: 'Cancelled' },
     'blending_plan_targets#source': { contract: 'Copied from the contract', manual: 'Entered by hand' },
+    // MES-6a-1(2026-10-09):留样日由谁定 · 仲裁费怎么分(争议上立案时抄下的那一份,与合同条款上那一列同一组值)
+    'samples#retain_until_source': { contract: 'The contract', internal: 'The internal period', not_set: 'Not set' },
+    'assay_disputes#fee_rule_at': { loser_pays: 'The losing party pays', equal: 'Split equally', further_from_umpire_pays: 'The party further from the umpire pays', buyer: 'The buyer pays', seller: 'The seller pays' },
+    'contract_settlement_terms#arbitration_fee_rule': { loser_pays: 'The losing party pays', equal: 'Split equally', further_from_umpire_pays: 'The party further from the umpire pays', buyer: 'The buyer pays', seller: 'The seller pays' },
     'electricity_allocation_lines#basis': { recorded_energy: 'Recorded run energy', run_time: 'Run time' },
     'processing_run_corrections#field': { started_at: 'Start time', ended_at: 'End time', shift_code: 'Shift', equipment_id: 'Machine',
         recipe_version_id: 'Recipe version', notes: 'Notes' },
@@ -987,7 +995,8 @@ const ENUM_OVERRIDES = {
     'contract_volume_commitments#committed_by_party': { us: 'Us', counterparty: 'The counterparty' },
     'contract_volume_commitments#period': { month: 'Month', quarter: 'Quarter', year: 'Year', total: 'Whole contract' },
     'contract_volume_commitments#direction': { min: 'At least', max: 'At most' },
-    'contract_settlement_terms#settling_party': { ours: 'Ours', counterparty: 'The buyer' },
+    // MES-6a-1(MES-6a Step 0 Q24 · Q25):中性的说法 —— 我们 · 对手方 · 仲裁,不再写 "The buyer"(那只在卖方合同上对)
+    'contract_settlement_terms#settling_party': { ours: 'Ours', counterparty: 'Counterparty' },
     'contract_settlement_terms#refining_charge_basis': { none_agreed: 'None agreed', per_metal: 'Per metal' },
     'contract_settlement_terms#penalty_basis': { none_agreed: 'None agreed', per_element: 'Per element' },
     // ── AUDIT-TRAIL-1c-3(取值照各自那一页的选项文字)─────────────────────────────────────────────────────

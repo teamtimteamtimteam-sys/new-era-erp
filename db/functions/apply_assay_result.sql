@@ -23,6 +23,7 @@ DECLARE
     v_prior    uuid;
     v_note     text := NULL;
     v_open     receipt_price_requests%ROWTYPE;
+    v_disp     uuid;
 BEGIN
     PERFORM require_permission('action.apply_assay');
     SELECT * INTO v_assay FROM assay_results
@@ -45,6 +46,15 @@ BEGIN
     FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', v_assay.inbound_batch_id;
+    END IF;
+
+    -- 0a. ★ MES-6a-1(MES-0 Q62 · MES-6a Step 0 Q18,Tim):这一批挂着一件【开着的】化验争议时,应用任何一份化验都按名拒 ——
+    --     争议没结,"哪一份说了算"就还没定,而应用正是在替人做那个选择。放在批次锁之后、任何改动之前;
+    --     preview_assay_price 用同一句拒(fixture 40 的那条规矩:试算拒的地方提交也拒)。结案或撤回之后放开。
+    SELECT d.id INTO v_disp FROM assay_disputes d WHERE d.inbound_batch_id = v_batch.id AND d.status = 'open';
+    IF FOUND THEN
+        RAISE EXCEPTION 'ASSAY_DISPUTE_OPEN|%|%', v_batch.code, v_disp
+          USING HINT = '这一批有一件开着的化验争议 —— 先在争议页上结案(点名哪一份说了算)或撤回,再应用';
     END IF;
 
     -- 0. ★ ROLE-1 Batch 4b(Tim 的 Q3 · Q5 · Q6):这张收货挂着一张在等 CFO 的定价申请时 ——
@@ -142,8 +152,12 @@ BEGIN
     -- 6. 取代链:此前已执行且未被取代的化验,superseded_by 指向本次
     -- code 作平局裁决:applied_at 在同一事务里可能相同(now() 冻结),
     -- 而编号无缝且单调 —— 排序必须确定
+    -- ★ MES-6a-1(D4 · Step 0 Q20):只取代【同一出具方】的上一份 —— 应用一份对手方或仲裁的结果【不】把我们的那一份标成
+    --   superseded(assay_results.superseded_by 的列注释:"对手方的结果不是对我们结果的取代")。此前这里不看出具方,
+    --   一旦有人应用对手方的结果就会静静地盖掉我们自己测到的东西(今天线上从没应用过一份非 ours 的进料化验,所以它从没开过火)。
     SELECT id INTO v_prior FROM assay_results
     WHERE inbound_batch_id = v_batch.id AND id <> p_assay_result_id
+      AND result_party = v_assay.result_party
       AND applied_at IS NOT NULL AND superseded_by IS NULL AND deleted_at IS NULL
     ORDER BY applied_at DESC, code DESC LIMIT 1;
     IF v_prior IS NOT NULL THEN

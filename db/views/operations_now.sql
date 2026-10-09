@@ -1,4 +1,11 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-6a-1(2026-10-09,MES-6a Step 0 Q15 · Q17,Tim):加三支,门都是 module.quality.view。
+--   sample_retention_due —— 一份样品的留样日已经过了、还没处置(Q15)。item_id = 那份样品;subject = 批号;item_date = 留样日。
+--     留样日 Not yet set 的样品不进来(没有日子可过)。
+--   assay_dispute_open —— 一件开着的化验争议(它挡着进料的应用 / 定价过账与卖方结算)。item_id = 那件争议;item_code = 批号;
+--     subject = 两份结果的单号。
+--   assay_results_disagree —— 卖方:两方结果差得超过了合同的容差,而没有人立过争议(MES-0 Q62;assay_disagreements_all)。
+--     item_id = 那一批产出批;subject = 销售单号。买方没有这一支(买方合同不带容差 —— Q17)。
 -- ★ MES-5a-1(2026-10-08,规格 §3.1;MES-0 Q23;MES-5a Step 0 Q18,Tim):加两支,都读 discharge_batch_status_all,门 module.processing.view。
 --   discharge_unverified —— 一批做过一炉没回滚的深度放电(verifies_by_unit 的工序),却还没有开着"已放电并核实"
 --   (逐模组的结论还没凑满:没记模组数、结果没记完、有模组要再放电)。item_id = 那一批最晚的那一炉;subject = 批号。
@@ -895,7 +902,48 @@ CREATE VIEW public.operations_now AS
                           WHERE ra.invoice_line_id = il.id)) > COALESCE(( SELECT sum(sl.qty) AS sum
                            FROM shipment_lines sl
                           WHERE sl.sales_order_line_id = rl.sales_order_line_id), 0::numeric)
-                  GROUP BY so.id, so.code, c.legal_name) q) a
+                  GROUP BY so.id, so.code, c.legal_name) q
+        UNION ALL
+         SELECT 'sample_retention_due'::text AS item_type,
+            'module.quality.view'::text AS permission,
+            sr.id AS item_id,
+            NULL::text AS doc_kind,
+            sr.code AS item_code,
+            sr.batch_code AS subject,
+            sr.retain_until AS item_date
+           FROM ( SELECT s.id,
+                    s.code,
+                    COALESCE(ib.code, ob.code) AS batch_code,
+                    s.retain_until
+                   FROM samples s
+                     LEFT JOIN inbound_batches ib ON ib.id = s.inbound_batch_id
+                     LEFT JOIN output_batches ob ON ob.id = s.output_batch_id
+                  WHERE s.retain_until IS NOT NULL AND s.retain_until < CURRENT_DATE AND NOT (EXISTS ( SELECT 1
+                           FROM sample_events e
+                          WHERE e.sample_id = s.id AND e.event_kind = 'disposed'::text))) sr
+        UNION ALL
+         SELECT 'assay_dispute_open'::text AS item_type,
+            'module.quality.view'::text AS permission,
+            d.id AS item_id,
+            NULL::text AS doc_kind,
+            COALESCE(ib.code, ob.code) AS item_code,
+            (ao.code || ' / '::text) || ac.code AS subject,
+            d.created_at::date AS item_date
+           FROM assay_disputes d
+             LEFT JOIN inbound_batches ib ON ib.id = d.inbound_batch_id
+             LEFT JOIN output_batches ob ON ob.id = d.output_batch_id
+             JOIN assay_results ao ON ao.id = d.our_assay_id
+             JOIN assay_results ac ON ac.id = d.counterparty_assay_id
+          WHERE d.status = 'open'::text
+        UNION ALL
+         SELECT 'assay_results_disagree'::text AS item_type,
+            'module.quality.view'::text AS permission,
+            ad.output_batch_id AS item_id,
+            NULL::text AS doc_kind,
+            ad.batch_code AS item_code,
+            ad.sales_order_code AS subject,
+            ad.latest_assay_date AS item_date
+           FROM assay_disagreements_all ad) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

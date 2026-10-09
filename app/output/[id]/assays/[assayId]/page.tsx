@@ -8,6 +8,7 @@
 //     化验没报的金属行标【将移除】—— 应用是整体替换,不是逐行合并;
 //   * 过期后果:产出它的加工单若按 metal_value 已分摊,应用会让拆分过期 ——
 //     说在确认之前,不是事后。
+import QualityPanel from '@/app/components/quality/QualityPanel'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -60,7 +61,7 @@ export default async function OutputAssayDetailPage({
 
     const { data: assay, error } = await supabase
         .from('assay_results')
-        .select('id, code, output_batch_id, assay_date, lab_name, weight_basis, moisture_pct, result_party, certificate_ref, sample_ref, is_final, notes, applied_at, superseded_by, created_at')
+        .select('id, code, output_batch_id, assay_date, lab_name, weight_basis, moisture_pct, result_party, certificate_ref, sample_ref, is_final, notes, applied_at, superseded_by, created_at, sample_id')
         .eq('id', assayId)
         .is('deleted_at', null)
         .single()
@@ -344,6 +345,9 @@ export default async function OutputAssayDetailPage({
                     </PermissionGate>
                 </section>
             )}
+
+            {/* MES-6a-1(Q9 · Q16):这份结果化验的是哪份样品,以及这一批的样品与争议 —— 开着的争议在这里说出它挡着什么 */}
+            <QualityPanel kind="output" batchId={id} assaySampleId={assay.sample_id ?? null} />
         </div>
     )
 }

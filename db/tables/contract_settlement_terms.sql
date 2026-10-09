@@ -81,6 +81,13 @@ CREATE TABLE public.contract_settlement_terms (
     created_by   uuid DEFAULT auth.uid(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
     updated_by   uuid DEFAULT auth.uid(),
+    -- ── MES-6a-1 追加(2026-10-09,MES-0 Q63 · V14;MES-6a Step 0 Q22):仲裁费怎么分 ── ★ 可空 = Not yet set,永远不给默认值 ★
+    --   loser_pays 输的一方付 · equal 两方各半 · further_from_umpire_pays 离仲裁结果远的一方付 · buyer 买方付 · seller 卖方付。
+    --   ★ 只有卖方合同有这张表的行(条款编辑器的卖方那一侧,termSpecs.ts),所以买方的争议永远读到 Not yet set(Q22)。
+    --   立案那一刻抄进 assay_disputes.fee_rule_at;仲裁费照常是一张费用单,对手方该担的那一份只算给人看,不收。
+    arbitration_fee_rule text
+        CHECK (arbitration_fee_rule IS NULL OR arbitration_fee_rule IN
+               ('loser_pays', 'equal', 'further_from_umpire_pays', 'buyer', 'seller')),
     -- 一份合同一套结算口径
     CONSTRAINT contract_settlement_terms_one_per_contract UNIQUE (contract_id)
 );
@@ -127,3 +134,6 @@ CREATE TRIGGER trg_contract_settlement_terms_frozen
     BEFORE INSERT OR UPDATE OR DELETE ON public.contract_settlement_terms
     FOR EACH ROW EXECUTE FUNCTION public.guard_contract_terms_frozen();
 
+
+COMMENT ON COLUMN public.contract_settlement_terms.arbitration_fee_rule IS
+    'MES-6a-1(MES-0 Q63 · V14):仲裁费怎么分 —— loser_pays · equal · further_from_umpire_pays · buyer · seller。**可空 = Not yet set,不给默认值**(一份没写的分摊规则不是"各半")。只有卖方合同有结算口径,所以买方的争议永远是 Not yet set。随结算口径一起在挂接那一刻抄进单据的合同副本(link_document_to_contract 的 to_jsonb),立案时再抄进 assay_disputes.fee_rule_at。仲裁费本身是一张费用单;对手方的那一份只算出来给人看,不收(收它等指数定价 §9)。';

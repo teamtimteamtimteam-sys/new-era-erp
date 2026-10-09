@@ -60,7 +60,7 @@ export default async function ExpenseDetailPage({
 
     const { data: expense, error } = await supabase
         .from('expenses')
-        .select('id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense, purchase_order_line_id')
+        .select('id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense, purchase_order_line_id, reversal_reason, reversed_at, reversed_by')
         .eq('id', id)
         .single()
 
@@ -182,6 +182,7 @@ export default async function ExpenseDetailPage({
         : settled > 0
             ? t('expense.reverseBlockedSettled')
             : prepaidCount > 0 ? t('expense.reverseBlockedPrepaid') : undefined
+    const memoText = reversalOfRes.data ? reversalReasonText(expense.notes) : expense.notes
     const reverseConsequence = reliefCount > 0 ? t('expense.reverseReliefConsequence', { n: reliefCount }) : undefined
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端水合不一致
@@ -301,9 +302,12 @@ export default async function ExpenseDetailPage({
             // AUDIT-TRAIL-1c-1(Q8):冲销了的一张 → "Reversed on … by …" + 链到冲销那一张;冲销那一张 → "Reversal of EXP-…"
             notices={
                 <>
+                    {/* MES-6a-1(Q33–Q37):理由、何时、谁 —— 冲销起存在原单自己身上(reversal_reason · reversed_at · reversed_by);
+                        这一刀之前冲销的旧单没有这三列,仍取自镜像单的建立与它 notes 里那句 */}
                     {expense.status === 'reversed' && reversedByRes.data?.created_at && (
-                        <EndedBanner kind="reversed" at={reversedByRes.data.created_at} by={reversedByRes.data.created_by}
-                            reason={reversalReasonText(reversedByRes.data.notes)}
+                        <EndedBanner kind="reversed" at={expense.reversed_at ?? reversedByRes.data.created_at}
+                            by={expense.reversed_at ? expense.reversed_by : reversedByRes.data.created_by}
+                            reason={expense.reversal_reason ?? reversalReasonText(reversedByRes.data.notes)}
                             link={{ code: reversedByRes.data.code, href: `/finance/expenses/${reversedByRes.data.id}` }} />
                     )}
                     {reversalOfRes.data && <ReversalOfBanner code={reversalOfRes.data.code} href={`/finance/expenses/${reversalOfRes.data.id}`} />}
@@ -330,10 +334,12 @@ export default async function ExpenseDetailPage({
                 />
             )}
 
-            {expense.notes && (
+            {/* MES-6a-1:镜像单的 notes 是一句机器字 'REVERSAL: <原单号>' —— 抬头那条"Reversal of …"横幅已经说了;
+                只在它还带着人写的话(这一刀之前的旧镜像单)时印那句话 */}
+            {memoText && (
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.memo')}:</span>
-                    {expense.notes}
+                    {memoText}
                 </p>
             )}
 

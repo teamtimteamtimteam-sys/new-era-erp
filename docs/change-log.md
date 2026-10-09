@@ -1268,3 +1268,30 @@ ADMIN), each fault-injected by `db/scripts/2026-10-09-mes5b3-fixture-injections.
   `blending_plan_lines`. The three tables speak through the generic family ("Blending plan created / edited", "Blending target created",
   "Blending line created"); `scripts/check-trail-wording.mjs` arm ㉕ pins six sentences (created, a target, a line, released, executed,
   cancelled; fault `wording-drift-mes5b3`). The blending **run** stays on the `processing_run` subject as usual.
+
+## 23. Samples, assay disputes, a reason on every expense reversal (MES-6a-1, v1.4.48, 2026-10-09)
+
+Hand-back `docs/handbacks/MES-6a-1.md`; fixtures 260 (arms SMP · CUST · RET · ASSAY · EARLY · CODES · READ · LOG · PV) and 261 (arms OPEN · HOLD ·
+RESOLVE · D4 · SELL · FEE · DISAGREE · V14 · F3) pin every rule below, each fault-injected by `db/scripts/2026-10-09-mes6a1-fixture-injections.py`.
+Fixture 235 stays at **8** exclusions.
+
+### 23.1 Logged, excluded, masked
+
+- **Four new tables, logged.** `samples`, `sample_events`, `assay_disputes`, `quality_settings` are bound by their primary key: public tables
+  **286 → 290**, bound **278 → 282**, exclusions stay **8** (Step 0 Q40). `sample_events` is append-only (`guard_append_only_log`), so its rows
+  only ever appear as INSERTs; a dispute's opening, umpire, resolution, withdrawal and fee link are UPDATE rows on `assay_disputes`
+  (statuses change only through the functions). V16 changes are UPDATE rows on the single `quality_settings` row — that **is** its history.
+- **No masked column, no new mask rule** (114 stays; Step 0 Q41). The arbitration fee amount lives on its expense (decision 1: whoever reads
+  finance reads prices); the dispute views mask the amount to `module.finance.view` per reader. **The reversal reason is not masked** (Q35) —
+  see `docs/known-issues.md` beside `U1B-EXPENSE-CLAIM-DESCRIPTION-IN-EXPENSE-NOTES`.
+- **What the migration writes:** two `permissions` rows (`module.quality.view` / `.edit`) and one `permissions` UPDATE (`action.apply_assay`
+  declares `module.quality.view` among its view codes), nine `role_permissions` rows (view: admin · cco · cfo · cto · finance · warehouse;
+  edit: admin · cco · cto) and one `document_types` row (`SMP`) — its proof asserts `change_log` moved only by those (12, or 13 if
+  `document_types` is logged). Nothing else: no sample, dispute, lab → supplier link, V14 or V16 on live.
+- **Trail.** New subjects `sample` (`/quality/samples/[id]`, member `sample_events`), `assay_dispute` (`/quality/disputes/[id]`) and
+  `quality_settings` (the V16 panel on `/quality/samples`), all `module.quality.view`; the inbound and output batch subjects gain `samples`,
+  `sample_events` and `assay_disputes` as members. Samples, custody lines and disputes speak through the generic family ("Sample created",
+  "Sample custody record created", "Assay dispute created / edited"); V16 through the settings family ("Internal sample retention changed").
+  **An expense reversal now carries its reason** on the expense trail and on the expense-claim trail (read from the original's
+  `reversal_reason`; reversals made before this cut still read it from the mirror's notes). `scripts/check-trail-wording.mjs` arm ㉖ pins ten
+  sentences (fault `wording-drift-mes6a1`), including the neutral **Ours · Counterparty · Umpire** labels that replace "The buyer".

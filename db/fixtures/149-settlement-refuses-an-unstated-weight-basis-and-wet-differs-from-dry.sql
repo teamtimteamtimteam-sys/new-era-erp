@@ -31,6 +31,7 @@
 --   G 权限按名拒,补回就放行
 --   H 目录事实(含那个刻意的缺席:它不过账)
 --   I 抄不是引用
+--   J ★ MES-6a-1:一件开着的化验争议 → 结算按名拒 ASSAY_DISPUTE_OPEN(仲裁那一份也拒);撤回之后照常
 -- ═══════════════════════════════════════════════════════════════════════════
 
 BEGIN;
@@ -339,6 +340,22 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 149I 失败:★ 改了合同之后,已挂单据抄下的结算口径变了 ★'; END IF;
     IF (SELECT sale_weight_basis FROM contract_settlement_terms WHERE contract_id=v_con_w) <> 'dry' THEN
         RAISE EXCEPTION 'FIXTURE 149I 失败:合同没有被改动 —— 这一臂因此证明不了任何事'; END IF;
+
+    -- ══════════ J. ★ MES-6a-1(Step 0 Q21):一件【开着的】化验争议时结算按名拒 —— 连仲裁那一份也拒 ═════
+    --   上面 D 臂那两道推出来的拒绝看的是两份数字;这一道看的是一件被人立起来的争议。立了就等它结案或撤回。
+    DECLARE v_d uuid;
+    BEGIN
+        v_amt_d := (sale_settlement_compute(v_so_d, v_ob, v_a_ump) ->> 'amount_usd')::numeric;
+        v_d := (open_assay_dispute(v_a_ours, v_a_cp, 'fixture 149 J', v_so_d) ->> 'dispute_id')::uuid;
+        v_denied := false; v_msg := NULL;
+        BEGIN PERFORM sale_settlement_compute(v_so_d, v_ob, v_a_ump);
+        EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+        IF NOT v_denied OR v_msg NOT LIKE 'ASSAY_DISPUTE_OPEN|ZZ149-OB1|%' THEN
+            RAISE EXCEPTION 'FIXTURE 149J 失败:开着的争议时结算应按名拒 ASSAY_DISPUTE_OPEN(连仲裁那一份也拒),实得 %', COALESCE(v_msg, '(通过)'); END IF;
+        PERFORM withdraw_assay_dispute(v_d, 'fixture 149 J withdrawn');
+        IF (sale_settlement_compute(v_so_d, v_ob, v_a_ump) ->> 'amount_usd')::numeric IS DISTINCT FROM v_amt_d THEN
+            RAISE EXCEPTION 'FIXTURE 149J 失败:撤回之后结算照常、同一个数'; END IF;
+    END;
 
     -- ══════════ 故障注入(陷阱 e)════════════════════════════════════════════
     -- 短路掉"化验必须声明重量基准"那条拒绝,断言 A 臂当场瞎掉。

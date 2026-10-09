@@ -23,6 +23,10 @@
 -- * MES-5a-2(2026-10-08):一次电费分摊的费用单【不许】单独冲(EXPENSE_IS_ELECTRICITY_ALLOCATION)—— 理由在那一句旁边。
 -- * MES-5b-2(2026-10-09):① 冲销的那一段搬进 reverse_expense_internal(撤回电费单也用它);② 经付款结过 / 冲抵过预付款的按名拒
 --   (在 internal 里,每一种费用单都过);③ 冲掉一张月结冲抵时把它冲抵掉的估计放回去(F2,Q21);④ 电费分摊的拒绝带上那张分摊的 id。
+-- * ★ MES-6a-1(2026-10-09,F3 · MES-6a Step 0 Q33 · Q34 · Q36,Tim):【每一次冲销都要一句理由】。签名不变(p_memo 仍是第二个参数、
+--   仍带默认 —— CREATE OR REPLACE 改不了参数名,fixture 214 钉着这个签名);它从此就是理由:问码之后【第一件事】查它,
+--   NULL 或空白按名拒 EXPENSE_REVERSAL_REASON_REQUIRED|<单号>(电费单与运费单的同一个次序)。理由写在被冲掉的那一张上
+--   (reversal_reason / reversed_at / reversed_by,在 reverse_expense_internal 里),不再拼进镜像单的 notes。
 
 CREATE OR REPLACE FUNCTION public.reverse_expense(p_expense_id uuid, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
@@ -38,6 +42,11 @@ DECLARE
     v_restored integer := 0;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    -- ★ MES-6a-1(F3,Q33):理由在码之后第一件事查(电费单与运费单的同一个次序)。单号只用来让拒绝说出是哪一张。
+    IF NULLIF(btrim(COALESCE(p_memo, '')), '') IS NULL THEN
+        RAISE EXCEPTION 'EXPENSE_REVERSAL_REASON_REQUIRED|%', COALESCE((SELECT code FROM expenses WHERE id = p_expense_id), '?')
+          USING HINT = '没有理由的冲销,事后没人答得出为什么';
+    END IF;
     SELECT * INTO v_orig FROM expenses WHERE id = p_expense_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'EXPENSE_NOT_FOUND|%', p_expense_id;
@@ -76,7 +85,7 @@ BEGIN
     END IF;
 
     -- 冲费用单与分录(资本支出的两条规矩、经付款结过的拒绝都在里面 —— 一份实现,两个调用方)
-    v_r := reverse_expense_internal(p_expense_id, p_memo);
+    v_r := reverse_expense_internal(p_expense_id, btrim(p_memo));
 
     -- F2:清掉冲抵戳(结算戳只许经财务函数改 —— guard_cost_entry_settled 认这个事务级标记,用毕即清)
     PERFORM set_config('evoltrya.cost_settlement_ctx', '1', true);

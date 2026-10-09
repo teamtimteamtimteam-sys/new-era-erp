@@ -5,10 +5,10 @@
 --   * 'unpaid' → 借 6xxx / 贷 2000 应付 —— 成为 AP 单据(进 ap_open_items,
 --                由 record_payment 的 expense_id 核销行结算)。
 -- IMMUTABLE:INSERT+SELECT RLS + 守卫触发器只放行 posted→reversed 且首挂
--- reversed_by_expense(唯一入口 reverse_expense,SECURITY DEFINER —— expenses
--- 无 UPDATE 策略)。分录链接 journal_entry_id 在插入时一次到位(expense id 预生成,
--- 分录先行,无回填 UPDATE)。冲销生成镜像单(status 'posted',notes 'REVERSAL: …',
--- 挂冲销分录,不带核销行)—— 镜像行在 ap_open_items 里被排除(它只是记录凭证)。
+-- reversed_by_expense(唯一入口 reverse_expense_internal,经 reverse_expense 与 reverse_electricity_allocation,
+-- SECURITY DEFINER —— expenses 无 UPDATE 策略)。★ MES-6a-1(F3):同一步写下冲销理由(必填)、时刻与人。分录链接 journal_entry_id 在插入时一次到位(expense id 预生成,
+-- 分录先行,无回填 UPDATE)。冲销生成镜像单(status 'posted',notes 'REVERSAL: <原单号>' —— MES-6a-1 起只有这一句机器字,
+-- 人写的理由在原单的 reversal_reason 上;挂冲销分录,不带核销行)—— 镜像行在 ap_open_items 里被排除(它只是记录凭证)。
 --
 -- NOTE: introduced by db/migrations/2026-07-30-phase3-s2a-expenses.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
@@ -146,6 +146,7 @@ CREATE UNIQUE INDEX uq_expenses_live_po_line
     WHERE purchase_order_line_id IS NOT NULL AND status = 'posted';
 
 -- 守卫:只放行 posted→reversed 且首挂 reversed_by_expense,其余列逐列锁死
+-- ★ MES-6a-1(F3):那一步里同时写下冲销的理由、时刻与人(reversal_reason / reversed_at / reversed_by),理由不许是空的。
 CREATE OR REPLACE FUNCTION public.guard_expense_mutation()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -181,6 +182,15 @@ BEGIN
     IF NOT (OLD.status = 'posted' AND NEW.status = 'reversed'
             AND OLD.reversed_by_expense IS NULL AND NEW.reversed_by_expense IS NOT NULL) THEN
         RAISE EXCEPTION 'EXPENSE_IMMUTABLE';
+    END IF;
+    -- ★ MES-6a-1(2026-10-09,F3 · MES-6a Step 0 Q33 · Q34,Tim):冲销的理由、时刻与人只在 posted → reversed 这一步写,
+    --   理由不许是空的 —— 这一步之外它们改不了(上面那句已经拒掉了任何别的 UPDATE),而这一步里少了理由按名拒。
+    --   表上的 expenses_reversal_shape 是第二道:posted 的行三列都空,reversed 的行理由与时刻都在。
+    IF OLD.reversal_reason IS NOT NULL OR OLD.reversed_at IS NOT NULL OR OLD.reversed_by IS NOT NULL THEN
+        RAISE EXCEPTION 'EXPENSE_IMMUTABLE';
+    END IF;
+    IF NEW.reversal_reason IS NULL OR btrim(NEW.reversal_reason) = '' OR NEW.reversed_at IS NULL THEN
+        RAISE EXCEPTION 'EXPENSE_REVERSAL_REASON_REQUIRED|%', OLD.code;
     END IF;
     RETURN NEW;
 END;
@@ -354,3 +364,27 @@ tax_amount_for(净额):9% 时约 8.3% 的总额写不成 净 + round(净 × 9%)(
 
 【既有行】由 CLAIM-GST-1 迁移从各自分录里那条 ''GST on <code>'' 贷方腿回填(当时 3 行,
 逐行等于 tax_amount_for(amount_ccy, tax_rate_pct),迁移里断言过);冲销镜像单不带税码,为 0。';
+
+-- ── MES-6a-1(2026-10-09,F3 · MES-6a Step 0 Q33–Q37,Tim):每一次费用冲销都要一句理由(ALTER 加的列排在末尾)──
+--   理由写在【被冲掉的那一张】上(freight_documents 的先例:reversal_reason / reversed_at / reversed_by),只在 posted → reversed 那一步写
+--   (guard_expense_mutation)。镜像单的 notes 回到只有 'REVERSAL: <原单号>' 一句机器字 —— 人写的话不再和机器字挤在一列里(AT1D1 那一族)。
+--   ★ 不遮(Q35):费用单不遮是常设裁定 1;理由框上提示不要写健康细节(U1B-EXPENSE-CLAIM-DESCRIPTION-IN-EXPENSE-NOTES 那一条的邻居)。
+ALTER TABLE public.expenses
+    ADD COLUMN reversal_reason text,
+    ADD COLUMN reversed_at     timestamptz,
+    ADD COLUMN reversed_by     uuid;
+
+-- 【三列与状态是一件事】posted 的行三列都空;reversed 的行理由不空、时刻在(人可以是空的 —— 一次没有登录身份的系统冲销,
+--   今天不存在,但不为它编一个人)。线上 0 张冲销过的费用单,所以这条约束不碰任何历史行。
+ALTER TABLE public.expenses
+    ADD CONSTRAINT expenses_reversal_shape CHECK (
+        (status = 'posted' AND reversal_reason IS NULL AND reversed_at IS NULL AND reversed_by IS NULL)
+     OR (status = 'reversed' AND btrim(COALESCE(reversal_reason, '')) <> '' AND reversed_at IS NOT NULL));
+
+COMMENT ON COLUMN public.expenses.reversal_reason IS
+'MES-6a-1(F3,Step 0 Q33–Q37):这一张为什么被冲销 —— 冲销的人写的一句话,必填(reverse_expense 与 reverse_electricity_allocation
+两条路都在问码之后第一件事就查它,EXPENSE_REVERSAL_REASON_REQUIRED;reverse_expense_internal 自己再拒一次空的)。写在【被冲掉的这一张】上,
+只在 posted → reversed 那一步写(guard_expense_mutation)。费用页的横幅、费用与报销单的审计记录都读它。
+【不遮】(Q35):费用单不遮是常设裁定 1(持 module.finance.view 就看得见钱);理由框提示不要写健康细节。';
+COMMENT ON COLUMN public.expenses.reversed_at IS 'MES-6a-1(F3):冲销的时刻(与 reversal_reason 同一步写)。';
+COMMENT ON COLUMN public.expenses.reversed_by IS 'MES-6a-1(F3):谁冲销的(auth.uid(),与 reversal_reason 同一步写)。';

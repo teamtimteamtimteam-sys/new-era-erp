@@ -139,6 +139,333 @@ export type Database = {
           },
         ]
       }
+      assay_disputes: {
+        Row: {
+          counterparty_assay_id: string
+          created_at: string
+          created_by: string | null
+          fee_expense_id: string | null
+          fee_rule_at: string | null
+          governing_assay_id: string | null
+          id: string
+          inbound_batch_id: string | null
+          limit_pct_at: number | null
+          opening_reason: string
+          our_assay_id: string
+          output_batch_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          sales_order_id: string | null
+          status: string
+          umpire_assay_id: string | null
+          umpire_sample_id: string | null
+          updated_at: string
+          updated_by: string | null
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          counterparty_assay_id: string
+          created_at?: string
+          created_by?: string | null
+          fee_expense_id?: string | null
+          fee_rule_at?: string | null
+          governing_assay_id?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          limit_pct_at?: number | null
+          opening_reason: string
+          our_assay_id: string
+          output_batch_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sales_order_id?: string | null
+          status?: string
+          umpire_assay_id?: string | null
+          umpire_sample_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          counterparty_assay_id?: string
+          created_at?: string
+          created_by?: string | null
+          fee_expense_id?: string | null
+          fee_rule_at?: string | null
+          governing_assay_id?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          limit_pct_at?: number | null
+          opening_reason?: string
+          our_assay_id?: string
+          output_batch_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sales_order_id?: string | null
+          status?: string
+          umpire_assay_id?: string | null
+          umpire_sample_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_fee_expense_id_fkey"
+            columns: ["fee_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_sample_id_fkey"
+            columns: ["umpire_sample_id"]
+            isOneToOne: false
+            referencedRelation: "sample_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_sample_id_fkey"
+            columns: ["umpire_sample_id"]
+            isOneToOne: false
+            referencedRelation: "samples"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assay_result_metals: {
         Row: {
           assay_result_id: string
@@ -159,6 +486,20 @@ export type Database = {
           metal?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "assay_result_metals_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_result_metals_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
           {
             foreignKeyName: "assay_result_metals_assay_result_id_fkey"
             columns: ["assay_result_id"]
@@ -200,6 +541,7 @@ export type Database = {
           notes: string | null
           output_batch_id: string | null
           result_party: string
+          sample_id: string | null
           sample_ref: string | null
           superseded_by: string | null
           updated_at: string
@@ -223,6 +565,7 @@ export type Database = {
           notes?: string | null
           output_batch_id?: string | null
           result_party: string
+          sample_id?: string | null
           sample_ref?: string | null
           superseded_by?: string | null
           updated_at?: string
@@ -246,6 +589,7 @@ export type Database = {
           notes?: string | null
           output_batch_id?: string | null
           result_party?: string
+          sample_id?: string | null
           sample_ref?: string | null
           superseded_by?: string | null
           updated_at?: string
@@ -320,6 +664,13 @@ export type Database = {
             foreignKeyName: "assay_results_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -350,6 +701,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_wip"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_sample_id_fkey"
+            columns: ["sample_id"]
+            isOneToOne: false
+            referencedRelation: "sample_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_results_sample_id_fkey"
+            columns: ["sample_id"]
+            isOneToOne: false
+            referencedRelation: "samples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_results_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_results_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
           },
           {
             foreignKeyName: "assay_results_superseded_by_fkey"
@@ -1380,6 +1759,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
@@ -3020,6 +3406,13 @@ export type Database = {
             foreignKeyName: "contamination_checks_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -3354,6 +3747,13 @@ export type Database = {
             foreignKeyName: "contract_document_terms_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: true
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: true
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -3675,6 +4075,7 @@ export type Database = {
       }
       contract_settlement_terms: {
         Row: {
+          arbitration_fee_rule: string | null
           contract_id: string
           created_at: string
           created_by: string | null
@@ -3691,6 +4092,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          arbitration_fee_rule?: string | null
           contract_id: string
           created_at?: string
           created_by?: string | null
@@ -3707,6 +4109,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          arbitration_fee_rule?: string | null
           contract_id?: string
           created_at?: string
           created_by?: string | null
@@ -5069,6 +5472,13 @@ export type Database = {
             foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -5417,6 +5827,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ingest_inbox"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "discharge_module_results_output_batch_id_fkey"
@@ -5774,6 +6191,13 @@ export type Database = {
             foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
             columns: ["new_output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -5803,6 +6227,13 @@ export type Database = {
             columns: ["new_output_batch_id"]
             isOneToOne: false
             referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -7621,6 +8052,9 @@ export type Database = {
           payee_name: string | null
           payment_status: string
           purchase_order_line_id: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
           reversed_by_expense: string | null
           status: string
           supplier_id: string | null
@@ -7652,6 +8086,9 @@ export type Database = {
           payee_name?: string | null
           payment_status: string
           purchase_order_line_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           reversed_by_expense?: string | null
           status?: string
           supplier_id?: string | null
@@ -7683,6 +8120,9 @@ export type Database = {
           payee_name?: string | null
           payment_status?: string
           purchase_order_line_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           reversed_by_expense?: string | null
           status?: string
           supplier_id?: string | null
@@ -9791,6 +10231,20 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_source_assay_id_fkey"
             columns: ["source_assay_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
             referencedRelation: "assay_results"
             referencedColumns: ["id"]
           },
@@ -11108,6 +11562,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -11726,6 +12187,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
           },
           {
             foreignKeyName: "invoices_sales_order_id_fkey"
@@ -12506,6 +12974,13 @@ export type Database = {
             foreignKeyName: "label_prints_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -12606,6 +13081,7 @@ export type Database = {
           name_zh: string
           notes: string | null
           sort_order: number
+          supplier_id: string | null
         }
         Insert: {
           code: string
@@ -12614,6 +13090,7 @@ export type Database = {
           name_zh: string
           notes?: string | null
           sort_order?: number
+          supplier_id?: string | null
         }
         Update: {
           code?: string
@@ -12622,8 +13099,31 @@ export type Database = {
           name_zh?: string
           notes?: string | null
           sort_order?: number
+          supplier_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "laboratories_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laboratories_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "laboratories_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lane_document_requirements: {
         Row: {
@@ -14824,6 +15324,13 @@ export type Database = {
             foreignKeyName: "output_batch_metals_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -14854,6 +15361,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_wip"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
           },
           {
             foreignKeyName: "output_batch_metals_source_assay_id_fkey"
@@ -15165,6 +15686,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "output_batch_safety_states_output_batch_id_fkey"
@@ -18826,6 +19354,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -19006,6 +19541,13 @@ export type Database = {
           weighing_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
           {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
             columns: ["output_batch_id"]
@@ -21248,6 +21790,27 @@ export type Database = {
           },
         ]
       }
+      quality_settings: {
+        Row: {
+          id: boolean
+          internal_retention_days: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          internal_retention_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          internal_retention_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       quote_history: {
         Row: {
           change_type: string
@@ -21441,6 +22004,13 @@ export type Database = {
             foreignKeyName: "quotes_converted_order_id_fkey"
             columns: ["converted_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "quotes_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -21605,6 +22175,13 @@ export type Database = {
             foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: true
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -21715,6 +22292,20 @@ export type Database = {
           withdrawn_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "receipt_price_requests_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
           {
             foreignKeyName: "receipt_price_requests_assay_result_id_fkey"
             columns: ["assay_result_id"]
@@ -22406,6 +22997,13 @@ export type Database = {
             foreignKeyName: "sales_order_history_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "sales_order_history_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -22481,6 +23079,13 @@ export type Database = {
             foreignKeyName: "sales_order_lines_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "sales_order_lines_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -22542,6 +23147,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "storage_locations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
@@ -22861,6 +23473,13 @@ export type Database = {
             foreignKeyName: "sales_records_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -22967,6 +23586,20 @@ export type Database = {
             foreignKeyName: "sales_settlements_assay_result_id_fkey"
             columns: ["assay_result_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
             referencedRelation: "assay_results"
             referencedColumns: ["id"]
           },
@@ -22976,6 +23609,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contract_grade_breaches"
             referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "sales_settlements_output_batch_id_fkey"
@@ -23016,6 +23656,13 @@ export type Database = {
             foreignKeyName: "sales_settlements_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -23024,6 +23671,258 @@ export type Database = {
             columns: ["superseded_by"]
             isOneToOne: false
             referencedRelation: "sales_settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sample_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_kind: string
+          id: number
+          lab_reference: string | null
+          laboratory_code: string | null
+          notes: string | null
+          occurred_at: string
+          reason: string | null
+          sample_id: string
+          storage_location_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_kind: string
+          id?: number
+          lab_reference?: string | null
+          laboratory_code?: string | null
+          notes?: string | null
+          occurred_at: string
+          reason?: string | null
+          sample_id: string
+          storage_location_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_kind?: string
+          id?: number
+          lab_reference?: string | null
+          laboratory_code?: string | null
+          notes?: string | null
+          occurred_at?: string
+          reason?: string | null
+          sample_id?: string
+          storage_location_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sample_events_laboratory_code_fkey"
+            columns: ["laboratory_code"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sample_events_sample_id_fkey"
+            columns: ["sample_id"]
+            isOneToOne: false
+            referencedRelation: "sample_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sample_events_sample_id_fkey"
+            columns: ["sample_id"]
+            isOneToOne: false
+            referencedRelation: "samples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sample_events_storage_location_id_fkey"
+            columns: ["storage_location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      samples: {
+        Row: {
+          code: string
+          contamination_check_id: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string | null
+          kind: string
+          mass_g: number | null
+          notes: string | null
+          output_batch_id: string | null
+          retain_until: string | null
+          retain_until_source: string
+          retention_days_at: number | null
+          sales_order_id: string | null
+          taken_on: string
+        }
+        Insert: {
+          code: string
+          contamination_check_id?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          kind: string
+          mass_g?: number | null
+          notes?: string | null
+          output_batch_id?: string | null
+          retain_until?: string | null
+          retain_until_source: string
+          retention_days_at?: number | null
+          sales_order_id?: string | null
+          taken_on: string
+        }
+        Update: {
+          code?: string
+          contamination_check_id?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          kind?: string
+          mass_g?: number | null
+          notes?: string | null
+          output_batch_id?: string | null
+          retain_until?: string | null
+          retain_until_source?: string
+          retention_days_at?: number | null
+          sales_order_id?: string | null
+          taken_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "samples_contamination_check_id_fkey"
+            columns: ["contamination_check_id"]
+            isOneToOne: false
+            referencedRelation: "contamination_check_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_contamination_check_id_fkey"
+            columns: ["contamination_check_id"]
+            isOneToOne: false
+            referencedRelation: "contamination_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "samples_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -23589,6 +24488,13 @@ export type Database = {
             foreignKeyName: "shipment_lines_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -23721,6 +24627,13 @@ export type Database = {
             foreignKeyName: "shipments_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "shipments_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -23837,6 +24750,13 @@ export type Database = {
             foreignKeyName: "shipping_releases_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "shipping_releases_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -23871,6 +24791,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "so_issues_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
           {
             foreignKeyName: "so_issues_sales_order_id_fkey"
             columns: ["sales_order_id"]
@@ -24016,6 +24943,13 @@ export type Database = {
             foreignKeyName: "stocktake_counts_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -24153,6 +25087,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "stocktake_lines_output_batch_id_fkey"
@@ -25986,6 +26927,13 @@ export type Database = {
             foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -26329,6 +27277,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "warehouse_requests_output_batch_id_fkey"
@@ -27464,6 +28419,339 @@ export type Database = {
         }
         Relationships: []
       }
+      assay_disagreements_all: {
+        Row: {
+          batch_code: string | null
+          counterparty_assay_code: string | null
+          counterparty_assay_id: string | null
+          latest_assay_date: string | null
+          limit_pct: number | null
+          max_diff_pct: number | null
+          our_assay_code: string | null
+          our_assay_id: string | null
+          output_batch_id: string | null
+          sales_order_code: string | null
+          sales_order_id: string | null
+        }
+        Relationships: []
+      }
+      assay_dispute_metals: {
+        Row: {
+          beyond_limit: boolean | null
+          counterparty_pct: number | null
+          diff_pct: number | null
+          dispute_id: string | null
+          metal: string | null
+          ours_pct: number | null
+          umpire_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assay_result_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      assay_dispute_rows: {
+        Row: {
+          batch_code: string | null
+          batch_kind: string | null
+          beyond_limit: boolean | null
+          counterparty_assay_code: string | null
+          counterparty_assay_id: string | null
+          counterparty_share_base: number | null
+          counterparty_share_pct: number | null
+          created_at: string | null
+          created_by: string | null
+          fee_amount_base: number | null
+          fee_expense_code: string | null
+          fee_expense_id: string | null
+          fee_restricted: boolean | null
+          fee_rule_at: string | null
+          governing_assay_code: string | null
+          governing_assay_id: string | null
+          governing_party: string | null
+          id: string | null
+          inbound_batch_id: string | null
+          limit_pct_at: number | null
+          max_diff_pct: number | null
+          opening_reason: string | null
+          our_assay_code: string | null
+          our_assay_id: string | null
+          output_batch_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          sales_order_code: string | null
+          sales_order_id: string | null
+          status: string | null
+          umpire_assay_code: string | null
+          umpire_assay_id: string | null
+          umpire_lab_code: string | null
+          umpire_sample_code: string | null
+          umpire_sample_id: string | null
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_counterparty_assay_id_fkey"
+            columns: ["counterparty_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_fee_expense_id_fkey"
+            columns: ["fee_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_our_assay_id_fkey"
+            columns: ["our_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_assay_id_fkey"
+            columns: ["umpire_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_sample_id_fkey"
+            columns: ["umpire_sample_id"]
+            isOneToOne: false
+            referencedRelation: "sample_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_umpire_sample_id_fkey"
+            columns: ["umpire_sample_id"]
+            isOneToOne: false
+            referencedRelation: "samples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_results_lab_name_fkey"
+            columns: ["umpire_lab_code"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       attendance_period_status: {
         Row: {
           code: string | null
@@ -28221,6 +29509,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
             columns: ["batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -28496,6 +29791,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "contamination_checks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "contamination_checks_output_batch_id_fkey"
@@ -29024,6 +30326,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
@@ -31897,6 +33206,13 @@ export type Database = {
             foreignKeyName: "invoices_sales_order_id_fkey"
             columns: ["sales_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "invoices_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -33325,6 +34641,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "substances"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "output_batch_metals_output_batch_id_fkey"
@@ -35785,6 +37108,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -35965,6 +37295,13 @@ export type Database = {
           weighing_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
           {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
             columns: ["output_batch_id"]
@@ -38207,6 +39544,13 @@ export type Database = {
             foreignKeyName: "quotes_converted_order_id_fkey"
             columns: ["converted_order_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "quotes_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
             referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
@@ -38429,6 +39773,13 @@ export type Database = {
             foreignKeyName: "sales_records_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -38526,6 +39877,13 @@ export type Database = {
             foreignKeyName: "sales_records_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
           },
@@ -38559,6 +39917,175 @@ export type Database = {
           },
         ]
       }
+      sample_rows: {
+        Row: {
+          batch_code: string | null
+          batch_kind: string | null
+          code: string | null
+          contamination_check_id: number | null
+          created_at: string | null
+          created_by: string | null
+          disposal_reason: string | null
+          disposed_at: string | null
+          disposed_early: boolean | null
+          event_count: number | null
+          id: string | null
+          inbound_batch_id: string | null
+          kind: string | null
+          lab_reference: string | null
+          laboratory_code: string | null
+          last_event_at: string | null
+          last_event_kind: string | null
+          mass_g: number | null
+          notes: string | null
+          output_batch_id: string | null
+          retain_until: string | null
+          retain_until_source: string | null
+          retention_days_at: number | null
+          retention_due: boolean | null
+          sales_order_code: string | null
+          sales_order_id: string | null
+          state: string | null
+          storage_location_code: string | null
+          storage_location_id: string | null
+          taken_on: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sample_events_storage_location_id_fkey"
+            columns: ["storage_location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_contamination_check_id_fkey"
+            columns: ["contamination_check_id"]
+            isOneToOne: false
+            referencedRelation: "contamination_check_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_contamination_check_id_fkey"
+            columns: ["contamination_check_id"]
+            isOneToOne: false
+            referencedRelation: "contamination_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "samples_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_lookup: {
         Row: {
           code: string | null
@@ -38583,6 +40110,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "containers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
           },
           {
             foreignKeyName: "shipments_sales_order_id_fkey"
@@ -38668,6 +40202,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "storage_locations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "inventory_movements_output_batch_id_fkey"
@@ -39502,6 +41043,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
           },
           {
             foreignKeyName: "warehouse_requests_output_batch_id_fkey"
@@ -41481,6 +43029,10 @@ export type Database = {
         Args: { p_employee_id: string; p_user_id: string }
         Returns: Json
       }
+      link_dispute_fee: {
+        Args: { p_dispute_id: string; p_expense_id: string }
+        Returns: Json
+      }
       link_document_to_contract: {
         Args: {
           p_contract_id: string
@@ -41624,6 +43176,7 @@ export type Database = {
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
       next_quote_code: { Args: { p_date?: string }; Returns: string }
       next_sales_order_code: { Args: { p_date?: string }; Returns: string }
+      next_sample_code: { Args: { p_date?: string }; Returns: string }
       next_shipment_code: { Args: { p_date: string }; Returns: string }
       next_statement_code: { Args: { p_date?: string }; Returns: string }
       next_traceability_report_code: {
@@ -41642,6 +43195,15 @@ export type Database = {
       notify_landing_warnings: {
         Args: { p_location_id: string; p_material_id: string; p_warn: string[] }
         Returns: undefined
+      }
+      open_assay_dispute: {
+        Args: {
+          p_counterparty_assay_id: string
+          p_our_assay_id: string
+          p_reason: string
+          p_sales_order_id?: string
+        }
+        Returns: Json
       }
       open_attendance_period: {
         Args: { p_period_month: string }
@@ -42044,6 +43606,7 @@ export type Database = {
           p_notes?: string
           p_output_batch_id?: string
           p_result_party?: string
+          p_sample_id?: string
           p_sample_ref?: string
           p_weight_basis?: string
         }
@@ -42145,6 +43708,14 @@ export type Database = {
           p_start_voltage_v?: number
           p_verdict: string
           p_verdict_at: string
+        }
+        Returns: Json
+      }
+      record_dispute_umpire: {
+        Args: {
+          p_dispute_id: string
+          p_umpire_assay_id: string
+          p_umpire_sample_id: string
         }
         Returns: Json
       }
@@ -42359,6 +43930,33 @@ export type Database = {
         }
         Returns: Json
       }
+      record_sample: {
+        Args: {
+          p_contamination_check_id?: number
+          p_inbound_batch_id?: string
+          p_kind: string
+          p_mass_g?: number
+          p_notes?: string
+          p_output_batch_id?: string
+          p_sales_order_id?: string
+          p_storage_location_id?: string
+          p_taken_on: string
+        }
+        Returns: Json
+      }
+      record_sample_event: {
+        Args: {
+          p_event_kind: string
+          p_lab_reference?: string
+          p_laboratory_code?: string
+          p_notes?: string
+          p_occurred_at: string
+          p_reason?: string
+          p_sample_id: string
+          p_storage_location_id?: string
+        }
+        Returns: Json
+      }
       record_shipment_issue: {
         Args: { p_file_path: string; p_sha256: string; p_shipment_id: string }
         Returns: Json
@@ -42569,6 +44167,14 @@ export type Database = {
           p_output_batch_id: string
           p_qty: number
           p_sales_order_line_id: string
+        }
+        Returns: Json
+      }
+      resolve_assay_dispute: {
+        Args: {
+          p_dispute_id: string
+          p_governing_assay_id: string
+          p_note: string
         }
         Returns: Json
       }
@@ -43003,6 +44609,10 @@ export type Database = {
       }
       set_po_line_deep_discharge: {
         Args: { p_code: string; p_line_id: string }
+        Returns: Json
+      }
+      set_quality_settings: {
+        Args: { p_internal_retention_days: number }
         Returns: Json
       }
       set_review_conclusion: {
@@ -43675,6 +45285,10 @@ export type Database = {
       wht_rate_for: {
         Args: { p_date: string; p_nature: string }
         Returns: number
+      }
+      withdraw_assay_dispute: {
+        Args: { p_dispute_id: string; p_reason: string }
+        Returns: Json
       }
       withdraw_asset_disposal_request: {
         Args: { p_reason?: string; p_request_id: string }

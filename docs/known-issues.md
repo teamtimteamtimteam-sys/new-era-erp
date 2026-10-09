@@ -4465,7 +4465,11 @@ EQP-2d 把它画在了机器自己那一页上(灰底、一句话说明它不等
 摘旗要有理由、要留一行 append-only 的记录(与 `price_history` 同一族),
 或者干脆把"放电并核验"做成一个【动作】而不是一次编辑。
 
-### 2 · 一批【没记确定度】就投了的货,它的产出【说不出这件事】(N38,留给化验那一刀)
+### 2 · 一批【没记确定度】就投了的货,它的产出【说不出这件事】(N38,~~留给化验那一刀~~ ★ **改归 MES-6b**)
+
+> ★ **去处改了(MES-6a Step 0 Q6,Tim 2026-10-09 照推荐裁定):** 这不是一份化验记录,是出处(lineage)上的一个事实 ——
+> 它归 **MES-6b**(分析证书 CoA 必须说出产出的确定度),不在 MES-6a-1 / 6a-2 里。下面原文照留。
+
 
 PROC-3 刻意允许"确定度缺席"投料(理由在 `guard_processing_input` 的注释里:
 安全状态防起火、确定度防算错,而算错由化验回答)。**代价是真的,而且今天没人接得住:**
@@ -10450,6 +10454,11 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 而报销单没有"医疗"这一类;只有员工把看病的钱当成普通报销提交时,这里才会出现健康的字 —— 那是一个流程上的口子,不是一条代码路。
 **没有修**(不在 Tim 对医疗报销费用单那条裁定的范围里)。**删除条件:** Tim 裁定普通报销的说明在财务那一侧算不算可读(或报销单加一个"医疗"类)。
 
+> ★ **同一族的一个邻居,按裁定【不遮】(MES-6a-1,Step 0 Q35,Tim 2026-10-09):** 从 `v1.4.48` 起每一次费用冲销都要一句理由
+> (`expenses.reversal_reason`),它对每一个持 `module.finance.view` 的人可读 —— 包括一张医疗报销费用单的冲销理由。**没有新的遮蔽列**(Q35 · Q41);
+> 处置是对话框里那一句提醒("不要在这里写任何人的健康细节",`expense.reverseReasonHint`)。这是一条裁定,不是一个待修的缺口;
+> 它与上面这一条同一个删除条件:Tim 若另裁财务那一侧的健康文字要遮,这一列随之进遮蔽。
+
 ## U1B-ALLOCATION-PRICE-INDEX-LEGS —— 分摊成本时,合计按指数过滤、逐金属的那一段与 skipped_metals 不过滤(UNBLOCK-1 Step 0 §3 5.1 的附带发现,Tim 的 Q26:登记)
 
 `allocate_processing_costs` 求合计时按 `price_index` 过滤报价(约 `:356-360`),而逐金属的 CTE(约 `:425-437`)与 `skipped_metals`(约 `:398-405`)
@@ -10627,4 +10636,21 @@ MES-5b-1 建的是 **74 / 75** —— 除了 `module.tasks.view_all`(`db/tables/
 所以这里没有"先撤冲抵"可说:`reverse_expense` 按名拒 `EXPENSE_HAS_PREPAYMENT_APPLIED`,句子说"用手工分录申请改正"。
 **线上:** 1 张(`EXP-2026-0006`,资本追加,冲抵过预付款;开场读数)—— 它从此冲不掉;此前冲得掉,但冲掉会让清单与总账分家。
 **删除条件:** 建一条撤回预付款冲抵的路(带它自己的分录),或 Tim 裁定这类单只走手工分录。
+
+## MES-6a-1 留下的与关掉的(2026-10-09 记录)
+
+### ~~MES6A1-APPLY-SUPERSEDES-ACROSS-PARTIES · 应用一份对手方或仲裁的结果,会把【我们的】那一份标成"被取代"(MES-6a Step 0 §1.4 量到,"D4")~~ —— ✅ **登记并关闭于 MES-6a-1(`v1.4.48`,2026-10-09)**
+
+**是什么(原来):** `apply_assay_result` 第 6 步与 `apply_output_assay` 把这一批【上一份已应用的结果】标成 `superseded_by` 新的那一份,不问出具方。
+没有争议的时候它碰不到(人只应用自己的结果);一旦有了争议、结案点名对手方或仲裁的那一份并照常应用,我们的结果就被标成"被取代" ——
+而读最新一份未被取代结果的读者(`blending_plan_outcome` · `contract_grade_breaches`)会从此看不见它。线上 0 次(开场读数:没有一份非 ours 的结果被应用过)。
+**怎么关的(Q20):** 两支都只取代【同一出具方】的上一份(`AND result_party = v_assay.result_party`)。fixture 118 F5 与 261 D4(进料与产出两侧)钉着,各有一格注入。
+
+### ~~MES6A1-TRAIL-COUNTERPARTY-IS-THE-BUYER · 审计记录与合同条款把对手方一律叫成 "The buyer"(MES-6a Step 0 §1.8 量到)~~ —— ✅ **登记并关闭于 MES-6a-1(`v1.4.48`,2026-10-09)**
+
+**是什么(原来):** `assay_results.result_party` 借的是 `contracts.settlement.party` 那一组标签(`messages/en.ts`:`counterparty: 'The buyer'`),
+目录生成器的 `contract_settlement_terms#settling_party` 覆盖也写着 'The buyer'。在一份【进料】化验上,对手方是供应商 —— 那句话是错的。
+**怎么关的(Q24 · Q25):** 中性的说法 —— 我们 · 对手方 · 仲裁(Ours · Counterparty · Umpire),en / zh 三组标签与目录覆盖同改;
+措辞臂 ㉖ 的 "contract · the assay that counts" 一句钉着 "Ours → Counterparty"(注入 `wording-drift-mes6a1` 红在 ㉖)。
+同一处那句过期的列注释(`assay_results.sql` 旧的 14-15 行,说 `is_final` 管取代)一并更正。
 

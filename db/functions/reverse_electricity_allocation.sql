@@ -19,6 +19,8 @@
 --   拒:理由没给 ELECTRICITY_REVERSAL_REASON_REQUIRED;找不到 ELECTRICITY_ALLOCATION_NOT_FOUND;撤回过 ELECTRICITY_ALLOCATION_ALREADY_REVERSED;
 --     那几条行或估计自过账以来被动过(本不可能 —— 戳只许经这几支函数改)ELECTRICITY_ALLOCATION_STATE_CHANGED。
 --   返回 {reversal_id, allocation_id, reversal_expense_code, journal_code, actual_lines, restored_estimates, reversal_date}。
+--   ★ MES-6a-1(2026-10-09,F3 · Q33 · Q34):理由照旧在码之后第一件事查;它从此【原样】传给 reverse_expense_internal(不再加
+--     "Electricity bill reversed: " 前缀),写在被冲掉的那张费用单的 reversal_reason 上 —— 分摊这一侧在 electricity_allocation_reversals.reason 另留一份。
 --
 -- NOTE: introduced by db/migrations/2026-10-09-mes5b2-reversals.sql.
 
@@ -84,7 +86,8 @@ BEGIN
     END IF;
 
     -- ① 费用单与分录(经付款结过的在里面按名拒)
-    v_x := reverse_expense_internal(v_a.expense_id, 'Electricity bill reversed: ' || v_reason);
+    -- ★ MES-6a-1(F3,Q34):理由原样传过去(不加前缀)—— 它写在被冲掉的那张费用单的 reversal_reason 上;分摊这一侧另留一份。
+    v_x := reverse_expense_internal(v_a.expense_id, v_reason);
 
     PERFORM set_config('evoltrya.cost_settlement_ctx', '1', true);
     -- ② 实际电费行:清戳,再软删(触发器过 借 2200 / 贷 5110)

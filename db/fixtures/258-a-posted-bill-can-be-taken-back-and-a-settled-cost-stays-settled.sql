@@ -1,9 +1,13 @@
 -- 258 MES-5b-2:一张过了账的电费单可以整张撤回(带理由),撤回之后同一段时间能再过一张改正过的;冲掉一张月结冲抵,它冲抵掉的估计
+-- ★ MES-6a-1(2026-10-09,F3 · MES-6a Step 0 Q44,Tim):每一次费用冲销都要一句理由 —— 本支里只带单号的 reverse_expense 调用一律补上一句理由,
+--   好让它们照旧走到各自断言的那一道拒绝(而不是先撞上 EXPENSE_REVERSAL_REASON_REQUIRED)。断言一条没减;空理由那几臂在 fixture 261。
 --     能再冲抵一次;经付款结过的费用单先冲付款;结算戳只经财务函数改(MES-5b Step 0 Q21–Q29 · Q32 · Q35,Tim;v1.4.46)
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【本支钉住的东西】一臂一组裁定;每一臂都有故障注入(db/scripts/2026-10-09-mes5b2-fixture-injections.py)必须让它红在它点名的那一臂。
 --   PERM   撤回要 module.finance.edit、要理由;过账也要 module.finance.view(Q28);reverse_expense 拒电费单的费用单并点出那张分摊(Q22)
+--   F3     ★ MES-6a-1:reverse_expense 空理由 / 不给理由按名拒(码之后第一件事,先于电费单那一道);撤回电费单的理由原样写在那张费用单上
+--          (reversal_reason / reversed_at / reversed_by),镜像单的 notes 只剩 'REVERSAL: <单号>'
 --   UNPAID 一张未付的电费单撤回:费用单与分录冲掉(镜像费用单、原分录 reversed);各炉的实际电费行清戳并软删;被冲掉的估计清戳、
 --          取消软删、明写重新计提(借 5110 / 贷 2200,一条一张);一行撤回记录(件数、金额);2200 · 5110 · 6200 · 2000 回到过账之前;
 --          那几炉的成本行回到过账之前(估计在、实际不在);一炉的电不再读那一张;撤回过的不能再撤(Q22)
@@ -224,7 +228,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 258 UNPAID: setup — the bill should split 150 / 300 and relieve 370 of estimates'; END IF;
     PERFORM pg_temp.f258_agree(u_all, 'UNPAID posted');
     -- reverse_expense 拒这张费用单,并点出那张分摊(页面据此指路)
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, x1));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, x1));
     IF v_msg NOT LIKE format('EXPENSE_IS_ELECTRICITY_ALLOCATION|%s|%s%%', (SELECT code FROM expenses WHERE id = x1), a1) THEN
         RAISE EXCEPTION 'FIXTURE 258 PERM: reverse_expense must refuse the allocation''s expense and name the allocation, got %', v_msg; END IF;
     v_msg := pg_temp.f258_do(u_fview, format($q$SELECT reverse_electricity_allocation(%L, 'wrong bill')$q$, a1));
@@ -233,7 +237,27 @@ BEGIN
     IF v_msg NOT LIKE 'ELECTRICITY_REVERSAL_REASON_REQUIRED|%' THEN RAISE EXCEPTION 'FIXTURE 258 PERM: a reason is required, got %', v_msg; END IF;
     IF EXISTS (SELECT 1 FROM electricity_allocation_reversals) THEN RAISE EXCEPTION 'FIXTURE 258 PERM: a refused reversal left a row'; END IF;
 
+    -- ★ F3(MES-6a-1,Q33):reverse_expense 的理由在码之后【第一件事】查 —— 一张电费单的费用单,空理由先撞上的是理由那一道,
+    --   不是 EXPENSE_IS_ELECTRICITY_ALLOCATION;不持编辑码的人先撞上的是码。
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, '   ')$q$, x1));
+    IF v_msg NOT LIKE format('EXPENSE_REVERSAL_REASON_REQUIRED|%s%%', (SELECT code FROM expenses WHERE id = x1)) THEN
+        RAISE EXCEPTION 'FIXTURE 258 F3: a blank reason must be refused first, by name, naming the expense, got %', v_msg; END IF;
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, x1));
+    IF v_msg NOT LIKE 'EXPENSE_REVERSAL_REASON_REQUIRED|%' THEN
+        RAISE EXCEPTION 'FIXTURE 258 F3: no reason at all (the default NULL) must be refused, got %', v_msg; END IF;
+    v_msg := pg_temp.f258_do(u_fview, format($q$SELECT reverse_expense(%L, '   ')$q$, x1));
+    IF v_msg NOT LIKE 'PERMISSION_DENIED|module.finance.edit%' THEN
+        RAISE EXCEPTION 'FIXTURE 258 F3: the permission is checked before the reason, got %', v_msg; END IF;
+
     v_j := pg_temp.f258_get(u_all, format($q$SELECT reverse_electricity_allocation(%L, 'The utility re-issued the bill with the right meter total')$q$, a1));
+    -- ★ F3(MES-6a-1,Q34):理由写在被冲掉的那张费用单上(原样,不加前缀),时刻与人同一步;镜像单的 notes 只剩一句机器字
+    IF (SELECT (reversal_reason, reversed_at IS NOT NULL, reversed_by) FROM expenses WHERE id = x1)
+         IS DISTINCT FROM ('The utility re-issued the bill with the right meter total'::text, true, u_all)
+       OR (SELECT m.notes FROM expenses o JOIN expenses m ON m.id = o.reversed_by_expense WHERE o.id = x1)
+         IS DISTINCT FROM 'REVERSAL: ' || (SELECT code FROM expenses WHERE id = x1) THEN
+        RAISE EXCEPTION 'FIXTURE 258 F3: the bill''s expense must carry the reason as given (no prefix), when and who; the mirror''s notes only "REVERSAL: <code>" (got % / %)',
+            (SELECT reversal_reason FROM expenses WHERE id = x1),
+            (SELECT m.notes FROM expenses o JOIN expenses m ON m.id = o.reversed_by_expense WHERE o.id = x1); END IF;
     -- 费用单与分录
     IF NOT EXISTS (SELECT 1 FROM expenses WHERE id = x1 AND status = 'reversed' AND reversed_by_expense IS NOT NULL)
        OR (SELECT status FROM journal_entries WHERE id = je1) IS DISTINCT FROM 'reversed' THEN
@@ -330,7 +354,7 @@ BEGIN
 
     -- F2:W 冲抵过的估计所在的 r5 此后被账单二覆盖了 → 冲不掉 W
     RAISE NOTICE 'fixture 258 · F2';
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, w));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, w));
     IF v_msg NOT LIKE format('RELIEF_ESTIMATE_NOW_ALLOCATED|%s|%s%%', (SELECT code FROM processing_runs WHERE id = r5), (SELECT code FROM expenses WHERE id = x2)) THEN
         RAISE EXCEPTION 'FIXTURE 258 F2: reversing a relief whose run has since been allocated must be refused, naming the run and the bill — got %', v_msg; END IF;
     IF (SELECT status FROM expenses WHERE id = w) <> 'posted' OR (SELECT relief_expense_id FROM processing_cost_entries WHERE id = e7) IS DISTINCT FROM w THEN
@@ -372,7 +396,7 @@ BEGIN
     -- 月结冲抵 e4(80 → 100),冲掉,再冲抵(80 → 95):电费那一格只算 95(W 的 65 对 60 也在同一格:实际 95 + 65、估计 80 + 60)
     v_j := pg_temp.f258_get(u_all, format($q$SELECT relieve_processing_accruals(ARRAY[%L]::uuid[], 100, %L, 'unpaid', NULL, %L, NULL, 'f258 X')$q$, e4, dx, v_sup));
     rel := (v_j ->> 'expense_id')::uuid;
-    PERFORM pg_temp.f258_get(u_all, format($q$SELECT reverse_expense(%L)$q$, rel));
+    PERFORM pg_temp.f258_get(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, rel));
     v_j := pg_temp.f258_get(u_all, format($q$SELECT relieve_processing_accruals(ARRAY[%L]::uuid[], 95, %L, 'unpaid', NULL, %L, NULL, 'f258 Y')$q$, e4, dx, v_sup));
     rel2 := (v_j ->> 'expense_id')::uuid;
     v_j := pg_temp.f258_get(u_all, format($q$SELECT to_jsonb(v) FROM processing_cost_variance v WHERE month = %L AND cost_type = 'electricity'$q$, date_trunc('month', dx)::date));
@@ -381,7 +405,7 @@ BEGIN
     -- 戳没清掉的那一种(本刀之前冲销的冲抵):e8 被 Z 冲抵,Z 冲销,再以财务函数的身份把戳摆回去 —— 视图照样不算它
     v_j := pg_temp.f258_get(u_all, format($q$SELECT relieve_processing_accruals(ARRAY[%L]::uuid[], 40, %L, 'unpaid', NULL, %L, NULL, 'f258 Z')$q$, e8, dx, v_sup));
     z := (v_j ->> 'expense_id')::uuid;
-    PERFORM pg_temp.f258_get(u_all, format($q$SELECT reverse_expense(%L)$q$, z));
+    PERFORM pg_temp.f258_get(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, z));
     PERFORM set_config('evoltrya.cost_settlement_ctx', '1', true);
     UPDATE processing_cost_entries SET relieved_at = dx, relief_expense_id = z WHERE id = e8;
     PERFORM set_config('evoltrya.cost_settlement_ctx', '', true);
@@ -439,13 +463,13 @@ BEGIN
     v_j := record_payment_internal('out', v_sup, 40, v_base, NULL, NULL, CURRENT_DATE - 2, 'f258 part',
                                    jsonb_build_array(jsonb_build_object('expense_id', v_exp, 'amount_doc', 40)));
     v_pay := (v_j ->> 'payment_id')::uuid;
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, v_exp));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, v_exp));
     -- 先问总账:要是这一次冲销放过去了,清单与总账当场就差那 40(这正是这道拒绝存在的理由 —— Step 0 §1.4)
     PERFORM pg_temp.f258_agree(u_all, 'KINDS ordinary refused');
     IF v_msg NOT LIKE format('EXPENSE_HAS_SETTLEMENT|%s|40%%', (SELECT code FROM expenses WHERE id = v_exp)) THEN
         RAISE EXCEPTION 'FIXTURE 258 KINDS: an ordinary expense part-paid through a payment must be refused, got %', v_msg; END IF;
     PERFORM reverse_payment_internal(v_pay, 'f258');
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, v_exp));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, v_exp));
     IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 258 KINDS: with the payment reversed the expense reverses, got %', v_msg; END IF;
     PERFORM pg_temp.f258_agree(u_all, 'KINDS ordinary reversed');
     -- 欠员工的(报销 / 医疗走的同一扇门 record_expense,往来对象是员工)
@@ -453,12 +477,12 @@ BEGIN
     v_exp := (v_j ->> 'expense_id')::uuid;
     PERFORM record_payment_internal('out', v_emp, 50, v_base, NULL, NULL, CURRENT_DATE - 2, 'f258 reimburse',
                                     jsonb_build_array(jsonb_build_object('expense_id', v_exp, 'amount_doc', 50)), 'employee');
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, v_exp));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, v_exp));
     IF v_msg NOT LIKE 'EXPENSE_HAS_SETTLEMENT|%' THEN RAISE EXCEPTION 'FIXTURE 258 KINDS: an employee expense paid through a payment must be refused, got %', v_msg; END IF;
     -- 月结冲抵(Y,未付)经付款付清
     PERFORM record_payment_internal('out', v_sup, 95, v_base, NULL, NULL, CURRENT_DATE - 2, 'f258 pay relief',
                                     jsonb_build_array(jsonb_build_object('expense_id', rel2, 'amount_doc', 95)));
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, rel2));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, rel2));
     IF v_msg NOT LIKE 'EXPENSE_HAS_SETTLEMENT|%' OR (SELECT relief_expense_id FROM processing_cost_entries WHERE id = e4) IS DISTINCT FROM rel2 THEN
         RAISE EXCEPTION 'FIXTURE 258 KINDS: a relief paid through a payment must be refused and keep its stamps, got %', v_msg; END IF;
     -- 资本追加(资产还没投用)
@@ -468,7 +492,7 @@ BEGIN
     v_exp := (v_j ->> 'expense_id')::uuid;
     PERFORM record_payment_internal('out', v_sup, 200, v_base, NULL, NULL, CURRENT_DATE - 2, 'f258 pay install',
                                     jsonb_build_array(jsonb_build_object('expense_id', v_exp, 'amount_doc', 200)));
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, v_exp));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, v_exp));
     IF v_msg NOT LIKE 'EXPENSE_HAS_SETTLEMENT|%' OR (SELECT cost_base FROM fixed_assets WHERE id = v_asset) <> 1200 THEN
         RAISE EXCEPTION 'FIXTURE 258 KINDS: a capital append paid through a payment must be refused (cost untouched), got %', v_msg; END IF;
     -- 冲抵过预付款的
@@ -480,7 +504,7 @@ BEGIN
     v_j := record_expense(p_expense_date := dx, p_account_code := '6400', p_amount := 60, p_currency := v_base, p_payment_status := 'unpaid', p_supplier_id := v_sup);
     v_exp := (v_j ->> 'expense_id')::uuid;
     PERFORM apply_prepayment(v_po, NULL, 60, NULL, v_exp, CURRENT_DATE - 1);
-    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L)$q$, v_exp));
+    v_msg := pg_temp.f258_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 258: reversal reason')$q$, v_exp));
     IF v_msg NOT LIKE format('EXPENSE_HAS_PREPAYMENT_APPLIED|%s|60%%', (SELECT code FROM expenses WHERE id = v_exp)) THEN
         RAISE EXCEPTION 'FIXTURE 258 KINDS: an expense with a prepayment applied must be refused, got %', v_msg; END IF;
     PERFORM pg_temp.f258_agree(u_all, 'KINDS');
@@ -557,7 +581,7 @@ BEGIN
     IF COALESCE(v_n, 0) < 1 THEN RAISE EXCEPTION 'FIXTURE 258 LOG: a V37 change must show on the operation''s own trail (got %)', v_n; END IF;
 
     PERFORM pg_temp.f258_agree(u_all, 'end');
-    RAISE NOTICE 'FIXTURE 258 全部通过: PERM · UNPAID · REPOST · PAID · F2 · VAR · CCY · LOCK · KINDS · GUARD · MASK · LOG · AGREE';
+    RAISE NOTICE 'FIXTURE 258 全部通过: PERM · F3 · UNPAID · REPOST · PAID · F2 · VAR · CCY · LOCK · KINDS · GUARD · MASK · LOG · AGREE';
 END;
 $$;
 

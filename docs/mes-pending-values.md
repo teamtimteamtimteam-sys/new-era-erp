@@ -37,6 +37,8 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | V9 | Discharge pass voltage (V per module) of each material | the material editor (`/materials/<id>/edit`) | each live material with `materials.discharge_pass_voltage_v` empty **and at least one module discharge result on a batch of it** (listing every cell material before any discharge would fill the page with rows nobody can act on yet; live has no result, so the arm is empty) | `module.materials.view` | the cell / module supplier's datasheet, or the process engineer | before discharge results are judged routinely | MES-5a-1 |
 | V25 | How shared-pool electricity is spread (one rule for the whole plant) | `/finance/electricity` (the "Shared-pool electricity (V25)" panel) | the single `electricity_settings` row while `shared_pool_rule` is empty **and** at least one meter not retired has no machine (`devices.kind = 'meter' AND equipment_id IS NULL` — a shared-pool meter); with no shared-pool meter there is nothing to spread, so no row | `module.finance.view` | Tim | the first utility bill after meters are connected | MES-5a-2 |
 | V37 | Expected mass yield (% of a run's total input) per operation × output form | the operation's page (`/operation/operation-types/<code>`, "Expected yield per output form (V37)") | each output form of an active operation with `operation_type_output_forms.expected_yield_pct` empty **and at least one MES-4a-era consuming run of that operation** (`processing_run_flow_all`: flow = consumption, a start time recorded) — the V9 precedent: rows nobody can act on yet are not listed; live has no MES-4a-era run, so the arm is empty | `module.processing.view` | Tim with the process engineer | after the commissioning runs of each operation | MES-5b-1 |
+| V16 | Internal sample retention (days) — how long a sample is kept when its contract does not say | `/quality/samples` (the "Internal sample retention" panel) | the single `quality_settings` row while `internal_retention_days` is empty **and** at least one sample not yet disposed of has its keep-until date `Not yet set` (`retain_until_source = 'not_set'`) — with no such sample there is nothing for the value to decide, so no row; live has no sample, so the arm is empty | `module.quality.view` | Tim | before samples are taken routinely | MES-6a-1 |
+| V14 | How an arbitration (umpire) fee is shared — per sale contract (`loser_pays` · `equal` · `further_from_umpire_pays` · `buyer` · `seller`) | the contract's page (`/contracts/<id>`, Settlement terms → "Arbitration fee rule") | each live contract with no `contract_settlement_terms.arbitration_fee_rule` **and** at least one open or resolved assay dispute on a sales order linked to it (`assay_disputes` ⋈ `contract_document_terms`) — a buy-side dispute has no contract terms and never lists a row; live has no dispute, so the arm is empty | `module.customers.view` | Tim, per offtake contract | the first sale-side dispute | MES-6a-1 |
 
 **What "Not yet set" means for V5.** A gateway with no heartbeat interval cannot be judged silent: its status reads
 **"Not yet set — silence cannot be judged"**, it raises no `gateway_silent` reminder, and no outage is recorded for it.
@@ -138,4 +140,18 @@ whose yield is below the expected figure is marked "Below expected" on the run, 
 close or any other action goes through whatever the yield is. Setting it needs `module.processing.edit` (the operation page, the same code as
 the tolerance V1) and the change is in the change log. Nothing guesses a target: the repo's record is that a standard invented before real
 runs is fiction (`docs/forward-queue.md`, the recovery-rate items), and Tim ruled yield an estimate, not an auditable KPI.
+
+**What V16 holds back (MES-6a-1, Step 0 Q8 · Q14 · Q15).** A sample's keep-until date is copied onto the sample when it is recorded and never
+changes afterwards: the sale contract's retention days if the sample names a sales order whose contract requires retention, otherwise V16, otherwise
+nothing — the page says **"Not yet set"** and the `sample_retention_due` reminder never fires for that sample (no date to pass). Disposing of a sample
+is never refused; disposing before its keep-until date is allowed with a reason and is marked "disposed of early". Setting V16 needs
+`module.quality.edit` (the panel on the Samples page) and the change is in the change log; it applies to samples recorded **after** it is set
+(the days in force are copied as `retention_days_at`). Nothing guesses a period.
+
+**What V14 holds back (MES-6a-1, Step 0 Q22).** The arbitration fee is an ordinary unpaid expense to the umpire laboratory's supplier, linked to
+the dispute; it is recorded and paid the usual way whatever V14 says. V14 only decides the **counterparty's share shown on the dispute page**
+(`assay_dispute_rows.counterparty_share_pct` and, for `module.finance.view` holders, its amount) — shown, never collected. The rule in force is
+copied onto the dispute when it is opened (`fee_rule_at`), so changing a contract later never re-states an old dispute. With V14 empty the share
+reads "Not yet set". Only sale contracts carry settlement terms, so a buy-side dispute never has a rule. **V15 adds no pending value; V17
+(moisture and particle-size acceptance limits) is deferred to MES-6b with the quality hold (Step 0 Q5).**
 

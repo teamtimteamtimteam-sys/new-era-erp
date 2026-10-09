@@ -147,6 +147,13 @@ export default async function DictionariesPage({
         return c.count ?? 0
     })
 
+    // MES-6a-1(Q23):一节字典若有指向供应商的那一列(实验室的付款户),读一次查名视图做选项 —— 只有编号与法定名(supplier_lookup);
+    //   读不到这张视图的人(进不了供应商、收货、物流、财务、定价任何一个)不需要它,也不读它。
+    const needsSuppliers = visible.some((d) => d.extras.some((e) => e.kind === 'supplier'))
+    const supplierOptions = !needsSuppliers ? [] : (mustRows(
+        await supabase.from('supplier_lookup').select('id, code, legal_name').is('deleted_at', null).order('code'), 'supplier_lookup') as
+        { id: string; code: string; legal_name: string }[]).map((r) => ({ value: r.id, label: `${r.code} — ${r.legal_name}` }))
+
     const sections = visible.map((d, di) => {
         const usage: Record<string, number> = {}
         for (const r of rowsPerDict[di]) usage[r.code] = 0
@@ -184,7 +191,7 @@ export default async function DictionariesPage({
             {sections.map((s) => (
                 <div key={s.spec.table}>
                     <DictSection spec={s.spec} rows={s.rows}
-                                 usage={s.usage} locale={locale} readOnly={s.readOnly} />
+                                 usage={s.usage} locale={locale} readOnly={s.readOnly} supplierOptions={supplierOptions} />
                     <AuditTrail subject={DICT_SUBJECT[s.spec.table]} id="all" show={show}
                                 anchor={`dict-trail-${s.spec.table}`} compact />
                 </div>

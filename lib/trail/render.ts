@@ -1018,12 +1018,16 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'pricing_term_commitment_metals', 'inventory_movements', 'stocktake_lines', 'stocktake_counts', 'processing_inputs',
         'batch_processing_cost_allocations', 'certificates_of_destruction', 'cod_issues', 'warehouse_requests', 'freight_allocations',
         'payment_allocations', 'finance_attachments', 'purchase_order_history', 'processing_cost_entry_history', 'work_order_history',
-        'journal_entries', 'discharge_module_results', 'discharge_module_splits'],
+        'journal_entries', 'discharge_module_results', 'discharge_module_splits',
+        // MES-6a-1:样品、它的保管记录与化验争议也出现在它们那一批上(家在样品 / 争议自己那里)
+        'samples', 'sample_events', 'assay_disputes'],
     output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
         'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements', 'processing_cost_entry_history',
-        'work_order_history', 'sales_order_history', 'journal_entries', 'contamination_checks', 'discharge_module_results', 'discharge_module_splits'],
+        'work_order_history', 'sales_order_history', 'journal_entries', 'contamination_checks', 'discharge_module_results', 'discharge_module_splits',
+        // MES-6a-1
+        'samples', 'sample_events', 'assay_disputes'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
@@ -1134,6 +1138,10 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     ingest_settings: ['ingest_settings'],
     // MES-5b-3(2026-10-09):一份配料计划 · 它的目标品位 · 它的候选批次
     blending_plan: ['blending_plans', 'blending_plan_targets', 'blending_plan_lines'],
+    // MES-6a-1(2026-10-09):一份样品与它的保管记录 · 一件化验争议 · 质量的设定(V16)
+    sample: ['samples', 'sample_events'],
+    assay_dispute: ['assay_disputes'],
+    quality_settings: ['quality_settings'],
     // MES-4a(2026-10-07):一道工序的配置(字段 · 机器 · 配方 · 版本)· 两本新字典
     // MES-5b-2(2026-10-09,并入 MES5B1-V37-NOT-ON-OPERATION-TRAIL):+ 每一种产出形态的预期得率(V37)
     operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions',
@@ -1185,6 +1193,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     dictionary_cell_constructions: 'dict', dictionary_contamination_streams: 'dict',
     // MES-5a-2
     electricity_allocation: 'energy', electricity_settings: 'settings',
+    // MES-6a-1
+    quality_settings: 'settings',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -2982,6 +2992,8 @@ const SETTINGS_TITLE: Record<string, TrailTextKey> = {
     ingest_settings: 'set.ingest',
     // MES-5a-2(Q32):V25 的修改史就是变更记录
     electricity_settings: 'set.electricity',
+    // MES-6a-1(Q14):V16 的修改史就是变更记录
+    quality_settings: 'set.quality',
 }
 function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     return rows.map((r) => r.op === 'UPDATE'
@@ -3012,11 +3024,13 @@ export type FinCtx = {
     paymentOrigin: Map<string, { code: string | null }>
     expenseMirror: Map<string, { code: string | null; href: string | null }>
     expenseOrigin: Map<string, { code: string | null }>
+    /** MES-6a-1(Q33–Q37):镜像费用单 id → 原单上存的冲销理由(reversal_reason)。这一刀之前冲的旧单没有它,理由仍从镜像单 notes 读 */
+    expenseReason: Map<string, string>
     /** 冲销分录 id → 它冲的那一张原分录的单号(原分录今天的 reversed_by 指着它) */
     journalOrigin: Map<string, string | null>
 }
 export function finContext(rows: TrailRow[]): FinCtx {
-    const c: FinCtx = { paymentMirror: new Map(), paymentOrigin: new Map(), expenseMirror: new Map(), expenseOrigin: new Map(), journalOrigin: new Map() }
+    const c: FinCtx = { paymentMirror: new Map(), paymentOrigin: new Map(), expenseMirror: new Map(), expenseOrigin: new Map(), expenseReason: new Map(), journalOrigin: new Map() }
     for (const r of rows) {
         const img = imgOf(r)
         if (r.table === 'journal_entries' && typeof img['reversed_by'] === 'string' && !c.journalOrigin.has(img['reversed_by'] as string)) {
@@ -3030,6 +3044,7 @@ export function finContext(rows: TrailRow[]): FinCtx {
             const ref = r.refs?.[col]?.[m]
             if (!mirror.has(m)) mirror.set(m, { code: ref?.label ?? null, href: ref?.href ?? null })
             if (!origin.has(m)) origin.set(m, { code: typeof img['code'] === 'string' ? img['code'] as string : null })
+            if (table === 'expenses' && typeof img['reversal_reason'] === 'string' && !c.expenseReason.has(m)) c.expenseReason.set(m, img['reversal_reason'] as string)
         }
     }
     return c
@@ -3369,7 +3384,7 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
             const href = fc.expenseMirror.get(id)?.href
             out.push({ title: withPart(tx(d, 'exp.reversed'), orig?.code ?? null),
                        lines: [{ t: 'value', label: tx(d, 'pay.reversingLine'), value: href && code ? { text: code, href } : { text: code ?? tx(d, 'value.unnamed', { thing: thing(d, 'expenses') }) } }],
-                       reason: reversalReason(str(r, 'notes')), key: true, weight: subject === 'expense' ? 95 : 65, recordId: id })
+                       reason: typed(fc.expenseReason.get(id)) ?? reversalReason(str(r, 'notes')), key: true, weight: subject === 'expense' ? 95 : 65, recordId: id })
             continue
         }
         if (r.op === 'INSERT') {
@@ -3386,7 +3401,9 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
             const m = str(r, 'reversed_by_expense', 'new')
             if (m && exps.some((x) => x.op === 'INSERT' && idOf(x) === m)) continue
             const v = docVal(d, r, 'expenses', 'reversed_by_expense')
-            out.push({ title: withPart(tx(d, 'exp.reversed'), code), lines: v ? [{ t: 'value', label: tx(d, 'pay.reversingLine'), value: v }] : [], key: true, weight: 90, recordId: id })
+            // MES-6a-1(Q33–Q37):理由存在原单自己身上(reversal_reason)—— 报销单那一页只看得见原单这一行(镜像单不在它的成员里),理由照样说出来
+            out.push({ title: withPart(tx(d, 'exp.reversed'), code), lines: v ? [{ t: 'value', label: tx(d, 'pay.reversingLine'), value: v }] : [],
+                       reason: typed(r.new?.['reversal_reason']), key: true, weight: 90, recordId: id })
             continue
         }
         const ls = changeLines(d, r, opts)

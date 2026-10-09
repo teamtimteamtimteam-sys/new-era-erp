@@ -7,6 +7,11 @@
 --     放在这里而不是放在两个调用方里,于是【每一种】费用单、两条路都过同一道。
 --   内层:不是 DEFINER,authenticated 调不到(zzz_function_grants.sql)。
 --   reverse_expense 抬头那一段(FIN-22 / EQP-1b-iii / CAPEX-1 的两条规矩与它们的不对称)说的就是这里的算术,读那里。
+-- ★ MES-6a-1(2026-10-09,F3 · MES-6a Step 0 Q33 · Q34,Tim):第二个参数从此是【冲销的理由】—— 空白按名拒
+--   EXPENSE_REVERSAL_REASON_REQUIRED|<单号>(两个调用方先各自拒过一次;这一道让将来任何一条新路都绕不过它)。
+--   理由、时刻与人写在【被冲掉的那一张】上(reversal_reason / reversed_at / reversed_by,与 status 同一句 UPDATE);
+--   镜像单的 notes 回到只有 'REVERSAL: <原单号>' 一句机器字 —— 人写的话不再和机器字挤在一列里(AT1D1 那一族)。
+--   电费单的撤回传它自己的理由,不加前缀(Q34;分摊那一侧另在 electricity_allocation_reversals.reason 上留一份)。
 --
 -- NOTE: introduced by db/migrations/2026-10-09-mes5b2-reversals.sql.
 
@@ -29,10 +34,15 @@ DECLARE
     v_after       numeric;   -- 退回之后的表头(被维护的那一侧)
     v_settled     numeric;   -- MES-5b-2:经付款核销掉的(付款币种 = 单据币种)
     v_prepaid     numeric;   -- MES-5b-2:冲抵上去的预付款
+    v_reason      text := NULLIF(btrim(COALESCE(p_memo, '')), '');   -- MES-6a-1(F3):冲销的理由
 BEGIN
     SELECT * INTO v_orig FROM expenses WHERE id = p_expense_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'EXPENSE_NOT_FOUND|%', p_expense_id;
+    END IF;
+    IF v_reason IS NULL THEN
+        RAISE EXCEPTION 'EXPENSE_REVERSAL_REASON_REQUIRED|%', v_orig.code
+          USING HINT = '没有理由的冲销,事后没人答得出为什么';
     END IF;
     IF v_orig.status <> 'posted' OR v_orig.reversed_by_expense IS NOT NULL THEN
         RAISE EXCEPTION 'EXPENSE_ALREADY_REVERSED|%', v_orig.code;
@@ -139,11 +149,12 @@ BEGIN
             v_orig.payment_status, v_orig.bank_account_code, v_orig.supplier_id,
             v_orig.employee_id,
             v_orig.payee_name,
-            'REVERSAL: ' || v_orig.code || COALESCE(' — ' || p_memo, ''),
+            'REVERSAL: ' || v_orig.code,
             (v_je->>'reversal_id')::uuid, auth.uid());
 
     UPDATE expenses
-    SET status = 'reversed', reversed_by_expense = v_mirror_id
+    SET status = 'reversed', reversed_by_expense = v_mirror_id,
+        reversal_reason = v_reason, reversed_at = now(), reversed_by = auth.uid()
     WHERE id = p_expense_id;
 
     -- ── EQP-1b-iii:把成本退回去,并【当场核对】──────────────────────────────
@@ -185,7 +196,8 @@ BEGIN
         'journal_code', v_je->>'code',
         'reversal_journal_id', v_je->>'reversal_id',
         'asset_id', v_entry.asset_id,
-        'asset_cost_base_after', v_after
+        'asset_cost_base_after', v_after,
+        'reversal_reason', v_reason
     );
 END;
 $function$;

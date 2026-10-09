@@ -131,7 +131,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.output.edit', 'module.output.view',
         'module.pricing.view', 'module.purchasing.edit', 'module.purchasing.view',
         'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
-        'module.tasks.view', 'module.logistics.view'
+        'module.tasks.view', 'module.logistics.view',
+        -- ★ MES-6a-1(MES-0 Q90 · MES-6a Step 0 Q11):质量查看(样品与化验争议)—— 财务看得见争议,仲裁费是它记的费用单。
+        'module.quality.view'
 ) WHERE r.code = 'finance';
 
 -- procurement(14):议价、下采购单,看得见价格。【完全没有 finance】—— 定价的人不能同时把钱付出去(不相容职务分离)。
@@ -209,7 +211,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- ── OVERTIME-1(Tim 2026-09-28):现场员工的加班由仓库整批批(仓库不拿 module.hr.view)─────
         'action.overtime_approve',
         -- ── MES-2(Tim 2026-10-06,MES-0 Q11):过磅的人确认秤送来的数、手工录称重、开地磅单 ─────
-        'action.confirm_capture'
+        'action.confirm_capture',
+        -- ── MES-6a-1(MES-0 Q90 · MES-6a Step 0 Q11 · Q12):质量【查看】—— 样品与争议;不给编辑(Q12:若 Fu Sheng 管样品,以后是一行)─────
+        'module.quality.view'
 ) WHERE r.code = 'warehouse';
 
 -- hr(8):人力资源 + 薪酬 + 身份信息 + 绩效正文 + 健康数据。这五类正是 HR 的工作对象,也正是别人不该看见的。

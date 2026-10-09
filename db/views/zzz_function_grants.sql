@@ -707,3 +707,10 @@ REVOKE EXECUTE ON FUNCTION public.guard_electricity_line_one_live_allocation() F
 REVOKE EXECUTE ON FUNCTION public.blending_plan_write_children(uuid, uuid, uuid, jsonb, jsonb) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_blending_run_from_plan() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_blended_batch_metals_from_assay() FROM authenticated;
+
+-- MES-6a-1(2026-10-09):一支触发器函数。
+--   guard_assay_sample_batch:化验指着的样品必须是同一批的(触发器函数;触发时不查 EXECUTE,收掉只是让它不在 API 上 —— 它是 DEFINER,更不该在)。
+--   record_sample / record_sample_event / set_quality_settings / open_assay_dispute / record_dispute_umpire / withdraw_assay_dispute /
+--   resolve_assay_dispute / link_dispute_fee【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+--   next_sample_code【不收】:与 next_blending_plan_code 一样,是一支只读的取号函数。
+REVOKE EXECUTE ON FUNCTION public.guard_assay_sample_batch() FROM authenticated;

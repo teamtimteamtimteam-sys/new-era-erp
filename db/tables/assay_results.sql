@@ -11,10 +11,15 @@
 -- apply_output_assay(只抄含量 —— 产出批没有一张应付可以重述)。RLS 跟着父走:
 -- 进料化验挂 module.inbound.*,产出化验挂 module.output.*。
 --
---   * is_final 区分正式证书与初检/部分读数 —— 只有 is_final 的化验被执行后,
---     批次的 pricing_status 才升 'final'(仅进料侧;产出批没有定价状态);
+--   * is_final 区分正式证书与初检/部分读数 —— ~~只有 is_final 的化验被执行后,批次的 pricing_status 才升 'final'~~
+--     ★ MES-6a-1 更正(Step 0 §10.5 · Q25):ROLE-1 Batch 4b 起【执行不再升 final】—— 应用化验只提一张来源 assay 的
+--     定价申请,CFO 批准它的那一刻(receipt_price_post_internal),而且只当这份化验 is_final,批次才升 'final'
+--     (仅进料侧;产出批没有定价状态);
 --   * superseded_by 记录复验取代早先结果(链条保持可读;unapply 只许撤最新一环;
---     链按【父】各自成链 —— 进料链与产出链互不相扰);
+--     链按【父】各自成链 —— 进料链与产出链互不相扰;★ MES-6a-1 起也按【出具方】各自成链(D4 · Q20):
+--     应用一份对手方或仲裁的结果【不】取代我们的,只取代同一出具方的上一份);
+--   * sample_id(MES-6a-1,Q9)指它化验的那一份实物样品(samples),可空 —— sample_ref 那段自由文本照旧留着;
+--     样品必须是同一批的(SAMPLE_NOT_FOR_BATCH,记录函数与表上的守卫各一道);
 --   * applied_at/by 是"已执行"标记 —— 执行时批次的含量表被替换为本化验的含量
 --     (批次含量永远是当前最可信的真相),本行留作历史。
 -- 无缝编号 'ASY-YYYY-NNNN':next_assay_code(),咨询锁串行化取号(同 JE/收付款);
@@ -48,12 +53,15 @@ CREATE TABLE public.assay_results (
     weight_basis     text,
     moisture_pct     numeric,
     result_party     text NOT NULL,
+    -- ── MES-6a-1 追加(2026-10-09,Step 0 Q9):这份结果化验的是哪一份实物样品(可空;sample_ref 照旧)────
+    sample_id        uuid REFERENCES public.samples (id),
     CONSTRAINT assay_results_one_parent
         CHECK (num_nonnulls(inbound_batch_id, output_batch_id) = 1)
 );
 
 CREATE INDEX idx_assay_results_batch ON public.assay_results (inbound_batch_id);
 CREATE INDEX idx_assay_results_output_batch ON public.assay_results (output_batch_id);
+CREATE INDEX assay_results_sample_id_rel ON public.assay_results (sample_id);
 
 
 -- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
@@ -199,6 +207,9 @@ COMMENT ON COLUMN public.assay_results.result_party IS
 COMMENT ON COLUMN public.assay_results.superseded_by IS
 '指向【取代了本份结果的那一份】。含义是:"我们重新化验了,以那一份为准。"
 
+★ MES-6a-1(Step 0 Q20):这一条从此由 apply_assay_result / apply_output_assay 执行 —— 应用一份结果时,只把【同一出具方】
+上一份已应用、未被取代的结果指向它;应用对手方或仲裁的结果不碰我们的那一份(fixture 118 F5)。
+
 【D4:对手方的结果【不是】对我们结果的取代 —— 不要用这一列去记它】
 这个诱惑很明显:对手方报来一个不同的数字,顺手把我们的那份标成 superseded。
 **那会静静地把我们自己测到的东西盖掉**,而两份结果本该【并存】:
@@ -226,3 +237,14 @@ CREATE TRIGGER enforce_write_permission
 CREATE TRIGGER trg_assay_results_applied_columns
     BEFORE INSERT OR UPDATE ON public.assay_results
     FOR EACH ROW EXECUTE FUNCTION public.guard_assay_applied_columns();
+
+-- ── MES-6a-1(2026-10-09,Step 0 Q9)· 样品必须是同一批的 ──────────────────────────────────────────
+-- record_assay_result 先按名拒(SAMPLE_NOT_FOR_BATCH);这一道守着直连写(inbound.edit / output.edit 持有人对本表有写策略)。
+-- DEFINER:读 samples 要绕开它的 RLS —— 以调用者身份读,一个看不见那份样品的人会把"不是这一批的"读成"不存在"(OPS-14 那条)。
+CREATE TRIGGER trg_assay_results_sample_batch
+    BEFORE INSERT OR UPDATE OF sample_id ON public.assay_results
+    FOR EACH ROW EXECUTE FUNCTION public.guard_assay_sample_batch();
+
+COMMENT ON COLUMN public.assay_results.sample_id IS
+'MES-6a-1(Step 0 Q9):这份结果化验的是哪一份实物样品(samples)。可空 —— 今天的记录路径照旧走得通,sample_ref 那段自由文本照旧留着。
+样品必须挂在同一批上(SAMPLE_NOT_FOR_BATCH:记录函数与 trg_assay_results_sample_batch 各一道)。';

@@ -45,8 +45,10 @@ BEGIN
     GET DIAGNOSTICS v_count = ROW_COUNT;
 
     -- 取代链:与进料侧同一条规则,按【产出批】成链(进料链与产出链互不相扰)
+    -- ★ MES-6a-1(D4 · Step 0 Q20):与进料侧同一条修正 —— 只取代【同一出具方】的上一份;应用对手方或仲裁的结果不盖掉我们的。
     SELECT id INTO v_prior FROM assay_results
     WHERE output_batch_id = v_batch.id AND id <> p_assay_result_id
+      AND result_party = v_assay.result_party
       AND applied_at IS NOT NULL AND superseded_by IS NULL AND deleted_at IS NULL
     ORDER BY applied_at DESC, code DESC LIMIT 1;
     IF v_prior IS NOT NULL THEN

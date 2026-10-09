@@ -63,8 +63,9 @@ BEGIN
     -- ★ MES-1(2026-10-06):44 → 45 —— devices 登记了 module.processing.view。
     -- ★ MES-2(2026-10-06):45 → 47 —— weighbridge_tickets 登记了两个码(module.inbound.view · module.logistics.view)。
     -- ★ MES-5b-3(2026-10-09):47 → 48 —— blending_plans 登记了一个码(module.processing.view)。
-    IF v_n <> 48 THEN
-        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 48 —— '
+    -- ★ MES-6a-1(2026-10-09):48 → 49 —— samples 登记了一个码(module.quality.view,与它的读策略里第一个码同一个)。
+    IF v_n <> 49 THEN
+        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 49 —— '
                         '判据瞎了,或者登记表真的变了(那就同时改这个数与切次报告)', v_n;
     END IF;
 

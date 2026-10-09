@@ -8,6 +8,7 @@
 // 总调整额,以及会怎样拆进存货与销售成本。客户端不做任何算术。
 //
 // 两个提交按钮:仅记录 / 记录并应用。后者失败时【记录仍然保留】(见 actions.ts)。
+import SamplePickerField, { type SampleOption } from '@/app/components/quality/SamplePickerField'
 import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -52,6 +53,8 @@ export default function AssayForm({
     currentMetals,
     baseCurrency,
     canApply,
+    sampleOptions,
+    defaultSampleId,
 }: {
     // PROC-5:实验室字典(值 + 已翻好的名字),由页面读好传进来
     labOptions: DictOption[]
@@ -77,6 +80,9 @@ export default function AssayForm({
     /** ROLE-1 Batch 2b(Q15 · Q5):应用化验与它的试算归 action.apply_assay(cto)。没有它的人:
      *  试算不去问,「记录并应用」看得见、按不动、说出码,「仅记录」照常是主按钮。 */
     canApply: boolean
+    /** MES-6a-1(Q9):这一批的样品(可空选) */
+    sampleOptions: SampleOption[]
+    defaultSampleId?: string | null
 }) {
     const t = useTranslations()
     const bound = submitAssay.bind(null, batch.id)
@@ -291,6 +297,8 @@ export default function AssayForm({
                     <label className="block mb-1">{t('assay.sampleRef')}</label>
                     <input type="text" name="sample_ref" className={`${CONTROL_INPUT} w-full`} />
                 </div>
+                {/* MES-6a-1(Q9):这份结果化验的是哪份实物样品(可空;sample_ref 照旧是实验室那一侧的编号) */}
+                <SamplePickerField options={sampleOptions} defaultSampleId={defaultSampleId} />
             </div>
 
             <div className="flex flex-wrap gap-4 items-start">

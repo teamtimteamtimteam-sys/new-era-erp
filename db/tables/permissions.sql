@@ -185,7 +185,12 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- ── MES-2(2026-10-06,MES-0 Q11 · Q90 · MES-2 Step 0 Q8 · Q15 · Q21,Tim):确认采集到的数 —— 确认 / 驳回草稿、手工录入一次称重、
     -- 更正一次称重、开 / 作废地磅单、传 / 撤地磅单照片。持有人 warehouse · cto · admin(admin 与此前每一个新码一样只在迁移里授)。
     -- 读草稿只要 module.processing.view(Q8)。
-    ('action.confirm_capture', 'action', 'Confirm captured readings', '确认采集到的数据', 'Confirm or reject the drafts that scales and other devices send (a changed value keeps the original and needs a reason), enter a weighing by hand, correct a confirmed weighing, open and void weighbridge tickets, and add or withdraw ticket photos. Reading the queue needs only Processing (view).', '确认或驳回秤与其他设备送来的草稿(改过的值留着原值并要写理由)、手工录入一次称重、更正一次已确认的称重、开出与作废地磅单、传上或撤下地磅单的照片。读确认队列只要「加工(查看)」。', 1230);
+    ('action.confirm_capture', 'action', 'Confirm captured readings', '确认采集到的数据', 'Confirm or reject the drafts that scales and other devices send (a changed value keeps the original and needs a reason), enter a weighing by hand, correct a confirmed weighing, open and void weighbridge tickets, and add or withdraw ticket photos. Reading the queue needs only Processing (view).', '确认或驳回秤与其他设备送来的草稿(改过的值留着原值并要写理由)、手工录入一次称重、更正一次已确认的称重、开出与作废地磅单、传上或撤下地磅单的照片。读确认队列只要「加工(查看)」。', 1230),
+    -- ── MES-6a-1(2026-10-09,MES-0 Q90 · MES-6a Step 0 Q11 · Q12 · Q13,Tim):质量 —— 样品与化验争议。持有人照 Q90:
+    -- 查看 cco · cto · finance · cfo · admin · warehouse;编辑 cco · cto · admin(Q12:warehouse 不加 —— 若 Fu Sheng 管样品,以后是角色上的一行)。
+    -- 结案(点名哪一份说了算)不是编辑码,是 action.apply_assay(Q13);它的声明多一个 module.quality.view(下面那张表)。
+    ('module.quality.view', 'module', 'Quality (view)', '质量(查看)', 'Samples and their custody, and assay disputes — read only. The samples and disputes panels on batch and assay pages also show to whoever may view that batch.', '样品与它的保管记录、化验争议 —— 只读。批次与化验页上的样品与争议面板,能看那一批的人也看得见。', 150),
+    ('module.quality.edit', 'module', 'Quality (edit)', '质量(编辑)', 'Take a sample and record its custody (sent to a lab, received back, moved, disposed), set the internal sample retention, open or withdraw an assay dispute, record its umpire sample and result, and link the arbitration fee. Naming which result governs a dispute is "Apply and unapply assay results".', '取样并记它的保管(送实验室、拿回来、换库位、处置)、设内部留样天数、立或撤回一件化验争议、记它的仲裁样品与结果、挂上仲裁费。点名一件争议以哪一份结果为准是「应用与撤销应用化验结果」。', 151);
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -196,7 +201,8 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
 -- ═══════════════════════════════════════════════════════════════════════════
 UPDATE public.permissions p SET requires_view_any = d.views
   FROM (VALUES
-    ('action.apply_assay',              ARRAY['module.inbound.view','module.output.view']),
+    -- MES-6a-1(Step 0 Q13):结案一件化验争议(点名哪一份说了算)在 /quality/disputes/[id] 上,那一页的门是 module.quality.view。
+    ('action.apply_assay',              ARRAY['module.inbound.view','module.output.view','module.quality.view']),
     ('action.approve_review',           ARRAY['module.hr.view']),
     ('action.batch_write_off',          ARRAY['module.inbound.view','module.inventory.view','module.output.view']),
     ('action.bulk_import',              ARRAY['action.bulk_import']),

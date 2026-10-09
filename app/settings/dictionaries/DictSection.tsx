@@ -23,11 +23,13 @@ export type DictRow = {
 
 const blank = { code: '', nameEn: '', nameZh: '', sortOrder: '', notes: '' }
 
-export default function DictSection({ spec, rows, usage, locale, readOnly = false }: {
+export default function DictSection({ spec, rows, usage, locale, readOnly = false, supplierOptions = [] }: {
     spec: DictSpec
     rows: DictRow[]
     usage: Record<string, number>
     locale: string
+    /** MES-6a-1(Q23):kind = supplier 的那一列的选项(supplier_lookup 的编号 — 法定名)。 */
+    supplierOptions?: { value: string; label: string }[]
     /** ★ C-1b:这个人【看得见但改不动】这一节。
      *
      *  【只读的意思是那些控件不存在,不是它们被灰掉】
@@ -92,6 +94,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                 if (v === null || v === undefined) return <span className="text-amber-700" data-not-set={x.column}>{t('dict.notYetSet')}</span>
                 if (x.kind === 'boolean') return v === true ? t('common.yes') : t('common.no')
                 if (x.kind === 'choice') { const o = x.options?.find((p) => p.value === v); return o ? t(o.labelKey) : String(v) }
+                // MES-6a-1:指着一户读不到的供应商 → 「受限」,不是一串 uuid
+                if (x.kind === 'supplier') return supplierOptions.find((p) => p.value === v)?.label ?? t('common.restricted')
                 if (x.kind === 'time') return String(v).slice(0, 5)
                 return String(v)
             },
@@ -248,6 +252,18 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                                                 className={fieldSelect}>
                                             <option value="" disabled>{t('dict.pickOne')}</option>
                                             {(x.options ?? []).map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
+                                        </select>
+                                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</p>
+                                    </div>
+                                ) : x.kind === 'supplier' ? (
+                                    <div>
+                                        <span className={flabel}>{t(x.labelKey)}</span>
+                                        {/* MES-6a-1(Q23):空 = 没有人指过(仲裁费那时付不出去,争议页照直说) */}
+                                        <select value={extras[x.column] ?? ''}
+                                                onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
+                                                className={fieldSelect}>
+                                            <option value="">{t('dict.noSupplier')}</option>
+                                            {supplierOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                         </select>
                                         <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</p>
                                     </div>

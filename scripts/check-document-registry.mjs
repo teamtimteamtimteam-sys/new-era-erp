@@ -129,8 +129,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 //   (它的编号是冲销那张费用单的 EXP-…),所以 EXPECTED_CODE_TABLES 不变。
 // MES-5b-3(2026-10-09):283 → 286。三张配料的表(blending_plans · blending_plan_targets · blending_plan_lines)。一张带 code 列:
 //   blending_plans(BLD,登记进 document_types),所以 EXPECTED_CODE_TABLES 86 → 87。
-const EXPECTED_TABLES = 286   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 87
+// MES-6a-1(2026-10-09):286 → 290。四张质量的表(samples · sample_events · assay_disputes · quality_settings)。一张带 code 列:
+//   samples(SMP,登记进 document_types),所以 EXPECTED_CODE_TABLES 87 → 88。
+const EXPECTED_TABLES = 290   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 88
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

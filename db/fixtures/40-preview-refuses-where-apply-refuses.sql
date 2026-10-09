@@ -8,6 +8,8 @@
 -- 注入方式:把 preview_reprice_inbound_batch 的 v_base := round(p*v_fx,4) 改回
 -- round(p,4),本臂即红并把两个数一起说出来。
 --
+-- 【F 臂(MES-6a-1,Step 0 Q18)是第四道闸】这一批挂着一件开着的化验争议 —— 试算与提交抛【同一句】ASSAY_DISPUTE_OPEN;
+--   撤回之后两侧都放行。
 -- 【A/B/C 臂是拒绝的三个闸】承诺条款、汇率、期间锁 —— 每臂都断言【两侧】:
 -- 试算抛的码 = 提交抛的码。少一侧就退化成"各测各的",而这正是页面按钮敢跟着
 -- 横幅走的全部依据(按钮禁用条件 = 预览有 error)。
@@ -30,7 +32,9 @@ BEGIN
     SELECT r, unnest(ARRAY['data.view_prices', 'data.view_purchase_prices','module.inbound.edit','module.inbound.view',
                            'module.finance.edit','module.finance.view','module.pricing.view',
                            -- ROLE-1 Batch 2b(2026-09-24):试算与应用化验改归 action.apply_assay
-                           'action.apply_assay']);
+                           'action.apply_assay',
+                           -- MES-6a-1(2026-10-09):F 臂要立一件化验争议
+                           'module.quality.view', 'module.quality.edit']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
@@ -177,6 +181,33 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM inbound_batch_metals WHERE inbound_batch_id = v_b2 AND metal = 'co') THEN
             RAISE EXCEPTION 'FIXTURE 40E 失败:缺行情时含量仍应落地 —— 化验是实验室的事实,不该被行情表拖住';
         END IF;
+    END;
+
+    -- ══════════ F. 开着的化验争议:试算拒 ⇔ 提交拒,同一句(MES-6a-1,Q18)══════════════
+    DECLARE v_b3 uuid; v_ours uuid; v_cp uuid; v_d uuid;
+    BEGIN
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
+                                     arrival_date, unit_price, pricing_formula_id, source_reason_code, source_reason_note)
+        VALUES ('ZZFIX40-IB3', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, v_f, 'other', 'fixture 40 自带数据') RETURNING id INTO v_b3;
+        PERFORM commit_pricing_terms(v_f, NULL, v_b3);
+        INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final, weight_basis, result_party)
+        VALUES ('ZZFIX40-AR3', v_b3, CURRENT_DATE, true, 'as_received', 'ours') RETURNING id INTO v_ours;
+        INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (v_ours, 'ni', 50);
+        INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final, weight_basis, result_party)
+        VALUES ('ZZFIX40-AR3C', v_b3, CURRENT_DATE, true, 'as_received', 'counterparty') RETURNING id INTO v_cp;
+        INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (v_cp, 'ni', 53);
+        v_d := (open_assay_dispute(v_ours, v_cp, 'fixture 40 F') ->> 'dispute_id')::uuid;
+        v_prev_err := NULL; v_apply_err := NULL;
+        BEGIN PERFORM preview_assay_price(v_b3, v_metals, CURRENT_DATE); EXCEPTION WHEN OTHERS THEN v_prev_err := SQLERRM; END;
+        BEGIN PERFORM apply_assay_result(v_ours); EXCEPTION WHEN OTHERS THEN v_apply_err := SQLERRM; END;
+        IF v_prev_err IS NULL OR v_apply_err IS NULL OR v_prev_err <> v_apply_err
+           OR v_prev_err NOT LIKE 'ASSAY_DISPUTE_OPEN|ZZFIX40-IB3|%' THEN
+            RAISE EXCEPTION 'FIXTURE 40F 失败:开着的争议时两侧都该点名 ASSAY_DISPUTE_OPEN、同一句,实得 preview=「%」 apply=「%」 —— 试算不看争议,按钮就会请人去点一个必定失败的应用',
+                COALESCE(v_prev_err, '(通过)'), COALESCE(v_apply_err, '(通过)');
+        END IF;
+        PERFORM withdraw_assay_dispute(v_d, 'fixture 40 F withdrawn');
+        PERFORM preview_assay_price(v_b3, v_metals, CURRENT_DATE);
+        PERFORM apply_assay_result(v_ours);
     END;
 END $$;
 ROLLBACK;

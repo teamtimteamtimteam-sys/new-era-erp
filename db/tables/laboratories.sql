@@ -13,7 +13,9 @@ CREATE TABLE public.laboratories (
     name_zh    text NOT NULL,
     is_active  boolean NOT NULL DEFAULT true,
     sort_order integer NOT NULL DEFAULT 0,
-    notes      text
+    notes      text,
+    -- ── MES-6a-1 追加(2026-10-09,MES-0 Q64 · MES-6a Step 0 Q23):给这家实验室付钱时,付给供应商表里的哪一户 ──
+    supplier_id uuid REFERENCES public.suppliers (id)
 );
 
 COMMENT ON TABLE public.laboratories IS
@@ -36,12 +38,19 @@ supplier,而不是把这张表推翻重来。**Tim 裁定如此。**
 
 【RUNTIME CONFIG】加一家是加一行。';
 
+COMMENT ON COLUMN public.laboratories.supplier_id IS
+'MES-6a-1(MES-0 Q64 · MES-6a Step 0 Q23):给这家实验室付钱(仲裁费)时,付给供应商表里的哪一户 —— 上面那条 Tim 的裁定
+("那一行字典指向一个 supplier")在这里兑现。可空:今天没有任何一家实验室有已知的付款户(引导的 FRL 为空,那仍然是对的)。
+在字典编辑器里设(module.materials.edit,与这张表的写策略同一个码)。指着一户【不等于】付得出去:付款照常要那户供应商已批准
+(PAYMENT_REQUEST_SUPPLIER_BLOCKED)。';
+
 COMMENT ON COLUMN public.laboratories.is_active IS
 'PROC-5,与 battery_chemistries.is_active 逐字同一条:
 is_active 管【还能不能新选】,不管【已经记下的还算不算数】。
 一家实验室停止合作,**它出过的每一张化验单仍然是它出的** ——
 外键因此不读 is_active。';
 
+-- MES-6a-1:supplier_id 引导为空 —— 那仍然是对的(没有一家实验室有已知的付款户;RUNTIME CONFIG,Tim 在字典里指一次)。
 INSERT INTO public.laboratories (code, name_en, name_zh, sort_order, notes) VALUES
     ('FRL', 'FRL', 'FRL', 1,
      '线上唯一在用的实验室(assay_results 1 行)。**全称没有人写下来过**,'

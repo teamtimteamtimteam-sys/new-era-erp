@@ -5,6 +5,7 @@
 // 取:批次(物料/供应商/数量/当前单价/定价状态)、批次当前已录含量(作为录入起点 ——
 // 一次更正是小改而不是重敲)、以及【会生效的那张定价公式】(批次上的,否则采购单
 // 明细行上的 —— 与 apply_assay_result 的解析顺序一致),好让表单能说清楚"按哪张公式重算"。
+import { loadBatchSampleOptions } from '@/app/components/quality/sampleOptions'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -23,8 +24,11 @@ import { loadLaboratories, toDictOptions } from '@/app/components/dictionaries/d
 
 export default async function NewAssayPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    /** MES-6a-1:样品页上的"记一份化验"带着 ?sample= —— 选单预选那一份 */
+    searchParams: Promise<{ sample?: string | string[] }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -32,6 +36,7 @@ export default async function NewAssayPage({
     if (denied) return denied
 
     const { id } = await params
+    const sp = await searchParams
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
     const substanceOptions = toOptions(await loadSubstances(supabase))
@@ -133,6 +138,8 @@ export default async function NewAssayPage({
                 baseCurrency={baseCurrency}
                 currentMetals={currentMetals}
                 canApply={canApply}
+                sampleOptions={await loadBatchSampleOptions(supabase, 'inbound', batch.id)}
+                defaultSampleId={(() => { const v = sp.sample; return Array.isArray(v) ? v[0] : v ?? null })()}
             />
         </div>
     )

@@ -40,6 +40,7 @@ AS $function$
 --   SETTLEMENT_NO_CONTRACT_TERMS|<so>          这张单没挂合同,没有可依据的冻结条款
 --   SETTLEMENT_TERMS_NOT_SET|<contract>        挂了合同,但那份合同没有结算口径
 --   ASSAY_NOT_FOR_BATCH|<assay>|<batch>        选的化验不是这个批次的
+--   ★ ASSAY_DISPUTE_OPEN|<batch>|<争议>        这一批挂着一件开着的化验争议(MES-6a-1,Q21)
 --   ★ ASSAY_WEIGHT_BASIS_NOT_STATED|<assay>    化验没说按哪种重量报 ← 本刀最要紧的那条
 --   ASSAY_PARTY_NOT_THE_SETTLING_PARTY|…       选的化验不是合同约定的那一方(仲裁除外)
 --   RESULTS_IN_DISPUTE|…                       两方结果不一致,而没有声明容差
@@ -86,6 +87,7 @@ DECLARE
     v_rate      numeric;
     v_over      numeric;
     v_amt       numeric;
+    v_disp      uuid;
 BEGIN
     IF p_sales_order_id IS NULL OR p_output_batch_id IS NULL OR p_assay_result_id IS NULL THEN
         RAISE EXCEPTION 'SETTLEMENT_ARGUMENTS_REQUIRED';
@@ -139,6 +141,16 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'ASSAY_NOT_FOUND|%', p_assay_result_id; END IF;
     IF v_assay.output_batch_id IS DISTINCT FROM p_output_batch_id THEN
         RAISE EXCEPTION 'ASSAY_NOT_FOR_BATCH|%|%', v_assay.code, v_batch.code;
+    END IF;
+
+    -- ── ★ MES-6a-1(MES-6a Step 0 Q21,Tim):这一批挂着一件【开着的】化验争议时,结算按名拒 ───────────────
+    -- 下面那两道推出来的拒绝(RESULTS_IN_DISPUTE / RESULTS_EXCEED_SPLITTING_LIMIT)一字未改:它们看的是两份数字,
+    -- 这一道看的是一件被人立起来的争议 —— 立了就等它结案或撤回。本支是 INVOKER:assay_disputes 的读策略给
+    -- module.output.view(上面第二道闸刚问过它),所以一个走得到这里的读者不会因为读不到而把它放过去(INVOKER-JOIN-5 那一族)。
+    SELECT d.id INTO v_disp FROM assay_disputes d WHERE d.output_batch_id = p_output_batch_id AND d.status = 'open';
+    IF FOUND THEN
+        RAISE EXCEPTION 'ASSAY_DISPUTE_OPEN|%|%', v_batch.code, v_disp
+          USING HINT = '这一批有一件开着的化验争议 —— 先结案(点名哪一份说了算)或撤回,再结算';
     END IF;
 
     -- ── ★ 化验必须说出它按哪种重量报 ★ ─────────────────────────────────────

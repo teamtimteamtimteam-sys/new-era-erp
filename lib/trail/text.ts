@@ -512,6 +512,7 @@ export const TRAIL_TEXT = {
     'set.ingest': 'Ingestion limits changed',
     // MES-5a-2(2026-10-08):V25 —— 共用池的电怎么摊
     'set.electricity': 'Shared-pool electricity rule changed',
+    'set.quality': 'Internal sample retention changed',
     'dev.registered': 'Device registered',
     'dev.changed': 'Device changed',
     'dev.retired': 'Device retired',

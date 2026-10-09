@@ -20,6 +20,8 @@ const EXPENSE_ERROR_CODES = new Set([
     // 员工选项是 1b)。DB 侧的三个新码在这里,否则屏幕上会出现机器码。
     'COUNTERPARTY_REQUIRED_FOR_UNPAID', 'COUNTERPARTY_AMBIGUOUS', 'EMPLOYEE_NOT_FOUND',
     'PERIOD_LOCKED', 'EXPENSE_NOT_FOUND', 'EXPENSE_ALREADY_REVERSED',
+    // MES-6a-1(Q34):冲销要一句理由 —— 空的理由在任何别的检查之前按名拒
+    'EXPENSE_REVERSAL_REASON_REQUIRED',
     // FIN-22:资本分支(record_expense)与冲销守卫(reverse_expense)
     'CAPITAL_REQUIRES_ASSET', 'ASSET_REQUIRES_CAPITAL_ACCOUNT',
     // APR-9:这台资产挂着一张在等的处置申请 —— 追加成本、冲销它的成本明细都按名拒

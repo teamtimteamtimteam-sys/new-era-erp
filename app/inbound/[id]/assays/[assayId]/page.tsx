@@ -6,6 +6,7 @@
 // 发生的事(重算会因行情变动给出与当初不同的数字,那是误导)。关联分录靠
 // created_at 精确匹配:apply_assay_result 在一个事务里同时写 price_history 与分录,
 // 而 now() 在事务内是冻结的,两行的 created_at 逐微秒相等 —— 跨事务则不会相等。
+import QualityPanel from '@/app/components/quality/QualityPanel'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -54,7 +55,7 @@ export default async function AssayDetailPage({
 
     const { data: assay, error } = await supabase
         .from('assay_results')
-        .select('id, code, inbound_batch_id, assay_date, lab_name, weight_basis, moisture_pct, result_party, certificate_ref, sample_ref, is_final, notes, applied_at, superseded_by, created_at')
+        .select('id, code, inbound_batch_id, assay_date, lab_name, weight_basis, moisture_pct, result_party, certificate_ref, sample_ref, is_final, notes, applied_at, superseded_by, created_at, sample_id')
         .eq('id', assayId)
         .is('deleted_at', null)
         .single()
@@ -424,6 +425,9 @@ export default async function AssayDetailPage({
                     </PermissionGate>
                 </section>
             )}
+
+            {/* MES-6a-1(Q9 · Q16):这份结果化验的是哪份样品,以及这一批的样品与争议 —— 开着的争议在这里说出它挡着什么 */}
+            <QualityPanel kind="inbound" batchId={id} assaySampleId={assay.sample_id ?? null} />
         </div>
     )
 }

@@ -17,6 +17,7 @@
 --   H  ★★ 提单人之外没人批得动(4b Q1):CFO 那个人的另一个账号提 → RECEIPT_PRICE_NO_OTHER_DECIDER,一行不落
 --   I  ★★ 化验:应用照旧全部落地、同一事务提一张来源 assay 的申请,pricing_status 不升;新化验取代它
 --        (撤回并写明理由);撤销应用撤回它那一张;批准后才升 final(4b Q3 · Q5)
+--        ★ I6(MES-6a-1):在等的化验申请遇上一件开着的化验争议 → 批准按名拒 ASSAY_DISPUTE_OPEN、什么都不落;撤回之后照常批
 --   J  撤回:提单人本人、持 action.price_receipts 的人撤得了;别人 → PERMISSION_DENIED|action.price_receipts
 --   K  ★ pricing_status 直连写 → PRICING_STATUS_VIA_FUNCTION(4b Q3)
 --   L  收货台带价建单:收货落下【不带价】,同一事务里一张 desk 申请在等(Q4)
@@ -105,6 +106,8 @@ BEGIN
         (r_l2, 'module.sales.view'),
         (r_cto, 'action.apply_assay'), (r_cto, 'module.inbound.edit'), (r_cto, 'module.inbound.view'),
         (r_cto, 'data.view_purchase_prices'),
+        -- MES-6a-1:I6 臂立一件化验争议(质量编辑码)
+        (r_cto, 'module.quality.view'), (r_cto, 'module.quality.edit'),
         -- ROLE-1 Batch 3b:注销批次是它自己的码(action.batch_write_off),仓库持有 —— C5 拒在等待中的申请上,不拒在码上。
         (r_wh, 'module.inbound.edit'), (r_wh, 'module.inbound.view'), (r_wh, 'action.batch_write_off');
     INSERT INTO user_roles (user_id, role_id) VALUES
@@ -343,6 +346,22 @@ BEGIN
                                  p_inbound_batch_id => b3, p_weight_basis => 'as_received', p_result_party => 'ours')->>'assay_result_id')::uuid;
     v_res := apply_assay_result(v_a3);
     q3 := (v_res->'price_request'->>'request_id')::uuid;
+    -- ★ I6(MES-6a-1,Step 0 Q18):这张化验申请在等的时候立起一件化验争议 —— CFO 批准那一刻按名拒(申请的指纹里没有争议,
+    --   所以过账那一步再看一次);撤回之后照常批(下面 I5 的断言原样)。
+    DECLARE v_cp uuid; v_d uuid; v_je int;
+    BEGIN
+        v_cp := (record_assay_result(p_assay_date => v_today, p_metals => v_metals40, p_lab_name => 'Fixture Lab 220',
+                                     p_inbound_batch_id => b3, p_weight_basis => 'as_received', p_result_party => 'counterparty')->>'assay_result_id')::uuid;
+        v_d := (open_assay_dispute(v_a3, v_cp, 'fixture 220 I6') ->> 'dispute_id')::uuid;
+        v_je := (SELECT count(*) FROM journal_entries);
+        PERFORM pg_temp.f220_as(u_cfo);
+        v_msg := pg_temp.f220_try(format('SELECT decide_receipt_price_request(%L, true)', q3));
+        IF v_msg NOT LIKE 'ASSAY_DISPUTE_OPEN|ZZFIX220-IB3|%' OR (SELECT status FROM receipt_price_requests WHERE id = q3) <> 'submitted'
+           OR (SELECT count(*) FROM journal_entries) <> v_je THEN
+            RAISE EXCEPTION 'FIXTURE 220I6 失败:争议开着时化验申请批不下来、什么都不落,实得 %', v_msg; END IF;
+        PERFORM pg_temp.f220_as(u_cto);
+        PERFORM withdraw_assay_dispute(v_d, 'fixture 220 I6 withdrawn');
+    END;
     PERFORM pg_temp.f220_as(u_cfo);
     PERFORM decide_receipt_price_request(q3, true);
     IF (SELECT unit_price FROM inbound_batches WHERE id = b3) <> 3.717

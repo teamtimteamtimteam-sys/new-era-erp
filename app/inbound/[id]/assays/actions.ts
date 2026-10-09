@@ -152,6 +152,8 @@ export async function submitAssay(
     const labName = String(formData.get('lab_name') ?? '').trim()
     const certificateRef = String(formData.get('certificate_ref') ?? '').trim()
     const sampleRef = String(formData.get('sample_ref') ?? '').trim()
+    // MES-6a-1(Q9):化验的是哪份实物样品 —— 可空;别的批的样品由服务端按名拒(SAMPLE_NOT_FOR_BATCH)
+    const sampleId = String(formData.get('sample_id') ?? '').trim()
     const isFinal = formData.get('is_final') === 'on'
     const notes = String(formData.get('notes') ?? '').trim()
 
@@ -220,6 +222,7 @@ export async function submitAssay(
         p_weight_basis: weightBasis,
         p_result_party: resultParty,
         ...(moisturePct === null ? {} : { p_moisture_pct: moisturePct }),
+        ...(sampleId === '' ? {} : { p_sample_id: sampleId }),
     })
     if (error) {
         return { error: await localizeAssayError(error.message) }

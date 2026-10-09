@@ -279,8 +279,9 @@ BEGIN
     -- ══════════════ NUM · 编号 ══════════════
     RAISE NOTICE 'fixture 254 · NUM';
     -- MES-5b-3(2026-10-09):55 → 56(blending_plan / BLD;不在 output_batches 上,所以 13 不变)
-    IF (SELECT count(*) FROM document_types) <> 56 OR (SELECT count(*) FROM document_types WHERE table_name = 'output_batches') <> 13 THEN
-        RAISE EXCEPTION 'FIXTURE 254 NUM: the registry should have 56 rows, 13 of them on output_batches'; END IF;
+    -- MES-6a-1(2026-10-09):56 → 57(sample / SMP;不在 output_batches 上,所以 13 不变)
+    IF (SELECT count(*) FROM document_types) <> 57 OR (SELECT count(*) FROM document_types WHERE table_name = 'output_batches') <> 13 THEN
+        RAISE EXCEPTION 'FIXTURE 254 NUM: the registry should have 57 rows, 13 of them on output_batches'; END IF;
     -- 每一种映射了的形态:铸它自己的前缀、五位(MAP 是本支的第二份真相 —— Tim 在 MES-0 Q54 定的码,抄在这里)
     FOR v_n IN 1 .. array_length(MAP, 1) LOOP
         EXECUTE format($q$INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)

@@ -143,6 +143,10 @@ export const SCOPES: readonly AccessScope[] = [
     // NAV-REG-1 / R2:物流【终于有了自己的码】。8 张表的 SELECT 策略同时换成了本码;
     // 写的那一半没有动(仍是 module.purchasing.edit),所以不存在"改得动、读不回"的倒挂。
     { id: '/logistics', navKey: 'nav.logistics', permission: 'module.logistics.view' },
+    // MES-6a-1(2026-10-09,MES-0 Q90 · MES-6a Step 0 Q11):质量 —— 样品与化验争议有了自己的码(module.quality.view / .edit),
+    //   于是有了自己的权限范围。【它不是一个新的一级模块】Tim 的 D1 那九个一个字不动:两条条目住在「运营」底下(FUNCTIONS 那一段),
+    //   路由前缀 /quality 只是这个范围的 id —— 导航与门是两件事(本文件抬头 §一)。
+    { id: '/quality', navKey: 'nav.quality', permission: 'module.quality.view' },
 ]
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -359,6 +363,8 @@ const P_MATERIALS = 'module.materials.view'
 const P_INBOUND = 'module.inbound.view'
 const P_OUTPUT = 'module.output.view'
 const P_PROCESSING = 'module.processing.view'
+// MES-6a-1(2026-10-09,MES-0 Q90):质量查看码 —— 样品与化验争议两页的门
+const P_QUALITY = 'module.quality.view'
 // MES-4b(2026-10-07,Step 0 Q25):交叉污染抽检的总表 —— 加工或产出查看码任一(极片批的买方关心的质量事实;读的视图带同一对码)
 const P_CONTAMINATION = { all: [], any: ['module.processing.view', 'module.output.view'] } as const
 const P_INVENTORY = 'module.inventory.view'
@@ -471,6 +477,12 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // MES-5b-3(2026-10-09,Step 0 Q17–Q20,Tim):配料计划(将来那条线)—— 读 module.processing.view;建与改 action.wo_create,
     //   放行 action.wo_release(建单人永远不能放行),执行 action.processing_commit(页内控件看得见、按不动、说出缺哪个码)。
     { href: '/operation/blending', navKey: 'processing.subnav.blending', modules: ['operation'], permission: P_PROCESSING },
+    // MES-6a-1(2026-10-09,MES-0 Q90 · MES-6a Step 0 Q11 · Q13,Tim):质量 —— 样品(取样、保管、留样日、处置)与化验争议(立、撤回、结案、仲裁费)。
+    //   读 module.quality.view(cco · cto · finance · cfo · admin · warehouse);取样、记保管、立 / 撤回争议、V16 要 module.quality.edit
+    //   (cco · cto · admin;Q12:仓库不加);结案 action.apply_assay(cto · admin)—— 页内控件看得见、按不动、说出缺哪个码(DBLOCK-1)。
+    //   批次与化验页上的样品 / 争议面板另给持那一批查看码的人看(Q11),那不是这两条条目的事。
+    { href: '/quality/samples', navKey: 'quality.subnav.samples', modules: ['operation'], permission: P_QUALITY },
+    { href: '/quality/disputes', navKey: 'quality.subnav.disputes', modules: ['operation'], permission: P_QUALITY },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
@@ -1049,6 +1061,8 @@ export const MOD = {
     tasks: byId('/tools/tasks'),
     hr: byId('/hr'),
     logistics: byId('/logistics'),
+    /** MES-6a-1:质量(样品与化验争议)。 */
+    quality: byId('/quality'),
 } as const
 
 export const FN = {
@@ -1099,4 +1113,7 @@ export const FN = {
     balance: fnByHref('/operation/balance'),
     yield: fnByHref('/operation/yield'),
     blending: fnByHref('/operation/blending'),
+    /** MES-6a-1:样品 · 化验争议。 */
+    qualitySamples: fnByHref('/quality/samples'),
+    qualityDisputes: fnByHref('/quality/disputes'),
 } as const

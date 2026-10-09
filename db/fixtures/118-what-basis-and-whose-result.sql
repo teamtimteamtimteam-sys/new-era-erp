@@ -9,6 +9,8 @@
 -- F3 水分没测过 = 【没测过】,不是 0。断言的是【两者可辨】,不是"某一列是 NULL"。
 -- F4 出具方三个取值都记得下;而**对手方的结果【不取代】我们的** ——
 --    两份都在、都读得出来。
+-- F5 ★ MES-6a-1(D4 · Step 0 Q20):【应用】也一样 —— 应用一份对手方或仲裁的结果【不】把已应用的我们那一份标成 superseded;
+--    再应用一份我们的,只取代我们的上一份(取代链按出具方各自成链)。F4 只记录不应用,所以它在旧代码上也是绿的;F5 才碰得到那一句。
 --
 -- 日期无关(assay_date 用一个固定的过去日期;函数拒绝未来日期)。
 BEGIN;
@@ -195,5 +197,37 @@ BEGIN
        = (SELECT content_pct FROM assay_result_metals WHERE assay_result_id = v_a2 AND metal='ni') THEN
         RAISE EXCEPTION 'FIXTURE 118F4 前置失败:两份结果的数字本应不同(12.5 vs 11.0),否则"并存"这一臂什么都证明不了';
     END IF;
+
+    -- ══════════ F5 · 应用对手方 / 仲裁的结果【不取代】我们已应用的那一份(D4,MES-6a-1)═════════
+    RAISE NOTICE 'fixture 118 · 进入 F5';
+    DECLARE v_ib5 uuid; v_o1 uuid; v_c1 uuid; v_u1 uuid; v_o2 uuid;
+    BEGIN
+        -- 一批没挂公式的料:应用只落含量、不提定价申请 —— 这一臂只看取代链
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('ZZ118-IB5', v_mat, v_sup, 100, 100, 'kg', v_day, 'other', 'fixture 118 F5') RETURNING id INTO v_ib5;
+        v_o1 := (record_assay_result(p_assay_date => v_day, p_metals => jsonb_build_array(jsonb_build_object('metal','ni','content_pct',12.5)),
+                 p_inbound_batch_id => v_ib5, p_weight_basis => 'dry', p_result_party => 'ours') ->> 'assay_result_id')::uuid;
+        v_c1 := (record_assay_result(p_assay_date => v_day, p_metals => jsonb_build_array(jsonb_build_object('metal','ni','content_pct',11.0)),
+                 p_inbound_batch_id => v_ib5, p_weight_basis => 'dry', p_result_party => 'counterparty') ->> 'assay_result_id')::uuid;
+        v_u1 := (record_assay_result(p_assay_date => v_day, p_metals => jsonb_build_array(jsonb_build_object('metal','ni','content_pct',11.8)),
+                 p_inbound_batch_id => v_ib5, p_weight_basis => 'dry', p_result_party => 'umpire') ->> 'assay_result_id')::uuid;
+        v_o2 := (record_assay_result(p_assay_date => v_day, p_metals => jsonb_build_array(jsonb_build_object('metal','ni','content_pct',12.4)),
+                 p_inbound_batch_id => v_ib5, p_weight_basis => 'dry', p_result_party => 'ours') ->> 'assay_result_id')::uuid;
+        PERFORM apply_assay_result(v_o1);
+        PERFORM apply_assay_result(v_c1);
+        PERFORM apply_assay_result(v_u1);
+        IF (SELECT superseded_by FROM assay_results WHERE id = v_o1) IS NOT NULL THEN
+            RAISE EXCEPTION 'FIXTURE 118F5 失败:进入 F5 —— 【应用】一份对手方或仲裁的结果,把我们已应用的那一份标成了 superseded(D4)。**我们自己测到的东西被静静地盖掉了**';
+        END IF;
+        IF (SELECT superseded_by FROM assay_results WHERE id = v_c1) IS NOT NULL THEN
+            RAISE EXCEPTION 'FIXTURE 118F5 失败:进入 F5 —— 应用仲裁的结果也不取代对手方的(各自成链)';
+        END IF;
+        PERFORM apply_assay_result(v_o2);
+        IF (SELECT superseded_by FROM assay_results WHERE id = v_o1) IS DISTINCT FROM v_o2
+           OR (SELECT superseded_by FROM assay_results WHERE id = v_c1) IS NOT NULL
+           OR (SELECT superseded_by FROM assay_results WHERE id = v_u1) IS NOT NULL THEN
+            RAISE EXCEPTION 'FIXTURE 118F5 失败:进入 F5 —— 再应用一份我们的,它只取代我们的上一份;对手方与仲裁的那两份原样不动';
+        END IF;
+    END;
 END $$;
 ROLLBACK;

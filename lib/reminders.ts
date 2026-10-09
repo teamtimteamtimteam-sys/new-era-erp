@@ -262,6 +262,18 @@ export const REMINDERS = [
     { itemType: 'discharge_quarantine_pending', permission: 'module.processing.view', href: '/operation/processing',
       itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
 
+    // ══ MES-6a-1(2026-10-09,MES-6a Step 0 Q15 · Q16 · Q17,Tim):样品与化验争议 ═════════════════════════════════════════
+    // 【sample_retention_due】一份样品的留样日已经过了、还没处置 —— 一份一块,门牌指那份样品(处置在那一页记);subject 是批号。
+    // 【assay_dispute_open】一件开着的化验争议(挡着进料的应用 / 定价过账与卖方结算)—— 门牌指那件争议;subject 是两份结果的单号。
+    // 【assay_results_disagree】卖方:两方结果差得超过了合同的容差,而没有人立过争议 —— 门牌指那一批产出批(立争议的入口在它的质量面板上);
+    //   subject 是销售单号。买方没有这一支(Q17)。三支都是 module.quality.view。
+    { itemType: 'sample_retention_due', permission: 'module.quality.view', href: '/quality/samples',
+      itemHref: (r: OpsRow) => `/quality/samples/${r.item_id}` },
+    { itemType: 'assay_dispute_open', permission: 'module.quality.view', href: '/quality/disputes',
+      itemHref: (r: OpsRow) => `/quality/disputes/${r.item_id}` },
+    { itemType: 'assay_results_disagree', permission: 'module.quality.view', href: '/quality/disputes',
+      itemHref: (r: OpsRow) => `/output/${r.item_id}/edit` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

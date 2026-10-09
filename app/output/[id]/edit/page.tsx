@@ -14,6 +14,7 @@ import CellConstructionPanel from '@/app/components/batch/CellConstructionPanel'
 import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
 import BatchBalancePanel from '@/app/components/batch/BatchBalancePanel'
+import QualityPanel from '@/app/components/quality/QualityPanel'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 import ContaminationChecksList from '@/app/operation/contamination/ContaminationChecksList'
 import { CHECK_ROW_COLUMNS, labelsFor, toCheckListRows } from '@/app/operation/contamination/checkRows'
@@ -513,6 +514,9 @@ export default async function EditOutputPage({
             )}
             {/* MES-5b-1(Step 0 Q4 · Q5):这一批的质量去了哪里 —— 一个产出批的平衡就是它自己往下走的那棵树 */}
             <BatchBalancePanel kind="output" batchId={batch.id} />
+
+            {/* MES-6a-1(Q7 · Q16):这一批的样品与化验争议(开着的争议挡着卖方结算) */}
+            <QualityPanel kind="output" batchId={batch.id} />
 
             {/* MES-4b(Q22 · Q25):这一批极片被抽过的交叉污染检查(买方关心的质量事实;加工或产出查看码都读得到) */}
             {checkRows.length > 0 && (

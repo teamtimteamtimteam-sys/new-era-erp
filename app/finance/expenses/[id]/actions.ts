@@ -10,11 +10,14 @@ import { refuseFromCoded } from '@/lib/action-refusal'
 
 export type ReverseExpenseState = { error?: string; detail?: string }
 
-export async function reverseExpense(expenseId: string): Promise<ReverseExpenseState> {
+// MES-6a-1(Q33–Q37):冲销要一句理由。理由空着时对话框的确认钮按不下去;这里不另判空白 —— 服务端【独立】拒空
+//   (EXPENSE_REVERSAL_REASON_REQUIRED,在权限之后、任何别的检查之前),绕过界面直接调也一样。
+export async function reverseExpense(expenseId: string, reason: string): Promise<ReverseExpenseState> {
     const supabase = await createClient()
 
     const { data, error } = await supabase.rpc('reverse_expense', {
         p_expense_id: expenseId,
+        p_memo: reason,
     })
 
     if (error) {

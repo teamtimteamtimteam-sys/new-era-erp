@@ -106,6 +106,10 @@ export const SECTIONS: readonly SectionSpec[] = [
               options: { kind: 'enum', values: ['none_agreed', 'per_metal'] } },
             { name: 'penalty_basis', type: 'select', required: true,
               options: { kind: 'enum', values: ['none_agreed', 'per_element'] } },
+            // MES-6a-1(2026-10-09,MES-0 Q63 · V14;MES-6a Step 0 Q22):仲裁费怎么分 —— 可空 = Not yet set(没有默认值)。
+            //   取值与表上的 CHECK 是同一张清单(contract_settlement_terms.arbitration_fee_rule)。
+            { name: 'arbitration_fee_rule', type: 'select',
+              options: { kind: 'enum', values: ['loser_pays', 'equal', 'further_from_umpire_pays', 'buyer', 'seller'] } },
             NOTES,
         ],
     },

@@ -1,4 +1,6 @@
 -- 256 MES-5a-2:一台电表读的是累计寄存器;一炉分到它那台机器量到的电(都记了电量按电量分,有一炉没记就整台按运行时长分,
+-- ★ MES-6a-1(2026-10-09,F3 · MES-6a Step 0 Q44,Tim):每一次费用冲销都要一句理由 —— 本支里只带单号的 reverse_expense 调用一律补上一句理由,
+--   好让它们照旧走到各自断言的那一道拒绝(而不是先撞上 EXPENSE_REVERSAL_REASON_REQUIRED)。断言一条没减;空理由那几臂在 fixture 261。
 --     依据印在每一行);一张电费单只过一次账 —— 一张费用单、每一炉一条实际电费行、一张结掉它们的分录、被覆盖的炉上的估计被冲掉
 --     (MES-5a Step 0 Q19–Q28 · Q30–Q32 · Q35,Tim;v1.4.44)
 --
@@ -423,7 +425,7 @@ BEGIN
     RAISE NOTICE 'fixture 256 · REV';
     v_msg := pg_temp.f256_do(u_all, format($q$SELECT preview_electricity_allocation(%L, %L, 10, 100, %L)$q$, d1, d1, v_base));
     IF v_msg NOT LIKE 'ELECTRICITY_PERIOD_OVERLAPS|%' THEN RAISE EXCEPTION 'FIXTURE 256 CCY: an overlapping period must be refused, got %', v_msg; END IF;
-    v_msg := pg_temp.f256_do(u_all, format($q$SELECT reverse_expense(%L)$q$, v_exp));
+    v_msg := pg_temp.f256_do(u_all, format($q$SELECT reverse_expense(%L, 'fixture 256: reversal reason')$q$, v_exp));
     IF v_msg NOT LIKE 'EXPENSE_IS_ELECTRICITY_ALLOCATION|%' THEN RAISE EXCEPTION 'FIXTURE 256 REV: the allocation''s expense must not be reversed on its own, got %', v_msg; END IF;
 
     -- ══════════════ MASK · 金额遮蔽 ══════════════
