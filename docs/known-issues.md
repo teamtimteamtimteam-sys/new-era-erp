@@ -10564,3 +10564,15 @@ U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该�
 **删除条件:** 下一支替换 `trail_subject_members` 的迁移(MES-5b-2 会动审计主语)把 `operation_type_output_forms` 挂到 `operation_type` 主语下,
 措辞臂 ㉓ 加一句"在工序页上"的样例。
 
+### MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED · admin 持不持 `module.tasks.view_all`:常设裁定没有说,MES-5b-1 的委托书说"每一个码"(MES-5b-1 close-out 第 1.2 条 c,2026-10-09)
+
+**是什么:** 常设裁定(`docs/role-matrix.md:208`,Tim 2026-09-24)的原文是"`admin` 角色**保留它全部的码,并拿到每一个新码**",标题"admin 角色持【每一个】码";
+同一格里那句"唯一例外,照直记:`module.tasks.view_all` …… admin 从来没有 …… 要不要加,是 Tim 的一句话"是实施者(ROLE-1 Batch 2b)照直记下的
+**事实与一个开着的问题**,不是 Tim 裁的例外。MES-5b-1 的委托书(Q31)写的是"引导的 admin 角色持**每一个**权限码,与 admin 持每一个码的常设裁定一致";
+MES-5b-1 建的是 **74 / 75** —— 除了 `module.tasks.view_all`(`db/tables/role_permissions.sql:65-70`;fixture 257 FCHECK `:533-537` 断言的也是"除了它";
+交回 `docs/handbacks/MES-5b-1.md` §6 第 14 条已经点出来)。线上 admin 同样是 74 / 75。
+**为什么记给 Tim、不改:** 那个码读的是【别人的个人任务】,给不给是一句关于隐私的裁定,不是一处笔误;委托书与裁定原文两种读法都说得通。
+**改法(一句话的事):** 若 Tim 说"给":引导那一行去掉 `AND p.code <> 'module.tasks.view_all'`,fixture 257 FCHECK 的断言改成"每一个码",线上补一行授权;
+若 Tim 说"不给":在 `docs/role-matrix.md:208` 把它写成 Tim 的例外。
+**删除条件:** Tim 说了其中一句,并照它落地。
+

@@ -579,6 +579,26 @@
 >    逐角色读数表、页面清单、开场读数、/inventory 前后表与未经询问的决定在 `docs/handbacks/MES-5b-1.md`。
 >    **下一刀 MES-5b-2 · Reversals**(F1 电费分摊的撤回 · F2 冲抵费用单冲销时恢复估计 · 已付电费单那一臂(b)· Q21–Q29);之后 **MES-5b-3 · Blending**
 >    (Tim Q16:今天这条线不配料,【将来的那条线】会 —— 照 Step 0 Q16–Q20 的推荐建,单独一刀)。见下面「⬜ ★ MES 组」第 8 行。
+>    ★ **部署:Tim 在 Vercel 上确认 `00744eff` 已部署(MES-5b-1 close-out + MES-5b-2 委托书,2026-10-09)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-08 21:28:31 CST**(测量:`db/migration-windows.tsv`,`2026-10-08-mes5b1-balance-and-yield.sql`)·
+>    终点下界 **2026-10-08 22:39:22 CST**(测量:推送把 `origin/main` 移到 `00744eff`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`00744eff … {2026-10-08 22:39:22 +0800}: update by push`)·
+>    终点上界 **2026-10-09 13:06:49 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 10 min 51 s,至多 15 h 38 min 18 s。** 窗口里坏掉的(**推导**,MES-5b-1 交回 §5.5,没有在线上量):旧代码自己的调用一条都不会被拒;
+>    旧应用没有平衡 / 得率页与批次面板,`/inventory` 仍按表头合计(线上今天两种算法同数)。
+>    close-out 的只读读数(2026-10-09 13:19 CST,`postgres`,基表):窗口开始以来新建的加工单 **0**(共 14 张、10 张在册、MES-4a 之后 0 张)·
+>    V37 已给 0 · 结平 0 · 拆去隔离 0 · `require_calibrated_since` NULL —— 窗口里没有人用过这一刀的新东西。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–e):a · b · d 逐项过;c 是一处【不一致】,记给 Tim(不挡第 2 步);e 列出。**
+>    **a** fixture 清单 14 项逐项有臂(257 CONS · ATTR · BAL · PRE · MONTH · ROLL · NOTKG · INV · YIELD · GROUP · V37 · FCHECK · LOG,255 SPLIT,
+>    重建两格,构建检查,措辞臂 ㉓);今天在 HEAD 上:离线门 `GATEOFF_EXIT=0`、`check-action-view-declared` 0、㉓ 绿 0 / 注入 1。
+>    **b** 投料单位登记(`MES5B1-INPUT-UNIT-NOT-CHECKED-AT-COMMIT`)· "每吨"那一行已划掉 · ㉓ · 豁免 8 —— 都在。
+>    **c** 常设裁定的原文(`docs/role-matrix.md:208`)是"保留 + 每一个新码",标题"持每一个码";`module.tasks.view_all` 那一句是实施者照直记下的事实
+>    与一个**留给 Tim 的问题**,不是 Tim 裁的例外 —— 登记 `MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED`,没有改。
+>    **d** 七个真角色都进得了 `/operation/balance`、`/operation/yield` 与两页的批次面板(交回 §1);今天以各自账号的会话只读复核持码与读到的行,
+>    并以七个真角色的一次性克隆从【已部署】的应用取页:28 次 HTTP 200、标题都在、没有一处错误文字;平衡 / 得率 / 进料批面板都印着"记在结平之前"
+>    (线上 2026-08:结平之前的余数 880);产出批面板没有那一句 —— 线上没有一批产出喂过下一炉,树上没有可标的炉。
+>    逐项证据在 `docs/surveys/MES-5b/MES-5b-1-CLOSEOUT.md`。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
