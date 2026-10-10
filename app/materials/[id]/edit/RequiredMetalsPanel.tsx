@@ -43,7 +43,9 @@ export default function RequiredMetalsPanel({
         {}
     )
 
-    const metalName = (code: string) => t('metals.' + code)
+    // MES-6a-2(Q30):与下面勾选框同一个名字(字典自己的);停用的码不在选项里,退回 metals.* 键(D5)
+    const labelOf = new Map(substanceOptions.map((o) => [o.value, o.label]))
+    const metalName = (code: string) => labelOf.get(code) ?? t('metals.' + code)
 
     // 【当前状态,按名说出来】—— 勾选框反映的是"我正在编辑什么",这一行反映的是
     // "现在是什么"。两者在有未保存改动时会不同,而那正是应该看得见的。
@@ -105,7 +107,7 @@ export default function RequiredMetalsPanel({
                                 }
                             />
                             <span>
-                                {t(o.labelKey)}{' '}
+                                {o.label}{' '}
                                 <span className="text-xs text-[color:var(--brand-muted-text)]">{o.value}</span>
                             </span>
                         </label>

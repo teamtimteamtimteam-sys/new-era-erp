@@ -34,9 +34,12 @@
 //   node scripts/sweep-ghost-grants.mjs            # 只报告,不动手(默认)
 //   node scripts/sweep-ghost-grants.mjs --apply    # 真的删
 // 退出码:0 = 没有要扫的 / 扫干净了;1 = 有扫不掉的(逐条印出)
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync } from 'node:fs'
 // U1-B(2026-10-05):一次性账号的前缀与一次性角色的命名空间从 mintThrowaway 那一份读,不在这里另抄一份。
 import { THROWAWAY_EMAIL_PREFIXES, THROWAWAY_LEGACY_EMAIL_PREFIXES, THROWAWAY_ROLE_PREFIX, THROWAWAY_EMAIL_DOMAIN } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const env = readFileSync(ROOT + '.env.local', 'utf8')

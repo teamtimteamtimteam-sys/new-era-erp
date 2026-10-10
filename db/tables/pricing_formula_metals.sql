@@ -69,3 +69,9 @@ CREATE TRIGGER enforce_write_permission
 CREATE TRIGGER trg_pricing_formula_metals_direct_write
     BEFORE INSERT OR UPDATE OR DELETE ON public.pricing_formula_metals
     FOR EACH STATEMENT EXECUTE FUNCTION public.guard_pricing_formula_direct_write();
+
+-- ── MES-6a-2(2026-10-10,MES-6a Step 0 Q27,Tim):公式的计价金属只收按含量计价的金属(提交与它的试跑都经这一道) —— 别的按名拒 SUBSTANCE_NOT_PAYABLE|<码>。
+--    插入与改到 metal 的那一次才判;既有的行不回头判(substances.role 的列注)。不在字典里的码照旧由外键拒。
+CREATE TRIGGER trg_pricing_formula_metals_substance_role
+    BEFORE INSERT OR UPDATE OF metal ON public.pricing_formula_metals
+    FOR EACH ROW EXECUTE FUNCTION public.guard_substance_role('payable_metal', 'metal');

@@ -9,6 +9,7 @@
 // calculate_metal_price(与计价器同一 DB 函数,客户端不做任何计算),
 // 返回完整明细供面板摊开;填入的是 unit_price_usd_per_kg。
 import { createClient } from '@/lib/supabase/server'
+import { loadSubstanceLabels } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { applicableTriggers, loadPaymentTriggerEvents, type OrderKind } from '@/lib/paymentTriggers'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
@@ -243,9 +244,15 @@ export async function computeLineEstimate(input: {
     if (!input.currency || !input.orderDate) return { error: t('pricing.errQuoteNeedsCurrencyDate') }
 
     const supabase = await createClient()
+    // MES-6a-2(MES-6a Step 0 Q27 · Q28):预计化验里可以有氟、氯(任意一种都收的地方),而计价只算按含量计价的金属 ——
+    //   计价器那一支对不计价的码按名拒(SUBSTANCE_NOT_PAYABLE)。所以先把字典里登记为【不计价】的拿掉;
+    //   不认识的码原样留着,由库按 METAL_INVALID 说(与库里的 payable_metals_only 同一个判据)。
+    const notPayable = new Set((await loadSubstanceLabels(supabase)).filter((r) => r.role !== 'payable_metal').map((r) => r.code))
+    const assay = input.assay.filter((a) => !notPayable.has(a.metal))
+    if (!assay.length) return { error: t('pricing.errors.NO_METALS') }
     const { data, error } = await supabase.rpc('calculate_metal_price', {
         p_formula_id: input.formulaId,
-        p_metals: input.assay,
+        p_metals: assay,
         p_quantity_kg: input.quantity,
     })
 

@@ -963,7 +963,7 @@ canEdit: boolean
                                 <div className="mt-2 flex flex-wrap gap-3">
                                     {substanceOptions.filter((s) => s.isActive).map((m) => (
                                         <label key={m.value} className="flex items-center gap-1">
-                                            <span className="w-8 text-[color:var(--brand-muted-text)]">{t(m.labelKey)}</span>
+                                            <span className="w-8 text-[color:var(--brand-muted-text)]">{m.label}</span>
                                             <DecimalInput
                                                 value={l.assay[m.value] ?? ''}
                                                 onChange={(v) =>

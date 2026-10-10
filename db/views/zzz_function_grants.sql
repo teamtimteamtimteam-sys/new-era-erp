@@ -714,3 +714,11 @@ REVOKE EXECUTE ON FUNCTION public.guard_blended_batch_metals_from_assay() FROM a
 --   resolve_assay_dispute / link_dispute_fee【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
 --   next_sample_code【不收】:与 next_blending_plan_code 一样,是一支只读的取号函数。
 REVOKE EXECUTE ON FUNCTION public.guard_assay_sample_batch() FROM authenticated;
+
+-- MES-6a-2(2026-10-10):一支触发器函数与一支【内层】。
+--   guard_substance_role:定价那几张表只收按含量计价的金属、惩罚条款只收惩罚元素(触发器函数;触发时不查 EXECUTE,收掉只是让它不在 API 上)。
+--   payable_metals_only:把一张含量清单里的惩罚元素拿掉(只给那几支 DEFINER 计价读者在体内用;给了 authenticated 也只是一支无害的过滤器,
+--     收掉是让 API 上少一支没有屏幕的函数)。
+--   record_assay_result 的新签名(尾部多了 p_indicators)【不收】:它是 DEFINER,自己查码,员工就是要调它(上面那一句整体授权覆盖它)。
+REVOKE EXECUTE ON FUNCTION public.guard_substance_role() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.payable_metals_only(jsonb) FROM authenticated;

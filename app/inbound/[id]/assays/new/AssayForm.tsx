@@ -9,6 +9,7 @@
 //
 // 两个提交按钮:仅记录 / 记录并应用。后者失败时【记录仍然保留】(见 actions.ts)。
 import SamplePickerField, { type SampleOption } from '@/app/components/quality/SamplePickerField'
+import IndicatorFields, { type IndicatorOption } from '@/app/components/quality/IndicatorFields'
 import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -34,8 +35,8 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
  *  一个金属码 + 一个含量字符串,一行一对。服务端因此只换【行从哪来】,
  *  那个 `Record<metal, content>` 与 `metalsPayload` 一个字都没有动。 */
 type MetalLine = { metal: string; content: string }
-/** 渲染用的行:多带一个 labelKey,而它【不进桥】—— 译名是画出来的,不是交出去的。 */
-type MetalRow = MetalLine & { labelKey: string }
+/** 渲染用的行:多带一个 label(字典自己的名字,MES-6a-2 Q30),而它【不进桥】—— 名字是画出来的,不是交出去的。 */
+type MetalRow = MetalLine & { label: string }
 
 const initialState: SubmitAssayState = {}
 
@@ -55,6 +56,7 @@ export default function AssayForm({
     canApply,
     sampleOptions,
     defaultSampleId,
+    indicatorOptions,
 }: {
     // PROC-5:实验室字典(值 + 已翻好的名字),由页面读好传进来
     labOptions: DictOption[]
@@ -83,6 +85,8 @@ export default function AssayForm({
     /** MES-6a-1(Q9):这一批的样品(可空选) */
     sampleOptions: SampleOption[]
     defaultSampleId?: string | null
+    /** MES-6a-2(Q3 · Q4):这一份要记的指标(字典里还能新选的那几个;名字与单位已翻好) */
+    indicatorOptions: IndicatorOption[]
 }) {
     const t = useTranslations()
     const bound = submitAssay.bind(null, batch.id)
@@ -160,7 +164,7 @@ export default function AssayForm({
     const activeOptions = substanceOptions.filter((s) => s.isActive)
     const rows: MetalRow[] = activeOptions.map((opt) => ({
         metal: opt.value,
-        labelKey: opt.labelKey,
+        label: opt.label,
         content: metals[opt.value] ?? '',
     }))
 
@@ -184,7 +188,7 @@ export default function AssayForm({
             priority: true,
             render: (r) => (
                 <>
-                    {t(r.labelKey)}
+                    {r.label}
                     <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
@@ -315,6 +319,9 @@ export default function AssayForm({
                 </div>
             </div>
 
+            {/* ── MES-6a-2(Q3 · Q4):指标 —— 残粉、箔纯度、粒径(空 = 没报;没有限)── */}
+            <IndicatorFields options={indicatorOptions} />
+
             {/* ── 金属表(留空 = 没测,整行忽略)── */}
             <div>
                 <h2 className="mb-2">{t('assay.title')}</h2>
@@ -322,7 +329,7 @@ export default function AssayForm({
                     组件把列回调画两遍(桌面格 `hidden sm:block` + 手机展开区),
                     所以具名输入不许进格子;这一个不在格子里,于是它在 `FormData` 里
                     **只出现一次**。`scripts/check-editable-name.mjs` 守着前半句。
-                    ★ 交出去的是 `MetalLine`,**`labelKey` 不在里面** —— 那是画出来的,
+                    ★ 交出去的是 `MetalLine`,**`label` 不在里面** —— 那是画出来的,
                       不是交出去的(与 `#24` 的 `i` 同一条:它不进 `lines_json`)。 */}
                 <input
                     type="hidden"

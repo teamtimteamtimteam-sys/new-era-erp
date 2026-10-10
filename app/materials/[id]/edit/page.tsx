@@ -33,7 +33,7 @@ export default async function EditMaterialPage({
     const { id } = await params
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(await loadSubstances(supabase), await getLocale())
     const t = await getTranslations()
     const locale = await getLocale()
     // PROC-5:化学体系字典

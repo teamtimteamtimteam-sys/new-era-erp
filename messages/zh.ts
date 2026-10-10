@@ -293,6 +293,10 @@ const zh = {
             A5: 'A5(210 × 148 mm)',
             cathode_sheet: '正极片',
             anode_sheet: '负极片',
+            // MES-6a-2(Q26):物质在商务上是什么
+            payable_metal: '可计价金属(按含量计价)',
+            penalty_element: '惩罚元素(氟、氯)',
+            other_substance: '其他(记得下,不计价)',
         },
         title: '字典维护',
         intro: '系统各处指着的那几张封闭清单。在这里加一个值,读这张清单的每一处立刻就能选到它。',
@@ -322,6 +326,8 @@ const zh = {
         inbound_source_reasons: '收货来源理由',
         f: {
             supplier_id: '供应商',
+            role: '角色',
+            unit: '单位',
             dg_class: '类别',
             marking_text: '包装标记文字',
             packing_instruction: '包装说明',
@@ -363,6 +369,8 @@ const zh = {
             codeLocked: '不可改。改 code 等于改每一行指向的东西 —— 那是一次数据迁移,不是一次编辑。',
             sortOrder: '它在每个下拉里出现在哪儿。**新值排到最后也是一个决定**,不是"没决定"。',
             symbol: '元素符号,只用于显示。留空没关系 —— 塑料不是元素。',
+            role: '这种物质在商务上是什么。只有可计价金属才有行情、公式或合同里的计价系数、精炼费;只有惩罚元素才能在合同的惩罚条款里点名。不论哪一种,化验与批次含量里都记得下。改它从此刻起生效 —— 已经写下的行不回头判。',
+            unit: '值按什么单位记(例如 % 或 µm)。印在值的后面,从不换算。',
             may_be_fed: '这里选【否】,意味着带着这个状态的一车货会在投料闸上被拒。**这是全系统唯一一道失败后果是起火、而不是数字算错的闸。**',
             requires_explanation: '选【是】,用这个理由的收货必须同时写一句说明,否则按名拒。【其他】播种即为是 —— 没有句子的其他什么都没说。',
             may_ever_be_processed: '这一【类】东西有没有可能成为投料。它是关于【类】的一条规则,不是对某一件物料的决定。',
@@ -383,6 +391,7 @@ const zh = {
         processing_event_types: '加工异常事件种类',
         cell_constructions: '电芯结构',
         contamination_streams: '交叉污染流',
+        assay_indicators: '化验质量指标',
         errTime: '{0} 必须是 HH:MM 形式的时刻(00:00 到 23:59),或者留空。',
         errTimePaired: '开始与结束要么都给、要么都空 —— 只有一头的班次说不出它覆盖哪一段。',
     },
@@ -6151,6 +6160,15 @@ const zh = {
         hasUnappliedMarker: '有已记录未应用的化验',
         awaitingFinal: '{unpriced} 批未计价 · {provisional} 批暂定价',
         allPricingStatuses: '全部定价状态',
+        // MES-6a-2(Q3 · Q4):化验上的指标 —— 残粉、箔纯度、粒径。没有限、没有判定(V17 在 MES-6b)。
+        indicators: {
+            title: '质量指标',
+            formHint: '残粉、箔纯度与粒径,按实验室报的填。没报的格子留空。没有限 —— 值按填的原样记下。',
+            noneOnAssay: '这份化验上没有记指标。',
+            noLimitNote: '按报来的原样记下。这几项还没有验收限,所以这里不判合格与否。',
+            latestTitle: '质量指标(最近记下的)',
+            noneOnBatch: '这一批的化验上还没有记过指标。',
+        },
         pricingStatus: {
             unpriced: '未计价',
             provisional: '暂定价',
@@ -6163,6 +6181,12 @@ const zh = {
             ASSAY_FINAL_THROUGH_FUNCTION_ONLY: '一份化验是不是正式,在记录它的时候定下,之后不能改。要更正,就录一份新化验取代它。什么都没有保存。',
             ASSAY_CONTENT_THROUGH_FUNCTION_ONLY: '标着「出自化验」的金属含量,只能由应用那份化验写出(要 action.apply_assay)。请改为手工录入 —— 它会记作手工。什么都没有保存。',
             ASSAY_RESULT_PARTY_REQUIRED: '说明这份结果是谁出的 —— 我们、对手方、还是仲裁实验室。**刻意没有默认值**:默认成"我们"会让一个忘了改的字段变成"这是我们测的"这句话。',
+            // MES-6a-2(Q3 · Q4 · Q27)
+            INDICATORS_INVALID: '指标读不懂,什么都没有记下 —— 请重新填一次。',
+            INDICATOR_INVALID: '指标 {0} 不在指标字典里。请在表单上选,或到 设置 › 字典 里加。',
+            DUPLICATE_INDICATOR: '同一份化验上指标 {0} 填了两次。只填一次。',
+            INDICATOR_VALUE_INVALID: '指标 {0} 填的值({1})不是一个大于等于 0 的数。指标没有上限,但不能是负数。',
+            SUBSTANCE_NOT_PAYABLE: '{0} 不是按含量计价的金属,所以它从不计价。它记在化验上,只由惩罚条款读。',
             INBOUND_NOT_FOUND: '进料批次不存在',
             ASSAY_DATE_INVALID: '化验日期 {0} 无效或晚于今天',
             POSTING_DATE_BEYOND_CURRENT_MONTH: '未过账:{0} 晚于本月最后一天({1})。分录日期最晚只能到本月末。',
@@ -7037,6 +7061,9 @@ const zh = {
             ended: '这份合同已{status}。它的条款记录的是当时的约定,不能再改。',
             other: '条款此刻不能编辑({reason})。',
         },
+        // MES-6a-2(Q29):惩罚阈值在 % 旁边带 ppm;费率不改单位,旁边带每个 ppm 的等值
+        ppmBeside: '{pct}%({ppm} ppm)',
+        perPpmBeside: '每 1% {rate}(每 ppm {perPpm})',
         sellOnly: '这是销售一侧的条款,而这是一份采购合同。采购要不要按指数计价仍是一个未决的问题(指数计价规格 §9),所以采购合同上不录这几种条款。',
         headerTitle: '表头',
         headerHint: '表头是 CFO 批准内容的一部分。对手方与买卖方向在合同建好之后就定死了。',
@@ -7071,7 +7098,7 @@ const zh = {
             pricing_terms: { title: '指数计价', hint: '这份合同下的销售如何按公开指数计价:哪个事件定义基准月、M+n、哪个指数、计价系数。每个金属一行。' },
             settlement_terms: { title: '结算口径', hint: '按哪个重量结算、谁的化验说了算、分歧容差、留样,以及精炼费与惩罚适不适用。一份合同一套。「没有约定」是一次声明,不是留空。' },
             refining_charges: { title: '精炼费', hint: '每吨含金属多少美元,每个金属一行。结算口径写明「按金属」时,每个计价金属都要有一行。' },
-            penalty_elements: { title: '惩罚元素', hint: '一种有害物质、超过多少开始罚、每超 1 个百分点每吨多少美元。氟与氯还不在物质字典里。' },
+            penalty_elements: { title: '惩罚元素', hint: '一种惩罚元素(氟、氯)、超过多少开始罚、每超 1 个百分点每吨多少美元。阈值按 % 录,旁边带 ppm(1 % = 10,000 ppm)。' },
         },
         field: {
             grade_specs: { metal: '元素', material_id: '物料(可不填)', min_pct: '下限 %', max_pct: '上限 %', notes: '备注' },
@@ -7460,6 +7487,9 @@ const zh = {
         cu: '铜',
         al: '铝',
         fe: '铁',
+        // MES-6a-2(Q31):两个惩罚元素 —— 与它们的字典行同一刀(屏幕上把码翻成名字的那几处读这里;下拉读字典自己的名字,Q30)
+        f: '氟',
+        cl: '氯',
     },
     metalPrices: {
         source: {
@@ -9564,6 +9594,9 @@ const zh = {
             QUOTE_SOURCE_INVALID: '认不出的出处:{0}',
             QUOTE_SOURCE_UNKNOWN_NOT_ALLOWED_FOR_NEW: '「没有记录」只属于本次改动之前录入的老行情 —— 新录入必须说得出出处',
             QUOTE_SOURCE_INDEX_REQUIRED: '来自发布指数的行情必须说明是哪一个(LME 还是 SMM)—— 两者的报价币种不同',
+            // MES-6a-2(MES-6a Step 0 Q27):定价那几条路只收按含量计价的金属;惩罚条款只收惩罚元素
+            SUBSTANCE_NOT_PAYABLE: '{0} 不是按含量计价的金属(氟、氯是惩罚元素),所以它没有行情、没有计价系数、也不收精炼费。它记在化验上,在合同的惩罚条款里点名。',
+            SUBSTANCE_NOT_PENALTY_ELEMENT: '{0} 不是惩罚元素。合同的惩罚条款只点名惩罚元素(氟、氯)。',
             PRICE_INDEX_UNKNOWN: '未知或已停用的行情指数【{0}】。',
         },
     },

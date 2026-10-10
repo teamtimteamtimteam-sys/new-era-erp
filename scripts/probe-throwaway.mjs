@@ -38,12 +38,15 @@
 //     印的是进程【真的】会退的那个数(收尾没完成的 6 也在内)。每一条出口都走 exitAfterCleanup(PAY-REQ-1)。
 // 用法:node scripts/probe-throwaway.mjs [--inject=leftover|cleanup-hang|refusal-off]
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release, heldBy } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup,
          installCleanupNetworkFault } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')

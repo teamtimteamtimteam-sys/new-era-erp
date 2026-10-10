@@ -14,6 +14,9 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { AssayMetalsTable } from './AssayMetalsTable'
+import AssayIndicators from '@/app/components/quality/AssayIndicators'
+import { loadSubstanceLabels } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { contentCell } from '@/lib/substances'
 import { localizeAssayError } from '../../../assayErrorCodes'
 import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
 import AssayImpactPreview from '../AssayImpactPreview'
@@ -196,6 +199,8 @@ export default async function AssayDetailPage({
         const key = metalLabelKey(v)
         return key ? t(key) : v
     }
+    // MES-6a-2(Q29):惩罚元素(氟、氯)在 % 旁边带 ppm,原样精度 —— 角色读字典(停用的也读,D5)
+    const roleOf = new Map((await loadSubstanceLabels(supabase)).map((r) => [r.code, r.role]))
 
     return (
         <div className="p-4 sm:p-8 max-w-5xl">
@@ -313,9 +318,12 @@ export default async function AssayDetailPage({
                 rows={metals.map((m) => ({
                     metal: m.metal,
                     metalLabel: metalLabel(m.metal),
-                    contentPct: String(m.content_pct),
+                    contentPct: contentCell(m.content_pct, roleOf.get(m.metal)),
                 }))}
             />
+
+            {/* MES-6a-2(Q3 · Q4):这份化验上的指标 —— 残粉、箔纯度、粒径(没有限、没有判定) */}
+            <AssayIndicators assayId={assayId} />
 
             {/* ROLE-1 Batch 4b:这份化验提的定价申请 —— 在等 CFO、已批、已驳或已撤回 */}
             {priceRequest && (

@@ -19,6 +19,7 @@
 // 退出码:0 = 全过;1 = 有断言失败;2 = 探针自己坏了。★ 判决只从日志里那一行 `AT1C1_PROBE_EXIT=` 读。
 // 用法:node scripts/probe-at1c1.mjs [--inject=<case>]   见 INJECTIONS —— 每一种都必须让一条具体的断言变红。
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
@@ -26,6 +27,8 @@ import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup } from './ephemeral.mjs'
 import { machineTokens } from '../lib/trail/machineTokens.ts'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3193            // 不与冒烟(3199)、版式(3198)、角色探针(3197)、1b-1(3196)、1b-2(3195)、1b-3(3194)探针撞

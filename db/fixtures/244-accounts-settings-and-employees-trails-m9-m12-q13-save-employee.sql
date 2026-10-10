@@ -210,7 +210,8 @@ BEGIN
 
     -- ══════════════ K · M11:字典整本是一条记录 ══════════════
     PERFORM pg_temp.f244_as(u_all);
-    INSERT INTO substances (code, name_en, name_zh) VALUES ('FX244', 'Fixture element', 'f');
+    -- MES-6a-2(Step 0 Q26):每一行都要说出它的 role(NOT NULL、无默认)
+    INSERT INTO substances (code, name_en, name_zh, role) VALUES ('FX244', 'Fixture element', 'f', 'other');
     UPDATE substances SET is_active = false WHERE code = 'FX244';
     PERFORM set_config('request.jwt.claims', '', true);
     v_j := pg_temp.f244_ok('K', pg_temp.f244_trail(u_all, 'dictionary_substances', 'all'));

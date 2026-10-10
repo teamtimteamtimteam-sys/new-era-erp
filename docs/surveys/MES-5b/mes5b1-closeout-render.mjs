@@ -1,6 +1,9 @@
 // MES-5b-1 close-out item d — render probe (read-only GETs). Seven one-off clones of the seven real roles (cloneOf: exactly that
 // role's codes at this moment), each fetching the four MES-5b-1 views on the DEPLOYED app. No real account signs in or acts.
 // Verdict line: RENDER_PROBE_EXIT=<n> (0 = all fetched; the table says what each saw).
+import { onlyWhenRunDirectly } from '../../../scripts/lib/entrypoint.mjs'
+onlyWhenRunDirectly(import.meta.url)
+
 const REPO = new URL('../../..', import.meta.url).pathname.replace(/\/$/, '')
 const { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } = await import(REPO + '/scripts/ephemeral.mjs')
 const { acquireOrExit, release, heldBy } = await import(REPO + '/scripts/liveLock.mjs')

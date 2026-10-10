@@ -54,11 +54,14 @@
 //                   ★ **我不判"好不好看"**:我只比字节。
 //                   ★ 我的"没变"是**签名的多重集没变**,不是"每个元素还在原位"
 //                   —— 上面那一段说了为什么,以及它的代价。
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { assertPopulation, assertPinned } from './lib/selfproof.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const SELF = 'probe-brand-sampler'
 const arg = (k) => (process.argv.find((a) => a.startsWith(k + '=')) || '').split('=')[1]

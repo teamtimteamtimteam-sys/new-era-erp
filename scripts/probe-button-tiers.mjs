@@ -51,12 +51,15 @@
 // 退出码:0 = 全绿;1 = 有断言红
 // 需要:.next/BUILD_ID(跑在生产构建上,不是 dev)
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { spawn } from 'node:child_process'
 import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const RAWLINK_BASELINE = join(ROOT, 'scripts/probe-rawlink-baseline.json')

@@ -35,11 +35,14 @@
 //                     被一张在册真批次引用着)。这正是它只报告不动手的理由。
 //                   ★ 我**不在** `npm run build` 里(要连线上),走 `npm run check:scratch`。
 // ==========================================================================
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync } from 'node:fs'
 // U1-B(2026-10-05):一次性账号的前缀与一次性角色的命名空间从 mintThrowaway 那一份读 ——
 //   这里从前只认 `smoke-`,于是 u1aprobe- / at1*probe- / roleprobe- / pgprobe- / searchres- / pdfsample- …
 //   造的账号【一个都不在本报告的视野里】。新脚本在 ephemeral.mjs 里加一个前缀,这里自动认得。
 import { THROWAWAY_EMAIL_PREFIXES, THROWAWAY_LEGACY_EMAIL_PREFIXES, THROWAWAY_ROLE_PREFIX, THROWAWAY_EMAIL_DOMAIN } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const env = readFileSync(ROOT + '.env.local', 'utf8')

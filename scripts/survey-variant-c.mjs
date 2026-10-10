@@ -54,12 +54,15 @@
 //   `noop` 是【登记在案的废致盲】:它什么都不拿走,于是它证明不了任何事 ——
 //   留着它,是为了让比对器当场判它「不作数」,好证明比对器自己不瞎。
 
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
 import { assertPopulation, assertPinned } from './lib/selfproof.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const SELF = 'survey-variant-c'
 const ROOT = new URL('..', import.meta.url).pathname

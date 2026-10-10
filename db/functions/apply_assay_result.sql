@@ -82,7 +82,9 @@ BEGIN
     FROM assay_result_metals arm
     WHERE arm.assay_result_id = p_assay_result_id;
 
-    SELECT jsonb_agg(jsonb_build_object('metal', arm.metal, 'content_pct', arm.content_pct))
+    -- MES-6a-2(Step 0 Q28):交给计价引擎的只有按含量计价的金属 —— 一份同时测了氟、氯的化验照常落含量(上一步原样抄全部),
+    --   而惩罚元素不进计价(引擎对它们按名拒;不计价的东西本来就不该出现在一张按含量付钱的清单里)。
+    SELECT payable_metals_only(jsonb_agg(jsonb_build_object('metal', arm.metal, 'content_pct', arm.content_pct)))
     INTO v_metals
     FROM assay_result_metals arm
     WHERE arm.assay_result_id = p_assay_result_id;

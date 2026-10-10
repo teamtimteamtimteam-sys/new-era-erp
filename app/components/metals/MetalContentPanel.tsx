@@ -13,6 +13,7 @@ import {
     type MetalOption,
 } from './metalContentTypes'
 import { Button } from '@/app/components/ui/button'
+import { contentText } from '@/lib/substances'
 
 export default function MetalContentPanel({
     rows,
@@ -47,11 +48,9 @@ export default function MetalContentPanel({
 
     // 【翻名字时【不】过滤 isActive】一条记着停用物质的历史行,必须照样显示它的名字。
     // 过滤了就会变成一个光秃秃的 code —— 那看起来像数据坏了,而不是像"不再可选"。
-    const keyOf = new Map(options.map((o) => [o.value, o.labelKey]))
-    const metalLabel = (value: string) => {
-        const k = keyOf.get(value)
-        return k ? t(k) : value
-    }
+    // MES-6a-2(Q30):名字是字典自己的(选项里已按读者语言翻好);role 决定含量怎么印(Q29:惩罚元素带 ppm)。
+    const optOf = new Map(options.map((o) => [o.value, o]))
+    const metalLabel = (value: string) => optOf.get(value)?.label ?? value
 
     // 已录入的金属集合:录入下拉里给它们加 "(已录)" 后缀提示;仍可选中 —— 选中并保存即覆盖(update)。
     const existing = new Set(rows.map((r) => r.metal))
@@ -134,7 +133,9 @@ export default function MetalContentPanel({
             //   ★★ FONT-3(2026-09-12):那个继承来的数今天是 **15px**,不再是 14px ——
             //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
             //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
-            render: (r) => `${r.content_pct.toFixed(2)}%`,
+            // ★ MES-6a-2(MES-6a Step 0 Q29):【不再舍到两位】—— toFixed(2) 会把 0.0050 % 的氟印成 0.01 %(或 0.00 %),
+            //   而 50 ppm 正是惩罚条款要比的那个数。存的是什么就印什么;惩罚元素在 % 旁边带 ppm(1 % = 10,000 ppm)。
+            render: (r) => contentText(r.content_pct, optOf.get(r.metal)?.role),
         },
         ...(showSource
             ? [
@@ -261,7 +262,7 @@ export default function MetalContentPanel({
                         但上面那张表里它照样有名字。两个动词,两处不同的判断。 */}
                     {options.filter((o) => o.isActive).map((o) => (
                         <option key={o.value} value={o.value}>
-                            {t(o.labelKey)}
+                            {o.label}
                             {existing.has(o.value) ? t('metalContent.alreadySet') : ''}
                         </option>
                     ))}

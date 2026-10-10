@@ -7,11 +7,14 @@
 //      开跑前先读一次确认,有别人的就停);② 停用设备 DEV-2026-0004;③ 停用网关 DEV-2026-0003(连同它的钥匙)。
 // 【判决】只从 `MES2_FINISH_EXIT=` 读:0 = 做完 · 1 = 有一步没达到 · 2 = 脚本坏了 · 3 = 收件箱里有别人的 received 行,没动 · 5 = 锁被占。
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from '../../scripts/lib/entrypoint.mjs'
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release, heldBy } from '../../scripts/liveLock.mjs'
 import { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } from '../../scripts/ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')

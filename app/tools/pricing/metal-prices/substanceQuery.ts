@@ -14,20 +14,20 @@
 // 同一批金属,下拉里镍第一,报表里铝第一。
 //
 // 【所以字典落地之后,清单与顺序都从库里来】加一种物质 = 加一行,
-// 不必改 app、不必发版 —— 那是 D1 全部的意义。名字也一样从库里来
-// (name_en / name_zh),所以【不再有 metals.* 那组 i18n 键】:
-// 一个新行如果还要配两条翻译才显示得出来,那它就不只值一行。
+// 不必改 app、不必发版 —— 那是 D1 全部的意义。
+// ~~名字也一样从库里来(name_en / name_zh),所以【不再有 metals.* 那组 i18n 键】~~
+// ★ MES-6a-2 更正(Step 0 §10 第 7 条 · Q45):上面那句此前是假的 —— toOptions 一直拼的是 'metals.<code>' 键,名字【不】从库里来。
+//   从 MES-6a-2 起它说的才是真话:下拉的选项用字典自己的 name_en / name_zh(Q30,lib/substances.ts 的 toSubstanceOptions);
+//   把码翻成名字的那几处(化验详情、批次去向……)仍用 metals.* 键,氟与氯的两个键与它们的字典行同一刀加上。
+// ★ MES-6a-2(Q27):每一行多了 role —— 定价那几页只给 payable_metal,惩罚条款只给 penalty_element(payableOnly / penaltyOnly)。
 // ════════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { mustRows } from '@/lib/db-helpers'
+import { toSubstanceOptions, type SubstanceRow } from '@/lib/substances'
 
-export type Substance = {
-    code: string
-    name_en: string
-    name_zh: string
-    symbol: string | null
-    is_active: boolean
-}
+export { payableOnly, penaltyOnly } from '@/lib/substances'
+
+export type Substance = SubstanceRow
 
 /** 可【新选】的那些 —— 下拉、复选框用这一份。顺序由字典的 sort_order 决定(D4)。 */
 export async function loadSubstances(
@@ -36,7 +36,7 @@ export async function loadSubstances(
 ): Promise<Substance[]> {
     return mustRows(
         await supabase.from('substances')
-            .select('code, name_en, name_zh, symbol, is_active')
+            .select('code, name_en, name_zh, symbol, is_active, role')
             .eq('is_active', true)
             .order('sort_order'),
         'substances'
@@ -56,7 +56,7 @@ export async function loadSubstanceLabels(
 ): Promise<Substance[]> {
     return mustRows(
         await supabase.from('substances')
-            .select('code, name_en, name_zh, symbol, is_active')
+            .select('code, name_en, name_zh, symbol, is_active, role')
             .order('sort_order'),
         'substances'
     ) as unknown as Substance[]
@@ -69,16 +69,12 @@ export function substanceLabeller(rows: Substance[], locale: string) {
 }
 
 /**
- * 字典行 → 下拉选项。label 已经是【读者语言的那一份】。
+ * 字典行 → 下拉选项。label 已经是【读者语言的那一份】—— ★ MES-6a-2(Q30)起真的是:字典自己的 name_en / name_zh。
  *
  * 【停用的行也在里面,带着 isActive=false】—— D5 的两个动词:
  * 选单要过滤 isActive,而把码翻成名字【不能】过滤它,否则一条历史数据会突然
  * 显示成一个光秃秃的 code。两件事用同一份数据,判断留给用它的地方。
  */
-export function toOptions(rows: Substance[]) {
-    return rows.map((r) => ({
-        value: r.code,
-        labelKey: 'metals.' + r.code,
-        isActive: r.is_active,
-    }))
+export function toOptions(rows: Substance[], locale: string) {
+    return toSubstanceOptions(rows, locale)
 }

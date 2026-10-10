@@ -351,6 +351,7 @@ BEGIN
           INTO v_total_metal_value
         FROM processing_outputs po
         JOIN output_batch_metals obm ON obm.output_batch_id = po.output_batch_id
+        JOIN substances sx ON sx.code = obm.metal AND sx.role = 'payable_metal'   -- MES-6a-2(Q28):只按含量计价的金属有金属价值
         LEFT JOIN LATERAL (
             SELECT mp.price_usd_per_tonne
             FROM metal_prices mp
@@ -383,6 +384,7 @@ BEGIN
                   SELECT DISTINCT obm.metal
                   FROM processing_outputs po
                   JOIN output_batch_metals obm ON obm.output_batch_id = po.output_batch_id
+                  JOIN substances sx ON sx.code = obm.metal AND sx.role = 'payable_metal'   -- MES-6a-2(Q28)
                   WHERE po.run_id = p_run_id AND obm.content_pct > 0
               )
             ORDER BY mp.metal, mp.price_date DESC
@@ -396,6 +398,8 @@ BEGIN
             SELECT DISTINCT obm.metal AS m
             FROM processing_outputs po
             JOIN output_batch_metals obm ON obm.output_batch_id = po.output_batch_id
+            -- MES-6a-2(Q28):氟、氯没有行情是因为它们【不计价】,不是"缺了一条行情" —— 不进 skipped_metals
+            JOIN substances sx ON sx.code = obm.metal AND sx.role = 'payable_metal'
             WHERE po.run_id = p_run_id AND obm.content_pct > 0
               AND NOT EXISTS (
                   SELECT 1 FROM metal_prices mp
@@ -426,6 +430,7 @@ BEGIN
                     ELSE COALESCE((
                         SELECT SUM(po.quantity_produced * obm.content_pct / 100.0 / 1000.0 * COALESCE(pr.price_usd_per_tonne, 0))
                         FROM output_batch_metals obm
+                        JOIN substances sx ON sx.code = obm.metal AND sx.role = 'payable_metal'   -- MES-6a-2(Q28)
                         LEFT JOIN LATERAL (
                             SELECT mp.price_usd_per_tonne
                             FROM metal_prices mp

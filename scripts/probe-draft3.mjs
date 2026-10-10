@@ -19,12 +19,15 @@
 //   · `PROBE-UNBOUNDED-CDP-WAIT` —— 每一次 CDP 调用带 30s 上限;
 //   · `PROBE-LSOF-KILLS-ITSELF` —— 收尾那条 `lsof` 把**本进程**滤掉。
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3206, CDP_PORT = 9342

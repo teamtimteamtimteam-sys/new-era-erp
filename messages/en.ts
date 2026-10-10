@@ -305,6 +305,10 @@ const en = {
             A5: 'A5 (210 × 148 mm)',
             cathode_sheet: 'Cathode sheet',
             anode_sheet: 'Anode sheet',
+            // MES-6a-2(Q26):物质在商务上是什么
+            payable_metal: 'Payable metal (priced by content)',
+            penalty_element: 'Penalty element (fluorine, chlorine)',
+            other_substance: 'Other (recorded, never priced)',
         },
         title: 'Dictionaries',
         intro: 'The closed lists the rest of the system points at. Adding a value here makes it choosable everywhere that reads this list.',
@@ -334,6 +338,8 @@ const en = {
         inbound_source_reasons: 'Receipt source reasons',
         f: {
             supplier_id: 'Supplier',
+            role: 'Role',
+            unit: 'Unit',
             dg_class: 'Class',
             marking_text: 'Marking text',
             packing_instruction: 'Packing instruction',
@@ -375,6 +381,8 @@ const en = {
             codeLocked: 'Fixed. Changing a code means changing what every row points at - that is a data migration, not an edit.',
             sortOrder: 'Where it appears in every picker. A new value appended at the end is still a decision about where it shows.',
             symbol: 'Element symbol, for display only. Blank is fine - plastics are not an element.',
+            role: 'What this substance is commercially. Only payable metals can have a metal price, a payable percentage in a formula or contract, or a refining charge; only penalty elements can be named in a contract\'s penalty terms. Every substance is recorded on assays and batch content whatever its role. Changing it applies from now on — rows already written are not re-judged.',
+            unit: 'The unit the value is recorded in (for example % or µm). It is printed after the value, never converted.',
             may_be_fed: 'NO here means a load carrying this state is REFUSED at the processing gate. This is the one gate whose failure is a fire rather than a wrong number.',
             requires_explanation: 'YES means a receipt using this reason is REFUSED unless a sentence is written with it. “Other” ships with YES — an unexplained “other” says nothing.',
             may_ever_be_processed: 'Whether this KIND could ever be a processing input. It is a rule about the kind, not a decision about one material.',
@@ -395,6 +403,7 @@ const en = {
         processing_event_types: 'Processing exception kinds',
         cell_constructions: 'Cell constructions',
         contamination_streams: 'Contamination streams',
+        assay_indicators: 'Assay quality indicators',
         errTime: '{0} must be a time as HH:MM (00:00 to 23:59), or empty.',
         errTimePaired: 'Give both the start and the end time, or neither — a shift with only one of them does not say which hours it covers.',
     },
@@ -6320,6 +6329,15 @@ const en = {
         hasUnappliedMarker: 'Assay recorded but not applied',
         awaitingFinal: '{unpriced} unpriced · {provisional} provisionally priced',
         allPricingStatuses: 'All pricing states',
+        // MES-6a-2(Q3 · Q4):化验上的指标 —— 残粉、箔纯度、粒径。没有限、没有判定(V17 在 MES-6b)。
+        indicators: {
+            title: 'Quality indicators',
+            formHint: 'Residual powder, foil purity and particle size, as the laboratory reports them. Leave a box empty if it was not reported. No limit applies — the value is recorded as given.',
+            noneOnAssay: 'No indicator was recorded on this assay.',
+            noLimitNote: 'Recorded as reported. No acceptance limit is set for these yet, so nothing here is judged pass or fail.',
+            latestTitle: 'Quality indicators (latest recorded)',
+            noneOnBatch: 'No indicator has been recorded on this batch\'s assays.',
+        },
         pricingStatus: {
             unpriced: 'Unpriced',
             provisional: 'Provisional',
@@ -6332,6 +6350,12 @@ const en = {
             ASSAY_FINAL_THROUGH_FUNCTION_ONLY: 'Whether an assay is final is set once, when it is recorded — it cannot be edited afterwards. To correct it, record a new assay that supersedes this one. Nothing was saved.',
             ASSAY_CONTENT_THROUGH_FUNCTION_ONLY: 'A metal content marked as coming from an assay can only be written by applying that assay (action.apply_assay). Enter a figure by hand instead — it is then recorded as manual. Nothing was saved.',
             ASSAY_RESULT_PARTY_REQUIRED: 'Say whose result this is - ours, the counterparty\'s, or an umpire\'s. There is deliberately no default: defaulting to "ours" would let a forgotten field become a claim that we measured it.',
+            // MES-6a-2(Q3 · Q4 · Q27)
+            INDICATORS_INVALID: 'The indicators could not be read. Nothing was recorded — enter them again.',
+            INDICATOR_INVALID: 'Indicator {0} is not in the indicator list. Pick one from the form, or add it under Settings › Dictionaries.',
+            DUPLICATE_INDICATOR: 'Indicator {0} was given twice on one assay. Give it once.',
+            INDICATOR_VALUE_INVALID: 'The value given for indicator {0} ({1}) is not a number of zero or more. Indicators have no upper limit, but they cannot be negative.',
+            SUBSTANCE_NOT_PAYABLE: '{0} is not a payable metal, so it is never priced. It is recorded on the assay and read only by penalty terms.',
             INBOUND_NOT_FOUND: 'Inbound batch not found',
             ASSAY_DATE_INVALID: 'Assay date {0} is invalid or in the future',
             POSTING_DATE_BEYOND_CURRENT_MONTH: 'Nothing was posted: {0} is after the last day of the current month ({1}). An entry can be dated no later than the end of this month.',
@@ -7243,6 +7267,9 @@ const en = {
             ended: 'This contract is {status}. Its terms record what was agreed and can no longer be changed.',
             other: 'The terms cannot be edited now ({reason}).',
         },
+        // MES-6a-2(Q29):惩罚阈值在 % 旁边带 ppm;费率不改单位,旁边带每个 ppm 的等值
+        ppmBeside: '{pct}% ({ppm} ppm)',
+        perPpmBeside: '{rate} per % ({perPpm} per ppm)',
         sellOnly: 'This is a sales-side term and this is a purchase contract. Whether purchases price against an index is still an open question (index-pricing spec §9), so these terms are not entered on a purchase contract.',
         headerTitle: 'Header',
         headerHint: 'The header is part of what the CFO approves. The counterparty and side are fixed once the contract exists.',
@@ -7277,7 +7304,7 @@ const en = {
             pricing_terms: { title: 'Index pricing', hint: 'How a sale under this contract is priced against a published index: which event defines the base month, M+n, which index, and the payable share. One row per metal.' },
             settlement_terms: { title: 'Settlement basis', hint: 'Which weight the sale settles on, whose assay counts, the splitting limit, sample retention, and whether refining charges and penalties apply. One per contract. "None agreed" is a statement, not a blank.' },
             refining_charges: { title: 'Refining charges', hint: 'USD per tonne of contained metal, one row per metal. Needed for every priced metal when the settlement basis says refining is charged per metal.' },
-            penalty_elements: { title: 'Penalty elements', hint: 'A harmful substance, the threshold above which it is penalised, and USD per tonne per percentage point over. Fluorine and chlorine are not in the substance list yet.' },
+            penalty_elements: { title: 'Penalty elements', hint: 'A penalty element (fluorine, chlorine), the threshold above which it is penalised, and USD per tonne per percentage point over. The threshold is entered in % and shown with its ppm beside it (1 % = 10,000 ppm).' },
         },
         field: {
             grade_specs: { metal: 'Element', material_id: 'Material (optional)', min_pct: 'Minimum %', max_pct: 'Maximum %', notes: 'Notes' },
@@ -7666,6 +7693,9 @@ const en = {
         cu: 'Copper',
         al: 'Aluminium',
         fe: 'Iron',
+        // MES-6a-2(Q31):两个惩罚元素 —— 与它们的字典行同一刀(屏幕上把码翻成名字的那几处读这里;下拉读字典自己的名字,Q30)
+        f: 'Fluorine',
+        cl: 'Chlorine',
     },
     metalPrices: {
         source: {
@@ -9791,6 +9821,9 @@ const en = {
             QUOTE_SOURCE_INVALID: 'Unrecognised quote source: {0}',
             QUOTE_SOURCE_UNKNOWN_NOT_ALLOWED_FOR_NEW: '"Not recorded" is only for quotes entered before provenance was tracked — a new quote must say where it came from',
             QUOTE_SOURCE_INDEX_REQUIRED: 'A published-index quote must say which index (LME or SMM) — the two are quoted in different currencies',
+            // MES-6a-2(MES-6a Step 0 Q27):定价那几条路只收按含量计价的金属;惩罚条款只收惩罚元素
+            SUBSTANCE_NOT_PAYABLE: '{0} is not a payable metal (fluorine and chlorine are penalty elements), so it cannot have a price, a payable percentage or a refining charge. It is recorded on assays and named in a contract\'s penalty terms.',
+            SUBSTANCE_NOT_PENALTY_ELEMENT: '{0} is not a penalty element. A contract\'s penalty terms name penalty elements only (fluorine, chlorine).',
             PRICE_INDEX_UNKNOWN: 'Unknown or inactive price index {0}.',
         },
     },

@@ -43,8 +43,9 @@ BEGIN
         RETURN jsonb_build_object('calc', NULL, 'impact', NULL);
     END IF;
 
+    -- MES-6a-2(Q28):与 apply_assay_result 同一句 —— 惩罚元素不进计价(fixture 40 的规矩:试算与应用算的是同一份清单)。
     v_calc := calculate_metal_price_from_terms(
-        pricing_terms_of_commitment(v_commit), p_metals, v_batch.quantity, p_reference_date);
+        pricing_terms_of_commitment(v_commit), payable_metals_only(p_metals), v_batch.quantity, p_reference_date);
     v_unit := (v_calc->>'unit_price_usd_per_kg')::numeric;
     -- 净值 ≤ 0 时不试算:apply_assay_result 那时也不定价(落含量、记 note),
     -- 【这是警告不是拒绝】—— 页面的琥珀提示照旧,按钮保持可用。

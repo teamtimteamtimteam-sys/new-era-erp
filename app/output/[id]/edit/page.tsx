@@ -15,6 +15,7 @@ import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
 import BatchBalancePanel from '@/app/components/batch/BatchBalancePanel'
 import QualityPanel from '@/app/components/quality/QualityPanel'
+import AssayIndicators from '@/app/components/quality/AssayIndicators'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 import ContaminationChecksList from '@/app/operation/contamination/ContaminationChecksList'
 import { CHECK_ROW_COLUMNS, labelsFor, toCheckListRows } from '@/app/operation/contamination/checkRows'
@@ -96,7 +97,7 @@ export default async function EditOutputPage({
 
     // PROC-4:物质清单从 substances 那张字典读 —— 【连停用的一起读】,
     // 因为这一页要把历史含量行里的码翻成名字,而停用不该让历史数据变成光秃秃的 code。
-    const substanceOptions = toOptions(await loadSubstanceLabels(supabase))
+    const substanceOptions = toOptions(await loadSubstanceLabels(supabase), await getLocale())
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, customersRes, metalsRes, movementsRes, stocktakeRes] = await Promise.all([
@@ -392,6 +393,8 @@ export default async function EditOutputPage({
 
             {/* 化验(PROC-1b):含量的出处就摆在含量旁边 */}
             <OutputAssaySection batchId={batch.id} rows={mustRows(assaysRes)} />
+            {/* MES-6a-2(Q3):这一批的化验上最近记下的指标(从化验行现读 —— 批次上没有副本) */}
+            <AssayIndicators kind="output" batchId={batch.id} />
 
             {/* ── 客户审计报告(AUD-2)────────────────────────────────────
                 摆在化验之后:含量从哪来 → 这批料从哪来、怎么做的 → 发给客户的那份纸。 */}

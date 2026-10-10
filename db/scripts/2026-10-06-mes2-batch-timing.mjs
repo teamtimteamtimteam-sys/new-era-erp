@@ -18,12 +18,15 @@
 // 【判决】只从最后那一行 `MES2_TIMING_EXIT=` 读:0 = 量完 · 1 = 有一次调用没被接受 · 2 = 脚本坏了 · 5 = live-lock 被占。
 // 用法:node db/scripts/2026-10-06-mes2-batch-timing.mjs --out=<path.json>
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from '../../scripts/lib/entrypoint.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { performance } from 'node:perf_hooks'
 import { acquireOrExit, release, heldBy } from '../../scripts/liveLock.mjs'
 import { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } from '../../scripts/ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')

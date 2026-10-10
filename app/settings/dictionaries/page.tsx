@@ -43,6 +43,7 @@ const DICT_SUBJECT: Record<string, TrailSubject> = {
     dangerous_goods_codes: 'dictionary_dangerous_goods_codes', label_templates: 'dictionary_label_templates',
     shifts: 'dictionary_shifts', processing_event_types: 'dictionary_processing_event_types',
     cell_constructions: 'dictionary_cell_constructions', contamination_streams: 'dictionary_contamination_streams',
+    assay_indicators: 'dictionary_assay_indicators',   // MES-6a-2
 }
 
 export default async function DictionariesPage({

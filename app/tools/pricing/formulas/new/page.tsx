@@ -9,7 +9,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '../../metal-prices/substanceQuery'
+import { loadSubstances, payableOnly, toOptions } from '../../metal-prices/substanceQuery'
 
 export default async function NewFormulaPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -21,7 +21,7 @@ export default async function NewFormulaPage() {
 
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(payableOnly(await loadSubstances(supabase)), await getLocale())   // MES-6a-2(Q27):定价这一页只给按含量计价的金属
     const t = await getTranslations()
 
     const [supRes, cusRes] = await Promise.all([

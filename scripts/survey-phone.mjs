@@ -59,11 +59,14 @@
 //     widest table never draws and the page looks narrower than it is. Those
 //     are reported separately as `no-rows`, never counted as usable.
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3198              // NOT 3199 — that one is the smoke's

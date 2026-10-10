@@ -6,6 +6,7 @@
 // 一次更正是小改而不是重敲)、以及【会生效的那张定价公式】(批次上的,否则采购单
 // 明细行上的 —— 与 apply_assay_result 的解析顺序一致),好让表单能说清楚"按哪张公式重算"。
 import { loadBatchSampleOptions } from '@/app/components/quality/sampleOptions'
+import { loadIndicatorDefs, indicatorName } from '@/app/components/quality/AssayIndicators'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -39,9 +40,10 @@ export default async function NewAssayPage({
     const sp = await searchParams
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(await loadSubstances(supabase), await getLocale())
     // PROC-5:实验室字典
-    const labOptions = toDictOptions(await loadLaboratories(supabase), await getLocale())
+    const locale = await getLocale()
+    const labOptions = toDictOptions(await loadLaboratories(supabase), locale)
     const t = await getTranslations()
     // ASY-3:本位币来自数据(currencies.is_base),不是常量 —— 影响块要说出
     // 自己是哪种货币,而面板上半截是行情口径的 USD。
@@ -140,6 +142,8 @@ export default async function NewAssayPage({
                 canApply={canApply}
                 sampleOptions={await loadBatchSampleOptions(supabase, 'inbound', batch.id)}
                 defaultSampleId={(() => { const v = sp.sample; return Array.isArray(v) ? v[0] : v ?? null })()}
+                // MES-6a-2(Q3 · Q4):还能新选的指标,名字按读者语言、单位是字典自己的
+                indicatorOptions={(await loadIndicatorDefs(supabase, true)).map((d) => ({ code: d.code, label: indicatorName(d, locale), unit: d.unit }))}
             />
         </div>
     )

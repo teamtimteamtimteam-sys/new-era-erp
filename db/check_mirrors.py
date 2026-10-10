@@ -244,7 +244,12 @@ RUNTIME_CONFIG_TABLES = [
     # 引导播五行;Tim 在界面上加一种,线上就与本文件不同,那是系统在正常工作。
     "material_kinds",
     # PROC-4:我们测量并核算的元素与物质(七个金属起步;氟/氯/石墨/塑料是排着队的)
+    # MES-6a-2(2026-10-10):氟、氯来了(role = penalty_element);每一行多了一列 role(NOT NULL、无默认)。
+    #   引导的默认值仍然正确:既有各列的意思没变,role 在引导里逐行写明。
     "substances",
+    # MES-6a-2(Step 0 Q3 · Q4):化验指标字典 —— 五个定义(残粉 · 箔纯度 · D10 / D50 / D90);Tim 停用一个,线上就与本文件不同,
+    #   那是系统在正常工作(与 substances 同一条)。
+    "assay_indicators",
     # PROC-5:F7 点名的最后两处自由文本分类
     "battery_chemistries", "laboratories",
     # PROC-2:五条进料状态轴,五张字典 —— 同一条。轴在 PROC-2 定死,取值可以后到,

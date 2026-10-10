@@ -1020,14 +1020,18 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'payment_allocations', 'finance_attachments', 'purchase_order_history', 'processing_cost_entry_history', 'work_order_history',
         'journal_entries', 'discharge_module_results', 'discharge_module_splits',
         // MES-6a-1:样品、它的保管记录与化验争议也出现在它们那一批上(家在样品 / 争议自己那里)
-        'samples', 'sample_events', 'assay_disputes'],
+        'samples', 'sample_events', 'assay_disputes',
+        // MES-6a-2:一份化验的指标值(残粉 · 箔纯度 · 粒径)—— 与它的金属行同一个说法
+        'assay_result_indicators'],
     output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
         'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements', 'processing_cost_entry_history',
         'work_order_history', 'sales_order_history', 'journal_entries', 'contamination_checks', 'discharge_module_results', 'discharge_module_splits',
         // MES-6a-1
-        'samples', 'sample_events', 'assay_disputes'],
+        'samples', 'sample_events', 'assay_disputes',
+        // MES-6a-2
+        'assay_result_indicators'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
@@ -1151,6 +1155,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     // MES-4b(2026-10-07):两本新字典(电芯结构 · 交叉污染流)
     dictionary_cell_constructions: ['cell_constructions'],
     dictionary_contamination_streams: ['contamination_streams'],
+    // MES-6a-2(2026-10-10):化验指标字典
+    dictionary_assay_indicators: ['assay_indicators'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
@@ -1191,6 +1197,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     operation_type: 'optype', dictionary_processing_event_types: 'dict', dictionary_shifts: 'dict',
     // MES-4b
     dictionary_cell_constructions: 'dict', dictionary_contamination_streams: 'dict',
+    // MES-6a-2
+    dictionary_assay_indicators: 'dict',
     // MES-5a-2
     electricity_allocation: 'energy', electricity_settings: 'settings',
     // MES-6a-1
@@ -1201,7 +1209,9 @@ const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batc
     'prepayment_applications', 'pricing_term_commitment_metals', 'inventory_movements', 'certificates_of_destruction', 'cod_issues',
     'freight_allocations', 'payment_allocations', 'finance_attachments', 'sales_records', 'sales_record_movements', 'sales_attribution_log',
     'invoice_lines', 'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements',
-    'receipt_ceiling_checks', 'label_prints'])
+    'receipt_ceiling_checks', 'label_prints',
+    // MES-6a-2(2026-10-10):一份化验的指标行 —— 与它的金属行同一个说法(住在批次页上)
+    'assay_result_indicators'])
 /** 这三张属于加工单;但在批次页上,它们说的是"这个批次被用了 / 被产出 / 分到了成本",从批次这一边说 */
 const BATCH_VIEW_OF_RUN = new Set(['processing_inputs', 'processing_outputs', 'batch_processing_cost_allocations'])
 const WO_TABLES = new Set(['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history'])
@@ -1546,9 +1556,16 @@ function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subj
         out.push({ title: withPart(title, metal), lines: ls, key: false, weight: 45 })
     }
 
-    // ⑥ 化验与它的金属
+    // ⑥ 化验与它的金属 —— MES-6a-2:与它的指标(残粉 · 箔纯度 · 粒径;值后面跟那个指标自己的单位,不判)
     const assays = by('assay_results')
     const assayMetals = by('assay_result_metals')
+    const assayIndicators = by('assay_result_indicators')
+    const indicatorValue = (v: TrailRow): Val => {
+        const raw = formatValue(d, 'assay_result_indicators', 'value', v.new?.['value'] ?? v.old?.['value'], imgOf(v), v.refs, v.op, opts)
+        const code = str(v, 'indicator') ?? ''
+        const unit = (v.refs?.['indicator']?.[code] as { unit?: string | null } | undefined)?.unit
+        return raw.empty || raw.restricted || !unit ? raw : { text: unit === '%' ? `${raw.text}%` : `${raw.text} ${unit}` }   // % 贴着数,与金属行同一种写法
+    }
     for (const r of assays) {
         const skip = new Set(['applied_at', 'applied_by', 'deleted_at', 'code', ...skipBatch])
         const code = str(r, 'code')
@@ -1558,6 +1575,9 @@ function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subj
             for (const m of assayMetals.filter((x) => x.op === 'INSERT' && str(x, 'assay_result_id') === id)) {
                 const pct = formatValue(d, 'assay_result_metals', 'content_pct', m.new?.['content_pct'], imgOf(m), m.refs, 'INSERT', opts)
                 ls.push({ t: 'value', label: dictName(d, m, 'metal'), value: pct.empty || pct.restricted ? pct : { text: `${pct.text}%` } })
+            }
+            for (const v of assayIndicators.filter((x) => x.op === 'INSERT' && str(x, 'assay_result_id') === id)) {
+                ls.push({ t: 'value', label: dictName(d, v, 'indicator'), value: indicatorValue(v) })
             }
             out.push({ title: withPart(tx(d, 'batch.assayRecorded'), code), lines: ls, key: true, weight: 75 })
             continue
@@ -1574,6 +1594,13 @@ function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subj
         const ls = m.op === 'UPDATE' ? changeLines(d, m, opts, new Set(['metal', 'assay_result_id']))
             : valueLines(d, m, m.op === 'DELETE' ? m.old : m.new, opts, new Set(['metal', 'assay_result_id']))
         out.push({ title: withPart(tx(d, 'batch.assayChanged'), metal), lines: ls, key: false, weight: 40 })
+    }
+    // MES-6a-2:指标值只经 record_assay_result 与化验同一笔写下,所以几乎总是并进上面"化验已记录"那一句;
+    //   落单的一行(记录开始之前那一段之类)照金属行的说法:"Assay changed · <指标>"
+    for (const v of assayIndicators) {
+        if (v.op === 'INSERT' && assays.some((a) => a.op === 'INSERT' && a.key?.['id'] === str(v, 'assay_result_id'))) continue
+        out.push({ title: withPart(tx(d, 'batch.assayChanged'), dictName(d, v, 'indicator')),
+                   lines: [{ t: 'value', label: fieldMeta(d, 'assay_result_indicators', 'value')[0], value: indicatorValue(v) }], key: false, weight: 40 })
     }
 
     // ⑦ 安全状态。MES-3a(Q22 · Q25):一条状态被【结束】(UPDATE 填上 ended_at,理由必填),不再被删;
@@ -4138,7 +4165,9 @@ const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kind
     // MES-4a(Q5 · Q15):班次(时刻是 time 列,说成 HH:MM)· 异常事件的种类
     'shifts', 'processing_event_types',
     // MES-4b(Q3 · Q21):电芯结构 · 交叉污染流(警戒线 V11 是一个百分数)
-    'cell_constructions', 'contamination_streams'])
+    'cell_constructions', 'contamination_streams',
+    // MES-6a-2(Q3 · Q4):化验指标(单位是一段文字,不换算)
+    'assay_indicators'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {

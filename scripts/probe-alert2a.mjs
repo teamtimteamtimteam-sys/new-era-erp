@@ -40,12 +40,15 @@
 // 用法:npm run build && node scripts/probe-alert2a.mjs
 // ════════════════════════════════════════════════════════════════════════════
 
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { spawn } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3205                 // 3198 phone · 3199 冒烟 · 3201 avatar · 3202 tiers · 3203 confirm · 3204 action-message

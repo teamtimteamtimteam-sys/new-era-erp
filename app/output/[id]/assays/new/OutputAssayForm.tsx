@@ -7,6 +7,7 @@
 //   * 过期后果 —— 服务端问库得来(preview_apply_output_assay),这里只显示。
 // 两个提交按钮:仅记录 / 记录并应用。后者失败时【记录仍然保留】(见 actions.ts)。
 import SamplePickerField, { type SampleOption } from '@/app/components/quality/SamplePickerField'
+import IndicatorFields, { type IndicatorOption } from '@/app/components/quality/IndicatorFields'
 import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
@@ -23,9 +24,9 @@ import { EditableTable, type EditableColumn } from '@/app/components/ui/editable
 
 /** 桥上交出去的一行 —— 与搬家前那两条并列数组逐字同构。 */
 type MetalLine = { metal: string; content: string }
-/** 渲染用的行。`labelKey` 与 `current` 都【不进桥】:一个是译名,一个是对照值,
+/** 渲染用的行。`label` 与 `current` 都【不进桥】:一个是名字(字典自己的,MES-6a-2 Q30),一个是对照值,
  *  两个都是画出来的,不是交出去的。 */
-type MetalRow = MetalLine & { labelKey: string; current: string | null }
+type MetalRow = MetalLine & { label: string; current: string | null }
 
 const initialState: SubmitOutputAssayState = {}
 
@@ -43,6 +44,7 @@ export default function OutputAssayForm({
     canApply,
     sampleOptions,
     defaultSampleId,
+    indicatorOptions,
 }: {
     // PROC-5:实验室字典(值 + 已翻好的名字),由页面读好传进来
     labOptions: DictOption[]
@@ -65,6 +67,8 @@ export default function OutputAssayForm({
     /** MES-6a-1(Q9):这一批的样品(可空选) */
     sampleOptions: SampleOption[]
     defaultSampleId?: string | null
+    /** MES-6a-2(Q3 · Q4):这一份要记的指标(字典里还能新选的那几个;名字与单位已翻好) */
+    indicatorOptions: IndicatorOption[]
 }) {
     const t = useTranslations()
     const bound = submitOutputAssay.bind(null, batchId)
@@ -80,7 +84,7 @@ export default function OutputAssayForm({
     const activeOptions = substanceOptions.filter((s) => s.isActive)
     const rows: MetalRow[] = activeOptions.map((opt) => ({
         metal: opt.value,
-        labelKey: opt.labelKey,
+        label: opt.label,
         content: metals[opt.value] ?? '',
         current: currentMetals[opt.value] ?? null,
     }))
@@ -121,7 +125,7 @@ export default function OutputAssayForm({
             priority: true,
             render: (r) => (
                 <>
-                    {t(r.labelKey)}
+                    {r.label}
                     <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
@@ -271,6 +275,9 @@ export default function OutputAssayForm({
                     <input type="text" name="notes" className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
+
+            {/* ── MES-6a-2(Q3 · Q4):指标 —— 残粉、箔纯度、粒径(空 = 没报;没有限)── */}
+            <IndicatorFields options={indicatorOptions} />
 
             {/* ── 金属表(留空 = 没测,整行忽略;当前值在旁边作对照)── */}
             <div>

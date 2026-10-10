@@ -54,6 +54,7 @@ import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
 import BatchBalancePanel from '@/app/components/batch/BatchBalancePanel'
 import QualityPanel from '@/app/components/quality/QualityPanel'
+import AssayIndicators from '@/app/components/quality/AssayIndicators'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
@@ -89,7 +90,7 @@ export default async function EditInboundPage({
 
     // PROC-4:物质清单从 substances 那张字典读 —— 【连停用的一起读】,
     // 因为这一页要把历史含量行里的码翻成名字,而停用不该让历史数据变成光秃秃的 code。
-    const substanceOptions = toOptions(await loadSubstanceLabels(supabase))
+    const substanceOptions = toOptions(await loadSubstanceLabels(supabase), await getLocale())
 
     // ── PROC-2b:到货状态的两条轴 ────────────────────────────────────────────
     // 【读之前先对遮蔽清单】(S2):
@@ -845,6 +846,8 @@ export default async function EditInboundPage({
             />
 
             {/* MES-6a-1(Q7 · Q16):这一批的样品与化验争议 —— 摆在化验之后:先读结果,再读谁的样品、有没有在争 */}
+            {/* MES-6a-2(Q3):这一批的化验上最近记下的指标(从化验行现读 —— 批次上没有副本) */}
+            <AssayIndicators kind="inbound" batchId={batch.id} />
             <QualityPanel kind="inbound" batchId={batch.id} />
 
             {/* PROC-COST-1:落地成本拆解 —— 摆在计价面板【之前】,因为看批次成本的人

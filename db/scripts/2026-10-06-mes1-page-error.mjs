@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 // MES-1 · 一次性诊断(DEV_LOG=<文件> node db/scripts/2026-10-06-mes1-page-error.mjs <路径>…):以一个全码一次性账号起 next dev,取两条设备页,把服务端的报错原样印出来。跑完收走账号。
+import { onlyWhenRunDirectly } from '../../scripts/lib/entrypoint.mjs'
 import { openSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { acquireOrExit, release, heldBy } from '../../scripts/liveLock.mjs'
 import { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } from '../../scripts/ephemeral.mjs'
+onlyWhenRunDirectly(import.meta.url)
+
 const LOG = process.env.DEV_LOG
 let locked = false, dev = null
 installExitHooks({ onFinish: (code) => { try { if (dev) process.kill(-dev.pid, 'SIGTERM') } catch { /* 已经退了 */ } ; try { if (locked) release() } catch {} ; console.log(`PAGEERR_EXIT=${code}`) } })

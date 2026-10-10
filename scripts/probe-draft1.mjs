@@ -2,12 +2,15 @@
 // DRAFT-1 的双渲染证明 —— #10 QuoteLinesEditor(唯一一张线上有行的表,见 R11 计数)。
 // ★ 跑在【生产构建】上:probe-avatar 抬头那条 —— 这棵树在 next dev 下水合不收尾。
 // ★ 它【不点保存】,所以一行业务数据都不会被写。
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3202, CDP_PORT = 9338

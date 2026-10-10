@@ -42,6 +42,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'electricity_allocation' | 'electricity_settings'   // MES-5a-2
     | 'blending_plan'   // MES-5b-3
     | 'sample' | 'assay_dispute' | 'quality_settings'   // MES-6a-1
+    | 'dictionary_assay_indicators'   // MES-6a-2
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -154,6 +155,8 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     operation_type: 'operation_types', dictionary_processing_event_types: 'processing_event_types', dictionary_shifts: 'shifts',
     // MES-4b(2026-10-07):电芯结构与交叉污染流两本字典
     dictionary_cell_constructions: 'cell_constructions', dictionary_contamination_streams: 'contamination_streams',
+    // MES-6a-2(2026-10-10):化验指标字典
+    dictionary_assay_indicators: 'assay_indicators',
 }
 
 export const PAGE = 20

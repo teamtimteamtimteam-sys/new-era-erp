@@ -22,7 +22,8 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import TermsRequestsPanel from '@/app/components/pricing/TermsRequestsPanel'
 import { firstMissingDecideCode, loadTermsRequests } from '@/app/components/pricing/termsRequestsData'
 import { missingTermLabel } from '@/app/components/pricing/termsRequestErrorCodes'
-import { loadSubstanceLabels, substanceLabeller } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { loadSubstanceLabels, substanceLabeller, payableOnly, penaltyOnly } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { ppmOf, perPpmOf, plainDecimal } from '@/lib/substances'
 import ContractActivationPanel, { type ActivationRow } from '../ContractActivationPanel'
 import TermSection, { type TermFieldView, type TermRowView } from './TermSection'
 import HeaderForm from './HeaderForm'
@@ -84,15 +85,21 @@ export default async function ContractDetailPage({ params, searchParams }: {
     const matRows = mustRows(materials, 'materials') as { id: string; code: string; name: string }[]
     const ccyRows = (mustRows(currencies, 'currencies') as { code: string }[]).map((r) => r.code)
     const idxRows = mustRows(indices, 'metal_price_indices') as { code: string; name_en: string; name_zh: string; is_active: boolean }[]
+    const pickable = (rows: typeof substances) => rows.filter((x) => x.is_active).map((x) => ({ value: x.code, label: substanceName(x.code) }))
     const dicts: Record<string, Dict> = {
         // 可新选的只给启用的;显示时停用的也要读得出名字(substanceLabeller 读的是全部)
-        substances: substances.filter((x) => x.is_active).map((x) => ({ value: x.code, label: substanceName(x.code) })),
+        substances: pickable(substances),
+        // MES-6a-2(Q27):计价条款与精炼费只给按含量计价的金属;惩罚条款只给惩罚元素
+        payables: pickable(payableOnly(substances)),
+        penaltyElements: pickable(penaltyOnly(substances)),
         materials: matRows.map((m) => ({ value: m.id, label: `${m.code} — ${m.name}` })),
         currencies: ccyRows.map((x) => ({ value: x, label: x })),
         indices: idxRows.filter((x) => x.is_active).map((x) => ({ value: x.code, label: x.code })),
     }
     const dictLabel: Record<string, (v: string) => string> = {
         substances: (v) => substanceName(v),
+        payables: (v) => substanceName(v),
+        penaltyElements: (v) => substanceName(v),
         materials: (v) => { const m = matRows.find((x) => x.id === v); return m ? `${m.code} — ${m.name}` : v },
         currencies: (v) => v,
         indices: (v) => v,
@@ -141,6 +148,12 @@ export default async function ContractDetailPage({ params, searchParams }: {
             else if (f.type === 'boolean') shown[f.name] = v ? t('contractDetail.yes') : t('contractDetail.no')
             else if (f.options?.kind === 'enum') shown[f.name] = t(`contractDetail.opt.${f.name}.${String(v)}`)
             else if (f.options?.kind === 'dict') shown[f.name] = dictLabel[f.options.dict](String(v))
+            // MES-6a-2(MES-6a Step 0 Q29):惩罚条款的阈值以 % 存、以 % 录,旁边带 ppm(1 % = 10,000 ppm);费率【不改单位】
+            //   (每个百分点 —— 那是一条合同条款的单位),旁边带每个 ppm 的等值。原样精度,不舍入。
+            else if (s.table === 'penalty_elements' && f.name === 'threshold_pct')
+                shown[f.name] = t('contractDetail.ppmBeside', { pct: plainDecimal(String(v)), ppm: ppmOf(String(v)) })
+            else if (s.table === 'penalty_elements' && f.name === 'usd_per_tonne_per_pct_over')
+                shown[f.name] = t('contractDetail.perPpmBeside', { rate: plainDecimal(String(v)), perPpm: perPpmOf(String(v)) })
             else shown[f.name] = String(v)
         }
         return { id: String(r.id), shown, values }

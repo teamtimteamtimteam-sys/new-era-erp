@@ -53,12 +53,15 @@
 //
 // 用法:node scripts/probe-search-shell.mjs      (需要 .next 里有一份生产构建)
 //      跑在 next start 上,不跑 next dev —— UI-1c 实测这棵树在 dev 下水合不收尾。
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3202                 // 3198 survey-phone · 3199 冒烟 · 3201 probe-avatar

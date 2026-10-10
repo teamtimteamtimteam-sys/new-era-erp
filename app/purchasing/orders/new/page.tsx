@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import NewOrderForm, {
     type SupplierOption,
     type MaterialOption,
@@ -34,7 +34,7 @@ export default async function NewOrderPage() {
 
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(await loadSubstances(supabase), await getLocale())
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 

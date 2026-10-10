@@ -17,7 +17,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '../../../metal-prices/substanceQuery'
+import { loadSubstances, payableOnly, toOptions } from '../../../metal-prices/substanceQuery'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
@@ -36,7 +36,7 @@ export default async function EditFormulaPage({
     const { id } = await params
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(payableOnly(await loadSubstances(supabase)), await getLocale())   // MES-6a-2(Q27):定价这一页只给按含量计价的金属
     const t = await getTranslations()
 
     const { data: formulaRaw, error } = await supabase

@@ -4,7 +4,7 @@
 --
 -- 【为什么住在 db/views/ 而不是各自的表镜像里】与 zzz_function_grants.sql 同一个理由:重放顺序是
 --   functions → tables → views,而 views 阶段按名字排、zzz 排最后 —— 到这里每一张表都已经建好。
---   一份文件放 274 张表的绑定,比在 274 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
+--   一份文件放 284 张表的绑定(MES-6a-2 起;此前这里的数没跟着 --only 一刀刀加上去,停在 274),比在 284 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
 --   与它们写在哪个文件里无关。
 -- 【豁免】change_log_exclusions() 里那 8 张不在这里(理由写在那支函数里)。
 -- 【名字以 zzz 开头】同一张表上的 AFTER 触发器按名字排序触发 —— 记录最后一个看到那一行。
@@ -21,6 +21,14 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.approval_log
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.assay_disputes
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.assay_disputes
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.assay_indicators
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.assay_indicators
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.assay_result_indicators
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('assay_result_id', 'indicator');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.assay_result_indicators
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.assay_result_metals
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('assay_result_id', 'metal');

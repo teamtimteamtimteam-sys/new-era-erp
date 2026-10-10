@@ -466,6 +466,93 @@ export type Database = {
           },
         ]
       }
+      assay_indicators: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          unit: string
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          unit: string
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          unit?: string
+        }
+        Relationships: []
+      }
+      assay_result_indicators: {
+        Row: {
+          assay_result_id: string
+          created_at: string
+          indicator: string
+          value: number
+        }
+        Insert: {
+          assay_result_id: string
+          created_at?: string
+          indicator: string
+          value: number
+        }
+        Update: {
+          assay_result_id?: string
+          created_at?: string
+          indicator?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assay_result_indicators_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_result_indicators_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "assay_result_indicators_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_result_indicators_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "assay_result_indicators_indicator_fkey"
+            columns: ["indicator"]
+            isOneToOne: false
+            referencedRelation: "assay_indicators"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       assay_result_metals: {
         Row: {
           assay_result_id: string
@@ -25284,6 +25371,7 @@ export type Database = {
           name_en: string
           name_zh: string
           notes: string | null
+          role: string
           sort_order: number
           symbol: string | null
         }
@@ -25293,6 +25381,7 @@ export type Database = {
           name_en: string
           name_zh: string
           notes?: string | null
+          role: string
           sort_order?: number
           symbol?: string | null
         }
@@ -25302,6 +25391,7 @@ export type Database = {
           name_en?: string
           name_zh?: string
           notes?: string | null
+          role?: string
           sort_order?: number
           symbol?: string | null
         }
@@ -43316,6 +43406,7 @@ export type Database = {
         }
         Returns: Json
       }
+      payable_metals_only: { Args: { p_metals: Json }; Returns: Json }
       payment_request_conflict: {
         Args: { p_allocations: Json; p_self: string }
         Returns: string
@@ -43599,6 +43690,7 @@ export type Database = {
           p_assay_date: string
           p_certificate_ref?: string
           p_inbound_batch_id?: string
+          p_indicators?: Json
           p_is_final?: boolean
           p_lab_name?: string
           p_metals: Json

@@ -33,12 +33,15 @@
 //         [--inject=<case>]   见下面 INJECTIONS:把一个断言【故意弄假】,
 //                             用来证明这道断言真的会咬人。
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3197            // 不是 3198(版式探针的),也不是 3199(冒烟的)

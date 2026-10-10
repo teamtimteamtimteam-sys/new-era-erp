@@ -35,6 +35,8 @@ CREATE VIEW public.processing_metal_recovery_all AS
                     obm.content_source
                    FROM output_batch_metals obm
                   WHERE obm.output_batch_id = pi.output_batch_id) m ON true
+          -- MES-6a-2(MES-6a Step 0 Q28):回收率只算按含量计价的金属 —— 氟、氯是惩罚元素,"回收了多少氟"不是一个要的数
+          WHERE EXISTS (SELECT 1 FROM substances s WHERE s.code = m.metal AND s.role = 'payable_metal')
           GROUP BY pi.run_id, m.metal
         ), outs AS (
          SELECT po.run_id,
@@ -46,6 +48,7 @@ CREATE VIEW public.processing_metal_recovery_all AS
                 END AS output_source
            FROM processing_outputs po
              JOIN output_batch_metals obm ON obm.output_batch_id = po.output_batch_id
+          WHERE EXISTS (SELECT 1 FROM substances s WHERE s.code = obm.metal AND s.role = 'payable_metal')
           GROUP BY po.run_id, obm.metal
         )
  SELECT r.id AS run_id,

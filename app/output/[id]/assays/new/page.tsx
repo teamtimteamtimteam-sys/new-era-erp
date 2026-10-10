@@ -7,6 +7,7 @@
 // 取:批次(物料/数量/状态)、当前已录含量(作为录入起点 —— 一次更正是小改
 // 而不是重敲)、以及批次侧的应用后果(产出它的加工单、会不会过期)。
 import { loadBatchSampleOptions } from '@/app/components/quality/sampleOptions'
+import { loadIndicatorDefs, indicatorName } from '@/app/components/quality/AssayIndicators'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -37,9 +38,10 @@ export default async function NewOutputAssayPage({
     const sp = await searchParams
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(await loadSubstances(supabase), await getLocale())
     // PROC-5:实验室字典
-    const labOptions = toDictOptions(await loadLaboratories(supabase), await getLocale())
+    const locale = await getLocale()
+    const labOptions = toDictOptions(await loadLaboratories(supabase), locale)
     const t = await getTranslations()
 
     const { data: batch, error } = await supabase
@@ -114,6 +116,8 @@ export default async function NewOutputAssayPage({
                 canApply={canApply}
                 sampleOptions={await loadBatchSampleOptions(supabase, 'output', batch.id)}
                 defaultSampleId={(() => { const v = sp.sample; return Array.isArray(v) ? v[0] : v ?? null })()}
+                // MES-6a-2(Q3 · Q4):还能新选的指标,名字按读者语言、单位是字典自己的
+                indicatorOptions={(await loadIndicatorDefs(supabase, true)).map((d) => ({ code: d.code, label: indicatorName(d, locale), unit: d.unit }))}
             />
         </div>
     )

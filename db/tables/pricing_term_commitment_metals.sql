@@ -45,3 +45,9 @@ CREATE POLICY "pricing_term_commitment_metals select by permission"
 REVOKE SELECT ON public.pricing_term_commitment_metals FROM authenticated, anon;
 GRANT SELECT (commitment_id, metal)
     ON public.pricing_term_commitment_metals TO authenticated;
+
+-- ── MES-6a-2(2026-10-10,MES-6a Step 0 Q27,Tim):承诺副本抄自公式 —— 这一道是副本那一侧的同一句 —— 别的按名拒 SUBSTANCE_NOT_PAYABLE|<码>。
+--    插入与改到 metal 的那一次才判;既有的行不回头判(substances.role 的列注)。不在字典里的码照旧由外键拒。
+CREATE TRIGGER trg_pricing_term_commitment_metals_substance_role
+    BEFORE INSERT OR UPDATE OF metal ON public.pricing_term_commitment_metals
+    FOR EACH ROW EXECUTE FUNCTION public.guard_substance_role('payable_metal', 'metal');

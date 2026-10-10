@@ -104,3 +104,8 @@ CREATE TRIGGER trg_contract_pricing_terms_frozen
     BEFORE INSERT OR UPDATE OR DELETE ON public.contract_pricing_terms
     FOR EACH ROW EXECUTE FUNCTION public.guard_contract_terms_frozen();
 
+-- ── MES-6a-2(2026-10-10,MES-6a Step 0 Q27,Tim):合同的计价条款只收按含量计价的金属 —— 别的按名拒 SUBSTANCE_NOT_PAYABLE|<码>。
+--    插入与改到 metal 的那一次才判;既有的行不回头判(substances.role 的列注)。不在字典里的码照旧由外键拒。
+CREATE TRIGGER trg_contract_pricing_terms_substance_role
+    BEFORE INSERT OR UPDATE OF metal ON public.contract_pricing_terms
+    FOR EACH ROW EXECUTE FUNCTION public.guard_substance_role('payable_metal', 'metal');

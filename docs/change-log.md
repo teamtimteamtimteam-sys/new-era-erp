@@ -1295,3 +1295,25 @@ Fixture 235 stays at **8** exclusions.
   **An expense reversal now carries its reason** on the expense trail and on the expense-claim trail (read from the original's
   `reversal_reason`; reversals made before this cut still read it from the mirror's notes). `scripts/check-trail-wording.mjs` arm ㉖ pins ten
   sentences (fault `wording-drift-mes6a1`), including the neutral **Ours · Counterparty · Umpire** labels that replace "The buyer".
+
+## 24. Fluorine, chlorine and assay indicators (MES-6a-2, v1.4.49, 2026-10-10)
+
+Hand-back `docs/handbacks/MES-6a-2.md`; fixture 262 (arms ROLE · PAY · PEN · SETTLE · QUOTE · APPLY · RECOV · COST · PPM · IND · LOG) pins every
+rule below, each fault-injected by `db/scripts/2026-10-10-mes6a2-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 24.1 Logged, excluded, masked
+
+- **Two new tables, logged.** `assay_indicators` (the dictionary, bound by `code`) and `assay_result_indicators` (bound by
+  `assay_result_id, indicator`): public tables **290 → 292**, bound **282 → 284**, exclusions stay **8** (Step 0 Q40). An indicator value is
+  written only by `record_assay_result`, so its rows appear as INSERTs beside the assay's metal lines; a definition's change or deactivation is
+  an UPDATE row on `assay_indicators`.
+- **`substances` gains a column, not a table.** The new `role` column is logged like every other `substances` column (the table was already
+  bound); the migration's own writes are its proof's whole allowance on `change_log`: **7 UPDATEs** (the seven metals become
+  `payable_metal`), **2 INSERTs** (`f`, `cl`) and **1** `document_type_exceptions` INSERT (`assay_indicators` is a dictionary, not a
+  document) — exactly 10. The five indicator definitions are seeded before the binding, the same order the rebuild uses, so they are not logged.
+- **No masked column, no new mask rule** (114 stays; Step 0 Q41). Indicator values and F / Cl contents are not prices.
+- **Trail.** New subject `dictionary_assay_indicators` (`/settings/dictionaries`, `module.materials.view`); the inbound and output batch subjects
+  gain `assay_result_indicators` as a member under `assay_results`. An assay recorded with indicators reads as one "Assay recorded" entry whose
+  lines include the indicator values with their units (`Residual powder on foil: 0.85%`, `Particle size D50: 11.4 µm`); a substance's role reads
+  "Role: Payable metal / Penalty element / Other". F / Cl contents print in % as stored (`Fluorine: 0.0123%`) — the ppm beside them is a screen
+  convention of the assay pages, not a trail one. `scripts/check-trail-wording.mjs` arm ㉗ pins seven sentences (fault `wording-drift-mes6a2`).

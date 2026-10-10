@@ -157,8 +157,9 @@ BEGIN
     PERFORM pg_temp.f230_as(u_cco);
     EXECUTE 'SET LOCAL ROLE authenticated';
     INSERT INTO contract_refining_charges (contract_id, metal, usd_per_tonne_of_metal) VALUES (c_sell, 'co', 1200);
+    -- MES-6a-2(Step 0 Q27):惩罚条款只收惩罚元素 —— 原来这里点名 cu(一个可计价的金属),从此按名拒;换成氟,断言不变
     INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over)
-    VALUES (c_sell, 'cu', 0.5, 3);
+    VALUES (c_sell, 'f', 0.5, 3);
     EXECUTE 'RESET ROLE';
     v_msg := pg_temp.f230_missing(u_cco, c_sell);
     IF v_msg <> '' THEN
@@ -224,7 +225,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 230E3 失败:删掉惩罚元素之后清单应当重新说出它'; END IF;
     -- 不持 action.contract_terms 的人:加一行、改一行、改表头 —— 都写不进,一行不落
     PERFORM pg_temp.f230_as(u_ro);
-    v_msg := pg_temp.f230_try(format($s$INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (%L, 'fe', 1, 1)$s$, c_sell));
+    -- (MES-6a-2:原来是 'fe' —— 换成一个惩罚元素,好让这一格拒的仍然是【码】,而不是先撞上 SUBSTANCE_NOT_PENALTY_ELEMENT)
+    v_msg := pg_temp.f230_try(format($s$INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (%L, 'cl', 1, 1)$s$, c_sell));
     IF v_msg = 'OK' OR EXISTS (SELECT 1 FROM contract_penalty_elements WHERE contract_id = c_sell) THEN
         RAISE EXCEPTION 'FIXTURE 230E4 失败:不持码的人加条款应当被拒,实得 %', v_msg; END IF;
     v_msg := pg_temp.f230_try(format($s$UPDATE contract_pricing_terms SET payable_pct = 50 WHERE contract_id = %L$s$, c_sell));

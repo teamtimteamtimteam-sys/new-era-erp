@@ -31,7 +31,8 @@ BEGIN
             COALESCE((SELECT pf.code FROM pricing_formulas pf WHERE pf.id = v_live), '?');
     END IF;
 
-    SELECT jsonb_agg(jsonb_build_object('metal', ibm.metal, 'content_pct', ibm.content_pct))
+    -- MES-6a-2(Q28):批次含量里的惩罚元素(氟、氯)不进计价 —— 它们记得下,但不按含量付钱。
+    SELECT payable_metals_only(jsonb_agg(jsonb_build_object('metal', ibm.metal, 'content_pct', ibm.content_pct)))
     INTO v_metals
     FROM inbound_batch_metals ibm WHERE ibm.inbound_batch_id = v_batch.id;
     IF v_metals IS NULL THEN

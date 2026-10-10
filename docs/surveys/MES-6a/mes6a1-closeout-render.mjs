@@ -11,14 +11,15 @@
 //   the count must stay 0, because the probe presses no confirm button. The expense, batch and dialog are only looked at.
 // The throwaway accounts are removed by the ephemeral plan (prefix mes6a1probe, already in scripts/ephemeral.mjs).
 // Verdict line: RENDER_PROBE_EXIT=<n> (0 = every fetch and every browser step ran; the table says what each role saw).
+import { onlyWhenRunDirectly } from '../../../scripts/lib/entrypoint.mjs'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
-import { pathToFileURL } from 'node:url'
-const REPO = new URL('../../..', import.meta.url).pathname.replace(/\/$/, '')
 // ★ It acts on live, so it runs only when executed directly — importing this file starts nothing (MES-6a-2 fold-in).
-const RUN_DIRECTLY = import.meta.url === pathToFileURL(process.argv[1] ?? '').href
+onlyWhenRunDirectly(import.meta.url)
+
+const REPO = new URL('../../..', import.meta.url).pathname.replace(/\/$/, '')
 let openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup, acquireOrExit, release, heldBy
 const BASE = process.env.PROBE_BASE || 'https://new-era-erp.vercel.app'
 const HOST = new URL(BASE).hostname
@@ -184,4 +185,4 @@ async function main() {
   console.log(`BLOCKED_TOTAL|${blockedTotal}`)
   return exitAfterCleanup(blockedTotal === 0 ? 0 : 6)
 }
-if (RUN_DIRECTLY) main().catch((e) => { console.error('✗', e?.stack || e); if (exitAfterCleanup) exitAfterCleanup(2); else process.exit(2) })
+main().catch((e) => { console.error('✗', e?.stack || e); if (exitAfterCleanup) exitAfterCleanup(2); else process.exit(2) })

@@ -18,7 +18,9 @@ export const SELL_ONLY: ReadonlySet<TermTable> = new Set(['pricing_terms', 'sett
 /** 下拉的取值来自哪里:固定取值(i18n 标签)或页面读出来的字典 */
 export type OptionSource =
     | { kind: 'enum'; values: readonly string[] }
-    | { kind: 'dict'; dict: 'substances' | 'materials' | 'currencies' | 'indices' }
+    // MES-6a-2(MES-6a Step 0 Q27):物质分三份 —— substances(全部:品位规格)· payables(只有按含量计价的金属:计价条款、精炼费)·
+    //   penaltyElements(只有惩罚元素:惩罚条款)。库里的守卫(guard_substance_role)对不该来的按名拒;这里只是不把它递给人。
+    | { kind: 'dict'; dict: 'substances' | 'payables' | 'penaltyElements' | 'materials' | 'currencies' | 'indices' }
 
 export type FieldSpec = {
     name: string
@@ -83,7 +85,7 @@ export const SECTIONS: readonly SectionSpec[] = [
     {
         table: 'pricing_terms', dbTable: 'contract_pricing_terms',
         fields: [
-            { name: 'metal', type: 'select', required: true, options: { kind: 'dict', dict: 'substances' } },
+            { name: 'metal', type: 'select', required: true, options: { kind: 'dict', dict: 'payables' } },
             { name: 'base_event', type: 'select', required: true,
               options: { kind: 'enum', values: ['shipment', 'arrival', 'assay_complete'] } },
             { name: 'qp_months', type: 'integer', required: true, min: 0, max: 12 },
@@ -116,7 +118,7 @@ export const SECTIONS: readonly SectionSpec[] = [
     {
         table: 'refining_charges', dbTable: 'contract_refining_charges',
         fields: [
-            { name: 'metal', type: 'select', required: true, options: { kind: 'dict', dict: 'substances' } },
+            { name: 'metal', type: 'select', required: true, options: { kind: 'dict', dict: 'payables' } },
             { name: 'usd_per_tonne_of_metal', type: 'number', required: true, min: 0 },
             NOTES,
         ],
@@ -124,7 +126,7 @@ export const SECTIONS: readonly SectionSpec[] = [
     {
         table: 'penalty_elements', dbTable: 'contract_penalty_elements',
         fields: [
-            { name: 'substance', type: 'select', required: true, options: { kind: 'dict', dict: 'substances' } },
+            { name: 'substance', type: 'select', required: true, options: { kind: 'dict', dict: 'penaltyElements' } },
             { name: 'threshold_pct', type: 'number', required: true, min: 0, max: 100 },
             { name: 'usd_per_tonne_per_pct_over', type: 'number', required: true, min: 0 },
             NOTES,

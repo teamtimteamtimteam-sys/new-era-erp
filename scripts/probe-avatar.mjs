@@ -24,6 +24,7 @@
 //   这里还多一样要清:它上传的那个头像对象。清不掉 → 退非零。
 //
 // 用法:node scripts/probe-avatar.mjs        (需要一份【生产构建】在 .next 里)
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
@@ -31,6 +32,8 @@ import { createConnection } from 'node:net'
 import sharp from 'sharp'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3201                 // 3198 是 survey-phone 的,3199 是冒烟的

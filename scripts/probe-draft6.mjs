@@ -49,12 +49,15 @@
 //   ☞ ★★ 而 ③ 最值得留着:**它与这一刀在【产品】那一侧刚刚修掉的是同一个病** ——
 //     同一个字形,两种意思。在代码里把它治好了,转手在自己的判据里又犯了一次。
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3209, CDP_PORT = 9345

@@ -18,8 +18,11 @@
 //
 // 用法:node scripts/reap-ephemeral.mjs
 // 退出码:0 = 没有要收的,或全部收干净;1 = 有收不掉的(已逐条印出)
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { reapStalePlans, PLAN_DIR } from './ephemeral.mjs'
 import { existsSync, readdirSync } from 'node:fs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const before = existsSync(PLAN_DIR)
     ? readdirSync(PLAN_DIR).filter((f) => f.endsWith('.json')).length : 0

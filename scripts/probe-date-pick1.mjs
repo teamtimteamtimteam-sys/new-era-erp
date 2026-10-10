@@ -23,12 +23,15 @@
 //                                                                    原生表单那几格必须红(提交真的发出去了,仍被掐在浏览器里)
 // 退出码:0 全过 · 1 有判据没过 · 2 探针自己挂了 · 6 收尾没清干净
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, reapStalePlans, exitAfterCleanup, installExitHooks } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3209, CDP_PORT = 9349

@@ -12,6 +12,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizeAssayError } from '../../assayErrorCodes'
+import { indicatorsPayload } from '@/app/components/quality/indicatorPayload'
 import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
 
 // "如果应用会怎样"的影响数字。
@@ -203,6 +204,9 @@ export async function submitAssay(
     }
     if (!weightBasis) return { error: t('assay.errors.ASSAY_BASIS_REQUIRED') }
     if (!resultParty) return { error: t('assay.errors.ASSAY_RESULT_PARTY_REQUIRED') }
+    // MES-6a-2(Q3 · Q4):指标 —— 空格忽略;读不懂的数或负数在这里先按名拒(库里 record_assay_result 再拒一次)
+    const ind = indicatorsPayload(formData)
+    if (!ind.ok) return { error: t('assay.errors.INDICATOR_VALUE_INVALID', { 0: ind.indicator, 1: ind.raw }) }
 
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('record_assay_result', {
@@ -223,6 +227,7 @@ export async function submitAssay(
         p_result_party: resultParty,
         ...(moisturePct === null ? {} : { p_moisture_pct: moisturePct }),
         ...(sampleId === '' ? {} : { p_sample_id: sampleId }),
+        ...(ind.value.length === 0 ? {} : { p_indicators: ind.value }),
     })
     if (error) {
         return { error: await localizeAssayError(error.message) }

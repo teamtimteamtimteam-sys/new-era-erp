@@ -143,13 +143,15 @@ BEGIN
     RAISE NOTICE 'fixture 116 · 进入 F3';
     -- 【这一臂就是"它是不是一张字典"的定义】
     -- 事务里加一行 —— **不建表、不改约束、不跑迁移** —— 然后对它记一个数。
-    -- 氟是排在第一位的那个真实需求:今天它【连记都记不下来】,而这一臂证明
-    -- PROC-4 之后它只差一行数据。(本刀不发它,理由与返回条件写在表注上。)
+    -- 写这一臂的时候,氟是排在第一位的那个真实需求、而且【连记都记不下来】;这一臂证明的是
+    -- PROC-4 之后它只差一行数据。★ MES-6a-2(2026-10-10)真的发了它(f / cl,role = penalty_element)。
+    -- ★ MES-6a-2 起每一行都要说出它的 role(NOT NULL、无默认,Step 0 Q26)—— 这一行要同时进含量与行情两张表,
+    --   所以它是一个【虚构的可计价物质】(payable_metal);惩罚元素在定价那几条路上被拒,那一半在 fixture 119 / 262。
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO public.substances (code, name_en, name_zh, symbol, sort_order, notes)
-        VALUES ('ZZ116_F', 'Fluorine (fixture)', '氟(fixture)', 'F', 99,
-                'fixture 116:证明加一种物质是加一行');
+        INSERT INTO public.substances (code, name_en, name_zh, symbol, sort_order, notes, role)
+        VALUES ('ZZ116_F', 'Fixture payable (116)', '可计价(fixture 116)', 'F', 99,
+                'fixture 116:证明加一种物质是加一行', 'payable_metal');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 116F3 失败:进入 F3 —— 【加一行】这件事本身必须做得成。做不成,这就不是一张字典,只是一条换了写法的 CHECK。实得「%」', v_msg;

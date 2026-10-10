@@ -9,10 +9,13 @@
 // be asked about with an id that does not exist: the gate answers first (requireFunction), then notFound.
 // The throwaway accounts are removed by the ephemeral plan (prefix mes5b3probe, already in scripts/ephemeral.mjs).
 // Verdict line: RENDER_PROBE_EXIT=<n> (0 = every fetch and every browser step ran; the table says what each role saw).
+import { onlyWhenRunDirectly } from '../../../scripts/lib/entrypoint.mjs'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
+onlyWhenRunDirectly(import.meta.url)
+
 const REPO = new URL('../../..', import.meta.url).pathname.replace(/\/$/, '')
 const { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } = await import(REPO + '/scripts/ephemeral.mjs')
 const { acquireOrExit, release, heldBy } = await import(REPO + '/scripts/liveLock.mjs')

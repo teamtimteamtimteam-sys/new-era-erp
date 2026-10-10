@@ -50,9 +50,10 @@ CREATE POLICY document_type_exceptions_select ON public.document_type_exceptions
 REVOKE ALL ON public.document_type_exceptions FROM anon;
 GRANT SELECT ON public.document_type_exceptions TO authenticated;
 
--- ── 种子:44 行(MES-4b 实数 —— 这里此前写着"36 行",而种子早已是 42 行,MES-4b Step 0 §12 第 6 条量到;本刀 +2)─────
+-- ── 种子:45 行(MES-6a-2 +1:assay_indicators。MES-4b 实数 44 —— 这里此前写着"36 行",而种子早已是 42 行,MES-4b Step 0 §12 第 6 条量到;MES-4b +2)─────
 INSERT INTO public.document_type_exceptions (table_name, reason) VALUES
     ('accounts',                      '会计科目表:code 是科目号,它是一条【科目】不是一张单据'),
+    ('assay_indicators',              '化验指标的目录(MES-6a-2):code 是指标代号(残粉 · 箔纯度 · D10 / D50 / D90),化验的指标行引用它'),
     ('battery_chemistries',           '电池化学体系的参考目录,进料/产出行引用它'),
     ('cell_constructions',            '电芯结构目录(MES-4b):code 是卷绕 / 叠片 / 未知,批次引用它'),
     ('certificate_types',             '证书种类的参考目录,证书本身是别的表'),

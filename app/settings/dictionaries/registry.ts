@@ -34,6 +34,7 @@ export type DictTable =
     | 'dangerous_goods_codes' | 'label_templates'   // MES-3b(2026-10-07,V30 · Q5):第八、九张 —— 同样有那六列
     | 'shifts' | 'processing_event_types'   // MES-4a(2026-10-07,Q5 · Q15):第十、十一张 —— 同样有那六列
     | 'cell_constructions' | 'contamination_streams'   // MES-4b(2026-10-07,Q3 · Q21):第十二、十三张 —— 同样有那六列
+    | 'assay_indicators'   // MES-6a-2(2026-10-10,Q3 · Q4):第十四张 —— 同样有那六列,外加一列单位
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
@@ -98,9 +99,27 @@ export const DICTIONARIES: DictSpec[] = [
         titleKey: 'dict.substances',
         permission: 'module.materials.edit',
         viewPermission: 'module.materials.view',
-        extras: [{ column: 'symbol', kind: 'text', labelKey: 'dict.f.symbol', hintKey: 'dict.h.symbol' }],
+        extras: [
+            { column: 'symbol', kind: 'text', labelKey: 'dict.f.symbol', hintKey: 'dict.h.symbol' },
+            // ★ MES-6a-2(2026-10-10,MES-0 Q69;MES-6a Step 0 Q26,Tim):它在商务上是什么 —— 必选,【没有默认值】(表上 NOT NULL、无默认)。
+            //   可计价的金属才进得了定价的那几页;惩罚元素只在惩罚条款里点名;other 哪儿都不算钱。取值与表上的 CHECK 是同一张清单。
+            { column: 'role', kind: 'choice', required: true, showInTable: true,
+              labelKey: 'dict.f.role', hintKey: 'dict.h.role',
+              options: [
+                  { value: 'payable_metal', labelKey: 'dict.o.payable_metal' },
+                  { value: 'penalty_element', labelKey: 'dict.o.penalty_element' },
+                  { value: 'other', labelKey: 'dict.o.other_substance' },
+              ] },
+        ],
+        // MES-6a-2 更正(Q45:本刀碰的文件里的过期记录):此前这里只列了 8 张 —— 品位规格、合同的计价条款 / 精炼费 / 惩罚条款
+        //   与配料目标(CONTRACT-1 · SETTLE-1 · MES-5b-3 加的外键)不在,于是"有多少行在用这个值"少数了它们。现在 13 张,与 pg_constraint 一致。
         referencedBy: [
             { table: 'assay_result_metals', column: 'metal' },
+            { table: 'blending_plan_targets', column: 'metal' },
+            { table: 'contract_grade_specs', column: 'metal' },
+            { table: 'contract_penalty_elements', column: 'substance' },
+            { table: 'contract_pricing_terms', column: 'metal' },
+            { table: 'contract_refining_charges', column: 'metal' },
             { table: 'inbound_batch_metals', column: 'metal' },
             { table: 'material_required_metals', column: 'metal' },
             { table: 'metal_prices', column: 'metal' },
@@ -315,6 +334,20 @@ export const DICTIONARIES: DictSpec[] = [
               labelKey: 'dict.f.warning_pct', hintKey: 'dict.h.warning_pct' },
         ],
         referencedBy: [{ table: 'contamination_checks', column: 'stream_code' }],
+    },
+    {
+        // ★ MES-6a-2(2026-10-10,MES-0 3.5b · 3.5c · 3.5e;MES-6a Step 0 Q3 · Q4,Tim):化验上的指标 —— 引导五个定义(残粉 · 箔纯度 ·
+        //   粒径 D10 / D50 / D90),一个值、一个限都没有种。Tim 可以停用任何一个(停用只管"还能不能新选",已记的值照旧读得出,D5)。
+        //   写与 substances 同一个码(module.materials.edit,与表的写策略同一个);读的门与表的读策略里那一个物料查看码同一个。
+        table: 'assay_indicators',
+        titleKey: 'dict.assay_indicators',
+        permission: 'module.materials.edit',
+        viewPermission: 'module.materials.view',
+        extras: [
+            { column: 'unit', kind: 'text', required: true, showInTable: true,
+              labelKey: 'dict.f.unit', hintKey: 'dict.h.unit' },
+        ],
+        referencedBy: [{ table: 'assay_result_indicators', column: 'indicator' }],
     },
 ]
 

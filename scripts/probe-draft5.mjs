@@ -23,12 +23,15 @@
 //   桌面档最右那格是动作列,**两者都没有列头**。DRAFT-4 在这里四条一起红过,
 //   而红的是探针 —— 四个读数逐字都是对的,错的是拿来比的那个整数。
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3208, CDP_PORT = 9344

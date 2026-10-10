@@ -37,6 +37,7 @@
 //
 // 用法:node scripts/probe-search-results.mjs   (需要 .next 里有一份生产构建)
 // 退出码:0 干净 / 1 有格子红了 / 2 量具自己坏了
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
@@ -44,6 +45,8 @@ import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans } from './ephemeral.mjs'
 import { assertPopulation } from './lib/selfproof.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3205

@@ -30,11 +30,14 @@
 // 用法:node scripts/probe-header-baseline.mjs --tag=before|after
 // 输出:scratchpad JSON + 人读的摘要
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn, execSync } from 'node:child_process'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const OUT_DIR = process.env.SURVEY_OUT || join(ROOT, '.survey-out')

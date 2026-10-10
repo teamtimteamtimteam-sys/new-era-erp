@@ -3,11 +3,11 @@
 // 这样批次页可以带着已录的化验结果直接跳进来。
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import CalculatorForm, { type FormulaOption } from './CalculatorForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { loadSubstances, payableOnly, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -26,7 +26,7 @@ export default async function CalculatorPage({
     const sp = await searchParams
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(payableOnly(await loadSubstances(supabase)), await getLocale())   // MES-6a-2(Q27):定价这一页只给按含量计价的金属
     const t = await getTranslations()
 
     const res = await supabase

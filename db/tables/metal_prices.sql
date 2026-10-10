@@ -132,3 +132,9 @@ CREATE POLICY "metal_prices delete by permission"
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.metal_prices
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.metal_prices');
+
+-- ── MES-6a-2(2026-10-10,MES-6a Step 0 Q27,Tim):行情只收按含量计价的金属 —— 别的按名拒 SUBSTANCE_NOT_PAYABLE|<码>。
+--    插入与改到 metal 的那一次才判;既有的行不回头判(substances.role 的列注)。不在字典里的码照旧由外键拒。
+CREATE TRIGGER trg_metal_prices_substance_role
+    BEFORE INSERT OR UPDATE OF metal ON public.metal_prices
+    FOR EACH ROW EXECUTE FUNCTION public.guard_substance_role('payable_metal', 'metal');

@@ -2,10 +2,11 @@
 -- SETTLE-1:有害元素惩罚 —— **物质 + 阈值 + 费率**,三样都是合同条款,逐物质一行。
 --
 -- 【前置条件已经完成】惩罚要指名一种物质,而物质字典(`substances`)是
---   PROC 那一刀记下的前置条件,今天 7 条全部在册 —— 所以这一张挂得上外键,
+--   PROC 那一刀记下的前置条件 —— 所以这一张挂得上外键,
 --   而不是又一列自由文本(F7 那条规律:自由文本迟早要变字典,而拖延很贵)。
---   黑粉承购里**首推的两个惩罚元素是氟与氯**(proc-reality 的访谈),
---   而**它们今天不在 substances 里** —— 见下面那条注释,那是一个具名的缺席。
+--   黑粉承购里**首推的两个惩罚元素是氟与氯**(proc-reality 的访谈)。
+--   ~~而它们今天不在 substances 里~~ —— ★ MES-6a-2(2026-10-10,Step 0 Q27 · Q31)加上了(role = penalty_element),
+--   而本表从那一刀起【只】收惩罚元素(下面的 trg_contract_penalty_elements_substance_role)。
 --
 -- ★★【费率的形状是【一种】写法,而不是唯一一种 —— 说出来,不假装】★★
 --   本表表达的是:**超过阈值之后,每超 1 个百分点、每吨结算重量收多少美元**。
@@ -54,7 +55,7 @@ CREATE POLICY "contract penalty elements write by owner permission"
     WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contract_penalty_elements IS
-    'SETTLE-1:有害元素惩罚 —— **物质 + 阈值 + 费率**,三样都是合同条款,逐物质一行。前置条件(substances 字典)已完成,所以这里挂的是**外键而不是又一列自由文本**(F7:自由文本迟早要变字典,拖延很贵)。★★**费率的形状是【一种】写法,不是唯一一种**★★:本表表达「超过阈值后,每超 1 个百分点、每吨**结算重量**收多少美元」;真实合同还有阶梯、封顶、按批一口价等写法 —— **Tim 没有给条款清单**,所以本刀只建这一种,并把这句话写在这里,好让下一个拿到真合同的人知道该在哪儿加,而不是以为这就是全部。★**惩罚按结算重量收,所以它随湿基/干基变**★(与 RC 相反,RC 按含金属吨数、而含金属是不变量)—— 两条合起来解释了为什么同一批货按湿基与按干基结算出**不同的金额**。★**具名的缺席**★:访谈点名的头两个惩罚元素是**氟与氯**,而它们**今天不在 substances 里**(在册 7 条:al/co/cu/fe/li/mn/ni)—— 所以一条氟或氯的惩罚条款**今天填不进来**,那不是本表的缺陷,是字典还缺两行。';
+    'SETTLE-1:有害元素惩罚 —— **物质 + 阈值 + 费率**,三样都是合同条款,逐物质一行。前置条件(substances 字典)已完成,所以这里挂的是**外键而不是又一列自由文本**(F7:自由文本迟早要变字典,拖延很贵)。★★**费率的形状是【一种】写法,不是唯一一种**★★:本表表达「超过阈值后,每超 1 个百分点、每吨**结算重量**收多少美元」;真实合同还有阶梯、封顶、按批一口价等写法 —— **Tim 没有给条款清单**,所以本刀只建这一种,并把这句话写在这里,好让下一个拿到真合同的人知道该在哪儿加,而不是以为这就是全部。★**惩罚按结算重量收,所以它随湿基/干基变**★(与 RC 相反,RC 按含金属吨数、而含金属是不变量)—— 两条合起来解释了为什么同一批货按湿基与按干基结算出**不同的金额**。★**曾经的具名缺席,已经补上**★:访谈点名的头两个惩罚元素是**氟与氯**;MES-6a-2(2026-10-10)把它们加进了 substances(role = penalty_element),而本表从那一刀起【只】收惩罚元素(守卫 guard_substance_role,别的按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT|<码>)。阈值以 % 记(屏幕上旁带 ppm),费率仍是每超 1 个百分点。';
 
 COMMENT ON COLUMN public.contract_penalty_elements.usd_per_tonne_per_pct_over IS
     'SETTLE-1:每超阈值 1 个百分点、每吨【结算重量】多少美元。**「结算重量」= contract_settlement_terms.sale_weight_basis 选定的那个重量**(湿基取毛重,干基取扣水后重量)—— 所以**同一份惩罚条款在两种基准下收出不同的钱**,而那是对的:罚的是随货一起进来的杂质,而水也是随货一起进来的。';
@@ -77,3 +78,8 @@ CREATE TRIGGER trg_contract_penalty_elements_frozen
     BEFORE INSERT OR UPDATE OR DELETE ON public.contract_penalty_elements
     FOR EACH ROW EXECUTE FUNCTION public.guard_contract_terms_frozen();
 
+-- ── MES-6a-2(2026-10-10,MES-6a Step 0 Q27,Tim):惩罚条款只收惩罚元素 —— 别的按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT|<码>。
+--    插入与改到 substance 的那一次才判;既有的行不回头判(substances.role 的列注)。不在字典里的码照旧由外键拒。
+CREATE TRIGGER trg_contract_penalty_elements_substance_role
+    BEFORE INSERT OR UPDATE OF substance ON public.contract_penalty_elements
+    FOR EACH ROW EXECUTE FUNCTION public.guard_substance_role('penalty_element', 'substance');

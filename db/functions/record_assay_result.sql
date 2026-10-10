@@ -18,7 +18,10 @@ CREATE OR REPLACE FUNCTION public.record_assay_result(
     p_result_party text DEFAULT NULL::text,
     -- ── MES-6a-1 追加(2026-10-09,Step 0 Q9):这份结果化验的是哪一份实物样品 —— 尾部、带默认,今天的调用照旧走得通 ──
     --   样品必须挂在同一批上(SAMPLE_NOT_FOR_BATCH);可空,sample_ref 那段自由文本照旧。
-    p_sample_id uuid DEFAULT NULL::uuid
+    p_sample_id uuid DEFAULT NULL::uuid,
+    -- ── MES-6a-2 追加(2026-10-10,Step 0 Q3 · Q4):这份化验上的指标 —— [{indicator, value}, …],尾部、带默认 ──
+    --   残粉 / 箔纯度 / 粒径(assay_indicators 的码);值 ≥ 0,没有上限、没有判定(Q3)。空 = 这一份没报指标。
+    p_indicators jsonb DEFAULT NULL::jsonb
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -34,6 +37,10 @@ DECLARE
     v_pct   numeric;
     v_seen  text[] := ARRAY[]::text[];
     v_count integer := 0;
+    v_ind   text;
+    v_val   numeric;
+    v_iseen text[] := ARRAY[]::text[];
+    v_icount integer := 0;
 BEGIN
     -- PROC-1:两个父【二选一】。记录、编号、取代共享一张表一条序列;
     -- 权限跟着父走 —— 进料化验挂 inbound 模块,产出化验挂 output 模块。
@@ -60,6 +67,10 @@ BEGIN
     END IF;
     IF p_metals IS NULL OR jsonb_typeof(p_metals) <> 'array' OR jsonb_array_length(p_metals) = 0 THEN
         RAISE EXCEPTION 'NO_METALS';
+    END IF;
+    -- MES-6a-2:指标要么不给(NULL),要么是一张清单 —— 一个读不懂的形状不当成"没有指标"
+    IF p_indicators IS NOT NULL AND jsonb_typeof(p_indicators) <> 'array' THEN
+        RAISE EXCEPTION 'INDICATORS_INVALID';
     END IF;
 
     -- PROC-6:出具方必须明说。**在这里具名拒绝,而不是等列上的 NOT NULL 抛机器话** ——
@@ -113,10 +124,35 @@ BEGIN
         v_count := v_count + 1;
     END LOOP;
 
+    -- ── MES-6a-2(Step 0 Q3 · Q4):指标。在字典里才收(停用与否由表单的选单管,D5 —— 与上面金属那一段同一个判据);
+    --   一个指标一行;值 ≥ 0,【没有上限、没有判定】—— 一个限是一条标准,而 Q3 说没有(V17 在 MES-6b)。
+    FOR v_el IN SELECT * FROM jsonb_array_elements(COALESCE(p_indicators, '[]'::jsonb))
+    LOOP
+        v_ind := v_el->>'indicator';
+        IF v_ind IS NULL OR NOT EXISTS (SELECT 1 FROM assay_indicators WHERE code = v_ind) THEN
+            RAISE EXCEPTION 'INDICATOR_INVALID|%', COALESCE(v_ind, '?');
+        END IF;
+        IF v_ind = ANY (v_iseen) THEN
+            RAISE EXCEPTION 'DUPLICATE_INDICATOR|%', v_ind;
+        END IF;
+        v_iseen := v_iseen || v_ind;
+        BEGIN
+            v_val := (v_el->>'value')::numeric;
+        EXCEPTION WHEN invalid_text_representation THEN
+            RAISE EXCEPTION 'INDICATOR_VALUE_INVALID|%|%', v_ind, COALESCE(v_el->>'value', '?');
+        END;
+        IF v_val IS NULL OR v_val < 0 THEN
+            RAISE EXCEPTION 'INDICATOR_VALUE_INVALID|%|%', v_ind, COALESCE(v_el->>'value', '?');
+        END IF;
+        INSERT INTO assay_result_indicators (assay_result_id, indicator, value) VALUES (v_id, v_ind, v_val);
+        v_icount := v_icount + 1;
+    END LOOP;
+
     RETURN jsonb_build_object(
         'assay_result_id', v_id,
         'code', v_code,
-        'metal_count', v_count
+        'metal_count', v_count,
+        'indicator_count', v_icount
     );
 END;
 $function$

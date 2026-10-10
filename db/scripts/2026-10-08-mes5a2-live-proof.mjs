@@ -13,11 +13,14 @@
 //   0 = 证明走完(STEP|done)且 psql 退 0 · 1 = 证明红了 · 2 = 驱动自己坏了 · 5 = live-lock 被占 · 6 = 收尾没完成。
 // 用法:node db/scripts/2026-10-08-mes5a2-live-proof.mjs > <log> 2>&1
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from '../../scripts/lib/entrypoint.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { acquireOrExit, release, heldBy } from '../../scripts/liveLock.mjs'
 import { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } from '../../scripts/ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const SQL = join(ROOT, 'db/scripts/2026-10-08-mes5a2-live-proof.sql')

@@ -30,12 +30,15 @@
 //     PROBE_FAULT=no-banner  假装横幅没出现 → S3 / T3 红
 //     PROBE_FAULT=no-revert  假装卡片没回去 → T4 红
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { spawn } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3205

@@ -11,14 +11,12 @@ export type { Substance } from './substanceQuery'
 
 /** 下拉/复选框的选项形状。
  *
- *  【清单与顺序来自库,名字来自 i18n —— 分工写在这里,免得下一个人以为是漏了】
- *  value / 顺序 / isActive 由 substances 那张字典给(它才是那份被复制过五遍的清单);
- *  labelKey 仍然是 'metals.<code>',而 check-i18n 的那条判据【已改成读字典的引导行】
- *  —— 于是加一行字典却没配翻译,`npm run build` 会当场点名那个键。
- *  这不是"两个真源":真源只有字典,i18n 是它的一份【被检查的】镜像。
+ *  ~~【清单与顺序来自库,名字来自 i18n】labelKey 仍然是 'metals.<code>'~~
+ *  ★ MES-6a-2(Step 0 Q30,Tim):【清单、顺序与名字都来自库】—— label 是字典自己的 name_en / name_zh(按读者语言),
+ *  role 说它在商务上是什么(定价那几页只收 payable_metal,惩罚条款只收 penalty_element)。形状的定义在 lib/substances.ts。
  *
- *  isActive:能不能【新选】。展示用的翻译不看它,选单看它(D5 的两个动词)。 */
-export type MetalOption = { value: string; labelKey: string; isActive: boolean }
+ *  isActive:能不能【新选】。展示用的名字不看它,选单看它(D5 的两个动词)。 */
+export type { SubstanceOption as MetalOption } from '@/lib/substances'
 
 /**
  * code → i18n 键。

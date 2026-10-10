@@ -211,8 +211,12 @@ BEGIN
     v_swt := convert_weight_basis(v_gross, 'as_received', v_basis, v_moist);
 
     -- ── 逐金属:含量 → 应付量 → 计价期均价 → 金额;并扣精炼费 ────────────
+    -- MES-6a-2(MES-6a Step 0 Q28,Tim):这一圈只走【按含量计价的金属】—— 化验上的氟、氯不要计价条款、不收精炼费
+    --   (此前它们在这里会按名拒 SETTLEMENT_PAYABLE_NOT_STATED / REFINING_CHARGE_NOT_FILED,一份测了氟的化验就结算不了);
+    --   它们只在下面惩罚那一圈被读。
     FOR v_metal, v_content IN
         SELECT m.metal, m.content_pct FROM assay_result_metals m
+          JOIN substances s ON s.code = m.metal AND s.role = 'payable_metal'
          WHERE m.assay_result_id = p_assay_result_id ORDER BY m.metal
     LOOP
         -- 把含量换算到【结算基准】上。含金属因此是不变量 —— 见抬头。

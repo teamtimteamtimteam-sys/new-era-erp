@@ -21,8 +21,8 @@ import { EditableTable, type EditableColumn } from '@/app/components/ui/editable
 
 /** 桥上交出去的一行 —— 与搬家前 `payable_metal[]` / `payable_pct[]` 逐字同构。 */
 type PayableLine = { metal: string; pct: string }
-/** 渲染用的行。`labelKey` 不进桥。 */
-type PayableRow = PayableLine & { labelKey: string }
+/** 渲染用的行。`label`(字典自己的名字,MES-6a-2 Q30)不进桥。 */
+type PayableRow = PayableLine & { label: string }
 
 const initialState: FormulaState = {}
 
@@ -133,7 +133,7 @@ export default function FormulaForm({
     const activeOptions = substanceOptions.filter((s) => s.isActive)
     const payableRows: PayableRow[] = activeOptions.map((opt) => ({
         metal: opt.value,
-        labelKey: opt.labelKey,
+        label: opt.label,
         pct: payables[opt.value] ?? '',
     }))
 
@@ -156,7 +156,7 @@ export default function FormulaForm({
             priority: true,
             render: (r) => (
                 <>
-                    {t(r.labelKey)}
+                    {r.label}
                     <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),

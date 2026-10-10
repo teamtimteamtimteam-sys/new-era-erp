@@ -15,6 +15,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { AssayMetalsTable, ApplyPreviewTable } from './AssayTables'
+import AssayIndicators from '@/app/components/quality/AssayIndicators'
+import { loadSubstanceLabels } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { contentCell, contentText } from '@/lib/substances'
 import { localizeAssayError } from '@/app/inbound/assayErrorCodes'
 import { ApplyOutputAssayButton, UnapplyOutputAssayControl } from './OutputApplyControls'
 import { mustRows } from '@/lib/db-helpers'
@@ -128,6 +131,8 @@ export default async function OutputAssayDetailPage({
         const key = metalLabelKey(v)
         return key ? t(key) : v
     }
+    // MES-6a-2(Q29):惩罚元素(氟、氯)在 % 旁边带 ppm,原样精度 —— 角色读字典(停用的也读,D5)
+    const roleOf = new Map((await loadSubstanceLabels(supabase)).map((r) => [r.code, r.role]))
     const sourceLabel = (r: PreviewCurrentRow) =>
         r.content_source === 'assay'
             ? r.source_assay_code ?? t('metalContent.sourceAssay')
@@ -267,9 +272,12 @@ export default async function OutputAssayDetailPage({
                 rows={metals.map((m) => ({
                     metal: m.metal,
                     metalLabel: metalLabel(m.metal),
-                    contentPct: String(m.content_pct),
+                    contentPct: contentCell(m.content_pct, roleOf.get(m.metal)),
                 }))}
             />
+
+            {/* MES-6a-2(Q3 · Q4):这份化验上的指标 —— 残粉、箔纯度、粒径(没有限、没有判定) */}
+            <AssayIndicators assayId={assayId} />
 
             {/* 未应用:应用会怎样(问库)+ 立即应用 */}
             {!isApplied && (
@@ -294,7 +302,7 @@ export default async function OutputAssayDetailPage({
                                 rows={previewRows.map((r) => ({
                                     metal: r.metal,
                                     metalLabel: metalLabel(r.metal),
-                                    currentText: r.current ? `${r.current.content_pct}%` : '—',
+                                    currentText: r.current ? contentText(r.current.content_pct, roleOf.get(r.metal)) : '—',
                                     sourceLabel: r.current ? sourceLabel(r.current) : null,
                                     sourceKind: r.current
                                         ? r.current.content_source === 'assay'
@@ -303,7 +311,7 @@ export default async function OutputAssayDetailPage({
                                                 ? 'manual' as const
                                                 : 'other' as const
                                         : null,
-                                    afterText: r.next ? `${r.next.content_pct}%` : null,
+                                    afterText: r.next ? contentText(r.next.content_pct, roleOf.get(r.metal)) : null,
                                 }))}
                             />
 

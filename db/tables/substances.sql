@@ -18,7 +18,10 @@ CREATE TABLE public.substances (
     symbol     text,
     is_active  boolean NOT NULL DEFAULT true,
     sort_order integer NOT NULL DEFAULT 0,
-    notes      text
+    notes      text,
+    -- MES-6a-2(2026-10-10,MES-0 Q69;MES-6a Step 0 Q26,Tim):这种物质在商务上【扮演什么】。NOT NULL、【没有默认值】——
+    --   默认 payable_metal 会让以后加的每一行都悄悄变成"可计价",而那正是 F / Cl 不该是的东西。
+    role       text NOT NULL CHECK (role IN ('payable_metal', 'penalty_element', 'other'))
 );
 
 COMMENT ON TABLE public.substances IS
@@ -40,14 +43,16 @@ COMMENT ON TABLE public.substances IS
 本刀不付这笔账:CHECK 才是挡住氟氯石墨的那个东西,列名只是难看。
 **排期:列名 metal → substance_code,代价 623 处,见 docs/known-issues.md。**
 
-【D2:今天只有七个,而这【不是】清单的全部】
-第一批要加的,连同它们各自的返回条件:
-  * **氟(F)/ 氯(Cl)** —— 惩罚元素。今天它们【连记都记不下来】。
-    返回条件:**第一份写明惩罚结构的承购/供货条款**(docs/proc-reality.md 的 U11)。
+【D2:七个可计价金属 + 两个惩罚元素,而这【仍然不是】清单的全部】
+  * ~~**氟(F)/ 氯(Cl)** —— 惩罚元素。今天它们【连记都记不下来】。~~
+    ★ **MES-6a-2(2026-10-10,MES-6a Step 0 Q31,Tim)加上了**:f / cl,role = penalty_element。化验与含量里记得下,
+    合同的惩罚条款里点得了名;**定价那几条路(行情、公式、承诺、合同计价与精炼费、计价器)按名拒它们**
+    (SUBSTANCE_NOT_PAYABLE),结算的计价、报价、回收率与成本分摊只读 payable_metal —— 见 role 的列注。
+    原来写的返回条件(第一份写明惩罚结构的条款,U11)没有变:它们的阈值与费率仍是一份一份合同的条款(V15 不设待补的值)。
   * **石墨** —— 可回收流。返回条件:**第一次真的回收出一条石墨流**。
   * **塑料** —— 同上。返回条件:**流程图定稿,确认它是一条产品流而不是处置流**
     (U6)。
-现在就把它们加进来,等于宣称我们能记录、能定价它们 —— 而今天两样都不能,
+现在就把后两样加进来,等于宣称我们能记录、能定价它们 —— 而今天两样都不能,
 一个没人用得上的字典行会教下一个读它的人"这一类在用"(material_kinds 不加
 reagent 是同一条)。
 
@@ -81,19 +86,44 @@ COMMENT ON COLUMN public.substances.sort_order IS
 本列把那个顺序变成一个【被选择的】事实:新加一行时,它出现在哪儿由这一列决定,
 而不是由字母、也不是由插入次序。';
 
+COMMENT ON COLUMN public.substances.role IS
+'MES-6a-2(2026-10-10,MES-0 Q69;MES-6a Step 0 Q26–Q28,Tim):这种物质在商务上扮演什么。NOT NULL,【没有默认值】。
+
+  * payable_metal   —— 按含量计价的金属。【只有它们】进得了定价的那几条路:行情(metal_prices)、公式与它的承诺副本
+                       (pricing_formula_metals · pricing_term_commitment_metals)、合同的计价条款与精炼费
+                       (contract_pricing_terms · contract_refining_charges)、计价器与 calculate_metal_price_from_terms ——
+                       别的按名拒 SUBSTANCE_NOT_PAYABLE(表上的守卫 guard_substance_role 一道,写入函数自己再先说一遍);
+                       结算的计价那一圈、销售报价、按条款计价、回收率与成本分摊也只读它们。
+  * penalty_element —— 惩罚元素(氟、氯)。【只有它们】点得进合同的惩罚条款(contract_penalty_elements),别的按名拒
+                       SUBSTANCE_NOT_PENALTY_ELEMENT;结算只在惩罚那一圈读它们。屏幕上在 % 旁边带 ppm(1 % = 10,000 ppm),不舍到两位。
+  * other           —— 记得下、哪儿都不算钱的(将来的石墨、塑料之类)。
+
+【在哪儿都记得下】化验、批次含量、物料必测项、采购单的预计化验、合同品位规格、配料目标 —— 三种都收(Q27 的"任意")。
+
+【为什么没有默认值】一个默认 payable_metal 会让以后加的每一行都悄悄变成"可计价";一个默认 other 会让一种真要计价的金属
+悄悄算不进钱。两种错都不报错 —— 所以加一行就得说出它是哪一种(字典编辑器上是一个必选的下拉)。
+
+【改一行的 role 不回头判已经写下的行】与 is_active 同一条(D5):守卫只管新写入与改到那一列的那一次;
+既有的行情、条款、含量照旧读得出来。要让一种金属"不再计价",改的是这一列,而它从那一刻起才生效。';
+
 COMMENT ON COLUMN public.substances.symbol IS
 '元素符号(Ni / Co / Li…)。**可空,而空是有意义的**:塑料不是元素,没有符号。
 它是展示用的,不参与任何判断 —— 判断一律用 code。';
 
--- ── 七个,一个不多。顺序照 app 侧那个"重要的排前面",不照字母序 ──────────────
-INSERT INTO public.substances (code, name_en, name_zh, symbol, sort_order, notes) VALUES
-    ('ni', 'Nickel',    '镍', 'Ni', 1, NULL),
-    ('co', 'Cobalt',    '钴', 'Co', 2, NULL),
-    ('li', 'Lithium',   '锂', 'Li', 3, NULL),
-    ('mn', 'Manganese', '锰', 'Mn', 4, NULL),
-    ('cu', 'Copper',    '铜', 'Cu', 5, NULL),
-    ('al', 'Aluminium', '铝', 'Al', 6, NULL),
-    ('fe', 'Iron',      '铁', 'Fe', 7, NULL);
+-- ── 七个可计价金属 + 两个惩罚元素。顺序照 app 侧那个"重要的排前面",不照字母序 ──────────────
+-- MES-6a-2(Step 0 Q26 · Q31):七个既有的行 role = payable_metal(线上由迁移改,与这里同一句);f / cl 排 8 · 9
+--   (在 fixture 116 的 99 之下),role = penalty_element。【这份引导的默认值仍然正确】—— 既有各列的意思一个字没变,
+--   只多了一列,而那一列在这里写明了每一行(AGENTS.md「RUNTIME CONFIG」:改表的那一刀要说清引导仍然对)。
+INSERT INTO public.substances (code, name_en, name_zh, symbol, sort_order, notes, role) VALUES
+    ('ni', 'Nickel',    '镍', 'Ni', 1, NULL, 'payable_metal'),
+    ('co', 'Cobalt',    '钴', 'Co', 2, NULL, 'payable_metal'),
+    ('li', 'Lithium',   '锂', 'Li', 3, NULL, 'payable_metal'),
+    ('mn', 'Manganese', '锰', 'Mn', 4, NULL, 'payable_metal'),
+    ('cu', 'Copper',    '铜', 'Cu', 5, NULL, 'payable_metal'),
+    ('al', 'Aluminium', '铝', 'Al', 6, NULL, 'payable_metal'),
+    ('fe', 'Iron',      '铁', 'Fe', 7, NULL, 'payable_metal'),
+    ('f',  'Fluorine',  '氟', 'F',  8, NULL, 'penalty_element'),
+    ('cl', 'Chlorine',  '氯', 'Cl', 9, NULL, 'penalty_element');
 
 ALTER TABLE public.substances ENABLE ROW LEVEL SECURITY;
 -- 【目录不敏感】与 material_kinds / certificate_types / currencies 同一处置。

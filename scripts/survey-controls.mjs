@@ -100,6 +100,7 @@
 // ★ BTN-SIZE-1:`--urls=/a,/b` —— 逐字给路径,追加在静态路由之后(只对 --mode=drift)。
 //   带 `[id]` 的详情页与 `/brand-sampler` 按构造不在 staticRoutes 里,这是够到它们的唯一口子。
 
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { spawn, execSync } from 'node:child_process'
@@ -107,6 +108,8 @@ import { join } from 'node:path'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks } from './ephemeral.mjs'
 import { assertPopulation, assertPinned } from './lib/selfproof.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const SELF = 'survey-controls'
 const ROOT = new URL('..', import.meta.url).pathname

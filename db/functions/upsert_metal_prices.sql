@@ -59,6 +59,11 @@ BEGIN
         IF v_metal IS NULL OR NOT EXISTS (SELECT 1 FROM substances WHERE code = v_metal) THEN
             RAISE EXCEPTION 'METAL_INVALID|%', COALESCE(v_metal, '?');
         END IF;
+        -- MES-6a-2(Step 0 Q27):行情只给按含量计价的金属 —— 氟、氯与 other 按名拒(表上的 guard_substance_role 是同一句的第二道)。
+        --   放在"空值跳过"之前:一个不该有行情的码,连空着送进来都是一句错话,不是一格没填。
+        IF (SELECT role FROM substances WHERE code = v_metal) <> 'payable_metal' THEN
+            RAISE EXCEPTION 'SUBSTANCE_NOT_PAYABLE|%', v_metal;
+        END IF;
 
         -- 空值跳过而不是报错:UI 的每日录入表单常常只填了其中几个金属。
         v_raw := v_el->>'price_usd_per_tonne';

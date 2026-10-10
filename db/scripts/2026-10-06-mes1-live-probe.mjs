@@ -16,11 +16,14 @@
 //   0 = 全过 · 1 = 有断言失败 · 2 = 探针自己坏了 · 5 = live-lock 被占 · 6 = 收尾没完成。
 // 用法:node db/scripts/2026-10-06-mes1-live-probe.mjs  (结果另写一份 JSON 到 --out=<path>)
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from '../../scripts/lib/entrypoint.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release, heldBy } from '../../scripts/liveLock.mjs'
 import { openPlan, mintThrowaway, reapStalePlans, installExitHooks, exitAfterCleanup } from '../../scripts/ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')

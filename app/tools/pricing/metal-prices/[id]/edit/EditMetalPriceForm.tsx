@@ -64,7 +64,7 @@ export default function EditMetalPriceForm({
                         <option value="" disabled>{t('metalPrices.form.selectMetal')}</option>
                         {substanceOptions.filter((s) => s.isActive).map((o) => (
                             <option key={o.value} value={o.value}>
-                                {t(o.labelKey)}
+                                {o.label}
                             </option>
                         ))}
                     </select>

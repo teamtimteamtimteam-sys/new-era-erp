@@ -31,6 +31,7 @@
 //   收尾改成 cleanup():照常往下清,但每一次失败都记账、印出来,并让本支【非零退出】。
 //   一条没删掉的 admin 授权是一次失败,不是一条日志。见 docs/known-issues.md 的
 //   「幽灵 admin 授权」一节(66 → 21 → 8 三次清扫)。
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openPlan, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup } from './ephemeral.mjs'
@@ -41,6 +42,8 @@ import { acquireOrExit, release } from './liveLock.mjs'
 // ★ U1-B(2026-10-05)took the live-lock:与 smoke / u1a 一样 acquireOrExit(…, { ownExit: false }),
 //   放锁接在 installExitHooks 的 onFinish 上(清理跑完之后才放)。此前它造一次性账号与授权而【不持锁】
 //   —— 于是它能与冒烟 / 探针同时对着线上库造授权。锁被别人占着时退 5(liveLock 的约定),那时什么都还没造。
+onlyWhenRunDirectly(import.meta.url)
+
 installExitHooks({ onFinish: () => { try { release() } catch {} } })
 
 const ROOT = process.cwd()

@@ -2666,6 +2666,7 @@ substances,symbol,text,verbatim,dict.f.symbol,Symbol,,text-only,,text
 substances,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,dict.f.isActive,Status,,high,app/settings/dictionaries/DictSection.tsx:86,boolean
 substances,sort_order,technical,hide,,,Sort order,,,integer
 substances,notes,text,verbatim,contracts.form.notes,Notes,,high,app/contracts/[id]/HeaderForm.tsx:130,text
+substances,role,enum,"label map substances#role (gen-trail-catalogue ENUM_LABELS; same list as the CHECK)",dict.f.role,Role,,high,app/settings/dictionaries/registry.ts,text
 supplier_attachments,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 supplier_attachments,supplier_id,fk_document,"suppliers.code (document number, prefix SUP)",expense.form.supplier,Supplier,,text-only,,uuid
 supplier_attachments,storage_path,technical,hide,,,Storage path,,,text
@@ -3584,3 +3585,14 @@ contract_settlement_terms,arbitration_fee_rule,enum,ENUM_OVERRIDES contract_sett
 expenses,reversal_reason,text,verbatim,,,Reversal reason,,,text
 expenses,reversed_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Reversed,,,timestamp with time zone
 expenses,reversed_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Reversed by,,,uuid
+assay_indicators,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+assay_indicators,name_en,text,verbatim,dict.f.nameEn,Name (EN),,text-only,,text
+assay_indicators,name_zh,text,verbatim,dict.f.nameZh,Name (ZH),,text-only,,text
+assay_indicators,unit,text,verbatim,dict.f.unit,Unit,,high,app/settings/dictionaries/registry.ts,text
+assay_indicators,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+assay_indicators,sort_order,technical,hide,,,Sort order,,,integer
+assay_indicators,notes,text,verbatim,,,Notes,,,text
+assay_result_indicators,assay_result_id,fk_document,"assay_results.code (document number, prefix ASY)",search.docType.assay_result,Assay results,,text-only,,uuid
+assay_result_indicators,indicator,dict,assay_indicators.name_en (via code),,,Indicator,,,text
+assay_result_indicators,value,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Value,,,numeric
+assay_result_indicators,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone

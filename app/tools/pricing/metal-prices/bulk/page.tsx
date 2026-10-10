@@ -5,7 +5,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { loadSubstances, toOptions } from '../substanceQuery'
+import { loadSubstances, payableOnly, toOptions } from '../substanceQuery'
 import BulkPricesForm, { type MetalRowData } from './BulkPricesForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import { getMetalPriceIndices } from '../indexQuery'
@@ -44,7 +44,7 @@ export default async function BulkPricesPage({
     const sp = await searchParams
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(payableOnly(await loadSubstances(supabase)), await getLocale())   // MES-6a-2(Q27):定价这一页只给按含量计价的金属
     const t = await getTranslations()
 
     const raw = (sp.date ?? '').trim()

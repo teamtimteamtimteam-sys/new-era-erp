@@ -26,7 +26,7 @@ import { mustOne } from '@/lib/db-helpers'
 import ThresholdPanel from './ThresholdPanel'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import type { AnomalyVerdict } from './anomaly'
-import { loadSubstances, toOptions } from './substanceQuery'
+import { loadSubstances, payableOnly, toOptions } from './substanceQuery'
 import { formatDate } from '@/lib/dates'
 
 type MetalPriceRow = {
@@ -108,7 +108,7 @@ export default async function MetalPricesPage({
     const sp = await searchParams
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
-    const substanceOptions = toOptions(await loadSubstances(supabase))
+    const substanceOptions = toOptions(payableOnly(await loadSubstances(supabase)), await getLocale())   // MES-6a-2(Q27):定价这一页只给按含量计价的金属
     const t = await getTranslations()
     const locale = await getLocale()
 

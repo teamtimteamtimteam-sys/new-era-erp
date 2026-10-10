@@ -45,9 +45,12 @@ BEGIN
     END IF;
 
     -- 金属含量来自产出批自己的化验(output_batch_metals)—— 卖的是这批货的含量
+    -- MES-6a-2(MES-6a Step 0 Q28):报价只按【按含量计价的金属】算 —— 产出批上记着的氟、氯不进来(它们没有行情,
+    --   进来就是 METAL_PRICE_MISSING,把每一张报价都挡住)。一批只记了惩罚元素的,照"没有含量"拒。
     SELECT COALESCE(jsonb_agg(jsonb_build_object('metal', m.metal, 'content_pct', m.content_pct)), '[]'::jsonb)
     INTO v_metals
-    FROM output_batch_metals m WHERE m.output_batch_id = p_output_batch_id;
+    FROM output_batch_metals m JOIN substances s ON s.code = m.metal AND s.role = 'payable_metal'
+    WHERE m.output_batch_id = p_output_batch_id;
     IF v_metals = '[]'::jsonb THEN
         RAISE EXCEPTION 'NO_METAL_CONTENT|%', v_batch.code;
     END IF;
@@ -88,7 +91,8 @@ BEGIN
             'flat_discount_pct', 0,
             'payables', COALESCE(jsonb_object_agg(m.metal, 100), '{}'::jsonb))
         INTO v_terms
-        FROM output_batch_metals m WHERE m.output_batch_id = p_output_batch_id;
+        FROM output_batch_metals m JOIN substances s ON s.code = m.metal AND s.role = 'payable_metal'
+        WHERE m.output_batch_id = p_output_batch_id;
     END IF;
 
     v_result := calculate_metal_price_from_terms(v_terms, v_metals, p_quantity, p_reference_date);

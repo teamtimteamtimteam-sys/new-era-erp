@@ -41,12 +41,15 @@
 //       退出码 0 = 两件事都被真的走过了
 // ════════════════════════════════════════════════════════════════════════════
 
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { spawn } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, mintThrowaway, planDelete, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3203                 // 3198 survey-phone · 3199 冒烟 · 3201 avatar · 3202 button-tiers

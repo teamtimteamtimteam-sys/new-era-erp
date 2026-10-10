@@ -15,12 +15,15 @@
 // 退出码:0 = 全过;1 = 有断言失败;2 = 探针自己坏了。★ 判决只从日志里那一行 `U1A_PROBE_EXIT=` 读。
 // 用法:node scripts/probe-u1a.mjs [--inject=<case>]   见 INJECTIONS —— 每一种都必须让一条具体的断言变红。
 // ════════════════════════════════════════════════════════════════════════════
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+
+onlyWhenRunDirectly(import.meta.url)
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3187            // 不与冒烟(3199)、版式(3198)、1b-1 … 1d-3(3196 … 3188)探针撞

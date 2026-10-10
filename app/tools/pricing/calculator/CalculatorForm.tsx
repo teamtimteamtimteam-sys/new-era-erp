@@ -21,8 +21,8 @@ import { DatePicker } from '@/app/components/ui/date-picker'
  *    同样的受控 Record。**而它自己有一处收参点**,所以 DRAFT-4 那句
  *    「按字段名 grep 会把它扫进来,别碰」一分钱都没白付 —— 今天轮到它了。 */
 type MetalLine = { metal: string; content: string }
-/** 渲染用的行:多带一个 labelKey,而它【不进桥】。 */
-type MetalRow = MetalLine & { labelKey: string }
+/** 渲染用的行:多带一个 label(字典自己的名字,MES-6a-2 Q30),而它【不进桥】。 */
+type MetalRow = MetalLine & { label: string }
 
 const initialState: CalculatorState = {}
 
@@ -62,7 +62,7 @@ export default function CalculatorForm({
     const activeOptions = substanceOptions.filter((s) => s.isActive)
     const assayRows: MetalRow[] = activeOptions.map((opt) => ({
         metal: opt.value,
-        labelKey: opt.labelKey,
+        label: opt.label,
         content: assay[opt.value] ?? '',
     }))
 
@@ -85,7 +85,7 @@ export default function CalculatorForm({
             priority: true,
             render: (r) => (
                 <>
-                    {t(r.labelKey)}
+                    {r.label}
                     <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
@@ -216,7 +216,7 @@ export default function CalculatorForm({
                     {/* ★★ (b) 那座桥 —— **画在表外面,只画一遍**(Tim 2026-09-21 的 Q1 裁定)。
                         组件把列回调画两遍(桌面格 `hidden sm:block` + 手机展开区),
                         所以具名输入不许进格子;这一个不在格子里,于是它在 `FormData` 里
-                        **只出现一次**。★ 交出去的是 `MetalLine`,`labelKey` 不在里面。 */}
+                        **只出现一次**。★ 交出去的是 `MetalLine`,`label` 不在里面。 */}
                     <input
                         type="hidden"
                         name="assay_metals_json"

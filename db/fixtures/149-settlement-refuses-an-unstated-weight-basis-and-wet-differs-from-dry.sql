@@ -90,13 +90,17 @@ BEGIN
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZ149-OB1', v_mat, 10000, 10000, DATE '2026-09-14') RETURNING id INTO v_ob;
 
-    -- 化验:干基,水分 10%,Ni 20%,Cu 2.5%
+    -- 化验:干基,水分 10%,Ni 20%,Cu 2.5%,F 2.5%
+    -- ★ MES-6a-2(Step 0 Q27 · Q28):惩罚那一项此前点名的是 cu —— 一个【可计价】的金属;从 MES-6a-2 起惩罚条款只收惩罚元素
+    --   (SUBSTANCE_NOT_PENALTY_ELEMENT),所以惩罚改由氟承担,含量与阈值、费率【逐字照搬】cu 原来那一组(2.5 % / 0.5 / 50)——
+    --   惩罚金额不变,于是下面那两个手算的金额(11542.50 / 11567.50)一个字没改。cu 仍是一个可计价的金属(1 %),照旧在计价那一圈。
+    --   顺带它多钉了一件事:化验上有一行氟,而计价那一圈【不】要它的计价条款(此前会按名拒 SETTLEMENT_PAYABLE_NOT_STATED|f)。
     INSERT INTO assay_results (code, output_batch_id, assay_date, is_final,
                                weight_basis, moisture_pct, result_party, lab_name)
     VALUES ('ZZ149-AS-OURS', v_ob, DATE '2026-09-15', true, 'dry', 10, 'ours', 'ZZ149-OURS')
     RETURNING id INTO v_a_ours;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
-    VALUES (v_a_ours,'ni',20), (v_a_ours,'cu',2.5);
+    VALUES (v_a_ours,'ni',20), (v_a_ours,'cu',2.5), (v_a_ours,'f',2.5);
 
     -- ── 两份合同:一份按干基结算,一份按湿基,其余条款【逐字相同】───────────
     -- 【为什么是两份合同而不是改一份】条款在**挂接那一刻**冻结(CONTRACT-1/PRICE-1
@@ -118,7 +122,7 @@ BEGIN
             INSERT INTO contract_refining_charges (contract_id, metal, usd_per_tonne_of_metal)
             VALUES (v_c,'ni',100), (v_c,'cu',0);
             INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over)
-            VALUES (v_c,'cu',0.5,50);
+            VALUES (v_c,'f',0.5,50);   -- MES-6a-2:原来是 cu(见上面化验那一段的说明)
         END;
     END LOOP;
 
@@ -210,7 +214,7 @@ BEGIN
     VALUES ('ZZ149-AS-CP', v_ob, DATE '2026-09-15', true, 'dry', 10, 'counterparty', 'ZZ149-BUY')
     RETURNING id INTO v_a_cp;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
-    VALUES (v_a_cp,'ni',20), (v_a_cp,'cu',2.5);          -- 先与我方【一致】,D 臂再改
+    VALUES (v_a_cp,'ni',20), (v_a_cp,'cu',2.5), (v_a_cp,'f',2.5);          -- 先与我方【一致】,D 臂再改
     UPDATE contract_settlement_terms SET settling_party='counterparty' WHERE contract_id=v_con_d;
     DELETE FROM contract_document_terms WHERE sales_order_id=v_so_d;
     UPDATE sales_orders SET contract_id=NULL WHERE id=v_so_d;
@@ -267,7 +271,7 @@ BEGIN
     VALUES ('ZZ149-AS-UMP', v_ob, DATE '2026-09-15', true, 'dry', 10, 'umpire', 'ZZ149-UMP')
     RETURNING id INTO v_a_ump;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
-    VALUES (v_a_ump,'ni',19), (v_a_ump,'cu',2.5);
+    VALUES (v_a_ump,'ni',19), (v_a_ump,'cu',2.5), (v_a_ump,'f',2.5);
     IF (SELECT count(*) FROM assay_results WHERE output_batch_id=v_ob AND deleted_at IS NULL) <> 3 THEN
         RAISE EXCEPTION 'FIXTURE 149D 失败:同一批货应当有【三行】化验(我方/对方/仲裁),而不是被互相覆盖'; END IF;
     IF (SELECT count(*) FROM assay_results WHERE output_batch_id=v_ob AND superseded_by IS NOT NULL) <> 0 THEN

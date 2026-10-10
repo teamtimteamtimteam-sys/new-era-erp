@@ -711,6 +711,8 @@ const TABLE_NAMES = {
     blending_plans: 'blending plan', blending_plan_targets: 'blending target', blending_plan_lines: 'blending line',
     // MES-6a-1(2026-10-09):一份样品 · 它的一条保管记录 · 一件化验争议 · 内部留样天数(V16)
     samples: 'sample', sample_events: 'sample custody record', assay_disputes: 'assay dispute', quality_settings: 'sample retention setting',
+    // MES-6a-2(2026-10-10):化验指标字典 · 一份化验上一个指标的值
+    assay_indicators: 'assay indicator', assay_result_indicators: 'assay indicator value',
     purchase_orders: 'purchase order', purchase_order_lines: 'purchase order line',
     purchase_order_payment_terms: 'payment instalment', purchase_order_line_retentions: 'retention',
     pricing_term_commitments: 'committed pricing terms', po_issues: 'purchase order issue',
@@ -853,6 +855,8 @@ const ENUM_OVERRIDES = {
     'blending_plan_targets#source': { contract: 'Copied from the contract', manual: 'Entered by hand' },
     // MES-6a-1(2026-10-09):留样日由谁定 · 仲裁费怎么分(争议上立案时抄下的那一份,与合同条款上那一列同一组值)
     'samples#retain_until_source': { contract: 'The contract', internal: 'The internal period', not_set: 'Not set' },
+    // MES-6a-2(2026-10-10,MES-6a Step 0 Q26):物质在商务上是什么(substances.role 的 CHECK 清单)
+    'substances#role': { payable_metal: 'Payable metal', penalty_element: 'Penalty element', other: 'Other' },
     'assay_disputes#fee_rule_at': { loser_pays: 'The losing party pays', equal: 'Split equally', further_from_umpire_pays: 'The party further from the umpire pays', buyer: 'The buyer pays', seller: 'The seller pays' },
     'contract_settlement_terms#arbitration_fee_rule': { loser_pays: 'The losing party pays', equal: 'Split equally', further_from_umpire_pays: 'The party further from the umpire pays', buyer: 'The buyer pays', seller: 'The seller pays' },
     'electricity_allocation_lines#basis': { recorded_energy: 'Recorded run energy', run_time: 'Run time' },

@@ -77,6 +77,7 @@
 //   写错的值响亮退 2,不会被当成"不注入"悄悄跑完整趟。
 // 【不进 db/gate.py】整跑十几分钟(见上面的实测)且要起 dev server —— 慢门会被跳过,
 // check_mirrors 的教训。按需跑:每次改了页面渲染层,或 Tim 又用手找到一只虫之后。
+import { onlyWhenRunDirectly } from './lib/entrypoint.mjs'
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
@@ -97,6 +98,8 @@ import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installEx
 //   beforeFinish 按名字再扫一遍:计划是"造出来之后才知道 id"的那几行(账号)在
 //   【造出 → 登记】之间那一个 await 上有一个缝,名字兜底接住它。live-lock 让冒烟独占,
 //   所以按名字扫不会扫到另一次正在跑的冒烟(sweepScratch 抬头那条规矩)。
+onlyWhenRunDirectly(import.meta.url)
+
 let devProc = null
 let sweepAtExit = false          // 只有开跑清扫之后才按名字扫(之前扫,等于替上一次收尾 —— 开跑那次会做)
 installExitHooks({
@@ -2239,7 +2242,8 @@ async function main() {
     await termRow('contract_settlement_terms', { contract_id: smokeSell.id, sale_weight_basis: 'dry', settling_party: 'ours',
         sample_retention_required: false, refining_charge_basis: 'per_metal', penalty_basis: 'per_element' })
     await termRow('contract_refining_charges', { contract_id: smokeSell.id, metal: 'ni', usd_per_tonne_of_metal: 1 })
-    await termRow('contract_penalty_elements', { contract_id: smokeSell.id, substance: 'cu', threshold_pct: 1, usd_per_tonne_per_pct_over: 1 })
+    // MES-6a-2(Step 0 Q27):惩罚条款只收惩罚元素 —— 原来这一行写的是 cu,从这一刀起按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT|cu
+    await termRow('contract_penalty_elements', { contract_id: smokeSell.id, substance: 'f', threshold_pct: 0.005, usd_per_tonne_per_pct_over: 1 })
     await termRow('contract_grade_specs', { contract_id: smokeBuy.id, metal: 'co', max_pct: 1 })
 
     // ── dev server ───────────────────────────────────────────────────────────

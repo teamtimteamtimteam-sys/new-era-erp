@@ -63,6 +63,13 @@ BEGIN
     v_basis    := p_terms->>'price_basis';
     v_avg_days := (p_terms->>'average_days')::integer;
     v_payables := COALESCE(p_terms->'payables', '{}'::jsonb);
+    -- MES-6a-2(MES-6a Step 0 Q27,Tim):【条款】里只许有按含量计价的金属 —— 一个惩罚元素或 other 写进计价系数,按名拒。
+    --   (公式与承诺副本的表上守卫已经拦住了它们;这一句守着把条款现拼出来交给本函数的那几条路,例如产出报价的现价预设。)
+    SELECT k INTO v_metal FROM jsonb_object_keys(CASE WHEN jsonb_typeof(v_payables) = 'object' THEN v_payables ELSE '{}'::jsonb END) k
+      JOIN substances s ON s.code = k WHERE s.role <> 'payable_metal' ORDER BY k LIMIT 1;
+    IF FOUND THEN
+        RAISE EXCEPTION 'SUBSTANCE_NOT_PAYABLE|%', v_metal;
+    END IF;
 
     -- 2. 数量
     IF p_quantity_kg IS NULL OR p_quantity_kg <= 0 THEN
@@ -83,6 +90,12 @@ BEGIN
         -- 于是"加一种物质 = 加一行"这句承诺,在这条路上不成立。
         IF v_metal IS NULL OR NOT EXISTS (SELECT 1 FROM substances WHERE code = v_metal) THEN
             RAISE EXCEPTION 'METAL_INVALID|%', COALESCE(v_metal, '?');
+        END IF;
+        -- MES-6a-2(Q27 · Q28):要计价的含量清单里也只许有按含量计价的金属。这里【拒】,不悄悄跳过 ——
+        --   计价器上的人送来一个氟,是一句错话;而一份同时测了氟的化验,由读它的那几支(按化验应用 / 试算、按已承诺条款计价、
+        --   产出报价)先经 payable_metals_only 拿掉惩罚元素再交进来 —— 跳过与否由读者决定,本函数只认一件事。
+        IF (SELECT role FROM substances WHERE code = v_metal) <> 'payable_metal' THEN
+            RAISE EXCEPTION 'SUBSTANCE_NOT_PAYABLE|%', v_metal;
         END IF;
         IF v_metal = ANY (v_seen) THEN
             RAISE EXCEPTION 'DUPLICATE_METAL|%', v_metal;
