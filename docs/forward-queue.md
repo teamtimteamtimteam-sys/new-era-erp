@@ -716,6 +716,37 @@
 >    角色只多了九行质量授权,`require_calibrated_since` NULL,对账两侧 0.00。逐角色读数表、页面清单、开场读数与未经询问的决定在
 >    `docs/handbacks/MES-6a-1.md`。**下一刀 MES-6a-2 · F / Cl and quality indicators**(见下面「⬜ ★ MES 组」第 9b 行);
 >    **V17**(水分与粒径的验收限)与 **N38**(产出批的化学确定度)并入 **MES-6b**(Step 0 Q5 · Q6)。
+>    ★ **部署:Tim 在 Vercel 上确认 `d645d5a7` 已部署(MES-6a-1 close-out + MES-6a-2 委托书,2026-10-10)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-09 22:33:44 CST**(测量:`db/migration-windows.tsv`,`2026-10-09-mes6a1-samples-and-disputes.sql`)·
+>    终点下界 **2026-10-09 23:55:45 CST**(测量:推送把 `origin/main` 移到 `d645d5a7`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`d645d5a7 … {2026-10-09 23:55:45 +0800}: update by push`)·
+>    终点上界 **2026-10-10 09:46:07 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 22 min 01 s,至多 11 h 12 min 23 s。**(上界长,是因为它是第二天早上的第一条命令,不是因为看见了什么坏掉。)
+>    窗口里坏掉的(**推导**,MES-6a-1 交回 §6.4,没有在线上量):旧费用页冲销不送理由,于是旧应用上的每一次费用冲销都按名拒
+>    `EXPENSE_REVERSAL_REASON_REQUIRED`;旧化验表单按参数名调用、`p_sample_id` 取默认,照常;争议的拒绝要一件旧应用立不起来的争议。
+>    close-out 的只读读数(2026-10-10 09:53:09 CST,`postgres`,基表与目录;`docs/surveys/MES-6a/mes6a1-closeout-readings.sql`,`READ_OWN_EXIT=0`):
+>    样品 **0** · 保管记录 0 · 争议 0 · V16 NULL · 指了样品的化验 0 · 指到供应商的实验室 0 · V14 填了的 0 · 已冲销的费用单 **0** · 冲销理由 0 ·
+>    窗口开始以来新建的费用单 0 · 新建的化验 0 · `require_calibrated_since` NULL · 审批开(finance / cfo / 1,000)· 七个账号、0 个停用 ——
+>    窗口里没有人用过这一刀的新东西,也没有人试过冲销一张费用单。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–f):a · b · c · d 逐项过;e 两页两个宽度都 0 px,没有要修的;f 二十条决定逐条列出 ——
+>    没有缺的、没有坏的,所以第 2 步(MES-6a-2)照常开始(委托书第 1.4 条)。**
+>    **a** 清单逐条对上 fixture 与臂与注入格:260 九个臂 · 261 九个臂 · 40 F · 118 F5 · 149 J · 220 I6 · 256 / 258(单参数冲销补理由,258 F3)·
+>    100 / 101 / 254(56 → 57,SMP)· 111(六十二支)· 235 豁免仍 8;交回 §3.2 的 70 格 0 格错。**b** 线上九行质量授权逐角色对上(admin · cco · cto
+>    查看 + 编辑,cfo · finance · warehouse 只查看,gm 与其余角色没有);动作码蕴含查看码:七个有真持有人的角色 67 对 0 违反,全部角色 0 违反;
+>    admin 77 / 77。**c** 登记表 57 行带 SMP(两支注册表检查 `SR_OWN_EXIT=0` 57 / 57 · `DR_OWN_EXIT=0` 290 / 88);V16 · V14 两支在线上的
+>    `pending_values` 里,文档两行在 `docs/mes-pending-values.md:40-41`;`docs/known-issues.md` 的取代缺陷与 "The buyer" 两条都已划掉并标关闭
+>    (`:10642-10655`);Q12 的记录在本条 `:707-708`、V17 / N38 在 MES-6b(本条末行与表第 10 行);措辞臂 ㉖ 绿、注入 `wording-drift-mes6a1` 只红 ㉖。
+>    **委托书的一条前提不准:** ㉗ 是 MES-6a-2 的措辞臂(Step 0 Q39),HEAD 上还没有 —— 它在第 2 步里建。**d** 以 warehouse · finance · cco · admin
+>    四个真角色的一次性克隆从【已部署】的应用取页、浏览器里只读(页面发出的非 GET 请求一律在浏览器里拦下并计数:0 条):样品与争议两页四个角色都 200;
+>    warehouse · finance 的「Record a sample」「Open a dispute」按不动并说出 `module.quality.edit`,cco · admin 是能点的链接;取样表单 warehouse · finance
+>    整张按不动;费用页 warehouse 在门上被拒,cco 看得见冲销钮、按不动并说出 `module.finance.edit`,finance · admin 打开对话框:理由框在,
+>    **空着与只有空格时确认钮按不下去,写了字就按得下去**,按取消关上 —— 什么都没交出去,`EXP-2026-0010` 读回仍是 posted、没有理由。
+>    第一次跑到一半网络断了(两个克隆的清理够不着线上),量到网络恢复后按计划收割(`REAP_OWN_EXIT=0`,读回 0 个一次性账号),立刻重跑一次 `RENDER_PROBE_EXIT=0`。
+>    **e** `/contracts/[id]` 与产出化验页在 HEAD 的【本地】重建上用我自己的数据(一份七段条款都填满的卖方合同;一批带两份化验、两份样品、一件开着的争议的产出批)
+>    在 390 / 1280 px 量:**两页两个宽度都 0 px 溢出、0 张被截的表**。**f** 交回 §7 的 20 条决定逐条列出。
+>    逐项证据在 `docs/surveys/MES-6a/MES-6a-1-CLOSEOUT.md`。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
