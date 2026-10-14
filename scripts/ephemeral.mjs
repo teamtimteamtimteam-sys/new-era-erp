@@ -48,10 +48,22 @@ import { fileURLToPath } from 'node:url'
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 export const PLAN_DIR = join(ROOT, '.ephemeral')
 
-const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
-const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
-const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
-const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)?.[1] ?? null
+// ★ HOTFIX-6A2(2026-10-14):.env.local 在【第一次真要用到】时才读,不在 import 时读。
+//   ESM 先求值被 import 的模块、再跑 import 它的那一支的第一句 —— 于是这里的顶层读文件跑在每一支脚本的
+//   onlyWhenRunDirectly 守卫【之前】。本机有 .env.local,读成功、守卫照常拒绝;Vercel 的构建机没有,
+//   这里先抛 ENOENT,check-import-inert 收到 50 支"没有以 NOT_RUN_ON_IMPORT 拒绝",8ea0875e 的生产构建因此失败。
+let liveEnv_ = null
+function liveEnv() {
+    if (!liveEnv_) {
+        const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
+        liveEnv_ = {
+            URL_: env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1],
+            SERVICE: env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1],
+            ANON: env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)?.[1] ?? null,
+        }
+    }
+    return liveEnv_
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // ★ CLAIM-GST-1(2026-09-24,Tim Q8):收尾【有界】—— 每一次网络往返有自己的上限,整个收尾阶段也有 ★
@@ -100,7 +112,7 @@ export function installCleanupNetworkFault(mode) {
     const real = globalThis.fetch
     globalThis.fetch = (input, init) => {
         const url = typeof input === 'string' ? input : (input?.url ?? String(input))
-        if (!url.startsWith(URL_)) return real(input, init)
+        if (!url.startsWith(liveEnv().URL_)) return real(input, init)
         if (mode === 'refused') return Promise.reject(new TypeError('fetch failed(故障注入:cleanup-refused)'))
         return new Promise((_, reject) => {
             const sig = init?.signal
@@ -112,16 +124,16 @@ export function installCleanupNetworkFault(mode) {
     console.error(`  !! 故障注入:收尾阶段发往库的每一次往返都${mode === 'refused' ? '立刻失败' : '挂住(只认 abort)'}`)
 }
 
-const del = (path) => fetch(URL_ + path, {
+const del = (path) => fetch(liveEnv().URL_ + path, {
     method: 'DELETE',
-    headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` },
+    headers: { apikey: liveEnv().SERVICE, Authorization: `Bearer ${liveEnv().SERVICE}` },
     signal: cleanupSignal(),
 })
 
 // ★ BTN-4:一步不一定是 DELETE —— 软删的表(tasks)硬删不掉,见 planDelete 的 how。
-const req = (path, how) => fetch(URL_ + path, {
+const req = (path, how) => fetch(liveEnv().URL_ + path, {
     method: how.method || 'DELETE',
-    headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
+    headers: { apikey: liveEnv().SERVICE, Authorization: `Bearer ${liveEnv().SERVICE}`, 'Content-Type': 'application/json' },
     ...(how.body ? { body: how.body } : {}),
     signal: cleanupSignal(),
 })
@@ -239,9 +251,9 @@ export const THROWAWAY_EMAIL_PREFIXES = Object.freeze([
 /** U1-B 之前用过、现在没人再造的前缀 —— 清扫仍然要认得它们留下的东西。 */
 export const THROWAWAY_LEGACY_EMAIL_PREFIXES = Object.freeze(['probe', 'pdf'])
 
-const svc = (path, init = {}) => fetch(URL_ + path, {
+const svc = (path, init = {}) => fetch(liveEnv().URL_ + path, {
     ...init,
-    headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', ...(init.headers || {}) },
+    headers: { apikey: liveEnv().SERVICE, Authorization: `Bearer ${liveEnv().SERVICE}`,'Content-Type': 'application/json', ...(init.headers || {}) },
 })
 /** 一次往返,非 2xx 就带名字抛出。返回已解析的 JSON(没有正文时为 null)。 */
 async function svcJson(path, init, step) {
@@ -374,6 +386,7 @@ export async function mintThrowaway(o = {}) {
     // ── ⑥ 登录(与冒烟的 signInSession 同一个形状)──────────────────────────────
     let session = null, token = null, cookie = null, cookieName = null, cookieValue = null
     if (o.signIn !== false) {
+        const { URL_, ANON } = liveEnv()
         if (!ANON) throw new Error('THROWAWAY_NO_ANON|.env.local 里没有 NEXT_PUBLIC_SUPABASE_ANON_KEY')
         const r = await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
             headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })

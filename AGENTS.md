@@ -2095,6 +2095,7 @@ backup (BACKUP_EXIT=0 from its own log)
 apply_migration.sh                        ← window opens here, as late as possible
 python3 db/gate.py                        ← ALL THREE verdicts green(整门,一件不少)
 smoke (if the render layer changed)
+npm run build  in a FRESH CLONE, no .env.local   ← ★ HOTFIX-6A2:从【要推的那个提交】冷 clone、npm ci、build,见下面那一节
 git push                                  ← window closes at the deploy
 ```
 
@@ -2119,6 +2120,29 @@ the correct trade and it should not feel like one: you are holding a bounded,
 observed, reversible cost open in order to avoid an unbounded, silent one.
 **Say so in the report** — an open window with a stated reason is a decision;
 an open window nobody mentions is the thing this file has a required field for.
+
+## ★★★ 构建链里的每一道检查,都必须在【没有 `.env.local` 的冷 clone】里通过(HOTFIX-6A2,2026-10-14)
+
+> ### ★ 规矩
+> **`npm run build` 里的每一道检查,都必须在一份【冷 clone、没有 `.env.local`】的树上通过。**
+> ★★ **「本机过了」不是 Vercel 构建的证据。** 本机有 `.env.local`,Vercel 的构建机没有 ——
+> 一道读了它的检查,在两边是两道不同的闸(与上面「`NODE_ENV=production` 会换掉它读的东西」同族,这一次换掉的是一个文件)。
+> ☞ **所以每一刀在推送之前,都要从【要推的那个提交】冷 clone 到仓库外的临时目录,`npm ci`,`npm run build`,
+> 读脚本自己的退出码(`X_OWN_EXIT=$?`)。** 它写在上面那段顺序里,`git push` 的前一行。
+
+**实测的价钱(MES-6a-2,2026-10-10):** `scripts/ephemeral.mjs` 在【模块顶层】读 `.env.local`。
+ESM 先求值被 import 的模块、再跑 import 它的那一支的第一句,于是这次读文件跑在每一支脚本的
+`onlyWhenRunDirectly` 守卫**之前**。本机读得到,守卫照常拒绝,`check-import-inert` 绿,每一次本地构建都绿;
+Vercel 上它抛 `ENOENT`,`check-import-inert` 报 **50 处**,8ea0875e 的生产构建退 1 ——
+**而迁移 12:45:10 已经在线上,生产从那一刻起一直是 MES-6a-1 的代码对着 MES-6a-2 的库。**
+那一刀报的「已部署」是错的,破窗记录因此要改(`docs/forward-queue.md`)。
+
+**修法(HOTFIX-6A2):** `.env.local` 改为第一次真要用到时才读(`ephemeral.mjs` 的 `liveEnv()`)。
+**检查一条都没有放松** —— 它在两种环境里都还咬人:把守卫从 `smoke-routes.mjs` 或一支 `db/scripts` 证明里拿掉
+(`CHECK_IMPORT_INERT_FAULT=unguard:<路径>`),有 `.env.local` 与没有 `.env.local` 两边都退 1 并点名那一支。
+
+★ **这条规矩与「一刀的终端活到推送为止」不冲突:** 冷构建跑在推送【之前】,问的是"这个提交在一台没有我本机文件的机器上建得起来吗";
+推送之后的部署仍然由 Tim 在 Vercel 面板上看,本进程不去问。
 
 ## A cut is not done at the commit — it is done at the DEPLOY
 

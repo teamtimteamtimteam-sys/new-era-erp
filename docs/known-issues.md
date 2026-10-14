@@ -10689,3 +10689,19 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 措辞审阅;在一刀里顺手改四刀的钉子,是"匆忙的检查者"那个形状(AGENTS.md)。
 **删除条件:** 一刀单独把 ㉓–㉖ 改读 `titlePart`,把红出来的差异逐条交 Tim 过目,并对每一臂做一次只改"部分"的故障注入。
 
+
+### ~~HOTFIX6A2-BUILD-READS-ENV-LOCAL · 生产构建在 Vercel 上失败:一道构建检查在没有 `.env.local` 的机器上红(MES-6a-2 造成,2026-10-10)~~ —— ✅ **关闭于 HOTFIX-6A2(仍是 `v1.4.49`,2026-10-14)**
+
+**是什么:** Vercel 对 `8ea0875e`(MES-6a-2)的生产构建在 2026-10-10 14:22 CST 失败,生产一直停在 `0565de86`(MES-6a-1 的 close-out),
+而 MES-6a-2 的迁移 12:45:10 CST 起已经在线上 —— 破窗的更正见 `docs/forward-queue.md` 第 48 条。
+`npm run build` 里的 `scripts/check-import-inert.mjs` 逐支 import 55 支对着线上动手的脚本,其中 50 支抛
+`ENOENT: no such file or directory, open '/vercel/path0/.env.local'`,而不是以 `NOT_RUN_ON_IMPORT` 拒绝 → 50 处 → 构建退 1。
+**病因:** `scripts/ephemeral.mjs` 在【模块顶层】读 `.env.local`(原 `:51-54`)。ESM 先求值被 import 的模块、再跑 import 它的那一支的第一句,
+于是这次读文件跑在每一支脚本的 `onlyWhenRunDirectly(import.meta.url)` 守卫【之前】。本机有 `.env.local`,读成功、守卫照常拒绝 ——
+所以每一次本地构建都绿,而 Vercel 构建机没有这个文件。
+**复现(HOTFIX-6A2):** 从 `8ea0875e` 冷 clone 到仓库外的临时目录、无 `.env.local`:`npm ci`(`CI_OWN_EXIT=0`)→ `npm run build`
+`BUILD_OWN_EXIT=1`,`✗ check-import-inert:50 处`,50 行全是 `ENOENT … .env.local` —— 与 Vercel 日志同一句。
+**怎么关的:** `ephemeral.mjs` 改为第一次真要用到时才读(`liveEnv()`,惰性、读一次缓存);库被 import 时不再读任何文件。
+检查一条没有放松:冷 clone(无 `.env.local`)与工作树(有 `.env.local`)两边 `check-import-inert` 都是 55 / 55 以 `NOT_RUN_ON_IMPORT` 拒绝、拦下 0 次;
+`CHECK_IMPORT_INERT_FAULT=unguard:scripts/smoke-routes.mjs` 与 `unguard:db/scripts/2026-10-10-mes6a2-live-proof.mjs` 两边各退 1 并只点名那一支。
+**防再犯:** AGENTS.md 立了规矩 —— 构建链里的每一道检查都必须在没有 `.env.local` 的冷 clone 里通过;每一刀推送之前从要推的提交冷构建一次。

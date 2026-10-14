@@ -769,6 +769,18 @@
 >    逐角色读数表、页面清单、开场读数与 21 条未经询问的决定在 `docs/handbacks/MES-6a-2.md`。登记了三条(`docs/known-issues.md` 的 MES-6a-2 一节):
 >    可计价金属不能当惩罚元素 · 只测了惩罚元素的化验应用不上 · 措辞臂 ㉓–㉖ 的"部分"那一栏实际上没被钉住。**下一刀 MES-6b · NCR, quality hold, CoA**
 >    (见下面「⬜ ★ MES 组」第 10 行;V17 与 N38 随它)。
+>    ★★ **破窗记录更正(HOTFIX-6A2,2026-10-14):MES-6a-2 【没有】部署上去,破窗至今未闭合。**
+>    起点 **2026-10-10 12:45:10 CST**(测量:`db/migration-windows.tsv`,`head_sha_at_apply` 0565de86)。
+>    **14:22 CST 的"已部署"是错的**:Vercel 对 `8ea0875e` 的生产构建在 14:22 CST **失败**(Tim 贴回的 Vercel 日志 —— 一句转述,不是本机的测量),
+>    生产一直停在 `0565de86`(MES-6a-1 的 close-out)。病因:`npm run build` 里的 `scripts/check-import-inert.mjs` 报 50 处 `ENOENT … .env.local`
+>    —— `scripts/ephemeral.mjs` 在模块顶层读 `.env.local`,Vercel 构建机上没有那个文件(本机有,所以每一次本地构建都绿)。修法与规矩见
+>    `docs/known-issues.md` 的 `HOTFIX6A2-BUILD-READS-ENV-LOCAL` 与 AGENTS.md「构建链里的每一道检查,都必须在没有 `.env.local` 的冷 clone 里通过」。
+>    **终点 = Tim 在 Vercel 面板上看到 HOTFIX-6A2 那一次部署 Ready 的时刻**(由 Tim 读出,待填)。在那之前,生产跑的是 **MES-6a-1 的应用对着
+>    MES-6a-2 的库**;本刀写下这一段时(2026-10-14 21:40 CST,`date`)窗口**已经至少 4 天 8 小时 55 分**。
+>    窗口里坏掉的(**推导**,迁移文件抬头【破窗】那一段,没有在线上量):旧定价页下拉里多出 f / cl,选了按名拒 `SUBSTANCE_NOT_PAYABLE`;
+>    旧字典页新建一种物质被 `role` 的 NOT NULL 拒(改既有的不受影响);旧化验表单照常(不带 `p_indicators` → 默认值)。
+>    迁移抬头写的「窗口 ≈ 部署时长」那个前提不成立 —— 窗口是"部署失败之后、直到这次修好"。
+>    此前本条没有写过终点(只写了"终点等 Tim 在 Vercel 上确认部署"),所以没有要标作废的终点读数。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
