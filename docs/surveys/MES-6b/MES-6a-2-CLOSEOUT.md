@@ -5,6 +5,8 @@ deployed app, all three clones, both forms, before and after a value is entered)
 contract's penalty-element picker lives on `/contracts/[id]`, and live has **0 contracts**. Under brief 1.4, **step 2 (MES-6b Step 0) was NOT
 started** — no grilling hand-back, no `docs/surveys/MES-6b/STEP0-HANDBACK.md`. Nothing was fixed. The window close is in
 `docs/forward-queue.md` item 48.
+**★ Then (2026-10-15, §3a): Tim accepted the close-out — the ppm readout becomes MES-6b fold-in F7, item a's weaker spots F8 — and the penalty
+picker was rendered on a local rebuild of HEAD: it offers Fluorine and Chlorine only.** Step 2 went ahead in the next block.
 
 **Opening check.** First command **2026-10-14 21:53:54 CST** (`date`). Tree clean. After `git fetch`: `HEAD` = `origin/main` =
 `git ls-remote origin main` = `1026dc94d1e20e39b221f2a104168c6de8d38e0c`. Files staged by explicit path only.
@@ -161,6 +163,39 @@ box started no request — no preview call was made for these batches).
 Item c shows something missing (ppm beside % on the assay forms) → **step 2 not started**. Item a's injection gaps are test-strength weaknesses,
 not missing coverage; the contract picker is unmeasurable on live, not broken. Waiting on Tim: (1) the ppm echo as F7 in MES-6b, or a ruling that
 the detail pages satisfy Q29; (2) whether to measure the penalty picker on a local harness; then the MES-6b Step 0.
+
+## 3a · Tim's rulings on this close-out (2026-10-15) and the penalty-picker render
+
+**Rulings (Tim, MES-6a-2 close-out rulings + MES-6b Step 0 brief):** the close-out is accepted; the missing ppm readout on the assay entry
+forms is **not a stop** — it becomes **fold-in F7** of MES-6b; the weaker test spots of item a become **fold-in F8**; the penalty-element picker,
+unmeasurable on live, is rendered now on a local rebuild of HEAD (below). F7 and F8 are recorded under MES-6b in `docs/forward-queue.md`.
+
+**The penalty-element picker, rendered on a local rebuild of HEAD (2026-10-15 00:04–00:08 CST) — ✓ offers Fluorine and Chlorine, no payable metal.**
+- **Rebuild:** a throwaway local cluster (`/tmp/m6b`, socket only), `python3 db/verify_rebuild.py --target … --offline` → `VR_OWN_EXIT=0`
+  (B1 / B2 0). Never live.
+- **Data of my own** (owner inserts on that rebuild): a customer `ZZH-CUST`, a **draft sell contract `CON-2026-0003`** (offtake), one pricing term (ni),
+  settlement terms with `penalty_basis = per_element`, and two penalty elements — **F 0.005 % at 1,000** and **Cl 0.0025 % at 425.5** per settlement
+  tonne per point over. On the same rebuild, adding `cu` as a penalty element is refused by the table's guard: `SUBSTANCE_NOT_PENALTY_ELEMENT|cu`.
+- **How it was rendered** (the MES-6a-1 close-out item e precedent): a scratch copy of HEAD outside the repo (`/tmp/m6b/app`, `node_modules` an
+  APFS clone) whose `lib/supabase/server.ts` answers **only** the contract page's tables and RPCs (the contract, its customer label, the seven term
+  tables, `substances`, materials, currencies, indices, the lock reason, the activation list, terms requests, the trail) from a JSON dump of that
+  rebuild read as an all-codes user through the views' own predicates; everything else — the session, `can()` (`current_user_permissions`),
+  `requireModule` — went to live as usual, with one-off clones of real roles (`mintThrowaway { cloneOf }`, prefix `mes6a2probe`). The page is
+  HEAD's, unmodified, at its real route, served by `next dev`; requests were GETs only. The harness and its probe were never committed.
+- **Result** (server-rendered HTML of `/contracts/<id>`, the "add a row" forms, which are always rendered for a draft):
+
+| Clone of | Page | Penalty elements — `substance` options | Pricing terms / refining charges — `metal` options | Threshold and rate text |
+|---|---|---|---|---|
+| cco (44 codes) | **200**, `CON-2026-0003`, no error | `— Choose —` · **`f` = Fluorine** · **`cl` = Chlorine** — nothing else | the seven payable metals (Nickel … Iron), **no F / Cl** | `0.005% (50 ppm)` · `1000 per % (0.1 per ppm)` · `0.0025% (25 ppm)` · `425.5 per % (0.04255 per ppm)` |
+| admin (77 codes) | **200**, same | same: Fluorine, Chlorine only | same: seven payable metals | same |
+
+  The penalty `<select>` carries no `disabled` attribute for either clone (both hold `action.contract_terms`). (A first reading said "disabled" — my
+  regular expression matched the Tailwind class text `disabled:cursor-not-allowed`; the tag itself, captured in a third pass, has no attribute.)
+- **Runs:** three probe passes (`PICKER_OWN_EXIT=0` each; the first read no form because I looked for the marker `contract_penalty_elements:new`
+  — the form's marker is `penalty_elements:new`; the second read the options; the third captured the tags). The first two passes left the scratch
+  `next dev` running after exit; killed by hand (`pkill`), confirmed gone. Read back on live at **00:08:58 CST** (`postgres`, read only):
+  **0 throwaway accounts · 0 `probe-` roles · 0 grants without an account · 7 real accounts · 0 disabled · 0 contracts.**
+- **No fold-in needed from this:** the picker behaves as ruled.
 
 ## 4 · Assertions measured and found false or imprecise
 
