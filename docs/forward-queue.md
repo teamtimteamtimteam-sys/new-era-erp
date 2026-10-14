@@ -781,6 +781,22 @@
 >    旧字典页新建一种物质被 `role` 的 NOT NULL 拒(改既有的不受影响);旧化验表单照常(不带 `p_indicators` → 默认值)。
 >    迁移抬头写的「窗口 ≈ 部署时长」那个前提不成立 —— 窗口是"部署失败之后、直到这次修好"。
 >    此前本条没有写过终点(只写了"终点等 Tim 在 Vercel 上确认部署"),所以没有要标作废的终点读数。
+>    ★ **部署:Tim 在 Vercel 上确认 `1026dc94`(HOTFIX-6A2)已部署、Ready —— 第一个带着 MES-6a-2 应用的部署(MES-6a-2 close-out + MES-6b Step 0 委托书,
+>    2026-10-14)。破窗已闭合(带界,按类标注)**:起点 **2026-10-10 12:45:10 CST**(测量:`db/migration-windows.tsv`)·
+>    终点下界 **2026-10-14 21:46:34 CST**(测量:推送把 `origin/main` 移到 `1026dc94`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`1026dc94 … {2026-10-14 21:46:34 +0800}: update by push`)·
+>    终点上界 **2026-10-14 21:53:54 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 4 d 9 h 01 min 24 s,至多 4 d 9 h 08 min 44 s(105 h 01 min 24 s – 105 h 08 min 44 s)。**
+>    close-out 的只读读数(2026-10-14 21:59:20 CST,`postgres`,基表与目录;`docs/surveys/MES-6b/mes6a2-closeout-readings.sql`,`READ_OWN_EXIT=0`):
+>    窗口开始以来 substances 的改动 **0** · 新建的化验 **0** · 新建的行情 0 · 合同 **0**(含已删)· 惩罚条款 0 · 化验 / 进料 / 产出上的氟氯含量 0 ·
+>    指标值 0 · 审批开(finance / cfo / 1,000)· 七个账号、0 个停用 · `require_calibrated_since` NULL · admin 77 / 77 ——
+>    窗口里没有人记过化验、行情、合同或物质;拒绝不留记录,所以有没有人在旧页面上撞到 `SUBSTANCE_NOT_PAYABLE` 读不出来。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–d):a · b · d 逐项过;c 有一件缺的 —— 两张化验表单上氟、氯的含量框旁边【没有】ppm**
+>    (已部署的应用,finance · cco · admin 三个克隆,两张表单,在 F 框里填入 0.0123 之前与之后都量了:表头 "Content %",页面上没有一处 "ppm";
+>    MES-6a-2 只把 ppm 放在了展示页 —— 化验详情、批次含量面板、合同阈值,交回 §8 第 5 条)。**另一件量不了:** 合同的惩罚元素下拉在
+>    `/contracts/[id]` 上,线上 **0** 份合同。**所以第 2 步(MES-6b Step 0)没有开始**(委托书第 1.4 条)。逐项证据与建议在
+>    `docs/surveys/MES-6b/MES-6a-2-CLOSEOUT.md`;建议:ppm 回显作为 MES-6b 的并入 F7,惩罚下拉在本地重建上量。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
