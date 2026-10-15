@@ -159,16 +159,17 @@ BEGIN
                               useful_life_months, residual_base)
     VALUES ('FX248-A1', 'fixture 248 feeder', 'equipment', CURRENT_DATE - 60, 0, v_base, 1, 0, 60, 0) RETURNING id INTO fa;
     PERFORM pg_temp.f248_as(u_proc);
-    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-    VALUES (fa, now() - interval '10 days', now() - interval '9 days', 'FX248 belt snapped') RETURNING id INTO dt1;
-    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-    VALUES (fa, now() - interval '5 days', NULL, 'FX248 entered on the wrong machine') RETURNING id INTO dt2;
+    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+    VALUES (fa, now() - interval '10 days', now() - interval '9 days', 'FX248 belt snapped', 'breakdown') RETURNING id INTO dt1;
+    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+    VALUES (fa, now() - interval '5 days', NULL, 'FX248 entered on the wrong machine', 'breakdown') RETURNING id INTO dt2;
     PERFORM set_config('request.jwt.claims', '', true);
     SELECT max(seq) INTO v_log FROM change_log;
 
-    -- DT1 更正:持加工编辑权的人直连改起止与原因;变更记录留着旧值
-    v_msg := pg_temp.f248_try(u_proc, format(
-        'UPDATE equipment_downtime SET started_at = now() - interval ''10 days 1 hour'', ended_at = now() - interval ''9 days 2 hours'', reason = ''FX248 belt snapped on the feeder'' WHERE id = %L', dt1));
+    -- DT1 更正:持加工编辑权的人改起止与原因;变更记录留着旧值
+    --   ★ MES-7a-1(Q6):更正从直连 UPDATE 改走 correct_equipment_downtime(UPDATE 策略拿掉了);断言一句不少 —— 改得了、落得下、旧值留着。
+    v_msg := pg_temp.f248_try(u_proc, format('SELECT correct_equipment_downtime(%L, %L, %L, %L, %L)', dt1,
+        now() - interval '10 days 1 hour', now() - interval '9 days 2 hours', 'breakdown', 'FX248 belt snapped on the feeder'));
     IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 248 DT1: a processing editor could not correct a downtime period: %', v_msg; END IF;
     IF (SELECT reason FROM equipment_downtime WHERE id = dt1) <> 'FX248 belt snapped on the feeder' THEN
         RAISE EXCEPTION 'FIXTURE 248 DT1: the correction did not land'; END IF;
@@ -183,9 +184,11 @@ BEGIN
     v_msg := pg_temp.f248_try(u_view, format('SELECT void_equipment_downtime(%L, %L)', dt2, 'x'));
     IF v_msg NOT LIKE 'PERMISSION_DENIED|module.processing.edit%' THEN
         RAISE EXCEPTION 'FIXTURE 248 DT2: a processing viewer voided a downtime period: %', v_msg; END IF;
+    -- ★ MES-7a-1:直连改作废三列现在先撞上"设备表只经函数"那一道(EQUIPMENT_THROUGH_FUNCTION_ONLY,语句级,先于行级的
+    --   DOWNTIME_VOID_THROUGH_FUNCTION_ONLY 触发)—— 两句都是按名拒,断言的仍是"直连写作废不了"。
     v_msg := pg_temp.f248_try(u_proc, format(
         'UPDATE equipment_downtime SET voided_at = now(), voided_by = auth.uid(), void_reason = ''direct'' WHERE id = %L', dt2));
-    IF v_msg NOT LIKE 'DOWNTIME_VOID_THROUGH_FUNCTION_ONLY%' THEN
+    IF v_msg NOT LIKE 'DOWNTIME_VOID_THROUGH_FUNCTION_ONLY%' AND v_msg NOT LIKE 'EQUIPMENT_THROUGH_FUNCTION_ONLY|equipment_downtime|update%' THEN
         RAISE EXCEPTION 'FIXTURE 248 DT2: a direct write voided a downtime period: %', v_msg; END IF;
     v_msg := pg_temp.f248_try(u_proc, format('SELECT void_equipment_downtime(%L, %L)', dt2, 'FX248 never happened'));
     IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 248 DT2: the void through the function failed: %', v_msg; END IF;
@@ -194,14 +197,15 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 248 DT2: the void did not record its reason and its author'; END IF;
 
     -- DT3 作废之后:冻住;不挡重叠、不算开着的那一段(同一段时间再开一段照开);交接单不能引用它
-    v_msg := pg_temp.f248_try(u_proc, format('UPDATE equipment_downtime SET reason = ''again'' WHERE id = %L', dt2));
+    -- ★ MES-7a-1:改一段作废了的停机走更正函数(直连 UPDATE 已经在门口按名拒)—— 同一句 DOWNTIME_VOIDED。
+    v_msg := pg_temp.f248_try(u_proc, format('SELECT correct_equipment_downtime(%L, now() - interval ''5 days'', NULL, ''breakdown'', ''again'')', dt2));
     IF v_msg NOT LIKE 'DOWNTIME_VOIDED%' THEN
         RAISE EXCEPTION 'FIXTURE 248 DT3: a voided period was changed afterwards: %', v_msg; END IF;
     v_msg := pg_temp.f248_try(u_proc, format('SELECT void_equipment_downtime(%L, %L)', dt2, 'twice'));
     IF v_msg NOT LIKE 'DOWNTIME_ALREADY_VOIDED%' THEN
         RAISE EXCEPTION 'FIXTURE 248 DT3: a second void should be refused by name, got %', v_msg; END IF;
     v_msg := pg_temp.f248_try(u_proc, format(
-        'INSERT INTO equipment_downtime (equipment_id, started_at, reason) VALUES (%L, now() - interval ''5 days'', ''FX248 the real one'')', fa));
+        'SELECT open_equipment_downtime(%L, now() - interval ''5 days'', ''breakdown'', ''FX248 the real one'')', fa));
     IF v_msg <> 'OK' THEN
         RAISE EXCEPTION 'FIXTURE 248 DT3: the voided open period still blocks a new one: %', v_msg; END IF;
     SELECT id INTO dt3 FROM equipment_downtime WHERE equipment_id = fa AND reason = 'FX248 the real one';

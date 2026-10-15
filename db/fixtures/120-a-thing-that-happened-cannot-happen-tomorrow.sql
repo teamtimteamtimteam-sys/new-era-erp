@@ -48,8 +48,8 @@ BEGIN
     -- (a) 开一段 → 关一段,照旧
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-        VALUES (v_asset, v_base, 'f120 ordinary stop') RETURNING id INTO v_dt;
+        INSERT INTO equipment_downtime (equipment_id, started_at, reason, cause_code)
+        VALUES (v_asset, v_base, 'f120 ordinary stop', 'breakdown') RETURNING id INTO v_dt;
         UPDATE equipment_downtime SET ended_at = v_base + INTERVAL '8 hours' WHERE id = v_dt;
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
@@ -86,8 +86,8 @@ BEGIN
     -- 开始时刻在未来同样拒(简报只点名了结束;而同一句话对开始一样成立)
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-        VALUES (v_asset2, now() + INTERVAL '2 days', 'f120 future start');
+        INSERT INTO equipment_downtime (equipment_id, started_at, reason, cause_code)
+        VALUES (v_asset2, now() + INTERVAL '2 days', 'f120 future start', 'breakdown');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%DOWNTIME_START_IN_FUTURE%' THEN
         RAISE EXCEPTION 'FIXTURE 120F2 失败:进入 F2 —— 开始时刻在未来同样必须拒。一段"明天开始"的停机记的是【计划】,而这一列装不下计划(与投用日那一半是同一条)。实得「%」', COALESCE(v_msg,'(收下了)');
@@ -99,8 +99,8 @@ BEGIN
     -- (a) 新的一段【开始落在】它里面
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-        VALUES (v_asset, v_base + INTERVAL '3 hours', v_base + INTERVAL '20 hours', 'f120 starts inside');
+        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+        VALUES (v_asset, v_base + INTERVAL '3 hours', v_base + INTERVAL '20 hours', 'f120 starts inside', 'breakdown');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%DOWNTIME_OVERLAPS%' THEN
         RAISE EXCEPTION 'FIXTURE 120F3 失败:进入 F3(a)—— 开始落在已有一段【里面】必须按 DOWNTIME_OVERLAPS 拒。**线上那对就是这个形状**,而既有的 uq_equipment_downtime_open 只拦"第二段开口",对它一个字都不说。实得「%」', COALESCE(v_msg,'(收下了)');
@@ -113,8 +113,8 @@ BEGIN
     -- (b) 新的一段【结束落在】它里面
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-        VALUES (v_asset, v_base - INTERVAL '5 hours', v_base + INTERVAL '2 hours', 'f120 ends inside');
+        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+        VALUES (v_asset, v_base - INTERVAL '5 hours', v_base + INTERVAL '2 hours', 'f120 ends inside', 'breakdown');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%DOWNTIME_OVERLAPS%' THEN
         RAISE EXCEPTION 'FIXTURE 120F3 失败:进入 F3(b)—— 结束落在已有一段里面必须拒。实得「%」', COALESCE(v_msg,'(收下了)');
@@ -125,8 +125,8 @@ BEGIN
     -- 因为新段的起点在旧段【之前】,终点在旧段【之后】,两个端点都不在旧段里。
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-        VALUES (v_asset, v_base - INTERVAL '5 hours', v_base + INTERVAL '30 hours', 'f120 contains it');
+        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+        VALUES (v_asset, v_base - INTERVAL '5 hours', v_base + INTERVAL '30 hours', 'f120 contains it', 'breakdown');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%DOWNTIME_OVERLAPS%' THEN
         RAISE EXCEPTION 'FIXTURE 120F3 失败:进入 F3(c)—— 【整段包住】已有的一段同样必须拒。一个只检查"新段端点是否落在旧段内"的实现在这里会放行:两个端点都在旧段【外面】。实得「%」', COALESCE(v_msg,'(收下了)');
@@ -139,8 +139,8 @@ BEGIN
     -- 拒绝它只会逼人把时间填歪一分钟。判据是左闭右开的区间语义。
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-        VALUES (v_asset, v_base + INTERVAL '9 hours', v_base + INTERVAL '12 hours', 'f120 touching');
+        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+        VALUES (v_asset, v_base + INTERVAL '9 hours', v_base + INTERVAL '12 hours', 'f120 touching', 'breakdown');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 120F4 失败:进入 F4 —— 两段【相接】(一段正好在下一段开始的那一刻结束)必须【允许】。这是刻意定死的,不是没想过:分钟精度下它是一句真话,而拒绝它只会逼人把时间填歪。实得「%」', v_msg;

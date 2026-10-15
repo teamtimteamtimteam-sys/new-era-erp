@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2(F6:㉓ ㉔ ㉕ ㉖ ㉙ 只改 part 的那一格)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-drift-mes7a1(MES-7a-1:㉚)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2 / mes7a1(F6:㉓ ㉔ ㉕ ㉖ ㉙ ㉚ 只改 part 的那一格)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -6815,6 +6815,139 @@ if (FAULT === 'wording-drift-mes6b2') dict.text = { ...dict.text, 'batch.coaIssu
     { const miss = partFaultBit('mes6b2', problems.gold29); if (miss) problems.gold29.push(miss) }
 }
 
+// ── ㉚ MES-7a-1:停机的原因与来源(在机器自己的页上、在资产卡上)· 更正原因 · 一次修理点名它修好的那一段 · 停机原因字典
+//   (MES-7a Step 0 Q3 · Q4 · Q6 · Q20)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-7a-1.md 列出。
+//   读 titlePart:停机的原因(字典里那一种的名字)挂在标题后面那一段,所以 part 那一格比的是真东西。
+//   注入 wording-drift-mes7a1 → 这一臂必须红;注入 wording-part-mes7a1(只改 part)→ 这一臂必须在 part 那一格红。
+problems.gold30 = []
+if (FAULT === 'wording-drift-mes7a1') dict.text = { ...dict.text, 'eq.down': 'Machine halted' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const fa = id('fa'), dt = id('dt'), dt0 = id('dt0'), mt = id('mt')
+    const causeRefs = { cause_code: { breakdown: { label: 'Breakdown' }, planned_maintenance: { label: 'Planned maintenance' } },
+                        equipment_id: { [fa]: { label: 'FA-2026-0007' } } }
+    const DT_ROW = { id: dt, equipment_id: fa, started_at: '2026-10-15T06:00:00Z', ended_at: null, reason: 'Bearing seized', notes: null,
+        created_at: '2026-10-15T06:01:00Z', created_by: id('u'), updated_at: '2026-10-15T06:01:00Z', updated_by: id('u'), duration: null,
+        voided_at: null, voided_by: null, void_reason: null, cause_code: 'breakdown', source: 'manual' }
+    add('downtime · opened with a cause (on the machine page)', { subject: 'equipment', recordId: fa, currency: null },
+        [{ table: 'equipment_downtime', op: 'INSERT', key: { id: dt }, refs: causeRefs, new: DT_ROW }], { state: 'person', name: 'Phua' })
+    add('downtime · opened with a cause (on the asset card)', { subject: 'fixed_asset', recordId: fa, currency: null },
+        [{ table: 'equipment_downtime', op: 'INSERT', key: { id: dt }, refs: causeRefs, new: DT_ROW }], { state: 'person', name: 'Phua' })
+    add('downtime · cause corrected', { subject: 'equipment', recordId: fa, currency: null },
+        [{ table: 'equipment_downtime', op: 'UPDATE', key: { id: dt }, cols: ['cause_code', 'updated_at', 'updated_by'], refs: causeRefs,
+           old: DT_ROW, new: { ...DT_ROW, cause_code: 'planned_maintenance' } }], { state: 'person', name: 'Phua' })
+    add('downtime · recorded before causes existed', { subject: 'equipment', recordId: fa, currency: null },
+        [{ table: 'equipment_downtime', op: 'INSERT', key: { id: dt0 }, refs: causeRefs,
+           new: { ...DT_ROW, id: dt0, reason: 'Test-1', cause_code: null } }], { state: 'person', name: 'Phua' })
+    add('repair · names the downtime it fixed', { subject: 'equipment', recordId: fa, currency: null },
+        [{ table: 'equipment_maintenance', op: 'INSERT', key: { id: mt },
+           refs: { downtime_id: { [dt]: { label: '2026-10-15 14:00' } }, equipment_id: { [fa]: { label: 'FA-2026-0007' } } },
+           new: { id: mt, equipment_id: fa, performed_on: '2026-10-15', kind: 'repair', description: 'Replaced the bearing',
+                  performed_by_employee_id: null, performed_by_supplier_id: null, performed_by_name: 'Ali', downtime_id: dt, expense_id: null,
+                  capitalised: false, capitalisation_reason: null, capitalised_expense_id: null, notes: null,
+                  created_at: '2026-10-15T09:00:00Z', created_by: id('u'), updated_at: '2026-10-15T09:00:00Z', updated_by: id('u') } }],
+        { state: 'person', name: 'Phua' })
+    add('downtime cause · added to the dictionary', { subject: 'dictionary_downtime_causes', recordId: 'all', currency: null },
+        [{ table: 'downtime_causes', op: 'INSERT', key: { code: 'power_cut' },
+           new: { code: 'power_cut', class: 'external', name_en: 'Power cut', name_zh: '停电', is_active: true, sort_order: 40, notes: null } }],
+        { state: 'person', name: 'Phua' })
+    const WANT = {
+        "downtime · opened with a cause (on the machine page)": {
+            "title": "Downtime started",
+            "part": "Breakdown",
+            "lines": [
+                "Went down: 15/10/2026 14:00",
+                "Reason: Bearing seized",
+                "Recorded: Entered by hand"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "downtime · opened with a cause (on the asset card)": {
+            "title": "Downtime started",
+            "part": "Breakdown",
+            "lines": [
+                "Went down: 15/10/2026 14:00",
+                "Reason: Bearing seized",
+                "Recorded: Entered by hand"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "downtime · cause corrected": {
+            "title": "Downtime corrected",
+            "part": null,
+            "lines": [
+                "Cause: Breakdown → Planned maintenance"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "downtime · recorded before causes existed": {
+            "title": "Downtime started",
+            "part": null,
+            "lines": [
+                "Went down: 15/10/2026 14:00",
+                "Reason: Test-1",
+                "Recorded: Entered by hand"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "repair · names the downtime it fixed": {
+            "title": "Repair recorded",
+            "part": null,
+            "lines": [
+                "Done on: 15/10/2026",
+                "What was done: Replaced the bearing",
+                "Done by (name): Ali",
+                "Downtime: 2026-10-15 14:00",
+                "Capitalised: No"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "downtime cause · added to the dictionary": {
+            "title": "Downtime cause added",
+            "part": "Power cut",
+            "lines": [
+                "Counts as: External cause",
+                "Name (ZH): 停电",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Phua"
+        }
+    }
+    const got30 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD30', order: 1, prelog: false, at: '2026-10-15T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Phua' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = partFault('mes7a1', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold30.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD30')
+        if (mine.length !== 1) { problems.gold30.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got30[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold30.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold30.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold30.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold30.push(`㉚ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (C.filter((c) => WANT[c.label]?.part).length < 2) problems.gold30.push('㉚ 带 part 的样例少于 2 句 —— part 那一格没有被真的比过')
+    if (process.env.TRAIL_GOLD30_PRINT) console.log(JSON.stringify(got30, null, 8))
+    if (FAULT === 'wording-drift-mes7a1' && !problems.gold30.length) problems.gold30.push('(注入 wording-drift-mes7a1 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes7a1', problems.gold30); if (miss) problems.gold30.push(miss) }
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -6822,7 +6955,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

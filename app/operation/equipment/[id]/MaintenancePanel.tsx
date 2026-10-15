@@ -47,11 +47,20 @@
 //     也就是说表体比表头宽一列 —— 一张这样的表在读屏器上对不齐。
 //     DataTable 的契约里每一列都必须有 header,所以它现在有了(留空字符串,
 //     与转换前的视觉一致);这不是本刀引入的改动,是本刀【无法不修】的。
+// ★ MES-7a-1(2026-10-15,MES-7a Step 0 Q6,Tim):这个面板从 /finance/assets/[id] 搬到了 /operation/equipment/[id] ——
+//   记保养与维修是加工的事(module.processing.edit,码不变)。资产卡上它仍然画:**只读、但留着资本化**(`readOnlyHref` + `showCapitalise`):
+//   资本化那一笔钱是财务的(module.finance.edit,经 record_expense),所以那颗钮只在资产卡上;机器页上那一格说出它在哪里做。
+//   · 记一次活经 record_equipment_maintenance(不再是直连 INSERT);它可以【点名它修好的那一段停机】—— 下拉里只有这台机器、
+//     没有作废的那几段(库里同一条:MAINTENANCE_DOWNTIME_OTHER_MACHINE · MAINTENANCE_DOWNTIME_VOIDED)。
+//   · 支出单那个下拉要读费用表(module.finance.view):不持的人看见的是一句"要财务查看码",不是一个空下拉(`expenses` 为 null)。
+//   · 资本化的阈值提示要读机器的记录成本(资产卡,财务的表):读不到时那半句换成"成本只在资产卡上",不印一个 0。
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
-import { recordMaintenance, capitaliseMaintenance } from './actions'
+import { recordMaintenance } from './actions'
+import { capitaliseMaintenance } from '@/app/finance/assets/[id]/actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_RADIO, CONTROL_INPUT, CONTROL_SELECT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
@@ -74,17 +83,27 @@ export type MaintRow = {
     work_cost_base: number | null
     pct_of_equipment_cost: number | null
     meets_threshold: boolean | null
+    /** MES-7a-1:它点名的那一段停机(开始时刻 · 原因),没有点名 = null */
+    downtime_label: string | null
 }
 
 export default function MaintenancePanel({
     assetId, rows, employees, suppliers, expenses, canEdit, canCapitalise,
     inServiceDate, capitalisePct, capitaliseFloor, equipmentCostBase, baseCurrency, currencies,
+    downtimes, readOnlyHref, showCapitalise,
 }: {
     assetId: string
     rows: MaintRow[]
     employees: { id: string; label: string }[]
     suppliers: { id: string; label: string }[]
-    expenses: { id: string; label: string }[]
+    /** null = 读不到费用表(不持 module.finance.view)—— 那是一个权限答复,不是"没有支出单" */
+    expenses: { id: string; label: string }[] | null
+    /** MES-7a-1:这台机器上没有作废的停机(可以被一次修理点名)—— 开始时刻 · 原因 · 说明 */
+    downtimes: { id: string; label: string }[]
+    /** 给了 = 资产卡上的只读画法:不画"记一次活"的钮与表单,一句话指去机器页 */
+    readOnlyHref?: string
+    /** 资本化那颗钮画不画 —— 只在资产卡上(那一笔钱是财务的) */
+    showCapitalise: boolean
     /* ★ PERM-CODE-1(2026-09-09)· 这两个布尔【不是同一个权限】,名字必须分得开。
        canEdit       = module.processing.edit —— 保养记录那条 insert 的 RLS 策略要它
                        (db/tables/equipment_maintenance.sql:144-147 WITH CHECK)。
@@ -98,7 +117,8 @@ export default function MaintenancePanel({
     inServiceDate: string | null
     capitalisePct: number
     capitaliseFloor: number
-    equipmentCostBase: number
+    /** null = 读不到资产卡上的记录成本(那是财务的表) */
+    equipmentCostBase: number | null
     baseCurrency: string
     currencies: string[]
 }) {
@@ -112,7 +132,7 @@ export default function MaintenancePanel({
         performedOn: '', kind: 'service', description: '',
         performerKind: 'name' as 'employee' | 'supplier' | 'name',
         employeeId: '', supplierId: '', performerName: '',
-        expenseId: '', capitalised: false, capitalisationReason: '', notes: '',
+        downtimeId: '', expenseId: '', capitalised: false, capitalisationReason: '', notes: '',
     })
     // DATE-PICK-1:这一块靠按钮 onClick 提交(不走原生表单)—— 框里是一个敲错的日子时把保存钮关掉
     const [performedBad, setPerformedBad] = useState(false)
@@ -132,11 +152,11 @@ export default function MaintenancePanel({
     function submit() {
         setError(null)
         start(async () => {
-            const r = await recordMaintenance({ assetId, ...f })
+            const r = await recordMaintenance({ assetId, ...f, downtimeId: f.downtimeId || null, expenseId: f.expenseId || null })
             if (r.error) { setError(r.error); return }
             setOpen(false)
             setF({ performedOn: '', kind: 'service', description: '', performerKind: 'name',
-                   employeeId: '', supplierId: '', performerName: '', expenseId: '',
+                   employeeId: '', supplierId: '', performerName: '', downtimeId: '', expenseId: '',
                    capitalised: false, capitalisationReason: '', notes: '' })
             router.refresh()
         })
@@ -166,7 +186,16 @@ export default function MaintenancePanel({
             header: t('equipment.maint.colWhat'),
             priority: true,
             className: 'text-sm',
-            render: (r) => r.description,
+            render: (r) => (
+                <>
+                    <span className="block">{r.description}</span>
+                    {r.downtime_label && (
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]" data-maint-downtime="1">
+                            {t('equipment.maint.fixedDowntime', { 0: r.downtime_label })}
+                        </span>
+                    )}
+                </>
+            ),
         },
         {
             key: 'who',
@@ -215,7 +244,13 @@ export default function MaintenancePanel({
                    而不持 processing 的人【连这个钮都看不见】,正是 DBLOCK-1 裁掉的
                    那种藏法。闸归闸、状态归状态(ALERT-2d ④(a)):三个条件是记录状态,
                    权限交给 CapitaliseControl 里面那两道闸。 */
-                r.capitalised && !r.capitalised_expense_id && inServiceDate ? (
+                !showCapitalise ? (
+                    /* MES-7a-1:机器页上不画资本化那颗钮(那一笔钱是财务的)—— 说出它在哪里做 */
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">
+                        {r.capitalised_expense_id ? t('equipment.maint.capitalised')
+                         : r.capitalised ? t('equipment.maint.capitaliseOnAssetCard') : ''}
+                    </span>
+                ) : r.capitalised && !r.capitalised_expense_id && inServiceDate ? (
                     <CapitaliseControl canCapitalise={canCapitalise} assetId={assetId} maintenanceId={r.id}
                                        performedOn={formatDate(r.performed_on, locale)}
                                        suppliers={suppliers} baseCurrency={baseCurrency}
@@ -240,13 +275,18 @@ export default function MaintenancePanel({
                     而两层的 allowed 是【同一个布尔】—— 内层因此一次都没挡住过任何人,
                     它唯一的作用是把一句【错的】原因印到屏幕上。内层已删。
                     留下的这一道与服务端一致:新增保养是一条直插,RLS 要 processing.edit。 */}
-                <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                {!readOnlyHref && <PermissionGate code="module.processing.edit" allowed={canEdit}>
                     <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
                         {t('equipment.maint.add')}
                     </Button>
-                </PermissionGate>
+                </PermissionGate>}
             </div>
-            {!canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
+            {readOnlyHref ? (
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
+                    {t('equipment.recordedOnMachinePage')}{' '}
+                    <Link href={readOnlyHref} className="app-link underline">{t('equipment.openMachinePage')}</Link>
+                </p>
+            ) : !canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             {/* ★ 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
@@ -266,7 +306,7 @@ export default function MaintenancePanel({
                    所以这里只留开合位。
                    ☞ 这一块【自己不再套闸】:它里面有【取消】,而 `fieldset disabled`
                      会把取消一起禁掉 —— DBLOCK-1 量出来的第一条边界。 */}
-            {open && (
+            {!readOnlyHref && open && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-3 max-w-2xl">
                     <div className="flex flex-wrap gap-3 items-end">
                         <label className="block">
@@ -331,7 +371,21 @@ export default function MaintenancePanel({
                         )}
                     </div>
 
+                    {/* ── MES-7a-1:它修好的那一段停机(可选)—— 只列这台机器、没有作废的 ────── */}
+                    <label className="block">
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.downtime')}</span>
+                        <select value={f.downtimeId} onChange={(e) => setF({ ...f, downtimeId: e.target.value })}
+                                className={`${CONTROL_SELECT} w-full`} data-maint-downtime-select="1">
+                            <option value="">{t('equipment.maint.downtimeNone')}</option>
+                            {downtimes.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+                        </select>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block mt-1">{t('equipment.maint.downtimeHint')}</span>
+                    </label>
+
                     {/* ── 这次活的花费(可选)—— 它是资本化建议那笔算术的输入 ────── */}
+                    {expenses === null ? (
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.maint.expenseRestricted')}</p>
+                    ) : (
                     <label className="block">
                         <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.expense')}</span>
                         <select value={f.expenseId} onChange={(e) => setF({ ...f, expenseId: e.target.value })}
@@ -341,6 +395,7 @@ export default function MaintenancePanel({
                         </select>
                         <span className="text-xs text-[color:var(--brand-muted-text)] block mt-1">{t('equipment.maint.expenseHint')}</span>
                     </label>
+                    )}
 
                     {/* ── 资本化判断 ─────────────────────────────────────────── */}
                     <div className="border-t border-gray-200 pt-2">
@@ -355,12 +410,14 @@ export default function MaintenancePanel({
                         {/* 【建议:两个阈值 + 这台机器的记录成本】—— 判词本身由
                             equipment_maintenance_advice 在存下来之后算(一份实现)。 */}
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
-                            {t('equipment.maint.thresholdHint', {
-                                pct: String(capitalisePct),
-                                floor: String(capitaliseFloor),
-                                cost: String(equipmentCostBase),
-                                ccy: baseCurrency,
-                            })}
+                            {equipmentCostBase === null
+                                ? t('equipment.maint.thresholdHintNoCost', { pct: String(capitalisePct), floor: String(capitaliseFloor), ccy: baseCurrency })
+                                : t('equipment.maint.thresholdHint', {
+                                    pct: String(capitalisePct),
+                                    floor: String(capitaliseFloor),
+                                    cost: String(equipmentCostBase),
+                                    ccy: baseCurrency,
+                                })}
                         </p>
                         {f.capitalised && (
                             <label className="block mt-2">
@@ -380,7 +437,7 @@ export default function MaintenancePanel({
                                确实不同(投用前直接进成本,投用后落一个折旧锚点)。 */
                             <p className="text-xs text-amber-700 mt-2">
                                 {inServiceDate
-                                    ? t('equipment.maint.capitalInServiceBlocked', { date: inServiceDate })
+                                    ? t('equipment.maint.capitalInServiceOnCard', { date: inServiceDate })
                                     : t('equipment.maint.capitalNotWiredYet')}
                             </p>
                         )}
@@ -388,8 +445,8 @@ export default function MaintenancePanel({
 
                     <div className="flex gap-2 items-center">
                         {/* ★ PERM-CODE-1:码由 finance.edit 改为 processing.edit。
-                            这个【保存】提交的是 recordMaintenance,一条直插 equipment_maintenance,
-                            强制它的是那张表的 insert 策略(processing.edit),不是 finance。 */}
+                            这个【保存】提交的是 recordMaintenance —— ★ MES-7a-1 起经 record_equipment_maintenance
+                            (不再是一条直插),把门的是那支函数的 require_permission(processing.edit),不是 finance。 */}
                         <PermissionGate code="module.processing.edit" allowed={canEdit}>
                         <Button size="xs" type="button" disabled={pending || why !== '' || performedBad} onClick={submit}>
                             {t('common.save')}

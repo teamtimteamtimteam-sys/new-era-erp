@@ -753,3 +753,15 @@ REVOKE EXECUTE ON FUNCTION public.coa_output_calibration_problem(uuid) FROM auth
 REVOKE EXECUTE ON FUNCTION public.coa_issue_blockers(uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.coa_assemble(uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.void_coa_internal(uuid, text, uuid) FROM authenticated;
+-- MES-7a-1(2026-10-15,MES-7a Step 0 Q3 · Q6):设备记录的内层与触发器函数 —— 没有调用者检查,靠的就是调不到。
+--   guard_downtime_cause · guard_downtime_cause_class · guard_equipment_direct_write:触发器函数(停机的原因与来源 · 被引用的原因类别冻住 ·
+--     三张设备表不许绕过函数写)。
+--   equipment_record_target · downtime_cause_check:五支设备记录函数共用的两句判据(一台在册的机器 · 一个能用的原因代号)。
+--     调用方都是 DEFINER(open_ · close_ · correct_equipment_downtime · record_equipment_maintenance · save_equipment_service_interval),
+--     以属主身份读 fixed_assets 与 downtime_causes。
+--   那五支、equipment_reliability 与 coa_issuer【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+REVOKE EXECUTE ON FUNCTION public.guard_downtime_cause() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_downtime_cause_class() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_equipment_direct_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.equipment_record_target(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.downtime_cause_check(text) FROM authenticated;

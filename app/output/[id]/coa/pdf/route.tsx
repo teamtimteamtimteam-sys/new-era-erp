@@ -6,6 +6,11 @@
 //                      对不上就 409(一份与记录不符的"档案"比没有档案更坏)。作废的证书照样取得到(作废不动字节)。
 //   POST {salesOrderId?} 签发 —— issue_coa 铸号、组装、冻快照(一笔事务,拒绝清单的第一句原样拒)→ 【照它返回的那一份快照】渲染 →
 //                      存桶(键 <证书 id>/<随机 id>.pdf)→ record_coa_issue 记哈希。
+//   POST {storeFor}    ★ MES-7a-1(MES-7a Step 0 Q24)【存 PDF】—— 一张已签发、却没有存下字节的证书(签发时上传或记哈希失败留下的那一种):
+//                      照它【存下的那一份快照】再渲染一遍、存桶、record_coa_issue 记哈希。不铸号、不改快照;作废的、已有字节的按名拒
+//                      (record_coa_issue 里同一句)。关掉 known-issues MES6B2-ISSUED-WITHOUT-BYTES 剩下的那一半。
+// ★ MES-7a-1(F9,Q8):签发之前的字体检查【连签发人一起】问 —— 名字与职位由 coa_issuer()(issue_coa 用的同一支)解析,填进同一份组装再过
+//   字体覆盖守卫;画不出来就 400、什么都不铸。此前签发人要到铸号那一刻才进快照,于是一个画不出来的名字会留下一张没有字节的证书。
 //
 // 【PDF 只从快照渲染】(Q31)签发之后不再回读 —— renderCoaPdf 的入参只有快照与模式。与销毁证书那一条路由的不同正在这里:
 //   那一条签发后又调了一次 cod_certificate_data(活数据),是 known-issues MES6B1-COD-PDF-RENDERS-LIVE 登记的那一处。
@@ -77,20 +82,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!UUID_RE.test(id)) return new NextResponse('Not found', { status: 404 })
         // 空身体 = 不点名销售单;读不懂的身体是一次 400,不是"不点名"
         const text = await request.text()
-        let body: { salesOrderId?: string | null } = {}
+        let body: { salesOrderId?: string | null; storeFor?: string | null } = {}
         if (text.trim() !== '') {
-            try { body = JSON.parse(text) as { salesOrderId?: string | null } } catch { return new NextResponse('Bad request', { status: 400 }) }
+            try { body = JSON.parse(text) as { salesOrderId?: string | null; storeFor?: string | null } } catch { return new NextResponse('Bad request', { status: 400 }) }
         }
+        if (body.storeFor) return await storeMissingBytes(id, body.storeFor)
         const so = body.salesOrderId && body.salesOrderId.trim() !== '' ? body.salesOrderId : null
         if (so && !UUID_RE.test(so)) return new NextResponse('Not found', { status: 404 })
         const supabase = await createClient()
 
         // ⓪ 签发之前先问字体:照【同一支组装】(coa_certificate_data)看纸上会印的字画不画得出来。画不出来就在这里拒 ——
         //   否则号已铸、快照已冻,渲染才失败,留下一张没有字节的证书(MES-6b-2 线上证明实测:合同标题里的「≤」)。
-        //   签发人的名字与职位要到签发那一刻才进快照,不在这一问里(known-issues MES6B2-ISSUED-WITHOUT-BYTES 记着这一格)。
+        //   ★ MES-7a-1(F9):签发人的名字与职位也在这一问里 —— coa_issuer() 与 issue_coa 冻进快照的是同一支解析;它解析不出来
+        //   (不是员工 / 没有职位 / 没有码)就是那一句拒绝,同样什么都不铸。
         const pre = await supabase.rpc('coa_certificate_data', { p_output_batch_id: id, p_sales_order_id: so ?? undefined })
         if (pre.error) return new NextResponse(await localizeCoaError(pre.error.message), { status: 400 })
-        const unrenderable = coaUnrenderable(pre.data as unknown as CoaSnapshot)
+        const who = await supabase.rpc('coa_issuer')
+        if (who.error) return new NextResponse(await localizeCoaError(who.error.message), { status: 400 })
+        const issuer = who.data as unknown as { name: string; position: string }
+        const unrenderable = coaUnrenderable({ ...(pre.data as unknown as CoaSnapshot), issuer: { name: issuer.name, position: issuer.position } })
         if (unrenderable) return new NextResponse(unrenderable, { status: 400 })
 
         // ① 落库:拒绝清单、铸号、冻快照 —— 全在一个事务里
@@ -117,4 +127,33 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     } catch (e) {
         return new NextResponse(`Issue failed: ${(e as { message?: string })?.message ?? String(e)}`, { status: 500 })
     }
+}
+
+// ── 存 PDF(Q24):一张已签发、没有字节的证书 —— 照存下的快照再渲染一遍,存桶,记哈希 ─────────────────────────────
+//   读证书走 certificates_of_analysis 的读策略(module.output.view);上传要 action.issue_coa(桶的上传策略),记哈希要它(record_coa_issue)。
+//   作废的、已经有字节的,record_coa_issue 按名拒(COA_NOT_ISSUED · COA_BYTES_ALREADY_RECORDED);这里先问一次"已有字节",免得传一个孤儿。
+async function storeMissingBytes(batchId: string, coaId: string): Promise<NextResponse> {
+    if (!UUID_RE.test(coaId)) return new NextResponse('Not found', { status: 404 })
+    const supabase = await createClient()
+    const cert = mustOne(
+        await supabase.from('certificates_of_analysis').select('id, code, status, snapshot').eq('id', coaId).eq('output_batch_id', batchId).maybeSingle(),
+        'certificates_of_analysis'
+    ) as { id: string; code: string; status: string; snapshot: CoaSnapshot | null } | null
+    if (!cert || !cert.snapshot) return new NextResponse('Not found', { status: 404 })
+    const had = mustOne(await supabase.from('coa_issues').select('coa_id').eq('coa_id', cert.id).maybeSingle(), 'coa_issues')
+    if (had) return new NextResponse(await localizeCoaError(`COA_BYTES_ALREADY_RECORDED|${cert.code}`), { status: 400 })
+    if (cert.status !== 'issued') return new NextResponse(await localizeCoaError(`COA_NOT_ISSUED|${cert.code}|${cert.status}`), { status: 400 })
+    // 照【存下的那一份】渲染 —— 不回读、不重组;字体检查在 renderCoaPdf 里(画不出来就抛,什么都不传)
+    const buf = await renderCoaPdf(cert.snapshot, 'issued')
+    const sha = createHash('sha256').update(buf).digest('hex')
+    const path = `${cert.id}/${crypto.randomUUID()}.pdf`
+    const up = await supabase.storage.from(COA_BUCKET).upload(path, buf, { contentType: 'application/pdf' })
+    if (up.error) return new NextResponse(`Upload failed: ${up.error.message}`, { status: 500 })
+    const rec = await supabase.rpc('record_coa_issue', { p_coa_id: cert.id, p_file_path: path, p_sha256: sha })
+    if (rec.error) {
+        const rm = await supabase.storage.from(COA_BUCKET).remove([path])
+        const why = await localizeCoaError(rec.error.message)
+        return new NextResponse(rm.error ? `${why}\n(The uploaded file could not be removed: ${rm.error.message})` : why, { status: 400 })
+    }
+    return NextResponse.json({ coa_id: cert.id, code: cert.code, stored: true })
 }

@@ -36,8 +36,10 @@
 // 是两件不同的事,按钮上各说各的。
 //
 // 【提前量与"至少一个"【不在这里再校验一遍】】lead < interval 与 at-least-one
-// 都是表上的 CHECK。在 TS 里再写一遍就是第二份实现 —— 让库拒,句子由
-// localizeEquipmentError 按约束名翻。W1 正面走这两条。
+// 在库里判。在 TS 里再写一遍就是第二份实现 —— 让库拒。★ MES-7a-1:拒的是 save_equipment_service_interval 的具名码
+// (INTERVAL_LEAD_NOT_BELOW · INTERVAL_NOTHING_STATED …),不再是约束名;表上的 CHECK 留着做第二道。
+// ★ MES-7a-1(Q6):这个面板从 /finance/assets/[id] 搬到了 /operation/equipment/[id];资产卡上它只读(`readOnlyHref`)。
+import Link from 'next/link'
 import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -73,7 +75,7 @@ const num = (n: number | null) =>
 
 export default function ServiceIntervalPanel({
     assetId, rows, acquisitionDate, runsBeforeAcquisition, priorRunsRestricted = false,
-    kgSinceAcquisition, canEdit,
+    kgSinceAcquisition, canEdit, readOnlyHref,
 }: {
     assetId: string
     rows: IntervalRow[]
@@ -90,6 +92,8 @@ export default function ServiceIntervalPanel({
     // FIX-2(A):取得日以来这台机器吃进去多少公斤 —— 未监控时也要说得出来。
     kgSinceAcquisition: number
     canEdit: boolean
+    /** MES-7a-1:给了 = 资产卡上的只读画法 —— 不画任何写的控件,一句话指去机器页(那里才改保养间隔)。 */
+    readOnlyHref?: string
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -180,13 +184,18 @@ export default function ServiceIntervalPanel({
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="">{t('equipment.intervals.title')}</h2>
-                <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                {!readOnlyHref && <PermissionGate code="module.processing.edit" allowed={canEdit}>
                     <Button variant="secondary" size="xs" type="button" onClick={openNew} disabled={pending}>
                         {t('equipment.intervals.add')}
                     </Button>
-                </PermissionGate>
+                </PermissionGate>}
             </div>
-            {!canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
+            {readOnlyHref ? (
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
+                    {t('equipment.recordedOnMachinePage')}{' '}
+                    <Link href={readOnlyHref} className="app-link underline">{t('equipment.openMachinePage')}</Link>
+                </p>
+            ) : !canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             {monitored.length === 0 ? (
@@ -281,7 +290,7 @@ export default function ServiceIntervalPanel({
                                     {h.text}
                                 </p>
 
-                                <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                                {!readOnlyHref && <PermissionGate code="module.processing.edit" allowed={canEdit}>
                                     <div className="flex gap-2 mt-2">
                                         <Button variant="secondary" size="xs" className="text-xs" type="button" disabled={pending} onClick={() => openEdit(r)}>
                                             {t('equipment.intervals.edit')}
@@ -303,7 +312,7 @@ export default function ServiceIntervalPanel({
                                             {t('equipment.intervals.stop')}
                                         </ConfirmButton>
                                     </div>
-                                </PermissionGate>
+                                </PermissionGate>}
                             </div>
                         )
                     })}
@@ -316,7 +325,7 @@ export default function ServiceIntervalPanel({
                    所以这里只留开合位。
                    ☞ 这一块【自己不再套闸】:它里面有【取消】,而 `fieldset disabled`
                      会把取消一起禁掉 —— DBLOCK-1 量出来的第一条边界。 */}
-            {editing && (
+            {!readOnlyHref && editing && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-2 max-w-2xl">
                     <div className="flex flex-wrap gap-3 items-end">
                         <label className="block">

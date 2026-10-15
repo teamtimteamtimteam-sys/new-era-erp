@@ -62,6 +62,7 @@ INSERT INTO public.document_type_exceptions (table_name, reason) VALUES
     ('dangerous_goods_codes',         '危险品 UN 编号目录(MES-3b):code 是 UN 编号,物料引用它'),
     ('deep_discharge_judgements',     '深放电判定的取值目录,进料检验行引用它'),
     ('departments',                   '组织架构的部门节点,不是一张开得出来的单据'),
+    ('downtime_causes',               '停机原因目录(MES-7a-1):code 是原因代号(类别 failure · planned · external),停机记录引用它'),
     ('handover_item_types',           '交接班检查项的种类目录'),
     ('ingest_data_classes',           '采集层的数据类目录(MES-1):code 是数据类代号,收件箱行与设备引用它'),
     ('inbound_chemistry_certainties', '进料化学确定度的取值目录'),

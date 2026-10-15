@@ -2,6 +2,7 @@
 // MES-6b-2(2026-10-15,MES-0 Q67 · MES-6b Step 0 Q10–Q14 · Q31 · Q32,Tim):一张分析证书 —— 它【签发那一刻】说了什么(全部读快照,不读活数据):
 //   那一批、给谁、说话的那一份化验与它怎么被选出来、成分(惩罚元素旁边是 ppm)、指标、来料化学确定度、点了单时那份合同的验收限与判定、
 //   签发人与时刻;作废了的写出理由与替代它的那一张。下载存下的那一份(?coa=,重算哈希);提 CFO 作废申请(action.issue_coa)。
+//   ★ MES-7a-1(Q24):已签发而没有字节的证书多一颗「存 PDF」(照快照再渲染、存桶、记哈希)。
 //   【门】requireFunction(FN.qualityCoa)(质量查看码与产出查看码);证书行再过一次它自己的读策略(module.output.view)。
 //   【这一页不判任何事】作废只经 CFO 申请,签发在那一批的页上。
 import Link from 'next/link'
@@ -19,6 +20,7 @@ import WarehouseRequestButton from '@/app/components/inventory/WarehouseRequestB
 import { formatAuditStamp } from '@/lib/dates'
 import { COA_ROW_COLUMNS, type CoaRow, type CoaSnapshot } from '@/app/output/coa/coaTypes'
 import { CoaCompositionTable, CoaLimitsTable } from './CoaContentTables'
+import SavePdfButton from './SavePdfButton'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ppm = (v: number | string) => `${Math.round(Number(v) * 10000 * 1000) / 1000} ppm`
@@ -77,6 +79,8 @@ export default async function CoaPage({ params, searchParams }: {
                         {t('coa.download')}
                     </a>
                 ) : <span className="text-sm text-[color:var(--brand-muted-text)]">{t('coa.noBytes')}</span>}
+                {/* MES-7a-1(Q24):已签发、没有字节 —— 照存下的快照把 PDF 存起来(作废的证书不画:它不再需要一份新存的纸) */}
+                {issued && !c.has_bytes && <SavePdfButton batchId={c.output_batch_id} coaId={c.id} canIssue={canIssue} />}
                 {issued && (
                     <WarehouseRequestButton kind="coa_void" subjectId={c.id} subjectCode={c.code} permissionCode="action.issue_coa"
                         allowed={canIssue} openRequestLabel={c.open_request_label} extraPath={`/quality/coa/${c.id}`} size="default" />

@@ -776,6 +776,37 @@ def main() -> int:
                     print(f"fixture   {name:<44s} ✓")
                 before = after
 
+        # ── MES-7a-1(F11):PDF 路由的行为 —— 分析证书与销毁证书 ──────────────────────
+        # 「照快照渲染」「存下的字节与记下的哈希对不上 → 409」「先过字体、拒了就什么都不铸」是【路由】(TypeScript)的行为,
+        # SQL fixture 够不着(MES-6b-2 close-out W1:只被一次性的线上证明证过一次)。scripts/check-pdf-routes.mjs 把两条路由的
+        # 处理函数原样装进来、给它一个记账的假客户端(不碰任何库、不碰网),逐条断言;它自己带着故障注入格,看不见就说看不见。
+        # 判词归【行为断言】(与 fixture 同一个出口):它问的是"建出来的东西跑起来对不对"。两相都跑 —— 它不需要线上。
+        pr = subprocess.run(["node", "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+                             os.path.join(HERE, "..", "scripts", "check-pdf-routes.mjs")],
+                            capture_output=True, text=True)
+        pr_line = (pr.stdout.strip().splitlines() or [""])[-1]
+        if pr.returncode != 0:
+            fixture_fails.append(f"pdf-routes: {pr_line[:200] or (pr.stderr.strip().splitlines() or [''])[-1][:200]}")
+            print(f"fixture   {'scripts/check-pdf-routes.mjs':<44s} ✗")
+        else:
+            print(f"fixture   {'scripts/check-pdf-routes.mjs':<44s} ✓  {pr_line[:120]}")
+
+        # ── MES-7a-1(F11 · W2):线上 fixture —— 只读,对着线上跑 ─────────────────────
+        # db/live-fixtures/*.sql 断言的是【只活在线上】的事实(例:cco 持 action.issue_coa —— 重建库的引导里没有 cco 这个角色,
+        # 所以一支 db/fixtures 在那里只能空转)。每一支自己 BEGIN READ ONLY … ROLLBACK。--offline 够不到线上,不跑,收尾里点名。
+        live_fx_dir = os.path.join(HERE, "live-fixtures")
+        if not OFF and os.path.isdir(live_fx_dir):
+            for name in sorted(f for f in os.listdir(live_fx_dir) if f.endswith(".sql")):
+                fr = subprocess.run(["psql", args.live, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", os.path.join(live_fx_dir, name)],
+                                    capture_output=True, text=True)
+                if fr.returncode != 0:
+                    msg = (fr.stderr or fr.stdout).strip().split(chr(10))
+                    hit = next((l for l in msg if "FIXTURE" in l or "ERROR" in l), msg[0] if msg else "")
+                    fixture_fails.append(f"live-fixtures/{name}: {hit[:200]}")
+                    print(f"fixture   live:{name:<39s} ✗")
+                else:
+                    print(f"fixture   live:{name:<39s} ✓")
+
         unchecked = cm.definer_without_caller_check()
         print(f"definer    {len(unchecked)} SECURITY DEFINER function(s) with no recognisable caller check"
               f"  ({len(cm.DEFINER_NO_CHECK_ALLOWED)} allowlisted)")
@@ -797,7 +828,8 @@ def main() -> int:
             print("           引导/科目 · 自洽 · 列权限/读者/跨模块/导入模板(重建侧)·")
             print("           吞错 · 币种写死 · definer")
             print("   ★ 没跑的(都需要线上,一件都没有被取消):种子行比对 · 生成类型 ·")
-            print("     库级 GUC · 上面四项的【线上侧】· 科目 is_system 的线上核对。")
+            print("     库级 GUC · 上面四项的【线上侧】· 科目 is_system 的线上核对 ·")
+            print("     db/live-fixtures(线上 fixture,MES-7a-1)。")
             print("   ★ 判词【匿名面】(db/check_grants.py)【没有跑】—— 它【不可能】离线跑:")
             print("     镜像里根本没有 GRANT,那正是它要补的缺口。一个离线版本会什么都")
             print("     不断言却打印绿色,而那是本仓库反复付账的那种失败。")

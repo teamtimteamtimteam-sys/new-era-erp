@@ -1,81 +1,22 @@
 'use server'
 
-// EQP-2d:机器那一页上的三组动作 —— 保养、停机、保养间隔。
-//
-// 【守卫在库里,这里只做两件事】翻错误、刷页面 —— 与 month-end/actions.ts 同形。
-// **唯一的例外是"拒空"**:决定期间/排程的日期、以及描述与理由,由动作【独立】
-// 拒一次(AGENTS.md:提交控件禁用 + 服务端独立拒空,两层都是机制,UI 上的
-// required 是第三层不算数)。表上的 NOT NULL 是第四层兜底,而它的消息里没有
-// 约束名、按名认不出来 —— 所以这里抛具名码。
-//
-// 【为什么是直连表而不是 RPC】EQP-2a/2b/2c 建的是表 + RLS,没有任何 RPC。
-// 改写入路径是一次设计变更,不是一次上屏 —— 记在 docs/known-issues.md。
-// 于是这里每一处 insert/update 撞上的都是【约束违反】,由
-// localizeEquipmentError 按【约束名】翻(见那支文件的抬头,它与其余
-// *ErrorCodes.ts 不是同一种东西)。
+// EQP-2d:机器那一页上的动作。★ MES-7a-1(2026-10-15,MES-7a Step 0 Q6,Tim):记保养、记停机、改保养间隔【搬去了】
+//   /operation/equipment/[id](app/operation/equipment/[id]/actions.ts),并且从直连表写换成了五支函数。
+//   这里只剩财务那一侧的两件:**资本化**(对着一条已标资本化的维修记录,经 record_expense)与**计划投用日**。
+//   资产卡照旧读那三张表(读策略不变),只是不再在这里写它们。
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { localizeEquipmentError } from '../equipmentErrorCodes'
-import { refuseFromCoded, refuseNothingChanged } from '@/lib/action-refusal'
+import { localizeEquipmentError } from '@/app/operation/equipment/equipmentErrorCodes'
+import { refuseFromCoded } from '@/lib/action-refusal'
 
 export type ActState = { error?: string; success?: boolean }
 
 function refresh(assetId: string) {
     revalidatePath(`/finance/assets/${assetId}`)
     revalidatePath('/finance/assets')
+    revalidatePath(`/operation/equipment/${assetId}`)
     // CONV-7 ①:两支保养臂搬去了 /tools/reminders,首页不再读 operations_now。
     revalidatePath('/tools/reminders')   // 两支臂现在画在提醒页上
-}
-
-// ── P1/P2:记一次保养或维修 ─────────────────────────────────────────────────
-export async function recordMaintenance(input: {
-    assetId: string
-    performedOn: string
-    kind: string
-    description: string
-    performerKind: 'employee' | 'supplier' | 'name'
-    employeeId: string | null
-    supplierId: string | null
-    performerName: string
-    expenseId: string | null
-    capitalised: boolean
-    capitalisationReason: string
-    notes: string
-}): Promise<ActState> {
-    // 【拒空,独立于表单】—— 空着的日期若被默默补成今天,整条保养排程会往后挪,
-    // 而没有任何东西看得出来(equipment_maintenance.performed_on 的列注释写着这句)。
-    if (!input.performedOn) return { error: await localizeEquipmentError('MAINT_DATE_REQUIRED') }
-    if (!input.description.trim()) return { error: await localizeEquipmentError('MAINT_DESCRIPTION_REQUIRED') }
-
-    const employee = input.performerKind === 'employee' ? (input.employeeId || null) : null
-    const supplier = input.performerKind === 'supplier' ? (input.supplierId || null) : null
-    const typed = input.performerKind === 'name' ? input.performerName.trim() : ''
-    // 【三选一,而且必须选中一个】表上那条 performer_shape 说的就是这件事;
-    // 这里先拒一次,好让消息说的是"你还没选人",而不是一句约束名。
-    if (!employee && !supplier && !typed) {
-        return { error: await localizeEquipmentError('MAINT_PERFORMER_REQUIRED') }
-    }
-
-    const supabase = await createClient()
-    const { error } = await supabase.from('equipment_maintenance').insert({
-        equipment_id: input.assetId,
-        performed_on: input.performedOn,
-        kind: input.kind,
-        description: input.description.trim(),
-        performed_by_employee_id: employee,
-        performed_by_supplier_id: supplier,
-        performed_by_name: typed || null,
-        expense_id: input.expenseId || null,
-        capitalised: input.capitalised,
-        // 【理由留空就留 NULL,不要写空串】表上那条 CHECK 用的是
-        // COALESCE(btrim(reason),'') <> '' —— 空串与 NULL 它都拒,而存一个空串
-        // 会让"有理由但是空的"这种读法变得可能。
-        capitalisation_reason: input.capitalisationReason.trim() || null,
-        notes: input.notes.trim() || null,
-    } as never)
-    if (error) return { error: await localizeEquipmentError(error.message) }
-    refresh(input.assetId)
-    return { success: true }
 }
 
 // ── CAPEX-1:对着一条【已标资本化】的维修记录,把钱加到这台在跑的机器上 ──────
@@ -111,167 +52,6 @@ export async function capitaliseMaintenance(input: {
     })
     if (error) return { error: await localizeEquipmentError(error.message) }
     refresh(input.assetId)
-    return { success: true }
-}
-
-// ── P3:开一段停机 ─────────────────────────────────────────────────────────
-export async function openDowntime(input: {
-    assetId: string; startedAt: string; reason: string; notes: string
-}): Promise<ActState> {
-    if (!input.startedAt) return { error: await localizeEquipmentError('DOWNTIME_START_REQUIRED') }
-    if (!input.reason.trim()) return { error: await localizeEquipmentError('DOWNTIME_REASON_REQUIRED') }
-    const supabase = await createClient()
-    // 【ended_at 留空 = 这一段还开着】uq_equipment_downtime_open 只盖住 ended_at
-    // 为空的行,所以第二段开口会撞上它 —— 那条拒绝正是 P3 要让人看见的那一句。
-    const { error } = await supabase.from('equipment_downtime').insert({
-        equipment_id: input.assetId,
-        started_at: input.startedAt,
-        ended_at: null,
-        reason: input.reason.trim(),
-        notes: input.notes.trim() || null,
-    } as never)
-    if (error) return { error: await localizeEquipmentError(error.message) }
-    refresh(input.assetId)
-    return { success: true }
-}
-
-// ── P3:关一段停机 ─────────────────────────────────────────────────────────
-export async function closeDowntime(input: {
-    assetId: string; downtimeId: string; endedAt: string
-}): Promise<ActState> {
-    if (!input.endedAt) return { error: await localizeEquipmentError('DOWNTIME_END_REQUIRED') }
-    const supabase = await createClient()
-    // 【不在这里比 ended_at >= started_at】那是表上 equipment_downtime_period_order
-    // 的活。在 TS 里再比一遍就是同一条规矩的第二份实现,而本仓库为"两份实现必然
-    // 漂开"付过很多次账 —— 让库来拒,句子由约束名翻。
-    //
-    // ★ U1-B(ALERT-1):这一条 UPDATE 从前【零行也报成功】。三个过滤器各挡一种"那一行不是你以为的那一行":
-    //   · equipment_id —— 这一页说的是这台机器;一个对不上的 id 不许改到别的机器上去;
-    //   · ended_at IS NULL —— 只关【开着的】那一段(两个标签页同时关,第二个改零行);
-    //   · voided_at IS NULL —— 作废了的那一段没有发生过,不能被"关上"(库里 guard_downtime_write 也拒)。
-    //   零行 = 被 RLS 挡下,或那一行已经不是开着的 —— refuseNothingChanged 按权限码说出是哪一种。
-    const { data, error } = await supabase.from('equipment_downtime')
-        .update({ ended_at: input.endedAt } as never)
-        .eq('id', input.downtimeId)
-        .eq('equipment_id', input.assetId)
-        .is('ended_at', null)
-        .is('voided_at', null)
-        .select('id')
-    if (error) return { error: (await refuseFromCoded(error.message, localizeEquipmentError)).error }
-    if (!data || data.length === 0) return await refuseNothingChanged('module.processing.edit')
-    refresh(input.assetId)
-    return { success: true }
-}
-
-// ── U1-B(UNBLOCK-1 Q15):更正一段停机 —— 起止时刻与原因 ───────────────────────
-// 【为什么是直连 UPDATE 而不是一支函数】Tim 的 Q15:更正走表上的 UPDATE 策略(module.processing.edit),
-//   变更记录留着旧值;只有【作废】走函数(作废那三列只许 void_equipment_downtime 写)。
-// 【时刻的规矩一条都不在这里】结束早于开始(equipment_downtime_period_order)、未来的时刻
-//   (DOWNTIME_START_IN_FUTURE / _END_IN_FUTURE)、与别的一段重叠(DOWNTIME_OVERLAPS)、
-//   一台机器两段开口(uq_equipment_downtime_open)—— 全是库的活,句子由 localizeEquipmentError 翻。
-// 【ended_at 只在那一段【已经关了】时才改】开着的那一段由"关上它"那一条路关(closeDowntime);
-//   这里给开着的那一段传 null,于是它保持开着 —— 更正不是关闭的第二个入口。
-export async function correctDowntime(input: {
-    assetId: string; downtimeId: string; startedAt: string; endedAt: string | null; reason: string
-}): Promise<ActState> {
-    // 拒空,独立于表单(与 openDowntime / closeDowntime 同一组具名码)。
-    if (!input.startedAt) return { error: await localizeEquipmentError('DOWNTIME_START_REQUIRED') }
-    if (input.endedAt !== null && !input.endedAt) return { error: await localizeEquipmentError('DOWNTIME_END_REQUIRED') }
-    if (!input.reason.trim()) return { error: await localizeEquipmentError('DOWNTIME_REASON_REQUIRED') }
-    const supabase = await createClient()
-    const patch: Record<string, string> = { started_at: input.startedAt, reason: input.reason.trim() }
-    if (input.endedAt !== null) patch.ended_at = input.endedAt
-    let q = supabase.from('equipment_downtime')
-        .update(patch as never)
-        .eq('id', input.downtimeId)
-        .eq('equipment_id', input.assetId)
-        // 作废了的一段冻住(库里 guard_downtime_write 抛 DOWNTIME_VOIDED);这里先不去碰它,零行照实说。
-        .is('voided_at', null)
-    // 【开着的一段不许借更正被关上,关了的一段不许借更正被重新打开】—— 那一行的形状必须还是表单读到的那个形状。
-    q = input.endedAt === null ? q.is('ended_at', null) : q.not('ended_at', 'is', null)
-    const { data, error } = await q.select('id')
-    if (error) return { error: (await refuseFromCoded(error.message, localizeEquipmentError)).error }
-    if (!data || data.length === 0) return await refuseNothingChanged('module.processing.edit')
-    refresh(input.assetId)
-    return { success: true }
-}
-
-// ── U1-B(UNBLOCK-1 Q15):作废一段【从来没有发生过】的停机 ────────────────────────
-// 走 void_equipment_downtime —— 作废那三列只许它写(guard_downtime_write 拒直连)。理由必填:
-// 对话框不让空理由按下去,这里再拒一次(两层都是机制),库里第三次(DOWNTIME_VOID_REASON_REQUIRED)。
-// 【为什么要问 equipment_id 对不对得上】函数只认 downtime_id;这一页说的是这台机器,
-//   一个从别处带来的 id 不该在这一页上作废另一台机器的停机。先读一次,对不上就按 NOT_FOUND 说。
-export async function voidDowntime(input: {
-    assetId: string; downtimeId: string; reason: string
-}): Promise<ActState> {
-    if (!input.reason.trim()) return { error: await localizeEquipmentError('DOWNTIME_VOID_REASON_REQUIRED') }
-    const supabase = await createClient()
-    const { data: row, error: readErr } = await supabase.from('equipment_downtime')
-        .select('id').eq('id', input.downtimeId).eq('equipment_id', input.assetId).maybeSingle()
-    if (readErr) return { error: (await refuseFromCoded(readErr.message, localizeEquipmentError)).error }
-    if (!row) return { error: await localizeEquipmentError(`DOWNTIME_NOT_FOUND|${input.downtimeId}`) }
-    const { error } = await supabase.rpc('void_equipment_downtime', {
-        p_downtime_id: input.downtimeId,
-        p_reason: input.reason.trim(),
-    })
-    // refuseFromCoded:PERMISSION_DENIED|module.processing.edit 由它的分支 ① 接住(本地化器没有那一支)。
-    if (error) return { error: (await refuseFromCoded(error.message, localizeEquipmentError)).error }
-    refresh(input.assetId)
-    return { success: true }
-}
-
-// ── P4:存一条保养间隔(新增或改) ───────────────────────────────────────────
-export async function saveServiceInterval(input: {
-    assetId: string
-    intervalId: string | null
-    kind: string
-    intervalKg: string
-    leadKg: string
-    intervalDays: string
-    leadDays: string
-    disposition: string
-    notes: string
-}): Promise<ActState> {
-    const kg = input.intervalKg.trim() === '' ? null : Number(input.intervalKg)
-    const days = input.intervalDays.trim() === '' ? null : Number(input.intervalDays)
-    // 【两个都空就当场拒】表上那条 at_least_one 也会拒,而这一句先说人话。
-    // 【提前量【不】在这里校验】lead < interval 是表上 lead_*_shape 的活 ——
-    // 在 TS 里再写一遍就是第二份实现。让库拒,句子由约束名翻(W1 正面走它)。
-    if (kg === null && days === null) {
-        return { error: await localizeEquipmentError('INTERVAL_NOTHING_STATED') }
-    }
-    const row = {
-        equipment_id: input.assetId,
-        kind: input.kind,
-        interval_kg: kg,
-        // 【提前量与它的量度成对】量度为空时提前量必须也为空,否则表上那条
-        // shape CHECK 会拒 —— 这一处不是"再实现一遍规则",是把表单里那个
-        // 用不上的输入框归零,免得一个看不见的旧值跟着提交。
-        lead_kg: kg === null ? null : (input.leadKg.trim() === '' ? null : Number(input.leadKg)),
-        interval_days: days,
-        lead_days: days === null ? null : (input.leadDays.trim() === '' ? null : Number(input.leadDays)),
-        disposition: input.disposition,
-        notes: input.notes.trim() || null,
-        updated_at: new Date().toISOString(),
-    }
-    const supabase = await createClient()
-    const { error } = input.intervalId
-        ? await supabase.from('equipment_service_intervals').update(row as never).eq('id', input.intervalId)
-        : await supabase.from('equipment_service_intervals').insert(row as never)
-    if (error) return { error: await localizeEquipmentError(error.message) }
-    refresh(input.assetId)
-    return { success: true }
-}
-
-// ── P4:删掉一条保养间隔 = 回到【未监控】 ────────────────────────────────────
-// 【它与 disposition='ignore' 不是一回事】删行 = 我们不再盯这台机器的这一种活;
-// ignore = 照旧算得出到期,只是不上看板。表注把这两个状态分开写着,屏幕上也要
-// 分开 —— 用删行去"关灯",会把"不想被打扰"记成"从来没决定过"。
-export async function deleteServiceInterval(assetId: string, intervalId: string): Promise<ActState> {
-    const supabase = await createClient()
-    const { error } = await supabase.from('equipment_service_intervals').delete().eq('id', intervalId)
-    if (error) return { error: await localizeEquipmentError(error.message) }
-    refresh(assetId)
     return { success: true }
 }
 

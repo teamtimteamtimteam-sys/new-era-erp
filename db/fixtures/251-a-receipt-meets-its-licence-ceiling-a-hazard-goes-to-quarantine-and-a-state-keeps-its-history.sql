@@ -463,7 +463,9 @@ BEGIN
        OR EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = b_r AND safety_state_code = 'discharged_verified' AND ended_at IS NULL) THEN
         RAISE EXCEPTION 'FIXTURE 251 RUN: a discharge commit alone verified the batch (MES-5a-1: verification is by module results)'; END IF;
     PERFORM pg_temp.f251_read('RUN', u_all, format($q$SELECT to_jsonb(set_batch_module_count('inbound', %L, 1))$q$, b_r));
-    PERFORM pg_temp.f251_read('RUN', u_all, format($q$SELECT record_discharge_module_result(%L, 'inbound', %L, 'M01', 0.2, 'pass', (%L)::timestamptz + interval '30 minutes')$q$, run, b_r, d));
+    -- ★ MES-7a-1(2026-10-16 量到):判定时刻原来是"今天零点 + 30 分钟" —— 新加坡 00:00–00:30 之间那是一个未来的时刻,这一格每晚红半小时。
+    --   改成与上面结束时刻同一个写法(LEAST(…, now())),断言一条没动。
+    PERFORM pg_temp.f251_read('RUN', u_all, format($q$SELECT record_discharge_module_result(%L, 'inbound', %L, 'M01', 0.2, 'pass', LEAST((%L)::timestamptz + interval '30 minutes', now()))$q$, run, b_r, d));
     IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE id = v_x AND ended_by_run_id = run AND end_reason LIKE 'verified by module results (PROC-%')
        OR NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states WHERE inbound_batch_id = b_r AND safety_state_code = 'discharged_verified'
                         AND ended_at IS NULL AND created_by_run_id = run) THEN

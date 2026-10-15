@@ -53,7 +53,13 @@ CREATE TABLE public.equipment_downtime (
     void_reason  text,
     CONSTRAINT equipment_downtime_void_shape
         CHECK ((voided_at IS NULL AND voided_by IS NULL AND void_reason IS NULL)
-            OR (voided_at IS NOT NULL AND void_reason IS NOT NULL AND btrim(void_reason) <> ''))
+            OR (voided_at IS NOT NULL AND void_reason IS NOT NULL AND btrim(void_reason) <> '')),
+    -- ── MES-7a-1(2026-10-15,MES-0 Q71;MES-7a Step 0 Q3 · Q4):原因与来源 ──────────────────────────────────────────────
+    -- cause_code:这一段为什么停(downtime_causes,类别 failure · planned · external)。【在插入时必填】(guard_downtime_cause)——
+    --   本刀之前那一行留着空,读作"未分类";可靠性只把 failure 类算作一次故障。reason 照旧是自由文本的说明。
+    -- source:manual · device。device 保留(没有控制器负载格式,不建转换层),所以今天每一行都是 manual;一行停机从不引用加工单的事件(Q19)。
+    cause_code   text REFERENCES public.downtime_causes (code),
+    source       text NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'device'))
 );
 
 COMMENT ON TABLE public.equipment_downtime IS 'EQP-2a:一行 = 一台机器【没有在跑】的一段时间。
@@ -66,9 +72,17 @@ COMMENT ON TABLE public.equipment_downtime IS 'EQP-2a:一行 = 一台机器【�
 **这个缺席是排期,不是疏漏** —— EQP-2b 落地时加那条外键。
 【本刀刻意不算可用率,也不算 OEE】记下"机器停了多久"是一个【事实】;
 算出"可用率 87%"是一个【判断】,而它的分母没有人选过:
-日历小时?排班小时?计划生产小时?三种算出来的是三个数,而这盘生意
-今天连排班表都不存在(加工那一族里没有任何开始/结束/班次列 —— 实测)。
-**返回条件:有人把分母定下来的那一天** —— 那时它是一次决定,不是一个默认值。';
+日历小时?排班小时?计划生产小时?三种算出来的是三个数。
+★ MES-7a-1(2026-10-15):可靠性的分母【有人定了】(MES-0 Q71,Tim):运转小时 = 这台机器上已提交加工单的 [开始, 结束) 的并集
+(加工单从 MES-4a 起记开始 / 结束 / 班次 —— 原文"加工那一族里没有任何开始/结束/班次列"那一句已经不成立);
+一次故障 = 一段未作废、原因属于 failure 类的停机(cause_code → downtime_causes)。MTBF / MTTR 由 equipment_reliability() 算,不存。
+**可用率与 OEE 仍然不算** —— Q71 只回答了可靠性的分母,可用率的那一个(日历 / 排班 / 计划小时)仍然没有人选过。
+【写只经函数】(MES-7a-1,Q6)开 / 关 / 更正走 open_ · close_ · correct_equipment_downtime,作废走 void_equipment_downtime;
+直连 INSERT / UPDATE 按名拒(guard_equipment_direct_write),DELETE 一律拒(guard_downtime_write)。';
+
+COMMENT ON COLUMN public.equipment_downtime.cause_code IS 'MES-7a-1:这一段为什么停 —— downtime_causes 的代号(类别 failure · planned · external)。新记的停机必填(插入时判,guard_downtime_cause);本刀之前的行可以为空,读作"未分类",不算故障也不算计划内。';
+
+COMMENT ON COLUMN public.equipment_downtime.source IS 'MES-7a-1:这一行从哪里来 —— manual(人在页面上记的)或 device(保留给将来的控制器;没有负载格式,不建转换层,今天一行都不许是它)。';
 
 COMMENT ON COLUMN public.equipment_downtime.duration IS 'EQP-2a:这一段停了多久,= ended_at − started_at,由数据库自己算(生成列)。
 还没结束时它是 NULL —— 那不是"零",是"还不知道"。';
@@ -89,26 +103,18 @@ CREATE INDEX idx_equipment_downtime_equipment ON public.equipment_downtime (equi
 ALTER TABLE public.equipment_downtime ENABLE ROW LEVEL SECURITY;
 
 -- 【读:两个模块的 OR】套用 AGENTS.md 第 2 条常设决定(batch_margin 里逐字实现着)。
--- 实测没有哪个业务角色两个都持:operations 有 processing.edit 没有 finance.view,
--- finance/auditor 反过来,只有 admin/gm 两个都有。机器卡在财务、干活的人在加工,
--- 两边都要读得到停机 —— 少了 OR,总有一边看不见。
+-- 机器卡在财务、干活的人在加工,两边都要读得到停机 —— 少了 OR,总有一边看不见。
+-- ★ MES-7a-1 更正(Step 0 §14 第 5 条):原文"只有 admin/gm 两个都有"已不成立 —— 线上 cco 两个都持,cto 持 finance.view,
+--   gm 自 APR-ROUTE-1 起不持任何 .edit 码。OR 的理由不变:今天仍有只持一边的角色(仓库只持加工,财务只持财务)。
 CREATE POLICY "equipment_downtime select by permission"
     ON public.equipment_downtime
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text));
 
--- 【写:加工侧】记停机的是车间。没有新权限码,也没有把财务的数据给操作侧写 ——
--- 这是一张新表,它自己带策略;fixed_assets 只是被外键引用,而外键校验不走 RLS。
-CREATE POLICY "equipment_downtime insert by permission"
-    ON public.equipment_downtime
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
-
-CREATE POLICY "equipment_downtime update by permission"
-    ON public.equipment_downtime
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+-- 【写:只经函数】(MES-7a-1,MES-7a Step 0 Q6)记停机的是车间(module.processing.edit),而它现在走五支函数里的三支:
+-- open_equipment_downtime · close_equipment_downtime · correct_equipment_downtime(作废照旧 void_equipment_downtime)。
+-- EQP-2a 的 INSERT 与 U1-B 的 UPDATE 两条策略拿掉了;直连写由下面的 trg_equipment_downtime_direct 按名拒
+-- (没有策略时直连 UPDATE 是一次静默的零行,INSERT 是一句没有名字的 RLS 违反 —— 两种都不许)。
 
 -- FIX-1:一段停机不许在未来,也不许与同一台机器的另一段重叠。
 -- 【为什么是触发器不是 CHECK / 排他约束】重叠要看别的行(CHECK 看不见);
@@ -119,7 +125,18 @@ CREATE TRIGGER trg_equipment_downtime_period
     BEFORE INSERT OR UPDATE ON public.equipment_downtime
     FOR EACH ROW EXECUTE FUNCTION public.guard_downtime_period();
 
--- U1-B(Q15):【更正】走 UPDATE 策略(加工编辑权,起止与原因;变更记录留着旧值);【作废】只经 void_equipment_downtime();
+-- MES-7a-1(Q3 · Q4):新记的停机必须带原因、来源只能是 manual;原因不许被改回空、来源不改。函数与理由在 db/functions/guard_downtime_cause.sql。
+CREATE TRIGGER trg_equipment_downtime_cause
+    BEFORE INSERT OR UPDATE ON public.equipment_downtime
+    FOR EACH ROW EXECUTE FUNCTION public.guard_downtime_cause();
+
+-- MES-7a-1(Q6):直连 INSERT / UPDATE 按名拒(语句级 —— 零行也触发)。属主 / SECURITY DEFINER 的路放行。
+CREATE TRIGGER trg_equipment_downtime_direct
+    BEFORE INSERT OR UPDATE ON public.equipment_downtime
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_equipment_direct_write();
+
+-- U1-B(Q15):【更正】走 UPDATE 策略(加工编辑权,起止与原因;变更记录留着旧值)—— ★ MES-7a-1 起改走 correct_equipment_downtime(),
+--   那条策略拿掉了;【作废】只经 void_equipment_downtime();
 -- 作废过的行冻住;【任何人】都删不掉一行停机(交接单与保养记录的外键指着它)—— 包括属主:一段停机是一件发生过
 -- (或被说成发生过)的事,它的去处是作废,不是消失。函数体与理由在 db/functions/guard_downtime_write.sql。
 CREATE TRIGGER trg_equipment_downtime_write

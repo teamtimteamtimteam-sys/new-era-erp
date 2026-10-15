@@ -5,8 +5,12 @@
 // 【为什么有它】一台机器唯一的页面原来是 /finance/assets/[id](财务的门),而保养与停机是加工的事;
 //   持加工权限、不持财务权限的人(仓库)连"今天哪台机器到期要保养"那条提醒都点不进去。
 // 【读的是什么】equipment_usage —— 属主权限视图,门就是 module.finance.view 或 module.processing.view,
-//   只给编号、说明、状态、日期与加工量;【没有】成本、折旧、类别(那几样只在财务)。
-//   它列出账上每一张资产卡(视图没有类别这一列可筛;这一页不去读 fixed_assets 本身,那是财务的表)。
+//   只给编号、说明、状态、日期、加工量与类别;【没有】成本、折旧(那几样只在财务)。
+//   ★ MES-7a-1 更正(MES-7a Step 0 Q7):原文"它列出账上每一张资产卡(视图没有类别这一列可筛)"自 MES-4a 起已不成立 ——
+//     equipment_usage.equipment_category 在(一个不带金额的列);这一页从此【只列设备类】(车、办公电脑不是机器),
+//     关掉 known-issues AT1B-EQUIPMENT-LIST-EVERY-ASSET。
+//   ★ MES-7a-1(Q7):多一栏「有没有在盯」—— 现读 equipment_service_status.monitored(任何一条间隔在监控 = 在盯),不另算一份;
+//     关掉 known-issues「全库没有一处看得见哪些机器没人在盯」。上面一个链接去可靠性那张表(MTBF / MTTR)。
 // 【门】requireModule(MOD.processing) —— 与 /operation 下每一页同一道门。
 // ════════════════════════════════════════════════════════════════════════════
 import Link from 'next/link'
@@ -31,10 +35,17 @@ export default async function EquipmentListPage() {
     const rows = mustRows(
         await supabase.from('equipment_usage')
             .select('equipment_id, equipment_code, equipment_description, equipment_status, run_count, input_kg, last_run_date')
+            .eq('equipment_category', 'equipment')
             .order('equipment_code'),
         'equipment_usage') as {
             equipment_id: string; equipment_code: string; equipment_description: string | null; equipment_status: string
             run_count: number; input_kg: number; last_run_date: string | null }[]
+
+    // 有没有在盯:一台机器在 equipment_service_status 里至少一行(没有间隔时也有一行,monitored = false)
+    const monitoredRes = mustRows(
+        await supabase.from('equipment_service_status').select('equipment_id, monitored'),
+        'equipment_service_status') as { equipment_id: string; monitored: boolean }[]
+    const monitored = new Set(monitoredRes.filter((m) => m.monitored).map((m) => m.equipment_id))
 
     const tableRows: CellRow[] = rows.map((r) => ({
         id: r.equipment_id,
@@ -46,11 +57,15 @@ export default async function EquipmentListPage() {
             runs: String(r.run_count),
             processed: `${KG.format(Number(r.input_kg))} kg`,
             lastRun: r.last_run_date ? formatDate(r.last_run_date, locale) : '—',
+            monitored: monitored.has(r.equipment_id)
+                ? <span data-monitored="yes">{t('equipment.page.monitoredYes')}</span>
+                : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700" data-monitored="no">{t('equipment.intervals.notMonitored')}</span>,
         },
     }))
 
     return (
-        <ListPage title={t('equipment.page.listTitle')} intro={t('equipment.page.listIntro')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
+        <ListPage title={t('equipment.page.listTitle')} intro={t('equipment.page.listIntro')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}
+            actions={<Link href="/operation/equipment/reliability" className="app-link hover:underline text-sm">{t('equipment.rel.pageTitle')}</Link>}>
             <CellsTable
                 columns={[
                     { key: 'code', header: t('equipment.page.colCode'), priority: true },
@@ -59,6 +74,7 @@ export default async function EquipmentListPage() {
                     { key: 'runs', header: t('equipment.page.colRuns'), align: 'right' },
                     { key: 'processed', header: t('equipment.page.colProcessed'), align: 'right' },
                     { key: 'lastRun', header: t('equipment.page.colLastRun') },
+                    { key: 'monitored', header: t('equipment.page.colMonitored'), priority: true },
                 ]}
                 rows={tableRows}
                 empty={t('equipment.page.empty')}

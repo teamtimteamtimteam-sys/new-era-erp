@@ -231,8 +231,8 @@ BEGIN
     -- ══════════ F5 · 停机:开口、闭合、倒着走、以及第二段开口 ════════════════
     RAISE NOTICE 'fixture 108 · 进入 F5';
     -- 开口的一段:表示得出来,也读得回来
-    INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-    VALUES (v_asset, TIMESTAMPTZ '2026-05-01 09:00+08', 'fixture 108 bearing failure')
+    INSERT INTO equipment_downtime (equipment_id, started_at, reason, cause_code)
+    VALUES (v_asset, TIMESTAMPTZ '2026-05-01 09:00+08', 'fixture 108 bearing failure', 'breakdown')
     RETURNING id INTO v_dt;
     SELECT ended_at, duration INTO v_today, v_dur FROM equipment_downtime WHERE id = v_dt;
     IF v_today IS NOT NULL OR v_dur IS NOT NULL THEN
@@ -242,8 +242,8 @@ BEGIN
     -- 同一台机器的【第二段开口】—— 机器不会同时坏两次
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-        VALUES (v_asset, TIMESTAMPTZ '2026-05-02 09:00+08', 'fixture 108 second open');
+        INSERT INTO equipment_downtime (equipment_id, started_at, reason, cause_code)
+        VALUES (v_asset, TIMESTAMPTZ '2026-05-02 09:00+08', 'fixture 108 second open', 'breakdown');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     -- 【FIX-1 之后拦它的是【重叠守卫】,而 uq_equipment_downtime_open 仍然在 —— 两者都要】
@@ -270,8 +270,8 @@ BEGIN
     -- 倒着走的一段:按名拒
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-        VALUES (v_asset, TIMESTAMPTZ '2026-05-03 12:00+08', TIMESTAMPTZ '2026-05-03 08:00+08', 'fixture 108 backwards');
+        INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+        VALUES (v_asset, TIMESTAMPTZ '2026-05-03 12:00+08', TIMESTAMPTZ '2026-05-03 08:00+08', 'fixture 108 backwards', 'breakdown');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('equipment_downtime_period_order' in v_msg) = 0 THEN

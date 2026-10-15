@@ -94,7 +94,13 @@ MAINTENANCE_NOT_CAPITALISED / MAINTENANCE_ALREADY_CAPITALISED 等)。
 而"钱要不要进成本"就是那个判断。让支出表单也能独立地做这件事,
 等于【两个源头 + 一条优先级规则】—— 一份第二定义披着破平局的外衣。
 所以只留一个源头,另一条路按名拒。
-写它的是 record_expense 的资本化分支(SECURITY DEFINER);本表没有 UPDATE 策略。
+写它的是 record_expense 的资本化分支(SECURITY DEFINER)。
+★ MES-7a-1 更正:原文"本表没有 UPDATE 策略"在它写下的时候是假的(EQP-2b 给 module.processing.edit 开着一条 UPDATE 策略)。
+**MES-7a-1 起它才是真的**:INSERT 与 UPDATE 两条策略都拿掉了,一行保养只经 record_equipment_maintenance 写进来、
+capitalised_expense_id 只经 record_expense 写;直连的 INSERT / UPDATE / DELETE 由 guard_equipment_direct_write 按名拒。
+
+【它可以点名它修好的那一段停机】(downtime_id,MES-7a-1 之前没有任何写入方)—— record_equipment_maintenance 只收
+【同一台机器】的、【没有作废】的一段(MAINTENANCE_DOWNTIME_OTHER_MACHINE · MAINTENANCE_DOWNTIME_VOIDED)。
 
 【更正的形状:可改 + 留痕,没有历史表 —— 与 equipment_downtime 一致】
 成对旧/新的强类型历史(purchase_order_history)是给【会被改单并重新签发给对方的
@@ -138,7 +144,7 @@ CREATE INDEX equipment_maintenance_performed_by_supplier_id_rel ON public.equipm
 
 ALTER TABLE public.equipment_maintenance ENABLE ROW LEVEL SECURITY;
 
--- 【D6:照抄 EQP-2a 的停机表,一个字都没改】读是两个模块的 OR,写是加工侧。
+-- 【D6:照抄 EQP-2a 的停机表,一个字都没改】读是两个模块的 OR,写是加工侧(★ MES-7a-1 起写只经函数,见下)。
 -- **没有新权限码** —— 全库根本没有 module.operations(operations 是一个角色);
 -- 那个 OR 是 AGENTS.md 第 2 条常设决定,batch_margin 与 equipment_downtime 里
 -- 各实现着一遍,理由相同:实测没有哪个业务角色两个都持。
@@ -147,16 +153,12 @@ CREATE POLICY "equipment_maintenance select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text));
 
-CREATE POLICY "equipment_maintenance insert by permission"
-    ON public.equipment_maintenance
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
+-- ★ MES-7a-1(MES-7a Step 0 Q6):INSERT 与 UPDATE 两条写策略拿掉 —— 写只经 record_equipment_maintenance(记一次活)与
+--   record_expense(资本化那一笔钱)。直连写由下面的 trg_equipment_maintenance_direct 按名拒(零行也触发)。
 
-CREATE POLICY "equipment_maintenance update by permission"
-    ON public.equipment_maintenance
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+CREATE TRIGGER trg_equipment_maintenance_direct
+    BEFORE INSERT OR UPDATE OR DELETE ON public.equipment_maintenance
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_equipment_direct_write();
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

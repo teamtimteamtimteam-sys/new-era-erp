@@ -71,8 +71,8 @@ BEGIN
     -- 所以这里用 now() 相对时刻,而不是本 fixture 那个自带的未来日期:
     -- 交接班的日期是一个【世界侧的日子】,停机的开始是一个【已经发生的时刻】,
     -- 两者不必是同一个数,而这条守卫正是那个区别的执行者。
-    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-    VALUES (v_asset, now() - interval '1 day', NULL, 'f180:轴承异响,停机待检')
+    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+    VALUES (v_asset, now() - interval '1 day', NULL, 'f180:轴承异响,停机待检', 'breakdown')
     RETURNING id INTO v_dt;
 
     PERFORM set_config('request.jwt.claims',

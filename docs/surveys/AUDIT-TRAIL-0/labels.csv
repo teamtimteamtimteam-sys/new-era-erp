@@ -3662,3 +3662,12 @@ coa_issues,sha256,text,verbatim,,,SHA-256,,,text
 coa_issues,issued_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Stored,,,timestamp with time zone
 coa_issues,issued_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Stored by,,,uuid
 warehouse_requests,coa_id,fk_document,"certificates_of_analysis.code (document number, prefix COA)",,,Certificate of analysis,,,uuid
+equipment_downtime,cause_code,dict,downtime_causes.name_en (via code) — MES-7a-1 (2026-10-15),,,Cause,,,text
+equipment_downtime,source,enum,ENUM_OVERRIDES equipment_downtime#source — MES-7a-1 (2026-10-15),,,Recorded,,,text
+downtime_causes,code,own_key,show as-is: the record's own business key (code/number),,,Code,,,text
+downtime_causes,class,enum,ENUM_OVERRIDES downtime_causes#class — MES-7a-1 (2026-10-15),,,Counts as,,,text
+downtime_causes,name_en,text,verbatim,,,Name (EN),,,text
+downtime_causes,name_zh,text,verbatim,,,Name (ZH),,,text
+downtime_causes,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+downtime_causes,sort_order,technical,hide,,,Sort order,,,integer
+downtime_causes,notes,text,verbatim,,,Notes,,,text

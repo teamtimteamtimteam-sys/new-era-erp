@@ -137,8 +137,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 //   一张带 code 列:nonconformance_reports(NCR,登记进 document_types),所以 EXPECTED_CODE_TABLES 89 → 90。
 // MES-6b-2(2026-10-15):295 → 297。两张分析证书的表(certificates_of_analysis · coa_issues)。
 //   一张带 code 列:certificates_of_analysis(COA,登记进 document_types),所以 EXPECTED_CODE_TABLES 90 → 91。
-const EXPECTED_TABLES = 297   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 91
+// MES-7a-1(2026-10-15):297 → 298。一张停机原因的表(downtime_causes)。它带 code 列(原因代号,登记进 document_type_exceptions),
+//   所以 EXPECTED_CODE_TABLES 91 → 92。
+const EXPECTED_TABLES = 298   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 92
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

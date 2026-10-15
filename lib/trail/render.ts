@@ -1171,6 +1171,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     dictionary_contamination_streams: ['contamination_streams'],
     // MES-6a-2(2026-10-10):化验指标字典
     dictionary_assay_indicators: ['assay_indicators'],
+    dictionary_downtime_causes: ['downtime_causes'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
@@ -1213,6 +1214,7 @@ const PAGE_FAMILY: Record<string, Family> = {
     dictionary_cell_constructions: 'dict', dictionary_contamination_streams: 'dict',
     // MES-6a-2
     dictionary_assay_indicators: 'dict',
+    dictionary_downtime_causes: 'dict',
     // MES-5a-2
     electricity_allocation: 'energy', electricity_settings: 'settings',
     // MES-6a-1
@@ -1893,7 +1895,10 @@ function describeEquipment(d: TrailDict, rows: TrailRow[], opts: BuildOptions, s
         const downStart = imgOf(r)['started_at']
         const which: Line[] = downStart !== undefined ? valueLines(d, r, { started_at: downStart }, opts) : []
         if (r.op === 'INSERT') {
-            out.push({ title: tx(d, 'eq.down'), lines: valueLines(d, r, r.new, opts, new Set(['duration', 'notes', ...skipEq])),
+            // MES-7a-1(Q3 · Q20):原因(字典里那一种的名字)挂在标题后面那一段 —— 它说的是"为什么停",是这一条的主语;
+            //   没有原因的(本刀之前那一行)不挂。来源照常是一行(今天永远是"Entered by hand")。
+            out.push({ title: tx(d, 'eq.down'), part: refText(d, r, 'cause_code'),
+                       lines: valueLines(d, r, r.new, opts, new Set(['duration', 'notes', 'cause_code', ...skipEq])),
                        reason: typed(r.new?.['notes']), key: true, weight: 80 })
         } else if (isSet(r, 'voided_at')) {
             out.push({ title: tx(d, 'eq.downVoided'), lines: which, reason: typed(r.new?.['void_reason']), key: true, weight: 85 })
@@ -4206,7 +4211,9 @@ const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kind
     // MES-4b(Q3 · Q21):电芯结构 · 交叉污染流(警戒线 V11 是一个百分数)
     'cell_constructions', 'contamination_streams',
     // MES-6a-2(Q3 · Q4):化验指标(单位是一段文字,不换算)
-    'assay_indicators'])
+    'assay_indicators',
+    // MES-7a-1(Q3):停机原因(类别是一条规则 —— 说成 Failure / Planned / External)
+    'downtime_causes'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {

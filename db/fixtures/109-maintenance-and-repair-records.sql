@@ -96,8 +96,8 @@ BEGIN
     END IF;
 
     -- (c) 一段停机照旧
-    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-    VALUES (v_asset, TIMESTAMPTZ '2026-06-10 08:00+08', TIMESTAMPTZ '2026-06-10 16:00+08', 'fixture 109 planned stop')
+    INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason, cause_code)
+    VALUES (v_asset, TIMESTAMPTZ '2026-06-10 08:00+08', TIMESTAMPTZ '2026-06-10 16:00+08', 'fixture 109 planned stop', 'planned_maintenance')
     RETURNING id INTO v_dt;
     SELECT count(*) INTO v_n FROM equipment_downtime WHERE id = v_dt AND duration = INTERVAL '8 hours';
     IF v_n <> 1 THEN
@@ -158,8 +158,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 109F3a 失败:一条【不带停机】的保养记录应当合法且读得回来 —— 计划停机里的保养不造成停机';
     END IF;
     -- (b) 一段停机没有任何保养记录
-    INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-    VALUES (v_asset, TIMESTAMPTZ '2026-08-01 09:00+08', 'fixture 109 breakdown, nobody dispatched yet')
+    INSERT INTO equipment_downtime (equipment_id, started_at, reason, cause_code)
+    VALUES (v_asset, TIMESTAMPTZ '2026-08-01 09:00+08', 'fixture 109 breakdown, nobody dispatched yet', 'breakdown')
     RETURNING id INTO v_dt;
     SELECT count(*) INTO v_n FROM equipment_downtime d
      WHERE d.id = v_dt AND NOT EXISTS (SELECT 1 FROM equipment_maintenance m WHERE m.downtime_id = d.id);

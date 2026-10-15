@@ -166,3 +166,18 @@ result, or the governing assay after a resolved dispute) or when it is reserved 
 changes. A breach keeps the reservation and opens a system non-conformance report (`quality_limit`) in the same transaction, which puts the batch on
 quality hold until someone with `action.ncr_decide` decides it. Writing limits needs `action.contract_terms`; they freeze with the contract.
 Buy-side contracts carry no V17 (Q28). Nothing guesses a limit.
+
+## Registered, not built
+
+Values a cut found orphaned — named in the MES-0 catalogue, owned by a shipped cut, but with no arm, no column and no record anywhere. They are
+listed here so the next person does not have to rediscover them; each gets its arm (and moves up to **Live arms**) in the cut that builds the thing
+it measures.
+
+| Value | What | Trigger that makes it buildable | Assigned to | Registered by |
+|---|---|---|---|---|
+| V12 | Tool-replacement cut count — how many cuts a casing-removal blade makes before it is replaced (MES-0 `README.md` §5) | **casing-removal machine commissioned** — no blade, cut counter or casing-removal machine exists today to attach it to | MES-4a (never built nor recorded) | MES-7a-1 (2026-10-16, MES-7a Step 0 Q18) |
+
+**MES-7a-1 (2026-10-16) adds no live arm.** **V22** (the operating-hours basis of MTBF / MTTR) was answered by MES-0 Q71 and is no pending value:
+operating hours are the union of `[started_at, ended_at)` of committed, not-reversed runs recorded on the machine (Step 0 Q5). A machine with no
+recorded run reads "No operating hours recorded", and the reliability page states how many runs in the range have no machine or no times — that is a
+missing record, not a missing standard. The downtime cause list beyond the three seeded causes is ordinary dictionary data, not a pending value.

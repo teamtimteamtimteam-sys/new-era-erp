@@ -33,8 +33,15 @@
 //     (openRow 跳过它),也不再给"更正 / 作废"(库里那一行已经冻住,DOWNTIME_VOIDED)。
 //     ☞ 那两个钮对作废的行是【不画】,不是【画了按不动】:不画的原因是记录状态,不是权限 ——
 //       DBLOCK-1 的第二条边界(不许把权限与记录状态混进一个布尔)。
+// ★ MES-7a-1(2026-10-15,MES-7a Step 0 Q3 · Q6,Tim):这个面板从 /finance/assets/[id] 搬到了 /operation/equipment/[id] ——
+//   记停机的是车间,写的那一页是加工的那一页。资产卡上它仍然画,但是【只读】(`readOnlyHref` 给了 → 一个按钮都不画,一句话指去机器页)。
+//   · 每一段停机说出它的【原因】(downtime_causes 里的一种,类别 failure · planned · external)—— 开一段与更正一段都要选;
+//     原因那一栏先说原因、再说说明(reason 仍是自由文本)。本刀之前那一行原因为空,写"未分类",不是空白。
+//   · 写只经函数(open_ · close_ · correct_equipment_downtime · void_equipment_downtime),拒绝是具名码。
+//   · 停用的原因不在下拉里(库里也拒:DOWNTIME_CAUSE_INACTIVE);更正一段【已经】用着一种停用原因的停机时,那一种照样列着,标"已停用"。
+import Link from 'next/link'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -56,12 +63,20 @@ export type DowntimeRow = {
     voided_at: string | null
     voided_by: string | null
     void_reason: string | null
+    /** MES-7a-1:原因代号(downtime_causes)—— 空 = 本刀之前记的那一种,"未分类"。 */
+    cause_code: string | null
 }
 
+/** MES-7a-1:一种停机原因 —— 名字按界面语言选好、类别的文案键在调用方取好。 */
+export type CauseOption = { code: string; label: string; classLabel: string; isActive: boolean }
+
 export default function DowntimePanel({
-    assetId, rows, canEdit, locale,
+    assetId, rows, canEdit, locale, causes, readOnlyHref,
 }: {
     assetId: string; rows: DowntimeRow[]; canEdit: boolean; locale: string
+    causes: CauseOption[]
+    /** 给了 = 资产卡上的只读画法:不画任何写的控件,一句话指去机器页(那里才记停机)。 */
+    readOnlyHref?: string
 }) {
     // ★ DATE-1:停机的起止时刻走【审计戳】那一族,而审计戳**不随界面语言变**(D2)。
     //   于是这个 prop 不再被用到 —— 但它【留着】:调用点一直在传,
@@ -74,13 +89,13 @@ export default function DowntimePanel({
     const [pending, start] = useTransition()
     const [error, setError] = useState<string | null>(null)
     const [open, setOpen] = useState(false)
-    const [f, setF] = useState({ startedAt: '', reason: '', notes: '' })
+    const [f, setF] = useState({ startedAt: '', causeCode: '', reason: '', notes: '' })
     const [endAt, setEndAt] = useState('')
     // DATE-PICK-1:两块都靠按钮 onClick 提交(不走原生表单)—— 框里敲了一个不存在的时刻时把按钮关掉
     const [startBad, setStartBad] = useState(false)
     const [endBad, setEndBad] = useState(false)
     // U1-B:正在更正的那一段(一次只开一块)。endedAt 为 null = 那一段开着,结束时刻不在这一块里改。
-    const [editing, setEditing] = useState<{ id: string; startedAt: string; endedAt: string | null; reason: string } | null>(null)
+    const [editing, setEditing] = useState<{ id: string; startedAt: string; endedAt: string | null; causeCode: string; reason: string } | null>(null)
     const [editStartBad, setEditStartBad] = useState(false)
     const [editEndBad, setEditEndBad] = useState(false)
 
@@ -93,13 +108,24 @@ export default function DowntimePanel({
     // DATE-1:停机的起止时刻是【系统记下的那一刻】—— 走审计戳那一族,
     // 于是它可排序、可复制、也不随界面语言变。
     const fmt = (iso: string) => formatAuditStamp(iso)
+    const readOnly = !!readOnlyHref
+    const causeBy = new Map(causes.map((c) => [c.code, c]))
+    // 原因的那一句:「故障 · 算作故障」;空 = 本刀之前记的、没有原因 —— 说"未分类",不是空白
+    const causeLine = (code: string | null) => {
+        const c = code ? causeBy.get(code) : undefined
+        return code === null
+            ? <span className="text-[color:var(--brand-muted-text)]" data-downtime-cause="none">{t('equipment.down.notClassified')}</span>
+            : <span className="font-medium" data-downtime-cause={code}>{c ? `${c.label} · ${c.classLabel}` : code}</span>
+    }
+    // 下拉里只有启用着的;更正一段已经用着一种停用原因的停机时,那一种也列着(标出来),否则选不回原样
+    const causeOptions = (current: string | null) => causes.filter((c) => c.isActive || c.code === current)
 
     function run(fn: () => Promise<{ error?: string }>) {
         setError(null)
         start(async () => {
             const r = await fn()
             if (r.error) { setError(r.error); return }
-            setOpen(false); setF({ startedAt: '', reason: '', notes: '' }); setEndAt('')
+            setOpen(false); setF({ startedAt: '', causeCode: '', reason: '', notes: '' }); setEndAt('')
             setEditing(null)
             router.refresh()
         })
@@ -156,12 +182,18 @@ export default function DowntimePanel({
             // U1-B:作废的那一行 —— 原因划掉,下面一行是作废的理由(理由【不】划掉:那是现在仍然成立的话)。
             render: (r) => r.voided_at ? (
                 <span className="block">
+                    <span className="block line-through">{causeLine(r.cause_code)}</span>
                     <span className="line-through">{r.reason}</span>
                     <span className="block text-xs text-[color:var(--brand-muted-text)]">
                         {t('equipment.down.voidedBecause', { reason: r.void_reason ?? '—', when: fmt(r.voided_at) })}
                     </span>
                 </span>
-            ) : r.reason,
+            ) : (
+                <span className="block">
+                    <span className="block">{causeLine(r.cause_code)}</span>
+                    <span>{r.reason}</span>
+                </span>
+            ),
         },
         {
             // ★ 动作列 —— priority: true(TABLE-STYLE-1 / R1:够不着的动作等于不存在)。
@@ -169,14 +201,14 @@ export default function DowntimePanel({
             key: 'actions',
             header: '',
             priority: true,
-            render: (r) => r.voided_at ? null : (
+            render: (r) => r.voided_at || readOnly ? null : (
                 <PermissionGate code="module.processing.edit" allowed={canEdit} inline>
                     <span className="inline-flex flex-wrap gap-1.5">
                         <Button variant="secondary" size="xs" type="button" disabled={pending}
                                 onClick={() => {
                                     setError(null)
                                     setEditStartBad(false); setEditEndBad(false)
-                                    setEditing({ id: r.id, startedAt: r.started_at, endedAt: r.ended_at, reason: r.reason })
+                                    setEditing({ id: r.id, startedAt: r.started_at, endedAt: r.ended_at, causeCode: r.cause_code ?? '', reason: r.reason })
                                 }}>
                             {t('equipment.down.correct')}
                         </Button>
@@ -210,7 +242,7 @@ export default function DowntimePanel({
                          · 这台设备【已经有一段没结束的停机】 → 去把那一段结掉。
                        第二句今天写在琥珀块里(oneOpenOnly),可它被一层
                        PermissionGate 罩着 —— 于是没有权限的人两句都读不到。 */}
-                {!openRow ? (
+                {readOnly ? null : !openRow ? (
                     <PermissionGate code="module.processing.edit" allowed={canEdit} inline>
                         <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
                             {t('equipment.down.add')}
@@ -222,7 +254,12 @@ export default function DowntimePanel({
                     </span>
                 )}
             </div>
-            {!canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
+            {readOnly ? (
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
+                    {t('equipment.recordedOnMachinePage')}{' '}
+                    <Link href={readOnlyHref ?? ''} className="app-link underline">{t('equipment.openMachinePage')}</Link>
+                </p>
+            ) : !canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             {/* ── 开着的那一段:自己一块,不混在流水里 ─────────────────────────── */}
@@ -231,11 +268,11 @@ export default function DowntimePanel({
                     <p className="font-medium text-amber-900">
                         {t('equipment.down.openNow', { since: fmt(formatAuditStamp(openRow.started_at)) })}
                     </p>
-                    <p className="text-[color:var(--brand-text)] mt-1">{openRow.reason}</p>
+                    <p className="text-[color:var(--brand-text)] mt-1">{causeLine(openRow.cause_code)} · {openRow.reason}</p>
                     {/* 【时长这一栏说"还在停",不是空白、不是 0】—— duration 的列注释
                         说的正是这件事:NULL 不是零,是"还不知道"。 */}
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('equipment.down.stillDown')}</p>
-                    <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                    {!readOnly && <PermissionGate code="module.processing.edit" allowed={canEdit}>
                         <div className="flex flex-wrap gap-2 items-end mt-2">
                             <label className="block">
                                 <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.endedAt')}</span>
@@ -256,11 +293,11 @@ export default function DowntimePanel({
                                 </span>
                             )}
                         </div>
-                    </PermissionGate>
+                    </PermissionGate>}
                     {/* 【为什么这里没有"再开一段"的按钮】说出来,不要让人以为按钮坏了。 */}
-                    <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                    {!readOnly && <PermissionGate code="module.processing.edit" allowed={canEdit}>
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('equipment.down.oneOpenOnly')}</p>
-                    </PermissionGate>
+                    </PermissionGate>}
                 </div>
             )}
 
@@ -281,7 +318,7 @@ export default function DowntimePanel({
 
             {/* ★ U1-B:更正那一块。与"开一段"那一块同一条理由【不再套一层 PermissionGate】——
                    它里面有【取消】,而 editing 只能由上面那个已经上了闸的「更正」钮翻成非空。 */}
-            {editing && editingRow && !editingRow.voided_at && (
+            {!readOnly && editing && editingRow && !editingRow.voided_at && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-2 max-w-xl mb-3" data-downtime-correct={editing.id}>
                     <p className="font-medium">{t('equipment.down.correctTitle', { since: fmt(editingRow.started_at) })}</p>
                     <label className="block">
@@ -300,17 +337,29 @@ export default function DowntimePanel({
                         <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.down.correctOpenHint')}</p>
                     )}
                     <label className="block">
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.cause')}</span>
+                        <select value={editing.causeCode} onChange={(e) => setEditing({ ...editing, causeCode: e.target.value })}
+                                className={`${CONTROL_SELECT} w-full`} data-downtime-cause-select="correct">
+                            <option value="">{t('common.select')}</option>
+                            {causeOptions(editingRow.cause_code).map((c) => (
+                                <option key={c.code} value={c.code}>
+                                    {c.label} · {c.classLabel}{c.isActive ? '' : ` (${t('equipment.down.causeInactive')})`}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="block">
                         <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.reason')}</span>
                         <input value={editing.reason} onChange={(e) => setEditing({ ...editing, reason: e.target.value })}
                                className={`${CONTROL_INPUT} w-full`} />
                     </label>
                     <div className="flex flex-wrap gap-2 items-center">
                         <Button size="xs" type="button"
-                                disabled={pending || !editing.startedAt || editStartBad || !editing.reason.trim()
+                                disabled={pending || !editing.startedAt || editStartBad || !editing.causeCode || !editing.reason.trim()
                                     || (editing.endedAt !== null && (!editing.endedAt || editEndBad || editEndBeforeStart))}
                                 onClick={() => run(() => correctDowntime({
                                     assetId, downtimeId: editing.id, startedAt: editing.startedAt,
-                                    endedAt: editing.endedAt, reason: editing.reason,
+                                    endedAt: editing.endedAt, causeCode: editing.causeCode, reason: editing.reason,
                                 }))}>
                             {t('common.save')}
                         </Button>
@@ -324,6 +373,7 @@ export default function DowntimePanel({
                                 {t('equipment.down.endBeforeStart', { start: fmt(editing.startedAt) })}
                             </span>
                         )}
+                        {!editing.causeCode && <span className="text-xs text-amber-700">{t('equipment.down.needCause')}</span>}
                         {!editing.reason.trim() && <span className="text-xs text-amber-700">{t('equipment.down.needReason')}</span>}
                         <Button variant="secondary" size="xs" type="button" disabled={pending}
                                 onClick={() => { setEditing(null); setError(null) }}>
@@ -347,13 +397,23 @@ export default function DowntimePanel({
                       VoidInvoiceControl 三处踩到过。)
                      而这里也【不需要】那一层:`open` 只能由上面那个已经上了闸的钮
                      翻成 true,没有权限的人根本走不到这一块。 */}
-            {open && !openRow && (
+            {!readOnly && open && !openRow && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-2 max-w-xl">
                     <label className="block">
                         <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.startedAt')}</span>
                         {/* 【不预填"现在"】停机是世界那一侧的事实 —— 谁都可能过后才来补录。 */}
                         <DatePicker kind="datetime" value={f.startedAt}
                                     onChange={(v) => setF({ ...f, startedAt: v })} onInvalidChange={setStartBad} />
+                    </label>
+                    {/* MES-7a-1(Q3):原因必选 —— 它决定这一段算不算一次故障(MTBF / MTTR 只数 failure 类)。不预选:选错比不选更难看出来。 */}
+                    <label className="block">
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.cause')}</span>
+                        <select value={f.causeCode} onChange={(e) => setF({ ...f, causeCode: e.target.value })}
+                                className={`${CONTROL_SELECT} w-full`} data-downtime-cause-select="open">
+                            <option value="">{t('common.select')}</option>
+                            {causeOptions(null).map((c) => <option key={c.code} value={c.code}>{c.label} · {c.classLabel}</option>)}
+                        </select>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block mt-1">{t('equipment.down.causeHint')}</span>
                     </label>
                     <label className="block">
                         <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.reason')}</span>
@@ -362,13 +422,16 @@ export default function DowntimePanel({
                     </label>
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.down.openHint')}</p>
                     <div className="flex gap-2 items-center">
-                        <Button size="xs" type="button" disabled={pending || !f.startedAt || !f.reason.trim() || startBad}
+                        <Button size="xs" type="button" disabled={pending || !f.startedAt || !f.causeCode || !f.reason.trim() || startBad}
                                 onClick={() => run(() => openDowntime({ assetId, ...f }))}>
                             {t('common.save')}
                         </Button>
                         {/* FIX-2(F2):这一块的每一个禁用条件也各配一句。 */}
                         {!f.startedAt && <span className="text-xs text-amber-700">{t('equipment.down.needStart')}</span>}
-                        {f.startedAt && !f.reason.trim() && (
+                        {f.startedAt && !f.causeCode && (
+                            <span className="text-xs text-amber-700">{t('equipment.down.needCause')}</span>
+                        )}
+                        {f.startedAt && f.causeCode && !f.reason.trim() && (
                             <span className="text-xs text-amber-700">{t('equipment.down.needReason')}</span>
                         )}
                         <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>

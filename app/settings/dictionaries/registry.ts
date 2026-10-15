@@ -35,6 +35,7 @@ export type DictTable =
     | 'shifts' | 'processing_event_types'   // MES-4a(2026-10-07,Q5 · Q15):第十、十一张 —— 同样有那六列
     | 'cell_constructions' | 'contamination_streams'   // MES-4b(2026-10-07,Q3 · Q21):第十二、十三张 —— 同样有那六列
     | 'assay_indicators'   // MES-6a-2(2026-10-10,Q3 · Q4):第十四张 —— 同样有那六列,外加一列单位
+    | 'downtime_causes'   // MES-7a-1(2026-10-15,MES-7a Step 0 Q3):第十五张 —— 同样有那六列,外加一列类别
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
@@ -334,6 +335,25 @@ export const DICTIONARIES: DictSpec[] = [
               labelKey: 'dict.f.warning_pct', hintKey: 'dict.h.warning_pct' },
         ],
         referencedBy: [{ table: 'contamination_checks', column: 'stream_code' }],
+    },
+    {
+        // ★ MES-7a-1(2026-10-15,MES-0 Q71;MES-7a Step 0 Q3,Tim):一段停机为什么停 —— 引导每一类一行(故障 · 计划保养 · 外部原因),没有"其它"。
+        //   类别是一条规则:MTBF / MTTR 只把 failure 类的停机算作一次故障。一种原因被停机引用之后类别冻住(库里 DOWNTIME_CAUSE_CLASS_LOCKED)——
+        //   要换类别,就新加一种。写码与停机同一个(module.processing.edit,Q6 不变);读要加工查看码(资产卡那一侧经停机表的读策略看得见名字)。
+        table: 'downtime_causes',
+        titleKey: 'dict.downtime_causes',
+        permission: 'module.processing.edit',
+        viewPermission: 'module.processing.view',
+        extras: [
+            { column: 'class', kind: 'choice', required: true, showInTable: true,
+              labelKey: 'dict.f.cause_class', hintKey: 'dict.h.cause_class',
+              options: [
+                  { value: 'failure', labelKey: 'dict.o.cause_failure' },
+                  { value: 'planned', labelKey: 'dict.o.cause_planned' },
+                  { value: 'external', labelKey: 'dict.o.cause_external' },
+              ] },
+        ],
+        referencedBy: [{ table: 'equipment_downtime', column: 'cause_code' }],
     },
     {
         // ★ MES-6a-2(2026-10-10,MES-0 3.5b · 3.5c · 3.5e;MES-6a Step 0 Q3 · Q4,Tim):化验上的指标 —— 引导五个定义(残粉 · 箔纯度 ·

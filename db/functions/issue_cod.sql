@@ -86,9 +86,13 @@ BEGIN
            snapshot = v_data, issued_at = v_now, issued_by = auth.uid()
      WHERE id = p_cod_id;
 
+    -- ★ MES-7a-1(F10):返回值多一个 snapshot —— 与写进 certificates_of_destruction.snapshot 的【同一份】。PDF 路由照它渲染,
+    --   不再在签发之后回读活数据(此前那一次 cod_certificate_data 是 known-issues MES6B1-COD-PDF-RENDERS-LIVE 登记的那一处)。
+    --   加一个键是兼容的:旧的路由不读它。
     RETURN jsonb_build_object(
         'cod_id', v_cod.id, 'code', v_code, 'status', 'issued',
         'verification_token', v_token, 'issued_at', v_now,
-        'batch_code', v_data->'inbound_batch'->>'code');
+        'batch_code', v_data->'inbound_batch'->>'code',
+        'snapshot', v_data);
 END;
 $function$;

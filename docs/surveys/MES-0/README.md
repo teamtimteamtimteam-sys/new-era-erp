@@ -128,8 +128,8 @@ Full per-function evidence with every path:line is in `evidence-functions-01-14.
 | # | Has | Missing | Touches | Cut |
 |---|---|---|---|---|
 | **20 Calibration** | Nothing instrument-shaped (grep `calibrat\|校准\|检定` → only unrelated senses) [M]. Gate precedent: `certificate_types.disposition` block/warn + `warn_lead_days` [M] | Register, events, certificates, valid-until, reading → instrument link, refusal on pricing/certificates | price-setting functions, `issue_cod`, CoA | MES-2 |
-| **21 Spare parts** | `material_kinds` `consumable`, `spare_part` (`db/tables/material_kinds.sql:79-83`); `equipment_maintenance.expense_id`; PO category `consumables` [M] | Parts lines; an issue-to-maintenance movement (inventory is batch-only: CHECK `one_batch`, `db/tables/inventory_movements.sql:84`) [M] | `inventory_movements`, `equipment_maintenance`, `inbound_batches` | MES-7a |
-| **22 MTBF/MTTR** | `equipment_downtime` with timestamps and generated duration; explicit refusal to compute availability until someone chooses the denominator (`db/tables/equipment_downtime.sql:58-63`) [M] | Failure vs planned classification (reason is free text); operating hours (runs have a date only) [M] | `equipment_downtime`, `processing_runs` | MES-7a |
+| **21 Spare parts** | `material_kinds` `consumable`, `spare_part` (`db/tables/material_kinds.sql:79-83`); `equipment_maintenance.expense_id`; PO category `consumables` [M] | Parts lines; an issue-to-maintenance movement (inventory is batch-only: CHECK `one_batch`, `db/tables/inventory_movements.sql:88`(★ MES-7a-1 更正行号:原 `:84`)) [M] | `inventory_movements`, `equipment_maintenance`, `inbound_batches` | MES-7a |
+| **22 MTBF/MTTR** | `equipment_downtime` with timestamps and generated duration; explicit refusal to compute availability until someone chooses the denominator (`db/tables/equipment_downtime.sql:65-81`(★ MES-7a-1 更正行号:原 `:58-63`,U1-B 加作废列、MES-7a-1 加原因与来源之后位移)) [M] | Failure vs planned classification (reason is free text); operating hours (runs have a date only — ★ superseded: MES-4a added `started_at` / `ended_at` / `shift_code`; MES-7a-1 counts the union of their intervals) [M] | `equipment_downtime`, `processing_runs` | MES-7a |
 | **23 Safety inspections** | Shapes only: `handover_item_types`, `lane_checklist_status`, service intervals [M] | Templates, runs, findings, corrective actions, WSH code | `employees`, `tasks`, `operations_now` | MES-7b |
 | **24 Thermal runaway / emissions** | WSH register queued with trigger "第一个技师上岗" and the NEA duty "立即通报 … 两个工作日内提交书面报告" (`docs/forward-queue.md:1686`) [M]; `hold_stock`, `notifications`, `operations_now` | Incident register, alarm events, incident ↔ batch link, deadline arm, emission results | `hold_stock`, safety-state facts (barred by Tim's ruling), `public_holidays` | MES-7b |
 
@@ -1012,7 +1012,7 @@ void through a CFO request like the COD. No public verify page in this group.**
 
 ❓ **Q71 — MTBF/MTTR denominator.**
 ➡️ **Operating hours = the sum of run durations on that machine (from Q42); failure = downtime with a failure cause.** This answers the open
-"分母" (`db/tables/equipment_downtime.sql:58-63`) for reliability only, not for availability or OEE.
+"分母" (`db/tables/equipment_downtime.sql:65-81`(★ MES-7a-1 更正行号:原 `:58-63`,U1-B 加作废列、MES-7a-1 加原因与来源之后位移)) for reliability only, not for availability or OEE.
 
 ❓ **Q72 — Inspections.**
 ➡️ **Templates with items (V18), runs by an inspector with pass/fail/N-A per item, findings raised as tasks.**

@@ -1364,3 +1364,27 @@ every rule below, each fault-injected by `db/scripts/2026-10-15-mes6b2-fixture-i
   the batch, the order and the assay stated; "Certificate PDF stored"; "Certificate voided" with the reason; "Replaced by: COA-…".
   `scripts/check-trail-wording.mjs` arm ㉙ pins six sentences and reads `titlePart` (faults `wording-drift-mes6b2`, `wording-part-mes6b2`);
   arms ㉓–㉖ now read `titlePart` too (F6, faults `wording-part-mes5b1/mes5b2/mes5b3/mes6a1`).
+
+## 27. Equipment reliability, downtime causes and certificate paper (MES-7a-1, v1.4.52, 2026-10-16)
+
+Hand-back `docs/handbacks/MES-7a-1.md`; fixture 265 (arms CAUSE · REQUIRE · OPEN · CLOSE · CORRECT · MAINT · INTERVAL · DIRECT · REL · LIST · TRAIL)
+pins every rule below, each fault-injected by `db/scripts/2026-10-15-mes7a1-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 27.1 Logged, excluded, masked
+
+- **One new table, logged.** `downtime_causes` (bound by `code`, the dictionary's natural key): public tables **297 → 298**, bound **289 → 290**,
+  exclusions stay **8** (Step 0 Q20). Its three seed rows are written before the binding, so the migration's own `change_log` allowance is exactly
+  **1** row: the `document_type_exceptions` INSERT that declares `downtime_causes` a code table (the proof inside the migration counts this
+  transaction's rows by `txid` and refuses anything else).
+- **`equipment_downtime` gains two columns, not a table.** `cause_code` (required on every new row, checked at insert; the one live row from before
+  stays NULL and reads "Not classified") and `source` (`manual` · `device`; every row is `manual`, `device` is reserved and fixed once written).
+  Both are logged like the rest of the row. **No back-fill** (Q21).
+- **No masked column, no new mask rule** (114 stays). A cause and a source carry no amount.
+- **Writes now come only through functions** (`open_ / close_ / correct_equipment_downtime`, `record_equipment_maintenance`,
+  `save_equipment_service_interval`; voiding is still `void_equipment_downtime`). The change log sees the same row shapes as before — one INSERT per
+  recorded stop or maintenance, one UPDATE per close or correction — because the functions write the same tables; only the door changed.
+- **Trail.** No new subject (Q20). Cause and source show on the equipment subject (the downtime INSERT sentence reads the cause into its `part`);
+  `downtime_causes` sits under the dictionary trail (`dictionary_downtime_causes`). `scripts/check-trail-wording.mjs` arm ㉚ pins six sentences and
+  reads `titlePart` (faults `wording-drift-mes7a1`, `wording-part-mes7a1`, each biting only ㉚).
+- **Certificates.** `issue_cod` now returns the snapshot it froze (no new column, no new row); the COD and CoA byte records are unchanged in shape.
+  A "Save PDF" on an issued CoA with no bytes is one `coa_issues` INSERT, the same row an issue writes.

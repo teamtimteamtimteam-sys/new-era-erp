@@ -100,8 +100,9 @@ COMMENT ON COLUMN public.equipment_service_intervals.kind IS
 
 COMMENT ON COLUMN public.equipment_service_intervals.interval_kg IS
 'EQP-2c:每处理多少公斤算一轮。判据是【投料】(processing_runs.total_input)——
-磨损来自进去的料,不是出来的料。**只有公斤,没有运转小时**:加工这一族里没有
-任何开始/结束/班次/工时列,这是 EQP-2a 实测出来的,不是一次选择。
+磨损来自进去的料,不是出来的料。**只有公斤,没有运转小时** —— 当时(EQP-2a)加工这一族里没有任何开始/结束/班次列。
+★ MES-7a-1 更正:加工单从 MES-4a 起记开始与结束,运转小时如今推导得出来(equipment_reliability 的分母);
+按运转小时配保养间隔仍然没有建 —— 那是一列 interval_hours 与它的推导,等第一份按小时给的保养要求。
 可空:与 interval_days 至少说出一个即可(表上那条 num_nonnulls CHECK)。';
 
 COMMENT ON COLUMN public.equipment_service_intervals.lead_kg IS
@@ -154,16 +155,8 @@ CREATE POLICY "equipment_service_intervals select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text));
 
-CREATE POLICY "equipment_service_intervals insert by permission"
-    ON public.equipment_service_intervals
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
-
-CREATE POLICY "equipment_service_intervals update by permission"
-    ON public.equipment_service_intervals
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+-- ★ MES-7a-1(MES-7a Step 0 Q6):INSERT 与 UPDATE 两条策略拿掉 —— 新加与改走 save_equipment_service_interval;
+--   直连 INSERT / UPDATE 由 trg_equipment_service_intervals_direct 按名拒。DELETE 策略【留着】(下面那条的理由不变)。
 
 CREATE POLICY "equipment_service_intervals delete by permission"
     ON public.equipment_service_intervals
@@ -176,6 +169,10 @@ CREATE POLICY "equipment_service_intervals delete by permission"
 -- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
 -- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER trg_equipment_service_intervals_direct
+    BEFORE INSERT OR UPDATE ON public.equipment_service_intervals
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_equipment_direct_write();
+
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.equipment_service_intervals
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');

@@ -7,6 +7,7 @@
 //   5. 要投用还差什么。
 //
 // 【EQP-2d 在这一页【末尾】接上了设备的一生 —— 保养、停机、保养间隔三节。】
+// ★ MES-7a-1(2026-10-15):那三节从此【只读】—— 表单搬去了 /operation/equipment/[id],写只经五支函数;这里读它们、照旧资本化。
 // 位置是刻意的:上面五节是 Tim 已经走过的,新的三节全部落在 AssetActions
 // 【之后】,所以那五节的顺序、措辞、渲染一个字节都没动。
 // 读法顺着这台机器的生命走:主数据 → 成本 → 从哪买的 → 投用 → 投用之后。
@@ -28,16 +29,19 @@ import { formatAmount } from '@/lib/format'
 import { mustRows, mustCount, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import AssetActions from '../AssetActions'
-import MaintenancePanel from './MaintenancePanel'
-import DowntimePanel, { type DowntimeRow } from './DowntimePanel'
-import ServiceIntervalPanel, { type IntervalRow } from './ServiceIntervalPanel'
+// ★ MES-7a-1(MES-7a Step 0 Q6):三块面板搬到了 /operation/equipment/[id](记它们的是加工的人);这里照旧画它们,【只读】 ——
+//   每一块一句话指去机器页 —— 资本化那颗钮留在这里(那一笔钱是财务的)。
+import MaintenancePanel from '@/app/operation/equipment/[id]/MaintenancePanel'
+import DowntimePanel, { type DowntimeRow } from '@/app/operation/equipment/[id]/DowntimePanel'
+import ServiceIntervalPanel, { type IntervalRow } from '@/app/operation/equipment/[id]/ServiceIntervalPanel'
+import { loadDowntimeCauses } from '@/app/operation/equipment/reliability'
 import { getLocale } from '@/lib/i18n/server'
 import { inServiceState } from '../inServiceState'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CostEntriesTable, { type CostEntryRow } from './CostEntriesTable'
-import { formatDate } from '@/lib/dates'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 // AUDIT-TRAIL-1c-2(Q10 · Q26):这台机器被谁、什么时候、把什么改成了什么 —— 页底的审计记录(替掉 FA-HIST-1 的"Change history"面板)
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
@@ -61,11 +65,8 @@ export default async function AssetPage({ params, searchParams }: {
         .find((r) => r.status === 'submitted') ?? null
     // 【先问,再解释】—— 空结果的含义取决于这一句的答案。
     const canSeePurchasing = await can('module.purchasing.view')
-    // EQP-2d:保养/停机/间隔【写】在加工侧(三张表的 insert 策略都是
-    // module.processing.edit)。本页的门是 module.finance.view —— 也就是说
-    // 一个只有财务的人【看得见这台机器,却记不了保养】。那不是 bug,是那三张
-    // 表刻意的分工(机器卡在财务,干活的人在加工)。所以这里【问一次,并在
-    // 三块面板上各说一句】,而不是让按钮无声地消失。
+    // EQP-2d:保养/停机/间隔【写】在加工侧。★ MES-7a-1 起写的那一页就是加工那一页(/operation/equipment/[id]),
+    // 这里的三块面板只读、各说一句去哪里记;这个布尔只剩一个用处:决定那一句后面的链接对不持加工查看码的人说什么(见下)。
     const canRecordEquipment = await can('module.processing.edit')
     // 员工选择器读 employees_masked,而它的谓词是
     // has_permission('module.hr.view') OR id = current_user_employee() ——
@@ -169,14 +170,14 @@ export default async function AssetPage({ params, searchParams }: {
             .select('interval_id, monitored, service_kind, disposition, interval_kg, lead_kg, interval_days, lead_days, last_service_date, never_serviced, baseline_date, kg_since, days_since, unattributed_runs_in_window, is_due, due_reason, is_approaching, approaching_reason')
             .eq('equipment_id', id),
         supabase.from('equipment_maintenance')
-            .select('id, performed_on, kind, description, capitalised, capitalisation_reason, performed_by_employee_id, performed_by_supplier_id, performed_by_name, expense_id, capitalised_expense_id')
+            .select('id, performed_on, kind, description, capitalised, capitalisation_reason, performed_by_employee_id, performed_by_supplier_id, performed_by_name, expense_id, capitalised_expense_id, downtime_id')
             .eq('equipment_id', id).order('performed_on', { ascending: false }),
         supabase.from('equipment_maintenance_advice')
             .select('maintenance_id, work_cost_base, pct_of_equipment_cost, meets_threshold')
             .eq('equipment_id', id),
         // U1-B(Q15):作废的三列一起读 —— 作废的那一段【留在表里、标着】,而不是消失(面板按 voided_at 画)。
         supabase.from('equipment_downtime')
-            .select('id, started_at, ended_at, reason, notes, duration, voided_at, voided_by, void_reason')
+            .select('id, started_at, ended_at, reason, notes, duration, voided_at, voided_by, void_reason, cause_code')
             .eq('equipment_id', id).order('started_at', { ascending: false }),
         supabase.from('maintenance_settings')
             .select('capitalise_pct_of_cost, capitalise_floor_base').maybeSingle(),
@@ -275,8 +276,9 @@ export default async function AssetPage({ params, searchParams }: {
         capitalised: boolean; capitalisation_reason: string | null
         performed_by_employee_id: string | null; performed_by_supplier_id: string | null
         performed_by_name: string | null; expense_id: string | null
-        capitalised_expense_id: string | null }[]).map((m) => {
+        capitalised_expense_id: string | null; downtime_id: string | null }[]).map((m) => {
         const adv = adviceById.get(m.id)
+        const dt = m.downtime_id ? (downRows as unknown as DowntimeRow[]).find((x) => x.id === m.downtime_id) : undefined
         return {
             id: m.id, performed_on: formatDate(m.performed_on, locale), kind: m.kind, description: m.description,
             capitalised: m.capitalised, capitalisation_reason: m.capitalisation_reason,
@@ -292,8 +294,10 @@ export default async function AssetPage({ params, searchParams }: {
             work_cost_base: adv?.work_cost_base ?? null,
             pct_of_equipment_cost: adv?.pct_of_equipment_cost ?? null,
             meets_threshold: adv?.meets_threshold ?? null,
+            downtime_label: dt ? `${formatAuditStamp(dt.started_at)} · ${dt.reason}` : null,
         }
     })
+    const causes = await loadDowntimeCauses(supabase, locale, t)
 
     const live = entries.filter((e) => (e.expenses as { status?: string } | null)?.status !== 'reversed')
     const nbv = Math.round((Number(asset.cost_base) - accum) * 100) / 100
@@ -464,7 +468,8 @@ export default async function AssetPage({ params, searchParams }: {
                     runsBeforeAcquisition={runsBeforeAcquisition}
                     priorRunsRestricted={!canSeeProcessingRuns}
                     kgSinceAcquisition={kgSinceAcquisition}
-                    canEdit={canRecordEquipment} />
+                    canEdit={canRecordEquipment}
+                    readOnlyHref={`/operation/equipment/${asset.id}`} />
                 {/* ★ PERM-CODE-1(2026-09-09)· 这一块要【两个】权限,而它们不是同一个:
                     canEdit       ← canRecordEquipment = module.processing.edit(保养记录的直插)
                     canCapitalise ← 本页 :49 那个 canEdit = module.finance.edit(资本化走 record_expense)
@@ -478,6 +483,9 @@ export default async function AssetPage({ params, searchParams }: {
                     employees={employees}
                     suppliers={suppliers}
                     expenses={expenseOpts}
+                    downtimes={[]}
+                    readOnlyHref={`/operation/equipment/${asset.id}`}
+                    showCapitalise
                     canEdit={canRecordEquipment}
                     canCapitalise={canEdit}
                     inServiceDate={asset.in_service_date ? formatDate(asset.in_service_date, locale) : null}
@@ -490,7 +498,9 @@ export default async function AssetPage({ params, searchParams }: {
                     assetId={asset.id}
                     rows={downRows as unknown as DowntimeRow[]}
                     canEdit={canRecordEquipment}
-                    locale={locale} />
+                    locale={locale}
+                    causes={causes}
+                    readOnlyHref={`/operation/equipment/${asset.id}`} />
                 {/* 【员工那个选项为什么可能不在】—— 说出来,不要让人以为下拉坏了。 */}
                 {!canSeeEmployees && (
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.maint.employeesRestricted')}</p>

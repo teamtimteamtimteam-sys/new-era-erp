@@ -3,7 +3,7 @@
 // 月结各步的服务端动作(FIN-7)。守卫全在 DB;这里只翻错误、刷页面。
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { localizeEquipmentError } from '@/app/finance/assets/equipmentErrorCodes'
+import { localizeEquipmentError } from '@/app/operation/equipment/equipmentErrorCodes'
 import { localizePaymentError } from '../paymentErrorCodes'
 import { localizeHrError } from '@/app/hr/hrErrorCodes'
 import { localizeProcessingError } from '@/app/operation/errorCodes'

@@ -23,6 +23,7 @@
 --          提单人(同一个人的另一个账号也算)批不了;二级批准 → 作废,voided_by = 提单人,快照与字节不动;作废了的再提按名拒;
 --          重开一张是新号,旧的 replaced_by_coa_id 指向它;撤回与驳回什么都不作废;提单人之外没有二级审批人 → 提交就拒
 --   ARM    coa_facts_changed:签发之后多了一份化验或一张报告 → 出现(持 action.issue_coa 的人看得见,别人看不见);作废之后消失
+--   ISSUER (MES-7a-1 · F9)coa_issuer() 与 issue_coa 冻进快照的签发人逐字相同;常用名 → 法定名;不是员工 / 没有职位 / 没有码按名拒
 --   TRAIL  三步各落一行变更记录;record_trail('coa') 有签发、字节与作废申请;产出批与进料批的审计记录里有这张证书
 --
 -- 自带数据(README 第 2 条);锁期、审批开关自己设(第 4、5 条)。以 postgres 跑;员工的调用切成 authenticated + JWT。
@@ -443,6 +444,22 @@ BEGIN
        OR (SELECT governing_assay_id FROM certificates_of_analysis WHERE id = c1) IS DISTINCT FROM a5
        OR (SELECT issued_by FROM certificates_of_analysis WHERE id = c1) IS DISTINCT FROM u_iss THEN
         RAISE EXCEPTION 'FIXTURE 264 ISSUE: the snapshot carries the number, "Tan, Quality Manager", the batch, the governing assay, N38 and no order, got %', v_snap; END IF;
+    -- ══════════════ ISSUER(MES-7a-1 · F9,MES-7a Step 0 Q8)══════════════
+    -- coa_issuer() 是签发人的唯一一份解析:issue_coa 冻进快照的那一位,就是路由在铸号之前、表单在按下之前问到的那一位。
+    --   常用名优先(Tan)、没有常用名用法定名(Fixture Second Issuer);不是员工 / 没有职位 / 没有码 —— 同样的拒绝、同样的码。
+    v_j2 := pg_temp.f264_get(u_iss, $q$SELECT coa_issuer()$q$);
+    IF v_j2 ->> 'name' IS DISTINCT FROM v_snap -> 'issuer' ->> 'name' OR v_j2 ->> 'position' IS DISTINCT FROM v_snap -> 'issuer' ->> 'position'
+       OR (v_j2 ->> 'employee_id')::uuid IS DISTINCT FROM e_iss THEN
+        RAISE EXCEPTION 'FIXTURE 264 ISSUER: coa_issuer() must name the same person issue_coa froze (% vs %)', v_j2, v_snap -> 'issuer'; END IF;
+    v_j2 := pg_temp.f264_get(u_iss2, $q$SELECT coa_issuer()$q$);
+    IF v_j2 ->> 'name' IS DISTINCT FROM 'Fixture Second Issuer' OR v_j2 ->> 'position' IS DISTINCT FROM 'Quality Manager' THEN
+        RAISE EXCEPTION 'FIXTURE 264 ISSUER: no preferred name falls back to the legal name, got %', v_j2; END IF;
+    v_msg := pg_temp.f264_do(u_noemp, $q$SELECT coa_issuer()$q$);
+    IF v_msg IS DISTINCT FROM 'COA_ISSUER_NOT_AN_EMPLOYEE' THEN RAISE EXCEPTION 'FIXTURE 264 ISSUER: not an employee, got %', v_msg; END IF;
+    v_msg := pg_temp.f264_do(u_nopos, $q$SELECT coa_issuer()$q$);
+    IF v_msg IS DISTINCT FROM 'COA_ISSUER_POSITION_MISSING|Fixture No Position' THEN RAISE EXCEPTION 'FIXTURE 264 ISSUER: no position, got %', v_msg; END IF;
+    v_msg := pg_temp.f264_do(u_view, $q$SELECT coa_issuer()$q$);
+    IF v_msg NOT LIKE 'PERMISSION_DENIED|action.issue_coa%' THEN RAISE EXCEPTION 'FIXTURE 264 ISSUER: a reader without the code is refused, got %', v_msg; END IF;
     -- N38 冻进证书:ob_n2(两层血缘)签一张
     PERFORM pg_temp.f264_assay(ob_n2, 'ZZ264-N2-OURS', 'ours', true, d - 1, 6, 20);
     c4 := (pg_temp.f264_get(u_iss, format($q$SELECT issue_coa(%L)$q$, ob_n2)) ->> 'coa_id')::uuid;
@@ -652,7 +669,7 @@ BEGIN
        OR has_table_privilege('anon', 'public.coa_issues', 'SELECT') THEN
         RAISE EXCEPTION 'FIXTURE 264 TRAIL: anon reads nothing new'; END IF;
 
-    RAISE NOTICE 'FIXTURE 264 全部通过:REG · N38 · GOV · NEVER · REFUSE · ISSUE · FROZEN · BYTES · VOID · ARM · TRAIL';
+    RAISE NOTICE 'FIXTURE 264 全部通过:REG · N38 · GOV · NEVER · REFUSE · ISSUE · ISSUER · FROZEN · BYTES · VOID · ARM · TRAIL';
 END $$;
 
 ROLLBACK;

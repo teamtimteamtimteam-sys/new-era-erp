@@ -335,6 +335,9 @@ RUNTIME_CONFIG_TABLES = [
     # MES-6a-1(2026-10-09,MES-6a Step 0 Q14):质量的设定(单行)—— 引导一行、V16(没有合同天数的样品留多少天)为空;Tim 在 /quality/samples
     #   上写一次天数,线上就与本文件不同,那是系统在正常工作(electricity_settings 的同一条)。
     "quality_settings",
+    # MES-7a-1(2026-10-15,MES-7a Step 0 Q3):停机原因 —— 引导三行,每一类一种(breakdown · planned_maintenance · external),没有 other;
+    #   工厂自己的原因清单是 Tim / cto 在 /settings/dictionaries 上加的行(module.processing.edit),线上与本文件不同是系统在正常工作。
+    "downtime_causes",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

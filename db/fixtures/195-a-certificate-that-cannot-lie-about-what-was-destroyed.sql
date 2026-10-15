@@ -22,6 +22,7 @@
 --   G 字节档案与已签发证书都冻住(而这两条必须以 postgres 跑 —— 见臂内注)
 --   H 作废:要理由、只能从 issued、不幂等、不动字节档案
 --   I 【自动成立】与【冲销即自动作废,且没有替代品】
+--   E2b(MES-7a-1 · F10)签发的返回值带着存下的那一份快照,逐字相等 —— 路由照它渲染
 --   J 权限:没有能力的读者被拒;仓储现场拿得到供应商【名字】,却读不到
 --     suppliers 与 company_compliance 一行
 -- APR-7(2026-09-25):作废 / 注销 / 回滚改走 CFO 批的申请(docs/approvals.md §3t)。本支审批关着,申请生下来就是
@@ -303,6 +304,14 @@ BEGIN
     IF v_code !~ '^COD-[0-9]{4}-[0-9]{4}$' THEN RAISE EXCEPTION 'E1 失败:号是 "%"', v_code; END IF;
     SELECT snapshot INTO v_snap FROM certificates_of_destruction WHERE id = v_cod;
     IF v_snap IS NULL THEN RAISE EXCEPTION 'E2 失败:签发了却没有快照'; END IF;
+    -- ★ MES-7a-1(F10,MES-7a Step 0 Q9):issue_cod 的返回值带着【就是写进证书的那一份】快照 —— PDF 路由照它渲染,不再回读活数据。
+    --   断言逐字相等(不是"差不多"):路由与核验页读的是同一份,纸与档案按构造一致;抬头(公司那一块九格)也在里面。
+    IF v_res -> 'snapshot' IS DISTINCT FROM v_snap THEN
+        RAISE EXCEPTION 'E2b 失败:issue_cod 返回的 snapshot 与存下的快照不是同一份(返回 %)', left(COALESCE((v_res -> 'snapshot')::text, '<无>'), 200);
+    END IF;
+    IF (SELECT count(*) FROM jsonb_object_keys(v_snap -> 'company')) <> 9 OR v_snap -> 'certificate' ->> 'code' IS DISTINCT FROM v_code THEN
+        RAISE EXCEPTION 'E2b 失败:快照里的抬头不是九格,或证书号不是签发的那一个';
+    END IF;
     IF (SELECT verification_token FROM certificates_of_destruction WHERE id = v_cod) IS NULL THEN
         RAISE EXCEPTION 'E3 失败:签发了却没有核验令牌';
     END IF;

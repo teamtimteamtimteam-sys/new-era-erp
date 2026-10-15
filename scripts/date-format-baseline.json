@@ -3,7 +3,7 @@
   "nativeDateInputs": 0,
   "sites": {
     "app/components/ui/feedback.tsx :: locale-call:toLocaleString": 1,
-    "app/finance/assets/[id]/ServiceIntervalPanel.tsx :: locale-call:toLocaleString": 1,
+    "app/operation/equipment/[id]/ServiceIntervalPanel.tsx :: locale-call:toLocaleString": 1,
     "app/finance/assets/page.tsx :: hand-rolled-date-formatter": 1,
     "app/finance/bank/TransferForm.tsx :: hand-rolled-date-formatter": 1,
     "app/finance/cash-forecast/ForecastGrid.tsx :: locale-call:toLocaleString": 1,

@@ -1,32 +1,39 @@
 // app/operation/equipment/[id]/page.tsx
 // ════════════════════════════════════════════════════════════════════════════
-// AUDIT-TRAIL-1b-1(Tim 的 Q22 · Q14)· 一台机器 —— 加工的人读得到的那一份,只读,底部是它的审计记录
+// AUDIT-TRAIL-1b-1(Tim 的 Q22 · Q14)· 一台机器 —— 加工的人读得到的那一份,底部是它的审计记录
+// ★ MES-7a-1(2026-10-15,MES-7a Step 0 Q5 · Q6,Tim):【这一页也是记它的地方了】—— 停机、保养维修、保养间隔三组表单从财务的资产卡
+//   (/finance/assets/[id])搬到这里,写只经五支函数;码不变(module.processing.edit,仓库不加)。资产卡照旧读它们、照旧资本化。
+//   上面多一行可靠性(MTBF / MTTR,equipment_reliability,默认整段记录),说出分母;整张表在 /operation/equipment/reliability。
 // ════════════════════════════════════════════════════════════════════════════
 // 【门】requireModule(MOD.processing)。审计记录的主语 equipment 的根表是 fixed_assets(只给财务读),所以它用
-//   M3:页面的码就是门,资产卡自己的那几次改动对不持财务权限的读者是 Restricted(Q4);保养、停机、保养周期、
-//   交接班里提到的停机照常说。
-// 【读什么,不读什么】
-//   读:equipment_usage(编号、说明、状态、日期、加工量)· equipment_service_status(保养周期与到期状态)·
-//       equipment_maintenance / equipment_downtime(这两张表给加工与财务读)· processing_runs_masked(最近的加工单)·
-//       handover_people(做保养的员工 —— employees 要人事权限)· supplier_lookup(做保养的供应商)。
-//   ★ 不读 equipment_maintenance_advice(Q14):它把资产成本与维修花费给了持加工权限的人 ——
-//     已登记在 docs/known-issues.md(AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS)。也不读 fixed_assets / 费用 / 折旧。
-// 【财务的人】多一个链接去资产卡(/finance/assets/[id]);记保养、记停机、改周期仍在那一页上。
+//   M3:页面的码就是门,资产卡自己的那几次改动对不持财务权限的读者是 Restricted(Q4)。
+// 【读什么,以及读不到的时候说什么】
+//   equipment_usage(编号、说明、状态、日期、加工量)· equipment_service_status · equipment_maintenance · equipment_downtime ·
+//   equipment_maintenance_advice(维修花费与机器成本只给持 module.finance.view 的人 —— 视图自己遮,U1-A)· downtime_causes ·
+//   maintenance_settings · processing_runs_masked · supplier_lookup。
+//   员工下拉读 employees_masked(人事的门):不持 module.hr.view 不给员工那个选项,并说出理由。
+//   支出单下拉读 expenses(财务的门)、阈值提示要机器的记录成本(fixed_assets,财务的表):不持 module.finance.view 时两处各说一句,
+//   不画一个空下拉、不印一个 0。
 // ════════════════════════════════════════════════════════════════════════════
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { mustOne, mustRows } from '@/lib/db-helpers'
+import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
-import { Refusal } from '@/app/components/ui/refusal'
-import { formatDate, formatDateTime } from '@/lib/dates'
+import { formatAmount } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '../CellsTable'
+import DowntimePanel, { type DowntimeRow } from './DowntimePanel'
+import MaintenancePanel from './MaintenancePanel'
+import ServiceIntervalPanel, { type IntervalRow } from './ServiceIntervalPanel'
+import { loadDowntimeCauses, reliabilityWords, type ReliabilityRow } from '../reliability'
 
 const KG = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -34,20 +41,6 @@ type Usage = {
     equipment_id: string; equipment_code: string; equipment_description: string | null; equipment_status: string
     acquisition_date: string | null; in_service_date: string | null; run_count: number
     input_kg: number; output_kg: number; loss_kg: number; first_run_date: string | null; last_run_date: string | null
-}
-type Service = {
-    interval_id: string | null; monitored: boolean; service_kind: string | null; disposition: string | null
-    kg_since: number | null; days_since: number | null; is_due: boolean | null; due_reason: string | null
-    is_approaching: boolean | null; approaching_reason: string | null
-}
-type Work = {
-    id: string; performed_on: string; kind: string; description: string; performed_by_name: string | null
-    performed_by_employee_id: string | null; performed_by_supplier_id: string | null; capitalised: boolean
-}
-// U1-B(Q15):voided_at / void_reason —— 作废的那一段照旧列出、标着「已作废」与理由,而【不】画成"还在停"。
-type Down = {
-    id: string; started_at: string; ended_at: string | null; reason: string; notes: string | null
-    voided_at: string | null; void_reason: string | null
 }
 type Run = { id: string; code: string; process_date: string | null; total_input: number | null; total_output: number | null }
 
@@ -62,103 +55,101 @@ export default async function EquipmentPage({ params, searchParams }: {
     const t = await getTranslations()
     const locale = await getLocale()
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
 
     const usage = mustOne(await supabase.from('equipment_usage').select('*').eq('equipment_id', id).maybeSingle(), 'equipment_usage') as Usage | null
     if (!usage) notFound()
 
-    const [service, work, down, runs, people, suppliers] = await Promise.all([
+    const [canRecord, canFinance, canFinanceEdit, canHr] = await Promise.all([
+        can('module.processing.edit'), can('module.finance.view'), can('module.finance.edit'), can('module.hr.view'),
+    ])
+
+    const [statusRes, maintRes, adviceRes, downRes, runsRes, supRes, settingsRes, rel] = await Promise.all([
         supabase.from('equipment_service_status')
-            .select('interval_id, monitored, service_kind, disposition, kg_since, days_since, is_due, due_reason, is_approaching, approaching_reason')
+            .select('interval_id, monitored, service_kind, disposition, interval_kg, lead_kg, interval_days, lead_days, last_service_date, never_serviced, baseline_date, kg_since, days_since, unattributed_runs_in_window, is_due, due_reason, is_approaching, approaching_reason')
             .eq('equipment_id', id),
         supabase.from('equipment_maintenance')
-            .select('id, performed_on, kind, description, performed_by_name, performed_by_employee_id, performed_by_supplier_id, capitalised')
+            .select('id, performed_on, kind, description, capitalised, capitalisation_reason, performed_by_employee_id, performed_by_supplier_id, performed_by_name, expense_id, capitalised_expense_id, downtime_id')
             .eq('equipment_id', id).order('performed_on', { ascending: false }),
+        supabase.from('equipment_maintenance_advice')
+            .select('maintenance_id, work_cost_base, pct_of_equipment_cost, meets_threshold').eq('equipment_id', id),
         supabase.from('equipment_downtime')
-            .select('id, started_at, ended_at, reason, notes, voided_at, void_reason').eq('equipment_id', id).order('started_at', { ascending: false }),
+            .select('id, started_at, ended_at, reason, notes, duration, voided_at, voided_by, void_reason, cause_code')
+            .eq('equipment_id', id).order('started_at', { ascending: false }),
         supabase.from('processing_runs_masked')
             .select('id, code, process_date, total_input, total_output')
             .eq('equipment_id', id).is('deleted_at', null).order('process_date', { ascending: false }).limit(10),
-        supabase.from('handover_people').select('id, code, preferred_name'),
-        supabase.from('supplier_lookup').select('id, legal_name'),
+        supabase.from('supplier_lookup').select('id, code, legal_name').is('deleted_at', null).order('code').limit(200),
+        supabase.from('maintenance_settings').select('capitalise_pct_of_cost, capitalise_floor_base').maybeSingle(),
+        supabase.rpc('equipment_reliability', { p_equipment_id: id }),
     ])
-    const serviceRows = mustRows(service, 'equipment_service_status') as Service[]
-    const workRows = mustRows(work, 'equipment_maintenance') as Work[]
-    const downRows = mustRows(down, 'equipment_downtime') as Down[]
-    const runRows = mustRows(runs, 'processing_runs_masked') as Run[]
-    const peopleRows = mustRows(people, 'handover_people') as { id: string; code: string; preferred_name: string | null }[]
-    const supplierRows = mustRows(suppliers, 'supplier_lookup') as { id: string; legal_name: string }[]
-    const canFinance = await can('module.finance.view')
-    const restricted = <Refusal>{t('common.restricted')}</Refusal>
+    const statusRows = mustRows(statusRes, 'equipment_service_status') as unknown as IntervalRow[]
+    const maintRaw = mustRows(maintRes, 'equipment_maintenance') as {
+        id: string; performed_on: string; kind: string; description: string; capitalised: boolean; capitalisation_reason: string | null
+        performed_by_employee_id: string | null; performed_by_supplier_id: string | null; performed_by_name: string | null
+        expense_id: string | null; capitalised_expense_id: string | null; downtime_id: string | null }[]
+    const downRows = mustRows(downRes, 'equipment_downtime') as unknown as DowntimeRow[]
+    const runRows = mustRows(runsRes, 'processing_runs_masked') as Run[]
+    const settings = mustOne(settingsRes, 'maintenance_settings') as { capitalise_pct_of_cost: number | null; capitalise_floor_base: number | null } | null
+    const relRow = (mustRows(rel, 'equipment_reliability') as unknown as ReliabilityRow[])[0] ?? null
+    const adviceById = new Map((mustRows(adviceRes, 'equipment_maintenance_advice') as {
+        maintenance_id: string; work_cost_base: number | null; pct_of_equipment_cost: number | null; meets_threshold: boolean | null }[])
+        .map((a) => [a.maintenance_id, a]))
+    const causes = await loadDowntimeCauses(supabase, locale, t)
 
-    // 做这件事的人:员工 → handover_people(不要人事权限);供应商 → supplier_lookup;都没有 → 手打的名字。
-    // 挂着一个 id 却查不到名字 = 一个权限答复,画成"受限",不画成空白。
-    const performer = (w: Work) => {
-        if (w.performed_by_employee_id) {
-            const p = peopleRows.find((x) => x.id === w.performed_by_employee_id)
-            return p ? (p.preferred_name ?? p.code) : restricted
-        }
-        if (w.performed_by_supplier_id) {
-            return supplierRows.find((x) => x.id === w.performed_by_supplier_id)?.legal_name ?? restricted
-        }
-        return w.performed_by_name ?? '—'
-    }
-    const reasonWord = (r: string | null) =>
-        r === 'kg+days' ? t('equipment.intervals.reasonBoth') : r === 'kg' ? t('equipment.intervals.reasonKg') : r === 'days' ? t('equipment.intervals.reasonDays') : ''
-    const serviceState = (s: Service) => {
-        if (!s.monitored) return <span className="text-[color:var(--brand-muted-text)]">{t('equipment.intervals.notMonitored')}</span>
-        if (s.is_due) return <span className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-800">{t('equipment.intervals.stateDue')} {reasonWord(s.due_reason)}</span>
-        if (s.is_approaching) return <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">{t('equipment.intervals.stateApproaching')} {reasonWord(s.approaching_reason)}</span>
-        return <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">{t('equipment.intervals.stateOk')}</span>
-    }
-    // 动态前缀 equipment.kind.,后缀集合接 equipment_maintenance / equipment_service_intervals 的 CHECK(service · repair)
-    const kindLabel = (k: string | null) => (k === 'repair' ? t('equipment.kind.repair') : k === 'service' ? t('equipment.kind.service') : '—')
+    // 员工下拉:人事的门 —— 不持 module.hr.view 不给这个选项(面板下面说一句为什么),不给一个只看得见自己的下拉
+    const employees = canHr
+        ? (mustRows(await supabase.from('employees_masked').select('id, code, legal_name').is('deleted_at', null).order('code').limit(200),
+                    'employees_masked') as { id: string; code: string; legal_name: string }[])
+            .map((e) => ({ id: e.id, label: `${e.code} · ${e.legal_name}` }))
+        : []
+    const suppliers = (mustRows(supRes, 'supplier_lookup') as { id: string; code: string; legal_name: string }[])
+        .map((x) => ({ id: x.id, label: `${x.code} · ${x.legal_name}` }))
+    // 支出单与机器的记录成本:财务的门。读不到 = null(面板说"要财务查看码"),不是一个空清单、也不是 0
+    const expenses = canFinance
+        ? (mustRows(await supabase.from('expenses').select('id, code, expense_date, amount_base, status')
+                .eq('status', 'posted').order('expense_date', { ascending: false }).limit(100), 'expenses') as
+                { id: string; code: string; expense_date: string; amount_base: number }[])
+            .map((e) => ({ id: e.id, label: `${e.code} · ${e.expense_date} · ${formatAmount(Number(e.amount_base), baseCurrency)}` }))
+        : null
+    const costBase = canFinance
+        ? Number((mustOne(await supabase.from('fixed_assets').select('cost_base').eq('id', id).maybeSingle(), 'fixed_assets') as
+                  { cost_base: number } | null)?.cost_base ?? 0)
+        : null
 
-    const serviceTable: CellRow[] = serviceRows.map((s, i) => ({
-        id: s.interval_id ?? `none-${i}`,
-        cells: {
-            kind: kindLabel(s.service_kind),
-            state: serviceState(s),
-            kg: s.kg_since === null ? '—' : `${KG.format(Number(s.kg_since))} kg`,
-            days: s.days_since === null ? '—' : String(s.days_since),
-        },
-    }))
-    const workTable: CellRow[] = workRows.map((w) => ({
-        id: w.id,
-        cells: {
-            date: formatDate(w.performed_on, locale),
-            kind: kindLabel(w.kind),
-            what: <span className="break-words">{w.description}</span>,
-            who: performer(w),
-            cap: w.capitalised ? t('equipment.maint.capitalised') : '—',
-        },
-    }))
-    // U1-B:作废的一段没有发生过 —— 起止划掉、「已作废」一枚(在"回来"那一格,它在手机上留着),
-    //   原因划掉、下面一行是作废的理由。开着却作废了的一段【不】说"还在停"。
-    const downTable: CellRow[] = downRows.map((d) => ({
-        id: d.id,
-        cells: d.voided_at ? {
-            from: <span className="line-through text-gray-400">{formatDateTime(d.started_at, locale)}</span>,
-            to: (
-                <span className="inline-flex flex-wrap items-center gap-1.5">
-                    {d.ended_at && <span className="line-through text-gray-400">{formatDateTime(d.ended_at, locale)}</span>}
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600" data-downtime-voided="1">{t('equipment.down.voidedBadge')}</span>
-                </span>
-            ),
-            reason: (
-                <span className="break-words">
-                    <span className="line-through text-gray-400">{d.reason}</span>
-                    <span className="block text-xs text-[color:var(--brand-muted-text)]">
-                        {t('equipment.down.voidedBecause', { reason: d.void_reason ?? '—', when: formatDateTime(d.voided_at, locale) })}
-                    </span>
-                </span>
-            ),
-        } : {
-            from: formatDateTime(d.started_at, locale),
-            to: d.ended_at ? formatDateTime(d.ended_at, locale)
-                : <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">{t('equipment.down.stillDown')}</span>,
-            reason: <span className="break-words">{d.reason}</span>,
-        },
-    }))
+    // 取得日之前、谁都没归属的在册加工(间隔面板那句诚实话的输入,与资产卡同一个问法)
+    const runsBeforeAcquisition = usage.acquisition_date
+        ? mustCount(await supabase.from('processing_runs_masked').select('id', { count: 'exact', head: true })
+            .is('equipment_id', null).is('deleted_at', null).eq('status', 'committed').lt('process_date', usage.acquisition_date),
+            'processing_runs_masked prior runs')
+        : 0
+
+    const empName = new Map(employees.map((e) => [e.id, e.label]))
+    const supName = new Map(suppliers.map((x) => [x.id, x.label]))
+    const causeLabel = new Map(causes.map((c) => [c.code, c.label]))
+    const downLabel = (d: DowntimeRow) =>
+        `${formatAuditStamp(d.started_at)} · ${d.cause_code ? (causeLabel.get(d.cause_code) ?? d.cause_code) : t('equipment.down.notClassified')} · ${d.reason}`
+    const downById = new Map(downRows.map((d) => [d.id, d]))
+    const maintRows = maintRaw.map((m) => {
+        const adv = adviceById.get(m.id)
+        const dt = m.downtime_id ? downById.get(m.downtime_id) : undefined
+        return {
+            id: m.id, performed_on: formatDate(m.performed_on, locale), kind: m.kind, description: m.description,
+            capitalised: m.capitalised, capitalisation_reason: m.capitalisation_reason, capitalised_expense_id: m.capitalised_expense_id,
+            performer: m.performed_by_employee_id
+                ? (empName.get(m.performed_by_employee_id) ?? t('common.restricted'))
+                : m.performed_by_supplier_id
+                ? (supName.get(m.performed_by_supplier_id) ?? t('common.restricted'))
+                : (m.performed_by_name ?? '—'),
+            expense_code: null,
+            work_cost_base: adv?.work_cost_base ?? null,
+            pct_of_equipment_cost: adv?.pct_of_equipment_cost ?? null,
+            meets_threshold: adv?.meets_threshold ?? null,
+            downtime_label: dt ? downLabel(dt) : null,
+        }
+    })
+    const linkableDowntimes = downRows.filter((d) => d.voided_at === null).map((d) => ({ id: d.id, label: downLabel(d) }))
+
     const runTable: CellRow[] = runRows.map((r) => ({
         id: r.id,
         cells: {
@@ -168,13 +159,14 @@ export default async function EquipmentPage({ params, searchParams }: {
             output: r.total_output === null ? '—' : `${KG.format(Number(r.total_output))} kg`,
         },
     }))
+    const words = relRow ? reliabilityWords(relRow, t) : null
 
     return (
         <ListPage
-            maxWidth="max-w-3xl"
+            maxWidth="max-w-4xl"
             breadcrumb={<Link href="/operation/equipment" className="hover:underline text-sm app-link">{t('common.back')}</Link>}
             title={t('equipment.page.detailTitle')}
-            intro={t('equipment.page.readOnly')}
+            intro={t('equipment.page.detailIntro')}
             actions={canFinance ? (
                 <Link href={`/finance/assets/${id}`} className="app-link hover:underline text-sm">{t('equipment.page.financeCard')}</Link>
             ) : undefined}
@@ -196,47 +188,56 @@ export default async function EquipmentPage({ params, searchParams }: {
                 ]}
             />
 
-            <section className="mt-8">
-                <h2 className="mb-2">{t('equipment.page.serviceTitle')}</h2>
-                <CellsTable
-                    columns={[
-                        { key: 'kind', header: t('equipment.intervals.kind'), priority: true },
-                        { key: 'state', header: t('equipment.page.colStatus'), priority: true },
-                        { key: 'kg', header: t('equipment.page.kgSince'), align: 'right' },
-                        { key: 'days', header: t('equipment.page.daysSince'), align: 'right' },
-                    ]}
-                    rows={serviceTable}
-                    empty={t('equipment.intervals.notMonitoredWhy')}
-                />
+            {/* ── MES-7a-1(Q5):可靠性 —— 这台机器的整段记录;分母说出来,读不出数的时候说为什么 ───────────── */}
+            <section className="mt-6 border border-gray-200 rounded-lg p-3" data-section="reliability">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="">{t('equipment.rel.title')}</h2>
+                    <Link href={`/operation/equipment/reliability`} className="app-link hover:underline text-sm">{t('equipment.rel.allMachines')}</Link>
+                </div>
+                {words ? (
+                    <div className="mt-2 text-sm space-y-1">
+                        <p><span className="text-[color:var(--brand-muted-text)]">{t('equipment.rel.colMtbf')}:</span> <span data-rel="mtbf">{words.mtbf}</span></p>
+                        <p><span className="text-[color:var(--brand-muted-text)]">{t('equipment.rel.colMttr')}:</span> <span data-rel="mttr">{words.mttr}</span></p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">{words.denominator}</p>
+                        {words.gaps && <p className="text-xs text-amber-700" data-rel="gaps">{words.gaps}</p>}
+                    </div>
+                ) : (
+                    <p className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{t('equipment.rel.notEquipment')}</p>
+                )}
             </section>
 
-            <section className="mt-8">
-                <h2 className="mb-2">{t('equipment.maint.title')}</h2>
-                <CellsTable
-                    columns={[
-                        { key: 'date', header: t('equipment.maint.colDate'), priority: true },
-                        { key: 'kind', header: t('equipment.maint.colKind') },
-                        { key: 'what', header: t('equipment.maint.colWhat'), priority: true },
-                        { key: 'who', header: t('equipment.maint.colWho') },
-                        { key: 'cap', header: t('equipment.maint.colCapital') },
-                    ]}
-                    rows={workTable}
-                    empty={t('equipment.maint.none')}
-                />
-            </section>
-
-            <section className="mt-8">
-                <h2 className="mb-2">{t('equipment.down.title')}</h2>
-                <CellsTable
-                    columns={[
-                        { key: 'from', header: t('equipment.down.colFrom'), priority: true },
-                        { key: 'to', header: t('equipment.down.colTo'), priority: true },
-                        { key: 'reason', header: t('equipment.down.colReason') },
-                    ]}
-                    rows={downTable}
-                    empty={t('equipment.down.none')}
-                />
-            </section>
+            <div className="mt-8">
+                <ServiceIntervalPanel
+                    assetId={id}
+                    rows={statusRows}
+                    acquisitionDate={usage.acquisition_date ? formatDate(usage.acquisition_date, locale) : '—'}
+                    runsBeforeAcquisition={runsBeforeAcquisition}
+                    kgSinceAcquisition={Number(usage.input_kg)}
+                    canEdit={canRecord} />
+                <MaintenancePanel
+                    assetId={id}
+                    rows={maintRows}
+                    employees={employees}
+                    suppliers={suppliers}
+                    expenses={expenses}
+                    downtimes={linkableDowntimes}
+                    canEdit={canRecord}
+                    canCapitalise={canFinanceEdit}
+                    showCapitalise={false}
+                    inServiceDate={usage.in_service_date ? formatDate(usage.in_service_date, locale) : null}
+                    capitalisePct={Number(settings?.capitalise_pct_of_cost ?? 0)}
+                    capitaliseFloor={Number(settings?.capitalise_floor_base ?? 0)}
+                    equipmentCostBase={costBase}
+                    baseCurrency={baseCurrency}
+                    currencies={[]} />
+                <DowntimePanel
+                    assetId={id}
+                    rows={downRows}
+                    canEdit={canRecord}
+                    locale={locale}
+                    causes={causes} />
+                {!canHr && <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.maint.employeesRestricted')}</p>}
+            </div>
 
             <section className="mt-8">
                 <h2 className="mb-2">{t('equipment.page.runsTitle')}</h2>
@@ -252,7 +253,7 @@ export default async function EquipmentPage({ params, searchParams }: {
                 />
             </section>
 
-            {/* AUDIT-TRAIL-1b-1(Q22):保养 · 停机 · 保养周期 · 交接班里提到的停机;资产卡自己的改动只给财务看(M3 · Q4) */}
+            {/* AUDIT-TRAIL-1b-1(Q22):保养 · 停机(原因与来源)· 保养周期 · 交接班里提到的停机;资产卡自己的改动只给财务看(M3 · Q4) */}
             <AuditTrail subject="equipment" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )

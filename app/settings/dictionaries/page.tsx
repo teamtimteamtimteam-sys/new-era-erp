@@ -44,6 +44,7 @@ const DICT_SUBJECT: Record<string, TrailSubject> = {
     shifts: 'dictionary_shifts', processing_event_types: 'dictionary_processing_event_types',
     cell_constructions: 'dictionary_cell_constructions', contamination_streams: 'dictionary_contamination_streams',
     assay_indicators: 'dictionary_assay_indicators',   // MES-6a-2
+    downtime_causes: 'dictionary_downtime_causes',     // MES-7a-1
 }
 
 export default async function DictionariesPage({

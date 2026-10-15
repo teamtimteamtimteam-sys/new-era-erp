@@ -4333,7 +4333,9 @@ unique index 一次也不会响。** 唯一性约束在这条路上【根本不�
 **这一条与本文件里 EQP-2b 那条「大修资本化今天走不通」是同一族**:
 两条都是"设备模块的下一刀要动 2b 的表",可以合并成一刀,也可以不合。
 
-## 设备三张表【没有 RPC】,于是它们的拒绝是【约束违反】而不是具名业务码(EQP-2d,2026-08-21,已缓解未消除)
+## ~~设备三张表【没有 RPC】,于是它们的拒绝是【约束违反】而不是具名业务码(EQP-2d,2026-08-21,已缓解未消除)~~ —— ✅ **关闭于 MES-7a-1(`v1.4.52`,2026-10-16)**
+
+> ★ **关闭说明(MES-7a-1):** 删除条件照写兑现 —— 五支函数 `open_equipment_downtime` · `close_equipment_downtime` · `correct_equipment_downtime` · `record_equipment_maintenance` · `save_equipment_service_interval`(作废仍是 `void_equipment_downtime`),每一条拒绝都是 `CODE|参数` 的具名码;三张表的直连 INSERT / UPDATE 策略已撤,语句级守卫 `guard_equipment_direct_write` 对直连按名拒 `EQUIPMENT_THROUGH_FUNCTION_ONLY|表|动作`(保养间隔的 DELETE 策略刻意留着,删一条间隔不是记录)。唯一键冲突在函数里接住、改抛具名码(`DOWNTIME_ALREADY_OPEN` · `INTERVAL_ALREADY_SET`)。按约束名认的那一层整个撤掉:`equipmentErrorCodes.ts` 移到 `app/operation/equipment/` 并退回通用的 `CODE|参数` 形状。下面原文保留,作为这条机制的来由。
 
 `equipment_maintenance`(EQP-2b)、`equipment_downtime`(EQP-2a)、
 `equipment_service_intervals`(EQP-2c)三张表**一个 RPC 都没有** ——
@@ -4375,7 +4377,9 @@ duplicate key value violates unique constraint "uq_equipment_downtime_open"
 不是一次上屏** —— 在一次刚被它绊到的切次里现写四个新函数,正是本仓库
 「匆忙写出来的检查」那一课的另一个版本。
 
-## 全库没有一处看得见【哪些机器没人在盯】(EQP-2d,2026-08-21,未建)
+## ~~全库没有一处看得见【哪些机器没人在盯】(EQP-2d,2026-08-21,未建)~~ —— ✅ **关闭于 MES-7a-1(`v1.4.52`,2026-10-16)**
+
+> ★ **关闭说明(MES-7a-1):** 按 MES-7a Step 0 Q7 的裁定,这一列落在 `/operation/equipment`(只列机器)上,不在固定资产台账上 —— 盯不盯一台机器是加工的事。判据现读 `equipment_service_status.monitored`,不另算一份;列名「Monitored / 有没有在盯」。
 
 一台没有保养间隔的机器是**「未监控」**,而 EQP-2c 把这个状态做进了数据
 (`equipment_service_status.monitored = false`,每个量度都是 NULL 而不是 0),
@@ -10047,7 +10051,9 @@ Q12 把 `warehouse_requests` 的读规则放宽到与 `/inventory` 一致(`modul
 ③ 成本修改与工单修改那两支按 `processing_inputs` 连,一张单若同一个批次投了几行,会出重复行。
 统一的审计记录没有这三处(①② 按成员登记表走,③ 按行的主键去重)。**删除条件:** 清理那一刀把两张视图 DROP 掉。
 
-## AT1B-EQUIPMENT-LIST-EVERY-ASSET —— `/operation/equipment` 列出账上【每一张】资产卡,不只是机器(AUDIT-TRAIL-1b-1 登记,2026-09-29)
+## ~~AT1B-EQUIPMENT-LIST-EVERY-ASSET —— `/operation/equipment` 列出账上【每一张】资产卡,不只是机器(AUDIT-TRAIL-1b-1 登记,2026-09-29)~~ —— ✅ **关闭于 MES-7a-1(`v1.4.52`,2026-10-16)**
+
+> ★ **关闭说明(MES-7a-1):** `equipment_usage` 早已带 `equipment_category`(不含金额);清单加 `.eq('equipment_category', 'equipment')`,只列机器。可靠性(`equipment_reliability`)同样只列 `equipment` 类别。
 
 清单读 `equipment_usage`(加工的人读得到的那一张),而它没有 `category` 这一列(类别只在财务的 `fixed_assets` 上)。于是一台车、
 一台办公电脑的卡也在清单上(线上今天 2 张卡)。**删除条件:** `equipment_usage` 带上类别(一个不含金额的列,可以给加工),清单只列
@@ -10727,7 +10733,9 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 **为什么这一刀不修:** 同上,本刀与分析证书都不从批次含量判什么;改它要先回答"撤销之后含量回到哪一份"(上一份?手工?空?)。
 **删除条件:** 那个回答。
 
-### MES6B1-COD-PDF-RENDERS-LIVE · 销毁证书的 PDF 从活数据渲染,而注释说的是"冻下来的那一份"(Step 0 §1.7 读到)
+### ~~MES6B1-COD-PDF-RENDERS-LIVE · 销毁证书的 PDF 从活数据渲染,而注释说的是"冻下来的那一份"(Step 0 §1.7 读到)~~ —— ✅ **关闭于 MES-7a-1(`v1.4.52`,2026-10-16)**
+
+> ★ **关闭说明(MES-7a-1):** F10:签发路由照 `issue_cod` 返回的那一份快照渲染(公司抬头也从快照读);已签发 / 已作废的证书,不带 `?cod=` 的 GET 流出存下的字节(sha256 重算,对不上 409);待签发的照旧是带水印的内部预览(活数据)。字体守卫在 `issue_cod` 之前与 `render()` 之内各问一次。那句误导的注释已改。线上两张已签发的证书字节逐字未变(收尾读数)。
 
 **是什么:** `app/inbound/[id]/cod/pdf/route.tsx:149-150` 的注释说"照冻下来的那一份渲染",而它调的 `cod_certificate_data` 是从活表重新拼的
 (`cod_certificate_data.sql`)。签发之后改了批次上的东西,下一次下载的 PDF 就跟着变 —— 纸与档案不再按构造一致。
@@ -10780,7 +10788,9 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 
 ## MES-6b-2(`v1.4.51`,2026-10-15)—— 分析证书
 
-### MES6B2-ISSUED-WITHOUT-BYTES · 签发落了库、而 PDF 没存成的证书,页面上没有"照快照补存"的按钮(签发是两次落库的有界取舍)
+### ~~MES6B2-ISSUED-WITHOUT-BYTES · 签发落了库、而 PDF 没存成的证书,页面上没有"照快照补存"的按钮(签发是两次落库的有界取舍)~~ —— ✅ **关闭于 MES-7a-1(`v1.4.52`,2026-10-16)**
+
+> ★ **关闭说明(MES-7a-1):** 删除条件照写兑现(Step 0 Q24):证书页对持 `action.issue_coa` 的人、只在【已签发且没有 `coa_issues` 行】时给一个「Save PDF / 存 PDF」按钮,路由 `POST {storeFor}` 照存下的快照 `renderCoaPdf` → 上传 → `record_coa_issue`;已有字节、已作废的按名拒。签发人名字与职位那一半由 F9 在签发之前就挡住(`coa_issuer()` + 字体守卫,400、什么都不铸)。
 
 **是什么:** `POST /output/[id]/coa/pdf` 先 `issue_coa`(号、快照,一笔事务),再渲染、上传、`record_coa_issue` 记哈希。中间任何一步失败
 (渲染抛错、上传被拒、记哈希失败 —— 后者会把刚传的孤儿删掉),留下的是一张【已签发、没有字节】的证书:清单与证书页写"No stored document",
@@ -10800,3 +10810,32 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 `COA_LIMIT_BREACHED`。
 **为什么这样定:** 判定只有一份实现(`judge_quality_limits`,V17);证书重判一次就是第二份,迟早与它分开(AGENTS.md「预览要问数据库」那一族)。
 **删除条件:** 一次裁定:签发是否应当先触发一次判定(那会在签发时落新的判定行、可能开系统报告)。
+
+## MES-7a-1(`v1.4.52`,2026-10-16)—— 设备可靠性、签发人先问、销毁证书从快照渲染
+
+### MES7A1-COD-VERIFY-COMMENT-CONTACT · `cod_verification` 的注释说纸上没有电话 / 邮箱 / 网址,而纸上印着(Step 0 Q26 第一条,登记不修)
+
+**是什么:** `db/functions/cod_verification.sql:96-97` 的注释说 phone / email / website 不在纸上;叠式抬头把它们印出来了
+(`app/components/CompanyLetterhead.tsx:104-106`)。函数返回的东西一个字不受影响 —— 错的只是那句注释。
+**为什么这一刀不修:** 它在全库唯一一支匿名可执行的函数里(`cod_verification`),而这一刀不改它返回的任何东西;为一句注释动匿名面不值(Q26 裁定)。
+**删除条件:** 下一刀碰 `cod_verification` 时顺手改掉那句注释。
+
+### MES7A1-RECORD-COD-ISSUE-PARITY · `record_cod_issue` 没有分析证书那一侧的三样(Step 0 Q26 第二条,登记不修)
+
+**是什么:** `record_coa_issue` 把 sha256 转小写、核对路径前缀是证书自己的 id、对"已经记过字节"按名拒(`COA_BYTES_ALREADY_RECORDED`);
+`record_cod_issue` 三样都没有(重复记由 `cod_issues` 的唯一约束以裸消息拒)。没有量到任何一次失败:路由只传小写十六进制、路径照证书 id 拼。
+**删除条件:** 下一刀碰 `record_cod_issue` 时补齐三样(Q26 裁定)。
+
+### MES7A1-RUN-EVENT-DOWNTIME-PAIRING · 一次 `unplanned_stop` 加工单事件与一条停机记录可能说的是同一次停机,而没有任何东西把它们配起来(Step 0 Q19)
+
+**是什么:** 可靠性(`equipment_reliability`)只数停机记录;加工单的事件与指标留在单上、不计入(两边都数会重复数)。今天没有一条规矩说
+"这一条事件与那一条停机是同一次",所以也没有一支臂去配它们 —— 一次只记成单事件、没记停机的故障,不进 MTBF。
+**删除条件:** 第一份控制器汇总(设备来源 `device`,今天保留未用)到来时,一次裁定:哪一边是权威、如何配对。
+
+### 更正的过时记录(MES-7a-1)
+
+* `db/tables/equipment_downtime.sql` 表注释说"没有开始 / 结束列"—— 早就有了,已改。读策略的注释同改。
+* `db/tables/equipment_maintenance.sql` 注释说保养可以点名一段停机 —— MES-7a-1 之前那条点名从来没有被检查过(任何机器的、作废的都收),
+  从这一刀起才是真的(`MAINTENANCE_DOWNTIME_OTHER_MACHINE` · `MAINTENANCE_DOWNTIME_VOIDED`)。
+* `db/tables/equipment_service_intervals.sql` 的 `interval_kg` 注释、`db/functions/commit_processing_run.sql` 里"工序与资产没有关联"那一句 —— 已改。
+* `app/inbound/[id]/cod/pdf/route.tsx` 那句"照冻下来的那一份渲染"(当时不真)—— 现在真了,注释照实写。

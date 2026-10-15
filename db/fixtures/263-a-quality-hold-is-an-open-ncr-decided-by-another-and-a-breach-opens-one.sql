@@ -740,7 +740,11 @@ BEGIN
     VALUES ('ZZ263-IBP-OURS', ib_s, v_today - 1, true, 'dry', 'ours') RETURNING id INTO a3;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a3, 'ni', 12);
     INSERT INTO processing_runs (code, status, allocation_basis, operation_type_code, started_at, ended_at, shift_code, process_date)
-    VALUES ('ZZ263-RUN', 'committed', 'weight', 'manual_disassembly', now() - interval '3 hours', now() - interval '2 hours', 'day', v_today) RETURNING id INTO run_c;
+    -- ★ MES-7a-1(2026-10-16 量到):加工日原来写的是 v_today,而开始是 now() − 3 小时 —— 新加坡 00:00–03:00 之间开始落在昨天,
+    --   表头守卫按名拒 RUN_DATE_OUTSIDE_RUN_TIME,这一支 fixture 每晚红三个小时。加工日改成开始那一刻的新加坡日子(与表头守卫同一个判据);
+    --   断言一条没动。
+    VALUES ('ZZ263-RUN', 'committed', 'weight', 'manual_disassembly', now() - interval '3 hours', now() - interval '2 hours', 'day',
+            ((now() - interval '3 hours') AT TIME ZONE 'Asia/Singapore')::date) RETURNING id INTO run_c;
     INSERT INTO contamination_checks (run_id, stream_code, kind, output_batch_id, sample_mass_g, foreign_mass_g, warning_pct_at, sampled_at)
     VALUES (run_c, 'cathode', 'sampled', ob_c, 100, 5, 1, now() - interval '1 hour');
     INSERT INTO discharge_module_results (run_id, output_batch_id, module_ref, outlet_voltage_v, verdict, verdict_at, disposition, source)

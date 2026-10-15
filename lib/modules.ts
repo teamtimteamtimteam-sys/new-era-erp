@@ -493,8 +493,11 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // MES-6b-2(2026-10-15,MES-0 Q67 · MES-6b Step 0 Q10 · Q14 · Q30 · Q32,Tim):分析证书 —— 签发在产出批页上(action.issue_coa:cco · admin);
     //   这一页列出每一张证书、下载存下的那一份、提 CFO 作废申请。门:质量查看码【与】产出查看码(P_COA 的理由)。
     { href: '/quality/coa', navKey: 'quality.subnav.coa', modules: ['operation'], permission: P_COA },
-    // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
+    // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 加工的人读得到的那一份(资产卡、成本与折旧留在财务)。
+    //   ★ MES-7a-1(Q6):停机、保养维修、保养间隔从此记在设备页上(写 module.processing.edit,页内控件看得见、按不动、说出码)。
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
+    // MES-7a-1(Q5):设备可靠性(MTBF / MTTR)—— 设备清单上一键可达(parent),所以不在二级菜单里另起一条;门同设备页。
+    { href: '/operation/equipment/reliability', navKey: 'processing.subnav.equipmentReliability', modules: ['operation'], permission: P_PROCESSING, parent: '/operation/equipment' },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
     //   重试 / 丢弃收件箱的行要 action.manage_devices(页内的控件看得见、按不动、说出缺哪个码 —— DBLOCK-1)。
     { href: '/operation/devices', navKey: 'processing.subnav.devices', modules: ['operation'], permission: P_PROCESSING },

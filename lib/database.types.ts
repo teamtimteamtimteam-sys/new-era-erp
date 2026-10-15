@@ -6956,6 +6956,36 @@ export type Database = {
         }
         Relationships: []
       }
+      downtime_causes: {
+        Row: {
+          class: string
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          class: string
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          class?: string
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       electricity_allocation_lines: {
         Row: {
           allocation_id: string
@@ -7960,6 +7990,7 @@ export type Database = {
       }
       equipment_downtime: {
         Row: {
+          cause_code: string | null
           created_at: string
           created_by: string | null
           duration: string | null
@@ -7968,6 +7999,7 @@ export type Database = {
           id: string
           notes: string | null
           reason: string
+          source: string
           started_at: string
           updated_at: string
           updated_by: string | null
@@ -7976,6 +8008,7 @@ export type Database = {
           voided_by: string | null
         }
         Insert: {
+          cause_code?: string | null
           created_at?: string
           created_by?: string | null
           duration?: string | null
@@ -7984,6 +8017,7 @@ export type Database = {
           id?: string
           notes?: string | null
           reason: string
+          source?: string
           started_at: string
           updated_at?: string
           updated_by?: string | null
@@ -7992,6 +8026,7 @@ export type Database = {
           voided_by?: string | null
         }
         Update: {
+          cause_code?: string | null
           created_at?: string
           created_by?: string | null
           duration?: string | null
@@ -8000,6 +8035,7 @@ export type Database = {
           id?: string
           notes?: string | null
           reason?: string
+          source?: string
           started_at?: string
           updated_at?: string
           updated_by?: string | null
@@ -8008,6 +8044,13 @@ export type Database = {
           voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_downtime_cause_code_fkey"
+            columns: ["cause_code"]
+            isOneToOne: false
+            referencedRelation: "downtime_causes"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "equipment_downtime_equipment_id_fkey"
             columns: ["equipment_id"]
@@ -43786,6 +43829,10 @@ export type Database = {
         Args: { p_location_id: string; p_material_id: string }
         Returns: string[]
       }
+      close_equipment_downtime: {
+        Args: { p_downtime_id: string; p_ended_at: string }
+        Returns: Json
+      }
       close_financial_year: {
         Args: { p_notes?: string; p_year_end: string }
         Returns: Json
@@ -43822,6 +43869,7 @@ export type Database = {
         Args: { p_output_batch_id: string; p_sales_order_id: string }
         Returns: string[]
       }
+      coa_issuer: { Args: never; Returns: Json }
       coa_output_calibration_problem: {
         Args: { p_output_batch_id: string }
         Returns: string
@@ -43975,6 +44023,16 @@ export type Database = {
           p_start_voltage_v: number
           p_verdict: string
           p_verdict_at: string
+        }
+        Returns: Json
+      }
+      correct_equipment_downtime: {
+        Args: {
+          p_cause_code: string
+          p_downtime_id: string
+          p_ended_at: string
+          p_reason: string
+          p_started_at: string
         }
         Returns: Json
       }
@@ -44409,6 +44467,7 @@ export type Database = {
         Returns: Json
       }
       document_type_prefix: { Args: { p_key: string }; Returns: string }
+      downtime_cause_check: { Args: { p_cause_code: string }; Returns: string }
       drain_stock: {
         Args: {
           p_business_date: string
@@ -44442,6 +44501,34 @@ export type Database = {
       ensure_task_owner_participant: {
         Args: { p_actor?: string; p_owner_emp: string; p_task_id: string }
         Returns: string
+      }
+      equipment_record_target: {
+        Args: { p_equipment_id: string }
+        Returns: string
+      }
+      equipment_reliability: {
+        Args: { p_equipment_id?: string; p_from?: string; p_to?: string }
+        Returns: {
+          equipment_code: string
+          equipment_description: string
+          equipment_id: string
+          equipment_status: string
+          external_stops: number
+          failures: number
+          failures_open: number
+          mtbf_hours: number
+          mtbf_state: string
+          mttr_hours: number
+          operating_hours: number
+          planned_stops: number
+          range_from: string
+          range_to: string
+          repairs_closed: number
+          runs_counted: number
+          runs_without_machine: number
+          runs_without_times: number
+          unclassified_stops: number
+        }[]
       }
       execute_blending_plan: {
         Args: {
@@ -45026,6 +45113,16 @@ export type Database = {
         Args: { p_period_month: string }
         Returns: Json
       }
+      open_equipment_downtime: {
+        Args: {
+          p_cause_code: string
+          p_equipment_id: string
+          p_notes?: string
+          p_reason: string
+          p_started_at: string
+        }
+        Returns: Json
+      }
       open_for_self_assessment: { Args: { p_review_id: string }; Returns: Json }
       open_gst_period: {
         Args: { p_period_end: string; p_period_start: string }
@@ -45552,6 +45649,23 @@ export type Database = {
           p_dispute_id: string
           p_umpire_assay_id: string
           p_umpire_sample_id: string
+        }
+        Returns: Json
+      }
+      record_equipment_maintenance: {
+        Args: {
+          p_capitalisation_reason?: string
+          p_capitalised?: boolean
+          p_description: string
+          p_downtime_id?: string
+          p_equipment_id: string
+          p_expense_id?: string
+          p_kind: string
+          p_notes?: string
+          p_performed_by_employee_id?: string
+          p_performed_by_name?: string
+          p_performed_by_supplier_id?: string
+          p_performed_on: string
         }
         Returns: Json
       }
@@ -46213,6 +46327,20 @@ export type Database = {
       save_employee: {
         Args: { p_fields: Json; p_history?: Json; p_id: string }
         Returns: string
+      }
+      save_equipment_service_interval: {
+        Args: {
+          p_disposition?: string
+          p_equipment_id: string
+          p_interval_days: number
+          p_interval_id: string
+          p_interval_kg: number
+          p_kind: string
+          p_lead_days: number
+          p_lead_kg: number
+          p_notes?: string
+        }
+        Returns: Json
       }
       save_self_assessment: {
         Args: {

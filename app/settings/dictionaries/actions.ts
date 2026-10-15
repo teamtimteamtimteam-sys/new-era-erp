@@ -183,5 +183,8 @@ async function dictError(msg: string): Promise<string> {
         return t('dict.errNoPermission')
     }
     if (/duplicate key/i.test(raw)) return t('dict.errDuplicate')
+    // MES-7a-1(Q3):一种已经被停机引用的原因,类别冻住 —— 改它会悄悄改写已经算过的 MTBF。句子说出被引用几段、以及去处(新加一种)。
+    const locked = raw.match(/DOWNTIME_CAUSE_CLASS_LOCKED\|([^|]+)\|(\d+)/)
+    if (locked) return t('dict.errCauseClassLocked', { 0: locked[1], 1: locked[2] })
     return await fallbackForRawError(raw, 'dictError@app/settings/dictionaries/actions.ts')
 }
