@@ -17,6 +17,8 @@ import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useTranslations } from '@/lib/i18n/client'
 import { RefusalBlock } from '@/app/components/ui/refusal'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import PpmReadout from '@/app/components/metals/PpmReadout'
+import type { SubstanceRole } from '@/lib/substances'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import AssayImpactPreview from '../AssayImpactPreview'
 import {
@@ -36,7 +38,7 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
  *  那个 `Record<metal, content>` 与 `metalsPayload` 一个字都没有动。 */
 type MetalLine = { metal: string; content: string }
 /** 渲染用的行:多带一个 label(字典自己的名字,MES-6a-2 Q30),而它【不进桥】—— 名字是画出来的,不是交出去的。 */
-type MetalRow = MetalLine & { label: string }
+type MetalRow = MetalLine & { label: string; role: SubstanceRole }
 
 const initialState: SubmitAssayState = {}
 
@@ -165,6 +167,7 @@ export default function AssayForm({
     const rows: MetalRow[] = activeOptions.map((opt) => ({
         metal: opt.value,
         label: opt.label,
+        role: opt.role,
         content: metals[opt.value] ?? '',
     }))
 
@@ -198,12 +201,16 @@ export default function AssayForm({
             header: t('assay.colContent'),
             // 留空 = 没测,整行忽略 —— 那句话在表上面那个标题旁边写着,不在格子里重复。
             render: (r) => (r.content.trim() === '' ? '—' : r.content),
+            // MES-6b-1(F7 · Q18):惩罚元素的格子旁边实时带 ppm(框里仍然是 %,存的仍然是 %)
             edit: (r) => (
-                <DecimalInput
-                    value={r.content}
-                    onChange={(raw) => setMetals((m) => ({ ...m, [r.metal]: raw }))}
-                    className="w-28"
-                />
+                <span className="inline-flex flex-wrap items-center gap-2">
+                    <DecimalInput
+                        value={r.content}
+                        onChange={(raw) => setMetals((m) => ({ ...m, [r.metal]: raw }))}
+                        className="w-28"
+                    />
+                    <PpmReadout value={r.content} role={r.role} />
+                </span>
             ),
         },
     ]

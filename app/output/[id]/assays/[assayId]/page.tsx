@@ -41,6 +41,9 @@ type ApplyPreview = {
     producing_run_allocated_at: string | null
     producing_run_basis: string | null
     will_flag_stale: boolean
+    /** MES-6b-1(F5 · Q16 · Q36):只测惩罚元素的一份 = 补充 —— 只换掉 replaces 里那几种,别的含量原样留着 */
+    supplement?: boolean
+    replaces?: string[] | null
 }
 
 export default async function OutputAssayDetailPage({
@@ -295,7 +298,13 @@ export default async function OutputAssayDetailPage({
                     )}
                     {preview && (
                         <>
-                            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('assay.output.replacesAll')}</p>
+                            {preview.supplement ? (
+                                <p className="text-sm mb-3 max-w-3xl" data-state-note="assay-supplement">
+                                    {t('assay.output.supplementOnly', { list: (preview.replaces ?? []).map(metalLabel).join(t('contractDetail.listJoin')) })}
+                                </p>
+                            ) : (
+                                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('assay.output.replacesAll')}</p>
+                            )}
                             {/* 对照表 —— TABLE-CONVERT-4:换成 DataTable。
                                 四列、列头、每一格的字与红片全部原样;手机档仍然是横向滚动。 */}
                             <ApplyPreviewTable
@@ -311,7 +320,9 @@ export default async function OutputAssayDetailPage({
                                                 ? 'manual' as const
                                                 : 'other' as const
                                         : null,
-                                    afterText: r.next ? contentText(r.next.content_pct, roleOf.get(r.metal)) : null,
+                                    // 补充(F5):它没测的那几种【原样留着】,不是"将移除"
+                                    afterText: r.next ? contentText(r.next.content_pct, roleOf.get(r.metal))
+                                        : preview.supplement && r.current ? contentText(r.current.content_pct, roleOf.get(r.metal)) : null,
                                 }))}
                             />
 

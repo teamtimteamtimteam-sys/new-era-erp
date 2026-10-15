@@ -1,4 +1,4 @@
-// TERMS-EDIT-1(Tim 2026-09-27,grilling Q1–Q6):合同详情页 —— 表头、七张条款表、这份合同的申请、申请生效 / 暂停。
+// TERMS-EDIT-1(Tim 2026-09-27,grilling Q1–Q6):合同详情页 —— 表头、条款表(MES-6b-1 起八张:多了质量验收限)、这份合同的申请、申请生效 / 暂停。
 //
 // ★【谁能做什么,由库定,这里只把它说出来】★
 //   · 写:action.contract_terms(cco · admin)—— 没有的人每个控件都看得见、按不动、说出那个码(DBLOCK-1);
@@ -22,8 +22,10 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import TermsRequestsPanel from '@/app/components/pricing/TermsRequestsPanel'
 import { firstMissingDecideCode, loadTermsRequests } from '@/app/components/pricing/termsRequestsData'
 import { missingTermLabel } from '@/app/components/pricing/termsRequestErrorCodes'
-import { loadSubstanceLabels, substanceLabeller, payableOnly, penaltyOnly } from '@/app/tools/pricing/metal-prices/substanceQuery'
-import { ppmOf, perPpmOf, plainDecimal } from '@/lib/substances'
+import { loadSubstanceLabels, substanceLabeller, payableOnly } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { ppmOf, perPpmOf, plainDecimal, penaltyCandidates, type SubstanceRole } from '@/lib/substances'
+import { loadIndicatorDefs } from '@/app/components/quality/AssayIndicators'
+import { parameterOptions, parameterLabeller } from '@/app/components/quality/qualityParameters'
 import ContractActivationPanel, { type ActivationRow } from '../ContractActivationPanel'
 import TermSection, { type TermFieldView, type TermRowView } from './TermSection'
 import HeaderForm from './HeaderForm'
@@ -75,12 +77,16 @@ export default async function ContractDetailPage({ params, searchParams }: {
             s.dbTable) as unknown as Record<string, unknown>[]))
 
     // ── 字典 ───────────────────────────────────────────────────────────────
-    const [substances, materials, currencies, indices] = await Promise.all([
+    const [substances, materials, currencies, indices, indicatorDefs] = await Promise.all([
         loadSubstanceLabels(supabase),
         supabase.from('materials').select('id, code, name').is('deleted_at', null).order('code'),
         supabase.from('currencies').select('code').order('code'),
         supabase.from('metal_price_indices').select('code, name_en, name_zh, is_active').order('sort_order'),
+        // MES-6b-1(V17):质量验收限的参数 = 水分 + 指标字典(全部读:停用的照样读得出名字,选单只给启用的)
+        loadIndicatorDefs(supabase, false),
     ])
+    const substanceRole = new Map<string, SubstanceRole>(substances.map((x) => [x.code, x.role]))
+    const parameterName = parameterLabeller(indicatorDefs, locale, t)
     const substanceName = substanceLabeller(substances, locale)
     const matRows = mustRows(materials, 'materials') as { id: string; code: string; name: string }[]
     const ccyRows = (mustRows(currencies, 'currencies') as { code: string }[]).map((r) => r.code)
@@ -89,9 +95,11 @@ export default async function ContractDetailPage({ params, searchParams }: {
     const dicts: Record<string, Dict> = {
         // 可新选的只给启用的;显示时停用的也要读得出名字(substanceLabeller 读的是全部)
         substances: pickable(substances),
-        // MES-6a-2(Q27):计价条款与精炼费只给按含量计价的金属;惩罚条款只给惩罚元素
+        // MES-6a-2(Q27):计价条款与精炼费只给按含量计价的金属;
+        //   MES-6b-1(F4 · Q15):惩罚条款给惩罚元素【与】可计价金属(铜也可以被罚)—— 同一种物质既计价又罚由库按名拒(Q33)
         payables: pickable(payableOnly(substances)),
-        penaltyElements: pickable(penaltyOnly(substances)),
+        penaltyCandidates: pickable(penaltyCandidates(substances)),
+        qualityParameters: parameterOptions(indicatorDefs, locale, t).map((o) => ({ value: o.value, label: `${o.label} (${o.unit})` })),
         materials: matRows.map((m) => ({ value: m.id, label: `${m.code} — ${m.name}` })),
         currencies: ccyRows.map((x) => ({ value: x, label: x })),
         indices: idxRows.filter((x) => x.is_active).map((x) => ({ value: x.code, label: x.code })),
@@ -99,7 +107,8 @@ export default async function ContractDetailPage({ params, searchParams }: {
     const dictLabel: Record<string, (v: string) => string> = {
         substances: (v) => substanceName(v),
         payables: (v) => substanceName(v),
-        penaltyElements: (v) => substanceName(v),
+        penaltyCandidates: (v) => substanceName(v),
+        qualityParameters: (v) => parameterName(v),
         materials: (v) => { const m = matRows.find((x) => x.id === v); return m ? `${m.code} — ${m.name}` : v },
         currencies: (v) => v,
         indices: (v) => v,
@@ -137,6 +146,8 @@ export default async function ContractDetailPage({ params, searchParams }: {
         options: f.options?.kind === 'enum'
             ? f.options.values.map((v) => ({ value: v, label: t(`contractDetail.opt.${f.name}.${v}`) }))
             : f.options?.kind === 'dict' ? dicts[f.options.dict] : undefined,
+        // MES-6b-1(F7 · Q18):这一格旁边实时带 ppm —— 只在同一行选的物质是惩罚元素时(角色表随页面一起下去)
+        ppmBeside: f.ppmBeside ? { roleOf: f.ppmBeside.roleOf, roles: Object.fromEntries(substanceRole) } : undefined,
     }))
     const rowView = (s: SectionSpec, r: Record<string, unknown>): TermRowView => {
         const shown: Record<string, string> = {}
@@ -150,10 +161,15 @@ export default async function ContractDetailPage({ params, searchParams }: {
             else if (f.options?.kind === 'dict') shown[f.name] = dictLabel[f.options.dict](String(v))
             // MES-6a-2(MES-6a Step 0 Q29):惩罚条款的阈值以 % 存、以 % 录,旁边带 ppm(1 % = 10,000 ppm);费率【不改单位】
             //   (每个百分点 —— 那是一条合同条款的单位),旁边带每个 ppm 的等值。原样精度,不舍入。
+            //   ★ MES-6b-1(F4 · Q35):ppm 只给惩罚元素 —— 一条罚铜的条款,阈值与费率照 % 印(铜按 % 谈,不按 ppm)。
             else if (s.table === 'penalty_elements' && f.name === 'threshold_pct')
-                shown[f.name] = t('contractDetail.ppmBeside', { pct: plainDecimal(String(v)), ppm: ppmOf(String(v)) })
+                shown[f.name] = substanceRole.get(String(r.substance)) === 'penalty_element'
+                    ? t('contractDetail.ppmBeside', { pct: plainDecimal(String(v)), ppm: ppmOf(String(v)) })
+                    : t('contractDetail.pctOnly', { pct: plainDecimal(String(v)) })
             else if (s.table === 'penalty_elements' && f.name === 'usd_per_tonne_per_pct_over')
-                shown[f.name] = t('contractDetail.perPpmBeside', { rate: plainDecimal(String(v)), perPpm: perPpmOf(String(v)) })
+                shown[f.name] = substanceRole.get(String(r.substance)) === 'penalty_element'
+                    ? t('contractDetail.perPpmBeside', { rate: plainDecimal(String(v)), perPpm: perPpmOf(String(v)) })
+                    : t('contractDetail.perPctOnly', { rate: plainDecimal(String(v)) })
             else shown[f.name] = String(v)
         }
         return { id: String(r.id), shown, values }

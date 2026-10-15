@@ -274,6 +274,21 @@ export const REMINDERS = [
     { itemType: 'assay_results_disagree', permission: 'module.quality.view', href: '/quality/disputes',
       itemHref: (r: OpsRow) => `/output/${r.item_id}/edit` },
 
+    // ══ MES-6b-1(2026-10-15,MES-6b Step 0 Q6 · Q38,Tim):不合格报告与质量暂扣 ═══════════════════════════════════════════════
+    // 【ncr_open】一张开着的不合格报告(它扣着它那一批,直到另一个人决定)—— 门牌指那张报告(决定在那一页);subject 是批号。
+    // 【quality_hold_reserved】一张销售单上预留着一批被暂扣的货(发货、结算都会被拒)—— 门牌指那张销售单;subject 是「批号 · 报告编号」。
+    //   主码 quality.view,收窄到同时持产出查看码的人(any),再放宽给持销售查看码的人(widen)—— 与库里 arm_permission_any /
+    //   arm_permission_widen 逐字同形(Q38)。
+    // 【quality_prompt_ncr】一件该不该开报告由人判断的事(进料品位超出合同 · 污染抽检超过警戒 · 排放检测不合格)—— 门牌指"开一张"
+    //   那一页并带着那一批(doc_kind = inbound / output);开了一张之后它自己消失。subject 是那件事的证据。
+    { itemType: 'ncr_open', permission: 'module.quality.view', href: '/quality/ncr',
+      itemHref: (r: OpsRow) => `/quality/ncr/${r.item_id}` },
+    { itemType: 'quality_hold_reserved', permission: 'module.quality.view',
+      permissionAny: ['module.output.view'], permissionWiden: ['module.sales.view'], href: '/quality/ncr',
+      itemHref: (r: OpsRow) => `/sales/orders/${r.item_id}` },
+    { itemType: 'quality_prompt_ncr', permission: 'module.quality.view', href: '/quality/ncr',
+      itemHref: (r: OpsRow) => (r.item_id && r.doc_kind ? `/quality/ncr/new?batch=${r.doc_kind}:${r.item_id}` : null) },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

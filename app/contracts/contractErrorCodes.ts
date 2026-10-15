@@ -38,6 +38,11 @@ export const CONTRACT_ERROR_CODES = new Set([
     'CONTRACT_INSURANCE_AMOUNT_NEEDS_CURRENCY',
     'CONTRACT_INSURANCE_COVER_REQUIRED',
     'CONTRACT_VOLUME_QUANTITY_POSITIVE',
+    // ── MES-6b-1(V17):质量验收限那张表的约束 ──────────────────────────────────────────────
+    'CONTRACT_QUALITY_LIMIT_NEEDS_A_BOUND',
+    'CONTRACT_QUALITY_LIMIT_BOUNDS_ORDERED',
+    'CONTRACT_QUALITY_LIMIT_DUPLICATE',
+    'CONTRACT_QUALITY_LIMIT_NEGATIVE',
     'CONTRACT_VOLUME_UNIT_REQUIRED',
     'CONTRACT_PRICING_DUPLICATE_METAL',
     'CONTRACT_PRICING_PAYABLE_RANGE',
@@ -114,6 +119,17 @@ const CONSTRAINT_TO_CODE: Record<string, string> = {
     contract_penalty_elements_one_per_substance: 'CONTRACT_PENALTY_DUPLICATE_SUBSTANCE',
     contract_penalty_elements_threshold_pct_check: 'CONTRACT_TERM_PCT_RANGE',
     contract_penalty_elements_usd_per_tonne_per_pct_over_check: 'CONTRACT_TERM_AMOUNT_NEGATIVE',
+    // MES-6b-1(V17 · Q8 · Q25):质量验收限与结算口径上那一格(约束名逐条对着 db/tables/contract_quality_limits.sql 与
+    //   contract_settlement_terms.sql;没写名字的两条 CHECK 与外键用的是 PostgreSQL 起的名字 <表>_<列>_check / _fkey)
+    contract_settlement_terms_quality_limit_basis_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_quality_limits_a_bound: 'CONTRACT_QUALITY_LIMIT_NEEDS_A_BOUND',
+    contract_quality_limits_bounds_order: 'CONTRACT_QUALITY_LIMIT_BOUNDS_ORDERED',
+    contract_quality_limits_moisture_pct: 'CONTRACT_TERM_PCT_RANGE',
+    contract_quality_limits_one_per_parameter: 'CONTRACT_QUALITY_LIMIT_DUPLICATE',
+    contract_quality_limits_min_value_check: 'CONTRACT_QUALITY_LIMIT_NEGATIVE',
+    contract_quality_limits_max_value_check: 'CONTRACT_QUALITY_LIMIT_NEGATIVE',
+    contract_quality_limits_parameter_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_quality_limits_indicator_fkey: 'CONTRACT_TERM_CHOICE_INVALID',
 }
 
 /** TERMS-EDIT-1:这一串是不是合同 / 条款表上某一条约束的原话(是 → 交给本文件;否 → 交给条款申请那一份) */

@@ -123,12 +123,18 @@ export function classifyRawError(message: string): RawShape {
 //     而 lib/action-refusal.ts 的 refuseFromDriver 也先问这里(见那里的 U1-B 一段),
 //     于是 refuseFromCoded 不会把它当成"读不懂的驱动消息"降级。
 const SHARED_DATE_CODE_RE = /^(PERIOD_LOCKED|YEAR_CLOSED)\|([^|]+)\|([^|]+)$/
+// MES-6b-1(2026-10-15,MES-6b Step 0 Q3):QUALITY_HOLD_OPEN|<批号>|<不合格报告编号> —— 质量暂扣守在【流水】上(guard_quality_hold),
+//   所以它会从任何一支动库存的函数里冒出来:加工提交、配料执行、发货、直接销售、预留、注销,外加结算与配料计划自己那几句。
+//   与上面两条同一个处置:在兜底这一层认一次,每一支映射器都说同一句话(说出批号与报告,并说谁能放行),而不是在十几份词表里各抄一遍。
+const SHARED_HOLD_CODE_RE = /^QUALITY_HOLD_OPEN\|([^|]+)\|([^|]+)$/
 
 /**
- * 横跨所有模块、在兜底这一层统一翻译的码(今天:PERIOD_LOCKED · YEAR_CLOSED)。
+ * 横跨所有模块、在兜底这一层统一翻译的码(今天:PERIOD_LOCKED · YEAR_CLOSED · QUALITY_HOLD_OPEN)。
  * 认得出 → 那句人话;认不出 → `null`。
  */
 export async function sharedCodeText(message: string): Promise<string | null> {
+    const hold = (message ?? '').trim().match(SHARED_HOLD_CODE_RE)
+    if (hold) return (await getTranslations())('common.shared.QUALITY_HOLD_OPEN', { batch: hold[1], ncr: hold[2] })
     const m = (message ?? '').trim().match(SHARED_DATE_CODE_RE)
     if (!m) return null
     const [t, locale] = await Promise.all([getTranslations(), getLocale()])

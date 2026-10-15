@@ -930,6 +930,10 @@ const en = {
         // 一个光秃秃的 "Lithium" 挂在批次号旁边读不出是什么意思
         awaitingMetals: 'awaiting: {metals}',
         item: {
+            // MES-6b-1(2026-10-15):三支
+            ncr_open: 'Open non-conformance reports',
+            quality_hold_reserved: 'Reserved batches on quality hold',
+            quality_prompt_ncr: 'Quality findings that may need a non-conformance report',
             work_order_overdue: 'Work order past its scheduled date',
             work_order_variance_beyond: 'Work order variance beyond threshold',
             free_time_expiring: 'Free time running out',
@@ -1192,6 +1196,10 @@ const en = {
         note: 'Unsold batches are not listed here — they have no margin. Ageing stock is on the home dashboard.',
     },
     common: {
+        // MES-6b-1(2026-10-15):QUALITY_HOLD_OPEN —— 横跨所有模块的那一句(lib/machine-text.ts)
+        shared: {
+            QUALITY_HOLD_OPEN: 'Batch {batch} is on quality hold under {ncr}. It cannot be consumed, shipped, settled or blended until someone other than the person who opened {ncr} decides it. Nothing was saved.',
+        },
         // ★★ BUGFIX-1b(2026-09-12)· 生码 / 数据库报错的【共用兜底】 ★★
         //   措辞是 Tim 定的稿(docs/forward-queue.md「BUGFIX-1b 的裁定 · Q14」)。
         //   两件事它必须同时做到:说人话,而且留下一个能追查的短码。
@@ -2203,6 +2211,11 @@ const en = {
         },
 
         errors: {
+            // MES-6b-1(2026-10-15):质量验收限那张表的约束
+            CONTRACT_QUALITY_LIMIT_NEEDS_A_BOUND: 'A quality limit needs a minimum, a maximum, or both. Nothing was saved.',
+            CONTRACT_QUALITY_LIMIT_BOUNDS_ORDERED: 'The minimum is above the maximum. Nothing was saved.',
+            CONTRACT_QUALITY_LIMIT_DUPLICATE: 'This contract already has a limit for that parameter and material. Edit that one instead. Nothing was saved.',
+            CONTRACT_QUALITY_LIMIT_NEGATIVE: 'A limit cannot be negative. Nothing was saved.',
             CONTRACT_COUNTERPARTY_REQUIRED: 'A contract is with exactly one party \u2014 either a supplier or a customer, not both and not neither. Nothing was saved. Pick one from the list.',
             CONTRACT_TITLE_REQUIRED: 'The contract needs a title, so that a person reading the register can tell what the agreement is. Nothing was saved.',
             CONTRACT_EFFECTIVE_FROM_REQUIRED: 'The date the contract takes effect is required \u2014 without it the register cannot say whether the agreement was in force when an order was raised. Nothing was saved.',
@@ -4691,6 +4704,9 @@ const en = {
         },
         // ── SO-2:reservation ────────────────────────────────────────────────
         reserve: {
+            // MES-6b-1(2026-10-15):预留着的货在质量暂扣里
+            qualityHold: 'A reserved batch is on quality hold. It stays reserved, but it cannot be shipped or settled until its report is decided:',
+            qualityHoldRestricted: 'Whether a reserved batch is on quality hold needs quality or output view to read.',
             scanNoBucket: '{code} has no available stock that this line can reserve.',
             title: 'Reserved stock',
             note: 'Reserving moves stock into a committed bucket: the goods stay where they are and the physical total does not change, but nothing else can sell or process them until they are released or shipped.',
@@ -6202,6 +6218,8 @@ const en = {
         },
     },
     assay: {
+        // MES-6b-1(2026-10-15):F5 —— 只测惩罚元素的一份是补充
+        supplementPreview: 'This assay measures only {list} and no payable metal. Applying it replaces just those contents on the batch: every other content stays as it is, nothing is repriced, and the assay already applied stays the one the batch is priced on.',
         labFrozen: 'Adding a second laboratory needs database access today - there is no screen for it yet.',
         // ASY-P2:这个批次的化验要求现状,三种状态各说各的话
         policy: {
@@ -6277,6 +6295,8 @@ const en = {
             'Unapplying marks this result as no longer standing. It does NOT restore the previous metal content and does NOT reverse the price change — both stay as this assay left them, and replacing them is a separate deliberate act.',
         // PROC-1b: output-side assays — same document, no payable to restate
         output: {
+            // MES-6b-1(2026-10-15):F5
+            supplementOnly: 'This assay measures only {list} and no payable metal. Applying it replaces just those contents; every other content stays as it is, and it does not take over from the assay already applied.',
             unappliedWarning: 'Assay {code} is recorded but not applied — batch content, recovery and any metal-value allocation still read the previous figures.',
             noPricing: 'An output assay does not touch pricing or payables — it changes what this batch is. Costs move only when someone re-runs allocation.',
             replacesAll: 'Applying replaces the batch content in full — metals the assay does not report will be removed.',
@@ -6344,6 +6364,8 @@ const en = {
             final: 'Final',
         },
         errors: {
+            // MES-6b-1(2026-10-15):F5
+            ASSAY_SUPPLEMENT_PRICES_NOTHING: 'Assay {0} measures no payable metal, so it only adds to the batch\'s contents — it prices nothing and takes no formula. Apply it without a formula.',
             ASSAY_BASIS_REQUIRED: 'Say which weight this assay was reported on - as-received (wet) or dry. A figure whose basis nobody stated cannot be interpreted later: 30% dry and 30% as-received are different numbers, and how different depends on the moisture.',
             ASSAY_APPLY_THROUGH_FUNCTION_ONLY: 'Whether an assay is applied can only change by applying or unapplying it (the Apply and Unapply buttons, which need action.apply_assay) — not by editing the assay record directly. Nothing was saved.',
             // ROLE-1 Batch 3a
@@ -7221,6 +7243,8 @@ const en = {
         activateConfirm: 'Ask the CFO to put this contract in effect?',
         activateBody: 'Nothing changes yet. While the request waits, the contract and its terms cannot be edited. The CFO sees the terms now on the contract next to the ones last approved.',
         errors: {
+            // MES-6b-1(2026-10-15):V17
+            QUALITY_LIMITS_NOT_FILED: 'Contract {0} says its quality limits apply per parameter, but no limit is filed. Add the limits, or set the basis to None agreed. Nothing was submitted.',
             PRICING_FORMULA_THROUGH_REQUEST_ONLY: 'Pricing formulas can no longer be changed directly — send the terms to the CFO from the formula page.',
             CONTRACT_ACTIVATES_THROUGH_REQUEST: '{0} cannot be made active directly — save it as a draft and request activation; the CFO approves it.',
             CONTRACT_ACTIVE_IS_FROZEN: '{0} is in effect, so it cannot be edited. Suspend it first, edit, then request activation again.',
@@ -7248,6 +7272,9 @@ const en = {
     },
     // ★ TERMS-EDIT-1(Tim 2026-09-27):合同详情页 —— cco 录入与修改七种合同条款;CFO 批生效(APR-8 不变)。
     contractDetail: {
+        // MES-6b-1(2026-10-15):F4:罚一种可计价金属时阈值与费率照 % 印(ppm 只给惩罚元素)
+        pctOnly: '{pct}%',
+        perPctOnly: '{rate} per %',
         back: '← Contracts',
         intro: 'Everything the CFO approves when this contract is put in effect: the header and the seven kinds of terms below. Terms can be changed only while the contract is a draft or suspended and no request is waiting. An active contract is changed by suspending it, editing, and requesting activation again — the CFO then sees what changed since the last approval.',
         endedNoActivation: 'This contract is {status}. An ended contract cannot be put in effect again, and its terms are a record of what was agreed.',
@@ -7256,6 +7283,10 @@ const en = {
         missingLead: 'Cannot request activation yet — still missing: {items}.',
         listJoin: '; ',
         missing: {
+            // MES-6b-1(2026-10-15):V17 与 F4
+            quality_limit_basis: 'the quality-limit basis on the settlement terms (none agreed, or per parameter)',
+            quality_limits: 'at least one quality limit (the settlement basis says limits apply per parameter)',
+            priced_and_penalised: '{metal} is both priced and penalised — remove it from the index pricing or from the penalty elements',
             settlement_terms: 'the settlement basis (which weight, whose assay, refining and penalty basis)',
             pricing_terms: 'at least one index pricing term',
             refining_charge: 'a refining charge for {metal} (the settlement basis says refining is charged per metal)',
@@ -7298,24 +7329,33 @@ const en = {
         fieldAtLeast: 'Must be {min} or more.',
         fieldAbove: 'Must be more than {min}.',
         section: {
+            // MES-6b-1(2026-10-15):V17
+            quality_limits: {
+                title: 'Quality limits',
+                hint: 'Moisture or an assay indicator (such as particle size), with a minimum, a maximum or both, optionally for one material. When a batch reserved to an order under this contract has an assay outside a limit, a non-conformance report opens automatically and the batch goes on quality hold. Used only when the settlement basis says quality limits apply per parameter.',
+            },
             grade_specs: { title: 'Grade specifications', hint: 'Target grade per element, as a minimum, a maximum or both. A breach is reported against documents linked to this contract; it does not refuse a delivery.' },
             insurance_obligations: { title: 'Insurance obligations', hint: 'Who must insure and to how much. This records the obligation; it does not check that a policy exists.' },
             volume_commitments: { title: 'Volume commitments', hint: 'The quantity a party has committed to, per period. Fulfilment is not computed yet.' },
             pricing_terms: { title: 'Index pricing', hint: 'How a sale under this contract is priced against a published index: which event defines the base month, M+n, which index, and the payable share. One row per metal.' },
             settlement_terms: { title: 'Settlement basis', hint: 'Which weight the sale settles on, whose assay counts, the splitting limit, sample retention, and whether refining charges and penalties apply. One per contract. "None agreed" is a statement, not a blank.' },
             refining_charges: { title: 'Refining charges', hint: 'USD per tonne of contained metal, one row per metal. Needed for every priced metal when the settlement basis says refining is charged per metal.' },
-            penalty_elements: { title: 'Penalty elements', hint: 'A penalty element (fluorine, chlorine), the threshold above which it is penalised, and USD per tonne per percentage point over. The threshold is entered in % and shown with its ppm beside it (1 % = 10,000 ppm).' },
+            penalty_elements: { title: 'Penalty elements', hint: 'A penalty element (fluorine, chlorine) or a payable metal (such as copper), the threshold above which it is penalised, and USD per tonne per percentage point over. A substance cannot be both priced and penalised on one contract. For a penalty element the threshold is entered in % and shown with its ppm beside it (1 % = 10,000 ppm).' },
         },
         field: {
+            // MES-6b-1(2026-10-15):V17
+            quality_limits: { parameter: 'Parameter', material_id: 'Material (optional)', min_value: 'Minimum', max_value: 'Maximum', notes: 'Notes' },
             grade_specs: { metal: 'Element', material_id: 'Material (optional)', min_pct: 'Minimum %', max_pct: 'Maximum %', notes: 'Notes' },
             insurance_obligations: { insured_by: 'Insured by', cover_type: 'Cover', min_amount: 'Minimum amount', currency: 'Currency', notes: 'Notes' },
             volume_commitments: { committed_by_party: 'Committed by', material_id: 'Material (optional)', quantity: 'Quantity', unit: 'Unit', period: 'Per', direction: 'At least / at most', notes: 'Notes' },
             pricing_terms: { metal: 'Metal', base_event: 'Base month from', qp_months: 'Quotational period (M+n)', index_code: 'Index', payable_pct: 'Payable %', notes: 'Notes' },
-            settlement_terms: { sale_weight_basis: 'Settles on', settling_party: 'Assay that counts', splitting_limit_pct: 'Splitting limit (percentage points)', sample_retention_required: 'Sample retention required', sample_retention_days: 'Retention days', refining_charge_basis: 'Refining charge', penalty_basis: 'Penalties', arbitration_fee_rule: 'Arbitration fee', notes: 'Notes' },
+            settlement_terms: { sale_weight_basis: 'Settles on', settling_party: 'Assay that counts', splitting_limit_pct: 'Splitting limit (percentage points)', sample_retention_required: 'Sample retention required', sample_retention_days: 'Retention days', refining_charge_basis: 'Refining charge', penalty_basis: 'Penalties', arbitration_fee_rule: 'Arbitration fee', quality_limit_basis: 'Quality limits', notes: 'Notes' },
             refining_charges: { metal: 'Metal', usd_per_tonne_of_metal: 'USD per tonne of metal', notes: 'Notes' },
             penalty_elements: { substance: 'Substance', threshold_pct: 'Threshold %', usd_per_tonne_per_pct_over: 'USD per tonne per % over', notes: 'Notes' },
         },
         opt: {
+            // MES-6b-1(2026-10-15):V17
+            quality_limit_basis: { none_agreed: 'None agreed', per_parameter: 'Per parameter' },
             insured_by: { us: 'Us', counterparty: 'The counterparty' },
             committed_by_party: { us: 'Us', counterparty: 'The counterparty' },
             period: { month: 'Month', quarter: 'Quarter', year: 'Year', total: 'Whole contract' },
@@ -7803,6 +7843,8 @@ const en = {
         },
     },
     metalContent: {
+        // MES-6b-1(2026-10-15):F7 —— 录入框旁边的 ppm
+        ppmReadout: '= {ppm} ppm',
         title: 'Metal Content (Assay)',
         colMetal: 'Metal',
         colPct: 'Content %',
@@ -9805,6 +9847,8 @@ const en = {
         errCounterparty: 'Please select a counterparty',
         errFormulaRequired: 'Please select a formula',
         errors: {
+            // MES-6b-1(2026-10-15):F4 · Q33
+            SUBSTANCE_PRICED_AND_PENALISED: '{0} is already on the other side of this contract — it is either paid for (index pricing) or penalised (penalty elements), not both. Remove it from one of the two. Nothing was saved.',
             FORMULA_NOT_FOUND: 'Pricing formula not found',
             FORMULA_INACTIVE: 'Formula {0} is inactive',
             QUANTITY_INVALID: 'Quantity must be greater than 0',
@@ -9823,7 +9867,7 @@ const en = {
             QUOTE_SOURCE_INDEX_REQUIRED: 'A published-index quote must say which index (LME or SMM) — the two are quoted in different currencies',
             // MES-6a-2(MES-6a Step 0 Q27):定价那几条路只收按含量计价的金属;惩罚条款只收惩罚元素
             SUBSTANCE_NOT_PAYABLE: '{0} is not a payable metal (fluorine and chlorine are penalty elements), so it cannot have a price, a payable percentage or a refining charge. It is recorded on assays and named in a contract\'s penalty terms.',
-            SUBSTANCE_NOT_PENALTY_ELEMENT: '{0} is not a penalty element. A contract\'s penalty terms name penalty elements only (fluorine, chlorine).',
+            SUBSTANCE_NOT_PENALTY_ELEMENT: '{0} cannot be penalised. A contract\'s penalty terms name penalty elements (fluorine, chlorine) or payable metals (such as copper).',
             PRICE_INDEX_UNKNOWN: 'Unknown or inactive price index {0}.',
         },
     },
@@ -10788,6 +10832,7 @@ const en = {
         none: 'Nothing you can see is waiting for a value.',
         colWhere: 'Where', colName: 'Name',
         value: {
+            V17: 'Quality limits on each sales contract (moisture, particle size and other assay indicators)',
             V30: 'Marking, packing instruction and label size of a UN number',
             V31: 'HS code of a battery material',
             V35: 'UN dangerous-goods number of a battery material',
@@ -10811,6 +10856,7 @@ const en = {
             V14: 'How an arbitration (umpire) fee is shared on a sale contract',
         },
         supplier: {
+            V17: 'Supplied per contract by the commercial side. Until a sales contract states its quality-limit basis it cannot be put in effect; with "per parameter", at least one limit must be filed. A batch reserved to an order under the contract is judged against the limits when its assay is recorded or it is reserved, and a breach opens a non-conformance report and puts the batch on quality hold.',
             V30: 'Supplied by a DG-qualified forwarder before the first export. Until set, nothing is printed from it.',
             V31: 'Supplied by the customs broker before the first export. Until set, delivery notes carry no HS code.',
             V35: 'Supplied by the forwarder with Tim before the first export or the first dangerous-goods shipment. Until set, labels and delivery notes say "DG code not set"; nothing is refused.',
@@ -11738,7 +11784,81 @@ const en = {
     },
     // MES-6a-1(2026-10-09,MES-6a Step 0 Q7–Q37,Tim):质量 —— 样品与化验争议
     quality: {
-        subnav: { samples: 'Samples', disputes: 'Assay disputes' },
+        // MES-6b-1(2026-10-15):不合格报告、质量暂扣、合同质量验收限的判定
+        param: { moisture_pct: 'Moisture' },
+        ncrStatus: { open: 'Open', decided: 'Decided' },
+        ncrSource: { manual: 'Manual', customer_complaint: 'Customer complaint', quality_limit: 'Contract quality limit', inspection: 'Inspection' },
+        ncrDisposition: { accept: 'Accepted', accept_with_penalty: 'Accepted with penalty', reject: 'Rejected', rework: 'Rework', downgrade: 'Downgraded' },
+        judgementResult: { within: 'Within', below_min: 'Below minimum', above_max: 'Above maximum', not_measured: 'Not measured' },
+        ncr: {
+            title: 'Non-conformance reports',
+            intro: 'A non-conformance report (NCR) puts a batch on quality hold: while it is open the batch cannot be consumed, shipped, settled or blended. Someone other than the person who opened it decides it. Accept, accept with a penalty, rework and downgrade release the hold; reject keeps it until the batch is written off. A sales contract\'s quality limits open one automatically when a reserved batch\'s assay is outside them.',
+            add: 'Open an NCR',
+            empty: 'No non-conformance reports.',
+            colCode: 'Report',
+            colStatus: 'Status',
+            colSource: 'Source',
+            colBatch: 'Batch',
+            colOpened: 'Opened',
+            colDescription: 'Description',
+            holdingFlag: 'holding the batch',
+            newTitle: 'Open a non-conformance report',
+            pickBatchIntro: 'Pick the batch the report is about. Opening it puts that batch on quality hold.',
+            newFor: 'For batch',
+            holdWarning: 'Saving this report puts the batch on quality hold at once: it cannot be consumed, shipped, settled or blended until someone other than you decides the report.',
+            source: 'Source',
+            pickSource: 'Choose a source',
+            sourceWhy: 'Contract quality-limit reports are opened by the system, not by hand.',
+            description: 'What is wrong',
+            descriptionPlaceholder: 'What was found, where, and how it was noticed',
+            linkAssay: 'Assay (optional)',
+            linkDispute: 'Assay dispute (optional)',
+            linkSalesOrder: 'Sales order (optional)',
+            none: 'None',
+            salesOrdersRestricted: 'Restricted — listing the sales orders this batch is reserved to needs sales view.',
+            salesOrderWhy: 'The sales orders this batch is reserved to. Name one when a customer complaint is about that order.',
+            save: 'Open the report',
+            requestStatus: { submitted: 'waiting for the CFO', approved: 'approved' },
+            judgedParameter: 'Parameter',
+            judgedValue: 'Value',
+            judgedLimit: 'Limit',
+            limitRange: 'min {min} · max {max}',
+            judgedResult: 'Result',
+            judgedContract: 'Contract',
+            bySystem: 'by the system',
+            openDispute: 'Open the dispute',
+            holdingOpen: 'Batch {batch} is on quality hold while this report is open.',
+            holdingReject: 'This report was decided reject, so batch {batch} stays on quality hold until it is written off — raise a CFO write-off request for what is left.',
+            judgementTitle: 'Contract limit judgement',
+            judgementNote: 'Judged once, when the assay was recorded or the batch was reserved, and never judged again. The limits were copied from the contract at that moment.',
+            decisionTitle: 'Decision',
+            disposition: 'Disposition',
+            decisionNote: 'Decision note',
+            decidedAt: 'Decided',
+            moneyDocument: 'Penalty document',
+            batchNow: 'Batch now',
+            stillHeld: 'still on quality hold',
+            released: 'released',
+            dispositionNote: 'Opened on {date}. A report is decided once and is never edited or deleted afterwards; if a decision proves wrong, open a new report on the batch.',
+            selfOpened: 'You opened this report, so someone else must decide it.',
+            pickDisposition: 'Choose a disposition',
+            dispositionWhy: {
+                accept: 'Accept it as it is. Releases the hold.',
+                accept_with_penalty: 'Accept it with a money penalty. Releases the hold; name the credit-note request (sale side) or price request (purchase side) that carries the money.',
+                reject: 'Reject it. The hold stays while any of the batch is left; the way out is a CFO write-off request.',
+                rework: 'Send it for rework. Releases the hold; the rework is recorded through processing as usual.',
+                downgrade: 'Downgrade it. Releases the hold; re-grading is done through the usual material and pricing steps.',
+            },
+            creditNoteRequest: 'Credit-note request',
+            priceRequest: 'Price request',
+            pickDocument: 'Choose the document',
+            documentRestricted: 'Restricted — listing these needs finance view (credit-note requests) or price view (price requests).',
+            noCreditNoteRequest: 'No credit-note request is waiting or approved. Raise one first, then decide.',
+            noPriceRequest: 'No price request for this batch is waiting or approved. Raise one first, then decide.',
+            documentWhy: 'The penalty money moves through this document; the report only records which one.',
+            decide: 'Decide',
+        },
+        subnav: { samples: 'Samples', disputes: 'Assay disputes', ncr: 'Non-conformance reports' },
         notYetSet: 'Not yet set',
         limitNotSet: 'limit not set',
         noLocation: 'No location recorded',
@@ -11909,6 +12029,11 @@ const en = {
             linkFee: 'Link the fee',
         },
         panel: {
+            // MES-6b-1(2026-10-15):批次页上的暂扣那一行与两张清单
+            holdOpen: 'This batch is on quality hold — it cannot be consumed, shipped, settled or blended while this report is open:',
+            holdReject: 'This batch is on quality hold — its report was decided reject, so the hold stays until the batch is written off (a CFO write-off request):',
+            ncrs: 'Non-conformance reports',
+            judgements: 'Contract quality-limit judgements',
             title: 'Samples and disputes',
             samples: 'Samples',
             noSamples: 'No sample has been recorded on this batch.',
@@ -11922,6 +12047,23 @@ const en = {
             none: 'Not stated',
         },
         errors: {
+            // MES-6b-1(2026-10-15):open_ncr / decide_ncr / 报告不可改
+            NCR_ONE_BATCH: 'A report is about exactly one batch — an inbound batch or an output batch. Nothing was recorded.',
+            NCR_SOURCE_SYSTEM_ONLY: 'Contract quality-limit reports are opened by the system when an assay is outside a contract limit. Choose Manual or Customer complaint. Nothing was recorded.',
+            NCR_SOURCE_RESERVED: 'Inspection reports are not in use yet. Choose Manual or Customer complaint. Nothing was recorded.',
+            NCR_SOURCE_INVALID: 'That is not a source a report can have. Nothing was recorded.',
+            NCR_DESCRIPTION_REQUIRED: 'Say what is wrong — a report needs a description. Nothing was recorded.',
+            NCR_LINK_NOT_FOR_BATCH: 'One of the linked records (assay, dispute, sales order or judgement) is not about this batch. Nothing was recorded.',
+            NCR_SALES_ORDER_OUTPUT_ONLY: 'Only a report on an output batch can name a sales order. Nothing was recorded.',
+            NCR_NO_OTHER_DECIDER: 'No one other than you can decide non-conformance reports, so this report could never be decided. Ask an administrator to give someone else "Decide non-conformance reports" first. Nothing was recorded.',
+            NCR_NOT_FOUND: 'That report no longer exists.',
+            NCR_NOT_OPEN: 'Report {0} has already been decided. A decision is never changed; open a new report if one is needed.',
+            NCR_DISPOSITION_INVALID: 'Choose one of the listed dispositions. Nothing was decided.',
+            NCR_DECISION_NOTE_REQUIRED: 'Report {0} needs a decision note — say why. Nothing was decided.',
+            NCR_PENALTY_DOCUMENT_REQUIRED: 'Report {0} is accepted with a penalty, so it needs the document that carries the money — a credit-note request on the sale side, a price request on the purchase side. Nothing was decided.',
+            NCR_PENALTY_DOCUMENT_INVALID: 'The document named for report {0} is not a waiting or approved request of the right kind for this batch. Nothing was decided.',
+            NCR_PENALTY_DOCUMENT_ONLY_WITH_PENALTY: 'Only an accept-with-penalty decision names a money document (report {0}). Nothing was decided.',
+            NCR_IMMUTABLE: 'Report {0} cannot be edited or deleted — once recorded it stays as it is, and only deciding it changes it. Open a new report instead.',
             SAMPLE_ONE_PARENT: 'A sample comes from exactly one batch — inbound or output.',
             SAMPLE_KIND_INVALID: 'Unknown sample kind: {0}.',
             SAMPLE_DATE_REQUIRED: 'Say when the sample was taken.',

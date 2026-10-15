@@ -5,7 +5,8 @@
 --   A  登记:contract_activation_missing 在、是 INVOKER、authenticated 调得到;提交那一支读它
 --   B  ★★ 卖方空合同:清单 = {settlement_terms, pricing_terms};申请生效按名拒
 --        CONTRACT_TERMS_INCOMPLETE|编号|settlement_terms,pricing_terms,一张申请都不落
---   C  ★★ 逐条填:结算口径(per_metal · per_element)+ 两个计价金属 → 清单 = 两个金属的精炼费 + 惩罚元素;
+--   C  ★★ 逐条填:结算口径(per_metal · per_element)+ 两个计价金属 → 清单 = 两个金属的精炼费 + 惩罚元素
+--        (★ MES-6b-1:+ 质量验收限的口径 quality_limit_basis,V17);
 --        补一个金属的精炼费 → 少一条;补齐 → 空;申请生效 → submitted
 --   D  买方合同什么都不要求:空合同清单为空,申请生效照走
 --   E  ★ 编辑器的每一种写(七张表 × 增 / 改 / 删 + 表头)cco 在草稿上都写得进;不持 action.contract_terms 的人
@@ -145,14 +146,15 @@ BEGIN
     VALUES (c_sell, 'ni', 'shipment', 1, 'LME', 90), (c_sell, 'co', 'arrival', 2, 'SMM', 85);
     EXECUTE 'RESET ROLE';
     v_msg := pg_temp.f230_missing(u_cco, c_sell);
-    IF v_msg <> 'refining_charge:co,refining_charge:ni,penalty_elements' THEN
-        RAISE EXCEPTION 'FIXTURE 230C1 失败:声明了 per_metal / per_element 却没填,清单应当逐个金属说出来,实得 %', v_msg; END IF;
+    -- ★ MES-6b-1(2026-10-15,V17;MES-6b Step 0 Q25):结算口径里质量验收限的口径没声明 → 清单末尾多一条 quality_limit_basis
+    IF v_msg <> 'refining_charge:co,refining_charge:ni,penalty_elements,quality_limit_basis' THEN
+        RAISE EXCEPTION 'FIXTURE 230C1 失败:声明了 per_metal / per_element 却没填(质量验收限的口径也没声明),清单应当逐条说出来,实得 %', v_msg; END IF;
     PERFORM pg_temp.f230_as(u_cco);
     EXECUTE 'SET LOCAL ROLE authenticated';
     INSERT INTO contract_refining_charges (contract_id, metal, usd_per_tonne_of_metal) VALUES (c_sell, 'ni', 1500);
     EXECUTE 'RESET ROLE';
     v_msg := pg_temp.f230_missing(u_cco, c_sell);
-    IF v_msg <> 'refining_charge:co,penalty_elements' THEN
+    IF v_msg <> 'refining_charge:co,penalty_elements,quality_limit_basis' THEN
         RAISE EXCEPTION 'FIXTURE 230C2 失败:补了镍的精炼费之后应当只剩钴与惩罚,实得 %', v_msg; END IF;
     PERFORM pg_temp.f230_as(u_cco);
     EXECUTE 'SET LOCAL ROLE authenticated';
@@ -160,6 +162,8 @@ BEGIN
     -- MES-6a-2(Step 0 Q27):惩罚条款只收惩罚元素 —— 原来这里点名 cu(一个可计价的金属),从此按名拒;换成氟,断言不变
     INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over)
     VALUES (c_sell, 'f', 0.5, 3);
+    -- ★ MES-6b-1(V17):声明"没有质量验收限"也是一次声明 —— 填了它,清单才空
+    UPDATE contract_settlement_terms SET quality_limit_basis = 'none_agreed' WHERE contract_id = c_sell;
     EXECUTE 'RESET ROLE';
     v_msg := pg_temp.f230_missing(u_cco, c_sell);
     IF v_msg <> '' THEN

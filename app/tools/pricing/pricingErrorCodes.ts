@@ -19,6 +19,8 @@ const PRICING_ERROR_CODES = new Set([
     // MES-6a-2(MES-6a Step 0 Q27):表上的守卫与写入函数按名拒 —— 行情、计价器、公式、合同的计价条款 / 精炼费 / 惩罚条款
     //   (合同条款与公式申请的拒绝经 termsRequestErrorCodes 转交到这里)
     'SUBSTANCE_NOT_PAYABLE', 'SUBSTANCE_NOT_PENALTY_ELEMENT',
+    // MES-6b-1(F4 · MES-6b Step 0 Q33):同一份合同上同一种物质既计价又被罚 —— 计价条款与惩罚条款两张表上的守卫都按名拒
+    'SUBSTANCE_PRICED_AND_PENALISED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。
@@ -42,7 +44,7 @@ export async function localizePricingError(message: string): Promise<string> {
 
     const t = await getTranslations()
     // MES-6a-2:物质那两句点名的是码(f / cl / cu)—— 翻成名字再说;字典里每一个码都有 metals.<码>(check-i18n 读引导行核对)
-    if ((code === 'SUBSTANCE_NOT_PAYABLE' || code === 'SUBSTANCE_NOT_PENALTY_ELEMENT') && params['0']) {
+    if ((code === 'SUBSTANCE_NOT_PAYABLE' || code === 'SUBSTANCE_NOT_PENALTY_ELEMENT' || code === 'SUBSTANCE_PRICED_AND_PENALISED') && params['0']) {
         params['0'] = t('metals.' + params['0'])
     }
     return t('pricing.errors.' + code, params)

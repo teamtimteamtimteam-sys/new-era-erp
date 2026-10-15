@@ -54,3 +54,25 @@ export function batchHref(kind: string, id: string): string {
 export function assayHref(kind: string, batchId: string, assayId: string): string {
     return kind === 'inbound' ? `/inbound/${batchId}/assays/${assayId}` : `/output/${batchId}/assays/${assayId}`
 }
+
+// ── MES-6b-1(2026-10-15,MES-6b Step 0 Q7 · Q22 · Q26):不合格报告与质量验收限的判定 ──────────────────────────────────────
+//   【真源在库里】来源 / 状态 / 处置 = nonconformance_reports.sql 的 CHECK,判定结果与触发时刻 = quality_limit_judgements.sql 的 CHECK,
+//   参数 = moisture_pct + assay_indicators 的码(参数名从字典读,不在这里翻)。下面两张 as const 只是表单的选项顺序。
+
+/** 人开的报告能选的来源(quality_limit 由系统开;inspection 留给 MES-7b) */
+export const NCR_OPEN_SOURCES = ['manual', 'customer_complaint'] as const
+/** 决定表单上的处置,放行的在前、拒收在最后 */
+export const NCR_DISPOSITIONS = ['accept', 'accept_with_penalty', 'rework', 'downgrade', 'reject'] as const
+
+export function ncrStatusKey(status: string): string {
+    return 'quality.ncrStatus.' + status
+}
+export function ncrSourceKey(source: string): string {
+    return 'quality.ncrSource.' + source
+}
+export function ncrDispositionKey(disposition: string): string {
+    return 'quality.ncrDisposition.' + disposition
+}
+export function judgementResultKey(result: string): string {
+    return 'quality.judgementResult.' + result
+}

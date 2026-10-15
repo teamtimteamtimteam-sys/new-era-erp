@@ -1022,7 +1022,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-6a-1:样品、它的保管记录与化验争议也出现在它们那一批上(家在样品 / 争议自己那里)
         'samples', 'sample_events', 'assay_disputes',
         // MES-6a-2:一份化验的指标值(残粉 · 箔纯度 · 粒径)—— 与它的金属行同一个说法
-        'assay_result_indicators'],
+        'assay_result_indicators',
+        // MES-6b-1:这一批上的不合格报告(家在报告自己那里)
+        'nonconformance_reports'],
     output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
@@ -1031,7 +1033,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-6a-1
         'samples', 'sample_events', 'assay_disputes',
         // MES-6a-2
-        'assay_result_indicators'],
+        'assay_result_indicators',
+        // MES-6b-1:这一批上的不合格报告(家在报告那里)· 对合同质量验收限的判定(家在这一批)
+        'nonconformance_reports', 'quality_limit_judgements'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
@@ -1083,7 +1087,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     management_pack: ['management_packs'],
     contract: ['contracts', 'contract_grade_specs', 'contract_insurance_obligations', 'contract_volume_commitments', 'contract_pricing_terms',
         'contract_settlement_terms', 'contract_refining_charges', 'contract_penalty_elements', 'terms_requests', 'approval_log',
-        'contract_document_terms'],
+        'contract_document_terms',
+        // MES-6b-1(V17):质量验收限
+        'contract_quality_limits'],
     // AUDIT-TRAIL-1c-3
     finance_lock: ['finance_settings', 'period_closes'],
     finance_gst: ['finance_settings'],
@@ -1146,6 +1152,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     sample: ['samples', 'sample_events'],
     assay_dispute: ['assay_disputes'],
     quality_settings: ['quality_settings'],
+    // MES-6b-1(2026-10-15):一张不合格报告
+    ncr: ['nonconformance_reports'],
     // MES-4a(2026-10-07):一道工序的配置(字段 · 机器 · 配方 · 版本)· 两本新字典
     // MES-5b-2(2026-10-09,并入 MES5B1-V37-NOT-ON-OPERATION-TRAIL):+ 每一种产出形态的预期得率(V37)
     operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions',

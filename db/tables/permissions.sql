@@ -190,7 +190,11 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- 查看 cco · cto · finance · cfo · admin · warehouse;编辑 cco · cto · admin(Q12:warehouse 不加 —— 若 Fu Sheng 管样品,以后是角色上的一行)。
     -- 结案(点名哪一份说了算)不是编辑码,是 action.apply_assay(Q13);它的声明多一个 module.quality.view(下面那张表)。
     ('module.quality.view', 'module', 'Quality (view)', '质量(查看)', 'Samples and their custody, and assay disputes — read only. The samples and disputes panels on batch and assay pages also show to whoever may view that batch.', '样品与它的保管记录、化验争议 —— 只读。批次与化验页上的样品与争议面板,能看那一批的人也看得见。', 150),
-    ('module.quality.edit', 'module', 'Quality (edit)', '质量(编辑)', 'Take a sample and record its custody (sent to a lab, received back, moved, disposed), set the internal sample retention, open or withdraw an assay dispute, record its umpire sample and result, and link the arbitration fee. Naming which result governs a dispute is "Apply and unapply assay results".', '取样并记它的保管(送实验室、拿回来、换库位、处置)、设内部留样天数、立或撤回一件化验争议、记它的仲裁样品与结果、挂上仲裁费。点名一件争议以哪一份结果为准是「应用与撤销应用化验结果」。', 151);
+    ('module.quality.edit', 'module', 'Quality (edit)', '质量(编辑)', 'Take a sample and record its custody (sent to a lab, received back, moved, disposed), set the internal sample retention, open or withdraw an assay dispute, record its umpire sample and result, and link the arbitration fee. Naming which result governs a dispute is "Apply and unapply assay results".', '取样并记它的保管(送实验室、拿回来、换库位、处置)、设内部留样天数、立或撤回一件化验争议、记它的仲裁样品与结果、挂上仲裁费。点名一件争议以哪一份结果为准是「应用与撤销应用化验结果」。', 151),
+    -- ── MES-6b-1(2026-10-15,MES-0 Q65 · Q90 · MES-6b Step 0 Q9,Tim):决定一张不合格报告 —— 持有人 cco · cto · admin(admin 与此前每一个新码
+    -- 一样只在迁移里授)。开一张是 module.quality.edit(取样、立争议的同一个码);开单人永远不能决定自己开的那一张(按人认)。
+    -- 它声明的查看码是 module.quality.view(/quality/ncr/[id] 的门,下面那张表)。
+    ('action.ncr_decide', 'action', 'Decide non-conformance reports', '决定不合格报告', 'Decide an open non-conformance report: accept, accept with a penalty (naming the credit note request or receipt price request that carries the money), rework, downgrade or reject. Every disposition except reject releases the quality hold on the batch. Nobody decides a report they opened themselves (judged per person); a report the system opened on a quality-limit breach may be decided by any holder. Opening a report is Quality (edit).', '决定一张开着的不合格报告:接受、带罚接受(指出钱走的那张贷项通知申请或收货定价申请)、返工、降级或拒收。除拒收之外,每一种处置都解除那一批的质量暂扣。开单人永远不能决定自己开的那一张(按人认);系统因质量验收限越限开的那一张,任何持码人都能决定。开一张报告是「质量(编辑)」。', 1240);
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -218,6 +222,8 @@ UPDATE public.permissions p SET requires_view_any = d.views
     ('action.manage_devices',           ARRAY['module.processing.view']),
     ('action.manage_permissions',       ARRAY['action.manage_permissions']),
     ('action.metal_prices',             ARRAY['action.metal_prices']),
+    -- MES-6b-1(Step 0 Q9):决定一张不合格报告在 /quality/ncr/[id] 上,那一页的门是 module.quality.view。
+    ('action.ncr_decide',               ARRAY['module.quality.view']),
     ('action.overtime_approve',         ARRAY['action.overtime_approve']),
     ('action.overtime_enter',           ARRAY['action.overtime_enter']),
     ('action.price_receipts',           ARRAY['module.inbound.view']),

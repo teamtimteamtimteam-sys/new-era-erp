@@ -838,6 +838,10 @@ const zh = {
         // 一个光秃秃的「锂」挂在批次号旁边读不出是什么意思
         awaitingMetals: '待化验:{metals}',
         item: {
+            // MES-6b-1(2026-10-15):三支
+            ncr_open: '开着的不合格报告',
+            quality_hold_reserved: '在质量暂扣中的预留货',
+            quality_prompt_ncr: '可能要开不合格报告的质量问题',
             work_order_overdue: '工单已过排产日',
             work_order_variance_beyond: '工单差异超过阈值',
             free_time_expiring: '免柜期将尽',
@@ -1109,6 +1113,10 @@ const zh = {
         note: '未售批次不在此列 —— 它们没有毛利可言;滞销成品见首页看板。',
     },
     common: {
+        // MES-6b-1(2026-10-15):QUALITY_HOLD_OPEN
+        shared: {
+            QUALITY_HOLD_OPEN: '批次 {batch} 被不合格报告 {ncr} 质量暂扣:在开单人之外的人决定 {ncr} 之前,不能投料、发货、结算或配料。什么都没有保存。',
+        },
         // ★★ BUGFIX-1b(2026-09-12)· 生码 / 数据库报错的【共用兜底】 ★★
         //   措辞是 Tim 定的稿(docs/forward-queue.md「BUGFIX-1b 的裁定 · Q14」)。
         //   两件事它必须同时做到:说人话,而且留下一个能追查的短码。
@@ -2104,6 +2112,11 @@ const zh = {
         },
 
         errors: {
+            // MES-6b-1(2026-10-15):质量验收限
+            CONTRACT_QUALITY_LIMIT_NEEDS_A_BOUND: '一条质量验收限要有下限、上限或两者。什么都没有保存。',
+            CONTRACT_QUALITY_LIMIT_BOUNDS_ORDERED: '下限高于上限。什么都没有保存。',
+            CONTRACT_QUALITY_LIMIT_DUPLICATE: '这份合同已经有这个参数(与物料)的一条限,请改那一条。什么都没有保存。',
+            CONTRACT_QUALITY_LIMIT_NEGATIVE: '限值不能是负数。什么都没有保存。',
             CONTRACT_COUNTERPARTY_REQUIRED: '一份合同【恰好】有一个对手方 —— 要么供应商、要么客户,不能两个都是,也不能一个都没有。什么都没有保存。请从名单里选一个。',
             CONTRACT_TITLE_REQUIRED: '合同要有标题,读登记簿的人才认得出这是哪一份协议。什么都没有保存。',
             CONTRACT_EFFECTIVE_FROM_REQUIRED: '生效日必填 —— 没有它,登记簿说不出一张单据开出来的时候这份协议在不在效。什么都没有保存。',
@@ -4576,6 +4589,9 @@ const zh = {
         },
         // ── SO-2:预留 ───────────────────────────────────────────────────────
         reserve: {
+            // MES-6b-1(2026-10-15):预留着的货在质量暂扣里
+            qualityHold: '一批预留的货在质量暂扣中。预留照留,但在它的报告决定之前不能发货或结算:',
+            qualityHoldRestricted: '读预留的货是否在质量暂扣中,需要质量或产出查看权限。',
             scanNoBucket: '{code} 没有这一行能预留的可用库存。',
             title: '预留库存',
             note: '预留把货挪进【已承诺】这个桶:货一步没动、物理总量也不变,但在它被释放或发货之前,别人既卖不了也投不了。',
@@ -6041,6 +6057,8 @@ const zh = {
         },
     },
     assay: {
+        // MES-6b-1(2026-10-15):F5
+        supplementPreview: '这份化验只测了 {list},没有测任何可计价金属。应用它只换掉这一批上这几种的含量:别的含量原样留着,不重新计价,这一批仍按已经应用的那份化验计价。',
         labFrozen: '今天要加第二家实验室,得有数据库访问权 —— 还没有这个页面。',
         // ASY-P2:这个批次的化验要求现状,三种状态各说各的话
         policy: {
@@ -6115,6 +6133,8 @@ const zh = {
         unapplyNote: '撤销应用只是承认这份结果不再作数。它【不会】还原之前的金属含量,也不会撤销价格变动 —— 两样都停在这份化验留下的状态上,要换掉是另一件要明确去做的事。',
         // PROC-1b:产出侧化验 —— 同一种单据,只是没有应付可重述
         output: {
+            // MES-6b-1(2026-10-15):F5
+            supplementOnly: '这份化验只测了 {list},没有测任何可计价金属。应用它只换掉这几种的含量;别的含量原样留着,也不顶替已经应用的那份化验。',
             unappliedWarning: '化验 {code} 已记录但未应用 —— 批次含量、回收率与 metal_value 分摊读的仍是此前的数。',
             noPricing: '产出化验不影响定价与应付 —— 它改变的是"这批东西是什么"。成本只在有人重跑分摊时才动。',
             replacesAll: '应用会【整体替换】批次含量 —— 化验没报的金属行将被移除。',
@@ -6175,6 +6195,8 @@ const zh = {
             final: '已定价',
         },
         errors: {
+            // MES-6b-1(2026-10-15):F5
+            ASSAY_SUPPLEMENT_PRICES_NOTHING: '化验 {0} 一种可计价金属都没测,它只补充这一批的含量 —— 不计价,也不带公式。请不带公式应用它。',
             ASSAY_BASIS_REQUIRED: '说明这份化验按的是哪种重量 —— 收到时(湿基)还是烘干后(干基)。**一份没说明基准的数字事后还原不出来**:干基 30% 与湿基 30% 是两个数,差多少取决于水分。',
             ASSAY_APPLY_THROUGH_FUNCTION_ONLY: '一份化验是否已应用,只能经由「应用」与「撤销应用」改变(要 action.apply_assay)—— 不能直接改化验记录。什么都没有保存。',
             // ROLE-1 Batch 3a
@@ -7015,6 +7037,8 @@ const zh = {
         activateConfirm: '请 CFO 让这份合同生效?',
         activateBody: '此刻什么都不变。等待期间合同与它的条款不能编辑。CFO 看见合同上此刻的条款,并排着上一次批准时的那一份。',
         errors: {
+            // MES-6b-1(2026-10-15):V17
+            QUALITY_LIMITS_NOT_FILED: '合同 {0} 写着质量验收限按参数,却一条限都没有填。请填上,或把口径改成「没有约定」。什么都没有提交。',
             PRICING_FORMULA_THROUGH_REQUEST_ONLY: '定价公式不能再直接修改 —— 请在公式页把条款交给 CFO。',
             CONTRACT_ACTIVATES_THROUGH_REQUEST: '{0} 不能直接设为生效 —— 存为草稿并申请生效,由 CFO 批准。',
             CONTRACT_ACTIVE_IS_FROZEN: '{0} 正在生效,不能编辑。先暂停,编辑后再申请生效。',
@@ -7042,6 +7066,9 @@ const zh = {
     },
     // ★ TERMS-EDIT-1(Tim 2026-09-27):合同详情页 —— cco 录入与修改七种合同条款;CFO 批生效(APR-8 不变)。
     contractDetail: {
+        // MES-6b-1(2026-10-15):F4
+        pctOnly: '{pct}%',
+        perPctOnly: '每 1% {rate}',
         back: '← 合同',
         intro: '合同生效时 CFO 批的,就是这一页上的全部:表头与下面七种条款。只有草稿或暂停中、且没有在等的申请时,条款才改得了。要改一份生效中的合同:先暂停,编辑,再申请生效 —— CFO 会看见与上一次批准时的差别。',
         endedNoActivation: '这份合同已{status}。结束了的合同不能再生效,它的条款是当时约定内容的记录。',
@@ -7050,6 +7077,10 @@ const zh = {
         missingLead: '还不能申请生效 —— 还缺:{items}。',
         listJoin: ';',
         missing: {
+            // MES-6b-1(2026-10-15):V17 与 F4
+            quality_limit_basis: '结算口径上的质量验收限口径(没有约定,或按参数)',
+            quality_limits: '至少一条质量验收限(结算口径写着按参数)',
+            priced_and_penalised: '{metal} 既计价又被罚 —— 从指数计价或惩罚元素里拿掉一处',
             settlement_terms: '结算口径(按哪个重量、谁的化验、精炼费与惩罚的口径)',
             pricing_terms: '至少一条指数计价条款',
             refining_charge: '{metal} 的精炼费(结算口径写明精炼费按金属收)',
@@ -7092,24 +7123,30 @@ const zh = {
         fieldAtLeast: '必须不小于 {min}。',
         fieldAbove: '必须大于 {min}。',
         section: {
+            // MES-6b-1(2026-10-15):V17
+            quality_limits: { title: '质量验收限', hint: '水分或一项化验指标(如粒度)的下限、上限或两者,可以只对一种物料。这份合同下一张单预留的一批货,化验超出某条限时,自动开一张不合格报告,这一批进质量暂扣。只在结算口径写着「按参数」时用。' },
             grade_specs: { title: '品位规格', hint: '逐元素的目标品位:下限、上限,或两者都有。挂在这份合同下的单据不达标时会被报告出来;它不拒收货。' },
             insurance_obligations: { title: '保险义务', hint: '谁来投保、保到多少。这里记的是义务本身,不核对保单是否存在。' },
             volume_commitments: { title: '数量承诺', hint: '一方承诺的量,按期间。达成率现在还不计算。' },
             pricing_terms: { title: '指数计价', hint: '这份合同下的销售如何按公开指数计价:哪个事件定义基准月、M+n、哪个指数、计价系数。每个金属一行。' },
             settlement_terms: { title: '结算口径', hint: '按哪个重量结算、谁的化验说了算、分歧容差、留样,以及精炼费与惩罚适不适用。一份合同一套。「没有约定」是一次声明,不是留空。' },
             refining_charges: { title: '精炼费', hint: '每吨含金属多少美元,每个金属一行。结算口径写明「按金属」时,每个计价金属都要有一行。' },
-            penalty_elements: { title: '惩罚元素', hint: '一种惩罚元素(氟、氯)、超过多少开始罚、每超 1 个百分点每吨多少美元。阈值按 % 录,旁边带 ppm(1 % = 10,000 ppm)。' },
+            penalty_elements: { title: '惩罚元素', hint: '一种惩罚元素(氟、氯)或一种可计价金属(如铜)、超过多少开始罚、每超 1 个百分点每吨多少美元。同一份合同上一种物质不能既计价又被罚。惩罚元素的阈值按 % 录,旁边带 ppm(1 % = 10,000 ppm)。' },
         },
         field: {
+            // MES-6b-1(2026-10-15):V17
+            quality_limits: { parameter: '参数', material_id: '物料(可选)', min_value: '下限', max_value: '上限', notes: '备注' },
             grade_specs: { metal: '元素', material_id: '物料(可不填)', min_pct: '下限 %', max_pct: '上限 %', notes: '备注' },
             insurance_obligations: { insured_by: '投保方', cover_type: '险种', min_amount: '最低保额', currency: '币种', notes: '备注' },
             volume_commitments: { committed_by_party: '承诺方', material_id: '物料(可不填)', quantity: '数量', unit: '单位', period: '每', direction: '不少于 / 不多于', notes: '备注' },
             pricing_terms: { metal: '金属', base_event: '基准月取自', qp_months: '计价期(M+n)', index_code: '指数', payable_pct: '计价系数 %', notes: '备注' },
-            settlement_terms: { sale_weight_basis: '结算重量', settling_party: '以谁的化验为准', splitting_limit_pct: '分歧容差(百分点)', sample_retention_required: '要求留样', sample_retention_days: '留样天数', refining_charge_basis: '精炼费', penalty_basis: '惩罚', arbitration_fee_rule: '仲裁费分摊', notes: '备注' },
+            settlement_terms: { sale_weight_basis: '结算重量', settling_party: '以谁的化验为准', splitting_limit_pct: '分歧容差(百分点)', sample_retention_required: '要求留样', sample_retention_days: '留样天数', refining_charge_basis: '精炼费', penalty_basis: '惩罚', arbitration_fee_rule: '仲裁费分摊', quality_limit_basis: '质量验收限', notes: '备注' },
             refining_charges: { metal: '金属', usd_per_tonne_of_metal: '每吨含金属美元', notes: '备注' },
             penalty_elements: { substance: '物质', threshold_pct: '阈值 %', usd_per_tonne_per_pct_over: '每超 1% 每吨美元', notes: '备注' },
         },
         opt: {
+            // MES-6b-1(2026-10-15):V17
+            quality_limit_basis: { none_agreed: '没有约定', per_parameter: '按参数' },
             insured_by: { us: '我们', counterparty: '对方' },
             committed_by_party: { us: '我们', counterparty: '对方' },
             period: { month: '月', quarter: '季', year: '年', total: '整份合同' },
@@ -7596,6 +7633,8 @@ const zh = {
         },
     },
     metalContent: {
+        // MES-6b-1(2026-10-15):F7
+        ppmReadout: '= {ppm} ppm',
         title: '金属含量(化验结果)',
         colMetal: '金属',
         colPct: '含量 %',
@@ -9578,6 +9617,8 @@ const zh = {
         errCounterparty: '请选择往来单位',
         errFormulaRequired: '请选择定价公式',
         errors: {
+            // MES-6b-1(2026-10-15):F4 · Q33
+            SUBSTANCE_PRICED_AND_PENALISED: '{0} 已经在这份合同的另一边 —— 一种物质要么计价(指数计价),要么被罚(惩罚元素),不能两样都是。请从其中一处拿掉。什么都没有保存。',
             FORMULA_NOT_FOUND: '定价公式不存在',
             FORMULA_INACTIVE: '公式 {0} 已停用',
             QUANTITY_INVALID: '数量必须大于 0',
@@ -9596,7 +9637,7 @@ const zh = {
             QUOTE_SOURCE_INDEX_REQUIRED: '来自发布指数的行情必须说明是哪一个(LME 还是 SMM)—— 两者的报价币种不同',
             // MES-6a-2(MES-6a Step 0 Q27):定价那几条路只收按含量计价的金属;惩罚条款只收惩罚元素
             SUBSTANCE_NOT_PAYABLE: '{0} 不是按含量计价的金属(氟、氯是惩罚元素),所以它没有行情、没有计价系数、也不收精炼费。它记在化验上,在合同的惩罚条款里点名。',
-            SUBSTANCE_NOT_PENALTY_ELEMENT: '{0} 不是惩罚元素。合同的惩罚条款只点名惩罚元素(氟、氯)。',
+            SUBSTANCE_NOT_PENALTY_ELEMENT: '{0} 不能被罚。合同的惩罚条款点名惩罚元素(氟、氯)或可计价金属(如铜)。',
             PRICE_INDEX_UNKNOWN: '未知或已停用的行情指数【{0}】。',
         },
     },
@@ -10556,6 +10597,7 @@ const zh = {
         none: '你看得见的范围里,没有在等值的东西。',
         colWhere: '在哪里', colName: '名称',
         value: {
+            V17: '每份卖方合同的质量验收限(水分、粒度等化验指标)',
             V30: '一个 UN 编号的包装标记、包装说明与标签尺寸',
             V31: '电池料的 HS 编码',
             V35: '电池料的危险品 UN 编号',
@@ -10579,6 +10621,7 @@ const zh = {
             V14: '一份卖方合同上仲裁费怎么分',
         },
         supplier: {
+            V17: '按合同由商务一侧给。卖方合同不写明质量验收限口径就不能生效;写「按参数」就至少要填一条限。这份合同下一张单预留的一批货,在化验登记或预留时对着这些限判一次,越限就开一张不合格报告、这一批进质量暂扣。',
             V30: '由有危险品资质的货代在第一次出口之前给。没给之前,哪里都不印它。',
             V31: '由报关行在第一次出口之前给。没给之前,发货单上没有 HS 编码。',
             V35: '由货代与 Tim 在第一次出口或第一次危险品发货之前给。没给之前,标签与发货单上印「危险品编号未定」;什么都不拒。',
@@ -11506,7 +11549,81 @@ const zh = {
     },
     // MES-6a-1(2026-10-09,MES-6a Step 0 Q7–Q37,Tim):质量 —— 样品与化验争议
     quality: {
-        subnav: { samples: '样品', disputes: '化验争议' },
+        // MES-6b-1(2026-10-15):不合格报告、质量暂扣、合同质量验收限的判定
+        param: { moisture_pct: '水分' },
+        ncrStatus: { open: '开着', decided: '已决定' },
+        ncrSource: { manual: '手工', customer_complaint: '客户投诉', quality_limit: '合同质量验收限', inspection: '检验' },
+        ncrDisposition: { accept: '接收', accept_with_penalty: '扣款接收', reject: '拒收', rework: '返工', downgrade: '降级' },
+        judgementResult: { within: '在限内', below_min: '低于下限', above_max: '高于上限', not_measured: '未测' },
+        ncr: {
+            title: '不合格报告',
+            intro: '一张不合格报告(NCR)把一批货放进质量暂扣:它开着的时候,这一批不能投料、发货、结算或配料。由开单人之外的人决定它。接收、扣款接收、返工、降级都放行;拒收则一直扣着,直到这一批被注销。卖方合同的质量验收限在一批预留货的化验超出它们时自动开一张。',
+            add: '开一张不合格报告',
+            empty: '没有不合格报告。',
+            colCode: '编号',
+            colStatus: '状态',
+            colSource: '来源',
+            colBatch: '批次',
+            colOpened: '开单',
+            colDescription: '说明',
+            holdingFlag: '扣着这一批',
+            newTitle: '开一张不合格报告',
+            pickBatchIntro: '先选这张报告说的是哪一批。开出来之后,那一批就进质量暂扣。',
+            newFor: '批次',
+            holdWarning: '保存这张报告,这一批立刻进质量暂扣:在你之外的人决定这张报告之前,不能投料、发货、结算或配料。',
+            source: '来源',
+            pickSource: '选一个来源',
+            sourceWhy: '合同质量验收限那一种由系统开,不由人开。',
+            description: '问题说明',
+            descriptionPlaceholder: '发现了什么、在哪里、怎么发现的',
+            linkAssay: '化验(可选)',
+            linkDispute: '化验争议(可选)',
+            linkSalesOrder: '销售单(可选)',
+            none: '无',
+            salesOrdersRestricted: '受限 —— 列出这一批预留到的销售单需要销售查看权限。',
+            salesOrderWhy: '这一批预留到的销售单。客户投诉针对某一张单时点名它。',
+            save: '开出报告',
+            requestStatus: { submitted: '等 CFO 批', approved: '已批' },
+            judgedParameter: '参数',
+            judgedValue: '值',
+            judgedLimit: '限',
+            limitRange: '下限 {min} · 上限 {max}',
+            judgedResult: '结果',
+            judgedContract: '合同',
+            bySystem: '系统开',
+            openDispute: '打开争议',
+            holdingOpen: '这张报告开着,批次 {batch} 在质量暂扣中。',
+            holdingReject: '这张报告决定为拒收,批次 {batch} 一直暂扣到注销为止 —— 剩下的货请提一张 CFO 注销申请。',
+            judgementTitle: '合同验收限判定',
+            judgementNote: '只判一次:化验登记或预留的那一刻;之后不再重判。限值是那一刻从合同抄下来的。',
+            decisionTitle: '决定',
+            disposition: '处置',
+            decisionNote: '决定说明',
+            decidedAt: '决定时间',
+            moneyDocument: '扣款单据',
+            batchNow: '批次现状',
+            stillHeld: '仍在质量暂扣',
+            released: '已放行',
+            dispositionNote: '{date} 开单。一张报告只决定一次,之后不改、不删;决定错了,就对这一批再开一张。',
+            selfOpened: '这张报告是你开的,要由别人来决定。',
+            pickDisposition: '选一个处置',
+            dispositionWhy: {
+                accept: '照原样接收。放行。',
+                accept_with_penalty: '接收但扣钱。放行;点名承载那笔钱的贷项通知申请(卖方)或定价申请(买方)。',
+                reject: '拒收。只要这一批还有货就一直扣着;出路是一张 CFO 注销申请。',
+                rework: '返工。放行;返工照常经加工记录。',
+                downgrade: '降级。放行;改等级照常经物料与定价那几步做。',
+            },
+            creditNoteRequest: '贷项通知申请',
+            priceRequest: '定价申请',
+            pickDocument: '选那一张单据',
+            documentRestricted: '受限 —— 列出它们需要财务查看(贷项通知申请)或价格查看(定价申请)权限。',
+            noCreditNoteRequest: '没有在等或已批的贷项通知申请。先提一张,再来决定。',
+            noPriceRequest: '这一批没有在等或已批的定价申请。先提一张,再来决定。',
+            documentWhy: '扣款经这张单据走;报告只记下是哪一张。',
+            decide: '决定',
+        },
+        subnav: { samples: '样品', disputes: '化验争议', ncr: '不合格报告' },
         notYetSet: '尚未设定',
         limitNotSet: '没有容差',
         noLocation: '没记库位',
@@ -11677,6 +11794,11 @@ const zh = {
             linkFee: '挂上仲裁费',
         },
         panel: {
+            // MES-6b-1(2026-10-15):批次页
+            holdOpen: '这一批在质量暂扣中 —— 这张报告开着,不能投料、发货、结算或配料:',
+            holdReject: '这一批在质量暂扣中 —— 它的报告决定为拒收,暂扣留到这一批注销为止(经 CFO 的注销申请):',
+            ncrs: '不合格报告',
+            judgements: '合同质量验收限的判定',
             title: '样品与争议',
             samples: '样品',
             noSamples: '这一批还没有登记过样品。',
@@ -11690,6 +11812,23 @@ const zh = {
             none: '没注明',
         },
         errors: {
+            // MES-6b-1(2026-10-15):open_ncr / decide_ncr
+            NCR_ONE_BATCH: '一张报告只说一批 —— 一批进料或一批产出。什么都没有记。',
+            NCR_SOURCE_SYSTEM_ONLY: '合同质量验收限那一种报告,由系统在化验超出合同限值时开。请选「手工」或「客户投诉」。什么都没有记。',
+            NCR_SOURCE_RESERVED: '「检验」那一种还没启用。请选「手工」或「客户投诉」。什么都没有记。',
+            NCR_SOURCE_INVALID: '报告没有这一种来源。什么都没有记。',
+            NCR_DESCRIPTION_REQUIRED: '说一下问题 —— 报告要有说明。什么都没有记。',
+            NCR_LINK_NOT_FOR_BATCH: '挂上的记录(化验、争议、销售单或判定)里有一项不是这一批的。什么都没有记。',
+            NCR_SALES_ORDER_OUTPUT_ONLY: '只有产出批的报告才能点名销售单。什么都没有记。',
+            NCR_NO_OTHER_DECIDER: '除了你没有别人能决定不合格报告,这张报告将永远没人能决定。请先让管理员把「决定不合格报告」给另一个人。什么都没有记。',
+            NCR_NOT_FOUND: '这张报告已经不在了。',
+            NCR_NOT_OPEN: '报告 {0} 已经决定过了。决定不改;需要的话再开一张。',
+            NCR_DISPOSITION_INVALID: '请从列出的处置里选一个。什么都没有决定。',
+            NCR_DECISION_NOTE_REQUIRED: '报告 {0} 要写决定说明 —— 说出理由。什么都没有决定。',
+            NCR_PENALTY_DOCUMENT_REQUIRED: '报告 {0} 是扣款接收,要点名承载那笔钱的单据 —— 卖方是一张贷项通知申请,买方是一张定价申请。什么都没有决定。',
+            NCR_PENALTY_DOCUMENT_INVALID: '为报告 {0} 点名的单据不是这一批对应种类的、在等或已批的申请。什么都没有决定。',
+            NCR_PENALTY_DOCUMENT_ONLY_WITH_PENALTY: '只有扣款接收才点名扣款单据(报告 {0})。什么都没有决定。',
+            NCR_IMMUTABLE: '报告 {0} 不能改也不能删 —— 记下来就是这样,只有「决定」会改变它。请另开一张。',
             SAMPLE_ONE_PARENT: '一份样品只来自一批 —— 进料批或产出批。',
             SAMPLE_KIND_INVALID: '不认识的样品种类:{0}。',
             SAMPLE_DATE_REQUIRED: '请写取样日。',

@@ -1317,3 +1317,27 @@ rule below, each fault-injected by `db/scripts/2026-10-10-mes6a2-fixture-injecti
   lines include the indicator values with their units (`Residual powder on foil: 0.85%`, `Particle size D50: 11.4 µm`); a substance's role reads
   "Role: Payable metal / Penalty element / Other". F / Cl contents print in % as stored (`Fluorine: 0.0123%`) — the ppm beside them is a screen
   convention of the assay pages, not a trail one. `scripts/check-trail-wording.mjs` arm ㉗ pins seven sentences (fault `wording-drift-mes6a2`).
+
+## 25. Non-conformance reports, quality holds and contract quality limits (MES-6b-1, v1.4.50, 2026-10-15)
+
+Hand-back `docs/handbacks/MES-6b-1.md`; fixture 263 (arms REG · NCR · DECIDE · HOLD · SETTLE · DISP · BLEND · V17 · JUDGE · F5 · ARMS · LOG) pins
+every rule below, each fault-injected by `db/scripts/2026-10-15-mes6b1-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 25.1 Logged, excluded, masked
+
+- **Three new tables, logged.** `contract_quality_limits` (bound by `id`), `quality_limit_judgements` (bound by `id`, append-only) and
+  `nonconformance_reports` (bound by `id`): public tables **292 → 295**, bound **284 → 287**, exclusions stay **8** (Step 0 Q37–Q39).
+  Opening a report is one INSERT row; deciding it is one UPDATE row (`status`, `disposition`, `decision_note`, `decided_at`, `decided_by`, and the
+  money document when it is an accept-with-penalty); a report is never edited otherwise or deleted (`NCR_IMMUTABLE`). A system report and the
+  judgement that opened it are written in the same transaction as the assay or the reservation that triggered them, so they sit beside it.
+- **`contract_settlement_terms` gains a column, not a table.** `quality_limit_basis` is logged like the rest of the settlement terms.
+- **The migration's own writes are its proof's whole allowance on `change_log`:** 1 `permissions` INSERT (`action.ncr_decide`) + 1 UPDATE
+  (its declared view code) · 3 `role_permissions` INSERTs (admin · cco · cto) · 1 `document_types` INSERT (`ncr` → `NCR`) — exactly 6.
+- **No masked column, no new mask rule** (114 stays). A report carries no amount; the money document is named by its own label.
+- **Trail.** New subject `ncr` (`/quality/ncr/[id]`, `module.quality.view`); the inbound and output batch subjects gain
+  `nonconformance_reports` as a member, the output batch subject gains `quality_limit_judgements` (its home), and the contract subject gains
+  `contract_quality_limits`. Reports speak through the generic family ("Non-conformance report created / edited" with Source, What is wrong,
+  Status, Disposition, Decision note); a judgement reads its parameter by name (`Parameter: Moisture`), the value, the limits as copied from the
+  contract and the result (`Result: Above maximum`, `Judged when: Batch reserved`). A system report's description is written in English by the
+  database (`Quality limit breached: <batch> moisture (%) is 9.2 (limit min -, max 8) under contract …, sales order …, assay ….`).
+  `scripts/check-trail-wording.mjs` arm ㉘ pins seven sentences and reads `titlePart` (fault `wording-drift-mes6b1`).

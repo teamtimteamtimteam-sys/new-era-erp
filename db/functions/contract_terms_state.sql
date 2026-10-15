@@ -2,6 +2,8 @@
 -- APR-8(2026-09-26):一份合同此刻的样子 —— 表头(去掉 id、编号与创建 / 修改人时刻)与七张条款表的每一行
 -- (去掉 id、contract_id 与创建 / 修改人时刻,按行文排序,于是同一组条款读出同一串字)。
 -- 三个读它的人:CFO 的 snapshot(current;上一次批准时的那一份也是它)、fingerprint、屏幕上的差别。
+-- ★ MES-6b-1(2026-10-15,V17):第八张条款表 contract_quality_limits 也在里面('quality_limits';算出来的 indicator 列去掉 —— 它只是 parameter 的影子)。
+--   于是一份生效之后又暂停、改了质量限的合同,再申请生效时 CFO 看得见那一处差别,批准时的指纹也认它。
 -- 不存在的合同 → NULL。
 -- NOTE: introduced by db/migrations/2026-09-26-apr8-contract-terms-and-pricing-formulas-wait-for-the-cfo.sql.
 
@@ -33,7 +35,10 @@ AS $function$
                      FROM contract_refining_charges t WHERE t.contract_id = c.id) x), '[]'::jsonb),
                'penalty_elements', COALESCE((SELECT jsonb_agg(x.j ORDER BY x.j::text) FROM (
                    SELECT to_jsonb(t) - 'id' - 'contract_id' - 'created_at' - 'created_by' - 'updated_at' - 'updated_by' AS j
-                     FROM contract_penalty_elements t WHERE t.contract_id = c.id) x), '[]'::jsonb))
+                     FROM contract_penalty_elements t WHERE t.contract_id = c.id) x), '[]'::jsonb),
+               'quality_limits', COALESCE((SELECT jsonb_agg(x.j ORDER BY x.j::text) FROM (
+                   SELECT to_jsonb(t) - 'id' - 'contract_id' - 'indicator' - 'created_at' - 'created_by' - 'updated_at' - 'updated_by' AS j
+                     FROM contract_quality_limits t WHERE t.contract_id = c.id) x), '[]'::jsonb))
       FROM contracts c
      WHERE c.id = p_contract_id
 $function$;

@@ -109,3 +109,10 @@ CREATE TRIGGER trg_contract_pricing_terms_frozen
 CREATE TRIGGER trg_contract_pricing_terms_substance_role
     BEFORE INSERT OR UPDATE OF metal ON public.contract_pricing_terms
     FOR EACH ROW EXECUTE FUNCTION public.guard_substance_role('payable_metal', 'metal');
+
+-- ── MES-6b-1(2026-10-15,F4;MES-6b Step 0 Q33,Tim):一种物质在一份合同里要么计价、要么罚 —— 惩罚条款里已经有它就按名拒
+--    SUBSTANCE_PRICED_AND_PENALISED|<码>(惩罚条款那一侧挂着同一支)。
+--    ★ 名字排在 …_substance_role 之后(同一张表上的 BEFORE 触发器按名字排序触发):一种根本不能计价的物质先听到角色那一句。
+CREATE TRIGGER trg_contract_pricing_terms_unpenalised
+    BEFORE INSERT OR UPDATE OF metal, contract_id ON public.contract_pricing_terms
+    FOR EACH ROW EXECUTE FUNCTION public.guard_substance_priced_and_penalised();

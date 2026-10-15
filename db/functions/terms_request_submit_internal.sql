@@ -8,6 +8,8 @@
 --              合同期已经结束 → CONTRACT_PERIOD_ENDED|编号|截止日。
 --              ★ TERMS-EDIT-1(Tim 2026-09-27,grilling Q3):卖方合同条款不齐 → CONTRACT_TERMS_INCOMPLETE|编号|缺的那几条
 --              (逗号分隔,见 contract_activation_missing);买方合同不要求。
+--              ★ MES-6b-1(V17 · F4):同一种物质既计价又罚 → SUBSTANCE_PRICED_AND_PENALISED|码;声明了按参数的质量验收限而一行都没填
+--              → QUALITY_LIMITS_NOT_FILED|编号(两条先于 CONTRACT_TERMS_INCOMPLETE 说)。
 --   2. 理由必填(TERMS_REQUEST_REASON_REQUIRED|种类|编号)。
 --   3. 同一个主体上已有一张在等 → TERMS_REQUEST_OPEN|编号|那一张(grilling Q5;唯一索引是第二道)。
 --   4. ★ 审批开着时:提单人这个【人】之外,二级还有没有人批得动 → TERMS_REQUEST_NO_OTHER_DECIDER|label
@@ -16,7 +18,8 @@
 --   6. 审批开着:留痕 submitted,二级。关着:当场生效,状态 approved,留痕 auto_approved。
 -- 内层算子,无调用者检查;EXECUTE 已从 authenticated 收回。
 -- NOTE: introduced by db/migrations/2026-09-26-apr8-contract-terms-and-pricing-formulas-wait-for-the-cfo.sql;
---       replaced by db/migrations/2026-09-27-terms-edit1-contract-terms-editor.sql (CONTRACT_TERMS_INCOMPLETE).
+--       replaced by db/migrations/2026-09-27-terms-edit1-contract-terms-editor.sql (CONTRACT_TERMS_INCOMPLETE);
+--       replaced by db/migrations/2026-10-15-mes6b1-quality-hold-ncr-and-limits.sql (two named refusals).
 
 CREATE OR REPLACE FUNCTION public.terms_request_submit_internal(p_kind text, p_subject uuid, p_proposed jsonb, p_reason text)
  RETURNS jsonb
@@ -25,6 +28,8 @@ CREATE OR REPLACE FUNCTION public.terms_request_submit_internal(p_kind text, p_s
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
+    v_missing text[];
+    v_pp     text;
     v_on     boolean := approvals_enabled();
     v_id     uuid := gen_random_uuid();
     v_code   text;
@@ -64,9 +69,21 @@ BEGIN
         IF v_to IS NOT NULL AND v_to < CURRENT_DATE THEN
             RAISE EXCEPTION 'CONTRACT_PERIOD_ENDED|%|%', v_code, v_to;
         END IF;
-        IF cardinality(contract_activation_missing(p_subject)) > 0 THEN
-            RAISE EXCEPTION 'CONTRACT_TERMS_INCOMPLETE|%|%', v_code,
-                array_to_string(contract_activation_missing(p_subject), ',');
+        -- ★ MES-6b-1(V17 · F4;Step 0 Q25 · Q33):两条缺失有它们自己的名字 —— 一种物质既计价又罚(条款不一致,先说它),
+        --   声明了按参数却没填限(SETTLE-1 ③ 的形状);其余照旧一句 CONTRACT_TERMS_INCOMPLETE 列出缺的那几条。
+        v_missing := contract_activation_missing(p_subject);
+        SELECT substr(x, length('priced_and_penalised:') + 1) INTO v_pp
+          FROM unnest(v_missing) x WHERE x LIKE 'priced\_and\_penalised:%' ORDER BY x LIMIT 1;
+        IF v_pp IS NOT NULL THEN
+            RAISE EXCEPTION 'SUBSTANCE_PRICED_AND_PENALISED|%', v_pp
+              USING HINT = '这份合同把同一种物质既写进了计价条款、又写进了惩罚条款 —— 一种物质要么计价、要么罚。';
+        END IF;
+        IF 'quality_limits' = ANY (v_missing) THEN
+            RAISE EXCEPTION 'QUALITY_LIMITS_NOT_FILED|%', v_code
+              USING HINT = '这份合同声明了按参数的质量验收限,却一行限都没有填 —— 【声明了有】与【填了哪些】是两件事。';
+        END IF;
+        IF cardinality(v_missing) > 0 THEN
+            RAISE EXCEPTION 'CONTRACT_TERMS_INCOMPLETE|%|%', v_code, array_to_string(v_missing, ',');
         END IF;
     ELSE
         RAISE EXCEPTION 'TERMS_REQUEST_KIND_UNKNOWN|%', COALESCE(p_kind, '?');

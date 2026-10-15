@@ -23,6 +23,8 @@
 --     压掉的恰恰是"有什么不对"的证据。
 --   H 出处的一致性由约束把门:assay 必须指得出单据,manual 不许指;
 --     进料新行必须声明出处(NOT VALID:老行放过,新行必填 —— FIN-32 的形状)。
+--   S ★ MES-6b-1(F5):一份只测了氟、氯的化验是补充 —— 只换掉氟、氯,不取代也不被取代,撤销只删它自己那几行;
+--     之后一份完整的化验照旧整份换(E 臂那一条一字未改)。
 --   I 试算与应用同构(PROC-1b,fixture 40 的纪律):preview_apply_output_assay
 --     在应用会拒的地方【同码】拒;它说"会过期"的地方 D1 断言视图真的过期,
 --     说"不会"的地方(weight)D2 断言它真的不动 —— 谓词与第六过期源钉在一起。
@@ -442,5 +444,42 @@ BEGIN
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 54H 失败:不声明出处的进料新行落进去了 —— NOT VALID 只放过 PROC-1 之前的老行,新行必填';
     END IF;
+
+    -- ══════════ S. ★ MES-6b-1(F5;MES-6b Step 0 Q16 · Q36,Tim):一份只测了氟、氯的产出化验是一份【补充】═══════════
+    --   54E 那一条("化验是完整陈述,不是差量")对一份测了可计价金属的化验一字未改;一份【一种可计价金属都没测】的化验
+    --   只换掉它测了的那几种物质、不取代也不被取代、撤销只删它自己那几行。此前它在这里会把 ob_c 的镍整个抹掉。
+    DECLARE s1 jsonb; s1_id uuid; a6 jsonb; a6_id uuid;
+    BEGIN
+        s1 := record_assay_result(p_assay_date => CURRENT_DATE,
+            p_metals => '[{"metal":"f","content_pct":0.0123},{"metal":"cl","content_pct":0.004}]'::jsonb,
+            p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_c, p_weight_basis => 'as_received', p_result_party => 'ours');
+        s1_id := (s1->>'assay_result_id')::uuid;
+        v_prev := preview_apply_output_assay(ob_c, s1_id);
+        IF (v_prev->>'supplement')::boolean IS NOT TRUE OR v_prev->'replaces' <> '["cl", "f"]'::jsonb THEN
+            RAISE EXCEPTION 'FIXTURE 54S 失败:试算该说"补充,只换 cl 与 f",实际 %', v_prev;
+        END IF;
+        v_rep := apply_output_assay(s1_id);
+        IF (v_rep->>'supplement')::boolean IS NOT TRUE OR (v_rep->>'superseded_prior')::boolean
+           OR (SELECT string_agg(metal || ':' || content_pct || ':' || source_assay_id, ',' ORDER BY metal) FROM output_batch_metals WHERE output_batch_id = ob_c)
+              <> 'cl:0.004:' || s1_id || ',f:0.0123:' || s1_id || ',ni:80:' || a3_id
+           OR (SELECT superseded_by FROM assay_results WHERE id = a3_id) IS NOT NULL THEN
+            RAISE EXCEPTION 'FIXTURE 54S 失败:补充只换掉 cl 与 f(带它自己的出处),ni 80 与 a3 的应用一字不动、谁也不取代,实际 %', v_rep;
+        END IF;
+        PERFORM unapply_assay_result(s1_id, 'fixture 54 S: wrong sample');
+        IF (SELECT string_agg(metal || ':' || content_pct, ',' ORDER BY metal) FROM output_batch_metals WHERE output_batch_id = ob_c) <> 'ni:80' THEN
+            RAISE EXCEPTION 'FIXTURE 54S 失败:撤一份补充只删它自己写下的那几行';
+        END IF;
+        PERFORM apply_output_assay(s1_id);
+        a6 := record_assay_result(p_assay_date => CURRENT_DATE,
+            p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 81)),
+            p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_c, p_weight_basis => 'as_received', p_result_party => 'ours');
+        a6_id := (a6->>'assay_result_id')::uuid;
+        PERFORM apply_output_assay(a6_id);
+        IF (SELECT string_agg(metal || ':' || content_pct, ',' ORDER BY metal) FROM output_batch_metals WHERE output_batch_id = ob_c) <> 'ni:81'
+           OR (SELECT superseded_by FROM assay_results WHERE id = a3_id) IS DISTINCT FROM a6_id
+           OR (SELECT superseded_by FROM assay_results WHERE id = s1_id) IS NOT NULL THEN
+            RAISE EXCEPTION 'FIXTURE 54S 失败:之后一份完整的化验照旧整份换(54E),取代链连到上一份完整的 a3,补充不被取代';
+        END IF;
+    END;
 END $$;
 ROLLBACK;

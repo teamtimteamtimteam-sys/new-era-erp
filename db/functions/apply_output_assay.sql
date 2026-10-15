@@ -11,6 +11,8 @@ DECLARE
     v_prior uuid;
     v_count integer;
     v_run   record;
+    v_supp  boolean;
+    v_measured text[];
 BEGIN
     PERFORM require_permission('action.apply_assay');
     SELECT * INTO v_assay FROM assay_results
@@ -34,9 +36,16 @@ BEGIN
         RAISE EXCEPTION 'OUTPUT_NOT_FOUND|%', v_assay.output_batch_id;
     END IF;
 
+    -- ★ MES-6b-1(F5;MES-6b Step 0 Q16 · Q36,Tim):一份一种可计价金属都没测的化验是一份【补充】(assay_is_supplement)——
+    --   只换掉它测了的那几种物质、不取代也不被取代。此前它在这里照整份换:一份只测了氟、氯的产出化验会把这一批的镍、钴含量整个抹掉,
+    --   之后销售报价按名拒 NO_METAL_CONTENT、按金属价值的成本分摊拒 NO_METAL_VALUE(Step 0 §1.10)。完整的化验照旧整份换。
+    v_supp := assay_is_supplement(p_assay_result_id);
+    v_measured := ARRAY(SELECT arm.metal FROM assay_result_metals arm WHERE arm.assay_result_id = p_assay_result_id ORDER BY arm.metal);
+
     -- 批次含量 = 本化验的含量(删后重插,同进料侧)。行带出处;updated_at/created_at
     -- 因此更新 —— 过期视图的第六个来源读的就是它,这一写【就是】举旗动作本身。
-    DELETE FROM output_batch_metals WHERE output_batch_id = v_batch.id;
+    DELETE FROM output_batch_metals
+     WHERE output_batch_id = v_batch.id AND (NOT v_supp OR metal = ANY (v_measured));
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct,
                                      content_source, source_assay_id, created_by, updated_by)
     SELECT v_batch.id, arm.metal, arm.content_pct, 'assay', p_assay_result_id, v_user, v_user
@@ -46,11 +55,16 @@ BEGIN
 
     -- 取代链:与进料侧同一条规则,按【产出批】成链(进料链与产出链互不相扰)
     -- ★ MES-6a-1(D4 · Step 0 Q20):与进料侧同一条修正 —— 只取代【同一出具方】的上一份;应用对手方或仲裁的结果不盖掉我们的。
+    -- ★ MES-6b-1(F5):一份补充不取代任何一份,也不被任何一份取代 —— 取代链只在完整的化验之间连。
     SELECT id INTO v_prior FROM assay_results
     WHERE output_batch_id = v_batch.id AND id <> p_assay_result_id
       AND result_party = v_assay.result_party
       AND applied_at IS NOT NULL AND superseded_by IS NULL AND deleted_at IS NULL
+      AND NOT assay_is_supplement(id)
     ORDER BY applied_at DESC, code DESC LIMIT 1;
+    IF v_supp THEN
+        v_prior := NULL;
+    END IF;
     IF v_prior IS NOT NULL THEN
         UPDATE assay_results SET superseded_by = p_assay_result_id, updated_by = v_user
         WHERE id = v_prior;
@@ -74,6 +88,8 @@ BEGIN
         'output_batch_id', v_batch.id,
         'batch_code', v_batch.code,
         'metal_count', v_count,
+        'supplement', v_supp,
+        'replaced_substances', to_jsonb(v_measured),
         'superseded_prior', v_prior IS NOT NULL,
         'producing_run_code', v_run.code,
         'producing_run_allocated_at', v_run.allocated_at,

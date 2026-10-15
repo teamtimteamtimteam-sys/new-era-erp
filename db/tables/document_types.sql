@@ -179,4 +179,6 @@ VALUES
     -- MES-5b-3(2026-10-09,MES-5b Step 0 Q17):配料计划 —— 按年、无洞(next_blending_plan_code,与 WO 同形),读码与表的读策略同一个(module.processing.view)
     ('blending_plan', 'BLD', 'blending_plans', 'gapless', NULL, '/operation/blending', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.processing.view']::text[]),
     -- MES-6a-1(2026-10-09,MES-0 Q53 · MES-6a Step 0 Q41):样品 —— 按年、无洞(next_sample_code,与 BLD 同形);读码 = 样品页的门(module.quality.view)
-    ('sample', 'SMP', 'samples', 'gapless', NULL, '/quality/samples', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.quality.view']::text[]);
+    ('sample', 'SMP', 'samples', 'gapless', NULL, '/quality/samples', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.quality.view']::text[]),
+    -- MES-6b-1(2026-10-15,MES-0 Q53 · MES-6b Step 0 Q7 · Q39):不合格报告 —— 按年、无洞(next_ncr_code,宽度 GREATEST(4, 位数));读码 = 报告页的门
+    ('ncr', 'NCR', 'nonconformance_reports', 'gapless', NULL, '/quality/ncr', 'detail', 'description', ARRAY['description']::text[], ARRAY['module.quality.view']::text[]);

@@ -689,6 +689,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     "record_bank_transfer_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_bank_transfer_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_wht_remittance_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # MES-6b-1:不合格报告的落库与质量验收限的判定 —— 只在 open_ncr(查 module.quality.edit)与 record_assay_result / reserve_stock_internal
+    # (各自的外门查码)里以属主身份跑。靠"调不到"(zzz_function_grants.sql)。
+    "ncr_open_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "judge_quality_limits": "EXECUTE revoked from PUBLIC/authenticated/anon",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

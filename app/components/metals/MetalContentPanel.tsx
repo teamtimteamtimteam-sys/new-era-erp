@@ -7,6 +7,7 @@ import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import DecimalInput from '../forms/DecimalInput'
+import PpmReadout from './PpmReadout'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import {
     type MetalContentRow,
@@ -275,6 +276,8 @@ export default function MetalContentPanel({
                     onChange={setPctInput}
                     className="w-32"
                 />
+                {/* MES-6b-1(F7 · Q18):选的是惩罚元素时,旁边实时带 ppm */}
+                <span className="self-center"><PpmReadout value={pctInput} role={optOf.get(selectedMetal)?.role} /></span>
                 <Button
                     type="button"
                     onClick={handleSave}

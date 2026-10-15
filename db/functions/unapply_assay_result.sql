@@ -9,6 +9,8 @@ DECLARE
     v_assay  record;
     v_latest uuid;
     v_req    uuid;
+    v_supp   boolean;
+    v_removed integer := 0;
 BEGIN
     -- PROC-1:先读单据才知道父是谁,权限判在任何改动之前(定义者身份读,不漏行)
     SELECT * INTO v_assay FROM assay_results
@@ -46,6 +48,20 @@ BEGIN
     UPDATE assay_results SET superseded_by = NULL, updated_by = v_user
     WHERE superseded_by = p_assay_result_id;
 
+    -- ★ MES-6b-1(F5;MES-6b Step 0 Q36,Tim):撤一份【补充】只删它自己写下的那几行含量(content_source = 'assay' 且出处是它)——
+    --   它只补了那几种物质,撤掉它就把那几种拿走,别的含量一行不动。一份完整的化验照旧【不】回含量(下面那段理由原样成立)。
+    v_supp := assay_is_supplement(p_assay_result_id);
+    IF v_supp THEN
+        IF v_assay.inbound_batch_id IS NOT NULL THEN
+            DELETE FROM inbound_batch_metals
+             WHERE inbound_batch_id = v_assay.inbound_batch_id AND content_source = 'assay' AND source_assay_id = p_assay_result_id;
+        ELSE
+            DELETE FROM output_batch_metals
+             WHERE output_batch_id = v_assay.output_batch_id AND content_source = 'assay' AND source_assay_id = p_assay_result_id;
+        END IF;
+        GET DIAGNOSTICS v_removed = ROW_COUNT;
+    END IF;
+
     -- ★ ROLE-1 Batch 4b(Tim 的 Q3):这份化验还挂着一张在等 CFO 的定价申请 → 撤回它,理由写明是
     --   哪一份化验、为什么撤。已经批过的价【不动】(下面那段刻意不回价的理由原样成立)。
     SELECT id INTO v_req FROM receipt_price_requests
@@ -55,7 +71,7 @@ BEGIN
             'Assay ' || v_assay.code || ' unapplied: ' || btrim(p_reason));
     END IF;
 
-    -- 【刻意不回价、不回含量】撤销"已执行"标记只是承认这份结果不再作数;
+    -- 【刻意不回价、不回含量】(一份完整的化验;补充见上面)撤销"已执行"标记只是承认这份结果不再作数;
     -- 价格与含量退回到哪一版,是新化验或手工计价的显式动作 —— 静默回滚一个
     -- 已经过完账、可能已被分摊读走的状态,比留着它更危险。
     RETURN jsonb_build_object(
@@ -64,7 +80,9 @@ BEGIN
         'inbound_batch_id', v_assay.inbound_batch_id,
         'output_batch_id', v_assay.output_batch_id,
         'reverted_price', false,
-        'withdrawn_price_request_id', v_req
+        'withdrawn_price_request_id', v_req,
+        'supplement', v_supp,
+        'content_rows_removed', v_removed
     );
 END;
 $function$

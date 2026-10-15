@@ -75,6 +75,10 @@ CREATE TABLE public.inventory_movements (
     -- │ 记的事实无法从别处现算出来。committed 两条都满足(预留是一个决定,      │
     -- │ 不是一个可推导的事实);awaiting_assay 第二条不满足。                   │
     -- └──────────────────────────────────────────────────────────────────────┘
+    -- ★ MES-6b-1(2026-10-15,Step 0 Q2):上面框里"暂扣 …(品控、争议、等复检)"那半句从此要读窄 —— 【质量暂扣不是这个桶】。
+    --   一批货因为质量问题不能动,是它有一张开着的不合格报告(nonconformance_reports;判据 batch_quality_hold,守在本表的
+    --   trg_inventory_movements_quality_hold 上),那是另一条轴:它挡得住已经预留了的货(committed 桶),而 on_hold 挡不住。
+    --   on_hold 仍是 hold_stock / release_stock 那件库存动作("先扣下几吨"),一个字没改;争议挡的是定价与结算(MES-6a-1),也不是这个桶。
     stock_status     text NOT NULL DEFAULT 'available'
                      CHECK (stock_status IN ('available','on_hold','committed')),
     -- 【成对流水】的两条腿由它连起来。今天两种成对:状态变更(换状态桶)与
@@ -158,6 +162,13 @@ CREATE CONSTRAINT TRIGGER trg_inventory_movements_no_negative_bucket
 CREATE TRIGGER trg_inventory_movements_warehouse_request_freeze
     BEFORE INSERT ON public.inventory_movements
     FOR EACH ROW EXECUTE FUNCTION public.guard_warehouse_request_freeze();
+--   * MES-6b-1(MES-0 Q66 · G29;MES-6b Step 0 Q3,Tim):一批在质量暂扣里(一张开着的不合格报告,或一张拒收而货还在的)时,投料、销售、
+--     发货那条腿、进 committed 的预留、不在 CFO 注销申请里的注销按名拒 QUALITY_HOLD_OPEN|批号|报告编号;转移、盘点、暂扣 / 释放、释放预留、
+--     收货、产出、冲销、CFO 批过的注销照常(守卫函数在 db/functions/guard_quality_hold.sql;判据只在 batch_quality_hold 一处)。
+--     与上面那道冻结并排,同一个理由:动库存的函数有几十支,流水只有这一张表。
+CREATE TRIGGER trg_inventory_movements_quality_hold
+    BEFORE INSERT ON public.inventory_movements
+    FOR EACH ROW EXECUTE FUNCTION public.guard_quality_hold();
 
 -- FIN-32:业务日 —— 每条写入路径都要写,而且写的是【记录里的那个日期】,不是时钟。
 -- 新行必填、老行放过:CHECK ... NOT VALID 对【新插入与更新】强制,不回头校验既有

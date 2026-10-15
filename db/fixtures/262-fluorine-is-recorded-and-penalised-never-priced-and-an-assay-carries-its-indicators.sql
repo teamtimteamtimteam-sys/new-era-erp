@@ -7,7 +7,8 @@
 --          (Fluorine / 氟 / F · 8,Chlorine / 氯 / Cl · 9,启用);不说 role 的插入按 not_null 拒
 --   PAY    一个惩罚元素在【每一条定价的路】上以员工身份按名拒 SUBSTANCE_NOT_PAYABLE:行情(upsert_metal_prices)· 计价器
 --          (calculate_metal_price)· 新公式与改公式的申请(提交时的试跑)· 合同计价条款 · 合同精炼费;一个可计价的金属在同几条路上照常
---   PEN    f 与 cl 点得进合同的惩罚条款;一个可计价的金属(cu)与一个 other 按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT
+--   PEN    f 与 cl 点得进合同的惩罚条款;~~一个可计价的金属(cu)与~~一个 other 按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT
+--          (★ MES-6b-1 F4:cu 从此点得进惩罚条款 —— 这一臂断言它收下,拒绝的对象换成 other,插入与改到 substance 两条都判)
 --   SETTLE 一份卖方化验上有 f 与 cl:结算算得出(计价那一圈只有 ni,不要 f 的计价条款、不收 f 的精炼费);惩罚按 f 收,金额逐分手算;
 --          与同一份没有 f 的化验相比,金属价值逐分相同
 --   QUOTE  一批产出带着 f:销售报价(现价预设与公式两种)算得出,而且与没有 f 的孪生批逐分相同;报价的明细里没有 f
@@ -205,17 +206,25 @@ BEGIN
         v_msg := pg_temp.f262_do(u_cco, format($q$INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (%L, %L, 0.005, 1000)$q$, con_np, v_t));
         IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 262 PEN: % is accepted as a contract penalty element, got %', v_t, v_msg; END IF;
     END LOOP;
+    -- ★ MES-6b-1(2026-10-15,F4;MES-6b Step 0 Q15,Tim):一个可计价的金属从此【收】进惩罚条款(铜、铝在镍黑粉里是杂质)——
+    --   原来这里断言它被拒;拒绝没有消失,它的对象换成了 other(下面两条,插入与改到 substance 都判)。收下之后删掉,下面的结算臂与原来一字不差。
+    --   这份草稿合同在上面 PAY 那一臂已经【按 cu 计价】—— 于是 cu 写进它的惩罚条款按名拒 SUBSTANCE_PRICED_AND_PENALISED|cu(Q33);
+    --   一个没在这份合同上计价的可计价金属(al)收下。
     v_msg := pg_temp.f262_do(u_cco, format($q$INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (%L, 'cu', 0.5, 5)$q$, con_np));
-    IF v_msg IS DISTINCT FROM 'SUBSTANCE_NOT_PENALTY_ELEMENT|cu' THEN
-        RAISE EXCEPTION 'FIXTURE 262 PEN: a payable metal is refused as a penalty element by name, got %', v_msg; END IF;
+    IF v_msg IS DISTINCT FROM 'SUBSTANCE_PRICED_AND_PENALISED|cu' THEN
+        RAISE EXCEPTION 'FIXTURE 262 PEN: a metal this contract prices cannot also be penalised (Q33), got %', v_msg; END IF;
+    v_msg := pg_temp.f262_do(u_cco, format($q$INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (%L, 'al', 0.5, 5)$q$, con_np));
+    IF v_msg <> 'OK' THEN
+        RAISE EXCEPTION 'FIXTURE 262 PEN: a payable metal is accepted as a penalty element (F4), got %', v_msg; END IF;
+    DELETE FROM contract_penalty_elements WHERE contract_id = con_np AND substance = 'al';
     INSERT INTO substances (code, name_en, name_zh, role, sort_order) VALUES ('zz262o', 'f262 other', 'f262 other', 'other', 990);
     v_msg := pg_temp.f262_do(u_cco, format($q$INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (%L, 'zz262o', 0.5, 5)$q$, con_np));
     IF v_msg IS DISTINCT FROM 'SUBSTANCE_NOT_PENALTY_ELEMENT|zz262o' THEN
         RAISE EXCEPTION 'FIXTURE 262 PEN: an "other" substance is refused as a penalty element by name, got %', v_msg; END IF;
-    -- 改一行把 cl 换成 cu —— UPDATE OF substance 也判
-    v_msg := pg_temp.f262_do(u_cco, format($q$UPDATE contract_penalty_elements SET substance = 'cu' WHERE contract_id = %L AND substance = 'cl'$q$, con_np));
-    IF v_msg IS DISTINCT FROM 'SUBSTANCE_NOT_PENALTY_ELEMENT|cu' THEN
-        RAISE EXCEPTION 'FIXTURE 262 PEN: changing a penalty element into a payable metal is refused too, got %', v_msg; END IF;
+    -- 改一行把 cl 换成一种 other —— UPDATE OF substance 也判(F4 之前这里换的是 cu)
+    v_msg := pg_temp.f262_do(u_cco, format($q$UPDATE contract_penalty_elements SET substance = 'zz262o' WHERE contract_id = %L AND substance = 'cl'$q$, con_np));
+    IF v_msg IS DISTINCT FROM 'SUBSTANCE_NOT_PENALTY_ELEMENT|zz262o' THEN
+        RAISE EXCEPTION 'FIXTURE 262 PEN: changing a penalty element into an "other" substance is refused too, got %', v_msg; END IF;
 
     -- ══════════════ SETTLE ══════════════
     RAISE NOTICE 'fixture 262 · SETTLE';
@@ -420,17 +429,19 @@ BEGIN
            ->> 'assay_result_id')::uuid;
     v_j := record_assay_result(p_assay_date => v_day, p_output_batch_id => ob, p_weight_basis => 'dry', p_moisture_pct => 2, p_result_party => 'ours',
            p_metals => '[{"metal": "ni", "content_pct": 19.5}]'::jsonb,
-           p_indicators => '[{"indicator": "residual_powder_pct", "value": 0}, {"indicator": "d50_um", "value": 1000000}]'::jsonb);
+           -- ★ MES-6b-1(F8):产出那条路也记全五个(原来只记 2 个 —— MES-6a-2 close-out a 项记下的弱点);0 与 1,000,000 仍在里面(没有上限)
+           p_indicators => '[{"indicator": "residual_powder_pct", "value": 0}, {"indicator": "foil_purity_pct", "value": 99.9},
+                             {"indicator": "d10_um", "value": 0.5}, {"indicator": "d50_um", "value": 1000000}, {"indicator": "d90_um", "value": 2000000}]'::jsonb);
     oa := (v_j ->> 'assay_result_id')::uuid;
     PERFORM pg_temp.f262_as(NULL);
-    IF (v_j ->> 'indicator_count')::int <> 2 THEN RAISE EXCEPTION 'FIXTURE 262 IND: the function reports how many indicators it recorded, got %', v_j; END IF;
+    IF (v_j ->> 'indicator_count')::int <> 5 THEN RAISE EXCEPTION 'FIXTURE 262 IND: the function reports how many indicators it recorded, got %', v_j; END IF;
     SELECT string_agg(indicator || '=' || value::text, ',' ORDER BY indicator) INTO v_t FROM assay_result_indicators WHERE assay_result_id = ia;
     IF v_t IS DISTINCT FROM 'd10_um=3.1,d50_um=11.4,d90_um=28.75,foil_purity_pct=99.2,residual_powder_pct=0.85' THEN
         RAISE EXCEPTION 'FIXTURE 262 IND: the inbound form''s five values as entered, got %', v_t; END IF;
     -- 没有上限:0 与 1,000,000 都收(一个限是一条标准,而 Q3 说没有)
     SELECT string_agg(indicator || '=' || value::text, ',' ORDER BY indicator) INTO v_t FROM assay_result_indicators WHERE assay_result_id = oa;
-    IF v_t IS DISTINCT FROM 'd50_um=1000000,residual_powder_pct=0' THEN
-        RAISE EXCEPTION 'FIXTURE 262 IND: the output form''s values, no limit applied, got %', v_t; END IF;
+    IF v_t IS DISTINCT FROM 'd10_um=0.5,d50_um=1000000,d90_um=2000000,foil_purity_pct=99.9,residual_powder_pct=0' THEN
+        RAISE EXCEPTION 'FIXTURE 262 IND: the output form''s five values, no limit applied, got %', v_t; END IF;
     -- 不给指标 → 零行(今天的调用照旧)
     IF EXISTS (SELECT 1 FROM assay_result_indicators WHERE assay_result_id = a2) THEN
         RAISE EXCEPTION 'FIXTURE 262 IND: an assay recorded without indicators has none'; END IF;

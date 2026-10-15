@@ -827,6 +827,14 @@ const MANIFEST = {
     'quality.party.':           { kind: 'enum', values: () => sqlEnum('db/tables/assay_results.sql', 'result_party') },
     'quality.feeRule.':         { kind: 'enum', values: () => sqlEnumAnywhere('db/tables/contract_settlement_terms.sql', 'arbitration_fee_rule') },
     'quality.errors.':          { kind: 'enum', values: () => tsSet('app/quality/qualityErrorCodes.ts', 'QUALITY_ERROR_CODES') },
+    // MES-6b-1(2026-10-15):不合格报告。来源 / 状态 / 处置接 nonconformance_reports 的 CHECK,判定结果接 quality_limit_judgements 的 CHECK;
+    //   处置的说明句与状态同一份清单;钱的那一张单据的状态只列报告页查询里 .in('status', [...]) 那两个(在等的与批了的 —— 别的状态不进选单)。
+    'quality.ncrStatus.':       { kind: 'enum', values: () => sqlEnum('db/tables/nonconformance_reports.sql', 'status') },
+    'quality.ncrSource.':       { kind: 'enum', values: () => sqlEnum('db/tables/nonconformance_reports.sql', 'source') },
+    'quality.ncrDisposition.':  { kind: 'enum', values: () => sqlEnum('db/tables/nonconformance_reports.sql', 'disposition') },
+    'quality.ncr.dispositionWhy.': { kind: 'enum', values: () => sqlEnum('db/tables/nonconformance_reports.sql', 'disposition') },
+    'quality.judgementResult.': { kind: 'enum', values: () => sqlEnum('db/tables/quality_limit_judgements.sql', 'result') },
+    'quality.ncr.requestStatus.': { kind: 'enum', values: () => ['submitted', 'approved'] },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },
     'finance.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/payments.sql', 'direction') },

@@ -219,6 +219,9 @@ const ID_SOURCES = {
         //   故同时列在 EXPECTED_SKIPS 里 —— 登记第一份样品 / 立第一件争议的那天,那两条断言会响。
         '/quality/samples': 'samples',
         '/quality/disputes': 'assay_disputes',
+        // MES-6b-1(2026-10-15):不合格报告。线上零行(本刀的线上验证全部在回滚的事务里跑;本刀不在线上留任何报告),
+        //   故同时列在 EXPECTED_SKIPS 里 —— 开出第一张报告的那天,那条断言会响。
+        '/quality/ncr': 'nonconformance_reports',
         '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
@@ -700,6 +703,7 @@ const MUST_CONTAIN = {
     // MES-6a-1(2026-10-09):样品页 · 争议页底的审计记录(线上零行,在跳过清单里);样品清单页底是 V16 的设定(单行设置)—— 线上一次改动都还没有,emptyOk。
     '/quality/samples/[id]': [{ trail: 'audit-trail', why: '样品页底的审计记录(MES-6a-1)' }],
     '/quality/disputes/[id]': [{ trail: 'audit-trail', why: '化验争议页底的审计记录(MES-6a-1)' }],
+    '/quality/ncr/[id]': [{ trail: 'audit-trail', why: '不合格报告页底的审计记录(MES-6b-1)' }],
     '/quality/samples': [{ trail: 'audit-trail', emptyOk: true, why: '内部留样天数(V16)的审计记录(MES-6a-1)' }],
     '/operation/devices': [{ trail: 'audit-trail', emptyOk: true, why: '采集上限的审计记录(MES-1 Q22,M5)' }],
     '/hr/attendance/[id]': [{ trail: 'audit-trail', why: '考勤期间页底的审计记录(Q12:之前那一段只剩最近一次)' }],
@@ -1276,6 +1280,9 @@ const EXPECTED_SKIPS = new Set([
     //   全部在回滚的事务里跑。第一份真的样品 / 第一件真的争议出现那天,这两条断言会响,这两行随之删掉。
     '/quality/samples/[id]',
     '/quality/disputes/[id]',
+    // MES-6b-1(2026-10-15):线上 nonconformance_reports 零行 —— 本刀的线上验证(开报告、暂扣挡住投料 / 发货 / 结算 / 配料、
+    //   系统因越限开单、别人决定)全部在回滚的事务里跑。第一张真的报告开出来那天,这条断言会响,这一行随之删掉。
+    '/quality/ncr/[id]',
     // ~~MES-1(2026-10-06):线上 devices 零行~~ —— 同一天由 MES-1 的线上验证登记了探针网关 ZZ-PROBE-GW-…(DEV-2026-0001,
     //   停用,行留着当测试数据),这一条于是摘掉:/operation/devices/[id] 从此每一次冒烟都真的打开一台设备。
     // AUDIT-TRAIL-1b-1(Q23):线上 shift_handovers 零行(车间还没有人交接)。第一张交接班提交的那天,这条断言会响。

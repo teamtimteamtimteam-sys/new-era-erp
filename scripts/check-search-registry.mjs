@@ -70,7 +70,8 @@ const MIRROR = join(ROOT, 'db/tables/document_types.sql')
 //   都在 output_batches 上、都是 /output 的 list_q、都有洞(各自一条序列);OUT 那一行留着。
 // MES-5b-3(2026-10-09):55 → 56。新增 'blending_plan'(/operation/blending,detail;BLD,无洞,按年)。
 // MES-6a-1(2026-10-09):56 → 57。新增 'sample'(/quality/samples,detail;SMP,无洞,按年)。
-const EXPECTED_ROWS = 57
+// MES-6b-1(2026-10-15):57 → 58。新增 'ncr'(/quality/ncr,detail;NCR,无洞,按年)。
+const EXPECTED_ROWS = 58
 // ★ SEARCH-5:`type_list` 那 5 种单据的落点。**一张共享页,不是每种一张。**
 const TYPE_LIST_PAGE = join(ROOT, 'app/documents/[key]/page.tsx')
 

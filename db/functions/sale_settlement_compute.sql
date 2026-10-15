@@ -41,6 +41,8 @@ AS $function$
 --   SETTLEMENT_TERMS_NOT_SET|<contract>        挂了合同,但那份合同没有结算口径
 --   ASSAY_NOT_FOR_BATCH|<assay>|<batch>        选的化验不是这个批次的
 --   ★ ASSAY_DISPUTE_OPEN|<batch>|<争议>        这一批挂着一件开着的化验争议(MES-6a-1,Q21)
+--   ★ QUALITY_HOLD_OPEN|<batch>|<报告>         这一批在质量暂扣里(MES-6b-1,Step 0 Q4:一张开着的不合格报告 ——
+--                                               客户投诉一批发走了的货,结算等它决定;判据 batch_quality_hold)
 --   ★ ASSAY_WEIGHT_BASIS_NOT_STATED|<assay>    化验没说按哪种重量报 ← 本刀最要紧的那条
 --   ASSAY_PARTY_NOT_THE_SETTLING_PARTY|…       选的化验不是合同约定的那一方(仲裁除外)
 --   RESULTS_IN_DISPUTE|…                       两方结果不一致,而没有声明容差
@@ -88,6 +90,7 @@ DECLARE
     v_over      numeric;
     v_amt       numeric;
     v_disp      uuid;
+    v_hold      record;
 BEGIN
     IF p_sales_order_id IS NULL OR p_output_batch_id IS NULL OR p_assay_result_id IS NULL THEN
         RAISE EXCEPTION 'SETTLEMENT_ARGUMENTS_REQUIRED';
@@ -153,6 +156,16 @@ BEGIN
           USING HINT = '这一批有一件开着的化验争议 —— 先结案(点名哪一份说了算)或撤回,再结算';
     END IF;
 
+    -- ── ★ MES-6b-1(MES-6b Step 0 Q4 · Q5,Tim):这一批在【质量暂扣】里时,结算按名拒 ─────────────────────────────
+    -- "还不知道这是什么,就不结算" —— 与上面争议那一道同一条规矩,而两者互相独立:结了争议不放暂扣,决定了报告不结争议。
+    -- 判据只有 batch_quality_hold 一支(流水守卫、配料计划读的同一支)。本支是 INVOKER:不合格报告与产出批的读策略都认 module.output.view
+    -- (上面第二道闸刚问过它),所以读者不会因为读不到报告而把它放过去。
+    SELECT h.ncr_code INTO v_hold FROM batch_quality_hold(NULL::uuid, p_output_batch_id) h;
+    IF FOUND THEN
+        RAISE EXCEPTION 'QUALITY_HOLD_OPEN|%|%', v_batch.code, v_hold.ncr_code
+          USING HINT = '这一批在质量暂扣里 —— 先让另一个人在不合格报告上做出放行的处置,再结算';
+    END IF;
+
     -- ── ★ 化验必须说出它按哪种重量报 ★ ─────────────────────────────────────
     -- GO-3:一张按干基出的化验单被乘在湿重上,含金属被**高估**,而没有任何东西会响。
     -- **留空 = 没有人说过**,而不是"按惯例是干基" —— 所以这里拒,不猜。
@@ -214,10 +227,17 @@ BEGIN
     -- MES-6a-2(MES-6a Step 0 Q28,Tim):这一圈只走【按含量计价的金属】—— 化验上的氟、氯不要计价条款、不收精炼费
     --   (此前它们在这里会按名拒 SETTLEMENT_PAYABLE_NOT_STATED / REFINING_CHARGE_NOT_FILED,一份测了氟的化验就结算不了);
     --   它们只在下面惩罚那一圈被读。
+    -- ★ MES-6b-1(F4;MES-6b Step 0 Q34,Tim):一种可计价的金属,这份合同(冻结的副本)把它列成了惩罚元素、而按元素罚 → 它【不进】这一圈:
+    --   它在这份合同里是杂质,不是货款(此前它在这里没有计价条款,于是按名拒 SETTLEMENT_PAYABLE_NOT_STATED,一份罚铜的合同就结算不了)。
+    --   它在下面惩罚那一圈被读。别的可计价金属没有计价条款,照旧按名拒。同一种物质既计价又罚,在条款那一层就被拒了(Q33)。
     FOR v_metal, v_content IN
         SELECT m.metal, m.content_pct FROM assay_result_metals m
           JOIN substances s ON s.code = m.metal AND s.role = 'payable_metal'
-         WHERE m.assay_result_id = p_assay_result_id ORDER BY m.metal
+         WHERE m.assay_result_id = p_assay_result_id
+           AND NOT COALESCE(v_st->>'penalty_basis' = 'per_element'
+                    AND EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(v_st->'penalty_elements', '[]'::jsonb)) pe
+                                 WHERE pe->>'substance' = m.metal), false)
+         ORDER BY m.metal
     LOOP
         -- 把含量换算到【结算基准】上。含金属因此是不变量 —— 见抬头。
         -- TOOLS-1 ④:换算搬进 convert_grade_basis(表达式逐字未改)。

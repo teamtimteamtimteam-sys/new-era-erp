@@ -722,3 +722,19 @@ REVOKE EXECUTE ON FUNCTION public.guard_assay_sample_batch() FROM authenticated;
 --   record_assay_result 的新签名(尾部多了 p_indicators)【不收】:它是 DEFINER,自己查码,员工就是要调它(上面那一句整体授权覆盖它)。
 REVOKE EXECUTE ON FUNCTION public.guard_substance_role() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.payable_metals_only(jsonb) FROM authenticated;
+
+-- MES-6b-1(2026-10-15):三支触发器函数与两支【内层】。
+--   guard_quality_hold:质量暂扣守在流水上(触发器函数;触发时不查 EXECUTE,收掉只是让它不在 API 上 —— 它是 DEFINER,更不该在)。
+--   guard_substance_priced_and_penalised:一种物质在一份合同里要么计价、要么罚(触发器函数,DEFINER)。
+--   guard_ncr_mutation:不合格报告只追加(触发器函数)。
+--   ncr_open_internal:落一张不合格报告(取号、写一行)—— 不问码、不判来源;给了 authenticated 就是一支绕开 module.quality.edit、
+--     也绕开"系统才开 quality_limit"的写法。
+--   judge_quality_limits:判一批对一张单的质量验收限并在越限时开报告 —— 不问码;只在 record_assay_result / reserve_stock_internal 里以属主身份跑。
+--   open_ncr / decide_ncr【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+--   batch_quality_hold【不收】:它是 INVOKER,以调用者的读规则读(销售结算的预览以读者身份调它);assay_is_supplement 同理【不收】。
+--   next_ncr_code【不收】:与 next_sample_code 一样,是一支只读的取号函数。
+REVOKE EXECUTE ON FUNCTION public.guard_quality_hold() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_substance_priced_and_penalised() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_ncr_mutation() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.ncr_open_internal(uuid, uuid, text, text, uuid, uuid, uuid, bigint, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.judge_quality_limits(uuid, uuid, text) FROM authenticated;

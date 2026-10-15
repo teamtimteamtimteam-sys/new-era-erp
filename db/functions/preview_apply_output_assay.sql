@@ -10,6 +10,8 @@ DECLARE
     v_run     record;
     v_current jsonb;
     v_next    jsonb := NULL;
+    v_supp    boolean := NULL;
+    v_replaces jsonb := NULL;
 BEGIN
     -- 试算给要按"应用"的人看 —— 权限同 apply_output_assay
     PERFORM require_permission('action.apply_assay');
@@ -43,6 +45,11 @@ BEGIN
         INTO v_next
         FROM assay_result_metals arm
         WHERE arm.assay_result_id = p_assay_result_id;
+        -- ★ MES-6b-1(F5):与 apply_output_assay 同一支判据 —— 一份补充只换掉它测了的那几种物质(试算把那几种说出来,页面照它说)
+        v_supp := assay_is_supplement(p_assay_result_id);
+        SELECT COALESCE(jsonb_agg(arm.metal ORDER BY arm.metal), '[]'::jsonb) INTO v_replaces
+        FROM assay_result_metals arm
+        WHERE arm.assay_result_id = p_assay_result_id;
     END IF;
 
     -- 当前含量,带出处 —— "被顶掉的是谁说的数"是这个预览存在的一半理由
@@ -70,6 +77,8 @@ BEGIN
         'batch_code', v_batch.code,
         'current_metals', COALESCE(v_current, '[]'::jsonb),
         'assay_metals', v_next,
+        'supplement', v_supp,
+        'replaces', v_replaces,
         'producing_run_id', v_run.id,
         'producing_run_code', v_run.code,
         'producing_run_allocated_at', v_run.allocated_at,

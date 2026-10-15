@@ -1,4 +1,14 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-6b-1(2026-10-15,MES-6b Step 0 Q6 · Q23 · Q38,Tim):加三支,门都是 module.quality.view。
+--   ncr_open —— 一张开着的不合格报告(它扣着那一批)。item_id = 那张报告;item_code = 报告编号;subject = 批号;item_date = 开单日。
+--   quality_hold_reserved —— 一批在质量暂扣里的产出批还挂着没释放的预留(Q23:预留照留,发不出去)。一张单 × 一批 × 扣着它的那张报告一行;
+--     item_id = 那张销售单(门牌指它,释放预留在那一页);subject = 批号 · 报告编号;item_date = 最早那一笔预留的日子。
+--     判据 batch_quality_hold(以读者身份调用的 INVOKER 函数)—— 所以这一支另外要 module.output.view(arm_permission_any):不合格报告与产出批的
+--     读策略都认它,读者不会因为读不到而少看一行;质量那一侧之外,销售那一侧也看得见(arm_permission_widen:module.sales.view)。
+--   quality_prompt_ncr —— 【提示人去开一张】(Q6:只有 V17 越限自动开):一批进料的品位违反(contract_grade_breaches —— 那张视图自己要
+--     module.suppliers.view,今天每一个持质量查看码的角色都持它)、一批产出批的交叉污染抽检过了 V11 的警戒线(当前的、没被更正的那一条)、
+--     一批的一个模组最新的放电结论是失败(没拆走)。一批一行;那一批上有一张开单时刻不早于那件事的不合格报告(任何状态)之后消失。
+--     item_id = 那一批;doc_kind = 'inbound' / 'output'(门牌按它指 /quality/ncr/new 的那一批);subject = 那件事的出处(化验单号 · 流 · 模组号)。
 -- ★ MES-6a-1(2026-10-09,MES-6a Step 0 Q15 · Q17,Tim):加三支,门都是 module.quality.view。
 --   sample_retention_due —— 一份样品的留样日已经过了、还没处置(Q15)。item_id = 那份样品;subject = 批号;item_date = 留样日。
 --     留样日 Not yet set 的样品不进来(没有日子可过)。
@@ -943,7 +953,79 @@ CREATE VIEW public.operations_now AS
             ad.batch_code AS item_code,
             ad.sales_order_code AS subject,
             ad.latest_assay_date AS item_date
-           FROM assay_disagreements_all ad) a
+           FROM assay_disagreements_all ad
+        UNION ALL
+         SELECT 'ncr_open'::text AS item_type,
+            'module.quality.view'::text AS permission,
+            n.id AS item_id,
+            NULL::text AS doc_kind,
+            n.code AS item_code,
+            COALESCE(ib.code, ob.code) AS subject,
+            n.opened_at::date AS item_date
+           FROM nonconformance_reports n
+             LEFT JOIN inbound_batches ib ON ib.id = n.inbound_batch_id
+             LEFT JOIN output_batches ob ON ob.id = n.output_batch_id
+          WHERE n.status = 'open'::text
+        UNION ALL
+         SELECT 'quality_hold_reserved'::text AS item_type,
+            'module.quality.view'::text AS permission,
+            so.id AS item_id,
+            NULL::text AS doc_kind,
+            so.code AS item_code,
+            (h.batch_code || ' · '::text) || h.ncr_code AS subject,
+            min(r.created_at)::date AS item_date
+           FROM sales_order_reservations r
+             JOIN sales_order_lines l ON l.id = r.sales_order_line_id
+             JOIN sales_orders so ON so.id = l.sales_order_id
+             CROSS JOIN LATERAL batch_quality_hold(NULL::uuid, r.output_batch_id) h(ncr_id, ncr_code, batch_code)
+          WHERE r.released_at IS NULL AND r.consumed_at IS NULL AND so.deleted_at IS NULL
+          GROUP BY so.id, so.code, h.batch_code, h.ncr_code
+        UNION ALL
+         SELECT 'quality_prompt_ncr'::text AS item_type,
+            'module.quality.view'::text AS permission,
+            q.batch_id AS item_id,
+            q.batch_kind AS doc_kind,
+            q.batch_code AS item_code,
+            q.evidence AS subject,
+            q.found_on AS item_date
+           FROM ( SELECT 'inbound'::text AS batch_kind,
+                    gb.inbound_batch_id AS batch_id,
+                    gb.inbound_batch_code AS batch_code,
+                    min(ar.code) AS evidence,
+                    min(gb.assay_date) AS found_on,
+                    min(ar.created_at) AS found_at
+                   FROM contract_grade_breaches gb
+                     JOIN assay_results ar ON ar.id = gb.assay_result_id
+                  GROUP BY gb.inbound_batch_id, gb.inbound_batch_code
+                UNION ALL
+                 SELECT 'output'::text,
+                    cc.output_batch_id,
+                    ob2.code,
+                    min(cc.stream_code),
+                    min(cc.sampled_at)::date,
+                    min(cc.recorded_at)
+                   FROM contamination_checks cc
+                     JOIN output_batches ob2 ON ob2.id = cc.output_batch_id AND ob2.deleted_at IS NULL
+                  WHERE cc.above_warning IS TRUE AND NOT (EXISTS ( SELECT 1
+                           FROM contamination_checks x
+                          WHERE x.corrects_id = cc.id))
+                  GROUP BY cc.output_batch_id, ob2.code
+                UNION ALL
+                 SELECT dm.batch_kind,
+                    dm.batch_id,
+                    COALESCE(ib3.code, ob3.code),
+                    min(dm.module_ref),
+                    min(dm.verdict_at)::date,
+                    min(dm.verdict_at)
+                   FROM discharge_module_current_all dm
+                     LEFT JOIN inbound_batches ib3 ON ib3.id = dm.batch_id AND dm.batch_kind = 'inbound'::text
+                     LEFT JOIN output_batches ob3 ON ob3.id = dm.batch_id AND dm.batch_kind = 'output'::text
+                  WHERE dm.verdict = 'fail'::text AND NOT dm.split_out
+                    AND COALESCE(ib3.deleted_at, ob3.deleted_at) IS NULL AND COALESCE(ib3.id, ob3.id) IS NOT NULL
+                  GROUP BY dm.batch_kind, dm.batch_id, ib3.code, ob3.code) q
+          WHERE NOT (EXISTS ( SELECT 1
+                   FROM nonconformance_reports n2
+                  WHERE (n2.inbound_batch_id = q.batch_id OR n2.output_batch_id = q.batch_id) AND n2.opened_at >= q.found_at))) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

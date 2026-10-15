@@ -133,8 +133,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 //   samples(SMP,登记进 document_types),所以 EXPECTED_CODE_TABLES 87 → 88。
 // MES-6a-2(2026-10-10):290 → 292。两张化验指标的表(assay_indicators · assay_result_indicators)。一张带 code 列:
 //   assay_indicators(指标目录,登记进 document_type_exceptions),所以 EXPECTED_CODE_TABLES 88 → 89。
-const EXPECTED_TABLES = 292   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 89
+// MES-6b-1(2026-10-15):292 → 295。三张质量的表(contract_quality_limits · quality_limit_judgements · nonconformance_reports)。
+//   一张带 code 列:nonconformance_reports(NCR,登记进 document_types),所以 EXPECTED_CODE_TABLES 89 → 90。
+const EXPECTED_TABLES = 295   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 90
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

@@ -4109,6 +4109,94 @@ export type Database = {
           },
         ]
       }
+      contract_quality_limits: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          indicator: string | null
+          material_id: string | null
+          max_value: number | null
+          min_value: number | null
+          notes: string | null
+          parameter: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          indicator?: string | null
+          material_id?: string | null
+          max_value?: number | null
+          min_value?: number | null
+          notes?: string | null
+          parameter: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          indicator?: string | null
+          material_id?: string | null
+          max_value?: number | null
+          min_value?: number | null
+          notes?: string | null
+          parameter?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_quality_limits_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_quality_limits_indicator_fkey"
+            columns: ["indicator"]
+            isOneToOne: false
+            referencedRelation: "assay_indicators"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "contract_quality_limits_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_quality_limits_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "contract_quality_limits_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_quality_limits_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+        ]
+      }
       contract_refining_charges: {
         Row: {
           contract_id: string
@@ -4169,6 +4257,7 @@ export type Database = {
           id: string
           notes: string | null
           penalty_basis: string
+          quality_limit_basis: string | null
           refining_charge_basis: string
           sale_weight_basis: string
           sample_retention_days: number | null
@@ -4186,6 +4275,7 @@ export type Database = {
           id?: string
           notes?: string | null
           penalty_basis: string
+          quality_limit_basis?: string | null
           refining_charge_basis: string
           sale_weight_basis: string
           sample_retention_days?: number | null
@@ -4203,6 +4293,7 @@ export type Database = {
           id?: string
           notes?: string | null
           penalty_basis?: string
+          quality_limit_basis?: string | null
           refining_charge_basis?: string
           sale_weight_basis?: string
           sample_retention_days?: number | null
@@ -14968,6 +15059,255 @@ export type Database = {
         }
         Relationships: []
       }
+      nonconformance_reports: {
+        Row: {
+          assay_dispute_id: string | null
+          assay_result_id: string | null
+          code: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          description: string
+          disposition: string | null
+          id: string
+          inbound_batch_id: string | null
+          judgement_id: number | null
+          opened_at: string
+          opened_by: string | null
+          output_batch_id: string | null
+          penalty_invoice_request_id: string | null
+          penalty_price_request_id: string | null
+          sales_order_id: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          assay_dispute_id?: string | null
+          assay_result_id?: string | null
+          code: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          description: string
+          disposition?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          judgement_id?: number | null
+          opened_at?: string
+          opened_by?: string | null
+          output_batch_id?: string | null
+          penalty_invoice_request_id?: string | null
+          penalty_price_request_id?: string | null
+          sales_order_id?: string | null
+          source: string
+          status?: string
+        }
+        Update: {
+          assay_dispute_id?: string | null
+          assay_result_id?: string | null
+          code?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          description?: string
+          disposition?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          judgement_id?: number | null
+          opened_at?: string
+          opened_by?: string | null
+          output_batch_id?: string | null
+          penalty_invoice_request_id?: string | null
+          penalty_price_request_id?: string | null
+          sales_order_id?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nonconformance_reports_assay_dispute_id_fkey"
+            columns: ["assay_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "assay_dispute_metals"
+            referencedColumns: ["dispute_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_dispute_id_fkey"
+            columns: ["assay_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "assay_dispute_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_dispute_id_fkey"
+            columns: ["assay_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_judgement_id_fkey"
+            columns: ["judgement_id"]
+            isOneToOne: false
+            referencedRelation: "quality_limit_judgements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_penalty_invoice_request_id_fkey"
+            columns: ["penalty_invoice_request_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_penalty_price_request_id_fkey"
+            columns: ["penalty_price_request_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_price_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_reads: {
         Row: {
           notification_id: string
@@ -21873,6 +22213,146 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quality_limit_judgements: {
+        Row: {
+          assay_result_id: string
+          contract_id: string
+          id: number
+          judged_at: string
+          judged_by: string | null
+          limit_max_at: number | null
+          limit_min_at: number | null
+          output_batch_id: string
+          parameter: string
+          result: string
+          sales_order_id: string
+          trigger_event: string
+          value: number | null
+        }
+        Insert: {
+          assay_result_id: string
+          contract_id: string
+          id?: never
+          judged_at?: string
+          judged_by?: string | null
+          limit_max_at?: number | null
+          limit_min_at?: number | null
+          output_batch_id: string
+          parameter: string
+          result: string
+          sales_order_id: string
+          trigger_event: string
+          value?: number | null
+        }
+        Update: {
+          assay_result_id?: string
+          contract_id?: string
+          id?: never
+          judged_at?: string
+          judged_by?: string | null
+          limit_max_at?: number | null
+          limit_min_at?: number | null
+          output_batch_id?: string
+          parameter?: string
+          result?: string
+          sales_order_id?: string
+          trigger_event?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_limit_judgements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -34460,6 +34940,227 @@ export type Database = {
           },
         ]
       }
+      ncr_rows: {
+        Row: {
+          assay_code: string | null
+          assay_dispute_id: string | null
+          assay_result_id: string | null
+          batch_code: string | null
+          batch_kind: string | null
+          code: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          description: string | null
+          disposition: string | null
+          holding: boolean | null
+          id: string | null
+          inbound_batch_id: string | null
+          judgement_contract_code: string | null
+          judgement_id: number | null
+          judgement_limit_max: number | null
+          judgement_limit_min: number | null
+          judgement_parameter: string | null
+          judgement_result: string | null
+          judgement_value: number | null
+          opened_at: string | null
+          opened_by: string | null
+          opened_by_system: boolean | null
+          output_batch_id: string | null
+          penalty_invoice_request_id: string | null
+          penalty_invoice_request_label: string | null
+          penalty_price_request_id: string | null
+          penalty_price_request_label: string | null
+          sales_order_code: string | null
+          sales_order_id: string | null
+          source: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nonconformance_reports_assay_dispute_id_fkey"
+            columns: ["assay_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "assay_dispute_metals"
+            referencedColumns: ["dispute_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_dispute_id_fkey"
+            columns: ["assay_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "assay_dispute_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_dispute_id_fkey"
+            columns: ["assay_dispute_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_judgement_id_fkey"
+            columns: ["judgement_id"]
+            isOneToOne: false
+            referencedRelation: "quality_limit_judgements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_penalty_invoice_request_id_fkey"
+            columns: ["penalty_invoice_request_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_penalty_price_request_id_fkey"
+            columns: ["penalty_price_request_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_price_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nea_category_on_hand_all: {
         Row: {
           batches: number | null
@@ -41687,6 +42388,10 @@ export type Database = {
       ar_aging_asof: { Args: { p_as_of?: string }; Returns: Json }
       arm_permission_any: { Args: { p_item_type: string }; Returns: string[] }
       arm_permission_widen: { Args: { p_item_type: string }; Returns: string[] }
+      assay_is_supplement: {
+        Args: { p_assay_result_id: string }
+        Returns: boolean
+      }
       assert_material_form_saleable: {
         Args: { p_material_id: string }
         Returns: undefined
@@ -41913,6 +42618,14 @@ export type Database = {
       batch_processing_cost_base_all: {
         Args: { p_inbound_batch_id: string }
         Returns: number
+      }
+      batch_quality_hold: {
+        Args: { p_inbound_batch_id: string; p_output_batch_id: string }
+        Returns: {
+          batch_code: string
+          ncr_code: string
+          ncr_id: string
+        }[]
       }
       batch_quarantine_states: {
         Args: { p_output_batch_id: string }
@@ -42593,6 +43306,16 @@ export type Database = {
         Args: { p_approve: boolean; p_claim_id: string; p_notes?: string }
         Returns: Json
       }
+      decide_ncr: {
+        Args: {
+          p_disposition: string
+          p_ncr_id: string
+          p_note: string
+          p_penalty_invoice_request_id?: string
+          p_penalty_price_request_id?: string
+        }
+        Returns: Json
+      }
       decide_overtime_batch: {
         Args: { p_batch_id: string; p_decision: string; p_note?: string }
         Returns: Json
@@ -43075,6 +43798,14 @@ export type Database = {
         }
         Returns: Json
       }
+      judge_quality_limits: {
+        Args: {
+          p_output_batch_id: string
+          p_sales_order_id: string
+          p_trigger_event: string
+        }
+        Returns: Json
+      }
       label_object_data: {
         Args: { p_id: string; p_kind: string }
         Returns: Json
@@ -43248,6 +43979,29 @@ export type Database = {
           period_month: string
         }[]
       }
+      ncr_holds: {
+        Args: {
+          p_batch_deleted_at: string
+          p_disposition: string
+          p_remaining_qty: number
+          p_status: string
+        }
+        Returns: boolean
+      }
+      ncr_open_internal: {
+        Args: {
+          p_assay_dispute_id: string
+          p_assay_result_id: string
+          p_description: string
+          p_inbound_batch_id: string
+          p_judgement_id: number
+          p_opened_by: string
+          p_output_batch_id: string
+          p_sales_order_id: string
+          p_source: string
+        }
+        Returns: Json
+      }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_blending_plan_code: { Args: { p_date?: string }; Returns: string }
       next_chase_code: { Args: { p_date?: string }; Returns: string }
@@ -43260,6 +44014,7 @@ export type Database = {
       next_forecast_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
       next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
+      next_ncr_code: { Args: { p_date?: string }; Returns: string }
       next_payment_request_code: { Args: { p_date?: string }; Returns: string }
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
@@ -43302,6 +44057,19 @@ export type Database = {
       open_for_self_assessment: { Args: { p_review_id: string }; Returns: Json }
       open_gst_period: {
         Args: { p_period_end: string; p_period_start: string }
+        Returns: Json
+      }
+      open_ncr: {
+        Args: {
+          p_assay_dispute_id?: string
+          p_assay_result_id?: string
+          p_description: string
+          p_inbound_batch_id?: string
+          p_judgement_id?: number
+          p_output_batch_id?: string
+          p_sales_order_id?: string
+          p_source: string
+        }
         Returns: Json
       }
       open_probation_review: { Args: { p_employee_id: string }; Returns: Json }

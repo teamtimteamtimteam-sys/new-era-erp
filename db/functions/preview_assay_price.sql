@@ -12,6 +12,7 @@ DECLARE
     v_unit   numeric;
     v_impact jsonb := NULL;
     v_disp   uuid;
+    v_sub    jsonb;
 BEGIN
     PERFORM require_permission('action.apply_assay');
     IF p_reference_date IS NULL THEN
@@ -29,6 +30,14 @@ BEGIN
     IF FOUND THEN
         RAISE EXCEPTION 'ASSAY_DISPUTE_OPEN|%|%', v_batch.code, v_disp
           USING HINT = '这一批有一件开着的化验争议 —— 先在争议页上结案(点名哪一份说了算)或撤回,再应用';
+    END IF;
+
+    -- ★ MES-6b-1(F5;MES-6b Step 0 Q16,Tim):一份一种可计价金属都没有的清单是一份【补充】—— 应用它只换掉它测了的那几种物质、不计价
+    --   (apply_assay_result 同一个判据:可计价的金属一种都没有)。试算不再把它送进引擎撞 NO_METALS,而是当面说"补充,只换这几种,不计价"。
+    SELECT COALESCE(jsonb_agg(e ->> 'metal' ORDER BY e ->> 'metal'), '[]'::jsonb) INTO v_sub
+      FROM jsonb_array_elements(COALESCE(p_metals, '[]'::jsonb)) e;
+    IF jsonb_array_length(COALESCE(payable_metals_only(p_metals), '[]'::jsonb)) = 0 THEN
+        RETURN jsonb_build_object('calc', NULL, 'impact', NULL, 'supplement', true, 'replaces', v_sub);
     END IF;
 
     v_commit := resolve_pricing_commitment(v_batch.id);

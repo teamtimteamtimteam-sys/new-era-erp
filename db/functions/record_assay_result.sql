@@ -41,6 +41,10 @@ DECLARE
     v_val   numeric;
     v_iseen text[] := ARRAY[]::text[];
     v_icount integer := 0;
+    v_so    uuid;
+    v_judge jsonb;
+    v_ncrs  jsonb := '[]'::jsonb;
+    v_qjudged integer := 0;
 BEGIN
     -- PROC-1:两个父【二选一】。记录、编号、取代共享一张表一条序列;
     -- 权限跟着父走 —— 进料化验挂 inbound 模块,产出化验挂 output 模块。
@@ -148,11 +152,28 @@ BEGIN
         v_icount := v_icount + 1;
     END LOOP;
 
+    -- ── MES-6b-1(V17;MES-6b Step 0 Q26 · Q27):一份产出化验落下时,这一批若正预留给挂着【有质量验收限】的合同的销售单,当场判 ──
+    --   一张单一次(judge_quality_limits 自己决定判哪一份化验 —— 合同约定那一方最新的一份、或已结案争议点名的那一份 —— 所以记下的这一份
+    --   不是那一方的,就什么都不新判)。越限在同一笔事务里开一张 quality_limit 的不合格报告(→ 暂扣)。进料化验没有这一步(Q28)。
+    IF p_output_batch_id IS NOT NULL THEN
+        FOR v_so IN SELECT DISTINCT l.sales_order_id
+                      FROM sales_order_reservations r
+                      JOIN sales_order_lines l ON l.id = r.sales_order_line_id
+                     WHERE r.output_batch_id = p_output_batch_id AND r.released_at IS NULL AND r.consumed_at IS NULL
+        LOOP
+            v_judge := judge_quality_limits(p_output_batch_id, v_so, 'assay_recorded');
+            v_qjudged := v_qjudged + (v_judge->>'judged')::int;
+            v_ncrs := v_ncrs || (v_judge->'ncrs');
+        END LOOP;
+    END IF;
+
     RETURN jsonb_build_object(
         'assay_result_id', v_id,
         'code', v_code,
         'metal_count', v_count,
-        'indicator_count', v_icount
+        'indicator_count', v_icount,
+        'quality_judged', v_qjudged,
+        'ncrs_opened', v_ncrs
     );
 END;
 $function$

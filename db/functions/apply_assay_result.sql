@@ -24,6 +24,8 @@ DECLARE
     v_note     text := NULL;
     v_open     receipt_price_requests%ROWTYPE;
     v_disp     uuid;
+    v_supp     boolean;
+    v_measured text[];
 BEGIN
     PERFORM require_permission('action.apply_assay');
     SELECT * INTO v_assay FROM assay_results
@@ -57,6 +59,15 @@ BEGIN
           USING HINT = '这一批有一件开着的化验争议 —— 先在争议页上结案(点名哪一份说了算)或撤回,再应用';
     END IF;
 
+    -- 0b. ★ MES-6b-1(F5;MES-6b Step 0 Q16 · Q36,Tim):一份一种可计价金属都没测的化验是一份【补充】(assay_is_supplement):
+    --     只换掉它测了的那几种物质、不计价、不取代也不被取代。它不能带着一张公式来(补充不定价 —— 那一步属于一份完整的化验)。
+    v_supp := assay_is_supplement(p_assay_result_id);
+    v_measured := ARRAY(SELECT arm.metal FROM assay_result_metals arm WHERE arm.assay_result_id = p_assay_result_id ORDER BY arm.metal);
+    IF v_supp AND p_pricing_formula_id IS NOT NULL THEN
+        RAISE EXCEPTION 'ASSAY_SUPPLEMENT_PRICES_NOTHING|%', v_assay.code
+          USING HINT = '这份化验一种可计价的金属都没测,它只补充它测了的那几种物质 —— 不计价,所以不带公式。';
+    END IF;
+
     -- 0. ★ ROLE-1 Batch 4b(Tim 的 Q3 · Q5 · Q6):这张收货挂着一张在等 CFO 的定价申请时 ——
     --    · 来源不是化验(手工 / 按承诺条款 / 收货台):应用按名拒 RECEIPT_PRICE_REQUEST_OPEN,
     --      一个等着批的手工价不许被一份化验从脚下换掉含量;
@@ -65,7 +76,9 @@ BEGIN
     SELECT * INTO v_open FROM receipt_price_requests
      WHERE inbound_batch_id = v_batch.id AND status = 'submitted';
     IF FOUND THEN
-        IF v_open.source <> 'assay' THEN
+        -- ★ MES-6b-1(F5):一份补充不取代任何一份 —— 包括那张来源是化验、在等的申请;它也写不进含量(含量守卫在有在等的申请时拒一切写)。
+        --   所以补充在这里一律按名拒,等那一张批了或撤了再补。
+        IF v_open.source <> 'assay' OR v_supp THEN
             RAISE EXCEPTION 'RECEIPT_PRICE_REQUEST_OPEN|%|%', v_batch.code, v_open.label;
         END IF;
         PERFORM receipt_price_withdraw_internal(v_open.id,
@@ -75,12 +88,35 @@ BEGIN
     -- 1. 批次含量 = 本化验的含量(删后重插)。分摊、估值、回收率读的都是
     --    inbound_batch_metals —— 它必须始终是"当前最可信的真相";化验行本身留作历史。
     --    PROC-1:抄进的行带出处 —— content_source='assay',指回这份单据。
-    DELETE FROM inbound_batch_metals WHERE inbound_batch_id = v_batch.id;
+    --    ★ MES-6b-1(F5):补充只换掉它测了的那几种物质(别的含量行一行不动);完整的化验照旧整份换(fixture 54E)。
+    DELETE FROM inbound_batch_metals
+     WHERE inbound_batch_id = v_batch.id AND (NOT v_supp OR metal = ANY (v_measured));
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct,
                                       content_source, source_assay_id, created_by, updated_by)
     SELECT v_batch.id, arm.metal, arm.content_pct, 'assay', p_assay_result_id, v_user, v_user
     FROM assay_result_metals arm
     WHERE arm.assay_result_id = p_assay_result_id;
+
+    IF v_supp THEN
+        -- 补充:不计价、不提申请、不碰批次的公式、不取代也不被取代 —— 只记下它被应用了
+        UPDATE assay_results
+        SET applied_at = now(), applied_by = v_user, updated_by = v_user
+        WHERE id = p_assay_result_id;
+        SELECT pricing_status INTO v_status FROM inbound_batches WHERE id = v_batch.id;
+        RETURN jsonb_build_object(
+            'assay_result_id', p_assay_result_id,
+            'code', v_assay.code,
+            'inbound_batch_id', v_batch.id,
+            'batch_code', v_batch.code,
+            'supplement', true,
+            'replaced_substances', to_jsonb(v_measured),
+            'priced', false,
+            'price_requested', false,
+            'price_request', NULL,
+            'superseded_request_id', NULL,
+            'pricing_status', v_status,
+            'note', 'supplement: replaces only the substances it measured; prices nothing');
+    END IF;
 
     -- MES-6a-2(Step 0 Q28):交给计价引擎的只有按含量计价的金属 —— 一份同时测了氟、氯的化验照常落含量(上一步原样抄全部),
     --   而惩罚元素不进计价(引擎对它们按名拒;不计价的东西本来就不该出现在一张按含量付钱的清单里)。
@@ -157,10 +193,12 @@ BEGIN
     -- ★ MES-6a-1(D4 · Step 0 Q20):只取代【同一出具方】的上一份 —— 应用一份对手方或仲裁的结果【不】把我们的那一份标成
     --   superseded(assay_results.superseded_by 的列注释:"对手方的结果不是对我们结果的取代")。此前这里不看出具方,
     --   一旦有人应用对手方的结果就会静静地盖掉我们自己测到的东西(今天线上从没应用过一份非 ours 的进料化验,所以它从没开过火)。
+    -- ★ MES-6b-1(F5):一份补充不被取代 —— 取代链只在完整的化验之间连(assay_is_supplement)。
     SELECT id INTO v_prior FROM assay_results
     WHERE inbound_batch_id = v_batch.id AND id <> p_assay_result_id
       AND result_party = v_assay.result_party
       AND applied_at IS NOT NULL AND superseded_by IS NULL AND deleted_at IS NULL
+      AND NOT assay_is_supplement(id)
     ORDER BY applied_at DESC, code DESC LIMIT 1;
     IF v_prior IS NOT NULL THEN
         UPDATE assay_results SET superseded_by = p_assay_result_id, updated_by = v_user
@@ -203,6 +241,8 @@ BEGIN
         'cost_share_usd', v_rep->'cost_share_usd',
         'journal_code', v_rep->'journal_code',
         'pricing_status', v_status,
+        'supplement', false,
+        'replaced_substances', to_jsonb(v_measured),
         'note', v_note
     );
 END;

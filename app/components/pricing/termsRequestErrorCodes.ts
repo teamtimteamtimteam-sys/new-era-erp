@@ -32,13 +32,16 @@ export const TERMS_REQUEST_ERROR_CODES = new Set([
     'CONTRACT_PERIOD_ENDED',
     // TERMS-EDIT-1(grilling Q3):卖方合同条款不齐 —— 第二个参数是缺的那几条(逗号分隔),下面逐条译成人话
     'CONTRACT_TERMS_INCOMPLETE',
+    // MES-6b-1(V17 · MES-6b Step 0 Q25):结算口径写着 per_parameter,而一行质量验收限都没有 —— 参数 0 是合同编号
+    'QUALITY_LIMITS_NOT_FILED',
 ])
 
-/** TERMS-EDIT-1:清单上的一项(contract_activation_missing 的原话)→ 一句人话。'refining_charge:<metal>' 带金属 */
+/** TERMS-EDIT-1:清单上的一项(contract_activation_missing 的原话)→ 一句人话。'refining_charge:<metal>' 带金属;
+ *  MES-6b-1:'priced_and_penalised:<码>'(F4 · Q33)同样带物质 —— 码翻成字典里的名字(metals.<码>,check-i18n 读引导行核对) */
 export async function missingTermLabel(item: string): Promise<string> {
     const t = await getTranslations()
     const [what, metal] = item.split(':')
-    return metal ? t('contractDetail.missing.' + what, { metal }) : t('contractDetail.missing.' + what)
+    return metal ? t('contractDetail.missing.' + what, { metal: what === 'priced_and_penalised' ? t('metals.' + metal) : metal }) : t('contractDetail.missing.' + what)
 }
 
 // 审批四眼那一族(forbid_self_approval · require_approver_for · 开关)归财务那一份

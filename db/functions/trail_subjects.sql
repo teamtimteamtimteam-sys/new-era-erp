@@ -162,6 +162,9 @@
 --                     成员 sample_events(保管记录,住在这里)。样品与它的保管记录也出现在它那一批的记录上(进料 / 产出主语,家不在那里)。
 --   assay_dispute   → /quality/disputes/[id]         requireFunction(FN.qualityDisputes) = module.quality.view。没有成员;也出现在它那一批的记录上。
 --   quality_settings → /quality/samples 上的 V16 那一块   module.quality.view;单行设置作根(electricity_settings 的先例)
+-- MES-6b-1(2026-10-15,MES-6b Step 0 Q39):
+--   ncr             → /quality/ncr/[id]              requireFunction(FN.qualityNcr) = module.quality.view。没有成员;也出现在它那一批的记录上
+--                     (进料 / 产出主语,家不在那里)。质量验收限住在合同下(contract 的成员),判定住在产出批下。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])
  LANGUAGE sql
@@ -298,6 +301,8 @@ AS $function$
         --   质量的设定(V16,单行设置作根)
         ('sample',                 ARRAY['module.quality.view'],   'samples',               'id', 'table', NULL),
         ('assay_dispute',          ARRAY['module.quality.view'],   'assay_disputes',        'id', 'table', NULL),
-        ('quality_settings',       ARRAY['module.quality.view'],   'quality_settings',      'id', 'table', NULL)
+        ('quality_settings',       ARRAY['module.quality.view'],   'quality_settings',      'id', 'table', NULL),
+        -- MES-6b-1(2026-10-15,MES-6b Step 0 Q39):一张不合格报告(质量查看码 —— 页面的门;行再过一次它自己那张表的读规则)
+        ('ncr',                    ARRAY['module.quality.view'],   'nonconformance_reports', 'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

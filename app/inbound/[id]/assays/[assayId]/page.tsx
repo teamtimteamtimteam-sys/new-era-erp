@@ -171,6 +171,8 @@ export default async function AssayDetailPage({
     //    (录入页那边含量在动,才需要防抖的实时预览)──
     let preview: { result: CalcResult; impact?: AssayImpact } | null = null
     let previewError: string | null = null
+    // MES-6b-1(F5 · MES-6b Step 0 Q16 · Q36):一份只测惩罚元素的化验是【补充】—— 应用它只换掉它测了的那几种,不计价、不顶替前一份
+    let supplementReplaces: string[] | null = null
     if (!isApplied && metals.length > 0 && canApply) {
         // FIN-27:承诺解析 + 算价 + 拆账试算全在 preview_assay_price 里 ——
         // 与 apply_assay_result 逐字同构,所以这一页展示的数就是按下"应用"会落的数。
@@ -183,8 +185,9 @@ export default async function AssayDetailPage({
         if (calcErr) {
             previewError = await localizeAssayError(calcErr.message)
         } else {
-            const parsed = row as unknown as { calc: CalcResult | null; impact: unknown }
-            if (parsed?.calc) {
+            const parsed = row as unknown as { calc: CalcResult | null; impact: unknown; supplement?: boolean; replaces?: string[] }
+            if (parsed?.supplement) supplementReplaces = parsed.replaces ?? []
+            else if (parsed?.calc) {
                 preview = {
                     result: parsed.calc,
                     // 拆分交给 DB 试算(与真正入账的那套算术是同一份)
@@ -406,6 +409,10 @@ export default async function AssayDetailPage({
                         //   而这里真实的原因是权限(一个「0 行」先问是谁读的)。
                         <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="preview-restricted">
                             {t('assay.previewRestricted')}
+                        </p>
+                    ) : supplementReplaces ? (
+                        <p className="text-sm max-w-3xl" data-state-note="assay-supplement">
+                            {t('assay.supplementPreview', { list: supplementReplaces.map(metalLabel).join(t('contractDetail.listJoin')) })}
                         </p>
                     ) : preview ? (
                         <AssayImpactPreview res={preview.result} impact={preview.impact} baseCurrency={baseCurrency} />

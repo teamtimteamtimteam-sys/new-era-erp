@@ -14,6 +14,8 @@ import Link from 'next/link'
 import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import PpmReadout from '@/app/components/metals/PpmReadout'
+import type { SubstanceRole } from '@/lib/substances'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
 import { Button } from '@/app/components/ui/button'
@@ -26,7 +28,7 @@ import { EditableTable, type EditableColumn } from '@/app/components/ui/editable
 type MetalLine = { metal: string; content: string }
 /** 渲染用的行。`label` 与 `current` 都【不进桥】:一个是名字(字典自己的,MES-6a-2 Q30),一个是对照值,
  *  两个都是画出来的,不是交出去的。 */
-type MetalRow = MetalLine & { label: string; current: string | null }
+type MetalRow = MetalLine & { label: string; role: SubstanceRole; current: string | null }
 
 const initialState: SubmitOutputAssayState = {}
 
@@ -85,6 +87,7 @@ export default function OutputAssayForm({
     const rows: MetalRow[] = activeOptions.map((opt) => ({
         metal: opt.value,
         label: opt.label,
+        role: opt.role,
         content: metals[opt.value] ?? '',
         current: currentMetals[opt.value] ?? null,
     }))
@@ -134,12 +137,16 @@ export default function OutputAssayForm({
             key: 'content',
             header: t('assay.colContent'),
             render: (r) => (r.content.trim() === '' ? '—' : r.content),
+            // MES-6b-1(F7 · Q18):惩罚元素的格子旁边实时带 ppm(框里仍然是 %,存的仍然是 %)
             edit: (r) => (
-                <DecimalInput
-                    value={r.content}
-                    onChange={(raw) => setMetals((m) => ({ ...m, [r.metal]: raw }))}
-                    className="w-28"
-                />
+                <span className="inline-flex flex-wrap items-center gap-2">
+                    <DecimalInput
+                        value={r.content}
+                        onChange={(raw) => setMetals((m) => ({ ...m, [r.metal]: raw }))}
+                        className="w-28"
+                    />
+                    <PpmReadout value={r.content} role={r.role} />
+                </span>
             ),
         },
         ...(hasCurrent

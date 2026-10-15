@@ -423,9 +423,11 @@ BEGIN
     -- 【允许被放宽的,逐一点名】写下名字是一次决定;漏写会让这一条当场红。
     SELECT COALESCE(array_agg(x ORDER BY x), '{}') INTO v_widened FROM (
         SELECT DISTINCT unnest(v_arms) AS x) y WHERE arm_permission_widen(y.x) IS NOT NULL;
+    -- ★ MES-6b-1(2026-10-15,MES-6b Step 0 Q38):第四支 quality_hold_reserved —— 一批被暂扣的货还挂着预留,质量那一侧与销售那一侧都要看得见
+    --   (arm_permission_widen:module.sales.view;它同时由 arm_permission_any 收窄到产出查看码,那是另一个方向)。
     IF v_widened <> ARRAY['equipment_service_approaching','equipment_service_due',
-                          'free_time_expiring'] THEN
-        RAISE EXCEPTION 'FIXTURE 102G 失败:被放宽的支应当【恰好】是点过名的那三支(免柜期,以及 EQP-2c 保养的两支),实得 %。多一支 = 某一支被悄悄放宽了(它的 permission 从此形同虚设);少一支 = 放宽算子漏了它,而那一支的读者会在首页读到「受限」,尽管他读得到底下的数据', v_widened::text;
+                          'free_time_expiring','quality_hold_reserved'] THEN
+        RAISE EXCEPTION 'FIXTURE 102G 失败:被放宽的支应当【恰好】是点过名的那四支(免柜期、EQP-2c 保养的两支、MES-6b-1 的暂扣预留),实得 %。多一支 = 某一支被悄悄放宽了(它的 permission 从此形同虚设);少一支 = 放宽算子漏了它,而那一支的读者会在首页读到「受限」,尽管他读得到底下的数据', v_widened::text;
     END IF;
 END $$;
 ROLLBACK;

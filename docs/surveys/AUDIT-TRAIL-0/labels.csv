@@ -3596,3 +3596,48 @@ assay_result_indicators,assay_result_id,fk_document,"assay_results.code (documen
 assay_result_indicators,indicator,dict,assay_indicators.name_en (via code),,,Indicator,,,text
 assay_result_indicators,value,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Value,,,numeric
 assay_result_indicators,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+nonconformance_reports,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+nonconformance_reports,code,text,verbatim,,,Report number,,,text
+nonconformance_reports,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",,,Inbound batch,,,uuid
+nonconformance_reports,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+nonconformance_reports,source,enum,"message keys quality.ncrSource.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Source,,,text
+nonconformance_reports,description,text,verbatim,,,What is wrong,,,text
+nonconformance_reports,assay_result_id,fk_document,"assay_results.code (document number, prefix ASY)",,,Assay,,,uuid
+nonconformance_reports,assay_dispute_id,technical,hide: the dispute has no number; the report page links it,,,Assay dispute,,,uuid
+nonconformance_reports,sales_order_id,fk_document,"sales_orders.code (document number, prefix SO)",,,Sales order,,,uuid
+nonconformance_reports,judgement_id,technical,hide: the judgement is shown on the report page and on the batch trail,,,Judgement,,,bigint
+nonconformance_reports,status,enum,"message keys quality.ncrStatus.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Status,,,text
+nonconformance_reports,opened_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Opened,,,timestamp with time zone
+nonconformance_reports,opened_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Opened by,,,uuid
+nonconformance_reports,disposition,enum,"message keys quality.ncrDisposition.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Disposition,,,text
+nonconformance_reports,decision_note,text,verbatim,,,Decision note,,,text
+nonconformance_reports,decided_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Decided,,,timestamp with time zone
+nonconformance_reports,decided_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Decided by,,,uuid
+nonconformance_reports,penalty_invoice_request_id,technical,hide: a request has no stable number; its label is on the report page,,,Credit-note request,,,uuid
+nonconformance_reports,penalty_price_request_id,technical,hide: a request has no stable number; its label is on the report page,,,Price request,,,uuid
+quality_limit_judgements,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+quality_limit_judgements,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+quality_limit_judgements,sales_order_id,fk_document,"sales_orders.code (document number, prefix SO)",,,Sales order,,,uuid
+quality_limit_judgements,contract_id,fk_document,"contracts.code (document number, prefix CON)",,,Contract,,,uuid
+quality_limit_judgements,assay_result_id,fk_document,"assay_results.code (document number, prefix ASY)",,,Assay,,,uuid
+quality_limit_judgements,parameter,dict,ENUM_OVERRIDES quality_limit_judgements#parameter (moisture); an indicator code otherwise,,,Parameter,,,text
+quality_limit_judgements,value,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Value,,,numeric
+quality_limit_judgements,limit_min_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Minimum (copied from the contract),,,numeric
+quality_limit_judgements,limit_max_at,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Maximum (copied from the contract),,,numeric
+quality_limit_judgements,result,enum,ENUM_OVERRIDES quality_limit_judgements#result,,,Result,,,text
+quality_limit_judgements,trigger_event,enum,ENUM_OVERRIDES quality_limit_judgements#trigger_event,,,Judged when,,,text
+quality_limit_judgements,judged_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Judged,,,timestamp with time zone
+quality_limit_judgements,judged_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Judged by,,,uuid
+contract_quality_limits,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+contract_quality_limits,contract_id,fk_document,"contracts.code (document number, prefix CON)",contracts.colContract,Contract,,text-only,,uuid
+contract_quality_limits,material_id,fk_document,"materials.code (document number, prefix MAT)",inbound.colMaterial,Material,,text-only,,uuid
+contract_quality_limits,parameter,dict,ENUM_OVERRIDES contract_quality_limits#parameter (moisture); an indicator code otherwise,contractDetail.field.quality_limits.parameter,Parameter,,text-only,,text
+contract_quality_limits,indicator,dict,assay_indicators.name_en (via code),,,Indicator,,,text
+contract_quality_limits,min_value,number,"number with unit (qty kg, %, rate); Intl en-US grouping",contractDetail.field.quality_limits.min_value,Minimum,Minimum,text-only,,numeric
+contract_quality_limits,max_value,number,"number with unit (qty kg, %, rate); Intl en-US grouping",contractDetail.field.quality_limits.max_value,Maximum,Maximum,text-only,,numeric
+contract_quality_limits,notes,text,verbatim,contracts.form.notes,Notes,,high,app/contracts/[id]/HeaderForm.tsx:130,text
+contract_quality_limits,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+contract_quality_limits,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+contract_quality_limits,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+contract_quality_limits,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+contract_settlement_terms,quality_limit_basis,enum,ENUM_OVERRIDES contract_settlement_terms#quality_limit_basis,contractDetail.field.settlement_terms.quality_limit_basis,Quality limits,,text-only,,text

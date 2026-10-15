@@ -26,6 +26,8 @@ const ASSAY_ERROR_CODES = new Set([
     'RECEIPT_PRICE_REQUEST_OPEN', 'RECEIPT_PRICE_BELOW_SETTLED', 'RECEIPT_PRICE_NO_OTHER_DECIDER',
     // MES-6a-2(Q3 · Q4 · Q27):化验上的指标(record_assay_result 的 p_indicators)与"这种物质不计价"
     'INDICATORS_INVALID', 'INDICATOR_INVALID', 'DUPLICATE_INDICATOR', 'INDICATOR_VALUE_INVALID', 'SUBSTANCE_NOT_PAYABLE',
+    // MES-6b-1(F5 · Q16):一份只测惩罚元素的补充化验不计价 —— 带着计价公式去应用它,按名拒
+    'ASSAY_SUPPLEMENT_PRICES_NOTHING',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

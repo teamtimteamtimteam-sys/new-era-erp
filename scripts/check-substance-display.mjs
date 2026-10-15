@@ -17,7 +17,9 @@
 //   round      —— 含量换成 toFixed(2) 的印法(Q29 那个老毛病)→ ① 红;
 //   labelkey   —— 选项的名字换回 'metals.<code>' 键(Q30 之前的样子)→ ① 红;
 //   ppm-float  —— ppm 走浮点乘法(实测 0.0029 × 10000 = 28.999999999999996)→ ① 红;
-//   pricing    —— 把一个定价页的 payableOnly 从源码里拿掉再判 → ② 红。
+//   pricing    —— 把一个定价页的 payableOnly 从源码里拿掉再判 → ② 红;
+//   ppm-entry  —— 把产出化验单上的 <PpmReadout 拿掉再判(MES-6b-1 F7)→ ② 红;
+//   typing     —— 录入旁那一格对可计价金属也给 ppm → ① 红。
 // 退出码:0 干净 · 1 有违反 · 3 本检查瞎了。
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -37,6 +39,7 @@ const toSubstanceOptions = FAULT === 'labelkey'
     ? (rows, locale) => L.toSubstanceOptions(rows, locale).map((o) => ({ ...o, label: 'metals.' + o.value }))
     : L.toSubstanceOptions
 const ppmOf = FAULT === 'ppm-float' ? (p) => String(Number(p) * L.PPM_PER_PCT) : L.ppmOf
+const typingPpm = FAULT === 'typing' ? (raw) => L.typingPpm(raw, 'penalty_element') : L.typingPpm
 
 const ROWS = [
     { code: 'ni', name_en: 'Nickel', name_zh: '镍', symbol: 'Ni', is_active: true, role: 'payable_metal' },
@@ -68,7 +71,17 @@ eq('停用的行带 isActive=false 留在选项里', en.find((o) => o.value === 
 // Q27:分角色
 eq('payableOnly', L.payableOnly(ROWS).map((r) => r.code).join(','), 'ni')
 eq('penaltyOnly', L.penaltyOnly(ROWS).map((r) => r.code).join(','), 'f,cl')
-assertAssertionsRan(SELF, ran, 18)
+// MES-6b-1(F4 · Q15):惩罚条款收惩罚元素与可计价金属,'other' 不收
+eq('penaltyCandidates', L.penaltyCandidates(ROWS).map((r) => r.code).join(','), 'ni,f,cl')
+// MES-6b-1(F7 · Q18):录入旁那一格 —— 惩罚元素带 ppm,别的不带;正在打的半截不闪;读不懂的不猜
+eq('录入 0.005 的氟', typingPpm('0.005', 'penalty_element'), '50')
+eq('录入 0.0029(浮点会给 28.999…)', typingPpm('0.0029', 'penalty_element'), '29')
+eq('正在打 "0."', typingPpm('0.', 'penalty_element'), '0')
+eq('正在打 ".5"', typingPpm('.5', 'penalty_element'), '5000')
+eq('可计价金属不带', typingPpm('20.5', 'payable_metal'), null)
+eq('空的不带', typingPpm('', 'penalty_element'), null)
+eq('读不懂的不猜', typingPpm('1e-3', 'penalty_element'), null)
+assertAssertionsRan(SELF, ran, 26)
 
 // ── ② 源码:每一处 toOptions 带着语言;定价页只递可计价金属;合同的两本字典;没有被舍入的含量 ─────────────
 function* walk(dir) {
@@ -147,7 +160,7 @@ assertPinned(SELF, 'toOptions( 调用:判据 ↔ 粗计数', calls, roughCalls, 
 // 合同页:两本字典各递它该递的角色;termSpecs 的三条映射指着对的字典
 const page = stripComments(readFileSync(join(ROOT, 'app/contracts/[id]/page.tsx'), 'utf8'))
 if (!/payables:\s*pickable\(payableOnly\(/.test(page)) problems.push('② app/contracts/[id]/page.tsx: the payables dictionary is not payableOnly(...) (Q27)')
-if (!/penaltyElements:\s*pickable\(penaltyOnly\(/.test(page)) problems.push('② app/contracts/[id]/page.tsx: the penaltyElements dictionary is not penaltyOnly(...) (Q27)')
+if (!/penaltyCandidates:\s*pickable\(penaltyCandidates\(/.test(page)) problems.push('② app/contracts/[id]/page.tsx: the penaltyCandidates dictionary is not penaltyCandidates(...) (MES-6b-1 F4)')
 const specs = stripComments(readFileSync(join(ROOT, 'app/contracts/[id]/termSpecs.ts'), 'utf8'))
 const dictOf = (table, col) => {
     const at = specs.indexOf(`dbTable: '${table}'`)
@@ -156,10 +169,35 @@ const dictOf = (table, col) => {
     const block = specs.slice(at, next < 0 ? undefined : next)
     return new RegExp(`name:\\s*'${col}'[^}]*dict:\\s*'(\\w+)'`).exec(block)?.[1]
 }
-for (const [table, col, want] of [['contract_pricing_terms', 'metal', 'payables'], ['contract_refining_charges', 'metal', 'payables'], ['contract_penalty_elements', 'substance', 'penaltyElements']]) {
+for (const [table, col, want] of [['contract_pricing_terms', 'metal', 'payables'], ['contract_refining_charges', 'metal', 'payables'], ['contract_penalty_elements', 'substance', 'penaltyCandidates']]) {
     const got = dictOf(table, col)
     if (got !== want) problems.push(`② app/contracts/[id]/termSpecs.ts: ${table}.${col} picks from '${got}', not '${want}' (Q27)`)
 }
+
+// MES-6b-1(F7 · Q18):每一个录惩罚元素含量的框旁边都带 ppm —— 四处,逐个点名(名单是闭合的:两张化验单、批次页手工录入、
+//   合同惩罚条款的阈值)。少一处就红。品位规格与配料目标【不在】名单里(Q18:它们仍然只用 %)。
+const PPM_ENTRY = [
+    'app/inbound/[id]/assays/new/AssayForm.tsx',
+    'app/output/[id]/assays/new/OutputAssayForm.tsx',
+    'app/components/metals/MetalContentPanel.tsx',
+    'app/contracts/[id]/TermSection.tsx',
+]
+export function ppmEntryRule(rel, raw) {
+    const src = stripComments(raw)
+    return /<PpmReadout\b/.test(src) && /import\s+PpmReadout\b/.test(src)
+        ? [] : [`${rel}: a content entry box for a penalty element has no <PpmReadout> beside it (MES-6b-1 F7 · Q18)`]
+}
+if (ppmEntryRule('x.tsx', `<DecimalInput value={v} />`).length === 0) { console.error(`✗ ${SELF}:本检查瞎了 —— ppm 那条规则没有点名一个不带读数的录入框`); process.exit(3) }
+if (ppmEntryRule('x.tsx', `import PpmReadout from './PpmReadout'\n// <PpmReadout value={v} />\n<DecimalInput />`).length === 0) { console.error(`✗ ${SELF}:本检查瞎了 —— ppm 那条规则被一句注释骗过`); process.exit(3) }
+let ppmFiles = 0
+for (const rel of PPM_ENTRY) {
+    let raw = readFileSync(join(ROOT, rel), 'utf8')
+    if (FAULT === 'ppm-entry' && rel.includes('OutputAssayForm')) raw = raw.replace(/<PpmReadout[^>]*\/>/g, '')
+    ppmFiles++
+    problems.push(...ppmEntryRule(rel, raw).map((p) => '② ' + p))
+}
+assertPinned(SELF, 'ppm 录入名单', ppmFiles, 4, '名单是闭合的四处;少读一处就是瞎了一处。')
+if (!/name:\s*'threshold_pct'[^}]*ppmBeside:\s*\{\s*roleOf:\s*'substance'/.test(specs)) problems.push("② app/contracts/[id]/termSpecs.ts: the penalty threshold has no ppmBeside — the contract form would not show ppm as it is typed (MES-6b-1 F7)")
 
 if (problems.length) {
     console.error(`✗ ${SELF}:${problems.length} 处`)
@@ -167,4 +205,5 @@ if (problems.length) {
     process.exit(1)
 }
 console.log(`✓ ${SELF}:① ${ran} 条断言(% 原样不舍入、惩罚元素旁带 ppm、名字来自字典、分角色)全部成立;`
-    + `② ${files} 个文件里 ${calls} 处 toOptions 都带着语言、定价页只递可计价金属,合同的两本字典与三条映射对得上,没有一处 content_pct 被 toFixed。自证 5 格全部咬人。`)
+    + `② ${files} 个文件里 ${calls} 处 toOptions 都带着语言、定价页只递可计价金属,合同的两本字典与三条映射对得上,没有一处 content_pct 被 toFixed;`
+    + `四个录惩罚元素含量的框旁边都带 ppm(F7)。自证 7 格全部咬人。`)

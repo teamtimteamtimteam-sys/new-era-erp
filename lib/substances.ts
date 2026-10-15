@@ -5,7 +5,7 @@
 //
 // ① 名字(Q30):下拉的选项读【字典自己的】name_en / name_zh(按读者的语言),不再拼 'metals.<code>' 的文案键 ——
 //    以后加一种物质就只是一行,它自己带着名字。(屏幕上把码翻成名字的那几处仍用 metals.* 键;氟、氯两个键与它们的字典行同一刀加上。)
-// ② 角色(Q27):定价的那几页只给按含量计价的金属(payable_metal);合同的惩罚条款只给惩罚元素(penalty_element);
+// ② 角色(Q27):定价的那几页只给按含量计价的金属(payable_metal);合同的惩罚条款给惩罚元素与可计价金属(MES-6b-1 F4);
 //    化验、含量、必测项、预计化验、品位规格、配料目标给全部。服务端(表上的守卫与写入函数)对不该来的按名拒 ——
 //    这里只是不把一个必然被拒的选项递给人(AGENTS.md「must not offer it」)。
 // ③ ppm(Q29):含量【以 % 存、以 % 录】;惩罚元素在 % 旁边带 ppm(1 % = 10,000 ppm)。【不舍入】:存的是什么就印什么 ——
@@ -42,9 +42,15 @@ export function payableOnly<T extends { role: SubstanceRole }>(rows: T[]): T[] {
     return rows.filter((r) => r.role === 'payable_metal')
 }
 
-/** 只留惩罚元素 —— 合同的惩罚条款那一页。 */
+/** 只留惩罚元素。 */
 export function penaltyOnly<T extends { role: SubstanceRole }>(rows: T[]): T[] {
     return rows.filter((r) => r.role === 'penalty_element')
+}
+
+/** MES-6b-1(F4 · MES-6b Step 0 Q15):合同惩罚条款收的物质 —— 惩罚元素【与】可计价金属(铜也可以被罚);
+ *  'other' 不收。与表上的守卫 guard_substance_role('payable_metal,penalty_element') 是同一张清单。 */
+export function penaltyCandidates<T extends { role: SubstanceRole }>(rows: T[]): T[] {
+    return rows.filter((r) => r.role === 'penalty_element' || r.role === 'payable_metal')
 }
 
 export const PPM_PER_PCT = 10000
@@ -95,6 +101,16 @@ export function contentCell(pct: number | string, role: SubstanceRole | null | u
 export function contentText(pct: number | string, role: SubstanceRole | null | undefined): string {
     const d = contentDisplay(pct, role)
     return d.ppm === null ? `${d.pct}%` : `${d.pct}% (${d.ppm} ppm)`
+}
+
+/** MES-6b-1(F7 · MES-6b Step 0 Q18):录入框旁边那一格 —— 正在打的 % 值换成 ppm。
+ *  只有惩罚元素才有(可计价金属与别的物质返回 null);空串、半截("0.")之外读不懂的也返回 null(不猜)。
+ *  "0." 读作 0 —— 人正在打字,那一格不该闪。 */
+export function typingPpm(raw: string, role: SubstanceRole | null | undefined): string | null {
+    if (role !== 'penalty_element') return null
+    const v = raw.trim()
+    if (!/^\d+(\.\d*)?$|^\.\d+$/.test(v)) return null
+    return ppmOf(v.endsWith('.') ? v.slice(0, -1) : v.startsWith('.') ? '0' + v : v)
 }
 
 function numberToPlain(n: number): string {

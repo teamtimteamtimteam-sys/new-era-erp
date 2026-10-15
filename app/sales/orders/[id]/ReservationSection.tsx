@@ -96,6 +96,22 @@ export default async function ReservationSection({
           ) as unknown as ConsumedRow[])) as ConsumedRow[]
     const shipByReservation = new Map(consumedRows.map((r) => [r.reservation_id, r.shipments]))
 
+    // ★ MES-6b-1(2026-10-15,MES-6b Step 0 Q23,Tim):【活预留里有一批在质量暂扣里】—— 预留照留(暂扣落下时不自动释放),但它发不出去
+    //   (发货那一条腿被流水守卫按名拒 QUALITY_HOLD_OPEN)。在这里说出来:哪一批、被哪一张不合格报告扣着;释放预留照常可以。
+    //   读 ncr_rows(质量查看码,或产出查看码 —— 两个都没有的读者读到「受限」,不是"没有暂扣")。
+    const activeBatchIds = [...new Set(reservations.filter((r) => r.released_at === null && r.consumed_at === null).map((r) => r.output_batch_id))]
+    const [canQualityView, canOutputView] = await Promise.all([can('module.quality.view'), can('module.output.view')])
+    const holdsReadable = canQualityView || canOutputView
+    const heldBatches = holdsReadable && activeBatchIds.length > 0
+        ? (mustRows(
+              await supabase.from('ncr_rows').select('id, code, batch_code, output_batch_id, status').in('output_batch_id', activeBatchIds).eq('holding', true)
+                  .order('opened_at'),
+              'ncr_rows'
+          ) as { id: string; code: string; batch_code: string; output_batch_id: string; status: string }[])
+        : []
+    const heldByBatch = new Map<string, { id: string; code: string; batch_code: string }>()
+    for (const h of heldBatches) if (!heldByBatch.has(h.output_batch_id)) heldByBatch.set(h.output_batch_id, h)
+
     // 候选:这一行的物料【还活着】的产出批次,按桶(批次 × 库位)列出可用量。
     const canSeeStock = await can('module.inventory.view')
     const buckets = new Map<string, BucketOption[]>() // material_id → 候选桶
@@ -158,6 +174,24 @@ export default async function ReservationSection({
         <section className="mt-8">
             <h2 className="mb-1">{t('sales.reserve.title')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('sales.reserve.note')}</p>
+
+            {heldByBatch.size > 0 && (
+                <div className="bg-red-50 border border-red-300 px-3 py-2 rounded mb-3 text-sm" data-notice="reserved-quality-hold">
+                    <p>{t('sales.reserve.qualityHold')}</p>
+                    <ul className="mt-1 space-y-0.5">
+                        {[...heldByBatch.values()].map((h) => (
+                            <li key={h.id}>
+                                {h.batch_code} · {canQualityView
+                                    ? <Link href={`/quality/ncr/${h.id}`} className="app-link hover:underline">{h.code}</Link>
+                                    : <span>{h.code}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {!holdsReadable && activeBatchIds.length > 0 && (
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-3" data-notice="reserved-quality-hold-restricted">{t('sales.reserve.qualityHoldRestricted')}</p>
+            )}
 
             {/* 【禁用的理由长在控件旁边】—— 不是等人点了才说 */}
             {!isReservable && (

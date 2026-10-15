@@ -16,5 +16,8 @@ AS $function$
                 THEN ARRAY['module.logistics.view', 'module.finance.view']
                 WHEN p_item_type IN ('equipment_service_due', 'equipment_service_approaching')
                 THEN ARRAY['module.processing.view', 'module.finance.view']
+                -- MES-6b-1(Step 0 Q38):一批被暂扣的货还挂着预留 —— 质量那一侧(决定报告的人)与销售那一侧(那张单的人)都要看得见
+                WHEN p_item_type = 'quality_hold_reserved'
+                THEN ARRAY['module.sales.view']
            END;
 $function$

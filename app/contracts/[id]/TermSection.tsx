@@ -19,6 +19,8 @@ import { Refusal } from '@/app/components/ui/refusal'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import PpmReadout from '@/app/components/metals/PpmReadout'
+import type { SubstanceRole } from '@/lib/substances'
 import { saveTermRow, deleteTermRow, type EditResult } from './actions'
 
 export type TermFieldView = {
@@ -30,6 +32,8 @@ export type TermFieldView = {
     min?: number
     max?: number
     defaultValue?: string
+    /** MES-6b-1(F7 · Q18):旁边实时带 ppm —— 当同一张表单里 roleOf 那一格选的物质在 roles 里是惩罚元素时 */
+    ppmBeside?: { roleOf: string; roles: Record<string, SubstanceRole> }
 }
 
 export type TermRowView = {
@@ -60,6 +64,8 @@ export default function TermSection({
     const [pending, start] = useTransition()
     const [editing, setEditing] = useState<string | null>(null)
     const [result, setResult] = useState<{ key: string; r: EditResult } | null>(null)
+    // MES-6b-1(F7):表单是非受控的;ppm 那一格要读正在打的值,所以按表单记下【改过的】几格(没改过的读初值)
+    const [live, setLive] = useState<Record<string, Record<string, string>>>({})
     const blocked = blockedReason !== null
     const subject = `${contractCode} · ${title}`
 
@@ -71,6 +77,7 @@ export default function TermSection({
             if (r.error || r.fieldErrors) { setResult({ key, r }); return }
             setResult(null)
             setEditing(null)
+            setLive((m) => ({ ...m, [key]: {} }))
             if (rowId === null) form.reset()
             router.refresh()
         })
@@ -94,6 +101,10 @@ export default function TermSection({
             <form
                 key={`${table}:${key}`}
                 onSubmit={(e) => { e.preventDefault(); submit(rowId, e.currentTarget) }}
+                onChange={(e) => {
+                    const el = e.target as unknown as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+                    if (el.name) setLive((m) => ({ ...m, [key]: { ...m[key], [el.name]: el.value } }))
+                }}
                 data-term-form={`${table}:${key}`}
             >
                 <AddRowPanel
@@ -116,6 +127,7 @@ export default function TermSection({
                 >
                     {fields.map((f) => {
                         const v = values?.[f.name] ?? f.defaultValue ?? ''
+                        const now = (name: string) => live[key]?.[name] ?? values?.[name] ?? fields.find((x) => x.name === name)?.defaultValue ?? ''
                         const err = mine?.fieldErrors?.[f.name]
                         const id = `${table}-${key}-${f.name}`
                         const disabled = blocked || !canWrite
@@ -142,6 +154,9 @@ export default function TermSection({
                                            step={f.type === 'integer' ? 1 : 'any'}
                                            min={f.min} max={f.max}
                                            className={`${CONTROL_INPUT} w-full`} aria-invalid={Boolean(err)} />
+                                )}
+                                {f.ppmBeside && (
+                                    <PpmReadout value={now(f.name)} role={f.ppmBeside.roles[now(f.ppmBeside.roleOf)]} />
                                 )}
                                 {err && <p className="text-red-600 text-xs mt-1">{err}</p>}
                             </div>

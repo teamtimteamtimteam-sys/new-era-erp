@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -6477,6 +6477,180 @@ if (FAULT === 'wording-drift-mes6a2') dict.tables = { ...dict.tables, assay_indi
     if (FAULT === 'wording-drift-mes6a2' && !problems.gold27.length) problems.gold27.push('(注入 wording-drift-mes6a2 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉘ MES-6b-1:不合格报告(在它自己的页上、在它那一批上)· 合同质量验收限与它的口径(V17)· 对验收限的判定 · 一条罚铜的惩罚条款(F4)
+//   (MES-6b Step 0 Q7 · Q8 · Q15 · Q25 · Q26 · Q39)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-6b-1.md 列出。
+//   读 titlePart(条目上真正的那个字段,与 ㉗ 同),所以 part 那一格比的是真东西。
+//   注入 wording-drift-mes6b1 → 这一臂必须红。
+problems.gold28 = []
+if (FAULT === 'wording-drift-mes6b1') dict.tables = { ...dict.tables, nonconformance_reports: ['quality complaint', ...(dict.tables.nonconformance_reports ?? []).slice(1)] }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const ib = id('ib'), ob = id('ob'), ncr = id('ncr'), ncr2 = id('ncr2'), asy = id('asy'), so = id('so'), con = id('con'), cql = id('cql'), cst = id('cst'), cpe = id('cpe')
+    const NCR_ROW = { id: ncr, code: 'NCR-2026-0001', inbound_batch_id: ib, output_batch_id: null, source: 'manual', description: 'Wet sacks found on arrival',
+        assay_result_id: null, assay_dispute_id: null, sales_order_id: null, judgement_id: null, status: 'open', opened_at: '2026-10-15T06:00:00Z',
+        opened_by: id('u'), disposition: null, decision_note: null, decided_at: null, decided_by: null, penalty_invoice_request_id: null, penalty_price_request_id: null }
+    add('ncr · opened by hand, on its own page', { subject: 'ncr', recordId: ncr, currency: null },
+        [{ table: 'nonconformance_reports', op: 'INSERT', key: { id: ncr }, refs: { inbound_batch_id: { [ib]: { label: 'IN-2026-0201' } }, opened_by: { [id('u')]: { label: 'Chooer' } } }, new: NCR_ROW }])
+    add('ncr · decided reject', { subject: 'ncr', recordId: ncr, currency: null },
+        [{ table: 'nonconformance_reports', op: 'UPDATE', key: { id: ncr }, cols: ['status', 'disposition', 'decision_note', 'decided_at', 'decided_by'],
+           refs: { decided_by: { [id('u2')]: { label: 'Sandra' } } },
+           old: NCR_ROW, new: { ...NCR_ROW, status: 'decided', disposition: 'reject', decision_note: 'Moisture too high to process', decided_at: '2026-10-15T07:00:00Z', decided_by: id('u2') } }],
+        { state: 'person', name: 'Sandra' })
+    add('ncr · on its inbound batch page', { subject: 'inbound_batch', recordId: ib, currency: null },
+        [{ table: 'nonconformance_reports', op: 'INSERT', key: { id: ncr }, refs: { inbound_batch_id: { [ib]: { label: 'IN-2026-0201' } }, opened_by: { [id('u')]: { label: 'Chooer' } } }, new: NCR_ROW }])
+    add('ncr · opened by the system on an output batch', { subject: 'output_batch', recordId: ob, currency: null },
+        [{ table: 'quality_limit_judgements', op: 'INSERT', key: { id: 41 },
+           refs: { output_batch_id: { [ob]: { label: 'CPW-2026-0012' } }, sales_order_id: { [so]: { label: 'SO-2026-0031' } }, contract_id: { [con]: { label: 'CON-2026-0007' } },
+                   assay_result_id: { [asy]: { label: 'ASY-2026-0140' } }, judged_by: { [id('u')]: { label: 'Chooer' } } },
+           new: { id: 41, output_batch_id: ob, sales_order_id: so, contract_id: con, assay_result_id: asy, parameter: 'moisture_pct', value: 9.2,
+                  limit_min_at: null, limit_max_at: 8, result: 'above_max', trigger_event: 'reserved', judged_at: '2026-10-15T06:00:00Z', judged_by: id('u') } },
+         { table: 'nonconformance_reports', op: 'INSERT', key: { id: ncr2 },
+           refs: { output_batch_id: { [ob]: { label: 'CPW-2026-0012' } }, assay_result_id: { [asy]: { label: 'ASY-2026-0140' } }, sales_order_id: { [so]: { label: 'SO-2026-0031' } } },
+           new: { ...NCR_ROW, id: ncr2, code: 'NCR-2026-0002', inbound_batch_id: null, output_batch_id: ob, source: 'quality_limit',
+                  description: 'Quality limit breached: CPW-2026-0012 moisture (%) is 9.2 (limit min -, max 8) under contract CON-2026-0007, sales order SO-2026-0031, assay ASY-2026-0140.',
+                  assay_result_id: asy, sales_order_id: so,
+                  judgement_id: 41, opened_by: null } }])
+    add('contract · quality limit added', { subject: 'contract', recordId: con, currency: null },
+        [{ table: 'contract_quality_limits', op: 'INSERT', key: { id: cql }, refs: { contract_id: { [con]: { label: 'CON-2026-0007' } } },
+           new: { id: cql, contract_id: con, material_id: null, parameter: 'moisture_pct', indicator: null, min_value: null, max_value: 8, notes: null,
+                  created_at: '2026-10-15T06:00:00Z', created_by: id('u'), updated_at: '2026-10-15T06:00:00Z', updated_by: id('u') } }])
+    add('contract · quality-limit basis set', { subject: 'contract', recordId: con, currency: null },
+        [{ table: 'contract_settlement_terms', op: 'UPDATE', key: { id: cst }, cols: ['quality_limit_basis'],
+           old: { id: cst, contract_id: con, quality_limit_basis: null }, new: { id: cst, contract_id: con, quality_limit_basis: 'per_parameter' } }])
+    add('contract · copper named as a penalty', { subject: 'contract', recordId: con, currency: null },
+        [{ table: 'contract_penalty_elements', op: 'INSERT', key: { id: cpe }, refs: { substance: { cu: { label: 'Copper' } } },
+           new: { id: cpe, contract_id: con, substance: 'cu', threshold_pct: 2, usd_per_tonne_per_pct_over: 150, notes: null,
+                  created_at: '2026-10-15T06:00:00Z', created_by: id('u'), updated_at: '2026-10-15T06:00:00Z', updated_by: id('u') } }])
+    const WANT = {
+        "ncr · opened by hand, on its own page": {
+            "title": "Non-conformance report created",
+            "part": null,
+            "lines": [
+                "Report number: NCR-2026-0001",
+                "Inbound batch: IN-2026-0201",
+                "Source: Manual",
+                "What is wrong: Wet sacks found on arrival",
+                "Status: Open",
+                "Opened: 15/10/2026 14:00",
+                "Opened by: Chooer"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "ncr · decided reject": {
+            "title": "Non-conformance report edited",
+            "part": null,
+            "lines": [
+                "Status: Open → Decided",
+                "Disposition: (empty) → Rejected",
+                "Decision note: (empty) → Moisture too high to process",
+                "Decided: (empty) → 15/10/2026 15:00",
+                "Decided by: (empty) → Sandra"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "ncr · on its inbound batch page": {
+            "title": "Non-conformance report created",
+            "part": null,
+            "lines": [
+                "Report number: NCR-2026-0001",
+                "Inbound batch: IN-2026-0201",
+                "Source: Manual",
+                "What is wrong: Wet sacks found on arrival",
+                "Status: Open",
+                "Opened: 15/10/2026 14:00",
+                "Opened by: Chooer"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "ncr · opened by the system on an output batch": {
+            "title": "Quality limit judgement created",
+            "part": null,
+            "lines": [
+                "Output batch: CPW-2026-0012",
+                "Sales order: SO-2026-0031",
+                "Contract: CON-2026-0007",
+                "Assay: ASY-2026-0140",
+                "Parameter: Moisture",
+                "Value: 9.2",
+                "Maximum (copied from the contract): 8",
+                "Result: Above maximum",
+                "Judged when: Batch reserved",
+                "Judged: 15/10/2026 14:00",
+                "Judged by: Chooer",
+                "[Non-conformance report created]",
+                "Report number: NCR-2026-0002",
+                "Output batch: CPW-2026-0012",
+                "Source: Contract quality limit",
+                "What is wrong: Quality limit breached: CPW-2026-0012 moisture (%) is 9.2 (limit min -, max 8) under contract CON-2026-0007, sales…",
+                "Assay: ASY-2026-0140",
+                "Sales order: SO-2026-0031",
+                "Status: Open",
+                "Opened: 15/10/2026 14:00"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "contract · quality limit added": {
+            "title": "Contract quality limit created",
+            "part": null,
+            "lines": [
+                "Contract: CON-2026-0007",
+                "Parameter: Moisture",
+                "Maximum: 8"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "contract · quality-limit basis set": {
+            "title": "Settlement basis changed",
+            "part": null,
+            "lines": [
+                "Quality limits: (empty) → Per parameter"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "contract · copper named as a penalty": {
+            "title": "Penalty element added",
+            "part": "Copper",
+            "lines": [
+                "Threshold %: 2",
+                "USD per tonne per % over: 150"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        }
+    }
+    const got28 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD28', order: 1, prelog: false, at: '2026-10-15T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Chooer' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold28.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD28')
+        if (mine.length !== 1) { problems.gold28.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got28[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold28.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold28.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold28.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold28.push(`㉘ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (process.env.TRAIL_GOLD28_PRINT) console.log(JSON.stringify(got28, null, 8))
+    if (FAULT === 'wording-drift-mes6b1' && !problems.gold28.length) problems.gold28.push('(注入 wording-drift-mes6b1 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -6484,7 +6658,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

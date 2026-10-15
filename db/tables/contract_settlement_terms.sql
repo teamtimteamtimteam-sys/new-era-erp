@@ -88,6 +88,12 @@ CREATE TABLE public.contract_settlement_terms (
     arbitration_fee_rule text
         CHECK (arbitration_fee_rule IS NULL OR arbitration_fee_rule IN
                ('loser_pays', 'equal', 'further_from_umpire_pays', 'buyer', 'seller')),
+    -- ── MES-6b-1 追加(2026-10-15,V17;MES-6b Step 0 Q25,Tim):质量验收限的【口径声明】── ★ 可空 = V17 Not yet set,永远不给默认值 ★
+    --   本表那条中心句的第四个实例:'none_agreed' = 这份合同声明了没有限;'per_parameter' = 有,行在 contract_quality_limits。
+    --   卖方合同申请生效要它(contract_activation_missing 列出 'quality_limit_basis');per_parameter 而一行限都没有 → QUALITY_LIMITS_NOT_FILED。
+    --   随结算口径一起在挂接那一刻抄进单据的合同副本(link_document_to_contract 的 to_jsonb,连同 quality_limits 那几行)。
+    quality_limit_basis text
+        CHECK (quality_limit_basis IS NULL OR quality_limit_basis IN ('none_agreed', 'per_parameter')),
     -- 一份合同一套结算口径
     CONSTRAINT contract_settlement_terms_one_per_contract UNIQUE (contract_id)
 );
@@ -137,3 +143,6 @@ CREATE TRIGGER trg_contract_settlement_terms_frozen
 
 COMMENT ON COLUMN public.contract_settlement_terms.arbitration_fee_rule IS
     'MES-6a-1(MES-0 Q63 · V14):仲裁费怎么分 —— loser_pays · equal · further_from_umpire_pays · buyer · seller。**可空 = Not yet set,不给默认值**(一份没写的分摊规则不是"各半")。只有卖方合同有结算口径,所以买方的争议永远是 Not yet set。随结算口径一起在挂接那一刻抄进单据的合同副本(link_document_to_contract 的 to_jsonb),立案时再抄进 assay_disputes.fee_rule_at。仲裁费本身是一张费用单;对手方的那一份只算出来给人看,不收(收它等指数定价 §9)。';
+
+COMMENT ON COLUMN public.contract_settlement_terms.quality_limit_basis IS
+    'MES-6b-1(V17;MES-6b Step 0 Q25):质量验收限(水分、粒径、任何一个化验指标)的口径声明 —— none_agreed(声明了没有限)· per_parameter(有,行在 contract_quality_limits)。**可空 = V17 Not yet set,不给默认值**:没声明不是"没有限"。卖方合同申请生效要它;per_parameter 而没有一行限按名拒 QUALITY_LIMITS_NOT_FILED(本表中心句的第四个实例,SETTLE-1 ③ 的同一个形状)。挂接那一刻随结算口径一起抄进单据的合同副本,判定(judge_quality_limits)只读那一份。';

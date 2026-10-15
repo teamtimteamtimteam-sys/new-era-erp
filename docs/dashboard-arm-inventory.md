@@ -110,6 +110,9 @@ module's own page.
 | M6a1 | `sample_retention_due` | 一份样品的留样日(取样时按合同天数或 V16 抄下)已经过了,而它还没有一条处置记录(MES-6a Step 0 Q15)。留样日尚未设定(`not_set`)的样品没有日子可过,不进这一支。一份一行,`item_id` = 那份样品,`subject` = 批号,`item_date` = 留样日 | `module.quality.view` | `samples` + 最近一条 `sample_events` | `retain_until < CURRENT_DATE` 且没有 `disposed`;记一条处置之后消失 |
 | M6a2 | `assay_dispute_open` | 一件开着的化验争议 —— 它挡着进料那一侧的应用、试算与化验来源的定价过账,以及卖方结算(`ASSAY_DISPUTE_OPEN`;MES-6a Step 0 Q16 · Q18 · Q21)。一件一行,`item_id` = 那件争议,`item_code` = 批号,`subject` = 两份结果的单号 | `module.quality.view` | `assay_disputes` | `status = 'open'`;结案或撤回之后消失 |
 | M6a3 | `assay_results_disagree` | 卖方:一批产出批挂着一张销售单,那张单的合同副本写了分歧容差,而我们与对手方的结果在某一种元素上差得超过它,且没有开过争议(MES-0 Q62;MES-6a Step 0 Q17)。买方没有这一支。一批一行,`item_id` = 那一批产出批(立争议的入口在它的质量面板上),`subject` = 销售单号 | `module.quality.view` | `assay_disagreements_all` | 立一件争议之后消失 |
+| M6b1 | `ncr_open` | 一张开着的不合格报告 —— 它扣着它那一批(投料、发货、结算、配料一律按名拒 `QUALITY_HOLD_OPEN`),直到开单人之外的人决定(MES-6b Step 0 Q3 · Q9 · Q38)。一张一行,`item_id` = 那张报告,`item_code` = 报告编号,`subject` = 批号,`item_date` = 开单日 | `module.quality.view` | `nonconformance_reports` | `status = 'open'`;决定之后消失 |
+| M6b2 | `quality_hold_reserved` | 一批在质量暂扣里的产出批还挂着没释放的预留(Q23:预留照留,发不出去)。一张单 × 一批 × 扣着它的那张报告一行,`item_id` = 那张销售单,`subject` = 批号 · 报告编号,`item_date` = 最早那一笔预留的日子 | `module.quality.view`,收窄到同时持 `module.output.view`(`arm_permission_any`),放宽给 `module.sales.view`(`arm_permission_widen`)—— 判据 `batch_quality_hold` 以读者身份读产出批 | `sales_order_reservations` ⋈ `batch_quality_hold` | 报告决定放行、或预留释放 / 发完之后消失 |
+| M6b3 | `quality_prompt_ncr` | 一件该不该开不合格报告由人判断的事(Q6:只有 V17 越限自动开):进料的品位违反(`contract_grade_breaches`)· 产出批的交叉污染抽检过了 V11 的警戒线(当前那一条)· 一个模组最新的放电结论是失败(没拆走)。一批一行,`item_id` = 那一批,`doc_kind` = inbound / output,`subject` = 那件事的出处 | `module.quality.view` | 三支来源 | 那一批上有一张开单时刻不早于那件事的报告(任何状态)之后消失 |
 
 
 
@@ -355,6 +358,9 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `sample_retention_due` | `/quality/samples/[id]` | the sample page: its custody record, keep-until date and where it is; record the disposal there (MES-6a-1) |
 | `assay_dispute_open` | `/quality/disputes/[id]` | the dispute page: the three results side by side, the umpire, resolve or withdraw (MES-6a-1) |
 | `assay_results_disagree` | `/output/[id]/edit` | the output batch page: its quality panel opens a dispute on that batch (MES-6a-1) |
+| `ncr_open` | `/quality/ncr/[id]` | the report page: what is wrong, the judgement if the system opened it, decide there (MES-6b-1) |
+| `quality_hold_reserved` | `/sales/orders/[id]` | the sales order page: the reservation section names the held batch and its report; releasing a reservation stays allowed (MES-6b-1) |
+| `quality_prompt_ncr` | `/quality/ncr/new?batch=<kind>:<id>` | the open-a-report form with that batch already chosen (MES-6b-1) |
 
 ### One mechanism, not two
 

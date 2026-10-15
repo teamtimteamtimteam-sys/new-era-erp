@@ -32,6 +32,8 @@
 --   H 目录事实(含那个刻意的缺席:它不过账)
 --   I 抄不是引用
 --   J ★ MES-6a-1:一件开着的化验争议 → 结算按名拒 ASSAY_DISPUTE_OPEN(仲裁那一份也拒);撤回之后照常
+--   K ★ MES-6b-1(F4):罚铜而不计价 → 结算跳过铜的计价、照罚(12,150.00);既计价又罚 → 条款那一层按名拒;
+--       别的可计价金属没有条款 → 照旧 SETTLEMENT_PAYABLE_NOT_STATED
 -- ═══════════════════════════════════════════════════════════════════════════
 
 BEGIN;
@@ -359,6 +361,63 @@ BEGIN
         PERFORM withdraw_assay_dispute(v_d, 'fixture 149 J withdrawn');
         IF (sale_settlement_compute(v_so_d, v_ob, v_a_ump) ->> 'amount_usd')::numeric IS DISTINCT FROM v_amt_d THEN
             RAISE EXCEPTION 'FIXTURE 149J 失败:撤回之后结算照常、同一个数'; END IF;
+    END;
+
+    -- ══════════ K. ★ MES-6b-1(F4;MES-6b Step 0 Q15 · Q33 · Q34,Tim):一份合同罚一种【可计价的】金属而不按它计价 ═════
+    --   铜在镍黑粉里是杂质:合同只按镍计价、把铜列成惩罚元素(阈值 2.0 %,每超一个点每吨结算重量 100 USD)。
+    --   ① 计价那一圈【跳过】铜(此前它在那里没有计价条款,按名拒 SETTLEMENT_PAYABLE_NOT_STATED|cu —— 一份罚铜的合同结算不了);
+    --      惩罚那一圈读它。手算:干基结算重量 9000 kg;镍 20 % → 1800 kg × 70 % = 1260 kg × 10,000 = 12,600.00;
+    --      铜 2.5 − 2.0 = 0.5 个点 × 9 t × 100 = 450.00;精炼费声明了没有 → 0;金额 12,150.00。化验上的氟没有条款 → 不碰。
+    --   ② 同一种物质既计价又罚 → 条款那一层就按名拒 SUBSTANCE_PRICED_AND_PENALISED|cu(两张表各一道)。
+    --   ③ 别的可计价金属没有计价条款(一份不罚铜、也不按铜计价的合同)→ 照旧按名拒 SETTLEMENT_PAYABLE_NOT_STATED|cu。
+    DECLARE v_con_cu uuid; v_con_nocu uuid; v_so_cu uuid; v_so_nocu uuid; v_ob2 uuid; v_a2 uuid;
+    BEGIN
+        INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
+        VALUES ('ZZ149-OB2', v_mat, 10000, 10000, DATE '2026-09-14') RETURNING id INTO v_ob2;
+        INSERT INTO assay_results (code, output_batch_id, assay_date, is_final, weight_basis, moisture_pct, result_party, lab_name)
+        VALUES ('ZZ149-AS2-OURS', v_ob2, DATE '2026-09-15', true, 'dry', 10, 'ours', 'ZZ149-OURS') RETURNING id INTO v_a2;
+        INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (v_a2, 'ni', 20), (v_a2, 'cu', 2.5), (v_a2, 'f', 2.5);
+        INSERT INTO contracts (customer_id, kind, title, effective_from, status)
+        VALUES (v_cust, 'offtake', 'Fixture 149 copper penalised', DATE '2026-01-01', 'active') RETURNING id INTO v_con_cu;
+        INSERT INTO contracts (customer_id, kind, title, effective_from, status)
+        VALUES (v_cust, 'offtake', 'Fixture 149 copper neither', DATE '2026-01-01', 'active') RETURNING id INTO v_con_nocu;
+        INSERT INTO contract_pricing_terms (contract_id, metal, base_event, qp_months, index_code, payable_pct)
+        VALUES (v_con_cu, 'ni', 'assay_complete', 0, 'LME', 70), (v_con_nocu, 'ni', 'assay_complete', 0, 'LME', 70);
+        INSERT INTO contract_settlement_terms (contract_id, sale_weight_basis, settling_party, sample_retention_required, refining_charge_basis, penalty_basis)
+        VALUES (v_con_cu, 'dry', 'ours', false, 'none_agreed', 'per_element'),
+               (v_con_nocu, 'dry', 'ours', false, 'none_agreed', 'none_agreed');
+        INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (v_con_cu, 'cu', 2.0, 100);
+        -- ② 既计价又罚 → 两张条款表各自按名拒(属主路径同样受它管)
+        v_denied := false; v_msg := NULL;
+        BEGIN INSERT INTO contract_pricing_terms (contract_id, metal, base_event, qp_months, index_code, payable_pct) VALUES (v_con_cu, 'cu', 'assay_complete', 0, 'LME', 1);
+        EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+        IF NOT v_denied OR v_msg IS DISTINCT FROM 'SUBSTANCE_PRICED_AND_PENALISED|cu' THEN
+            RAISE EXCEPTION 'FIXTURE 149K 失败:按铜计价而它已是惩罚元素,应按名拒 SUBSTANCE_PRICED_AND_PENALISED|cu,实得 %', COALESCE(v_msg, '(写进去了)'); END IF;
+        v_denied := false; v_msg := NULL;
+        BEGIN INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (v_con_nocu, 'ni', 30, 1);
+        EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+        IF NOT v_denied OR v_msg IS DISTINCT FROM 'SUBSTANCE_PRICED_AND_PENALISED|ni' THEN
+            RAISE EXCEPTION 'FIXTURE 149K 失败:罚一种已经计价的金属(镍),应按名拒 SUBSTANCE_PRICED_AND_PENALISED|ni,实得 %', COALESCE(v_msg, '(写进去了)'); END IF;
+        INSERT INTO sales_orders (code, customer_id, order_date, currency, fx_rate)
+        VALUES ('ZZ149-SO-CU', v_cust, DATE '2026-06-10', 'SGD', 1) RETURNING id INTO v_so_cu;
+        INSERT INTO sales_orders (code, customer_id, order_date, currency, fx_rate)
+        VALUES ('ZZ149-SO-NOCU', v_cust, DATE '2026-06-10', 'SGD', 1) RETURNING id INTO v_so_nocu;
+        PERFORM link_document_to_contract('sales_order', v_so_cu, v_con_cu);
+        PERFORM link_document_to_contract('sales_order', v_so_nocu, v_con_nocu);
+        -- ① 罚铜而不计价:结算得出,数对(拒了就说是这一臂拒的 —— 一句原样冒出来的 SETTLEMENT_PAYABLE_NOT_STATED 不说是谁在问)
+        BEGIN v_r := sale_settlement_compute(v_so_cu, v_ob2, v_a2);
+        EXCEPTION WHEN OTHERS THEN
+            RAISE EXCEPTION 'FIXTURE 149K 失败:罚铜而不计价应当结算得出(计价圈跳过铜),实得拒绝 %', SQLERRM; END;
+        IF (v_r ->> 'metal_value_usd')::numeric <> 12600 OR (v_r ->> 'penalty_usd')::numeric <> 450 OR (v_r ->> 'refining_charge_usd')::numeric <> 0
+           OR (v_r ->> 'amount_usd')::numeric <> 12150 OR jsonb_array_length(v_r -> 'breakdown' -> 'metals') <> 1
+           OR (v_r -> 'breakdown' -> 'penalties' -> 0 ->> 'substance') <> 'cu' THEN
+            RAISE EXCEPTION 'FIXTURE 149K 失败:罚铜而不计价应结算出 12,600.00 − 450.00 = 12,150.00(计价圈只有镍,惩罚只有铜),实得 %', v_r; END IF;
+        -- ③ 别的可计价金属没有条款 → 照旧按名拒
+        v_denied := false; v_msg := NULL;
+        BEGIN PERFORM sale_settlement_compute(v_so_nocu, v_ob2, v_a2);
+        EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+        IF NOT v_denied OR v_msg IS DISTINCT FROM 'SETTLEMENT_PAYABLE_NOT_STATED|cu' THEN
+            RAISE EXCEPTION 'FIXTURE 149K 失败:一份既不按铜计价、也不罚铜的合同,化验上有铜 → 照旧按名拒 SETTLEMENT_PAYABLE_NOT_STATED|cu,实得 %', COALESCE(v_msg, '(通过)'); END IF;
     END;
 
     -- ══════════ 故障注入(陷阱 e)════════════════════════════════════════════

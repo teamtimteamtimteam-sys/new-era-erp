@@ -127,3 +127,44 @@ export async function linkDisputeFee(id: string, expenseId: string): Promise<Qua
     revalidateDispute(id)
     return {}
 }
+
+// ── MES-6b-1(2026-10-15,MES-6b Step 0 Q7 · Q9 · Q22,Tim):不合格报告 —— 开(module.quality.edit)与决定(action.ncr_decide)。
+//   开单人这个人永远不能决定自己那一张,除自己外没有别的持码人时开不出来 —— 两句都由库按名拒,这里不判。
+export async function openNcr(input: {
+    source: string; description: string; inboundBatchId: string | null; outputBatchId: string | null
+    assayId: string | null; disputeId: string | null; salesOrderId: string | null
+}): Promise<QualityState> {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('open_ncr', {
+        p_source: input.source,
+        p_description: input.description,
+        p_inbound_batch_id: input.inboundBatchId ?? undefined,
+        p_output_batch_id: input.outputBatchId ?? undefined,
+        p_assay_result_id: input.assayId ?? undefined,
+        p_assay_dispute_id: input.disputeId ?? undefined,
+        p_sales_order_id: input.salesOrderId ?? undefined,
+    })
+    if (error) return { error: await localizeQualityError(error.message) }
+    revalidatePath('/quality/ncr')
+    revalidateBatch(input.inboundBatchId ? 'inbound' : 'output', input.inboundBatchId ?? input.outputBatchId)
+    redirect(`/quality/ncr/${(data as { ncr_id: string }).ncr_id}`)
+}
+
+export async function decideNcr(id: string, input: {
+    disposition: string; note: string; invoiceRequestId: string | null; priceRequestId: string | null
+    batchKind: 'inbound' | 'output'; batchId: string
+}): Promise<QualityState> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('decide_ncr', {
+        p_ncr_id: id,
+        p_disposition: input.disposition,
+        p_note: input.note,
+        p_penalty_invoice_request_id: input.invoiceRequestId ?? undefined,
+        p_penalty_price_request_id: input.priceRequestId ?? undefined,
+    })
+    if (error) return { error: await localizeQualityError(error.message) }
+    revalidatePath(`/quality/ncr/${id}`)
+    revalidatePath('/quality/ncr')
+    revalidateBatch(input.batchKind, input.batchId)
+    return {}
+}

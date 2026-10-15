@@ -129,7 +129,16 @@ BEGIN
                                  'substance', pe.substance,
                                  'threshold_pct', pe.threshold_pct,
                                  'usd_per_tonne_per_pct_over', pe.usd_per_tonne_per_pct_over) ORDER BY pe.substance)
-                               FROM contract_penalty_elements pe WHERE pe.contract_id = v_con.id), '[]'::jsonb)),
+                               FROM contract_penalty_elements pe WHERE pe.contract_id = v_con.id), '[]'::jsonb),
+                         -- ★ MES-6b-1(V17;Step 0 Q8 · Q26):质量验收限与它的口径声明一起冻 —— quality_limit_basis 随上面的 to_jsonb 进来,
+                         --   这几行在这里;判定(judge_quality_limits)只读这一份,合同以后再改不回头判。
+                         'quality_limits', COALESCE((
+                             SELECT jsonb_agg(jsonb_build_object(
+                                 'material_id', ql.material_id,
+                                 'parameter', ql.parameter,
+                                 'min_value', ql.min_value,
+                                 'max_value', ql.max_value) ORDER BY ql.parameter, ql.material_id NULLS FIRST)
+                               FROM contract_quality_limits ql WHERE ql.contract_id = v_con.id), '[]'::jsonb)),
                     '{}'::jsonb)
       INTO v_settle
       FROM contract_settlement_terms x WHERE x.contract_id = v_con.id;

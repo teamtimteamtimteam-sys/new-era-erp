@@ -19,6 +19,7 @@ DECLARE
     v_avail    numeric;
     v_already  numeric;
     v_res_id   uuid;
+    v_judge    jsonb;
 BEGIN
     -- ★ APR-5b(2026-09-25):本支是 reserve_stock 的函数体,【不问调用者的码】。两个调用方各自先问:
     --   reserve_stock(module.sales.edit —— 预留是销售行为)· release_reservation_internal(部分释放就地
@@ -120,6 +121,12 @@ BEGIN
     VALUES (v_line.order_id, 'reserved',
             format('line %s · %s %s %s', v_line.line_no, v_batch.code, p_qty, v_batch.unit));
 
+    -- ★ MES-6b-1(V17;MES-6b Step 0 Q26 · Q27,Tim):预留一批【已经有化验】的产出批给一张挂着有质量验收限的合同的销售单 → 当场判。
+    --   越限:预留照留(上面已经写下),同一笔事务里开一张 quality_limit 的不合格报告 —— 拒掉预留会把发现藏在一句报错后面、什么都不留下;
+    --   报告就是那份记录与那个决定。之后这一批在暂扣里:发货那条腿被流水守卫拒,释放预留照常。同一份化验对同一张单只判一次
+    --   (部分发货就地重新预留走到这里时,judge_quality_limits 自己跳过)。没有化验、没挂合同、合同没声明按参数 → 什么都不判。
+    v_judge := judge_quality_limits(p_output_batch_id, v_line.order_id, 'reserved');
+
     RETURN jsonb_build_object(
         'reservation_id', v_res_id, 'pair_id', v_pair, 'qty', p_qty,
         'output_batch_id', p_output_batch_id, 'location_id', p_location_id,
@@ -128,7 +135,9 @@ BEGIN
         -- 一个名字说着旧含义、值是新含义,比改名更贵(今天没有任何消费方读它,
         -- 现在改是最便宜的时刻)。
         'line_spoken_for_after', v_already + p_qty,
-        'line_quantity', v_line.quantity);
+        'line_quantity', v_line.quantity,
+        'quality_judged', (v_judge->>'judged')::int,
+        'ncrs_opened', v_judge->'ncrs');
 END;
 $function$
 

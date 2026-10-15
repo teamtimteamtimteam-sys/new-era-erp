@@ -23,7 +23,8 @@
 -- F2P ★ MES-6a-2:加一行【惩罚元素】(role = penalty_element)——
 --    收:化验 · 两张含量表 · 物料必测项 · 合同品位规格 · 合同惩罚条款;
 --    拒(SUBSTANCE_NOT_PAYABLE|<码>,逐条按名):行情 · 计价引擎(含量清单与条款两头)· 公式的计价金属 · 承诺副本 ·
---    合同计价条款 · 合同精炼费。一个可计价的金属写进惩罚条款 → SUBSTANCE_NOT_PENALTY_ELEMENT。
+--    合同计价条款 · 合同精炼费。~~一个可计价的金属写进惩罚条款 → SUBSTANCE_NOT_PENALTY_ELEMENT。~~
+--    ★ MES-6b-1(F4):一个可计价的金属(cu)写进惩罚条款 → 记得下;一种 other → SUBSTANCE_NOT_PENALTY_ELEMENT。
 -- F3 反面:一个【不在字典里】的码,在每一条路上都要被拒 ——
 --    否则 F2 可以由"把校验全删了"来通过。
 --
@@ -232,13 +233,26 @@ BEGIN
             RAISE EXCEPTION 'FIXTURE 119F2P 失败:进入 F2P —— 一个惩罚元素在【%】这条定价的路上必须按名拒 SUBSTANCE_NOT_PAYABLE|%,实得「%」', v_case.path, PEN_CODE, COALESCE(v_msg, '(通过了)');
         END IF;
     END LOOP;
-    -- 反过来:一个可计价的金属写进惩罚条款 → 按名拒
+    -- ~~反过来:一个可计价的金属写进惩罚条款 → 按名拒~~
+    -- ★ MES-6b-1(2026-10-15,F4;MES-6b Step 0 Q15,Tim):惩罚条款收惩罚元素【或可计价的金属】—— 铜写进惩罚条款从此记得下
+    --   (它在镍黑粉里是杂质);【other】照旧按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT(话不变)。两半都钉住,一条都没有放松:
+    --   原来那一条拒绝的【对象】换了(cu → 一种 other),拒绝本身与它的名字都还在。
     v_denied := false; v_msg := NULL;
     BEGIN
         INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (v_con, 'cu', 0.5, 5);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg IS DISTINCT FROM 'SUBSTANCE_NOT_PENALTY_ELEMENT|cu' THEN
-        RAISE EXCEPTION 'FIXTURE 119F2P 失败:进入 F2P —— 一个可计价的金属写进惩罚条款必须按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT|cu(Q27:惩罚条款只收惩罚元素),实得「%」', COALESCE(v_msg, '(通过了)');
+    IF v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 119F2P 失败:进入 F2P —— 一个可计价的金属(cu)写进惩罚条款应当记得下(F4,Q15),实得「%」', v_msg;
+    END IF;
+    INSERT INTO substances (code, name_en, name_zh, symbol, sort_order, notes, role)
+    VALUES ('ZZ119_O', 'Fixture other substance (119)', '别的物质(fixture 119)', 'Zo', 97,
+            'fixture 119:other 不进惩罚条款', 'other');
+    v_denied := false; v_msg := NULL;
+    BEGIN
+        INSERT INTO contract_penalty_elements (contract_id, substance, threshold_pct, usd_per_tonne_per_pct_over) VALUES (v_con, 'ZZ119_O', 0.5, 5);
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+    IF NOT v_denied OR v_msg IS DISTINCT FROM 'SUBSTANCE_NOT_PENALTY_ELEMENT|ZZ119_O' THEN
+        RAISE EXCEPTION 'FIXTURE 119F2P 失败:进入 F2P —— 一种 other 写进惩罚条款必须按名拒 SUBSTANCE_NOT_PENALTY_ELEMENT|ZZ119_O(F4 之后惩罚条款收惩罚元素与可计价金属,other 照拒),实得「%」', COALESCE(v_msg, '(通过了)');
     END IF;
 
     -- ══════════ F3 · 反面:字典【外】的码,每一条路都要拒 ═════════════════

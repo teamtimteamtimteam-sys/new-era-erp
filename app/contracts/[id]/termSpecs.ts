@@ -1,4 +1,6 @@
-// TERMS-EDIT-1(Tim 2026-09-27):合同的七张条款表 —— 每一张有哪些格、什么类型、取值范围。
+// TERMS-EDIT-1(Tim 2026-09-27):合同的条款表 —— 每一张有哪些格、什么类型、取值范围。
+//   MES-6b-1(2026-10-15,V17 · MES-6b Step 0 Q8 · Q25–Q27):第八张 —— 质量验收限(contract_quality_limits),卖方专用;
+//   结算口径多一格 quality_limit_basis(none_agreed · per_parameter;空 = 还没定,卖方合同申请生效前必须定)。
 //
 // ★【一份描述,两处读】★ 详情页按它画表单与表格,server action 按它取字段、先在字段旁边拒一次。
 //   范围与取值逐条对着表镜像上的 CHECK(db/tables/contract_*.sql)写,不多一条、不少一条 ——
@@ -8,19 +10,20 @@
 
 export const TERM_TABLES = [
     'grade_specs', 'insurance_obligations', 'volume_commitments',
-    'pricing_terms', 'settlement_terms', 'refining_charges', 'penalty_elements',
+    'pricing_terms', 'settlement_terms', 'refining_charges', 'penalty_elements', 'quality_limits',
 ] as const
 export type TermTable = typeof TERM_TABLES[number]
 
-/** 卖方条款(Q6):买方合同上这四段画出来但按不动,并说出理由 */
-export const SELL_ONLY: ReadonlySet<TermTable> = new Set(['pricing_terms', 'settlement_terms', 'refining_charges', 'penalty_elements'])
+/** 卖方条款(Q6):买方合同上这几段画出来但按不动,并说出理由。质量验收限也是卖方的(MES-6b Step 0 Q28:买方不设 V17) */
+export const SELL_ONLY: ReadonlySet<TermTable> = new Set(['pricing_terms', 'settlement_terms', 'refining_charges', 'penalty_elements', 'quality_limits'])
 
 /** 下拉的取值来自哪里:固定取值(i18n 标签)或页面读出来的字典 */
 export type OptionSource =
     | { kind: 'enum'; values: readonly string[] }
     // MES-6a-2(MES-6a Step 0 Q27):物质分三份 —— substances(全部:品位规格)· payables(只有按含量计价的金属:计价条款、精炼费)·
     //   penaltyElements(只有惩罚元素:惩罚条款)。库里的守卫(guard_substance_role)对不该来的按名拒;这里只是不把它递给人。
-    | { kind: 'dict'; dict: 'substances' | 'payables' | 'penaltyElements' | 'materials' | 'currencies' | 'indices' }
+    //   ★ MES-6b-1(F4 · Q15):惩罚条款改收 penaltyCandidates —— 惩罚元素【与】可计价金属(铜也可以被罚);qualityParameters = 水分 + 指标字典。
+    | { kind: 'dict'; dict: 'substances' | 'payables' | 'penaltyCandidates' | 'materials' | 'currencies' | 'indices' | 'qualityParameters' }
 
 export type FieldSpec = {
     name: string
@@ -33,6 +36,8 @@ export type FieldSpec = {
     minExclusive?: boolean
     /** 新增时的默认值(表上有 DEFAULT 的那几格) */
     defaultValue?: string
+    /** MES-6b-1(F7 · Q18):这一格是 %,旁边实时带 ppm —— 当同一行 roleOf 那一格选的物质是惩罚元素时 */
+    ppmBeside?: { roleOf: string }
 }
 
 export type SectionSpec = {
@@ -112,6 +117,9 @@ export const SECTIONS: readonly SectionSpec[] = [
             //   取值与表上的 CHECK 是同一张清单(contract_settlement_terms.arbitration_fee_rule)。
             { name: 'arbitration_fee_rule', type: 'select',
               options: { kind: 'enum', values: ['loser_pays', 'equal', 'further_from_umpire_pays', 'buyer', 'seller'] } },
+            // MES-6b-1(V17 · Q25):质量验收限的口径 —— 可空 = Not yet set;卖方合同申请生效前必须定(contract_activation_missing 第 5 项)
+            { name: 'quality_limit_basis', type: 'select',
+              options: { kind: 'enum', values: ['none_agreed', 'per_parameter'] } },
             NOTES,
         ],
     },
@@ -126,9 +134,21 @@ export const SECTIONS: readonly SectionSpec[] = [
     {
         table: 'penalty_elements', dbTable: 'contract_penalty_elements',
         fields: [
-            { name: 'substance', type: 'select', required: true, options: { kind: 'dict', dict: 'penaltyElements' } },
-            { name: 'threshold_pct', type: 'number', required: true, min: 0, max: 100 },
+            { name: 'substance', type: 'select', required: true, options: { kind: 'dict', dict: 'penaltyCandidates' } },
+            { name: 'threshold_pct', type: 'number', required: true, min: 0, max: 100, ppmBeside: { roleOf: 'substance' } },
             { name: 'usd_per_tonne_per_pct_over', type: 'number', required: true, min: 0 },
+            NOTES,
+        ],
+    },
+    // MES-6b-1(V17 · MES-6b Step 0 Q8 · Q26):一份卖方合同的质量验收限 —— 参数(水分,或指标字典的一个码)、可选的物料、下限 / 上限
+    //   (至少一个;两个都有时下限 ≤ 上限;水分 ≤ 100)。与表上的 CHECK 同一份(db/tables/contract_quality_limits.sql)。
+    {
+        table: 'quality_limits', dbTable: 'contract_quality_limits',
+        fields: [
+            { name: 'parameter', type: 'select', required: true, options: { kind: 'dict', dict: 'qualityParameters' } },
+            { name: 'material_id', type: 'select', options: { kind: 'dict', dict: 'materials' } },
+            { name: 'min_value', type: 'number', min: 0 },
+            { name: 'max_value', type: 'number', min: 0 },
             NOTES,
         ],
     },

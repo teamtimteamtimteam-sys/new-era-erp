@@ -14,7 +14,8 @@
 --        下界不高于上界(BLEND_TARGET_BOUNDS_ORDER)· 一种金属一行(BLEND_TARGET_DUPLICATE_METAL)。
 --     ④ 批次:至少一行(BLEND_NO_LINES);每一行恰好一批(BLEND_LINE_ONE_BATCH)、存在且没删(INBOUND_NOT_FOUND / OUTPUT_NOT_FOUND)、
 --        单位是 kg(BLEND_LINE_UNIT_NOT_KG)、物料形态是配料收的(BLEND_LINE_FORM_NOT_BLENDABLE|<批号>|<形态或空>)、
---        计划公斤数 > 0(BLEND_LINE_KG_INVALID|<批号>)、一批一行(BLEND_LINE_DUPLICATE_BATCH|<批号>)。
+--        计划公斤数 > 0(BLEND_LINE_KG_INVALID|<批号>)、一批一行(BLEND_LINE_DUPLICATE_BATCH|<批号>)、
+--        ★ 不在质量暂扣里(QUALITY_HOLD_OPEN|<批号>|<报告>,MES-6b-1 Step 0 Q24 —— 放行那一步再问一次,执行那一步由流水守卫挡)。
 --        【不】拒计划的公斤数超过这一批此刻的余量 —— 计划可以是为将来排的;真投的时候引擎照旧按余量拒。
 --   然后整份替换:删掉这份计划原有的目标与批次,写入新的(变更记录逐行记下删与插)。
 -- NOTE: introduced by db/migrations/2026-10-09-mes5b3-blending.sql.
@@ -38,6 +39,7 @@ DECLARE
     v_bunit    text;
     v_bform    text;
     v_batches  text[] := ARRAY[]::text[];
+    v_hold     record;
 BEGIN
     -- ① 产出物料
     SELECT m.code, m.form_code, f.may_be_sold, f.name_zh, f.name_en INTO v_mat
@@ -154,6 +156,12 @@ BEGIN
         END IF;
         IF v_bcode = ANY (v_batches) THEN
             RAISE EXCEPTION 'BLEND_LINE_DUPLICATE_BATCH|%', v_bcode;
+        END IF;
+        -- ★ MES-6b-1(MES-6b Step 0 Q24,Tim):一批在质量暂扣里的货不能是一份配料计划的一行 —— 判据 batch_quality_hold(流水守卫读的同一支)
+        SELECT h.ncr_code INTO v_hold FROM batch_quality_hold(v_ib, v_ob) h;
+        IF FOUND THEN
+            RAISE EXCEPTION 'QUALITY_HOLD_OPEN|%|%', v_bcode, v_hold.ncr_code
+              USING HINT = '这一批在质量暂扣里,不能排进配料计划 —— 先让另一个人在不合格报告上做出放行的处置。';
         END IF;
         v_batches := v_batches || v_bcode;
         INSERT INTO blending_plan_lines (plan_id, inbound_batch_id, output_batch_id, planned_kg)

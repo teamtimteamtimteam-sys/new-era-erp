@@ -483,6 +483,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   批次与化验页上的样品 / 争议面板另给持那一批查看码的人看(Q11),那不是这两条条目的事。
     { href: '/quality/samples', navKey: 'quality.subnav.samples', modules: ['operation'], permission: P_QUALITY },
     { href: '/quality/disputes', navKey: 'quality.subnav.disputes', modules: ['operation'], permission: P_QUALITY },
+    // MES-6b-1(2026-10-15,MES-0 Q65 · Q66 · MES-6b Step 0 Q2 · Q7 · Q9,Tim):不合格报告 —— 开着的那一张就是那一批的质量暂扣。
+    //   读 module.quality.view;开一张要 module.quality.edit(cco · cto · admin);决定要 action.ncr_decide(cco · cto · admin),
+    //   开单人永远不能决定自己那一张 —— 页内控件看得见、按不动、说出缺哪个码或为什么(DBLOCK-1)。
+    { href: '/quality/ncr', navKey: 'quality.subnav.ncr', modules: ['operation'], permission: P_QUALITY },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
@@ -1116,4 +1120,6 @@ export const FN = {
     /** MES-6a-1:样品 · 化验争议。 */
     qualitySamples: fnByHref('/quality/samples'),
     qualityDisputes: fnByHref('/quality/disputes'),
+    /** MES-6b-1:不合格报告(质量暂扣)。 */
+    qualityNcr: fnByHref('/quality/ncr'),
 } as const
