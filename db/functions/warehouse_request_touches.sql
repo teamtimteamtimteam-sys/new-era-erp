@@ -6,6 +6,8 @@
 --   rollback           那张单('run')+ 它的产出批('out')+ 它的投料 —— 进料批('in')与产出批投料('out')
 --                      + 投料进料批上的活证书('cod')
 --   cod_void           那张证书('cod')+ 它的进料批('in')
+--   coa_void           那张分析证书('coa')—— ★ MES-6b-2:只碰它自己。一张分析证书永远不会被自动作废(Q32),所以注销或回滚
+--                      它那一批不会让一张在等的作废申请批不出来,不必互斥。
 -- 【现读,不冻结】碰到什么是此刻的事实;冻结(guard_warehouse_request_freeze)保证它在等的时候不变。
 -- NOTE: introduced by db/migrations/2026-09-25-apr7-write-offs-rollbacks-and-cod-voids-wait-for-the-cfo.sql.
 
@@ -40,7 +42,9 @@ AS $function$
     UNION
     SELECT 'in', c.inbound_batch_id FROM certificates_of_destruction c
      WHERE p_kind = 'cod_void' AND c.id = p_subject
+    UNION
+    SELECT 'coa', p_subject WHERE p_kind = 'coa_void'
 $function$;
 
 COMMENT ON FUNCTION public.warehouse_request_touches(text, uuid) IS
-'APR-7(grilling Q3):一张仓库申请碰到的批次(in / out)、加工单(run)与证书(cod)。一个批次、它的证书、消耗它的加工单同一时刻只许挂一张在等的申请 —— 那条规矩就是"两张申请的这个集合不许相交"。';
+'APR-7(grilling Q3):一张仓库申请碰到的批次(in / out)、加工单(run)、销毁证书(cod)与分析证书(coa,MES-6b-2:只碰它自己)。一个批次、它的证书、消耗它的加工单同一时刻只许挂一张在等的申请 —— 那条规矩就是"两张申请的这个集合不许相交"。';

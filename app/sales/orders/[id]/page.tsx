@@ -10,6 +10,7 @@ import { soStatusKey, SO_ALLOWED_NEXT } from '../salesOrderTypes'
 import TransitionPanel from './TransitionPanel'
 import IssuePanel from '@/app/components/IssuePanel'
 import ReservationSection from './ReservationSection'
+import SalesOrderCoas from './SalesOrderCoas'
 import OrderInvoiceSection from './OrderInvoiceSection'
 import ShippingSection from './ShippingSection'
 import ShippingReleaseSection from './ShippingReleaseSection'
@@ -248,6 +249,9 @@ export default async function SalesOrderPage({ params, searchParams }: {
                         unit: l.materials?.unit ?? '',
                     }))}
                 />
+
+                {/* MES-6b-2(Step 0 Q10 · Q14):点名这张单的分析证书 —— 下载存下的那一份 */}
+                <SalesOrderCoas salesOrderId={o.id} />
 
                 <h2 className="mt-8 mb-2">{t('sales.issues')}</h2>
                 {/* SO-1b:签发面板【旁边】也说一次 —— 这里正是"要不要重新签发"

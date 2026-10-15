@@ -194,7 +194,11 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- ── MES-6b-1(2026-10-15,MES-0 Q65 · Q90 · MES-6b Step 0 Q9,Tim):决定一张不合格报告 —— 持有人 cco · cto · admin(admin 与此前每一个新码
     -- 一样只在迁移里授)。开一张是 module.quality.edit(取样、立争议的同一个码);开单人永远不能决定自己开的那一张(按人认)。
     -- 它声明的查看码是 module.quality.view(/quality/ncr/[id] 的门,下面那张表)。
-    ('action.ncr_decide', 'action', 'Decide non-conformance reports', '决定不合格报告', 'Decide an open non-conformance report: accept, accept with a penalty (naming the credit note request or receipt price request that carries the money), rework, downgrade or reject. Every disposition except reject releases the quality hold on the batch. Nobody decides a report they opened themselves (judged per person); a report the system opened on a quality-limit breach may be decided by any holder. Opening a report is Quality (edit).', '决定一张开着的不合格报告:接受、带罚接受(指出钱走的那张贷项通知申请或收货定价申请)、返工、降级或拒收。除拒收之外,每一种处置都解除那一批的质量暂扣。开单人永远不能决定自己开的那一张(按人认);系统因质量验收限越限开的那一张,任何持码人都能决定。开一张报告是「质量(编辑)」。', 1240);
+    ('action.ncr_decide', 'action', 'Decide non-conformance reports', '决定不合格报告', 'Decide an open non-conformance report: accept, accept with a penalty (naming the credit note request or receipt price request that carries the money), rework, downgrade or reject. Every disposition except reject releases the quality hold on the batch. Nobody decides a report they opened themselves (judged per person); a report the system opened on a quality-limit breach may be decided by any holder. Opening a report is Quality (edit).', '决定一张开着的不合格报告:接受、带罚接受(指出钱走的那张贷项通知申请或收货定价申请)、返工、降级或拒收。除拒收之外,每一种处置都解除那一批的质量暂扣。开单人永远不能决定自己开的那一张(按人认);系统因质量验收限越限开的那一张,任何持码人都能决定。开一张报告是「质量(编辑)」。', 1240),
+    -- ── MES-6b-2(2026-10-15,MES-0 Q67 · Q90 · MES-6b Step 0 Q30,Tim):签发分析证书 —— 持有人 cco · admin(admin 与此前每一个新码一样只在
+    -- 迁移里授)。看证书跟着那一批的查看码(module.output.view);作废证书只经 CFO 申请,由同一个码的人提。
+    -- 它声明的查看码是 module.output.view(批次页 /output/[id]/edit 的门)与 module.quality.view(证书清单 /quality/coa 的门),下面那张表。
+    ('action.issue_coa', 'action', 'Issue certificates of analysis', '签发分析证书', 'Issue a certificate of analysis for an output batch, optionally for one sales order (then it states that contract''s quality limits, the judgement and the customer). Refused while the batch is on quality hold, in an open assay dispute, has no final governing assay, has a weighing out of calibration, or breaches the order''s limits without an accepted report. Also raises the CFO request that voids one.', '为一批产出批签发分析证书,可点名一张销售单(此时证书写明那份合同的质量验收限、判定与客户)。这一批在质量暂扣里、挂着开着的化验争议、没有说话的最终化验、有称重不在校准期内、或对那张单越限而报告没有被接受时一律按名拒。作废一张证书的 CFO 申请也由这个码的人提。', 1250);
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -224,6 +228,8 @@ UPDATE public.permissions p SET requires_view_any = d.views
     ('action.metal_prices',             ARRAY['action.metal_prices']),
     -- MES-6b-1(Step 0 Q9):决定一张不合格报告在 /quality/ncr/[id] 上,那一页的门是 module.quality.view。
     ('action.ncr_decide',               ARRAY['module.quality.view']),
+    -- MES-6b-2(Step 0 Q30):签发在批次页(/output/[id]/edit,门 module.output.view);证书清单 /quality/coa 上提作废申请(门里有 module.quality.view)。
+    ('action.issue_coa',                ARRAY['module.output.view','module.quality.view']),
     ('action.overtime_approve',         ARRAY['action.overtime_approve']),
     ('action.overtime_enter',           ARRAY['action.overtime_enter']),
     ('action.price_receipts',           ARRAY['module.inbound.view']),

@@ -365,6 +365,9 @@ const P_OUTPUT = 'module.output.view'
 const P_PROCESSING = 'module.processing.view'
 // MES-6a-1(2026-10-09,MES-0 Q90):质量查看码 —— 样品与化验争议两页的门
 const P_QUALITY = 'module.quality.view'
+// MES-6b-2(2026-10-15,MES-6b Step 0 Q30):证书清单在质量那一组里(Operation › Quality),而看证书跟着那一批的查看码(module.output.view)——
+//   两个都要:只持质量查看码的人进来会读到一张"空"的清单,而那不是"没有证书",是"你读不到产出批"(AGENTS.md:一个零先问是谁读的)。
+const P_COA = { all: ['module.quality.view', 'module.output.view'] } as const
 // MES-4b(2026-10-07,Step 0 Q25):交叉污染抽检的总表 —— 加工或产出查看码任一(极片批的买方关心的质量事实;读的视图带同一对码)
 const P_CONTAMINATION = { all: [], any: ['module.processing.view', 'module.output.view'] } as const
 const P_INVENTORY = 'module.inventory.view'
@@ -487,6 +490,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   读 module.quality.view;开一张要 module.quality.edit(cco · cto · admin);决定要 action.ncr_decide(cco · cto · admin),
     //   开单人永远不能决定自己那一张 —— 页内控件看得见、按不动、说出缺哪个码或为什么(DBLOCK-1)。
     { href: '/quality/ncr', navKey: 'quality.subnav.ncr', modules: ['operation'], permission: P_QUALITY },
+    // MES-6b-2(2026-10-15,MES-0 Q67 · MES-6b Step 0 Q10 · Q14 · Q30 · Q32,Tim):分析证书 —— 签发在产出批页上(action.issue_coa:cco · admin);
+    //   这一页列出每一张证书、下载存下的那一份、提 CFO 作废申请。门:质量查看码【与】产出查看码(P_COA 的理由)。
+    { href: '/quality/coa', navKey: 'quality.subnav.coa', modules: ['operation'], permission: P_COA },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
     // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
@@ -1122,4 +1128,6 @@ export const FN = {
     qualityDisputes: fnByHref('/quality/disputes'),
     /** MES-6b-1:不合格报告(质量暂扣)。 */
     qualityNcr: fnByHref('/quality/ncr'),
+    /** MES-6b-2:分析证书。 */
+    qualityCoa: fnByHref('/quality/coa'),
 } as const

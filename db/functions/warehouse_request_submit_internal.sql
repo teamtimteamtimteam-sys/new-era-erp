@@ -5,7 +5,8 @@
 --   2. 主体要在、没被删、这一种要成立:
 --        注销:batch_write_off_needs_request 为真,否则 WAREHOUSE_REQUEST_NOT_NEEDED|批号(空批一步删,Q1);
 --        回滚:加工单在且未回滚(RUN_NOT_FOUND · RUN_ALREADY_DELETED);
---        作废:证书在且已签发(COD_NOT_FOUND · COD_NOT_ISSUED)。
+--        作废:证书在且已签发(COD_NOT_FOUND · COD_NOT_ISSUED);
+--        ★ MES-6b-2:作废分析证书(coa_void):证书在且已签发(COA_NOT_FOUND · COA_NOT_ISSUED)。
 --   3. 碰到同一样东西的在等申请 → WAREHOUSE_REQUEST_OPEN|编号|那一张(Q3,跨种类;唯一索引是同种类的第二道)。
 --   4. ★ 审批开着时:提单人这个【人】之外,二级还有没有人批得动 → WAREHOUSE_REQUEST_NO_OTHER_DECIDER|label
 --      (assert_other_decider,按人认)。线上是 admin@:它与 tim@ 是同一个人,而二级只有 tim@。
@@ -60,6 +61,14 @@ BEGIN
         IF v_stat <> 'issued' THEN
             RAISE EXCEPTION 'COD_NOT_ISSUED|%|%', v_code, v_stat;
         END IF;
+    ELSIF p_kind = 'coa_void' THEN
+        SELECT code, status INTO v_code, v_stat FROM certificates_of_analysis WHERE id = p_subject FOR UPDATE;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'COA_NOT_FOUND|%', COALESCE(p_subject::text, '?');
+        END IF;
+        IF v_stat <> 'issued' THEN
+            RAISE EXCEPTION 'COA_NOT_ISSUED|%|%', v_code, v_stat;
+        END IF;
     ELSE
         RAISE EXCEPTION 'WAREHOUSE_REQUEST_KIND_UNKNOWN|%', COALESCE(p_kind, '?');
     END IF;
@@ -84,21 +93,23 @@ BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('warehouse_request_label')::bigint);
     SELECT count(*) + 1 INTO v_n FROM warehouse_requests r
      WHERE r.kind = p_kind
-       AND COALESCE(r.inbound_batch_id, r.output_batch_id, r.run_id, r.cod_id) = p_subject;
+       AND COALESCE(r.inbound_batch_id, r.output_batch_id, r.run_id, r.cod_id, r.coa_id) = p_subject;
     v_label := v_code || ' · ' || CASE p_kind WHEN 'rollback' THEN 'rollback'
                                                WHEN 'cod_void' THEN 'void'
+                                               WHEN 'coa_void' THEN 'void'
                                                ELSE 'write-off' END || ' #' || v_n::text;
 
     PERFORM assert_other_decider('warehouse_request', 'decide_warehouse_request', 2::smallint,
                                  'WAREHOUSE_REQUEST_NO_OTHER_DECIDER|' || v_label);
 
-    INSERT INTO warehouse_requests (id, kind, status, label, inbound_batch_id, output_batch_id, run_id, cod_id,
+    INSERT INTO warehouse_requests (id, kind, status, label, inbound_batch_id, output_batch_id, run_id, cod_id, coa_id,
                                     reason, snapshot, amount_base, created_by)
     VALUES (v_id, p_kind, 'submitted', v_label,
             CASE WHEN p_kind = 'write_off_inbound' THEN p_subject END,
             CASE WHEN p_kind = 'write_off_output' THEN p_subject END,
             CASE WHEN p_kind = 'rollback' THEN p_subject END,
             CASE WHEN p_kind = 'cod_void' THEN p_subject END,
+            CASE WHEN p_kind = 'coa_void' THEN p_subject END,
             btrim(p_reason), warehouse_request_snapshot(p_kind, p_subject), 0, auth.uid());
 
     v_dry := warehouse_request_dry_run(v_id);

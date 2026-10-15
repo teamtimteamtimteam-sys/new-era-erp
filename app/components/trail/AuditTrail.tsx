@@ -43,6 +43,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'blending_plan'   // MES-5b-3
     | 'sample' | 'assay_dispute' | 'quality_settings'   // MES-6a-1
     | 'ncr'   // MES-6b-1
+    | 'coa'   // MES-6b-2
     | 'dictionary_assay_indicators'   // MES-6a-2
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
@@ -154,6 +155,7 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     sample: 'samples', assay_dispute: 'assay_disputes', quality_settings: 'quality_settings',
     // MES-6b-1(2026-10-15):一张不合格报告
     ncr: 'nonconformance_reports',
+    coa: 'certificates_of_analysis',
     // MES-4a(2026-10-07):工序页(字段 · 机器 · 配方 · 版本)与两本新字典(班次 · 异常事件种类)
     operation_type: 'operation_types', dictionary_processing_event_types: 'processing_event_types', dictionary_shifts: 'shifts',
     // MES-4b(2026-10-07):电芯结构与交叉污染流两本字典

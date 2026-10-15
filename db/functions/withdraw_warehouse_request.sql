@@ -1,6 +1,6 @@
 -- db/functions/withdraw_warehouse_request.sql
 -- APR-7(2026-09-25):撤回一张在等的仓库申请。谁能撤:提单人本人(按人认),或持这一种那个码的人
--- (注销 action.batch_write_off · 回滚 action.processing_rollback · 作废 action.issue_cod)。
+-- (注销 action.batch_write_off · 回滚 action.processing_rollback · 作废 action.issue_cod · ★ MES-6b-2 作废分析证书 action.issue_coa)。
 -- 只撤 submitted。撤回什么都不生效、冻结随之解开;记在本行上,【不】写 approval_log(撤回不是一次决定)。
 -- NOTE: introduced by db/migrations/2026-09-25-apr7-write-offs-rollbacks-and-cod-voids-wait-for-the-cfo.sql.
 
@@ -20,6 +20,7 @@ BEGIN
     IF self_leg(v_r.created_by, NULL, auth.uid()) <> 'raiser' THEN
         PERFORM require_permission(CASE v_r.kind WHEN 'rollback' THEN 'action.processing_rollback'
                                                  WHEN 'cod_void' THEN 'action.issue_cod'
+                                                 WHEN 'coa_void' THEN 'action.issue_coa'
                                                  ELSE 'action.batch_write_off' END);
     END IF;
     IF v_r.status <> 'submitted' THEN

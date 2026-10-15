@@ -1024,7 +1024,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-6a-2:一份化验的指标值(残粉 · 箔纯度 · 粒径)—— 与它的金属行同一个说法
         'assay_result_indicators',
         // MES-6b-1:这一批上的不合格报告(家在报告自己那里)
-        'nonconformance_reports'],
+        'nonconformance_reports',
+        // MES-6b-2:吃过这一批的加工单做出来的产出批上的分析证书(家在证书自己那里;经加工单与产出腿两块垫脚石)
+        'certificates_of_analysis'],
     output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
@@ -1035,7 +1037,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-6a-2
         'assay_result_indicators',
         // MES-6b-1:这一批上的不合格报告(家在报告那里)· 对合同质量验收限的判定(家在这一批)
-        'nonconformance_reports', 'quality_limit_judgements'],
+        'nonconformance_reports', 'quality_limit_judgements',
+        // MES-6b-2:这一批的分析证书与它的字节档案(家在证书那里;作废它的申请与那张申请的审批已在上面)
+        'certificates_of_analysis', 'coa_issues'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
@@ -1154,6 +1158,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     quality_settings: ['quality_settings'],
     // MES-6b-1(2026-10-15):一张不合格报告
     ncr: ['nonconformance_reports'],
+    // MES-6b-2(2026-10-15):一张分析证书 —— 它的字节档案 · 作废它的 CFO 申请与那张申请的审批
+    coa: ['certificates_of_analysis', 'coa_issues', 'warehouse_requests', 'approval_log'],
     // MES-4a(2026-10-07):一道工序的配置(字段 · 机器 · 配方 · 版本)· 两本新字典
     // MES-5b-2(2026-10-09,并入 MES5B1-V37-NOT-ON-OPERATION-TRAIL):+ 每一种产出形态的预期得率(V37)
     operation_type: ['operation_types', 'operation_type_fields', 'operation_type_equipment', 'process_recipes', 'process_recipe_versions',
@@ -1215,6 +1221,8 @@ const PAGE_FAMILY: Record<string, Family> = {
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
     'prepayment_applications', 'pricing_term_commitment_metals', 'inventory_movements', 'certificates_of_destruction', 'cod_issues',
+    // MES-6b-2:分析证书与它的字节档案 —— 在证书页、批次页、变更记录总表上都从批次这一族说(与销毁证书同一种说法)
+    'certificates_of_analysis', 'coa_issues',
     'freight_allocations', 'payment_allocations', 'finance_attachments', 'sales_records', 'sales_record_movements', 'sales_attribution_log',
     'invoice_lines', 'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements',
     'receipt_ceiling_checks', 'label_prints',
@@ -1689,6 +1697,28 @@ function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subj
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
         out.push({ title: withPart(tx(d, 'batch.codPdf'), refLabel(r, 'cod_id')), lines: [], key: true, weight: 60 })
     }
+    // ⑨b MES-6b-2:分析证书与它的字节档案 —— 证书号挂在标题后面那一段(titlePart:它是一个号,不是措辞);签发时纸上的数在快照里
+    //   (证书页与 PDF 读它,这里不摊开);作废带理由;重开的那一张签发时链回旧的那一张("Replaced by")。只追加,没有别的改法。
+    for (const r of by('certificates_of_analysis')) {
+        const code = str(r, 'code')
+        const part = code ? { text: code } : null
+        if (r.op === 'INSERT') {
+            // 证书挂在产出批上:在那一批自己的页上不再说"产出批:…";在吃过的进料批页上要说出是哪一批产出的证书
+            out.push({ title: tx(d, 'batch.coaIssued'), part,
+                       lines: valueLines(d, r, r.new, opts, new Set(['code', 'status', 'snapshot', 'issued_at', 'issued_by',
+                                                                      ...(subject === 'output_batch' ? ['output_batch_id'] : [])])),
+                       key: true, weight: 75 })
+        } else if (isSet(r, 'voided_at')) {
+            out.push({ title: tx(d, 'batch.coaVoided'), part, lines: [], reason: typed(r.new?.['void_reason']), key: true, weight: 75 })
+        } else if (isSet(r, 'replaced_by_coa_id')) {
+            out.push({ title: tx(d, 'batch.coaReplaced'), part, lines: changeLines(d, r, opts, new Set(['snapshot'])), key: true, weight: 60 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('coa_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const label = refLabel(r, 'coa_id')
+        out.push({ title: tx(d, 'batch.coaPdf'), part: label ? { text: label } : null, lines: [], key: true, weight: 60 })
+    }
 
     // ⑩ 销售 · 预留 · 发货 · 追溯报告
     for (const r of by('sales_records')) {
@@ -2082,7 +2112,8 @@ function describeHandover(d: TrailDict, rows: TrailRow[], opts: BuildOptions): B
 // ── 仓库申请(注销 · 加工回滚 · 证书作废)──────────────────────────────────
 function wrKind(d: TrailDict, r: TrailRow): string {
     const k = str(r, 'kind') ?? ''
-    return tx(d, k.startsWith('write_off') ? 'wr.kind.writeOff' : k === 'rollback' ? 'wr.kind.rollback' : k === 'cod_void' ? 'wr.kind.codVoid' : 'wr.kind.other')
+    return tx(d, k.startsWith('write_off') ? 'wr.kind.writeOff' : k === 'rollback' ? 'wr.kind.rollback' : k === 'cod_void' ? 'wr.kind.codVoid'
+        : k === 'coa_void' ? 'wr.kind.coaVoid' : 'wr.kind.other')
 }
 function describeWarehouseRequest(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     const out: Block2[] = []

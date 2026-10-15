@@ -738,3 +738,18 @@ REVOKE EXECUTE ON FUNCTION public.guard_substance_priced_and_penalised() FROM au
 REVOKE EXECUTE ON FUNCTION public.guard_ncr_mutation() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.ncr_open_internal(uuid, uuid, text, text, uuid, uuid, uuid, bigint, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.judge_quality_limits(uuid, uuid, text) FROM authenticated;
+
+-- MES-6b-2(2026-10-15):一支触发器函数与五支【内层】。
+--   guard_coa_mutation:分析证书签发之后只许作废、作废之后只许填一次替代品(触发器函数)。
+--   coa_governing_assay · coa_output_calibration_problem · coa_issue_blockers · coa_assemble:证书说话的那一份化验、称重的校准、拒绝清单、
+--     纸上每一个值 —— 不问码,以属主身份读批次、化验、争议、报告、合同副本与客户名;给了 authenticated 就是一扇绕开 module.output.view
+--     读这些的门。外面经 coa_certificate_data(查 module.output.view)与 issue_coa(查 action.issue_coa)读它们。
+--   void_coa_internal:作废一张分析证书 —— 只经 CFO 批准的 coa_void 申请走到这里;给了 authenticated 就是一扇绕开 CFO 的作废门。
+--   issue_coa / record_coa_issue / submit_coa_void_request / coa_certificate_data【不收】:它们是 DEFINER,自己查码,员工就是要调它们。
+--   next_coa_code【不收】:与 next_ncr_code 一样,是一支只读的取号函数。
+REVOKE EXECUTE ON FUNCTION public.guard_coa_mutation() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.coa_governing_assay(uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.coa_output_calibration_problem(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.coa_issue_blockers(uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.coa_assemble(uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.void_coa_internal(uuid, text, uuid) FROM authenticated;

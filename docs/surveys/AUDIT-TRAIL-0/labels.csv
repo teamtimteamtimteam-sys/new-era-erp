@@ -3641,3 +3641,24 @@ contract_quality_limits,created_by,audit_std,hide: the trail entry already says 
 contract_quality_limits,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
 contract_quality_limits,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
 contract_settlement_terms,quality_limit_basis,enum,ENUM_OVERRIDES contract_settlement_terms#quality_limit_basis,contractDetail.field.settlement_terms.quality_limit_basis,Quality limits,,text-only,,text
+certificates_of_analysis,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+certificates_of_analysis,code,text,verbatim,,,Certificate number,,,text
+certificates_of_analysis,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",,,Output batch,,,uuid
+certificates_of_analysis,sales_order_id,fk_document,"sales_orders.code (document number, prefix SO)",,,Sales order,,,uuid
+certificates_of_analysis,governing_assay_id,fk_document,"assay_results.code (document number, prefix ASY)",,,Assay stated,,,uuid
+certificates_of_analysis,status,enum,"message keys quality.coaStatus.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Status,,,text
+certificates_of_analysis,issued_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Issued,,,timestamp with time zone
+certificates_of_analysis,issued_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Issued by,,,uuid
+certificates_of_analysis,snapshot,jsonb,hide: the frozen certificate is read on the certificate page and in its PDF (never raw JSON),,,Snapshot,,,jsonb
+certificates_of_analysis,void_reason,text,verbatim,,,Void reason,,,text
+certificates_of_analysis,voided_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Voided,,,timestamp with time zone
+certificates_of_analysis,voided_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Voided by,,,uuid
+certificates_of_analysis,replaced_by_coa_id,fk_document,"certificates_of_analysis.code (document number, prefix COA)",,,Replaced by,,,uuid
+certificates_of_analysis,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+coa_issues,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+coa_issues,coa_id,fk_document,"certificates_of_analysis.code (document number, prefix COA)",,,Certificate,,,uuid
+coa_issues,file_path,technical,hide,,,File path,,,text
+coa_issues,sha256,text,verbatim,,,SHA-256,,,text
+coa_issues,issued_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",,,Stored,,,timestamp with time zone
+coa_issues,issued_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Stored by,,,uuid
+warehouse_requests,coa_id,fk_document,"certificates_of_analysis.code (document number, prefix COA)",,,Certificate of analysis,,,uuid

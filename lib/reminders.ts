@@ -289,6 +289,13 @@ export const REMINDERS = [
     { itemType: 'quality_prompt_ncr', permission: 'module.quality.view', href: '/quality/ncr',
       itemHref: (r: OpsRow) => (r.item_id && r.doc_kind ? `/quality/ncr/new?batch=${r.doc_kind}:${r.item_id}` : null) },
 
+    // ══ MES-6b-2(2026-10-15,MES-6b Step 0 Q32 · Q38,Tim):分析证书 ════════════════════════════════════════════════════════════
+    // 【coa_facts_changed】一张已签发的分析证书,它那一批在签发之后多了一份化验或一张不合格报告 —— 证书【永远不会被自动作废】,
+    //   这一格只把它摆到签发它的那一批人面前(action.issue_coa:cco · admin),门牌指那张证书(经 CFO 作废、重开一张都在那一页);
+    //   subject 是「批号 · 那件新事的编号」。
+    { itemType: 'coa_facts_changed', permission: 'action.issue_coa', href: '/quality/coa',
+      itemHref: (r: OpsRow) => `/quality/coa/${r.item_id}` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

@@ -1341,3 +1341,26 @@ every rule below, each fault-injected by `db/scripts/2026-10-15-mes6b1-fixture-i
   contract and the result (`Result: Above maximum`, `Judged when: Batch reserved`). A system report's description is written in English by the
   database (`Quality limit breached: <batch> moisture (%) is 9.2 (limit min -, max 8) under contract …, sales order …, assay ….`).
   `scripts/check-trail-wording.mjs` arm ㉘ pins seven sentences and reads `titlePart` (fault `wording-drift-mes6b1`).
+
+## 26. Certificates of analysis (MES-6b-2, v1.4.51, 2026-10-15)
+
+Hand-back `docs/handbacks/MES-6b-2.md`; fixture 264 (arms REG · N38 · GOV · NEVER · REFUSE · ISSUE · FROZEN · BYTES · VOID · ARM · TRAIL) pins
+every rule below, each fault-injected by `db/scripts/2026-10-15-mes6b2-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 26.1 Logged, excluded, masked
+
+- **Two new tables, logged.** `certificates_of_analysis` (bound by `id`) and `coa_issues` (bound by `id`, append-only): public tables
+  **295 → 297**, bound **287 → 289**, exclusions stay **8** (Step 0 Q39). Issuing is one INSERT row carrying the whole frozen snapshot; voiding is
+  one UPDATE row (`status`, `void_reason`, `voided_at`, `voided_by`); a reissue adds one UPDATE on the void row (`replaced_by_coa_id`, set once).
+  Nothing else on a certificate ever changes (`COA_ISSUED_IMMUTABLE`) and nothing is deleted (`COA_NO_DELETE`). Storing the PDF is one
+  `coa_issues` INSERT (path and sha256); the bytes themselves live in the private bucket `coa-documents`, which the change log does not see.
+- **`warehouse_requests` gains a column, not a table.** `coa_id` (the subject of a `coa_void` request) is logged like the rest of the request.
+- **The migration's own writes are its proof's whole allowance on `change_log`:** 1 `permissions` INSERT (`action.issue_coa`) + 1 UPDATE
+  (its declared view codes) · 2 `role_permissions` INSERTs (admin · cco) · 1 `document_types` INSERT (`coa` → `COA`) — exactly 5.
+- **No masked column, no new mask rule** (114 stays). A certificate carries no price or amount.
+- **Trail.** New subject `coa` (`/quality/coa/[id]`, `module.output.view`) with its byte record, its void requests and their approvals; the output
+  batch subject gains `certificates_of_analysis`, `coa_issues` and the void requests; the inbound batch subject reaches the certificates on the
+  outputs made from it (through the run and its output legs, stepping stones not shown). Sentences: "Certificate of analysis issued: COA-…" with
+  the batch, the order and the assay stated; "Certificate PDF stored"; "Certificate voided" with the reason; "Replaced by: COA-…".
+  `scripts/check-trail-wording.mjs` arm ㉙ pins six sentences and reads `titlePart` (faults `wording-drift-mes6b2`, `wording-part-mes6b2`);
+  arms ㉓–㉖ now read `titlePart` too (F6, faults `wording-part-mes5b1/mes5b2/mes5b3/mes6a1`).

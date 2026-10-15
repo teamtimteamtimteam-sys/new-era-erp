@@ -16,7 +16,7 @@ AS $function$
      WHERE r.status = 'submitted'
        AND EXISTS (
            SELECT 1
-             FROM warehouse_request_touches(r.kind, COALESCE(r.inbound_batch_id, r.output_batch_id, r.run_id, r.cod_id)) a
+             FROM warehouse_request_touches(r.kind, COALESCE(r.inbound_batch_id, r.output_batch_id, r.run_id, r.cod_id, r.coa_id)) a
              JOIN warehouse_request_touches(p_kind, p_subject) b ON b.t = a.t AND b.id = a.id)
      ORDER BY r.created_at
      LIMIT 1

@@ -693,6 +693,14 @@ DEFINER_NO_CHECK_ALLOWED = {
     # (各自的外门查码)里以属主身份跑。靠"调不到"(zzz_function_grants.sql)。
     "ncr_open_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "judge_quality_limits": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # MES-6b-2:分析证书的四支内层读者(说话的化验 · 称重校准 · 拒绝清单 · 纸上每一个值)与作废 —— 只在 coa_certificate_data
+    # (查 module.output.view)、issue_coa(查 action.issue_coa)与 CFO 批准的申请(decide_warehouse_request 查码)里以属主身份跑。
+    # 靠"调不到"(zzz_function_grants.sql)。
+    "coa_governing_assay": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "coa_output_calibration_problem": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "coa_issue_blockers": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "coa_assemble": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "void_coa_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

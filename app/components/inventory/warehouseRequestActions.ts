@@ -10,7 +10,7 @@ import { refuseFromCoded } from '@/lib/action-refusal'
 import { getTranslations } from '@/lib/i18n/server'
 import { localizeWarehouseRequestError } from './warehouseRequestErrorCodes'
 
-export type WarehouseRequestKind = 'write_off_inbound' | 'write_off_output' | 'rollback' | 'cod_void'
+export type WarehouseRequestKind = 'write_off_inbound' | 'write_off_output' | 'rollback' | 'cod_void' | 'coa_void'
 
 export type WarehouseRequestState = {
     error?: string
@@ -23,6 +23,7 @@ function refreshWarehouse(extra?: string) {
     revalidatePath('/inbound')
     revalidatePath('/output')
     revalidatePath('/operation/processing')
+    revalidatePath('/quality/coa')
     if (extra) revalidatePath(extra)
     revalidatePath('/')
 }
@@ -40,7 +41,10 @@ export async function submitWarehouseRequest(
             ? await supabase.rpc('submit_output_write_off_request', { p_batch_id: subjectId, p_reason: reason.trim() })
             : kind === 'rollback'
                 ? await supabase.rpc('submit_rollback_request', { p_run_id: subjectId, p_reason: reason.trim() })
-                : await supabase.rpc('submit_cod_void_request', { p_cod_id: subjectId, p_reason: reason.trim() })
+                : kind === 'cod_void'
+                    ? await supabase.rpc('submit_cod_void_request', { p_cod_id: subjectId, p_reason: reason.trim() })
+                    // MES-6b-2(Q20 · Q32):作废一张分析证书 —— 唯一的路
+                    : await supabase.rpc('submit_coa_void_request', { p_coa_id: subjectId, p_reason: reason.trim() })
     if (r.error) return await refuseFromCoded(r.error.message, localizeWarehouseRequestError)
     refreshWarehouse(extraPath)
     const d = r.data as { label?: string; status?: 'submitted' | 'approved' } | null

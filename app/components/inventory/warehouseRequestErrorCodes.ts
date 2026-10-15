@@ -3,6 +3,7 @@ import { localizeDeletionError } from '@/app/components/inventory/deletionErrorC
 import { isStockErrorCode, localizeStockError } from '@/app/components/inventory/stockErrorCodes'
 import { localizeProcessingError } from '@/app/operation/errorCodes'
 import { localizeCodError } from '@/app/inbound/codErrorCodes'
+import { localizeCoaError } from '@/app/output/coa/coaErrorCodes'
 import { localizeFinanceError } from '@/app/finance/financeErrorCodes'
 
 // app/components/inventory/warehouseRequestErrorCodes.ts
@@ -50,6 +51,8 @@ export async function localizeWarehouseRequestError(message: string): Promise<st
     if (APPROVAL_FAMILY.test(code)) return await localizeFinanceError(raw)
     if (PROCESSING_FAMILY.test(code)) return await localizeProcessingError(raw)
     if (code.startsWith('COD_') || code === 'REASON_REQUIRED') return await localizeCodError(raw)
+    // MES-6b-2:分析证书那一族(COA_NOT_FOUND · COA_NOT_ISSUED —— 提交与批准时按原话冒出来的)由证书那一份说
+    if (code.startsWith('COA_')) return await localizeCoaError(raw)
     if (isStockErrorCode(raw)) return await localizeStockError(raw)
     // 其余(欠款、订单预留、定价申请、软删守卫……)与共用兜底:注销那一份
     return await localizeDeletionError(raw)

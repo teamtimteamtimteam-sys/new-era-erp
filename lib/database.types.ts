@@ -384,6 +384,20 @@ export type Database = {
             foreignKeyName: "assay_disputes_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -759,6 +773,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -1865,6 +1893,20 @@ export type Database = {
             foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -2503,6 +2545,170 @@ export type Database = {
         }
         Relationships: []
       }
+      certificates_of_analysis: {
+        Row: {
+          code: string
+          created_at: string
+          governing_assay_id: string
+          id: string
+          issued_at: string
+          issued_by: string
+          output_batch_id: string
+          replaced_by_coa_id: string | null
+          sales_order_id: string | null
+          snapshot: Json
+          status: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          governing_assay_id: string
+          id?: string
+          issued_at: string
+          issued_by: string
+          output_batch_id: string
+          replaced_by_coa_id?: string | null
+          sales_order_id?: string | null
+          snapshot: Json
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          governing_assay_id?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string
+          output_batch_id?: string
+          replaced_by_coa_id?: string | null
+          sales_order_id?: string | null
+          snapshot?: Json
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_replaced_by_coa_id_fkey"
+            columns: ["replaced_by_coa_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_of_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_replaced_by_coa_id_fkey"
+            columns: ["replaced_by_coa_id"]
+            isOneToOne: false
+            referencedRelation: "coa_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates_of_destruction: {
         Row: {
           code: string | null
@@ -2703,6 +2909,48 @@ export type Database = {
             columns: ["credit_note_id"]
             isOneToOne: false
             referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coa_issues: {
+        Row: {
+          coa_id: string
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          sha256: string
+        }
+        Insert: {
+          coa_id: string
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256: string
+        }
+        Update: {
+          coa_id?: string
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coa_issues_coa_id_fkey"
+            columns: ["coa_id"]
+            isOneToOne: true
+            referencedRelation: "certificates_of_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coa_issues_coa_id_fkey"
+            columns: ["coa_id"]
+            isOneToOne: true
+            referencedRelation: "coa_rows"
             referencedColumns: ["id"]
           },
         ]
@@ -3501,6 +3749,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -5664,6 +5926,20 @@ export type Database = {
             foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -6018,6 +6294,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -6383,6 +6673,20 @@ export type Database = {
             foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
             columns: ["new_output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -6419,6 +6723,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -11754,6 +12072,20 @@ export type Database = {
             foreignKeyName: "inventory_movements_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -13160,6 +13492,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "label_prints_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -15254,6 +15600,20 @@ export type Database = {
             foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -15765,6 +16125,20 @@ export type Database = {
             foreignKeyName: "output_batch_metals_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -16126,6 +16500,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -19795,6 +20183,20 @@ export type Database = {
             foreignKeyName: "processing_inputs_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -19980,6 +20382,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -22317,6 +22733,20 @@ export type Database = {
             foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "quality_limit_judgements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -22750,6 +23180,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: true
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_ceiling_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: true
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -23733,6 +24177,20 @@ export type Database = {
             foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -24054,6 +24512,20 @@ export type Database = {
             foreignKeyName: "sales_records_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -24189,6 +24661,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -24448,6 +24934,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -25069,6 +25569,20 @@ export type Database = {
             foreignKeyName: "shipment_lines_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -25524,6 +26038,20 @@ export type Database = {
             foreignKeyName: "stocktake_counts_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -25667,6 +26195,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -27511,6 +28053,20 @@ export type Database = {
             foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -27717,6 +28273,7 @@ export type Database = {
       warehouse_requests: {
         Row: {
           amount_base: number
+          coa_id: string | null
           cod_id: string | null
           created_at: string
           created_by: string
@@ -27740,6 +28297,7 @@ export type Database = {
         }
         Insert: {
           amount_base: number
+          coa_id?: string | null
           cod_id?: string | null
           created_at?: string
           created_by: string
@@ -27763,6 +28321,7 @@ export type Database = {
         }
         Update: {
           amount_base?: number
+          coa_id?: string | null
           cod_id?: string | null
           created_at?: string
           created_by?: string
@@ -27785,6 +28344,20 @@ export type Database = {
           withdrawn_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "warehouse_requests_coa_id_fkey"
+            columns: ["coa_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_of_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_coa_id_fkey"
+            columns: ["coa_id"]
+            isOneToOne: false
+            referencedRelation: "coa_rows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "warehouse_requests_cod_id_fkey"
             columns: ["cod_id"]
@@ -27860,6 +28433,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -29233,6 +29820,20 @@ export type Database = {
             foreignKeyName: "assay_disputes_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -30093,6 +30694,20 @@ export type Database = {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
             columns: ["batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -30139,6 +30754,143 @@ export type Database = {
           target_source: string | null
         }
         Relationships: []
+      }
+      coa_rows: {
+        Row: {
+          batch_code: string | null
+          code: string | null
+          customer_name: string | null
+          governing_assay_code: string | null
+          governing_assay_id: string | null
+          has_bytes: boolean | null
+          id: string | null
+          issued_at: string | null
+          issued_by_name: string | null
+          issued_by_position: string | null
+          open_request_label: string | null
+          output_batch_id: string | null
+          replaced_by_coa_id: string | null
+          replaced_by_code: string | null
+          sales_order_code: string | null
+          sales_order_id: string | null
+          status: string | null
+          void_reason: string | null
+          voided_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_governing_assay_id_fkey"
+            columns: ["governing_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_replaced_by_coa_id_fkey"
+            columns: ["replaced_by_coa_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_of_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_replaced_by_coa_id_fkey"
+            columns: ["replaced_by_coa_id"]
+            isOneToOne: false
+            referencedRelation: "coa_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_analysis_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collection_promise_status: {
         Row: {
@@ -30374,6 +31126,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "contamination_checks_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -30909,6 +31675,20 @@ export type Database = {
             columns: ["new_output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_new_output_batch_id_fkey"
+            columns: ["new_output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -35107,6 +35887,20 @@ export type Database = {
             foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -35303,6 +36097,30 @@ export type Database = {
           },
         ]
       }
+      output_batch_chemistry_certainty: {
+        Row: {
+          certainty: string | null
+          inbound_leaves: number | null
+          leaves_mixed: number | null
+          leaves_not_recorded: number | null
+          leaves_single_known: number | null
+          leaves_unknown_pending: number | null
+          output_batch_id: string | null
+        }
+        Relationships: []
+      }
+      output_batch_chemistry_certainty_all: {
+        Row: {
+          certainty: string | null
+          inbound_leaves: number | null
+          leaves_mixed: number | null
+          leaves_not_recorded: number | null
+          leaves_single_known: number | null
+          leaves_unknown_pending: number | null
+          output_batch_id: string | null
+        }
+        Relationships: []
+      }
       output_batch_lookup: {
         Row: {
           code: string | null
@@ -35445,6 +36263,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -37913,6 +38745,20 @@ export type Database = {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -38098,6 +38944,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -40578,6 +41438,20 @@ export type Database = {
             foreignKeyName: "sales_records_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_lookup"
             referencedColumns: ["id"]
           },
@@ -40676,6 +41550,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -40831,6 +41719,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -41006,6 +41908,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -41704,6 +42620,7 @@ export type Database = {
       warehouse_requests_masked: {
         Row: {
           amount_base: number | null
+          coa_id: string | null
           cod_id: string | null
           created_at: string | null
           created_by: string | null
@@ -41727,6 +42644,7 @@ export type Database = {
         }
         Insert: {
           amount_base?: never
+          coa_id?: string | null
           cod_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -41750,6 +42668,7 @@ export type Database = {
         }
         Update: {
           amount_base?: never
+          coa_id?: string | null
           cod_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -41772,6 +42691,20 @@ export type Database = {
           withdrawn_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "warehouse_requests_coa_id_fkey"
+            columns: ["coa_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_of_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_coa_id_fkey"
+            columns: ["coa_id"]
+            isOneToOne: false
+            referencedRelation: "coa_rows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "warehouse_requests_cod_id_fkey"
             columns: ["cod_id"]
@@ -41847,6 +42780,20 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
             referencedColumns: ["output_batch_id"]
           },
           {
@@ -42859,6 +43806,26 @@ export type Database = {
         Args: { p_reason: string; p_work_order_id: string }
         Returns: Json
       }
+      coa_assemble: {
+        Args: { p_output_batch_id: string; p_sales_order_id: string }
+        Returns: Json
+      }
+      coa_certificate_data: {
+        Args: { p_output_batch_id: string; p_sales_order_id?: string }
+        Returns: Json
+      }
+      coa_governing_assay: {
+        Args: { p_output_batch_id: string; p_sales_order_id: string }
+        Returns: Json
+      }
+      coa_issue_blockers: {
+        Args: { p_output_batch_id: string; p_sales_order_id: string }
+        Returns: string[]
+      }
+      coa_output_calibration_problem: {
+        Args: { p_output_batch_id: string }
+        Returns: string
+      }
       cod_certificate_data: {
         Args: { p_inbound_batch_id: string }
         Returns: Json
@@ -43711,6 +44678,10 @@ export type Database = {
         Args: { p_reviewer_employee_id: string }
         Returns: boolean
       }
+      issue_coa: {
+        Args: { p_output_batch_id: string; p_sales_order_id?: string }
+        Returns: Json
+      }
       issue_cod: { Args: { p_cod_id: string }; Returns: Json }
       issue_customer_statement: {
         Args: {
@@ -44005,6 +44976,7 @@ export type Database = {
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_blending_plan_code: { Args: { p_date?: string }; Returns: string }
       next_chase_code: { Args: { p_date?: string }; Returns: string }
+      next_coa_code: { Args: { p_date?: string }; Returns: string }
       next_cod_code: { Args: { p_date?: string }; Returns: string }
       next_container_code: { Args: { p_date: string }; Returns: string }
       next_credit_note_code: { Args: { p_date?: string }; Returns: string }
@@ -44512,6 +45484,10 @@ export type Database = {
           p_file_path: string
           p_sha256: string
         }
+        Returns: Json
+      }
+      record_coa_issue: {
+        Args: { p_coa_id: string; p_file_path: string; p_sha256: string }
         Returns: Json
       }
       record_cod_issue: {
@@ -45627,6 +46603,10 @@ export type Database = {
         Args: { p_notes: string; p_transfer_id: string }
         Returns: Json
       }
+      submit_coa_void_request: {
+        Args: { p_coa_id: string; p_reason: string }
+        Returns: Json
+      }
       submit_cod_void_request: {
         Args: { p_cod_id: string; p_reason: string }
         Returns: Json
@@ -46031,6 +47011,10 @@ export type Database = {
           p_source_note: string
         }
         Returns: Json
+      }
+      void_coa_internal: {
+        Args: { p_coa_id: string; p_reason: string; p_voided_by?: string }
+        Returns: undefined
       }
       void_cod: { Args: { p_cod_id: string; p_reason: string }; Returns: Json }
       void_cod_internal: {

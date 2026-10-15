@@ -161,6 +161,7 @@ WITH cg AS (
     FROM information_schema.column_privileges cp
     WHERE cp.grantee = 'authenticated' AND cp.privilege_type = 'SELECT'
       AND cp.table_schema = 'public'
+      AND cp.table_name::text = ANY({batch})
       AND NOT EXISTS (
           SELECT 1 FROM information_schema.table_privileges tp
           WHERE tp.grantee = 'authenticated' AND tp.privilege_type = 'SELECT'
@@ -180,7 +181,7 @@ flags AS (
     FROM information_schema.columns c JOIN cg ON cg.table_name = c.table_name
     WHERE c.table_schema = 'public'
 )
-SELECT COALESCE(string_agg(line, ' | ' ORDER BY line), '') FROM (
+SELECT (SELECT count(*) FROM cg)::text || chr(9) || COALESCE(string_agg(line, ' | ' ORDER BY line), '') FROM (
     SELECT table_name || ': ' || string_agg(column_name, ', ' ORDER BY ordinal_position)
            || CASE WHEN bool_or(NOT granted AND NOT in_view) THEN ' [无 SELECT 且不在遮蔽视图]'
                    ELSE ' [不在遮蔽视图]' END AS line
@@ -188,6 +189,29 @@ SELECT COALESCE(string_agg(line, ' | ' ORDER BY line), '') FROM (
     WHERE (NOT granted AND NOT in_view) OR (has_view AND NOT in_view)
     GROUP BY table_name
 ) q;
+"""
+
+# ★【分批问,判据一字不改】★(MES-6b-2,2026-10-15)
+#   整句在线上已经跑不完:MES-6b-1 两次整门都死在这一句上 —— 不是服务端超时,是连接在
+#   ~95 秒处被掐断(`SSL SYSCALL error: EOF detected`,直连复跑 1 分 38 秒 / 1 分 34 秒断,
+#   服务端那条查询还在跑)。600 秒的 statement_timeout 救不了一条被网络掐断的连接。
+#   于是【按表分批】:上面那句只多了一行 `cp.table_name = ANY({batch})`,别的一个字没动。
+#   为什么这样切是【精确的】而不是近似:cg、granted、in_view、has_view 每一个都只取决于
+#   【这一张表自己】(in_view / has_view 看的是 <表>_masked,不看批里别的表),输出也是
+#   按表一行 —— 所以各批的并集逐字等于整句的结果。
+#   宇宙是 public 下 relkind ∈ r/v/f/p/m 的全部关系(column_privileges 只认 r/v/f/p,
+#   取一个超集不会多出任何一行)。实测(2026-10-15,线上):单表 6.9s、50 张一批 17.8s
+#   (含 ~4s 建连),整句 >95s 断线。
+#   【自证两件事,否则它就是一次挑选】① 各批按构造覆盖宇宙,宇宙为 0 判失败;
+#   ② 各批 cg(带列清单 SELECT 授权的表)之和低于 20 判失败 —— 那说明探测器瞎了,
+#   与 changemask「少于 20 张遮蔽表」同一个口径(AGENTS.md:零必须是测量)。
+GRANT_GAP_BATCH = 40
+GRANT_GAP_MIN_MASKED = 20
+GRANT_GAP_STATS = {}      # 上一次 check_grant_gaps 看见了多少 —— 门那一行把它印出来(覆盖率是一条读数)
+GRANT_GAP_UNIVERSE_SQL = """
+SELECT COALESCE(string_agg(c.relname, ',' ORDER BY c.relname), '')
+FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public' AND c.relkind IN ('r','v','f','p','m');
 """
 
 
@@ -458,7 +482,24 @@ def check_grant_gaps(dsn: str) -> str:
     #   aclexplode(information_schema 的权限视图慢是众所周知的),而**在一次刚被它
     #   绊倒的切次里现写一个新查询,正是本仓库点名过的「匆忙的检查者」** ——
     #   那条已排进 docs/known-issues.md,带着这次的实测数字。
-    return psql(dsn, GRANT_GAP_SQL, statement_timeout="600s")
+    #   ★ MES-6b-2:那句 SQL 仍然没重写 —— 只是【按表分批】去问它(见 GRANT_GAP_SQL 下的注释)。
+    universe = [n for n in psql(dsn, GRANT_GAP_UNIVERSE_SQL).split(",") if n]
+    if not universe:
+        return "探测器什么也没看见(public 下 0 个关系)—— 不是干净"
+    masked, lines = 0, []
+    for i in range(0, len(universe), GRANT_GAP_BATCH):
+        batch = universe[i:i + GRANT_GAP_BATCH]
+        arr = "ARRAY[" + ",".join("'" + n.replace("'", "''") + "'" for n in batch) + "]::text[]"
+        out = psql(dsn, GRANT_GAP_SQL.replace("{batch}", arr), statement_timeout="600s")
+        n_cg, _, gaps = out.partition("\t")
+        masked += int(n_cg)
+        if gaps:
+            lines.append(gaps)
+    GRANT_GAP_STATS.update(relations=len(universe), batches=-(-len(universe) // GRANT_GAP_BATCH), masked=masked)
+    if masked < GRANT_GAP_MIN_MASKED:
+        return (f"只看见 {masked} 张带列清单授权的表(下限 {GRANT_GAP_MIN_MASKED})"
+                f" —— 探测器瞎了,不是干净({len(universe)} 个关系)")
+    return " | ".join(sorted(" | ".join(lines).split(" | "))) if lines else ""
 
 
 def check_grants(dsn: str) -> tuple:
@@ -587,7 +628,9 @@ def main() -> int:
         SIDES = (("rebuild", local),) if OFF else (("live", args.live), ("rebuild", local))
         for label, dsn in SIDES:
             gaps = check_grant_gaps(dsn)
-            print(f"colgrant   {label}: " + ("无缺口 ✓" if not gaps else f"✗ {gaps}"))
+            st = GRANT_GAP_STATS
+            print(f"colgrant   {label}: " + (f"{st.get('relations')} 个关系 · {st.get('batches')} 批 · "
+                                            f"{st.get('masked')} 张列清单授权表,无缺口 ✓" if not gaps else f"✗ {gaps}"))
             if gaps:
                 problems.append(f"column grant gap ({label}): {gaps}")
 

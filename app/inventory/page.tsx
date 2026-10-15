@@ -85,11 +85,11 @@ export default async function InventoryPage() {
     //   读 warehouse_requests_visible():在等的全部 + 最近了结的十张;金额按 data.view_prices 给
     //   (NULL = 受限,画「受限」,不画 0.00)。snapshot 是提交时冻下来的那一组 —— CFO 读不到证书表。
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
-    const [canSeeFinance, canPricesForRequests, holdsWriteOff, holdsRollback, holdsCod] = await Promise.all([
+    const [canSeeFinance, canPricesForRequests, holdsWriteOff, holdsRollback, holdsCod, holdsCoa] = await Promise.all([
         can('module.finance.view'), can('data.view_prices'),
-        can('action.batch_write_off'), can('action.processing_rollback'), can('action.issue_cod')])
+        can('action.batch_write_off'), can('action.processing_rollback'), can('action.issue_cod'), can('action.issue_coa')])
     type WrSnapshot = {
-        batch_code?: string; run_code?: string; cod_code?: string; material_code?: string; material_name?: string
+        batch_code?: string; run_code?: string; cod_code?: string; coa_code?: string; material_code?: string; material_name?: string
         supplier_name?: string; remaining_qty?: number; unit?: string; process_date?: string; locked_period?: boolean
         locked_before?: string | null; outputs?: string[]; inputs?: string[]; cods_voided?: string[]
     }
@@ -103,7 +103,8 @@ export default async function InventoryPage() {
         const s = r.snapshot ?? {}
         return {
             id: r.id, kind: r.kind, status: r.status, label: r.label,
-            subjectCode: s.batch_code ?? s.run_code ?? s.cod_code ?? '—',
+            // MES-6b-2:作废分析证书那一种,主体是证书号(批号在快照里另有,但申请说的是那张证书)
+            subjectCode: (r.kind === 'coa_void' ? s.coa_code : undefined) ?? s.batch_code ?? s.run_code ?? s.cod_code ?? '—',
             reason: r.reason,
             amountBase: r.amount_base,
             materialText: s.material_name ? `${s.material_code ?? ''} ${s.material_name}`.trim() : null,
@@ -113,7 +114,7 @@ export default async function InventoryPage() {
             lockedPeriod: !!s.locked_period,
             outputs: s.outputs ?? [],
             inputs: s.inputs ?? [],
-            codsVoided: r.kind === 'cod_void' ? [] : (s.cods_voided ?? []),
+            codsVoided: r.kind === 'cod_void' || r.kind === 'coa_void' ? [] : (s.cods_voided ?? []),
             createdText: formatAuditStamp(r.created_at),
             raisedBy: r.created_by_email,
             raisedByMe: r.raised_by_me,
@@ -127,6 +128,7 @@ export default async function InventoryPage() {
         holdsWriteOff ? 'action.batch_write_off' : null,
         holdsRollback ? 'action.processing_rollback' : null,
         holdsCod ? 'action.issue_cod' : null,
+        holdsCoa ? 'action.issue_coa' : null,
     ].filter((c): c is string => c !== null)
 
     const [inboundRes, outputRes, runsRes, legsRes, metalsRes, settingsRes, pricesRes, unpricedRes, materialsRes] = await Promise.all([

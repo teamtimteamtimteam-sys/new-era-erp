@@ -1,4 +1,8 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-6b-2(2026-10-15,MES-6b Step 0 Q32 · Q38,Tim):加一支 coa_facts_changed —— 一张已签发的分析证书,而它那一批在签发之后多了一份
+--   (没删的)化验、或开了一张不合格报告。证书【永远不会被自动作废】(Q32):这一格只把它摆到持 action.issue_coa 的人面前(签发与提作废申请
+--   的是同一批人),由人决定要不要经 CFO 作废、重开一张。item_id = 那张证书;item_code = 证书号;subject = 批号 · 最早那一件新事的编号
+--   (化验号或报告编号);item_date = 那件事的日子。证书作废之后它消失(重开的那一张从它自己的签发时刻重新算)。
 -- ★ MES-6b-1(2026-10-15,MES-6b Step 0 Q6 · Q23 · Q38,Tim):加三支,门都是 module.quality.view。
 --   ncr_open —— 一张开着的不合格报告(它扣着那一批)。item_id = 那张报告;item_code = 报告编号;subject = 批号;item_date = 开单日。
 --   quality_hold_reserved —— 一批在质量暂扣里的产出批还挂着没释放的预留(Q23:预留照留,发不出去)。一张单 × 一批 × 扣着它的那张报告一行;
@@ -980,6 +984,32 @@ CREATE VIEW public.operations_now AS
              CROSS JOIN LATERAL batch_quality_hold(NULL::uuid, r.output_batch_id) h(ncr_id, ncr_code, batch_code)
           WHERE r.released_at IS NULL AND r.consumed_at IS NULL AND so.deleted_at IS NULL
           GROUP BY so.id, so.code, h.batch_code, h.ncr_code
+        UNION ALL
+         SELECT 'coa_facts_changed'::text AS item_type,
+            'action.issue_coa'::text AS permission,
+            c.id AS item_id,
+            NULL::text AS doc_kind,
+            c.code AS item_code,
+            (ob.code || ' · '::text) || f.what AS subject,
+            f.found_on AS item_date
+           FROM certificates_of_analysis c
+             JOIN output_batches ob ON ob.id = c.output_batch_id
+             CROSS JOIN LATERAL ( SELECT x.what,
+                    x.found_on
+                   FROM ( SELECT a.code AS what,
+                            a.created_at AS found_at,
+                            a.created_at::date AS found_on
+                           FROM assay_results a
+                          WHERE a.output_batch_id = c.output_batch_id AND a.deleted_at IS NULL AND a.created_at > c.issued_at
+                        UNION ALL
+                         SELECT n.code,
+                            n.opened_at,
+                            n.opened_at::date AS opened_at_date
+                           FROM nonconformance_reports n
+                          WHERE n.output_batch_id = c.output_batch_id AND n.opened_at > c.issued_at) x
+                  ORDER BY x.found_at, x.what
+                 LIMIT 1) f
+          WHERE c.status = 'issued'::text
         UNION ALL
          SELECT 'quality_prompt_ncr'::text AS item_type,
             'module.quality.view'::text AS permission,

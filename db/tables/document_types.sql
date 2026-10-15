@@ -181,4 +181,7 @@ VALUES
     -- MES-6a-1(2026-10-09,MES-0 Q53 · MES-6a Step 0 Q41):样品 —— 按年、无洞(next_sample_code,与 BLD 同形);读码 = 样品页的门(module.quality.view)
     ('sample', 'SMP', 'samples', 'gapless', NULL, '/quality/samples', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.quality.view']::text[]),
     -- MES-6b-1(2026-10-15,MES-0 Q53 · MES-6b Step 0 Q7 · Q39):不合格报告 —— 按年、无洞(next_ncr_code,宽度 GREATEST(4, 位数));读码 = 报告页的门
-    ('ncr', 'NCR', 'nonconformance_reports', 'gapless', NULL, '/quality/ncr', 'detail', 'description', ARRAY['description']::text[], ARRAY['module.quality.view']::text[]);
+    ('ncr', 'NCR', 'nonconformance_reports', 'gapless', NULL, '/quality/ncr', 'detail', 'description', ARRAY['description']::text[], ARRAY['module.quality.view']::text[]),
+    -- MES-6b-2(2026-10-15,MES-0 Q53 · MES-6b Step 0 Q30 · Q39):分析证书 —— 按年、无洞(next_coa_code,宽度 GREATEST(4, 位数));读码 = 证书表的读策略
+    --   (module.output.view,看证书跟着那一批的查看码);落点是证书页 /quality/coa/[id];搜索的副标题是作废理由(与 COD 同一列)
+    ('coa', 'COA', 'certificates_of_analysis', 'gapless', NULL, '/quality/coa', 'detail', 'void_reason', ARRAY['void_reason']::text[], ARRAY['module.output.view']::text[]);

@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2(F6:㉓ ㉔ ㉕ ㉖ ㉙ 只改 part 的那一格)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -5810,6 +5810,16 @@ if (FAULT === 'wording-drift-mes5a2') dict.text = { ...dict.text, 'ea.runShare':
     if (FAULT === 'wording-drift-mes5a2' && !problems.gold22.length) problems.gold22.push('(注入 wording-drift-mes5a2 没有咬人 —— 这一臂瞎了)')
 }
 
+// ★ MES-6b-2(F6,MES-6b Step 0 Q17,Tim):㉓–㉖ 此前读 e.part —— 条目上没有这个字段,于是它们的 part 恒为 null、钉住的期望也是 null,
+//   比的是 null 对 null(known-issues MES6A2-TRAIL-WORDING-PART-NOT-COMPARED)。四臂从此读 titlePart(条目上真正的那个字段,与 ㉗ ㉘ 同)。
+//   光换读法仍然是绿的 —— 22 个样例在它们走过的路上 titlePart 本来就是 null —— 所以每一臂各有一格【只改 part】的注入,名字是
+//   wording-part-<那一刀>:造出来的条目里,没有 part 的塞进一段假的 part(㉓ ㉕ ㉖ 的样例都走通用那一族,通用那一族从不给 part),
+//   有 part 的(㉔ 新加的那一炉的电费份额)把它改一个字。别的一个字都不动,于是那一臂红只能是因为 part 那一格。
+const partFault = (cut, es) => FAULT !== `wording-part-${cut}` ? es
+    : es.map((x) => ({ ...x, titlePart: x.titlePart ? { ...x.titlePart, text: `${x.titlePart.text} (drifted)` } : { text: 'Injected part' } }))
+const partFaultBit = (cut, list) => FAULT !== `wording-part-${cut}` || list.some((p) => p.includes(':part「'))
+    ? null : `(注入 wording-part-${cut} 没有在 part 那一格咬人 —— 这一臂的 part 是瞎的)`
+
 // ── ㉓ MES-5b-1:V37、动作码的声明、拆去隔离那一炉自己结平(MES-5b Step 0 Q11 · Q15 · Q30 · Q32)──────────
 // 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-5b-1.md 列出。
 //   V37 与声明块是变更记录页(/settings/change-history)上的一句 —— 那一页的造句器不带主语(page.tsx:140),这里同样不带;
@@ -5878,11 +5888,11 @@ if (FAULT === 'wording-drift-mes5b1') dict.text = { ...dict.text, 'run.withinTol
         const rows = c.rows.map((r) => ({ group: 'GOLD23', order: 1, prelog: false, at: '2026-10-08T08:00:00+00:00',
             actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
         let es
-        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold23.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        try { es = partFault('mes5b1', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold23.push(`${c.label}:造句器抛错 ${err.message}`); continue }
         const mine = es.filter((x) => x.key === 'GOLD23')
         if (mine.length !== 1) { problems.gold23.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
         const e = mine[0]
-        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
         got23[c.label] = got
         const w = WANT[c.label]
         if (!w) { problems.gold23.push(`${c.label}:金句表里没有这一句`); continue }
@@ -5892,6 +5902,7 @@ if (FAULT === 'wording-drift-mes5b1') dict.text = { ...dict.text, 'run.withinTol
     if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold23.push(`㉓ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
     if (process.env.TRAIL_GOLD23_PRINT) console.log(JSON.stringify(got23, null, 8))
     if (FAULT === 'wording-drift-mes5b1' && !problems.gold23.length) problems.gold23.push('(注入 wording-drift-mes5b1 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes5b1', problems.gold23); if (miss) problems.gold23.push(miss) }
 }
 
 // ── ㉔ MES-5b-2:一张电费单的撤回(在那张单上 · 在它覆盖过的一炉上)· V37 在工序页自己的审计记录上(MES-5b Step 0 Q22 · Q27 · Q32;
@@ -5919,6 +5930,14 @@ if (FAULT === 'wording-drift-mes5b2') dict.text = { ...dict.text, 'ea.reversed':
         [{ table: 'electricity_allocation_reversals', op: 'INSERT', key: { id: rv.id }, refs: rref, new: rv }])
     add('allocation · reversed (on a run it covered)', { subject: 'processing_run', recordId: run, currency: 'SGD' },
         [{ table: 'electricity_allocation_reversals', op: 'INSERT', key: { id: rv.id }, refs: rref, new: rv }])
+    // ★ MES-6b-2(F6,Q17):一个【带 part】的样例 —— 那张单分给一炉的那一份,在那一炉自己的页上("… · PROC-…" 的单号在 part 那一格)。
+    //   没有它,这一臂的 part 那一格永远比的是 null 对 null。
+    const eq24 = id('eq24'), ce24 = id('ce24')
+    add('allocation · a run\'s share (on the run)', { subject: 'processing_run', recordId: run, currency: 'SGD' },
+        [{ table: 'electricity_allocation_lines', op: 'INSERT', key: { id: 77 },
+           refs: { run_id: { [run]: { label: 'PROC-2026-0730' } }, equipment_id: { [eq24]: { label: 'FA-2026-0003' } } },
+           new: { id: 77, allocation_id: al, run_id: run, equipment_id: eq24, basis: 'recorded_energy', run_energy_kwh: 240, run_minutes: null,
+                  weight: 240, share: 0.6, machine_kwh: 400, kwh: 240, amount: 267.5, cost_entry_id: ce24, created_at: '2026-10-09T06:00:00Z' } }])
     add('V37 · expected yield set (on the operation page)', { subject: 'operation_type', recordId: 'battery_powder_line', currency: null },
         [{ table: 'operation_type_output_forms', op: 'UPDATE',
            key: { operation_type_code: 'battery_powder_line', form_code: 'black_mass' }, cols: ['expected_yield_pct'],
@@ -5959,6 +5978,22 @@ if (FAULT === 'wording-drift-mes5b2') dict.text = { ...dict.text, 'ea.reversed':
             "reason": "The utility re-issued the bill with the right meter total",
             "who": "Chooer"
         },
+        "allocation · a run's share (on the run)": {
+            "title": "Electricity share allocated",
+            "part": "PROC-2026-0730",
+            "lines": [
+                "Machine: FA-2026-0003",
+                "Split by: Recorded run energy",
+                "Run energy recorded (kWh): 240",
+                "Weight: 240",
+                "Share: 0.6",
+                "Machine metered (kWh): 400",
+                "Allocated (kWh): 240",
+                "Amount: 267.50 SGD"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
         "V37 · expected yield set (on the operation page)": {
             "title": "Operation type output form edited",
             "part": null,
@@ -5974,11 +6009,11 @@ if (FAULT === 'wording-drift-mes5b2') dict.text = { ...dict.text, 'ea.reversed':
         const rows = c.rows.map((r) => ({ group: 'GOLD24', order: 1, prelog: false, at: '2026-10-09T08:00:00+00:00',
             actor: c.actor ?? { state: 'person', name: 'Chooer' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
         let es
-        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold24.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        try { es = partFault('mes5b2', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold24.push(`${c.label}:造句器抛错 ${err.message}`); continue }
         const mine = es.filter((x) => x.key === 'GOLD24')
         if (mine.length !== 1) { problems.gold24.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
         const e = mine[0]
-        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
         got24[c.label] = got
         const w = WANT[c.label]
         if (!w) { problems.gold24.push(`${c.label}:金句表里没有这一句`); continue }
@@ -5988,6 +6023,7 @@ if (FAULT === 'wording-drift-mes5b2') dict.text = { ...dict.text, 'ea.reversed':
     if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold24.push(`㉔ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
     if (process.env.TRAIL_GOLD24_PRINT) console.log(JSON.stringify(got24, null, 8))
     if (FAULT === 'wording-drift-mes5b2' && !problems.gold24.length) problems.gold24.push('(注入 wording-drift-mes5b2 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes5b2', problems.gold24); if (miss) problems.gold24.push(miss) }
 }
 
 // ── ㉕ MES-5b-3:一份配料计划(在它自己的页上)—— 建出来 · 一条目标 · 一行批次 · 放行 · 执行 · 取消(MES-5b Step 0 Q32 · Q35)──────────
@@ -6109,11 +6145,11 @@ if (FAULT === 'wording-drift-mes5b3') dict.tables = { ...dict.tables, blending_p
         const rows = c.rows.map((r) => ({ group: 'GOLD25', order: 1, prelog: false, at: '2026-10-09T08:00:00+00:00',
             actor: c.actor ?? { state: 'person', name: 'Fu Sheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
         let es
-        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold25.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        try { es = partFault('mes5b3', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold25.push(`${c.label}:造句器抛错 ${err.message}`); continue }
         const mine = es.filter((x) => x.key === 'GOLD25')
         if (mine.length !== 1) { problems.gold25.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
         const e = mine[0]
-        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
         got25[c.label] = got
         const w = WANT[c.label]
         if (!w) { problems.gold25.push(`${c.label}:金句表里没有这一句`); continue }
@@ -6123,6 +6159,7 @@ if (FAULT === 'wording-drift-mes5b3') dict.tables = { ...dict.tables, blending_p
     if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold25.push(`㉕ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
     if (process.env.TRAIL_GOLD25_PRINT) console.log(JSON.stringify(got25, null, 8))
     if (FAULT === 'wording-drift-mes5b3' && !problems.gold25.length) problems.gold25.push('(注入 wording-drift-mes5b3 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes5b3', problems.gold25); if (miss) problems.gold25.push(miss) }
 }
 
 // ── ㉖ MES-6a-1:样品与化验争议(在它们自己的页上、在它们那一批上)· V16 · 冲销理由(费用页与报销单页)· 中性的出具方说法
@@ -6313,11 +6350,11 @@ if (FAULT === 'wording-drift-mes6a1') dict.tables = { ...dict.tables, samples: [
         const rows = c.rows.map((r) => ({ group: 'GOLD26', order: 1, prelog: false, at: '2026-10-09T08:00:00+00:00',
             actor: c.actor ?? { state: 'person', name: 'Chooer' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
         let es
-        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold26.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        try { es = partFault('mes6a1', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold26.push(`${c.label}:造句器抛错 ${err.message}`); continue }
         const mine = es.filter((x) => x.key === 'GOLD26')
         if (mine.length !== 1) { problems.gold26.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
         const e = mine[0]
-        const got = { title: e.title, part: e.part?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
         got26[c.label] = got
         const w = WANT[c.label]
         if (!w) { problems.gold26.push(`${c.label}:金句表里没有这一句`); continue }
@@ -6327,6 +6364,7 @@ if (FAULT === 'wording-drift-mes6a1') dict.tables = { ...dict.tables, samples: [
     if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold26.push(`㉖ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
     if (process.env.TRAIL_GOLD26_PRINT) console.log(JSON.stringify(got26, null, 8))
     if (FAULT === 'wording-drift-mes6a1' && !problems.gold26.length) problems.gold26.push('(注入 wording-drift-mes6a1 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes6a1', problems.gold26); if (miss) problems.gold26.push(miss) }
 }
 
 // ── ㉗ MES-6a-2:氟与氯进了物质字典(带 role)· 化验指标字典 · 一份化验上的指标值 · 合同里点名一个惩罚元素
@@ -6651,6 +6689,132 @@ if (FAULT === 'wording-drift-mes6b1') dict.tables = { ...dict.tables, nonconform
     if (FAULT === 'wording-drift-mes6b1' && !problems.gold28.length) problems.gold28.push('(注入 wording-drift-mes6b1 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㉙ MES-6b-2:分析证书(在它自己的页上、在它那一批产出上、在吃过的进料批上)· 它的字节档案 · 作废它的 CFO 申请 · 重开的那一张
+//   (MES-6b Step 0 Q10 · Q20 · Q31 · Q32 · Q39)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-6b-2.md 列出。
+//   读 titlePart:证书号挂在标题后面那一段,所以 part 那一格比的是真东西(签发、作废、替代、PDF 四句都带号)。
+//   注入 wording-drift-mes6b2 → 这一臂必须红;注入 wording-part-mes6b2(只改 part)→ 这一臂必须在 part 那一格红。
+problems.gold29 = []
+if (FAULT === 'wording-drift-mes6b2') dict.text = { ...dict.text, 'batch.coaIssued': 'Analysis certificate released' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const coa = id('coa'), coa2 = id('coa2'), ob = id('ob'), ib = id('ib'), so = id('so'), asy = id('asy'), wr = id('wr'), iss = id('iss')
+    const cref = { output_batch_id: { [ob]: { label: 'CPW-2026-0012' } }, sales_order_id: { [so]: { label: 'SO-2026-0031' } },
+                   governing_assay_id: { [asy]: { label: 'ASY-2026-0140' } }, issued_by: { [id('u')]: { person: { state: 'person', name: 'Sandra' } } } }
+    const COA_ROW = { id: coa, code: 'COA-2026-0001', output_batch_id: ob, sales_order_id: so, governing_assay_id: asy, status: 'issued',
+        issued_at: '2026-10-15T06:00:00Z', issued_by: id('u'), snapshot: { a: 1 }, void_reason: null, voided_at: null, voided_by: null,
+        replaced_by_coa_id: null, created_at: '2026-10-15T06:00:00Z' }
+    add('coa · issued (on its own page)', { subject: 'coa', recordId: coa, currency: null },
+        [{ table: 'certificates_of_analysis', op: 'INSERT', key: { id: coa }, refs: cref, new: COA_ROW }], { state: 'person', name: 'Sandra' })
+    add('coa · PDF stored (on its own page)', { subject: 'coa', recordId: coa, currency: null },
+        [{ table: 'coa_issues', op: 'INSERT', key: { id: iss }, refs: { coa_id: { [coa]: { label: 'COA-2026-0001' } } },
+           new: { id: iss, coa_id: coa, file_path: `${coa}/x.pdf`, sha256: 'a'.repeat(64), issued_at: '2026-10-15T06:00:01Z', issued_by: id('u') } }],
+        { state: 'person', name: 'Sandra' })
+    add('coa · void requested (on its own page)', { subject: 'coa', recordId: coa, currency: null },
+        [{ table: 'warehouse_requests', op: 'INSERT', key: { id: wr }, refs: { coa_id: { [coa]: { label: 'COA-2026-0001' } } },
+           new: { id: wr, kind: 'coa_void', status: 'submitted', label: 'COA-2026-0001 · void #1', inbound_batch_id: null, output_batch_id: null,
+                  run_id: null, cod_id: null, coa_id: coa, reason: 'A newer final assay was received', snapshot: { coa_code: 'COA-2026-0001' },
+                  amount_base: 0, decided_at: null, decided_by: null, decision_notes: null, executed_at: null, result_entry_ids: [],
+                  withdrawn_at: null, withdrawn_by: null, withdraw_reason: null, created_at: '2026-10-15T07:00:00Z', created_by: id('u') } }],
+        { state: 'person', name: 'Sandra' })
+    add('coa · voided through the CFO (on its output batch page)', { subject: 'output_batch', recordId: ob, currency: null },
+        [{ table: 'certificates_of_analysis', op: 'UPDATE', key: { id: coa }, cols: ['status', 'void_reason', 'voided_at', 'voided_by'], refs: cref,
+           old: COA_ROW, new: { ...COA_ROW, status: 'void', void_reason: 'A newer final assay was received', voided_at: '2026-10-15T08:00:00Z', voided_by: id('u') } }],
+        { state: 'person', name: 'Tim' })
+    add('coa · replaced by the next one (on its own page)', { subject: 'coa', recordId: coa, currency: null },
+        [{ table: 'certificates_of_analysis', op: 'UPDATE', key: { id: coa }, cols: ['replaced_by_coa_id'],
+           refs: { ...cref, replaced_by_coa_id: { [coa2]: { label: 'COA-2026-0002' } } },
+           old: { ...COA_ROW, status: 'void', void_reason: 'A newer final assay was received', voided_at: '2026-10-15T08:00:00Z', voided_by: id('u') },
+           new: { ...COA_ROW, status: 'void', void_reason: 'A newer final assay was received', voided_at: '2026-10-15T08:00:00Z', voided_by: id('u'),
+                  replaced_by_coa_id: coa2 } }],
+        { state: 'person', name: 'Sandra' })
+    add('coa · on an inbound batch it was made from', { subject: 'inbound_batch', recordId: ib, currency: null },
+        [{ table: 'certificates_of_analysis', op: 'INSERT', key: { id: coa }, refs: cref, new: COA_ROW }], { state: 'person', name: 'Sandra' })
+    const WANT = {
+        "coa · issued (on its own page)": {
+            "title": "Certificate of analysis issued",
+            "part": "COA-2026-0001",
+            "lines": [
+                "Output batch: CPW-2026-0012",
+                "Sales order: SO-2026-0031",
+                "Assay stated: ASY-2026-0140"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "coa · PDF stored (on its own page)": {
+            "title": "Certificate of analysis PDF stored",
+            "part": "COA-2026-0001",
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "coa · void requested (on its own page)": {
+            "title": "Certificate of analysis void requested",
+            "part": null,
+            "lines": [
+                "Certificate of analysis: COA-2026-0001",
+                "Amount: 0.00 SGD"
+            ],
+            "reason": "A newer final assay was received",
+            "who": "Sandra"
+        },
+        "coa · voided through the CFO (on its output batch page)": {
+            "title": "Certificate of analysis voided",
+            "part": "COA-2026-0001",
+            "lines": [],
+            "reason": "A newer final assay was received",
+            "who": "Tim"
+        },
+        "coa · replaced by the next one (on its own page)": {
+            "title": "Certificate of analysis replaced",
+            "part": "COA-2026-0001",
+            "lines": [
+                "Replaced by: (empty) → COA-2026-0002"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "coa · on an inbound batch it was made from": {
+            "title": "Certificate of analysis issued",
+            "part": "COA-2026-0001",
+            "lines": [
+                "Output batch: CPW-2026-0012",
+                "Sales order: SO-2026-0031",
+                "Assay stated: ASY-2026-0140"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        }
+    }
+    const got29 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD29', order: 1, prelog: false, at: '2026-10-15T08:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = partFault('mes6b2', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold29.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD29')
+        if (mine.length !== 1) { problems.gold29.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got29[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold29.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold29.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold29.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold29.push(`㉙ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (C.filter((c) => WANT[c.label]?.part).length < 3) problems.gold29.push('㉙ 带 part 的样例少于 3 句 —— part 那一格没有被真的比过')
+    if (process.env.TRAIL_GOLD29_PRINT) console.log(JSON.stringify(got29, null, 8))
+    if (FAULT === 'wording-drift-mes6b2' && !problems.gold29.length) problems.gold29.push('(注入 wording-drift-mes6b2 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes6b2', problems.gold29); if (miss) problems.gold29.push(miss) }
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -6658,7 +6822,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

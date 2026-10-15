@@ -5,6 +5,7 @@
 --   write_off_output  → soft_delete_output_batch_internal(订单预留在注销触发器里拒)
 --   rollback          → rollback_processing_run_internal(OUTPUT_CONSUMED 在那里)
 --   cod_void          → 只有已签发的作废得掉(COD_NOT_ISSUED),void_cod_internal,没有替代品
+--   coa_void          → ★ MES-6b-2:只有已签发的分析证书作废得掉(COA_NOT_ISSUED),void_coa_internal;快照与字节一个字不动
 -- 每一种的 deleted_by / voided_by = 提单人(grilling Q6)。
 -- 【冻结放行】evoltrya.warehouse_request_ctx = 本申请 id,guard_warehouse_request_freeze 只放它自己写的流水。
 -- 返回 amount_base(本次过出来那几张分录的借方合计,本位币)与 entry_ids。"本次过出来的"= 本事务里
@@ -24,6 +25,7 @@ DECLARE
     v_ids    uuid[];
     v_amt    numeric;
     v_cod    record;
+    v_coa    record;
 BEGIN
     SELECT * INTO v_r FROM warehouse_requests WHERE id = p_request_id;
     IF NOT FOUND THEN
@@ -39,7 +41,7 @@ BEGIN
         PERFORM soft_delete_output_batch_internal(v_r.output_batch_id, v_r.reason, v_r.created_by);
     ELSIF v_r.kind = 'rollback' THEN
         PERFORM rollback_processing_run_internal(v_r.run_id, v_r.reason, v_r.created_by);
-    ELSE
+    ELSIF v_r.kind = 'cod_void' THEN
         SELECT c.id, c.code, c.status INTO v_cod
           FROM certificates_of_destruction c WHERE c.id = v_r.cod_id FOR UPDATE;
         IF NOT FOUND THEN
@@ -49,6 +51,18 @@ BEGIN
             RAISE EXCEPTION 'COD_NOT_ISSUED|%|%', COALESCE(v_cod.code, v_cod.id::text), v_cod.status;
         END IF;
         PERFORM void_cod_internal(v_cod.id, v_r.reason, NULL, v_r.created_by);
+    ELSIF v_r.kind = 'coa_void' THEN
+        SELECT c.id, c.code, c.status INTO v_coa
+          FROM certificates_of_analysis c WHERE c.id = v_r.coa_id FOR UPDATE;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'COA_NOT_FOUND|%', COALESCE(v_r.coa_id::text, '?');
+        END IF;
+        IF v_coa.status <> 'issued' THEN
+            RAISE EXCEPTION 'COA_NOT_ISSUED|%|%', v_coa.code, v_coa.status;
+        END IF;
+        PERFORM void_coa_internal(v_coa.id, v_r.reason, v_r.created_by);
+    ELSE
+        RAISE EXCEPTION 'WAREHOUSE_REQUEST_KIND_UNKNOWN|%', v_r.kind;
     END IF;
 
     PERFORM set_config('evoltrya.warehouse_request_ctx', '', true);

@@ -51,6 +51,7 @@ const KIND_CODE: Record<WarehouseRequestKind, string> = {
     write_off_output: 'action.batch_write_off',
     rollback: 'action.processing_rollback',
     cod_void: 'action.issue_cod',
+    coa_void: 'action.issue_coa',
 }
 
 export default function WarehouseRequestsPanel({

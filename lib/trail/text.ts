@@ -240,6 +240,11 @@ export const TRAIL_TEXT = {
     'batch.codVoided': 'Certificate of destruction voided',
     'batch.codChanged': 'Certificate of destruction updated',
     'batch.codPdf': 'Certificate of destruction PDF issued',
+    // MES-6b-2:分析证书(号挂在标题后面那一段)
+    'batch.coaIssued': 'Certificate of analysis issued',
+    'batch.coaVoided': 'Certificate of analysis voided',
+    'batch.coaReplaced': 'Certificate of analysis replaced',
+    'batch.coaPdf': 'Certificate of analysis PDF stored',
     'batch.sold': 'Sold',
     'batch.saleChanged': 'Sale changed',
     'batch.saleStock': 'Stock issued for the sale',
@@ -317,6 +322,7 @@ export const TRAIL_TEXT = {
     'wr.kind.writeOff': 'write-off',
     'wr.kind.rollback': 'processing rollback',
     'wr.kind.codVoid': 'certificate void',
+    'wr.kind.coaVoid': 'certificate of analysis void',
     'wr.kind.other': 'warehouse',
     // ══ AUDIT-TRAIL-1b-2 · 商务 ═════════════════════════════════════════════════
     // 一句事件史里的 detail 拆出单号之后剩下的那一段(照原样,它常夹着一个人写的理由)

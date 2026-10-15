@@ -1,6 +1,9 @@
 -- db/tables/warehouse_requests.sql
 -- ════════════════════════════════════════════════════════════════════════════
 -- APR-7(2026-09-25):注销批次、加工回滚、作废销毁证书 —— 仓库提,CFO 批每一张,批准当场生效
+-- ★ MES-6b-2(2026-10-15,MES-0 Q89 · MES-6b Step 0 Q20 · Q32):第五种 coa_void —— 作废一张分析证书。持 action.issue_coa 的人提
+--   (cco · admin),同一个 CFO、同一个门、二级、不分档;批准即作废、没有替代品(重开一张是另一个新号,签发时由 issue_coa 链上)。
+--   主体列 coa_id 是本刀 ALTER 加在末尾的(镜像照"后加的列在最后"排)。
 -- ════════════════════════════════════════════════════════════════════════════
 -- Tim 的矩阵(docs/role-matrix.md「删除批次 · 加工回滚 · 作废销毁证书 | 仓库提 | CFO」):不分档,
 -- 批准之前什么都不发生。ROLE-1 Batch 3b 的过渡(仓库一步做完)到此结束。
@@ -10,6 +13,7 @@
 --   write_off_output   output_batch_id  —— 注销一张还有料的产出批(Q1)
 --   rollback           run_id           —— 回滚一张加工单
 --   cod_void           cod_id           —— 作废一张已签发的销毁证书
+--   coa_void           coa_id           —— 作废一张已签发的分析证书(MES-6b-2)
 --   空批(没有料、也没有已签发的证书)不经这里:仓库照旧一步删掉 —— 它既不动库存、也不动价值(Q1)。
 --
 -- 【生命周期】与 APR-5a / APR-6 同形
@@ -44,7 +48,7 @@
 CREATE TABLE public.warehouse_requests (
     id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     kind               text NOT NULL
-        CHECK (kind IN ('write_off_inbound', 'write_off_output', 'rollback', 'cod_void')),
+        CHECK (kind IN ('write_off_inbound', 'write_off_output', 'rollback', 'cod_void', 'coa_void')),
     status             text NOT NULL DEFAULT 'submitted'
         CHECK (status IN ('submitted', 'approved', 'rejected', 'withdrawn')),
     label              text NOT NULL,
@@ -72,15 +76,18 @@ CREATE TABLE public.warehouse_requests (
     withdraw_reason    text,
     created_at         timestamptz NOT NULL DEFAULT now(),
     created_by         uuid NOT NULL,
+    -- MES-6b-2:作废一张分析证书时的主体(ALTER 加在末尾)
+    coa_id             uuid REFERENCES public.certificates_of_analysis (id) ON DELETE RESTRICT,
     CONSTRAINT warehouse_requests_kind_shape CHECK (
         (kind = 'write_off_inbound') = (inbound_batch_id IS NOT NULL)
         AND (kind = 'write_off_output') = (output_batch_id IS NOT NULL)
         AND (kind = 'rollback') = (run_id IS NOT NULL)
-        AND (kind = 'cod_void') = (cod_id IS NOT NULL)),
+        AND (kind = 'cod_void') = (cod_id IS NOT NULL)
+        AND (kind = 'coa_void') = (coa_id IS NOT NULL)),
     -- 恰好一个主体 —— 与 kind_shape 同一件事的另一种写法,留着它是给关系图读的:document_relations 按
     -- num_nonnulls(...) = 1 认出"这四列同一行上只有一列",于是不会把本表读成批次 ↔ 加工单 ↔ 证书之间的桥
     -- (fixture 103 A 臂)。
-    CONSTRAINT warehouse_requests_one_subject CHECK (num_nonnulls(inbound_batch_id, output_batch_id, run_id, cod_id) = 1),
+    CONSTRAINT warehouse_requests_one_subject CHECK (num_nonnulls(inbound_batch_id, output_batch_id, run_id, cod_id, coa_id) = 1),
     CONSTRAINT warehouse_requests_decision_shape CHECK ((decided_at IS NULL) = (decided_by IS NULL)),
     CONSTRAINT warehouse_requests_reject_reason CHECK (
         status <> 'rejected' OR (decided_at IS NOT NULL AND btrim(COALESCE(decision_notes, '')) <> '')),
@@ -91,7 +98,7 @@ CREATE TABLE public.warehouse_requests (
 );
 
 COMMENT ON TABLE public.warehouse_requests IS
-    'APR-7:注销批次(write_off_inbound / write_off_output)、加工回滚(rollback)、作废销毁证书(cod_void)的申请 —— 仓库提,CFO 批每一张,不分档,批准当场生效。submitted → approved(CFO)· rejected(要理由)· withdrawn(提单人本人或该种类的码)。审批关着时生下来就是 approved 并当场生效(auto_approved)。在等的时候:主体批次上的任何库存流水按名拒 WAREHOUSE_REQUEST_FREEZES_BATCH;一个批次、它的证书、消耗它的加工单同一时刻只挂一张在等的申请(WAREHOUSE_REQUEST_OPEN)。空批(没有料也没有已签发证书)不经这里。';
+    'APR-7:注销批次(write_off_inbound / write_off_output)、加工回滚(rollback)、作废销毁证书(cod_void)、作废分析证书(coa_void,MES-6b-2)的申请 —— 仓库提(分析证书由持 action.issue_coa 的人提),CFO 批每一张,不分档,批准当场生效。submitted → approved(CFO)· rejected(要理由)· withdrawn(提单人本人或该种类的码)。审批关着时生下来就是 approved 并当场生效(auto_approved)。在等的时候:主体批次上的任何库存流水按名拒 WAREHOUSE_REQUEST_FREEZES_BATCH;一个批次、它的证书、消耗它的加工单同一时刻只挂一张在等的申请(WAREHOUSE_REQUEST_OPEN)。空批(没有料也没有已签发证书)不经这里。';
 
 COMMENT ON COLUMN public.warehouse_requests.amount_base IS
     'APR-7:本位币 = 生效时过出来那几张分录的借方合计。提交时由试跑算出(写进 submitted 留痕);批准后改写成实际过账额(写进 approved 留痕)。没有计价的注销与证书作废是 0 —— 它们不动价值。';
@@ -107,11 +114,14 @@ CREATE UNIQUE INDEX warehouse_requests_one_open_run
     ON public.warehouse_requests (run_id) WHERE status = 'submitted';
 CREATE UNIQUE INDEX warehouse_requests_one_open_cod
     ON public.warehouse_requests (cod_id) WHERE status = 'submitted';
+CREATE UNIQUE INDEX warehouse_requests_one_open_coa
+    ON public.warehouse_requests (coa_id) WHERE status = 'submitted';
 CREATE INDEX warehouse_requests_open ON public.warehouse_requests (kind) WHERE status = 'submitted';
 CREATE INDEX warehouse_requests_inbound_batch_id_rel ON public.warehouse_requests (inbound_batch_id);
 CREATE INDEX warehouse_requests_output_batch_id_rel ON public.warehouse_requests (output_batch_id);
 CREATE INDEX warehouse_requests_run_id_rel ON public.warehouse_requests (run_id);
 CREATE INDEX warehouse_requests_cod_id_rel ON public.warehouse_requests (cod_id);
+CREATE INDEX warehouse_requests_coa_id_rel ON public.warehouse_requests (coa_id);
 
 ALTER TABLE public.warehouse_requests ENABLE ROW LEVEL SECURITY;
 
@@ -130,5 +140,5 @@ REVOKE ALL ON public.warehouse_requests FROM anon;
 REVOKE SELECT ON public.warehouse_requests FROM authenticated;
 GRANT SELECT (id, kind, status, label, inbound_batch_id, output_batch_id, run_id, cod_id, reason, snapshot,
               decided_at, decided_by, decision_notes, executed_at, result_entry_ids, withdrawn_at, withdrawn_by,
-              withdraw_reason, created_at, created_by)
+              withdraw_reason, created_at, created_by, coa_id)
     ON public.warehouse_requests TO authenticated;

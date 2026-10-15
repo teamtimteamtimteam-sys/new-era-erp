@@ -838,6 +838,23 @@
 >    五个克隆 45 次:按码该看见的都看见、按码不该按的都说出码(warehouse 进不了销售与合同,与它的码一致)。**所以第 2 步(MES-6b-2)照常开始**
 >    (委托书第 1.5 条)。逐项证据在 `docs/handbacks/MES-6b-2.md` 的 close-out 一节。
 >
+> 50. **✅ 分析证书(CoA)、产出批的来料化学确定度(N38)、措辞臂钉住"部分"一栏(F6)、作废分析证书只经 CFO —— MES-6b-2(`v1.4.51`,2026-10-15)。**
+>    MES 组的第十五刀(Tim 2026-10-15:MES-6b Step 0 的 Q10–Q14 · Q17 · Q20 · Q29–Q32 · Q38–Q42 照推荐裁定;MES-6b 拆两刀,本刀是后一半)。
+>    **证书**:`certificates_of_analysis`(COA- 按年无洞,签发那一刻铸)—— 一批产出批,可选点名一张预留过或发过它的销售单;一批 × 一张单同时只有
+>    一张活证书。**说话的那一份化验**(Q11):结案争议点名的 → 点了单就是合同约定那一方最新一份活的 → 否则我们最新一份活的;必须 `is_final`
+>    (不越过一份更新的初步结果去找旧的);成分读那一份化验自己的行,从不读 `output_batch_metals`。**N38**(Q12):属主权限视图
+>    `output_batch_chemistry_certainty`,进料叶子上最弱的那一个(unknown_pending < 未记录 < mixed < single_known),批次页说出、冻进证书。
+>    **拒**(Q29):`COA_NO_FINAL_ASSAY` · `QUALITY_HOLD_OPEN` · `ASSAY_DISPUTE_OPEN` · 产出腿称重不在校准期内 · 点名的单越限而报告没有以 accept* 决定 ·
+>    单不是这一批的 · 已有活证书 · 公司名没录 · 签发人不是员工 / 没有职位。**签发**:新码 `action.issue_coa`(admin · cco,声明
+>    `module.output.view` 与 `module.quality.view`);库组装一次快照,PDF 只从快照渲染(英文,「Issued by <名字>, <职位>」与签发时刻,Q13),存进私有桶
+>    `coa-documents`、sha256 记在 `coa_issues`;取档重算,对不上 409。**作废**(Q20 · Q32):仓库申请 `coa_void`,CFO 二级审批,没有一步作废的门;
+>    作废的证书留着快照与字节,重开一张新号、旧的指向它;从不自动作废 —— 提醒 `coa_facts_changed`(签发之后多了一份化验或一张报告)摆给签发人。
+>    审计主语 `coa`(两个批次主语下都挂着)、措辞臂 ㉙;**F6**:㉓–㉖ 改读 `titlePart`,各有一格只动"部分"的故障。单据登记 COA。
+>    迁移 `db/migrations/2026-10-15-mes6b2-certificate-of-analysis.sql`,**破窗起点 2026-10-15 20:45:44 CST**(`db/migration-windows.tsv`),
+>    终点等 Tim 在 Vercel 上确认部署。验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-6b-2.md`;
+>    登记两条(`docs/known-issues.md` 的 MES-6b-2 一节),关掉 N38,更正两条过时的记录。销毁证书的 PDF 仍从活数据渲染 —— 照委托书【登记、不修】
+>    (`MES6B1-COD-PDF-RENDERS-LIVE`)。**下一刀 MES-7a · Spare parts and reliability**(见下面「⬜ ★ MES 组」第 11 行)。
+>
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
@@ -7345,7 +7362,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);**MES-6b-2 CoA 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);**MES-7a Spare parts and reliability 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -7372,9 +7389,9 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 9b | ✅ **MES-6a-2 · F / Cl and quality indicators**(`v1.4.49`,2026-10-10,上面第 48 条)| 19(氟与氯 —— 字典两行、经定价与结算)· 残粉 / 箔纯度 / 粒径三个指标(Step 0 Q1 的后一半)| 见 Step 0 §11 |
   | ~~9~~ | ~~⬜ **MES-6a · Samples, arbitration, F/Cl**~~ → 拆成上面 9a · 9b(Tim 2026-10-09 Q1)。原文:15(样品)· 16(仲裁)· 19(氟与氯),5 h 15 m – 8 h 45 m |
   | 10a | ✅ **MES-6b-1 · NCR, quality hold, contract quality limits**(★ 已关闭,`v1.4.50`,2026-10-15,上面第 49 条;Tim 2026-10-15 裁定 MES-6b 拆两刀)| 17(不合格报告)· V17 · F4 · F5 · F7 · F8 | 见 `docs/surveys/MES-6b/STEP0-HANDBACK.md` §11 |
-  | 10b | ⬜ **MES-6b-2 · CoA**(★ 下一刀)| 18(分析证书)· **N38**(产出批说出来料的化学确定度)· F6(措辞臂 ㉓–㉖ 钉住"部分"一栏)· 作废分析证书 · Step 0 Q10–Q14 · Q17 · Q29–Q32。★ **Q13 的记录(Tim 2026-10-15):证书上写「Issued by <名字>, <职位>」与签发时刻,不放签名图片。** | 见 Step 0 §11 |
+  | 10b | ✅ **MES-6b-2 · CoA**(★ 已关闭,`v1.4.51`,2026-10-15,上面第 50 条)| 18(分析证书)· **N38**(产出批说出来料的化学确定度)· F6(措辞臂 ㉓–㉖ 钉住"部分"一栏)· 作废分析证书 · Step 0 Q10–Q14 · Q17 · Q29–Q32。★ **Q13 的记录(Tim 2026-10-15):证书上写「Issued by <名字>, <职位>」与签发时刻,不放签名图片。** | 见 Step 0 §11 |
   | ~~10~~ | ~~⬜ **MES-6b · NCR, quality hold, CoA**~~ → 拆成上面 10a · 10b(Tim 2026-10-15)。原文:17(不合格报告)· 18(分析证书)· ★ **并入(MES-6a Step 0 Q5 · Q6,Tim 2026-10-09)**:**V17** 水分与粒径的验收限(逐份合同,随质量冻结一起)· **N38** 产出批说出来料的化学确定度(CoA 必须说出它;`docs/known-issues.md` 那一条的去处已改)· ★ **并入(MES-6a-2 close-out 的裁定,Tim 2026-10-15)**:**F7** 两张化验录入表单上每一个惩罚元素的 % 框旁边,实时显示 ppm(与详情页同一支 `ppmOf`),外加一条构建检查:每一个这样的框都带着它 · **F8** close-out a 项记下的弱点逐条补上 —— 计价引擎条款一侧的 `SUBSTANCE_NOT_PAYABLE` 与公式【修改】那条路各要一格自己的注入、变更记录豁免数 = 8 要一格注入、产出化验的 fixture 记全五个指标(今天只记 2 个);另 MES-6b Step 0 待裁的 F4(惩罚条款收可计价金属)· F5(只测惩罚元素的化验应用不上)· F6(措辞臂 ㉓–㉖ 钉住"部分"一栏)见 `docs/surveys/MES-6b/STEP0-HANDBACK.md`| 6 h 25 m – 11 h 30 m |
-  | 11 | ⬜ **MES-7a · Spare parts and reliability** | 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m |
+  | 11 | ⬜ **MES-7a · Spare parts and reliability**(★ 下一刀)| 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m |
   | 12 | ⬜ **MES-7b · Inspections and incidents** | 23(安全巡检)· 24(热失控 / 排放) | 8 h 05 m – 15 h 15 m |
   | 13 | ⬜ **MES-8a · Supplier scorecards and statements** | 25(评分卡)· 26(供应商对账单) | 5 h 45 m – 9 h 45 m |
   | 14 | ⬜ **MES-8b · Analysis and display** | 28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏) | 5 h 25 m – 10 h 00 m |

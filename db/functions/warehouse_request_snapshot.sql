@@ -2,6 +2,8 @@
 -- APR-7(2026-09-25,grilling Q5 · Q8):提交时冻给 CFO 读的那一组。CFO 不持 action.issue_cod,读不到证书表 ——
 -- 所以"这会作废哪一张证书"要在这里说出来;回滚的加工日是否落在已锁期间(finance_settings.locked_before)
 -- 也在这里说出来(Q5:准许,但批之前要看得见)。【不含金额】—— 金额在 amount_base,按 data.view_prices 给。
+-- ★ MES-6b-2:coa_void —— 证书号、批号与批 id(给屏幕链回批次页)、点名的销售单号与客户名、签发时刻、说话的那一份化验。
+--   CFO 持 module.output.view,读得到证书;这一组仍然冻在申请上:批的是提交那一刻看见的那一张。
 -- NOTE: introduced by db/migrations/2026-09-25-apr7-write-offs-rollbacks-and-cod-voids-wait-for-the-cfo.sql.
 
 CREATE OR REPLACE FUNCTION public.warehouse_request_snapshot(p_kind text, p_subject uuid)
@@ -59,6 +61,18 @@ AS $function$
           JOIN inbound_batches ib ON ib.id = c.inbound_batch_id
           LEFT JOIN materials m ON m.id = ib.material_id
           LEFT JOIN suppliers s ON s.id = ib.supplier_id
+         WHERE c.id = p_subject)
+    WHEN 'coa_void' THEN (
+        SELECT jsonb_build_object(
+            'coa_code', c.code, 'batch_code', ob.code, 'output_batch_id', ob.id, 'material_name', m.name,
+            'sales_order_code', so.code, 'customer_name', COALESCE(cu.short_name, cu.legal_name),
+            'issued_at', c.issued_at, 'assay_code', a.code, 'cods_voided', '[]'::jsonb)
+          FROM certificates_of_analysis c
+          JOIN output_batches ob ON ob.id = c.output_batch_id
+          LEFT JOIN materials m ON m.id = ob.material_id
+          LEFT JOIN sales_orders so ON so.id = c.sales_order_id
+          LEFT JOIN customers cu ON cu.id = so.customer_id
+          LEFT JOIN assay_results a ON a.id = c.governing_assay_id
          WHERE c.id = p_subject)
     END
 $function$;

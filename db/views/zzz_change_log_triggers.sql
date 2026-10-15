@@ -4,7 +4,7 @@
 --
 -- 【为什么住在 db/views/ 而不是各自的表镜像里】与 zzz_function_grants.sql 同一个理由:重放顺序是
 --   functions → tables → views,而 views 阶段按名字排、zzz 排最后 —— 到这里每一张表都已经建好。
---   一份文件放 287 张表的绑定(MES-6b-1 起;MES-6a-2 是 284;此前这里的数没跟着 --only 一刀刀加上去,停在 274),比在 287 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
+--   一份文件放 289 张表的绑定(MES-6b-2 起;MES-6b-1 是 287;MES-6a-2 是 284;此前这里的数没跟着 --only 一刀刀加上去,停在 274),比在 289 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
 --   与它们写在哪个文件里无关。
 -- 【豁免】change_log_exclusions() 里那 8 张不在这里(理由写在那支函数里)。
 -- 【名字以 zzz 开头】同一张表上的 AFTER 触发器按名字排序触发 —— 记录最后一个看到那一行。
@@ -122,6 +122,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.certifi
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.certificate_types
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.certificates_of_analysis
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.certificates_of_analysis
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.certificates_of_destruction
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.certificates_of_destruction
@@ -129,6 +133,10 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.certificates_of_
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.cn_issues
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.cn_issues
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.coa_issues
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.coa_issues
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.cod_issues
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');

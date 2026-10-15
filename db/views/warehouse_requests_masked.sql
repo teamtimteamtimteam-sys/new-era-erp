@@ -9,6 +9,7 @@
 -- 【属主权限,不是 SECURITY INVOKER】理由同 processing_runs_masked:基表的 amount_base 已经收回了列权限,
 --   invoker 视图会对调用者报 42501。模块谓词原样写回视图体,与基表的读策略逐行等价 —— 视图不放宽任何行访问。
 -- 【一旦一张表有了 _masked 伴生,它的每一列都必须在这张视图里】(colgrant 的第二个分支)。
+-- MES-6b-2:基表末尾加了 coa_id(作废分析证书的主体)—— 同一支迁移里加进列权限与本视图(AGENTS.md「给遮蔽表加列」:三件事一支迁移)。
 
 CREATE VIEW public.warehouse_requests_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -34,7 +35,8 @@ CREATE VIEW public.warehouse_requests_masked WITH (security_invoker = off) AS
     withdrawn_by,
     withdraw_reason,
     created_at,
-    created_by
+    created_by,
+    coa_id
    FROM warehouse_requests
   WHERE has_permission('module.inventory.view'::text) OR has_permission('module.finance.view'::text);
 

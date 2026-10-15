@@ -190,6 +190,10 @@ const OVERRIDES = {
     certificates_of_destruction: { code: 'Certificate number', completed_on: 'Processing completed on',
         replaced_by_cod_id: 'Replaced by certificate', snapshot: 'Certificate details', void_reason: 'Reason voided' },
     cod_issues: { cod_id: 'Certificate' },
+    // MES-6b-2:分析证书 · 它的字节档案(在证书页与批次页上读)
+    certificates_of_analysis: { code: 'Certificate number', governing_assay_id: 'Assay stated', replaced_by_coa_id: 'Replaced by',
+        void_reason: 'Reason voided', sales_order_id: 'Sales order', output_batch_id: 'Output batch' },
+    coa_issues: { coa_id: 'Certificate' },
     equipment_downtime: { ended_at: 'Came back up', started_at: 'Went down', reason: 'Reason', duration: 'Duration',
         // U1-B(Q15):作废一段没有发生过的停机
         voided_at: 'Voided on', voided_by: 'Voided by', void_reason: 'Reason voided' },
@@ -235,7 +239,7 @@ const OVERRIDES = {
     shift_handovers: { incoming_employee_id: 'Incoming', outgoing_employee_id: 'Outgoing' },
     shipment_lines: { location_id: 'Location' },
     stocktakes: { cancelled_at: 'Cancelled on', posted_at: 'Posted on' },
-    warehouse_requests: { cod_id: 'Certificate of destruction', run_id: 'Processing run', label: 'Request', executed_at: 'Carried out on',
+    warehouse_requests: { cod_id: 'Certificate of destruction', coa_id: 'Certificate of analysis', run_id: 'Processing run', label: 'Request', executed_at: 'Carried out on',
         snapshot: 'Request details' },
     work_order_history: { amend_reason: 'Reason' },
     // ── AUDIT-TRAIL-1b-2:报价 · 订单 · 发货 · 客户 · 佣金 · 供应商 · 物流的表(每一列对着它所在的那一页核过 ——
@@ -643,6 +647,9 @@ const HIDE = {
     work_order_history: ['work_order_id', 'change_type', 'changed_at', 'changed_by'],
     sales_order_history: ['sales_order_id', 'change_type', 'changed_at', 'changed_by'],
     cod_issues: ['sha256'], traceability_report_issues: ['sha256'], finance_attachments: ['mime_type'],
+    // MES-6b-2:快照是证书页与 PDF 的事(从不摊成原始 JSON);散列不是人话。证书号【不藏】—— 它挂在标题后面那一段(titlePart),
+    //   藏起来它就成了一个 id(机器字检查当场抓到过,本刀第一版)
+    certificates_of_analysis: ['snapshot'], coa_issues: ['sha256'],
     // AUDIT-TRAIL-1b-2:报价与订单的单号在页头(它们的事件不拿单号做标题);签发档的散列不是人话;
     //   附件的 MIME 类型(application/pdf)是机器字,文件名已经说了它是什么。
     //   ★ 发货单、对账单、催收的单号【不】藏:它们的事件标题里要说出是哪一张("Goods shipped · SHP-…"),
@@ -736,6 +743,8 @@ const TABLE_NAMES = {
     qt_issues: 'quote issue', so_issues: 'sales order issue', price_history: 'batch price change',
     // AUDIT-TRAIL-1b-1
     certificates_of_destruction: 'certificate of destruction', cod_issues: 'certificate PDF issue',
+    // MES-6b-2
+    certificates_of_analysis: 'certificate of analysis', coa_issues: 'certificate of analysis PDF',
     traceability_report_issues: 'traceability report', warehouse_requests: 'warehouse request',
     equipment_maintenance: 'service or repair', equipment_downtime: 'downtime', equipment_service_intervals: 'service interval',
     shift_handovers: 'shift handover', shift_handover_items: 'handover item', shift_handover_equipment_refs: 'handover downtime note',
@@ -915,6 +924,8 @@ const ENUM_OVERRIDES = {
     'purchase_order_lines#unit': { kg: 'kg', t: 't', unit: 'units', units: 'units', pcs: 'pieces', l: 'litres' },
     // ── AUDIT-TRAIL-1b-1 ──────────────────────────────────────────────────────────────────────────────
     'certificates_of_destruction#status': { pending: 'Pending', issued: 'Issued', void: 'Void' },
+    // MES-6b-2:分析证书没有 pending —— 生下来就是签发了的
+    'certificates_of_analysis#status': { issued: 'Issued', void: 'Void' },
     'inbound_batch_metals#content_source': { assay: 'From an assay', manual: 'Entered by hand' },
     'output_batch_metals#content_source': { assay: 'From an assay', manual: 'Entered by hand' },
     'finance_attachments#doc_type': { invoice: 'Invoice', contract: 'Contract', receipt: 'Receipt', bank_slip: 'Bank slip',

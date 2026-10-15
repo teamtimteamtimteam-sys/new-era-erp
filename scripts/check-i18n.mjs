@@ -835,6 +835,12 @@ const MANIFEST = {
     'quality.ncr.dispositionWhy.': { kind: 'enum', values: () => sqlEnum('db/tables/nonconformance_reports.sql', 'disposition') },
     'quality.judgementResult.': { kind: 'enum', values: () => sqlEnum('db/tables/quality_limit_judgements.sql', 'result') },
     'quality.ncr.requestStatus.': { kind: 'enum', values: () => ['submitted', 'approved'] },
+    // MES-6b-2(2026-10-15):分析证书。错误码接 coaErrorCodes.ts 的 Set;状态接证书表的 CHECK;确定度是视图吐出来的那几档(四个已知的;
+    //   不认得的码页面原样印,不走 t());"怎么选出来的"接 coa_governing_assay 吐出的三个 basis。
+    'coa.errors.':      { kind: 'enum', values: () => tsSet('app/output/coa/coaErrorCodes.ts', 'COA_ERROR_CODES') },
+    'coa.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/certificates_of_analysis.sql', 'status') },
+    'coa.certainty.':   { kind: 'enum', values: () => ['single_known', 'mixed', 'unknown_pending', 'not_recorded'] },
+    'coa.governedBy.':  { kind: 'enum', values: () => ['dispute', 'settling_party', 'ours'] },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },
     'finance.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/payments.sql', 'direction') },

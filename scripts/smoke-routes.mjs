@@ -222,6 +222,9 @@ const ID_SOURCES = {
         // MES-6b-1(2026-10-15):不合格报告。线上零行(本刀的线上验证全部在回滚的事务里跑;本刀不在线上留任何报告),
         //   故同时列在 EXPECTED_SKIPS 里 —— 开出第一张报告的那天,那条断言会响。
         '/quality/ncr': 'nonconformance_reports',
+        // MES-6b-2(2026-10-15):分析证书。线上零行(本刀的线上验证 —— 签发、存字节、对哈希、经 CFO 作废、重开 —— 全部在回滚的事务里跑,
+        //   桶里存过的对象跑完就删),故同时列在 EXPECTED_SKIPS 里 —— 签出第一张证书的那天,那条断言会响。
+        '/quality/coa': 'certificates_of_analysis',
         '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
@@ -704,6 +707,7 @@ const MUST_CONTAIN = {
     '/quality/samples/[id]': [{ trail: 'audit-trail', why: '样品页底的审计记录(MES-6a-1)' }],
     '/quality/disputes/[id]': [{ trail: 'audit-trail', why: '化验争议页底的审计记录(MES-6a-1)' }],
     '/quality/ncr/[id]': [{ trail: 'audit-trail', why: '不合格报告页底的审计记录(MES-6b-1)' }],
+    '/quality/coa/[id]': [{ trail: 'audit-trail', why: '分析证书页底的审计记录(MES-6b-2)' }],
     '/quality/samples': [{ trail: 'audit-trail', emptyOk: true, why: '内部留样天数(V16)的审计记录(MES-6a-1)' }],
     '/operation/devices': [{ trail: 'audit-trail', emptyOk: true, why: '采集上限的审计记录(MES-1 Q22,M5)' }],
     '/hr/attendance/[id]': [{ trail: 'audit-trail', why: '考勤期间页底的审计记录(Q12:之前那一段只剩最近一次)' }],
@@ -1283,6 +1287,9 @@ const EXPECTED_SKIPS = new Set([
     // MES-6b-1(2026-10-15):线上 nonconformance_reports 零行 —— 本刀的线上验证(开报告、暂扣挡住投料 / 发货 / 结算 / 配料、
     //   系统因越限开单、别人决定)全部在回滚的事务里跑。第一张真的报告开出来那天,这条断言会响,这一行随之删掉。
     '/quality/ncr/[id]',
+    // MES-6b-2(2026-10-15):线上 certificates_of_analysis 零行 —— 本刀的线上验证全部在回滚的事务里跑。第一张真的证书签出来那天,
+    //   这条断言会响,这一行随之删掉。
+    '/quality/coa/[id]',
     // ~~MES-1(2026-10-06):线上 devices 零行~~ —— 同一天由 MES-1 的线上验证登记了探针网关 ZZ-PROBE-GW-…(DEV-2026-0001,
     //   停用,行留着当测试数据),这一条于是摘掉:/operation/devices/[id] 从此每一次冒烟都真的打开一台设备。
     // AUDIT-TRAIL-1b-1(Q23):线上 shift_handovers 零行(车间还没有人交接)。第一张交接班提交的那天,这条断言会响。
@@ -1651,6 +1658,10 @@ const ORDER_OVERRIDES = {
     // 【为什么不是按 period_month】同一个月可以有多份(重出),period_month
     // 不唯一;produced_at + id 才排得出先后。
     management_packs: '&order=produced_at.desc,id.desc',
+    // MES-6b-2(2026-10-15)实测:一张不合格报告"开出来那一刻"叫 opened_at,表上没有 created_at —— MES-6b-1 把它登记进 ID_SOURCES 时
+    //   没有给排序键,于是这一条 id 查询【不可能成功】(42703 column nonconformance_reports.created_at does not exist),
+    //   MES-6b-2 的冒烟在走过 214 条、0 失败之后被它中止。同一条:按表覆盖,不改表的形状。
+    nonconformance_reports: '&order=opened_at.desc,id.desc',
 }
 const ORDER_DEFAULT = '&order=created_at.desc,id.desc'
 async function firstId(table, route) {
