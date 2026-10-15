@@ -854,6 +854,30 @@
 >    终点等 Tim 在 Vercel 上确认部署。验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-6b-2.md`;
 >    登记两条(`docs/known-issues.md` 的 MES-6b-2 一节),关掉 N38,更正两条过时的记录。销毁证书的 PDF 仍从活数据渲染 —— 照委托书【登记、不修】
 >    (`MES6B1-COD-PDF-RENDERS-LIVE`)。**下一刀 MES-7a · Spare parts and reliability**(见下面「⬜ ★ MES 组」第 11 行)。
+>    ★ **部署:Tim 在 Vercel 上确认 `1ca90256` 已部署(MES-6b-2 close-out + MES-7a Step 0 委托书,2026-10-15)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-15 20:45:44 CST**(测量:`db/migration-windows.tsv`,`2026-10-15-mes6b2-certificate-of-analysis.sql`)·
+>    终点下界 **2026-10-15 22:11:53 CST**(测量:推送把 `origin/main` 移到 `1ca90256`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`1ca90256 … {2026-10-15 22:11:53 +0800}: update by push`)·
+>    终点上界 **2026-10-15 22:22:17 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 26 min 09 s,至多 1 h 36 min 33 s。**
+>    窗口里坏掉的(**推导**,MES-6b-2 交回 §8,没有在线上量):旧应用不读任何一样新东西;`warehouse_requests` 多了一列(全 NULL)与一个旧应用
+>    看不见的种类 —— 没有一条在用的路坏掉。窗口里的只读读数(2026-10-15 22:36 CST,`postgres`,基表;
+>    `docs/surveys/MES-7a/mes6b2-window-readings.sql`,`READ_OWN_EXIT=0`):证书 0 · 字节档案 0 · `coa_void` 申请 0 · `coa-documents` 里 0 个对象 ·
+>    窗口里新建的仓库申请 0 · 化验 0 · 不合格报告 0 · 库存流水 0 · 签发的销毁证书 0;变更记录全是 MES-6b-2 自己的冒烟 / 版式普查 / 证明的一次性
+>    角色 / 授权 / 账号 / 员工 / 评估 / 草稿合同,逐表 INSERT = DELETE。**已部署的就是 MES-6b-2 的代码**(测量:四个克隆在线上的产出批页上
+>    都画出了 `data-section="coa"` —— 那一段只从 `1ca90256` 起才有)。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–d,逐项证据在 `docs/surveys/MES-7a/MES-6b-2-CLOSEOUT.md`):a** 委托书列的 15 项 fixture 逐项都有臂盖着;
+>    量到的弱处【登记、不算缺、没有修】:W1 409 与「从快照渲染」是路由(TypeScript)的行为,SQL fixture 够不着 —— 只有线上证明跑过一次
+>    (一次性、回滚),交回里说的"本地测试"是手动的、没有进仓库;W2 cco 持 `action.issue_coa` 是一条线上授权,由迁移的事务内自证与今天的读数钉住,
+>    不由重建上的 fixture 钉住(与 `action.ncr_decide` 同形)。**只在文档里的缺口(不挡第 2 步)**:MES-6b-2 交回 §3 第 14 行写"见最后的报告",
+>    冷 clone 构建的结果只活在那一次会话的聊天里 —— 照录在这里:冷 clone、没有 `.env.local`,`CI_OWN_EXIT=0` · `X_OWN_EXIT=0`(时长 78 s,
+>    按会话记录量)。**b** 已部署的应用上 cco · warehouse · cfo · admin 四个克隆:产出批页 / CoA 清单 / 库存页 / CoA 预览 16 次全部 200,
+>    证书一段、来料化学确定度、签发前就说出的拒绝都在;warehouse 与 cfo 的签发钮按不动并点名 `action.issue_coa`;本地重建上(自己的数据)
+>    cco 经路由签出 COA-2026-0001、warehouse 被 400 按码拒、四个角色都下载得到存档(纸上「Issued by Clone cco, Chief Commercial Officer」)、
+>    cco 提的 `coa_void` 在 cfo 克隆的 CFO 申请清单里、批准钮按得动(warehouse 那里按不动并点名 `module.finance.view`)。**c** 线上持
+>    `action.issue_coa` 的两个账号(admin@ → Tim, Chief Financial Officer;sandra@ → Sandra, Chief Commercial Officer)用仓库自己的字体守卫过一遍:
+>    都画得出来。**d** 交回 §6 的 22 条决定逐条列在 close-out 文件里。**所以第 2 步(MES-7a Step 0)照常开始**(委托书第 1.4 条)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
