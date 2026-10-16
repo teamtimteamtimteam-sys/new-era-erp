@@ -83,7 +83,7 @@ the two COD byte strings, no view writable — each read above.)
 | 11 | layout survey | §5 — 130 page loads, all 200, this cut's pages 0 px overflow at 1280 and 390; two PDF defects found and fixed |
 | 12 | smoke | `SMOKE_EXIT=0` — 292 routes + probes: 295 ok, 23 skipped (no data — including `/finance/supplier-statements/[id]` and its `pdf`, by design), 0 failed; 1,310.5 s timed. Scratch reading at start: 6 stale rows reported (all old `ZZ-SMOKE-*`, 1,064–1,706 h, five still referenced — report only, untouched); after the run 0 throwaway accounts and 0 probe roles on live |
 | 13 | live verification | §4 — `MES8A_PROOF_EXIT=0` (fifth run; runs 1–4 red on the proof script, nothing left behind) |
-| 14 | fresh-clone build | @@CLONE@@ |
+| 14 | fresh-clone build | the cut's commit `1ec4bc44ce772208f1a43161609b4ed35e8dd4cf`, cloned to a scratch directory with no `.env.local`: `npm ci` **`CI_OWN_EXIT=0`**, `npm run build` **`X_OWN_EXIT=0`** (23:50:47 → 23:52:09 CST). This row is recorded in a follow-up docs-only commit, whose own fresh-clone build was run as well before the push |
 
 Static chain (all 43 build checks, each by its own exit code) green after the last edit; `scripts/check-pdf-routes.mjs` `PDFROUTES_OWN_EXIT=0`
 (11 cases, 12 fault cells biting — the three SST cells `sst-render-live`, `sst-no-409`, `sst-orphan-left` each red only in their case).
