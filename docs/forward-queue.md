@@ -1002,6 +1002,27 @@
 >    (`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。**窗口里坏掉的**(推导):没有 —— 旧应用不读不写新表;三支改了签名的函数只在末尾多一个带默认值的参数。
 >    验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-7b-1.md`;登记四条(`docs/known-issues.md` 的 MES-7b-1 一节)。
 >    **下一刀 MES-7b-2 · 安全巡检与环境监测**(见下面「⬜ ★ MES 组」第 12b 行)。
+>    ★ **部署:Tim 在 Vercel 上确认 `c72a86b2` 已部署(MES-7b-1 close-out + MES-7b-2 委托书,2026-10-16)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-16 15:49:13 CST**(测量:`db/migration-windows.tsv`,`2026-10-16-mes7b1-incidents.sql`)·
+>    终点下界 **2026-10-16 16:54:08 CST**(测量:推送把 `origin/main` 移到 `c72a86b2`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`c72a86b2 refs/remotes/origin/main@{2026-10-16 16:54:08 +0800}: update by push`;
+>    本刀的提交 `08d5fbf8` 从没有单独推过,它与 `c72a86b2` 在这同一次推送里出去)·
+>    终点上界 **2026-10-16 17:06:06 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 04 min 55 s,至多 1 h 16 min 53 s。**
+>    窗口里坏掉的(**推导**,MES-7b-1 交回 §11,没有在线上量):没有 —— 旧应用不读不写新表;三支改了签名的函数只在末尾多一个带默认值的参数。
+>    窗口里的只读读数(2026-10-16 17:15:56 CST,`postgres`,基表;`docs/surveys/MES-7b-2/live-readings.sql`,`READ_OWN_EXIT=0`):事故 0 · 之后的事实 0 ·
+>    批次链接 0 · 交接班引用 0 · 不合格报告 0 · V19 = 2、未确认;变更记录 15:49:13 起全是 MES-7b-1 自己的冒烟 / 证明的一次性角色 / 授权 / 账号 / 员工 /
+>    评估 / 草稿合同(16:04:02–16:43:51),逐表 INSERT = DELETE;推送之后到本会话 0 行,之后只有本次 close-out 自己的探针
+>    (17:09:54–17:11:40,roles 5 / 5 · user_roles 5 / 5 · role_permissions 228 / 228)。**已部署的就是 MES-7b-1 的代码**(测量:五个克隆在线上都打开
+>    `/safety/incidents` 与 `/safety/incidents/new`,`/operation/handovers/new` 画出 `data-section="handover-incidents"`,待定值页列出 V19 —— 都只从 `08d5fbf8` 起才有)。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–c,逐项证据在 `docs/surveys/MES-7b-2/MES-7b-1-CLOSEOUT.md`):a** 委托书列的 23 项 fixture 逐项都有臂盖着
+>    (267 的 REG · GRANT · REFUSE · NUM · MASK · DIRECT · UPDATE · KIND · LINK · NCR · CITE · NEA · V19 · HANDOVER · TRAIL,㉜,F13 的四格与独立计数,
+>    F14 的真值表,`f267_recon`);今天在新的本地重建上重跑:267 / 263 / 266 绿,本刀的注入脚本 `INJECTIONS_OWN_EXIT=0`(50 格,0 错)。
+>    **b** 已部署的应用上 admin · cto · warehouse · cfo · finance 五个克隆、四个页面 20 次全部 200;"Record an incident" 对 admin · cto · warehouse 是按得动的链接,
+>    对 cfo · finance 按不动并点名 `module.safety.edit`;本地重建 + MES-7b-1 的种子(35 次全部 200):cto 与 warehouse 打开受伤那一件读到 5 处 "Restricted"
+>    与那一句说明、没有伤情原文,admin · cfo · finance 读到伤情;新交接班表单列出三件可勾的事故,交接班页说出它引用的事故;待定值页五个都列 V19、说它未确认。
+>    **c** MES-7b-1 交回 §8 的 17 条决定逐条列在 close-out 文件里。**没有缺的、没有坏的** —— 所以第 2 步(MES-7b-2)照常开始(委托书第 1.4 条)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
