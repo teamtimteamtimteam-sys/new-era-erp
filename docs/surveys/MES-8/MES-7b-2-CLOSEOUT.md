@@ -131,7 +131,7 @@ passed to Tim (not a defect and not part of a / b):** F16 step 3 said "set defau
 substituted a mechanism: the revoke block at `db/views/zzz_function_grants.sql:803-829` runs last in every rebuild and inside **every later migration's
 own transaction** (`db/apply_migration.sh:67-74`), plus the gate's `viewwrite` line on both sides. Its residual gap, stated: a view created **outside**
 `apply_migration.sh` (an ad-hoc SQL session) keeps the default write grant until the next migration or until the next gate run turns red. MES-8 Step 0
-asks Tim to accept or reject the substitution (Q30).
+asks Tim to accept or reject the substitution (Q26).
 
 ### c · Decisions MES-7b-2 took without asking (`docs/handbacks/MES-7b-2.md` §9, titles only)
 
