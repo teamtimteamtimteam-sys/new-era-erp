@@ -907,6 +907,32 @@
 >    验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-7a-1.md`。
 >    **下一刀 MES-7a-2 · Spare parts**(见下面「⬜ ★ MES 组」第 11b 行),带着两条记录在案的裁定:**Q2** 备件是进料批 / 批次,没有逐件追溯;
 >    **Q11** 费用科目 6800 Repairs & Maintenance(系统科目);Q6:码仍是 `module.processing.edit`。
+>    ★ **部署:Tim 在 Vercel 上确认 `e689b241` 已部署(MES-7a-1 close-out + MES-7a-2 委托书,2026-10-16)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-16 00:54:58 CST**(测量:`db/migration-windows.tsv`,`2026-10-15-mes7a1-equipment-reliability.sql`)·
+>    终点下界 **2026-10-16 02:00:51 CST**(测量:推送把 `origin/main` 移到 `e689b241`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`e689b241 … {2026-10-16 02:00:51 +0800}: update by push`)·
+>    终点上界 **2026-10-16 11:12:00 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量;上界宽,是因为它是下一次会话的开始,不是一次读数)。
+>    **破窗:至少 1 h 05 min 53 s,至多 10 h 17 min 02 s。**
+>    窗口里坏掉的(**推导**,MES-7a-1 交回 §8,没有在线上量):旧应用的财务卡还在直连写停机 / 保养 / 间隔,那三张表单在部署之前按不成。
+>    **窗口里落到线上的停机 / 保养 / 间隔写入:零**(2026-10-16 11:13:45 CST,`postgres`,基表;`docs/surveys/MES-7a-2/mes7a1-window-readings.sql`,
+>    `READ_OWN_EXIT=0`):停机新建 0 · 改 0 · 作废 0(全表 1 行,Test-1)· 保养新建 0 · 改 0(2 行)· 间隔新建 0 · 改 0(1 行);变更记录里 00:54:58 之后
+>    `equipment_downtime` / `equipment_maintenance` / `equipment_service_intervals` / `downtime_causes` **一行都没有**。★ 这次读数看不见的:
+>    一次被库**拒掉**的写入(旧财务卡对着已撤的策略直连插入)哪儿都不留行,所以"试过、被拒"在这里量不出来 —— 量得出的只是"没有一笔落地"。
+>    其余变更记录全是 MES-7a-1 自己的冒烟 / 版式普查 / 证明的一次性角色 / 授权 / 账号 / 员工 / 评估 / 草稿合同,逐表 INSERT = DELETE
+>    (首行 01:11:02、末行 01:53:55;推送 02:00:51 之后到本会话 0 行);窗口里分析证书 0 · 签发的销毁证书 0 · 库存流水 0。
+>    **已部署的就是 MES-7a-1 的代码**(测量:五个克隆在线上的 `/operation/equipment/reliability` 都 200 并画出可靠性表、机器页画出
+>    `data-section="reliability"` —— 两样都只从 `e689b241` 起才有)。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–d,逐项证据在 `docs/surveys/MES-7a-2/MES-7a-1-CLOSEOUT.md`):a** 委托书列的 15 项 fixture 逐项都有臂盖着
+>    (265 的 CAUSE · REQUIRE · OPEN · CLOSE · CORRECT · MAINT · INTERVAL · DIRECT · REL · LIST · TRAIL,264 ISSUER,195 E2b,`check-pdf-routes` 8 例 9 格,
+>    线上 fixture 265,㉚;今天重跑 `PDFROUTES_OWN_EXIT=0` · `LIVEFX_OWN_EXIT=0`)。量到的弱处【登记、不算缺、没有修】:W3「清单只列机器」是页面上的一句
+>    过滤(`page.tsx:38`),fixture 钉的是它过滤所凭的那一列,没有可重复的检查读渲染出来的清单(今天的页面探针读过:2 行、都是机器);W4 路由检查跑的是
+>    假客户端,库那一半由 264 / 195 钉 —— 两半合起来才是证明(MES-7a-1 决定 8)。**b** 已部署的应用上 admin · cco · cto · warehouse · finance 五个克隆、
+>    六个页面 30 次全部 200:持 `module.processing.edit` 的(admin · cco · cto)在机器页上停机 / 保养 / 间隔表单按得动;不持的(warehouse · finance)
+>    看得见、按不动,六处各自点名 `module.processing.edit` 并有那一句说明;可靠性页五个都画得出;字典页五个都看得见停机原因三行;`/finance/assets`
+>    照旧读这些记录,资本化只对持 `module.finance.edit` 的(admin · finance)按得动,cco · cto 按不动并点名;warehouse 进不了财务(与它的码一致)。
+>    **c** V12 登记为未建(`docs/mes-pending-values.md:178`);五条关掉的条目、两条销毁证书的发现与单事件配对都在 `docs/known-issues.md`。
+>    **d** 交回 §6 的 19 条决定逐条列在 close-out 文件里。**所以第 2 步(MES-7a-2)照常开始**(委托书第 1.4 条)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
