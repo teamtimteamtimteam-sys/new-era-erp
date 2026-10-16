@@ -1045,6 +1045,36 @@
 >    **窗口里坏掉的**(推导):没有 —— 旧应用不读新表;`open_ncr` 只在末尾多一个带默认值的参数;旧应用的待补值页认不得 V18 / V20 两个值码,会把它们画成键名,直到部署。
 >    验证与读数(开场 / 收尾、F16 前后、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-7b-2.md`。
 >    **下一刀 MES-8a · 供应商评分卡与对账单**(见下面「⬜ ★ MES 组」第 13 行)。
+>    ★ **部署:Tim 在 Vercel 上确认 `3c281640` 已部署(MES-7b-2 close-out + MES-8 Step 0 委托书,2026-10-16)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-16 19:03:57 CST**(测量:`db/migration-windows.tsv`,`2026-10-16-mes7b2-inspections-and-environment.sql`)·
+>    终点下界 **2026-10-16 19:53:32 CST**(测量:推送把 `origin/main` 移到 `3c281640`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`3c281640 refs/remotes/origin/main@{2026-10-16 19:53:32 +0800}: update by push`;
+>    本刀的提交 `f30c256d` 从没有单独推过,它与 `3c281640` 在这同一次推送里出去)·
+>    终点上界 **2026-10-16 19:57:20 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 49 min 35 s,至多 53 min 23 s。**
+>    窗口里坏掉的(**推导**,MES-7b-2 交回 §12,没有在线上量):没有在用的东西坏 —— 旧应用不读新表;`open_ncr` 只在末尾多一个带默认值的参数;
+>    旧应用的待补值页认不得 V18 / V20 两个值码(画成键名)、提醒页画不出两支新提醒,直到部署;F16 只收了没有任何代码路径在用的写授权。
+>    窗口里的只读读数(2026-10-16 20:10:59 CST,`postgres`,基表;`docs/surveys/MES-8/closeout-readings.sql`,`READ_OWN_EXIT=0`):清单 0 · 检查项 0 ·
+>    巡检 0 · 结果 0 · 发现 0 · 关闭 0 · 监测参数 0 · 监测结果 0 · 事故 0 · 不合格报告 0 · 任务 20;视图 192 张,对 anon / authenticated 带写授权的 **0** 对;
+>    变更记录 19:03:57 起全是 MES-7b-2 自己的冒烟 / 证明的一次性角色 / 授权 / 账号 / 员工 / 评估 / 草稿合同(19:21:58–19:47:56),逐表 INSERT = DELETE;
+>    **推送之后到本会话 0 行**,之后只有本次 close-out 自己的探针(roles 5 / 5 · user_roles 5 / 5 · role_permissions 228 / 228)。
+>    **已部署的就是 MES-7b-2 的代码**(测量:五个克隆在线上都打开 `/safety/inspections`、`/safety/inspections/templates/new`、`/safety/environment`,
+>    待补值页列出 V18 与 V20 —— 都只从 `f30c256d` 起才有)。
+>    ★ **close-out 的核对(委托书第 1.2–1.3 条,逐项证据在 `docs/surveys/MES-8/MES-7b-2-CLOSEOUT.md`)**:**F16 暴露面** —— F16 之前收下写的 45 张视图落在
+>    37 张基表上;变更记录(2026-09-28 23:58:11 起)在这 37 张表上一共 1,441 行:不带登录会话的 1,061 行全是冒烟的一次性员工与评估的收尾删除(service_role,
+>    每一行插入都被删掉),登录用户的 380 行都对得上仓库里认得的函数路径(冒烟经 `open_probation_review` / `set_review_reviewer` 370 行 · MES-1 探针经
+>    `issue_gateway_key` / `revoke_gateway_key` / `retire_device` 6 行 · admin@ 2026-09-29 经 `decide_leave_request` 决定两张请假 4 行);anon 0 行。
+>    **没有一笔说不清来路的写。** 变更记录说得出角色,**说不出路径**(函数、直连、穿视图在它那里是同一个字节);2026-09-28 之前没有记录。
+>    **a** 委托书列的 13 项 fixture 逐项都有臂盖着(268 的 REG · F16 · NUM · RUN · IMMUT · CORR · FIND · TASK · ENV · V18 · V20 · NCR,263 的两臂,㉝,gate 的 `viewwrite`);
+>    今天在新的本地重建上重跑:268 / 263 / 267 绿,本刀的注入脚本 `INJECTIONS_OWN_EXIT=0`(57 + 2 格,0 错),㉝ 的两格各自只红 ㉝,
+>    `GATE_VIEWWRITE_FAULT=grant` 让离线门退 1 并点名 `pending_values:authenticated:insert`。
+>    **b** 已部署的应用上 admin · cto · warehouse · cfo · finance 五个克隆、四个页面 20 次全部 200;"New checklist" 对 admin · cto · warehouse 是按得动的链接,
+>    对 cfo · finance 按不动并点名 `module.safety.edit`;本地重建 + 自己的种子(35 次全部 200):"Record an inspection"、巡检表单、发现表单与监测结果表单
+>    对三个安全编辑者按得动,对 cfo · finance 全部按不动并点名 `module.safety.edit`。
+>    **c** MES-7b-2 交回 §9 的 16 条决定逐条列在 close-out 文件里。**没有缺的、没有坏的** —— 所以第 2 步(MES-8 Step 0)照常开始。
+>    一条**偏离委托书**的决定照直记下、交给 Tim(不是缺陷,不挡第 2 步):F16 第 3 步要"改默认权限",本刀没有改(交回 §9 第 1 条:
+>    默认权限分不出视图与表),换成每一支迁移在自己的事务里收一遍 + gate 的 `viewwrite` —— 见 MES-8 Step 0 交回的问题。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
