@@ -63,6 +63,7 @@ DECLARE
         'claim_pending',
         'coa_facts_changed',  -- MES-6b-2(2026-10-15):第六十六支
         'company_licence_expiring',
+        'compliance_pack_not_frozen',  -- MES-8b-1(2026-10-17):第七十二支
         'container_documents_late','container_eta_overdue',
         'container_no_arrival',
         'contamination_check_missing',  -- MES-4b(2026-10-07):第五十七支(C 排序:container_* 在 contamination_* 之前)
@@ -351,7 +352,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这七十一支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这七十二支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

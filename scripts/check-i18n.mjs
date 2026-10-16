@@ -881,6 +881,7 @@ const MANIFEST = {
         if (ts.join() !== sql.join()) throw new Error(`SCORED_MEASURES(${ts.join()})≠ supplier_scorecard_measure_keys()(${sql.join()})`)
         return [...ts, 'grade_breaches'] } },
     'supplierStatements.errors.':  { kind: 'enum', values: () => tsSet('app/finance/supplier-statements/supplierStatementErrorCodes.ts', 'SUPPLIER_STATEMENT_ERROR_CODES') },
+    'compliancePacks.errors.':     { kind: 'enum', values: () => tsSet('app/compliance/packs/complianceErrorCodes.ts', 'COMPLIANCE_PACK_ERROR_CODES') },
     'supplierStatements.doc.kind_': { kind: 'enum', values: () => tsRegex('db/functions/supplier_statement_data.sql',
                                   /WHEN 'purchase' THEN '(\w+)'|IN \('purchase', '(\w+)', '(\w+)', '(\w+)', '(\w+)'\)\) l/g) },
     'supplierStatements.doc.open_': { kind: 'enum', values: () => tsRegex('db/functions/ap_aging_asof.sql',

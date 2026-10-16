@@ -541,9 +541,11 @@ canEdit: boolean
     const assayCount = (l: LineRow) =>
         Object.values(l.assay).filter((v) => parseDecimal(v) !== null).length
 
+    // MES-8b-1(MES8A-390-PO-SUPPLIER-SELECT 的真正元凶,量出来的):手机上撑破页面的是下面那颗【品类】下拉(最长一项带着它要的码)与
+    //   这枚门的三码药丸 —— 不是供应商下拉。下拉 max-w-full、门 wrap、表单 max-w-full:390 px +120 / +134 / +246 → 0;桌面逐像素不变。
     return (
-        <PermissionGate code={PO_CATEGORIES.map((c) => categoryCodes[c]).join(' · ')} allowed={canEdit}>
-        <form ref={formRef} action={formAction} className="space-y-6">
+        <PermissionGate code={PO_CATEGORIES.map((c) => categoryCodes[c]).join(' · ')} allowed={canEdit} wrap>
+        <form ref={formRef} action={formAction} className="space-y-6 max-w-full">
                 <DraftBanner draft={draft} />
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -564,7 +566,7 @@ canEdit: boolean
                     value={effectiveCategory}
                     onChange={(e) => setCategory(e.target.value as PoCategory)}
                     disabled={isEquipment}
-                    className={CONTROL_SELECT}
+                    className={`${CONTROL_SELECT} max-w-full`}
                     data-po-category
                 >
                     <option value="" disabled>{t('poCategory.pick')}</option>

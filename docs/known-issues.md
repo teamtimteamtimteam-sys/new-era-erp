@@ -11016,16 +11016,47 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 所以哪一道检查都看不见它。供应商对账单这一刀改成了 `supplierStatements.doc.periodSeparator`("to" / "至")。
 **删除条件:** 客户对账单同样换成一个字体里有的分隔词;更好的是让 `check-pdf-font-stack` 或字体守卫把 PDF 组件里的【字面量】也过一遍。
 
-### MES8A-390-SUPPLIER-STATUS-CHIP · 供应商编辑页在 390 px 上横向溢出 30–40 px —— 状态面板那一颗不换行的权限码(MES-8a 版式勘察量到;HEAD 上同一份数据同一个读数)
+### ~~MES8A-390-SUPPLIER-STATUS-CHIP · 供应商编辑页在 390 px 上横向溢出 30–40 px —— 状态面板那一颗不换行的权限码(MES-8a 版式勘察量到;HEAD 上同一份数据同一个读数)~~ —— ✅ **关闭于 MES-8b-1(`v1.4.57`,2026-10-17,并入)**
+
+**怎么关的:** `app/suppliers/[id]/edit/StatusPanel.tsx` 那两处 `<PermissionGate inline>` 加上 `className="flex-wrap"`(最小的宽度改动:门里的码与说明在窄屏换到下一行,宽屏照旧一行)。
+本地 co8a、同一份数据:390 px 整页溢出 **+40 → 0**(cco · finance · warehouse,active 的那一家)· **+30 → 0**(gm,approved 的那一家);1280 px 上每一颗门的矩形逐个未变。
+本刀收尾的版式勘察(七个角色 × 1280 / 390)两家供应商页都读 0(`docs/handbacks/MES-8b-1.md` 的版式那一节)。
+
+**原条目(照录):**
+
 
 **是什么:** 一家 active 的供应商(状态面板给出「批准 / 拉黑」那几颗按 `action.supplier_approve` 画成按不动的控件),对不持那个码的角色(cco · finance · warehouse · gm),
 `PermissionGate` 的 `<code>` 码与 `whitespace-nowrap` 的说明并排,390 px 宽溢出 **40 px**;gm 在一家 approved 的供应商上 **30 px**(`module.suppliers.edit` 那几颗)。
 **本刀加的 0 px**:同一个本地库、同一份数据,HEAD 的代码读数逐个相同(`docs/handbacks/MES-8a.md` §6)。MES-7b-2 在巡检页上修过同一个形状(三颗门竖着排)。
 **删除条件:** 状态面板的门竖着排(或说明换行),390 px 读回 0。
 
-### MES8A-390-PO-SUPPLIER-SELECT · 新建采购单页的供应商下拉在 390 px 上被最长的供应商名撑开 120–246 px(MES-8a 版式勘察量到;HEAD 上同一份数据同一个读数)
+### ~~MES8A-390-PO-SUPPLIER-SELECT · 新建采购单页的供应商下拉在 390 px 上被最长的供应商名撑开 120–246 px(MES-8a 版式勘察量到;HEAD 上同一份数据同一个读数)~~ —— ✅ **关闭于 MES-8b-1(`v1.4.57`,2026-10-17,并入)**
+
+**怎么关的 —— 而且原条目【认错了元凶】,照直记:** 逐个量下来,撑开页面的【不是】供应商下拉,是**类别下拉**(它的内在宽度由最长的一个类别名决定)与表单底下那颗
+**带三个码的权限门**(三颗 `<code>` 并排、说明 `whitespace-nowrap`)。修法因此是三处最小的宽度改动:`PermissionGate` 多一个可选的 `wrap`
+(给门 `max-w-full`、说明换行 —— 不传就与今天逐字相同,别的调用点一个都不动)· 表单 `space-y-6 max-w-full` · 类别下拉 `${CONTROL_SELECT} max-w-full`。
+本地 co8a、同一份数据:390 px 整页溢出 **cco / finance +134 → 0 · warehouse +120 → 0 · gm / cfo +246 → 0**;1280 px 上表单、两颗下拉与门的矩形逐个未变。
+本刀收尾的版式勘察(七个角色 × 1280 / 390)`/purchasing/orders/new` 都读 0。
+☞ 这是 FONT-1 那一条「先量元凶的 min-content,再谈修法」的又一处:原条目的修法(给供应商下拉 `w-full min-w-0`)用上去,读数一个都不会动。
+
+**原条目(照录):**
+
 
 **是什么:** 原生 `<select>` 的内在宽度由最长的一项决定;本地种子里一家供应商的法定名很长(「Survey Cells Supplier (a long legal name, Pte. Ltd.)」),
 于是 390 px 宽整页溢出 cco · finance 134 px、warehouse 120 px、gm 246 px(gm 另有三颗不换行的权限门)。线上今天的供应商名都短,所以线上量不出来。
 **本刀加的 0 px**:等级建议挂在下拉下面一行,HEAD 的代码在同一份数据上读数逐个相同。这是 INPUT-2b 那一条("不换行的容器里一个内在尺寸由内容决定的原生控件")的又一处。
 **删除条件:** 那一行容器 `flex-wrap`(或下拉 `w-full min-w-0` 在一个会换行的父元素里),390 px 读回 0。
+
+### MES8B1-EU-EFFICIENCY-WAITS-ON-V27 · 合规包第 8 节(欧盟回收效率)只印"方法还没定(V27)"和这个月的质量 —— 不算任何效率(MES-8 Step 0 Q28,刻意的)
+
+**是什么:** `compliance_pack_data` 的 `eu_efficiency` 在 V27(方法与目标)空着时是 `{"state": "not_set", "value_code": "V27", "masses": …}`;给了之后照原样印出那几句、
+带 `"computed": false` —— **一个数都不算**(Q28:方法没定之前算出来的任何效率都是一个编出来的数)。第 1 节的投入与各形态的产出摆在旁边,
+所以等方法定了,算的人手里有当月的质量。fixture 272 的 V2627 臂钉着"给了也不算"(`computed` 注入成 true 必红)。
+**删除条件:** V27 由 Tim 给出方法(Regulation (EU) 2023/1542 的哪一种计法、按哪个口径)之后,单独一刀把效率按那个方法算出来,冻进包里;第 8 节不再只是一句话。
+
+### MES8B1-390-MONTH-END-DETAIL · 月结页在 390 px 上横向溢出 6 px —— 清单表格的"说明"那一列(MES-8b-1 版式勘察量到;【不是】本刀加的那一行造成的)
+
+**是什么:** 本地 co8a(九月已锁、十月开着、没有工资期间)上 `/finance/month-end` 在 390 px 宽整页溢出 **6 px**(admin · cco · finance · cto · cfo · gm;warehouse 进不去这一页),
+元凶是清单表格"说明"那一列的格子(宽 109 px,右缘 396 px),例如「No payroll period for this month」。
+**本刀加的 0 px —— 量出来的,不是推的:** 在同一棵 DOM 上把本刀加的合规包那一行删掉再量,读数 **6 → 6**;本刀对这一页的改动只有那一行。1280 px 上 0。
+**删除条件:** 那张表在窄屏让说明列换行(或把说明挪到状态下面一行),390 px 读回 0。

@@ -23,6 +23,10 @@
 //   供应商对账单(MES-8a,Q9)SST-FROZEN 只从冻下来的那一行渲染(收件人、抬头、暂定价标记、没计价的收货只有数量;英文;不读活表)
 //             SST-409    ?version=N 流存下的字节;被改过 → 409
 //             SST-ARCHIVE 存档:传一次、记下的是那串字节的 sha256、键在 <对账单 id>/ 之下;记被拒 → 刚传的对象删掉
+//   合规包(MES-8b-1,Q16)CPK-FROZEN 只从冻下来的 payload 渲染(抬头取 payload 里冻下来的公司;事故一节没有受伤的细节;第 7、8 节照原样说 V26 / V27;
+//                          英文;不读活表)
+//             CPK-409    ?version=N 流存下的字节;被改过 → 409
+//             CPK-ARCHIVE 存档:传一次、记下的是那串字节的 sha256、键在 <包 id>/ 之下;记被拒 → 刚传的对象删掉
 // 【故障注入格,每一次都跑】(check_grants.py 的先例:一支从没见过自己红的检查只是安静,不是可靠)
 //   把路由源码改坏一处(回读活数据 · 不校验哈希 · 不问签发人 · 抬头取活的 · 不流字节 · 不先问字体),写成一份临时副本,对着它再跑一遍 ——
 //   每一格必须让【它点名的那一个样例】红;有一格没红,本检查自己就红(那一格瞎了)。`--no-faults` 只跑干净那一遍(给人调试用)。
@@ -48,6 +52,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const COA_ROUTE = join(ROOT, 'app/output/[id]/coa/pdf/route.tsx')
 const COD_ROUTE = join(ROOT, 'app/inbound/[id]/cod/pdf/route.tsx')
 const SST_ROUTE = join(ROOT, 'app/finance/supplier-statements/[id]/pdf/route.ts')
+const CPK_ROUTE = join(ROOT, 'app/compliance/packs/[id]/pdf/route.ts')
 const TMP = join(ROOT, 'scripts/pdf-routes', `.tmp-${process.pid}`)
 const sha = (b) => createHash('sha256').update(b).digest('hex')
 
@@ -116,6 +121,23 @@ const sstRow = (over = {}) => ({ id: SST, code: 'SST-2026-0001', supplier_id: 's
                    days_outstanding: 27, provisional: true }],
     on_account: [], unpriced: [{ doc_code: 'IN-2026-0302', arrival_date: '2026-09-20', material_code: 'MAT-EVB', quantity: 800, unit: 'kg' }],
     issued_at: '2026-10-01T02:00:00Z', superseded_at: null, ...over })
+
+const CPK = '99999999-9999-4999-8999-999999999999'
+const cpkPayload = () => ({ month: '2026-09', period_start: '2026-09-01', period_end: '2026-09-30', locked_before: '2026-10-01', month_locked: true,
+    system_start_date: '2026-08-01', company: company('Frozen Recovery Pte. Ltd.'),
+    processing_balance: [{ scope: 'plant', operation_type_code: null, line: 'input', line_key: null, basis: null, qty_kg: 500, runs: 1 }],
+    stock_rollforward: [{ unit: 'kg', opening: 0, received: 2000, produced: 450, consumed: -500, sold: 0, written_off: 0, adjusted: 0, voided: 0,
+                          issued_to_maintenance: 0, moved: 0, closing: 1950 }],
+    licence: { in_force: { cert_type_code: 'gwdf', cert_no: 'WDL-21-2-5380', issuing_body: 'NEA', scope: null, valid_from: '2026-07-01', valid_until: '2028-09-01',
+                           approved_storage_limit_tonnes: 500 },
+               on_hand_by_category: [], uncategorised_tonnes: 1.95, movements_without_business_date: 0, ceiling_checks: [] },
+    incidents: [{ code: 'INC-2026-0007', kind_code: 'injury', kind_name_en: 'Injury', occurred_on: '2026-09-11', nea_reportable: true, notified_on: '2026-09-11',
+                  report_submitted_on: null, report_deadline: '2026-09-15', deadline_state: 'computed', closed_on: null }],
+    environmental: [], inspections: { done: [], findings_open_at_month_end: [] },
+    nea_return: { state: 'not_set', value_code: 'V26' },
+    eu_efficiency: { state: 'not_set', value_code: 'V27', masses: { input_kg: 500, outputs: [{ form: 'black_mass', qty_kg: 450 }] } } })
+const cpkRow = (over = {}) => ({ id: CPK, code: 'CPK-2026-09', period_month: '2026-09-01', period_start: '2026-09-01', period_end: '2026-09-30',
+    locked_before_at_freeze: '2026-10-01', payload: cpkPayload(), frozen_at: '2026-10-02T02:00:00Z', superseded_at: null, ...over })
 
 function fake(over = {}) {
     globalThis.__PDF_FAKE__ = { tables: {}, rpc: {}, calls: [], reads: [], uploads: [], removed: [], store: new Map(), ...over }
@@ -325,8 +347,53 @@ const CASES = [
         if (f.uploads.length !== 1 || f.removed.length !== 1 || f.store.size !== 0) return `a refused record must remove the uploaded object (uploads ${f.uploads.length}, removed ${f.removed.length}, left ${f.store.size})`
         return null
     }],
+    ['CPK-FROZEN', async ({ cpk }) => {
+        const f = fake({ tables: {
+            compliance_packs: [cpkRow()],
+            company_profile_masked: [{ ...company('Live Letterhead Pte. Ltd.'), logo_path: null }],
+            incidents: [{ id: 'i', code: 'INC-2026-0007', injured_person_name: 'Live Injured Person', injury_nature: 'burn' }],
+        } })
+        const res = await cpk.GET(req(`/compliance/packs/${CPK}/pdf`), ctx(CPK))
+        if (res.status !== 200) return `the frozen render returned ${res.status}: ${(await res.text()).slice(0, 160)}`
+        const txt = pdfText(Buffer.from(await res.arrayBuffer())).replace(/\s+/g, ' ')
+        if (!txt.includes('Frozen Recovery Pte. Ltd.') || txt.includes('Live Letterhead')) return 'the letterhead is not the one frozen in the pack'
+        if (!txt.includes('CPK-2026-09') || !txt.includes('INC-2026-0007')) return 'the paper does not carry the frozen pack code and its incident'
+        if (txt.includes('Live Injured Person') || /burn/i.test(txt)) return 'the paper carries an injury detail'
+        if (!txt.includes('format not yet set (V26)') || !txt.includes('method not yet set (V27)')) return 'sections 7 and 8 do not say V26 / V27 are not set'
+        if (/[一-鿿]/.test(txt)) return 'the compliance pack must be English'
+        if (f.reads.includes('company_profile_masked') || f.reads.includes('incidents')) return `the render read live tables: ${f.reads.join(', ')}`
+        return null
+    }],
+    ['CPK-409', async ({ cpk }) => {
+        const good = Buffer.from('%PDF-1.4 stored compliance pack')
+        const f = fake({ tables: { compliance_pack_issues: [{ pack_id: CPK, version: 1, file_path: `${CPK}/a.pdf`, sha256: sha(good) }] } })
+        f.store.set(`compliance-documents/${CPK}/a.pdf`, good)
+        let res = await cpk.GET(req(`/compliance/packs/${CPK}/pdf?version=1`), ctx(CPK))
+        if (res.status !== 200 || !Buffer.from(await res.arrayBuffer()).equals(good)) return `stored bytes that match must stream with 200, got ${res.status}`
+        f.store.set(`compliance-documents/${CPK}/a.pdf`, Buffer.from('%PDF-1.4 tampered'))
+        res = await cpk.GET(req(`/compliance/packs/${CPK}/pdf?version=1`), ctx(CPK))
+        if (res.status !== 409) return `stored bytes that do not match their recorded sha256 must answer 409, got ${res.status}`
+        return null
+    }],
+    ['CPK-ARCHIVE', async ({ cpk }) => {
+        let f = fake({ tables: { compliance_packs: [cpkRow()], compliance_pack_issues: [] } })
+        f.rpc.record_compliance_pack_issue = (a) => ({ pack_id: a.p_pack_id, version: 1, sha256: a.p_sha256 })
+        let res = await cpk.POST(post(`/compliance/packs/${CPK}/pdf`), ctx(CPK))
+        if (res.status !== 200) return `archive returned ${res.status}: ${(await res.text()).slice(0, 160)}`
+        if (f.uploads.length !== 1) return `expected one upload, got ${f.uploads.length}`
+        const bytes = f.store.get(`compliance-documents/${f.uploads[0].path}`)
+        const rec = f.calls.find((c) => c.name === 'record_compliance_pack_issue')
+        if (!rec || rec.args.p_sha256 !== sha(bytes)) return 'the recorded sha256 is not the sha of the uploaded bytes'
+        if (!f.uploads[0].path.startsWith(`${CPK}/`)) return 'the object is not stored under the pack id'
+        f = fake({ tables: { compliance_packs: [cpkRow()], compliance_pack_issues: [] } })
+        f.rpc.record_compliance_pack_issue = () => { throw new Error('COMPLIANCE_PACK_SUPERSEDED|CPK-2026-09|x') }
+        res = await cpk.POST(post(`/compliance/packs/${CPK}/pdf`), ctx(CPK))
+        if (res.status !== 400) return `a refused record must answer 400, got ${res.status}`
+        if (f.uploads.length !== 1 || f.removed.length !== 1 || f.store.size !== 0) return `a refused record must remove the uploaded object (uploads ${f.uploads.length}, removed ${f.removed.length}, left ${f.store.size})`
+        return null
+    }],
 ]
-const DECLARED = 11
+const DECLARED = 14
 
 // ── 故障注入格:改坏路由的一处,点名的那一个样例必须红 ───────────────────────────────
 const FAULTS = [
@@ -350,17 +417,24 @@ const FAULTS = [
       to: "return statementDocFrom({ ...st, supplier_name: ((await supabase.from('supplier_lookup').select('legal_name').eq('id', st.supplier_id).maybeSingle()).data as { legal_name: string }).legal_name })" },
     { name: 'sst-no-409', route: 'sst', expect: 'SST-409', from: 'if (sha !== issue.sha256) {', to: 'if (sha === "never") {' },
     { name: 'sst-orphan-left', route: 'sst', expect: 'SST-ARCHIVE', from: 'await supabase.storage.from(BUCKET).remove([path])', to: 'void path' },
+    { name: 'cpk-render-live', route: 'cpk', expect: 'CPK-FROZEN', from: 'return packDocFrom(pk)',
+      to: "return packDocFrom({ ...pk, payload: { ...pk.payload, company: (await supabase.from('company_profile_masked').select('*').maybeSingle()).data as never } })" },
+    { name: 'cpk-no-409', route: 'cpk', expect: 'CPK-409', from: 'if (sha !== issue.sha256) {', to: 'if (sha === "never") {' },
+    { name: 'cpk-orphan-left', route: 'cpk', expect: 'CPK-ARCHIVE', from: 'await supabase.storage.from(BUCKET).remove([path])', to: 'void path' },
 ]
 
-async function load(coaSrc, codSrc, sstSrc, tag) {
+async function load(coaSrc, codSrc, sstSrc, cpkSrc, tag) {
     mkdirSync(TMP, { recursive: true })
     const coaPath = join(TMP, `coa-${tag}.tsx`), codPath = join(TMP, `cod-${tag}.tsx`)
     writeFileSync(coaPath, coaSrc); writeFileSync(codPath, codSrc)
     // MES-8a:供应商对账单的路由 import 它同目录的文档与上两级的错误码 —— 副本放在【原目录】里(相对 import 才找得到),跑完删掉
     const sstPath = join(ROOT, 'app/finance/supplier-statements/[id]/pdf', `.route-${tag}-${process.pid}.ts`)
     writeFileSync(sstPath, sstSrc)
-    try { return { coa: await jiti.import(coaPath), cod: await jiti.import(codPath), sst: await jiti.import(sstPath) } }
-    finally { rmSync(sstPath, { force: true }) }
+    // MES-8b-1:合规包的路由同一个办法(同目录的文档、上两级的错误码)
+    const cpkPath = join(ROOT, 'app/compliance/packs/[id]/pdf', `.route-${tag}-${process.pid}.ts`)
+    writeFileSync(cpkPath, cpkSrc)
+    try { return { coa: await jiti.import(coaPath), cod: await jiti.import(codPath), sst: await jiti.import(sstPath), cpk: await jiti.import(cpkPath) } }
+    finally { rmSync(sstPath, { force: true }); rmSync(cpkPath, { force: true }) }
 }
 
 async function runAll(routes) {
@@ -376,18 +450,19 @@ async function runAll(routes) {
 
 let exit = 0
 try {
-    const coaSrc = readFileSync(COA_ROUTE, 'utf8'), codSrc = readFileSync(COD_ROUTE, 'utf8'), sstSrc = readFileSync(SST_ROUTE, 'utf8')
+    const coaSrc = readFileSync(COA_ROUTE, 'utf8'), codSrc = readFileSync(COD_ROUTE, 'utf8'), sstSrc = readFileSync(SST_ROUTE, 'utf8'), cpkSrc = readFileSync(CPK_ROUTE, 'utf8')
     if (CASES.length !== DECLARED) { console.error(`✗ check-pdf-routes:声明 ${DECLARED} 个样例,实有 ${CASES.length} 个`); process.exit(3) }
-    const clean = await runAll(await load(coaSrc, codSrc, sstSrc, 'clean'))
+    const clean = await runAll(await load(coaSrc, codSrc, sstSrc, cpkSrc, 'clean'))
     for (const [name] of CASES) console.log(`${clean[name] ? '✗' : '✓'} ${name}${clean[name] ? ' —— ' + clean[name] : ''}`)
     if (Object.keys(clean).length) exit = 1
     let faultsRun = 0
     if (!process.argv.includes('--no-faults')) {
         for (const f of FAULTS) {
-            const src = f.route === 'coa' ? coaSrc : f.route === 'cod' ? codSrc : sstSrc
+            const src = f.route === 'coa' ? coaSrc : f.route === 'cod' ? codSrc : f.route === 'sst' ? sstSrc : cpkSrc
             if (!src.includes(f.from)) { console.error(`✗ 故障格 ${f.name}:路由里找不到要改的那一句 —— 这一格瞎了(路由改过,格子没跟上)`); exit = 3; continue }
             const bad = src.replace(f.from, f.to)
-            const red = await runAll(await load(f.route === 'coa' ? bad : coaSrc, f.route === 'cod' ? bad : codSrc, f.route === 'sst' ? bad : sstSrc, f.name))
+            const red = await runAll(await load(f.route === 'coa' ? bad : coaSrc, f.route === 'cod' ? bad : codSrc, f.route === 'sst' ? bad : sstSrc,
+                                                f.route === 'cpk' ? bad : cpkSrc, f.name))
             faultsRun++
             if (!red[f.expect]) { console.error(`✗ 故障格 ${f.name}:注入之后 ${f.expect} 仍然是绿的 —— 这一格没有咬人`); exit = 3 }
             else console.log(`✓ 故障格 ${f.name} → ${f.expect} 红(${red[f.expect].slice(0, 90)})`)

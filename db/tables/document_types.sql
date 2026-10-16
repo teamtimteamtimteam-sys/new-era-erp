@@ -194,4 +194,7 @@ VALUES
     -- MES-8a(2026-10-16,MES-0 Q79 · MES-8 Step 0 Q7):供应商对账单 SST-YYYY-NNNN(按年无洞,next_supplier_statement_code,宽度 GREATEST(4, 位数)——
     --   没有 CODE-WIDTH-4 之前那种截到 4 位的写法);读码 module.finance.view(对账单就是应付总账,决定 1);落点是对账单页 /finance/supplier-statements/[id];
     --   搜索的副标题是被取代的理由(同一个期间更正过时才有字)
-    ('supplier_statement', 'SST', 'supplier_statements', 'gapless', NULL, '/finance/supplier-statements', 'detail', 'superseded_reason', ARRAY['superseded_reason']::text[], ARRAY['module.finance.view']::text[]);
+    ('supplier_statement', 'SST', 'supplier_statements', 'gapless', NULL, '/finance/supplier-statements', 'detail', 'superseded_reason', ARRAY['superseded_reason']::text[], ARRAY['module.finance.view']::text[]),
+    -- MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q16):合规包 CPK-YYYY-MM(一个月一份;重出 -2、-3 …,与管理月报 PACK 同一种取号 —— 在
+    --   freeze_compliance_pack 里按月数);读码 module.compliance.view;落点是包页 /compliance/packs/[id];搜索的副标题是被取代的理由
+    ('compliance_pack', 'CPK', 'compliance_packs', 'gapless', NULL, '/compliance/packs', 'detail', 'superseded_reason', ARRAY['superseded_reason']::text[], ARRAY['module.compliance.view']::text[]);

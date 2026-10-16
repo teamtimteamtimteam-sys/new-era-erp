@@ -534,6 +534,7 @@ export const TRAIL_TEXT = {
     'set.quality': 'Internal sample retention changed',
     'set.safety': 'NEA written-report deadline changed',
     'set.supplierScore': 'Supplier grading settings changed',
+    'set.compliance': 'Compliance pack settings changed (V26 / V27)',
     // ── MES-8a:供应商评审与供应商对账单 ─────────────────────────────────────────────
     'sup.reviewRecorded': 'Supplier review recorded',
     'sup.reviewCorrected': 'Correcting supplier review recorded',
@@ -541,6 +542,10 @@ export const TRAIL_TEXT = {
     'sup.statementIssued': 'Supplier statement issued',
     'sup.statementSuperseded': 'Supplier statement superseded',
     'sup.statementPdf': 'Statement PDF stored (version {version})',
+    // ── MES-8b-1:合规包 ─────────────────────────────────────────────
+    'cpk.frozen': 'Compliance pack frozen',
+    'cpk.superseded': 'Compliance pack superseded',
+    'cpk.pdf': 'Compliance pack PDF stored (version {version})',
     // ── MES-7b-2:安全巡检与环境监测 ─────────────────────────────────────────────
     'ins.recorded': 'Inspection recorded',
     'ins.corrected': 'Correcting inspection recorded',

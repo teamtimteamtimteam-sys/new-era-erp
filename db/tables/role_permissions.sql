@@ -94,6 +94,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.tasks.view', 'module.sales.view', 'module.logistics.view',
         -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
         'module.safety.view',
+        -- ★ MES-8b-1(MES-8 Step 0 Q17):合规查看(读合规包)—— admin · auditor · cfo · cco · cto · gm;本文件里只有 gm 与 auditor(cfo · cco · cto 只活在线上,迁移授)。
+        'module.compliance.view',
         -- APR-ROUTE-1(R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm。
         'data.view_self_approvals') WHERE r.code = 'gm';
 
@@ -249,7 +251,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- APR-ROUTE-1(R2 · Q4):自批报表 —— 审计性质,正是审计角色要看的那一类。
         'data.view_self_approvals',
         -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
-        'module.safety.view') WHERE r.code = 'auditor';
+        'module.safety.view',
+        -- ★ MES-8b-1(MES-8 Step 0 Q17):合规查看(读合规包)。
+        'module.compliance.view') WHERE r.code = 'auditor';
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- NAV-REG-1 / R2:module.logistics.view 授给了上面 8 个角色中的每一个。

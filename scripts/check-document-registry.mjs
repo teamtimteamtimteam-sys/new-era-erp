@@ -150,8 +150,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 //   所以 EXPECTED_CODE_TABLES 94 → 97。
 // MES-8a(2026-10-16):313 → 317。四张供应商评分与对账单的表(supplier_score_settings · supplier_scorecard_reviews · supplier_statements ·
 //   supplier_statement_issues)。一张带 code 列:supplier_statements(SST,登记进 document_types),所以 EXPECTED_CODE_TABLES 97 → 98。
-const EXPECTED_TABLES = 317   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 98
+// MES-8b-1(2026-10-17):317 → 320。三张合规包的表(compliance_settings · compliance_packs · compliance_pack_issues)。一张带 code 列:
+//   compliance_packs(CPK,登记进 document_types),所以 EXPECTED_CODE_TABLES 98 → 99。
+const EXPECTED_TABLES = 320   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 99
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

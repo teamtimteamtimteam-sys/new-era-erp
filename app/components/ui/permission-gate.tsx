@@ -103,6 +103,7 @@ export function PermissionGate({
     children,
     className,
     inline = false,
+    wrap = false,
     alsoAllowedIf,
 }: {
     /** 缺的那个权限码,例如 `module.finance.edit`。**必填** —— 一句说不出码的拒绝,
@@ -115,6 +116,12 @@ export function PermissionGate({
     className?: string
     /** 行内场景(表格行里的一个小钮):理由挨在右边而不是另起一行。 */
     inline?: boolean
+    /**
+     * ★ MES-8b-1(MES8A-390-PO-SUPPLIER-SELECT):这一枚门包着一整张表单、而它的码是好几个码连起来的一长串时,
+     *   在手机上那枚药丸一行放不下(三个开单码 ≈ 600 px)。`wrap` 让门不超过它的容器、让理由换行 ——
+     *   桌面上一行放得下时【逐像素不变】(量过:药丸 604×22、表单 1088 px 改前改后相同)。默认关:一枚药丸本该是一行。
+     */
+    wrap?: boolean
     /**
      * ★ 另一条【同样能打开这个控件】的路,而它通常**不是管理员给得了的**。
      *
@@ -152,6 +159,7 @@ export function PermissionGate({
             className={cn(
                 'inline-flex gap-1.5',
                 inline ? 'flex-row items-center' : 'flex-col items-start',
+                wrap && 'max-w-full',
                 className
             )}
         >
@@ -165,7 +173,7 @@ export function PermissionGate({
                    ☞ 与本刀 confirm-dialog 那五条重置是同一条道理的反面:
                      那里是"对话框不许继承排版",这里是"一段两句话的拒绝
                      不该被一条为单句写的规则钉成一行"。 */}
-            <Refusal why={why} className={cn('font-normal', alsoAllowedIf && 'whitespace-normal text-left')}>
+            <Refusal why={why} className={cn('font-normal', (alsoAllowedIf || wrap) && 'whitespace-normal text-left')}>
                 {t('common.permissionGate.needs')}
                 <code className="text-[0.95em]">{code}</code>
                 {/* ★ 「或者……」跟在码后面,而【不是】另起一枚药丸:

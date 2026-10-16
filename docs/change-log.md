@@ -1501,3 +1501,33 @@ at **8** exclusions.
 - **F17.** `record_cod_issue` now refuses a path outside the certificate's folder and a second set of bytes by name, and stores the digest
   lower-case. It writes the same one `cod_issues` row as before; the two issued certificates' rows and stored bytes are unchanged (closing
   readings in the hand-back).
+
+## 32. Inbound margin, inventory exposure and the monthly compliance pack (MES-8b-1, v1.4.57, 2026-10-17)
+
+Hand-back `docs/handbacks/MES-8b-1.md`; fixtures 271 (arms GATE · PATH · MARGIN · UNSOLD · REVENUE · NOCOMP · NOSALE · EXPO · LOG) and 272 (REG ·
+V2627 · GATE · LOCK · ARM · SECT · NOINJ · NUM · PDF) pin every rule below, each fault-injected by `db/scripts/2026-10-17-mes8b1-fixture-injections.py`
+(34 cells on 271 + 54 on 272, every arm red at least once, re-run on a fresh rebuild after the migration). Fixture 235 stays at **8** exclusions.
+
+### 32.1 Logged, excluded, masked
+
+- **Three new tables, all logged.** `compliance_settings` (the single V26 / V27 row), `compliance_packs`, `compliance_pack_issues`: public tables
+  **317 → 320**, exclusions stay **8**, mask rules stay **119** (nothing in a pack is masked — it carries no injury detail, no free text about an incident,
+  no names and no money in the first place).
+- **A pack changes once, when it is superseded** (`superseded_at` · `superseded_by` · `superseded_reason` from empty to set, nothing else). Everything
+  else is refused by name for everyone, owner included (`COMPLIANCE_PACK_IMMUTABLE|update` / `|delete`), so the old payload of a re-issued pack is
+  exactly what it was. `compliance_pack_issues` is append-only (`COMPLIANCE_PACK_ISSUE_IMMUTABLE`), so its log is INSERT rows only.
+- **The settings row changes only through `set_compliance_settings`** (whole row, `action.compliance_pack`); a half pair is refused by name. Changing it
+  later never rewrites a frozen pack — the pack copied what it printed.
+
+### 32.2 Audit trail
+
+- Two new subjects: `compliance_pack` (root `compliance_packs`, member `compliance_pack_issues`, read code `module.compliance.view`) and
+  `compliance_settings` (the single-row settings, root `compliance_settings`). Wording arm ㉟ in `scripts/check-trail-wording.mjs` pins four
+  sentences — "Compliance pack frozen" (the code as its part), "Compliance pack superseded" (with the reason), "Compliance pack PDF stored (version
+  N)" and "Compliance pack settings changed (V26 / V27)" — with two faults (`wording-drift-mes8b1`, `wording-part-mes8b1`) that redden it alone.
+
+### 32.3 Not logged because nothing is written
+
+- `inbound_batch_margin` and `inventory_metal_exposure` are STABLE readers (fixture 271 LOG asserts `provolatile = 's'`); they write nothing.
+- The PDF view (`GET /compliance/packs/[id]/pdf`) renders from the frozen payload and writes nothing; only the archive (`POST`) writes, and it writes
+  one `compliance_pack_issues` row plus one storage object (storage is not in the change log — it never was).

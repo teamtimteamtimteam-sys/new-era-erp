@@ -3880,3 +3880,30 @@ supplier_statement_issues,issued_by,audit_std,hide: the trail entry already says
 supplier_statements,supplier_code,text,verbatim (the supplier's code frozen at issue),,,Supplier code,,,text
 supplier_statements,supplier_name,text,verbatim (the supplier's name frozen at issue),,,Supplier,,,text
 supplier_statements,company,technical,hide: our letterhead frozen at issue (printed on the PDF),,,Letterhead,,,jsonb
+compliance_settings,id,technical,hide: the single settings row (always true),,,ID,,,boolean
+compliance_settings,nea_return_format,text,verbatim (the NEA return format — V26) — MES-8b-1 (2026-10-17),,,NEA return format (V26),,,text
+compliance_settings,nea_return_frequency,text,verbatim (the NEA return frequency — V26),,,NEA return frequency (V26),,,text
+compliance_settings,eu_efficiency_method,text,verbatim (the EU recycling-efficiency method — V27),,,EU recycling-efficiency method (V27),,,text
+compliance_settings,eu_efficiency_targets,text,verbatim (the EU recycling-efficiency targets — V27),,,EU recycling-efficiency targets (V27),,,text
+compliance_settings,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+compliance_settings,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+compliance_packs,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+compliance_packs,code,own_key,show as-is: the record's own business key (code/number) — MES-8b-1 (2026-10-17),,,Compliance pack,,,text
+compliance_packs,period_month,date,"formatDate (lib/dates.ts:193) — the first day of the month the pack covers",,,Month,,,date
+compliance_packs,period_start,date,"formatDate (lib/dates.ts:193)",,,Period start,,,date
+compliance_packs,period_end,date,"formatDate (lib/dates.ts:193)",,,Period end,,,date
+compliance_packs,locked_before_at_freeze,date,"formatDate (lib/dates.ts:193) — the period lock when the pack was frozen",,,Locked before (at freeze),,,date
+compliance_packs,payload,technical,hide: the frozen pack (shown in full on the pack page and the PDF),,,Pack,,,jsonb
+compliance_packs,notes,text,verbatim,,,Notes,,,text
+compliance_packs,frozen_at,audit_std,hide: the trail entry already says who and when,,,Frozen on,,,timestamp with time zone
+compliance_packs,frozen_by,audit_std,hide: the trail entry already says who and when,,,Frozen by,,,uuid
+compliance_packs,superseded_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251)",,,Superseded on,,,timestamp with time zone
+compliance_packs,superseded_by,fk_document,"compliance_packs.code (document number, prefix CPK)",,,Superseded by,,,uuid
+compliance_packs,superseded_reason,text,verbatim,,,Reason it was superseded,,,text
+compliance_pack_issues,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+compliance_pack_issues,pack_id,fk_document,"compliance_packs.code (document number, prefix CPK)",,,Compliance pack,,,uuid
+compliance_pack_issues,version,integer,the version number,,,Version,,,integer
+compliance_pack_issues,file_path,technical,hide: the storage key,,,File,,,text
+compliance_pack_issues,sha256,technical,hide: the digest (checked on every download),,,Digest,,,text
+compliance_pack_issues,issued_at,audit_std,hide: the trail entry already says who and when,,,Stored on,,,timestamp with time zone
+compliance_pack_issues,issued_by,audit_std,hide: the trail entry already says who and when,,,Stored by,,,uuid

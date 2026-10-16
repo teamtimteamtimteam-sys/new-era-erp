@@ -170,6 +170,18 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.company
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.company_profile
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.compliance_pack_issues
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.compliance_pack_issues
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.compliance_packs
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.compliance_packs
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.compliance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.compliance_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.container_documents
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.container_documents

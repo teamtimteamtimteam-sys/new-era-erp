@@ -253,6 +253,8 @@ const ID_SOURCES = {
         // MES-8a:供应商对账单。与上面那一条同一个理由:它必须在这里,否则 /finance/supplier-statements/[id] 与它的 pdf 会落到 '/finance'
         // 这个更短的前缀上。线上 supplier_statements 今天零行(本刀不在线上签发任何一份),所以两条路由同时列在 EXPECTED_SKIPS 里。
         '/finance/supplier-statements': 'supplier_statements',
+        // MES-8b-1:合规包。线上 compliance_packs 今天零行(委托书:"No pack, V26 or V27 is created on live"),所以详情页与它的 pdf 同时列在 EXPECTED_SKIPS 里。
+        '/compliance/packs': 'compliance_packs',
         // TASK-1b:任务详情。**取的 id 必须是一张【团队】任务** —— 见 ID_FILTERS。
         '/tools/tasks': 'tasks',
         '/settings/roles': 'roles', '/stocktakes': 'stocktakes',
@@ -1379,6 +1381,10 @@ const EXPECTED_SKIPS = new Set([
     // 【入口照常渲染】/finance/supplier-statements 清单与签发面板每一跑都真的渲染。
     '/finance/supplier-statements/[id]',
     '/finance/supplier-statements/[id]/pdf',
+    // MES-8b-1:线上还没有一份合规包 —— compliance_packs 只由 freeze_compliance_pack 写入,而本刀不在线上冻任何一份。冻下第一份的那天,这两行会报
+    // 「预期会 SKIP 的路由跑起来了」。【入口照常渲染】/compliance/packs(预览 + 清单 + 设置)每一跑都真的渲染。
+    '/compliance/packs/[id]',
+    '/compliance/packs/[id]/pdf',
     // COMM-1:线上还没有一份佣金协议(机制与屏幕先于第一份真协议落地)——
     // 与上面几条同一种情形。【注意它跳过的是编辑页,不是入口】:
     // /sales/commissions 列表页每一跑都真的渲染,而且下面两条【内容】断言钉着它那两句
@@ -1688,6 +1694,9 @@ const ORDER_OVERRIDES = {
     //   没有给排序键,于是这一条 id 查询【不可能成功】(42703 column nonconformance_reports.created_at does not exist),
     //   MES-6b-2 的冒烟在走过 214 条、0 失败之后被它中止。同一条:按表覆盖,不改表的形状。
     nonconformance_reports: '&order=opened_at.desc,id.desc',
+    // MES-8b-1(2026-10-17):一份合规包"冻下来那一刻"叫 frozen_at,表上没有 created_at(预检在起 dev server 之前就拦下了 —— 这一条没有花掉一轮走查)。
+    //   同一个月可以有好几份(重出 -2),period_month 不唯一;frozen_at + id 排得出先后。
+    compliance_packs: '&order=frozen_at.desc,id.desc',
     // MES-7b-1(2026-10-16)实测:同一个缺陷第二次 —— 一件事故"记下那一刻"叫 recorded_at,表上没有 created_at;冒烟在走过 222 条、0 失败之后
     //   被这一条 id 查询中止(42703)。这一次不只补一行:下面的 preflightOrderKeys 在起 dev server 之前就问每一张 ID_SOURCES 表有没有排序键。
     incidents: '&order=recorded_at.desc,id.desc',

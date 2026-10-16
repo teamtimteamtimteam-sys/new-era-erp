@@ -22,6 +22,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import SellPositionsTable, { type SellPositionRow } from './SellPositionsTable'
+import InventoryExposureSection from './InventoryExposureSection'
 
 type Position = {
     contract_id: string; contract_code: string; metal: string; index_code: string
@@ -135,6 +136,9 @@ export default async function PriceExposurePage() {
 
             {/* 【两侧不轧成一个数】—— 跟着数字走的那句话,不只躺在文档里 */}
             <p className="text-xs text-[color:var(--brand-muted-text)] max-w-3xl">{t('priceExposure.notNetted')}</p>
+
+            {/* MES-8b-1(Step 0 Q12 · Q13):第二节 —— 还在库的可计价金属按最新的价值多少(价格查看的常设规矩;别人读「Restricted」) */}
+            <InventoryExposureSection />
         </ListPage>
     )
 }

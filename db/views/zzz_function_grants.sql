@@ -810,6 +810,12 @@ REVOKE EXECUTE ON FUNCTION public.guard_supplier_scorecard_review_write() FROM a
 REVOKE EXECUTE ON FUNCTION public.guard_supplier_statement_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_supplier_statement_issue_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.supplier_grade_advice_internal(uuid, jsonb, numeric) FROM authenticated;
+-- MES-8b-1(2026-10-17,MES-8 Step 0 Q10 · Q12 · Q14–Q17):两支触发器函数 —— 没有调用者检查,靠的就是调不到。
+--   guard_compliance_pack_write(冻下来的包只许被取代)· guard_compliance_pack_issue_write(签发档只追加)。
+--   inbound_batch_margin · inventory_metal_exposure · compliance_pack_data · freeze_compliance_pack · record_compliance_pack_issue ·
+--   set_compliance_settings · compliance_pack_month_status【不收】:它们是 DEFINER,自己查码。
+REVOKE EXECUTE ON FUNCTION public.guard_compliance_pack_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_compliance_pack_issue_write() FROM authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】—— 收回 anon / authenticated(与 PUBLIC)在 public 里【每一张视图】上的

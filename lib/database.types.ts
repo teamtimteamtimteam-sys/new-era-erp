@@ -3551,6 +3551,130 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_pack_issues: {
+        Row: {
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          pack_id: string
+          sha256: string
+          version: number
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          pack_id: string
+          sha256: string
+          version: number
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          pack_id?: string
+          sha256?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_pack_issues_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_packs: {
+        Row: {
+          code: string
+          frozen_at: string
+          frozen_by: string | null
+          id: string
+          locked_before_at_freeze: string
+          notes: string | null
+          payload: Json
+          period_end: string
+          period_month: string
+          period_start: string
+          superseded_at: string | null
+          superseded_by: string | null
+          superseded_reason: string | null
+        }
+        Insert: {
+          code: string
+          frozen_at?: string
+          frozen_by?: string | null
+          id?: string
+          locked_before_at_freeze: string
+          notes?: string | null
+          payload: Json
+          period_end: string
+          period_month: string
+          period_start: string
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Update: {
+          code?: string
+          frozen_at?: string
+          frozen_by?: string | null
+          id?: string
+          locked_before_at_freeze?: string
+          notes?: string | null
+          payload?: Json
+          period_end?: string
+          period_month?: string
+          period_start?: string
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_packs_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "compliance_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_settings: {
+        Row: {
+          eu_efficiency_method: string | null
+          eu_efficiency_targets: string | null
+          id: boolean
+          nea_return_format: string | null
+          nea_return_frequency: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          eu_efficiency_method?: string | null
+          eu_efficiency_targets?: string | null
+          id?: boolean
+          nea_return_format?: string | null
+          nea_return_frequency?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          eu_efficiency_method?: string | null
+          eu_efficiency_targets?: string | null
+          id?: boolean
+          nea_return_format?: string | null
+          nea_return_frequency?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       container_documents: {
         Row: {
           container_id: string
@@ -48805,6 +48929,8 @@ export type Database = {
         Args: { p_period_id: string }
         Returns: Json
       }
+      compliance_pack_data: { Args: { p_month: string }; Returns: Json }
+      compliance_pack_month_status: { Args: { p_month: string }; Returns: Json }
       compute_leave_encashment: {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: Json
@@ -49486,6 +49612,14 @@ export type Database = {
         Args: { p_supersede_reason?: string; p_week_start?: string }
         Returns: Json
       }
+      freeze_compliance_pack: {
+        Args: {
+          p_notes?: string
+          p_period_month: string
+          p_supersede_reason?: string
+        }
+        Returns: Json
+      }
       freeze_management_pack: {
         Args: {
           p_notes?: string
@@ -49581,6 +49715,10 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }
+      inbound_batch_margin: {
+        Args: { p_inbound_batch_id: string }
+        Returns: Json
+      }
       inbound_batch_valuation_rows: {
         Args: never
         Returns: {
@@ -49627,6 +49765,7 @@ export type Database = {
         Args: { p_as_of: string }
         Returns: Json
       }
+      inventory_metal_exposure: { Args: never; Returns: Json }
       inventory_valuation_snapshot: {
         Args: { p_as_of?: string }
         Returns: Json
@@ -50529,6 +50668,10 @@ export type Database = {
           p_supersede_reason?: string
           p_supersedes?: string
         }
+        Returns: Json
+      }
+      record_compliance_pack_issue: {
+        Args: { p_file_path: string; p_pack_id: string; p_sha256: string }
         Returns: Json
       }
       record_contamination_check: {
@@ -51536,6 +51679,15 @@ export type Database = {
       set_batch_module_count: {
         Args: { p_batch_id: string; p_count: number; p_kind: string }
         Returns: string
+      }
+      set_compliance_settings: {
+        Args: {
+          p_eu_efficiency_method: string
+          p_eu_efficiency_targets: string
+          p_nea_return_format: string
+          p_nea_return_frequency: string
+        }
+        Returns: Json
       }
       set_customer_credit: {
         Args: {

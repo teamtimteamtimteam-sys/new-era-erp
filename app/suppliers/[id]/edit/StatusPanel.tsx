@@ -104,6 +104,8 @@ export default function StatusPanel({
                     <div className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                         {t('suppliers.statusPanel.availableChanges')}
                     </div>
+                    {/* MES-8b-1(MES8A-390-SUPPLIER-STATUS-CHIP):每一枚门 flex-wrap —— 手机上按不动的钮与它那颗码换行叠起来(390 px +40 / +30 → 0);
+                        桌面上一行放得下,逐个门的盒子量过逐像素不变 */}
                     <div className="flex flex-wrap gap-2">
                         {moves.map(({ to: target, code, allowed }) => {
                             const isDestructive = DESTRUCTIVE_TRANSITIONS.has(target)
@@ -119,7 +121,7 @@ export default function StatusPanel({
                             )
                             if (!isDestructive) {
                                 return (
-                                    <PermissionGate key={target} code={code} allowed={allowed} inline>
+                                    <PermissionGate key={target} code={code} allowed={allowed} inline className="flex-wrap">
                                         <Button variant="secondary" type="button" disabled={isPending}
                                                 onClick={() => handleClick(target)}>
                                             {face}
@@ -134,7 +136,7 @@ export default function StatusPanel({
                                 next: t('suppliers.status.' + target),
                             }).split('\n\n')
                             return (
-                                <PermissionGate key={target} code={code} allowed={allowed} inline>
+                                <PermissionGate key={target} code={code} allowed={allowed} inline className="flex-wrap">
                                 <ConfirmButton
                                     subject={subject}
                                     title={blocks[0]}

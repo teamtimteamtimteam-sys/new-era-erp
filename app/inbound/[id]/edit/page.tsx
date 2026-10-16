@@ -1,4 +1,5 @@
 import SamplingAdvice from './SamplingAdvice'
+import InboundMarginPanel from './InboundMarginPanel'
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
@@ -960,6 +961,8 @@ export default async function EditInboundPage({
             )}
             {/* MES-5b-1(Step 0 Q4 · Q5):这一批的质量去了哪里 —— 收进来的 = 各去向,消耗展开成它喂进的每一张单(按喂进的质量分) */}
             <BatchBalancePanel kind="inbound" batchId={id} />
+            {/* MES-8b-1(Step 0 Q10 · Q11 · Q13):这一批到今天为止赚了多少 —— 经由用它做出来、卖出去的每一样(价格查看的常设规矩;别人读「Restricted」) */}
+            <InboundMarginPanel batchId={id} />
 
             {/* ★ PROC-1B-iii(R2):【实际到的货】能不能深度放电 —— 自己一块。 ★
                 摆在"到货状态"之后、进口尽调之前,因为它与到货状态是相邻的两个问题

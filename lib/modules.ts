@@ -150,6 +150,10 @@ export const SCOPES: readonly AccessScope[] = [
     // MES-7b-1(2026-10-16,MES-0 Q76 · Q90 · MES-7b Step 0 Q2 · Q17,Tim):安全 —— 事故登记簿有了自己的码(module.safety.view / .edit),
     //   于是有了自己的权限范围。与质量不同,它【也是一个新的一级模块】(Q17:"a new nav module Safety")—— 见下面 MODULES 那一行。
     { id: '/safety', navKey: 'nav.safety', permission: 'module.safety.view' },
+    // MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q17,Tim):合规 —— 合规包有了自己的码(module.compliance.view;冻包另要 action.compliance_pack),
+    //   于是有了自己的权限范围。【它不是一个新的一级模块】(与质量同一种):唯一一条条目住在「安全」底下(FUNCTIONS 那一段)——
+    //   它的读者(admin · auditor · cfo · cco · cto · gm)都持安全的查看码;路由前缀 /compliance 只是这个范围的 id。
+    { id: '/compliance', navKey: 'nav.compliance', permission: 'module.compliance.view' },
 ]
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -512,6 +516,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   (页内控件看得见、按不动、说出码)。"建一张任务"给按下的人建一张私人任务(任务模块自己的码)。
     { href: '/safety/inspections', navKey: 'safety.subnav.inspections', modules: ['safety'], permission: 'module.safety.view' },
     { href: '/safety/environment', navKey: 'safety.subnav.environment', modules: ['safety'], permission: 'module.safety.view' },
+    // MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q14 – Q18,Tim):合规包 —— 一个已关账月份的监管记录(物料平衡 · 库存滚动 · 执照与 NEA 类别 ·
+    //   事故(不带受伤的细节)· 环境监测 · 巡检),冻成 CPK-YYYY-MM,PDF 按 sha256 存档。读 module.compliance.view;冻、重出、存档与设 V26 / V27 要
+    //   action.compliance_pack(cto · admin)—— 页内控件看得见、按不动、说出码。/[id] 在它下面,不必另登记。
+    { href: '/compliance/packs', navKey: 'safety.subnav.compliancePacks', modules: ['safety'], permission: 'module.compliance.view' },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 加工的人读得到的那一份(资产卡、成本与折旧留在财务)。
     //   ★ MES-7a-1(Q6):停机、保养维修、保养间隔从此记在设备页上(写 module.processing.edit,页内控件看得见、按不动、说出码)。
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
@@ -1167,4 +1175,6 @@ export const FN = {
     supplierScorecards: fnByHref('/suppliers/scorecards'),
     /** MES-8a:供应商对账单。 */
     financeSupplierStatements: fnByHref('/finance/supplier-statements'),
+    /** MES-8b-1:合规包。 */
+    compliancePacks: fnByHref('/compliance/packs'),
 } as const

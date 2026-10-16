@@ -320,6 +320,12 @@ export const REMINDERS = [
     { itemType: 'supplier_review_due', permission: 'action.supplier_review', href: '/suppliers/scorecards',
       itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
 
+    // ══ MES-8b-1(2026-10-17,MES-8 Step 0 Q15,Tim):合规包 ════════════════════════════════════════════════════════
+    // 【compliance_pack_not_frozen】一个已关账的月份还没有在册的合规包 —— 门牌指合规包页,带上那个月(从那里冻)。
+    //   门 action.compliance_pack(冻包的人)。月结页同一件事只是一行警告,从不挡关账。
+    { itemType: 'compliance_pack_not_frozen', permission: 'action.compliance_pack', href: '/compliance/packs',
+      itemHref: (r: OpsRow) => `/compliance/packs?month=${r.item_code}` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

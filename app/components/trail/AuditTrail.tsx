@@ -49,6 +49,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'incident' | 'safety_settings' | 'dictionary_incident_kinds'   // MES-7b-1
     | 'inspection_run' | 'inspection_template' | 'dictionary_environmental_parameters' | 'safety_environment'   // MES-7b-2
     | 'supplier_scorecard_review' | 'supplier_score_settings' | 'supplier_statement'   // MES-8a
+    | 'compliance_pack' | 'compliance_settings'   // MES-8b-1
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -174,6 +175,8 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     dictionary_environmental_parameters: 'environmental_parameters', safety_environment: 'environmental_results',
     // MES-8a(2026-10-16):供应商评审(集合)· 评分的设定(单行)· 一份供应商对账单
     supplier_scorecard_review: 'supplier_scorecard_reviews', supplier_score_settings: 'supplier_score_settings', supplier_statement: 'supplier_statements',
+    // MES-8b-1(2026-10-17):一份合规包 · 合规包的设定(单行)
+    compliance_pack: 'compliance_packs', compliance_settings: 'compliance_settings',
 }
 
 export const PAGE = 20

@@ -1195,13 +1195,16 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     supplier_scorecard_review: ['supplier_scorecard_reviews'],
     supplier_score_settings: ['supplier_score_settings'],
     supplier_statement: ['supplier_statements', 'supplier_statement_issues'],
+    // MES-8b-1(2026-10-17):一份合规包 —— 它的签发档 · 合规包的设定(单行)
+    compliance_pack: ['compliance_packs', 'compliance_pack_issues'],
+    compliance_settings: ['compliance_settings'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
     | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype' | 'energy' | 'safety' | 'inspection'
-    | 'suprec'
+    | 'suprec' | 'compack'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1249,6 +1252,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     inspection_run: 'inspection', inspection_template: 'inspection', dictionary_environmental_parameters: 'dict', safety_environment: 'inspection',
     // MES-8a
     supplier_scorecard_review: 'suprec', supplier_score_settings: 'settings', supplier_statement: 'suprec',
+    // MES-8b-1
+    compliance_pack: 'compack', compliance_settings: 'settings',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1273,6 +1278,8 @@ const INSPECTION_TABLES = new Set(['inspection_runs', 'inspection_results', 'ins
     'inspection_templates', 'inspection_template_items', 'environmental_results'])
 /** MES-8a:供应商那一侧的两种记录 —— 评审(只追加)与供应商对账单(冻下来;它的签发档)。在供应商页、评分卡页、对账单页上都从记录这一边说 */
 const SUPPLIER_RECORD_TABLES = new Set(['supplier_scorecard_reviews', 'supplier_statements', 'supplier_statement_issues'])
+/** MES-8b-1:合规包与它的签发档 —— 冻下来(只许被取代);在包页上从包这一边说 */
+const COMPLIANCE_PACK_TABLES = new Set(['compliance_packs', 'compliance_pack_issues'])
 /** 往上一跳够到的那几种:在别的记录的页上出现时,标题后面点名它属于哪一张单据("Purchase order amended · PO-2026-0010")。
  *  写进标题而不是另起一个小标题 —— 一条记录里后面几块的标题本身就是小标题,再加一个会把它们的标题挤掉。 */
 const HEADED = new Set<Family>(['po', 'run', 'wo', 'so'])
@@ -1313,6 +1320,7 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (SAFETY_TABLES.has(t)) return 'safety'
     if (INSPECTION_TABLES.has(t)) return 'inspection'
     if (SUPPLIER_RECORD_TABLES.has(t)) return 'suprec'
+    if (COMPLIANCE_PACK_TABLES.has(t)) return 'compack'
     // MES-3b:库位页上它的标签从库位这一边说(在别处 —— 批次页、变更记录总表 —— 照批次那一族的说法,两边是同一句话)
     if (subject === 'storage_location' && t === 'label_prints') return 'location'
     if (BATCH_TABLES.has(t)) return 'batch'
@@ -2334,6 +2342,27 @@ function describeSupplierRecord(d: TrailDict, rows: TrailRow[], opts: BuildOptio
     return out
 }
 
+// ── MES-8b-1(2026-10-17):合规包 ──────────────────────────────────────────
+// 【冻下来就不改】所以 compliance_packs 只有两种事:冻结(号是标题后面那一段 titlePart;月份、锁到哪一天、备注是行 —— payload 不在记录里摊开,
+//   它在包页与 PDF 上照原样)与被取代(理由在理由那一格)。签发档:存了一版 PDF(第几版;挂在哪一份包)。
+function describeCompliancePack(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows.filter((x) => x.table === 'compliance_packs')) {
+        const code = str(r, 'code')
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'cpk.frozen'), part: code ? { text: code } : null, lines: valueLines(d, r, r.new, opts, new Set(['code', 'payload', 'period_start',
+                'period_end', 'frozen_at', 'frozen_by', 'superseded_at', 'superseded_by', 'superseded_reason'])), key: true, weight: 80 })
+        } else if (isSet(r, 'superseded_at')) {
+            out.push({ title: tx(d, 'cpk.superseded'), part: code ? { text: code } : null, lines: [], reason: typed(r.new?.['superseded_reason']), key: true, weight: 75 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of rows.filter((x) => x.table === 'compliance_pack_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'cpk.pdf', { version: num(r.new?.['version'] ?? null) ?? '' }), part: refText(d, r, 'pack_id'), lines: [], key: true, weight: 70 })
+    }
+    return out
+}
+
 // ── 仓库申请(注销 · 加工回滚 · 证书作废)──────────────────────────────────
 function wrKind(d: TrailDict, r: TrailRow): string {
     const k = str(r, 'kind') ?? ''
@@ -3289,6 +3318,8 @@ const SETTINGS_TITLE: Record<string, TrailTextKey> = {
     safety_settings: 'set.safety',
     // MES-8a(Q93):V23 / V24 的修改史就是变更记录
     supplier_score_settings: 'set.supplierScore',
+    // MES-8b-1(Q18):V26 / V27 的修改史就是变更记录
+    compliance_settings: 'set.compliance',
 }
 function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     return rows.map((r) => r.op === 'UPDATE'
@@ -5531,6 +5562,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'safety': bs = describeSafety(d, list, opts, opts.subject); break
                 case 'inspection': bs = describeInspection(d, list, opts); break
                 case 'suprec': bs = describeSupplierRecord(d, list, opts); break
+                case 'compack': bs = describeCompliancePack(d, list, opts); break
                 case 'wr': bs = describeWarehouseRequest(d, list, opts); break
                 case 'so': bs = describeSalesOrder(d, list, opts); break
                 case 'quote': bs = describeQuote(d, list, opts); break

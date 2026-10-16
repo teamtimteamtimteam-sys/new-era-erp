@@ -1,4 +1,8 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-8b-1(2026-10-17,MES-8 Step 0 Q15,Tim):加一支,门 action.compliance_pack(冻包的人 —— 提醒是给能动手的人的)。
+--   compliance_pack_not_frozen —— 从 system_start_date 那个月起,每一个【已关账】(月末 < locked_before)而没有一份在册合规包的月,一行。
+--     item_id 空(一个月不是一行记录);item_code = YYYY-MM;subject = 'Compliance pack';item_date = 那个月的月末。冻了就消失。
+--     月结页同一件事只是一行警告(compliance_pack_month_status),【从不挡关账】(MES-0 Q48 的形状)。
 -- ★ MES-8a(2026-10-16,MES-8 Step 0 Q27,Tim):加一支,门 action.supplier_review(记评审的人 —— 提醒是给能动手的人的)。
 --   supplier_review_due —— 一家批准过 / 在用的进货供应商,而它最近一次没被取代的评审的日子 + V23 的评审周期 ≤ 今天(doc_kind = due,
 --     item_date = 那一天到期的日子),或一次评审都没有(doc_kind = never_reviewed,item_date = 建档那一天)。
@@ -1135,7 +1139,22 @@ CREATE VIEW public.operations_now AS
              JOIN supplier_score_settings ss ON ss.id AND ss.review_window_days IS NOT NULL
              LEFT JOIN supplier_latest_reviews lr ON lr.supplier_id = s.id
           WHERE s.deleted_at IS NULL AND s.supplies_goods AND (s.status = ANY (ARRAY['approved'::supplier_status, 'active'::supplier_status]))
-            AND (lr.recorded_at IS NULL OR ((lr.recorded_at AT TIME ZONE 'Asia/Singapore'::text)::date + ss.review_window_days) <= (now() AT TIME ZONE 'Asia/Singapore'::text)::date)) a
+            AND (lr.recorded_at IS NULL OR ((lr.recorded_at AT TIME ZONE 'Asia/Singapore'::text)::date + ss.review_window_days) <= (now() AT TIME ZONE 'Asia/Singapore'::text)::date)
+        UNION ALL
+         SELECT 'compliance_pack_not_frozen'::text AS item_type,
+            'action.compliance_pack'::text AS permission,
+            NULL::uuid AS item_id,
+            'not_frozen'::text AS doc_kind,
+            to_char(m.m, 'YYYY-MM'::text) AS item_code,
+            'Compliance pack'::text AS subject,
+            (m.m + '1 mon -1 days'::interval)::date AS item_date
+           FROM finance_settings fs
+             CROSS JOIN LATERAL generate_series(date_trunc('month'::text, fs.system_start_date::timestamp without time zone), date_trunc('month'::text, fs.locked_before::timestamp without time zone), '1 mon'::interval) m(m)
+          WHERE fs.system_start_date IS NOT NULL AND fs.locked_before IS NOT NULL
+            AND (m.m + '1 mon'::interval)::date <= fs.locked_before
+            AND NOT (EXISTS ( SELECT 1
+                   FROM compliance_packs cp
+                  WHERE cp.period_month = m.m::date AND cp.superseded_at IS NULL))) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

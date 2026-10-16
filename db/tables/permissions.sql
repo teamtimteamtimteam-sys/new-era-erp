@@ -196,6 +196,10 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- 编辑 admin · cto · warehouse(记一件事故要编辑码,Q28)。受伤的细节另要 data.view_health(不授给 cto 与仓库,Q6)。没有新的动作码。
     ('module.safety.view', 'module', 'Safety (view)', '安全(查看)', 'Incidents — thermal runaway, fire, gas and dust releases, injuries, near misses and emission exceedances — with their NEA reminders, the batches they touched and the shift handovers that cite them; read only. Injury details also need Health data.', '事故 —— 热失控、起火、气体与粉尘释放、工伤、未遂与排放超标 —— 连同它们的 NEA 提醒、碰过的批次与引用它们的交接班;只读。受伤的细节另要「健康数据」。', 152),
     ('module.safety.edit', 'module', 'Safety (edit)', '安全(编辑)', 'Record an incident (including injury details, which only Health data holders read back), record that NEA was notified or the written report submitted, close or correct an incident with a reason, link and unlink the batches it touched, edit the incident kinds and set the NEA written-report deadline (V19).', '记一件事故(包括受伤的细节 —— 读回来只给持「健康数据」的人)、记下通报了 NEA 或交了书面报告、关闭或带理由地更正一件事故、链上与解开它碰过的批次、改事故种类、设 NEA 书面报告的期限(V19)。', 153),
+    -- ── MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q17,Tim):合规 —— 合规包(一个月的监管记录,冻下来交给 NEA、审计与要求它的买家)。
+    -- 查看 admin · auditor · cfo · cco · cto · gm(只在迁移里授)。包是以属主权限冻下来的,读者只要这一个码就读得到一份完整的包。没有编辑码:
+    -- 冻、重出、存档与设 V26 / V27 是一个点名的动作码 action.compliance_pack(下面)。
+    ('module.compliance.view', 'module', 'Compliance (view)', '合规(查看)', 'Monthly compliance packs — a locked month''s processing balance, stock movement, licence position by NEA category, incidents (without injury details), environmental results and inspections — the live preview, the frozen packs and their PDFs, and the two pending values V26 / V27; read only.', '月度合规包 —— 一个已关账月份的物料平衡、库存变动、按 NEA 类别的执照位置、事故(不带受伤的细节)、环境监测结果与巡检 —— 实时预览、冻下来的包与它们的 PDF,以及两个待补的值 V26 / V27;只读。', 154),
     -- ── MES-6b-1(2026-10-15,MES-0 Q65 · Q90 · MES-6b Step 0 Q9,Tim):决定一张不合格报告 —— 持有人 cco · cto · admin(admin 与此前每一个新码
     -- 一样只在迁移里授)。开一张是 module.quality.edit(取样、立争议的同一个码);开单人永远不能决定自己开的那一张(按人认)。
     -- 它声明的查看码是 module.quality.view(/quality/ncr/[id] 的门,下面那张表)。
@@ -208,7 +212,10 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- 预付上限与抽样级别(V24)。读评分卡跟着 module.suppliers.view(Q91,与今天一样);【记评审】是对一家供应商的判断,与批准一家同一类事,
     -- 所以是一个点名的动作码,只授 cco · admin(只在迁移里授 —— cco 只活在线上)。cfo 照旧只读。它声明的查看码是 module.suppliers.view
     -- (供应商页 /suppliers/[id]/edit 与评分卡页 /suppliers/scorecards 的门)。
-    ('action.supplier_review', 'action', 'Review supplier scorecards and set the grading', '评审供应商评分卡与设定评级', 'Record a supplier review: the scorecard measures over a window you type are copied onto the review, with the weights, grade lines, prepayment caps and sampling levels in force and the resulting grade. A mistaken review is corrected by a new review citing it with a reason. Also sets those weights, grade lines and the review window (V23), and each grade''s prepayment cap and sampling level (V24).', '记一次供应商评审:你输入的窗口里的评分卡计数抄进评审,连同当时生效的权重、等级线、预付上限与抽样级别,以及由此得到的等级。记错的评审由一次引用它、写明理由的新评审更正。也由这个码设定那些权重、等级线与评审周期(V23),以及每一等级的预付上限与抽样级别(V24)。', 1260);
+    ('action.supplier_review', 'action', 'Review supplier scorecards and set the grading', '评审供应商评分卡与设定评级', 'Record a supplier review: the scorecard measures over a window you type are copied onto the review, with the weights, grade lines, prepayment caps and sampling levels in force and the resulting grade. A mistaken review is corrected by a new review citing it with a reason. Also sets those weights, grade lines and the review window (V23), and each grade''s prepayment cap and sampling level (V24).', '记一次供应商评审:你输入的窗口里的评分卡计数抄进评审,连同当时生效的权重、等级线、预付上限与抽样级别,以及由此得到的等级。记错的评审由一次引用它、写明理由的新评审更正。也由这个码设定那些权重、等级线与评审周期(V23),以及每一等级的预付上限与抽样级别(V24)。', 1260),
+    -- ── MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q15 · Q16 · Q17,Tim):冻一个已关账月份的合规包、带理由重出一份(-2)、存它的 PDF、
+    -- 设 V26 / V27。持有人 cto · admin(只在迁移里授)。它声明的查看码是 module.compliance.view(合规包页 /compliance/packs 的门)。
+    ('action.compliance_pack', 'action', 'Freeze compliance packs', '冻结合规包', 'Freeze the compliance pack of a finance-locked month (CPK-YYYY-MM), re-issue it with a required reason (CPK-YYYY-MM-2, the first one kept), archive its PDF, and set the NEA return format (V26) and the EU recycling-efficiency method (V27).', '冻下一个已关账月份的合规包(CPK-YYYY-MM)、写明理由重出一份(CPK-YYYY-MM-2,第一份留着)、存它的 PDF,以及设 NEA 申报的格式(V26)与欧盟回收效率的方法(V27)。', 1270);
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -257,6 +264,8 @@ UPDATE public.permissions p SET requires_view_any = d.views
     ('action.supplier_approve',         ARRAY['module.suppliers.view']),
     -- MES-8a(Step 0 Q6):记评审与设定评级在供应商页与评分卡页(门 module.suppliers.view)。
     ('action.supplier_review',          ARRAY['module.suppliers.view']),
+    -- MES-8b-1(Step 0 Q17):冻包、重出、存档与设 V26 / V27 都在合规包页(门 module.compliance.view)。
+    ('action.compliance_pack',          ARRAY['module.compliance.view']),
     ('action.wo_create',                ARRAY['module.processing.view']),
     ('action.wo_release',               ARRAY['module.processing.view'])
   ) AS d(code, views)

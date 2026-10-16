@@ -183,6 +183,10 @@
 --   supplier_score_settings   → /suppliers/scorecards 上的 V23 / V24 那一块   module.suppliers.view;单行设置作根(safety_settings 的先例)
 --   supplier_statement        → /finance/supplier-statements/[id]   requireFunction(FN.financeSupplierStatements) = module.finance.view。
 --                         成员:签发档(supplier_statement_issues,住在这里)。
+-- MES-8b-1(2026-10-17,MES-8 Step 0 Q22):
+--   compliance_pack     → /compliance/packs/[id]   requireFunction(FN.compliancePacks) = module.compliance.view。成员:签发档(compliance_pack_issues,住在这里)。
+--                         被谁取代是旧那一份自己那几列说的,不经 superseded_by 自连(管理包的同一个理由)。
+--   compliance_settings → /compliance/packs 上的 V26 / V27 那一块   module.compliance.view;单行设置作根(supplier_score_settings 的先例)
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])
  LANGUAGE sql
@@ -342,6 +346,9 @@ AS $function$
         --   供应商评分的设定(V23 / V24,单行设置作根)· 一份供应商对账单(财务查看码;它的签发档住在这里)
         ('supplier_scorecard_review', ARRAY['module.suppliers.view'], 'supplier_scorecard_reviews', 'id', 'collection', NULL),
         ('supplier_score_settings', ARRAY['module.suppliers.view'], 'supplier_score_settings', 'id', 'table', NULL),
-        ('supplier_statement',     ARRAY['module.finance.view'],   'supplier_statements',   'id', 'table', NULL)
+        ('supplier_statement',     ARRAY['module.finance.view'],   'supplier_statements',   'id', 'table', NULL),
+        -- MES-8b-1(2026-10-17,MES-8 Step 0 Q22):一份合规包(合规查看码;它的签发档住在这里)· 合规包的设定(V26 / V27,单行设置作根)
+        ('compliance_pack',        ARRAY['module.compliance.view'], 'compliance_packs',     'id', 'table', NULL),
+        ('compliance_settings',    ARRAY['module.compliance.view'], 'compliance_settings',  'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

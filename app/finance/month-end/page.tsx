@@ -126,6 +126,11 @@ export default async function MonthEndPage({
     const unclosed = mustOne(unclosedRes, 'processing_runs_unclosed_balance') as { run_count: number | null; run_codes: string | null } | null
     if (!unclosed) throw new Error('processing_runs_unclosed_balance returned no row — the month-end checklist cannot tell which runs are unclosed')
     const unclosedCount = Number(unclosed.run_count ?? 0)
+    // MES-8b-1(Q15):合规包那一行 —— 一个"有没有"的事实(compliance_pack_month_status,门 module.finance.view 或 module.compliance.view)。
+    //   读不出来就抛,不许把失败画成"冻了"。
+    const packStatus = mustOne(await supabase.rpc('compliance_pack_month_status', { p_month: end }) as never, 'compliance_pack_month_status') as
+        { month: string; locked: boolean; pack_code: string | null } | null
+    if (!packStatus) throw new Error('compliance_pack_month_status returned nothing — the month-end checklist cannot tell whether the compliance pack is frozen')
     const blockingCodes = blocking.run_codes ?? ''
     const settings = mustOne(settingsRes, 'finance_settings')
     // 折旧:应提 > 0 = 还没跑(或有新资产);0 = 已提平/无在役资产
@@ -253,6 +258,15 @@ export default async function MonthEndPage({
                          { 0: formatAmount(depDelta, baseCurrency) })
                  : blockingCount > 0 ? t('finance.monthEnd.blockedByUnallocated', { n: blockingCount })
                  : revalued ? '' : t('finance.monthEnd.blockedByReval'),
+        },
+        {
+            // MES-8b-1(Step 0 Q15):这个月的合规包冻了没有 —— 一行警告,【从不挡关账】(MES-0 Q48 的形状;close_period 不读它)。
+            //   锁之前它还冻不了(na);锁了而没有在册的包 → outstanding,链到合规包页的那个月;冻了 → done,说出包的编号。
+            key: 'compliancePack', href: `/compliance/packs?month=${end.slice(0, 7)}`,
+            state: !packStatus.locked ? 'na' : packStatus.pack_code ? 'done' : 'outstanding',
+            detail: !packStatus.locked ? t('finance.monthEnd.compliancePackAfterLock')
+                 : packStatus.pack_code ? t('finance.monthEnd.compliancePackFrozen', { code: packStatus.pack_code })
+                 : t('finance.monthEnd.compliancePackNotFrozen', { month: end.slice(0, 7) }),
         },
     ]
 
