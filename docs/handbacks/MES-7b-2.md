@@ -140,7 +140,7 @@ on) was removed — it was already stale before this cut (named in the MES-7a-2 
 | 11 | Layout | §6 |
 | 12 | Smoke | **`SMOKE_EXIT=0`** (19:23:38 → 19:48, judged by the script's own line): 288 routes + the probe set — **293 ok, 21 skipped (no data), 0 FAILED**; the three new dynamic pages skip on live because their tables are empty (`/safety/inspections/[id]`, `/safety/inspections/templates/[id]`; they were measured on the local rebuild, §6); `/safety/inspections`, `/safety/inspections/new`, `/safety/inspections/templates/new` and `/safety/environment` rendered 200 on live. Its throwaway (`smoke-1792149835971-all`, 81 codes) was cleaned up — closing readings: 0 throwaway accounts, 0 probe roles. Its scratch report named six old rows not mine (§11), untouched. |
 | 13 | Live verification | §5 |
-| 14 | Fresh-clone build | recorded in the follow-up commit (the cut's commit, cloned with no `.env.local`, `npm ci` + `npm run build`) |
+| 14 | Fresh-clone build | the cut's commit `f30c256dfbb41dff76fd38284bd12f2b6b95bde0`, cloned to a scratch directory with no `.env.local`: `npm ci` **`CI_OWN_EXIT=0`**, `npm run build` **`X_OWN_EXIT=0`** (19:50:41 → 19:51:54 CST). This row is recorded in a follow-up docs-only commit, whose own fresh-clone build was run as well before the push |
 
 **Fault injections.** `db/scripts/2026-10-16-mes7b2-fixture-injections.py`: **57 cells on 268 + 2 on 263**, every arm of 268 red at least once,
 run on a fresh rebuild after the last database edit (and again on another fresh rebuild at 19:49 CST, after the migration, before the push): **`INJECTIONS_OWN_EXIT=0` (59 cells, 0 wrong)** both times. The first sweep had two cells that did not
