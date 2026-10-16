@@ -10863,6 +10863,8 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 **它被钉住了:** fixture 266 的 VOID 臂断言那张表没有作废 / 删除类的列,并且删除被拒;谁给它加一个作废,那一臂就红(故障注入格 "maintenance records gain a void column"),
 逼他回 `issue_spare_parts` 加一道按名的拒绝。
 **删除条件:** 保养记录有了作废的那一刀,同时让 `issue_spare_parts` 拒作废了的记录、让作废拒还挂着件的记录。
+★ **Tim 的裁定(2026-10-16,MES-7a-2 close-out + MES-7b Step 0 委托书第 1.2 条):照建成的样子接受** —— 保养记录不加作废,fixture 266 的 VOID 守卫照旧留着
+(谁加一个作废,它就红)。本条因此不是一件待修的事,是一条带着守卫的记录;删除条件不变。
 
 ### MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT · 一句写在 CHECK 的 IN 列表【中间】的注释,让两支检查各少数了两个值,而它们都报绿(本刀第一稿踩到)
 
@@ -10871,12 +10873,20 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 `movements.type.maintenance_issue` 的句子 —— **两张绿,而图上会少两根条、屏幕上会印两个键名**。把注释挪到 CHECK 外面之后,两支当场都红(读数在交回 §3)。
 **为什么这一刀不修解析器:** 一个刚被自己绊倒的人现写出来的检查,没有人验过(AGENTS.md「匆忙的检查者」);镜像里的那一处已经改成不夹注释,并在列上写了为什么。
 **删除条件:** 一刀专门让两支解析器在 IN 列表里认得注释(或者在读到一个注释时自己红),并带着"往列表中间塞一句注释"那一格故障注入。
+★ **Tim 的裁定(2026-10-16,MES-7a-2 close-out):并入下一个建库的刀,作 F13** —— 两支检查解析类型清单时,注释既藏不掉也加不进一项,每一支各带一格让它变红的故障。
+☞ **close-out 量到的今天的样子**(HEAD `c5d4cf67`,读代码,没有跑):`check-enum-mirrors.mjs:58-66` 的 `sqlEnum` 先用 `([^)]+)` 截到第一个 `)` 再剥 `--` 注释
+—— 一句带 ASCII `)` 的注释仍会把清单截短;`check-i18n.mjs:188-193` 的 `sqlEnum` 同一个截法、**根本不剥注释** —— 注释里一个带引号的词会被数成一个"值"。
+`inventory_movements.sql:30-31` 那句 IOD-1 注释今天仍在 IN 列表【里面】,只因为它碰巧不含 `)` 与 `'` 才被读对。
 
 ### MES7A2-SPARE-PART-NOTE-LIVE-STALE · 线上 `material_kinds` 备件那一行的说明仍是旧的"不按批次追溯"(RUNTIME CONFIG,刻意未改)
 
 **是什么:** Q2 让本刀改写镜像里那一行的说明(按批收货、挂保养记录出库、不逐件追溯)。`material_kinds` 是 RUNTIME CONFIG(`db/check_mirrors.py` 不逐行比对),
 而本刀在线上只许造迁移本身的东西(6800 与两种流水类型)—— 所以线上那一行的 `notes` 没动,仍写着旧话。重建出来的库是新话。
 **删除条件:** Tim(或持 `module.materials.edit` 的人)在 `/settings/dictionaries` 的物料种类里把那一行说明改成镜像里那一句;或者下一刀碰这张表时一起改。
+★ **Tim 的裁定(2026-10-16,MES-7a-2 close-out):并入下一个建库的刀,作 F12** —— 由【下一支迁移】把线上那一行改成仓库里的新说法
+("received as lots so stock and cost are counted; issued against a maintenance record; no per-piece traceability")。
+☞ close-out 读到的线上那一行(2026-10-16 13:39:55 CST,`postgres`,基表,`docs/surveys/MES-7b/closeout-readings.sql`,`READ_OWN_EXIT=0`)仍是旧话:
+「机器的备件。【自成一类】它挂在一台机器上、有关键度,而且【不按批次追溯】……(PROC-0b N3,Tim 裁定)。」
 
 ### MES7A2-RETURN-LANDS-UNLOCATED · 退回的备件落在"未指定库位"(本刀的选择,写下来免得被当成漏了)
 
@@ -10889,3 +10899,26 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 **是什么:** `TRAIL_ENUMS['inbound_batches#unit']` 把 `pcs` 说成 `pieces`,数量格式不分单复数,所以一次退回 1 件读作 "Quantity: 1 pieces"
 (措辞臂 ㉛ 照实钉住了它)。kg / t 没有这个问题;今天线上没有 pcs 的批。
 **删除条件:** 单位的英文说法按数量分单复数的那一刀(同时把 ㉛ 那一句改成 "1 piece")。
+
+### MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS · 一个没有加工单的库,整页「物料平衡」只剩一句"还没有加工记录" —— 库存滚动连同"出给保养"一列一起不见(MES-7a-2 close-out 量到;病根在 MES-5b-1)
+
+**是什么:** `app/operation/balance/page.tsx:106` 把整页的状态定成 `months.length === 0 && lines.length === 0 ? { kind: 'empty', … }` —— 两个数都只来自
+`processing_balance_monthly`(加工)。而同一页最下面的库存滚动(`stock_rollforward_monthly`)不靠加工:收货、出给保养、退回都会让它有行。
+**量到的:** 本地重建 + 自己的数据(`docs/surveys/MES-7a-2/local-seed.sql`:备件收货、两次出库、一次退回、一次改价,**没有一张加工单**),五个克隆读
+`/operation/balance` 都是 200,而页面只有那一句 `massBalance.noData`("No processing run has been recorded yet.")—— 滚动表与"Issued to maintenance (net of returns)"
+那一列一个都没画(`docs/surveys/MES-7b/mes7a2-closeout-local.mjs`,`LOCAL_PAGES_EXIT=0`)。线上有加工单,所以已部署的页面上那一列五个克隆都看得见(同一次 close-out 的线上探针)。
+**为什么不是 MES-7a-2 弄坏的:** 那一行出自 MES-5b-1(`00744eff`,`v1.4.45`)—— 一个只有收货、还没开过一炉的库,从那时起就看不到库存滚动;MES-7a-2 只是让
+"没有加工、却有库存流水"这个状态多了一条路(备件)。MES-7a-2 的本地版式普查量过这一页,量的正是这张空页(它的种子同样没有加工单)。
+**今天谁碰得到:** 线上碰不到(有加工单)。一次全新安装、切换上线的头几周(先收货、先出备件、还没开炉)会碰到。
+**删除条件:** 那一页的空态只在【三个数都为空】(加工的月份、加工的行、库存滚动的行)时成立 —— 交 Tim 定是否作为下一刀的并入(MES-7b Step 0 的待答问题)。
+
+
+### MES7A2CO-NO-CHART-OF-ACCOUNTS-PAGE · 应用里没有一页"科目表",也没有一页说出哪个科目是系统科目(MES-7a-2 close-out 量到;不是 MES-7a-2 造的)
+
+**是什么:** close-out 委托书第 1.3 b 条要看"科目表把 6800 显示成系统科目"。实测(HEAD `c5d4cf67`,读代码):`app/` 里没有科目表那一页(`grep -rn "from('accounts')" app lib`
+命中的 11 处都是试算表、分录、银行、费用、资产、报销页上的读取与下拉);`is_system` 在 `app/` 与 `lib/` 里只出现在【角色】上(`app/settings/roles/*`、`app/settings/accounts/*`),
+**没有一处读科目的 `is_system`** —— 37 个系统科目,哪一个都不在屏幕上说自己是系统科目。科目行对每一个登录的人都可读(`accounts` 的读策略 `USING (true)`)。
+**量到的:** 已部署的试算表(`/finance/trial-balance?all=1`)对 admin · cco · finance · cfo 四个克隆列出 `6800 Repairs & Maintenance`(线上发生额 0),
+没有一个词说它是系统科目;warehouse 进不了财务(它的码)。线上的库里 6800 是 `is_system = true`、`expense`、启用(`docs/surveys/MES-7b/closeout-readings.sql` 的 `ACCT6800` 行)。
+MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算表代替。
+**删除条件:** 一刀加一页科目表(或在试算表上标出系统科目)—— 交 Tim 定要不要、放在哪一刀(MES-7b Step 0 的待答问题)。

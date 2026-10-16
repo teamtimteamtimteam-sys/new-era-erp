@@ -952,6 +952,35 @@
 >    (`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。**窗口里坏掉的**(推导,Step 0 Q21):没有 —— 旧应用不写新类型、不读新表,库存滚动它读的列一列不少。
 >    验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-7a-2.md`;登记七条(`docs/known-issues.md` 的 MES-7a-2 一节)。
 >    **下一刀 MES-7b · Inspections and incidents**(见下面「⬜ ★ MES 组」第 12 行)。
+>    ★ **部署:Tim 在 Vercel 上确认 `c5d4cf67` 已部署(MES-7a-2 close-out + MES-7b Step 0 委托书,2026-10-16)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-16 12:30:24 CST**(测量:`db/migration-windows.tsv`,`2026-10-16-mes7a2-spare-parts.sql`)·
+>    终点下界 **2026-10-16 13:24:18 CST**(测量:推送把 `origin/main` 移到 `c5d4cf67`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`c5d4cf67 refs/remotes/origin/main@{2026-10-16 13:24:18 +0800}: update by push`;
+>    `afd9977b` 从没有单独推过,它与 `c5d4cf67` 在这同一次推送里出去)·
+>    终点上界 **2026-10-16 13:31:34 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 53 min 54 s,至多 1 h 01 min 10 s。**
+>    窗口里坏掉的(**推导**,MES-7a-2 交回 §8,没有在线上量):没有 —— 旧应用不写新类型、不读新表与新视图,库存滚动它读的列一列不少。
+>    窗口里的只读读数(2026-10-16 13:39:55 CST,`postgres`,基表;`docs/surveys/MES-7b/closeout-readings.sql`,`READ_OWN_EXIT=0`):出库记录 0 ·
+>    保养流水 0 · `maintenance_part` 分录 0 · 6800 分录行 0 · 备件物料 0 · 备件批 0 · 窗口里新建的库存流水 0 · 保养记录 2(窗口里新建 / 改动 0);
+>    变更记录 12:44:46–13:15:55 共 1,159 行,全是 MES-7a-2 自己的冒烟 / 证明的一次性角色 / 授权 / 账号 / 员工 / 评估 / 草稿合同,逐表 INSERT = DELETE;
+>    推送之后到本会话 0 行。**已部署的就是 MES-7a-2 的代码**(测量:五个克隆在线上的机器页上都画出 `data-section="spare-parts"`、库存滚动都有
+>    "Issued to maintenance (net of returns)" 一列 —— 两样都只从 `afd9977b` 起才有)。
+>    ★ **Tim 的裁定(同一份委托书第 1.2 条):** ① 保养记录没有作废、fixture 266 的 VOID 守卫 —— **照建成的样子接受**(`MES7A2-MAINTENANCE-HAS-NO-VOID`);
+>    ② 6800 的中文名 **维修保养费 照旧**,除非 Tim 另改;③ 线上 `material_kinds` 备件那一行的说明(`MES7A2-SPARE-PART-NOTE-LIVE-STALE`)与两支少数了类型的
+>    构建检查(`MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT`)成为**下一个建库的刀的并入 F12 · F13**(下面「⬜ ★ MES 组」第 12 行)。
+>    ★ **close-out 的核对(委托书第 1.3 条 a–d,逐项证据在 `docs/surveys/MES-7b/MES-7a-2-CLOSEOUT.md`):a** 委托书列的 18 项 fixture 逐项都有臂盖着
+>    (266 的 REG · PERM · REFUSE · VOID · ISSUE · RETURN · DIRECT · CAPITAL · REPRICE · HOLD · ROLL · V21 · RECON · TRAIL,263 HOLD,257 的滚动恒等式,
+>    `check-enum-mirrors` 与 `check-i18n` 的类型清单,㉛)。**b** 已部署的应用上 admin · cco · finance · warehouse 四个克隆(另加 cfo —— 七个真账号的角色里
+>    唯一不持 `module.inventory.edit` 的,让"按不动、说出码"那一半有主语)、四个页面 20 次全部 200:机器页的备件一段五个都画出来,"Issue spare parts"
+>    对持码的四个按得动、对 cfo 按不动并点名 `module.inventory.edit`;库存滚动五个都有"出给保养"一列;试算表(全部科目)对 admin · cco · finance · cfo 列出
+>    6800 Repairs & Maintenance(warehouse 进不了财务);待定值页 V21 线上没有行(线上没有备件物料 —— 臂的条件)。本地重建 + 自己的数据补上线上没有的状态
+>    (五个克隆 × 五页 25 次全部 200):退回钮在两行出库上都画出(cfo 三处按不动并点名码),金额一列只给看得见价格的人(warehouse 读到那一句说明),
+>    V21 列出收过货的两种备件(warehouse 不持 `module.materials.view`,看不到)。**量到、登记、不挡第 2 步的两件**(都不是 MES-7a-2 造的):
+>    应用里**没有科目表那一页**、也没有一处说出哪个科目是系统科目(`MES7A2CO-NO-CHART-OF-ACCOUNTS-PAGE`)—— 委托书那一条在今天没有主语;
+>    一个**没有加工单**的库,`/operation/balance` 整页只剩"还没有加工记录",库存滚动连同新的一列一起不见(`MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS`,
+>    病根在 MES-5b-1;线上有加工单,碰不到)。**c** 三条登记都在 `docs/known-issues.md`(行号见 close-out 文件)。**d** 交回 §6 的 18 条决定逐条列在 close-out 文件里。
+>    **所以第 2 步(MES-7b Step 0)照常开始**(委托书第 1.5 条)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -7492,7 +7521,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 11a | ✅ **MES-7a-1 · Equipment reliability**(★ 已关闭,`v1.4.52`,2026-10-16,上面第 51 条;Tim 2026-10-15 裁定 MES-7a 拆两刀)| 22(MTBF / MTTR)· 停机原因与来源 · 设备记录只经函数 · F9 · F10 · F11 · Q24 存 PDF | 见 `docs/surveys/MES-7a/STEP0-HANDBACK.md` §9 |
   | 11b | ✅ **MES-7a-2 · Spare parts**(★ 已关闭,`v1.4.53`,2026-10-16,上面第 52 条;Q2 备件是进料批、没有逐件追溯;Q11 费用科目 6800 Repairs & Maintenance,系统科目;出库与退回的码 `module.inventory.edit`)| 21(备件:出库与入账)| Step 0 §9:3 h 00 – 4 h 25(校准后) |
   | ~~11~~ | ~~⬜ **MES-7a · Spare parts and reliability**~~ → 拆成上面 11a · 11b(Tim 2026-10-15)。原文:⬜ **MES-7a · Spare parts and reliability**(★ 下一刀;★ **Step 0 交回 `docs/surveys/MES-7a/STEP0-HANDBACK.md`(2026-10-15),等 Tim 答 Q1–Q26** —— 推荐拆两刀:7a-1 可靠性与设备记录(+ F9 签发人字体先问 · F10 销毁证书从快照渲染)、7a-2 备件(出库与入账))| 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m(勘察);Step 0 §9:两刀 ≈ 3 h 35 – 5 h 20 + 3 h 00 – 4 h 25(校准后) |
-  | 12 | ⬜ **MES-7b · Inspections and incidents**(★ 下一刀)| 23(安全巡检)· 24(热失控 / 排放) | 8 h 05 m – 15 h 15 m |
+  | 12 | ⬜ **MES-7b · Inspections and incidents**(★ 下一刀;★ **并入(Tim 2026-10-16,MES-7a-2 close-out 的裁定),归下一个建库的刀**:**F12** 线上 `material_kinds` 备件那一行的说明由下一支迁移改成仓库里的新说法("received as lots so stock and cost are counted; issued against a maintenance record; no per-piece traceability"),`MES7A2-SPARE-PART-NOTE-LIVE-STALE` · **F13** 两支少数了流水类型的构建检查(`check-enum-mirrors` · `check-i18n`)解析类型清单时,注释既藏不掉也加不进一项,每一支各带一格让它变红的故障,`MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT`)| 23(安全巡检)· 24(热失控 / 排放) | 8 h 05 m – 15 h 15 m |
   | 13 | ⬜ **MES-8a · Supplier scorecards and statements** | 25(评分卡)· 26(供应商对账单) | 5 h 45 m – 9 h 45 m |
   | 14 | ⬜ **MES-8b · Analysis and display** | 28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏) | 5 h 25 m – 10 h 00 m |
   | 15 | ⬜ **MES-9 · Supplier portal**(最后) | 27(供应商门户;先做内部专用的那次清扫,Q86) | 7 h 35 m – 13 h 15 m |
