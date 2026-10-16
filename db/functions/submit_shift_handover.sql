@@ -1,4 +1,8 @@
-CREATE OR REPLACE FUNCTION public.submit_shift_handover(p_shift_code text, p_handover_date date, p_outgoing_employee_id uuid, p_incoming_employee_id uuid, p_notes text DEFAULT NULL::text, p_items jsonb DEFAULT NULL::jsonb, p_downtime_ids uuid[] DEFAULT NULL::uuid[])
+-- db/functions/submit_shift_handover.sql
+-- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q12,Tim):末尾多一个 p_incident_ids(带默认 NULL)—— 这次交接班指着哪几件事故
+--   (shift_handover_incident_refs,引用不是副本;docs/forward-queue.md:2402 等的那一刻:登记簿建好之后交接班才引用事故)。
+--   找不到的事故按名拒 HANDOVER_INCIDENT_NOT_FOUND。签名变了,迁移先 DROP 旧的再建;旧的具名调用不带它 → 默认值,照旧走得通。
+CREATE OR REPLACE FUNCTION public.submit_shift_handover(p_shift_code text, p_handover_date date, p_outgoing_employee_id uuid, p_incoming_employee_id uuid, p_notes text DEFAULT NULL::text, p_items jsonb DEFAULT NULL::jsonb, p_downtime_ids uuid[] DEFAULT NULL::uuid[], p_incident_ids uuid[] DEFAULT NULL::uuid[])
  RETURNS uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -100,6 +104,17 @@ BEGIN
         END IF;
         INSERT INTO shift_handover_equipment_refs (handover_id, downtime_id, created_by)
         SELECT v_id, d, v_user FROM unnest(p_downtime_ids) d
+        ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- MES-7b-1(Q12):事故也是一条【引用】—— 存 incident_id,不抄一句"发生了什么"。
+    IF p_incident_ids IS NOT NULL AND array_length(p_incident_ids, 1) > 0 THEN
+        IF EXISTS (SELECT 1 FROM unnest(p_incident_ids) x
+                    WHERE NOT EXISTS (SELECT 1 FROM incidents i WHERE i.id = x)) THEN
+            RAISE EXCEPTION 'HANDOVER_INCIDENT_NOT_FOUND';
+        END IF;
+        INSERT INTO shift_handover_incident_refs (handover_id, incident_id, created_by)
+        SELECT v_id, x, v_user FROM unnest(p_incident_ids) x
         ON CONFLICT DO NOTHING;
     END IF;
 

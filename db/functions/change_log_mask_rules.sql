@@ -15,6 +15,8 @@
 --   apr_note                     approval_log_note_visible(subject_type, subject_id)(approval_log_masked;U1-B)
 --   jr_amount                    journal_request_amount_visible(id)(journal_requests_masked;U1-B)
 --   never                        谁都看不见(gateway_keys_masked 里 CASE WHEN false;MES-1 Q20:网关钥匙的哈希)
+-- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q6)加了 5 行(114 → 119):事故的受伤细节(受伤的人 · 名字 · 伤情 · 处理 · 误工天数)——
+--   code_or_self:data.view_health:injured_employee_id,每一行抄自 incidents_masked 里那句 CASE。
 -- ★ MES-5a-2(2026-10-08)加了 6 行(105 → 111):电费分摊的五列金额与分给一炉的金额 —— 加工成本那条规矩(data.view_prices,Q30),
 --   每一行抄自 electricity_allocations_masked / electricity_allocation_lines_masked 里那句 CASE。
 --   MES-5b-2:+3 行(electricity_allocation_reversals 的三列金额),抄自 electricity_allocation_reversals_masked 里那句 CASE。111 → 114。
@@ -69,6 +71,12 @@ AS $function$
         ('medical_claims', 'amount_sgd', 'code_or_self:data.view_health:employee_id'),
         ('medical_claims', 'description', 'code_or_self:data.view_health:employee_id'),
         ('medical_claims', 'decision_notes', 'code_or_self:data.view_health:employee_id'),
+        -- MES-7b-1(Q6):事故的受伤细节 —— 抄自 incidents_masked 里那句 CASE(data.view_health,或受伤的那名员工本人)
+        ('incidents', 'injured_employee_id', 'code_or_self:data.view_health:injured_employee_id'),
+        ('incidents', 'injured_person_name', 'code_or_self:data.view_health:injured_employee_id'),
+        ('incidents', 'injury_nature', 'code_or_self:data.view_health:injured_employee_id'),
+        ('incidents', 'injury_treatment', 'code_or_self:data.view_health:injured_employee_id'),
+        ('incidents', 'days_lost', 'code_or_self:data.view_health:injured_employee_id'),
         ('payment_term_template_lines', 'fixed_amount_ccy', 'code:data.view_purchase_prices'),
         ('payroll_lines', 'gross_pay', 'code_or_self:data.view_pay:employee_id'),
         ('payroll_lines', 'employer_cpf', 'code_or_self:data.view_pay:employee_id'),

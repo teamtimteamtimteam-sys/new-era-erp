@@ -3683,3 +3683,64 @@ maintenance_part_issues,movement_ids,technical,hide: the stock movements this ro
 maintenance_part_issues,journal_entry_id,fk_document,"journal_entries.code (document number, prefix JE)",,,Journal entry,,,uuid
 maintenance_part_issues,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
 maintenance_part_issues,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+incident_kinds,code,own_key,show as-is: the record's own business key (code/number) — MES-7b-1 (2026-10-16),,,Code,,,text
+incident_kinds,name_en,text,verbatim,,,Name (EN),,,text
+incident_kinds,name_zh,text,verbatim,,,Name (ZH),,,text
+incident_kinds,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+incident_kinds,sort_order,technical,hide,,,Sort order,,,integer
+incident_kinds,notes,text,verbatim,,,Notes,,,text
+safety_settings,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,boolean
+safety_settings,nea_report_working_days,number,"number with unit (qty kg, %, rate); Intl en-US grouping — MES-7b-1 (2026-10-16)",,,NEA written report due within (working days) (V19),,,integer
+safety_settings,nea_report_days_source,text,verbatim,,,Where the number comes from,,,text
+safety_settings,nea_report_days_confirmed_at,timestamp_audit,MES-7b-1 (2026-10-16): when V19 was confirmed against the NEA licence,,,Confirmed against the licence on,,,timestamp with time zone
+safety_settings,nea_report_days_confirmed_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Confirmed by,,,uuid
+safety_settings,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+safety_settings,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+incidents,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+incidents,code,own_key,show as-is: the record's own business key (code/number) — MES-7b-1 (2026-10-16),,,Incident,,,text
+incidents,kind_code,dict,incident_kinds.name_en (via code) — MES-7b-1 (2026-10-16),,,Kind,,,text
+incidents,occurred_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) — when the incident happened",,,Happened at,,,timestamp with time zone
+incidents,location_id,fk_other,storage_locations: composed description (see target table),,,Location,,,uuid
+incidents,equipment_id,fk_document,"fixed_assets.code (document number, prefix FA)",assets.category.equipment,Machine,,text-only,,uuid
+incidents,duration_min,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Duration (minutes),,,numeric
+incidents,what_happened,text,verbatim,,,What happened,,,text
+incidents,immediate_action,text,verbatim,,,What was done immediately,,,text
+incidents,responsible_employee_id,fk_person,"employees.id → person name: loadActorNames(…, employeeIds) space=""employee"" (app/components/ActorName.tsx:49,119); employee_lookup view for readers without hr.view",,,Responsible,,,uuid
+incidents,responsible_name,text,verbatim,,,Responsible (name),,,text
+incidents,nea_reportable,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Reportable to NEA,,,boolean
+incidents,source,enum,ENUM_OVERRIDES incidents#source — MES-7b-1 (2026-10-16),,,Recorded,,,text
+incidents,downtime_id,fk_other,equipment_downtime: composed description (see target table),,,Stoppage,,,uuid
+incidents,run_event_id,technical,hide: the run event has no number; the incident page links it,,,Run event,,,bigint
+incidents,injured_employee_id,fk_person,"employees.id → person name (masked: data.view_health or the injured person, change_log_mask_rules)",,,Injured employee,,,uuid
+incidents,injured_person_name,text,verbatim (masked: data.view_health or the injured person),,,Injured person,,,text
+incidents,injury_nature,text,verbatim (masked: data.view_health or the injured person),,,Nature of the injury,,,text
+incidents,injury_treatment,text,verbatim (masked: data.view_health or the injured person),,,Treatment,,,text
+incidents,days_lost,number,"number (masked: data.view_health or the injured person)",,,Days lost,,,numeric
+incidents,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+incidents,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+incident_updates,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+incident_updates,incident_id,fk_document,"incidents.code (document number, prefix INC) — MES-7b-1 (2026-10-16)",,,Incident,,,uuid
+incident_updates,kind,enum,"message keys safety.updateKind.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,What,,,text
+incident_updates,occurred_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) — when NEA was notified / the report submitted",,,At,,,timestamp with time zone
+incident_updates,reference,text,verbatim,,,Reference,,,text
+incident_updates,field,enum,"message keys safety.field.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Field,,,text
+incident_updates,new_value,text,verbatim (the corrected value as text),,,Corrected to,,,text
+incident_updates,reason,text,verbatim,,,Reason,,,text
+incident_updates,summary,text,verbatim,,,Summary,,,text
+incident_updates,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+incident_updates,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+incident_batches,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+incident_batches,incident_id,fk_document,"incidents.code (document number, prefix INC) — MES-7b-1 (2026-10-16)",,,Incident,,,uuid
+incident_batches,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN)",deleted.kind.inbound_batch,Inbound batch,,text-only,,uuid
+incident_batches,output_batch_id,fk_document,"output_batches.code (document number, prefix OUT)",deleted.kind.output_batch,Output batch,,text-only,,uuid
+incident_batches,basis,enum,"message keys safety.basis.<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Why,,,text
+incident_batches,linked_at,audit_std,hide: the trail entry already says who and when,,,Linked on,,,timestamp with time zone
+incident_batches,linked_by,audit_std,hide: the trail entry already says who and when,,,Linked by,,,uuid
+incident_batches,unlinked_at,timestamp_audit,MES-7b-1 (2026-10-16): when the link was undone,,,Unlinked on,,,timestamp with time zone
+incident_batches,unlinked_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Unlinked by,,,uuid
+incident_batches,unlink_reason,text,verbatim,,,Reason unlinked,,,text
+shift_handover_incident_refs,handover_id,fk_other,shift_handovers: composed description (see target table),,,Handover,,,uuid
+shift_handover_incident_refs,incident_id,fk_document,"incidents.code (document number, prefix INC) — MES-7b-1 (2026-10-16)",,,Incident,,,uuid
+shift_handover_incident_refs,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+shift_handover_incident_refs,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+nonconformance_reports,incident_id,fk_document,"incidents.code (document number, prefix INC) — MES-7b-1 (2026-10-16)",,,Incident,,,uuid

@@ -1,7 +1,8 @@
 -- db/tables/shift_handovers.sql
 -- PROC-SUPPORT-1(R4/R5):一次交接班。**它【指向】别处的记录,不【复述】它们。**
 -- 刻意没有的三样:"这个班处理了什么"(阻塞在 G8)、设备状态正文(在
--- equipment_downtime)、事故(属于尚未建的 WSH 登记簿,现在连列都不留)。
+-- equipment_downtime)、事故(★ MES-7b-1(2026-10-16,Step 0 Q12):WSH 登记簿建好了 —— 事故经引用表
+-- shift_handover_incident_refs 挂上来,交接班自己仍然不留一列)。
 --
 -- NOTE: introduced by db/migrations/2026-09-01-procsupport1-a-an-operation-is-not-optional.sql.
 
@@ -38,7 +39,7 @@ COMMENT ON TABLE public.shift_handovers IS
 【刻意【没有】的东西,逐条给理由 —— 请不要"补全"它们】
   ① **"这个班处理了什么、多少" —— 没有这一栏。** processing_runs 只有 process_date(一个 date),全库 time 列在本刀之前为 0,所以**一张加工单归不到某一个班次上**。这是阶段 7 的 **G8**。一个自由文本会装一个猜测,而那个猜测会与加工单算出来的数打架 —— **人们读到的那一份会是错的那一份**。缺席看得见,不一致看不见。
   ② **设备状态 —— 不在这张表上,在 equipment_downtime(EQP-2a)。** 交接班经 shift_handover_equipment_refs 挂一条【引用】。同一件事记两遍,迟早不一致。
-  ③ **事故 —— 连一列都不留。** 它属于那本尚未建的 WSH 事故与未遂事件登记簿(forward-queue.md:1198,触发条件"第一个技师上岗")。留一个指向不存在的表的空外键,读起来像"忘了填" —— EQP-2a 已经按名拒绝过这种做法。
+  ③ **事故 —— 连一列都不留。** 它属于那本尚未建的 WSH 事故与未遂事件登记簿(forward-queue.md:1198,触发条件"第一个技师上岗")。留一个指向不存在的表的空外键,读起来像"忘了填" —— EQP-2a 已经按名拒绝过这种做法。 ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q12):登记簿(incidents)建好了 —— 事故经引用表 shift_handover_incident_refs 挂上来(与设备停机同一个形状),这张表仍然一列都不加。
   ④ **NEA 的法定时限(立即通报 / 两个工作日内书面报告)不在这里。** 见 R6 与 docs/processing-support-as-built.md:法定时限只能有一个载体。
 【第一天它会装什么】**零行。** 线上 work_category = ''shopfloor'' 的员工数是 **0** —— 没有人交班,也没有人接班。本刀交付的是形状与屏幕,不是内容,而这一点不许被打扮成别的样子。';
 

@@ -296,6 +296,15 @@ export const REMINDERS = [
     { itemType: 'coa_facts_changed', permission: 'action.issue_coa', href: '/quality/coa',
       itemHref: (r: OpsRow) => `/quality/coa/${r.item_id}` },
 
+    // ══ MES-7b-1(2026-10-16,MES-7b Step 0 Q10 · Q11,Tim):事故登记簿与 NEA 的义务 ════════════════════════════════════════
+    // 【incident_nea_notify_due】一件要通报 NEA 的事故,还没有记下通报("立即":没有天数,挂到记下为止)—— 门牌指那件事故(通报记在那一页)。
+    // 【incident_report_due】一件要通报 NEA 的事故,还没有记下交了书面报告 —— item_date 是期限(只在 doc_kind = computed 时;算不出来或
+    //   没有设定时是事故日),期限按 V19 算,V19 未确认时事故页上标"未确认"。两支都是 module.safety.view;关闭不清掉它们(法定义务)。
+    { itemType: 'incident_nea_notify_due', permission: 'module.safety.view', href: '/safety/incidents',
+      itemHref: (r: OpsRow) => `/safety/incidents/${r.item_id}` },
+    { itemType: 'incident_report_due', permission: 'module.safety.view', href: '/safety/incidents',
+      itemHref: (r: OpsRow) => `/safety/incidents/${r.item_id}` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

@@ -225,6 +225,9 @@ const ID_SOURCES = {
         // MES-6b-2(2026-10-15):分析证书。线上零行(本刀的线上验证 —— 签发、存字节、对哈希、经 CFO 作废、重开 —— 全部在回滚的事务里跑,
         //   桶里存过的对象跑完就删),故同时列在 EXPECTED_SKIPS 里 —— 签出第一张证书的那天,那条断言会响。
         '/quality/coa': 'certificates_of_analysis',
+        // MES-7b-1(2026-10-16):事故。线上零行(本刀的线上验证全部在回滚的事务里跑;本刀不在线上留任何事故),
+        //   故同时列在 EXPECTED_SKIPS 里 —— 记下第一件事故的那天,那条断言会响。
+        '/safety/incidents': 'incidents',
         '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
@@ -707,6 +710,7 @@ const MUST_CONTAIN = {
     '/quality/samples/[id]': [{ trail: 'audit-trail', why: '样品页底的审计记录(MES-6a-1)' }],
     '/quality/disputes/[id]': [{ trail: 'audit-trail', why: '化验争议页底的审计记录(MES-6a-1)' }],
     '/quality/ncr/[id]': [{ trail: 'audit-trail', why: '不合格报告页底的审计记录(MES-6b-1)' }],
+    '/safety/incidents/[id]': [{ trail: 'audit-trail', why: '事故页底的审计记录(MES-7b-1)' }],
     '/quality/coa/[id]': [{ trail: 'audit-trail', why: '分析证书页底的审计记录(MES-6b-2)' }],
     '/quality/samples': [{ trail: 'audit-trail', emptyOk: true, why: '内部留样天数(V16)的审计记录(MES-6a-1)' }],
     '/operation/devices': [{ trail: 'audit-trail', emptyOk: true, why: '采集上限的审计记录(MES-1 Q22,M5)' }],
@@ -1290,6 +1294,9 @@ const EXPECTED_SKIPS = new Set([
     // MES-6b-2(2026-10-15):线上 certificates_of_analysis 零行 —— 本刀的线上验证全部在回滚的事务里跑。第一张真的证书签出来那天,
     //   这条断言会响,这一行随之删掉。
     '/quality/coa/[id]',
+    // MES-7b-1(2026-10-16):线上 incidents 零行 —— 本刀的线上验证(记事故、受伤细节的遮蔽、批次建议与链接、来源 incident 的报告、
+    //   NEA 提醒与期限、交接班引用)全部在回滚的事务里跑。第一件真的事故记下那天,这条断言会响,这一行随之删掉。
+    '/safety/incidents/[id]',
     // ~~MES-1(2026-10-06):线上 devices 零行~~ —— 同一天由 MES-1 的线上验证登记了探针网关 ZZ-PROBE-GW-…(DEV-2026-0001,
     //   停用,行留着当测试数据),这一条于是摘掉:/operation/devices/[id] 从此每一次冒烟都真的打开一台设备。
     // AUDIT-TRAIL-1b-1(Q23):线上 shift_handovers 零行(车间还没有人交接)。第一张交接班提交的那天,这条断言会响。
@@ -1662,6 +1669,35 @@ const ORDER_OVERRIDES = {
     //   没有给排序键,于是这一条 id 查询【不可能成功】(42703 column nonconformance_reports.created_at does not exist),
     //   MES-6b-2 的冒烟在走过 214 条、0 失败之后被它中止。同一条:按表覆盖,不改表的形状。
     nonconformance_reports: '&order=opened_at.desc,id.desc',
+    // MES-7b-1(2026-10-16)实测:同一个缺陷第二次 —— 一件事故"记下那一刻"叫 recorded_at,表上没有 created_at;冒烟在走过 222 条、0 失败之后
+    //   被这一条 id 查询中止(42703)。这一次不只补一行:下面的 preflightOrderKeys 在起 dev server 之前就问每一张 ID_SOURCES 表有没有排序键。
+    incidents: '&order=recorded_at.desc,id.desc',
+}
+// ★ MES-7b-1:排序键的预检 —— 同一个缺陷(新表进了 ID_SOURCES、表上没有 created_at、又没有覆盖)撞了第二次(MES-6b-1 → MES-7b-1),
+//   两次都是走了二百多条路由之后才中止。这是一个【静态】问题(只要仓库里的表镜像就答得了),所以在开跑前、什么都没起之前问。
+//   判据:ID_SOURCES 里的每一张表,要么在 ORDER_OVERRIDES 里,要么它的镜像(db/tables/<表>.sql,或 db/views/<视图>.sql)里有一列 created_at。
+//   故障注入:SMOKE_PREFLIGHT_FAULT=drop-incidents-order 拿掉 incidents 那一条覆盖 → 预检按名红。
+function preflightOrderKeys() {
+    const overrides = { ...ORDER_OVERRIDES }
+    if (process.env.SMOKE_PREFLIGHT_FAULT === 'drop-incidents-order') delete overrides.incidents
+    const tables = [...new Set(Object.values(ID_SOURCES).flatMap((m) => Object.values(m)))].filter((t) => typeof t === 'string')
+    const problems = []
+    let looked = 0
+    for (const t of tables.sort()) {
+        if (overrides[t]) continue
+        const file = [join(ROOT, 'db', 'tables', `${t}.sql`), join(ROOT, 'db', 'views', `${t}.sql`)].find((f) => existsSync(f))
+        if (!file) { problems.push(`${t}:找不到镜像(db/tables 或 db/views)—— 判不了它有没有 created_at`); continue }
+        looked++
+        const code = readFileSync(file, 'utf8').split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
+        if (!/\bcreated_at\b/.test(code)) problems.push(`${t}:镜像里没有 created_at,ORDER_OVERRIDES 里也没有它 —— id 查询会 42703`)
+    }
+    // 覆盖断言:一张表都没看,就不是"都有排序键"
+    if (looked === 0) problems.push(`一张表的镜像都没读到(${tables.length} 张候选)—— 预检瞎了`)
+    if (problems.length === 0) return true
+    console.error(`\n✗ 预检不通过(排序键):${problems.length} 张 ID_SOURCES 表取不到"最新那一行" —— 【还没起 dev server】`)
+    for (const p of problems) console.error(`  ✗ ${p}`)
+    console.error('      修:在 ORDER_OVERRIDES 里给它一个真的排序键(那一行"建出来那一刻"的列 + id)')
+    return false
 }
 const ORDER_DEFAULT = '&order=created_at.desc,id.desc'
 async function firstId(table, route) {
@@ -2121,6 +2157,8 @@ async function main() {
     // 这是一个静态问题,不该等到起了服务器、建了会话、扫过临时行之后才回答。
     PROGRESS.phase = '静态预检(ID_SOURCES)'
     if (!preflightIdSources(routes)) return exitAfterCleanup(1)
+    PROGRESS.phase = '静态预检(排序键)'
+    if (!preflightOrderKeys()) return exitAfterCleanup(1)
     // 【临时行体检:报告,不动手】就在这里跑一次 —— 正要再造一批临时行之前,
     // 是最该知道"上一次留下了什么"的时刻。
     // 它【不中止冒烟】:滞留的临时行是家务,不是路由的正确性问题,

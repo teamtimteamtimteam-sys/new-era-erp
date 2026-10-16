@@ -92,6 +92,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.output.view', 'module.pricing.view', 'module.processing.view',
         'module.purchasing.view', 'module.stocktakes.view', 'module.suppliers.view',
         'module.tasks.view', 'module.sales.view', 'module.logistics.view',
+        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
+        'module.safety.view',
         -- APR-ROUTE-1(R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm。
         'data.view_self_approvals') WHERE r.code = 'gm';
 
@@ -133,7 +135,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
         'module.tasks.view', 'module.logistics.view',
         -- ★ MES-6a-1(MES-0 Q90 · MES-6a Step 0 Q11):质量查看(样品与化验争议)—— 财务看得见争议,仲裁费是它记的费用单。
-        'module.quality.view'
+        'module.quality.view',
+        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
+        'module.safety.view'
 ) WHERE r.code = 'finance';
 
 -- procurement(14):议价、下采购单,看得见价格。【完全没有 finance】—— 定价的人不能同时把钱付出去(不相容职务分离)。
@@ -163,7 +167,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.inventory.view', 'module.materials.edit', 'module.materials.view',
         'module.output.edit', 'module.output.view', 'module.processing.edit',
         'module.processing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
-        'module.tasks.edit', 'module.tasks.view', 'module.logistics.view'
+        'module.tasks.edit', 'module.tasks.view', 'module.logistics.view',
+        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
+        'module.safety.view'
 ) WHERE r.code = 'operations';
 
 -- warehouse(10):现场收货、产出、盘点。【不给任何数据类权限】—— 过磅的人不需要看见价格,也不需要看见别人的身份信息。
@@ -213,7 +219,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- ── MES-2(Tim 2026-10-06,MES-0 Q11):过磅的人确认秤送来的数、手工录称重、开地磅单 ─────
         'action.confirm_capture',
         -- ── MES-6a-1(MES-0 Q90 · MES-6a Step 0 Q11 · Q12):质量【查看】—— 样品与争议;不给编辑(Q12:若 Fu Sheng 管样品,以后是一行)─────
-        'module.quality.view'
+        'module.quality.view',
+        -- ── MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2 · Q6):安全 —— 查看与编辑(记事故的是现场)。受伤的细节要 data.view_health,仓库【不】拿它 ─────
+        'module.safety.view', 'module.safety.edit'
 ) WHERE r.code = 'warehouse';
 
 -- hr(8):人力资源 + 薪酬 + 身份信息 + 绩效正文 + 健康数据。这五类正是 HR 的工作对象,也正是别人不该看见的。
@@ -239,7 +247,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         --   gm 刻意不给 —— 理由在那支迁移的抬头(一份过期文档仍把 gm 写成 MD)。
         'data.view_deleted',
         -- APR-ROUTE-1(R2 · Q4):自批报表 —— 审计性质,正是审计角色要看的那一类。
-        'data.view_self_approvals') WHERE r.code = 'auditor';
+        'data.view_self_approvals',
+        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
+        'module.safety.view') WHERE r.code = 'auditor';
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- NAV-REG-1 / R2:module.logistics.view 授给了上面 8 个角色中的每一个。

@@ -72,7 +72,8 @@ const MIRROR = join(ROOT, 'db/tables/document_types.sql')
 // MES-6a-1(2026-10-09):56 → 57。新增 'sample'(/quality/samples,detail;SMP,无洞,按年)。
 // MES-6b-1(2026-10-15):57 → 58。新增 'ncr'(/quality/ncr,detail;NCR,无洞,按年)。
 // MES-6b-2(2026-10-15):58 → 59。新增 'coa'(/quality/coa,detail;COA,无洞,按年)。
-const EXPECTED_ROWS = 59
+// MES-7b-1(2026-10-16):59 → 60。新增 'incident'(/safety/incidents,detail;INC,无洞,按年;搜索的副标题是"发生了什么",不是受伤的细节)。
+const EXPECTED_ROWS = 60
 // ★ SEARCH-5:`type_list` 那 5 种单据的落点。**一张共享页,不是每种一张。**
 const TYPE_LIST_PAGE = join(ROOT, 'app/documents/[key]/page.tsx')
 

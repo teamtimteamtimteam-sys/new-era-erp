@@ -7,6 +7,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import NewHandoverForm from './NewHandoverForm'
 import { formatAuditStamp } from '@/lib/dates'
+import { can } from '@/lib/permissions'
 
 export default async function NewHandoverPage() {
     // 与 /operation/orders/new 同一形状:模块把关在这里,
@@ -49,9 +50,21 @@ export default async function NewHandoverPage() {
             id: string; equipment_id: string; started_at: string
             ended_at: string | null; reason: string }[]
 
+    // MES-7b-1(Q12):最近的事故 —— 引用它们要读得到它们(module.safety.view);读不到时表单说「受限」
+    const canSafety = await can('module.safety.view')
+    const incidents = canSafety ? mustRows(
+        await supabase.from('incident_rows').select('id, code, kind_name_en, kind_name_zh, occurred_at, closed_at')
+            .order('occurred_at', { ascending: false }).limit(30),
+        'incident_rows') as { id: string; code: string; kind_name_en: string; kind_name_zh: string; occurred_at: string; closed_at: string | null }[] : []
+
     return (
         <>
             <NewHandoverForm
+                incidents={incidents.map((i) => ({
+                    id: i.id,
+                    label: `${i.code} — ${locale === 'zh' ? i.kind_name_zh : i.kind_name_en} · ${formatAuditStamp(i.occurred_at)}`,
+                }))}
+                incidentsRestricted={!canSafety}
                 shifts={shifts.map((s) => ({
                     code: s.code,
                     label: (locale === 'zh' ? s.name_zh : s.name_en)

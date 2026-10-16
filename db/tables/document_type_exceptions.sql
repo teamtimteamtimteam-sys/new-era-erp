@@ -68,6 +68,7 @@ INSERT INTO public.document_type_exceptions (table_name, reason) VALUES
     ('inbound_chemistry_certainties', '进料化学确定度的取值目录'),
     ('inbound_safety_states',         '进料安全状态的取值目录'),
     ('inbound_source_reasons',        '进料来源原因的取值目录'),
+    ('incident_kinds',                '事故种类目录(MES-7b-1):code 是种类代号(没有 other),事故引用它'),
     ('kpi_organisation',              'KPI 组织树的节点,归属用,不是单据'),
     ('laboratories',                  '化验室名录:code 是实验室代号,化验单引用它'),
     ('label_templates',               '标签模板目录(MES-3b):code 是模板代号,印标签的记录引用它'),

@@ -316,6 +316,16 @@ export const TRAIL_TEXT = {
     'ho.edited': 'Shift handover edited',
     'ho.item': 'Handover item added',
     'ho.downtime': 'Downtime noted in the handover',
+    'ho.incident': 'Incident cited in the handover',
+    // ── MES-7b-1:事故登记簿 ─────────────────────────────────────────────────────
+    'inc.recorded': 'Incident recorded',
+    'inc.neaNotified': 'NEA notified',
+    'inc.reportSubmitted': 'Written report submitted to NEA',
+    'inc.closed': 'Incident closed',
+    'inc.corrected': 'Incident corrected',
+    'inc.batchLinked': 'Batch linked to the incident',
+    'inc.batchUnlinked': 'Batch unlinked from the incident',
+    'inc.handover': 'Cited in a shift handover',
     // ── 仓库申请 ─────────────────────────────────────────────────────────────
     'wr.raised': '{Kind} requested',
     'wr.approved': '{Kind} request approved and carried out',
@@ -522,6 +532,7 @@ export const TRAIL_TEXT = {
     // MES-5a-2(2026-10-08):V25 —— 共用池的电怎么摊
     'set.electricity': 'Shared-pool electricity rule changed',
     'set.quality': 'Internal sample retention changed',
+    'set.safety': 'NEA written-report deadline changed',
     'dev.registered': 'Device registered',
     'dev.changed': 'Device changed',
     'dev.retired': 'Device retired',

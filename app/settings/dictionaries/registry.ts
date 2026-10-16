@@ -36,6 +36,7 @@ export type DictTable =
     | 'cell_constructions' | 'contamination_streams'   // MES-4b(2026-10-07,Q3 · Q21):第十二、十三张 —— 同样有那六列
     | 'assay_indicators'   // MES-6a-2(2026-10-10,Q3 · Q4):第十四张 —— 同样有那六列,外加一列单位
     | 'downtime_causes'   // MES-7a-1(2026-10-15,MES-7a Step 0 Q3):第十五张 —— 同样有那六列,外加一列类别
+    | 'incident_kinds'   // MES-7b-1(2026-10-16,MES-7b Step 0 Q4):第十六张 —— 只有那六列
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
@@ -354,6 +355,17 @@ export const DICTIONARIES: DictSpec[] = [
               ] },
         ],
         referencedBy: [{ table: 'equipment_downtime', column: 'cause_code' }],
+    },
+    {
+        // ★ MES-7b-1(2026-10-16,MES-0 Q73;MES-7b Step 0 Q4,Tim):事故的种类 —— 引导七种,没有 other(一件说不出是哪一种的事故是一个兜底桶)。
+        //   写码与记事故同一个(module.safety.edit,与表的写策略同一个);读的门与表的读策略同一个(module.safety.view)。
+        //   一种被事故用过之后代号冻住、不能删(库里 INCIDENT_KIND_CODE_LOCKED —— 这一页本来就不改代号);停用只管"以后还能不能新选"。
+        table: 'incident_kinds',
+        titleKey: 'dict.incident_kinds',
+        permission: 'module.safety.edit',
+        viewPermission: 'module.safety.view',
+        extras: [],
+        referencedBy: [{ table: 'incidents', column: 'kind_code' }],
     },
     {
         // ★ MES-6a-2(2026-10-10,MES-0 3.5b · 3.5c · 3.5e;MES-6a Step 0 Q3 · Q4,Tim):化验上的指标 —— 引导五个定义(残粉 · 箔纯度 ·

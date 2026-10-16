@@ -1028,7 +1028,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-6b-2:吃过这一批的加工单做出来的产出批上的分析证书(家在证书自己那里;经加工单与产出腿两块垫脚石)
         'certificates_of_analysis',
         // MES-7a-2:这一批的备件出给了哪一条保养记录、退回了多少(家在设备;与机器页同一句话)
-        'maintenance_part_issues'],
+        'maintenance_part_issues',
+        // MES-7b-1:这一批链在哪件事故上、解开了没有(家在事故;与事故页同一句话)
+        'incident_batches'],
     output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
@@ -1041,13 +1043,15 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-6b-1:这一批上的不合格报告(家在报告那里)· 对合同质量验收限的判定(家在这一批)
         'nonconformance_reports', 'quality_limit_judgements',
         // MES-6b-2:这一批的分析证书与它的字节档案(家在证书那里;作废它的申请与那张申请的审批已在上面)
-        'certificates_of_analysis', 'coa_issues'],
+        'certificates_of_analysis', 'coa_issues',
+        // MES-7b-1:这一批链在哪件事故上(家在事故)
+        'incident_batches'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs',
         // MES-7a-2:备件出给保养与退回(家在这里,经那一条保养记录)
         'maintenance_part_issues'],
-    shift_handover: ['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs'],
+    shift_handover: ['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs', 'shift_handover_incident_refs'],
     warehouse_request: ['warehouse_requests', 'approval_log'],
     // AUDIT-TRAIL-1b-2
     quote: ['quotes', 'quote_lines', 'qt_issues', 'quote_history'],
@@ -1176,12 +1180,16 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     // MES-6a-2(2026-10-10):化验指标字典
     dictionary_assay_indicators: ['assay_indicators'],
     dictionary_downtime_causes: ['downtime_causes'],
+    // MES-7b-1(2026-10-16):一件事故 —— 之后的事实 · 批次链接 · 引用它的交接班 · 从它开出来的不合格报告;安全的设定(V19);事故种类字典
+    incident: ['incidents', 'incident_updates', 'incident_batches', 'shift_handover_incident_refs', 'nonconformance_reports'],
+    safety_settings: ['safety_settings'],
+    dictionary_incident_kinds: ['incident_kinds'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
-    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype' | 'energy'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype' | 'energy' | 'safety'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1223,6 +1231,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     electricity_allocation: 'energy', electricity_settings: 'settings',
     // MES-6a-1
     quality_settings: 'settings',
+    // MES-7b-1
+    incident: 'safety', safety_settings: 'settings', dictionary_incident_kinds: 'dict',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1239,7 +1249,9 @@ const BATCH_VIEW_OF_RUN = new Set(['processing_inputs', 'processing_outputs', 'b
 const WO_TABLES = new Set(['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history'])
 const ST_TABLES = new Set(['stocktakes', 'stocktake_lines', 'stocktake_counts'])
 const EQ_TABLES = new Set(['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'maintenance_part_issues'])
-const HO_TABLES = new Set(['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs'])
+const HO_TABLES = new Set(['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs', 'shift_handover_incident_refs'])
+/** MES-7b-1:事故那一族 —— 在事故页、批次页、变更记录总表上都从事故这一边说(交接班的引用在交接班页上从交接班那一边说) */
+const SAFETY_TABLES = new Set(['incidents', 'incident_updates', 'incident_batches'])
 /** 往上一跳够到的那几种:在别的记录的页上出现时,标题后面点名它属于哪一张单据("Purchase order amended · PO-2026-0010")。
  *  写进标题而不是另起一个小标题 —— 一条记录里后面几块的标题本身就是小标题,再加一个会把它们的标题挤掉。 */
 const HEADED = new Set<Family>(['po', 'run', 'wo', 'so'])
@@ -1275,6 +1287,9 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (RUN_TABLES.has(t)) return 'run'
     if (t === 'roles' || t === 'role_permissions') return 'role'
     if (t === 'shift_handover_equipment_refs' && subject === 'equipment') return 'equipment'
+    // MES-7b-1:交接班引用一件事故 —— 在事故页上从事故这一边说("Cited in a shift handover"),在交接班页上从交接班那一边说
+    if (t === 'shift_handover_incident_refs' && subject === 'incident') return 'safety'
+    if (SAFETY_TABLES.has(t)) return 'safety'
     // MES-3b:库位页上它的标签从库位这一边说(在别处 —— 批次页、变更记录总表 —— 照批次那一族的说法,两边是同一句话)
     if (subject === 'storage_location' && t === 'label_prints') return 'location'
     if (BATCH_TABLES.has(t)) return 'batch'
@@ -2105,6 +2120,10 @@ function describeHandover(d: TrailDict, rows: TrailRow[], opts: BuildOptions): B
     const by = (t: string) => rows.filter((r) => r.table === t)
     const items = by('shift_handover_items')
     const refs = by('shift_handover_equipment_refs')
+    // MES-7b-1(Q12):引用的事故 —— 与停机同一个说法(一行:事故编号)
+    const incRefs = by('shift_handover_incident_refs')
+    const incLine = (r: TrailRow): Line => ({ t: 'value', label: fieldMeta(d, 'shift_handover_incident_refs', 'incident_id')[0],
+        value: formatValue(d, 'shift_handover_incident_refs', 'incident_id', imgOf(r)['incident_id'], imgOf(r), r.refs, r.op, opts) })
     const itemLine = (r: TrailRow): Line => ({ t: 'value', label: refLabel(r, 'item_type_code') ?? cap(thing(d, 'shift_handover_items')),
         value: typed(r.new?.['body'] ?? r.old?.['body']) ?? { text: tx(d, 'empty'), empty: true } })
     const refLine = (r: TrailRow): Line => ({ t: 'value', label: fieldMeta(d, 'shift_handover_equipment_refs', 'downtime_id')[0],
@@ -2112,7 +2131,8 @@ function describeHandover(d: TrailDict, rows: TrailRow[], opts: BuildOptions): B
     const created = by('shift_handovers').find((r) => r.op === 'INSERT')
     if (created) {
         const ls = valueLines(d, created, created.new, opts, new Set(['notes', 'acknowledged_at', 'acknowledged_by', 'submitted_at', 'submitted_by']))
-        ls.push(...items.filter((r) => r.op === 'INSERT').map(itemLine), ...refs.filter((r) => r.op === 'INSERT').map(refLine))
+        ls.push(...items.filter((r) => r.op === 'INSERT').map(itemLine), ...refs.filter((r) => r.op === 'INSERT').map(refLine),
+            ...incRefs.filter((r) => r.op === 'INSERT').map(incLine))
         out.push({ title: tx(d, 'ho.submitted'), lines: ls, reason: typed(created.new?.['notes']), key: true, weight: 100 })
     }
     for (const r of by('shift_handovers')) {
@@ -2124,6 +2144,51 @@ function describeHandover(d: TrailDict, rows: TrailRow[], opts: BuildOptions): B
     if (!created) {
         for (const r of items) out.push({ title: tx(d, 'ho.item'), lines: [itemLine(r)], key: false, weight: 40 })
         for (const r of refs) out.push({ title: tx(d, 'ho.downtime'), lines: [refLine(r)], key: false, weight: 40 })
+        for (const r of incRefs) out.push({ title: tx(d, 'ho.incident'), lines: [incLine(r)], key: false, weight: 40 })
+    }
+    return out
+}
+
+// ── MES-7b-1(2026-10-16):事故登记簿 ────────────────────────────────────────────
+// 【一件事故写下就不改】所以 incidents 只有 INSERT:"Incident recorded",种类(字典里那一种的名字)挂在标题后面那一段;
+//   受伤的那几列由 change_log_mask_rules 遮(code_or_self:data.view_health:injured_employee_id)—— 读不到的人在行里看见 Restricted,
+//   这里一个字都不替它说。之后的事实(incident_updates,只追加)各一句:通报 · 书面报告 · 关闭(总结在理由那一格)· 更正(字段挂在标题
+//   后面那一段,理由在理由那一格)。批次链接:链上(批号挂在标题后面,依据是一行)· 解开(理由在理由那一格)。交接班引用:在事故页上
+//   说"Cited in a shift handover"。
+function describeSafety(d: TrailDict, rows: TrailRow[], opts: BuildOptions, subject?: string | null): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    for (const r of by('incidents')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'inc.recorded'), part: refText(d, r, 'kind_code'),
+                   lines: valueLines(d, r, r.new, opts, new Set(['kind_code', 'source', 'recorded_at', 'recorded_by'])), key: true, weight: 100 })
+    }
+    for (const r of by('incident_updates')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const kind = str(r, 'kind')
+        const key: TrailTextKey = kind === 'nea_notified' ? 'inc.neaNotified' : kind === 'report_submitted' ? 'inc.reportSubmitted'
+            : kind === 'closed' ? 'inc.closed' : 'inc.corrected'
+        const field = str(r, 'field')
+        out.push({ title: tx(d, key), part: kind === 'correction' && field ? typed(fieldMeta(d, 'incidents', field)[0]) : null,
+                   lines: valueLines(d, r, r.new, opts, new Set(['incident_id', 'kind', 'field', 'reason', 'summary', 'recorded_at', 'recorded_by'])),
+                   reason: typed(r.new?.['reason'] ?? r.new?.['summary']), key: true, weight: 80 })
+    }
+    for (const r of by('incident_batches')) {
+        const batchPart = refText(d, r, 'inbound_batch_id') ?? refText(d, r, 'output_batch_id')
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'inc.batchLinked'), part: batchPart,
+                       lines: valueLines(d, r, r.new, opts, new Set(['inbound_batch_id', 'output_batch_id', 'linked_at', 'linked_by', 'unlinked_at', 'unlinked_by', 'unlink_reason',
+                                                                    ...(subject === 'incident' ? ['incident_id'] : [])])),
+                       key: true, weight: 70 })
+        } else if (isSet(r, 'unlinked_at')) {
+            out.push({ title: tx(d, 'inc.batchUnlinked'), part: batchPart,
+                       lines: subject === 'incident' ? [] : valueLines(d, r, { incident_id: imgOf(r)['incident_id'] ?? null }, opts),
+                       reason: typed(r.new?.['unlink_reason']), key: true, weight: 70 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('shift_handover_incident_refs')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'inc.handover'), lines: valueLines(d, r, { handover_id: r.new?.['handover_id'] ?? null }, opts), key: false, weight: 40 })
     }
     return out
 }
@@ -3079,6 +3144,8 @@ const SETTINGS_TITLE: Record<string, TrailTextKey> = {
     electricity_settings: 'set.electricity',
     // MES-6a-1(Q14):V16 的修改史就是变更记录
     quality_settings: 'set.quality',
+    // MES-7b-1(Q11):V19 的修改史就是变更记录
+    safety_settings: 'set.safety',
 }
 function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     return rows.map((r) => r.op === 'UPDATE'
@@ -4227,7 +4294,9 @@ const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kind
     // MES-6a-2(Q3 · Q4):化验指标(单位是一段文字,不换算)
     'assay_indicators',
     // MES-7a-1(Q3):停机原因(类别是一条规则 —— 说成 Failure / Planned / External)
-    'downtime_causes'])
+    'downtime_causes',
+    // MES-7b-1(Q4):事故种类
+    'incident_kinds'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {
@@ -5314,6 +5383,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'stocktake': bs = describeStocktake(d, list, opts, opts.subject); break
                 case 'equipment': bs = describeEquipment(d, list, opts, opts.subject); break
                 case 'handover': bs = describeHandover(d, list, opts); break
+                case 'safety': bs = describeSafety(d, list, opts, opts.subject); break
                 case 'wr': bs = describeWarehouseRequest(d, list, opts); break
                 case 'so': bs = describeSalesOrder(d, list, opts); break
                 case 'quote': bs = describeQuote(d, list, opts); break

@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-drift-mes7a1(MES-7a-1:㉚)· wording-drift-mes7a2(MES-7a-2:㉛)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2 / mes7a1 / mes7a2(F6:㉓ ㉔ ㉕ ㉖ ㉙ ㉚ ㉛ 只改 part 的那一格)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-drift-mes7a1(MES-7a-1:㉚)· wording-drift-mes7a2(MES-7a-2:㉛)· wording-drift-mes7b1(MES-7b-1:㉜)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2 / mes7a1 / mes7a2 / mes7b1(F6:㉓ ㉔ ㉕ ㉖ ㉙ ㉚ ㉛ ㉜ 只改 part 的那一格)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -7055,6 +7055,159 @@ if (FAULT === 'wording-drift-mes7a2') dict.text = { ...dict.text, 'eq.partsIssue
     { const miss = partFaultBit('mes7a2', problems.gold31); if (miss) problems.gold31.push(miss) }
 }
 
+// ── ㉜ MES-7b-1:事故登记簿 —— 记下一件事故(受伤的细节对读不到的人是 Restricted)· 之后的事实(通报 · 书面报告 · 更正 · 关闭)·
+//   批次链接(在事故页上、在那一批的页上)与带理由的解开 · 交接班的引用(MES-7b Step 0 Q3 · Q6 · Q7 · Q12 · Q19)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-7b-1.md 列出。
+//   读 titlePart:种类(记下那一句)、被更正的字段(更正那一句)与批号(链接那两句)挂在标题后面那一段,所以 part 那一格比的是真东西。
+//   注入 wording-drift-mes7b1 → 这一臂必须红;注入 wording-part-mes7b1(只改 part)→ 这一臂必须在 part 那一格红。
+problems.gold32 = []
+if (FAULT === 'wording-drift-mes7b1') dict.text = { ...dict.text, 'inc.recorded': 'Incident logged' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const inc = id('inc'), ib = id('ib'), loc = id('loc'), ho = id('ho'), emp = id('emp')
+    const R_ = { $restricted: true }
+    const refs = { kind_code: { injury: { label: 'Injury' } }, location_id: { [loc]: { label: 'L-BAY-1 · Discharge bay' } },
+                   inbound_batch_id: { [ib]: { label: 'IN-2026-0310 · Swollen modules' } }, incident_id: { [inc]: { label: 'INC-2026-0001' } },
+                   handover_id: { [ho]: { label: '16/10/2026 · Day shift' } }, responsible_employee_id: { [emp]: { label: 'Phua' } } }
+    const INC = { id: inc, code: 'INC-2026-0001', kind_code: 'injury', occurred_at: '2026-10-16T01:30:00Z', location_id: loc, equipment_id: null,
+        duration_min: null, what_happened: 'A cell vented and burned a hand', immediate_action: 'First aid; bay cleared', responsible_employee_id: emp,
+        responsible_name: null, nea_reportable: true, source: 'manual', downtime_id: null, run_event_id: null,
+        injured_employee_id: R_, injured_person_name: R_, injury_nature: R_, injury_treatment: R_, days_lost: R_,
+        recorded_at: '2026-10-16T02:00:00Z', recorded_by: id('u') }
+    add('incident · recorded (injury details restricted)', { subject: 'incident', recordId: inc, currency: null },
+        [{ table: 'incidents', op: 'INSERT', key: { id: inc }, refs, new: INC }], { state: 'person', name: 'Fusheng' })
+    add('incident · NEA notified', { subject: 'incident', recordId: inc, currency: null },
+        [{ table: 'incident_updates', op: 'INSERT', key: { id: 1 }, refs,
+           new: { id: 1, incident_id: inc, kind: 'nea_notified', occurred_at: '2026-10-16T02:15:00Z', reference: 'NEA hotline, ref 12345',
+                  field: null, new_value: null, reason: null, summary: null, recorded_at: '2026-10-16T02:20:00Z', recorded_by: id('u') } }],
+        { state: 'person', name: 'Fusheng' })
+    add('incident · corrected with a reason', { subject: 'incident', recordId: inc, currency: null },
+        [{ table: 'incident_updates', op: 'INSERT', key: { id: 2 }, refs,
+           new: { id: 2, incident_id: inc, kind: 'correction', occurred_at: null, reference: null, field: 'immediate_action',
+                  new_value: 'First aid; bay cleared and ventilated', reason: 'Ventilation was left out', summary: null,
+                  recorded_at: '2026-10-16T03:00:00Z', recorded_by: id('u') } }],
+        { state: 'person', name: 'Phua' })
+    add('incident · closed', { subject: 'incident', recordId: inc, currency: null },
+        [{ table: 'incident_updates', op: 'INSERT', key: { id: 3 }, refs,
+           new: { id: 3, incident_id: inc, kind: 'closed', occurred_at: null, reference: null, field: null, new_value: null, reason: null,
+                  summary: 'Written report filed; bay procedure updated', recorded_at: '2026-10-18T03:00:00Z', recorded_by: id('u') } }],
+        { state: 'person', name: 'Phua' })
+    add('batch · linked (on the batch page)', { subject: 'inbound_batch', recordId: ib, currency: null },
+        [{ table: 'incident_batches', op: 'INSERT', key: { id: 7 }, refs,
+           new: { id: 7, incident_id: inc, inbound_batch_id: ib, output_batch_id: null, basis: 'location', linked_at: '2026-10-16T02:30:00Z',
+                  linked_by: id('u'), unlinked_at: null, unlinked_by: null, unlink_reason: null } }],
+        { state: 'person', name: 'Fusheng' })
+    add('batch · unlinked with a reason (on the incident page)', { subject: 'incident', recordId: inc, currency: null },
+        [{ table: 'incident_batches', op: 'UPDATE', key: { id: 7 }, refs, cols: ['unlinked_at', 'unlinked_by', 'unlink_reason'],
+           old: { id: 7, incident_id: inc, inbound_batch_id: ib, output_batch_id: null, basis: 'location', unlinked_at: null, unlinked_by: null, unlink_reason: null },
+           new: { id: 7, incident_id: inc, inbound_batch_id: ib, output_batch_id: null, basis: 'location', unlinked_at: '2026-10-16T05:00:00Z',
+                  unlinked_by: id('u'), unlink_reason: 'It was in the other bay' } }],
+        { state: 'person', name: 'Phua' })
+    add('handover · cites the incident (on the incident page)', { subject: 'incident', recordId: inc, currency: null },
+        [{ table: 'shift_handover_incident_refs', op: 'INSERT', key: { handover_id: ho, incident_id: inc }, refs,
+           new: { handover_id: ho, incident_id: inc, created_at: '2026-10-16T10:00:00Z', created_by: id('u') } }],
+        { state: 'person', name: 'Fusheng' })
+    const WANT = {
+        "incident · recorded (injury details restricted)": {
+            "title": "Incident recorded",
+            "part": "Injury",
+            "lines": [
+                "Happened at: 16/10/2026 09:30",
+                "Location: L-BAY-1 · Discharge bay",
+                "What happened: A cell vented and burned a hand",
+                "What was done immediately: First aid; bay cleared",
+                "Responsible: Phua",
+                "Reportable to NEA: Yes",
+                "Injured employee: Restricted",
+                "Injured person: Restricted",
+                "Nature of the injury: Restricted",
+                "Treatment: Restricted",
+                "Days lost: Restricted"
+            ],
+            "reason": null,
+            "who": "Fusheng"
+        },
+        "incident · NEA notified": {
+            "title": "NEA notified",
+            "part": null,
+            "lines": [
+                "At: 16/10/2026 10:15",
+                "Reference: NEA hotline, ref 12345"
+            ],
+            "reason": null,
+            "who": "Fusheng"
+        },
+        "incident · corrected with a reason": {
+            "title": "Incident corrected",
+            "part": "What was done immediately",
+            "lines": [
+                "Corrected to: First aid; bay cleared and ventilated"
+            ],
+            "reason": "Ventilation was left out",
+            "who": "Phua"
+        },
+        "incident · closed": {
+            "title": "Incident closed",
+            "part": null,
+            "lines": [],
+            "reason": "Written report filed; bay procedure updated",
+            "who": "Phua"
+        },
+        "batch · linked (on the batch page)": {
+            "title": "Batch linked to the incident",
+            "part": "IN-2026-0310 · Swollen modules",
+            "lines": [
+                "Incident: INC-2026-0001",
+                "Why: At the location then"
+            ],
+            "reason": null,
+            "who": "Fusheng"
+        },
+        "batch · unlinked with a reason (on the incident page)": {
+            "title": "Batch unlinked from the incident",
+            "part": "IN-2026-0310 · Swollen modules",
+            "lines": [],
+            "reason": "It was in the other bay",
+            "who": "Phua"
+        },
+        "handover · cites the incident (on the incident page)": {
+            "title": "Cited in a shift handover",
+            "part": null,
+            "lines": [
+                "Handover: 16/10/2026 · Day shift"
+            ],
+            "reason": null,
+            "who": "Fusheng"
+        }
+    }
+    const got32 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD32', order: 1, prelog: false, at: '2026-10-16T02:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Fusheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = partFault('mes7b1', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold32.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD32')
+        if (mine.length !== 1) { problems.gold32.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got32[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold32.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold32.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold32.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold32.push(`㉜ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (C.filter((c) => WANT[c.label]?.part).length < 2) problems.gold32.push('㉜ 带 part 的样例少于 2 句 —— part 那一格没有被真的比过')
+    if (process.env.TRAIL_GOLD32_PRINT) console.log(JSON.stringify(got32, null, 8))
+    if (FAULT === 'wording-drift-mes7b1' && !problems.gold32.length) problems.gold32.push('(注入 wording-drift-mes7b1 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes7b1', problems.gold32); if (miss) problems.gold32.push(miss) }
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -7062,7 +7215,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

@@ -4,7 +4,7 @@
 --
 -- 【为什么住在 db/views/ 而不是各自的表镜像里】与 zzz_function_grants.sql 同一个理由:重放顺序是
 --   functions → tables → views,而 views 阶段按名字排、zzz 排最后 —— 到这里每一张表都已经建好。
---   一份文件放 289 张表的绑定(MES-6b-2 起;MES-6b-1 是 287;MES-6a-2 是 284;此前这里的数没跟着 --only 一刀刀加上去,停在 274),比在 289 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
+--   一份文件放 297 张表的绑定(MES-7b-1 起,+6;MES-7a-2 之后是 291;MES-6b-2 起是 289;MES-6b-1 是 287;MES-6a-2 是 284;此前这里的数没跟着 --only 一刀刀加上去,停在 274),比在 289 个表镜像里各塞两行好审;check_mirrors 按表比对触发器清单,
 --   与它们写在哪个文件里无关。
 -- 【豁免】change_log_exclusions() 里那 8 张不在这里(理由写在那支函数里)。
 -- 【名字以 zzz 开头】同一张表上的 AFTER 触发器按名字排序触发 —— 记录最后一个看到那一行。
@@ -465,6 +465,22 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.inbound_safety_s
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.inbound_source_reasons
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.inbound_source_reasons
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.incident_batches
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.incident_batches
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.incident_kinds
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.incident_kinds
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.incident_updates
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.incident_updates
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.incidents
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.incidents
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.index_market_calendar
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('index_code', 'calendar_date');
@@ -950,6 +966,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.roles
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.roles
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.safety_settings
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.safety_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.salary_change_requests
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.salary_change_requests
@@ -997,6 +1017,10 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.samples
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.shift_handover_equipment_refs
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('handover_id', 'downtime_id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.shift_handover_equipment_refs
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.shift_handover_incident_refs
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('handover_id', 'incident_id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.shift_handover_incident_refs
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.shift_handover_items
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');

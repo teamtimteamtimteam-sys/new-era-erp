@@ -716,6 +716,9 @@ const TABLE_NAMES = {
     downtime_causes: 'downtime cause',
     // MES-7a-2(2026-10-16):一次备件出库 / 退回
     maintenance_part_issues: 'spare-part issue',
+    // MES-7b-1(2026-10-16):事故登记簿 —— 一件事故 · 之后的一个事实 · 一条批次链接 · 交接班的一条引用 · 种类字典 · 安全的设定(V19)
+    incidents: 'incident', incident_updates: 'incident update', incident_batches: 'incident batch link',
+    shift_handover_incident_refs: 'handover incident reference', incident_kinds: 'incident kind', safety_settings: 'safety settings',
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',
@@ -883,7 +886,7 @@ const ENUM_OVERRIDES = {
     'contract_settlement_terms#quality_limit_basis': { none_agreed: 'None agreed', per_parameter: 'Per parameter' },
     'quality_limit_judgements#result': { within: 'Within', below_min: 'Below minimum', above_max: 'Above maximum', not_measured: 'Not measured' },
     'quality_limit_judgements#trigger_event': { assay_recorded: 'Assay recorded', reserved: 'Batch reserved' },
-    'nonconformance_reports#source': { manual: 'Manual', customer_complaint: 'Customer complaint', quality_limit: 'Contract quality limit', inspection: 'Inspection' },
+    'nonconformance_reports#source': { manual: 'Manual', customer_complaint: 'Customer complaint', quality_limit: 'Contract quality limit', inspection: 'Inspection', incident: 'Incident' },
     'nonconformance_reports#status': { open: 'Open', decided: 'Decided' },
     'contract_quality_limits#parameter': { moisture_pct: 'Moisture' },
     'quality_limit_judgements#parameter': { moisture_pct: 'Moisture' },
@@ -946,6 +949,8 @@ const ENUM_OVERRIDES = {
     'downtime_causes#class': { failure: 'Failure', planned: 'Planned stop', external: 'External cause' },
     // MES-7a-2:一行出库还是一行退回
     'maintenance_part_issues#kind': { issue: 'Issued to maintenance', return: 'Returned from maintenance' },
+    // MES-7b-1:事故的来源(device 保留,今天一行都没有)
+    'incidents#source': { manual: 'Entered by hand', device: 'From a device' },
     'equipment_service_intervals#disposition': { warn: 'Warn', ignore: 'Ignore' },
     'journal_entries#status': { posted: 'Posted', reversed: 'Reversed' },
     'price_history#rate_type': { tt_buy: 'TT buying rate', tt_sell: 'TT selling rate', mid: 'Mid rate' },

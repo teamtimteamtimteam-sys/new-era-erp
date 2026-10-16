@@ -338,6 +338,10 @@ RUNTIME_CONFIG_TABLES = [
     # MES-7a-1(2026-10-15,MES-7a Step 0 Q3):停机原因 —— 引导三行,每一类一种(breakdown · planned_maintenance · external),没有 other;
     #   工厂自己的原因清单是 Tim / cto 在 /settings/dictionaries 上加的行(module.processing.edit),线上与本文件不同是系统在正常工作。
     "downtime_causes",
+    # MES-7b-1(2026-10-16,MES-7b Step 0 Q4 · Q11):事故种类 —— 引导七种,没有 other;加一种是 /settings/dictionaries 里加一行(module.safety.edit),
+    #   线上与本文件不同是系统在正常工作。安全的设定(单行)—— 引导 V19 = 2、未确认;Tim 对着执照确认一次,线上就与本文件不同。
+    #   ★ 引导默认值仍然正确(本刀新建,两张表的每一列都是第一次有意思)。
+    "incident_kinds", "safety_settings",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

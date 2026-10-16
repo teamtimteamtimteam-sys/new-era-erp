@@ -10,8 +10,9 @@
 // **而人们读到的那一份会是错的那一份**。缺席看得见,不一致看不见。
 // 屏幕上有一句常驻的话说明这件事,免得下一个人以为是这一屏忘了做。
 //
-// ★【也【没有】事故那一栏】★ 它属于那本尚未建的 WSH 事故与未遂事件登记簿。
-// NEA 的"立即通报 + 两个工作日内书面报告"只能有一个载体。
+// ★【也【没有】事故那一栏】★ 它属于 WSH 事故与未遂事件登记簿(MES-7b-1 建好了:「安全 › 事故」)。
+// NEA 的"立即通报 + 书面报告"只能有一个载体。★ MES-7b-1(Step 0 Q12):这里可以【引用】事故 —— 勾的是 incidents 的行,
+// 存进 shift_handover_incident_refs,不抄一句"发生了什么"(与设备停机同一个形状)。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -20,11 +21,13 @@ import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
 
-export default function NewHandoverForm({ shifts, people, itemTypes, downtime }: {
+export default function NewHandoverForm({ shifts, people, itemTypes, downtime, incidents, incidentsRestricted }: {
     shifts: { code: string; label: string }[]
     people: { id: string; label: string }[]
     itemTypes: { code: string; label: string; required: boolean }[]
     downtime: { id: string; label: string }[]
+    incidents: { id: string; label: string }[]
+    incidentsRestricted: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -42,6 +45,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
     const [notes, setNotes] = useState('')
     const [items, setItems] = useState<Record<string, string>>({})
     const [refs, setRefs] = useState<string[]>([])
+    const [incidentRefs, setIncidentRefs] = useState<string[]>([])
 
     const submit = () => startTransition(async () => {
         setError(null)
@@ -53,6 +57,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
             notes,
             items: itemTypes.map((it) => ({ item_type_code: it.code, body: items[it.code] ?? '' })),
             downtime_ids: refs,
+            incident_ids: incidentRefs,
         })
         if (res.error) setError(res.error)
         // AUDIT-TRAIL-1b-1(Q23):提交之后落到这一张交接班自己的页面 —— 交接了什么、它的审计记录都在那里
@@ -140,6 +145,25 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                                    onChange={(e) => setRefs(e.target.checked
                                        ? [...refs, d.id]
                                        : refs.filter((x) => x !== d.id))} />
+                            {d.label}
+                        </label>
+                    ))}
+            </div>
+
+            {/* MES-7b-1(Q12):事故也是【引用】—— 勾的是 incidents 的行(读它要 module.safety.view;读不到时说「受限」,不是一张空清单)。 */}
+            <div data-section="handover-incidents">
+                <h2 className="mb-1">{t('safety.handover.incidents')}</h2>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('safety.handover.incidentsHint')}</p>
+                {incidentsRestricted
+                    ? <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')}</p>
+                    : incidents.length === 0
+                    ? <p className="text-sm text-[color:var(--brand-muted-text)]">{t('safety.handover.noneCited')}</p>
+                    : incidents.map((d) => (
+                        <label key={d.id} className="flex items-center gap-2 mb-1">
+                            <input type="checkbox" className={CONTROL_CHECKBOX} checked={incidentRefs.includes(d.id)}
+                                   onChange={(e) => setIncidentRefs(e.target.checked
+                                       ? [...incidentRefs, d.id]
+                                       : incidentRefs.filter((x) => x !== d.id))} />
                             {d.label}
                         </label>
                     ))}

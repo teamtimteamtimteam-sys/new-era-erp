@@ -84,5 +84,9 @@ INSERT INTO public.document_relation_exceptions (owner_table, column_a, column_b
     ('discharge_module_splits', 'inbound_batch_id', 'new_output_batch_id',
      'MES-5a-1:原批 → 拆去隔离的那一批,关系走拆分那一炉加工单(两跳),与进料批 ↔ 产出批不进图同一条裁定(SEARCH-4 ②)。'),
     ('discharge_module_splits', 'new_output_batch_id', 'output_batch_id',
-     'MES-5a-1:同上 —— 原批是一批自产料时,原批 → 拆出来的那一批同样走拆分那一炉加工单。')
+     'MES-5a-1:同上 —— 原批是一批自产料时,原批 → 拆出来的那一批同样走拆分那一炉加工单。'),
+    -- MES-7b-1(2026-10-16,MES-7b Step 0 Q6):受伤的人是健康数据 —— 那一列不在 authenticated 的列授权里(只经 incidents_masked 读)。
+    --   让它当一条关联边,"这名员工的关联单据"会把他受过伤的事故列出来,而且那一句关联查询读的正是一列读者读不到的列(当场 42501)。
+    ('incidents', 'injured_employee_id', '',
+     'MES-7b-1(Q6):受伤的那名员工是健康数据(data.view_health 或本人才读得到,只经 incidents_masked)—— 员工 ↔ 事故经这一列的关联不进图,否则关联搜索会把谁受过伤列出来。负责的人那一列照常是一条关联。')
 ON CONFLICT (owner_table, column_a, column_b) DO NOTHING;

@@ -106,7 +106,7 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('data.view_pay', 'data', 'View pay', '查看薪酬', 'Salary, CPF and payroll figures', '工资、公积金与薪资明细', 210),
     -- ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):健康数据自己的码。授 admin · hr · cco · cfo · finance(决定 HR 申请的人);
     --   cto · gm · warehouse 不持 —— 他们从此读不到别人看病的事由与请假的事由。本人读自己的照旧(遮蔽对本人让路)。
-    ('data.view_health', 'data', 'View health details', '查看健康信息', 'Medical-claim descriptions and amounts, and the reasons, certificate references and exception reasons on leave requests. Everyone still sees their own.', '医疗报销的事由与金额,以及请假单上的事由、病假单号与例外理由。每个人照旧看得见自己的。', 215),
+    ('data.view_health', 'data', 'View health details', '查看健康信息', 'Medical-claim descriptions and amounts, the reasons, certificate references and exception reasons on leave requests, and the injury details of an incident (who was hurt, the injury, the treatment, days lost). Everyone still sees their own.', '医疗报销的事由与金额,请假单上的事由、病假单号与例外理由,以及事故的受伤细节(谁受了伤、伤情、处理、误工天数)。每个人照旧看得见自己的。', 215),
     ('data.view_identity', 'data', 'View identity data', '查看身份信息', 'Identity numbers and work pass numbers', '身份证件号与工作准证号', 220),
     ('data.view_banking', 'data', 'View company bank details', '查看公司银行明细', 'Company bank account name, number, SWIFT and bank address as printed on invoices', '开在发票上的公司银行户名、账号、SWIFT 与开户行地址', 230),
     ('data.view_sales', 'data', 'View sales records', '查看销售记录', 'Quantity, unit price, amount, customer and date of sales made from output batches', '产出批次的销售数量、单价、金额、客户与日期', 240),
@@ -191,6 +191,11 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- 结案(点名哪一份说了算)不是编辑码,是 action.apply_assay(Q13);它的声明多一个 module.quality.view(下面那张表)。
     ('module.quality.view', 'module', 'Quality (view)', '质量(查看)', 'Samples and their custody, and assay disputes — read only. The samples and disputes panels on batch and assay pages also show to whoever may view that batch.', '样品与它的保管记录、化验争议 —— 只读。批次与化验页上的样品与争议面板,能看那一批的人也看得见。', 150),
     ('module.quality.edit', 'module', 'Quality (edit)', '质量(编辑)', 'Take a sample and record its custody (sent to a lab, received back, moved, disposed), set the internal sample retention, open or withdraw an assay dispute, record its umpire sample and result, and link the arbitration fee. Naming which result governs a dispute is "Apply and unapply assay results".', '取样并记它的保管(送实验室、拿回来、换库位、处置)、设内部留样天数、立或撤回一件化验争议、记它的仲裁样品与结果、挂上仲裁费。点名一件争议以哪一份结果为准是「应用与撤销应用化验结果」。', 151),
+    -- ── MES-7b-1(2026-10-16,MES-0 Q76 · Q90 · MES-7b Step 0 Q2 · Q28,Tim):安全 —— 事故登记簿。持有人照 Q90 / Q2:
+    -- 查看 = 每一个持 module.processing.view 的角色(admin · auditor · cco · cfo · cto · finance · gm · operations · warehouse);
+    -- 编辑 admin · cto · warehouse(记一件事故要编辑码,Q28)。受伤的细节另要 data.view_health(不授给 cto 与仓库,Q6)。没有新的动作码。
+    ('module.safety.view', 'module', 'Safety (view)', '安全(查看)', 'Incidents — thermal runaway, fire, gas and dust releases, injuries, near misses and emission exceedances — with their NEA reminders, the batches they touched and the shift handovers that cite them; read only. Injury details also need Health data.', '事故 —— 热失控、起火、气体与粉尘释放、工伤、未遂与排放超标 —— 连同它们的 NEA 提醒、碰过的批次与引用它们的交接班;只读。受伤的细节另要「健康数据」。', 152),
+    ('module.safety.edit', 'module', 'Safety (edit)', '安全(编辑)', 'Record an incident (including injury details, which only Health data holders read back), record that NEA was notified or the written report submitted, close or correct an incident with a reason, link and unlink the batches it touched, edit the incident kinds and set the NEA written-report deadline (V19).', '记一件事故(包括受伤的细节 —— 读回来只给持「健康数据」的人)、记下通报了 NEA 或交了书面报告、关闭或带理由地更正一件事故、链上与解开它碰过的批次、改事故种类、设 NEA 书面报告的期限(V19)。', 153),
     -- ── MES-6b-1(2026-10-15,MES-0 Q65 · Q90 · MES-6b Step 0 Q9,Tim):决定一张不合格报告 —— 持有人 cco · cto · admin(admin 与此前每一个新码
     -- 一样只在迁移里授)。开一张是 module.quality.edit(取样、立争议的同一个码);开单人永远不能决定自己开的那一张(按人认)。
     -- 它声明的查看码是 module.quality.view(/quality/ncr/[id] 的门,下面那张表)。

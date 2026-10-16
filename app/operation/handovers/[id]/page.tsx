@@ -48,18 +48,24 @@ export default async function HandoverPage({ params, searchParams }: {
         .eq('id', id).maybeSingle(), 'shift_handovers') as Handover | null
     if (!h) notFound()
 
-    const [items, refs, people, shifts, types] = await Promise.all([
+    const [items, refs, people, shifts, types, incRefs] = await Promise.all([
         supabase.from('shift_handover_items').select('id, item_type_code, body, sort_order').eq('handover_id', id).order('sort_order'),
         supabase.from('shift_handover_equipment_refs').select('downtime_id').eq('handover_id', id),
         supabase.from('handover_people').select('id, code, preferred_name'),
         supabase.from('shifts').select('code, name_en, name_zh, starts_at, ends_at'),
         supabase.from('handover_item_types').select('code, name_en, name_zh'),
+        // MES-7b-1(Q12):这次交接班引用的事故(引用表读 module.processing.view 或 module.safety.view;事故本身要 module.safety.view)
+        supabase.from('shift_handover_incident_refs').select('incident_id').eq('handover_id', id),
     ])
     const itemRows = mustRows(items, 'shift_handover_items') as { id: string; item_type_code: string; body: string }[]
     const refRows = mustRows(refs, 'shift_handover_equipment_refs') as { downtime_id: string }[]
     const peopleRows = mustRows(people, 'handover_people') as { id: string; code: string; preferred_name: string | null }[]
     const shiftRows = mustRows(shifts, 'shifts') as { code: string; name_en: string; name_zh: string; starts_at: string | null; ends_at: string | null }[]
     const typeRows = mustRows(types, 'handover_item_types') as { code: string; name_en: string; name_zh: string }[]
+    const incIds = (mustRows(incRefs, 'shift_handover_incident_refs') as { incident_id: string }[]).map((r) => r.incident_id)
+    const incRows = incIds.length === 0 ? [] : mustRows(await supabase.from('incident_rows')
+        .select('id, code, kind_name_en, kind_name_zh, occurred_at').in('id', incIds), 'incident_rows') as
+        { id: string; code: string; kind_name_en: string; kind_name_zh: string; occurred_at: string }[]
 
     // 提到的停机:停机那一行 + 哪一台机器(equipment_usage,加工的人读得到)
     const downIds = refRows.map((r) => r.downtime_id)
@@ -185,6 +191,28 @@ export default async function HandoverPage({ params, searchParams }: {
                     rows={downTable}
                     empty={t('processing.handover.noEquipment')}
                 />
+            </section>
+
+            {/* MES-7b-1(Q12):引用的事故 —— 读不到事故的人看见「受限」,不是一张少了几行的清单 */}
+            <section className="mt-6" data-section="handover-incidents">
+                <h2 className="mb-2">{t('safety.handover.cited')}</h2>
+                {incIds.length === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{t('safety.handover.noneCited')}</p> : (
+                    <ul className="text-sm list-disc pl-5">
+                        {incIds.map((iid) => {
+                            const r = incRows.find((x) => x.id === iid)
+                            return (
+                                <li key={iid}>
+                                    {r ? (
+                                        <>
+                                            <Link href={`/safety/incidents/${iid}`} className="app-link hover:underline">{r.code}</Link>
+                                            {` — ${locale === 'zh' ? r.kind_name_zh : r.kind_name_en} · ${formatAuditStamp(r.occurred_at)}`}
+                                        </>
+                                    ) : t('common.restricted')}
+                                </li>
+                            )
+                        })}
+                    </ul>
+                )}
             </section>
 
             {/* AUDIT-TRAIL-1b-1(Q23):提交 · 交接内容 · 提到的停机 · 签收 */}

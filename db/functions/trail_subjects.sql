@@ -165,6 +165,12 @@
 -- MES-6b-1(2026-10-15,MES-6b Step 0 Q39):
 --   ncr             → /quality/ncr/[id]              requireFunction(FN.qualityNcr) = module.quality.view。没有成员;也出现在它那一批的记录上
 --                     (进料 / 产出主语,家不在那里)。质量验收限住在合同下(contract 的成员),判定住在产出批下。
+-- MES-7b-1(2026-10-16,MES-7b Step 0 Q19):
+--   incident        → /safety/incidents/[id]         requireFunction(FN.safetyIncidents) = module.safety.view。成员:之后的事实(incident_updates)
+--                     与批次链接(incident_batches)住在这里;交接班的引用住在交接班下、也出现在这里;来源 incident 的不合格报告也出现在这里。
+--                     受伤的细节由 change_log_mask_rules 遮(code_or_self:data.view_health:injured_employee_id)。
+--   safety_settings → /safety/incidents 上的 V19 那一块   module.safety.view;单行设置作根(quality_settings 的先例)
+--   dictionary_incident_kinds → /settings/dictionaries 的事故种类那一段   module.safety.view
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])
  LANGUAGE sql
@@ -308,6 +314,11 @@ AS $function$
         -- MES-6b-1(2026-10-15,MES-6b Step 0 Q39):一张不合格报告(质量查看码 —— 页面的门;行再过一次它自己那张表的读规则)
         ('ncr',                    ARRAY['module.quality.view'],   'nonconformance_reports', 'id', 'table', NULL),
         -- MES-6b-2(2026-10-15,MES-6b Step 0 Q38 · Q39):一张分析证书(/quality/coa/[id];产出查看码 —— 与证书表的读策略同一个,Q30)
-        ('coa',                    ARRAY['module.output.view'],    'certificates_of_analysis', 'id', 'table', NULL)
+        ('coa',                    ARRAY['module.output.view'],    'certificates_of_analysis', 'id', 'table', NULL),
+        -- MES-7b-1(2026-10-16,MES-7b Step 0 Q19):一件事故(安全查看码 —— 页面的门;行再过一次它自己那张表的读规则)·
+        --   安全的设定(V19,单行设置作根)· 事故种类字典(清单块,/settings/dictionaries)
+        ('incident',               ARRAY['module.safety.view'],    'incidents',             'id', 'table', NULL),
+        ('safety_settings',        ARRAY['module.safety.view'],    'safety_settings',       'id', 'table', NULL),
+        ('dictionary_incident_kinds', ARRAY['module.safety.view'], 'incident_kinds',        'code', 'collection', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

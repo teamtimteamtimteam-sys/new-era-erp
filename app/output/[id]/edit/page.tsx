@@ -15,6 +15,7 @@ import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
 import BatchBalancePanel from '@/app/components/batch/BatchBalancePanel'
 import QualityPanel from '@/app/components/quality/QualityPanel'
+import LinkedIncidents from '@/app/components/safety/LinkedIncidents'
 import CoaSection from './CoaSection'
 import AssayIndicators from '@/app/components/quality/AssayIndicators'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
@@ -521,6 +522,8 @@ export default async function EditOutputPage({
 
             {/* MES-6a-1(Q7 · Q16):这一批的样品与化验争议(开着的争议挡着卖方结算) */}
             <QualityPanel kind="output" batchId={batch.id} />
+            {/* MES-7b-1(Q7):这一批链在哪几件事故上(链接不是安全状态;扣货是上面那一块的不合格报告) */}
+            <LinkedIncidents kind="output" id={batch.id} />
 
             {/* MES-6b-2(Step 0 Q10–Q14 · Q29–Q32):分析证书 —— 来料化学确定度(N38)、这一批的证书、签发与经 CFO 作废 */}
             <CoaSection batchId={batch.id} />

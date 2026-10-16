@@ -141,8 +141,11 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 //   所以 EXPECTED_CODE_TABLES 91 → 92。
 // MES-7a-2(2026-10-16):298 → 299。一张备件出库的表(maintenance_part_issues)。它【不带】code 列(一行出库没有自己的单号 ——
 //   它挂在一条保养记录上,出库那一刻没有要编号的单据),所以 EXPECTED_CODE_TABLES 不变,仍是 92。
-const EXPECTED_TABLES = 299   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 92
+// MES-7b-1(2026-10-16):299 → 305。六张事故登记簿的表(incident_kinds · incidents · incident_updates · incident_batches · safety_settings ·
+//   shift_handover_incident_refs)。两张带 code 列:incidents(INC,登记进 document_types)与 incident_kinds(种类代号,登记进
+//   document_type_exceptions),所以 EXPECTED_CODE_TABLES 92 → 94。
+const EXPECTED_TABLES = 305   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 94
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

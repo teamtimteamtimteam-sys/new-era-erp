@@ -34,6 +34,7 @@ import DowntimePanel, { type DowntimeRow } from './DowntimePanel'
 import MaintenancePanel from './MaintenancePanel'
 import ServiceIntervalPanel, { type IntervalRow } from './ServiceIntervalPanel'
 import SparePartsPanel, { type PartIssueRow, type PartStock } from './SparePartsPanel'
+import LinkedIncidents from '@/app/components/safety/LinkedIncidents'
 import { loadDowntimeCauses, reliabilityWords, type ReliabilityRow } from '../reliability'
 
 const KG = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
@@ -332,6 +333,9 @@ export default async function EquipmentPage({ params, searchParams }: {
             </section>
 
             {/* AUDIT-TRAIL-1b-1(Q22):保养 · 停机(原因与来源)· 保养周期 · 交接班里提到的停机;资产卡自己的改动只给财务看(M3 · Q4) */}
+            {/* MES-7b-1(MES-7b Step 0 §3):点名这台机器的事故(安全查看码;别人看见「受限」)—— MTBF 照旧只数停机 */}
+            <LinkedIncidents kind="machine" id={id} />
+
             <AuditTrail subject="equipment" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )

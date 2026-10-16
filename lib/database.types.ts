@@ -1079,6 +1079,13 @@ export type Database = {
             foreignKeyName: "attendance_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -5663,6 +5670,13 @@ export type Database = {
             foreignKeyName: "departments_manager_employee_id_fkey"
             columns: ["manager_employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -7637,6 +7651,13 @@ export type Database = {
             foreignKeyName: "employee_accounts_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -7865,6 +7886,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -8019,6 +8047,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -8315,6 +8350,13 @@ export type Database = {
             foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
             columns: ["performed_by_employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -8588,6 +8630,13 @@ export type Database = {
             foreignKeyName: "expense_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -8814,6 +8863,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -11662,6 +11718,605 @@ export type Database = {
         }
         Relationships: []
       }
+      incident_batches: {
+        Row: {
+          basis: string
+          id: number
+          inbound_batch_id: string | null
+          incident_id: string
+          linked_at: string
+          linked_by: string | null
+          output_batch_id: string | null
+          unlink_reason: string | null
+          unlinked_at: string | null
+          unlinked_by: string | null
+        }
+        Insert: {
+          basis: string
+          id?: never
+          inbound_batch_id?: string | null
+          incident_id: string
+          linked_at?: string
+          linked_by?: string | null
+          output_batch_id?: string | null
+          unlink_reason?: string | null
+          unlinked_at?: string | null
+          unlinked_by?: string | null
+        }
+        Update: {
+          basis?: string
+          id?: never
+          inbound_batch_id?: string | null
+          incident_id?: string
+          linked_at?: string
+          linked_by?: string | null
+          output_batch_id?: string | null
+          unlink_reason?: string | null
+          unlinked_at?: string | null
+          unlinked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+        ]
+      }
+      incident_kinds: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      incident_updates: {
+        Row: {
+          field: string | null
+          id: number
+          incident_id: string
+          kind: string
+          new_value: string | null
+          occurred_at: string | null
+          reason: string | null
+          recorded_at: string
+          recorded_by: string | null
+          reference: string | null
+          summary: string | null
+        }
+        Insert: {
+          field?: string | null
+          id?: never
+          incident_id: string
+          kind: string
+          new_value?: string | null
+          occurred_at?: string | null
+          reason?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+          summary?: string | null
+        }
+        Update: {
+          field?: string | null
+          id?: never
+          incident_id?: string
+          kind?: string
+          new_value?: string | null
+          occurred_at?: string | null
+          reason?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_updates_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_updates_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_updates_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_updates_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          code: string
+          days_lost: number | null
+          downtime_id: string | null
+          duration_min: number | null
+          equipment_id: string | null
+          id: string
+          immediate_action: string
+          injured_employee_id: string | null
+          injured_person_name: string | null
+          injury_nature: string | null
+          injury_treatment: string | null
+          kind_code: string
+          location_id: string | null
+          nea_reportable: boolean
+          occurred_at: string
+          recorded_at: string
+          recorded_by: string | null
+          responsible_employee_id: string | null
+          responsible_name: string | null
+          run_event_id: number | null
+          source: string
+          what_happened: string
+        }
+        Insert: {
+          code: string
+          days_lost?: number | null
+          downtime_id?: string | null
+          duration_min?: number | null
+          equipment_id?: string | null
+          id?: string
+          immediate_action: string
+          injured_employee_id?: string | null
+          injured_person_name?: string | null
+          injury_nature?: string | null
+          injury_treatment?: string | null
+          kind_code: string
+          location_id?: string | null
+          nea_reportable: boolean
+          occurred_at: string
+          recorded_at?: string
+          recorded_by?: string | null
+          responsible_employee_id?: string | null
+          responsible_name?: string | null
+          run_event_id?: number | null
+          source?: string
+          what_happened: string
+        }
+        Update: {
+          code?: string
+          days_lost?: number | null
+          downtime_id?: string | null
+          duration_min?: number | null
+          equipment_id?: string | null
+          id?: string
+          immediate_action?: string
+          injured_employee_id?: string | null
+          injured_person_name?: string | null
+          injury_nature?: string | null
+          injury_treatment?: string | null
+          kind_code?: string
+          location_id?: string | null
+          nea_reportable?: boolean
+          occurred_at?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          responsible_employee_id?: string | null
+          responsible_name?: string | null
+          run_event_id?: number | null
+          source?: string
+          what_happened?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_downtime_id_fkey"
+            columns: ["downtime_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_downtime"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_injured_employee_id_fkey"
+            columns: ["injured_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_kind_code_fkey"
+            columns: ["kind_code"]
+            isOneToOne: false
+            referencedRelation: "incident_kinds"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "incidents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_run_event_id_fkey"
+            columns: ["run_event_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       index_market_calendar: {
         Row: {
           calendar_date: string
@@ -13309,6 +13964,13 @@ export type Database = {
             foreignKeyName: "kpi_entries_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpi_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -13998,6 +14660,13 @@ export type Database = {
             foreignKeyName: "leave_accrual_rates_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -14202,6 +14871,13 @@ export type Database = {
             foreignKeyName: "leave_grants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -14377,6 +15053,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -15417,6 +16100,13 @@ export type Database = {
             foreignKeyName: "medical_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -15751,6 +16441,7 @@ export type Database = {
           disposition: string | null
           id: string
           inbound_batch_id: string | null
+          incident_id: string | null
           judgement_id: number | null
           opened_at: string
           opened_by: string | null
@@ -15772,6 +16463,7 @@ export type Database = {
           disposition?: string | null
           id?: string
           inbound_batch_id?: string | null
+          incident_id?: string | null
           judgement_id?: number | null
           opened_at?: string
           opened_by?: string | null
@@ -15793,6 +16485,7 @@ export type Database = {
           disposition?: string | null
           id?: string
           inbound_batch_id?: string | null
+          incident_id?: string | null
           judgement_id?: number | null
           opened_at?: string
           opened_by?: string | null
@@ -15915,6 +16608,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nonconformance_reports_judgement_id_fkey"
@@ -17242,6 +17963,13 @@ export type Database = {
             foreignKeyName: "overtime_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -17765,6 +18493,13 @@ export type Database = {
             foreignKeyName: "payment_requests_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -18161,6 +18896,13 @@ export type Database = {
             foreignKeyName: "payments_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -18327,6 +19069,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -18799,6 +19548,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -18884,6 +19640,13 @@ export type Database = {
             columns: ["reviewer_employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -24122,6 +24885,36 @@ export type Database = {
         }
         Relationships: []
       }
+      safety_settings: {
+        Row: {
+          id: boolean
+          nea_report_days_confirmed_at: string | null
+          nea_report_days_confirmed_by: string | null
+          nea_report_days_source: string | null
+          nea_report_working_days: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          nea_report_days_confirmed_at?: string | null
+          nea_report_days_confirmed_by?: string | null
+          nea_report_days_source?: string | null
+          nea_report_working_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          nea_report_days_confirmed_at?: string | null
+          nea_report_days_confirmed_by?: string | null
+          nea_report_days_source?: string | null
+          nea_report_working_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       salary_change_requests: {
         Row: {
           created_at: string
@@ -24220,6 +25013,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -25494,6 +26294,63 @@ export type Database = {
           },
         ]
       }
+      shift_handover_incident_refs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          handover_id: string
+          incident_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          handover_id: string
+          incident_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          handover_id?: string
+          incident_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_handover_incident_refs_handover_id_fkey"
+            columns: ["handover_id"]
+            isOneToOne: false
+            referencedRelation: "shift_handovers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handover_incident_refs_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handover_incident_refs_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handover_incident_refs_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handover_incident_refs_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_handover_items: {
         Row: {
           body: string
@@ -25628,6 +26485,13 @@ export type Database = {
             foreignKeyName: "shift_handovers_acknowledged_by_fkey"
             columns: ["acknowledged_by"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -25712,6 +26576,13 @@ export type Database = {
             foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
             columns: ["incoming_employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -25790,6 +26661,13 @@ export type Database = {
             columns: ["outgoing_employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -27352,6 +28230,13 @@ export type Database = {
             foreignKeyName: "task_history_changed_by_fkey"
             columns: ["changed_by"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -27430,6 +28315,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -27589,6 +28481,13 @@ export type Database = {
             foreignKeyName: "task_nodes_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -27667,6 +28566,13 @@ export type Database = {
             columns: ["done_by"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -27772,6 +28678,13 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -27893,6 +28806,13 @@ export type Database = {
             foreignKeyName: "task_participants_added_by_fkey"
             columns: ["added_by"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -27977,6 +28897,13 @@ export type Database = {
             foreignKeyName: "task_participants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -28055,6 +28982,13 @@ export type Database = {
             columns: ["removed_by"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -28211,6 +29145,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -28615,6 +29556,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -33076,6 +34024,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -33344,6 +34299,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -33498,6 +34460,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -33737,6 +34706,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -34644,6 +35620,605 @@ export type Database = {
           },
         ]
       }
+      incident_batch_rows: {
+        Row: {
+          active: boolean | null
+          basis: string | null
+          batch_code: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          id: number | null
+          incident_code: string | null
+          incident_id: string | null
+          incident_occurred_at: string | null
+          kind_code: string | null
+          kind_name_en: string | null
+          kind_name_zh: string | null
+          linked_at: string | null
+          linked_by: string | null
+          material_name: string | null
+          unlink_reason: string | null
+          unlinked_at: string | null
+          unlinked_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_batches_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_current_all: {
+        Row: {
+          closed_at: string | null
+          closed_summary: string | null
+          code: string | null
+          corrections: number | null
+          deadline_confirmed: boolean | null
+          deadline_state: string | null
+          deadline_working_days: number | null
+          downtime_id: string | null
+          duration_min: number | null
+          equipment_id: string | null
+          id: string | null
+          immediate_action: string | null
+          kind_code: string | null
+          location_id: string | null
+          nea_reportable: boolean | null
+          notified_at: string | null
+          notified_reference: string | null
+          occurred_at: string | null
+          occurred_on: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          report_deadline: string | null
+          report_reference: string | null
+          report_submitted_at: string | null
+          responsible_employee_id: string | null
+          responsible_name: string | null
+          run_event_id: number | null
+          source: string | null
+          what_happened: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_downtime_id_fkey"
+            columns: ["downtime_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_downtime"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "incidents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_run_event_id_fkey"
+            columns: ["run_event_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_people: {
+        Row: {
+          code: string | null
+          id: string | null
+          preferred_name: string | null
+        }
+        Insert: {
+          code?: string | null
+          id?: string | null
+          preferred_name?: string | null
+        }
+        Update: {
+          code?: string | null
+          id?: string | null
+          preferred_name?: string | null
+        }
+        Relationships: []
+      }
+      incident_rows: {
+        Row: {
+          closed_at: string | null
+          closed_summary: string | null
+          code: string | null
+          corrections: number | null
+          days_lost: number | null
+          deadline_confirmed: boolean | null
+          deadline_state: string | null
+          deadline_working_days: number | null
+          downtime_id: string | null
+          downtime_started_at: string | null
+          duration_min: number | null
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          id: string | null
+          immediate_action: string | null
+          injured_employee_id: string | null
+          injured_employee_label: string | null
+          injured_person_name: string | null
+          injury_nature: string | null
+          injury_treatment: string | null
+          injury_visible: boolean | null
+          kind_code: string | null
+          kind_name_en: string | null
+          kind_name_zh: string | null
+          linked_batches: number | null
+          location_code: string | null
+          location_id: string | null
+          location_name: string | null
+          nea_reportable: boolean | null
+          notified_at: string | null
+          notified_reference: string | null
+          occurred_at: string | null
+          occurred_on: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          report_deadline: string | null
+          report_reference: string | null
+          report_submitted_at: string | null
+          responsible_employee_id: string | null
+          responsible_label: string | null
+          run_event_id: number | null
+          run_event_occurred_at: string | null
+          run_event_run_code: string | null
+          run_event_run_id: string | null
+          run_event_type: string | null
+          source: string | null
+          what_happened: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_downtime_id_fkey"
+            columns: ["downtime_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_downtime"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "incidents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_run_event_id_fkey"
+            columns: ["run_event_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_event_type_code_fkey"
+            columns: ["run_event_type"]
+            isOneToOne: false
+            referencedRelation: "processing_event_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_batch_status_all"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "discharge_status_by_batch"
+            referencedColumns: ["latest_run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_balance_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_energy"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_flow_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_yield_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_run_events_run_id_fkey"
+            columns: ["run_event_run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidents_masked: {
+        Row: {
+          code: string | null
+          days_lost: number | null
+          downtime_id: string | null
+          duration_min: number | null
+          equipment_id: string | null
+          id: string | null
+          immediate_action: string | null
+          injured_employee_id: string | null
+          injured_person_name: string | null
+          injury_nature: string | null
+          injury_treatment: string | null
+          kind_code: string | null
+          location_id: string | null
+          nea_reportable: boolean | null
+          occurred_at: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          responsible_employee_id: string | null
+          responsible_name: string | null
+          run_event_id: number | null
+          source: string | null
+          what_happened: string | null
+        }
+        Insert: {
+          code?: string | null
+          days_lost?: never
+          downtime_id?: string | null
+          duration_min?: number | null
+          equipment_id?: string | null
+          id?: string | null
+          immediate_action?: string | null
+          injured_employee_id?: never
+          injured_person_name?: never
+          injury_nature?: never
+          injury_treatment?: never
+          kind_code?: string | null
+          location_id?: string | null
+          nea_reportable?: boolean | null
+          occurred_at?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          responsible_employee_id?: string | null
+          responsible_name?: string | null
+          run_event_id?: number | null
+          source?: string | null
+          what_happened?: string | null
+        }
+        Update: {
+          code?: string | null
+          days_lost?: never
+          downtime_id?: string | null
+          duration_min?: number | null
+          equipment_id?: string | null
+          id?: string | null
+          immediate_action?: string | null
+          injured_employee_id?: never
+          injured_person_name?: never
+          injury_nature?: never
+          injury_treatment?: never
+          kind_code?: string | null
+          location_id?: string | null
+          nea_reportable?: boolean | null
+          occurred_at?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          responsible_employee_id?: string | null
+          responsible_name?: string | null
+          run_event_id?: number | null
+          source?: string | null
+          what_happened?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_downtime_id_fkey"
+            columns: ["downtime_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_downtime"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "incidents_kind_code_fkey"
+            columns: ["kind_code"]
+            isOneToOne: false
+            referencedRelation: "incident_kinds"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "incidents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "incidents_run_event_id_fkey"
+            columns: ["run_event_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingest_sequence_gaps: {
         Row: {
           gateway_id: string | null
@@ -35380,6 +36955,13 @@ export type Database = {
             foreignKeyName: "leave_requests_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -35548,6 +37130,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -35726,6 +37315,13 @@ export type Database = {
             foreignKeyName: "medical_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -35878,6 +37474,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -36140,6 +37743,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -36245,6 +37855,8 @@ export type Database = {
           holding: boolean | null
           id: string | null
           inbound_batch_id: string | null
+          incident_code: string | null
+          incident_id: string | null
           judgement_contract_code: string | null
           judgement_id: number | null
           judgement_limit_max: number | null
@@ -36377,6 +37989,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nonconformance_reports_judgement_id_fkey"
@@ -37030,6 +38670,13 @@ export type Database = {
             foreignKeyName: "payroll_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -37566,6 +39213,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -37651,6 +39305,13 @@ export type Database = {
             columns: ["reviewer_employee_id"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -42855,6 +44516,13 @@ export type Database = {
             foreignKeyName: "tasks_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -42955,6 +44623,13 @@ export type Database = {
             foreignKeyName: "task_participants_added_by_fkey"
             columns: ["added_by"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -43039,6 +44714,13 @@ export type Database = {
             foreignKeyName: "task_participants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -43117,6 +44799,13 @@ export type Database = {
             columns: ["removed_by"]
             isOneToOne: false
             referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
             referencedColumns: ["id"]
           },
           {
@@ -44210,6 +45899,10 @@ export type Database = {
           p_targets: Json
         }
         Returns: undefined
+      }
+      business_days_after: {
+        Args: { p_date: string; p_n: number }
+        Returns: string
       }
       calculate_leave_days: {
         Args: {
@@ -45504,6 +47197,15 @@ export type Database = {
         }
         Returns: Json
       }
+      link_incident_batch: {
+        Args: {
+          p_basis: string
+          p_inbound_batch_id?: string
+          p_incident_id: string
+          p_output_batch_id?: string
+        }
+        Returns: Json
+      }
       list_ledger_reconciliation: { Args: never; Returns: Json }
       list_open_base: {
         Args: {
@@ -45636,6 +47338,7 @@ export type Database = {
           p_assay_result_id: string
           p_description: string
           p_inbound_batch_id: string
+          p_incident_id?: string
           p_judgement_id: number
           p_opened_by: string
           p_output_batch_id: string
@@ -45655,6 +47358,7 @@ export type Database = {
       next_expense_claim_code: { Args: { p_date?: string }; Returns: string }
       next_fixed_asset_code: { Args: { p_on: string }; Returns: string }
       next_forecast_code: { Args: { p_date?: string }; Returns: string }
+      next_incident_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
       next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
       next_ncr_code: { Args: { p_date?: string }; Returns: string }
@@ -45718,6 +47422,7 @@ export type Database = {
           p_assay_result_id?: string
           p_description: string
           p_inbound_batch_id?: string
+          p_incident_id?: string
           p_judgement_id?: number
           p_output_batch_id?: string
           p_sales_order_id?: string
@@ -46320,6 +48025,42 @@ export type Database = {
       record_fx_rates_bulk: { Args: { p_rows: Json }; Returns: Json }
       record_gst_filing: {
         Args: { p_filed_on?: string; p_period_id: string; p_reference?: string }
+        Returns: Json
+      }
+      record_incident: {
+        Args: {
+          p_days_lost?: number
+          p_downtime_id?: string
+          p_duration_min?: number
+          p_equipment_id?: string
+          p_immediate_action: string
+          p_injured_employee_id?: string
+          p_injured_person_name?: string
+          p_injury_nature?: string
+          p_injury_treatment?: string
+          p_kind_code: string
+          p_location_id?: string
+          p_nea_reportable: boolean
+          p_occurred_at: string
+          p_responsible_employee_id?: string
+          p_responsible_name?: string
+          p_run_event_id?: number
+          p_source?: string
+          p_what_happened: string
+        }
+        Returns: Json
+      }
+      record_incident_update: {
+        Args: {
+          p_field?: string
+          p_incident_id: string
+          p_kind: string
+          p_new_value?: string
+          p_occurred_at?: string
+          p_reason?: string
+          p_reference?: string
+          p_summary?: string
+        }
         Returns: Json
       }
       record_instrument_calibration: {
@@ -47189,6 +48930,14 @@ export type Database = {
         Args: { p_permission_codes: string[]; p_role_id: string }
         Returns: Json
       }
+      set_safety_settings: {
+        Args: {
+          p_confirmed: boolean
+          p_nea_report_working_days: number
+          p_source?: string
+        }
+        Returns: Json
+      }
       set_sales_order_status: {
         Args: { p_order_id: string; p_reason?: string; p_to: string }
         Returns: Json
@@ -47475,6 +49224,7 @@ export type Database = {
         Args: {
           p_downtime_ids?: string[]
           p_handover_date: string
+          p_incident_ids?: string[]
           p_incoming_employee_id: string
           p_items?: Json
           p_notes?: string
@@ -47500,6 +49250,18 @@ export type Database = {
       submit_wht_remittance_reversal_request: {
         Args: { p_notes: string; p_remittance_id: string }
         Returns: Json
+      }
+      suggest_incident_batches: {
+        Args: { p_incident_id: string }
+        Returns: {
+          already_linked: boolean
+          basis: string
+          batch_code: string
+          batch_id: string
+          batch_kind: string
+          evidence: string
+          qty: number
+        }[]
       }
       supplier_status_moves: {
         Args: never
@@ -47689,6 +49451,10 @@ export type Database = {
         Returns: undefined
       }
       unlink_additional_account: { Args: { p_user_id: string }; Returns: Json }
+      unlink_incident_batch: {
+        Args: { p_link_id: number; p_reason: string }
+        Returns: Json
+      }
       unmatch_bank_line: {
         Args: { p_statement_line_id: string }
         Returns: undefined

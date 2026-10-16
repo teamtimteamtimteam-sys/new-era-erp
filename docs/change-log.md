@@ -1409,3 +1409,34 @@ RECON · TRAIL) pins every rule below, each fault-injected by `db/scripts/2026-1
   journal entries. Sentences: "Spare parts issued to maintenance" / "Spare parts returned from maintenance" with the batch in the `part`, the work record,
   quantity, date and entry as lines, a return's reason in the reason slot. `scripts/check-trail-wording.mjs` arm ㉛ pins four sentences and reads
   `titlePart` (faults `wording-drift-mes7a2`, `wording-part-mes7a2`, each biting only ㉛).
+
+
+## 29. Incidents (MES-7b-1, v1.4.54, 2026-10-16)
+
+Hand-back `docs/handbacks/MES-7b-1.md`; fixture 267 (arms REG · GRANT · REFUSE · NUM · MASK · DIRECT · UPDATE · KIND · LINK · NCR · CITE · NEA ·
+V19 · HANDOVER · TRAIL) pins every rule below, each fault-injected by `db/scripts/2026-10-16-mes7b1-fixture-injections.py` (50 cells, every arm
+red at least once). Fixture 235 stays at **8** exclusions.
+
+### 29.1 Logged, excluded, masked
+
+- **Six new tables, all logged.** `incident_kinds` (by `code`), `safety_settings` (by `id`), `incidents`, `incident_updates`, `incident_batches`,
+  `shift_handover_incident_refs`: public tables **299 → 305**, bound **291 → 297**, exclusions stay **8**. `incidents` and `incident_updates` are
+  append-only — every later fact (notified, report submitted, closed, a correction with its reason) is its own `incident_updates` row, and an UPDATE or
+  DELETE on either is refused by name for everyone (`INCIDENT_IMMUTABLE` / `INCIDENT_UPDATE_IMMUTABLE`), so their log is INSERT rows only. A batch link
+  changes once, when it is unlinked (reason, who, when); after that it is frozen (`INCIDENT_LINK_IMMUTABLE`).
+- **The migration's own `change_log` rows: 19** (read on live afterwards, by table): twelve `role_permissions:INSERT` (the safety grants), one
+  `material_kinds:UPDATE` (F12, the spare_part note), two `permissions:INSERT` (the codes) and one `permissions:UPDATE` (the `data.view_health`
+  description), and one INSERT each into `document_types` (INC), `document_type_exceptions` and `document_relation_exceptions`. The proof inside the
+  migration counts the 13 rows of `role_permissions` + `material_kinds` by `txid` and refuses any other number. The seeds of `incident_kinds` (seven
+  kinds) and `safety_settings` (V19 = 2, unconfirmed) are inserted **before** their bindings exist, so they are not logged — the same as every
+  earlier seeded dictionary.
+- **Five masked columns, five new mask rules (114 → 119).** `incidents.injured_employee_id` · `injured_person_name` · `injury_nature` ·
+  `injury_treatment` · `days_lost`, each `code_or_self:data.view_health:injured_employee_id`: a reader without `data.view_health` sees
+  `{"$restricted": true}` in the trail **unless the row names them as the injured employee**. The five columns are out of the column grant and read only
+  through `incidents_masked`; corrections cannot target them (the seven correctable fields carry no health data), so the masking never has to follow a
+  value into `incident_updates`.
+- **One new column on an existing table.** `nonconformance_reports.incident_id` (source `incident`), logged with the rest of the row.
+- **Trail.** Three new subjects: `incident` (home: the incident, its updates, its batch links, the handover reference; the incident-source NCR shows
+  there too), `safety_settings`, `dictionary_incident_kinds`. A batch link also shows on the linked batch's page (`inbound_batch` / `output_batch`,
+  not home), and a handover reference on the handover (home). `scripts/check-trail-wording.mjs` arm ㉜ pins the sentences and reads `titlePart`
+  (faults `wording-drift-mes7b1`, `wording-part-mes7b1`, each biting only ㉜).

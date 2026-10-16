@@ -186,5 +186,8 @@ async function dictError(msg: string): Promise<string> {
     // MES-7a-1(Q3):一种已经被停机引用的原因,类别冻住 —— 改它会悄悄改写已经算过的 MTBF。句子说出被引用几段、以及去处(新加一种)。
     const locked = raw.match(/DOWNTIME_CAUSE_CLASS_LOCKED\|([^|]+)\|(\d+)/)
     if (locked) return t('dict.errCauseClassLocked', { 0: locked[1], 1: locked[2] })
+    // MES-7b-1(Q4):一种被事故用过的种类,代号冻住、不能删 —— 改名照常(这一页本来就不改代号;拒绝说出被几件事故用着、以及去处)
+    const kindLocked = raw.match(/INCIDENT_KIND_CODE_LOCKED\|([^|]+)\|(\d+)/)
+    if (kindLocked) return t('safety.errors.INCIDENT_KIND_CODE_LOCKED', { 0: kindLocked[1], 1: kindLocked[2] })
     return await fallbackForRawError(raw, 'dictError@app/settings/dictionaries/actions.ts')
 }

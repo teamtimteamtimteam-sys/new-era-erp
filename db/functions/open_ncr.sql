@@ -4,7 +4,7 @@
 --
 --   判的顺序就是人下一步该改什么的顺序:
 --     ① 恰好一批(NCR_ONE_BATCH),存在、没删(INBOUND_NOT_FOUND / OUTPUT_NOT_FOUND)。
---     ② 来源:manual · customer_complaint;quality_limit 只由系统开(NCR_SOURCE_SYSTEM_ONLY —— 一次 V17 越限由判定当场开,人不替它开);
+--     ② 来源:manual · customer_complaint · incident(MES-7b-1,见下);quality_limit 只由系统开(NCR_SOURCE_SYSTEM_ONLY —— 一次 V17 越限由判定当场开,人不替它开);
 --        inspection 留给 MES-7b(NCR_SOURCE_RESERVED|inspection);别的 NCR_SOURCE_INVALID|<值>。
 --     ③ 描述必填(NCR_DESCRIPTION_REQUIRED)。
 --     ④ 可选的指向都必须是同一批的:化验、争议、判定(NCR_LINK_NOT_FOR_BATCH|<种类>|<编号或 id>);销售单只有产出批有
@@ -13,8 +13,13 @@
 --        自己开的那一张,于是没有别人的时候它会是一张永远决定不了、却一直扣着货的报告(配料计划 BLEND_NO_OTHER_RELEASER 同一句判据:
 --        real_role_grants · self_leg 按人认,跨账号;不看审批开关)。
 --   一批可以同时有几张开着的(Q7)—— 本支不拒"已经有一张开着"。返回 {ncr_id, code, status}。
+--   ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q8,Tim):第三种人开的来源 incident —— 事故页上,持 module.quality.edit 的人对一批【链在那件事故上】
+--     的货开一张(p_incident_id,末尾带默认的新参数;签名变了,迁移先 DROP 旧的再建,既有的具名调用照旧走得通):
+--     来源 incident 而没给事故 → NCR_INCIDENT_REQUIRED;给了事故而来源不是 incident → NCR_INCIDENT_ONLY_WITH_SOURCE;
+--     找不到那件事故 → INCIDENT_NOT_FOUND|<id>;那一批此刻没有一条有效链接挂在那件事故上 → NCR_INCIDENT_BATCH_NOT_LINKED|<事故编号>。
+--     事故自己从不扣货 —— 扣货的是这一张报告,照既有的质量暂扣,由持 action.ncr_decide 的另一个人决定。
 -- NOTE: introduced by db/migrations/2026-10-15-mes6b1-quality-hold-ncr-and-limits.sql.
-CREATE OR REPLACE FUNCTION public.open_ncr(p_source text, p_description text, p_inbound_batch_id uuid DEFAULT NULL::uuid, p_output_batch_id uuid DEFAULT NULL::uuid, p_assay_result_id uuid DEFAULT NULL::uuid, p_assay_dispute_id uuid DEFAULT NULL::uuid, p_sales_order_id uuid DEFAULT NULL::uuid, p_judgement_id bigint DEFAULT NULL::bigint)
+CREATE OR REPLACE FUNCTION public.open_ncr(p_source text, p_description text, p_inbound_batch_id uuid DEFAULT NULL::uuid, p_output_batch_id uuid DEFAULT NULL::uuid, p_assay_result_id uuid DEFAULT NULL::uuid, p_assay_dispute_id uuid DEFAULT NULL::uuid, p_sales_order_id uuid DEFAULT NULL::uuid, p_judgement_id bigint DEFAULT NULL::bigint, p_incident_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -46,8 +51,26 @@ BEGIN
     ELSIF p_source = 'inspection' THEN
         RAISE EXCEPTION 'NCR_SOURCE_RESERVED|inspection'
           USING HINT = '来料检验开出的报告随 MES-7b 一起来;今天请选"手动"。';
-    ELSIF p_source IS NULL OR p_source NOT IN ('manual', 'customer_complaint') THEN
+    ELSIF p_source IS NULL OR p_source NOT IN ('manual', 'customer_complaint', 'incident') THEN
         RAISE EXCEPTION 'NCR_SOURCE_INVALID|%', COALESCE(p_source, '?');
+    END IF;
+    -- ②b 来源 incident ⇔ 指着一件事故,而且那一批链在它上面(MES-7b-1 Q8)
+    IF p_source = 'incident' AND p_incident_id IS NULL THEN
+        RAISE EXCEPTION 'NCR_INCIDENT_REQUIRED';
+    END IF;
+    IF p_source <> 'incident' AND p_incident_id IS NOT NULL THEN
+        RAISE EXCEPTION 'NCR_INCIDENT_ONLY_WITH_SOURCE';
+    END IF;
+    IF p_incident_id IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM incidents WHERE id = p_incident_id) THEN
+            RAISE EXCEPTION 'INCIDENT_NOT_FOUND|%', p_incident_id;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM incident_batches b
+                        WHERE b.incident_id = p_incident_id AND b.unlinked_at IS NULL
+                          AND b.inbound_batch_id IS NOT DISTINCT FROM p_inbound_batch_id
+                          AND b.output_batch_id IS NOT DISTINCT FROM p_output_batch_id) THEN
+            RAISE EXCEPTION 'NCR_INCIDENT_BATCH_NOT_LINKED|%', (SELECT code FROM incidents WHERE id = p_incident_id);
+        END IF;
     END IF;
 
     -- ③ 描述必填
@@ -98,7 +121,7 @@ BEGIN
     END IF;
 
     v_r := ncr_open_internal(p_inbound_batch_id, p_output_batch_id, p_source, p_description,
-                             p_assay_result_id, p_assay_dispute_id, p_sales_order_id, p_judgement_id, v_user);
+                             p_assay_result_id, p_assay_dispute_id, p_sales_order_id, p_judgement_id, v_user, p_incident_id);
     RETURN v_r || jsonb_build_object('status', 'open');
 END;
 $function$

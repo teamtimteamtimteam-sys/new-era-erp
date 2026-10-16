@@ -184,4 +184,7 @@ VALUES
     ('ncr', 'NCR', 'nonconformance_reports', 'gapless', NULL, '/quality/ncr', 'detail', 'description', ARRAY['description']::text[], ARRAY['module.quality.view']::text[]),
     -- MES-6b-2(2026-10-15,MES-0 Q53 · MES-6b Step 0 Q30 · Q39):分析证书 —— 按年、无洞(next_coa_code,宽度 GREATEST(4, 位数));读码 = 证书表的读策略
     --   (module.output.view,看证书跟着那一批的查看码);落点是证书页 /quality/coa/[id];搜索的副标题是作废理由(与 COD 同一列)
-    ('coa', 'COA', 'certificates_of_analysis', 'gapless', NULL, '/quality/coa', 'detail', 'void_reason', ARRAY['void_reason']::text[], ARRAY['module.output.view']::text[]);
+    ('coa', 'COA', 'certificates_of_analysis', 'gapless', NULL, '/quality/coa', 'detail', 'void_reason', ARRAY['void_reason']::text[], ARRAY['module.output.view']::text[]),
+    -- MES-7b-1(2026-10-16,MES-0 Q53 · MES-7b Step 0 Q27):事故 INC-YYYY-NNNN(按年无洞,next_incident_code);读码 module.safety.view;落点是事故页
+    --   /safety/incidents/[id];搜索的副标题是"发生了什么"(不是受伤的细节 —— 一列只对持码人可读的字做搜索,等于让不持码的人用搜索框去试它,U1A-SEARCH-NO-HEALTH-OR-NOTES)
+    ('incident', 'INC', 'incidents', 'gapless', NULL, '/safety/incidents', 'detail', 'what_happened', ARRAY['what_happened']::text[], ARRAY['module.safety.view']::text[]);

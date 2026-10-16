@@ -23,6 +23,8 @@ export type SubmitHandoverPayload = {
     notes: string
     items: HandoverItemInput[]
     downtime_ids: string[]
+    /** MES-7b-1(Q12):这次交接班引用的事故 —— 引用,不是副本 */
+    incident_ids: string[]
 }
 
 export type HandoverState = { error?: string; id?: string }
@@ -43,6 +45,7 @@ export async function submitShiftHandover(payload: SubmitHandoverPayload): Promi
         // 不是"一条被写坏的内容":后者仍然要撞到那条具名拒绝上。
         p_items: payload.items.filter((i) => i.item_type_code && i.body.trim() !== ''),
         p_downtime_ids: payload.downtime_ids.length > 0 ? payload.downtime_ids : null,
+        p_incident_ids: payload.incident_ids.length > 0 ? payload.incident_ids : null,
     } as unknown as Database['public']['Functions']['submit_shift_handover']['Args'])
 
     if (error) return { error: await localizeProcessingError(error.message) }

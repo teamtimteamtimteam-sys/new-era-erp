@@ -114,6 +114,8 @@ module's own page.
 | M6b2 | `quality_hold_reserved` | 一批在质量暂扣里的产出批还挂着没释放的预留(Q23:预留照留,发不出去)。一张单 × 一批 × 扣着它的那张报告一行,`item_id` = 那张销售单,`subject` = 批号 · 报告编号,`item_date` = 最早那一笔预留的日子 | `module.quality.view`,收窄到同时持 `module.output.view`(`arm_permission_any`),放宽给 `module.sales.view`(`arm_permission_widen`)—— 判据 `batch_quality_hold` 以读者身份读产出批 | `sales_order_reservations` ⋈ `batch_quality_hold` | 报告决定放行、或预留释放 / 发完之后消失 |
 | M6b3 | `quality_prompt_ncr` | 一件该不该开不合格报告由人判断的事(Q6:只有 V17 越限自动开):进料的品位违反(`contract_grade_breaches`)· 产出批的交叉污染抽检过了 V11 的警戒线(当前那一条)· 一个模组最新的放电结论是失败(没拆走)。一批一行,`item_id` = 那一批,`doc_kind` = inbound / output,`subject` = 那件事的出处 | `module.quality.view` | 三支来源 | 那一批上有一张开单时刻不早于那件事的报告(任何状态)之后消失 |
 | M6b4 | `coa_facts_changed` | 一张已签发的分析证书,而它那一批在签发【之后】多了一份(没删的)化验、或开了一张不合格报告(MES-6b Step 0 Q32 · Q38)。证书【永远不会被自动作废】—— 这一格只把它摆到签发人面前,由人决定要不要经 CFO 作废、重开一张。一张一行,`item_id` = 那张证书,`item_code` = 证书号,`subject` = 批号 · 最早那一件新事的编号(化验号或报告编号),`item_date` = 那件事的日子 | `action.issue_coa` | `certificates_of_analysis` · `assay_results` · `nonconformance_reports` | 证书作废之后消失(重开的那一张从它自己的签发时刻重新算) |
+| M7b1 | `incident_nea_notify_due` | 一件【现在】要向 NEA 通报的事故(更正过的「要不要通报」说了算),还没有记下通报(MES-7b Step 0 Q10:"立即"没有天数,挂到记下为止)。一件一行,`item_id` = 那件事故,`item_code` = 事故编号,`subject` = 种类的英文名,`item_date` = 事故日(新加坡日期)| `module.safety.view` | `incidents` · `incident_updates` · `incident_kinds`(经 `incident_current_all`)| 记下 `nea_notified` 之后消失;更正成不用通报也消失;关闭【不】清掉它(法定义务)|
+| M7b2 | `incident_report_due` | 一件现在要通报 NEA 的事故,还没有记下交了书面报告(Q10 · Q11)。`item_date` = 期限:事故日之后第 V19 个工作日(`business_days_after`,公共假期表);期限算不出来(某一年日历缺)或 V19 为空时退回事故日,`doc_kind` 装期限的状态(`computed` · `not_set` · `cannot_compute`)—— 只有 `computed` 时 `item_date` 才是期限。V19 未确认时期限照算,事故页上标"未确认" | `module.safety.view` | 同上 + `safety_settings` · `public_holidays` | 记下 `report_submitted` 之后消失;更正成不用通报也消失;关闭不清掉它 |
 
 
 
@@ -363,6 +365,8 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `quality_hold_reserved` | `/sales/orders/[id]` | the sales order page: the reservation section names the held batch and its report; releasing a reservation stays allowed (MES-6b-1) |
 | `quality_prompt_ncr` | `/quality/ncr/new?batch=<kind>:<id>` | the open-a-report form with that batch already chosen (MES-6b-1) |
 | `coa_facts_changed` | `/quality/coa/[id]` | the certificate page: what it stated when issued, its PDF, and the void request (CFO) when the newer assay or report changes what it should say (MES-6b-2) |
+| `incident_nea_notify_due` | `/safety/incidents/[id]` | the incident page: what happened, the NEA section, and the form that records NEA notified (MES-7b-1) |
+| `incident_report_due` | `/safety/incidents/[id]` | the incident page: the written-report deadline (marked unconfirmed while V19 is unconfirmed) and the form that records the report submitted (MES-7b-1) |
 
 ### One mechanism, not two
 

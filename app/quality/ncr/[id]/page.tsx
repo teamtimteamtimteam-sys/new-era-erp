@@ -30,6 +30,7 @@ type N = {
     judgement_contract_code: string | null; opened_at: string; opened_by: string | null; opened_by_system: boolean; disposition: string | null
     decision_note: string | null; decided_at: string | null; penalty_invoice_request_id: string | null; penalty_invoice_request_label: string | null
     penalty_price_request_id: string | null; penalty_price_request_label: string | null; holding: boolean
+    incident_id: string | null; incident_code: string | null
 }
 
 const num = (v: number | null) => (v == null ? '—' : String(Number(v)))
@@ -48,15 +49,15 @@ export default async function NcrPage({ params, searchParams }: {
 
     const n = mustOne(
         await supabase.from('ncr_rows')
-            .select('id, code, status, source, batch_kind, inbound_batch_id, output_batch_id, batch_code, description, assay_result_id, assay_code, assay_dispute_id, sales_order_id, sales_order_code, judgement_id, judgement_parameter, judgement_value, judgement_limit_min, judgement_limit_max, judgement_result, judgement_contract_code, opened_at, opened_by, opened_by_system, disposition, decision_note, decided_at, penalty_invoice_request_id, penalty_invoice_request_label, penalty_price_request_id, penalty_price_request_label, holding')
+            .select('id, code, status, source, batch_kind, inbound_batch_id, output_batch_id, batch_code, description, assay_result_id, assay_code, assay_dispute_id, sales_order_id, sales_order_code, judgement_id, judgement_parameter, judgement_value, judgement_limit_min, judgement_limit_max, judgement_result, judgement_contract_code, opened_at, opened_by, opened_by_system, disposition, decision_note, decided_at, penalty_invoice_request_id, penalty_invoice_request_label, penalty_price_request_id, penalty_price_request_label, holding, incident_id, incident_code')
             .eq('id', id).maybeSingle(),
         'ncr_rows') as N | null
     if (!n) notFound()
     const batchId = (n.inbound_batch_id ?? n.output_batch_id)!
     const open = n.status === 'open'
 
-    const [canDecide, canFinance, canPrices, paramLabel] = await Promise.all([
-        can('action.ncr_decide'), can('module.finance.view'), can('data.view_purchase_prices'),
+    const [canDecide, canFinance, canPrices, canSafety, paramLabel] = await Promise.all([
+        can('action.ncr_decide'), can('module.finance.view'), can('data.view_purchase_prices'), can('module.safety.view'),
         qualityParameterLabeller(supabase, locale, t),
     ])
     // 读不出"我是谁"(会话判断不出)→ 不预判"是你开的";库里的四眼守卫(forbid_self_approval)照样按名拒
@@ -117,6 +118,9 @@ export default async function NcrPage({ params, searchParams }: {
                 fields={[
                     { label: t('quality.ncr.colBatch'), value: <Link href={batchHref(n.batch_kind, batchId)} className="app-link hover:underline">{n.batch_code}</Link> },
                     { label: t('quality.ncr.colSource'), value: t(ncrSourceKey(n.source)) },
+                    // MES-7b-1(Q8):来源 incident 的那一张指着它那件事故(事故页的门是 module.safety.view;读不到就是一段字)
+                    ...(n.incident_id ? [{ label: t('quality.ncr.incident'), value: canSafety
+                        ? <Link href={`/safety/incidents/${n.incident_id}`} className="app-link hover:underline">{n.incident_code}</Link> : (n.incident_code ?? '—') }] : []),
                     { label: t('quality.ncr.colOpened'), value: `${formatAuditStamp(n.opened_at)}${n.opened_by_system ? ` · ${t('quality.ncr.bySystem')}` : ''}` },
                     { label: t('quality.ncr.linkAssay'), value: n.assay_result_id
                         ? <Link href={assayHref(n.batch_kind, batchId, n.assay_result_id)} className="app-link hover:underline">{n.assay_code}</Link> : '—' },

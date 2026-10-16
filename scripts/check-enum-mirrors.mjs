@@ -22,6 +22,11 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
 import { assertPopulation } from './lib/selfproof.mjs'
+import { readInList, countLiteralsOutsideComments, selfCells } from './lib/sql-in-list.mjs'
+
+// ★ F13 的故障注入:ENUM_READER_FAULT=old-regex 把读法换回旧的那一句(截到第一个 `)`,不剥注释)—— 下面那两格【必须】都红;
+//   ENUM_READER_FAULT=old-regex-strip 换回本文件【原来】那一支的原样(截完再剥 `--`)—— 截短那一格红,'ghost' 那一格绿(原来那一支本来就剥注释)。
+const READER_MODE = ['old-regex', 'old-regex-strip'].includes(process.env.ENUM_READER_FAULT ?? '') ? process.env.ENUM_READER_FAULT : 'chars'
 
 const ROOT = new URL('..', import.meta.url).pathname
 
@@ -51,15 +56,18 @@ const MIRRORS = [
     },
 ]
 
-/** 从表镜像里读 CHECK (col IN ('a','b',…)) —— 与 check-i18n 的 sqlEnum 同一种读法。 */
+/** 从表镜像里读 CHECK (col IN ('a','b',…)) —— ★ F13(MES-7b-1):与 check-i18n 用【同一份】按字符走的读法(scripts/lib/sql-in-list.mjs)。
+ *  此前这里先用 `([^)]+)` 截到第一个 `)` 再剥 `--` 注释:列表中间一句注释里只要有一个 `)`,列表就被截短,而剥得再干净也晚了
+ *  (MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT)。现在注释里的 `)` 与 `'词'` 都碰不到括号深度与取值。
+ *  ★ 覆盖断言:读出来的个数必须等于另一条路数出来的字面量个数(先删注释、再数引号对)—— 对不上就退 2(量具坏了)。 */
 function sqlEnum(file, col) {
     const src = readFileSync(ROOT + file, 'utf8')
-    const m = src.match(new RegExp(String.raw`CHECK \(\s*${col} IN\s*\(([^)]+)\)`, 's'))
-    if (!m) throw new Error(`${file} 里找不到 CHECK (${col} IN (...))`)
-    // 【剥掉行内注释】那条 CHECK 中间夹着 -- 注释(IOD-1 那两行),
-    // 不剥的话注释里的引号会被当成值 —— 一个安静地多出几个"值"的解析器。
-    const body = m[1].split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
-    return [...body.matchAll(/'([^']+)'/g)].map((x) => x[1])
+    const { values, span } = readInList(src, col, { checkOnly: true, mode: READER_MODE })
+    const independent = countLiteralsOutsideComments(span)
+    if (values.length !== independent) {
+        throw new Error(`${file} 的 CHECK (${col} IN (...)):读出 ${values.length} 个值,另一条路数出 ${independent} 个字面量 —— 两条路对不上,这次读数不作数`)
+    }
+    return values
 }
 
 /** 从 TS 里读 `const NAME = [ 'a', 'b', … ] as const`。 */
@@ -72,6 +80,18 @@ function tsConstArray(file, name) {
 }
 
 assertPopulation('check-enum-mirrors', 'MIRRORS 里在钉的转录', MIRRORS.length)
+
+// ★ F13 两格(每一次运行都跑):列表中间一句注释里有 `)` 不许截短;注释里有 'ghost' 不许多出一个值。任一格红 → 退 2:读法本身坏了,
+//   下面的比对一个都不作数。
+{
+    const cells = selfCells(READER_MODE)
+    if (cells.length) {
+        console.error(`✗ check-enum-mirrors:读法的自检没过(${cells.length} 格)—— 这一次的比对不作数`)
+        for (const c of cells) console.error('   ' + c)
+        if (READER_MODE !== 'chars') console.error('   ★ 故障注入:ENUM_READER_FAULT=old-regex(这两格红,正是它们该做的)')
+        process.exit(2)
+    }
+}
 
 let bad = 0
 for (const m of MIRRORS) {

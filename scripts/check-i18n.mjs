@@ -29,6 +29,21 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { assertPopulation } from './lib/selfproof.mjs'
+import { readInList, countLiteralsOutsideComments, selfCells } from './lib/sql-in-list.mjs'
+
+// ★ F13 的故障注入:ENUM_READER_FAULT=old-regex 把三支读法换回原来那一句(截到第一个 `)`,不剥注释)—— 下面那两格【必须】都红。
+const ENUM_READER_MODE = process.env.ENUM_READER_FAULT === 'old-regex' ? 'old-regex' : 'chars'
+// ★ F13 两格(每一次运行都跑):列表中间一句注释里有 `)` 不许截短;注释里有 'ghost' 不许多出一个值。任一格红 → 退 2:
+//   读法本身坏了,后面每一个"现读真源"的动态前缀都不作数。
+{
+    const cells = selfCells(ENUM_READER_MODE)
+    if (cells.length) {
+        console.error(`✗ check-i18n:枚举的读法自检没过(${cells.length} 格)—— 这一次的动态键检查不作数`)
+        for (const c of cells) console.error('   ' + c)
+        if (ENUM_READER_MODE !== 'chars') console.error('   ★ 故障注入:ENUM_READER_FAULT=old-regex(这两格红,正是它们该做的)')
+        process.exit(2)
+    }
+}
 
 const ROOT = new URL('..', import.meta.url).pathname
 
@@ -185,11 +200,22 @@ for (const abs of files) {
 }
 
 // ─────────────────────────────────────────────── dynamic-suffix resolvers(真源现读)
-function sqlEnum(file, col) {
+// ★ F13(MES-7b-1,2026-10-16;MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT):下面三支(sqlEnum · sqlEnumAnywhere · sqlCheckIn)从此都经
+//   scripts/lib/sql-in-list.mjs 那一份【按字符走】的读法 —— 与 check-enum-mirrors 同一份。此前三支都是一句截到第一个 `)` 的正则、
+//   都不剥注释:列表中间一句注释里的 `)` 会截短,注释里的 '词' 会多出一个值,而两样都报绿。
+//   每一次读完再用另一条路数一遍字面量(先删注释、再数引号对)—— 两条路对不上就抛:那一次读数不作数。
+function readListChecked(file, col, checkOnly) {
     const src = readFileSync(join(ROOT, file), 'utf8')
-    const m = src.match(new RegExp(String.raw`CHECK \(\s*${col} IN\s*\(([^)]+)\)`, 's'))
-    if (!m) throw new Error(`${file} 里找不到 CHECK (${col} IN (...))`)
-    return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
+    let r
+    try { r = readInList(src, col, { checkOnly, mode: ENUM_READER_MODE }) } catch (e) { throw new Error(`${file} 里${e.message}`) }
+    const independent = countLiteralsOutsideComments(r.span)
+    if (r.values.length !== independent) {
+        throw new Error(`${file} 的 ${col} IN (...):读出 ${r.values.length} 个值,另一条路数出 ${independent} 个字面量 —— 两条路对不上`)
+    }
+    return r.values
+}
+function sqlEnum(file, col) {
+    return readListChecked(file, col, true)
 }
 // PROC-4:字典型清单的真源【不再是 CHECK】,是那张字典的引导 INSERT。
 // sqlEnum 读的是 `CHECK (col IN (...))`;而 substances 落地之后那八条 CHECK 没了,
@@ -212,10 +238,7 @@ function sqlSeedCodes(file, table) {
 // 这一支在整份文件里找 `col IN ('a','b')`,两种写法都认。
 // 解析出 0 个仍然抛错(解析不出来【不是】空集合)。
 function sqlEnumAnywhere(file, col) {
-    const src = readFileSync(join(ROOT, file), 'utf8')
-    const m = src.match(new RegExp(String.raw`\b${col} IN\s*\(([^)]+)\)`))
-    if (!m) throw new Error(`${file} 里找不到 ${col} IN (...)`)
-    const vals = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
+    const vals = readListChecked(file, col, false)
     if (vals.length === 0) throw new Error(`${file} 的 ${col} IN (...) 解析出 0 个取值`)
     return vals
 }
@@ -242,10 +265,7 @@ function tsRegex(file, pattern) {
 // 表镜像里 CHECK (col IN ('a','b',...)) 推导出来的枚举列。
 // 【找不到就抛,不返回空集】—— 与 sqlCaseAs 同一条:一个 0 必须是一次测量,不是一次缺席。
 function sqlCheckIn(file, column) {
-    const src = readFileSync(join(ROOT, file), 'utf8')
-    const m = src.match(new RegExp(String.raw`CHECK \(${column} IN\s*\(([\s\S]*?)\)\)`))
-    if (!m) throw new Error(`${file} 里找不到 CHECK (${column} IN (...))`)
-    return [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1])
+    return readListChecked(file, column, true)
 }
 const union = (...fns) => () => [...new Set(fns.flatMap((f) => f()))]
 // TERMS-EDIT-1:app/contracts/[id]/termSpecs.ts 的 SECTIONS —— 按 `table: '…'` 切段,段里每个 `name: '…'` 是一格。
@@ -835,6 +855,13 @@ const MANIFEST = {
     'quality.ncr.dispositionWhy.': { kind: 'enum', values: () => sqlEnum('db/tables/nonconformance_reports.sql', 'disposition') },
     'quality.judgementResult.': { kind: 'enum', values: () => sqlEnum('db/tables/quality_limit_judgements.sql', 'result') },
     'quality.ncr.requestStatus.': { kind: 'enum', values: () => ['submitted', 'approved'] },
+    // MES-7b-1(2026-10-16):事故登记簿 —— 拒绝的码现读 SAFETY_ERROR_CODES;之后的事实的种类 / 可更正的字段 / 链接的依据现读表上的 CHECK;
+    //   期限的状态现读 incident_current_all 里那一句 CASE(页面与提醒都读那一列)。
+    'safety.errors.':           { kind: 'enum', values: () => tsSet('app/safety/safetyErrorCodes.ts', 'SAFETY_ERROR_CODES') },
+    'safety.updateKind.':       { kind: 'enum', values: () => sqlEnum('db/tables/incident_updates.sql', 'kind') },
+    'safety.field.':            { kind: 'enum', values: () => sqlEnumAnywhere('db/tables/incident_updates.sql', 'field') },
+    'safety.basis.':            { kind: 'enum', values: () => sqlEnum('db/tables/incident_batches.sql', 'basis') },
+    'safety.deadlineState.':    { kind: 'enum', values: () => sqlCaseAs('db/views/incident_current_all.sql', 'deadline_state') },
     // MES-6b-2(2026-10-15):分析证书。错误码接 coaErrorCodes.ts 的 Set;状态接证书表的 CHECK;确定度是视图吐出来的那几档(四个已知的;
     //   不认得的码页面原样印,不走 t());"怎么选出来的"接 coa_governing_assay 吐出的三个 basis。
     'coa.errors.':      { kind: 'enum', values: () => tsSet('app/output/coa/coaErrorCodes.ts', 'COA_ERROR_CODES') },

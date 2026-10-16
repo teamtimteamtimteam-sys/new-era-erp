@@ -4,7 +4,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 // IA-BUILD-1(2026-09-02):本文件现在回答【三】个不同的问题,而它们此前是一个
 // ════════════════════════════════════════════════════════════════════════════
-//   MODULES   —— 顶栏上的【九个一级模块】。Tim 的 D1。**它们没有 permission
+//   MODULES   —— 顶栏上的【一级模块】—— Tim 的 D1 定了九个,MES-7b-1(Q17)加了第十个「安全」。**它们没有 permission
 //                字段**,理由见下面 §二;
 //   SCOPES    —— 【15 个权限范围】,页面守卫用它(requireModule(MOD.finance))。
 //                这就是 NAV-REG-1 之前那份 MODULES,一行未改地搬了过来;
@@ -147,10 +147,13 @@ export const SCOPES: readonly AccessScope[] = [
     //   于是有了自己的权限范围。【它不是一个新的一级模块】Tim 的 D1 那九个一个字不动:两条条目住在「运营」底下(FUNCTIONS 那一段),
     //   路由前缀 /quality 只是这个范围的 id —— 导航与门是两件事(本文件抬头 §一)。
     { id: '/quality', navKey: 'nav.quality', permission: 'module.quality.view' },
+    // MES-7b-1(2026-10-16,MES-0 Q76 · Q90 · MES-7b Step 0 Q2 · Q17,Tim):安全 —— 事故登记簿有了自己的码(module.safety.view / .edit),
+    //   于是有了自己的权限范围。与质量不同,它【也是一个新的一级模块】(Q17:"a new nav module Safety")—— 见下面 MODULES 那一行。
+    { id: '/safety', navKey: 'nav.safety', permission: 'module.safety.view' },
 ]
 
 // ════════════════════════════════════════════════════════════════════════════
-// 二 · 九个一级模块 —— Tim 的 D1,顺序就是他给的顺序
+// 二 · 一级模块 —— Tim 的 D1 那九个,顺序就是他给的顺序;MES-7b-1 加了「安全」(Q17),排在运营之后
 // ════════════════════════════════════════════════════════════════════════════
 /**
  * 一个一级模块。**注意它没有 permission** —— 见文件抬头 §二:
@@ -173,6 +176,9 @@ export const MODULES: readonly ModuleEntry[] = [
     { id: 'purchasing', navKey: 'nav.purchasing' },
     { id: 'logistics', navKey: 'nav.logistics' },
     { id: 'operation', navKey: 'nav.operation' },
+    // ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q17,Tim):第十个一级模块「安全」—— 事故(7b-1),巡检与环境监测(7b-2)。
+    //   Tim 的 D1 那九个一个字没动;这一行是 Q17 新加的,不是从别的模块里拆出来的。它的唯一一条二级条目今天是 /safety/incidents。
+    { id: 'safety', navKey: 'nav.safety' },
     { id: 'sales', navKey: 'nav.sales' },
     { id: 'finance', navKey: 'nav.finance' },
     { id: 'inventory', navKey: 'nav.inventory' },
@@ -231,7 +237,8 @@ export const MODULES: readonly ModuleEntry[] = [
 //   所以这是【两种画法】,不是【两份清单】。完整论证见
 //   docs/information-architecture.md §23.3 与 §23.7。
 export const BAR_MODULE_IDS: readonly string[] = [
-    'purchasing', 'logistics', 'operation', 'sales', 'finance', 'inventory', 'hr',
+    // MES-7b-1(Q17):安全排在运营之后 —— 事故发生在车间,读它的人与读运营的人是同一群人(安全查看码 = 加工查看码的持有人)。
+    'purchasing', 'logistics', 'operation', 'safety', 'sales', 'finance', 'inventory', 'hr',
 ]
 
 /** 退出顶栏那一行、但【仍然在注册表里】的模块。工具进工具下拉,设置进头像下拉。 */
@@ -493,6 +500,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // MES-6b-2(2026-10-15,MES-0 Q67 · MES-6b Step 0 Q10 · Q14 · Q30 · Q32,Tim):分析证书 —— 签发在产出批页上(action.issue_coa:cco · admin);
     //   这一页列出每一张证书、下载存下的那一份、提 CFO 作废申请。门:质量查看码【与】产出查看码(P_COA 的理由)。
     { href: '/quality/coa', navKey: 'quality.subnav.coa', modules: ['operation'], permission: P_COA },
+    // MES-7b-1(2026-10-16,MES-0 Q73 · Q74 · Q76 · MES-7b Step 0 Q2 · Q3 · Q17 · Q28,Tim):事故登记簿 —— 安全模块唯一的一条二级条目(7b-2 加巡检与环境)。
+    //   读 module.safety.view(每一个持加工查看码的角色);记一件、记之后的事、链批次要 module.safety.edit(admin · cto · warehouse)—— 页内控件
+    //   看得见、按不动、说出缺哪个码(DBLOCK-1)。受伤的细节另要 data.view_health(或就是受伤的那名员工本人)。
+    { href: '/safety/incidents', navKey: 'safety.subnav.incidents', modules: ['safety'], permission: 'module.safety.view' },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 加工的人读得到的那一份(资产卡、成本与折旧留在财务)。
     //   ★ MES-7a-1(Q6):停机、保养维修、保养间隔从此记在设备页上(写 module.processing.edit,页内控件看得见、按不动、说出码)。
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
@@ -1076,6 +1087,8 @@ export const MOD = {
     logistics: byId('/logistics'),
     /** MES-6a-1:质量(样品与化验争议)。 */
     quality: byId('/quality'),
+    /** MES-7b-1:安全(事故登记簿)。 */
+    safety: byId('/safety'),
 } as const
 
 export const FN = {
@@ -1133,4 +1146,6 @@ export const FN = {
     qualityNcr: fnByHref('/quality/ncr'),
     /** MES-6b-2:分析证书。 */
     qualityCoa: fnByHref('/quality/coa'),
+    /** MES-7b-1:事故登记簿。 */
+    safetyIncidents: fnByHref('/safety/incidents'),
 } as const

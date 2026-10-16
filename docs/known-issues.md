@@ -10868,6 +10868,9 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 
 ### MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT · 一句写在 CHECK 的 IN 列表【中间】的注释,让两支检查各少数了两个值,而它们都报绿(本刀第一稿踩到)
 
+✅ **关闭于 MES-7b-1(`v1.4.54`,2026-10-16,F13)。** 两支检查改用同一份【按字符走】的读者 `scripts/lib/sql-in-list.mjs`(认 `--` / 嵌套 `/* */` 注释、`'…'` 字符串与 `''` 转义、`"…"` 标识符、括号深度;注释里的 `)` 碰不到深度,注释里的 `'词'` 收不进值)。每一支每次运行都跑两格自检(`selfCells`:注释里有 `)` 不许截短 · 注释里有 `'ghost'` 不许多一个值),外加一条【独立的】计数(`countLiteralsOutsideComments`:先删注释、再数引号对)—— 两条路数对不上即退 2。故障注入 `ENUM_READER_FAULT=old-regex` / `old-regex-strip` 把读者换回原来那一句:check-i18n 两格都红;check-enum-mirrors 原样(先截再剥)截短那一格红、ghost 那一格绿 —— 那正是它原来的缺陷(交回报告逐格记着)。同形的读者:check-i18n 的 `sqlEnumAnywhere` · `sqlCheckIn` 一并换成它(≤5,照委托书换);Python 那一支(`db/check_mirrors.py` 读角色码清单)登记为下面的 `MES7B1-PY-ROLE-LIST-READER`。原文保留在下面。
+
+
 **是什么:** `scripts/check-enum-mirrors.mjs` 与 `scripts/check-i18n.mjs` 都从 `db/tables/*.sql` 的 `CHECK (col IN (...))` 现读取值。第一稿把两种新流水类型
 写在 IN 列表里一句 `--` 注释的【后面】,两支解析器都在注释那儿停下:`check-enum-mirrors` 报"12 个值,两个方向都对得上",`check-i18n` 没有要
 `movements.type.maintenance_issue` 的句子 —— **两张绿,而图上会少两根条、屏幕上会印两个键名**。把注释挪到 CHECK 外面之后,两支当场都红(读数在交回 §3)。
@@ -10879,6 +10882,9 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 `inventory_movements.sql:30-31` 那句 IOD-1 注释今天仍在 IN 列表【里面】,只因为它碰巧不含 `)` 与 `'` 才被读对。
 
 ### MES7A2-SPARE-PART-NOTE-LIVE-STALE · 线上 `material_kinds` 备件那一行的说明仍是旧的"不按批次追溯"(RUNTIME CONFIG,刻意未改)
+
+✅ **关闭于 MES-7b-1(`v1.4.54`,2026-10-16,F12)。** 迁移把线上那一行的 `notes` 改成镜像里那一句(取自镜像的同一个表达式,不另抄一份),并在【同一笔事务里】读回、与镜像逐字相等才提交;这一条改动是迁移唯一的 `material_kinds:UPDATE` 留痕。原文保留在下面。
+
 
 **是什么:** Q2 让本刀改写镜像里那一行的说明(按批收货、挂保养记录出库、不逐件追溯)。`material_kinds` 是 RUNTIME CONFIG(`db/check_mirrors.py` 不逐行比对),
 而本刀在线上只许造迁移本身的东西(6800 与两种流水类型)—— 所以线上那一行的 `notes` 没动,仍写着旧话。重建出来的库是新话。
@@ -10902,6 +10908,9 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 
 ### MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS · 一个没有加工单的库,整页「物料平衡」只剩一句"还没有加工记录" —— 库存滚动连同"出给保养"一列一起不见(MES-7a-2 close-out 量到;病根在 MES-5b-1)
 
+✅ **关闭于 MES-7b-1(`v1.4.54`,2026-10-16,F14)。** 整页的空态改由 `lib/balanceEmptyState.ts` 一处判定:加工的月份、加工的行、库存滚动的行【三个都空】才是空页;`scripts/check-balance-empty-state.mjs` 进构建链(故障 `CHECK_BALANCE_EMPTY_FAULT=two-sources` 退回旧判据即红)。本地重建 + 自己的数据(没有一张加工单、有收货与库存流水)读 `/operation/balance`,滚动表画出来了(交回报告的 F14 读数)。原文保留在下面。
+
+
 **是什么:** `app/operation/balance/page.tsx:106` 把整页的状态定成 `months.length === 0 && lines.length === 0 ? { kind: 'empty', … }` —— 两个数都只来自
 `processing_balance_monthly`(加工)。而同一页最下面的库存滚动(`stock_rollforward_monthly`)不靠加工:收货、出给保养、退回都会让它有行。
 **量到的:** 本地重建 + 自己的数据(`docs/surveys/MES-7a-2/local-seed.sql`:备件收货、两次出库、一次退回、一次改价,**没有一张加工单**),五个克隆读
@@ -10915,6 +10924,9 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 
 ### MES7A2CO-NO-CHART-OF-ACCOUNTS-PAGE · 应用里没有一页"科目表",也没有一页说出哪个科目是系统科目(MES-7a-2 close-out 量到;不是 MES-7a-2 造的)
 
+☞ **MES-7b-1(2026-10-16)照旧没有做**:MES-7b Step 0 Q26 提过「试算表上标出系统科目」约 15 分钟、可作 F15 —— 委托书没有把它并入本刀,所以它留在这里,等 Tim 定放在哪一刀。
+
+
 **是什么:** close-out 委托书第 1.3 b 条要看"科目表把 6800 显示成系统科目"。实测(HEAD `c5d4cf67`,读代码):`app/` 里没有科目表那一页(`grep -rn "from('accounts')" app lib`
 命中的 11 处都是试算表、分录、银行、费用、资产、报销页上的读取与下拉);`is_system` 在 `app/` 与 `lib/` 里只出现在【角色】上(`app/settings/roles/*`、`app/settings/accounts/*`),
 **没有一处读科目的 `is_system`** —— 37 个系统科目,哪一个都不在屏幕上说自己是系统科目。科目行对每一个登录的人都可读(`accounts` 的读策略 `USING (true)`)。
@@ -10922,3 +10934,42 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 没有一个词说它是系统科目;warehouse 进不了财务(它的码)。线上的库里 6800 是 `is_system = true`、`expense`、启用(`docs/surveys/MES-7b/closeout-readings.sql` 的 `ACCT6800` 行)。
 MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算表代替。
 **删除条件:** 一刀加一页科目表(或在试算表上标出系统科目)—— 交 Tim 定要不要、放在哪一刀(MES-7b Step 0 的待答问题)。
+
+
+### MES7B1-ALARM-TRANSFORM-WAITS-FOR-FORMAT · 报警面板的转换没有建 —— 没有设备、没有厂商给过报文格式(MES-7b Step 0 Q5,D8)
+
+**是什么:** MES-0 §8.2 列了"报警转换"。常设规矩不许对着一个编出来的报文格式写设备转换;线上没有 `alarm_panel` 设备(两个网关、两台秤),也没有厂商给过格式。
+所以采集类 `safety_alarm` 照旧 `transform_function` 为空(真来一行会停在 `awaiting_transform`,有了转换再处理);事故的来源 `device` 保留,
+`record_incident` 与表上的守卫都按名拒(`INCIDENT_SOURCE_RESERVED|device`,fixture 267 REFUSE 臂钉着)。一次 `safety_alarm` 的运行异常事件是这一炉的事实,
+【不】自己变成一件事故;事故可以引用它(可选)。
+**删除条件:** 报警面板装上、厂商给出有文档的事件格式 —— 那一刀写转换,把 `device` 来源放开,并决定一次报警是否自动开一件事故(MES-0 Q73:一次报警一件事故)。
+
+### MES7B1-INCOMING-INSPECTION-UNBUILT · 来料检验(收货时的质量检验)没有建 —— 不合格报告的来源 `inspection` 仍空着(MES-7b Step 0 Q15)
+
+**是什么:** 镜像里 `nonconformance_reports` 的来源 `inspection` 写的是"来料检验";MES-0 第 23 项是【工厂的安全巡检】,不是来料检验。MES-7b-1 只建了事故
+(来源 `incident`);安全巡检归 MES-7b-2(Q15 的推荐:让 `inspection` 指一条巡检发现)。**收货时的来料检验在任何一刀里都没有被建,也没有被排期。**
+**删除条件:** MES-7b-2 定下 `inspection` 来源指什么;若它指安全巡检的发现,来料检验另立一项(它需要自己的记录、自己的码,与收货那几屏的入口)。
+
+### MES7B1-PY-ROLE-LIST-READER · `db/check_mirrors.py` 读角色码清单的那一句是 F13 修掉的同一个形状(Python,登记,未换)
+
+**是什么:** `db/check_mirrors.py:811` 用 `re.findall(r"r\.code\s+IN\s*\(([^)]*)\)", rp)` 读 `role_permissions.sql` 里 `r.code IN (...)` 的角色码 ——
+截到第一个 `)`。它先剥掉【整行】注释(`l.lstrip().startswith("--")`),所以一行独立的注释伤不到它;但一句写在清单那一行【行尾】、带 `)` 的注释会把清单截短,
+少数的角色码会让"授权引用的角色码必须存在"那一条少查几个。今天 `role_permissions.sql` 里的 IN 列表行尾都没有注释,所以读对。
+**为什么没换:** F13 的读者是 JS(`scripts/lib/sql-in-list.mjs`),这一支是 Python —— 换它意味着第二份实现(或跨语言调用),委托书说"≤5 处就换,否则登记",
+同形的 JS 读者一共换了 4 处(两支检查各一处,check-i18n 另两处),这一支按"另一种语言"登记,不在本刀现写。
+**删除条件:** 一刀把这一句换成按字符走的读者(或在读到行尾注释时自己红),带一格"清单行尾塞一句带 `)` 的注释"的故障注入。
+
+### MES7B1-VIEW-DEFAULT-WRITE-GRANTS · 平台的默认权限给每一张新视图都授了 `authenticated` 的写 —— 157 张属主权限视图带着 INSERT / UPDATE / DELETE(MES-7b-1 量到;不是本刀造的)
+
+**是什么:** Supabase 的默认权限让 `authenticated` 在 `public` 里每一个新对象上拿到 `arwdDxtm`。视图也一样:一张【简单】的属主权限视图是可自动更新的,
+写穿它时对基表用的是【视图属主】的权限 —— RLS 不按调用者判。本刀写 fixture 267 时撞上(新视图默认可写),于是本刀的五张新视图与
+`shift_handover_incident_refs` 一律 `REVOKE ALL … FROM authenticated, anon` 再只授 SELECT,fixture 267 REG 臂钉着。
+**量到的(只读,2026-10-16,`postgres`,目录):** 线上 `public` 182 张视图里 163 张对 `authenticated` 可写、其中 157 张是属主权限;`_masked` 视图里 38 张可写
+(例 `medical_claims_masked`、`employees_masked`、`payroll_lines_masked`);107 张对 `anon` 可读(含 `handover_people` 与若干 `_masked` —— 它们的谓词问
+`has_permission()`,匿名读到的应是零行,没有逐张核过)。`information_schema` 说 `medical_claims_masked` 与 `handover_people` 可插、可改。
+**一张探过,没有漏:** 本地重建上(同样的默认权限,187 张里 164 张可写),一个只持 `module.hr.view` 的会话 `UPDATE medical_claims_masked SET status = 'approved'`
+被基表的语句级触发器 `enforce_write_permission('module.hr.edit')` 拒了(`PERMISSION_DENIED|module.hr.edit`),行没变 —— 那个触发器不看 RLS,按调用者的码判,
+所以写穿视图也照样被拦。**其余 156 张没有逐张探**:一张基表若【没有】按调用者判的写守卫(语句级 `enforce_write_permission` 或"只经函数"的守卫),
+写穿它的属主视图就可能绕过 RLS 的写策略。
+**删除条件:** 一刀把每一张视图的写权限收掉(`REVOKE INSERT, UPDATE, DELETE, TRUNCATE … FROM authenticated, anon`,并改默认权限或在 `zzz_function_grants` 那一类
+重放文件里兜住),带一条 gate 断言"没有一张视图对 `authenticated` 可写",以及一格故障注入。在那之前,任何新视图照本刀的做法自己收。

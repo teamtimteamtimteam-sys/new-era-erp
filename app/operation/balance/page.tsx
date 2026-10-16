@@ -20,6 +20,7 @@ import { fmtKg, num } from '@/lib/massFormat'
 import { ListPage } from '@/app/components/ui/list-page'
 import MassTable, { type MassRow } from './MassTable'
 import { labelMaps, remainderOrder, type MonthlyLine } from './labels'
+import { balancePageIsEmpty } from '@/lib/balanceEmptyState'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
@@ -101,9 +102,10 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
         loss: fmtKg(sumOf(plant, 'loss')), remainder: fmtKg(sumOf(plant, 'remainder')),
     })
 
+    // F14(MES-7b-1):三样都空才是空 —— 没有加工单的库照样要看得见库存滚动(lib/balanceEmptyState.ts)
     return (
         <ListPage title={t('massBalance.title')} intro={t('massBalance.intro')} maxWidth="max-w-6xl"
-                  state={months.length === 0 && lines.length === 0 ? { kind: 'empty', noRows: t('massBalance.noData') } : { kind: 'ok' }}>
+                  state={balancePageIsEmpty({ months: months.length, lines: lines.length, rollForward: roll.length }) ? { kind: 'empty', noRows: t('massBalance.noData') } : { kind: 'ok' }}>
             <p className="text-sm text-amber-800 mb-3" data-live-note>{t('massBalance.liveNote')}</p>
             <nav className="flex flex-wrap gap-x-3 gap-y-1 text-sm mb-4" aria-label={t('massBalance.month')} data-months>
                 <span className="text-[color:var(--brand-muted-text)]">{t('massBalance.month')}:</span>

@@ -1,4 +1,11 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q10 · Q11,Tim):加两支,门都是 module.safety.view,都读 incident_current_all(事故现在的值:
+--   更正过的"要不要通报"说了算;一件更正成不用通报的事故两支都消失)。关闭【不】清掉它们 —— 法定的义务不因"关闭"而结束。
+--   incident_nea_notify_due —— 一件要通报 NEA 的事故,还没有记下通报("立即":没有天数,只是挂着直到记下)。item_id = 那件事故;
+--     item_code = 事故编号;subject = 种类的英文名;item_date = 事故日(新加坡日期)。
+--   incident_report_due —— 一件要通报 NEA 的事故,还没有记下交了书面报告。item_date = 期限(事故日之后第 V19 个工作日);期限算不出来或
+--     没有设定时退回事故日(item_date 在每一支上都不为空 —— 首页拿它算等了几天)。doc_kind 借来装期限的状态(computed · not_set ·
+--     cannot_compute):只有 computed 时 item_date 才是期限 —— 门牌据此说"算不出来",不把事故日说成期限。
 -- ★ MES-6b-2(2026-10-15,MES-6b Step 0 Q32 · Q38,Tim):加一支 coa_facts_changed —— 一张已签发的分析证书,而它那一批在签发之后多了一份
 --   (没删的)化验、或开了一张不合格报告。证书【永远不会被自动作废】(Q32):这一格只把它摆到持 action.issue_coa 的人面前(签发与提作废申请
 --   的是同一批人),由人决定要不要经 CFO 作废、重开一张。item_id = 那张证书;item_code = 证书号;subject = 批号 · 最早那一件新事的编号
@@ -1055,7 +1062,29 @@ CREATE VIEW public.operations_now AS
                   GROUP BY dm.batch_kind, dm.batch_id, ib3.code, ob3.code) q
           WHERE NOT (EXISTS ( SELECT 1
                    FROM nonconformance_reports n2
-                  WHERE (n2.inbound_batch_id = q.batch_id OR n2.output_batch_id = q.batch_id) AND n2.opened_at >= q.found_at))) a
+                  WHERE (n2.inbound_batch_id = q.batch_id OR n2.output_batch_id = q.batch_id) AND n2.opened_at >= q.found_at))
+        UNION ALL
+         SELECT 'incident_nea_notify_due'::text AS item_type,
+            'module.safety.view'::text AS permission,
+            c.id AS item_id,
+            NULL::text AS doc_kind,
+            c.code AS item_code,
+            k.name_en AS subject,
+            c.occurred_on AS item_date
+           FROM incident_current_all c
+             JOIN incident_kinds k ON k.code = c.kind_code
+          WHERE c.nea_reportable AND c.notified_at IS NULL
+        UNION ALL
+         SELECT 'incident_report_due'::text AS item_type,
+            'module.safety.view'::text AS permission,
+            c.id AS item_id,
+            c.deadline_state AS doc_kind,
+            c.code AS item_code,
+            k.name_en AS subject,
+            COALESCE(c.report_deadline, c.occurred_on) AS item_date
+           FROM incident_current_all c
+             JOIN incident_kinds k ON k.code = c.kind_code
+          WHERE c.nea_reportable AND c.report_submitted_at IS NULL) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

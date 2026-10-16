@@ -41,6 +41,7 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | V14 | How an arbitration (umpire) fee is shared — per sale contract (`loser_pays` · `equal` · `further_from_umpire_pays` · `buyer` · `seller`) | the contract's page (`/contracts/<id>`, Settlement terms → "Arbitration fee rule") | each live contract with no `contract_settlement_terms.arbitration_fee_rule` **and** at least one open or resolved assay dispute on a sales order linked to it (`assay_disputes` ⋈ `contract_document_terms`) — a buy-side dispute has no contract terms and never lists a row; live has no dispute, so the arm is empty | `module.customers.view` | Tim, per offtake contract | the first sale-side dispute | MES-6a-1 |
 | V17 | Quality (acceptance) limits on each sale contract — moisture or any assay indicator (particle size D10 / D50 / D90, residual powder, foil purity), with a minimum, a maximum or both, optionally per material; declared as `quality_limit_basis` = `none_agreed` or `per_parameter` | the contract's page (`/contracts/<id>`, Settlement terms → "Quality limits", and the "Quality limits" section) | each live sale contract with a sales order linked to it **and** no settlement terms whose `quality_limit_basis` is set (`contract_document_terms` ⋈ `contract_settlement_terms`) — a contract nobody has sold under yet has nothing to judge; live has no contract, so the arm is empty | `module.customers.view` | Tim / the buyer, per offtake contract | before the first sale under the contract (activation is refused until it is declared) | MES-6b-1 |
 | V21 | Minimum stock of a spare part, per spare-part material (`materials.safety_stock_qty`, which already drives the `safety_stock_below` reminder) | the material editor (`/materials/<id>/edit`) | each live material of kind `spare_part` with `safety_stock_qty` empty **and at least one receipt** (an inbound batch of it) — a spare part nobody has received yet has nothing to run low (the V9 precedent); live has no spare-part material, so the arm is empty | `module.materials.view` | the CTO, or the equipment vendor's recommended spares list | at equipment acceptance | MES-7a-2 |
+| V19 | NEA written-report deadline — how many working days after an incident the written report is due (`safety_settings.nea_report_working_days`) | `/safety/incidents` (the "NEA written-report deadline (V19)" panel) | the single `safety_settings` row while `nea_report_working_days` is empty **or** not yet confirmed (`nea_report_days_confirmed_at` empty). **Unlike every other arm, this one is a row on live from the day it ships:** the migration stores **2 working days, unconfirmed** — the only written record of the duty is the repository's own (`docs/forward-queue.md:2402`, which says "within 2 working days" with no source), so the number is held but not trusted until someone confirms it against the NEA licence | `module.safety.view` | Tim, from the NEA licence conditions | before the first NEA-reportable incident | MES-7b-1 |
 
 **What "Not yet set" means for V5.** A gateway with no heartbeat interval cannot be judged silent: its status reads
 **"Not yet set — silence cannot be judged"**, it raises no `gateway_silent` reminder, and no outage is recorded for it.
@@ -174,6 +175,15 @@ maintenance record and returned exactly like one that has it. V21 only decides w
 without a word. The arm lists a spare part only once it has been received; a part on the vendor's list that has never been bought is not a row
 anyone can act on yet. Nothing guesses a minimum.
 
+**What V19 holds back (MES-7b-1, MES-7b Step 0 Q11).** Nothing is refused: an incident is recorded, marked reportable, notified and closed
+exactly the same whatever V19 holds. V19 only decides the **written-report deadline** shown on an NEA-reportable incident and on the
+`incident_report_due` reminder: the incident date (Singapore) plus V19 working days, counted by `business_days_after` over weekends and active SG
+public holidays. Every reading says where it stands — **computed** (and, until V19 is confirmed, the page says the number is unconfirmed),
+**not set** (V19 empty: no date is shown, nothing guesses one), or **cannot compute** (a calendar year the count crosses has no public holidays
+loaded: no date rather than a date that ignores holidays). Confirming needs `module.safety.edit` and a source line; changing the number without
+confirming it clears the old confirmation — a new number does not inherit the trust given to the old one. The written-report reminder stays until
+the report is recorded, independently of the notification reminder.
+
 ## Registered, not built
 
 Values a cut found orphaned — named in the MES-0 catalogue, owned by a shipped cut, but with no arm, no column and no record anywhere. They are
@@ -184,7 +194,7 @@ it measures.
 |---|---|---|---|---|
 | V12 | Tool-replacement cut count — how many cuts a casing-removal blade makes before it is replaced (MES-0 `README.md` §5) | **casing-removal machine commissioned** — no blade, cut counter or casing-removal machine exists today to attach it to | MES-4a (never built nor recorded) | MES-7a-1 (2026-10-16, MES-7a Step 0 Q18) |
 
-**MES-7a-2 (2026-10-16) adds one live arm, V21** (above). **MES-7a-1 (2026-10-16) adds no live arm.** **V22** (the operating-hours basis of MTBF / MTTR) was answered by MES-0 Q71 and is no pending value:
+**MES-7b-1 (2026-10-16) adds one live arm, V19** (above) — and it is the first arm that is a row on live from day one (stored, unconfirmed). **MES-7a-2 (2026-10-16) adds one live arm, V21** (above). **MES-7a-1 (2026-10-16) adds no live arm.** **V22** (the operating-hours basis of MTBF / MTTR) was answered by MES-0 Q71 and is no pending value:
 operating hours are the union of `[started_at, ended_at)` of committed, not-reversed runs recorded on the machine (Step 0 Q5). A machine with no
 recorded run reads "No operating hours recorded", and the reliability page states how many runs in the range have no machine or no times — that is a
 missing record, not a missing standard. The downtime cause list beyond the three seeded causes is ordinary dictionary data, not a pending value.

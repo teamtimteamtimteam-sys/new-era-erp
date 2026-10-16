@@ -5,6 +5,8 @@
 --   这里以属主的眼睛读批次的余量再问它,于是一个只持质量查看码的读者也读得到"拒收而货还在"那一种)。
 --   【门】质量查看码,或那一批自己那一页的查看码(与 nonconformance_reports 的读策略同一句)。属主视图:读批次、化验、单据、判定不再过
 --   各自的 RLS,所以条件写在末尾的 WHERE 里一次。没有金额,不遮(报告不带金额;钱的那一张单据只给出它的标签)。
+-- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q8):末尾多两列 incident_id / incident_code —— 来源 incident 的那一张指着的事故(编号是标签,跟着单据走)。
+--   加在末尾,CREATE OR REPLACE VIEW 不动既有的列。
 -- NOTE: introduced by db/migrations/2026-10-15-mes6b1-quality-hold-ncr-and-limits.sql.
 
 CREATE VIEW public.ncr_rows WITH (security_invoker = off) AS
@@ -43,7 +45,9 @@ CREATE VIEW public.ncr_rows WITH (security_invoker = off) AS
     ir.label AS penalty_invoice_request_label,
     n.penalty_price_request_id,
     pr.label AS penalty_price_request_label,
-    ncr_holds(n.status, n.disposition, COALESCE(ib.deleted_at, ob.deleted_at), COALESCE(ib.remaining_qty, ob.remaining_qty)) AS holding
+    ncr_holds(n.status, n.disposition, COALESCE(ib.deleted_at, ob.deleted_at), COALESCE(ib.remaining_qty, ob.remaining_qty)) AS holding,
+    n.incident_id,
+    inc.code AS incident_code
    FROM nonconformance_reports n
      LEFT JOIN inbound_batches ib ON ib.id = n.inbound_batch_id
      LEFT JOIN output_batches ob ON ob.id = n.output_batch_id
@@ -53,6 +57,7 @@ CREATE VIEW public.ncr_rows WITH (security_invoker = off) AS
      LEFT JOIN contracts c ON c.id = j.contract_id
      LEFT JOIN invoice_requests ir ON ir.id = n.penalty_invoice_request_id
      LEFT JOIN receipt_price_requests pr ON pr.id = n.penalty_price_request_id
+     LEFT JOIN incidents inc ON inc.id = n.incident_id
   WHERE has_permission('module.quality.view'::text)
      OR (n.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
      OR (n.output_batch_id IS NOT NULL AND has_permission('module.output.view'::text));

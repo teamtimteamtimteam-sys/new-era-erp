@@ -54,6 +54,7 @@ import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
 import BatchBalancePanel from '@/app/components/batch/BatchBalancePanel'
 import QualityPanel from '@/app/components/quality/QualityPanel'
+import LinkedIncidents from '@/app/components/safety/LinkedIncidents'
 import AssayIndicators from '@/app/components/quality/AssayIndicators'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 
@@ -849,6 +850,8 @@ export default async function EditInboundPage({
             {/* MES-6a-2(Q3):这一批的化验上最近记下的指标(从化验行现读 —— 批次上没有副本) */}
             <AssayIndicators kind="inbound" batchId={batch.id} />
             <QualityPanel kind="inbound" batchId={batch.id} />
+            {/* MES-7b-1(Q7):这一批链在哪几件事故上(链接不是安全状态;扣货是上面那一块的不合格报告) */}
+            <LinkedIncidents kind="inbound" id={batch.id} />
 
             {/* PROC-COST-1:落地成本拆解 —— 摆在计价面板【之前】,因为看批次成本的人
                 先问"这批货一共花了多少",再去看"采购价是怎么定的"。 */}

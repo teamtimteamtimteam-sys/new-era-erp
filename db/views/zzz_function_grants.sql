@@ -736,7 +736,8 @@ REVOKE EXECUTE ON FUNCTION public.payable_metals_only(jsonb) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_quality_hold() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_substance_priced_and_penalised() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_ncr_mutation() FROM authenticated;
-REVOKE EXECUTE ON FUNCTION public.ncr_open_internal(uuid, uuid, text, text, uuid, uuid, uuid, bigint, uuid) FROM authenticated;
+-- MES-7b-1:末尾多了 p_incident_id(来源 incident 的那一张指着的事故)—— 签名换了,这一行跟着换。
+REVOKE EXECUTE ON FUNCTION public.ncr_open_internal(uuid, uuid, text, text, uuid, uuid, uuid, bigint, uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.judge_quality_limits(uuid, uuid, text) FROM authenticated;
 
 -- MES-6b-2(2026-10-15):一支触发器函数与五支【内层】。
@@ -776,3 +777,13 @@ REVOKE EXECUTE ON FUNCTION public.guard_maintenance_movement() FROM authenticate
 REVOKE EXECUTE ON FUNCTION public.guard_part_issue_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_maintenance_capitalise_parts() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.inbound_batch_maintenance_net_qty(uuid) FROM authenticated;
+-- MES-7b-1(2026-10-16,MES-7b Step 0 Q3 · Q4 · Q7):事故登记簿的四支触发器函数 —— 没有调用者检查,靠的就是调不到。
+--   guard_incident_kind_code(用过的种类代号冻住)· guard_incident_write(事故写下就不改、只经函数写、来源 / 时刻 / 种类 / 停机 / 事件的行规矩)·
+--   guard_incident_update_write(之后的事实只可追加、只经函数写)· guard_incident_batch_write(链接只经函数写、只在解链接那一次改)。
+--   record_incident · record_incident_update · link_incident_batch · unlink_incident_batch · suggest_incident_batches · set_safety_settings【不收】:
+--   它们是 DEFINER,自己查码(module.safety.edit / module.safety.view),员工就是要调它们。
+--   business_days_after · next_incident_code【不收】:一支只读公共假期表的算术、一支只读的取号函数(与 next_ncr_code 一样)。
+REVOKE EXECUTE ON FUNCTION public.guard_incident_kind_code() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_incident_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_incident_update_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_incident_batch_write() FROM authenticated;

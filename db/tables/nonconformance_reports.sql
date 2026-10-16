@@ -9,7 +9,10 @@
 --   【编号】NCR-YYYY-NNNN,按年、无洞(next_ncr_code;document_types 的 'ncr';宽度 GREATEST(4, 位数) —— CODE-WIDTH-4)。
 --   【父】恰好一批 —— 进料批或产出批(num_nonnulls = 1)。一批可以同时有几张开着的;暂扣持续到【每一张】都决定了(Q7)。
 --   【来源】manual(人开的)· customer_complaint(客户投诉,人开的)· quality_limit(系统开的:一次 V17 越限,judgement_id 指那一行判定)·
---     inspection(留给 MES-7b 的来料检验,今天开不出来 —— open_ncr 按名拒)。【只有 V17 越限自动开】(Q6):来料品位违反、交叉污染过 V11、
+--     inspection(留给 MES-7b 的来料检验,今天开不出来 —— open_ncr 按名拒)。
+--     ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q8):incident(人开的:事故页上,持 module.quality.edit 的人对一批【链在那件事故上】的货开一张,
+--     incident_id 指那件事故;事故自己从不扣货 —— 扣货的是这张报告,照既有的质量暂扣)。
+--     【只有 V17 越限自动开】(Q6):来料品位违反、交叉污染过 V11、
 --     放电失败只在提醒(quality_prompt_ncr)里提示人去开一张。
 --   【可选的指向】一份化验、一件化验争议、一张销售单(只有产出批有)、一行判定 —— 都必须是同一批的(open_ncr 判)。
 --   【两态】open → decided,只经函数(Q7):
@@ -35,7 +38,7 @@ CREATE TABLE public.nonconformance_reports (
     code                        text NOT NULL UNIQUE,
     inbound_batch_id            uuid REFERENCES public.inbound_batches (id),
     output_batch_id             uuid REFERENCES public.output_batches (id),
-    source                      text NOT NULL CHECK (source IN ('manual', 'customer_complaint', 'quality_limit', 'inspection')),
+    source                      text NOT NULL CHECK (source IN ('manual', 'customer_complaint', 'quality_limit', 'inspection', 'incident')),
     description                 text NOT NULL CHECK (btrim(description) <> ''),
     -- 可选的指向:都必须是同一批的(open_ncr 判;系统开的那一张由 judge_quality_limits 填)
     assay_result_id             uuid REFERENCES public.assay_results (id),
@@ -53,6 +56,8 @@ CREATE TABLE public.nonconformance_reports (
     -- accept_with_penalty 时钱走的那一张既有单据:产出批 → 贷项通知申请;进料批 → 收货定价申请(Q22)
     penalty_invoice_request_id  uuid REFERENCES public.invoice_requests (id),
     penalty_price_request_id    uuid REFERENCES public.receipt_price_requests (id),
+    -- MES-7b-1(2026-10-16,MES-7b Step 0 Q8):来源 incident 的那一张指着它那件事故(那一批必须链在那件事故上 —— open_ncr 判)
+    incident_id                 uuid REFERENCES public.incidents (id),
     CONSTRAINT nonconformance_reports_one_batch CHECK (num_nonnulls(inbound_batch_id, output_batch_id) = 1),
     CONSTRAINT nonconformance_reports_sales_order_on_output CHECK (sales_order_id IS NULL OR output_batch_id IS NOT NULL),
     -- 系统开的 ⇔ 没有开单人,并且必须指着它那一行判定
@@ -71,7 +76,9 @@ CREATE TABLE public.nonconformance_reports (
         OR (disposition = 'accept_with_penalty' AND output_batch_id IS NOT NULL
             AND penalty_invoice_request_id IS NOT NULL AND penalty_price_request_id IS NULL)
         OR (disposition = 'accept_with_penalty' AND inbound_batch_id IS NOT NULL
-            AND penalty_price_request_id IS NOT NULL AND penalty_invoice_request_id IS NULL))
+            AND penalty_price_request_id IS NOT NULL AND penalty_invoice_request_id IS NULL)),
+    -- MES-7b-1(Q8):来源 incident ⇔ 指着一件事故
+    CONSTRAINT nonconformance_reports_incident_source CHECK ((source = 'incident') = (incident_id IS NOT NULL))
 );
 
 CREATE INDEX nonconformance_reports_inbound_batch_id_rel ON public.nonconformance_reports (inbound_batch_id);
@@ -82,11 +89,14 @@ CREATE INDEX nonconformance_reports_sales_order_id_rel ON public.nonconformance_
 CREATE INDEX nonconformance_reports_judgement_id_rel ON public.nonconformance_reports (judgement_id);
 CREATE INDEX nonconformance_reports_penalty_invoice_request_id_rel ON public.nonconformance_reports (penalty_invoice_request_id);
 CREATE INDEX nonconformance_reports_penalty_price_request_id_rel ON public.nonconformance_reports (penalty_price_request_id);
+CREATE INDEX nonconformance_reports_incident_id_rel ON public.nonconformance_reports (incident_id);
 -- 搜索:code 的后缀匹配(与 samples 同一条)
 CREATE INDEX nonconformance_reports_code_trgm ON public.nonconformance_reports USING gin (code extensions.gin_trgm_ops);
 
 COMMENT ON TABLE public.nonconformance_reports IS
-    'MES-6b-1:一张不合格报告(NCR-YYYY-NNNN)—— 恰好一批(进料或产出)。它开着,那一批就在质量暂扣里(Step 0 Q2:没有另一张暂扣表;判据只有 batch_quality_hold):流水上不许投料、销售、发货、预留(guard_quality_hold),结算与配料计划也不收。来源 manual / customer_complaint(人开,module.quality.edit)· quality_limit(V17 越限时系统开)· inspection(留给 MES-7b)。open → decided 只经 decide_ncr(action.ncr_decide;开单人按人认永远不能决定自己那一张;系统开的任何持码人都能决定)。处置 accept / accept_with_penalty(指出钱走的那张贷项通知申请或收货定价申请,报告不带金额)/ rework / downgrade 放行;reject 不放行,出路是 CFO 注销申请,货没了暂扣就结束。决定之外只追加。';
+    'MES-6b-1:一张不合格报告(NCR-YYYY-NNNN)—— 恰好一批(进料或产出)。它开着,那一批就在质量暂扣里(Step 0 Q2:没有另一张暂扣表;判据只有 batch_quality_hold):流水上不许投料、销售、发货、预留(guard_quality_hold),结算与配料计划也不收。来源 manual / customer_complaint(人开,module.quality.edit)· quality_limit(V17 越限时系统开)· inspection(留给 MES-7b)· incident(事故页上人开,指着那件事故,那一批必须链在它上 —— MES-7b-1)。open → decided 只经 decide_ncr(action.ncr_decide;开单人按人认永远不能决定自己那一张;系统开的任何持码人都能决定)。处置 accept / accept_with_penalty(指出钱走的那张贷项通知申请或收货定价申请,报告不带金额)/ rework / downgrade 放行;reject 不放行,出路是 CFO 注销申请,货没了暂扣就结束。决定之外只追加。';
+COMMENT ON COLUMN public.nonconformance_reports.incident_id IS
+    'MES-7b-1(MES-7b Step 0 Q8):来源 incident 的那一张指着的事故(恰好在来源是 incident 时有值)。那一批必须有一条有效链接挂在这件事故上(open_ncr 判 NCR_INCIDENT_BATCH_NOT_LINKED)。事故从不自己扣货 —— 扣货的是这张报告。';
 COMMENT ON COLUMN public.nonconformance_reports.opened_by IS
     '开单人的账号;空 = 系统开的(来源 quality_limit:一次 V17 越限)。四眼认的就是它 —— 人开的那一张开单人这个人永远不能决定;系统开的没有开单人,任何持 action.ncr_decide 的人都能决定(Step 0 Q9)。';
 COMMENT ON COLUMN public.nonconformance_reports.disposition IS
