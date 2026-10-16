@@ -1098,6 +1098,33 @@
 >    **线上验证**(`db/scripts/2026-10-16-mes8a-live-proof.mjs`,一笔回滚的事务,一次性账号,`MES8A_PROOF_EXIT=0`):短交 · 不合格报告 · 争议 · 过期证书一家都算到;V23 没给 → "Not graded";设 V23 / V24、评审(B)、带理由更正(A);超上限的单只警告、单照建;抽样建议不加化验;收货经 CFO 批的定价、暂定价、没计价、付款、定金冲抵 ——每一步之后 AP 清单 = 总账、未解释 0.00;一份对得上总账 2000 的对账单签得出,一分钱对不上按名拒、什么都没写;带理由取代;PDF 从冻下来的一行渲染、按 sha256 存档、下载重算一致、改坏字节对不上(路由 409);F17 在我自己的一张证书上;桶读回 0 个对象,销毁证书的桶逐字未变。七个真角色的只读读数表、开场 / 收尾读数在交回里。
 >    验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-8a.md`。
 >    **下一刀 MES-8b-1 · 按进料批的利润、金属敞口与合规包**(见下面「⬜ ★ MES 组」第 14a 行)。
+>    ★ **部署:Tim 在 Vercel 上确认 `556ef6f4` 已部署(MES-8a close-out + MES-8b-1 委托书,2026-10-17)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-16 22:46:29 CST**(测量:`db/migration-windows.tsv`,`2026-10-16-mes8a-supplier-scorecards-and-statements.sql`)·
+>    终点下界 **2026-10-16 23:54:00 CST**(测量:推送把 `origin/main` 移到 `556ef6f4`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`556ef6f4 refs/remotes/origin/main@{2026-10-16 23:54:00 +0800}: update by push`;
+>    本刀的提交 `1ec4bc44` 从没有单独推过,它与 `556ef6f4` 在这同一次推送里出去)·
+>    终点上界 **2026-10-17 00:11:44 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 07 min 31 s,至多 1 h 25 min 15 s。**
+>    窗口里坏掉的(**推导**,MES-8a 交回 §11,没有在线上量):没有在用的东西坏 —— 旧应用不读新表;`create_purchase_order` 只在返回值里多一个键;
+>    `grn_discrepancies` 列集与列序未变;旧应用的待补值页认不得 V23 / V24 两个值码(画成键名)、提醒页画不出 `supplier_review_due`,直到部署。
+>    窗口里的只读读数(2026-10-17 00:21:10 CST,`postgres`,基表;`docs/surveys/MES-8b-1/closeout-readings.sql`,`READ_OWN_EXIT=0`):评审 0 · 对账单 0 ·
+>    签发档 0 · 设定一行、V23 / V24 全空 · 桶 `supplier-statement-documents` 0 个对象 · 采购单 11 张、窗口里新建 0 张;视图 196 张,对 anon / authenticated 带写授权的 **0** 对;
+>    变更记录 22:46:29 起全是 MES-8a 自己的冒烟 / 证明的一次性角色 / 授权 / 账号 / 员工 / 评估 / 草稿合同(23:04:35–23:46:46),逐表 INSERT = DELETE;
+>    **推送之后到本会话 0 行**,之后只有本次 close-out 自己的探针(roles 10 / 10 · user_roles 10 / 10 · role_permissions 476 / 476)。
+>    **已部署的就是 MES-8a 的代码**(测量:五个克隆在线上都打开 `/suppliers/scorecards`、供应商页的评分卡面板与 `/finance/supplier-statements`,
+>    采购单表单画出等级那一行,待补值页列出 V23 —— 都只从 `1ec4bc44` 起才有)。
+>    ★ **close-out 的核对(委托书第 1.2 条 a–d,逐项证据在 `docs/surveys/MES-8b-1/MES-8a-CLOSEOUT.md`)**:
+>    **a** 委托书列的 23 项 fixture 逐项都有臂盖着(269 的 REG · MEAS · NOTCMP · BREACH · WINDOW · GATE · NOTGR · V23 · V24 · GRADED · CORR · LATEST · PO · SAMPLE · DUE · F17,
+>    270 的 GATE · PERIOD · LINES · TIE · NOTIE · ISSUE · SUPER · NUM · PDF,㉞,`check-pdf-routes` 的 SST 三格);今天在新的本地重建上重跑:269 / 270 绿,
+>    本刀的注入脚本 `INJECTIONS_OWN_EXIT=0`(44 + 28 格,0 错),㉞ 的两格各自只红 ㉞,`check-pdf-routes` 12 格各自咬人。
+>    **b** 已部署的应用上 admin · cco · finance · warehouse · cfo 五个克隆、五个页面 25 次全部 200:评分卡与评审表单对 admin · cco 按得动,对 finance · warehouse · cfo
+>    按不动并点名 `action.supplier_review`;采购单表单选了 SUP-2026-0003 之后五个都读到「This supplier has not been reviewed.」;对账单预览对得上(6,101.12),
+>    「Issue the statement」对 admin · finance 按得动、对 cco · cfo 按不动并点名 `module.finance.edit`,warehouse 进不了那一页;待补值页五个都列出 V23。
+>    本地重建 + 自己的种子(35 次全部 200):评过级的供应商「Grade A」、评审历史与被取代的那一次、采购单表单「Supplier grade A — advice only.」、对账单页与签发同上分界。
+>    **c** 两处 390 px 溢出逐个复现:供应商编辑页状态面板那一颗不换行的权限码 +40 px(cco · finance · warehouse · gm,active 的供应商)/ +30 px(gm,approved 的);
+>    新建采购单页的供应商下拉被最长的名字撑开 +134 px(cco · finance)/ +120 px(warehouse)/ +246 px(gm)—— 归 MES-8b-1 的并入。
+>    **d** MES-8a 交回 §8 的 24 条决定逐条列在 close-out 文件里。**没有缺的、没有坏的** —— 所以第 2 步(MES-8b-1)照常开始。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
