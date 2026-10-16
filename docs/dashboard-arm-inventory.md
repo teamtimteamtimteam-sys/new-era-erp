@@ -118,6 +118,7 @@ module's own page.
 | M7b2 | `incident_report_due` | 一件现在要通报 NEA 的事故,还没有记下交了书面报告(Q10 · Q11)。`item_date` = 期限:事故日之后第 V19 个工作日(`business_days_after`,公共假期表);期限算不出来(某一年日历缺)或 V19 为空时退回事故日,`doc_kind` 装期限的状态(`computed` · `not_set` · `cannot_compute`)—— 只有 `computed` 时 `item_date` 才是期限。V19 未确认时期限照算,事故页上标"未确认" | `module.safety.view` | 同上 + `safety_settings` · `public_holidays` | 记下 `report_submitted` 之后消失;更正成不用通报也消失;关闭不清掉它 |
 | M7b3 | `inspection_due` | 一张启用的巡检清单到期了:最后一次【没被更正掉】的巡检日期 + 频率天数 ≤ 今天(新加坡),或者一次都没巡过(MES-7b Step 0 Q13 · Q14)。一张一行,`item_id` = 那张清单,`item_code` = 清单代号,`subject` = 清单名,`doc_kind` = `due` · `never_run`,`item_date` = 到期日(从没巡过的退回清单建立那一天)。**没有频率的清单从不到期**(V18,页面上写「没有设频率」);停用的清单不提醒 | `module.safety.view` | `inspection_templates` · `inspection_runs`(经基视图 `inspection_template_due_all`,不授给任何人)| 记一次巡检之后消失(到下一个到期日为止);停用或把频率清空也消失 |
 | M7b4 | `inspection_finding_open` | 一条巡检发现还没关(Q14:关闭是自己的一行,写下做了什么)。一条一行,`item_id` = 那条发现,`item_code` = 巡检编号,`subject` = 那一项的字(抄在巡检上的那一份),`doc_kind` = 巡检的 id(链接去那次巡检),`item_date` = 发现记下的那一天。**关掉它生成的任务【不】清掉它** | `module.safety.view` | `inspection_findings` · `inspection_runs` · `inspection_results` · `inspection_finding_closures` | 持 `module.safety.edit` 的人关闭这条发现(写下做了什么)之后消失 |
+| M8a1 | `supplier_review_due` | 一家批准过 / 在用的进货供应商该做评分卡评审了:最近一次【没被取代】的评审的日子 + V23 的评审周期 ≤ 今天(新加坡),或者一次都没评过(MES-8 Step 0 Q27)。一家一行,`item_id` = 那家供应商,`item_code` = 供应商代码,`subject` = 它的名字,`doc_kind` = `due` · `never_reviewed`,`item_date` = 到期日(从没评过的退回建档那一天)。**V23 的周期空着时一行都不出**(不猜一个周期) | `action.supplier_review` | `suppliers` · `supplier_score_settings` · `supplier_scorecard_reviews`(经 `supplier_latest_reviews`)| 记一次评审之后消失(到下一个到期日为止);把周期清空也消失 |
 
 
 
@@ -371,6 +372,7 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `incident_report_due` | `/safety/incidents/[id]` | the incident page: the written-report deadline (marked unconfirmed while V19 is unconfirmed) and the form that records the report submitted (MES-7b-1) |
 | `inspection_due` | `/safety/inspections/templates/[id]` | the checklist page: its items, frequency, last inspection and next due date, and the button that records an inspection against it (MES-7b-2) |
 | `inspection_finding_open` | `/safety/inspections/[id]` | the inspection page: the failed item, the finding's corrective action, owner and due date; raise a task, open a non-conformance report, or close it by saying what was done (MES-7b-2) |
+| `supplier_review_due` | `/suppliers/[id]/edit` | the supplier page: its scorecard counts over a window you choose, its latest review and grade, and the form that records a review (MES-8a) |
 
 ### One mechanism, not two
 

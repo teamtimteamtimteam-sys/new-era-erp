@@ -177,6 +177,12 @@
 --   inspection_template → /safety/inspections/templates/[id]  module.safety.view。成员:检查项(住在这里)。
 --   dictionary_environmental_parameters → /settings/dictionaries 的监测参数那一段   module.safety.view
 --   safety_environment  → /safety/environment(只有清单页,整张表是一条记录 —— 'collection')   module.safety.view
+-- MES-8a(2026-10-16,MES-8 Step 0 Q22):
+--   supplier_scorecard_review → /suppliers/scorecards(评审只有清单页 —— 'collection')   module.suppliers.view;每一家的评审也出现在
+--                         那家供应商的记录上(supplier 主语的成员,家不在那里)。
+--   supplier_score_settings   → /suppliers/scorecards 上的 V23 / V24 那一块   module.suppliers.view;单行设置作根(safety_settings 的先例)
+--   supplier_statement        → /finance/supplier-statements/[id]   requireFunction(FN.financeSupplierStatements) = module.finance.view。
+--                         成员:签发档(supplier_statement_issues,住在这里)。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])
  LANGUAGE sql
@@ -331,6 +337,11 @@ AS $function$
         ('inspection_run',         ARRAY['module.safety.view'],    'inspection_runs',       'id', 'table', NULL),
         ('inspection_template',    ARRAY['module.safety.view'],    'inspection_templates',  'id', 'table', NULL),
         ('dictionary_environmental_parameters', ARRAY['module.safety.view'], 'environmental_parameters', 'code', 'collection', NULL),
-        ('safety_environment',     ARRAY['module.safety.view'],    'environmental_results', 'id', 'collection', NULL)
+        ('safety_environment',     ARRAY['module.safety.view'],    'environmental_results', 'id', 'collection', NULL),
+        -- MES-8a(2026-10-16,MES-8 Step 0 Q22):供应商评审(只有评分卡页,整张表一条记录 —— 'collection';每一家的评审也出现在那家供应商下)·
+        --   供应商评分的设定(V23 / V24,单行设置作根)· 一份供应商对账单(财务查看码;它的签发档住在这里)
+        ('supplier_scorecard_review', ARRAY['module.suppliers.view'], 'supplier_scorecard_reviews', 'id', 'collection', NULL),
+        ('supplier_score_settings', ARRAY['module.suppliers.view'], 'supplier_score_settings', 'id', 'table', NULL),
+        ('supplier_statement',     ARRAY['module.finance.view'],   'supplier_statements',   'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

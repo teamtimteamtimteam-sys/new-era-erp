@@ -314,6 +314,12 @@ export const REMINDERS = [
     { itemType: 'inspection_finding_open', permission: 'module.safety.view', href: '/safety/inspections',
       itemHref: (r: OpsRow) => (r.doc_kind ? `/safety/inspections/${r.doc_kind}#finding-${r.item_id}` : null) },
 
+    // ══ MES-8a(2026-10-16,MES-8 Step 0 Q27,Tim):供应商评审 ════════════════════════════════════════════════════════
+    // 【supplier_review_due】一家批准过 / 在用的进货供应商该评审了(从没评过 · 最近一次没被取代的评审 + V23 的周期 ≤ 今天)——
+    //   门牌指那家供应商(从那里记一次评审)。V23 的周期空着时这一支一行都不出。门 action.supplier_review(记评审的人)。
+    { itemType: 'supplier_review_due', permission: 'action.supplier_review', href: '/suppliers/scorecards',
+      itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

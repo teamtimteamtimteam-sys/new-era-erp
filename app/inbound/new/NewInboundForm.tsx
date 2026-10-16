@@ -3,6 +3,7 @@
 // 新建进料批次。cut 4c:供应商之后可选【关联采购单】—— 选定供应商后列出其可收货
 // 的采购单(po_receivable_lines),再选行,物料与数量按行的剩余量预填(都仍可改 ——
 // 实收和下单本来就会有出入)。留空 = 与从前完全一样的临时采购路径。
+import SamplingAdviceLive from '@/app/inbound/SamplingAdviceLive'
 import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
@@ -209,6 +210,8 @@ export default function NewInboundForm({
                             {state.fieldErrors.supplier_id}
                         </p>
                     )}
+                {/* MES-8a:这家供应商的等级给的抽样建议 —— 只是建议,不加必须的化验(Q5)。 */}
+                <SamplingAdviceLive supplierId={supplierId} />
                     {/* SUP-TYPE-1b:这个下拉现在只列【供货的】供应商,所以空的时候
                         不能再说"还没有供应商" —— register 里可能有好几家,只是
                         没有一家被标成供货。说错原因的空状态,比没有空状态更难查。 */}

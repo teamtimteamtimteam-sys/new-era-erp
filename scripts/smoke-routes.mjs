@@ -250,6 +250,9 @@ const ID_SOURCES = {
         // 线上 customer_statements 今天零行(机制与屏幕先于第一份真对账单落地),
         // 故 pdf 那条路由同时列在 EXPECTED_SKIPS 里。
         '/finance/statements': 'customer_statements',
+        // MES-8a:供应商对账单。与上面那一条同一个理由:它必须在这里,否则 /finance/supplier-statements/[id] 与它的 pdf 会落到 '/finance'
+        // 这个更短的前缀上。线上 supplier_statements 今天零行(本刀不在线上签发任何一份),所以两条路由同时列在 EXPECTED_SKIPS 里。
+        '/finance/supplier-statements': 'supplier_statements',
         // TASK-1b:任务详情。**取的 id 必须是一张【团队】任务** —— 见 ID_FILTERS。
         '/tools/tasks': 'tasks',
         '/settings/roles': 'roles', '/stocktakes': 'stocktakes',
@@ -1371,6 +1374,11 @@ const EXPECTED_SKIPS = new Set([
     // 【注意它跳过的是 PDF 那条路由,不是入口】入口在 /sales/customers/[id] 上,
     // 那一页有数据、每一跑都真的渲染,并且下面有一条【内容】断言钉着它。
     '/finance/statements/[id]/pdf',
+    // MES-8a:线上还没有一份供应商对账单 —— supplier_statements 只由 issue_supplier_statement 写入,而本刀不在线上签发(委托书:
+    // "No review, V23, V24 or statement is created on live")。签发第一份的那天,这条断言会报「预期会 SKIP 的路由跑起来了」,逼人把这两行删掉。
+    // 【入口照常渲染】/finance/supplier-statements 清单与签发面板每一跑都真的渲染。
+    '/finance/supplier-statements/[id]',
+    '/finance/supplier-statements/[id]/pdf',
     // COMM-1:线上还没有一份佣金协议(机制与屏幕先于第一份真协议落地)——
     // 与上面几条同一种情形。【注意它跳过的是编辑页,不是入口】:
     // /sales/commissions 列表页每一跑都真的渲染,而且下面两条【内容】断言钉着它那两句

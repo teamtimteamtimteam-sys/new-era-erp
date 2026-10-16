@@ -391,7 +391,11 @@ BEGIN
         'term_count', v_term_count,
         'retention_count', v_retentions,
         'order_kind', v_kind,
-        'category', btrim(p_category)
+        'category', btrim(p_category),
+        -- MES-8a(MES-8 Step 0 Q5):供应商最近一次评审的等级若有 V24 的预付上限,而这张单"下单时"那几期超过了它 →
+        --   一条 PREPAYMENT_ABOVE_GRADE_CAP 警告。【从不拒绝】—— 单照样建好;表单在提交之前已经用同一份实现预览过它
+        --   (supplier_grade_advice_internal)。旧应用不认这个键,照旧走得通(破窗里什么都不坏)。
+        'warnings', supplier_grade_advice_internal(p_supplier_id, p_payment_terms, v_total) -> 'warnings'
     );
 END;
 $function$

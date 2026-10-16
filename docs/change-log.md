@@ -1470,3 +1470,34 @@ red at least once). Fixture 235 stays at **8** exclusions.
   (`db/views/zzz_function_grants.sql`, replayed in every later migration's own transaction). A write that never happened is not logged, so this
   changes no log row; it closes the path by which a write through an owner-rights view could have reached a base table without the base table's RLS
   being asked about the caller.
+
+## 31. Supplier scorecards and supplier statements, with F17 (MES-8a, v1.4.56, 2026-10-16)
+
+Hand-back `docs/handbacks/MES-8a.md`; fixtures 269 (arms REG · MEAS · NOTCMP · BREACH · WINDOW · GATE · NOTGR · V23 · V24 · GRADED · CORR ·
+LATEST · PO · SAMPLE · DUE · F17) and 270 (GATE · PERIOD · LINES · TIE · NOTIE · ISSUE · SUPER · NUM · PDF) pin every rule below, each
+fault-injected by `db/scripts/2026-10-16-mes8a-fixture-injections.py` (44 cells on 269 + 28 on 270, every arm red at least once). Fixture 235 stays
+at **8** exclusions.
+
+### 31.1 Logged, excluded, masked
+
+- **Four new tables, all logged.** `supplier_score_settings` (the single V23 / V24 row), `supplier_scorecard_reviews`, `supplier_statements`,
+  `supplier_statement_issues`: public tables **313 → 317**, exclusions stay **8**. Reviews and statement issues are append-only — refused by name for
+  everyone, owner included (`SUPPLIER_REVIEW_IMMUTABLE` / `SUPPLIER_STATEMENT_ISSUE_IMMUTABLE`), so their log is INSERT rows only. A statement changes
+  once, when it is superseded (`superseded_at` · `superseded_by` · `superseded_reason` from empty to set, nothing else — `SUPPLIER_STATEMENT_IMMUTABLE`
+  otherwise). The settings row changes only through `set_supplier_score_settings` (whole-row, `action.supplier_review`); changing it never rewrites
+  a past review, because each review copies the measures, the weights, the grade lines and the caps it was graded with.
+- **No masked column, no new mask rule (119 stays 119).** A statement carries amounts, but the whole table is behind `module.finance.view` (the
+  ledger is the price data — AGENTS.md decision 1), and reading or issuing one also needs `data.view_purchase_prices`.
+- **No new column on an existing table.** `grn_discrepancies` keeps its 30 columns in live order; its body moved into `grn_discrepancies_all`
+  (no grant to staff) so the scorecard can count lines for a reader who holds `module.suppliers.view` but not `module.purchasing.view`.
+- **The migration's own `change_log` rows:** **5** (read on live afterwards, by the migration's `txid`) — the `action.supplier_review` permission
+  (INSERT, then the UPDATE declaring `module.suppliers.view`), one `document_types` INSERT (SST) and two `role_permissions` INSERTs (admin · cco).
+  The settings row's bootstrap INSERT precedes the table's change-log trigger, so it has no row. Nothing else is seeded — no review, no V23 or V24
+  value, no statement.
+- **Trail.** Three new subjects: `supplier_scorecard_review` (the whole reviews table as one record, read from `/suppliers/scorecards`),
+  `supplier_score_settings` (the settings row), `supplier_statement` (home: the statement and its issues). A supplier's own trail now shows its
+  reviews (not home). `scripts/check-trail-wording.mjs` arm ㉞ pins seven sentences (faults `wording-drift-mes8a`, `wording-part-mes8a`, each biting
+  only ㉞).
+- **F17.** `record_cod_issue` now refuses a path outside the certificate's folder and a second set of bytes by name, and stores the digest
+  lower-case. It writes the same one `cod_issues` row as before; the two issued certificates' rows and stored bytes are unchanged (closing
+  readings in the hand-back).

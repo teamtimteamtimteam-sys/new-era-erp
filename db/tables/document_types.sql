@@ -190,4 +190,8 @@ VALUES
     ('incident', 'INC', 'incidents', 'gapless', NULL, '/safety/incidents', 'detail', 'what_happened', ARRAY['what_happened']::text[], ARRAY['module.safety.view']::text[]),
     -- MES-7b-2(2026-10-16,MES-0 Q53 · MES-7b Step 0 Q13 · Q27):巡检 INS-YYYY-NNNN(按年无洞,next_inspection_code);读码 module.safety.view;落点是巡检页
     --   /safety/inspections/[id];搜索的副标题是记下那一刻抄下的清单名字
-    ('inspection', 'INS', 'inspection_runs', 'gapless', NULL, '/safety/inspections', 'detail', 'template_name', ARRAY['template_name']::text[], ARRAY['module.safety.view']::text[]);
+    ('inspection', 'INS', 'inspection_runs', 'gapless', NULL, '/safety/inspections', 'detail', 'template_name', ARRAY['template_name']::text[], ARRAY['module.safety.view']::text[]),
+    -- MES-8a(2026-10-16,MES-0 Q79 · MES-8 Step 0 Q7):供应商对账单 SST-YYYY-NNNN(按年无洞,next_supplier_statement_code,宽度 GREATEST(4, 位数)——
+    --   没有 CODE-WIDTH-4 之前那种截到 4 位的写法);读码 module.finance.view(对账单就是应付总账,决定 1);落点是对账单页 /finance/supplier-statements/[id];
+    --   搜索的副标题是被取代的理由(同一个期间更正过时才有字)
+    ('supplier_statement', 'SST', 'supplier_statements', 'gapless', NULL, '/finance/supplier-statements', 'detail', 'superseded_reason', ARRAY['superseded_reason']::text[], ARRAY['module.finance.view']::text[]);

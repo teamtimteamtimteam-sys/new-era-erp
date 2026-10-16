@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/check-pdf-routes.mjs
 // ════════════════════════════════════════════════════════════════════════════
-// MES-7a-1(2026-10-15,F11,Tim):两条证书 PDF 路由的行为 —— 一支可以反复跑的检查
+// MES-7a-1(2026-10-15,F11,Tim):两条证书 PDF 路由的行为 —— 一支可以反复跑的检查(MES-8a 加第三条:供应商对账单)
 // ════════════════════════════════════════════════════════════════════════════
 // 【为什么有它】MES-6b-2 close-out 记过一个弱处(W1):「PDF 照快照渲染」「存下的字节与记下的哈希对不上 → 409」是【路由】(TypeScript)的行为,
 //   SQL fixture 够不着 —— 它们只被一次性的线上证明证过一次,而那次之后没有任何东西会再问一遍。Tim 的 F11:给它们一支可重复的检查,
@@ -20,6 +20,9 @@
 //             COD-STORED 不带 ?cod= 打开一张已签发的 → 流存下的字节(不重新渲染);作废的同样;被改过 → 409
 //             COD-PENDING 还没签发的 → 内部存档,照活数据渲染、带水印
 //             COD-FONT   活数据里有画不出来的字 → 签发之前就 400,issue_cod 一次都没被调;快照里有 → 渲染之内拒,什么都不传
+//   供应商对账单(MES-8a,Q9)SST-FROZEN 只从冻下来的那一行渲染(收件人、抬头、暂定价标记、没计价的收货只有数量;英文;不读活表)
+//             SST-409    ?version=N 流存下的字节;被改过 → 409
+//             SST-ARCHIVE 存档:传一次、记下的是那串字节的 sha256、键在 <对账单 id>/ 之下;记被拒 → 刚传的对象删掉
 // 【故障注入格,每一次都跑】(check_grants.py 的先例:一支从没见过自己红的检查只是安静,不是可靠)
 //   把路由源码改坏一处(回读活数据 · 不校验哈希 · 不问签发人 · 抬头取活的 · 不流字节 · 不先问字体),写成一份临时副本,对着它再跑一遍 ——
 //   每一格必须让【它点名的那一个样例】红;有一格没红,本检查自己就红(那一格瞎了)。`--no-faults` 只跑干净那一遍(给人调试用)。
@@ -44,6 +47,7 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const COA_ROUTE = join(ROOT, 'app/output/[id]/coa/pdf/route.tsx')
 const COD_ROUTE = join(ROOT, 'app/inbound/[id]/cod/pdf/route.tsx')
+const SST_ROUTE = join(ROOT, 'app/finance/supplier-statements/[id]/pdf/route.ts')
 const TMP = join(ROOT, 'scripts/pdf-routes', `.tmp-${process.pid}`)
 const sha = (b) => createHash('sha256').update(b).digest('hex')
 
@@ -100,6 +104,18 @@ const codSnap = (supplier, co, status = 'issued') => ({
             verification_token: '77777777-7777-4777-8777-777777777777', completed_on: '2026-09-05' },
     provenance: { run_ids: [] },
 })
+
+const SST = '88888888-8888-4888-8888-888888888888'
+const sstRow = (over = {}) => ({ id: SST, code: 'SST-2026-0001', supplier_id: 'sup-1', supplier_code: 'SUP-2026-0002', supplier_name: 'Frozen Supplier Pte Ltd',
+    company: company('Frozen Recovery Pte. Ltd.'), period_start: '2026-09-01', period_end: '2026-09-30', base_currency: 'SGD',
+    opening_base: 1000, charges_base: 500, credits_base: 0, payments_base: 300, prepayments_base: 0, closing_base: 1200,
+    list_base: 1200, on_account_base: 0, residue_base: 0,
+    lines: [{ date: '2026-09-03', entry_code: 'JE-2026-0101', kind: 'receipt', doc_code: 'IN-2026-0301', amount_base: 500, currency: 'SGD', amount_ccy: 500,
+              provisional: true, reversal: false }],
+    open_items: [{ doc_kind: 'inbound', doc_code: 'IN-2026-0301', doc_date: '2026-09-03', currency: 'SGD', doc_value_base: 500, open_ccy: 500, open_base: 500,
+                   days_outstanding: 27, provisional: true }],
+    on_account: [], unpriced: [{ doc_code: 'IN-2026-0302', arrival_date: '2026-09-20', material_code: 'MAT-EVB', quantity: 800, unit: 'kg' }],
+    issued_at: '2026-10-01T02:00:00Z', superseded_at: null, ...over })
 
 function fake(over = {}) {
     globalThis.__PDF_FAKE__ = { tables: {}, rpc: {}, calls: [], reads: [], uploads: [], removed: [], store: new Map(), ...over }
@@ -262,8 +278,55 @@ const CASES = [
         if (res.status !== 400 || f.uploads.length !== 0) return `an unprintable snapshot must be refused inside render with nothing uploaded (status ${res.status}, uploads ${f.uploads.length})`
         return null
     }],
+    ['SST-FROZEN', async ({ sst }) => {
+        const f = fake({ tables: {
+            supplier_statements: [sstRow()],
+            supplier_lookup: [{ id: 'sup-1', code: 'SUP-2026-0002', legal_name: 'Live Supplier Renamed Ltd' }],
+            company_profile_masked: [{ ...company('Live Letterhead Pte. Ltd.'), logo_path: null }],
+        } })
+        const res = await sst.GET(req(`/finance/supplier-statements/${SST}/pdf`), ctx(SST))
+        if (res.status !== 200) return `the frozen render returned ${res.status}: ${(await res.text()).slice(0, 160)}`
+        // 窄列里的字会折行(pypdf 读出来是 "Provisional\nprice")—— 空白归一再比,比的是字,不是排版
+        const txt = pdfText(Buffer.from(await res.arrayBuffer())).replace(/\s+/g, ' ')
+        if (!txt.includes('Frozen Supplier Pte Ltd') || txt.includes('Live Supplier Renamed')) return 'the paper does not carry the supplier frozen on the statement'
+        if (!txt.includes('Frozen Recovery Pte. Ltd.') || txt.includes('Live Letterhead')) return 'the letterhead is not the one frozen on the statement'
+        if (!txt.includes('Provisional price')) return 'a provisionally priced receipt is not marked provisional on the paper'
+        if (!txt.includes('IN-2026-0302') || !txt.includes('800 kg')) return 'a receipt not yet priced is not listed with its quantity'
+        if (/[一-鿿]/.test(txt)) return 'the supplier statement must be English'
+        if (f.reads.includes('supplier_lookup') || f.reads.includes('company_profile_masked')) return `the render read live tables: ${f.reads.join(', ')}`
+        return null
+    }],
+    ['SST-409', async ({ sst }) => {
+        const good = Buffer.from('%PDF-1.4 stored supplier statement')
+        const f = fake({ tables: { supplier_statement_issues: [{ statement_id: SST, version: 1, file_path: `${SST}/a.pdf`, sha256: sha(good) }] } })
+        f.store.set(`supplier-statement-documents/${SST}/a.pdf`, good)
+        let res = await sst.GET(req(`/finance/supplier-statements/${SST}/pdf?version=1`), ctx(SST))
+        if (res.status !== 200 || !Buffer.from(await res.arrayBuffer()).equals(good)) return `stored bytes that match must stream with 200, got ${res.status}`
+        f.store.set(`supplier-statement-documents/${SST}/a.pdf`, Buffer.from('%PDF-1.4 tampered'))
+        res = await sst.GET(req(`/finance/supplier-statements/${SST}/pdf?version=1`), ctx(SST))
+        if (res.status !== 409) return `stored bytes that do not match their recorded sha256 must answer 409, got ${res.status}`
+        return null
+    }],
+    ['SST-ARCHIVE', async ({ sst }) => {
+        let f = fake({ tables: { supplier_statements: [sstRow()], supplier_statement_issues: [] } })
+        f.rpc.record_supplier_statement_issue = (a) => ({ statement_id: a.p_statement_id, version: 1, sha256: a.p_sha256 })
+        let res = await sst.POST(post(`/finance/supplier-statements/${SST}/pdf`), ctx(SST))
+        if (res.status !== 200) return `archive returned ${res.status}: ${(await res.text()).slice(0, 160)}`
+        if (f.uploads.length !== 1) return `expected one upload, got ${f.uploads.length}`
+        const bytes = f.store.get(`supplier-statement-documents/${f.uploads[0].path}`)
+        const rec = f.calls.find((c) => c.name === 'record_supplier_statement_issue')
+        if (!rec || rec.args.p_sha256 !== sha(bytes)) return 'the recorded sha256 is not the sha of the uploaded bytes'
+        if (!f.uploads[0].path.startsWith(`${SST}/`)) return 'the object is not stored under the statement id'
+        // 记哈希被拒 → 刚传的对象被删掉(桶里不留孤儿)
+        f = fake({ tables: { supplier_statements: [sstRow()], supplier_statement_issues: [] } })
+        f.rpc.record_supplier_statement_issue = () => { throw new Error('SUPPLIER_STATEMENT_SUPERSEDED|SST-2026-0001|x') }
+        res = await sst.POST(post(`/finance/supplier-statements/${SST}/pdf`), ctx(SST))
+        if (res.status !== 400) return `a refused record must answer 400, got ${res.status}`
+        if (f.uploads.length !== 1 || f.removed.length !== 1 || f.store.size !== 0) return `a refused record must remove the uploaded object (uploads ${f.uploads.length}, removed ${f.removed.length}, left ${f.store.size})`
+        return null
+    }],
 ]
-const DECLARED = 8
+const DECLARED = 11
 
 // ── 故障注入格:改坏路由的一处,点名的那一个样例必须红 ───────────────────────────────
 const FAULTS = [
@@ -283,13 +346,21 @@ const FAULTS = [
       from: 'if (stored && stored.code) return await streamStored(supabase, { id: stored.id, code: stored.code })', to: 'void stored' },
     { name: 'cod-no-409', route: 'cod', expect: 'COD-STORED', from: 'if (sha !== issue.sha256) {', to: 'if (sha === "never") {' },
     { name: 'cod-no-font-precheck', route: 'cod', expect: 'COD-FONT', from: 'if (preBad) return new NextResponse(preBad, { status: 400 })', to: 'void preBad' },
+    { name: 'sst-render-live', route: 'sst', expect: 'SST-FROZEN', from: 'return statementDocFrom(st)',
+      to: "return statementDocFrom({ ...st, supplier_name: ((await supabase.from('supplier_lookup').select('legal_name').eq('id', st.supplier_id).maybeSingle()).data as { legal_name: string }).legal_name })" },
+    { name: 'sst-no-409', route: 'sst', expect: 'SST-409', from: 'if (sha !== issue.sha256) {', to: 'if (sha === "never") {' },
+    { name: 'sst-orphan-left', route: 'sst', expect: 'SST-ARCHIVE', from: 'await supabase.storage.from(BUCKET).remove([path])', to: 'void path' },
 ]
 
-async function load(coaSrc, codSrc, tag) {
+async function load(coaSrc, codSrc, sstSrc, tag) {
     mkdirSync(TMP, { recursive: true })
     const coaPath = join(TMP, `coa-${tag}.tsx`), codPath = join(TMP, `cod-${tag}.tsx`)
     writeFileSync(coaPath, coaSrc); writeFileSync(codPath, codSrc)
-    return { coa: await jiti.import(coaPath), cod: await jiti.import(codPath) }
+    // MES-8a:供应商对账单的路由 import 它同目录的文档与上两级的错误码 —— 副本放在【原目录】里(相对 import 才找得到),跑完删掉
+    const sstPath = join(ROOT, 'app/finance/supplier-statements/[id]/pdf', `.route-${tag}-${process.pid}.ts`)
+    writeFileSync(sstPath, sstSrc)
+    try { return { coa: await jiti.import(coaPath), cod: await jiti.import(codPath), sst: await jiti.import(sstPath) } }
+    finally { rmSync(sstPath, { force: true }) }
 }
 
 async function runAll(routes) {
@@ -305,18 +376,18 @@ async function runAll(routes) {
 
 let exit = 0
 try {
-    const coaSrc = readFileSync(COA_ROUTE, 'utf8'), codSrc = readFileSync(COD_ROUTE, 'utf8')
+    const coaSrc = readFileSync(COA_ROUTE, 'utf8'), codSrc = readFileSync(COD_ROUTE, 'utf8'), sstSrc = readFileSync(SST_ROUTE, 'utf8')
     if (CASES.length !== DECLARED) { console.error(`✗ check-pdf-routes:声明 ${DECLARED} 个样例,实有 ${CASES.length} 个`); process.exit(3) }
-    const clean = await runAll(await load(coaSrc, codSrc, 'clean'))
+    const clean = await runAll(await load(coaSrc, codSrc, sstSrc, 'clean'))
     for (const [name] of CASES) console.log(`${clean[name] ? '✗' : '✓'} ${name}${clean[name] ? ' —— ' + clean[name] : ''}`)
     if (Object.keys(clean).length) exit = 1
     let faultsRun = 0
     if (!process.argv.includes('--no-faults')) {
         for (const f of FAULTS) {
-            const src = f.route === 'coa' ? coaSrc : codSrc
+            const src = f.route === 'coa' ? coaSrc : f.route === 'cod' ? codSrc : sstSrc
             if (!src.includes(f.from)) { console.error(`✗ 故障格 ${f.name}:路由里找不到要改的那一句 —— 这一格瞎了(路由改过,格子没跟上)`); exit = 3; continue }
             const bad = src.replace(f.from, f.to)
-            const red = await runAll(await load(f.route === 'coa' ? bad : coaSrc, f.route === 'cod' ? bad : codSrc, f.name))
+            const red = await runAll(await load(f.route === 'coa' ? bad : coaSrc, f.route === 'cod' ? bad : codSrc, f.route === 'sst' ? bad : sstSrc, f.name))
             faultsRun++
             if (!red[f.expect]) { console.error(`✗ 故障格 ${f.name}:注入之后 ${f.expect} 仍然是绿的 —— 这一格没有咬人`); exit = 3 }
             else console.log(`✓ 故障格 ${f.name} → ${f.expect} 红(${red[f.expect].slice(0, 90)})`)

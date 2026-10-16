@@ -656,6 +656,8 @@ const HIDE = {
     // MES-6b-2:快照是证书页与 PDF 的事(从不摊成原始 JSON);散列不是人话。证书号【不藏】—— 它挂在标题后面那一段(titlePart),
     //   藏起来它就成了一个 id(机器字检查当场抓到过,本刀第一版)
     certificates_of_analysis: ['snapshot'], coa_issues: ['sha256'],
+    // MES-8a:签发档的散列与键不是人话;对账单的号【不】藏(它挂在标题后面那一段)
+    supplier_statement_issues: ['sha256', 'file_path'],
     // AUDIT-TRAIL-1b-2:报价与订单的单号在页头(它们的事件不拿单号做标题);签发档的散列不是人话;
     //   附件的 MIME 类型(application/pdf)是机器字,文件名已经说了它是什么。
     //   ★ 发货单、对账单、催收的单号【不】藏:它们的事件标题里要说出是哪一张("Goods shipped · SHP-…"),
@@ -723,6 +725,9 @@ const TABLE_NAMES = {
     inspection_templates: 'inspection checklist', inspection_template_items: 'checklist item', inspection_runs: 'inspection',
     inspection_results: 'inspection result', inspection_findings: 'inspection finding', inspection_finding_closures: 'finding closure',
     environmental_parameters: 'monitored parameter', environmental_results: 'environmental result',
+    // MES-8a(2026-10-16):供应商评审 · 评分的设定(V23 / V24)· 供应商对账单与它的签发档
+    supplier_scorecard_reviews: 'supplier review', supplier_score_settings: 'supplier grading settings',
+    supplier_statements: 'supplier statement', supplier_statement_issues: 'supplier statement PDF issue',
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',

@@ -3820,3 +3820,63 @@ environmental_results,correction_reason,text,verbatim,,,Reason for the correctio
 environmental_results,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
 environmental_results,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
 nonconformance_reports,inspection_finding_id,technical,hide: the finding is named on the report page (inspection code · item) — MES-7b-2 (2026-10-16),,,Inspection finding,,,uuid
+supplier_score_settings,id,technical,hide: the single settings row (always true),,,ID,,,boolean
+supplier_score_settings,weights,text,verbatim (the weight per scorecard measure — V23) — MES-8a (2026-10-16),,,Weights (V23),,,jsonb
+supplier_score_settings,grade_lines,text,verbatim (the grade lines — V23),,,Grade lines (V23),,,jsonb
+supplier_score_settings,review_window_days,integer,a count of days (V23),,,Review every (days),,,integer
+supplier_score_settings,grade_caps,text,verbatim (per grade: prepayment cap and sampling level — V24),,,Prepayment caps and sampling levels (V24),,,jsonb
+supplier_score_settings,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+supplier_score_settings,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+supplier_scorecard_reviews,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+supplier_scorecard_reviews,seq,technical,hide: the order the reviews were recorded in,,,Sequence,,,bigint
+supplier_scorecard_reviews,supplier_id,fk_document,"suppliers.code (document number, prefix SUP) — MES-8a (2026-10-16)",,,Supplier,,,uuid
+supplier_scorecard_reviews,window_from,date,"formatDate (lib/dates.ts:193) — the first day the review counted",,,Window from,,,date
+supplier_scorecard_reviews,window_to,date,"formatDate (lib/dates.ts:193) — the last day the review counted",,,Window to,,,date
+supplier_scorecard_reviews,measures,technical,hide: the copied counts (shown in full on the supplier page),,,Measures,,,jsonb
+supplier_scorecard_reviews,weights,technical,hide: the copied V23 weights (shown on the supplier page),,,Weights,,,jsonb
+supplier_scorecard_reviews,grade_lines,technical,hide: the copied V23 grade lines,,,Grade lines,,,jsonb
+supplier_scorecard_reviews,grade_caps,technical,hide: the copied V24 caps and sampling levels,,,Prepayment caps and sampling levels,,,jsonb
+supplier_scorecard_reviews,score,number,the computed score,,,Score,,,numeric
+supplier_scorecard_reviews,grade,text,verbatim,,,Grade,,,text
+supplier_scorecard_reviews,not_graded_reason,text,verbatim (V23_NOT_SET),,,Why not graded,,,text
+supplier_scorecard_reviews,note,text,verbatim,,,Note,,,text
+supplier_scorecard_reviews,corrects_review_id,technical,hide: the review being corrected (named by the heading),,,Corrects,,,uuid
+supplier_scorecard_reviews,correction_reason,text,verbatim,,,Reason for the correction,,,text
+supplier_scorecard_reviews,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+supplier_scorecard_reviews,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+supplier_statements,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+supplier_statements,code,own_key,show as-is: the record's own business key (code/number) — MES-8a (2026-10-16),,,Supplier statement,,,text
+supplier_statements,supplier_id,fk_document,"suppliers.code (document number, prefix SUP)",,,Supplier,,,uuid
+supplier_statements,period_start,date,"formatDate (lib/dates.ts:193)",,,Period start,,,date
+supplier_statements,period_end,date,"formatDate (lib/dates.ts:193)",,,Period end,,,date
+supplier_statements,base_currency,currency,"show the ISO code (currencies.code)",,,Base currency,,,text
+supplier_statements,opening_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Opening balance,,,numeric
+supplier_statements,charges_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Charged,,,numeric
+supplier_statements,credits_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Credits,,,numeric
+supplier_statements,payments_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Payments,,,numeric
+supplier_statements,prepayments_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Prepayments applied,,,numeric
+supplier_statements,closing_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Closing balance,,,numeric
+supplier_statements,list_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Open items,,,numeric
+supplier_statements,on_account_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Payments on account,,,numeric
+supplier_statements,residue_base,money,"formatAmount(n, base currency) (lib/format.ts:32)",,,Recorded residue,,,numeric
+supplier_statements,lines,technical,hide: the frozen lines (shown in full on the statement page),,,Lines,,,jsonb
+supplier_statements,open_items,technical,hide: the frozen open items,,,Open items,,,jsonb
+supplier_statements,on_account,technical,hide: the frozen payments on account,,,Payments on account,,,jsonb
+supplier_statements,unpriced,technical,hide: the frozen receipts not yet priced,,,Received not yet priced,,,jsonb
+supplier_statements,by_currency,technical,hide: the frozen per-currency totals,,,By currency,,,jsonb
+supplier_statements,issued_at,audit_std,hide: the trail entry already says who and when,,,Issued on,,,timestamp with time zone
+supplier_statements,issued_by,audit_std,hide: the trail entry already says who and when,,,Issued by,,,uuid
+supplier_statements,superseded_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251)",,,Superseded on,,,timestamp with time zone
+supplier_statements,superseded_by,fk_document,"supplier_statements.code (document number, prefix SST)",,,Superseded by,,,uuid
+supplier_statements,superseded_reason,text,verbatim,,,Reason it was superseded,,,text
+supplier_statements,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+supplier_statement_issues,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+supplier_statement_issues,statement_id,fk_document,"supplier_statements.code (document number, prefix SST)",,,Supplier statement,,,uuid
+supplier_statement_issues,version,integer,the version number,,,Version,,,integer
+supplier_statement_issues,file_path,technical,hide: the storage key,,,File,,,text
+supplier_statement_issues,sha256,technical,hide: the digest (checked on every download),,,Digest,,,text
+supplier_statement_issues,issued_at,audit_std,hide: the trail entry already says who and when,,,Stored on,,,timestamp with time zone
+supplier_statement_issues,issued_by,audit_std,hide: the trail entry already says who and when,,,Stored by,,,uuid
+supplier_statements,supplier_code,text,verbatim (the supplier's code frozen at issue),,,Supplier code,,,text
+supplier_statements,supplier_name,text,verbatim (the supplier's name frozen at issue),,,Supplier,,,text
+supplier_statements,company,technical,hide: our letterhead frozen at issue (printed on the PDF),,,Letterhead,,,jsonb

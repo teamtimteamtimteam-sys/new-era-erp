@@ -12,6 +12,7 @@ import { MOD } from '@/lib/modules'
 import { canEnter } from '@/lib/moduleAccess'
 import { can } from '@/lib/permissions'
 import ContactsPanel, { type ContactRow } from '@/app/sales/customers/ContactsPanel'
+import ScorecardPanel from './ScorecardPanel'
 import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'
@@ -225,6 +226,8 @@ export default async function EditSupplierPage({
                 row={patternRow}
                 receipts={contributing}
                 canSee={canSeePattern} />
+            {/* MES-8a:评分卡(计数现算,评审抄下;等级只是建议)—— 摆在收货模式之后、编辑表单之前,理由同上一块。 */}
+            <ScorecardPanel supplierId={supplier.id} />
             <EditSupplierForm supplier={supplier} templates={templates}
                 gstRegistered={gstSettingsRes.data?.gst_registered ?? false}
                 taxCodes={(mustRows(gstCodesRes) as unknown as

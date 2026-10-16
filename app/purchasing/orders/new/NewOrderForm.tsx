@@ -18,6 +18,7 @@
 // 那块自己每行都写着 USD,所以留裸数字并指着它。
 import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useMemo, useState } from 'react'
+import SupplierGradeAdvice from './SupplierGradeAdvice'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -613,6 +614,8 @@ canEdit: boolean
                             ))}
                         </select>
                     )}
+                    {/* MES-8a:这家最近一次评审的等级 —— 只是建议(Q5)。 */}
+                    <SupplierGradeAdvice mode="grade" supplierId={supplierId} terms={terms.map((x) => x.line)} estimatedTotal={estTotal} />
                     {/* SUP-TYPE-1b:同上 —— 只列供货的供应商,空了要说出原因。 */}
                     {suppliers.length === 0 && (
                         <p className="text-xs text-amber-700 mt-1">
@@ -1116,6 +1119,9 @@ canEdit: boolean
                     <p className="text-sm text-amber-700">{t('purchasing.pctUnder', { total: pctTotal })}</p>
                 ) : null}
             </div>
+
+            {/* MES-8a:预付超过这一等级的上限 → 警告,不挡提交(Q5;建单时库返回同一条 warnings) */}
+            <SupplierGradeAdvice mode="warning" supplierId={supplierId} terms={terms.map((x) => x.line)} estimatedTotal={estTotal} />
 
             {/* ── 实时合计 ── */}
             <div className="bg-gray-50 rounded p-4 text-sm">

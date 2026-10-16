@@ -203,7 +203,12 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- ── MES-6b-2(2026-10-15,MES-0 Q67 · Q90 · MES-6b Step 0 Q30,Tim):签发分析证书 —— 持有人 cco · admin(admin 与此前每一个新码一样只在
     -- 迁移里授)。看证书跟着那一批的查看码(module.output.view);作废证书只经 CFO 申请,由同一个码的人提。
     -- 它声明的查看码是 module.output.view(批次页 /output/[id]/edit 的门)与 module.quality.view(证书清单 /quality/coa 的门),下面那张表。
-    ('action.issue_coa', 'action', 'Issue certificates of analysis', '签发分析证书', 'Issue a certificate of analysis for an output batch, optionally for one sales order (then it states that contract''s quality limits, the judgement and the customer). Refused while the batch is on quality hold, in an open assay dispute, has no final governing assay, has a weighing out of calibration, or breaches the order''s limits without an accepted report. Also raises the CFO request that voids one.', '为一批产出批签发分析证书,可点名一张销售单(此时证书写明那份合同的质量验收限、判定与客户)。这一批在质量暂扣里、挂着开着的化验争议、没有说话的最终化验、有称重不在校准期内、或对那张单越限而报告没有被接受时一律按名拒。作废一张证书的 CFO 申请也由这个码的人提。', 1250);
+    ('action.issue_coa', 'action', 'Issue certificates of analysis', '签发分析证书', 'Issue a certificate of analysis for an output batch, optionally for one sales order (then it states that contract''s quality limits, the judgement and the customer). Refused while the batch is on quality hold, in an open assay dispute, has no final governing assay, has a weighing out of calibration, or breaches the order''s limits without an accepted report. Also raises the CFO request that voids one.', '为一批产出批签发分析证书,可点名一张销售单(此时证书写明那份合同的质量验收限、判定与客户)。这一批在质量暂扣里、挂着开着的化验争议、没有说话的最终化验、有称重不在校准期内、或对那张单越限而报告没有被接受时一律按名拒。作废一张证书的 CFO 申请也由这个码的人提。', 1250),
+    -- ── MES-8a(2026-10-16,MES-0 Q77 · Q78 · Q91 · MES-8 Step 0 Q6,Tim):记一次供应商评审、设定评分的权重与等级线(V23)与每一等级的
+    -- 预付上限与抽样级别(V24)。读评分卡跟着 module.suppliers.view(Q91,与今天一样);【记评审】是对一家供应商的判断,与批准一家同一类事,
+    -- 所以是一个点名的动作码,只授 cco · admin(只在迁移里授 —— cco 只活在线上)。cfo 照旧只读。它声明的查看码是 module.suppliers.view
+    -- (供应商页 /suppliers/[id]/edit 与评分卡页 /suppliers/scorecards 的门)。
+    ('action.supplier_review', 'action', 'Review supplier scorecards and set the grading', '评审供应商评分卡与设定评级', 'Record a supplier review: the scorecard measures over a window you type are copied onto the review, with the weights, grade lines, prepayment caps and sampling levels in force and the resulting grade. A mistaken review is corrected by a new review citing it with a reason. Also sets those weights, grade lines and the review window (V23), and each grade''s prepayment cap and sampling level (V24).', '记一次供应商评审:你输入的窗口里的评分卡计数抄进评审,连同当时生效的权重、等级线、预付上限与抽样级别,以及由此得到的等级。记错的评审由一次引用它、写明理由的新评审更正。也由这个码设定那些权重、等级线与评审周期(V23),以及每一等级的预付上限与抽样级别(V24)。', 1260);
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -250,6 +255,8 @@ UPDATE public.permissions p SET requires_view_any = d.views
     ('action.stocktake_count',          ARRAY['module.inbound.view','module.output.view','module.stocktakes.view']),
     ('action.stocktake_post',           ARRAY['module.stocktakes.view']),
     ('action.supplier_approve',         ARRAY['module.suppliers.view']),
+    -- MES-8a(Step 0 Q6):记评审与设定评级在供应商页与评分卡页(门 module.suppliers.view)。
+    ('action.supplier_review',          ARRAY['module.suppliers.view']),
     ('action.wo_create',                ARRAY['module.processing.view']),
     ('action.wo_release',               ARRAY['module.processing.view'])
   ) AS d(code, views)

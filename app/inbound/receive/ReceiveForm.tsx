@@ -1,5 +1,6 @@
 'use client'
 
+import SamplingAdviceLive from '@/app/inbound/SamplingAdviceLive'
 import Link from 'next/link'
 // 现场收货(移动端一步式)。cut 4c:选定供应商后,若其有可收货的采购单,追加
 // 可选的采购单/行两个下拉 —— 选行预填物料与数量,但【数量始终归过磅的人】,
@@ -180,6 +181,8 @@ export default function ReceiveForm({
                     </select>
                 )}
                 {state.fieldErrors?.supplier_id && <p className={errCls}>{state.fieldErrors.supplier_id}</p>}
+                {/* MES-8a:这家供应商的等级给的抽样建议 —— 只是建议,不加必须的化验(Q5)。 */}
+                <SamplingAdviceLive supplierId={supplierId} />
                 {/* SUP-TYPE-1b:只列供货的供应商 —— 空的时候【说出为什么】,
                     而不是留一个空下拉配一个按不动的按钮(PAYEE-1a 从报销页
                     删掉的正是那个形状)。 */}

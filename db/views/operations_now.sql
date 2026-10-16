@@ -1,4 +1,9 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ MES-8a(2026-10-16,MES-8 Step 0 Q27,Tim):加一支,门 action.supplier_review(记评审的人 —— 提醒是给能动手的人的)。
+--   supplier_review_due —— 一家批准过 / 在用的进货供应商,而它最近一次没被取代的评审的日子 + V23 的评审周期 ≤ 今天(doc_kind = due,
+--     item_date = 那一天到期的日子),或一次评审都没有(doc_kind = never_reviewed,item_date = 建档那一天)。
+--     ★【V23 的周期空着时这一支一行都不出】(Q27 —— V18 的先例:没有数,就没有提醒;不猜一个周期)。
+--     item_id = 那家供应商;item_code = 供应商代码;subject = 它的名字(标签跟着单据走)。
 -- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q10 · Q11,Tim):加两支,门都是 module.safety.view,都读 incident_current_all(事故现在的值:
 -- ★ MES-7b-2(2026-10-16,MES-7b Step 0 Q13 · Q14 · Q20,Tim):加两支,门都是 module.safety.view。
 --   inspection_due —— 一张启用的巡检清单【有频率】(V18)而该巡了:还没巡过(doc_kind = never_run,item_date = 建清单那一天),或最近一次没被
@@ -1116,7 +1121,21 @@ CREATE VIEW public.operations_now AS
              JOIN inspection_results s ON s.id = f.result_id
           WHERE NOT (EXISTS ( SELECT 1
                    FROM inspection_finding_closures c
-                  WHERE c.finding_id = f.id))) a
+                  WHERE c.finding_id = f.id))
+        UNION ALL
+         SELECT 'supplier_review_due'::text AS item_type,
+            'action.supplier_review'::text AS permission,
+            s.id AS item_id,
+            CASE WHEN lr.recorded_at IS NULL THEN 'never_reviewed'::text ELSE 'due'::text END AS doc_kind,
+            s.code AS item_code,
+            s.legal_name AS subject,
+            COALESCE(((lr.recorded_at AT TIME ZONE 'Asia/Singapore'::text)::date + ss.review_window_days),
+                     (s.created_at AT TIME ZONE 'Asia/Singapore'::text)::date) AS item_date
+           FROM suppliers s
+             JOIN supplier_score_settings ss ON ss.id AND ss.review_window_days IS NOT NULL
+             LEFT JOIN supplier_latest_reviews lr ON lr.supplier_id = s.id
+          WHERE s.deleted_at IS NULL AND s.supplies_goods AND (s.status = ANY (ARRAY['approved'::supplier_status, 'active'::supplier_status]))
+            AND (lr.recorded_at IS NULL OR ((lr.recorded_at AT TIME ZONE 'Asia/Singapore'::text)::date + ss.review_window_days) <= (now() AT TIME ZONE 'Asia/Singapore'::text)::date)) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

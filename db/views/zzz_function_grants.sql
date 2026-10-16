@@ -799,6 +799,17 @@ REVOKE EXECUTE ON FUNCTION public.guard_inspection_template_write() FROM authent
 REVOKE EXECUTE ON FUNCTION public.guard_inspection_record_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_environmental_parameter_code() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_environmental_result_write() FROM authenticated;
+-- MES-8a(2026-10-16,MES-8 Step 0 Q2 · Q5 · Q7):三支触发器函数与一支内层 —— 没有调用者检查,靠的就是调不到。
+--   guard_supplier_scorecard_review_write(评审只追加)· guard_supplier_statement_write(签发了的对账单只许被取代)·
+--   guard_supplier_statement_issue_write(签发档只追加)·
+--   supplier_grade_advice_internal(等级建议的那一份实现;create_purchase_order 调它,对外的是 supplier_grade_advice,查 module.suppliers.view)。
+--   supplier_scorecard_measures · supplier_scorecard_preview · record_supplier_review · set_supplier_score_settings · supplier_grade_advice ·
+--   supplier_statement_data · issue_supplier_statement · record_supplier_statement_issue【不收】:它们是 DEFINER,自己查码。
+--   supplier_scorecard_measure_keys · supplier_scorecard_grade · next_supplier_statement_code【不收】:纯函数 / 取号,不读不写别人的东西。
+REVOKE EXECUTE ON FUNCTION public.guard_supplier_scorecard_review_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_supplier_statement_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_supplier_statement_issue_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.supplier_grade_advice_internal(uuid, jsonb, numeric) FROM authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】—— 收回 anon / authenticated(与 PUBLIC)在 public 里【每一张视图】上的

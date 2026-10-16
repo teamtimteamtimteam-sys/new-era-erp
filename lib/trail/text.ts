@@ -533,6 +533,14 @@ export const TRAIL_TEXT = {
     'set.electricity': 'Shared-pool electricity rule changed',
     'set.quality': 'Internal sample retention changed',
     'set.safety': 'NEA written-report deadline changed',
+    'set.supplierScore': 'Supplier grading settings changed',
+    // ── MES-8a:供应商评审与供应商对账单 ─────────────────────────────────────────────
+    'sup.reviewRecorded': 'Supplier review recorded',
+    'sup.reviewCorrected': 'Correcting supplier review recorded',
+    'sup.notGraded': 'Not graded — V23 not set',
+    'sup.statementIssued': 'Supplier statement issued',
+    'sup.statementSuperseded': 'Supplier statement superseded',
+    'sup.statementPdf': 'Statement PDF stored (version {version})',
     // ── MES-7b-2:安全巡检与环境监测 ─────────────────────────────────────────────
     'ins.recorded': 'Inspection recorded',
     'ins.corrected': 'Correcting inspection recorded',

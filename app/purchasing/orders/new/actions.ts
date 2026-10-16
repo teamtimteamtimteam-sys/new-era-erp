@@ -302,3 +302,29 @@ async function lookupRate(currency: string, date: string):
     }
     return { rate: Number(row.rate), asOf: row.as_of }
 }
+
+// MES-8a(2026-10-16,MES-0 Q77 · MES-8 Step 0 Q5,Tim):这家供应商最近一次没被取代的评审的等级,与这张单"下单时"那几期的预付是否超过
+//   那一等级的上限(V24)。【问库里那一份】—— supplier_grade_advice 与 create_purchase_order 返回的 warnings 走的是同一支内层
+//   (supplier_grade_advice_internal),所以表单在提交之前说的,就是建单时库会说的。【只是建议,从不拒绝】。
+//   没有 module.suppliers.view 的读者 → restricted(分数跟着供应商的查看码,Q91),不是"没有等级"。
+export async function adviseSupplierGrade(input: { supplierId: string; terms: OrderTermInput[]; estimatedTotal: number }):
+    Promise<{ advice?: import('@/app/suppliers/scorecardTypes').GradeAdvice; restricted?: boolean; error?: string }> {
+    if (!input.supplierId) return {}
+    const supabase = await createClient()
+    // 与上面建单那一支同一个形状:只送有效的期次;百分比 / 定额照它们的模式
+    const terms = input.terms
+        .filter((l) => l.trigger_event)
+        .map((l) => (l.mode === 'percentage'
+            ? { trigger_event: l.trigger_event, percentage: Number(l.percentage) || 0 }
+            : { trigger_event: l.trigger_event, fixed_amount_ccy: Number(l.fixed_amount) || 0 }))
+    const { data, error } = await supabase.rpc('supplier_grade_advice', {
+        p_supplier_id: input.supplierId,
+        p_payment_terms: terms,
+        p_estimated_total_ccy: input.estimatedTotal,
+    })
+    if (error) {
+        if (/PERMISSION_DENIED/.test(error.message)) return { restricted: true }
+        return { error: await localizePurchasingError(error.message) }
+    }
+    return { advice: data as unknown as import('@/app/suppliers/scorecardTypes').GradeAdvice }
+}

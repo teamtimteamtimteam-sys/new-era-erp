@@ -448,6 +448,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/purchasing/discrepancies', navKey: 'purchasing.subnav.discrepancies', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/purchasing/payment-terms', navKey: 'purchasing.subnav.templates', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/suppliers', navKey: 'nav.suppliers', modules: ['purchasing'], permission: P_SUPPLIERS },
+    // MES-8a(2026-10-16,MES-0 Q77 · Q78 · Q91 · MES-8 Step 0 Q2 · Q6,Tim):供应商评分卡 —— 每一家最近一次评审的等级,与评分的设定(V23 · V24)。
+    //   读 module.suppliers.view(Q91);记评审与改设定要 action.supplier_review(cco · admin)—— 页内控件看得见、按不动、说出码。
+    { href: '/suppliers/scorecards', navKey: 'purchasing.subnav.scorecards', modules: ['purchasing'], permission: P_SUPPLIERS },
     { href: '/contracts', navKey: 'nav.contracts', modules: ['purchasing'], permission: P_SUPPLIERS },
     // ★ D7:公司执照登记簿搬到采购。**它的码本来就是 module.suppliers.view** ——
     //   见 db/tables/company_compliance.sql 与 app/purchasing/licences/page.tsx 的抬头。
@@ -604,6 +607,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/invoices', navKey: 'finance.subnav.invoices', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.receivables' },
     { href: '/finance/credit-notes', navKey: 'finance.subnav.creditNotes', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.receivables' },
     { href: '/finance/payables', navKey: 'finance.subnav.payables', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
+    // MES-8a(2026-10-16,MES-0 Q79 · MES-8 Step 0 Q7–Q9,Tim):供应商对账单 SST-…(冻下来、必须对得上总账 2000、PDF 按 sha256 存档)。
+    //   读 module.finance.view;签发与存 PDF 要 module.finance.edit(页内控件看得见、按不动、说出码)。/[id] 在它下面,不必另登记。
+    { href: '/finance/supplier-statements', navKey: 'finance.subnav.supplierStatements', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     // PAY-REQ-1(Tim 2026-09-23):钱离开之前要先批 —— 出款与冲销先成一张付款申请,
     //   CFO 批准后由财务在申请页上付。读的门与付款登记簿同一个(module.finance.view)。
     { href: '/finance/payment-requests', navKey: 'finance.subnav.paymentRequests', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
@@ -1157,4 +1163,8 @@ export const FN = {
     safetyInspections: fnByHref('/safety/inspections'),
     /** MES-7b-2:环境监测。 */
     safetyEnvironment: fnByHref('/safety/environment'),
+    /** MES-8a:供应商评分卡。 */
+    supplierScorecards: fnByHref('/suppliers/scorecards'),
+    /** MES-8a:供应商对账单。 */
+    financeSupplierStatements: fnByHref('/finance/supplier-statements'),
 } as const

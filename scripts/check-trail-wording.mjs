@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-drift-mes7a1(MES-7a-1:㉚)· wording-drift-mes7a2(MES-7a-2:㉛)· wording-drift-mes7b1(MES-7b-1:㉜)· wording-drift-mes7b2(MES-7b-2:㉝)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2 / mes7a1 / mes7a2 / mes7b1 / mes7b2(F6:㉓ ㉔ ㉕ ㉖ ㉙ ㉚ ㉛ ㉜ ㉝ 只改 part 的那一格)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-drift-mes7a1(MES-7a-1:㉚)· wording-drift-mes7a2(MES-7a-2:㉛)· wording-drift-mes7b1(MES-7b-1:㉜)· wording-drift-mes7b2(MES-7b-2:㉝)· wording-drift-mes8a(MES-8a:㉞)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2 / mes7a1 / mes7a2 / mes7b1 / mes7b2 / mes8a(F6:㉓ ㉔ ㉕ ㉖ ㉙ ㉚ ㉛ ㉜ ㉝ ㉞ 只改 part 的那一格)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -7422,6 +7422,158 @@ if (FAULT === 'wording-drift-mes7b2') dict.text = { ...dict.text, 'ins.recorded'
     { const miss = partFaultBit('mes7b2', problems.gold33); if (miss) problems.gold33.push(miss) }
 }
 
+// ── ㉞ MES-8a:供应商评审与供应商对账单 —— 记下一次评审(供应商挂在标题后面;窗口与等级是行)· 没评级的那一次("Not graded — V23 not set")·
+//   更正一次评审(理由)· 评级设定改了(V23 / V24)· 签发一份对账单(号挂在标题后面;期间与六个数是行)· 被取代(理由)· 存了一版 PDF(MES-8 Step 0 Q22)──────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-8a.md 列出。
+//   读 titlePart:供应商(评审那三句)与对账单号(签发、取代、PDF 那三句)挂在标题后面那一段,所以 part 那一格比的是真东西。
+//   注入 wording-drift-mes8a → 这一臂必须红;注入 wording-part-mes8a(只改 part)→ 这一臂必须在 part 那一格红。
+problems.gold34 = []
+if (FAULT === 'wording-drift-mes8a') dict.text = { ...dict.text, 'sup.reviewRecorded': 'Supplier review logged' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const sup = id('sup'), rv = id('rv'), rv2 = id('rv2'), rv3 = id('rv3'), st = id('st'), st2 = id('st2')
+    const refs = { supplier_id: { [sup]: { label: 'SUP-2026-0002' } }, statement_id: { [st]: { label: 'SST-2026-0001' } },
+                   superseded_by: { [st2]: { label: 'SST-2026-0002' } } }
+    const REVIEW = { id: rv, seq: 1, supplier_id: sup, window_from: '2026-07-01', window_to: '2026-09-30', measures: {}, weights: { short_lines: 2 },
+        grade_lines: [{ grade: 'A', max_score: 3 }, { grade: 'B', max_score: null }], grade_caps: { A: { prepayment_cap_pct: 50, sampling_level: 'Every 10th bag' } },
+        score: 2, grade: 'A', not_graded_reason: null, note: 'Quarterly review', corrects_review_id: null, correction_reason: null,
+        recorded_at: '2026-10-16T03:00:00Z', recorded_by: id('u') }
+    add('review · recorded and graded', { subject: 'supplier', recordId: sup, currency: null },
+        [{ table: 'supplier_scorecard_reviews', op: 'INSERT', key: { id: rv }, refs, new: REVIEW }], { state: 'person', name: 'Sandra' })
+    add('review · recorded, not graded (V23 not set)', { subject: 'supplier_scorecard_review', recordId: 'all', currency: null },
+        [{ table: 'supplier_scorecard_reviews', op: 'INSERT', key: { id: rv3 }, refs,
+           new: { ...REVIEW, id: rv3, seq: 3, weights: null, grade_lines: null, grade_caps: null, score: null, grade: null, not_graded_reason: 'V23_NOT_SET', note: null } }],
+        { state: 'person', name: 'Sandra' })
+    add('review · a correcting review with its reason', { subject: 'supplier', recordId: sup, currency: null },
+        [{ table: 'supplier_scorecard_reviews', op: 'INSERT', key: { id: rv2 }, refs,
+           new: { ...REVIEW, id: rv2, seq: 2, score: 4, grade: 'B', note: null, corrects_review_id: rv, correction_reason: 'An NCR was decided after the first review' } }],
+        { state: 'person', name: 'Sandra' })
+    add('settings · the review interval set', { subject: 'supplier_score_settings', recordId: 'true', currency: null },
+        [{ table: 'supplier_score_settings', op: 'UPDATE', key: { id: true }, refs, cols: ['review_window_days'],
+           old: { id: true, review_window_days: null }, new: { id: true, review_window_days: 90 } }], { state: 'person', name: 'Sandra' })
+    const STMT = { id: st, code: 'SST-2026-0001', supplier_id: sup, period_start: '2026-09-01', period_end: '2026-09-30', base_currency: 'SGD',
+        opening_base: 1000, charges_base: 500, credits_base: 0, payments_base: 300, prepayments_base: 0, closing_base: 1200, list_base: 1200,
+        on_account_base: 0, residue_base: 0, lines: [], open_items: [], on_account: [], unpriced: [], by_currency: [], issued_at: '2026-10-16T04:00:00Z',
+        issued_by: id('u'), superseded_at: null, superseded_by: null, superseded_reason: null, created_at: '2026-10-16T04:00:00Z' }
+    add('statement · issued', { subject: 'supplier_statement', recordId: st, currency: 'SGD' },
+        [{ table: 'supplier_statements', op: 'INSERT', key: { id: st }, refs, new: STMT }], { state: 'person', name: 'Chooer' })
+    add('statement · superseded with its reason', { subject: 'supplier_statement', recordId: st, currency: 'SGD' },
+        [{ table: 'supplier_statements', op: 'UPDATE', key: { id: st }, refs, cols: ['superseded_at', 'superseded_by', 'superseded_reason'],
+           old: { ...STMT }, new: { ...STMT, superseded_at: '2026-10-17T04:00:00Z', superseded_by: st2, superseded_reason: 'A receipt was repriced' } }],
+        { state: 'person', name: 'Chooer' })
+    add('statement · a PDF stored', { subject: 'supplier_statement', recordId: st, currency: 'SGD' },
+        [{ table: 'supplier_statement_issues', op: 'INSERT', key: { id: id('iss') }, refs,
+           new: { id: id('iss'), statement_id: st, version: 1, file_path: `${st}/abc.pdf`, sha256: 'a'.repeat(64), issued_at: '2026-10-16T04:05:00Z', issued_by: id('u') } }],
+        { state: 'person', name: 'Chooer' })
+    const WANT = {
+        "review · recorded and graded": {
+            "title": "Supplier review recorded",
+            "part": "SUP-2026-0002",
+            "lines": [
+                "Window from: 01/07/2026",
+                "Window to: 30/09/2026",
+                "Grade: A",
+                "Score: 2",
+                "Note: Quarterly review"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · recorded, not graded (V23 not set)": {
+            "title": "Supplier review recorded",
+            "part": "SUP-2026-0002",
+            "lines": [
+                "Window from: 01/07/2026",
+                "Window to: 30/09/2026",
+                "Grade: Not graded — V23 not set"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · a correcting review with its reason": {
+            "title": "Correcting supplier review recorded",
+            "part": "SUP-2026-0002",
+            "lines": [
+                "Window from: 01/07/2026",
+                "Window to: 30/09/2026",
+                "Grade: B",
+                "Score: 4"
+            ],
+            "reason": "An NCR was decided after the first review",
+            "who": "Sandra"
+        },
+        "settings · the review interval set": {
+            "title": "Supplier grading settings changed",
+            "part": null,
+            "lines": [
+                "Review every (days): (empty) → 90"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "statement · issued": {
+            "title": "Supplier statement issued · SST-2026-0001",
+            "part": null,
+            "lines": [
+                "Period start: 01/09/2026",
+                "Period end: 30/09/2026",
+                "Base currency: SGD",
+                "Opening balance: 1,000.00 SGD",
+                "Charged: 500.00 SGD",
+                "Credits: 0.00 SGD",
+                "Payments: 300.00 SGD",
+                "Prepayments applied: 0.00 SGD",
+                "Closing balance: 1,200.00 SGD",
+                "Open items: 1,200.00 SGD",
+                "Payments on account: 0.00 SGD",
+                "Recorded residue: 0.00 SGD"
+            ],
+            "reason": null,
+            "who": "Chooer"
+        },
+        "statement · superseded with its reason": {
+            "title": "Supplier statement superseded · SST-2026-0001",
+            "part": null,
+            "lines": [],
+            "reason": "A receipt was repriced",
+            "who": "Chooer"
+        },
+        "statement · a PDF stored": {
+            "title": "Statement PDF stored (version 1) · SST-2026-0001",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Chooer"
+        }
+    }
+    const got34 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD34', order: 1, prelog: false, at: '2026-10-16T02:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = partFault('mes8a', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold34.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD34')
+        if (mine.length !== 1) { problems.gold34.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got34[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold34.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold34.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold34.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold34.push(`㉞ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (C.filter((c) => WANT[c.label]?.part).length < 2) problems.gold34.push('㉞ 带 part 的样例少于 2 句 —— part 那一格没有被真的比过')
+    if (process.env.TRAIL_GOLD34_PRINT) console.log(JSON.stringify(got34, null, 8))
+    if (FAULT === 'wording-drift-mes8a' && !problems.gold34.length) problems.gold34.push('(注入 wording-drift-mes8a 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes8a', problems.gold34); if (miss) problems.gold34.push(miss) }
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -7429,7 +7581,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用', gold33: '㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用', gold33: '㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果', gold34: '㉞ MES-8a 的供应商评审、评级设定与供应商对账单:签发、取代与 PDF' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

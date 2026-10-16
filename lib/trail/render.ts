@@ -1061,7 +1061,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     customer: ['customers', 'counterparty_contacts', 'customer_attachments', 'customer_credit_history', 'customer_statements',
         'statement_issues', 'collection_chases', 'collection_chase_documents', 'collection_promises'],
     commission_agreement: ['commission_agreements'],
-    supplier: ['suppliers', 'supplier_compliance', 'supplier_attachments', 'counterparty_contacts', 'supplier_status_history', 'approval_log'],
+    supplier: ['suppliers', 'supplier_compliance', 'supplier_attachments', 'counterparty_contacts', 'supplier_status_history', 'approval_log',
+        // MES-8a:这一家的评审也出现在它下面(家在评分卡页那条集合记录里)
+        'supplier_scorecard_reviews'],
     container: ['containers', 'container_milestones', 'container_documents'],
     forwarder: ['suppliers', 'forwarder_details', 'forwarder_rate_quotes'],
     lane: ['lanes', 'lane_document_requirements'],
@@ -1189,12 +1191,17 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     inspection_template: ['inspection_templates', 'inspection_template_items'],
     dictionary_environmental_parameters: ['environmental_parameters'],
     safety_environment: ['environmental_results'],
+    // MES-8a(2026-10-16):供应商评审(集合)· 评分的设定(单行)· 一份供应商对账单 —— 它的签发档
+    supplier_scorecard_review: ['supplier_scorecard_reviews'],
+    supplier_score_settings: ['supplier_score_settings'],
+    supplier_statement: ['supplier_statements', 'supplier_statement_issues'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
     | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype' | 'energy' | 'safety' | 'inspection'
+    | 'suprec'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1240,6 +1247,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     incident: 'safety', safety_settings: 'settings', dictionary_incident_kinds: 'dict',
     // MES-7b-2
     inspection_run: 'inspection', inspection_template: 'inspection', dictionary_environmental_parameters: 'dict', safety_environment: 'inspection',
+    // MES-8a
+    supplier_scorecard_review: 'suprec', supplier_score_settings: 'settings', supplier_statement: 'suprec',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1262,6 +1271,8 @@ const SAFETY_TABLES = new Set(['incidents', 'incident_updates', 'incident_batche
 /** MES-7b-2:巡检与环境监测那一族 —— 巡检、它的结果、发现与关闭,清单与检查项,环境监测结果 */
 const INSPECTION_TABLES = new Set(['inspection_runs', 'inspection_results', 'inspection_findings', 'inspection_finding_closures',
     'inspection_templates', 'inspection_template_items', 'environmental_results'])
+/** MES-8a:供应商那一侧的两种记录 —— 评审(只追加)与供应商对账单(冻下来;它的签发档)。在供应商页、评分卡页、对账单页上都从记录这一边说 */
+const SUPPLIER_RECORD_TABLES = new Set(['supplier_scorecard_reviews', 'supplier_statements', 'supplier_statement_issues'])
 /** 往上一跳够到的那几种:在别的记录的页上出现时,标题后面点名它属于哪一张单据("Purchase order amended · PO-2026-0010")。
  *  写进标题而不是另起一个小标题 —— 一条记录里后面几块的标题本身就是小标题,再加一个会把它们的标题挤掉。 */
 const HEADED = new Set<Family>(['po', 'run', 'wo', 'so'])
@@ -1301,6 +1312,7 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (t === 'shift_handover_incident_refs' && subject === 'incident') return 'safety'
     if (SAFETY_TABLES.has(t)) return 'safety'
     if (INSPECTION_TABLES.has(t)) return 'inspection'
+    if (SUPPLIER_RECORD_TABLES.has(t)) return 'suprec'
     // MES-3b:库位页上它的标签从库位这一边说(在别处 —— 批次页、变更记录总表 —— 照批次那一族的说法,两边是同一句话)
     if (subject === 'storage_location' && t === 'label_prints') return 'location'
     if (BATCH_TABLES.has(t)) return 'batch'
@@ -2284,6 +2296,44 @@ function describeInspection(d: TrailDict, rows: TrailRow[], opts: BuildOptions):
     return out
 }
 
+// ── MES-8a(2026-10-16):供应商评审与供应商对账单 ──────────────────────────────────────────
+// 【一次评审记下就不改】所以 supplier_scorecard_reviews 只有 INSERT:"Supplier review recorded"(更正的那一次是 "Correcting supplier review
+//   recorded",理由在理由那一格);窗口与等级是行,没评级的读 "Not graded — V23 not set"。计数、权重、等级线是整份 jsonb,不在记录里逐项摊开
+//   (它们在供应商页那一次评审的展开里,照原样)。供应商对账单:签发(号挂在标题后面;期间与六个数是行)· 被取代(理由在理由那一格)·
+//   存了一版 PDF(第几版;挂在哪一份对账单)。
+function describeSupplierRecord(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    for (const r of by('supplier_scorecard_reviews')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const corrects = r.new?.['corrects_review_id'] != null
+        // 窗口两行 → 等级(没评级的说出为什么)→ 分 → 备注;供应商挂在标题后面那一段,不再重复成一行
+        const lines = valueLines(d, r, r.new, opts, new Set(['seq', 'supplier_id', 'measures', 'weights', 'grade_lines', 'grade_caps', 'grade', 'score',
+            'not_graded_reason', 'note', 'corrects_review_id', 'correction_reason', 'recorded_at', 'recorded_by']))
+        lines.push({ t: 'value', label: fieldMeta(d, 'supplier_scorecard_reviews', 'grade')[0],
+                     value: r.new?.['grade'] != null ? { text: String(r.new['grade']) } : { text: tx(d, 'sup.notGraded') } })
+        if (r.new?.['score'] != null) lines.push(...valueLines(d, r, { score: r.new['score'] }, opts))
+        if (r.new?.['note']) lines.push(...valueLines(d, r, { note: r.new['note'] }, opts))
+        out.push({ title: tx(d, corrects ? 'sup.reviewCorrected' : 'sup.reviewRecorded'), part: refText(d, r, 'supplier_id'),
+                   lines, reason: typed(r.new?.['correction_reason']), key: true, weight: 90 })
+    }
+    for (const r of by('supplier_statements')) {
+        const code = str(r, 'code')
+        if (r.op === 'INSERT') {
+            out.push({ title: withPart(tx(d, 'sup.statementIssued'), code), lines: valueLines(d, r, r.new, opts, new Set(['code', 'supplier_id', 'supplier_code', 'supplier_name', 'company', 'issued_at',
+                'issued_by', 'superseded_at', 'superseded_by', 'superseded_reason', 'lines', 'open_items', 'on_account', 'unpriced', 'by_currency', 'created_at'])),
+                key: true, weight: 80 })
+        } else if (isSet(r, 'superseded_at')) {
+            out.push({ title: withPart(tx(d, 'sup.statementSuperseded'), code), lines: [], reason: typed(r.new?.['superseded_reason']), key: true, weight: 75 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('supplier_statement_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'sup.statementPdf', { version: num(r.new?.['version'] ?? null) ?? '' }), refLabel(r, 'statement_id')), lines: [], key: true, weight: 70 })
+    }
+    return out
+}
+
 // ── 仓库申请(注销 · 加工回滚 · 证书作废)──────────────────────────────────
 function wrKind(d: TrailDict, r: TrailRow): string {
     const k = str(r, 'kind') ?? ''
@@ -3237,6 +3287,8 @@ const SETTINGS_TITLE: Record<string, TrailTextKey> = {
     quality_settings: 'set.quality',
     // MES-7b-1(Q11):V19 的修改史就是变更记录
     safety_settings: 'set.safety',
+    // MES-8a(Q93):V23 / V24 的修改史就是变更记录
+    supplier_score_settings: 'set.supplierScore',
 }
 function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     return rows.map((r) => r.op === 'UPDATE'
@@ -5478,6 +5530,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'handover': bs = describeHandover(d, list, opts); break
                 case 'safety': bs = describeSafety(d, list, opts, opts.subject); break
                 case 'inspection': bs = describeInspection(d, list, opts); break
+                case 'suprec': bs = describeSupplierRecord(d, list, opts); break
                 case 'wr': bs = describeWarehouseRequest(d, list, opts); break
                 case 'so': bs = describeSalesOrder(d, list, opts); break
                 case 'quote': bs = describeQuote(d, list, opts); break

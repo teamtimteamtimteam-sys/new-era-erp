@@ -10820,7 +10820,12 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
 **为什么这一刀不修:** 它在全库唯一一支匿名可执行的函数里(`cod_verification`),而这一刀不改它返回的任何东西;为一句注释动匿名面不值(Q26 裁定)。
 **删除条件:** 下一刀碰 `cod_verification` 时顺手改掉那句注释。
 
-### MES7A1-RECORD-COD-ISSUE-PARITY · `record_cod_issue` 没有分析证书那一侧的三样(Step 0 Q26 第二条,登记不修)
+### ~~MES7A1-RECORD-COD-ISSUE-PARITY · `record_cod_issue` 没有分析证书那一侧的三样(Step 0 Q26 第二条,登记不修)~~ —— ✅ **关闭于 MES-8a(`v1.4.56`,2026-10-16,F17)**
+
+**怎么关的(F17,MES-8 Step 0 Q25,Tim):** `record_cod_issue` 补齐了三样 —— 路径必须在 `<证书 id>/` 之下(`COD_ISSUE_PATH_INVALID|<号>`)、一张证书只记一份字节(`COD_BYTES_ALREADY_RECORDED|<号>`,不再由唯一约束以裸消息拒)、哈希一律小写存。fixture 269 的 F17 臂钉着三样(各一格注入咬人);fixture 195 那一句路径照路由的拼法改成 `<证书 id>/x.pdf`。线上两张已签发的销毁证书的存档字节与 `cod_issues` 两行逐字未动(开场 / 收尾读数,`docs/handbacks/MES-8a.md`);线上证明在我自己的一张证书上走了三样。供应商对账单的 `record_supplier_statement_issue` 从第一天起就照分析证书那一份写。
+
+**原条目(照录):**
+
 
 **是什么:** `record_coa_issue` 把 sha256 转小写、核对路径前缀是证书自己的 id、对"已经记过字节"按名拒(`COA_BYTES_ALREADY_RECORDED`);
 `record_cod_issue` 三样都没有(重复记由 `cod_issues` 的唯一约束以裸消息拒)。没有量到任何一次失败:路由只传小写十六进制、路径照证书 id 拼。
@@ -10981,3 +10986,46 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 写穿它的属主视图就可能绕过 RLS 的写策略。
 **删除条件:** 一刀把每一张视图的写权限收掉(`REVOKE INSERT, UPDATE, DELETE, TRUNCATE … FROM authenticated, anon`,并改默认权限或在 `zzz_function_grants` 那一类
 重放文件里兜住),带一条 gate 断言"没有一张视图对 `authenticated` 可写",以及一格故障注入。在那之前,任何新视图照本刀的做法自己收。
+
+## MES-8a(`v1.4.56`,2026-10-16)—— 供应商评分卡与供应商对账单
+
+### MES8A-SAMPLING-LEVEL-ADDS-NO-ASSAY · 等级的抽样级别只是一句建议,它不加任何一项必须的化验(MES-8 Step 0 Q5,Tim)
+
+**是什么:** V24 给每一个等级一个抽样级别(一句话,例 "Every 10th bag");最近一次没被取代的评审抄下的那一句显示在收货页(批次页、收货表单与现场收货)。
+它【不】写 `material_required_metals`、不改化验的必须项、不挡收货 —— fixture 269 的 SAMPLE 臂钉着"加了化验"那一面(一格注入:评审时给物料加一项必须的化验 → 红)。
+**删除条件:** Tim 裁定某个等级要多一项必须的化验(或一个更严的取样规矩)时,一次裁定、一刀实现;在那之前抽样级别只是给收货的人看的一句话。
+
+### MES8A-GRADE-BREACHES-UNSCORED · 等级超标显示在评分卡上,但不计分 —— 直到 CONTRACT-1 那个判据被修(MES-8 Step 0 Q3)
+
+**是什么:** 评分卡的 `shown.grade_breaches` 数 `contract_grade_breaches` 在窗口里(按化验日)这一家的行数,带着 `caveat: 'CONTRACT-1'`、`scored: false`;
+它不在 `supplier_scorecard_measure_keys()` 里,V23 也收不了它的权重(`SCORE_WEIGHT_UNKNOWN|grade_breaches`)。理由:那个判据不看物料的品位规格、也不看化验是哪一方出的
+(本文件 CONTRACT-1 一节的具名缺口),在它上面计分就是按一个已知会判错的判据给供应商打分。fixture 269 的 BREACH 臂钉着"显示、不计分、权重被拒"。
+**删除条件:** CONTRACT-1 的超标判据改成按物料与出具方判之后,一次裁定把它加进计分项(那时 V23 要多一个权重,`supplier_scorecard_measure_keys()` 与 `SCORED_MEASURES` 一起改)。
+
+### MES8A-VIEW-OUTSIDE-MIGRATION-WRITABLE · 一张不经 `apply_migration.sh` 建的视图,在下一次迁移或下一次 gate 之前是可写的(F16 的替代做法,MES-8 Step 0 Q26,Tim 接受)
+
+**是什么:** F16 没有改默认权限(默认权限分不出视图与表;改它会拿掉 303 张表镜像里 273 张赖以写入的授权),而是让 `zzz_function_grants.sql` 收掉每一张视图的写、
+并由 `apply_migration.sh` 在每一支迁移自己的事务里重放,外加 gate 的 `viewwrite` 一行。剩下的缺口:一张在迁移之外建的视图(SQL 编辑器、手工 psql)拿着平台默认的写授权,
+直到下一支迁移重放那份文件、或下一次 gate 把它点名。本刀的四张新视图都在迁移里建,迁移收尾断言 (视图, 角色) 可写的对 = 0。
+**删除条件:** 平台能按对象种类设默认权限,或者有一道在每一次 DDL 之后都跑的检查(事件触发器)—— 两者今天都没有;在那之前这条留着。
+
+### MES8A-CUSTOMER-STATEMENT-ARROW-GLYPH · 客户对账单 PDF 的期间写着 `{起} → {止}`,而 PDF 的字体里没有 "→" —— 纸上印出来是一个孤零零的撇号(MES-8a 量到;不是本刀造的)
+
+**是什么:** `app/finance/statements/[id]/pdf/StatementDocument.tsx:129` 的副标题用 "→" 连两个日期。PDF 的字体子集里没有这个字形:本刀的供应商对账单照同一个写法,
+本地渲染(Quick Look 光栅化)读到的是「16 Sep 2026 ’16 Oct 2026」,pypdf 抽出 "’"。那一句是 JSX 里的字面量,不经 `findUnrenderableText`(字体守卫只查拼进去的数据字段),
+所以哪一道检查都看不见它。供应商对账单这一刀改成了 `supplierStatements.doc.periodSeparator`("to" / "至")。
+**删除条件:** 客户对账单同样换成一个字体里有的分隔词;更好的是让 `check-pdf-font-stack` 或字体守卫把 PDF 组件里的【字面量】也过一遍。
+
+### MES8A-390-SUPPLIER-STATUS-CHIP · 供应商编辑页在 390 px 上横向溢出 30–40 px —— 状态面板那一颗不换行的权限码(MES-8a 版式勘察量到;HEAD 上同一份数据同一个读数)
+
+**是什么:** 一家 active 的供应商(状态面板给出「批准 / 拉黑」那几颗按 `action.supplier_approve` 画成按不动的控件),对不持那个码的角色(cco · finance · warehouse · gm),
+`PermissionGate` 的 `<code>` 码与 `whitespace-nowrap` 的说明并排,390 px 宽溢出 **40 px**;gm 在一家 approved 的供应商上 **30 px**(`module.suppliers.edit` 那几颗)。
+**本刀加的 0 px**:同一个本地库、同一份数据,HEAD 的代码读数逐个相同(`docs/handbacks/MES-8a.md` §6)。MES-7b-2 在巡检页上修过同一个形状(三颗门竖着排)。
+**删除条件:** 状态面板的门竖着排(或说明换行),390 px 读回 0。
+
+### MES8A-390-PO-SUPPLIER-SELECT · 新建采购单页的供应商下拉在 390 px 上被最长的供应商名撑开 120–246 px(MES-8a 版式勘察量到;HEAD 上同一份数据同一个读数)
+
+**是什么:** 原生 `<select>` 的内在宽度由最长的一项决定;本地种子里一家供应商的法定名很长(「Survey Cells Supplier (a long legal name, Pte. Ltd.)」),
+于是 390 px 宽整页溢出 cco · finance 134 px、warehouse 120 px、gm 246 px(gm 另有三颗不换行的权限门)。线上今天的供应商名都短,所以线上量不出来。
+**本刀加的 0 px**:等级建议挂在下拉下面一行,HEAD 的代码在同一份数据上读数逐个相同。这是 INPUT-2b 那一条("不换行的容器里一个内在尺寸由内容决定的原生控件")的又一处。
+**删除条件:** 那一行容器 `flex-wrap`(或下拉 `w-full min-w-0` 在一个会换行的父元素里),390 px 读回 0。

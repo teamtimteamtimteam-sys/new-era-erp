@@ -68,8 +68,9 @@ BEGIN
     -- ★ MES-6b-2(2026-10-15):50 → 51 —— certificates_of_analysis 登记了一个码(module.output.view,与它的读策略同一个码)。
     -- ★ MES-7b-1(2026-10-16):51 → 52 —— incidents 登记了一个码(module.safety.view,与它的读策略同一个码)。
     -- ★ MES-7b-2(2026-10-16):52 → 53 —— inspection_runs 登记了一个码(module.safety.view,与它的读策略同一个码)。
-    IF v_n <> 53 THEN
-        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 53 —— '
+    -- ★ MES-8a(2026-10-16):53 → 54 —— supplier_statements 登记了一个码(module.finance.view,与它的读策略同一个码)。
+    IF v_n <> 54 THEN
+        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 54 —— '
                         '判据瞎了,或者登记表真的变了(那就同时改这个数与切次报告)', v_n;
     END IF;
 

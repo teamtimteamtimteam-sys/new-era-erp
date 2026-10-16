@@ -20,6 +20,9 @@ const COD_ERROR_CODES = new Set([
     'COD_ALREADY_ISSUED',
     'COD_NOT_ISSUED',
     'COD_ALREADY_VOID',
+    // F17(MES-8a):record_cod_issue 补齐分析证书那一侧的两条按名拒绝(路径前缀 · 已记过的字节)
+    'COD_ISSUE_PATH_INVALID',
+    'COD_BYTES_ALREADY_RECORDED',
     'COD_LICENCE_NOT_RECORDED',
     // COD-2:执照有效期闸。COD-1 只有上面那一句,它同时代表"没有行"与"行不合格";
     // 六句拆开是因为【补救的办法各不相同】—— 去录一行 / 去补日期 / 去核对到货日期。

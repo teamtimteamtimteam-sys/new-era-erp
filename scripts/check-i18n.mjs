@@ -618,7 +618,8 @@ const MANIFEST = {
     // grn_discrepancies 每一支写着 ARRAY['short'::text] 之类,加一种就自动被查到。
     // 【接视图而不是接一份 TS 常量】是因为判断"是哪一种"从头到尾只发生在视图里:
     // 应用层一个字都没重复它,所以也没有第二份可接 —— 那正是这一刀想要的样子。
-    'grn.kind.': { kind: 'enum', values: () => tsRegex('db/views/grn_discrepancies.sql',
+    // ★ MES-8a(2026-10-16):定义搬进了底视图 grn_discrepancies_all(外壳只剩门),所以真源跟着搬 —— 接【拼 kinds 的那一份】。
+    'grn.kind.': { kind: 'enum', values: () => tsRegex('db/views/grn_discrepancies_all.sql',
                                   /ARRAY\['(\w+)'::text\]/g) },
     // PROC-1B-iii:深度放电判断的三个取值。真源是【字典表自己的引导行】——
     // db/tables/deep_discharge_judgements.sql 的那支 INSERT,加一个取值就自动被查到。
@@ -868,6 +869,22 @@ const MANIFEST = {
     'safety.dueState.':         { kind: 'enum', values: () => sqlCaseAs('db/views/inspection_template_due_all.sql', 'due_state') },
     'safety.judgement.':        { kind: 'enum', values: () => sqlCaseAs('db/views/environmental_result_rows.sql', 'judgement') },
     'safety.limitBasis.':       { kind: 'enum', values: () => sqlEnum('db/tables/environmental_parameters.sql', 'limit_basis') },
+    // MES-8a(2026-10-16):供应商评分卡与供应商对账单 —— 拒绝的码现读两份 *_ERROR_CODES;计分项的名字现读 SCORED_MEASURES(与库里
+    //   supplier_scorecard_measure_keys() 逐字同一组 —— 两边不一样这里当场抛)加上只显示的 grade_breaches;对账单明细的种类现读
+    //   supplier_statement_data 里那一句 CASE 与 IN 列表(收货叫 receipt,其余照来源);期末未结的种类现读 ap_aging_asof 三支的 doc_kind。
+    'scorecards.errors.':          { kind: 'enum', values: () => tsSet('app/suppliers/scorecardErrorCodes.ts', 'SCORECARD_ERROR_CODES') },
+    'scorecards.measure.':         { kind: 'enum', values: () => {
+        // 屏幕(SCORED_MEASURES)与库(supplier_scorecard_measure_keys)必须是【同一组、同一个顺序】—— 不一样就当场抛:
+        //   库里多一项而屏幕没有,那一项的计数会算进分却不显示;屏幕多一项而库没有,权重存不进去(SCORE_WEIGHT_UNKNOWN)。
+        const ts = tsArray('app/suppliers/scorecardTypes.ts', 'SCORED_MEASURES')
+        const sql = tsRegex('db/functions/supplier_scorecard_measure_keys.sql', /'(\w+)'(?=[,\]])/g)
+        if (ts.join() !== sql.join()) throw new Error(`SCORED_MEASURES(${ts.join()})≠ supplier_scorecard_measure_keys()(${sql.join()})`)
+        return [...ts, 'grade_breaches'] } },
+    'supplierStatements.errors.':  { kind: 'enum', values: () => tsSet('app/finance/supplier-statements/supplierStatementErrorCodes.ts', 'SUPPLIER_STATEMENT_ERROR_CODES') },
+    'supplierStatements.doc.kind_': { kind: 'enum', values: () => tsRegex('db/functions/supplier_statement_data.sql',
+                                  /WHEN 'purchase' THEN '(\w+)'|IN \('purchase', '(\w+)', '(\w+)', '(\w+)', '(\w+)'\)\) l/g) },
+    'supplierStatements.doc.open_': { kind: 'enum', values: () => tsRegex('db/functions/ap_aging_asof.sql',
+                                  /SELECT '(\w+)'::text(?:\s+AS doc_kind|, (?:e|fd)\.id)/g) },
     // MES-6b-2(2026-10-15):分析证书。错误码接 coaErrorCodes.ts 的 Set;状态接证书表的 CHECK;确定度是视图吐出来的那几档(四个已知的;
     //   不认得的码页面原样印,不走 t());"怎么选出来的"接 coa_governing_assay 吐出的三个 basis。
     'coa.errors.':      { kind: 'enum', values: () => tsSet('app/output/coa/coaErrorCodes.ts', 'COA_ERROR_CODES') },

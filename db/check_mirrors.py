@@ -346,6 +346,10 @@ RUNTIME_CONFIG_TABLES = [
     #   所以它同时在下面的 BOOTSTRAP_MAY_BE_EMPTY 里。Tim 在 /settings/dictionaries 上加一行(module.safety.edit),线上就与本文件不同。
     #   ★ 引导默认值仍然正确(本刀新建,空就是那个决定)。巡检清单不在这里:它们是记录(清单页上建),不是引导的配置。
     "environmental_parameters",
+    # MES-8a(2026-10-16,MES-8 Step 0 Q4 · Q5):供应商评分的设定(单行)—— 引导一行、V23(权重 · 等级线 · 评审周期)与 V24(每一等级的预付上限
+    #   与抽样级别)四样全空(Q4:什么都不猜)。Tim 与 cco 在 /suppliers/scorecards 上设一次,线上就与本文件不同,那是系统在正常工作。
+    #   ★ 引导默认值仍然正确(本刀新建,空就是那个决定)。评审本身不在这里:它们是记录,不是配置。
+    "supplier_score_settings",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),
@@ -714,6 +718,9 @@ DEFINER_NO_CHECK_ALLOWED = {
     "coa_issue_blockers": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "coa_assemble": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "void_coa_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # MES-8a:供应商等级建议的那一份实现 —— 只在 create_purchase_order(查它自己的开单码)与 supplier_grade_advice(查 module.suppliers.view)
+    # 里以属主身份跑。靠"调不到"(zzz_function_grants.sql)。
+    "supplier_grade_advice_internal": "EXECUTE revoked from PUBLIC/authenticated/anon; called only by create_purchase_order and supplier_grade_advice, both definer and each checks its caller",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

@@ -1,3 +1,4 @@
+import SamplingAdvice from './SamplingAdvice'
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
@@ -757,6 +758,8 @@ export default async function EditInboundPage({
                     </span>
                 )}
             </p>
+            {/* MES-8a:这家供应商的等级给的抽样建议 —— 只是建议,不加必须的化验(Q5)。 */}
+            <SamplingAdvice supplierId={batch.supplier_id ?? null} />
 
             {/* GRN-1b:这一条收货的差异。摆在表单【上面】—— 看这块屏的人在改任何
                 东西之前,先该知道这批货与单子对不对得上。
