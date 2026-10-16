@@ -142,6 +142,13 @@ BEGIN
           JOIN LATERAL (SELECT SUM(f2.amount_base) AS tot FROM freight_allocations f2
                          WHERE f2.freight_document_id = e.sid) w ON true
          WHERE e.st = 'freight'
+        -- MES-7a-2:备件出给保养 / 退回 —— source_id 是 maintenance_part_issues 的那一行,它指着批次(没有这一支,出库解除的 1200 归不回批次,
+        -- 而批次一侧的剩余量已经少了,未解释当场不为零 —— 这正是没有兜底桶换来的东西)
+        UNION ALL
+        SELECT pi.inbound_batch_id, e.amt, e.st
+          FROM eff e
+          JOIN maintenance_part_issues pi ON pi.id = e.sid
+         WHERE e.st = 'maintenance_part'
     ),
     b AS (
         SELECT ib.id,
@@ -170,22 +177,24 @@ BEGIN
       INTO v_sub_raw, v_c1, v_c2, v_c3, v_c6
       FROM b;
 
+    -- ★ MES-7a-2:M3 与 M4 里的"已被消耗"只算【加工消耗那一类】—— 出给保养的件在出库那一刻就按落地单价(含运费与加工资本化的那一份)
+    --   解除了 1200,所以把 inbound_batch_maintenance_net_qty 加回剩余量:否则同一份解除会被这里再报一次,未解释反而不为零。
     -- M3 LANDED-DENOM:资本化落在【已被部分消耗】的批次上,分母是 quantity,
     -- 于是解除不足,残值搁浅在 1200。今天为零 —— 唯一一笔资本化已回滚。
     SELECT round(COALESCE(SUM(
-             bpca.amount_base * (1 - LEAST(ib.remaining_qty / NULLIF(ib.quantity,0), 1))
+             bpca.amount_base * (1 - LEAST((ib.remaining_qty + inbound_batch_maintenance_net_qty(ib.id)) / NULLIF(ib.quantity,0), 1))
            ),0),2) INTO v_m3
       FROM batch_processing_cost_allocations bpca
       JOIN inbound_batches ib ON ib.id = bpca.inbound_batch_id
       JOIN processing_runs r ON r.id = bpca.run_id
      WHERE r.deleted_at IS NULL AND r.status <> 'reversed'
-       AND ib.remaining_qty < ib.quantity;
+       AND ib.remaining_qty + inbound_batch_maintenance_net_qty(ib.id) < ib.quantity;
 
     -- M4:运费按过账当刻的 in_stock_ratio 劈分,之后不再重算。
     -- 残差 = 冻结的比例与今天的比例之差。今天为零 —— 唯一一张运费单已冲销。
     SELECT round(COALESCE(SUM(
              fa.amount_base * (fa.in_stock_ratio
-               - LEAST(COALESCE(ib.remaining_qty,0) / NULLIF(ib.quantity,0), 1))
+               - LEAST((COALESCE(ib.remaining_qty,0) + inbound_batch_maintenance_net_qty(ib.id)) / NULLIF(ib.quantity,0), 1))
            ),0),2) INTO v_m4
       FROM freight_allocations fa
       JOIN inbound_batches ib ON ib.id = fa.inbound_batch_id

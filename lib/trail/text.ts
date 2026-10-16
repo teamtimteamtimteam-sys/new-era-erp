@@ -307,6 +307,9 @@ export const TRAIL_TEXT = {
     'eq.intervalChanged': 'Service interval changed',
     'eq.intervalRemoved': 'Service interval removed',
     'eq.handoverNote': 'Mentioned in a shift handover',
+    // MES-7a-2:备件出给一条保养记录(借 6800 / 贷 1200)与它的退回(带理由)
+    'eq.partsIssued': 'Spare parts issued to maintenance',
+    'eq.partsReturned': 'Spare parts returned from maintenance',
     // ── 交接班 ───────────────────────────────────────────────────────────────
     'ho.submitted': 'Shift handover submitted',
     'ho.acknowledged': 'Shift handover acknowledged',

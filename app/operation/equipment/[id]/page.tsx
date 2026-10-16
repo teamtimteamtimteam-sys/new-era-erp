@@ -33,6 +33,7 @@ import CellsTable, { type CellRow } from '../CellsTable'
 import DowntimePanel, { type DowntimeRow } from './DowntimePanel'
 import MaintenancePanel from './MaintenancePanel'
 import ServiceIntervalPanel, { type IntervalRow } from './ServiceIntervalPanel'
+import SparePartsPanel, { type PartIssueRow, type PartStock } from './SparePartsPanel'
 import { loadDowntimeCauses, reliabilityWords, type ReliabilityRow } from '../reliability'
 
 const KG = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
@@ -60,8 +61,10 @@ export default async function EquipmentPage({ params, searchParams }: {
     const usage = mustOne(await supabase.from('equipment_usage').select('*').eq('equipment_id', id).maybeSingle(), 'equipment_usage') as Usage | null
     if (!usage) notFound()
 
-    const [canRecord, canFinance, canFinanceEdit, canHr] = await Promise.all([
+    const [canRecord, canFinance, canFinanceEdit, canHr, canIssueParts, canSeeStock, canSeePrices] = await Promise.all([
         can('module.processing.edit'), can('module.finance.view'), can('module.finance.edit'), can('module.hr.view'),
+        // MES-7a-2:备件出库与退回的码(Q12);备件库存的读码;件的金额只给看得见价格的人
+        can('module.inventory.edit'), can('module.inventory.view'), can('data.view_prices'),
     ])
 
     const [statusRes, maintRes, adviceRes, downRes, runsRes, supRes, settingsRes, rel] = await Promise.all([
@@ -150,6 +153,74 @@ export default async function EquipmentPage({ params, searchParams }: {
     })
     const linkableDowntimes = downRows.filter((d) => d.voided_at === null).map((d) => ({ id: d.id, label: downLabel(d) }))
 
+    // ── MES-7a-2:这台机器的保养记录上出过的备件(读:module.processing.view 或 module.inventory.view —— 本页的门已经是加工)──────────
+    const maintIds = maintRaw.map((m) => m.id)
+    const partRaw = maintIds.length
+        ? (mustRows(await supabase.from('maintenance_part_issues')
+                .select('id, maintenance_id, inbound_batch_id, kind, returns_issue_id, quantity, business_date, reason')
+                .in('maintenance_id', maintIds).order('business_date', { ascending: false }), 'maintenance_part_issues') as {
+                id: string; maintenance_id: string; inbound_batch_id: string; kind: string; returns_issue_id: string | null
+                quantity: number; business_date: string; reason: string | null }[])
+        : []
+    // 批号与物料名是标签,跟着这一行走(常设决定 3)—— 但批次表的门是 module.inbound.view;读不到的那几批印「受限」,不印空
+    const partBatchIds = [...new Set(partRaw.map((p) => p.inbound_batch_id))]
+    const partBatchRows = partBatchIds.length
+        ? mustRows(await supabase.from('inbound_batches_masked').select('id, code, unit, material_id').in('id', partBatchIds), 'inbound_batches_masked parts') as
+            { id: string; code: string; unit: string; material_id: string }[]
+        : []
+    const partMatIds = [...new Set(partBatchRows.map((b) => b.material_id))]
+    const partMatName = new Map((partMatIds.length
+        ? mustRows(await supabase.from('materials').select('id, name').in('id', partMatIds), 'materials parts') as { id: string; name: string }[]
+        : []).map((m) => [m.id, m.name]))
+    const partBatches = new Map(partBatchRows.map((b) => [b.id, { ...b, materials: { name: partMatName.get(b.material_id) ?? '' } }]))
+    // 金额:还挂着的数量 × 今天的落地单价 —— 与账一致,因为改价时出给保养那一份已进 6800。
+    //   落地单价读 inbound_batch_valuation(它的取数体自己 require_permission('module.inventory.view'),并按 data.view_prices 遮蔽价格)。
+    //   ★ 不调 inbound_batch_landed_unit_cost:那一支刻意没有授给 authenticated(zzz_function_grants.sql 写着为什么)—— 本刀第一稿就调了它,
+    //     本地版式普查里三个看得见价格的克隆整页 500,看不见价格的仓库克隆照常 200。所以金额只给【两个码都持】的人。
+    const canSeeValue = canSeePrices && canSeeStock
+    const landed = new Map<string, number | null>()
+    if (canSeeValue && partBatchIds.length) {
+        for (const v of mustRows(await supabase.from('inbound_batch_valuation').select('id, landed_unit_cost').in('id', partBatchIds),
+                                 'inbound_batch_valuation parts') as { id: string; landed_unit_cost: number | null }[]) {
+            landed.set(v.id, v.landed_unit_cost === null ? null : Number(v.landed_unit_cost))
+        }
+    }
+    const recordLabel = new Map(maintRows.map((m) => [m.id, `${m.performed_on} · ${t('equipment.kind.' + m.kind)} · ${m.description}`]))
+    const partRows: PartIssueRow[] = partRaw.filter((p) => p.kind === 'issue').map((p) => {
+        const rets = partRaw.filter((r) => r.returns_issue_id === p.id)
+        const returned = rets.reduce((a, r) => a + Number(r.quantity), 0)
+        const outstanding = Number(p.quantity) - returned
+        const b = partBatches.get(p.inbound_batch_id)
+        const cost = landed.get(p.inbound_batch_id)
+        return {
+            id: p.id,
+            issuedOn: formatDate(p.business_date, locale),
+            record: recordLabel.get(p.maintenance_id) ?? '—',
+            batch: b ? `${b.code} · ${b.materials?.name ?? ''}` : t('common.restricted'),
+            unit: b?.unit ?? '',
+            quantity: Number(p.quantity),
+            returned,
+            outstanding,
+            returns: rets.map((r) => `${formatDate(r.business_date, locale)} · ${Number(r.quantity)} · ${r.reason ?? ''}`),
+            value: !canSeeValue ? null
+                : cost === null || cost === undefined ? t('equipment.parts.noCost')
+                : formatAmount(Math.round(outstanding * cost * 100) / 100, baseCurrency),
+        }
+    })
+    // 出库表单从 spare_part_stock 挑批(可用数量 · 有没有价 · 在不在暂扣 —— 与 issue_spare_parts 同一组判据);读不到 = null
+    const partStock: PartStock[] | null = canSeeStock
+        ? (mustRows(await supabase.from('spare_part_stock')
+                .select('inbound_batch_id, batch_code, material_name, unit, available_qty, priced, hold_ncr_code')
+                .order('batch_code'), 'spare_part_stock') as {
+                inbound_batch_id: string; batch_code: string; material_name: string; unit: string; available_qty: number
+                priced: boolean; hold_ncr_code: string | null }[])
+            .map((s) => ({ batchId: s.inbound_batch_id, label: `${s.batch_code} · ${s.material_name}`, unit: s.unit,
+                           available: Number(s.available_qty), priced: s.priced, holdNcr: s.hold_ncr_code }))
+        : null
+    const partRecords = maintRaw.map((m) => ({
+        id: m.id, label: recordLabel.get(m.id) ?? m.id, capitalised: m.capitalised || m.capitalised_expense_id !== null,
+    }))
+
     const runTable: CellRow[] = runRows.map((r) => ({
         id: r.id,
         cells: {
@@ -230,6 +301,13 @@ export default async function EquipmentPage({ params, searchParams }: {
                     equipmentCostBase={costBase}
                     baseCurrency={baseCurrency}
                     currencies={[]} />
+                <SparePartsPanel
+                    assetId={id}
+                    records={partRecords}
+                    stock={partStock}
+                    rows={partRows}
+                    canIssue={canIssueParts}
+                    canSeeValue={canSeeValue} />
                 <DowntimePanel
                     assetId={id}
                     rows={downRows}

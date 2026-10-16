@@ -19,12 +19,17 @@ CREATE TABLE public.inventory_movements (
     -- 暂扣 = 出 available + 进 on_hold,释放 = 出 on_hold + 进 available:
     -- 两者形状相同,方向由每条腿的 stock_status 表达。用 hold/release 命名会把
     -- 方向编码两遍(类型里一次、状态里一次),而两处编码同一件事总有对不上的那天。
+    -- MES-7a-2(2026-10-16,MES-0 Q70;MES-7a Step 0 Q12):末尾两种 maintenance_issue / maintenance_return —— 备件出给一条保养记录与它的退回。
+    --   只由 issue_spare_parts / return_spare_parts 写(trg_inventory_movements_maintenance_ctx 按名拒别的写法);每一行对应
+    --   maintenance_part_issues 的一行。出库是进料一侧、可用桶、为负;退回为正,经那一行退回记录引用它退的那一次出库(流水自己不带指针)。
+    --   ★ 这一段注释【写在 CHECK 外面】:check-enum-mirrors 与 check-i18n 从这条 IN 列表里现读取值,列表中间夹一句注释,两支解析器都会在那儿停下
+    --     (MES-7a-2 第一稿就这么让两支检查各少数了两个值,而它们都报绿)。
     movement_type    text NOT NULL CHECK (movement_type IN
         ('receipt','processing_consume','processing_produce','reversal_restore','reversal_void','sale','writeoff','adjustment',
          'status_change_out','status_change_in',
          -- IOD-1:转移的两条腿。转移【保留状态】—— 搬的是位置不是状态,
          -- 一批被扣住的货换个货架仍然是被扣住的。
-         'transfer_out','transfer_in')),
+         'transfer_out','transfer_in','maintenance_issue','maintenance_return')),
     qty_delta        numeric NOT NULL CHECK (qty_delta <> 0),
     run_id           uuid REFERENCES public.processing_runs (id) ON DELETE RESTRICT,
     location_id      uuid REFERENCES public.storage_locations (id) ON DELETE RESTRICT,
@@ -99,6 +104,8 @@ CREATE TABLE public.inventory_movements (
         WHEN 'status_change_in' THEN qty_delta > 0
         WHEN 'transfer_out' THEN qty_delta < 0
         WHEN 'transfer_in' THEN qty_delta > 0
+        WHEN 'maintenance_issue' THEN qty_delta < 0
+        WHEN 'maintenance_return' THEN qty_delta > 0
         ELSE true END),
     -- batch side must match movement_type
     -- FIN-25b:consume/restore 放开为任一侧(再加工耗产出批);恰一批次由
@@ -107,6 +114,9 @@ CREATE TABLE public.inventory_movements (
         WHEN 'processing_produce' THEN output_batch_id IS NOT NULL
         WHEN 'reversal_void' THEN output_batch_id IS NOT NULL
         WHEN 'sale' THEN output_batch_id IS NOT NULL
+        -- MES-7a-2:备件是进料批(Q2 —— 按批收货,没有逐件追溯),出与退都只动可用桶
+        WHEN 'maintenance_issue' THEN inbound_batch_id IS NOT NULL AND stock_status = 'available'
+        WHEN 'maintenance_return' THEN inbound_batch_id IS NOT NULL AND stock_status = 'available'
         ELSE true END),
     -- STK-1:配对列【当且仅当】状态变更行才有值 —— 两个方向都管:状态变更行漏了
     -- 配对 id,与普通行误带配对 id,撞的是同一条 CHECK。
@@ -186,3 +196,12 @@ COMMENT ON COLUMN public.inventory_movements.stock_status IS
 
 COMMENT ON COLUMN public.inventory_movements.pair_id IS
     'IOD-1(STK-1 起名为 status_pair_id):把一次【成对流水】的两条腿连起来。今天有两种成对:状态变更(出一个状态桶、进另一个,同批次同库位)与转移(出一个库位、进另一个,同批次同状态)。两者形状相同 —— 一出一进、数量相反,所以物理总量按构造不动,不需要任何人记得。四种成对类型当且仅当带 pair_id,由 inventory_movements_pair 双向强制。';
+
+-- MES-7a-2(2026-10-16,MES-7a Step 0 Q12):maintenance_issue / maintenance_return 只由 issue_spare_parts / return_spare_parts 写 ——
+--   那两支函数在事务里设 evoltrya.part_issue_ctx,写完即清;别的属主路径(盘点、注销、转移……)写这两种类型按名拒
+--   MAINTENANCE_MOVEMENT_THROUGH_FUNCTION_ONLY。会话里的直连插入照旧先被 trg_inventory_movements_through_function 拦下。
+CREATE TRIGGER trg_inventory_movements_maintenance_ctx
+    BEFORE INSERT ON public.inventory_movements
+    FOR EACH ROW
+    WHEN (NEW.movement_type IN ('maintenance_issue', 'maintenance_return'))
+    EXECUTE FUNCTION public.guard_maintenance_movement();

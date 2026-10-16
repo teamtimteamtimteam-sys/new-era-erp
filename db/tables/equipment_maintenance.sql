@@ -169,3 +169,9 @@ CREATE TRIGGER trg_equipment_maintenance_direct
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.equipment_maintenance
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');
+
+-- ★ MES-7a-2(2026-10-16,MES-7a Step 0 Q14):一条还挂着备件(出库 − 已退回 > 0)的保养记录不能再资本化 —— 那些件已经照维修费(6800)记掉,
+--   而资本化的钱走费用单进资产成本,件没有一条路跟过去。按名拒 MAINTENANCE_HAS_PARTS(另一个方向:issue_spare_parts 拒往资本化了的记录上出件)。
+CREATE TRIGGER trg_equipment_maintenance_parts_capitalise
+    BEFORE UPDATE OF capitalised, capitalised_expense_id ON public.equipment_maintenance
+    FOR EACH ROW EXECUTE FUNCTION public.guard_maintenance_capitalise_parts();

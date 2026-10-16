@@ -8,8 +8,10 @@
 --     sale                                直接销售,以及发货那一条腿(ship_order 从 committed 桶里出)
 --     status_change_in 进 committed        预留(available → committed 那一对的"进"腿;另一条腿与它同一句 INSERT,一起回滚)
 --     writeoff,却不在一张仓库申请的执行里  注销只经 CFO 批的那张申请(warehouse_request_execute_internal 设 evoltrya.warehouse_request_ctx)
+--     maintenance_issue                   备件出给一条保养记录(MES-7a-2,MES-7a Step 0 Q15:一件开着不合格报告的备件不装上机器)
 --   放行(Q3 · Q21 · Q23):收货、加工产出、转移(两条腿 —— 想把它搬进隔离库位就搬)、盘点调整、available ↔ on_hold、committed → available
---   (释放一个预留 —— 已有的预留照留,只是发不出去)、CFO 批过的注销、回滚的冲销两腿(reversal_restore / reversal_void)。
+--   (释放一个预留 —— 已有的预留照留,只是发不出去)、CFO 批过的注销、回滚的冲销两腿(reversal_restore / reversal_void)、
+--   备件退回(maintenance_return —— 从机器上拆回来的件回到库里;它在不在暂扣里,下一次出库时再问,MES-7a Step 0 Q15)。
 --   ★ 守卫只认【流水的种类与桶】,不认是谁写的:一张已经预留了的货,暂扣落下之后预留照旧在(Q23),发货那一条 sale 腿在这里被拒。
 --   SECURITY DEFINER:暂扣的判据要读全部不合格报告(读策略认码),守卫不能因为写流水的人读不到那一张报告就放过去。
 -- NOTE: introduced by db/migrations/2026-10-15-mes6b1-quality-hold-ncr-and-limits.sql.
@@ -22,7 +24,7 @@ AS $function$
 DECLARE
     v_hold record;
 BEGIN
-    IF NOT (NEW.movement_type IN ('processing_consume', 'sale')
+    IF NOT (NEW.movement_type IN ('processing_consume', 'sale', 'maintenance_issue')
             OR (NEW.movement_type = 'status_change_in' AND NEW.stock_status = 'committed')
             OR (NEW.movement_type = 'writeoff'
                 AND COALESCE(current_setting('evoltrya.warehouse_request_ctx', true), '') = '')) THEN

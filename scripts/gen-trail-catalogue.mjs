@@ -200,6 +200,9 @@ const OVERRIDES = {
         // MES-7a-1(Q3 · Q4):原因(字典里的那一种)与来源;说明照旧叫 Reason
         cause_code: 'Cause', source: 'Recorded' },
     downtime_causes: { class: 'Counts as' },
+    // MES-7a-2(2026-10-16):备件出给保养与退回
+    maintenance_part_issues: { maintenance_id: 'Work record', inbound_batch_id: 'Spare-part batch', business_date: 'On',
+        returns_issue_id: 'Returns the issue of', journal_entry_id: 'Journal entry' },
     equipment_maintenance: { description: 'What was done', expense_id: 'Expense', performed_by_employee_id: 'Done by (employee)',
         performed_by_name: 'Done by (name)', performed_by_supplier_id: 'Done by (supplier)', performed_on: 'Done on',
         capitalised_expense_id: 'Capitalised through expense' },
@@ -711,6 +714,8 @@ const TABLE_NAMES = {
     cell_constructions: 'cell construction', contamination_streams: 'contamination stream', contamination_checks: 'contamination check',
     // MES-7a-1(2026-10-15):停机原因字典
     downtime_causes: 'downtime cause',
+    // MES-7a-2(2026-10-16):一次备件出库 / 退回
+    maintenance_part_issues: 'spare-part issue',
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',
@@ -939,6 +944,8 @@ const ENUM_OVERRIDES = {
     // MES-7a-1:停机的来源(device 保留,今天一行都没有)· 原因的类别
     'equipment_downtime#source': { manual: 'Entered by hand', device: 'From a device' },
     'downtime_causes#class': { failure: 'Failure', planned: 'Planned stop', external: 'External cause' },
+    // MES-7a-2:一行出库还是一行退回
+    'maintenance_part_issues#kind': { issue: 'Issued to maintenance', return: 'Returned from maintenance' },
     'equipment_service_intervals#disposition': { warn: 'Warn', ignore: 'Ignore' },
     'journal_entries#status': { posted: 'Posted', reversed: 'Reversed' },
     'price_history#rate_type': { tt_buy: 'TT buying rate', tt_sell: 'TT selling rate', mid: 'Mid rate' },

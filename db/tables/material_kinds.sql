@@ -79,8 +79,9 @@ INSERT INTO public.material_kinds (code, name_en, name_zh, may_ever_be_processed
     ('consumable', 'Consumable', '耗材辅料', false, 4, false,
      '被工艺消耗掉、成为生产成本的那些。'),
     ('spare_part', 'Spare part', '备件', false, 5, false,
-     '机器的备件。【自成一类】它挂在一台机器上、有关键度,而且【不按批次追溯】——'
-     || '并进耗材会在保养模块(EQP-2b/2c)接上它之前就把那条链丢掉(PROC-0b N3,Tim 裁定)。');
+     '机器的备件。按进料批收货,于是库存与成本都数得上(received as lots so stock and cost are counted);'
+     || '出库挂在一条保养记录上(issued against a maintenance record);不逐件追溯(no per-piece traceability)。'
+     || '【自成一类,不并进耗材】(PROC-0b N3,Tim 裁定;MES-0 Q70 · MES-7a Step 0 Q2 改写 —— 原来那句"不按批次追溯"与按批收货相反)。');
 
 ALTER TABLE public.material_kinds ENABLE ROW LEVEL SECURITY;
 -- 【目录不敏感】与 certificate_types / leave_types / currencies 同一处置。

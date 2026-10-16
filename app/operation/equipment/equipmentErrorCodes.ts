@@ -54,6 +54,16 @@ const EQUIPMENT_ERROR_CODES = new Set([
     'MAINTENANCE_ALREADY_CAPITALISED', 'MAINTENANCE_NOT_APPLICABLE',
     'ASSET_LIFE_EXHAUSTED', 'DEPRECIATION_ANCHOR_IMMUTABLE',
     'ASSET_DISPOSED',
+    // ── MES-7a-2(2026-10-16,MES-7a Step 0 Q12–Q15):备件出给保养与退回(issue_spare_parts · return_spare_parts)与表上的几道 ──────
+    //   重数:grep -rhoE "RAISE EXCEPTION .[A-Z_]+" db/functions/issue_spare_parts.sql db/functions/return_spare_parts.sql
+    //         db/functions/guard_part_issue_write.sql db/functions/guard_maintenance_movement.sql db/functions/guard_maintenance_capitalise_parts.sql
+    //   另加流水上那一道质量暂扣(guard_quality_hold)与批次找不到(INBOUND_NOT_FOUND)—— 出库会撞上它们,句子要说的是"这一批"。
+    'PART_ISSUE_DATE_REQUIRED', 'PART_ISSUE_DATE_IN_FUTURE', 'PART_ISSUE_CAPITALISED', 'PART_ISSUE_NO_LINES', 'PART_ISSUE_NO_BATCH',
+    'PART_NOT_SPARE_PART', 'PART_QTY_INVALID', 'SPARE_PART_UNPRICED', 'PART_ISSUE_EXCEEDS_AVAILABLE',
+    'PART_RETURN_REASON_REQUIRED', 'PART_RETURN_DATE_REQUIRED', 'PART_RETURN_DATE_IN_FUTURE', 'PART_ISSUE_NOT_FOUND',
+    'PART_RETURN_BEFORE_ISSUE', 'PART_RETURN_BATCH_WRITTEN_OFF', 'PART_RETURN_EXCEEDS_ISSUED',
+    'PART_ISSUES_THROUGH_FUNCTION_ONLY', 'PART_ISSUE_IMMUTABLE', 'MAINTENANCE_MOVEMENT_THROUGH_FUNCTION_ONLY', 'MAINTENANCE_HAS_PARTS',
+    'QUALITY_HOLD_OPEN', 'INBOUND_NOT_FOUND',
     // ── B3(2026-09-20):set_asset_planned_in_service 抛的那一条(PERMISSION_DENIED 由 refuseFromCoded 的分支 ① 在本地化器之前接住)──
     'ASSET_NOT_FOUND',
 ])

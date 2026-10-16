@@ -203,3 +203,66 @@ export async function deleteServiceInterval(assetId: string, intervalId: string)
     refresh(assetId)
     return { success: true }
 }
+
+// ── MES-7a-2(2026-10-16,MES-7a Step 0 Q12 · Q13 · Q14 · Q15):备件出给一条保养记录,与它的退回 ──────────────────────────
+//   码 module.inventory.edit(函数里查;不加新码,没有审批 —— Q10)。钱在函数里过账(借 6800 / 贷 1200,退回反过来),这里一分都不算。
+//   【这一页说的是这台机器】函数只认 maintenance_id / issue_id;先问一次它是不是这台机器的,对不上就按 NOT_FOUND 说。
+//   【拒空在这里先拒一次】日期、数量、理由由动作独立拒空(AGENTS.md:提交控件禁用 + 服务端独立拒空),函数里是同一组码的第二道。
+async function maintenanceOnThisMachine(assetId: string, maintenanceId: string): Promise<ActState | null> {
+    const supabase = await createClient()
+    const { data: row, error } = await supabase.from('equipment_maintenance')
+        .select('id').eq('id', maintenanceId).eq('equipment_id', assetId).maybeSingle()
+    if (error) return refuse(error.message)
+    if (!row) return { error: await localizeEquipmentError(`MAINTENANCE_NOT_FOUND|${maintenanceId}`) }
+    return null
+}
+
+export async function issueSpareParts(input: {
+    assetId: string; maintenanceId: string; issuedOn: string; lines: { batchId: string; quantity: string }[]
+}): Promise<ActState> {
+    if (!input.issuedOn) return { error: await localizeEquipmentError('PART_ISSUE_DATE_REQUIRED') }
+    const lines = input.lines.filter((l) => l.batchId)
+    if (lines.length === 0) return { error: await localizeEquipmentError('PART_ISSUE_NO_LINES') }
+    for (const l of lines) {
+        const q = Number(l.quantity)
+        if (!l.quantity.trim() || !Number.isFinite(q) || q <= 0) return { error: await localizeEquipmentError(`PART_QTY_INVALID|-|${l.quantity || '?'}`) }
+    }
+    const off = await maintenanceOnThisMachine(input.assetId, input.maintenanceId)
+    if (off) return off
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('issue_spare_parts', {
+        p_maintenance_id: input.maintenanceId,
+        p_issued_on: input.issuedOn,
+        p_lines: lines.map((l) => ({ inbound_batch_id: l.batchId, quantity: Number(l.quantity) })),
+    })
+    if (error) return refuse(error.message)
+    refresh(input.assetId)
+    revalidatePath('/inventory')
+    revalidatePath('/operation/balance')
+    return { success: true }
+}
+
+export async function returnSpareParts(input: {
+    assetId: string; issueId: string; quantity: string; returnedOn: string; reason: string
+}): Promise<ActState> {
+    if (!input.reason.trim()) return { error: await localizeEquipmentError('PART_RETURN_REASON_REQUIRED') }
+    if (!input.returnedOn) return { error: await localizeEquipmentError('PART_RETURN_DATE_REQUIRED') }
+    const q = Number(input.quantity)
+    if (!input.quantity.trim() || !Number.isFinite(q) || q <= 0) return { error: await localizeEquipmentError(`PART_QTY_INVALID|-|${input.quantity || '?'}`) }
+    const supabase = await createClient()
+    // 这一行出库是不是这台机器的(经它的保养记录)
+    const { data: row, error: readErr } = await supabase.from('maintenance_part_issues')
+        .select('id, equipment_maintenance!inner(equipment_id)').eq('id', input.issueId).eq('kind', 'issue')
+        .eq('equipment_maintenance.equipment_id', input.assetId).maybeSingle()
+    if (readErr) return refuse(readErr.message)
+    if (!row) return { error: await localizeEquipmentError(`PART_ISSUE_NOT_FOUND|${input.issueId}`) }
+    const { error } = await supabase.rpc('return_spare_parts', {
+        p_issue_id: input.issueId, p_quantity: q, p_returned_on: input.returnedOn, p_reason: input.reason.trim(),
+    })
+    if (error) return refuse(error.message)
+    refresh(input.assetId)
+    revalidatePath('/inventory')
+    revalidatePath('/operation/balance')
+    return { success: true }
+}
+

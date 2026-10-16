@@ -234,7 +234,7 @@ export default function DowntimePanel({
 
     return (
         <div className="mb-8">
-            <div className="flex items-baseline gap-3 mb-2">
+            <div className="flex flex-wrap items-baseline gap-3 mb-2">
                 <h2 className="">{t('equipment.down.title')}</h2>
                 {/* ★★ ALERT-2d ①:`canEdit && !openRow` 是【权限 × 记录状态】。
                        为假有两个完全不同的原因,而此前两个原因都只换来"钮不见了":
@@ -243,7 +243,9 @@ export default function DowntimePanel({
                        第二句今天写在琥珀块里(oneOpenOnly),可它被一层
                        PermissionGate 罩着 —— 于是没有权限的人两句都读不到。 */}
                 {readOnly ? null : !openRow ? (
-                    <PermissionGate code="module.processing.edit" allowed={canEdit} inline>
+                    // MES-7a-2:flex-wrap —— 按钮加"需要 module.processing.edit"那枚药丸在 390px 上比一行宽(本地版式普查实测 +114px,
+                    //   一个没有开着的停机、又不持码的读者才看得见这一枚 —— 线上 FA-2026-0001 有一段开着的停机,所以 MES-7a-1 的普查没碰到它)
+                    <PermissionGate code="module.processing.edit" allowed={canEdit} inline className="flex-wrap">
                         <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
                             {t('equipment.down.add')}
                         </Button>

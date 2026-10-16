@@ -339,6 +339,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "assay_disputes_our_assay_id_fkey"
             columns: ["our_assay_id"]
             isOneToOne: false
@@ -752,6 +759,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -1650,6 +1664,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
@@ -1876,6 +1897,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "blending_plan_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "blending_plan_lines_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
@@ -2094,6 +2122,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blending_plans_output_material_id_fkey"
+            columns: ["output_material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "blending_plans_output_material_id_fkey"
@@ -2813,6 +2848,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -4181,6 +4223,13 @@ export type Database = {
             foreignKeyName: "contract_grade_specs_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "contract_grade_specs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -4454,6 +4503,13 @@ export type Database = {
             foreignKeyName: "contract_quality_limits_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "contract_quality_limits_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -4649,6 +4705,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_volume_commitments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "contract_volume_commitments_material_id_fkey"
@@ -5909,6 +5972,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "discharge_channel_assignments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "discharge_channel_assignments_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
@@ -6273,6 +6343,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -6653,6 +6730,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "discharge_module_splits_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -9063,6 +9147,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "finance_attachments_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
@@ -10016,6 +10107,13 @@ export type Database = {
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
         ]
       }
       freight_documents: {
@@ -10760,6 +10858,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "inbound_batch_metals_metal_fkey"
             columns: ["metal"]
             isOneToOne: false
@@ -11118,6 +11223,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "inbound_batch_safety_states_reopened_from_fkey"
             columns: ["reopened_from_id"]
             isOneToOne: false
@@ -11297,6 +11409,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
@@ -12088,6 +12207,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -13524,6 +13650,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "label_prints_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "label_prints_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
@@ -14523,6 +14656,150 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_part_issues: {
+        Row: {
+          business_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string
+          journal_entry_id: string | null
+          kind: string
+          maintenance_id: string
+          movement_ids: string[]
+          quantity: number
+          reason: string | null
+          returns_issue_id: string | null
+        }
+        Insert: {
+          business_date: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id: string
+          journal_entry_id?: string | null
+          kind: string
+          maintenance_id: string
+          movement_ids: string[]
+          quantity: number
+          reason?: string | null
+          returns_issue_id?: string | null
+        }
+        Update: {
+          business_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string
+          journal_entry_id?: string | null
+          kind?: string
+          maintenance_id?: string
+          movement_ids?: string[]
+          quantity?: number
+          reason?: string | null
+          returns_issue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_maintenance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_maintenance_advice"
+            referencedColumns: ["maintenance_id"]
+          },
+          {
+            foreignKeyName: "maintenance_part_issues_returns_issue_id_fkey"
+            columns: ["returns_issue_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_part_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_settings: {
         Row: {
           capitalise_floor_base: number
@@ -14688,6 +14965,13 @@ export type Database = {
             foreignKeyName: "material_attachments_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_attachments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -14810,6 +15094,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_required_metals_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "material_required_metals_material_id_fkey"
@@ -15616,6 +15907,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -16774,6 +17072,13 @@ export type Database = {
             foreignKeyName: "output_batches_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -17109,6 +17414,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -18971,6 +19283,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "prepayment_applications_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
             isOneToOne: false
@@ -19140,6 +19459,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
         ]
@@ -19598,6 +19924,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: true
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -20206,6 +20539,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -22280,6 +22620,13 @@ export type Database = {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -22956,6 +23303,13 @@ export type Database = {
             foreignKeyName: "quote_lines_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "quote_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -23205,6 +23559,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "receipt_ceiling_checks_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "receipt_ceiling_checks_licence_id_fkey"
             columns: ["licence_id"]
             isOneToOne: false
@@ -23449,6 +23810,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -24121,6 +24489,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "sales_order_lines_material_id_fkey"
@@ -24963,6 +25338,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -26064,6 +26446,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "stocktake_counts_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
@@ -26224,6 +26613,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -28465,6 +28861,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "warehouse_requests_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
@@ -28816,6 +29219,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "weighbridge_ticket_shares_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -29217,6 +29627,13 @@ export type Database = {
             foreignKeyName: "work_order_expected_outputs_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "work_order_expected_outputs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -29351,6 +29768,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "work_order_lines_material_id_fkey"
@@ -29815,6 +30239,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_disputes_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -30367,6 +30798,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
@@ -33649,6 +34087,13 @@ export type Database = {
             foreignKeyName: "inbound_batches_material_id_fkey"
             columns: ["received_material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["received_material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -33700,6 +34145,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["ordered_material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
@@ -33814,6 +34266,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
@@ -34028,6 +34487,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
@@ -35906,6 +36372,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "nonconformance_reports_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "nonconformance_reports_judgement_id_fkey"
             columns: ["judgement_id"]
             isOneToOne: false
@@ -36258,6 +36731,13 @@ export type Database = {
             foreignKeyName: "output_batches_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -36389,6 +36869,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "output_batches_material_id_fkey"
@@ -37297,6 +37784,13 @@ export type Database = {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -37371,6 +37865,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
@@ -37511,6 +38012,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -37683,6 +38191,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
         ]
@@ -38097,6 +38612,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: true
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -40182,6 +40704,13 @@ export type Database = {
             foreignKeyName: "output_batches_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
@@ -40647,6 +41176,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
@@ -41751,6 +42287,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "samples_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
             foreignKeyName: "samples_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
@@ -41863,6 +42406,23 @@ export type Database = {
           },
         ]
       }
+      spare_part_stock: {
+        Row: {
+          arrival_date: string | null
+          available_qty: number | null
+          batch_code: string | null
+          hold_ncr_code: string | null
+          inbound_batch_id: string | null
+          material_code: string | null
+          material_id: string | null
+          material_name: string | null
+          priced: boolean | null
+          pricing_status: string | null
+          remaining_qty: number | null
+          unit: string | null
+        }
+        Relationships: []
+      }
       stock_by_status: {
         Row: {
           batch_code: string | null
@@ -41930,6 +42490,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -42054,6 +42621,7 @@ export type Database = {
           adjusted: number | null
           closing: number | null
           consumed: number | null
+          issued_to_maintenance: number | null
           month: string | null
           moved: number | null
           opening: number | null
@@ -42071,6 +42639,7 @@ export type Database = {
           adjusted: number | null
           closing: number | null
           consumed: number | null
+          issued_to_maintenance: number | null
           month: string | null
           moved: number | null
           opening: number | null
@@ -42809,6 +43378,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "spare_part_stock"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -44692,6 +45268,10 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }
+      inbound_batch_maintenance_net_qty: {
+        Args: { p_inbound_batch_id: string }
+        Returns: number
+      }
       inbound_batch_valuation_rows: {
         Args: never
         Returns: {
@@ -44780,6 +45360,10 @@ export type Database = {
         Returns: Json
       }
       issue_gateway_key: { Args: { p_gateway_id: string }; Returns: Json }
+      issue_spare_parts: {
+        Args: { p_issued_on: string; p_lines: Json; p_maintenance_id: string }
+        Returns: Json
+      }
       journal_activity_lines: {
         Args: { p_from: string; p_include_year_close: boolean; p_to: string }
         Returns: {
@@ -46089,6 +46673,7 @@ export type Database = {
       }
       reprice_split: {
         Args: {
+          p_maintenance_qty: number
           p_new_price: number
           p_old_price: number
           p_quantity: number
@@ -46158,6 +46743,15 @@ export type Database = {
         Returns: undefined
       }
       retry_inbox_row: { Args: { p_id: number }; Returns: string }
+      return_spare_parts: {
+        Args: {
+          p_issue_id: string
+          p_quantity: number
+          p_reason: string
+          p_returned_on: string
+        }
+        Returns: Json
+      }
       revalue_foreign_balances: {
         Args: { p_period_end: string }
         Returns: Json

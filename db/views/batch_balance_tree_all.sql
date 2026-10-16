@@ -2,7 +2,8 @@
 -- MES-5b-1(2026-10-08,规格 §4.2;MES-0 Q59;MES-5b Step 0 Q3–Q7 · Q10 · Q11,Tim):【一个批次的质量去了哪里 —— 往下走的树】—— 基视图,不给人读。
 --   每一个批次(进料与产出)是一棵树的根(root_kind / root_id)。树上的结点(node_type):
 --     batch       根批次自己(depth 0),x = 它收进来的量(收货 + 加工产出的流水之和)
---     fate        一个批次结点的去向,line_key:on_hand · sold · written_off · adjusted · voided(回滚作废)· consumed(喂进消耗那几炉)·
+--     fate        一个批次结点的去向,line_key:on_hand · sold · written_off · adjusted · voided(回滚作废)·
+--                 maintenance(MES-7a-2:出给保养记录的备件,减去退回的)· consumed(喂进消耗那几炉)·
 --                 split(拆去隔离转给子批)· consumed_not_kg(喂进一炉单位不全是 kg 的单 —— 料离开了库存,但那一炉不展开、不合计)·
 --                 unexplained(收进来的 − 以上之和;流水与投料腿对得上时恒为 0 —— 两边是两份真源,所以它动得开,是一个检查,不是装饰)
 --     run         这个批次喂进的一炉(消耗或拆分),x = 这一条投料腿的量
@@ -22,7 +23,8 @@
 --   所以子批次收进来的 = 那条产出腿的量。深度上限 20(工序链今天最长 6 段)。
 --   读者:batch_balance_tree(带门)。
 --
--- NOTE: introduced by db/migrations/2026-10-08-mes5b1-balance-and-yield.sql.
+-- NOTE: introduced by db/migrations/2026-10-08-mes5b1-balance-and-yield.sql;
+--   the maintenance fate line added by db/migrations/2026-10-16-mes7a2-spare-parts.sql。
 
 CREATE VIEW public.batch_balance_tree_all WITH (security_invoker = off) AS
  WITH RECURSIVE batches AS (
@@ -94,7 +96,8 @@ CREATE VIEW public.batch_balance_tree_all WITH (security_invoker = off) AS
             COALESCE(- sum(m.qty_delta) FILTER (WHERE m.movement_type = 'sale'::text), 0::numeric) AS sold,
             COALESCE(- sum(m.qty_delta) FILTER (WHERE m.movement_type = 'writeoff'::text), 0::numeric) AS written_off,
             COALESCE(- sum(m.qty_delta) FILTER (WHERE m.movement_type = 'adjustment'::text), 0::numeric) AS adjusted,
-            COALESCE(- sum(m.qty_delta) FILTER (WHERE m.movement_type = 'reversal_void'::text), 0::numeric) AS voided
+            COALESCE(- sum(m.qty_delta) FILTER (WHERE m.movement_type = 'reversal_void'::text), 0::numeric) AS voided,
+            COALESCE(- sum(m.qty_delta) FILTER (WHERE m.movement_type = ANY (ARRAY['maintenance_issue'::text, 'maintenance_return'::text])), 0::numeric) AS maintenance
            FROM inventory_movements m
           GROUP BY (
                 CASE
@@ -127,6 +130,7 @@ CREATE VIEW public.batch_balance_tree_all WITH (security_invoker = off) AS
             COALESCE(ma.written_off, 0::numeric) AS written_off,
             COALESCE(ma.adjusted, 0::numeric) AS adjusted,
             COALESCE(ma.voided, 0::numeric) AS voided,
+            COALESCE(ma.maintenance, 0::numeric) AS maintenance,
             COALESCE(la.consumed, 0::numeric) AS consumed,
             COALESCE(la.split, 0::numeric) AS split,
             COALESCE(la.consumed_not_kg, 0::numeric) AS consumed_not_kg
@@ -170,7 +174,7 @@ CREATE VIEW public.batch_balance_tree_all WITH (security_invoker = off) AS
             NULL::text,
             NULL::text
            FROM nodes n
-             CROSS JOIN LATERAL ( VALUES ('on_hand'::text,n.on_hand,1), ('sold'::text,n.sold,2), ('written_off'::text,n.written_off,3), ('adjusted'::text,n.adjusted,4), ('voided'::text,n.voided,5), ('consumed'::text,n.consumed,6), ('split'::text,n.split,7), ('consumed_not_kg'::text,n.consumed_not_kg,8), ('unexplained'::text,n.received - n.on_hand - n.sold - n.written_off - n.adjusted - n.voided - n.consumed - n.split - n.consumed_not_kg,9)) v(line_key, x, ord)
+             CROSS JOIN LATERAL ( VALUES ('on_hand'::text,n.on_hand,1), ('sold'::text,n.sold,2), ('written_off'::text,n.written_off,3), ('adjusted'::text,n.adjusted,4), ('voided'::text,n.voided,5), ('maintenance'::text,n.maintenance,6), ('consumed'::text,n.consumed,7), ('split'::text,n.split,8), ('consumed_not_kg'::text,n.consumed_not_kg,9), ('unexplained'::text,n.received - n.on_hand - n.sold - n.written_off - n.adjusted - n.voided - n.maintenance - n.consumed - n.split - n.consumed_not_kg,10)) v(line_key, x, ord)
         UNION ALL
          SELECT n.root_kind,
             n.root_id,
@@ -283,6 +287,6 @@ CREATE VIEW public.batch_balance_tree_all WITH (security_invoker = off) AS
          LIMIT 1) cb ON true;
 
 COMMENT ON VIEW public.batch_balance_tree_all IS
-    'MES-5b-1:每一个批次往下走的质量树 —— 批次 → 去向(在手 · 卖出 · 注销 · 调整 · 回滚作废 · 消耗 · 拆去隔离 · 未解释)→ 喂进的每一炉 → 它的产出(子批次,接着往下走)、有名字的损耗与余数;放电、回滚与单位不是 kg 的单另列成事件。份额按投入质量成比例,写成精确的一对 share_num / share_den,每一层的未缩放量 x 精确相加;qty = x × num ÷ den 只给屏幕。基视图,不给人读。';
+    'MES-5b-1:每一个批次往下走的质量树 —— 批次 → 去向(在手 · 卖出 · 注销 · 调整 · 回滚作废 · 出给保养(MES-7a-2)· 消耗 · 拆去隔离 · 未解释)→ 喂进的每一炉 → 它的产出(子批次,接着往下走)、有名字的损耗与余数;放电、回滚与单位不是 kg 的单另列成事件。份额按投入质量成比例,写成精确的一对 share_num / share_den,每一层的未缩放量 x 精确相加;qty = x × num ÷ den 只给屏幕。基视图,不给人读。';
 
 REVOKE ALL ON public.batch_balance_tree_all FROM authenticated, anon;

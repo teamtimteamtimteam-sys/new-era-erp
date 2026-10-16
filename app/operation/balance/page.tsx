@@ -40,7 +40,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
     const [linesRes, rollRes, labels] = await Promise.all([
         supabase.from('processing_balance_monthly').select('scope, operation_type_code, line, line_key, basis, qty, runs').eq('month', monthStart),
         supabase.from('stock_rollforward_monthly')
-            .select('month, unit, opening, received, produced, consumed, sold, written_off, adjusted, voided, moved, closing')
+            .select('month, unit, opening, received, produced, consumed, sold, written_off, adjusted, voided, issued_to_maintenance, moved, closing')
             .or(`month.eq.${monthStart},month.is.null`),
         labelMaps(supabase, locale, t),
     ])
@@ -92,7 +92,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
     const rollRows: MassRow[] = roll.filter((r) => r.month !== null).map((r) => ({
         key: String(r.unit),
         cells: [String(r.unit), fmtKg(r.opening), fmtKg(r.received), fmtKg(r.produced), fmtKg(r.consumed), fmtKg(r.sold),
-            fmtKg(r.written_off), fmtKg(r.adjusted), fmtKg(r.voided), fmtKg(r.moved), fmtKg(r.closing)],
+            fmtKg(r.written_off), fmtKg(r.adjusted), fmtKg(r.voided), fmtKg(r.issued_to_maintenance), fmtKg(r.moved), fmtKg(r.closing)],
     }))
     const undatedUnits = roll.filter((r) => r.month === null).length
 
@@ -138,7 +138,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
                                  { label: t('massBalance.colReceived'), align: 'right' }, { label: t('massBalance.colProduced'), align: 'right' },
                                  { label: t('massBalance.colConsumed'), align: 'right' }, { label: t('massBalance.colSold'), align: 'right' },
                                  { label: t('massBalance.colWrittenOff'), align: 'right' }, { label: t('massBalance.colAdjusted'), align: 'right' },
-                                 { label: t('massBalance.colVoided'), align: 'right' }, { label: t('massBalance.colMoved'), align: 'right' },
+                                 { label: t('massBalance.colVoided'), align: 'right' }, { label: t('massBalance.colMaintenance'), align: 'right' }, { label: t('massBalance.colMoved'), align: 'right' },
                                  { label: t('massBalance.colClosing'), priority: true, align: 'right' }]}
                        rows={rollRows} />
         </ListPage>

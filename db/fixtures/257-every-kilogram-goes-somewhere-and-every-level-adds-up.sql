@@ -404,7 +404,7 @@ BEGIN
     -- ══════════════ ROLL · 库存滚动 ══════════════
     RAISE NOTICE 'fixture 257 · ROLL';
     SELECT string_agg(unit || ' ' || month, ', ') INTO v_bad FROM stock_rollforward_monthly_all
-     WHERE month IS NOT NULL AND closing <> opening + received + produced + consumed + sold + written_off + adjusted + voided + moved;
+     WHERE month IS NOT NULL AND closing <> opening + received + produced + consumed + sold + written_off + adjusted + voided + issued_to_maintenance + moved;  -- MES-7a-2:多一列出给保养
     IF v_bad IS NOT NULL THEN RAISE EXCEPTION 'FIXTURE 257 ROLL: closing <> opening + the month''s lines in %', v_bad; END IF;
     SELECT jsonb_build_object('received', received, 'produced', produced, 'consumed', consumed, 'voided', voided, 'moved', moved) INTO v_j
       FROM stock_rollforward_monthly_all WHERE month = mon AND unit = 'kg';

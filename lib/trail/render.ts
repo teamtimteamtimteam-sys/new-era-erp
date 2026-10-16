@@ -1026,7 +1026,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-6b-1:这一批上的不合格报告(家在报告自己那里)
         'nonconformance_reports',
         // MES-6b-2:吃过这一批的加工单做出来的产出批上的分析证书(家在证书自己那里;经加工单与产出腿两块垫脚石)
-        'certificates_of_analysis'],
+        'certificates_of_analysis',
+        // MES-7a-2:这一批的备件出给了哪一条保养记录、退回了多少(家在设备;与机器页同一句话)
+        'maintenance_part_issues'],
     output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states', 'receipt_ceiling_checks', 'label_prints',
         'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
         'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
@@ -1042,7 +1044,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'certificates_of_analysis', 'coa_issues'],
     work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
     stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
-    equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
+    equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs',
+        // MES-7a-2:备件出给保养与退回(家在这里,经那一条保养记录)
+        'maintenance_part_issues'],
     shift_handover: ['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs'],
     warehouse_request: ['warehouse_requests', 'approval_log'],
     // AUDIT-TRAIL-1b-2
@@ -1234,7 +1238,7 @@ const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batc
 const BATCH_VIEW_OF_RUN = new Set(['processing_inputs', 'processing_outputs', 'batch_processing_cost_allocations'])
 const WO_TABLES = new Set(['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history'])
 const ST_TABLES = new Set(['stocktakes', 'stocktake_lines', 'stocktake_counts'])
-const EQ_TABLES = new Set(['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals'])
+const EQ_TABLES = new Set(['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'maintenance_part_issues'])
 const HO_TABLES = new Set(['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs'])
 /** 往上一跳够到的那几种:在别的记录的页上出现时,标题后面点名它属于哪一张单据("Purchase order amended · PO-2026-0010")。
  *  写进标题而不是另起一个小标题 —— 一条记录里后面几块的标题本身就是小标题,再加一个会把它们的标题挤掉。 */
@@ -1919,6 +1923,16 @@ function describeEquipment(d: TrailDict, rows: TrailRow[], opts: BuildOptions, s
     for (const r of by('shift_handover_equipment_refs')) {
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
         out.push({ title: tx(d, 'eq.handoverNote'), lines: valueLines(d, r, r.new, opts), key: false, weight: 30 })
+    }
+    // MES-7a-2(Q12 · Q20):备件出给一条保养记录 / 退回 —— 只可追加,所以只有 INSERT。批号挂在标题后面那一段(它说的是"哪一批的件");
+    //   数量、日期、它挂的那条保养记录与那张分录是行;退回带理由(理由那一格),它退的那一次出库不另起一行(标题已经说了是退回)。
+    //   流水那一列(movement_ids)不说 —— 那几条流水在批次页上各自是一块。
+    for (const r of by('maintenance_part_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const isReturn = str(r, 'kind') === 'return'
+        out.push({ title: tx(d, isReturn ? 'eq.partsReturned' : 'eq.partsIssued'), part: refText(d, r, 'inbound_batch_id'),
+                   lines: valueLines(d, r, r.new, opts, new Set(['kind', 'inbound_batch_id', 'movement_ids', 'returns_issue_id', 'reason'])),
+                   reason: typed(r.new?.['reason']), key: true, weight: 70 })
     }
     return out
 }

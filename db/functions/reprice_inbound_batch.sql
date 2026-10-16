@@ -1,4 +1,6 @@
 
+-- MES-7a-2(2026-10-16,MES-7a Step 0 Q13):改价时,已出给保养那一份的价差进 6800 Repairs & Maintenance,不进 5000 —— reprice_split 多了一个入参
+-- (inbound_batch_maintenance_net_qty),一份实现照旧两个调用者;返回值多一个 maintenance_share_usd。
 -- MES-2(2026-10-06,MES-2 Step 0 Q27):校准闸在这里 —— 每一条收货定价路径都落进本引擎,所以只问一次
 -- (assert_receipt_reading_calibrated;试算 preview_reprice_inbound_batch 问同一支)。
 -- FIN-21(2026-08-06):改问 fx_rate_asof —— 同一条解析规则,多拿一个【取自哪一天】,
@@ -26,6 +28,7 @@ DECLARE
     v_ratio     numeric;
     v_inv       numeric := 0;
     v_cost      numeric := 0;
+    v_mnt       numeric := 0;   -- MES-7a-2:已出给保养那一份(进 6800)
     v_lines     jsonb;
     v_je        jsonb := NULL;
 BEGIN
@@ -83,13 +86,15 @@ BEGIN
     -- cut 2a:计价即入账 —— 整批数量 × 价差(负债在收货整批上成立,非剩余量)。
     -- 记于定价日 CURRENT_DATE(到货日尚无金额,刻意如此);USD 口径(原币在 price_history)。
     -- 拆分算术来自 reprice_split —— 与 preview_reprice_inbound_batch 共用同一份。
-    v_split := reprice_split(v_qty, v_remaining, v_old, v_usd);
+    -- MES-7a-2(Q13):reprice_split 认得出给保养的那一份 —— 它的价差进 6800,不进 5000
+    v_split := reprice_split(v_qty, v_remaining, v_old, v_usd, inbound_batch_maintenance_net_qty(p_inbound_batch_id));
     v_delta := (v_split->>'delta_usd')::numeric;
     v_ratio := (v_split->>'in_stock_ratio')::numeric;
 
     IF v_delta <> 0 THEN
-        -- 拆账:在库份额进 1200,已消耗份额进 5000;贷方(负差时借方)恒 2000
+        -- 拆账:在库份额进 1200,出给保养的份额进 6800(MES-7a-2),其余已消耗份额进 5000;贷方(负差时借方)恒 2000
         v_inv  := (v_split->>'inventory_share_usd')::numeric;
+        v_mnt  := (v_split->>'maintenance_share_usd')::numeric;
         v_cost := (v_split->>'cost_share_usd')::numeric;
 
         v_lines := '[]'::jsonb;
@@ -99,6 +104,13 @@ BEGIN
                 'side', CASE WHEN v_delta > 0 THEN 'debit' ELSE 'credit' END,
                 'currency', base_currency_code(), 'amount_ccy', abs(v_inv),
                 'line_memo', 'in-stock share');
+        END IF;
+        IF abs(v_mnt) > 0 THEN
+            v_lines := v_lines || jsonb_build_object(
+                'account_code', '6800',
+                'side', CASE WHEN v_delta > 0 THEN 'debit' ELSE 'credit' END,
+                'currency', base_currency_code(), 'amount_ccy', abs(v_mnt),
+                'line_memo', 'issued-to-maintenance share');
         END IF;
         IF abs(v_cost) > 0 THEN
             v_lines := v_lines || jsonb_build_object(
@@ -133,6 +145,7 @@ BEGIN
         'in_stock_ratio', v_ratio,
         'inventory_share_usd', v_inv,
         'cost_share_usd', v_cost,
+        'maintenance_share_usd', v_mnt,
         'journal_code', v_je->>'code'
     );
 END;

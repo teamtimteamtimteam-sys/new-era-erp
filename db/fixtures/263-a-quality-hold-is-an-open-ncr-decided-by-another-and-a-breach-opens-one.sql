@@ -114,6 +114,8 @@ CREATE FUNCTION pg_temp.f263_leg(p_in uuid, p_out uuid, p_type text, p_qty numer
 LANGUAGE plpgsql AS $f$
 BEGIN
     PERFORM set_config('evoltrya.warehouse_request_ctx', COALESCE(p_ctx, ''), true);
+    -- MES-7a-2:两种保养流水只经 issue_spare_parts / return_spare_parts 写(它们设这个上下文)—— 这里替它们设,好让问题只剩"暂扣挡不挡"
+    PERFORM set_config('evoltrya.part_issue_ctx', CASE WHEN p_type LIKE 'maintenance%' THEN 'fixture' ELSE '' END, true);
     INSERT INTO inventory_movements (inbound_batch_id, output_batch_id, movement_type, qty_delta, stock_status, pair_id, business_date, notes)
     VALUES (p_in, p_out, p_type, p_qty, p_status,
             CASE WHEN p_type IN ('status_change_out', 'status_change_in', 'transfer_out', 'transfer_in') THEN gen_random_uuid() END,
@@ -121,6 +123,7 @@ BEGIN
     RAISE EXCEPTION 'F263_LEG_ALLOWED';
 EXCEPTION WHEN OTHERS THEN
     PERFORM set_config('evoltrya.warehouse_request_ctx', '', true);
+    PERFORM set_config('evoltrya.part_issue_ctx', '', true);
     IF SQLERRM = 'F263_LEG_ALLOWED' THEN RETURN 'ALLOWED'; END IF;
     RETURN SQLERRM;
 END;
@@ -355,8 +358,10 @@ BEGIN
        OR pg_temp.f263_leg(NULL, ob_m, 'sale', -1, 'committed', NULL) NOT LIKE 'QUALITY_HOLD_OPEN|%'
        OR pg_temp.f263_leg(NULL, ob_m, 'status_change_in', 1, 'committed', NULL) NOT LIKE 'QUALITY_HOLD_OPEN|%'
        OR pg_temp.f263_leg(ib_m, NULL, 'writeoff', -1, 'available', NULL) NOT LIKE 'QUALITY_HOLD_OPEN|%'
-       OR pg_temp.f263_leg(NULL, ob_m, 'writeoff', -1, 'available', NULL) NOT LIKE 'QUALITY_HOLD_OPEN|%' THEN
-        RAISE EXCEPTION 'FIXTURE 263 HOLD: consume, sale (both buckets), a status leg into committed and a write-off outside a request are refused by name'; END IF;
+       OR pg_temp.f263_leg(NULL, ob_m, 'writeoff', -1, 'available', NULL) NOT LIKE 'QUALITY_HOLD_OPEN|%'
+       -- MES-7a-2(Step 0 Q15):一件开着报告的备件不装上机器
+       OR pg_temp.f263_leg(ib_m, NULL, 'maintenance_issue', -1, 'available', NULL) <> 'QUALITY_HOLD_OPEN|ZZ263-IBM|' || v_code THEN
+        RAISE EXCEPTION 'FIXTURE 263 HOLD: consume, sale (both buckets), a status leg into committed, a write-off outside a request and an issue to maintenance are refused by name'; END IF;
     -- 放的那几种
     IF pg_temp.f263_leg(ib_m, NULL, 'receipt', 1, 'available', NULL) <> 'ALLOWED'
        OR pg_temp.f263_leg(NULL, ob_m, 'processing_produce', 1, 'available', NULL) <> 'ALLOWED'
@@ -372,8 +377,10 @@ BEGIN
        OR pg_temp.f263_leg(ib_m, NULL, 'transfer_in', 1, 'available', NULL) <> 'ALLOWED'
        OR pg_temp.f263_leg(NULL, ob_m, 'transfer_in', 1, 'committed', NULL) <> 'ALLOWED'
        OR pg_temp.f263_leg(ib_m, NULL, 'writeoff', -1, 'available', gen_random_uuid()::text) <> 'ALLOWED'
-       OR pg_temp.f263_leg(NULL, ob_m, 'writeoff', -1, 'available', gen_random_uuid()::text) <> 'ALLOWED' THEN
-        RAISE EXCEPTION 'FIXTURE 263 HOLD: receipts, production, reversals, adjustments, available ↔ on_hold, committed → available, transfers and a write-off inside a request are allowed'; END IF;
+       OR pg_temp.f263_leg(NULL, ob_m, 'writeoff', -1, 'available', gen_random_uuid()::text) <> 'ALLOWED'
+       -- MES-7a-2(Step 0 Q15):退回不挡
+       OR pg_temp.f263_leg(ib_m, NULL, 'maintenance_return', 1, 'available', NULL) <> 'ALLOWED' THEN
+        RAISE EXCEPTION 'FIXTURE 263 HOLD: receipts, production, reversals, adjustments, available ↔ on_hold, committed → available, transfers, a write-off inside a request and a return from maintenance are allowed'; END IF;
     -- 不在暂扣里的一批:同样的投料腿放行(那四种拒绝是暂扣的,不是流水的)
     IF pg_temp.f263_leg(ib_c, NULL, 'processing_consume', -1, 'available', NULL) <> 'ALLOWED'
        OR pg_temp.f263_leg(NULL, ob1, 'status_change_in', 1, 'committed', NULL) <> 'ALLOWED' THEN

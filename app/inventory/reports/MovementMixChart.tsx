@@ -2,7 +2,7 @@
 //
 // ════════════════════════════════════════════════════════════════════════════
 // 【CHART-0 的判词:建,横条图】它是勘察里"唯一一个今天就画得出真实形状的图"
-// —— 12 种 movement_type 互斥,加起来就是全部流水。
+// —— 14 种 movement_type 互斥,加起来就是全部流水(MES-7a-2 起 14 种;之前 12)。
 //
 // 【为什么放在 /inventory/reports 而不是 /inventory】
 // CHART-0 把位置写成"`/inventory` 或 `/inventory/reports`",没有裁。这里裁了:
@@ -15,7 +15,7 @@
 // **是这套系统里长得最快的表**(每一次收货、加工、销售、调整都写它),
 // 而"取回来自己数"的传输量与行数成正比 —— 它会在这张表长到十万行那天
 // 从一张图变成一个问题。**count 走 HEAD,永远只传一个数。**
-// 12 次并发(pMap,上限 12)= 一次往返的墙上时间。
+// 12 次并发(pMap,上限 12)= 一次往返的墙上时间。★ MES-7a-2 起是 14 种,上限仍是 12,于是是两轮往返 —— 量级不变。
 // 【这与 CHART-1 ② 是同一条判断,方向相同】那一刀量出来的教训是
 // 「减的是串行的长度,不是每一次查询的成本」—— 这里从一开始就并发。
 //
@@ -30,7 +30,7 @@ import ChartCard from '@/app/components/charts/ChartCard'
 import BarRows from '@/app/components/charts/BarRows'
 
 /**
- * 12 种流水类型。
+ * 14 种流水类型(MES-7a-2 加了 maintenance_issue / maintenance_return)。
  * **真源是 db/tables/inventory_movements.sql 上那条 CHECK**,
  * 而 scripts/check-i18n.mjs 的 MANIFEST 已经从那条 CHECK 现读后缀集合
  * (`movements.type.` 那一行)—— 所以库里多一种类型,两个语言少一句话
@@ -41,13 +41,15 @@ const MOVEMENT_TYPES = [
     'receipt', 'processing_consume', 'processing_produce', 'reversal_restore',
     'reversal_void', 'sale', 'writeoff', 'adjustment',
     'status_change_out', 'status_change_in', 'transfer_out', 'transfer_in',
+    // MES-7a-2(2026-10-16):备件出给保养记录与它的退回
+    'maintenance_issue', 'maintenance_return',
 ] as const
 
 export default async function MovementMixChart() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    // 【12 次 HEAD count,并发发出】—— 不取行,只取数。
+    // 【每种一次 HEAD count(14 次),并发发出】—— 不取行,只取数。
     const counts = await pMap(MOVEMENT_TYPES, DEFAULT_QUERY_CONCURRENCY, async (mt) => {
         const c = await supabase.from('inventory_movements')
             .select('movement_type', { count: 'exact', head: true }).eq('movement_type', mt)

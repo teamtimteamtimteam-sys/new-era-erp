@@ -37,6 +37,12 @@
 -- (订单流发票的过账:借 1100 / 贷 2500。现金流量表侧【想过】:这类分录不碰
 --  is_cash 科目,进不了那张表;对着它收的款走 ELSE 'operating' —— 正确,
 --  见 accounts 镜像 2500 那一行的注释)。
+-- source_type 'maintenance_part' added by db/migrations/2026-10-16-mes7a2-spare-parts.sql(MES-7a-2,MES-7a Step 0 Q11):
+--   备件出给一条保养记录(借 6800 / 贷 1200)与它的退回(反过来)。source_id = maintenance_part_issues.id(一行出库或一行退回)。
+--   【为什么不记成 'writeoff'】注销是"货没了、价值进 5200 损益";出给保养是"货装进了一台机器、价值进 6800 维修费",
+--   而 inventory_control_reconciliation 按 source_type 把 1200 上的每一行归回批次 —— 两种事用一个名字,归因就分不开。
+--   这种分录【不经冲销申请】(journal_entry_reversal_route 认它作 source_path):更正一次出库是一行退回,不是冲掉那张分录 ——
+--   只冲分录不动流水,1200 与库存当场对不上。
 -- this mirror's source_type list —— 'expense' 是 s2a 那一切加进库里的,但当时【漏了
 -- 同步这份镜像】。照旧版镜像重建会把既有的 expense 分录判违约(实测 23514),故此处
 -- 以库里的实际取值为准。
@@ -47,7 +53,7 @@ CREATE TABLE public.journal_entries (
     code        text NOT NULL UNIQUE,
     entry_date  date NOT NULL,
     memo        text,
-    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice','shipment','credit_note','wht_remittance')),
+    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice','shipment','credit_note','wht_remittance','maintenance_part')),
     source_id   uuid,
     status      text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reversed')),
     reversed_by uuid REFERENCES public.journal_entries (id),

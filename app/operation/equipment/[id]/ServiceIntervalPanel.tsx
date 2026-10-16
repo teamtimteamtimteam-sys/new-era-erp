@@ -182,7 +182,7 @@ export default function ServiceIntervalPanel({
 
     return (
         <div className="mb-8">
-            <div className="flex items-baseline gap-3 mb-2">
+            <div className="flex flex-wrap items-baseline gap-3 mb-2">
                 <h2 className="">{t('equipment.intervals.title')}</h2>
                 {!readOnlyHref && <PermissionGate code="module.processing.edit" allowed={canEdit}>
                     <Button variant="secondary" size="xs" type="button" onClick={openNew} disabled={pending}>

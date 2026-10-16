@@ -10839,3 +10839,53 @@ MES-6a-2 的 ㉗ 读的是 `e.titlePart`,钉住的部分是真值(`Fluorine` 之
   从这一刀起才是真的(`MAINTENANCE_DOWNTIME_OTHER_MACHINE` · `MAINTENANCE_DOWNTIME_VOIDED`)。
 * `db/tables/equipment_service_intervals.sql` 的 `interval_kg` 注释、`db/functions/commit_processing_run.sql` 里"工序与资产没有关联"那一句 —— 已改。
 * `app/inbound/[id]/cod/pdf/route.tsx` 那句"照冻下来的那一份渲染"(当时不真)—— 现在真了,注释照实写。
+
+## MES-7a-2(`v1.4.53`,2026-10-16)—— 备件出给保养(6800)
+
+### MES7A2-PARTS-INTO-CAPITALISED-OVERHAUL · 从库里出的备件没有一条路进一次资本化大修的资产成本(Step 0 Q14,登记)
+
+**是什么:** 资本化一次大修走费用单(`record_expense` 带 `p_maintenance_id`,回填 `capitalised_expense_id`);从库里出的件按落地单价进 6800 维修费。
+两条路之间没有桥,所以 `issue_spare_parts` 拒往一条资本化了的记录上出件(`PART_ISSUE_CAPITALISED`),表上的守卫拒把一条还挂着件的记录资本化
+(`MAINTENANCE_HAS_PARTS`)—— 两个方向都按名拒,而不是把件悄悄照费用记掉、让资产少计。
+**删除条件:** 第一次真的大修用到库里的件时,一次裁定:那些件怎么进资产成本(借 1500 / 贷 1200 的一条资本化出库,还是先出给保养再改分类),以及它与费用单那一笔怎么不重复。
+
+### MES7A2-NO-MACHINE-PART-LIST-OR-CRITICALITY · 没有"哪台机器用哪些备件"的清单,也没有关键度(Step 0 Q16,登记)
+
+**是什么:** 旧的 `material_kinds` 说明许诺备件"挂在一台机器上、有关键度";MES-0 两样都没有排进任何一刀。今天每一次出库通过它那一条保养记录记下了机器,
+但没有一张"这台机器的推荐备件 × 关键度"的表,于是也没有"关键备件缺货"的提醒(V21 只给一种备件一个最低库存,不分机器)。
+**删除条件:** 第一份设备供应商的推荐备件清单到来时(V21 的同一个时刻)。
+
+### MES7A2-MAINTENANCE-HAS-NO-VOID · 保养记录没有作废 —— 委托书的"未作废"在今天没有主语(量到,不是推的)
+
+**是什么:** 委托书要求只往"未作废、未资本化"的保养记录上出件。实测 `equipment_maintenance` 没有作废列(`db/tables/equipment_maintenance.sql`)、
+没有作废函数,删除被语句级守卫按名拒(`EQUIPMENT_THROUGH_FUNCTION_ONLY|equipment_maintenance|delete`)—— 一条保养记录今天作废不了,所以
+"未作废"恒成立。本刀【没有】为它造一个作废(那是一件新事,带着它自己的问题:作废一条挂着件的记录时件怎么办)。
+**它被钉住了:** fixture 266 的 VOID 臂断言那张表没有作废 / 删除类的列,并且删除被拒;谁给它加一个作废,那一臂就红(故障注入格 "maintenance records gain a void column"),
+逼他回 `issue_spare_parts` 加一道按名的拒绝。
+**删除条件:** 保养记录有了作废的那一刀,同时让 `issue_spare_parts` 拒作废了的记录、让作废拒还挂着件的记录。
+
+### MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT · 一句写在 CHECK 的 IN 列表【中间】的注释,让两支检查各少数了两个值,而它们都报绿(本刀第一稿踩到)
+
+**是什么:** `scripts/check-enum-mirrors.mjs` 与 `scripts/check-i18n.mjs` 都从 `db/tables/*.sql` 的 `CHECK (col IN (...))` 现读取值。第一稿把两种新流水类型
+写在 IN 列表里一句 `--` 注释的【后面】,两支解析器都在注释那儿停下:`check-enum-mirrors` 报"12 个值,两个方向都对得上",`check-i18n` 没有要
+`movements.type.maintenance_issue` 的句子 —— **两张绿,而图上会少两根条、屏幕上会印两个键名**。把注释挪到 CHECK 外面之后,两支当场都红(读数在交回 §3)。
+**为什么这一刀不修解析器:** 一个刚被自己绊倒的人现写出来的检查,没有人验过(AGENTS.md「匆忙的检查者」);镜像里的那一处已经改成不夹注释,并在列上写了为什么。
+**删除条件:** 一刀专门让两支解析器在 IN 列表里认得注释(或者在读到一个注释时自己红),并带着"往列表中间塞一句注释"那一格故障注入。
+
+### MES7A2-SPARE-PART-NOTE-LIVE-STALE · 线上 `material_kinds` 备件那一行的说明仍是旧的"不按批次追溯"(RUNTIME CONFIG,刻意未改)
+
+**是什么:** Q2 让本刀改写镜像里那一行的说明(按批收货、挂保养记录出库、不逐件追溯)。`material_kinds` 是 RUNTIME CONFIG(`db/check_mirrors.py` 不逐行比对),
+而本刀在线上只许造迁移本身的东西(6800 与两种流水类型)—— 所以线上那一行的 `notes` 没动,仍写着旧话。重建出来的库是新话。
+**删除条件:** Tim(或持 `module.materials.edit` 的人)在 `/settings/dictionaries` 的物料种类里把那一行说明改成镜像里那一句;或者下一刀碰这张表时一起改。
+
+### MES7A2-RETURN-LANDS-UNLOCATED · 退回的备件落在"未指定库位"(本刀的选择,写下来免得被当成漏了)
+
+**是什么:** `return_spare_parts` 写的那一条 `maintenance_return` 流水 `location_id` 为空(可用桶)。出库当时可能从几个库位取(`drain_stock` 跨桶),
+退回不替人猜回哪一个;从机器上拆回来的件还没放上任何货架,上架是一次转移 —— 与加工产出"一律落在未指定库位"同一条规矩。
+**删除条件:** 有人要求退回时直接选库位 —— 那时给 `return_spare_parts` 一个库位入参,并走 `check_location_class` 那一道落闸。
+
+### MES7A2-TRAIL-UNIT-PLURAL · 审计记录把数量 1 的 pcs 说成"1 pieces"(既有的单位措辞,不是本刀造的)
+
+**是什么:** `TRAIL_ENUMS['inbound_batches#unit']` 把 `pcs` 说成 `pieces`,数量格式不分单复数,所以一次退回 1 件读作 "Quantity: 1 pieces"
+(措辞臂 ㉛ 照实钉住了它)。kg / t 没有这个问题;今天线上没有 pcs 的批。
+**删除条件:** 单位的英文说法按数量分单复数的那一刀(同时把 ㉛ 那一句改成 "1 piece")。

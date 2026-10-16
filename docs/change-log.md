@@ -1388,3 +1388,24 @@ pins every rule below, each fault-injected by `db/scripts/2026-10-15-mes7a1-fixt
   reads `titlePart` (faults `wording-drift-mes7a1`, `wording-part-mes7a1`, each biting only ㉚).
 - **Certificates.** `issue_cod` now returns the snapshot it froze (no new column, no new row); the COD and CoA byte records are unchanged in shape.
   A "Save PDF" on an issued CoA with no bytes is one `coa_issues` INSERT, the same row an issue writes.
+
+## 28. Spare parts issued to maintenance (MES-7a-2, v1.4.53, 2026-10-16)
+
+Hand-back `docs/handbacks/MES-7a-2.md`; fixture 266 (arms REG · PERM · REFUSE · VOID · ISSUE · RETURN · DIRECT · CAPITAL · REPRICE · HOLD · ROLL · V21 ·
+RECON · TRAIL) pins every rule below, each fault-injected by `db/scripts/2026-10-16-mes7a2-fixture-injections.py`. Fixture 235 stays at **8** exclusions.
+
+### 28.1 Logged, excluded, masked
+
+- **One new table, logged.** `maintenance_part_issues` (bound by `id`): public tables **298 → 299**, bound **290 → 291**, exclusions stay **8**
+  (Step 0 Q20). It is append-only — an issue or a return is one INSERT, and an UPDATE or DELETE is refused by name for everyone
+  (`PART_ISSUE_IMMUTABLE`), so the change log for it is INSERT rows only. A return's reason is in its own row (`reason`), so the log carries it.
+- **One new account row, logged.** `6800 Repairs & Maintenance` (system) is the migration's only `change_log` row (`accounts:INSERT`; the proof inside
+  the migration counts this transaction's rows by `txid` and refuses anything else).
+- **No new column on an existing table.** The movement types `maintenance_issue` / `maintenance_return` and the journal source `maintenance_part` widen
+  three CHECKs; the rows they allow are logged like every other movement and entry.
+- **No masked column, no new mask rule** (114 stays). The new table carries no money — the value is on the journal entry it points at (decision 1:
+  finance readers see the ledger), and the machine page shows a part's value only to `data.view_prices` holders, computed from the landed-cost reader.
+- **Trail.** No new subject (Q20). Part issues live under `equipment` (home, through their maintenance record) and show under `inbound_batch` with their
+  journal entries. Sentences: "Spare parts issued to maintenance" / "Spare parts returned from maintenance" with the batch in the `part`, the work record,
+  quantity, date and entry as lines, a return's reason in the reason slot. `scripts/check-trail-wording.mjs` arm ㉛ pins four sentences and reads
+  `titlePart` (faults `wording-drift-mes7a2`, `wording-part-mes7a2`, each biting only ㉛).

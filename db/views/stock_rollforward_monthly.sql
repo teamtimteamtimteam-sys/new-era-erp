@@ -2,7 +2,8 @@
 -- MES-5b-1(2026-10-08,MES-5b Step 0 Q8,Tim):【库存的月度滚动 —— 带门的外壳】。/operation/balance 的第二块读它。
 --   门与月度平衡同一组码(module.processing.view / module.finance.view / module.inventory.view 任一):只有数量,没有一分钱。
 --
--- NOTE: introduced by db/migrations/2026-10-08-mes5b1-balance-and-yield.sql.
+-- NOTE: introduced by db/migrations/2026-10-08-mes5b1-balance-and-yield.sql;
+--   issued_to_maintenance added by db/migrations/2026-10-16-mes7a2-spare-parts.sql。
 
 CREATE VIEW public.stock_rollforward_monthly WITH (security_invoker = off) AS
  SELECT month,
@@ -15,6 +16,7 @@ CREATE VIEW public.stock_rollforward_monthly WITH (security_invoker = off) AS
     written_off,
     adjusted,
     voided,
+    issued_to_maintenance,
     moved,
     closing
    FROM stock_rollforward_monthly_all

@@ -41,7 +41,8 @@ BEGIN
     END IF;
 
     v_base  := round(p_new_unit_price * v_fx, 4);
-    v_split := reprice_split(v_qty, v_remaining, v_old, v_base);
+    -- MES-7a-2(Q13):与 reprice_inbound_batch 同一份拆账 —— 已出给保养那一份另列(进 6800)
+    v_split := reprice_split(v_qty, v_remaining, v_old, v_base, inbound_batch_maintenance_net_qty(p_inbound_batch_id));
     v_delta := (v_split->>'delta_usd')::numeric;
 
     -- 价差不为零时提交要过账 —— 过账过不去的日子,试算也不许说"可以"
@@ -56,6 +57,7 @@ BEGIN
         'in_stock_ratio', (v_split->>'in_stock_ratio')::numeric,
         'inventory_share_usd', (v_split->>'inventory_share_usd')::numeric,
         'cost_share_usd', (v_split->>'cost_share_usd')::numeric,
+        'maintenance_share_usd', (v_split->>'maintenance_share_usd')::numeric,
         -- 折算用的牌价与它取自哪天:屏幕上的数是怎么来的,要指得出来(FIN-21)
         'fx_rate', v_fx,
         'rate_as_of', v_fx_asof,

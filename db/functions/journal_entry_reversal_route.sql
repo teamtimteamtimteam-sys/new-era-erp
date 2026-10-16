@@ -15,6 +15,8 @@
 --     总账与卡不许说两句话。处置【还没有】自己的撤销路径(known-issues:APR9-NO-DISPOSAL-REVERSAL-YET);
 --     在它之前,这张分录从凭证页冲不掉。
 --                  从凭证页冲它们是一个人的裁量,走同一张 CFO 冲销申请(Q6 (i)(iii))。
+--   ★ MES-7a-2(2026-10-16,MES-7a Step 0 Q12):maintenance_part(备件出给保养 / 退回)进 'source_path'。更正一次出库是一行退回
+--     (return_spare_parts),冲掉那张分录只会把总账拿回来、流水与那一行出库照旧 —— 1200 与库存当场对不上。
 --   NULL           没有这张分录。
 --
 -- 【冲销分录抄原分录的 source_type】所以一张冲销分录落在与原分录同一格 —— 冲掉一张作废留下的冲销,
@@ -47,7 +49,7 @@ BEGIN
     END IF;
     IF v_je.source_type IN ('payment', 'transfer', 'wht_remittance', 'purchase', 'invoice', 'credit_note',
                             'expense', 'freight', 'allocation', 'processing_cost', 'year_close',
-                            'asset_disposal') THEN
+                            'asset_disposal', 'maintenance_part') THEN
         RETURN 'source_path';
     END IF;
     IF v_je.source_type = 'payroll' AND NOT (

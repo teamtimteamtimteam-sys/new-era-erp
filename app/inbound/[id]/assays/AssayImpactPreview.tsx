@@ -73,6 +73,13 @@ export default function AssayImpactPreview({
                     <span>{t('assay.costShare', { ccy: baseCurrency })}</span>
                     <span>{formatMoneyBare(impact.cost_share, '同行左侧的行标签「计入销售成本({ccy})」')}</span>
                 </div>
+                {/* MES-7a-2:一批出过件给保养的,那一份价差进 6800 —— 只在不为零时画,于是三行加起来仍是调整总额 */}
+                {impact.maintenance_share !== 0 && (
+                    <div className="flex justify-between text-[color:var(--brand-muted-text)]">
+                        <span>{t('assay.maintenanceShare', { ccy: baseCurrency })}</span>
+                        <span>{formatMoneyBare(impact.maintenance_share, '同行左侧的行标签「计入维修保养费({ccy})」')}</span>
+                    </div>
+                )}
             </div>
             )}
         </>

@@ -40,6 +40,7 @@ The full catalogue of values the MES group will need (V1–V15 and the qualitati
 | V16 | Internal sample retention (days) — how long a sample is kept when its contract does not say | `/quality/samples` (the "Internal sample retention" panel) | the single `quality_settings` row while `internal_retention_days` is empty **and** at least one sample not yet disposed of has its keep-until date `Not yet set` (`retain_until_source = 'not_set'`) — with no such sample there is nothing for the value to decide, so no row; live has no sample, so the arm is empty | `module.quality.view` | Tim | before samples are taken routinely | MES-6a-1 |
 | V14 | How an arbitration (umpire) fee is shared — per sale contract (`loser_pays` · `equal` · `further_from_umpire_pays` · `buyer` · `seller`) | the contract's page (`/contracts/<id>`, Settlement terms → "Arbitration fee rule") | each live contract with no `contract_settlement_terms.arbitration_fee_rule` **and** at least one open or resolved assay dispute on a sales order linked to it (`assay_disputes` ⋈ `contract_document_terms`) — a buy-side dispute has no contract terms and never lists a row; live has no dispute, so the arm is empty | `module.customers.view` | Tim, per offtake contract | the first sale-side dispute | MES-6a-1 |
 | V17 | Quality (acceptance) limits on each sale contract — moisture or any assay indicator (particle size D10 / D50 / D90, residual powder, foil purity), with a minimum, a maximum or both, optionally per material; declared as `quality_limit_basis` = `none_agreed` or `per_parameter` | the contract's page (`/contracts/<id>`, Settlement terms → "Quality limits", and the "Quality limits" section) | each live sale contract with a sales order linked to it **and** no settlement terms whose `quality_limit_basis` is set (`contract_document_terms` ⋈ `contract_settlement_terms`) — a contract nobody has sold under yet has nothing to judge; live has no contract, so the arm is empty | `module.customers.view` | Tim / the buyer, per offtake contract | before the first sale under the contract (activation is refused until it is declared) | MES-6b-1 |
+| V21 | Minimum stock of a spare part, per spare-part material (`materials.safety_stock_qty`, which already drives the `safety_stock_below` reminder) | the material editor (`/materials/<id>/edit`) | each live material of kind `spare_part` with `safety_stock_qty` empty **and at least one receipt** (an inbound batch of it) — a spare part nobody has received yet has nothing to run low (the V9 precedent); live has no spare-part material, so the arm is empty | `module.materials.view` | the CTO, or the equipment vendor's recommended spares list | at equipment acceptance | MES-7a-2 |
 
 **What "Not yet set" means for V5.** A gateway with no heartbeat interval cannot be judged silent: its status reads
 **"Not yet set — silence cannot be judged"**, it raises no `gateway_silent` reminder, and no outage is recorded for it.
@@ -167,6 +168,12 @@ changes. A breach keeps the reservation and opens a system non-conformance repor
 quality hold until someone with `action.ncr_decide` decides it. Writing limits needs `action.contract_terms`; they freeze with the contract.
 Buy-side contracts carry no V17 (Q28). Nothing guesses a limit.
 
+**What V21 holds back (MES-7a-2, MES-7a Step 0 Q17).** Nothing is refused: a spare part with no minimum stock is received, issued to a
+maintenance record and returned exactly like one that has it. V21 only decides whether anyone is **reminded** that the part is running low — the
+`safety_stock_below` reminder reads `materials.safety_stock_qty` and skips a material where it is empty, so an empty V21 means a part can run out
+without a word. The arm lists a spare part only once it has been received; a part on the vendor's list that has never been bought is not a row
+anyone can act on yet. Nothing guesses a minimum.
+
 ## Registered, not built
 
 Values a cut found orphaned — named in the MES-0 catalogue, owned by a shipped cut, but with no arm, no column and no record anywhere. They are
@@ -177,7 +184,7 @@ it measures.
 |---|---|---|---|---|
 | V12 | Tool-replacement cut count — how many cuts a casing-removal blade makes before it is replaced (MES-0 `README.md` §5) | **casing-removal machine commissioned** — no blade, cut counter or casing-removal machine exists today to attach it to | MES-4a (never built nor recorded) | MES-7a-1 (2026-10-16, MES-7a Step 0 Q18) |
 
-**MES-7a-1 (2026-10-16) adds no live arm.** **V22** (the operating-hours basis of MTBF / MTTR) was answered by MES-0 Q71 and is no pending value:
+**MES-7a-2 (2026-10-16) adds one live arm, V21** (above). **MES-7a-1 (2026-10-16) adds no live arm.** **V22** (the operating-hours basis of MTBF / MTTR) was answered by MES-0 Q71 and is no pending value:
 operating hours are the union of `[started_at, ended_at)` of committed, not-reversed runs recorded on the machine (Step 0 Q5). A machine with no
 recorded run reads "No operating hours recorded", and the reliability page states how many runs in the range have no machine or no times — that is a
 missing record, not a missing standard. The downtime cause list beyond the three seeded causes is ordinary dictionary data, not a pending value.

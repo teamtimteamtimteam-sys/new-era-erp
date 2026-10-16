@@ -594,6 +594,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.loss_me
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.loss_metal_fates
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.maintenance_part_issues
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.maintenance_part_issues
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.maintenance_settings
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.maintenance_settings

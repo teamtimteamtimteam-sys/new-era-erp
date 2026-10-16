@@ -3671,3 +3671,15 @@ downtime_causes,name_zh,text,verbatim,,,Name (ZH),,,text
 downtime_causes,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
 downtime_causes,sort_order,technical,hide,,,Sort order,,,integer
 downtime_causes,notes,text,verbatim,,,Notes,,,text
+maintenance_part_issues,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+maintenance_part_issues,maintenance_id,fk_other,equipment_maintenance: composed description (see target table) — MES-7a-2 (2026-10-16),,,Work record,,,uuid
+maintenance_part_issues,inbound_batch_id,fk_document,"inbound_batches.code (document number, prefix IN) — MES-7a-2 (2026-10-16)",,,Spare-part batch,,,uuid
+maintenance_part_issues,kind,enum,ENUM_OVERRIDES maintenance_part_issues#kind — MES-7a-2 (2026-10-16),,,Kind,,,text
+maintenance_part_issues,returns_issue_id,fk_other,maintenance_part_issues: the issue this return cites — MES-7a-2 (2026-10-16),,,Returns the issue of,,,uuid
+maintenance_part_issues,quantity,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Quantity,,,numeric
+maintenance_part_issues,business_date,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",,,On,,,date
+maintenance_part_issues,reason,text,verbatim,,,Reason,,,text
+maintenance_part_issues,movement_ids,technical,hide: the stock movements this row wrote (they show under the batch),,,Movements,,,ARRAY
+maintenance_part_issues,journal_entry_id,fk_document,"journal_entries.code (document number, prefix JE)",,,Journal entry,,,uuid
+maintenance_part_issues,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+maintenance_part_issues,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid

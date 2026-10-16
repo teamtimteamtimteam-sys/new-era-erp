@@ -269,7 +269,7 @@ export default function MaintenancePanel({
 
     return (
         <div className="mb-8">
-            <div className="flex items-baseline gap-3 mb-2">
+            <div className="flex flex-wrap items-baseline gap-3 mb-2">
                 <h2 className="">{t('equipment.maint.title')}</h2>
                 {/* ★ PERM-CODE-1:此处原本是【两层嵌套的闸】,外层 processing、内层 finance,
                     而两层的 allowed 是【同一个布尔】—— 内层因此一次都没挡住过任何人,

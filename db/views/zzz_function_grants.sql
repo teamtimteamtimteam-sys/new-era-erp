@@ -765,3 +765,14 @@ REVOKE EXECUTE ON FUNCTION public.guard_downtime_cause_class() FROM authenticate
 REVOKE EXECUTE ON FUNCTION public.guard_equipment_direct_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.equipment_record_target(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.downtime_cause_check(text) FROM authenticated;
+-- MES-7a-2(2026-10-16,MES-7a Step 0 Q12 · Q13 · Q14):备件出库的内层与触发器函数 —— 没有调用者检查,靠的就是调不到。
+--   guard_maintenance_movement · guard_part_issue_write · guard_maintenance_capitalise_parts:触发器函数(两种保养流水只经那两支函数 ·
+--     出库记录只可追加、只经函数写 · 还挂着件的保养记录不能资本化)。
+--   inbound_batch_maintenance_net_qty:一批出给保养的净数量 —— 只在 reprice_inbound_batch · preview_reprice_inbound_batch ·
+--     inventory_control_reconciliation(都是 DEFINER)里被调用;它不问码。
+--   issue_spare_parts · return_spare_parts【不收】:它们是 DEFINER,自己查 module.inventory.edit,员工就是要调它们。
+--   reprice_split【不收】(签名换成五个入参):纯算术,IMMUTABLE,不读任何表 —— 与它换签名之前一样。
+REVOKE EXECUTE ON FUNCTION public.guard_maintenance_movement() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_part_issue_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_maintenance_capitalise_parts() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.inbound_batch_maintenance_net_qty(uuid) FROM authenticated;

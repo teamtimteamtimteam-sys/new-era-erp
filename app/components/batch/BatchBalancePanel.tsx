@@ -26,7 +26,7 @@ type Node = {
     loss_category_code: string | null; loss_basis: string | null
 }
 
-const FATE_ORDER = ['on_hand', 'sold', 'written_off', 'adjusted', 'voided', 'consumed', 'split', 'consumed_not_kg', 'unexplained']
+const FATE_ORDER = ['on_hand', 'sold', 'written_off', 'adjusted', 'voided', 'maintenance', 'consumed', 'split', 'consumed_not_kg', 'unexplained']
 
 export default async function BatchBalancePanel({ kind, batchId }: { kind: 'inbound' | 'output'; batchId: string }) {
     const t = await getTranslations()
@@ -43,7 +43,8 @@ export default async function BatchBalancePanel({ kind, batchId }: { kind: 'inbo
 
     const fateText: Record<string, string> = {
         on_hand: t('massBalance.panel.fateOnHand'), sold: t('massBalance.panel.fateSold'), written_off: t('massBalance.panel.fateWrittenOff'),
-        adjusted: t('massBalance.panel.fateAdjusted'), voided: t('massBalance.panel.fateVoided'), consumed: t('massBalance.panel.fateConsumed'),
+        adjusted: t('massBalance.panel.fateAdjusted'), voided: t('massBalance.panel.fateVoided'), maintenance: t('massBalance.panel.fateMaintenance'),
+        consumed: t('massBalance.panel.fateConsumed'),
         split: t('massBalance.panel.fateSplit'), consumed_not_kg: t('massBalance.panel.fateConsumedNotKg'), unexplained: t('massBalance.panel.fateUnexplained'),
     }
     const kids = new Map<string, Node[]>()

@@ -4,7 +4,7 @@
 --
 -- ════════════════════════════════════════════════════════════════════════════
 -- 【混合表:一半是安装种子,一半是记账员的地盘】(OPS-1 定的规矩)
---   is_system = true  的 36 行(MES-5a-2 实测:加 6200 之前线上与本文件都是 35 行,而这里写着 34 —— 一个过期的数,随本刀更正) = 自动记账引擎【按 code 点名依赖】的科目。
+--   is_system = true  的 37 行(MES-7a-2 实测:加 6800 之前线上 36 行;MES-5a-2 实测:加 6200 之前线上与本文件都是 35 行,而这里写着 34 —— 一个过期的数,当时随那一刀更正) = 自动记账引擎【按 code 点名依赖】的科目。
 --     它们与代码版本绑定,本文件【逐行跟踪线上】,check_mirrors.py 逐行比对,
 --     任何缺失 / 多余 / 内容不符都判失败。名单不靠人工维护 —— check_mirrors 会
 --     扫描 db/functions、db/views、db/tables 里的四位科目字面量,发现某个被点名
@@ -167,7 +167,11 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('2100', 'GST Output Tax', 'GST 销项税', 'liability', true, true),     -- f5_return box6 按 code 点名读它;对 IRAS 的定额义务,货币性
     -- MES-5a-2(2026-10-08,MES-5a Step 0 Q24 · Q25):电费分摊的余数(不计量 / 共用池 / 有表无单的电)按 code 借进 6200 ——
     -- electricity_allocation_compute 写死引用它,于是它从建账的人的地盘升成引擎科目(迁移里一句 UPDATE,名字与线上逐字相同)。
-    ('6200', 'Utilities', '水电杂费', 'expense', true, false);            -- electricity_allocation_compute(余数借 6200)
+    ('6200', 'Utilities', '水电杂费', 'expense', true, false),            -- electricity_allocation_compute(余数借 6200)
+    -- MES-7a-2(2026-10-16,MES-0 Q70;MES-7a Step 0 Q11,Tim:代号 6800、名字 Repairs & Maintenance、系统科目):备件出库到一条保养记录 ——
+    -- 借 6800 / 贷 1200,按那一批的落地单价 × 数量;退回反过来;改价时已出给保养那一份的价差也进 6800(reprice_split 认得它)。
+    -- issue_spare_parts · return_spare_parts · reprice_inbound_batch 按 code 点名引用它。docs/fixed-asset-procedures.md 那句"6xxx 的维修科目"指的就是它。
+    ('6800', 'Repairs & Maintenance', '维修保养费', 'expense', true, false);  -- issue_spare_parts / return_spare_parts / reprice_inbound_batch
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【引导默认值 / BOOTSTRAP DEFAULT —— 非 is_system 行】(FIN-3-fu2)
 -- 全新安装该有的完整科目表:权益、GST、固定资产、在制品、常规收入与费用。

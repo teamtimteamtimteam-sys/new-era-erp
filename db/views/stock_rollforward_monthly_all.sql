@@ -1,6 +1,7 @@
 -- db/views/stock_rollforward_monthly_all.sql
 -- MES-5b-1(2026-10-08,MES-5b Step 0 Q8,Tim):【库存的月度滚动】—— 基视图,不给人读。从 inventory_movements(库存的唯一真源)按
 --   business_date 的月、按单位:期初 · 收货 · 加工产出 · 加工消耗(消耗与回滚还原的净额)· 销售 · 注销 · 盘点调整 · 回滚作废 ·
+--   出给保养(MES-7a-2:备件出给保养记录,减去退回的 —— maintenance_issue 与 maintenance_return 之和)·
 --   搬动(转移与状态变更,两条腿相抵,净额恒为 0)· 期末。每一个流向都取那一行流水的 qty_delta 原样(出为负、进为正)。
 --   【没有"对得上"的旗标 —— 刻意的】期末 = 期初 + 本月各行之和,按构造成立;一个两边动不开的旗标是装饰(AGENTS.md
 --   「两边只有在能分开的时候才是一个检查」)。所以这里只给数,不给判断。
@@ -9,7 +10,8 @@
 --   月份从最早一条有日期的流水所在的月,连续到今天(新加坡日历)所在的月;没有流水的月也有一行(期初 = 期末)。
 --   一个流水类型若不在下面的清单里,它不进任何一列 —— 期末于是对不上库存,看得见(不设"其他"兜底,AGENTS.md「兜底桶」)。
 --
--- NOTE: introduced by db/migrations/2026-10-08-mes5b1-balance-and-yield.sql.
+-- NOTE: introduced by db/migrations/2026-10-08-mes5b1-balance-and-yield.sql;
+--   issued_to_maintenance added by db/migrations/2026-10-16-mes7a2-spare-parts.sql(DROP + CREATE:新列排在 voided 之后、moved 之前)。
 
 CREATE VIEW public.stock_rollforward_monthly_all WITH (security_invoker = off) AS
  WITH mv AS (
@@ -38,6 +40,7 @@ CREATE VIEW public.stock_rollforward_monthly_all WITH (security_invoker = off) A
             COALESCE(sum(mv.qty_delta) FILTER (WHERE mv.movement_type = 'writeoff'::text), 0::numeric) AS written_off,
             COALESCE(sum(mv.qty_delta) FILTER (WHERE mv.movement_type = 'adjustment'::text), 0::numeric) AS adjusted,
             COALESCE(sum(mv.qty_delta) FILTER (WHERE mv.movement_type = 'reversal_void'::text), 0::numeric) AS voided,
+            COALESCE(sum(mv.qty_delta) FILTER (WHERE mv.movement_type = ANY (ARRAY['maintenance_issue'::text, 'maintenance_return'::text])), 0::numeric) AS issued_to_maintenance,
             COALESCE(sum(mv.qty_delta) FILTER (WHERE mv.movement_type = ANY (ARRAY['transfer_out'::text, 'transfer_in'::text, 'status_change_out'::text, 'status_change_in'::text])), 0::numeric) AS moved
            FROM mv
           GROUP BY mv.month, mv.unit
@@ -51,6 +54,7 @@ CREATE VIEW public.stock_rollforward_monthly_all WITH (security_invoker = off) A
             COALESCE(f.written_off, 0::numeric) AS written_off,
             COALESCE(f.adjusted, 0::numeric) AS adjusted,
             COALESCE(f.voided, 0::numeric) AS voided,
+            COALESCE(f.issued_to_maintenance, 0::numeric) AS issued_to_maintenance,
             COALESCE(f.moved, 0::numeric) AS moved
            FROM months ms
              LEFT JOIN flows f ON f.month = ms.month AND f.unit = ms.unit
@@ -64,8 +68,9 @@ CREATE VIEW public.stock_rollforward_monthly_all WITH (security_invoker = off) A
             d.written_off,
             d.adjusted,
             d.voided,
+            d.issued_to_maintenance,
             d.moved,
-            d.received + d.produced + d.consumed + d.sold + d.written_off + d.adjusted + d.voided + d.moved AS net
+            d.received + d.produced + d.consumed + d.sold + d.written_off + d.adjusted + d.voided + d.issued_to_maintenance + d.moved AS net
            FROM dated d
         )
  SELECT s.month,
@@ -78,6 +83,7 @@ CREATE VIEW public.stock_rollforward_monthly_all WITH (security_invoker = off) A
     s.written_off,
     s.adjusted,
     s.voided,
+    s.issued_to_maintenance,
     s.moved,
     sum(s.net) OVER (PARTITION BY s.unit ORDER BY s.month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS closing
    FROM step s
@@ -92,12 +98,13 @@ UNION ALL
     f.written_off,
     f.adjusted,
     f.voided,
+    f.issued_to_maintenance,
     f.moved,
     NULL::numeric AS closing
    FROM flows f
   WHERE f.month IS NULL;
 
 COMMENT ON VIEW public.stock_rollforward_monthly_all IS
-    'MES-5b-1:库存的月度滚动(inventory_movements 按 business_date 的月、按单位):期初 · 收货 · 加工产出 · 加工消耗 · 销售 · 注销 · 调整 · 回滚作废 · 搬动 · 期末。没有"对得上"的旗标(期末按构造 = 期初 + 本月之和)。没有业务日期的流水在 month 为空的那一行。基视图,不给人读。';
+    'MES-5b-1:库存的月度滚动(inventory_movements 按 business_date 的月、按单位):期初 · 收货 · 加工产出 · 加工消耗 · 销售 · 注销 · 调整 · 回滚作废 · 出给保养(MES-7a-2,减去退回)· 搬动 · 期末。没有"对得上"的旗标(期末按构造 = 期初 + 本月之和)。没有业务日期的流水在 month 为空的那一行。基视图,不给人读。';
 
 REVOKE ALL ON public.stock_rollforward_monthly_all FROM authenticated, anon;
