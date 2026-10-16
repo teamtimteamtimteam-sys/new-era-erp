@@ -1440,3 +1440,33 @@ red at least once). Fixture 235 stays at **8** exclusions.
   there too), `safety_settings`, `dictionary_incident_kinds`. A batch link also shows on the linked batch's page (`inbound_batch` / `output_batch`,
   not home), and a handover reference on the handover (home). `scripts/check-trail-wording.mjs` arm ㉜ pins the sentences and reads `titlePart`
   (faults `wording-drift-mes7b1`, `wording-part-mes7b1`, each biting only ㉜).
+
+## 30. Safety inspections and environmental monitoring (MES-7b-2, v1.4.55, 2026-10-16)
+
+Hand-back `docs/handbacks/MES-7b-2.md`; fixture 268 (arms REG · F16 · TPL · NUM · RUN · IMMUT · FIND · TASK · CORR · DUE · V18 · ENV · V20 · NCR ·
+TRAIL) pins every rule below, each fault-injected by `db/scripts/2026-10-16-mes7b2-fixture-injections.py` (57 cells on 268 + 2 on 263, every arm
+red at least once). Fixture 235 stays at **8** exclusions.
+
+### 30.1 Logged, excluded, masked
+
+- **Eight new tables, all logged.** `inspection_templates`, `inspection_template_items`, `inspection_runs`, `inspection_results`,
+  `inspection_findings`, `inspection_finding_closures`, `environmental_parameters` (by `code`), `environmental_results`: public tables
+  **305 → 313**, bound **297 → 305**, exclusions stay **8**. Runs, results, finding closures and environmental results are append-only — refused by
+  name for everyone, owner included (`INSPECTION_RECORD_IMMUTABLE` / `ENV_RESULT_IMMUTABLE`), so their log is INSERT rows only. A finding changes
+  once, when its task is raised (`task_id` set once). A checklist and its items change through `save_inspection_template` only; editing them never
+  rewrites a past inspection, because each run copies the checklist's code, name and area and each result copies its item's text. A correction is a
+  new run citing the corrected one with a reason — the corrected run's own rows never change.
+- **No masked column, no new mask rule (119 stays 119).** Nothing in an inspection or a result is health or pay data; the injury details of an
+  `emission_exceedance` incident (none — an exceedance names no injured person) stay where MES-7b-1 put them.
+- **One new column on an existing table.** `nonconformance_reports.inspection_finding_id` (source `inspection` ⇔ a finding is cited), logged with the
+  rest of the row.
+- **The migration's own `change_log` rows:** **3** (read on live afterwards, by the migration's `txid`) — one `document_types` INSERT (INS) and two `document_type_exceptions` INSERTs
+  (`environmental_parameters`, `inspection_templates`); no grant, code or role row moved. Nothing is seeded into the new tables (no checklist, no parameter — V18 · V20).
+- **Trail.** Four new subjects: `inspection_run` (home: the run, its results, its findings and their closures; an NCR citing a finding shows there,
+  not home), `inspection_template` (the checklist and its items), `dictionary_environmental_parameters`, `safety_environment` (the whole results
+  table as one record, read from `/safety/environment`). `scripts/check-trail-wording.mjs` arm ㉝ pins ten sentences and reads `titlePart` (faults `wording-drift-mes7b2`,
+  `wording-part-mes7b2`, each biting only ㉝).
+- **F16 — no view is writable.** Every view in `public` loses INSERT / UPDATE / DELETE / TRUNCATE for `anon`, `authenticated` and `PUBLIC`
+  (`db/views/zzz_function_grants.sql`, replayed in every later migration's own transaction). A write that never happened is not logged, so this
+  changes no log row; it closes the path by which a write through an owner-rights view could have reached a base table without the base table's RLS
+  being asked about the caller.

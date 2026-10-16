@@ -6,8 +6,10 @@
 --   ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q8):末尾多一个 p_incident_id(带默认 NULL)—— 来源 incident 的那一张指着它那件事故
 --     (表上 nonconformance_reports_incident_source:来源 incident ⇔ 有事故)。签名变了,迁移先 DROP 旧的再建;judge_quality_limits
 --     按位置传九个参数,照旧落到这一支(第十个取默认)。
+--   ★ MES-7b-2(2026-10-16,MES-7b Step 0 Q15):末尾再多一个 p_inspection_finding_id(带默认 NULL)—— 来源 inspection 的那一张引用它那条巡检发现
+--     (表上 nonconformance_reports_inspection_source:来源 inspection ⇔ 有发现)。签名又变了,迁移先 DROP 旧的再建。
 -- NOTE: introduced by db/migrations/2026-10-15-mes6b1-quality-hold-ncr-and-limits.sql.
-CREATE OR REPLACE FUNCTION public.ncr_open_internal(p_inbound_batch_id uuid, p_output_batch_id uuid, p_source text, p_description text, p_assay_result_id uuid, p_assay_dispute_id uuid, p_sales_order_id uuid, p_judgement_id bigint, p_opened_by uuid, p_incident_id uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.ncr_open_internal(p_inbound_batch_id uuid, p_output_batch_id uuid, p_source text, p_description text, p_assay_result_id uuid, p_assay_dispute_id uuid, p_sales_order_id uuid, p_judgement_id bigint, p_opened_by uuid, p_incident_id uuid DEFAULT NULL::uuid, p_inspection_finding_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -19,9 +21,11 @@ DECLARE
 BEGIN
     v_code := next_ncr_code(CURRENT_DATE);
     INSERT INTO nonconformance_reports (id, code, inbound_batch_id, output_batch_id, source, description,
-                                        assay_result_id, assay_dispute_id, sales_order_id, judgement_id, opened_by, incident_id)
+                                        assay_result_id, assay_dispute_id, sales_order_id, judgement_id, opened_by, incident_id,
+                                        inspection_finding_id)
     VALUES (v_id, v_code, p_inbound_batch_id, p_output_batch_id, p_source, btrim(p_description),
-            p_assay_result_id, p_assay_dispute_id, p_sales_order_id, p_judgement_id, p_opened_by, p_incident_id);
+            p_assay_result_id, p_assay_dispute_id, p_sales_order_id, p_judgement_id, p_opened_by, p_incident_id,
+            p_inspection_finding_id);
     RETURN jsonb_build_object('ncr_id', v_id, 'code', v_code);
 END;
 $function$

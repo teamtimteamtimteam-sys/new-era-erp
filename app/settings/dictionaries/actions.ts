@@ -189,5 +189,9 @@ async function dictError(msg: string): Promise<string> {
     // MES-7b-1(Q4):一种被事故用过的种类,代号冻住、不能删 —— 改名照常(这一页本来就不改代号;拒绝说出被几件事故用着、以及去处)
     const kindLocked = raw.match(/INCIDENT_KIND_CODE_LOCKED\|([^|]+)\|(\d+)/)
     if (kindLocked) return t('safety.errors.INCIDENT_KIND_CODE_LOCKED', { 0: kindLocked[1], 1: kindLocked[2] })
+    // MES-7b-2(Q16):一个被结果用过的监测参数,代号冻住、不能删;限值与口径要成对 —— 两句都由库按名说
+    const paramLocked = raw.match(/ENV_PARAMETER_CODE_LOCKED\|([^|]+)\|(\d+)/)
+    if (paramLocked) return t('safety.errors.ENV_PARAMETER_CODE_LOCKED', { 0: paramLocked[1], 1: paramLocked[2] })
+    if (/ENV_LIMIT_NEEDS_BASIS/.test(raw)) return t('safety.errors.ENV_LIMIT_NEEDS_BASIS')
     return await fallbackForRawError(raw, 'dictError@app/settings/dictionaries/actions.ts')
 }

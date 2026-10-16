@@ -37,6 +37,7 @@ export type DictTable =
     | 'assay_indicators'   // MES-6a-2(2026-10-10,Q3 · Q4):第十四张 —— 同样有那六列,外加一列单位
     | 'downtime_causes'   // MES-7a-1(2026-10-15,MES-7a Step 0 Q3):第十五张 —— 同样有那六列,外加一列类别
     | 'incident_kinds'   // MES-7b-1(2026-10-16,MES-7b Step 0 Q4):第十六张 —— 只有那六列
+    | 'environmental_parameters'   // MES-7b-2(2026-10-16,MES-7b Step 0 Q16):第十七张 —— 那六列,外加单位、限值与它的口径(V20)
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
@@ -366,6 +367,26 @@ export const DICTIONARIES: DictSpec[] = [
         viewPermission: 'module.safety.view',
         extras: [],
         referencedBy: [{ table: 'incidents', column: 'kind_code' }],
+    },
+    {
+        // ★ MES-7b-2(2026-10-16,MES-0 Q75;MES-7b Step 0 Q16 · Q20,Tim):监测的环境参数与它们的限值(V20)—— 一个都不引导(参数与限值是 NEA 执照给的)。
+        //   限值与口径成对(库里 ENV_LIMIT_NEEDS_BASIS);没有限值的参数照样记得进结果,读作"不判定"。结果记下那一刻抄走单位与限值,
+        //   所以这里改限值不改写过去的结果。被结果用过之后代号冻住(ENV_PARAMETER_CODE_LOCKED —— 这一页本来就不改代号)。
+        //   写码与记结果同一个(module.safety.edit,与表的写策略同一个);读的门与表的读策略同一个(module.safety.view)。
+        table: 'environmental_parameters',
+        titleKey: 'dict.environmental_parameters',
+        permission: 'module.safety.edit',
+        viewPermission: 'module.safety.view',
+        extras: [
+            { column: 'unit', kind: 'text', required: true, showInTable: true,
+              labelKey: 'dict.f.unit', hintKey: 'dict.h.envUnit' },
+            { column: 'limit_value', kind: 'number', decimal: true, showInTable: true,
+              labelKey: 'dict.f.limit_value', hintKey: 'dict.h.limit_value' },
+            { column: 'limit_basis', kind: 'choice', showInTable: true,
+              options: [{ value: 'max', labelKey: 'safety.limitBasis.max' }, { value: 'min', labelKey: 'safety.limitBasis.min' }],
+              labelKey: 'dict.f.limit_basis', hintKey: 'dict.h.limit_basis' },
+        ],
+        referencedBy: [{ table: 'environmental_results', column: 'parameter_code' }],
     },
     {
         // ★ MES-6a-2(2026-10-10,MES-0 3.5b · 3.5c · 3.5e;MES-6a Step 0 Q3 · Q4,Tim):化验上的指标 —— 引导五个定义(残粉 · 箔纯度 ·

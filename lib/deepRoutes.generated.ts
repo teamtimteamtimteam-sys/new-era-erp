@@ -1,8 +1,8 @@
 // ⚠️ 【生成文件,不要手改】由 scripts/gen-deep-routes.mjs 产出。
 // 改了它 `npm run build` 会红。判据与理由写在那个脚本的抬头里。
 //
-// 本次生成时的实测:路由 255 条,深度分布 {"0":1,"1":37,"2":185,"3":30,"4":2},
-// 深(≥3)的 32 条 —— 这就是 Tim 的 D4 说的"23 条深路由"。
+// 本次生成时的实测:路由 261 条,深度分布 {"0":1,"1":37,"2":189,"3":32,"4":2},
+// 深(≥3)的 34 条 —— 这就是 Tim 的 D4 说的"23 条深路由"。
 //
 // 段是【路由模式】的段:动态段写成 [x],路由组已经去掉(它们不出现在 URL 里)。
 
@@ -30,6 +30,8 @@ export const DEEP_ROUTES: readonly string[] = [
     '/operation/capture/inbox',
     '/operation/equipment/reliability',
     '/purchasing/orders/[id]/amend',
+    '/safety/inspections/templates/[id]',
+    '/safety/inspections/templates/new',
     '/sales/customers/overlap',
     '/sales/orders/[id]/amend',
     '/tools/pricing/calculator',
@@ -43,10 +45,10 @@ export const DEEP_ROUTES: readonly string[] = [
 ]
 
 /** 生成时的深度分布 —— 让下一次 diff 一眼看得出是哪一档变了。 */
-export const DEPTH_HISTOGRAM: Readonly<Record<string, number>> = {"0":1,"1":37,"2":185,"3":30,"4":2}
+export const DEPTH_HISTOGRAM: Readonly<Record<string, number>> = {"0":1,"1":37,"2":189,"3":32,"4":2}
 
 /**
  * 面包屑里【注册表答不上来的那些段】。每一个要 messages/{en,zh}.ts 里一句
  * breadcrumb.<段>;少一句 `npm run build` 会红(check-i18n 的 MANIFEST 从这里现读)。
  */
-export const BREADCRUMB_SEGMENTS = ['amend', 'balances', 'bulk', 'calculator', 'calendar', 'cycles', 'done', 'edit', 'formulas', 'grants', 'holidays', 'import', 'inbox', 'label', 'ledger', 'metal-prices', 'new', 'overlap', 'receive', 'reconcile', 'reliability', 'safety', 'scale', 'score', 'snapshot', 'statements', 'types', 'violations'] as const
+export const BREADCRUMB_SEGMENTS = ['amend', 'balances', 'bulk', 'calculator', 'calendar', 'cycles', 'done', 'edit', 'formulas', 'grants', 'holidays', 'import', 'inbox', 'label', 'ledger', 'metal-prices', 'new', 'overlap', 'receive', 'reconcile', 'reliability', 'safety', 'scale', 'score', 'snapshot', 'statements', 'templates', 'types', 'violations'] as const

@@ -1001,7 +1001,7 @@
 >    迁移 `db/migrations/2026-10-16-mes7b1-incidents.sql`(先在线上 COMMIT→ROLLBACK 干跑,`DRY_OWN_EXIT=0`),**破窗起点 2026-10-16 15:49:13 CST**
 >    (`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。**窗口里坏掉的**(推导):没有 —— 旧应用不读不写新表;三支改了签名的函数只在末尾多一个带默认值的参数。
 >    验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-7b-1.md`;登记四条(`docs/known-issues.md` 的 MES-7b-1 一节)。
->    **下一刀 MES-7b-2 · 安全巡检与环境监测**(见下面「⬜ ★ MES 组」第 12b 行)。
+>    ~~**下一刀 MES-7b-2 · 安全巡检与环境监测**(见下面「⬜ ★ MES 组」第 12b 行)。~~ ★ MES-7b-2 已关闭(下面第 54 条)。
 >    ★ **部署:Tim 在 Vercel 上确认 `c72a86b2` 已部署(MES-7b-1 close-out + MES-7b-2 委托书,2026-10-16)。破窗已闭合(带界,按类标注)**:
 >    起点 **2026-10-16 15:49:13 CST**(测量:`db/migration-windows.tsv`,`2026-10-16-mes7b1-incidents.sql`)·
 >    终点下界 **2026-10-16 16:54:08 CST**(测量:推送把 `origin/main` 移到 `c72a86b2`,
@@ -1023,6 +1023,28 @@
 >    对 cfo · finance 按不动并点名 `module.safety.edit`;本地重建 + MES-7b-1 的种子(35 次全部 200):cto 与 warehouse 打开受伤那一件读到 5 处 "Restricted"
 >    与那一句说明、没有伤情原文,admin · cfo · finance 读到伤情;新交接班表单列出三件可勾的事故,交接班页说出它引用的事故;待定值页五个都列 V19、说它未确认。
 >    **c** MES-7b-1 交回 §8 的 17 条决定逐条列在 close-out 文件里。**没有缺的、没有坏的** —— 所以第 2 步(MES-7b-2)照常开始(委托书第 1.4 条)。
+>
+> 54. **✅ 安全巡检(清单 · 一次一次的巡检 `INS-…` · 跟到关闭的发现 · 生成任务 · 来源 inspection 的不合格报告)与环境监测(参数字典与限值 · 只追加的结果 ·
+>    超标自动开一件 `emission_exceedance` 事故)—— 并入 F16(视图一律不可写)—— MES-7b-2(`v1.4.55`,2026-10-16)。**
+>    MES 组的第十九刀(Tim 2026-10-16:MES-7b Step 0 的 Q13–Q16 · Q17 · Q19–Q22 · Q27 照推荐裁定,7b-2 那一半;F16 是 Tim 新加的)。**没有新码、没有授权变动**:
+>    读 `module.safety.view`,写 `module.safety.edit`;「生成任务」另要 `module.tasks.view` 或 `.edit`;从发现开不合格报告随 `module.quality.edit`。
+>    **表**(八张,全进变更记录,豁免仍 8,没有遮蔽的列 —— 规则仍 119):`inspection_templates` · `inspection_template_items`(清单:片区、频率 V18、按顺序的检查项;
+>    一张都不引导)· `inspection_runs`(`INS-YYYY-NNNN` 按年无洞;抄下清单的代号 / 名字 / 片区;交了就不能改,更正 = 一次引用它、带理由的新巡检)·
+>    `inspection_results`(每一项 pass / fail / na,抄下那一项的字,不合格要说明)· `inspection_findings`(纠正措施、负责的人、可选的到期日;任务只挂一次)·
+>    `inspection_finding_closures`(关闭一行:做了什么)· `environmental_parameters`(字典,代码锁死,限值 + max/min 成对,V20;一个都不引导)·
+>    `environmental_results`(只追加;单位与限值抄进结果;超标 / 没超 / 不判定;超标 ⇔ 一件事故,同一笔事务里经 `record_incident` 开;更正仍超标就沿用那一件)。
+>    不合格报告的来源 `inspection` 不再保留:它引用一条发现(约束 + `open_ncr` 三个按名的拒)。**提醒**:`inspection_due` · `inspection_finding_open`(70 支);
+>    **待补的值**:V18 · V20(字典空着时各一行,29 支)。审计主语四个、措辞臂 ㉝。**页面**:`/safety/inspections`(清单与巡检)· `/safety/inspections/new`
+>    (`?template=` · `?corrects=`)· `/safety/inspections/[id]` · `/safety/inspections/templates/new` · `/safety/inspections/templates/[id]` · `/safety/environment`。
+>    **F16**:线上先量 —— (视图, 角色) 带写授权的对 **273**,真去试一次零行写:anon 33 张、authenticated 45 张视图收下了(全是属主权限视图);应用与脚本里
+>    写穿视图的路 **0** 处;于是 `zzz_function_grants.sql` 收掉每一张视图的写(以后每一支迁移在自己的事务里再跑),gate 加 `viewwrite` 一行(两侧、带自证、故障注入咬人),
+>    迁移收尾断言 **0** 对 —— `MES7B1-VIEW-DEFAULT-WRITE-GRANTS` 关闭(没用默认权限:它分不出视图与表)。Fixture 新 **268**(15 臂,57 格注入 + 263 的 2 格,全部红在自己那一臂;
+>    注入抓到 268 自己一条读 NULL 当通过的断言,修好、并把 51 条判定改成 NULL 也算红),改 100 · 101 · 111 · 254 · 263 的计数(不放松)。
+>    迁移 `db/migrations/2026-10-16-mes7b2-inspections-and-environment.sql`(先在线上 COMMIT→ROLLBACK 干跑,`DRY_OWN_EXIT=0`),
+>    **破窗起点 2026-10-16 19:03:57 CST**(`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。
+>    **窗口里坏掉的**(推导):没有 —— 旧应用不读新表;`open_ncr` 只在末尾多一个带默认值的参数;旧应用的待补值页认不得 V18 / V20 两个值码,会把它们画成键名,直到部署。
+>    验证与读数(开场 / 收尾、F16 前后、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-7b-2.md`。
+>    **下一刀 MES-8a · 供应商评分卡与对账单**(见下面「⬜ ★ MES 组」第 13 行)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -7531,7 +7553,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);**MES-7b-2 安全巡检与环境监测是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);~~**MES-7b-2 安全巡检与环境监测是下一刀**~~ ★ MES-7b-2 已关闭(2026-10-16,上面第 54 条);**MES-8a 供应商评分卡与对账单是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -7564,9 +7586,9 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 11b | ✅ **MES-7a-2 · Spare parts**(★ 已关闭,`v1.4.53`,2026-10-16,上面第 52 条;Q2 备件是进料批、没有逐件追溯;Q11 费用科目 6800 Repairs & Maintenance,系统科目;出库与退回的码 `module.inventory.edit`)| 21(备件:出库与入账)| Step 0 §9:3 h 00 – 4 h 25(校准后) |
   | ~~11~~ | ~~⬜ **MES-7a · Spare parts and reliability**~~ → 拆成上面 11a · 11b(Tim 2026-10-15)。原文:⬜ **MES-7a · Spare parts and reliability**(★ 下一刀;★ **Step 0 交回 `docs/surveys/MES-7a/STEP0-HANDBACK.md`(2026-10-15),等 Tim 答 Q1–Q26** —— 推荐拆两刀:7a-1 可靠性与设备记录(+ F9 签发人字体先问 · F10 销毁证书从快照渲染)、7a-2 备件(出库与入账))| 21(备件)· 22(MTBF / MTTR —— 建在 U1-B 的停机作废列上) | 4 h 35 m – 8 h 30 m(勘察);Step 0 §9:两刀 ≈ 3 h 35 – 5 h 20 + 3 h 00 – 4 h 25(校准后) |
   | 12a | ✅ **MES-7b-1 · Incidents**(2026-10-16,上面第 53 条,`v1.4.54`;并入 F12 · F13 · F14 —— 三条都关了)| 24(热失控 / 排放的事故一侧) | — |
-  | 12b | ⬜ **MES-7b-2 · Safety inspections and environmental monitoring**(★ 下一刀;Step 0 交回 `docs/surveys/MES-7b/STEP0-HANDBACK.md` 的 7b-2 那一半 ——安全巡检与发现、来源 `inspection` 的不合格报告、环境监测结果与限值 V20、超限开一件 `emission_exceedance` 事故;报警转换仍等报文格式(`MES7B1-ALARM-TRANSFORM-WAITS-FOR-FORMAT`))| 23(安全巡检)· 24(排放) | 按 Step 0 估 |
+  | 12b | ✅ **MES-7b-2 · Safety inspections and environmental monitoring**(★ 已关闭,2026-10-16,上面第 54 条;Step 0 交回 `docs/surveys/MES-7b/STEP0-HANDBACK.md` 的 7b-2 那一半 ——安全巡检与发现、来源 `inspection` 的不合格报告、环境监测结果与限值 V20、超限开一件 `emission_exceedance` 事故;报警转换仍等报文格式(`MES7B1-ALARM-TRANSFORM-WAITS-FOR-FORMAT`))| 23(安全巡检)· 24(排放) | 按 Step 0 估 |
   | ~~12~~ | (拆成上面 12a · 12b;原文保留)~~**MES-7b · Inspections and incidents**~~(~~★ 下一刀~~;★ **Step 0 交回 `docs/surveys/MES-7b/STEP0-HANDBACK.md`(2026-10-16),等 Tim 答 Q1–Q28** —— 推荐拆两刀:7b-1 事故登记(+ F12 · F13,F14 待裁)、7b-2 安全巡检与环境监测;★ **并入(Tim 2026-10-16,MES-7a-2 close-out 的裁定),归下一个建库的刀**:**F12** 线上 `material_kinds` 备件那一行的说明由下一支迁移改成仓库里的新说法("received as lots so stock and cost are counted; issued against a maintenance record; no per-piece traceability"),`MES7A2-SPARE-PART-NOTE-LIVE-STALE` · **F13** 两支少数了流水类型的构建检查(`check-enum-mirrors` · `check-i18n`)解析类型清单时,注释既藏不掉也加不进一项,每一支各带一格让它变红的故障,`MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT`)| 23(安全巡检)· 24(热失控 / 排放) | 8 h 05 m – 15 h 15 m |
-  | 13 | ⬜ **MES-8a · Supplier scorecards and statements** | 25(评分卡)· 26(供应商对账单) | 5 h 45 m – 9 h 45 m |
+  | 13 | ⬜ **MES-8a · Supplier scorecards and statements**(★ 下一刀)| 25(评分卡)· 26(供应商对账单) | 5 h 45 m – 9 h 45 m |
   | 14 | ⬜ **MES-8b · Analysis and display** | 28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏) | 5 h 25 m – 10 h 00 m |
   | 15 | ⬜ **MES-9 · Supplier portal**(最后) | 27(供应商门户;先做内部专用的那次清扫,Q86) | 7 h 35 m – 13 h 15 m |
   合计 **≈ 97 h 40 m – 174 h 45 m**(勘察 §8.2;其中底 22 h 30 m – 37 h 30 m)。依赖图见勘察 §8.2 末尾。

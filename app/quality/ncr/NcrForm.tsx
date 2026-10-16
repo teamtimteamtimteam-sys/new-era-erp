@@ -4,6 +4,7 @@
 // MES-6b-1(MES-6b Step 0 Q7):开一张不合格报告 —— 一批(页面已定)、来源(手动 / 客户投诉;越限由系统开,来料检验留给 MES-7b)、描述(必填)、
 //   可选地指一份化验、一件争议、(产出批)一张销售单。描述空着保存钮按不下去,服务端【独立】拒空(NCR_DESCRIPTION_REQUIRED)。
 //   缺 module.quality.edit 时整张表单在 PermissionGate 里,看得见、按不动、说出那个码。
+// ★ MES-7b-2(Q15):findingId 给了 = 从一条巡检发现开过来 —— 来源定死 inspection(选项只有它一个),引用那条发现。
 import { CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
@@ -14,7 +15,7 @@ import { NCR_OPEN_SOURCES, ncrSourceKey } from '../qualityTypes'
 
 export type Option = { id: string; label: string }
 
-export default function NcrForm({ batchKind, batchId, assays, disputes, salesOrders, salesOrdersRestricted, canEdit }: {
+export default function NcrForm({ batchKind, batchId, assays, disputes, salesOrders, salesOrdersRestricted, canEdit, findingId = null }: {
     batchKind: 'inbound' | 'output'
     batchId: string
     assays: Option[]
@@ -22,11 +23,12 @@ export default function NcrForm({ batchKind, batchId, assays, disputes, salesOrd
     salesOrders: Option[]
     salesOrdersRestricted: boolean
     canEdit: boolean
+    findingId?: string | null
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
-    const [source, setSource] = useState('')
+    const [source, setSource] = useState(findingId ? 'inspection' : '')
     const [description, setDescription] = useState('')
     const [assayId, setAssayId] = useState('')
     const [disputeId, setDisputeId] = useState('')
@@ -44,6 +46,7 @@ export default function NcrForm({ batchKind, batchId, assays, disputes, salesOrd
                 assayId: assayId || null,
                 disputeId: disputeId || null,
                 salesOrderId: batchKind === 'output' && salesOrderId ? salesOrderId : null,
+                inspectionFindingId: findingId,
             })
             if (res?.error) setError(res.error)
         })
@@ -58,7 +61,7 @@ export default function NcrForm({ batchKind, batchId, assays, disputes, salesOrd
                     <span className="block mb-1">{t('quality.ncr.source')} <span className="text-red-600">*</span></span>
                     <select value={source} onChange={(e) => setSource(e.target.value)} className={`${CONTROL_SELECT} w-full`} data-field="source">
                         <option value="" disabled>{t('quality.ncr.pickSource')}</option>
-                        {NCR_OPEN_SOURCES.map((s) => <option key={s} value={s}>{t(ncrSourceKey(s))}</option>)}
+                        {(findingId ? (['inspection'] as const) : NCR_OPEN_SOURCES).map((s) => <option key={s} value={s}>{t(ncrSourceKey(s))}</option>)}
                     </select>
                     <span className="block mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('quality.ncr.sourceWhy')}</span>
                 </label>

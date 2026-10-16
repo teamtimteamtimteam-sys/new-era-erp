@@ -305,6 +305,15 @@ export const REMINDERS = [
     { itemType: 'incident_report_due', permission: 'module.safety.view', href: '/safety/incidents',
       itemHref: (r: OpsRow) => `/safety/incidents/${r.item_id}` },
 
+    // ══ MES-7b-2(2026-10-16,MES-7b Step 0 Q13 · Q14,Tim):安全巡检 ════════════════════════════════════════════════════════
+    // 【inspection_due】一张启用的、有频率(V18)的巡检清单该巡了(从没巡过 · 上一次 + 频率 ≤ 今天)—— 门牌指那张清单(从那里记一次巡检)。
+    // 【inspection_finding_open】一条还没关闭的巡检发现 —— item_id 是发现,doc_kind 装着它那一次巡检的 id:门牌指巡检页上那一条。
+    //   关掉它那张任务不让它消失(Q14);只有记一次关闭才让它消失。
+    { itemType: 'inspection_due', permission: 'module.safety.view', href: '/safety/inspections',
+      itemHref: (r: OpsRow) => `/safety/inspections/templates/${r.item_id}` },
+    { itemType: 'inspection_finding_open', permission: 'module.safety.view', href: '/safety/inspections',
+      itemHref: (r: OpsRow) => (r.doc_kind ? `/safety/inspections/${r.doc_kind}#finding-${r.item_id}` : null) },
+
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有
     // 这两行。为什么会少,以及为什么这次修的是"漏得掉"这件事本身,见本文件抬头。

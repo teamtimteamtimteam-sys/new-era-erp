@@ -187,4 +187,7 @@ VALUES
     ('coa', 'COA', 'certificates_of_analysis', 'gapless', NULL, '/quality/coa', 'detail', 'void_reason', ARRAY['void_reason']::text[], ARRAY['module.output.view']::text[]),
     -- MES-7b-1(2026-10-16,MES-0 Q53 · MES-7b Step 0 Q27):事故 INC-YYYY-NNNN(按年无洞,next_incident_code);读码 module.safety.view;落点是事故页
     --   /safety/incidents/[id];搜索的副标题是"发生了什么"(不是受伤的细节 —— 一列只对持码人可读的字做搜索,等于让不持码的人用搜索框去试它,U1A-SEARCH-NO-HEALTH-OR-NOTES)
-    ('incident', 'INC', 'incidents', 'gapless', NULL, '/safety/incidents', 'detail', 'what_happened', ARRAY['what_happened']::text[], ARRAY['module.safety.view']::text[]);
+    ('incident', 'INC', 'incidents', 'gapless', NULL, '/safety/incidents', 'detail', 'what_happened', ARRAY['what_happened']::text[], ARRAY['module.safety.view']::text[]),
+    -- MES-7b-2(2026-10-16,MES-0 Q53 · MES-7b Step 0 Q13 · Q27):巡检 INS-YYYY-NNNN(按年无洞,next_inspection_code);读码 module.safety.view;落点是巡检页
+    --   /safety/inspections/[id];搜索的副标题是记下那一刻抄下的清单名字
+    ('inspection', 'INS', 'inspection_runs', 'gapless', NULL, '/safety/inspections', 'detail', 'template_name', ARRAY['template_name']::text[], ARRAY['module.safety.view']::text[]);

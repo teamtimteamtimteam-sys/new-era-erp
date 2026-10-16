@@ -144,8 +144,12 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // MES-7b-1(2026-10-16):299 → 305。六张事故登记簿的表(incident_kinds · incidents · incident_updates · incident_batches · safety_settings ·
 //   shift_handover_incident_refs)。两张带 code 列:incidents(INC,登记进 document_types)与 incident_kinds(种类代号,登记进
 //   document_type_exceptions),所以 EXPECTED_CODE_TABLES 92 → 94。
-const EXPECTED_TABLES = 305   // HISTORY-1(2026-09-28):+ change_log
-const EXPECTED_CODE_TABLES = 94
+// MES-7b-2(2026-10-16):305 → 313。八张巡检与环境监测的表(inspection_templates · inspection_template_items · inspection_runs · inspection_results ·
+//   inspection_findings · inspection_finding_closures · environmental_parameters · environmental_results)。三张带 code 列:inspection_runs(INS,
+//   登记进 document_types)、inspection_templates(清单代号)与 environmental_parameters(参数代号,两张都登记进 document_type_exceptions),
+//   所以 EXPECTED_CODE_TABLES 94 → 97。
+const EXPECTED_TABLES = 313   // HISTORY-1(2026-09-28):+ change_log
+const EXPECTED_CODE_TABLES = 97
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

@@ -719,6 +719,10 @@ const TABLE_NAMES = {
     // MES-7b-1(2026-10-16):事故登记簿 —— 一件事故 · 之后的一个事实 · 一条批次链接 · 交接班的一条引用 · 种类字典 · 安全的设定(V19)
     incidents: 'incident', incident_updates: 'incident update', incident_batches: 'incident batch link',
     shift_handover_incident_refs: 'handover incident reference', incident_kinds: 'incident kind', safety_settings: 'safety settings',
+    // MES-7b-2(2026-10-16):巡检 —— 一张清单 · 清单上的一项 · 一次巡检 · 一项的结果 · 一条发现 · 一条发现的关闭;环境监测 —— 参数字典 · 一条结果
+    inspection_templates: 'inspection checklist', inspection_template_items: 'checklist item', inspection_runs: 'inspection',
+    inspection_results: 'inspection result', inspection_findings: 'inspection finding', inspection_finding_closures: 'finding closure',
+    environmental_parameters: 'monitored parameter', environmental_results: 'environmental result',
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',
@@ -951,6 +955,10 @@ const ENUM_OVERRIDES = {
     'maintenance_part_issues#kind': { issue: 'Issued to maintenance', return: 'Returned from maintenance' },
     // MES-7b-1:事故的来源(device 保留,今天一行都没有)
     'incidents#source': { manual: 'Entered by hand', device: 'From a device' },
+    // MES-7b-2:一项的结果 · 限值是上限还是下限(字典上与结果抄下来的那一份)
+    'inspection_results#result': { pass: 'Pass', fail: 'Fail', na: 'Not applicable' },
+    'environmental_parameters#limit_basis': { max: 'Maximum', min: 'Minimum' },
+    'environmental_results#limit_basis': { max: 'Maximum', min: 'Minimum' },
     'equipment_service_intervals#disposition': { warn: 'Warn', ignore: 'Ignore' },
     'journal_entries#status': { posted: 'Posted', reversed: 'Reversed' },
     'price_history#rate_type': { tt_buy: 'TT buying rate', tt_sell: 'TT selling rate', mid: 'Mid rate' },

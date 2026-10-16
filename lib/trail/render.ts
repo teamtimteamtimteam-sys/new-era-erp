@@ -1184,12 +1184,17 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     incident: ['incidents', 'incident_updates', 'incident_batches', 'shift_handover_incident_refs', 'nonconformance_reports'],
     safety_settings: ['safety_settings'],
     dictionary_incident_kinds: ['incident_kinds'],
+    // MES-7b-2(2026-10-16):一次巡检 —— 结果 · 发现 · 发现的关闭 · 引用发现的不合格报告;一张巡检清单 —— 检查项;监测参数字典;环境监测结果(集合)
+    inspection_run: ['inspection_runs', 'inspection_results', 'inspection_findings', 'inspection_finding_closures', 'nonconformance_reports'],
+    inspection_template: ['inspection_templates', 'inspection_template_items'],
+    dictionary_environmental_parameters: ['environmental_parameters'],
+    safety_environment: ['environmental_results'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
-    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype' | 'energy' | 'safety'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi' | 'device' | 'ticket' | 'optype' | 'energy' | 'safety' | 'inspection'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1233,6 +1238,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     quality_settings: 'settings',
     // MES-7b-1
     incident: 'safety', safety_settings: 'settings', dictionary_incident_kinds: 'dict',
+    // MES-7b-2
+    inspection_run: 'inspection', inspection_template: 'inspection', dictionary_environmental_parameters: 'dict', safety_environment: 'inspection',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1252,6 +1259,9 @@ const EQ_TABLES = new Set(['fixed_assets', 'equipment_maintenance', 'equipment_d
 const HO_TABLES = new Set(['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs', 'shift_handover_incident_refs'])
 /** MES-7b-1:事故那一族 —— 在事故页、批次页、变更记录总表上都从事故这一边说(交接班的引用在交接班页上从交接班那一边说) */
 const SAFETY_TABLES = new Set(['incidents', 'incident_updates', 'incident_batches'])
+/** MES-7b-2:巡检与环境监测那一族 —— 巡检、它的结果、发现与关闭,清单与检查项,环境监测结果 */
+const INSPECTION_TABLES = new Set(['inspection_runs', 'inspection_results', 'inspection_findings', 'inspection_finding_closures',
+    'inspection_templates', 'inspection_template_items', 'environmental_results'])
 /** 往上一跳够到的那几种:在别的记录的页上出现时,标题后面点名它属于哪一张单据("Purchase order amended · PO-2026-0010")。
  *  写进标题而不是另起一个小标题 —— 一条记录里后面几块的标题本身就是小标题,再加一个会把它们的标题挤掉。 */
 const HEADED = new Set<Family>(['po', 'run', 'wo', 'so'])
@@ -1290,6 +1300,7 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     // MES-7b-1:交接班引用一件事故 —— 在事故页上从事故这一边说("Cited in a shift handover"),在交接班页上从交接班那一边说
     if (t === 'shift_handover_incident_refs' && subject === 'incident') return 'safety'
     if (SAFETY_TABLES.has(t)) return 'safety'
+    if (INSPECTION_TABLES.has(t)) return 'inspection'
     // MES-3b:库位页上它的标签从库位这一边说(在别处 —— 批次页、变更记录总表 —— 照批次那一族的说法,两边是同一句话)
     if (subject === 'storage_location' && t === 'label_prints') return 'location'
     if (BATCH_TABLES.has(t)) return 'batch'
@@ -2189,6 +2200,86 @@ function describeSafety(d: TrailDict, rows: TrailRow[], opts: BuildOptions, subj
     for (const r of by('shift_handover_incident_refs')) {
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
         out.push({ title: tx(d, 'inc.handover'), lines: valueLines(d, r, { handover_id: r.new?.['handover_id'] ?? null }, opts), key: false, weight: 40 })
+    }
+    return out
+}
+
+// ── MES-7b-2(2026-10-16):安全巡检与环境监测 ──────────────────────────────────────────
+// 【一次巡检交了就不改】所以 inspection_runs 只有 INSERT:"Inspection recorded"(更正的那一次是 "Correcting inspection recorded",理由在理由那一格),
+//   清单的名字(记下那一刻抄下的)挂在标题后面那一段;同一次提交里的每一项结果并进同一条,一行一项:"第几项. 检查项: 结果(说明)"。
+//   发现(只追加;唯一的一次改是"建一张任务"填 task_id):记下 · 建了任务 · 关闭(做了什么在理由那一格)。
+//   清单:建立 · 改(照常的改动行)· 检查项加 / 改 / 删。环境监测结果(只追加):记下(参数挂在标题后面;超标与否、它开的事故是行),
+//   更正的那一条是 "Environmental result corrected",理由在理由那一格。
+function describeInspection(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const resultLine = (r: TrailRow): Line => {
+        const img = imgOf(r)
+        const res = formatValue(d, 'inspection_results', 'result', img['result'] ?? null, img, r.refs, r.op, opts)
+        const note = typeof img['note'] === 'string' && img['note'] ? ` (${img['note']})` : ''
+        return { t: 'value', label: `${img['position'] ?? ''}. ${img['item_text'] ?? ''}`, value: { ...res, text: res.text + note } }
+    }
+    const results = by('inspection_results')
+    for (const r of by('inspection_runs')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const runId = r.new?.['id']
+        const mine = results.filter((x) => x.op === 'INSERT' && x.new?.['run_id'] === runId)
+        const corrects = r.new?.['corrects_run_id'] != null
+        out.push({ title: tx(d, corrects ? 'ins.corrected' : 'ins.recorded'), part: typed(r.new?.['template_name']),
+                   lines: [...valueLines(d, r, r.new, opts, new Set(['code', 'template_id', 'template_code', 'template_name', 'correction_reason', 'recorded_at', 'recorded_by'])),
+                           ...mine.map(resultLine)],
+                   reason: typed(r.new?.['correction_reason']), key: true, weight: 100 })
+    }
+    // 一次巡检之外单独出现的结果(不会发生:结果与巡检同一笔事务)照通用的说法
+    const runIds = new Set(by('inspection_runs').filter((r) => r.op === 'INSERT').map((r) => r.new?.['id']))
+    for (const r of results) if (!(r.op === 'INSERT' && runIds.has(r.new?.['run_id']))) out.push(describeGeneric(d, r, opts))
+    for (const r of by('inspection_findings')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'ins.finding'), lines: valueLines(d, r, r.new, opts, new Set(['run_id', 'result_id', 'task_id', 'recorded_at', 'recorded_by'])),
+                       key: true, weight: 80 })
+        } else if (r.op === 'UPDATE' && changed(r, 'task_id') && isSet(r, 'task_id')) {
+            out.push({ title: tx(d, 'ins.taskRaised'), lines: valueLines(d, r, { task_id: r.new?.['task_id'] ?? null }, opts), key: false, weight: 60 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('inspection_finding_closures')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'ins.findingClosed'), lines: [], reason: typed(r.new?.['what_was_done']), key: true, weight: 80 })
+    }
+    for (const r of by('inspection_templates')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'ins.templateCreated'), part: typed(r.new?.['code']),
+                       lines: valueLines(d, r, r.new, opts, new Set(['code', 'created_at', 'created_by', 'updated_at', 'updated_by'])), key: true, weight: 100 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('inspection_template_items')) {
+        const img = imgOf(r)
+        const label = tx(d, 'ins.item', { n: String(img['position'] ?? '') })
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'ins.itemAdded'), lines: [{ t: 'value', label, value: typed(r.new?.['item_text']) ?? { text: tx(d, 'empty'), empty: true } }], key: false, weight: 50 })
+        } else if (r.op === 'UPDATE' && changed(r, 'item_text')) {
+            out.push({ title: tx(d, 'ins.itemChanged'), lines: [{ t: 'change', label, old: typed(r.old?.['item_text']) ?? { text: tx(d, 'empty'), empty: true },
+                                                                   new: typed(r.new?.['item_text']) ?? { text: tx(d, 'empty'), empty: true } }], key: false, weight: 50 })
+        } else if (r.op === 'DELETE') {
+            out.push({ title: tx(d, 'ins.itemRemoved'), lines: [{ t: 'value', label, value: typed(r.old?.['item_text']) ?? { text: tx(d, 'empty'), empty: true } }], key: false, weight: 50 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('environmental_results')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const corrects = r.new?.['corrects_result_id'] != null
+        // 结果与限值连同单位说一句;限值的口径说成 Maximum / Minimum;没有限值 → "None — not judged"(判定那一行说 Not judged)
+        const img = imgOf(r)
+        const unit = typeof img['unit'] === 'string' ? ` ${img['unit']}` : ''
+        const numText = (c: string) => formatValue(d, 'environmental_results', c, img[c] ?? null, img, r.refs, r.op, opts).text
+        const lines: Line[] = valueLines(d, r, r.new, opts, new Set(['parameter_code', 'value', 'unit', 'limit_value', 'limit_basis', 'exceeds', 'incident_id',
+                                                                      'correction_reason', 'recorded_at', 'recorded_by']))
+        lines.push({ t: 'value', label: fieldMeta(d, 'environmental_results', 'value')[0], value: { text: numText('value') + unit } })
+        lines.push({ t: 'value', label: fieldMeta(d, 'environmental_results', 'limit_value')[0], value: img['limit_value'] == null
+            ? { text: tx(d, 'env.noLimit') } : { text: `${numText('limit_basis')} ${numText('limit_value')}${unit}` } })
+        lines.push({ t: 'value', label: fieldMeta(d, 'environmental_results', 'exceeds')[0], value: img['exceeds'] == null
+            ? { text: tx(d, 'env.notJudged') } : formatValue(d, 'environmental_results', 'exceeds', img['exceeds'], img, r.refs, r.op, opts) })
+        lines.push(...valueLines(d, r, { incident_id: r.new?.['incident_id'] ?? null }, opts))
+        out.push({ title: tx(d, corrects ? 'env.corrected' : 'env.recorded'), part: refText(d, r, 'parameter_code'),
+                   lines, reason: typed(r.new?.['correction_reason']), key: true, weight: 100 })
     }
     return out
 }
@@ -4296,7 +4387,9 @@ const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kind
     // MES-7a-1(Q3):停机原因(类别是一条规则 —— 说成 Failure / Planned / External)
     'downtime_causes',
     // MES-7b-1(Q4):事故种类
-    'incident_kinds'])
+    'incident_kinds',
+    // MES-7b-2(Q16):监测参数(单位与限值是字段,限值的口径说成 Maximum / Minimum)
+    'environmental_parameters'])
 const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
 /** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
 function refText(d: TrailDict, r: TrailRow, col: string): Val | null {
@@ -5384,6 +5477,7 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'equipment': bs = describeEquipment(d, list, opts, opts.subject); break
                 case 'handover': bs = describeHandover(d, list, opts); break
                 case 'safety': bs = describeSafety(d, list, opts, opts.subject); break
+                case 'inspection': bs = describeInspection(d, list, opts); break
                 case 'wr': bs = describeWarehouseRequest(d, list, opts); break
                 case 'so': bs = describeSalesOrder(d, list, opts); break
                 case 'quote': bs = describeQuote(d, list, opts); break

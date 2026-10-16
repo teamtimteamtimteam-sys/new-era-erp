@@ -250,7 +250,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                                         <select value={extras[x.column] ?? ''}
                                                 onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
                                                 className={fieldSelect}>
-                                            <option value="" disabled>{t('dict.pickOne')}</option>
+                                            {/* MES-7b-2:不必填的一格(监测参数的限值口径)可以选回"空" —— 那就是 Not yet set;必填的照旧只能挑一种 */}
+                                            <option value="" disabled={x.required}>{x.required ? t('dict.pickOne') : t('dict.noneChoice')}</option>
                                             {(x.options ?? []).map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
                                         </select>
                                         <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t(x.hintKey)}</p>

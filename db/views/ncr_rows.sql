@@ -7,6 +7,8 @@
 --   各自的 RLS,所以条件写在末尾的 WHERE 里一次。没有金额,不遮(报告不带金额;钱的那一张单据只给出它的标签)。
 -- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q8):末尾多两列 incident_id / incident_code —— 来源 incident 的那一张指着的事故(编号是标签,跟着单据走)。
 --   加在末尾,CREATE OR REPLACE VIEW 不动既有的列。
+-- ★ MES-7b-2(2026-10-16,MES-7b Step 0 Q15):末尾再多四列 inspection_finding_id / inspection_run_id / inspection_run_code / inspection_item_position ——
+--   来源 inspection 的那一张引用的巡检发现(巡检编号与第几项是标签,跟着单据走)。
 -- NOTE: introduced by db/migrations/2026-10-15-mes6b1-quality-hold-ncr-and-limits.sql.
 
 CREATE VIEW public.ncr_rows WITH (security_invoker = off) AS
@@ -47,7 +49,11 @@ CREATE VIEW public.ncr_rows WITH (security_invoker = off) AS
     pr.label AS penalty_price_request_label,
     ncr_holds(n.status, n.disposition, COALESCE(ib.deleted_at, ob.deleted_at), COALESCE(ib.remaining_qty, ob.remaining_qty)) AS holding,
     n.incident_id,
-    inc.code AS incident_code
+    inc.code AS incident_code,
+    n.inspection_finding_id,
+    isf.run_id AS inspection_run_id,
+    isr.code AS inspection_run_code,
+    isres.position AS inspection_item_position
    FROM nonconformance_reports n
      LEFT JOIN inbound_batches ib ON ib.id = n.inbound_batch_id
      LEFT JOIN output_batches ob ON ob.id = n.output_batch_id
@@ -58,6 +64,9 @@ CREATE VIEW public.ncr_rows WITH (security_invoker = off) AS
      LEFT JOIN invoice_requests ir ON ir.id = n.penalty_invoice_request_id
      LEFT JOIN receipt_price_requests pr ON pr.id = n.penalty_price_request_id
      LEFT JOIN incidents inc ON inc.id = n.incident_id
+     LEFT JOIN inspection_findings isf ON isf.id = n.inspection_finding_id
+     LEFT JOIN inspection_runs isr ON isr.id = isf.run_id
+     LEFT JOIN inspection_results isres ON isres.id = isf.result_id
   WHERE has_permission('module.quality.view'::text)
      OR (n.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
      OR (n.output_batch_id IS NOT NULL AND has_permission('module.output.view'::text));

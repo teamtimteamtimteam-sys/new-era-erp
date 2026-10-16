@@ -116,6 +116,8 @@ module's own page.
 | M6b4 | `coa_facts_changed` | 一张已签发的分析证书,而它那一批在签发【之后】多了一份(没删的)化验、或开了一张不合格报告(MES-6b Step 0 Q32 · Q38)。证书【永远不会被自动作废】—— 这一格只把它摆到签发人面前,由人决定要不要经 CFO 作废、重开一张。一张一行,`item_id` = 那张证书,`item_code` = 证书号,`subject` = 批号 · 最早那一件新事的编号(化验号或报告编号),`item_date` = 那件事的日子 | `action.issue_coa` | `certificates_of_analysis` · `assay_results` · `nonconformance_reports` | 证书作废之后消失(重开的那一张从它自己的签发时刻重新算) |
 | M7b1 | `incident_nea_notify_due` | 一件【现在】要向 NEA 通报的事故(更正过的「要不要通报」说了算),还没有记下通报(MES-7b Step 0 Q10:"立即"没有天数,挂到记下为止)。一件一行,`item_id` = 那件事故,`item_code` = 事故编号,`subject` = 种类的英文名,`item_date` = 事故日(新加坡日期)| `module.safety.view` | `incidents` · `incident_updates` · `incident_kinds`(经 `incident_current_all`)| 记下 `nea_notified` 之后消失;更正成不用通报也消失;关闭【不】清掉它(法定义务)|
 | M7b2 | `incident_report_due` | 一件现在要通报 NEA 的事故,还没有记下交了书面报告(Q10 · Q11)。`item_date` = 期限:事故日之后第 V19 个工作日(`business_days_after`,公共假期表);期限算不出来(某一年日历缺)或 V19 为空时退回事故日,`doc_kind` 装期限的状态(`computed` · `not_set` · `cannot_compute`)—— 只有 `computed` 时 `item_date` 才是期限。V19 未确认时期限照算,事故页上标"未确认" | `module.safety.view` | 同上 + `safety_settings` · `public_holidays` | 记下 `report_submitted` 之后消失;更正成不用通报也消失;关闭不清掉它 |
+| M7b3 | `inspection_due` | 一张启用的巡检清单到期了:最后一次【没被更正掉】的巡检日期 + 频率天数 ≤ 今天(新加坡),或者一次都没巡过(MES-7b Step 0 Q13 · Q14)。一张一行,`item_id` = 那张清单,`item_code` = 清单代号,`subject` = 清单名,`doc_kind` = `due` · `never_run`,`item_date` = 到期日(从没巡过的退回清单建立那一天)。**没有频率的清单从不到期**(V18,页面上写「没有设频率」);停用的清单不提醒 | `module.safety.view` | `inspection_templates` · `inspection_runs`(经基视图 `inspection_template_due_all`,不授给任何人)| 记一次巡检之后消失(到下一个到期日为止);停用或把频率清空也消失 |
+| M7b4 | `inspection_finding_open` | 一条巡检发现还没关(Q14:关闭是自己的一行,写下做了什么)。一条一行,`item_id` = 那条发现,`item_code` = 巡检编号,`subject` = 那一项的字(抄在巡检上的那一份),`doc_kind` = 巡检的 id(链接去那次巡检),`item_date` = 发现记下的那一天。**关掉它生成的任务【不】清掉它** | `module.safety.view` | `inspection_findings` · `inspection_runs` · `inspection_results` · `inspection_finding_closures` | 持 `module.safety.edit` 的人关闭这条发现(写下做了什么)之后消失 |
 
 
 
@@ -367,6 +369,8 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `coa_facts_changed` | `/quality/coa/[id]` | the certificate page: what it stated when issued, its PDF, and the void request (CFO) when the newer assay or report changes what it should say (MES-6b-2) |
 | `incident_nea_notify_due` | `/safety/incidents/[id]` | the incident page: what happened, the NEA section, and the form that records NEA notified (MES-7b-1) |
 | `incident_report_due` | `/safety/incidents/[id]` | the incident page: the written-report deadline (marked unconfirmed while V19 is unconfirmed) and the form that records the report submitted (MES-7b-1) |
+| `inspection_due` | `/safety/inspections/templates/[id]` | the checklist page: its items, frequency, last inspection and next due date, and the button that records an inspection against it (MES-7b-2) |
+| `inspection_finding_open` | `/safety/inspections/[id]` | the inspection page: the failed item, the finding's corrective action, owner and due date; raise a task, open a non-conformance report, or close it by saying what was done (MES-7b-2) |
 
 ### One mechanism, not two
 

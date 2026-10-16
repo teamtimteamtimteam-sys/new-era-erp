@@ -3744,3 +3744,79 @@ shift_handover_incident_refs,incident_id,fk_document,"incidents.code (document n
 shift_handover_incident_refs,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
 shift_handover_incident_refs,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
 nonconformance_reports,incident_id,fk_document,"incidents.code (document number, prefix INC) — MES-7b-1 (2026-10-16)",,,Incident,,,uuid
+inspection_templates,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+inspection_templates,code,own_key,show as-is: the record's own business key (code/number) — MES-7b-2 (2026-10-16),,,Checklist,,,text
+inspection_templates,name,text,verbatim,,,Name,,,text
+inspection_templates,area,text,verbatim,,,Area,,,text
+inspection_templates,frequency_days,number,"number with unit (qty kg, %, rate); Intl en-US grouping — V18, MES-7b-2 (2026-10-16)",,,Inspected every (days) (V18),,,integer
+inspection_templates,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+inspection_templates,notes,text,verbatim,,,Notes,,,text
+inspection_templates,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+inspection_templates,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+inspection_templates,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
+inspection_templates,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+inspection_template_items,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+inspection_template_items,template_id,technical,hide: the checklist the item belongs to (its own page),,,Checklist,,,uuid
+inspection_template_items,position,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Item number,,,integer
+inspection_template_items,item_text,text,verbatim,,,Check,,,text
+inspection_runs,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+inspection_runs,code,own_key,show as-is: the record's own business key (code/number) — MES-7b-2 (2026-10-16),,,Inspection,,,text
+inspection_runs,template_id,technical,hide: the checklist is named by its copied code and name,,,Checklist,,,uuid
+inspection_runs,template_code,text,verbatim (copied from the checklist when the inspection was recorded),,,Checklist code,,,text
+inspection_runs,template_name,text,verbatim (copied from the checklist when the inspection was recorded),,,Checklist,,,text
+inspection_runs,template_area,text,verbatim (copied from the checklist when the inspection was recorded),,,Area,,,text
+inspection_runs,inspected_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) — when the inspection took place",,,Inspected at,,,timestamp with time zone
+inspection_runs,inspector_employee_id,fk_person,"employees.id → person name: loadActorNames(…, employeeIds) space=""employee"" (app/components/ActorName.tsx:49,119)",,,Inspector,,,uuid
+inspection_runs,location_id,fk_other,storage_locations: composed description (see target table),,,Location,,,uuid
+inspection_runs,equipment_id,fk_document,"fixed_assets.code (document number, prefix FA)",,,Machine,,,uuid
+inspection_runs,notes,text,verbatim,,,Notes,,,text
+inspection_runs,corrects_run_id,fk_document,"inspection_runs.code (document number, prefix INS) — MES-7b-2 (2026-10-16)",,,Corrects,,,uuid
+inspection_runs,correction_reason,text,verbatim,,,Reason for the correction,,,text
+inspection_runs,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+inspection_runs,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+inspection_results,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+inspection_results,run_id,fk_document,"inspection_runs.code (document number, prefix INS) — MES-7b-2 (2026-10-16)",,,Inspection,,,uuid
+inspection_results,position,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Item number,,,integer
+inspection_results,item_text,text,verbatim (copied from the checklist when the inspection was recorded),,,Check,,,text
+inspection_results,result,enum,ENUM_OVERRIDES inspection_results#result — MES-7b-2 (2026-10-16),,,Result,,,text
+inspection_results,note,text,verbatim,,,Note,,,text
+inspection_findings,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+inspection_findings,run_id,fk_document,"inspection_runs.code (document number, prefix INS) — MES-7b-2 (2026-10-16)",,,Inspection,,,uuid
+inspection_findings,result_id,technical,hide: the failed item; the inspection page shows it,,,Failed item,,,bigint
+inspection_findings,corrective_action,text,verbatim,,,Corrective action,,,text
+inspection_findings,owner_employee_id,fk_person,"employees.id → person name: loadActorNames(…, employeeIds) space=""employee"" (app/components/ActorName.tsx:49,119)",,,Owner,,,uuid
+inspection_findings,due_date,date,"formatDate (lib/dates.ts:193) — a date the person chose, optional",,,Due,,,date
+inspection_findings,task_id,fk_document,"tasks.code (document number, prefix TASK)",,,Task,,,uuid
+inspection_findings,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+inspection_findings,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+inspection_finding_closures,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,bigint
+inspection_finding_closures,finding_id,technical,hide: the finding it closes (the entry says which inspection),,,Finding,,,uuid
+inspection_finding_closures,what_was_done,text,verbatim,,,What was done,,,text
+inspection_finding_closures,closed_at,audit_std,hide: the trail entry already says who and when,,,Closed on,,,timestamp with time zone
+inspection_finding_closures,closed_by,audit_std,hide: the trail entry already says who and when,,,Closed by,,,uuid
+environmental_parameters,code,own_key,show as-is: the record's own business key (code/number) — MES-7b-2 (2026-10-16),,,Code,,,text
+environmental_parameters,name_en,text,verbatim,,,Name (EN),,,text
+environmental_parameters,name_zh,text,verbatim,,,Name (ZH),,,text
+environmental_parameters,is_active,boolean,words: Yes / No (common.yes/common.no if present) or a column-specific phrase,,,Active,,,boolean
+environmental_parameters,sort_order,technical,hide,,,Sort order,,,integer
+environmental_parameters,notes,text,verbatim,,,Notes,,,text
+environmental_parameters,unit,text,verbatim,,,Unit,,,text
+environmental_parameters,limit_value,number,"number with unit (qty kg, %, rate); Intl en-US grouping — V20, MES-7b-2 (2026-10-16)",,,Limit (V20),,,numeric
+environmental_parameters,limit_basis,enum,ENUM_OVERRIDES environmental_parameters#limit_basis — MES-7b-2 (2026-10-16),,,Limit is a,,,text
+environmental_results,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+environmental_results,parameter_code,dict,environmental_parameters.name_en (via code) — MES-7b-2 (2026-10-16),,,Parameter,,,text
+environmental_results,sample_point,text,verbatim,,,Sample point,,,text
+environmental_results,sampled_on,date,"formatDate (lib/dates.ts:193) — the day the sample was taken",,,Sampled on,,,date
+environmental_results,laboratory_code,dict,laboratories.name_en (via code),,,Laboratory,,,text
+environmental_results,report_reference,text,verbatim,,,Report,,,text
+environmental_results,value,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Result,,,numeric
+environmental_results,unit,text,verbatim (copied from the parameter when recorded),,,Unit,,,text
+environmental_results,limit_value,number,"number (copied from the parameter when recorded)",,,Limit then,,,numeric
+environmental_results,limit_basis,enum,ENUM_OVERRIDES environmental_results#limit_basis — MES-7b-2 (2026-10-16),,,Limit was a,,,text
+environmental_results,exceeds,boolean,words: Yes / No; empty = not judged (no limit then),,,Over the limit,,,boolean
+environmental_results,incident_id,fk_document,"incidents.code (document number, prefix INC)",,,Incident opened,,,uuid
+environmental_results,corrects_result_id,technical,hide: the corrected result has no number; the environment page shows it,,,Corrects,,,uuid
+environmental_results,correction_reason,text,verbatim,,,Reason for the correction,,,text
+environmental_results,recorded_at,audit_std,hide: the trail entry already says who and when,,,Recorded on,,,timestamp with time zone
+environmental_results,recorded_by,audit_std,hide: the trail entry already says who and when,,,Recorded by,,,uuid
+nonconformance_reports,inspection_finding_id,technical,hide: the finding is named on the report page (inspection code · item) — MES-7b-2 (2026-10-16),,,Inspection finding,,,uuid

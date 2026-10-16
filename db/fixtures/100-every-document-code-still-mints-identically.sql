@@ -11,6 +11,7 @@
 --   这里的 LPAD(n, 4) 逐字相同)。新单据,锚里那一条就是它今天的前缀。
 -- ★ MES-6b-2(2026-10-15):58 → 59 —— 新增 coa / COA(无洞,按年,next_coa_code;与 NCR 同形,宽度 GREATEST(4, 位数))。新单据,锚里那一条就是
 --   它今天的前缀。
+-- ★ MES-7b-2(2026-10-16):60 → 61 —— 新增 inspection / INS(无洞,按年,next_inspection_code;与 INC 同形,宽度 GREATEST(4, 位数))。
 -- ★ MES-7b-1(2026-10-16):59 → 60 —— 新增 incident / INC(无洞,按年,next_incident_code;与 NCR 同形,宽度 GREATEST(4, 位数))。新单据,锚里那一条
 --   就是它今天的前缀。
 -- ★ MES-4b(2026-10-07):43 → 55 —— 新增 12 种产出批前缀(CPW · APW · CUF · ALF · SEP · DST · CEL · CSG · STR · HBB · CTS · ANS),
@@ -106,7 +107,8 @@ DECLARE
         ['sample','SMP'],
         ['ncr','NCR'],
         ['coa','COA'],
-        ['incident','INC']
+        ['incident','INC'],
+        ['inspection','INS']
     ];
 
     -- 铸码的【形状】—— 与 numbering 是两件事,不要合并。
@@ -149,10 +151,11 @@ DECLARE
         ['sample','seq_year'],
         ['ncr','seq_year'],
         ['coa','seq_year'],
-        ['incident','seq_year']
+        ['incident','seq_year'],
+        ['inspection','seq_year']
     ];
 
-    -- 直接调用得了、而且【调用不留痕】的那 27 支(MES-7b-1 起;MES-6b-2 起 26,MES-6b-1 起 25,MES-6a-1 起 24,MES-5b-3 起 23,此前 22):纯 SELECT + advisory lock。
+    -- 直接调用得了、而且【调用不留痕】的那 28 支(MES-7b-2 起;MES-7b-1 起 27,MES-6b-2 起 26,MES-6b-1 起 25,MES-6a-1 起 24,MES-5b-3 起 23,此前 22):纯 SELECT + advisory lock。
     CALLABLE constant text[][] := ARRAY[
         ['assay_result','next_assay_code'],
         ['collection_chase','next_chase_code'],
@@ -179,16 +182,17 @@ DECLARE
         ['sample','next_sample_code'],
         ['ncr','next_ncr_code'],
         ['coa','next_coa_code'],
-        ['incident','next_incident_code']
+        ['incident','next_incident_code'],
+        ['inspection','next_inspection_code']
     ];
 BEGIN
     -- ══ 第 1 臂 · 登记表的形状 ══════════════════════════════════════════════
     SELECT count(*) INTO v_n FROM document_types;
-    IF v_n <> 60 THEN
-        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 60 行,实有 %', v_n;
+    IF v_n <> 61 THEN
+        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 61 行,实有 %', v_n;
     END IF;
     SELECT count(DISTINCT prefix) INTO v_n FROM document_types;
-    IF v_n <> 60 THEN
+    IF v_n <> 61 THEN
         RAISE EXCEPTION 'FIXTURE 100/1 失败:前缀不唯一(distinct %)', v_n;
     END IF;
     SELECT count(*) INTO v_n FROM document_types WHERE numbering = 'gapped';
@@ -219,8 +223,8 @@ BEGIN
                 ANCHOR[v_n][1], ANCHOR[v_n][2], v_actual;
         END IF;
     END LOOP;
-    IF array_length(ANCHOR, 1) <> 60 THEN
-        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 60', array_length(ANCHOR, 1);
+    IF array_length(ANCHOR, 1) <> 61 THEN
+        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 61', array_length(ANCHOR, 1);
     END IF;
     -- ★ 覆盖率本身是一条断言:登记表里若出现一个锚里没有的 key,这一臂必须红,
     --   而不是安静地不检查它。
@@ -290,8 +294,8 @@ BEGIN
             v_codes := v_codes || (k || ' → ' || v_expect);
         END;
     END LOOP;
-    IF array_length(v_codes, 1) <> 60 THEN
-        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 60', array_length(v_codes, 1);
+    IF array_length(v_codes, 1) <> 61 THEN
+        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 61', array_length(v_codes, 1);
     END IF;
 
     -- ══ 第 4 臂 · 那 23 支【真的调用一遍】,与公式对上 ══════════════════════
@@ -376,8 +380,9 @@ BEGIN
     -- ★ MES-6b-1:34 → 35(next_ncr_code —— NCR 按年无洞,带 LIKE 过滤)。
     -- ★ MES-6b-2:35 → 36(next_coa_code —— COA 按年无洞,带 LIKE 过滤)。
     -- ★ MES-7b-1:36 → 37(next_incident_code —— INC 按年无洞,带 LIKE 过滤)。
-    IF v_n <> 37 THEN
-        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 37 支,这次只看见 % 支'
+    -- ★ MES-7b-2:37 → 38(next_inspection_code —— INS 按年无洞,带 LIKE 过滤)。
+    IF v_n <> 38 THEN
+        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 38 支,这次只看见 % 支'
                         ' —— 判据瞎了,不是树干净了', v_n;
     END IF;
 
@@ -451,7 +456,7 @@ BEGIN
                         '要么列级遮蔽被撤了,要么这一臂看的是错的东西';
     END IF;
 
-    RAISE NOTICE 'FIXTURE 100 全部通过:60 个前缀逐个算出下一个号(其中 27 支真的调用过),前缀字面量种子外 0 处;match_columns 逐列 SELECT-granted。';
+    RAISE NOTICE 'FIXTURE 100 全部通过:61 个前缀逐个算出下一个号(其中 28 支真的调用过),前缀字面量种子外 0 处;match_columns 逐列 SELECT-granted。';
     RAISE NOTICE '  40 个号:%', array_to_string(v_codes, ' · ');
 END
 $fixture$;

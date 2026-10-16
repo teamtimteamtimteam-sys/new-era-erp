@@ -248,7 +248,6 @@ relation	processing_outputs_masked
 relation	processing_run_allocation_status
 relation	processing_run_lookup
 relation	processing_run_loss_breakdown
-relation	processing_run_losses
 relation	processing_runs
 relation	processing_runs_masked
 relation	processing_settings

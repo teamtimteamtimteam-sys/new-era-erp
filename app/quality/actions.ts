@@ -133,6 +133,8 @@ export async function linkDisputeFee(id: string, expenseId: string): Promise<Qua
 export async function openNcr(input: {
     source: string; description: string; inboundBatchId: string | null; outputBatchId: string | null
     assayId: string | null; disputeId: string | null; salesOrderId: string | null
+    /** MES-7b-2(Q15):来源 inspection 的那一张引用的巡检发现(从巡检页上那条发现开过来) */
+    inspectionFindingId?: string | null
 }): Promise<QualityState> {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('open_ncr', {
@@ -143,8 +145,10 @@ export async function openNcr(input: {
         p_assay_result_id: input.assayId ?? undefined,
         p_assay_dispute_id: input.disputeId ?? undefined,
         p_sales_order_id: input.salesOrderId ?? undefined,
+        p_inspection_finding_id: input.inspectionFindingId ?? undefined,
     })
     if (error) return { error: await localizeQualityError(error.message) }
+    if (input.inspectionFindingId) revalidatePath('/safety/inspections')
     revalidatePath('/quality/ncr')
     revalidateBatch(input.inboundBatchId ? 'inbound' : 'output', input.inboundBatchId ?? input.outputBatchId)
     redirect(`/quality/ncr/${(data as { ncr_id: string }).ncr_id}`)

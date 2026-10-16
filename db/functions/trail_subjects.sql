@@ -171,6 +171,12 @@
 --                     受伤的细节由 change_log_mask_rules 遮(code_or_self:data.view_health:injured_employee_id)。
 --   safety_settings → /safety/incidents 上的 V19 那一块   module.safety.view;单行设置作根(quality_settings 的先例)
 --   dictionary_incident_kinds → /settings/dictionaries 的事故种类那一段   module.safety.view
+-- MES-7b-2(2026-10-16,MES-7b Step 0 Q19):
+--   inspection_run      → /safety/inspections/[id]            requireFunction(FN.safetyInspections) = module.safety.view。成员:结果、发现、
+--                         发现的关闭(住在这里);引用一条发现的不合格报告也出现在这里(家在报告自己那里)。
+--   inspection_template → /safety/inspections/templates/[id]  module.safety.view。成员:检查项(住在这里)。
+--   dictionary_environmental_parameters → /settings/dictionaries 的监测参数那一段   module.safety.view
+--   safety_environment  → /safety/environment(只有清单页,整张表是一条记录 —— 'collection')   module.safety.view
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])
  LANGUAGE sql
@@ -319,6 +325,12 @@ AS $function$
         --   安全的设定(V19,单行设置作根)· 事故种类字典(清单块,/settings/dictionaries)
         ('incident',               ARRAY['module.safety.view'],    'incidents',             'id', 'table', NULL),
         ('safety_settings',        ARRAY['module.safety.view'],    'safety_settings',       'id', 'table', NULL),
-        ('dictionary_incident_kinds', ARRAY['module.safety.view'], 'incident_kinds',        'code', 'collection', NULL)
+        ('dictionary_incident_kinds', ARRAY['module.safety.view'], 'incident_kinds',        'code', 'collection', NULL),
+        -- MES-7b-2(2026-10-16,MES-7b Step 0 Q19):一次巡检 · 一张巡检清单(安全查看码 —— 页面的门;行再过一次它自己那张表的读规则)·
+        --   监测参数字典(清单块,/settings/dictionaries)· 环境监测结果(只有清单页,整张表一条记录)
+        ('inspection_run',         ARRAY['module.safety.view'],    'inspection_runs',       'id', 'table', NULL),
+        ('inspection_template',    ARRAY['module.safety.view'],    'inspection_templates',  'id', 'table', NULL),
+        ('dictionary_environmental_parameters', ARRAY['module.safety.view'], 'environmental_parameters', 'code', 'collection', NULL),
+        ('safety_environment',     ARRAY['module.safety.view'],    'environmental_results', 'id', 'collection', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

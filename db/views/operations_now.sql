@@ -1,5 +1,12 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
 -- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q10 · Q11,Tim):加两支,门都是 module.safety.view,都读 incident_current_all(事故现在的值:
+-- ★ MES-7b-2(2026-10-16,MES-7b Step 0 Q13 · Q14 · Q20,Tim):加两支,门都是 module.safety.view。
+--   inspection_due —— 一张启用的巡检清单【有频率】(V18)而该巡了:还没巡过(doc_kind = never_run,item_date = 建清单那一天),或最近一次没被
+--     更正过的巡检的日子 + 频率 ≤ 今天(doc_kind = due,item_date = 那一天到期的日子)。频率空着的清单不进来 —— 没有日子可数(V18 那一行在
+--     待补的值页上)。判据住在 inspection_template_due_all(清单页读同一份)。item_id = 那张清单;item_code = 清单代号;subject = 清单名字。
+--   inspection_finding_open —— 一条还没关闭的巡检发现。item_id = 那条发现;doc_kind = 它那一次巡检的 id(门牌指巡检页上那一条);
+--     item_code = 巡检编号;subject = 那一项的字;item_date = 记下发现的那一天(首页数它开了几天;人选的到期日在巡检页上说)。
+--     关掉它那张任务不关闭它(Q14)—— 只有记一次关闭才让它消失。
 --   更正过的"要不要通报"说了算;一件更正成不用通报的事故两支都消失)。关闭【不】清掉它们 —— 法定的义务不因"关闭"而结束。
 --   incident_nea_notify_due —— 一件要通报 NEA 的事故,还没有记下通报("立即":没有天数,只是挂着直到记下)。item_id = 那件事故;
 --     item_code = 事故编号;subject = 种类的英文名;item_date = 事故日(新加坡日期)。
@@ -1084,7 +1091,32 @@ CREATE VIEW public.operations_now AS
             COALESCE(c.report_deadline, c.occurred_on) AS item_date
            FROM incident_current_all c
              JOIN incident_kinds k ON k.code = c.kind_code
-          WHERE c.nea_reportable AND c.report_submitted_at IS NULL) a
+          WHERE c.nea_reportable AND c.report_submitted_at IS NULL
+        UNION ALL
+         SELECT 'inspection_due'::text AS item_type,
+            'module.safety.view'::text AS permission,
+            t.id AS item_id,
+            d.due_state AS doc_kind,
+            t.code AS item_code,
+            t.name AS subject,
+            COALESCE(d.next_due_on, (t.created_at AT TIME ZONE 'Asia/Singapore'::text)::date) AS item_date
+           FROM inspection_templates t
+             JOIN inspection_template_due_all d ON d.id = t.id
+          WHERE t.is_active AND d.due_state = ANY (ARRAY['due'::text, 'never_run'::text])
+        UNION ALL
+         SELECT 'inspection_finding_open'::text AS item_type,
+            'module.safety.view'::text AS permission,
+            f.id AS item_id,
+            f.run_id::text AS doc_kind,
+            r.code AS item_code,
+            s.item_text AS subject,
+            (f.recorded_at AT TIME ZONE 'Asia/Singapore'::text)::date AS item_date
+           FROM inspection_findings f
+             JOIN inspection_runs r ON r.id = f.run_id
+             JOIN inspection_results s ON s.id = f.result_id
+          WHERE NOT (EXISTS ( SELECT 1
+                   FROM inspection_finding_closures c
+                  WHERE c.finding_id = f.id))) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

@@ -862,6 +862,12 @@ const MANIFEST = {
     'safety.field.':            { kind: 'enum', values: () => sqlEnumAnywhere('db/tables/incident_updates.sql', 'field') },
     'safety.basis.':            { kind: 'enum', values: () => sqlEnum('db/tables/incident_batches.sql', 'basis') },
     'safety.deadlineState.':    { kind: 'enum', values: () => sqlCaseAs('db/views/incident_current_all.sql', 'deadline_state') },
+    // MES-7b-2(2026-10-16):巡检与环境监测 —— 一项的结果、限值的口径现读表上的 CHECK;到期的状态现读 inspection_template_due_all 那一句 CASE;
+    //   判定现读 environmental_result_rows 那一句 CASE(清单页、巡检页、环境页读的都是那几列)。
+    'safety.inspectionResult.': { kind: 'enum', values: () => sqlEnum('db/tables/inspection_results.sql', 'result') },
+    'safety.dueState.':         { kind: 'enum', values: () => sqlCaseAs('db/views/inspection_template_due_all.sql', 'due_state') },
+    'safety.judgement.':        { kind: 'enum', values: () => sqlCaseAs('db/views/environmental_result_rows.sql', 'judgement') },
+    'safety.limitBasis.':       { kind: 'enum', values: () => sqlEnum('db/tables/environmental_parameters.sql', 'limit_basis') },
     // MES-6b-2(2026-10-15):分析证书。错误码接 coaErrorCodes.ts 的 Set;状态接证书表的 CHECK;确定度是视图吐出来的那几档(四个已知的;
     //   不认得的码页面原样印,不走 t());"怎么选出来的"接 coa_governing_assay 吐出的三个 basis。
     'coa.errors.':      { kind: 'enum', values: () => tsSet('app/output/coa/coaErrorCodes.ts', 'COA_ERROR_CODES') },

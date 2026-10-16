@@ -465,6 +465,41 @@ SELECT string_agg(msg, '; ') FROM (
 """
 
 
+# ── F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】─────────────────────────────────────────────────────
+# 一张【简单】的属主权限视图是可以自动更新的 —— 写穿它,对基表用的是视图属主的权限,RLS 不按调用者判。平台的默认权限把 arwdDxtm 授给每一个
+# 新建的关系(视图也一样),所以 db/views/zzz_function_grants.sql 的 F16 那一段在每一次重建、每一支迁移的事务里把视图的写授权收回。
+# 这一行【两侧都问】:线上是今天真在跑的那一份,重建是全新安装会得到的那一份。判据:任何一张 public 视图对 anon 或 authenticated
+# 有 INSERT / UPDATE / DELETE / TRUNCATE(has_table_privilege —— 含经由 PUBLIC 的授权)= 红,并点名(视图:角色:动作)。
+# 【零必须是测量】先数这一侧有几张视图,少于 100 张判"探测器瞎了"(线上 187 张,重建 192 张 —— 2026-10-16 实测)。
+# 【自证一格,每一次都跑,只在重建侧】在一笔回滚的事务里建一张探针视图、授它一个 INSERT,同一条判据必须点名它 —— 点不出来,这一行就是瞎的。
+# 【故障注入】GATE_VIEWWRITE_FAULT=grant:在重建库上真的给 pending_values 一个 INSERT(一次性的本地库),这一行必须红并点名它。
+VIEW_WRITE_SQL = """
+SELECT (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname = 'public' AND c.relkind = 'v')::text
+       || E'\t' ||
+       COALESCE((SELECT string_agg(c.relname || ':' || g.r || ':' || lower(p.priv), ',' ORDER BY c.relname, g.r, p.priv)
+                   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                  CROSS JOIN (VALUES ('anon'), ('authenticated')) g(r)
+                  CROSS JOIN (VALUES ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) p(priv)
+                  WHERE n.nspname = 'public' AND c.relkind = 'v' AND has_table_privilege(g.r, c.oid, p.priv)), '')
+"""
+VIEW_WRITE_MIN_VIEWS = 100
+
+
+def check_view_writes(dsn: str, self_test: bool) -> tuple:
+    """返回 (视图数, 违规清单 str, 自证是否咬人 | None)。"""
+    out = psql(dsn, VIEW_WRITE_SQL + ";")
+    n, _, bad = out.partition("\t")
+    bit = None
+    if self_test:
+        probe = psql(dsn, "BEGIN;\nCREATE VIEW public.zz_gate_viewwrite_probe AS SELECT 1 AS x;\n"
+                          "GRANT INSERT ON public.zz_gate_viewwrite_probe TO authenticated;\n"
+                          + VIEW_WRITE_SQL + ";\nROLLBACK;")
+        line = next((l for l in probe.split("\n") if "\t" in l), "")
+        bit = "zz_gate_viewwrite_probe:authenticated:insert" in line
+    return int(n or 0), bad, bit
+
+
 def check_import_template(dsn: str) -> str:
     return psql(dsn, IMPORT_TEMPLATE_SQL)
 
@@ -656,6 +691,25 @@ def main() -> int:
                          else f"✗ {xm}"))
                 if xm:
                     problems.append(f"invoker view spans modules ({label}): {xm}")
+
+        # F16(MES-7b-2):视图一律不可写 —— 两侧都问;重建侧带一格每次都跑的自证,并认 GATE_VIEWWRITE_FAULT=grant 那一格注入。
+        if os.environ.get("GATE_VIEWWRITE_FAULT") == "grant":
+            psql(local, "GRANT INSERT ON public.pending_values TO authenticated;")
+            print("viewwrite  ★ 故障注入:GATE_VIEWWRITE_FAULT=grant —— 重建库上的 pending_values 被授了 INSERT(这一行该红,正是它该做的)")
+        for label, dsn in SIDES:
+            n_v, vw_bad, vw_bit = check_view_writes(dsn, self_test=(label == "rebuild"))
+            if n_v < VIEW_WRITE_MIN_VIEWS:
+                print(f"viewwrite  {label}: ✗ 只看见 {n_v} 张视图 —— 探测器瞎了,不是干净")
+                problems.append(f"view write check saw only {n_v} views ({label})")
+            elif vw_bit is False:
+                print(f"viewwrite  {label}: ✗ 自证没有咬人 —— 一张授了 INSERT 的探针视图没有被点名,这一行是瞎的")
+                problems.append(f"view write self-test did not bite ({label})")
+            elif vw_bad:
+                print(f"viewwrite  {label}: ✗ {vw_bad}")
+                problems.append(f"views writable by anon / authenticated ({label}): {vw_bad}")
+            else:
+                print(f"viewwrite  {label}: {n_v} 张视图,没有一张对 anon / authenticated 可写 ✓"
+                      + ("(自证咬人 ✓)" if vw_bit else ""))
 
         # ── HISTORY-1:通用变更记录的两道检查(Tim 的 Q12 · Q7)────────────────
         # changelog —— 每一张 public 表要么挂着两条【启用着的】记录触发器,要么在 change_log_exclusions()

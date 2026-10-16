@@ -10944,7 +10944,11 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 【不】自己变成一件事故;事故可以引用它(可选)。
 **删除条件:** 报警面板装上、厂商给出有文档的事件格式 —— 那一刀写转换,把 `device` 来源放开,并决定一次报警是否自动开一件事故(MES-0 Q73:一次报警一件事故)。
 
-### MES7B1-INCOMING-INSPECTION-UNBUILT · 来料检验(收货时的质量检验)没有建 —— 不合格报告的来源 `inspection` 仍空着(MES-7b Step 0 Q15)
+### MES7B1-INCOMING-INSPECTION-UNBUILT · 来料检验(收货时的质量检验)没有建 —— ~~不合格报告的来源 `inspection` 仍空着~~(MES-7b Step 0 Q15)
+
+**MES-7b-2(2026-10-16)之后:** 不合格报告的来源 `inspection` 已经定了 —— 它指【一条安全巡检的发现】(`nonconformance_reports.inspection_finding_id`,约束 `nonconformance_reports_inspection_source`:来源是 inspection ⇔ 引用一条发现;`open_ncr` 按名拒 `NCR_INSPECTION_FINDING_REQUIRED` · `NCR_INSPECTION_FINDING_ONLY_WITH_SOURCE` · `INSPECTION_FINDING_NOT_FOUND`)。**来料检验因此仍然没有建、没有排期,而且它不能再借用 `inspection` 这个来源** —— 它要一个自己的来源值、自己的记录、自己的码,以及收货那几屏上的入口。这一条留着,删除条件改成:一刀建了来料检验。
+
+**原条目(照录):**
 
 **是什么:** 镜像里 `nonconformance_reports` 的来源 `inspection` 写的是"来料检验";MES-0 第 23 项是【工厂的安全巡检】,不是来料检验。MES-7b-1 只建了事故
 (来源 `incident`);安全巡检归 MES-7b-2(Q15 的推荐:让 `inspection` 指一条巡检发现)。**收货时的来料检验在任何一刀里都没有被建,也没有被排期。**
@@ -10959,7 +10963,11 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 同形的 JS 读者一共换了 4 处(两支检查各一处,check-i18n 另两处),这一支按"另一种语言"登记,不在本刀现写。
 **删除条件:** 一刀把这一句换成按字符走的读者(或在读到行尾注释时自己红),带一格"清单行尾塞一句带 `)` 的注释"的故障注入。
 
-### MES7B1-VIEW-DEFAULT-WRITE-GRANTS · 平台的默认权限给每一张新视图都授了 `authenticated` 的写 —— 157 张属主权限视图带着 INSERT / UPDATE / DELETE(MES-7b-1 量到;不是本刀造的)
+### ~~MES7B1-VIEW-DEFAULT-WRITE-GRANTS · 平台的默认权限给每一张新视图都授了 `authenticated` 的写 —— 157 张属主权限视图带着 INSERT / UPDATE / DELETE(MES-7b-1 量到;不是本刀造的)~~ —— ✅ **关闭于 MES-7b-2(`v1.4.55`,2026-10-16,F16)**
+
+**怎么关的(F16,Tim 2026-10-16):** ① **先量**(`db/scripts/2026-10-16-mes7b2-view-writes.mjs`,线上,一笔回滚的事务,一个一次性账号):对线上 187 张视图逐张、逐角色试一次【零行】的 INSERT / UPDATE / DELETE(1,122 次尝试,覆盖断言 视图 × 6):**anon 33 张视图收下了一次写(INSERT 33 · UPDATE 9 · DELETE 9),authenticated 45 张(INSERT 45 · UPDATE 15 · DELETE 14),合计 45 张,全部是属主权限视图**;按授权数,(视图, 角色) 带写授权的对 **273**(anon 110 张 · authenticated 163 张)。② **再找写穿视图的路**:`app/` · `lib/` · `db/` · `scripts/` 里对这 187 个视图名(闭合集合)的每一处写 —— **0 处**(动态目标:字典注册表、合同 dbTable、主数据导入、fixture 116 / 234,没有一个是视图;直连 REST 的视图调用全是 GET;扫描器带两格植入的正例,2 / 2 命中)。③ **收**:`db/views/zzz_function_grants.sql` 末尾一段 F16,对 `public` 里每一张视图 `REVOKE INSERT, UPDATE, DELETE, TRUNCATE … FROM anon, authenticated, PUBLIC` —— 重建最后跑它,而 `apply_migration.sh` 在【以后每一支迁移】自己的事务里再跑一遍,所以一张将来的新视图在它出生的那一笔事务里就被收掉。**没有用 `ALTER DEFAULT PRIVILEGES`**:默认权限分不出视图与表,而 303 张表镜像里 273 张靠默认的写授权工作 —— 改默认权限等于给每一张将来的表埋一颗雷。④ **守**:`db/gate.py` 的 `viewwrite` 一行(线上与重建两侧,视图少于 100 张即红 —— 瞎了不许说干净;重建侧每次带一格自证:建一张探针视图、授写、必须被认出来),故障注入 `GATE_VIEWWRITE_FAULT=grant` 红并点名 `pending_values:authenticated:insert`;fixture 268 的 F16 臂同样钉着(两格注入)。⑤ **再量**:迁移自己的收尾断言 273 → **0** 对(192 张视图);迁移之后 `view-writes.mjs` 重跑(19:21:55–19:22:09 CST,`VIEW_WRITES_EXIT=0`):192 张视图,**anon 0 张、authenticated 0 张收下一次写**(拒绝按 SQLSTATE:42501 权限不足 169 · 55000 不可更新的视图 405 · 428C9 2,两个角色各一样)。
+
+**原条目(照录):**
 
 **是什么:** Supabase 的默认权限让 `authenticated` 在 `public` 里每一个新对象上拿到 `arwdDxtm`。视图也一样:一张【简单】的属主权限视图是可自动更新的,
 写穿它时对基表用的是【视图属主】的权限 —— RLS 不按调用者判。本刀写 fixture 267 时撞上(新视图默认可写),于是本刀的五张新视图与

@@ -76,6 +76,8 @@ DECLARE
         'import_permit_unverified',
         'incident_nea_notify_due',  -- MES-7b-1(2026-10-16):第六十七支
         'incident_report_due',  -- MES-7b-1(2026-10-16):第六十八支
+        'inspection_due',  -- MES-7b-2(2026-10-16):第六十九支
+        'inspection_finding_open',  -- MES-7b-2(2026-10-16):第七十支
         'instrument_calibration_approaching',  -- MES-2(2026-10-06):第五十二支
         'instrument_calibration_due',  -- MES-2(2026-10-06):第五十一支
         'invoice_overdue',
@@ -348,7 +350,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这六十八支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这七十支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

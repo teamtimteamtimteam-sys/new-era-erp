@@ -6,7 +6,8 @@
 --   REG    码 action.ncr_decide 在、声明 module.quality.view;单据登记 ncr → NCR;三张新表进变更记录、豁免仍是 8;审计主语 ncr 在、
 --          报告挂在两个批次主语下、判定挂在产出批下、质量验收限挂在合同下
 --   NCR    开:module.quality.edit(没有 → PERMISSION_DENIED);恰好一批;来源 manual / customer_complaint 收,quality_limit 只由系统开
---          (NCR_SOURCE_SYSTEM_ONLY)、inspection 留着(NCR_SOURCE_RESERVED)、别的 NCR_SOURCE_INVALID;描述必填;指向必须同一批
+--          (NCR_SOURCE_SYSTEM_ONLY)、别的 NCR_SOURCE_INVALID;★ MES-7b-2(Q15):inspection 不再保留 —— 引用一条巡检发现时收、那一批进质量暂扣
+--          (接受那一臂),不引用时按名拒 NCR_INSPECTION_FINDING_REQUIRED、给了发现却换个来源拒 NCR_INSPECTION_FINDING_ONLY_WITH_SOURCE(拒绝那一臂);描述必填;指向必须同一批
 --          (化验 · 争议 · 销售单 · 判定),销售单只给产出批;编号 NCR-<年>-NNNN 按年无洞(next_ncr_code 与公式一致);一批可以同时几张开着;
 --          只经函数:直连插被拒(RLS)、改非决定列 / 删 → NCR_IMMUTABLE
 --   DECIDE action.ncr_decide(没有 → PERMISSION_DENIED);开单人按【人】认永远不能决定自己那一张(同一个人的另一个账号也不行 →
@@ -137,7 +138,7 @@ $f$;
 DO $$
 DECLARE
     u_all uuid; u_qe uuid; u_qe2 uuid; u_qv uuid; u_d1 uuid; u_d2 uuid; u_alt uuid; u_rec uuid; u_apl uuid; u_sal uuid; u_salonly uuid;
-    u_wh uuid; u_wo uuid; u_rel uuid; u_cco uuid; u_ds uuid;
+    u_wh uuid; u_wo uuid; u_rel uuid; u_cco uuid; u_ds uuid; u_sf uuid; v_tpl uuid; v_find uuid;
     e_qe uuid := gen_random_uuid();
     v_today date := CURRENT_DATE; v_year int := EXTRACT(YEAR FROM CURRENT_DATE)::int; v_base text;
     v_sup uuid; v_mat uuid; v_mat2 uuid; v_cust uuid; v_loc uuid;
@@ -178,6 +179,8 @@ BEGIN
     u_rel  := pg_temp.f263_user('rel', ARRAY['action.wo_release', 'module.processing.view']);
     u_cco  := pg_temp.f263_user('cco', ARRAY['action.contract_terms', 'module.customers.view', 'module.customers.edit', 'module.suppliers.view', 'module.suppliers.edit']);
     u_ds   := pg_temp.f263_user('ds', ARRAY['action.direct_sale', 'module.output.view', 'module.customers.view']);
+    -- MES-7b-2(Q15):一个安全编辑 —— 记一次巡检与它的发现,供来源 inspection 的那一臂引用
+    u_sf   := pg_temp.f263_user('sf', ARRAY['module.safety.view', 'module.safety.edit']);
 
     -- ══════════════ 布景 ══════════════
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
@@ -244,8 +247,41 @@ BEGIN
     IF v_msg <> 'NCR_ONE_BATCH' THEN RAISE EXCEPTION 'FIXTURE 263 NCR: exactly one batch, got %', v_msg; END IF;
     v_msg := pg_temp.f263_do(u_qe, format($q$SELECT open_ncr('quality_limit', 'x', p_inbound_batch_id => %L)$q$, ib_h));
     IF v_msg <> 'NCR_SOURCE_SYSTEM_ONLY' THEN RAISE EXCEPTION 'FIXTURE 263 NCR: quality_limit is opened by the system only, got %', v_msg; END IF;
+    -- ★ MES-7b-2(2026-10-16,MES-7b Step 0 Q15):来源 inspection —— 原来这里断言"留着"(NCR_SOURCE_RESERVED|inspection);现在两臂:
+    --   拒绝那一臂:不引用一条发现 → NCR_INSPECTION_FINDING_REQUIRED;引用了发现而来源不是 inspection → NCR_INSPECTION_FINDING_ONLY_WITH_SOURCE;
+    --   发现不存在 → INSPECTION_FINDING_NOT_FOUND。接受那一臂:引用一条巡检发现 → 开得出来,来源 inspection、指着那条发现,那一批进质量暂扣
+    --   (batch_quality_hold)—— 包在一个回滚的子块里,于是后面每一臂看见的仍是"这一批没有报告"(每一臂自己的数据,README 第 2 条)。
     v_msg := pg_temp.f263_do(u_qe, format($q$SELECT open_ncr('inspection', 'x', p_inbound_batch_id => %L)$q$, ib_h));
-    IF v_msg <> 'NCR_SOURCE_RESERVED|inspection' THEN RAISE EXCEPTION 'FIXTURE 263 NCR: inspection is reserved for MES-7b, got %', v_msg; END IF;
+    IF v_msg NOT LIKE 'NCR_INSPECTION_FINDING_REQUIRED%' THEN RAISE EXCEPTION 'FIXTURE 263 NCR: an inspection-source NCR must cite a finding, got %', v_msg; END IF;
+    v_j := pg_temp.f263_get(u_sf, $q$SELECT save_inspection_template(NULL, 'ZZ263-T', 'f263 checklist', 'f263 bay', '["Cells stored dry"]'::jsonb)$q$);
+    v_tpl := (v_j ->> 'template_id')::uuid;
+    v_j := pg_temp.f263_get(u_sf, format($q$SELECT record_inspection_run(%L, now() - interval '1 hour', %L,
+               '[{"position": 1, "result": "fail", "note": "f263 water under the pallet"}]'::jsonb,
+               p_findings => jsonb_build_array(jsonb_build_object('position', 1, 'corrective_action', 'f263 dry the batch and recheck', 'owner_employee_id', %L)))$q$,
+               v_tpl, e_qe, e_qe));
+    SELECT id INTO v_find FROM inspection_findings WHERE run_id = (v_j ->> 'run_id')::uuid;
+    IF v_find IS NULL THEN RAISE EXCEPTION 'FIXTURE 263 NCR: the inspection finding for the inspection-source arm was not recorded'; END IF;
+    v_msg := pg_temp.f263_do(u_qe, format($q$SELECT open_ncr('manual', 'x', p_inbound_batch_id => %L, p_inspection_finding_id => %L)$q$, ib_h, v_find));
+    IF v_msg NOT LIKE 'NCR_INSPECTION_FINDING_ONLY_WITH_SOURCE%' THEN RAISE EXCEPTION 'FIXTURE 263 NCR: a finding only goes with the inspection source, got %', v_msg; END IF;
+    v_msg := pg_temp.f263_do(u_qe, format($q$SELECT open_ncr('inspection', 'x', p_inbound_batch_id => %L, p_inspection_finding_id => gen_random_uuid())$q$, ib_h));
+    IF v_msg NOT LIKE 'INSPECTION_FINDING_NOT_FOUND|%' THEN RAISE EXCEPTION 'FIXTURE 263 NCR: an unknown finding is refused by name, got %', v_msg; END IF;
+    BEGIN
+        v_j := pg_temp.f263_get(u_qe, format($q$SELECT open_ncr('inspection', 'f263 wet cells found on inspection', p_inbound_batch_id => %L, p_inspection_finding_id => %L)$q$, ib_h, v_find));
+        IF (SELECT source FROM nonconformance_reports WHERE id = (v_j ->> 'ncr_id')::uuid) IS DISTINCT FROM 'inspection'
+           OR (SELECT inspection_finding_id FROM nonconformance_reports WHERE id = (v_j ->> 'ncr_id')::uuid) IS DISTINCT FROM v_find
+           OR NOT EXISTS (SELECT 1 FROM batch_quality_hold(ib_h, NULL) hq WHERE hq.ncr_id = (v_j ->> 'ncr_id')::uuid) THEN
+            RAISE EXCEPTION 'FIXTURE 263 NCR: an inspection-source NCR citing a finding opens and holds its batch: %', v_j;
+        END IF;
+        v_j2 := pg_temp.f263_get(u_qe, format($q$SELECT to_jsonb(n) FROM ncr_rows n WHERE n.id = %L$q$, (v_j ->> 'ncr_id')::uuid));
+        IF v_j2 ->> 'inspection_run_code' IS NULL OR (v_j2 ->> 'inspection_item_position')::int <> 1 OR NOT (v_j2 ->> 'holding')::boolean THEN
+            RAISE EXCEPTION 'FIXTURE 263 NCR: ncr_rows names the inspection run and item and says the batch is held: %', v_j2;
+        END IF;
+        RAISE EXCEPTION 'f263-rollback-inspection-arm';
+    EXCEPTION WHEN raise_exception THEN
+        IF SQLERRM <> 'f263-rollback-inspection-arm' THEN RAISE; END IF;
+    END;
+    IF EXISTS (SELECT 1 FROM nonconformance_reports WHERE inbound_batch_id = ib_h) THEN
+        RAISE EXCEPTION 'FIXTURE 263 NCR: the inspection-source arm must leave no NCR behind for the later arms'; END IF;
     v_msg := pg_temp.f263_do(u_qe, format($q$SELECT open_ncr('rumour', 'x', p_inbound_batch_id => %L)$q$, ib_h));
     IF v_msg <> 'NCR_SOURCE_INVALID|rumour' THEN RAISE EXCEPTION 'FIXTURE 263 NCR: an unknown source is refused by name, got %', v_msg; END IF;
     v_msg := pg_temp.f263_do(u_qe, format($q$SELECT open_ncr('manual', '   ', p_inbound_batch_id => %L)$q$, ib_h));

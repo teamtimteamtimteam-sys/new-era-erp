@@ -177,7 +177,7 @@ export const MODULES: readonly ModuleEntry[] = [
     { id: 'logistics', navKey: 'nav.logistics' },
     { id: 'operation', navKey: 'nav.operation' },
     // ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q17,Tim):第十个一级模块「安全」—— 事故(7b-1),巡检与环境监测(7b-2)。
-    //   Tim 的 D1 那九个一个字没动;这一行是 Q17 新加的,不是从别的模块里拆出来的。它的唯一一条二级条目今天是 /safety/incidents。
+    //   Tim 的 D1 那九个一个字没动;这一行是 Q17 新加的,不是从别的模块里拆出来的。它的二级条目是 /safety/incidents(7b-1)与 /safety/inspections · /safety/environment(7b-2)。
     { id: 'safety', navKey: 'nav.safety' },
     { id: 'sales', navKey: 'nav.sales' },
     { id: 'finance', navKey: 'nav.finance' },
@@ -504,6 +504,11 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   读 module.safety.view(每一个持加工查看码的角色);记一件、记之后的事、链批次要 module.safety.edit(admin · cto · warehouse)—— 页内控件
     //   看得见、按不动、说出缺哪个码(DBLOCK-1)。受伤的细节另要 data.view_health(或就是受伤的那名员工本人)。
     { href: '/safety/incidents', navKey: 'safety.subnav.incidents', modules: ['safety'], permission: 'module.safety.view' },
+    // MES-7b-2(2026-10-16,MES-0 Q72 · Q75 · MES-7b Step 0 Q13–Q17,Tim):安全巡检(清单、一次一次的巡检、跟到关闭的发现)与环境监测(结果对着限值,
+    //   超标开一件事故)—— 安全模块的第二、第三条二级条目。读 module.safety.view;存清单、交巡检、记 / 关发现、记结果要 module.safety.edit
+    //   (页内控件看得见、按不动、说出码)。"建一张任务"给按下的人建一张私人任务(任务模块自己的码)。
+    { href: '/safety/inspections', navKey: 'safety.subnav.inspections', modules: ['safety'], permission: 'module.safety.view' },
+    { href: '/safety/environment', navKey: 'safety.subnav.environment', modules: ['safety'], permission: 'module.safety.view' },
     // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 加工的人读得到的那一份(资产卡、成本与折旧留在财务)。
     //   ★ MES-7a-1(Q6):停机、保养维修、保养间隔从此记在设备页上(写 module.processing.edit,页内控件看得见、按不动、说出码)。
     { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
@@ -1148,4 +1153,8 @@ export const FN = {
     qualityCoa: fnByHref('/quality/coa'),
     /** MES-7b-1:事故登记簿。 */
     safetyIncidents: fnByHref('/safety/incidents'),
+    /** MES-7b-2:安全巡检。 */
+    safetyInspections: fnByHref('/safety/inspections'),
+    /** MES-7b-2:环境监测。 */
+    safetyEnvironment: fnByHref('/safety/environment'),
 } as const

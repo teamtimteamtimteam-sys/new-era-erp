@@ -46,7 +46,7 @@
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
 //   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
-//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-drift-mes7a1(MES-7a-1:㉚)· wording-drift-mes7a2(MES-7a-2:㉛)· wording-drift-mes7b1(MES-7b-1:㉜)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2 / mes7a1 / mes7a2 / mes7b1(F6:㉓ ㉔ ㉕ ㉖ ㉙ ㉚ ㉛ ㉜ 只改 part 的那一格)
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)· wording-drift-u1b(U1-B:⑭)· wording-drift-mes1(MES-1:⑮)· wording-drift-mes2(MES-2:⑯)· wording-drift-mes3a(MES-3a:⑰)· wording-drift-mes3b(MES-3b:⑱)· wording-drift-mes4a(MES-4a:⑲)· wording-drift-mes4b(MES-4b:⑳)· wording-drift-mes5a1(MES-5a-1:㉑)· wording-drift-mes5a2(MES-5a-2:㉒)· wording-drift-mes5b1(MES-5b-1:㉓)· wording-drift-mes5b2(MES-5b-2:㉔)· wording-drift-mes5b3(MES-5b-3:㉕)· wording-drift-mes6a1(MES-6a-1:㉖)· wording-drift-mes6a2(MES-6a-2:㉗)· wording-drift-mes6b1(MES-6b-1:㉘)· wording-drift-mes6b2(MES-6b-2:㉙)· wording-drift-mes7a1(MES-7a-1:㉚)· wording-drift-mes7a2(MES-7a-2:㉛)· wording-drift-mes7b1(MES-7b-1:㉜)· wording-drift-mes7b2(MES-7b-2:㉝)· wording-part-mes5b1 / mes5b2 / mes5b3 / mes6a1 / mes6b2 / mes7a1 / mes7a2 / mes7b1 / mes7b2(F6:㉓ ㉔ ㉕ ㉖ ㉙ ㉚ ㉛ ㉜ ㉝ 只改 part 的那一格)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -7208,6 +7208,220 @@ if (FAULT === 'wording-drift-mes7b1') dict.text = { ...dict.text, 'inc.recorded'
     { const miss = partFaultBit('mes7b1', problems.gold32); if (miss) problems.gold32.push(miss) }
 }
 
+// ── ㉝ MES-7b-2:安全巡检与环境监测 —— 记下一次巡检(清单的名字挂在标题后面,每一项一行)· 更正一次巡检(理由)· 发现记下 · 为发现建任务 ·
+//   发现关闭(做了什么)· 清单建立 · 检查项改字 · 环境监测结果记下(超标、它开的事故)与带理由的更正(MES-7b Step 0 Q13 · Q14 · Q16 · Q19)──────────
+// 每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-7b-2.md 列出。
+//   读 titlePart:清单的名字(巡检那两句)、清单代号(建立那一句)与参数(结果那两句)挂在标题后面那一段,所以 part 那一格比的是真东西。
+//   注入 wording-drift-mes7b2 → 这一臂必须红;注入 wording-part-mes7b2(只改 part)→ 这一臂必须在 part 那一格红。
+problems.gold33 = []
+if (FAULT === 'wording-drift-mes7b2') dict.text = { ...dict.text, 'ins.recorded': 'Inspection logged' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const run = id('run'), run2 = id('run2'), tpl = id('tpl'), emp = id('emp'), own = id('own'), fnd = id('fnd'), task = id('task'), inc = id('inc'), res = id('res')
+    const refs = { inspector_employee_id: { [emp]: { label: 'Fusheng' } }, owner_employee_id: { [own]: { label: 'Phua' } },
+                   run_id: { [run]: { label: 'INS-2026-0001' } }, corrects_run_id: { [run]: { label: 'INS-2026-0001' } },
+                   task_id: { [task]: { label: 'TASK-2026-0042' } }, parameter_code: { hf_stack: { label: 'Hydrogen fluoride at the stack' } },
+                   laboratory_code: { FRL: { label: 'FRL' } }, incident_id: { [inc]: { label: 'INC-2026-0007' } } }
+    const RUN = { id: run, code: 'INS-2026-0001', template_id: tpl, template_code: 'BAY-WEEKLY', template_name: 'Discharge bay weekly', template_area: 'Discharge bay',
+        inspected_at: '2026-10-16T01:30:00Z', inspector_employee_id: emp, location_id: null, equipment_id: null, notes: null, corrects_run_id: null,
+        correction_reason: null, recorded_at: '2026-10-16T02:00:00Z', recorded_by: id('u') }
+    const result = (n, text, r, note, runId = run) => ({ table: 'inspection_results', op: 'INSERT', key: { id: n }, refs,
+        new: { id: n, run_id: runId, position: n, item_text: text, result: r, note } })
+    add('inspection · recorded with its results', { subject: 'inspection_run', recordId: run, currency: null },
+        [{ table: 'inspection_runs', op: 'INSERT', key: { id: run }, refs, new: RUN },
+         result(1, 'Extinguishers in place and charged', 'pass', null), result(2, 'Cells stored dry, off the floor', 'fail', 'Water under pallet 3'),
+         result(3, 'Emergency stop tested', 'na', null)], { state: 'person', name: 'Fusheng' })
+    add('inspection · a correcting inspection with its reason', { subject: 'inspection_run', recordId: run2, currency: null },
+        [{ table: 'inspection_runs', op: 'INSERT', key: { id: run2 }, refs,
+           new: { ...RUN, id: run2, code: 'INS-2026-0002', corrects_run_id: run, correction_reason: 'Item 3 was recorded n/a by mistake',
+                  inspected_at: '2026-10-16T01:30:00Z' } },
+         result(4, 'Emergency stop tested', 'pass', null, run2)], { state: 'person', name: 'Fusheng' })
+    add('finding · recorded', { subject: 'inspection_run', recordId: run, currency: null },
+        [{ table: 'inspection_findings', op: 'INSERT', key: { id: fnd }, refs,
+           new: { id: fnd, run_id: run, result_id: 2, corrective_action: 'Move the cells onto racks and dry the floor', owner_employee_id: own,
+                  due_date: '2026-10-20', task_id: null, recorded_at: '2026-10-16T02:05:00Z', recorded_by: id('u') } }], { state: 'person', name: 'Fusheng' })
+    add('finding · a task raised for it', { subject: 'inspection_run', recordId: run, currency: null },
+        [{ table: 'inspection_findings', op: 'UPDATE', key: { id: fnd }, refs, cols: ['task_id'],
+           old: { id: fnd, run_id: run, task_id: null }, new: { id: fnd, run_id: run, task_id: task } }], { state: 'person', name: 'Phua' })
+    add('finding · closed', { subject: 'inspection_run', recordId: run, currency: null },
+        [{ table: 'inspection_finding_closures', op: 'INSERT', key: { id: 9 }, refs,
+           new: { id: 9, finding_id: fnd, what_was_done: 'Cells moved to racks 3–4; floor dried', closed_at: '2026-10-18T03:00:00Z', closed_by: id('u') } }],
+        { state: 'person', name: 'Phua' })
+    add('checklist · created', { subject: 'inspection_template', recordId: tpl, currency: null },
+        [{ table: 'inspection_templates', op: 'INSERT', key: { id: tpl }, refs,
+           new: { id: tpl, code: 'BAY-WEEKLY', name: 'Discharge bay weekly', area: 'Discharge bay', frequency_days: 7, is_active: true, notes: null,
+                  created_at: '2026-10-15T02:00:00Z', created_by: id('u'), updated_at: '2026-10-15T02:00:00Z', updated_by: id('u') } }],
+        { state: 'person', name: 'Phua' })
+    add('checklist · an item changed', { subject: 'inspection_template', recordId: tpl, currency: null },
+        [{ table: 'inspection_template_items', op: 'UPDATE', key: { id: 12 }, refs, cols: ['item_text'],
+           old: { id: 12, template_id: tpl, position: 2, item_text: 'Cells stored dry, off the floor' },
+           new: { id: 12, template_id: tpl, position: 2, item_text: 'Cells stored dry on racks' } }], { state: 'person', name: 'Phua' })
+    add('environment · a result over its limit', { subject: 'safety_environment', recordId: 'all', currency: null },
+        [{ table: 'environmental_results', op: 'INSERT', key: { id: res }, refs,
+           new: { id: res, parameter_code: 'hf_stack', sample_point: 'Stack A', sampled_on: '2026-10-15', laboratory_code: 'FRL', report_reference: 'FRL-2026-118',
+                  value: 7.5, unit: 'mg/Nm3', limit_value: 5, limit_basis: 'max', exceeds: true, incident_id: inc, corrects_result_id: null,
+                  correction_reason: null, recorded_at: '2026-10-16T04:00:00Z', recorded_by: id('u') } }], { state: 'person', name: 'Phua' })
+    add('environment · a corrected result with its reason', { subject: 'safety_environment', recordId: 'all', currency: null },
+        [{ table: 'environmental_results', op: 'INSERT', key: { id: id('res2') }, refs,
+           new: { id: id('res2'), parameter_code: 'hf_stack', sample_point: 'Stack A', sampled_on: '2026-10-15', laboratory_code: 'FRL', report_reference: 'FRL-2026-118b',
+                  value: 4.1, unit: 'mg/Nm3', limit_value: 5, limit_basis: 'max', exceeds: false, incident_id: null, corrects_result_id: res,
+                  correction_reason: 'Laboratory reissued the report', recorded_at: '2026-10-17T04:00:00Z', recorded_by: id('u') } }], { state: 'person', name: 'Phua' })
+    add('environment · a result with no limit (not judged)', { subject: 'safety_environment', recordId: 'all', currency: null },
+        [{ table: 'environmental_results', op: 'INSERT', key: { id: id('res3') }, refs,
+           new: { id: id('res3'), parameter_code: 'hf_stack', sample_point: 'Stack B', sampled_on: '2026-10-14', laboratory_code: 'FRL', report_reference: 'FRL-2026-117',
+                  value: 12.3, unit: 'mg/Nm3', limit_value: null, limit_basis: null, exceeds: null, incident_id: null, corrects_result_id: null,
+                  correction_reason: null, recorded_at: '2026-10-16T04:10:00Z', recorded_by: id('u') } }], { state: 'person', name: 'Phua' })
+    const WANT = {
+        "inspection · recorded with its results": {
+            "title": "Inspection recorded",
+            "part": "Discharge bay weekly",
+            "lines": [
+                "Area: Discharge bay",
+                "Inspected at: 16/10/2026 09:30",
+                "Inspector: Fusheng",
+                "1. Extinguishers in place and charged: Pass",
+                "2. Cells stored dry, off the floor: Fail (Water under pallet 3)",
+                "3. Emergency stop tested: Not applicable"
+            ],
+            "reason": null,
+            "who": "Fusheng"
+        },
+        "inspection · a correcting inspection with its reason": {
+            "title": "Correcting inspection recorded",
+            "part": "Discharge bay weekly",
+            "lines": [
+                "Area: Discharge bay",
+                "Inspected at: 16/10/2026 09:30",
+                "Inspector: Fusheng",
+                "Corrects: INS-2026-0001",
+                "4. Emergency stop tested: Pass"
+            ],
+            "reason": "Item 3 was recorded n/a by mistake",
+            "who": "Fusheng"
+        },
+        "finding · recorded": {
+            "title": "Finding recorded",
+            "part": null,
+            "lines": [
+                "Corrective action: Move the cells onto racks and dry the floor",
+                "Owner: Phua",
+                "Due: 20/10/2026"
+            ],
+            "reason": null,
+            "who": "Fusheng"
+        },
+        "finding · a task raised for it": {
+            "title": "Task raised for a finding",
+            "part": null,
+            "lines": [
+                "Task: TASK-2026-0042"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "finding · closed": {
+            "title": "Finding closed",
+            "part": null,
+            "lines": [],
+            "reason": "Cells moved to racks 3–4; floor dried",
+            "who": "Phua"
+        },
+        "checklist · created": {
+            "title": "Checklist created",
+            "part": "BAY-WEEKLY",
+            "lines": [
+                "Name: Discharge bay weekly",
+                "Area: Discharge bay",
+                "Inspected every (days) (V18): 7",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "checklist · an item changed": {
+            "title": "Checklist item changed",
+            "part": null,
+            "lines": [
+                "Item 2: Cells stored dry, off the floor → Cells stored dry on racks"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "environment · a result over its limit": {
+            "title": "Environmental result recorded",
+            "part": "Hydrogen fluoride at the stack",
+            "lines": [
+                "Sample point: Stack A",
+                "Sampled on: 15/10/2026",
+                "Laboratory: FRL",
+                "Report: FRL-2026-118",
+                "Result: 7.5 mg/Nm3",
+                "Limit then: Maximum 5 mg/Nm3",
+                "Over the limit: Yes",
+                "Incident opened: INC-2026-0007"
+            ],
+            "reason": null,
+            "who": "Phua"
+        },
+        "environment · a corrected result with its reason": {
+            "title": "Environmental result corrected",
+            "part": "Hydrogen fluoride at the stack",
+            "lines": [
+                "Sample point: Stack A",
+                "Sampled on: 15/10/2026",
+                "Laboratory: FRL",
+                "Report: FRL-2026-118b",
+                "Result: 4.1 mg/Nm3",
+                "Limit then: Maximum 5 mg/Nm3",
+                "Over the limit: No"
+            ],
+            "reason": "Laboratory reissued the report",
+            "who": "Phua"
+        },
+        "environment · a result with no limit (not judged)": {
+            "title": "Environmental result recorded",
+            "part": "Hydrogen fluoride at the stack",
+            "lines": [
+                "Sample point: Stack B",
+                "Sampled on: 14/10/2026",
+                "Laboratory: FRL",
+                "Report: FRL-2026-117",
+                "Result: 12.3 mg/Nm3",
+                "Limit then: None — not judged",
+                "Over the limit: Not judged"
+            ],
+            "reason": null,
+            "who": "Phua"
+        }
+    }
+    const got33 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD33', order: 1, prelog: false, at: '2026-10-16T02:00:00+00:00',
+            actor: c.actor ?? { state: 'person', name: 'Fusheng' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = partFault('mes7b2', R.buildEntries(dict, rows, { currency: null, ...c.opts })) } catch (err) { problems.gold33.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD33')
+        if (mine.length !== 1) { problems.gold33.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got33[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold33.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold33.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold33.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length || C.length < 3) problems.gold33.push(`㉝ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (C.filter((c) => WANT[c.label]?.part).length < 2) problems.gold33.push('㉝ 带 part 的样例少于 2 句 —— part 那一格没有被真的比过')
+    if (process.env.TRAIL_GOLD33_PRINT) console.log(JSON.stringify(got33, null, 8))
+    if (FAULT === 'wording-drift-mes7b2' && !problems.gold33.length) problems.gold33.push('(注入 wording-drift-mes7b2 没有咬人 —— 这一臂瞎了)')
+    { const miss = partFaultBit('mes7b2', problems.gold33); if (miss) problems.gold33.push(miss) }
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -7215,7 +7429,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用', gold33: '㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

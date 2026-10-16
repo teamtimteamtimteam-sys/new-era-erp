@@ -342,6 +342,10 @@ RUNTIME_CONFIG_TABLES = [
     #   线上与本文件不同是系统在正常工作。安全的设定(单行)—— 引导 V19 = 2、未确认;Tim 对着执照确认一次,线上就与本文件不同。
     #   ★ 引导默认值仍然正确(本刀新建,两张表的每一列都是第一次有意思)。
     "incident_kinds", "safety_settings",
+    # MES-7b-2(2026-10-16,MES-7b Step 0 Q16 · Q20):监测参数字典 —— 引导【刻意是空的】(参数与限值 V20 是 NEA 执照给的,不是这里能编的),
+    #   所以它同时在下面的 BOOTSTRAP_MAY_BE_EMPTY 里。Tim 在 /settings/dictionaries 上加一行(module.safety.edit),线上就与本文件不同。
+    #   ★ 引导默认值仍然正确(本刀新建,空就是那个决定)。巡检清单不在这里:它们是记录(清单页上建),不是引导的配置。
+    "environmental_parameters",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),
@@ -355,6 +359,8 @@ BOOTSTRAP_MAY_BE_EMPTY: set = {
     #   不是这里能编的 —— db/tables/nea_waste_categories.sql 的抬头)。这一行就是那件事的"明写"。
     #   ☞ 故障注入(MES-3b 交回 §4):从这里拿掉它,gate --offline 的 bootstrap 那一行当场红,点名这张表。
     "nea_waste_categories",
+    # ★ MES-7b-2(2026-10-16,MES-7b Step 0 Q16):监测参数【从空开始】—— 参数与它的限值(V20)是 NEA 执照给的(db/tables/environmental_parameters.sql 的抬头)。
+    "environmental_parameters",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -886,7 +892,10 @@ def view_replay_order(view_files):
         depth[n] = 1 + max((dep(m, chain + [n]) for m in refs[n]), default=-1)
         return depth[n]
 
-    return sorted(view_files, key=lambda f: (dep(f.stem, []), f.name))
+    # ★ MES-7b-2(2026-10-16,F16):zzz_* 两份文件(变更记录的绑定、函数与视图的授权)【排在每一张视图之后】—— 它们的抬头一直写着
+    #   "文件名 zzz 排最后",而按深度排之后它们的深度是 0,于是跑在了较深的视图【之前】。对函数授权与触发器那没有后果(函数与表早就都在了),
+    #   对 F16 那一段(收回每一张视图的写授权)就有:实测重建库里 32 张较深的视图在它跑完之后才建出来,带着默认的写授权。
+    return sorted(view_files, key=lambda f: (f.stem.startswith("zzz_"), dep(f.stem, []), f.name))
 
 
 def strip_sql_strings(sql: str) -> str:

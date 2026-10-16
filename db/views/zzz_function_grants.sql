@@ -737,7 +737,8 @@ REVOKE EXECUTE ON FUNCTION public.guard_quality_hold() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_substance_priced_and_penalised() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_ncr_mutation() FROM authenticated;
 -- MES-7b-1:末尾多了 p_incident_id(来源 incident 的那一张指着的事故)—— 签名换了,这一行跟着换。
-REVOKE EXECUTE ON FUNCTION public.ncr_open_internal(uuid, uuid, text, text, uuid, uuid, uuid, bigint, uuid, uuid) FROM authenticated;
+-- MES-7b-2:末尾又多了 p_inspection_finding_id(来源 inspection 的那一张引用的巡检发现)—— 签名又换了,这一行再跟着换。
+REVOKE EXECUTE ON FUNCTION public.ncr_open_internal(uuid, uuid, text, text, uuid, uuid, uuid, bigint, uuid, uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.judge_quality_limits(uuid, uuid, text) FROM authenticated;
 
 -- MES-6b-2(2026-10-15):一支触发器函数与五支【内层】。
@@ -787,3 +788,42 @@ REVOKE EXECUTE ON FUNCTION public.guard_incident_kind_code() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_incident_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_incident_update_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_incident_batch_write() FROM authenticated;
+-- MES-7b-2(2026-10-16,MES-7b Step 0 Q13 · Q14 · Q16):巡检与环境监测的四支触发器函数 —— 没有调用者检查,靠的就是调不到。
+--   guard_inspection_template_write(清单与检查项只经函数写、清单不许删)· guard_inspection_record_write(巡检 / 结果 / 发现 / 关闭交了就不改、
+--   只经函数写、发现只挂在不合格的那一项上)· guard_environmental_parameter_code(限值成对、用过的代号冻住)· guard_environmental_result_write
+--   (结果只追加、只经函数写、采样日不在未来)。
+--   save_inspection_template · record_inspection_run · record_inspection_finding · close_inspection_finding · raise_inspection_finding_task ·
+--   record_environmental_result【不收】:它们是 DEFINER,自己查码(module.safety.edit / module.safety.view),员工就是要调它们。
+--   next_inspection_code【不收】:一支只读的取号函数(与 next_incident_code 一样)。
+REVOKE EXECUTE ON FUNCTION public.guard_inspection_template_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_inspection_record_write() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_environmental_parameter_code() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.guard_environmental_result_write() FROM authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】—— 收回 anon / authenticated(与 PUBLIC)在 public 里【每一张视图】上的
+--   INSERT · UPDATE · DELETE · TRUNCATE。
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么】平台的默认权限把 arwdDxtm 授给每一个新建的关系,视图也一样;而一张【简单】的属主权限视图是可以自动更新的 ——
+--   写穿它,对基表用的是【视图属主】的权限,RLS 不按调用者判。MES-7b-1 量到 163 张视图对 authenticated 带着写授权
+--   (MES7B1-VIEW-DEFAULT-WRITE-GRANTS);MES-7b-2 在线上以一个不持任何码的一次性账号量:45 张视图收下了一句零行的写
+--   (db/scripts/2026-10-16-mes7b2-view-writes.mjs)。应用与 db/ 里没有一处写穿视图(F16 第 2 步的勘察,交回报告里逐条列着)。
+-- 【为什么住在这个文件里】这个文件在重建的最后一步跑(视图都建好了),而 db/apply_migration.sh 在【每一支迁移的同一个事务里】再跑它一遍 ——
+--   于是"以后的视图也拿不到写授权"不靠任何人记得:一支迁移建了一张新视图,它提交的那一刻这一段已经把写授权收回了。
+--   ★ 那正是委托书"默认权限也要改"那一句要的结果。PostgreSQL 的 ALTER DEFAULT PRIVILEGES 分不出视图与表(对象类型只有 TABLES 一种),
+--     在线上把它改成"不授写"会让【以后的每一张新表】也拿不到 authenticated 的写 —— 而 303 份表镜像里 273 份靠的就是那条默认授权,
+--     重建库(prelude 照旧按默认授)与线上会在每一张新表上悄悄分开。所以本刀【不改】默认权限,改用这一段 + gate 的 viewwrite 断言
+--     (线上与重建两侧都问:任何一张视图对 anon / authenticated 带写授权就红)。
+-- 【幂等】对一张没有写授权的视图 REVOKE 是空操作;跑两遍不改任何 relacl。
+DO $f16$
+DECLARE
+    v record;
+BEGIN
+    FOR v IN SELECT c.oid::regclass AS rel
+               FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public' AND c.relkind = 'v'
+              ORDER BY c.relname LOOP
+        EXECUTE format('REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON %s FROM PUBLIC, anon, authenticated', v.rel);
+    END LOOP;
+END
+$f16$;

@@ -7,8 +7,10 @@ import { Button } from '@/app/components/ui/button'
 
 export type BatchOption = { value: string; label: string }
 
-export default async function BatchPicker({ action, inbound, output, inboundVisible, outputVisible }: {
+export default async function BatchPicker({ action, inbound, output, inboundVisible, outputVisible, hidden }: {
     action: string
+    /** MES-7b-2:选批这一步要带过去的别的参数(从巡检发现开不合格报告时的 ?finding=)—— 普通的 GET 表单里一个 hidden 字段 */
+    hidden?: Record<string, string>
     inbound: BatchOption[]
     output: BatchOption[]
     inboundVisible: boolean
@@ -17,6 +19,7 @@ export default async function BatchPicker({ action, inbound, output, inboundVisi
     const t = await getTranslations()
     return (
         <form method="get" action={action} className="space-y-3 max-w-xl" data-form="batch-picker">
+            {Object.entries(hidden ?? {}).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
             <label className="block text-sm">
                 <span className="block mb-1">{t('quality.form.batch')} <span className="text-red-600">*</span></span>
                 <select name="batch" required defaultValue="" className={`${CONTROL_SELECT} w-full`}>

@@ -8107,6 +8107,163 @@ export type Database = {
           },
         ]
       }
+      environmental_parameters: {
+        Row: {
+          code: string
+          is_active: boolean
+          limit_basis: string | null
+          limit_value: number | null
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          unit: string
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          limit_basis?: string | null
+          limit_value?: number | null
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          unit: string
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          limit_basis?: string | null
+          limit_value?: number | null
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          unit?: string
+        }
+        Relationships: []
+      }
+      environmental_results: {
+        Row: {
+          correction_reason: string | null
+          corrects_result_id: string | null
+          exceeds: boolean | null
+          id: string
+          incident_id: string | null
+          laboratory_code: string
+          limit_basis: string | null
+          limit_value: number | null
+          parameter_code: string
+          recorded_at: string
+          recorded_by: string | null
+          report_reference: string
+          sample_point: string
+          sampled_on: string
+          unit: string
+          value: number
+        }
+        Insert: {
+          correction_reason?: string | null
+          corrects_result_id?: string | null
+          exceeds?: boolean | null
+          id?: string
+          incident_id?: string | null
+          laboratory_code: string
+          limit_basis?: string | null
+          limit_value?: number | null
+          parameter_code: string
+          recorded_at?: string
+          recorded_by?: string | null
+          report_reference: string
+          sample_point: string
+          sampled_on: string
+          unit: string
+          value: number
+        }
+        Update: {
+          correction_reason?: string | null
+          corrects_result_id?: string | null
+          exceeds?: boolean | null
+          id?: string
+          incident_id?: string | null
+          laboratory_code?: string
+          limit_basis?: string | null
+          limit_value?: number | null
+          parameter_code?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          report_reference?: string
+          sample_point?: string
+          sampled_on?: string
+          unit?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "environmental_results_corrects_result_id_fkey"
+            columns: ["corrects_result_id"]
+            isOneToOne: true
+            referencedRelation: "environmental_result_rows"
+            referencedColumns: ["corrected_by_result_id"]
+          },
+          {
+            foreignKeyName: "environmental_results_corrects_result_id_fkey"
+            columns: ["corrects_result_id"]
+            isOneToOne: true
+            referencedRelation: "environmental_result_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_corrects_result_id_fkey"
+            columns: ["corrects_result_id"]
+            isOneToOne: true
+            referencedRelation: "environmental_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_laboratory_code_fkey"
+            columns: ["laboratory_code"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "environmental_results_parameter_code_fkey"
+            columns: ["parameter_code"]
+            isOneToOne: false
+            referencedRelation: "environmental_parameters"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       equipment_downtime: {
         Row: {
           cause_code: string | null
@@ -12688,6 +12845,614 @@ export type Database = {
           },
         ]
       }
+      inspection_finding_closures: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          finding_id: string
+          id: number
+          what_was_done: string
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          finding_id: string
+          id?: never
+          what_was_done: string
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          finding_id?: string
+          id?: never
+          what_was_done?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_finding_closures_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_finding_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_finding_closures_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_findings: {
+        Row: {
+          corrective_action: string
+          due_date: string | null
+          id: string
+          owner_employee_id: string
+          recorded_at: string
+          recorded_by: string | null
+          result_id: number
+          run_id: string
+          task_id: string | null
+        }
+        Insert: {
+          corrective_action: string
+          due_date?: string | null
+          id?: string
+          owner_employee_id: string
+          recorded_at?: string
+          recorded_by?: string | null
+          result_id: number
+          run_id: string
+          task_id?: string | null
+        }
+        Update: {
+          corrective_action?: string
+          due_date?: string | null
+          id?: string
+          owner_employee_id?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          result_id?: number
+          run_id?: string
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["corrected_by_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_board_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_results: {
+        Row: {
+          id: number
+          item_text: string
+          note: string | null
+          position: number
+          result: string
+          run_id: string
+        }
+        Insert: {
+          id?: never
+          item_text: string
+          note?: string | null
+          position: number
+          result: string
+          run_id: string
+        }
+        Update: {
+          id?: never
+          item_text?: string
+          note?: string | null
+          position?: number
+          result?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["corrected_by_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["last_run_id"]
+          },
+        ]
+      }
+      inspection_runs: {
+        Row: {
+          code: string
+          correction_reason: string | null
+          corrects_run_id: string | null
+          equipment_id: string | null
+          id: string
+          inspected_at: string
+          inspector_employee_id: string
+          location_id: string | null
+          notes: string | null
+          recorded_at: string
+          recorded_by: string | null
+          template_area: string
+          template_code: string
+          template_id: string
+          template_name: string
+        }
+        Insert: {
+          code: string
+          correction_reason?: string | null
+          corrects_run_id?: string | null
+          equipment_id?: string | null
+          id?: string
+          inspected_at: string
+          inspector_employee_id: string
+          location_id?: string | null
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          template_area: string
+          template_code: string
+          template_id: string
+          template_name: string
+        }
+        Update: {
+          code?: string
+          correction_reason?: string | null
+          corrects_run_id?: string | null
+          equipment_id?: string | null
+          id?: string
+          inspected_at?: string
+          inspector_employee_id?: string
+          location_id?: string | null
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          template_area?: string
+          template_code?: string
+          template_id?: string
+          template_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["corrected_by_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_template_items: {
+        Row: {
+          id: number
+          item_text: string
+          position: number
+          template_id: string
+        }
+        Insert: {
+          id?: never
+          item_text: string
+          position: number
+          template_id: string
+        }
+        Update: {
+          id?: never
+          item_text?: string
+          position?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_templates: {
+        Row: {
+          area: string
+          code: string
+          created_at: string
+          created_by: string | null
+          frequency_days: number | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          area: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          frequency_days?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          area?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          frequency_days?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       instrument_calibrations: {
         Row: {
           calibrated_on: string
@@ -16442,6 +17207,7 @@ export type Database = {
           id: string
           inbound_batch_id: string | null
           incident_id: string | null
+          inspection_finding_id: string | null
           judgement_id: number | null
           opened_at: string
           opened_by: string | null
@@ -16464,6 +17230,7 @@ export type Database = {
           id?: string
           inbound_batch_id?: string | null
           incident_id?: string | null
+          inspection_finding_id?: string | null
           judgement_id?: number | null
           opened_at?: string
           opened_by?: string | null
@@ -16486,6 +17253,7 @@ export type Database = {
           id?: string
           inbound_batch_id?: string | null
           incident_id?: string | null
+          inspection_finding_id?: string | null
           judgement_id?: number | null
           opened_at?: string
           opened_by?: string | null
@@ -16635,6 +17403,20 @@ export type Database = {
             columns: ["incident_id"]
             isOneToOne: false
             referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inspection_finding_id_fkey"
+            columns: ["inspection_finding_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_finding_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inspection_finding_id_fkey"
+            columns: ["inspection_finding_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_findings"
             referencedColumns: ["id"]
           },
           {
@@ -34520,6 +35302,98 @@ export type Database = {
           },
         ]
       }
+      environmental_result_rows: {
+        Row: {
+          corrected_by_result_id: string | null
+          correction_reason: string | null
+          corrects_result_id: string | null
+          exceeds: boolean | null
+          id: string | null
+          incident_code: string | null
+          incident_id: string | null
+          judgement: string | null
+          laboratory_code: string | null
+          laboratory_name_en: string | null
+          laboratory_name_zh: string | null
+          limit_basis: string | null
+          limit_value: number | null
+          parameter_code: string | null
+          parameter_name_en: string | null
+          parameter_name_zh: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          report_reference: string | null
+          sample_point: string | null
+          sampled_on: string | null
+          unit: string | null
+          value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "environmental_results_corrects_result_id_fkey"
+            columns: ["corrects_result_id"]
+            isOneToOne: true
+            referencedRelation: "environmental_result_rows"
+            referencedColumns: ["corrected_by_result_id"]
+          },
+          {
+            foreignKeyName: "environmental_results_corrects_result_id_fkey"
+            columns: ["corrects_result_id"]
+            isOneToOne: true
+            referencedRelation: "environmental_result_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_corrects_result_id_fkey"
+            columns: ["corrects_result_id"]
+            isOneToOne: true
+            referencedRelation: "environmental_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_results_laboratory_code_fkey"
+            columns: ["laboratory_code"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "environmental_results_parameter_code_fkey"
+            columns: ["parameter_code"]
+            isOneToOne: false
+            referencedRelation: "environmental_parameters"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       equipment_maintenance_advice: {
         Row: {
           capitalise_floor_base: number | null
@@ -36266,6 +37140,433 @@ export type Database = {
         }
         Relationships: []
       }
+      inspection_finding_rows: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          corrective_action: string | null
+          due_date: string | null
+          fail_note: string | null
+          id: string | null
+          inspected_on: string | null
+          is_open: boolean | null
+          item_text: string | null
+          ncr_count: number | null
+          overdue: boolean | null
+          owner_employee_id: string | null
+          owner_label: string | null
+          position: number | null
+          recorded_at: string | null
+          recorded_by: string | null
+          result_id: number | null
+          run_code: string | null
+          run_id: string | null
+          task_code: string | null
+          task_id: string | null
+          template_name: string | null
+          what_was_done: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["corrected_by_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_board_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_run_rows: {
+        Row: {
+          code: string | null
+          corrected_by_run_code: string | null
+          corrected_by_run_id: string | null
+          correction_reason: string | null
+          corrects_run_code: string | null
+          corrects_run_id: string | null
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          fail_count: number | null
+          finding_count: number | null
+          id: string | null
+          inspected_at: string | null
+          inspected_on: string | null
+          inspector_employee_id: string | null
+          inspector_label: string | null
+          location_code: string | null
+          location_id: string | null
+          location_name: string | null
+          na_count: number | null
+          notes: string | null
+          open_finding_count: number | null
+          pass_count: number | null
+          recorded_at: string | null
+          recorded_by: string | null
+          template_area: string | null
+          template_code: string | null
+          template_id: string | null
+          template_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["corrected_by_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_corrects_run_id_fkey"
+            columns: ["corrects_run_id"]
+            isOneToOne: true
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_inspector_employee_id_fkey"
+            columns: ["inspector_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_template_due_all: {
+        Row: {
+          due_state: string | null
+          frequency_days: number | null
+          id: string | null
+          last_inspected_at: string | null
+          last_inspected_on: string | null
+          last_run_code: string | null
+          last_run_id: string | null
+          next_due_on: string | null
+        }
+        Relationships: []
+      }
+      inspection_template_rows: {
+        Row: {
+          area: string | null
+          code: string | null
+          created_at: string | null
+          due_state: string | null
+          frequency_days: number | null
+          id: string | null
+          is_active: boolean | null
+          item_count: number | null
+          last_inspected_at: string | null
+          last_run_code: string | null
+          last_run_id: string | null
+          name: string | null
+          next_due_on: string | null
+          notes: string | null
+          run_count: number | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       instrument_calibration_now: {
         Row: {
           approaching: boolean | null
@@ -37857,6 +39158,10 @@ export type Database = {
           inbound_batch_id: string | null
           incident_code: string | null
           incident_id: string | null
+          inspection_finding_id: string | null
+          inspection_item_position: number | null
+          inspection_run_code: string | null
+          inspection_run_id: string | null
           judgement_contract_code: string | null
           judgement_id: number | null
           judgement_limit_max: number | null
@@ -37878,6 +39183,41 @@ export type Database = {
           status: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["inspection_run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["corrected_by_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["inspection_run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_run_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["inspection_run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["inspection_run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_due_all"
+            referencedColumns: ["last_run_id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_run_id_fkey"
+            columns: ["inspection_run_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_template_rows"
+            referencedColumns: ["last_run_id"]
+          },
           {
             foreignKeyName: "nonconformance_reports_assay_dispute_id_fkey"
             columns: ["assay_dispute_id"]
@@ -38016,6 +39356,20 @@ export type Database = {
             columns: ["incident_id"]
             isOneToOne: false
             referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inspection_finding_id_fkey"
+            columns: ["inspection_finding_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_finding_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nonconformance_reports_inspection_finding_id_fkey"
+            columns: ["inspection_finding_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_findings"
             referencedColumns: ["id"]
           },
           {
@@ -46106,6 +47460,10 @@ export type Database = {
         Args: { p_notes?: string; p_year_end: string }
         Returns: Json
       }
+      close_inspection_finding: {
+        Args: { p_finding_id: string; p_what_was_done: string }
+        Returns: Json
+      }
       close_period: {
         Args: { p_notes?: string; p_period_end: string }
         Returns: Json
@@ -47339,6 +48697,7 @@ export type Database = {
           p_description: string
           p_inbound_batch_id: string
           p_incident_id?: string
+          p_inspection_finding_id?: string
           p_judgement_id: number
           p_opened_by: string
           p_output_batch_id: string
@@ -47359,6 +48718,7 @@ export type Database = {
       next_fixed_asset_code: { Args: { p_on: string }; Returns: string }
       next_forecast_code: { Args: { p_date?: string }; Returns: string }
       next_incident_code: { Args: { p_date?: string }; Returns: string }
+      next_inspection_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
       next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
       next_ncr_code: { Args: { p_date?: string }; Returns: string }
@@ -47423,6 +48783,7 @@ export type Database = {
           p_description: string
           p_inbound_batch_id?: string
           p_incident_id?: string
+          p_inspection_finding_id?: string
           p_judgement_id?: number
           p_output_batch_id?: string
           p_sales_order_id?: string
@@ -47713,6 +49074,10 @@ export type Database = {
         }[]
       }
       quote_is_expired: { Args: { p_valid_until: string }; Returns: boolean }
+      raise_inspection_finding_task: {
+        Args: { p_finding_id: string }
+        Returns: Json
+      }
       real_role_grants: {
         Args: { p_role_code: string }
         Returns: {
@@ -47941,6 +49306,21 @@ export type Database = {
         }
         Returns: Json
       }
+      record_environmental_result: {
+        Args: {
+          p_correction_reason?: string
+          p_corrects_result_id?: string
+          p_immediate_action?: string
+          p_laboratory_code: string
+          p_nea_reportable?: boolean
+          p_parameter_code: string
+          p_report_reference: string
+          p_sample_point: string
+          p_sampled_on: string
+          p_value: number
+        }
+        Returns: Json
+      }
       record_equipment_maintenance: {
         Args: {
           p_capitalisation_reason?: string
@@ -48060,6 +49440,31 @@ export type Database = {
           p_reason?: string
           p_reference?: string
           p_summary?: string
+        }
+        Returns: Json
+      }
+      record_inspection_finding: {
+        Args: {
+          p_corrective_action: string
+          p_due_date?: string
+          p_owner_employee_id: string
+          p_position: number
+          p_run_id: string
+        }
+        Returns: Json
+      }
+      record_inspection_run: {
+        Args: {
+          p_correction_reason?: string
+          p_corrects_run_id?: string
+          p_equipment_id?: string
+          p_findings?: Json
+          p_inspected_at: string
+          p_inspector_employee_id: string
+          p_location_id?: string
+          p_notes?: string
+          p_results: Json
+          p_template_id: string
         }
         Returns: Json
       }
@@ -48674,6 +50079,19 @@ export type Database = {
           p_lead_days: number
           p_lead_kg: number
           p_notes?: string
+        }
+        Returns: Json
+      }
+      save_inspection_template: {
+        Args: {
+          p_area: string
+          p_code: string
+          p_frequency_days?: number
+          p_is_active?: boolean
+          p_items: Json
+          p_name: string
+          p_notes?: string
+          p_template_id: string
         }
         Returns: Json
       }
