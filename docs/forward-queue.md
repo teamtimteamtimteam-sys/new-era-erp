@@ -1155,7 +1155,40 @@
 >    `CPK-2026-09` 八节齐、没有受伤的细节;没理由重出按名拒、带理由 `-2`、旧的一字不动;PDF 从冻下来的那一行渲染、存档、下载重算一致、改坏字节对不上(路由 409);
 >    每一步之后 AP / AR 清单 = 总账、未解释 0.00;桶读回 0 个对象,销毁证书的桶逐字未变。七个真角色的只读读数表、开场 / 收尾读数在交回里。
 >    验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-8b-1.md`。
->    **下一刀 MES-8b-2 · 大屏**(见下面「⬜ ★ MES 组」第 14b 行)。
+>    **下一刀 MES-8b-2 · 大屏**(见下面「⬜ ★ MES 组」第 14b 行)—— ★ **未开工**:MES-8b-1 close-out 的 b 项量到一处不工作(下面),按委托书第 1.5 条停下,等 Tim。
+>    ★ **部署:Tim 在 Vercel 上确认 `f084de52` 已部署(MES-8b-1 close-out + MES-8b-2 委托书,2026-10-17)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-17 02:30:23 CST**(测量:`db/migration-windows.tsv`,`2026-10-17-mes8b1-margin-exposure-and-compliance-pack.sql`)·
+>    终点下界 **2026-10-17 03:23:30 CST**(测量:推送把 `origin/main` 移到 `f084de52`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`f084de52 refs/remotes/origin/main@{2026-10-17 03:23:30 +0800}: update by push`;
+>    这一次推送 `debb6a7a..f084de52` 只带本刀自己的提交 `f084de52`(03:21:49))·
+>    终点上界 **2026-10-17 11:24:50 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 53 min 07 s,至多 8 h 54 min 27 s。**(上界长,只因为推送到本会话之间没有任何东西量过部署 —— 它是一个界,不是一次读数。)
+>    窗口里坏掉的(**推导**,MES-8b-1 交回 §12,没有在线上量):没有在用的东西坏 —— 旧应用不读新表与新函数;`operations_now` 只多一支(线上没有已关账的月 → 0 行);
+>    旧应用的待补值页认不得 V26 / V27 两个值码(画成键名),直到部署。
+>    窗口里的只读读数(2026-10-17 11:29:39 CST,`postgres`,基表;`docs/surveys/MES-8b-2/closeout-readings.sql`,`READ_OWN_EXIT=0`):合规包 0 · 签发档 0 ·
+>    设定一行、V26 / V27 全空 · 桶 `compliance-documents` 0 个对象 · `locked_before` = `system_start_date` = 2026-08-01;视图 196 张,对 anon / authenticated 带写授权的 **0** 对;
+>    变更记录 02:30:23 起全是 MES-8b-1 自己的冒烟 / 证明的一次性角色 / 授权 / 账号 / 员工 / 评估 / 草稿合同(02:47:42–03:16:26),逐表 INSERT = DELETE;
+>    **推送之后到本会话 0 行**,之后只有本次 close-out 自己的探针(roles 10 / 10 · user_roles 10 / 10 · role_permissions 468 / 468)。
+>    **已部署的就是 MES-8b-1 的代码**(测量:五个克隆在线上打开进料批页的毛利一节、`/finance/price-exposure` 的库存一节、`/compliance/packs`(有码的那几个),
+>    待补值页列出 V26 与 V27 —— 都只从 `f084de52` 起才有)。
+>    ★ **close-out 的核对(委托书第 1.3 条 a–c,逐项证据在 `docs/surveys/MES-8b-2/MES-8b-1-CLOSEOUT.md`)**:
+>    **a** 委托书列的 17 项 fixture 逐项都有臂盖着(271 的 GATE · PATH · MARGIN · UNSOLD · REVENUE · NOCOMP · NOSALE · EXPO · LOG,272 的 REG · V2627 · GATE · LOCK · ARM · SECT ·
+>    NOINJ · NUM · PDF,㉟,`check-pdf-routes` 的 CPK 三格);今天在新的本地重建上重跑:271 / 272 绿,本刀的注入脚本 `INJECTIONS_OWN_EXIT=0`(34 + 54 格,0 错),
+>    ㉟ 的两格各自只红 ㉟,`check-pdf-routes` 15 格各自咬人。
+>    **b** 已部署的应用上 admin · cfo · cto · finance · warehouse 五个克隆、四个页面 20 次全部 200:毛利一节对 warehouse 画「Restricted」并点名码,其余四个读到
+>    IN-2026-0001「Not computable」与原因;合规包页 admin · cto 看得见冻结按钮(月份没关账 → 按不动,并说出为什么),cfo 按不动并点名 `action.compliance_pack`,
+>    finance · warehouse 进不了;待补值页 admin · cfo · cto 列出 V26 / V27。本地重建 + 自己的种子(40 次全部 200):算得出的毛利 337.50、冻下的包与被取代的包、
+>    关了账没有包的月份上「Freeze the pack」对 admin · cto 按得动、对 cfo 按不动并点名码,「Store a PDF」同一分界。
+>    ★★ **不工作的一处:`/finance/price-exposure` 的库存一节把【物料种类没说】的批整批丢掉,一个字都不提。** 线上在库的进料批 12 批 / 115,388 kg 里
+>    **11 批 / 115,288 kg** 的物料 `kind_code` 为空(其中 5 批带含量),产出批 12 批 / 3,816 kg 全部为空 —— 页面对每一个看得见它的角色写着
+>    「USD 0.00. Incomplete」,"not measured" 只列 `ZZ-PROCCOST1-DEMO` 100 kg 一批,其余 23 批哪儿都不出现。原因:`inventory_metal_exposure` 内连
+>    `material_kinds` 再取 `may_ever_be_processed`,把"没有人决定过"(`materials.kind_code` 刻意可空,`materials_kind_stated` 是 `NOT VALID`)当成"不可投料"。
+>    Fixture 271 的每一种物料都有种类,没有"主语缺席"那一臂。毛利不受影响。登记 `MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK`(`docs/known-issues.md`),**没有修**,
+>    按委托书第 1.5 条**没有开始第 2 步**。建议与另一条路(当作切换时会清掉的测试数据记进 `docs/known-wrong-until-cutover.md`,然后照常开 MES-8b-2)见 close-out 文件 §2 b-3。
+>    **c** MES-8b-1 交回 §10 的 19 条决定逐条列在 close-out 文件里(第 4 条就是上面那一处的来源)。
+>    ☞ **记录(信息,不是缺陷)**:按进料批的毛利【只是】进料批页上的一节,**没有**跨批的清单页(MES-8b-1 决定 2);Tim 要的时候再排一张清单页。
+>    卖方结算的收入**只有在 SETTLE-1 让卖方结算能过账之后**才会进毛利 —— 今天毛利的收入只取 `sales_records`(Q11),一条结算都过不了账。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;

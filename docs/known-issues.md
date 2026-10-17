@@ -11060,3 +11060,18 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 元凶是清单表格"说明"那一列的格子(宽 109 px,右缘 396 px),例如「No payroll period for this month」。
 **本刀加的 0 px —— 量出来的,不是推的:** 在同一棵 DOM 上把本刀加的合规包那一行删掉再量,读数 **6 → 6**;本刀对这一页的改动只有那一行。1280 px 上 0。
 **删除条件:** 那张表在窄屏让说明列换行(或把说明挪到状态下面一行),390 px 读回 0。
+
+### MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK · 价格敞口页的库存一节把【物料种类没说】的批整批丢掉,一个字都不提(MES-8b-1 close-out 量到,2026-10-17;未修)
+
+**是什么:** `inventory_metal_exposure()` 取在库时内连 `material_kinds` 再取 `may_ever_be_processed`(`db/functions/inventory_metal_exposure.sql:33-42`,后半 `:101-110` 同一句),
+于是物料 `kind_code` 为空的批 **既不估值、也不进 "not measured"、也不进 "unit not kg"** —— 它们从这一节里消失。而 `kind_code` 为空是一个**刻意允许的状态**
+("留空的意思就是没有人决定过",`db/tables/materials.sql:189-199`;`materials_kind_stated` 是 `NOT VALID`,只管新行)。
+**线上实测(2026-10-17 ≈ 11:40 CST,`postgres`,基表;以及以 admin 账号的会话读那支函数,`BEGIN READ ONLY`):** 物料 9 种、**7 种没有种类**;在库的进料批 12 批 / 115,388 kg,
+其中 **11 批 / 115,288 kg** 的物料没有种类(5 批带含量,如 IN-2026-0181 8,000 kg 六行含量、IN-2026-0001 887 kg 一行);在库的产出批 12 批 / 3,816 kg **全部**没有种类。
+函数读回:每一种可计价金属都 "priced"、0 kg、0.00;合计 **0.00**;not measured **1 批 100 kg**(`ZZ-PROCCOST1-DEMO`,唯一有种类的那一批)。
+已部署的页面对每一个看得见它的角色写着「Value of what is measured and priced: USD 0.00. Incomplete」—— 其余 23 批哪儿都不出现。
+**为什么门没有看见:** fixture 271 的每一种物料都有种类(CHECK 逼新行长成的样子);规矩的主语(种类)在线上是可缺的,而 fixture 没有"主语缺席"那一臂
+(AGENTS.md「A fixture can be thorough about a rule and blind to the case where the rule's SUBJECT IS ABSENT」)。毛利(`inbound_batch_margin`)不读种类,不受影响。
+**建议(等 Tim):** 种类没说的批单列一栏「kind not stated」(代码、kg),不估值,并让 `complete = false` —— 与 "not measured" / "not in kg" 同一种处置;271 加一臂
+(一种没有种类、带含量、在库的物料)和它的注入格。**另一条路:** 当作切换那天清库时会消失的测试数据(新行必须说出种类),记进 `docs/known-wrong-until-cutover.md`。
+**删除条件:** 二选一落地 —— 函数把种类没说的批列出来、271 那一臂绿、线上页面不再读 0.00;或者 Tim 裁定按测试数据处理并记进 known-wrong-until-cutover。
