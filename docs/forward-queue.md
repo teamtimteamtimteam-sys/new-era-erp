@@ -1266,6 +1266,21 @@
 >    ★ **NOROLE-SURFACE 已关闭(`v1.4.59`,2026-10-19,交回 `docs/handbacks/NOROLE-SURFACE.md`)**:八条读策略 + 一张视图 + 35 → 34 条存储策略;存储进了仓库
 >    (`db/storage/`);判词七【无角色面】(`db/check_norole.py`,退出码 7)常设;fixture 274 + 线上 fixture 266。Tim 施工中裁了一条(Q21):四张权限表的读谓词另认
 >    审计记录的读者(`module.hr.view` 员工页 · `data.view_change_log` 变更记录)。留给 Tim 的两件:`NOROLE-PO-ORPHAN-FILE` · `NOROLE-METAL-PRICES-ACTION-CODE-ALONE`。
+>    ★ **部署:Tim 在 Vercel 上确认 `c61acce6` 已部署(NOROLE-SURFACE close-out + MES-9a 委托书,2026-10-19)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-19 14:46:11 CST**(测量:`db/migration-windows.tsv`,`2026-10-19-norole-surface.sql`)·
+>    终点下界 **2026-10-19 16:36:39 CST**(测量:推送把 `origin/main` 移到 `c61acce6`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`c61acce6 refs/remotes/origin/main@{2026-10-19 16:36:39 +0800}: update by push`;
+>    这一次推送 `ae4bde43..c61acce6` 只带本刀自己的提交 `c61acce6`(2026-10-19 16:35:00))·
+>    终点上界 **2026-10-19 16:48:51 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 50 min 28 s,至多 2 h 02 min 40 s。**
+>    窗口里坏掉的(**推导**,NOROLE-SURFACE 交回 §0,没有在线上量):没有在用的东西坏 —— 本刀没有应用代码,窗口里部署着的与推送之后的是同一份代码;
+>    交回 §4.1 的 182 格页面读数就是在【已部署的旧代码 + 新库】上量的,与迁移前逐格相同。
+>    ★ **Tim 裁定(2026-10-19):`NOROLE-PO-ORPHAN-FILE` 那一份孤儿 PDF 留给 Tim 方便的时候自己删 —— 本仓库的任何一刀都不删它**(`docs/known-issues.md` 那一条同步)。
+>    ★ **close-out 的核对(委托书第 1.3 条,逐项证据在 `docs/surveys/MES-9a/NOROLE-SURFACE-CLOSEOUT.md`)**:NOROLE-SURFACE 委托书的 fixture 清单 10 项,
+>    **10 项都有覆盖**:8 项由 fixture 274 的臂(REL · OWN · TRAIL · PROMISE · BUCKET · NOUPDATE · DELETE;线上一半另有 live 266),2 项由判词七
+>    (`db/check_norole.py` 的常开自检格与存储镜像 = 线上那一比)—— 后两项是一道门的检查,不是 fixture,交回没有逐项对应过:**缺的只是记录,不是行为**。
+>    交回 §8 的 1 条问过的(Q21)与 10 条没问就做的决定逐条列在 close-out 文件里。**没有缺的 —— 所以第 2 步(MES-9a)照常开始。**
 >    **下一刀 MES-9a · Identity and isolation**(见下面「⬜ ★ MES 组」第 15a 行;第一件事:线上干跑 access token hook;MES-9 的 fixture 编号从 275 起 —— 274 已被本刀用掉)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**

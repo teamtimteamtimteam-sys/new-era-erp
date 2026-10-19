@@ -28,7 +28,8 @@
 `po-documents/4112390a-2c5d-4779-9a5a-e05f340dc9b8/ba8da58e-5dcf-44a5-a6e4-0c7baed2e916.pdf`,建于 2026-09-07 11:00:33 CST(以 `postgres` 读 `storage.objects` 与
 `po_issues` 基表,只读)。同一张采购单另有两份【有】记录的 PDF。**本刀没有动它**(规矩:不碰本会话之前就存在的文件)。迁移之后它是唯一一份
 "删得掉"的既有文件:持 `module.purchasing.edit` 的人(admin · cco · cto · finance)经 Storage 删得掉它(孤儿的定义正是这样),而没有一个页面会去删。
-**要不要删、谁删,是 Tim 的一句话。**
+~~**要不要删、谁删,是 Tim 的一句话。**~~ ★ **Tim 裁定(2026-10-19,NOROLE-SURFACE close-out):留给 Tim 方便的时候自己删。任何一刀都不删它**
+(包括线上证明的清理计划 —— 它不是本会话造的东西)。Tim 删掉之后,把这一条移走。
 
 ## NOROLE-METAL-PRICES-ACTION-CODE-ALONE · 只持 `action.metal_prices` 的角色读不到 `metal_prices`(NOROLE-SURFACE 记,2026-10-19)
 
