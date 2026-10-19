@@ -1307,6 +1307,23 @@
 >    **窗口里坏掉的**(推导):没有在用的东西坏 —— 旧应用不读任何新东西;`user_directory` 少的只有门户账号(线上 0 个);hook 开着时员工的令牌逐字节不变,
 >    而部署之前线上没有门户账号。验证与读数在 `docs/handbacks/MES-9a.md`。
 >    **登记、没修**:`MES9A-V38-NOT-ENFORCED` · `MES9A-V40-IS-A-RECORD` · `MES9A-HOOK-IS-A-PROJECT-SETTING` · `MES9A-FIRST-SIGNIN-ADDRESS`(员工本来就一样)(`docs/known-issues.md`)。
+>    ★ **部署:Tim 在 Vercel 上确认 `44e98fdd` 已部署,并确认 hook 开着时真实的员工账号照常登录(MES-9a close-out + MES-9b 委托书,2026-10-19)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-19 18:00:11 CST**(测量:`db/migration-windows.tsv`,`2026-10-19-mes9a-supplier-portal-identity.sql`)·
+>    终点下界 **2026-10-19 20:36:11 CST**(测量:推送把 `origin/main` 移到 `44e98fdd`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`44e98fdd refs/remotes/origin/main@{2026-10-19 20:36:11 +0800}: update by push`;
+>    这一次推送 `4aae8e98..44e98fdd` 只带本刀自己的提交 `44e98fdd`(2026-10-19 20:34:26))·
+>    终点上界 **2026-10-19 20:47:02 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 2 h 36 min 00 s,至多 2 h 46 min 51 s。**
+>    窗口里坏掉的(**推导**,MES-9a 交回 §14,没有在线上量):没有在用的东西坏(上一段)。
+>    ★ **Tim 的确认(2026-10-19,转述,不是本机的测量):真实的员工账号在 hook 开着时照常登录。** 7 个真实账号没有被任何一刀登录过(密码不是我们的);
+>    登录这条路本身由每个角色的一次性副本证过(交回 §4,`MES9A_SIGNIN_EXIT=0`)。**MES-9a 期间 hook 关过一次,39 秒**(18:03:53 → 18:04:32 CST,
+>    为了量刷新令牌轮换,关着与开着量到的一模一样;`docs/surveys/MES-9a/readings/rotation-compare.txt`);此后一直开着。
+>    ★ **close-out 的核对(委托书第 1.3 条,逐项证据在 `docs/surveys/MES-9b/MES-9a-CLOSEOUT.md`)**:MES-9a 委托书的 fixture 清单 15 项,**12 项有覆盖**
+>    (fixture 275 的臂 CODE · LINK · SEP · HOOK · EVERY · EXPORT · REVOKE · ANON · TRAIL · VALUES · LOG · GRANTS,判词八的比对与四个常开自检格,
+>    `check-trail-wording` 钉住的句子);**3 项没有任何 fixture 臂**(第一次登录被扣在换密码表单上 · 路由两向分隔 · `/settings/approvals` 的宽度)——
+>    都是应用那一半,SQL fixture 够不到,只由 MES-9a 的一次性 HTTP 证明 / 版式普查证过(前两项的库那一半在 275 里)。**缺的是记录,不是行为** ——
+>    登记 `MES9A-APP-HALF-NO-REGRESSION-CHECK`,没有建。交回 §10 的 21 条没问就做的决定逐条(只列标题)在 close-out 文件里。**没有缺的 —— 所以第 2 步(MES-9b)照常开始。**
 >    **下一刀 MES-9b · What a supplier sees**(见下面「⬜ ★ MES 组」第 15b 行:采购单 · 收货 · 化验 · 对账单 · 销毁证书;存储策略 `TO supplier_portal` 与 Q22 的下载记录在那一刀)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**

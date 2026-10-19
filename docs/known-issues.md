@@ -54,6 +54,16 @@ V38(`account_settings.initial_password_valid_days`)是一个**待补的值**:没
 表单在、刷新 → `/set-password`(线上验证 ②)。**人被扣住这件事不受影响**:不换密码,哪一页都进不去(中间件对每一个请求判)。
 代价只是一个读错的地址栏(复制链接会复制到落点)。改法(登录动作自己先看 `must_change_password` 再选落点)动的是员工的登录路径,不在本刀里顺手做。
 
+## MES9A-APP-HALF-NO-REGRESSION-CHECK · 门户身份那一刀的【应用那一半】没有回归检查 —— 只被一次性证明证过(MES-9a close-out 登记,2026-10-19;登记,不修)
+
+MES-9a 委托书的 fixture 清单(15 项,逐项对照见 `docs/surveys/MES-9b/MES-9a-CLOSEOUT.md` §3 a)里,**三项没有任何 fixture 臂**:
+**第一次登录被扣在换密码表单上**(中间件的 `must_change_password`)· **路由两向分隔**(门户会话打开员工路由被拒、员工会话打开 `/portal` 被拒 —— 根布局 /
+`moduleGuard`)· **`/settings/approvals` 390 px 的宽度修法**(`app/settings/approvals/ApprovalsForm.tsx:130`、`:167`)。前两项的库那一半在 fixture 275 里
+(VIEW 读 `must_change_password`;EVERY 证员工会话调不到门户函数);应用那一半只由 MES-9a 的一次性 HTTP 证明(`db/scripts/2026-10-19-mes9a-live-proof.mjs`,
+`docs/surveys/MES-9a/readings/live-proof.txt:5-9`、`:13-28`、`:47`、`:50`、`:52`)与版式普查证过。**行为是对的;缺的是一道会在下一次改动时变红的检查。**
+与 `MES8B2-APP-HALF-NO-REGRESSION-CHECK` 同一个形状、同一个原因(SQL fixture 没有 JS / HTTP 运行器);MES-9a 交回没有逐项对照,这一条补的是那句话。
+**可选的修法(未做):** 冒烟加一个一次性门户会话走三五条员工路由并断言那一句拒绝,员工会话断言 `/portal` 被拒。**删除条件:** 那一道落地,或 Tim 裁定一次性证明就够。
+
 ## NOROLE-PO-ORPHAN-FILE · `po-documents` 里有一份没有任何 `po_issues` 指着的 PDF —— 多半就是那次空操作的清理留下的(NOROLE-SURFACE 量到,2026-10-19)
 
 `po-documents/4112390a-2c5d-4779-9a5a-e05f340dc9b8/ba8da58e-5dcf-44a5-a6e4-0c7baed2e916.pdf`,建于 2026-09-07 11:00:33 CST(以 `postgres` 读 `storage.objects` 与
