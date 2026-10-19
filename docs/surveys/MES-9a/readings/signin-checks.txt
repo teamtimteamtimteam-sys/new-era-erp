@@ -1,0 +1,14 @@
+SIGNIN|copy of admin|mes9aprobe-1792404054124-si-admin@test.local|sign-in ok · token role authenticated|current_user_permissions() 86 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of cco|mes9aprobe-1792404054124-si-cco@test.local|sign-in ok · token role authenticated|current_user_permissions() 50 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of cfo|mes9aprobe-1792404054124-si-cfo@test.local|sign-in ok · token role authenticated|current_user_permissions() 36 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of cto|mes9aprobe-1792404054124-si-cto@test.local|sign-in ok · token role authenticated|current_user_permissions() 41 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of finance|mes9aprobe-1792404054124-si-finance@test.local|sign-in ok · token role authenticated|current_user_permissions() 43 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of gm|mes9aprobe-1792404054124-si-gm@test.local|sign-in ok · token role authenticated|current_user_permissions() 23 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of warehouse|mes9aprobe-1792404054124-si-warehouse@test.local|sign-in ok · token role authenticated|current_user_permissions() 31 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|display only (floor_display)|mes9aprobe-1792404054124-si-display@test.local|sign-in ok · token role authenticated|current_user_permissions() 1 codes|refresh ok · role authenticated · refresh token rotated|idle: 31 min → /display 200 (exempt, as today)
+SIGNIN|throwaway portal user|mes9aprobe-1792404054124-si-portal@test.local|sign-in ok · token role supplier_portal|portal_me() → its own supplier · current_user_permissions() refused (HTTP 403)|refresh ok · role supplier_portal · refresh token rotated|idle: n/a (portal idle logout is this cut's app code — proved on the local app in the live verification)
+Error: MES9A_SIGNIN|copy of admin: an old refresh token was accepted 11 s after it was rotated (HTTP 200)
+    at must (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-19-mes9a-signin-checks.mjs:53:56)
+    at main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-19-mes9a-signin-checks.mjs:149:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+MES9A_SIGNIN_EXIT=3

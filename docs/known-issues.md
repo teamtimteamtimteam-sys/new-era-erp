@@ -23,6 +23,37 @@
 **线上读回:** 持路由那个码的克隆(warehouse → cod · finance → po · cto → traceability)把自己传上去的一份孤儿 remove 掉,服务端读回:文件没了(交回报告 §4)。
 **它留下的一件真事,单独登记:** `NOROLE-PO-ORPHAN-FILE`(下一条)。
 
+## MES9A-V38-NOT-ENFORCED · 初始密码的有效期(V38)给了也不被执行(MES-9a 记,2026-10-19)
+
+V38(`account_settings.initial_password_valid_days`)是一个**待补的值**:没给时 `/settings/accounts` 与供应商页的门户账号那一块照直说
+「初始密码不会过期」(Q24);给了之后,两处印出那个天数,并且**照直说系统还不会拒绝一个过期的初始密码**。执行它要一个判据(账号建出来多久了、
+`must_change_password` 还在)放在登录那一刻 —— 中间件或 hook 里 —— 而 hook 对员工必须一个字节都不变、绝不抛,中间件要再问一次库。
+**今天不显形**:V38 是空的(线上从第一天起一行待补)。去处:第一个真实供应商账号之前(Step 0 §15),由那时的一刀决定执行在哪一层。
+
+## MES9A-V40-IS-A-RECORD · V40(密码最短长度)记的是 Tim 定的数,不是那个设置本身(MES-9a 记,2026-10-19)
+
+密码最短长度是 **Supabase 的项目设置**(Authentication → Policies,今天是 Supabase 的默认 6),不在库里。`account_settings.password_min_length`
+记的是 Tim 在 Supabase 里改好之后定的那个数,好让待补的值页面在它空着时说出来;**改这一格不会改 Supabase**,改 Supabase 也不会改这一格。
+应用自己的表单下限(`lib/passwordPolicy.ts` 的 `MIN_PASSWORD_LENGTH = 8`)照旧。要让两边永远一致,得有一道读 Management API 的检查 ——
+那条 API 的返回里带着密钥(AGENTS.md 的 JWT 密钥那一条),所以它不在本刀里现写。
+
+## MES9A-HOOK-IS-A-PROJECT-SETTING · access token hook 开没开,是 Supabase 的项目设置 —— 库与门都看不见(MES-9a 记,2026-10-19)
+
+`portal_access_token_hook` 是库里的一支函数(镜像、判词八、fixture 275 都管得到它);**它被不被调用**是 Supabase Auth 的项目设置
+(`hook_custom_access_token_enabled`,MES-9a 在 2026-10-19 18:00:43 经 Management API 打开,18:03:53 为了量轮换关过 39 秒、18:04:32 再开)。
+关掉它**只会收窄**:员工的令牌两种情况下一样;门户账号拿到 `authenticated`,调不到任何门户函数,中间件把它登出(`/login?reason=portal_unavailable`)。
+所以"它被悄悄关了"的后果是门户看得见地停下,不是变宽(Q11)。**门不读这个设置**:读它的那条 Management API 返回体里有密钥。
+全新安装的步骤与"一步关掉"写在 `docs/fresh-install-checklist.md` 第 6b 步。
+
+## MES9A-FIRST-SIGNIN-ADDRESS · 第一次登录被扣在换密码表单上时,地址栏写的是登录的落点,不是 /set-password(MES-9a 量到,2026-10-19)
+
+**不是门户这一刀带来的,员工一模一样。** 登录动作 `redirect()` 到落点(员工 `/` 之类,门户 `/portal`),客户端路由去取那一页时被中间件
+(`must_change_password`)转到 `/set-password`;**屏幕上是换密码的表单,地址栏却停在落点**,刷新一次才变成 `/set-password`。
+实测(经 HTTP、一次性账号、本刀代码的本地 next 连线上):gm 的同码克隆 → 地址 `/`、表单在、刷新 → `/set-password`
+(`db/scripts/2026-10-19-mes9a-first-signin-address.mjs` → `docs/surveys/MES-9a/readings/first-signin-address.txt`);门户账号 → 地址 `/portal`、
+表单在、刷新 → `/set-password`(线上验证 ②)。**人被扣住这件事不受影响**:不换密码,哪一页都进不去(中间件对每一个请求判)。
+代价只是一个读错的地址栏(复制链接会复制到落点)。改法(登录动作自己先看 `must_change_password` 再选落点)动的是员工的登录路径,不在本刀里顺手做。
+
 ## NOROLE-PO-ORPHAN-FILE · `po-documents` 里有一份没有任何 `po_issues` 指着的 PDF —— 多半就是那次空操作的清理留下的(NOROLE-SURFACE 量到,2026-10-19)
 
 `po-documents/4112390a-2c5d-4779-9a5a-e05f340dc9b8/ba8da58e-5dcf-44a5-a6e4-0c7baed2e916.pdf`,建于 2026-09-07 11:00:33 CST(以 `postgres` 读 `storage.objects` 与

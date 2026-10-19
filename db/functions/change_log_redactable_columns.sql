@@ -23,6 +23,8 @@ AS $function$
         WHEN 'payroll_lines' THEN ARRAY['notes']
         WHEN 'leave_requests' THEN ARRAY['reason', 'certificate_ref', 'decision_notes', 'exception_reason']
         WHEN 'medical_claims' THEN ARRAY['description', 'receipt_ref', 'decision_notes']
+        -- MES-9a(MES-9 Step 0 Q20):一位应请求匿名化的联系人(portal_contact_anonymise)—— 名字、职能、邮箱、电话、备注
+        WHEN 'counterparty_contacts' THEN ARRAY['name', 'role', 'email', 'phone', 'notes']
         ELSE ARRAY[]::text[]
     END;
 $function$;

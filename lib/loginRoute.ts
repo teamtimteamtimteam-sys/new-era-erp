@@ -91,6 +91,44 @@ export function isDisplayPath(pathname: string): boolean {
     return matches([DISPLAY_PATH], pathname)
 }
 
+/**
+ * 【供应商门户】(MES-9a,2026-10-19,MES-0 Q88 · MES-9 Step 0 Q10):同一个应用里的一个路由组,自己的外壳。
+ *
+ * ★ 一个门户会话是什么,由【令牌】说,不由这里猜:Supabase Auth 的 access token hook(portal_access_token_hook)给门户账号的令牌
+ *   写 role = supplier_portal,PostgREST 照它切到那个数据库角色 —— 它在库里只够得着按名授给那个角色的东西(判词八)。
+ *   这里只做【路由那一层】:根布局对门户会话拒绝每一条不是 /portal 的路由,对员工会话拒绝 /portal;登录之后门户会话落在 /portal。
+ *   【这不是安全边界】—— 边界在库里;路由这一层让两边【看得见地】走不进对方的屏幕(Q10)。
+ *
+ * 【读令牌里的 role,而不是问库】中间件与根布局在每一个请求上跑;令牌在 cookie 里,中间件刚刚用 getUser() 让认证服务验过它 ——
+ *   解出它的 role 不需要第二趟往返。解不出来 = null,永远不会被读成"是门户"。
+ */
+export const PORTAL_PATH = '/portal'
+export const PORTAL_DB_ROLE = 'supplier_portal'
+
+export function isPortalPath(pathname: string): boolean {
+    return matches([PORTAL_PATH], pathname)
+}
+
+/** 一个访问令牌(JWT)里的 role 声明。解不出来就是 null —— 不猜。 */
+export function tokenRoleOf(jwt: string | null | undefined): string | null {
+    if (!jwt) return null
+    const part = jwt.split('.')[1]
+    if (!part) return null
+    try {
+        const b64 = part.replace(/-/g, '+').replace(/_/g, '/')
+        const json = JSON.parse(atob(b64.padEnd(Math.ceil(b64.length / 4) * 4, '=')))
+        return typeof json?.role === 'string' ? json.role : null
+    } catch {
+        return null
+    }
+}
+
+/** 一个门户会话登录之后(或已登录又打开 /login)落在哪儿:`next` 只在它本来就在门户里时才收。 */
+export function portalLandingPath(next?: unknown): string {
+    const n = safeInternalPath(next)
+    return n && isPortalPath(n.split('?')[0]) ? n : PORTAL_PATH
+}
+
 /** 两个判据【同一份】匹配规则:整条相等,或者是它下面的一层。 */
 function matches(paths: readonly string[], pathname: string): boolean {
     return paths.some((p) => pathname === p || pathname.startsWith(p + '/'))

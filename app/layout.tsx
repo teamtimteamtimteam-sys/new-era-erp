@@ -6,8 +6,9 @@ import IdleWatcher from "@/app/components/IdleWatcher";
 import { ActionMessageRegion } from "@/app/components/ui/action-message";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
-import { isBareChromePath, isDisplayPath } from "@/lib/loginRoute";
-import { requireNotFloorDisplay } from "@/app/components/moduleGuard";
+import { isBareChromePath, isDisplayPath, isPortalPath } from "@/lib/loginRoute";
+import { requireNotFloorDisplay, portalRouteRefusal } from "@/app/components/moduleGuard";
+import { isPortalSession } from "@/lib/portalSession";
 import { isFloorDisplayOnly } from "@/lib/floorDisplay";
 import AppChrome from "@/app/components/AppChrome";
 import { getModuleAccess } from "@/lib/moduleAccess";
@@ -149,8 +150,21 @@ export default async function RootLayout({
   //     软导航不重画根布局,所以那几张不要码的页面自己也问一次(requireNotFloorDisplay);要码的页面按码本来就拒。
   //   · 别的会话:isFloorDisplayOnly 先看本次请求已经取过的码,码不恰好是 data.view_floor_board 就不再打库 —— 一次查询都不多。
   // ══════════════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════
+  // ★ MES-9a(2026-10-19,MES-0 Q88 · MES-9 Step 0 Q10 · Q11,Tim):供应商门户 —— 同一个应用,两边互不进对方的屏幕
+  //   · 门户会话(令牌的 role = supplier_portal)打开【任何不是 /portal 的】页:整页换成一句拒绝,出路指回 /portal,不画员工的外壳 ——
+  //     而且在调用任何员工那一面的东西【之前】就判掉(一个门户会话调不了 current_user_permissions:它的数据库角色只够得着门户函数)。
+  //   · 员工会话打开 /portal:同样一句拒绝,出路指回首页(外壳照画 —— 他是员工)。
+  //   · 门户会话在 /portal 上:不画员工的外壳(顶栏、面包屑、模块栏 —— 那些会去问员工的码),只挂空闲监视器;门户自己的外壳在 app/portal/layout.tsx。
+  //   软导航不重画根布局:门户的页面一条员工路由都不链接,员工的页面也不链接 /portal;app/portal/layout.tsx 自己也再问一次。
+  //   /login · /set-password · /verify/cod(bare)照旧:门户账号第一次登录也要在 /set-password 换掉初始密码。
+  // ══════════════════════════════════════════════════════════════════════════
+  const onPortalPath = isPortalPath(pathname);
+  const portal = bare ? false : await isPortalSession();
+  const portalRefusal = !bare && (portal !== onPortalPath) ? await portalRouteRefusal(portal) : null;
+
   const display = isDisplayPath(pathname);
-  const floorRefusal = bare || display ? null : await requireNotFloorDisplay();
+  const floorRefusal = bare || display || portal || onPortalPath ? null : await requireNotFloorDisplay();
   const floorSession = display ? await isFloorDisplayOnly() : false;
 
   // ★【NAV-CLEANUP-1 ⑤】面包屑的第一截与顶栏的高亮必须是【同一个答案】,
@@ -159,7 +173,7 @@ export default async function RootLayout({
   //   【为什么不在 Breadcrumbs 里自己算】它是 'use client';而且顶栏已经算过一次,
   //   getModuleAccess 走的是 React cache —— 同一次渲染里不会打第二次库。
   //   登录页那一侧(bare)不渲染面包屑,所以那里一次都不算。
-  const openModuleIds = bare || display || floorRefusal
+  const openModuleIds = bare || display || floorRefusal || portal
     ? []
     : (await getModuleAccess()).filter((m) => m.allowed).map((m) => m.module.id);
 
@@ -178,7 +192,9 @@ export default async function RootLayout({
               ClearRestrictedDrafts 负责,与这一个无关。 */}
           {/* MES-8b-2:/display 上没有外壳,只有空闲监视器 —— 而且只对不是大屏的会话。 */}
           {display && !floorSession && <IdleWatcher />}
-          {!bare && !display && !floorRefusal && (
+          {/* MES-9a:门户会话 —— 空闲登出与员工一模一样(30 分钟,一个值),员工的外壳一样都不画 */}
+          {portal && <IdleWatcher />}
+          {!bare && !display && !floorRefusal && !portal && (
             <AppChrome>
               <IdleWatcher />
               <TopNav />
@@ -196,7 +212,7 @@ export default async function RootLayout({
               <ActionMessageRegion />
             </AppChrome>
           )}
-          {floorRefusal ?? children}
+          {portalRefusal ?? floorRefusal ?? children}
         </I18nProvider>
       </body>
     </html>

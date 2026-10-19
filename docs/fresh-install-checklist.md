@@ -102,6 +102,38 @@ Standing up a new EVoltrya OS project from this repository.
    must return `"disable_signup": true`. The live project ran with signup open until 2026-10-19 although this step existed
    (`docs/known-issues.md` `MES9-PUBLIC-SIGNUP-OPEN`). Closing it does not stop `/settings/accounts` from creating staff
    accounts — that path uses the service-role admin API (`app/settings/accounts/accountActions.ts:107`).
+6b. **The supplier portal's role and the access-token hook** (MES-9a, 2026-10-19; MES-9 Step 0 Q2 · Q11).
+   * **The role.** Step 2 already creates `supplier_portal` (NOLOGIN NOINHERIT) and grants it to `authenticator` — on a
+     **Supabase** project the prelude is skipped, so run these two lines once in the SQL editor *before* step 2's mirrors
+     (the mirrors grant to it by name):
+     ```sql
+     CREATE ROLE supplier_portal NOLOGIN NOINHERIT;
+     GRANT supplier_portal TO authenticator;
+     ```
+     It is a member of nothing; it reaches only what is granted to it by name — `db/portal-grants-baseline.tsv`, checked
+     line for line by verdict 8 (`db/check_portal.py`).
+   * **The hook — enable it last, after the app is deployed, and prove staff sign-in right after.** Supabase dashboard →
+     **Authentication → Hooks → "Customize Access Token (JWT) Claims hook"** → type **Postgres**, schema `public`, function
+     `portal_access_token_hook` → Enable. The same as one Management API call:
+     ```
+     PATCH https://api.supabase.com/v1/projects/<ref>/config/auth
+     {"hook_custom_access_token_enabled": true,
+      "hook_custom_access_token_uri": "pg-functions://postgres/public/portal_access_token_hook"}
+     ```
+     Then sign in **and refresh** once as a staff account and confirm the session works (the hook returns every staff
+     user's claims unchanged — fixture 275 HOOK; it never raises).
+   * ★ **To disable it — one step.** Dashboard: **Authentication → Hooks → "Customize Access Token (JWT) Claims hook" →
+     Disable** (toggle off, save). Or one Management API call:
+     ```
+     PATCH https://api.supabase.com/v1/projects/<ref>/config/auth
+     {"hook_custom_access_token_enabled": false}
+     ```
+     Disabling it can only ever *narrow* access: staff tokens are unchanged either way; a supplier portal account then gets
+     an `authenticated` token, which reaches no portal function (they are granted to `supplier_portal` only) and which the
+     middleware signs out (`/login?reason=portal_unavailable`). **Disable it at once if any staff sign-in or refresh fails
+     after enabling it.**
+   * **Before the first real supplier account** (Tim, MES-9 Step 0 §15): the paid plan, the production domain, and the
+     values V38 / V39 / V40 (`docs/mes-pending-values.md`).
 7. **Enter the per-install values** (these cannot be seeded — they are this company's
    data, not a design default).
 

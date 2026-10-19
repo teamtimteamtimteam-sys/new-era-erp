@@ -13,6 +13,9 @@
 --              (app/components/ActorName.tsx):不持 module.hr.view 的读者只认得出【他自己】;别人一律受限,
 --              包括已匿名化的人与没有挂人的账号(那两种在 ActorName 里同样画成"受限")。
 --              System (automatic)、Removed account、Not recorded 不是人名,照常说。
+-- MES-9a(2026-10-19,MES-9 Step 0 Q21,Tim):
+--   portal     账号不属于任何人,而它是一个【供应商门户账号】—— 界面说「Supplier portal — <供应商名>」。供应商名是一个显示标签
+--              (常设裁定 3),所以它不跟着 module.hr.view 变成 Restricted —— 看得见那一行的人就看得见是哪一家的门户做的。
 --   两个读法(每一页的 record_trail · /settings/change-history 的 change_log_rows)与引用值里的人(trail_ref_label)
 --   都经过这里,所以一处改,处处同一个答案。
 CREATE OR REPLACE FUNCTION public.trail_actor(p_kind text, p_account uuid, p_employee uuid)
@@ -31,6 +34,14 @@ BEGIN
     END IF;
     IF v_id IS NULL AND p_kind = 'prelog' AND p_account IS NOT NULL THEN
         v_id := account_person(p_account);
+    END IF;
+    IF v_id IS NULL AND p_account IS NOT NULL THEN
+        SELECT jsonb_build_object('state', 'portal', 'name', s.legal_name) INTO v_emp
+          FROM supplier_portal_users p JOIN suppliers s ON s.id = p.supplier_id
+         WHERE p.user_id = p_account;
+        IF v_emp IS NOT NULL THEN
+            RETURN v_emp;
+        END IF;
     END IF;
     IF v_id IS NULL THEN
         IF p_account IS NULL THEN

@@ -171,7 +171,8 @@ export function openPlan(script) {
 // ROLE: 35 —— ROLE-1(2026-09-23):冒烟不再能借 `admin` 当"什么都看得见"的钥匙
 //   (Tim 的 Q8:admin 只剩系统管理三码),于是它自己造一个一次性的全码角色。
 //   删角色要排在【收回授权】之后(user_roles 指着它)、删账号之前;role_permissions 随角色级联。
-export const ORDER = { REVIEW: 10, EMPLOYEE: 20, GRANT: 30, ROLE: 35, ACCOUNT: 40, OTHER: 25 }
+// MES-9a(2026-10-19,MES-9 Step 0 Q29):门户链接 → 联系人 → 供应商 → 账号。链接指着账号与联系人(都是 RESTRICT),联系人指着供应商(RESTRICT)。
+export const ORDER = { REVIEW: 10, EMPLOYEE: 20, GRANT: 30, ROLE: 35, ACCOUNT: 40, OTHER: 25, PORTAL_LINK: 27, CONTACT: 32, SUPPLIER: 38 }
 
 /**
  * 往计划里【追加一步,并当场落盘】。
@@ -222,6 +223,11 @@ export function ephemeralGrantBody(userId, roleId) {
 //                          真角色不存在或零码 → 抛(一个零码的克隆会让整支探针以受限读者跑完而报绿)。
 //                          ★ 测的是"持这些码的人看得见什么"—— 与真角色同码,但它【不是】那个真角色:
 //                            按角色码认人的审批判据(real_role_holders / approval_deciders)认不到它。
+//   { portalOf: <一次性供应商的 id> } —— MES-9a(MES-9 Step 0 Q29):【一个供应商门户账号】—— 不授任何角色(门户账号永远不持角色,
+//                          guard_portal_account_separation);在那家一次性供应商下建一位一次性联系人(邮箱 = 这个账号的邮箱 —— 登录用的就是它),
+//                          写一条门户链接,app_metadata.supplier_portal = true(与供应商页那条路同一个标记)。登录拿到的令牌的 role 由 hook 决定
+//                          (hook 开着 → supplier_portal)。删除步:链接 → 联系人 → 账号;供应商本身由 mintThrowawaySupplier 登记。
+//                          o.mustChangePassword = true 时照真的开账号那样带上 must_change_password(首次登录必须换)。
 //   { realRole: 'cfo' } —— 授【真角色本身】。★ 只给【测试本身依赖真角色码】的脚本(审批人 / 决定者身份),
 //                          并且对 is_system 角色(admin 是)【拒绝】:THROWAWAY_REFUSES_SYSTEM_ROLE|<code>,
 //                          拒绝发生在造任何东西之前。用它的脚本要在调用处写明为什么非真角色不可。
@@ -248,7 +254,7 @@ export const THROWAWAY_EMAIL_PREFIXES = Object.freeze([
     'draft1probe', 'draft2probe', 'draft3probe', 'draft3before', 'draft4probe', 'draft5probe',
     'draft6probe', 'draft7probe', 'mes1probe', 'mes2probe', 'mes5a2probe', 'mes5b1probe', 'mes5b2probe', 'mes5b3probe', 'mes6a1probe', 'mes6a2probe',
     'mes6b1probe', 'mes6b2probe', 'mes7a1probe', 'mes7a2probe', 'mes7b1probe', 'mes7b2probe', 'mes8aprobe', 'mes8b1probe', 'mes8b2probe',
-    'noroleprobe',
+    'noroleprobe', 'mes9aprobe',
 ])
 /** U1-B 之前用过、现在没人再造的前缀 —— 清扫仍然要认得它们留下的东西。 */
 export const THROWAWAY_LEGACY_EMAIL_PREFIXES = Object.freeze(['probe', 'pdf'])
@@ -331,10 +337,15 @@ export async function mintThrowaway(o = {}) {
         if (real.is_system !== false && !refusalOff) throw new Error(`THROWAWAY_REFUSES_SYSTEM_ROLE|${real.code}`)
         wantCodes = (await svcRows(`/rest/v1/role_permissions?select=permission_code&role_id=eq.${real.id}`, `role_permissions ← ${real.code}`))
             .map((x) => x.permission_code)
+    } else if (codes && typeof codes === 'object' && typeof codes.portalOf === 'string') {
+        kind = 'portal'
+        if (!/^[0-9a-f-]{36}$/.test(codes.portalOf)) throw new Error(`THROWAWAY_BAD_CODES|portalOf 要一家一次性供应商的 id:${codes.portalOf}`)
+        wantCodes = []
     } else {
-        throw new Error(`THROWAWAY_BAD_CODES|${JSON.stringify(codes)} —— 只认 'all' / string[] / {cloneOf} / {realRole}`)
+        throw new Error(`THROWAWAY_BAD_CODES|${JSON.stringify(codes)} —— 只认 'all' / string[] / {cloneOf} / {realRole} / {portalOf}`)
     }
     wantCodes.sort()
+    if (kind === 'portal') return mintPortalAccount(o, email, stamp, codes.portalOf, dryRun)
     const throwawayRole = kind !== 'real'
     const roleCode = throwawayRole ? `${THROWAWAY_ROLE_PREFIX}${prefix}-${label}-${stamp}` : real.code
     if (dryRun) {
@@ -402,6 +413,69 @@ export async function mintThrowaway(o = {}) {
     }
     return { userId, email, password, roleId, roleCode, codes: wantCodes, employeeId, token, cookie,
              cookieName, cookieValue, session, stamp, throwawayRole, kind }
+}
+
+// ── MES-9a(MES-9 Step 0 Q29):一次性供应商与一次性门户账号 ─────────────────────────────────────
+/**
+ * 造一家一次性供应商(草稿状态,名字带 ZZ-PROBE- 前缀,check-scratch-rows 认得它)。删除步先登记(按 id,id 本地生成)。
+ * 只给证明脚本用:门户账号挂在它下面(mintThrowaway 的 { portalOf })。
+ */
+export async function mintThrowawaySupplier({ prefix, label }) {
+    if (!plan) throw new Error('THROWAWAY_NO_PLAN|mintThrowawaySupplier 必须在 openPlan() 之后调用')
+    if (inCleanupPhase) throw new Error('THROWAWAY_IN_CLEANUP|收尾阶段不许再造一次性的东西')
+    if (!THROWAWAY_EMAIL_PREFIXES.includes(prefix)) throw new Error(`THROWAWAY_UNKNOWN_PREFIX|${prefix}`)
+    if (typeof label !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(label)) throw new Error(`THROWAWAY_BAD_LABEL|${label}`)
+    const id = randomUUID()
+    planDelete(`/rest/v1/suppliers?id=eq.${id}`, `删一次性供应商 ${prefix}/${label}`, ORDER.SUPPLIER)
+    const rows = await svcJson('/rest/v1/suppliers', { method: 'POST', headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ id, legal_name: `ZZ-PROBE ${prefix} ${label} ${Date.now()}`, country: 'SG', counterparty_type: 'goods_supplier' }) },
+        `建一次性供应商 ${prefix}/${label}`)
+    return { supplierId: id, code: rows?.[0]?.code ?? null, legalName: rows?.[0]?.legal_name ?? null }
+}
+
+/** 造一位一次性联系人(删除步先登记;id 本地生成)。邮箱必填 —— 门户账号用它登录。 */
+export async function mintThrowawayContact({ supplierId, name, email }) {
+    if (!plan) throw new Error('THROWAWAY_NO_PLAN|mintThrowawayContact 必须在 openPlan() 之后调用')
+    const id = randomUUID()
+    planDelete(`/rest/v1/counterparty_contacts?id=eq.${id}`, `删一次性联系人 ${email}`, ORDER.CONTACT)
+    await svcJson('/rest/v1/counterparty_contacts', { method: 'POST',
+        body: JSON.stringify({ id, supplier_id: supplierId, name, email }) }, `建一次性联系人 ${email}`)
+    return { contactId: id }
+}
+
+async function mintPortalAccount(o, email, stamp, supplierId, dryRun) {
+    if (dryRun) return { dryRun: true, kind: 'portal', email, roleCode: null, codes: [], stamp, throwawayRole: false,
+                         userId: null, roleId: null, employeeId: null, token: null, cookie: null, session: null }
+    usedEmails.add(email)
+    const password = o.password ?? `tw-${randomUUID()}`
+    // 联系人先(它的删除步先落盘),再账号,再链接 —— 链接指着两头
+    const { contactId } = await mintThrowawayContact({ supplierId, name: `ZZ-PROBE ${o.label}`, email })
+    const u = await svcJson('/auth/v1/admin/users', { method: 'POST',
+        body: JSON.stringify({ email, password, email_confirm: true,
+                               user_metadata: o.mustChangePassword ? { must_change_password: true } : {},
+                               app_metadata: { supplier_portal: true } }) }, `建一次性门户账号 ${email}`)
+    if (!u?.id) throw new Error(`THROWAWAY_HTTP|建一次性门户账号 ${email}|返回里没有 id`)
+    const userId = u.id
+    planDelete(`/rest/v1/supplier_portal_users?user_id=eq.${userId}`, `删一次性门户链接 ${email}`, ORDER.PORTAL_LINK)
+    planDelete(`/auth/v1/admin/users/${userId}`, `删一次性门户账号 ${email}`, ORDER.ACCOUNT)
+    const link = await svcJson('/rest/v1/supplier_portal_users', { method: 'POST', headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ user_id: userId, supplier_id: supplierId, contact_id: contactId }) }, `挂门户链接 ${email}`)
+    const linkId = link?.[0]?.id ?? null
+    let session = null, token = null, cookie = null, cookieName = null, cookieValue = null
+    if (o.signIn !== false) {
+        const { URL_, ANON } = liveEnv()
+        const r = await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
+            headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
+        session = await r.json().catch(() => null)
+        if (!r.ok || !session?.access_token)
+            throw new Error(`THROWAWAY_SIGNIN|${email}|HTTP ${r.status} ${JSON.stringify(session).slice(0, 200)}`)
+        token = session.access_token
+        cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
+        cookieValue = 'base64-' + Buffer.from(JSON.stringify(session)).toString('base64url')
+        cookie = `${cookieName}=${cookieValue}`
+    }
+    return { userId, email, password, roleId: null, roleCode: null, codes: [], employeeId: null, token, cookie,
+             cookieName, cookieValue, session, stamp, throwawayRole: false, kind: 'portal', contactId, linkId, supplierId }
 }
 
 // ── 执行 ────────────────────────────────────────────────────────────────────

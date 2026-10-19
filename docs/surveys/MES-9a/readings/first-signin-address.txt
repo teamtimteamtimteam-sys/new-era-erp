@@ -1,0 +1,4 @@
+ADDR|staff (gm clone), first sign-in|change-password form on screen=true|address /|navigations /login → /login → /
+ADDR|staff (gm clone), after a reload|address /set-password|form=true
+MES9A_ADDR_EXIT=0
+ADDRRUN_EXIT=0

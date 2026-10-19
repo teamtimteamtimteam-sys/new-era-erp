@@ -187,6 +187,13 @@ CREATE TRIGGER trg_employees_user_not_additional
     BEFORE INSERT OR UPDATE OF user_id ON public.employees
     FOR EACH ROW EXECUTE FUNCTION public.guard_employee_user_not_additional();
 
+-- ★ MES-9a(2026-10-19,MES-9 Step 0 Q5,Tim):一个门户账号永远不是员工 —— 挂一份档案到一个门户账号上按名拒
+--   (PORTAL_ACCOUNT_NO_EMPLOYEE)。反方向(给一个员工账号开门户)挂在 supplier_portal_users 上;理由见
+--   db/functions/guard_portal_account_separation.sql。
+CREATE TRIGGER trg_employees_not_portal_account
+    BEFORE INSERT OR UPDATE OF user_id ON public.employees
+    FOR EACH ROW EXECUTE FUNCTION public.guard_portal_account_separation();
+
 -- ROLE-1(Tim 的矩阵,2026-09-23):对 monthly_salary 的直连写一律拒绝 —— 调薪只走
 -- approve_review,第一份月薪只走 set_initial_salary(Q7)。见 guard_employee_salary_write 的抬头。
 CREATE TRIGGER trg_employees_salary_write

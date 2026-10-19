@@ -13,6 +13,7 @@ import { canEnter } from '@/lib/moduleAccess'
 import { can } from '@/lib/permissions'
 import ContactsPanel, { type ContactRow } from '@/app/sales/customers/ContactsPanel'
 import ScorecardPanel from './ScorecardPanel'
+import PortalAccountsPanel from './PortalAccountsPanel'
 import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'
@@ -255,6 +256,10 @@ export default async function EditSupplierPage({
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.suppliers.edit" supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
             </section>
+            {/* MES-9a(MES-0 Q87 · MES-9 Step 0 Q7):这一家的供应商门户账号 —— 挂在上面那些联系人上;读 module.suppliers.view,
+                开 / 撤销 / 匿名化 action.manage_portal_users(admin · cco)。 */}
+            <PortalAccountsPanel supplierId={supplier.id}
+                contacts={supplierContacts.map((c) => ({ id: c.id, name: c.name, email: c.email }))} />
             </EndedFieldset>
 
             {/* AUDIT-TRAIL-1b-2(Q2):供应商只有这一页(没有详情页),所以审计记录挂在编辑页底 ——

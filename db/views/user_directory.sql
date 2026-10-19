@@ -20,6 +20,9 @@
 --   /settings/accounts 靠它决定这一行给「停用」还是「重新启用」,并画出「已停用」。
 --   判据与 real_role_grants 的第 ③ 条同一句话的反面(banned_until IS NULL OR banned_until < now() 为"未封禁")。
 --
+-- ★ MES-9a(2026-10-19,MES-9 Step 0 Q5 · Q7,Tim):【供应商门户账号不在这里】—— 它们不是员工账号:不持角色、不挂员工档案(两样都被
+--   guard_portal_account_separation 拒),在供应商页上由持 action.manage_portal_users 的人开、撤销。列在这一页会给一个
+--   【永远按不成】的「授角色」与「挂员工」。/settings/accounts 顶上照直说门户账号在哪儿管。
 -- NOTE: introduced by db/migrations/2026-08-02-perm3-banking-and-directory.sql.
 
 CREATE VIEW public.user_directory WITH (security_invoker = off) AS
@@ -44,4 +47,6 @@ CREATE VIEW public.user_directory WITH (security_invoker = off) AS
      LEFT JOIN employees ep ON ep.user_id = u.id AND ep.deleted_at IS NULL
      LEFT JOIN employee_accounts ea ON ea.user_id = u.id
      LEFT JOIN employees e ON e.id = COALESCE(ep.id, ea.employee_id) AND e.deleted_at IS NULL
-  WHERE has_permission('action.manage_permissions'::text);
+  WHERE has_permission('action.manage_permissions'::text) AND NOT (EXISTS ( SELECT 1
+           FROM supplier_portal_users p
+          WHERE p.user_id = u.id));

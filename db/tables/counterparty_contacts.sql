@@ -68,8 +68,13 @@ CREATE TABLE public.counterparty_contacts (
         CHECK (num_nonnulls(customer_id, supplier_id) = 1),
     -- 【至少要有一条够得着人的路】只有名字、没有邮箱也没有电话的"联系人",
     -- 在催收或开票的场景里帮不上任何忙。空字符串在写入路径上落成 NULL(见函数)。
+    -- ★ MES-9a:一位【应请求匿名化】的联系人(portal_contact_anonymise)邮箱与电话都清空了 —— 它不再需要够得着,它已经软删。
     CONSTRAINT counterparty_contacts_reachable
-        CHECK (email IS NOT NULL OR phone IS NOT NULL)
+        CHECK (email IS NOT NULL OR phone IS NOT NULL OR anonymised_at IS NOT NULL),
+    -- ── MES-9a 追加(2026-10-19,MES-9 Step 0 Q20,Tim)────────────────────────────────────────────
+    -- 这位联系人应请求被匿名化的时刻(portal_contact_anonymise:名字换成 Anonymised,职能 / 邮箱 / 电话 / 备注清空,软删,
+    -- 变更记录里关于它的那几列涂掉)。空 = 没有被匿名化。今天只有门户账号背后的联系人走这条路。
+    anonymised_at  timestamptz
 );
 
 -- 每个对手方最多一个主联系人(软删的不算)。

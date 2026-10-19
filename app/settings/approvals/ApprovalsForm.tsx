@@ -125,7 +125,9 @@ export default function ApprovalsForm({
                         id="apr-l1"
                         value={l1}
                         onChange={(e) => setL1(e.target.value)}
-                        className={CONTROL_SELECT}
+                        // MES-9a 并入(NOROLE-SURFACE §9):选项文字是每一个角色的名字,最长那一个把这颗下拉撑到 454 px,390 px 上整页横向溢出 114 px。
+                        //   max-w-full 只给它一个上限(它所在那一栏的宽度);桌面那一栏 672 px 宽,下拉照旧 454 px,一个像素都不变。
+                        className={`${CONTROL_SELECT} max-w-full`}
                         aria-invalid={fieldError?.field === 'level1RoleCode' ? true : undefined}
                     >
                         <option value="">{t('finance.approvals.rolePickNone')}</option>
@@ -160,7 +162,9 @@ export default function ApprovalsForm({
                         id="apr-l2"
                         value={l2}
                         onChange={(e) => setL2(e.target.value)}
-                        className={CONTROL_SELECT}
+                        // MES-9a 并入(NOROLE-SURFACE §9):选项文字是每一个角色的名字,最长那一个把这颗下拉撑到 454 px,390 px 上整页横向溢出 114 px。
+                        //   max-w-full 只给它一个上限(它所在那一栏的宽度);桌面那一栏 672 px 宽,下拉照旧 454 px,一个像素都不变。
+                        className={`${CONTROL_SELECT} max-w-full`}
                     >
                         <option value="">{t('finance.approvals.rolePickNone')}</option>
                         {roles.map((r) => (

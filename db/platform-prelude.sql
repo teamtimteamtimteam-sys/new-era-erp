@@ -66,7 +66,9 @@ CREATE TABLE IF NOT EXISTS auth.users (
     phone_confirmed_at timestamptz,
     confirmed_at      timestamptz GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
     banned_until      timestamptz,
-    deleted_at        timestamptz
+    deleted_at        timestamptz,
+    -- ── MES-9a(2026-10-19)之后这一列成了【必需的】:supplier_portal_accounts 读 must_change_password(中间件按它扣人在 /set-password)。
+    raw_user_meta_data jsonb
 );
 
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
@@ -168,3 +170,34 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
 --     而且 db/gate.py 的 guc 判据只看 `setrole = 0`(库级),
 --     写成库级反而会凭空造出一处 GUC 漂移。
 ALTER ROLE postgres SET search_path TO "$user", public, extensions;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 5. ★ MES-9a(2026-10-19,MES-9 Step 0 Q2 · §10,Tim):供应商门户的角色,与 Supabase Auth 自己那两个角色 ★
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【supabase_auth_admin · authenticator】平台的。前者是 Supabase Auth 调 access token hook 时的身份(portal_access_token_hook 只授它、
+--   supplier_portal_users 给它一条只读策略);后者是 PostgREST 登录的身份,它【持有】每一个令牌可能切到的角色。镜像点了它们的名,裸集群上由这里补齐。
+-- 【supplier_portal】★ 这个是【我们的】,不是平台的 —— 它在这里,是因为镜像里的 GRANT / 策略点它的名,而角色是集群级的对象,没有一份
+--   单个对象的镜像文件装得下它(Step 0 §10:"db/platform-prelude.sql learns the role")。线上由 MES-9a 的迁移建
+--   (CREATE ROLE supplier_portal NOLOGIN NOINHERIT; GRANT supplier_portal TO authenticator),两边逐字同一句。
+--   它【不是】authenticated 的成员,也不是任何角色的成员:它够得着的只有按名授给它的东西 —— 判词八(db/check_portal.py)
+--   在两侧把它的权限从目录里逐条列出来,与 db/portal-grants-baseline.tsv 逐条相等。
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='supabase_auth_admin') THEN CREATE ROLE supabase_auth_admin NOLOGIN NOINHERIT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticator') THEN CREATE ROLE authenticator NOLOGIN NOINHERIT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='supplier_portal') THEN CREATE ROLE supplier_portal NOLOGIN NOINHERIT; END IF;
+END $$;
+GRANT anon, authenticated, service_role TO authenticator;
+GRANT supplier_portal TO authenticator WITH INHERIT FALSE, SET TRUE;
+-- 【PostgreSQL 16 的一条平台事实,照样补上】线上建这个角色的是 postgres —— 一个【非超级用户】的 CREATEROLE 角色;PG16 让建角色者自动成为
+--   它所建角色的成员,只带 ADMIN(inherit=false · set=false:管得了,变不成)。裸集群上建它的是超级用户,没有这一行 —— 判词八会为这一处
+--   平台差异报"线上多一条";所以这里把它写出来,两边才是同一张门户面(MES-9a 实测:grantor supabase_admin,admin=t inherit=f set=f)。
+GRANT supplier_portal TO postgres WITH ADMIN TRUE, INHERIT FALSE, SET FALSE;
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+
+-- 【auth.sessions】门户函数问"这个令牌的会话还在吗"(portal_require_link,Q8),撤销删它(portal_user_revoke)。
+--   形状照抄真实的 Supabase 里用得到的那两列(其余列线上有,镜像一列都不读)。
+CREATE TABLE IF NOT EXISTS auth.sessions (
+    id         uuid PRIMARY KEY,
+    user_id    uuid NOT NULL,
+    created_at timestamptz
+);

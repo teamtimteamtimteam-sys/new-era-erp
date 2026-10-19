@@ -820,6 +820,25 @@ REVOKE EXECUTE ON FUNCTION public.guard_compliance_pack_issue_write() FROM authe
 --   自己查码(session_is_floor_display_only 只读调用者自己的授权,所以对每一个登录的人开放);floor_board_arms 是纯函数,不读任何表。
 
 -- ════════════════════════════════════════════════════════════════════════════
+-- MES-9a(2026-10-19,MES-9 Step 0 Q2 · Q3 · Q11 · Q27,Tim):【供应商门户】—— 三类函数,三种授法。
+-- ════════════════════════════════════════════════════════════════════════════
+-- ① 门户会话调的(portal_me · portal_export_my_data):【只】授 supplier_portal。authenticated 与 service_role 从第 31 行那一句拿到的收回 ——
+--    一个员工会话(或 hook 被关掉之后拿着 authenticated 令牌的门户账号)调它们是 42501,门户看得见地停下(Q11)。
+--    supplier_portal 能执行的每一支都在 db/portal-grants-baseline.tsv 里(判词八,两侧逐条相等);fixture 275 对其中每一支跑两家供应商。
+REVOKE EXECUTE ON FUNCTION public.portal_me() FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_export_my_data() FROM authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.portal_me() TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_export_my_data() TO supplier_portal;
+-- ② 内层判据 portal_require_link:谁都不授 —— 只由 ① 在它们自己的 DEFINER 体内调用(属主身份)。
+REVOKE EXECUTE ON FUNCTION public.portal_require_link() FROM authenticated, service_role;
+-- ③ access token hook:只授 supabase_auth_admin(Supabase Auth 调它的那个身份)。它对每一个人的每一次签发都跑,
+--    authenticated / anon / service_role 都没有理由调它。
+REVOKE EXECUTE ON FUNCTION public.portal_access_token_hook(jsonb) FROM authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.portal_access_token_hook(jsonb) TO supabase_auth_admin;
+-- 员工那一侧的(portal_user_create_link · portal_user_revoke · portal_contact_anonymise · portal_actor_labels · set_account_setting)
+--   照第 31 行授给 authenticated —— 它们是 DEFINER,自己查码(action.manage_portal_users / action.manage_permissions)或会话(auth.uid())。
+
+-- ════════════════════════════════════════════════════════════════════════════
 -- F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】—— 收回 anon / authenticated(与 PUBLIC)在 public 里【每一张视图】上的
 --   INSERT · UPDATE · DELETE · TRUNCATE。
 -- ════════════════════════════════════════════════════════════════════════════

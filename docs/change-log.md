@@ -1586,3 +1586,42 @@ verdict 7 (`db/check_norole.py`) pin every rule below, each fault-injected.
 - Storage: object rows live in `storage.objects`, which is the platform's schema and carries no change-log trigger (unchanged). The cut changes which
   session may read, upload or remove a file, not what is recorded about it.
 
+
+## 35. Supplier portal accounts — identity and isolation (MES-9a, v1.4.60, 2026-10-19)
+
+Hand-back `docs/handbacks/MES-9a.md`; fixture 275 (arms CODE · LINK · SEP · HOOK · EVERY · EXPORT · REVOKE · ANON · TRAIL · VIEW · VALUES · LOG · GRANTS)
+and verdict 8 (`db/check_portal.py`, the portal role's privileges = `db/portal-grants-baseline.tsv`) pin every rule below; 31 fixture cells and 5
+verdict-8 cells fault-injected by `db/scripts/2026-10-19-mes9a-fixture-injections.py`, re-run on a fresh rebuild after the last database edit.
+
+### 35.1 Logged, excluded, masked
+
+- **Two new tables, both logged.** `supplier_portal_users` (one row per portal account: supplier, contact, revoke and anonymise stamps) and
+  `account_settings` (the single V38 / V40 row, empty on live). Public tables **321 → 323**, bound **313 → 315**, exclusions stay **8**, mask rules stay
+  **119** (a portal link carries no money, pay or health detail; the contact's email and phone already sit behind `module.suppliers.view`).
+- **One new column on `counterparty_contacts`** (`anonymised_at`), empty on live; it is part of the row's logged images from now on.
+- **The migration's own `change_log` rows:** one `permissions` INSERT (`action.manage_portal_users`) and its `requires_view_any` UPDATE, two
+  `role_permissions` INSERTs (admin · cco) — read back by the migration's `txid` in its self-proof. `account_settings`' bootstrap INSERT precedes the
+  table's change-log trigger in the migration, so it has no row.
+- **A portal account's own actions are logged like anyone's** (`actor_account` = the portal account; `db_role` = `supplier_portal`). In 9a a portal
+  account writes nothing: its two functions only read.
+
+### 35.2 Anonymisation reaches the change log (MES-9 Step 0 Q20)
+
+- `change_log_redactable_columns('counterparty_contacts')` = name · role · email · phone · notes. `portal_contact_anonymise` (only for a revoked portal
+  account, `action.manage_portal_users`) blanks the contact row, soft-deletes it, then redacts every logged image of that contact — including the one its
+  own UPDATE just wrote — through the one UPDATE shape `guard_change_log_append_only` allows (the employee anonymisation's mechanism, unchanged).
+  The account id stays on every row it touched; the sign-in email is replaced through the Auth admin API (`anonymised-<id>@portal.invalid`).
+
+### 35.3 Audit trail
+
+- **`supplier_portal_users` joins the supplier's trail** (`trail_subject_members` 'supplier' 7, home): "Supplier portal account created · <contact>",
+  "Supplier portal account revoked · <contact>" (the reason in the reason cell), "Supplier portal contact anonymised on request · <contact>".
+- **Who:** `trail_actor` names a portal account **"Supplier portal — <supplier name>"** (state `portal`), and `ActorName` on the pages says the same
+  through `portal_actor_labels` (MES-9 Step 0 Q21). The supplier name is a display label (standing decision 3), so it is not Restricted for readers
+  without `module.hr.view`. `scripts/check-trail-wording.mjs` ㊱ pins the four sentences; `TRAIL_WORDING_FAULT=wording-drift-mes9a` turns it red.
+
+### 35.4 Not logged because it is not a table write
+
+- Enabling or disabling the access-token hook is a Supabase project setting (Management API / dashboard), not a database write; the hand-back records
+  when it was enabled. Bans and global sign-out are Supabase Auth state (`auth.users.banned_until`, `auth.sessions`) — the revoke itself is logged on
+  `supplier_portal_users`.

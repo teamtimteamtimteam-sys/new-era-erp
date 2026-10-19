@@ -118,6 +118,10 @@ const EXCEPTIONS = new Map([
     // ★ MES-8b-2(2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19 · Q20):车间大屏。它的入口是挂在墙上的那块屏自己(管理员在那块屏上
     //   打开这个地址一次),不是菜单 —— 而一块大屏的会话除了它什么都打不开。门 data.view_floor_board(floor_display · admin · cfo)。
     ['/display', '车间大屏(/display):墙上那块屏自己打开的地址,不是二级菜单;一块大屏的会话只打得开它(lib/floorDisplay.ts)。'],
+    // ★ MES-9a(2026-10-19,MES-0 Q88 · MES-9 Step 0 Q10):供应商门户。它的读者【不是】员工 —— 一个供应商门户会话登录之后就落在这里,
+    //   并且打不开任何别的页;员工会话打开它得到一句拒绝。所以它不在员工的导航里,而且一条员工页面的链接都不该指向它。
+    ['/portal', '供应商门户(/portal):供应商门户会话登录之后的落点,也是它唯一打得开的地方;员工会话打开它得到一句拒绝(lib/loginRoute.ts 的 isPortalPath)。'],
+    ['/portal/my-data', '门户账号下载它自己的资料(一个 Route Handler,回一份 JSON 附件 —— 不是页面);入口是 /portal 上那条下载链接。'],
     // ★ COD-2(2026-09-08):两条【不是给本系统用户走的】路由 ★
     ['/verify/cod/[token]',
         '销毁证书的核验页。**本系统第一条不需要会话的业务路由**(PUBLIC_PATHS 里加的那一条),' +

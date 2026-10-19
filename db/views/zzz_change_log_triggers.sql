@@ -10,6 +10,10 @@
 -- 【名字以 zzz 开头】同一张表上的 AFTER 触发器按名字排序触发 —— 记录最后一个看到那一行。
 -- 【参数是主键列名】change_log_capture 用它们拼 row_key;复合主键就是多个参数。
 
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.account_settings
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.account_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.accounts
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.accounts
@@ -1141,6 +1145,10 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.supplier_attachm
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.supplier_compliance
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.supplier_compliance
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.supplier_portal_users
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.supplier_portal_users
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.supplier_score_settings
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');

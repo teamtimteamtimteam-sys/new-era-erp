@@ -91,6 +91,12 @@ CREATE TRIGGER trg_user_roles_last_admin
     BEFORE UPDATE OR DELETE ON public.user_roles
     FOR EACH ROW EXECUTE FUNCTION public.guard_last_admin();
 
+-- ★ MES-9a(2026-10-19,MES-9 Step 0 Q5,Tim):一个门户账号永远不持角色 —— 授它一个角色(或把一条撤销了的授权撤回)按名拒
+--   (PORTAL_ACCOUNT_NO_ROLES),撤销了的门户账号也一样。反方向挂在 supplier_portal_users 上(db/functions/guard_portal_account_separation.sql)。
+CREATE TRIGGER trg_user_roles_not_portal_account
+    BEFORE INSERT OR UPDATE OF user_id, revoked_at ON public.user_roles
+    FOR EACH ROW EXECUTE FUNCTION public.guard_portal_account_separation();
+
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 -- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q1–Q5,Tim):读不再是 USING (true) —— 一个没有角色的会话一行都读不到;谓词 = 今天读它的那几页的码之并(没有一个角色丢掉一条路)。
 --   每个会话自己的码照旧经 current_user_permissions()(SECURITY DEFINER)拿;本表直读只有 /settings 那几页(action.manage_permissions),外加【自己那几行】(Q3)。

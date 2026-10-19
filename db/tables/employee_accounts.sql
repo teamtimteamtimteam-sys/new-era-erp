@@ -37,6 +37,11 @@ CREATE TRIGGER trg_employee_accounts_not_primary
     BEFORE INSERT OR UPDATE ON public.employee_accounts
     FOR EACH ROW EXECUTE FUNCTION public.guard_employee_account_not_primary();
 
+-- ★ MES-9a(2026-10-19,MES-9 Step 0 Q5):一个门户账号也不许是某人的额外账号(PORTAL_ACCOUNT_NO_EMPLOYEE)
+CREATE TRIGGER trg_employee_accounts_not_portal_account
+    BEFORE INSERT OR UPDATE OF user_id ON public.employee_accounts
+    FOR EACH ROW EXECUTE FUNCTION public.guard_portal_account_separation();
+
 -- 迁移以 postgres 建表,本来就没有 anon;重建的 prelude 会多给一份 —— 显式收掉
 -- (scripts/check-anon-grant-decision.mjs 要求每一张新表对 anon 表态)。
 REVOKE ALL ON public.employee_accounts FROM anon;

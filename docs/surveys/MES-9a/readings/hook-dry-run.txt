@@ -1,0 +1,33 @@
+START 17:51:02
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A hook admin@swm-os.test unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A hook chooer@evoltrya.test unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A hook fusheng@evoltrya.test unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A hook phua@evolytra.test unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A hook sandra@evoltrya.test unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A hook tim@evoltrya.test unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A hook vince@evoltrya.test unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2343: NOTICE:  MES9A pending stocktake ST-2026-0089 → chooer@evoltrya.test
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|copy of admin|86 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|copy of cco|50 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|copy of cfo|36 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|copy of cto|41 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|copy of finance|43 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|copy of gm|23 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|copy of warehouse|31 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|no role|0 codes|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|display only (floor_display)|1 code|claims unchanged = t|role in token = authenticated
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|internal failure (user_id not a uuid)|-|claims unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|throwaway portal account|0 codes|role in token = supplier_portal|all other claims unchanged = t
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|as supplier_portal: portal_me() → supplier ZZ-PROBE mes9a dry run supplier
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|as supplier_portal: SELECT FROM suppliers → 42501 (refused)
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|as supplier_portal: current_user_permissions() → 42501 (refused)
+psql:/var/folders/0g/p4sk8yl51rgbwrs1qshm8kyc0000gn/T/mes9adry.XXXXXX.K6ZS2XZCmI:2425: NOTICE:  DRY|done: 7 staff role copies + no-role + display + failure path + portal
+ AFTER_ROLLBACK|supplier_portal role exists=false|supplier_portal_users exists=false|zz-mes9a-dry roles=0
+DRY_OWN_EXIT=0

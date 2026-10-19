@@ -63,7 +63,7 @@ import type { Database } from '@/lib/database.types'
 import { NextResponse, type NextRequest } from 'next/server'
 import { ACTIVITY_COOKIE, isIdleExpired } from '@/lib/session'
 // 【一处定义】公开路径与 ?next= 的判据都在这里 —— 根布局与登录页读的是同一份。
-import { isPublicPath, landingPath } from '@/lib/loginRoute'
+import { isPublicPath, landingPath, portalLandingPath, tokenRoleOf, PORTAL_DB_ROLE } from '@/lib/loginRoute'
 
 /**
  * 【判断不出】的判据,只有一处定义。
@@ -249,6 +249,41 @@ export async function updateSession(request: NextRequest) {
         }
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // ★ MES-9a(2026-10-19,MES-9 Step 0 Q10 · Q11,Tim):【这个会话是不是一个供应商门户会话】—— 令牌自己说。
+    //
+    // Supabase Auth 的 hook 给门户账号的令牌写 role = supplier_portal。上面那次 getUser() 已经让认证服务验过这个令牌;
+    // 这里只从 cookie 里那份(刚刚可能被刷新过的)会话解出它的 role —— 没有第二趟往返(getSession 读的是本地存储)。
+    // 员工会话:sessionRole 是 'authenticated',下面两条一条都不碰它 —— 员工的登录、刷新、空闲登出【一个字节都不变】。
+    //
+    // 【一个门户账号拿着一个不是 supplier_portal 的令牌 = hook 没有作用到它】(被关掉、或者它里面失败了 —— 它失败时原样返回,
+    //   绝不让任何人登录不了)。那样的令牌在库里是一个没有角色的会话:门户函数一支都调不到(只授 supplier_portal),
+    //   它也不该在员工那一面晃 —— 所以登出,并说出原因(Q11:门户看得见地停下,而不是悄悄变宽)。
+    //   "这是一个门户账号"认的是 app_metadata.supplier_portal —— 由开账号的服务端动作以 service role 写下,用户自己改不了。
+    // ════════════════════════════════════════════════════════════════════════
+    let sessionRole: string | null = null
+    if (user) {
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            sessionRole = tokenRoleOf(session?.access_token)
+        } catch {
+            sessionRole = null
+        }
+    }
+    const portalAccount = user?.app_metadata?.supplier_portal === true
+    if (user && portalAccount && sessionRole !== PORTAL_DB_ROLE && !isPublic && !cannotDetermine(authError)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.search = ''
+        url.searchParams.set('reason', 'portal_unavailable')
+        const redirect = NextResponse.redirect(url)
+        for (const c of request.cookies.getAll()) {
+            if (/^sb-.+-auth-token(\.\d+)?$/.test(c.name)) redirect.cookies.delete(c.name)
+        }
+        redirect.cookies.delete(ACTIVITY_COOKIE)
+        return redirect
+    }
+
     // 【判断不出】—— 挡住,并说出来。放在 `!user` 之前,因为这两种情形的 user 都是 null。
     // 公开路径放行:登录页本来就不需要会话,而认证不通时登录本身会各自报它的错。
     if (cannotDetermine(authError) && !isPublic) {
@@ -284,7 +319,9 @@ export async function updateSession(request: NextRequest) {
         // ?next= 的判据【不在这里重写】—— 与登录页、登录动作用的是同一个函数。
         // UI-1a Step 6:落点与登录动作【同一支函数】。
         // 从前这里与 app/login/actions.ts 各写死了一个 '/suppliers'。
-        const target = landingPath(request.nextUrl.searchParams.get('next'))
+        // MES-9a(Q10):一个门户会话落在 /portal(next 只在它本来就在门户里时才收)。
+        const nextParam = request.nextUrl.searchParams.get('next')
+        const target = sessionRole === PORTAL_DB_ROLE ? portalLandingPath(nextParam) : landingPath(nextParam)
         const dest = new URL(target, request.nextUrl.origin)
         const redirect = NextResponse.redirect(dest)
         // 【把刷新过的会话 cookie 带上】getUser() 可能刚刚续了令牌;

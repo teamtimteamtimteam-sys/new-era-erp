@@ -1151,6 +1151,11 @@ const EXPECTED = {
     //     · **有效令牌永不被限流**,所以真实的证书持有人一个都不受影响。
     //     · 零业务数据:没有证书、没有单据、没有账号。
     '/verify/cod/[token]': [404],
+    // ── MES-9a(2026-10-19,MES-9 Step 0 Q20):门户账号下载它自己的资料 —— 一个 Route Handler,以请求自己的会话调 portal_export_my_data()。
+    //   那支函数只授 supplier_portal;冒烟的会话是一个员工(全码)会话,于是它【必须】被拒:403 正是这条路由对员工会话该说的话
+    //   (42501 → 403)。一个 200 才是坏了 —— 那意味着员工那一面调得到门户函数。门户会话那一半(200、只有自己的)由线上证明证
+    //   (db/scripts/2026-10-19-mes9a-live-proof.mjs ⑤)。不写库。
+    '/portal/my-data': [403],
     // ── ★★ /me/avatar —— 与上面那一条【同一个提交带进来的】,而预检把它遮了两天 ★★
     // 【它不是任何一刀弄坏的,这句话是量出来的】
     //   · `git show HEAD:scripts/smoke-routes.mjs | grep -c 'me/avatar'` = **0** —— 在 HEAD 上就没登记过;

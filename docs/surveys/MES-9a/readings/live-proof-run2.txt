@@ -1,0 +1,63 @@
+· cco clone mes9aprobe-1792411834286-lp-cco@test.local (50 codes)
+· suppliers A SUP-2026-0451 · B SUP-2026-0452
+PASS|① A: created through the supplier page as the cco clone — "Portal account created for mes9aprobe-1792411834286-pa@test.local. Hand the initial passwo" · link da286ad0-7c80-4617-8084-4e088317f455
+PASS|① B: created through the supplier page as the cco clone — "Portal account created for mes9aprobe-1792411834286-pb@test.local. Hand the initial passwo" · link 3f7c0a05-e5ed-4fcc-8ed7-5d6228ca2e71
+FAIL|② A: first sign-in is held on the change-password form (initial password must be changed) — address /portal · navigations /login → /login → /portal
+PASS|② A: after the change it lands on /portal showing supplier SUP-2026-0451
+PASS|② A: its token's role is supplier_portal
+FAIL|② B: first sign-in is held on the change-password form (initial password must be changed) — address /portal · navigations /login → /login → /portal
+PASS|② B: after the change it lands on /portal showing supplier SUP-2026-0452
+PASS|② B: its token's role is supplier_portal
+PASS|layout: /portal as a portal user at 390 px — page overflow 0 px
+PASS|layout: /portal as a portal user at 1280 px — page overflow 0 px
+PASS|③ A: / → 200 · refused with a way back to /portal
+PASS|③ A: /suppliers → 200 · refused with a way back to /portal
+PASS|③ A: /settings/accounts → 200 · refused with a way back to /portal
+PASS|③ A: /me → 200 · refused with a way back to /portal
+PASS|③ A: /finance/journal → 200 · refused with a way back to /portal
+PASS|③ A: /inventory → 200 · refused with a way back to /portal
+PASS|③ A: /suppliers/28d580b8-773d-4cdc-ab3b-485e14dc3262/edit → 200 · refused with a way back to /portal
+PASS|③ A: /portal → 200, its own supplier SUP-2026-0451, nothing of the other
+PASS|③ B: / → 200 · refused with a way back to /portal
+PASS|③ B: /suppliers → 200 · refused with a way back to /portal
+PASS|③ B: /settings/accounts → 200 · refused with a way back to /portal
+PASS|③ B: /me → 200 · refused with a way back to /portal
+PASS|③ B: /finance/journal → 200 · refused with a way back to /portal
+PASS|③ B: /inventory → 200 · refused with a way back to /portal
+PASS|③ B: /suppliers/298d2fc3-88ee-4817-ba9b-f51e454423ee/edit → 200 · refused with a way back to /portal
+PASS|③ B: /portal → 200, its own supplier SUP-2026-0452, nothing of the other
+PASS|④ A: portal_me → its own supplier only
+PASS|④ A: portal_export_my_data → its own data only
+PASS|④ A: 57 relations (every no-role-readable relation + the internal ones) — refused all
+PASS|④ A: staff functions (current_user_permissions, session_is_floor_display_only, approvals_enabled, portal_actor_labels) — refused all
+PASS|④ A: storage — 19 buckets, lists nothing
+PASS|⑤ A: /portal/my-data → 200 application/json, its own data only
+PASS|④ B: portal_me → its own supplier only
+PASS|④ B: portal_export_my_data → its own data only
+PASS|④ B: 57 relations (every no-role-readable relation + the internal ones) — refused all
+PASS|④ B: staff functions (current_user_permissions, session_is_floor_display_only, approvals_enabled, portal_actor_labels) — refused all
+PASS|④ B: storage — 19 buckets, lists nothing
+PASS|⑤ B: /portal/my-data → 200 application/json, its own data only
+PASS|⑥ A revoked through the supplier page (row state revoked)
+PASS|⑥ A's next call with its still-unexpired token → HTTP 400 {"code":"P0001","details":null,"hint":null,"message":"PORTAL_ACCESS_REVOKED"}
+PASS|⑥ A cannot sign in again → HTTP 400 user_banned
+PASS|⑥ A's browser session on /portal → 307 /login?reason=ended&next=%2Fportal
+PASS|⑥ B still works (portal_me → 200)
+PASS|⑥b A's contact anonymised through the page (row anonymised; contact Anonymised/null; sign-in email anonymised-245ef827@portal.invalid; account kept)
+PASS|⑦ a staff copy (cco clone) on /portal → refused
+ROLES|role|codes|supplier page|portal section|can create (action.manage_portal_users)|/settings/accounts|V38/V40 panel · portal note
+APPROVALS|1280 px|without max-w-full: selects 565/565 px, page overflow 0 px|with it: 565/565 px, overflow 0 px|put back: 565/565 px, overflow 0 px
+PASS|fold-in: /settings/approvals at 1280 px — select widths unchanged by the fix (565/565 px)
+APPROVALS|390 px|without max-w-full: selects 638/638 px, page overflow 297 px|with it: 292/292 px, overflow 0 px|put back: 292/292 px, overflow 0 px
+PASS|fold-in: /settings/approvals at 390 px — page overflow 297 → 0 px
+ROLES|admin|86|200|sees|yes|opens|both shown
+ROLES|cco|50|200|sees|yes|refused|—
+ROLES|cfo|36|200|sees|no (shown, unpressable, names the code)|refused|—
+ROLES|cto|41|200|sees|no (shown, unpressable, names the code)|refused|—
+ROLES|finance|43|200|sees|no (shown, unpressable, names the code)|refused|—
+ROLES|gm|23|200|sees|no (shown, unpressable, names the code)|refused|—
+ROLES|warehouse|31|200|sees|no (shown, unpressable, names the code)|refused|—
+STEP|done with 2 FAIL
+AFTER|residue is read separately, as postgres, by docs/surveys/MES-9a/live-readings.sql (after the plan ran)
+MES9A_PROOF_EXIT=1
+PROOFRUN_EXIT=1

@@ -223,7 +223,11 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('action.supplier_review', 'action', 'Review supplier scorecards and set the grading', '评审供应商评分卡与设定评级', 'Record a supplier review: the scorecard measures over a window you type are copied onto the review, with the weights, grade lines, prepayment caps and sampling levels in force and the resulting grade. A mistaken review is corrected by a new review citing it with a reason. Also sets those weights, grade lines and the review window (V23), and each grade''s prepayment cap and sampling level (V24).', '记一次供应商评审:你输入的窗口里的评分卡计数抄进评审,连同当时生效的权重、等级线、预付上限与抽样级别,以及由此得到的等级。记错的评审由一次引用它、写明理由的新评审更正。也由这个码设定那些权重、等级线与评审周期(V23),以及每一等级的预付上限与抽样级别(V24)。', 1260),
     -- ── MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q15 · Q16 · Q17,Tim):冻一个已关账月份的合规包、带理由重出一份(-2)、存它的 PDF、
     -- 设 V26 / V27。持有人 cto · admin(只在迁移里授)。它声明的查看码是 module.compliance.view(合规包页 /compliance/packs 的门)。
-    ('action.compliance_pack', 'action', 'Freeze compliance packs', '冻结合规包', 'Freeze the compliance pack of a finance-locked month (CPK-YYYY-MM), re-issue it with a required reason (CPK-YYYY-MM-2, the first one kept), archive its PDF, and set the NEA return format (V26) and the EU recycling-efficiency method (V27).', '冻下一个已关账月份的合规包(CPK-YYYY-MM)、写明理由重出一份(CPK-YYYY-MM-2,第一份留着)、存它的 PDF,以及设 NEA 申报的格式(V26)与欧盟回收效率的方法(V27)。', 1270);
+    ('action.compliance_pack', 'action', 'Freeze compliance packs', '冻结合规包', 'Freeze the compliance pack of a finance-locked month (CPK-YYYY-MM), re-issue it with a required reason (CPK-YYYY-MM-2, the first one kept), archive its PDF, and set the NEA return format (V26) and the EU recycling-efficiency method (V27).', '冻下一个已关账月份的合规包(CPK-YYYY-MM)、写明理由重出一份(CPK-YYYY-MM-2,第一份留着)、存它的 PDF,以及设 NEA 申报的格式(V26)与欧盟回收效率的方法(V27)。', 1270),
+    -- ── MES-9a(2026-10-19,MES-0 Q87 · MES-9 Step 0 Q7,Tim):供应商门户的账号 —— 给一家供应商的一位联系人开一个门户登录(初始密码当面交、
+    -- 首次登录必须换)、撤销它(下一次调用就拒)、应请求匿名化它背后的联系人。持有人 admin · cco(只在迁移里授 —— cco 只活在线上)。
+    -- 它声明的查看码是 module.suppliers.view(供应商页 /suppliers/[id]/edit 的门,门户账号那一块在那一页上)。看那一块只要 module.suppliers.view。
+    ('action.manage_portal_users', 'action', 'Manage supplier portal accounts', '管理供应商门户账号', 'Give a supplier''s contact a sign-in to the supplier portal (an initial password handed over outside the system, which must be changed at first sign-in), revoke one at once, and anonymise the contact behind a revoked one on request. A portal account sees only its own supplier''s records and none of the company''s internal pages. Seeing the portal accounts on a supplier needs only Suppliers (view).', '给一家供应商的一位联系人开一个供应商门户的登录(初始密码在系统之外当面交,第一次登录必须换)、立刻撤销一个,以及应请求把一个已撤销账号背后的联系人匿名化。门户账号只看得见它自己那一家供应商的记录,看不见公司的任何内部页面。看一家供应商有哪些门户账号只要「供应商(查看)」。', 1280);
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -274,6 +278,8 @@ UPDATE public.permissions p SET requires_view_any = d.views
     ('action.supplier_review',          ARRAY['module.suppliers.view']),
     -- MES-8b-1(Step 0 Q17):冻包、重出、存档与设 V26 / V27 都在合规包页(门 module.compliance.view)。
     ('action.compliance_pack',          ARRAY['module.compliance.view']),
+    -- MES-9a(Step 0 Q7):开 / 撤销 / 匿名化门户账号都在供应商页(门 module.suppliers.view)。
+    ('action.manage_portal_users',      ARRAY['module.suppliers.view']),
     ('action.wo_create',                ARRAY['module.processing.view']),
     ('action.wo_release',               ARRAY['module.processing.view'])
   ) AS d(code, views)

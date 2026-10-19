@@ -44,6 +44,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { MIN_PASSWORD_LENGTH } from '@/lib/passwordPolicy'
+import { tokenRoleOf, PORTAL_DB_ROLE, PORTAL_PATH } from '@/lib/loginRoute'
 
 // 设完密码往哪儿落。my_profile 对没关联员工档案的账号返回零行,
 // 所以这一句同时回答了"这个人有没有员工档案"。
@@ -53,6 +54,9 @@ import { MIN_PASSWORD_LENGTH } from '@/lib/passwordPolicy'
 //  fix1-repro 有档案 + warehouse → /me,两条都跑过。)
 export async function landingAfterSetPassword(): Promise<string> {
     const supabase = await createClient()
+    // ★ MES-9a(MES-9 Step 0 Q10):一个供应商门户账号换完初始密码落在 /portal —— 它没有员工档案,也读不了 my_profile(它的数据库角色只够得着门户函数)。
+    const { data: { session } } = await supabase.auth.getSession()
+    if (tokenRoleOf(session?.access_token) === PORTAL_DB_ROLE) return PORTAL_PATH
     const { data } = await supabase.from('my_profile').select('employee_id').limit(1)
     return data && data.length > 0 ? '/me' : '/welcome'
 }

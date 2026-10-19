@@ -732,6 +732,8 @@ const TABLE_NAMES = {
     supplier_statements: 'supplier statement', supplier_statement_issues: 'supplier statement PDF issue',
     // MES-8b-1(2026-10-17):合规包与它的签发档 · 合规包的设定(V26 / V27)
     compliance_packs: 'compliance pack', compliance_pack_issues: 'compliance pack PDF issue', compliance_settings: 'compliance pack settings',
+    // MES-9a(2026-10-19):供应商门户账号(挂在供应商的审计记录下)· 账号那一侧的设定(V38 / V40)
+    supplier_portal_users: 'supplier portal account', account_settings: 'account settings',
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',

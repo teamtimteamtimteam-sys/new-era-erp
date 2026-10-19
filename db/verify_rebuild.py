@@ -404,6 +404,12 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "session_is_floor_display_only":
         "MES-8b-2: resolves whether the CALLER's own session is a wall display (only floor_display, "
         "only data.view_floor_board); reads nobody else's grants; false for anon",
+    # MES-9a(MES-9 Step 0 Q21):审计记录与 ActorName 的「Supplier portal — <供应商名>」。给它的是一串调用者【已经拿在手里】的账号 id
+    #   (它在看的那一行上记着的 created_by 之类),回的只是其中是门户账号的那几个与它的供应商名 —— 一个显示标签(常设裁定 3:标签跟着单据走)。
+    #   读 ActorName 的页面横跨每一个模块,没有一个码是它们共有的;要它查一个码,一个不持那个码的读者就会读到"该账号未关联员工档案"那句假话。
+    "portal_actor_labels":
+        "MES-9a: display label for portal accounts the caller already holds ids of; returns only the supplier name; "
+        "raises with no session",
     # APR-2c:审批是否生效。【必须是 definer,且必须留给 authenticated】——
     # finance_settings 的读策略要 module.finance.view,而需要知道这个标志的是
     # 【采购】那几块屏幕(procurement 没有财务权限)。界面有义务把"审批未生效"
@@ -484,7 +490,9 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
 CALLER_CHECK_RE = ("require_permission\\(|has_permission\\(|current_user_employee\\("
                    "|is_reviewer_of\\(|require_reviewer_of\\(|has_any_permission\\("
                    # APR-10:五扇改单门的调用者检查(db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致)。
-                   "|assert_po_manager\\(")
+                   "|assert_po_manager\\("
+                   # MES-9a:门户函数的调用者检查(db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致)。
+                   "|portal_require_link\\(")
 
 B1_SQL = """
 SELECT coalesce(string_agg(p.proname, ',' ORDER BY p.proname), '')

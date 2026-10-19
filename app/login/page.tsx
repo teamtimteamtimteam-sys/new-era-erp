@@ -74,6 +74,9 @@ export default async function LoginPage({
     const t = await getTranslations()
     const refusal = isRefusal(params.error) ? params.error : null
     const sessionEnded = params.reason === 'ended'
+    // MES-9a(MES-9 Step 0 Q11):一个供应商门户账号的令牌没有带上门户角色(access token hook 关着,或者它里面失败了)——
+    //   中间件把它登出并送到这里;说出为什么,不说"密码错了"。
+    const portalUnavailable = params.reason === 'portal_unavailable'
     // 【只接内部路径】判据【只有一处定义】,见 lib/loginRoute.ts ——
     // 这里、登录动作、以及中间件那条「已登录就送进应用」用的是同一个函数。
     // (它此前在本文件与 actions.ts 里各写了一遍,注释还说「两处逐字相同」;
@@ -111,7 +114,7 @@ export default async function LoginPage({
             style={{ fontFamily: 'var(--font-google-sans)' }}
             // 机器标记,与 middleware 的 data-auth-indeterminate、moduleGuard 的
             // data-access-denied 同一条理由:靠认文案去分辨状态会漏。
-            data-login-state={refusal ?? (sessionEnded ? 'ended' : 'clean')}
+            data-login-state={refusal ?? (sessionEnded ? 'ended' : portalUnavailable ? 'portal_unavailable' : 'clean')}
         >
             {/* IDLE-DRAFT:受限表单的草稿不活过一次登出 —— 见组件抬头 */}
             <ClearRestrictedDrafts />
@@ -180,6 +183,14 @@ export default async function LoginPage({
                                 title={t('login.sessionEnded')}
                                 hint={t('login.sessionEndedHint')}
                                 extra={next ? t('login.returnTo', { 0: next }) : undefined}
+                            />
+                        )}
+
+                        {portalUnavailable && (
+                            <LoginNotice
+                                tone="info"
+                                title={t('login.portalUnavailable')}
+                                hint={t('login.portalUnavailableHint')}
                             />
                         )}
 

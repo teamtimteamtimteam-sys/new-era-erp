@@ -34,6 +34,8 @@ export const TRAIL_TEXT = {
     'who.removed': 'Removed account',
     'who.unlinked': 'An account with no person linked',
     'who.anonymised': 'A former employee',
+    // MES-9a(MES-9 Step 0 Q21):一个供应商门户账号做的事
+    'who.portal': 'Supplier portal — {name}',
     'who.unknown': 'Not recorded',
     // ── 值(Q12 · Q13)─────────────────────────────────────────────────────────
     'value.yes': 'Yes',
@@ -537,6 +539,10 @@ export const TRAIL_TEXT = {
     'set.compliance': 'Compliance pack settings changed (V26 / V27)',
     // ── MES-8a:供应商评审与供应商对账单 ─────────────────────────────────────────────
     'sup.reviewRecorded': 'Supplier review recorded',
+    // MES-9a(MES-9 Step 0 §6):这一家的门户账号
+    'sup.portalCreated': 'Supplier portal account created',
+    'sup.portalRevoked': 'Supplier portal account revoked',
+    'sup.portalAnonymised': 'Supplier portal contact anonymised on request',
     'sup.reviewCorrected': 'Correcting supplier review recorded',
     'sup.notGraded': 'Not graded — V23 not set',
     'sup.statementIssued': 'Supplier statement issued',

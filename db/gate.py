@@ -24,6 +24,8 @@ pooler 里跑(40+ 分钟,先后死于 DNS 与 socket 耗尽),verify_rebuild 在�
            —— 它【只在线上跑】,因为镜像里根本没有 GRANT,那正是它要补的缺口
   exit 7 = 【无角色面】一个登录了、没有角色的会话(或只挂 floor_display 的会话)够得着的东西不再是基线的子集
            (NOROLE-SURFACE,db/check_norole.py)—— 线上与重建两侧都问;--offline 只问重建侧(Step 0 Q12)
+  exit 8 = 【门户面】供应商门户角色 supplier_portal 的权限不再与 db/portal-grants-baseline.tsv 逐条相等
+           (MES-9a,db/check_portal.py)—— 两个方向都红(多一条、少一条);线上与重建两侧都问;--offline 只问重建侧(MES-9 Step 0 Q3 · Q28)
 
 ════════════════════════════════════════════════════════════════════════════
 ★★【--offline 是【多出来的一相】,不是"门,但快一点"】★★(VERIFY-1,2026-09-05)
@@ -894,6 +896,24 @@ def main() -> int:
             psql(local, 'CREATE POLICY "zz norole fault accounts open" ON public.accounts FOR SELECT TO authenticated USING (true);')
             print("norole     ★ 故障注入:GATE_NOROLE_FAULT=policy —— 重建库的 accounts 上多了一条 USING (true)(判词七该红并点名它,正是它该做的)")
 
+        # ── 判词八【门户面】(MES-9a):故障注入两格(多一条 / 少一条)+ 一次调用 ──────────────────────────────
+        pf = os.environ.get("GATE_PORTAL_FAULT")
+        if pf == "grant":
+            psql(local, "GRANT SELECT ON public.suppliers TO supplier_portal;")
+            print("portal     ★ 故障注入:GATE_PORTAL_FAULT=grant —— 重建库上 suppliers 被授给了 supplier_portal(判词八该红并点名它)")
+        elif pf == "revoke":
+            psql(local, "REVOKE EXECUTE ON FUNCTION public.portal_me() FROM supplier_portal;")
+            print("portal     ★ 故障注入:GATE_PORTAL_FAULT=revoke —— 重建库上 portal_me() 的 EXECUTE 被收回(判词八该红并点名'少了')")
+
+        def run_portal(offline: bool):
+            cmd = [sys.executable, os.path.join(HERE, "check_portal.py"), "--rebuild", local]
+            cmd += ["--offline"] if offline else ["--live", args.live]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            out = (r.stdout or "") + (r.stderr or "")
+            for line in out.rstrip().split(chr(10)):
+                print("   " + line if not line.startswith("==") else line)
+            return r.returncode
+
         def run_norole(offline: bool):
             cmd = [sys.executable, os.path.join(HERE, "check_norole.py"), "--rebuild", local]
             cmd += ["--offline"] if offline else ["--live", args.live]
@@ -920,6 +940,7 @@ def main() -> int:
             print("     镜像里根本没有 GRANT,那正是它要补的缺口。一个离线版本会什么都")
             print("     不断言却打印绿色,而那是本仓库反复付账的那种失败。")
             print("   ★ 判词【无角色面】(db/check_norole.py)只跑了【重建侧】—— 线上那一侧与存储镜像 vs 线上由整门跑。")
+            print("   ★ 判词【门户面】(db/check_portal.py)只跑了【重建侧】—— 线上那一侧由整门跑。")
             print("   ★★ 迁移之后必须再跑一次不带 --offline 的整门。★★")
             norole_rc = run_norole(offline=True)
             if problems or fixture_fails or invariant_failed:
@@ -935,6 +956,10 @@ def main() -> int:
             if norole_rc != 0:
                 print("迁移前相位:✗ 判词【无角色面】(重建侧)")
                 return 7
+            portal_rc = run_portal(offline=True)
+            if portal_rc != 0:
+                print("迁移前相位:✗ 判词【门户面】(重建侧)")
+                return 8
             print("迁移前相位:✓ 干净 —— 可以往下走(备份 → 迁移 → 整门)")
             return 0
         print(f"\n== 三个判词(wall-clock {elapsed:.0f}s)")
@@ -982,6 +1007,14 @@ def main() -> int:
             return 5
         if norole_rc != 0:
             return 7
+
+        # ── 判词八:门户面(MES-9a)── 两侧都问,与基线逐条相等;退出码 8 是它自己的 ─────────
+        portal_rc = run_portal(offline=False)
+        if portal_rc == 5:
+            print("判词【门户面】:够不到线上 —— 环境故障,原样重跑即可")
+            return 5
+        if portal_rc != 0:
+            return 8
         return 0
     finally:
         subprocess.run(["pg_ctl", "-D", datadir, "stop", "-m", "immediate"], capture_output=True)

@@ -113,6 +113,22 @@ export async function loadActorNames(
             if (n) map.names.set(l.user_id, n)
         }
     }
+    // ★ MES-9a(MES-9 Step 0 Q21):还认不出来的账号,问一次它是不是一个【供应商门户账号】—— 是,就印「Supplier portal — <供应商名>」,
+    //   而不是「该账号未关联员工档案」(那句话对一个门户账号是真的,却说错了它是谁)。供应商名是一个显示标签(常设裁定 3),
+    //   所以它不跟着人事权限变成「受限」:它先进名字表,下面那句 restricted 就轮不到它。
+    const stillMissing = unique.filter((id) => !map.names.has(id))
+    if (stillMissing.length > 0) {
+        const portal = mustRows(
+            await supabase.rpc('portal_actor_labels', { p_user_ids: stillMissing }),
+            'portal account labels for actor names'
+        )
+        if (portal.length > 0) {
+            const t = await getTranslations()
+            for (const p of portal) {
+                if (p.user_id) map.names.set(p.user_id, t('actor.portal', { name: p.supplier_name ?? '' }))
+            }
+        }
+    }
     return map
 }
 

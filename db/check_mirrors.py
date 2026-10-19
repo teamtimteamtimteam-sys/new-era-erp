@@ -390,6 +390,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     # MES-8b-2:空闲豁免与"别的页一律拒"的唯一判据 —— 只答【调用者自己】是不是一块大屏,读不到别人的授权(与上面两支同一个形状);
     #   每一个登录的人都必须调得到(中间件以那个会话自己的身份问),要它查一个码,一块大屏就永远证明不了自己是大屏。
     "session_is_floor_display_only": "resolves whether the caller's own session is a wall display",
+    # MES-9a(MES-9 Step 0 Q21):门户账号的显示标签 —— 只回调用者手里那几个 id 里是门户账号的,与它的供应商名(常设裁定 3)
+    "portal_actor_labels": "display label (supplier name) for portal account ids the caller already holds",
+    # MES-9a:门户函数的调用者检查本身(角色 · 令牌声明 · 链接 · 撤销与封禁 · 会话)—— 它就是"检查",不能再检查自己;EXECUTE 谁都不给
+    "portal_require_link": "the portal caller check itself; EXECUTE granted to nobody",
     "is_reviewer_of": "the identity check itself",
     "require_permission": "raises on behalf of its callers",
     "require_reviewer_of": "raises on behalf of its callers",
@@ -742,7 +746,10 @@ CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employ
                   # "看不出任何调用者检查"。**漏认的方向是安全的那一边(误报,不是漏报)**,
                   # 但一个把正确写法判成违规的检查,会教人去 allowlist 它 —— 而那才是
                   # 真正的损失。verify_rebuild.py 的 CALLER_CHECK_RE 同改,两处必须一致。
-                  "has_any_permission(")
+                  "has_any_permission(",
+                  # MES-9a(2026-10-19,MES-9 Step 0 Q8 · Q11):门户函数的调用者检查 —— 角色是 supplier_portal、令牌声明也是、有一条链接、
+                  # 没撤销没被封、会话还在(portal_require_link 的五条)。verify_rebuild.py 的 CALLER_CHECK_RE 同改,两处必须一致。
+                  "portal_require_link(")
 
 
 def strip_sql_comments(sql: str) -> str:

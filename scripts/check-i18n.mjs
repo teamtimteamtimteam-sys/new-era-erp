@@ -873,6 +873,8 @@ const MANIFEST = {
     //   supplier_scorecard_measure_keys() 逐字同一组 —— 两边不一样这里当场抛)加上只显示的 grade_breaches;对账单明细的种类现读
     //   supplier_statement_data 里那一句 CASE 与 IN 列表(收货叫 receipt,其余照来源);期末未结的种类现读 ap_aging_asof 三支的 doc_kind。
     'scorecards.errors.':          { kind: 'enum', values: () => tsSet('app/suppliers/scorecardErrorCodes.ts', 'SCORECARD_ERROR_CODES') },
+    // MES-9a:供应商门户一族 DB 函数的错误码(portal_require_link · 开 / 撤销 / 匿名化 · set_account_setting)
+    'portal.errors.':              { kind: 'enum', values: () => tsSet('app/portal/portalErrorCodes.ts', 'PORTAL_ERROR_CODES') },
     'scorecards.measure.':         { kind: 'enum', values: () => {
         // 屏幕(SCORED_MEASURES)与库(supplier_scorecard_measure_keys)必须是【同一组、同一个顺序】—— 不一样就当场抛:
         //   库里多一项而屏幕没有,那一项的计数会算进分却不显示;屏幕多一项而库没有,权重存不进去(SCORE_WEIGHT_UNKNOWN)。

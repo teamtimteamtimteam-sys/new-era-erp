@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_settings: {
+        Row: {
+          id: boolean
+          initial_password_valid_days: number | null
+          password_min_length: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          initial_password_valid_days?: number | null
+          password_min_length?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          initial_password_valid_days?: number | null
+          password_min_length?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       accounts: {
         Row: {
           account_type: string
@@ -5047,6 +5071,7 @@ export type Database = {
       }
       counterparty_contacts: {
         Row: {
+          anonymised_at: string | null
           created_at: string
           created_by: string | null
           customer_id: string | null
@@ -5064,6 +5089,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          anonymised_at?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -5081,6 +5107,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          anonymised_at?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -29243,6 +29270,91 @@ export type Database = {
           },
         ]
       }
+      supplier_portal_users: {
+        Row: {
+          anonymised_at: string | null
+          anonymised_by: string | null
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          supplier_id: string
+          user_id: string
+        }
+        Insert: {
+          anonymised_at?: string | null
+          anonymised_by?: string | null
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          supplier_id: string
+          user_id: string
+        }
+        Update: {
+          anonymised_at?: string | null
+          anonymised_by?: string | null
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          supplier_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_portal_users_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "counterparty_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_scorecard_rows"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       supplier_score_settings: {
         Row: {
           grade_caps: Json | null
@@ -47045,6 +47157,70 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_portal_accounts: {
+        Row: {
+          account_email: string | null
+          anonymised_at: string | null
+          banned: boolean | null
+          contact_email: string | null
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          last_sign_in_at: string | null
+          must_change_password: boolean | null
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          supplier_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_portal_users_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "counterparty_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_scorecard_rows"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_portal_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       supplier_receipt_pattern: {
         Row: {
           assay_beyond_receipts: number | null
@@ -50383,6 +50559,26 @@ export type Database = {
       po_category_raise_code: { Args: { p_category: string }; Returns: string }
       po_document_data: { Args: { p_po_id: string }; Returns: Json }
       po_may_manage: { Args: { p_purchase_order_id: string }; Returns: boolean }
+      portal_access_token_hook: { Args: { event: Json }; Returns: Json }
+      portal_actor_labels: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          supplier_name: string
+          user_id: string
+        }[]
+      }
+      portal_contact_anonymise: { Args: { p_link_id: string }; Returns: Json }
+      portal_export_my_data: { Args: never; Returns: Json }
+      portal_me: { Args: never; Returns: Json }
+      portal_require_link: { Args: never; Returns: string }
+      portal_user_create_link: {
+        Args: { p_contact_id: string; p_supplier_id: string; p_user_id: string }
+        Returns: string
+      }
+      portal_user_revoke: {
+        Args: { p_link_id: string; p_reason: string }
+        Returns: Json
+      }
       post_electricity_allocation: {
         Args: {
           p_bank_account?: string
@@ -51697,6 +51893,10 @@ export type Database = {
         Returns: string
       }
       session_is_floor_display_only: { Args: never; Returns: boolean }
+      set_account_setting: {
+        Args: { p_key: string; p_value: number }
+        Returns: Json
+      }
       set_approvals_policy: {
         Args: {
           p_enabled: boolean

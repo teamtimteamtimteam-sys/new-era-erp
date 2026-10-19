@@ -258,6 +258,8 @@ function personVal(d: TrailDict, a: Actor): Val {
         case 'removed': return { text: tx(d, 'who.removed') }
         case 'unlinked': return { text: tx(d, 'who.unlinked') }
         case 'anonymised': return { text: tx(d, 'who.anonymised') }
+        // MES-9a(MES-9 Step 0 Q21):一个供应商门户账号做的事 —— 「Supplier portal — <供应商名>」(trail_actor 判)
+        case 'portal': return { text: tx(d, 'who.portal', { name: a.name ?? '' }) }
         // AUDIT-TRAIL-1b-1 折入 1:别的页面上这个读者看到"受限"的人名,这里也是 Restricted(trail_actor 判)
         case 'restricted': return { text: tx(d, 'restricted'), restricted: true }
         default: return { text: tx(d, 'who.unknown') }
@@ -1063,7 +1065,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     commission_agreement: ['commission_agreements'],
     supplier: ['suppliers', 'supplier_compliance', 'supplier_attachments', 'counterparty_contacts', 'supplier_status_history', 'approval_log',
         // MES-8a:这一家的评审也出现在它下面(家在评分卡页那条集合记录里)
-        'supplier_scorecard_reviews'],
+        'supplier_scorecard_reviews',
+        // MES-9a:这一家的门户账号 —— 开、撤销、匿名化
+        'supplier_portal_users'],
     container: ['containers', 'container_milestones', 'container_documents'],
     forwarder: ['suppliers', 'forwarder_details', 'forwarder_rate_quotes'],
     lane: ['lanes', 'lane_document_requirements'],
@@ -2816,7 +2820,9 @@ function describeCommission(d: TrailDict, rows: TrailRow[], opts: BuildOptions):
 }
 
 // ── 供应商(与货代:账上同一行 suppliers)────────────────────────────────────
-const SUPPLIER_TABLES = new Set(['suppliers', 'supplier_compliance', 'supplier_attachments', 'supplier_status_history', 'forwarder_details', 'forwarder_rate_quotes'])
+// MES-9a:供应商门户账号(开 · 撤销 · 匿名化)也归这一家
+const SUPPLIER_TABLES = new Set(['suppliers', 'supplier_compliance', 'supplier_attachments', 'supplier_status_history', 'forwarder_details', 'forwarder_rate_quotes',
+    'supplier_portal_users'])
 /** 一步状态变动 → 一句话(supplier_status_moves() 里的每一步都有它的说法)*/
 function supplierMove(from: string | null, to: string | null): TrailTextKey {
     switch (to) {
@@ -2871,6 +2877,14 @@ function describeSupplier(d: TrailDict, rows: TrailRow[], opts: BuildOptions, su
     }
     for (const r of by('counterparty_contacts')) out.push(describeContact(d, r, opts))
     for (const r of by('supplier_attachments')) out.push(describeAttachment(d, r, opts))
+    // MES-9a(MES-9 Step 0 §6 · Q21):门户账号 —— 开(挂在哪位联系人上)· 撤销(理由在理由那一格)· 联系人应请求匿名化
+    for (const r of by('supplier_portal_users')) {
+        const who = refLabel(r, 'contact_id')
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'sup.portalCreated'), who), lines: [], key: true, weight: 70 })
+        else if (r.op === 'UPDATE' && isSet(r, 'anonymised_at')) out.push({ title: withPart(tx(d, 'sup.portalAnonymised'), who), lines: [], key: true, weight: 70 })
+        else if (r.op === 'UPDATE' && isSet(r, 'revoked_at')) out.push({ title: withPart(tx(d, 'sup.portalRevoked'), who), lines: [], reason: typed(r.new?.['revoked_reason']), key: true, weight: 70 })
+        else out.push(describeGeneric(d, r, opts))
+    }
     for (const r of by('forwarder_details')) {
         const skip = new Set(['supplier_id'])
         out.push(r.op === 'INSERT' ? { title: tx(d, 'fwd.detailsSet'), lines: valueLines(d, r, r.new, opts, skip), key: false, weight: 50 }

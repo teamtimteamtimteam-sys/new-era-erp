@@ -1,0 +1,19 @@
+# db/portal-grants-baseline.tsv —— 供应商门户角色 supplier_portal 够得着的【每一样】东西,一行一样(MES-9a,2026-10-19;MES-9 Step 0 Q3 · Q27,Tim)。
+# 由 db/check_portal.py(判词八,db/gate.py 退出码 8)断言:**线上与重建库上,从目录里逐条列出来的那张表,必须与本文件【逐条相等】** ——
+#   多一条(有人把一张表、一支函数、一条策略授给了它)红;少一条(门户的一支函数没了)也红。这不是一个上限,是一份约定。
+# 加一行 = 给门户开一扇门:同一个提交里要有那支迁移、一条写下来的理由(最后一列),以及 fixture 275 EVERY 臂里那支函数的两家供应商用例。
+# 格式:kind \t object \t privilege \t reason(理由必填 —— 没有理由的一行读不懂,判词八按"读不懂"红)。
+# 系统目录(pg_catalog / information_schema)里的关系与函数不逐条列(PostgreSQL 对 PUBLIC 开着它们,对每一个角色都一样,只有元数据,PostgREST 不暴露);
+#   它们的架构 USAGE 照列。
+#
+# ── 角色本身 ──
+role	supplier_portal	nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls	不能登录、不继承任何角色、不绕过 RLS —— 它只是 PostgREST 按令牌切过去的那个身份(Step 0 §10)
+held_by	authenticator	member admin=false inherit=false set=true	PostgREST 以 authenticator 登录,要切得到令牌里的 role,就必须持有它(Step 0 §0.4);它【不是】任何角色的成员(没有 member_of 行)
+held_by	postgres	member admin=true inherit=false set=false	PostgreSQL 16:一个【非超级用户】的建角色者(Supabase 上的 postgres)自动成为它所建角色的成员,只带 ADMIN —— 管得了(授给 authenticator、DROP),不能 SET ROLE 成它、也不继承它的任何东西(线上实测 grantor supabase_admin)。重建库由 prelude 照样补上这一行
+# ── 架构 ──
+schema	public	USAGE	PostgreSQL 对 PUBLIC 默认开着 public 的 USAGE —— 调门户函数要它;没有另授(Q27:只给干跑证明需要的)
+schema	pg_catalog	USAGE	PostgreSQL 对每一个角色都开着(系统目录)
+schema	information_schema	USAGE	PostgreSQL 对每一个角色都开着(系统目录)
+# ── 函数(每一支在 fixture 275 EVERY 臂里有一个两家供应商的用例)──
+function	public.portal_me()	EXECUTE	/portal 外壳顶上那一行:调用者自己那一家的编号与名字、它自己那位联系人、登录邮箱(MES-9a)
+function	public.portal_export_my_data()	EXECUTE	个人资料访问请求:调用者自己的联系人、链接、账号与供应商(MES-9 Step 0 Q20)

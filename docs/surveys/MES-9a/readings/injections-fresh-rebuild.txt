@@ -1,0 +1,39 @@
+== a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub
+✓ CODE: declared view code changed → FIXTURE 275 CODE: action.manage_portal_users must be an action code declaring module.suppliers.view
+✓ LINK: the code check removed → FIXTURE 275 LINK: a suppliers viewer created a portal account (42b8b7c5-367e-4024-a7a1-9dca7b12a053)
+✓ LINK: contact-of-supplier check removed → FIXTURE 275 LINK: another supplier's contact was accepted (03f3427a-6bd5-4fe6-acac-47bc9e728b66)
+✓ LINK: email check removed → FIXTURE 275 LINK: an account whose email is not the contact's was accepted (bfa6153c-8345-4a21-bd62-8a6c1dc47d79)
+✓ SEP: role trigger dropped → FIXTURE 275 SEP: a portal account was granted a role
+✓ SEP: employee trigger dropped → FIXTURE 275 SEP: a portal account was linked to an employee
+✓ SEP: additional-account trigger dropped → FIXTURE 275 SEP: a portal account became an additional account
+✓ SEP: reverse (link side) trigger dropped → FIXTURE 275 SEP: an account holding a role got a portal link (ae8c1cce-8c58-49dd-95a8-e8c04681bff3)
+✓ HOOK: staff claims touched → FIXTURE 275 HOOK: the claims of a admin holder changed
+✓ HOOK: the fallback removed (an internal failure raises) → FIXTURE 275 HOOK: the hook raised (invalid input syntax for type uuid: "not-a-uuid") — it must fall back to the unchanged claims
+✓ HOOK: supabase_auth_admin cannot read the link → FIXTURE 275 HOOK: supabase_auth_admin cannot read the portal link
+✓ EVERY: one more function granted to supplier_portal → FIXTURE 275 EVERY: portal_actor_labels(uuid[]) is executable by supplier_portal and has no two-supplier case here
+✓ EVERY: portal_me answers about the first link, not the caller's → FIXTURE 275 EVERY: portal_me() as A — {"contact": {"name": "Bea FX275", "role": null}, "supplier": {"code": "FX275-SB", "name": "fixture 275 supplier B"}, "linked_at": "2026-10-19T18:55:17.505045+08:0
+✓ EVERY: portal_me granted to authenticated → FIXTURE 275 EVERY: portal_me() as authenticated — ERR|P0001|PORTAL_ROLE_REQUIRED
+✓ EVERY: role check removed → FIXTURE 275 EVERY: portal_export_my_data() with a non-portal claim — {"contact": {"name": "Ada FX275", "role": null, "email": "ada.fx275@a.test", "phone": "+65 1111 0001", "created_at": "2026-10-19T18
+✓ EVERY: session check removed → FIXTURE 275 EVERY: portal_export_my_data() with an ended session — {"contact": {"name": "Ada FX275", "role": null, "email": "ada.fx275@a.test", "phone": "+65 1111 0001", "created_at": "2026-10-19T18:5
+✓ EVERY: ban check removed → FIXTURE 275 EVERY: portal_export_my_data() as a banned account — {"contact": {"name": "Bea FX275", "role": null, "email": "bea.fx275@b.test", "phone": "+65 2222 0002", "created_at": "2026-10-19T18:55:
+✓ EXPORT: staff notes leak into the export → FIXTURE 275 EXPORT: {"contact": {"name": "Bea FX275", "role": null, "email": "bea.fx275@b.test", "notes": "FX275-INTERNAL-NOTE-B", "phone": "+65 2222 0002", "created_at": "2026-10-19T18:55:17.663418+0
+✓ REVOKE: sessions not ended → FIXTURE 275 REVOKE: the revoke did not end A's session ({"user_id": "fa8cb204-77a8-4c20-86cf-089d79d0363f", "sessions_ended": 1})
+✓ REVOKE: reason not required → FIXTURE 275 REVOKE: a revoke without a reason (ERR|23514|new row for relation "supplier_portal_users" violates check constraint "supplier_portal_users_revoke_reason")
+✓ REVOKE: the revoked check removed from the session check → FIXTURE 275 REVOKE: A's next call after revoke — {"contact": {"name": "Ada FX275", "role": null}, "supplier": {"code": "FX275-SA", "name": "fixture 275 supplier A"}, "linked_at": "2026-10-19T18:55:17.
+✓ ANON: change-log images not redacted → FIXTURE 275 ANON: the change log still holds the contact's personal data
+✓ ANON: anonymising a live account allowed → FIXTURE 275 ANON: anonymised a live account (ERR|23514|new row for relation "supplier_portal_users" violates check constraint "supplier_portal_users_anonymised_after_revoke")
+✓ TRAIL: trail_actor without the portal branch → FIXTURE 275 TRAIL: trail_actor for a portal account is {"state": "restricted"}
+✓ TRAIL: supplier trail without the portal links → FIXTURE 275 TRAIL: the supplier's trail does not show its portal account being created and revoked (0)
+✓ VIEW: user_directory lists portal accounts again → FIXTURE 275 VIEW: user_directory lists 3 of (A, B, a staff account) — expected the staff account only
+✓ VIEW: the portal accounts view loses its predicate → FIXTURE 275 VIEW: a reader without module.suppliers.view sees 2 portal account(s)
+✓ LOG: the link table unbound from the change log → FIXTURE 275 LOG: change-log coverage {"gaps": ["unbound:supplier_portal_users"], "bound": 314, "examined": 323, "excluded": 8}
+✓ GRANTS: the hook granted to authenticated → FIXTURE 275 GRANTS: the hook must be executable by supabase_auth_admin only
+✓ GRANTS: supplier_portal made a member of authenticated → FIXTURE 275 GRANTS: supplier_portal must not be a member of authenticated or anon
+✓ baseline (no injection) → FIXTURE 275 全部通过: CODE · LINK · SEP · HOOK · EVERY · EXPORT · REVOKE · ANON · TRAIL · VIEW · VALUES · LOG · GRANTS
+✓ verdict 8: an extra grant (suppliers → supplier_portal) is named
+✓ verdict 8: a missing grant (portal_me revoked) is named
+✓ verdict 8: a deleted baseline line is named
+✓ verdict 8: an unreadable baseline is red
+✓ verdict 8 clean; always-on cells (unreadable baseline · blinded query · probe grant · removed line) bit
+INJECTIONS pass=36 fail=0
+INJ_OWN_EXIT=0

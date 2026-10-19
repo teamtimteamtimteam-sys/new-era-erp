@@ -21,7 +21,8 @@
 import { RefusalPage } from '@/app/components/ui/refusal'
 import { canEnter } from '@/lib/moduleAccess'
 import { isFloorDisplayOnly, FLOOR_BOARD_CODE } from '@/lib/floorDisplay'
-import { DISPLAY_PATH } from '@/lib/loginRoute'
+import { DISPLAY_PATH, PORTAL_PATH } from '@/lib/loginRoute'
+import { isPortalSession } from '@/lib/portalSession'
 import { getTranslations } from '@/lib/i18n/server'
 import type { AccessScope, FunctionEntry } from '@/lib/modules'
 
@@ -174,6 +175,9 @@ export async function requireDeletedAccess(titleKey: string) {
  * 【这不是安全边界】,与本文件的每一支一样:边界在数据库 —— 大屏会话读不到任何要码的东西,floor_board() 只吐计数。
  */
 export async function requireNotFloorDisplay() {
+    // MES-9a:一个供应商门户会话在这几张不要码的页上同样被拒(出路指回 /portal)—— 而且要先于下面那句:
+    //   它调不了 current_user_permissions(它的数据库角色只够得着门户函数),问大屏就是一次 500。
+    if (await isPortalSession()) return portalRouteRefusal(true)
     if (!(await isFloorDisplayOnly())) return null
     const t = await getTranslations()
     return (
@@ -193,4 +197,31 @@ export async function requireNotFloorDisplay() {
 export async function requireFloorBoard() {
     if (await canEnter(FLOOR_BOARD_CODE)) return null
     return refusal('display.title', 'common.dataClassDenied', 'common.dataClassDeniedHint')
+}
+
+/**
+ * MES-9a(2026-10-19,MES-0 Q88 · MES-9 Step 0 Q10,Tim):【供应商门户与员工那一面互不进对方的屏幕】。
+ *   isPortal = true:一个门户会话打开了一条员工的路由 —— 拒绝,出路指回 /portal(门户会话的"首页"就是门户)。
+ *   isPortal = false:一个员工会话打开了 /portal —— 拒绝,出路指回首页。
+ * 由根布局(每一次硬导航)与 app/portal/layout.tsx(进门户那一段)调用。措辞固定,data-access-denied 照旧随 RefusalPage 走。
+ * 【这不是安全边界】边界在库里:门户角色只够得着按名授给它的东西(判词八),员工会话调不到任何一支门户函数。
+ */
+export async function portalRouteRefusal(isPortal: boolean) {
+    const t = await getTranslations()
+    return isPortal ? (
+        <RefusalPage
+            title={t('portal.refusedStaffRouteTitle')}
+            statement={t('portal.refusedStaffRouteStatement')}
+            hint={t('portal.refusedStaffRouteHint')}
+            backHomeLabel={t('portal.openPortal')}
+            backHref={PORTAL_PATH}
+        />
+    ) : (
+        <RefusalPage
+            title={t('portal.refusedStaffTitle')}
+            statement={t('portal.refusedStaffStatement')}
+            hint={t('portal.refusedStaffHint')}
+            backHomeLabel={t('common.backHome')}
+        />
+    )
 }

@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { landingPath, safeInternalPath } from '@/lib/loginRoute'
+import { landingPath, portalLandingPath, safeInternalPath, tokenRoleOf, PORTAL_DB_ROLE } from '@/lib/loginRoute'
 
 export async function login(formData: FormData) {
     const email = formData.get('email') as string
@@ -17,7 +17,7 @@ export async function login(formData: FormData) {
 
     const supabase = await createClient()
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
         // ════════════════════════════════════════════════════════════════════
@@ -62,5 +62,8 @@ export async function login(formData: FormData) {
     revalidatePath('/', 'layout')
     // UI-1a Step 6:落点【只定义一次】,在 lib/loginRoute.ts 里。
     // 这里从前写死 '/suppliers',中间件里还有一份一模一样的 —— 见那边的注释。
+    // ★ MES-9a(MES-9 Step 0 Q10):一个供应商门户会话(令牌的 role 是 supplier_portal —— access token hook 写的)落在 /portal;
+    //   员工照旧。第一次登录还没换初始密码的,中间件接着把它扣在 /set-password(与员工同一条路)。
+    if (tokenRoleOf(data.session?.access_token) === PORTAL_DB_ROLE) redirect(portalLandingPath(next))
     redirect(landingPath(next))
 }

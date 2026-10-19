@@ -7666,6 +7666,56 @@ if (FAULT === 'wording-drift-mes8b1') dict.text = { ...dict.text, 'cpk.frozen': 
     { const miss = partFaultBit('mes8b1', problems.gold35); if (miss) problems.gold35.push(miss) }
 }
 
+// ── ㊱ MES-9a:供应商门户账号 —— 开(联系人是 part)· 撤销(理由)· 联系人应请求匿名化;以及一个门户账号做的事,"谁做的"那一格
+//   写「Supplier portal — <供应商名>」(MES-9 Step 0 Q21)。每一句先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/MES-9a.md 列出。
+//   注入 wording-drift-mes9a → 这一臂必须红。
+problems.gold36 = []
+if (FAULT === 'wording-drift-mes9a') dict.text = { ...dict.text, 'who.portal': 'Supplier — {name}' }
+{
+    const sup = uuid(), link = uuid(), cid = uuid(), u = uuid()
+    const refs = { supplier_id: { [sup]: { label: 'SUP-2026-0042' } }, contact_id: { [cid]: { label: 'Ada Tan' } } }
+    const LINK = { id: link, user_id: u, supplier_id: sup, contact_id: cid, created_at: '2026-10-19T10:00:00Z', created_by: uuid(),
+        revoked_at: null, revoked_by: null, revoked_reason: null, anonymised_at: null, anonymised_by: null }
+    const C = []
+    const add = (label, rows, actor) => C.push({ label, rows, actor })
+    add('portal · account created', [{ table: 'supplier_portal_users', op: 'INSERT', key: { id: link }, refs, new: LINK }], { state: 'person', name: 'Sandra' })
+    add('portal · account revoked with its reason', [{ table: 'supplier_portal_users', op: 'UPDATE', key: { id: link }, refs,
+        cols: ['revoked_at', 'revoked_by', 'revoked_reason'], old: { ...LINK },
+        new: { ...LINK, revoked_at: '2026-10-20T10:00:00Z', revoked_by: uuid(), revoked_reason: 'Left the supplier' } }], { state: 'person', name: 'Sandra' })
+    add('portal · contact anonymised on request', [{ table: 'supplier_portal_users', op: 'UPDATE', key: { id: link }, refs,
+        cols: ['anonymised_at', 'anonymised_by'], old: { ...LINK, revoked_at: '2026-10-20T10:00:00Z', revoked_reason: 'Left the supplier' },
+        new: { ...LINK, revoked_at: '2026-10-20T10:00:00Z', revoked_reason: 'Left the supplier', anonymised_at: '2026-10-21T10:00:00Z', anonymised_by: uuid() } }],
+        { state: 'person', name: 'Sandra' })
+    add('portal · something a portal account did (who)', [{ table: 'supplier_portal_users', op: 'INSERT', key: { id: link }, refs, new: LINK }],
+        { state: 'portal', name: 'Acme Batteries' })
+    const WANT = {
+        'portal · account created': { title: 'Supplier portal account created · Ada Tan', lines: [], reason: null, who: 'Sandra' },
+        'portal · account revoked with its reason': { title: 'Supplier portal account revoked · Ada Tan', lines: [], reason: 'Left the supplier', who: 'Sandra' },
+        'portal · contact anonymised on request': { title: 'Supplier portal contact anonymised on request · Ada Tan', lines: [], reason: null, who: 'Sandra' },
+        'portal · something a portal account did (who)': { title: 'Supplier portal account created · Ada Tan', lines: [], reason: null, who: 'Supplier portal — Acme Batteries' },
+    }
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}` : `(${l.text})`
+    const got36 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD36', order: 1, prelog: false, at: '2026-10-19T02:00:00+00:00',
+            actor: c.actor, cols: null, old: null, new: null, ctx: null, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, subject: 'supplier', recordId: sup }) } catch (err) { problems.gold36.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD36')
+        if (mine.length !== 1) { problems.gold36.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title + (e.titlePart?.text ? '' : ''), lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got36[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold36.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'reason', 'who']) if (got[k] !== w[k]) problems.gold36.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold36.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length) problems.gold36.push(`㊱ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (process.env.TRAIL_GOLD36_PRINT) console.log(JSON.stringify(got36, null, 8))
+    if (FAULT === 'wording-drift-mes9a' && !problems.gold36.length) problems.gold36.push('(注入 wording-drift-mes9a 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -7673,7 +7723,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用', gold33: '㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果', gold34: '㉞ MES-8a 的供应商评审、评级设定与供应商对账单:签发、取代与 PDF', gold35: '㉟ MES-8b-1 的合规包:冻结、取代、PDF 与 V26 / V27' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用', gold33: '㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果', gold34: '㉞ MES-8a 的供应商评审、评级设定与供应商对账单:签发、取代与 PDF', gold35: '㉟ MES-8b-1 的合规包:冻结、取代、PDF 与 V26 / V27', gold36: '㊱ MES-9a 的供应商门户账号:开、撤销、匿名化,与门户账号做的事' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

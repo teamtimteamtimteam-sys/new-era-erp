@@ -1,0 +1,16 @@
+18:03:53 disable
+HOOK_CONFIG_AFTER_PATCH|{"hook_custom_access_token_enabled": false, "hook_custom_access_token_uri": "pg-functions://postgres/public/portal_access_token_hook"}
+ROT|hook-off|refresh P → 200 (C1 issued)
+ROT|hook-off|reuse P (the parent of the active token) after 11 s → 200  · returned C1 itself
+ROT|hook-off|refresh C1 → 200 
+ROT|hook-off|reuse P (now a grandparent) after 11 s → 400 refresh_token_already_used
+ROT|hook-off|then refresh C2 → 200 
+MES9A_ROTATION_EXIT=0
+18:04:32 enable
+HOOK_CONFIG_AFTER_PATCH|{"hook_custom_access_token_enabled": true, "hook_custom_access_token_uri": "pg-functions://postgres/public/portal_access_token_hook"}
+ROT|hook-on|refresh P → 200 (C1 issued)
+ROT|hook-on|reuse P (the parent of the active token) after 11 s → 200  · returned C1 itself
+ROT|hook-on|refresh C1 → 200 
+ROT|hook-on|reuse P (now a grandparent) after 11 s → 400 refresh_token_already_used
+ROT|hook-on|then refresh C2 → 200 
+MES9A_ROTATION_EXIT=0

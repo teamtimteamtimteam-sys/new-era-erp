@@ -1,0 +1,19 @@
+START 17:54:15
+psql:<stdin>:2343: NOTICE:  MES9A hook admin@swm-os.test unchanged = t
+psql:<stdin>:2343: NOTICE:  MES9A hook chooer@evoltrya.test unchanged = t
+psql:<stdin>:2343: NOTICE:  MES9A hook fusheng@evoltrya.test unchanged = t
+psql:<stdin>:2343: NOTICE:  MES9A hook phua@evolytra.test unchanged = t
+psql:<stdin>:2343: NOTICE:  MES9A hook sandra@evoltrya.test unchanged = t
+psql:<stdin>:2343: NOTICE:  MES9A hook tim@evoltrya.test unchanged = t
+psql:<stdin>:2343: NOTICE:  MES9A hook vince@evoltrya.test unchanged = t
+psql:<stdin>:2343: NOTICE:  MES9A pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:<stdin>:2343: NOTICE:  MES9A pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:<stdin>:2343: NOTICE:  MES9A pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:<stdin>:2343: NOTICE:  MES9A pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:<stdin>:2343: NOTICE:  MES9A pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:<stdin>:2343: NOTICE:  MES9A pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:<stdin>:2343: NOTICE:  MES9A pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:<stdin>:2343: NOTICE:  MES9A pending stocktake ST-2026-0089 → chooer@evoltrya.test
+DRY|inside|tables=323|codes=86|supplier_portal executes=portal_export_my_data,portal_me|manage_portal_users holders=admin,cco|pending V38/V40 rows=2
+DRY|after rollback|supplier_portal role=false|tables=321
+DRY_OWN_EXIT=0

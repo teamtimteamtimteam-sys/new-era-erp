@@ -521,6 +521,7 @@ counterparty_contacts,created_at,audit_std,hide: the trail entry already says wh
 counterparty_contacts,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
 counterparty_contacts,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
 counterparty_contacts,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+counterparty_contacts,anonymised_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) — the moment the contact was anonymised on request — MES-9a (2026-10-19)",,,Anonymised,,,timestamp with time zone
 credit_note_lines,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 credit_note_lines,credit_note_id,fk_document,"credit_notes.code (document number, prefix CN)",cn.badge,Credit note,,text-only,,uuid
 credit_note_lines,invoice_line_id,fk_other,invoice_lines: composed description (see target table),cn.colLine,Invoice line,,text-only,,uuid
@@ -3907,3 +3908,14 @@ compliance_pack_issues,file_path,technical,hide: the storage key,,,File,,,text
 compliance_pack_issues,sha256,technical,hide: the digest (checked on every download),,,Digest,,,text
 compliance_pack_issues,issued_at,audit_std,hide: the trail entry already says who and when,,,Stored on,,,timestamp with time zone
 compliance_pack_issues,issued_by,audit_std,hide: the trail entry already says who and when,,,Stored by,,,uuid
+supplier_portal_users,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+supplier_portal_users,user_id,technical,hide: the sign-in account (named by the trail's Who column when it acts) — MES-9a (2026-10-19),,,Sign-in account,,,uuid
+supplier_portal_users,supplier_id,fk_document,"suppliers.code (document number, prefix SUP) — MES-9a (2026-10-19)",,,Supplier,,,uuid
+supplier_portal_users,contact_id,fk_other,"counterparty_contacts.name (the contact the portal account belongs to) — MES-9a (2026-10-19)",,,Contact,,,uuid
+supplier_portal_users,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+supplier_portal_users,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+supplier_portal_users,revoked_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) — the moment the portal account was revoked",,,Revoked,,,timestamp with time zone
+supplier_portal_users,revoked_by,actor,the account that revoked it,,,Revoked by,,,uuid
+supplier_portal_users,revoked_reason,text,verbatim (the reason given when revoking),,,Reason for revoking,,,text
+supplier_portal_users,anonymised_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) — the moment its contact was anonymised on request",,,Contact anonymised,,,timestamp with time zone
+supplier_portal_users,anonymised_by,actor,the account that anonymised the contact,,,Anonymised by,,,uuid

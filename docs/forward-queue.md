@@ -1281,7 +1281,33 @@
 >    **10 项都有覆盖**:8 项由 fixture 274 的臂(REL · OWN · TRAIL · PROMISE · BUCKET · NOUPDATE · DELETE;线上一半另有 live 266),2 项由判词七
 >    (`db/check_norole.py` 的常开自检格与存储镜像 = 线上那一比)—— 后两项是一道门的检查,不是 fixture,交回没有逐项对应过:**缺的只是记录,不是行为**。
 >    交回 §8 的 1 条问过的(Q21)与 10 条没问就做的决定逐条列在 close-out 文件里。**没有缺的 —— 所以第 2 步(MES-9a)照常开始。**
->    **下一刀 MES-9a · Identity and isolation**(见下面「⬜ ★ MES 组」第 15a 行;第一件事:线上干跑 access token hook;MES-9 的 fixture 编号从 275 起 —— 274 已被本刀用掉)。
+>    ~~**下一刀 MES-9a · Identity and isolation**(见下面「⬜ ★ MES 组」第 15a 行;第一件事:线上干跑 access token hook;MES-9 的 fixture 编号从 275 起 —— 274 已被本刀用掉)。~~ ★ MES-9a 已关闭(下面第 58 条)。
+>
+> 58. **✅ 供应商门户的身份与隔离 —— admin 或 CCO 在供应商页上给一家供应商的一位联系人开一个门户登录(初始密码当面交、第一次登录必须换、立刻撤销得了、
+>    应请求匿名化它背后的联系人);那个登录在库里是一个【单独的 Postgres 角色 `supplier_portal`】(Supabase 的 access token hook 写进令牌),只够得着
+>    按名授给它的两支门户函数,看不见公司的任何内部东西;`/portal` 是它自己的外壳,员工的路由一律拒它,员工会话打不开 `/portal` —— 并入
+>    `/settings/approvals` 390 px 的整页溢出(NOROLE-SURFACE 量的 114 px;本刀改前在同一棵树上重量 117 px,两颗角色下拉 —— 加一个 `max-w-full`,390 px 117 → 0;
+>    线上验证里同一棵 DOM 上摘掉 / 装回这个类再量:298 → 0 px(那一刻角色列表里还有验证自己建的一次性角色,名字长,下拉更宽 —— 推导,没有逐项量);
+>    1280 px 两颗下拉的宽度逐像素不变,566 / 566 px)—— MES-9a(`v1.4.60`,2026-10-19)。**
+>    MES 组的第二十三刀(Tim 2026-10-19:MES-9 Step 0 §15 —— Q1 切三刀、Q2 角色取代 MES-0 Q86、Q12 免费档 + 一次性供应商、Q23 不要 MFA;其余 9a 那几条照推荐)。
+>    **一个新码** `action.manage_portal_users` → admin · cco(声明 `module.suppliers.view`);线上授权只多了这两行。**两张新表** `supplier_portal_users` ·
+>    `account_settings`(V38 · V40,单行、全空,两支待补的值从第一天起各一行);`counterparty_contacts` 多一列 `anonymised_at`。**一个新角色** `supplier_portal`
+>    (NOLOGIN NOINHERIT,不是任何角色的成员,由 authenticator 持有;PG16 让建它的 postgres 自动持有 ADMIN —— 只管得了、变不成)。**一道新门**:
+>    判词八【门户面】(`db/check_portal.py`,退出码 8)—— 两侧把这个角色的权限从目录里逐条列出,与 `db/portal-grants-baseline.tsv`(8 条,每条带理由)
+>    **逐条相等**,两个方向都红;四个常开自检格。**守卫** `guard_portal_account_separation` 挂在四张表上:门户账号永远不持角色、不是员工,反过来也一样。
+>    Fixture 新 **275**(13 臂);注入 36 格(31 个 fixture 格 + 5 个判词八格)全部咬人,在最后一次库改动之后的新重建上重跑一次(`INJ_OWN_EXIT=0`)。
+>    迁移 `db/migrations/2026-10-19-mes9a-supplier-portal-identity.sql`(先在线上 COMMIT→ROLLBACK 干跑,`DRY_OWN_EXIT=0`),**破窗起点 2026-10-19 18:00:11 CST**
+>    (`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。**hook 在 18:00:43 经 Management API 打开**(18:03:53–18:04:32 为了量刷新令牌轮换关过一次,
+>    关着与开着量到的一模一样);开之前在一笔回滚的事务里证过七个角色的副本、无角色、大屏的 claims 逐字节不变、门户账号恰好拿到 `supplier_portal`;
+>    开之后七个副本 · 大屏 · 门户账号逐个登录、刷新、空闲 29 / 31 分钟、刷新令牌轮换照旧(`MES9A_SIGNIN_EXIT=0`)。
+>    **线上验证**(本刀代码的本地 next 连线上,一次性账号,`MES9A_PROOF_EXIT=0`):cco 的同码克隆经供应商页给两家一次性供应商各开一个门户账号 →
+>    第一次登录被扣在换密码表单上 → 落在 `/portal` 只见自己那一家 → 七条员工路由一律拒 → 57 个关系、4 支员工函数、19 个桶一个都读不到 →
+>    `/portal/my-data` 只有自己的 → 经页面撤销 A,A 手里没过期的令牌下一次调用就 `PORTAL_ACCESS_REVOKED`、再登录 `user_banned`,B 照常 → 员工会话打不开 `/portal`。
+>    冒烟 299 ok / 0 失败(`SMOKE_EXIT=0`)。**关掉 hook 是一步**(`docs/fresh-install-checklist.md` 第 6b 步)。
+>    **窗口里坏掉的**(推导):没有在用的东西坏 —— 旧应用不读任何新东西;`user_directory` 少的只有门户账号(线上 0 个);hook 开着时员工的令牌逐字节不变,
+>    而部署之前线上没有门户账号。验证与读数在 `docs/handbacks/MES-9a.md`。
+>    **登记、没修**:`MES9A-V38-NOT-ENFORCED` · `MES9A-V40-IS-A-RECORD` · `MES9A-HOOK-IS-A-PROJECT-SETTING` · `MES9A-FIRST-SIGNIN-ADDRESS`(员工本来就一样)(`docs/known-issues.md`)。
+>    **下一刀 MES-9b · What a supplier sees**(见下面「⬜ ★ MES 组」第 15b 行:采购单 · 收货 · 化验 · 对账单 · 销毁证书;存储策略 `TO supplier_portal` 与 Q22 的下载记录在那一刀)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -7790,7 +7816,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);~~**MES-7b-2 安全巡检与环境监测是下一刀**~~ ★ MES-7b-2 已关闭(2026-10-16,上面第 54 条);~~**MES-8a 供应商评分卡与对账单是下一刀**~~ ★ MES-8a 已关闭(2026-10-16,上面第 55 条);~~**MES-8b-1 按进料批的利润、金属敞口与合规包是下一刀**~~ ★ MES-8b-1 已关闭(2026-10-17,上面第 56 条);~~**MES-8b-2 大屏是下一刀**~~ ★ MES-8b-2 已关闭(2026-10-17,上面第 57 条;MES-8 全部关闭);~~**MES-9 供应商门户是下一刀**~~ ★ Tim 2026-10-19:~~**NOROLE-SURFACE 是下一刀**~~ ★ NOROLE-SURFACE 已关闭(2026-10-19,`v1.4.59`);**MES-9a 是下一刀**,然后 9b · 9c)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);~~**MES-7b-2 安全巡检与环境监测是下一刀**~~ ★ MES-7b-2 已关闭(2026-10-16,上面第 54 条);~~**MES-8a 供应商评分卡与对账单是下一刀**~~ ★ MES-8a 已关闭(2026-10-16,上面第 55 条);~~**MES-8b-1 按进料批的利润、金属敞口与合规包是下一刀**~~ ★ MES-8b-1 已关闭(2026-10-17,上面第 56 条);~~**MES-8b-2 大屏是下一刀**~~ ★ MES-8b-2 已关闭(2026-10-17,上面第 57 条;MES-8 全部关闭);~~**MES-9 供应商门户是下一刀**~~ ★ Tim 2026-10-19:~~**NOROLE-SURFACE 是下一刀**~~ ★ NOROLE-SURFACE 已关闭(2026-10-19,`v1.4.59`);~~**MES-9a 是下一刀**~~ ★ MES-9a 已关闭(2026-10-19,`v1.4.60`,上面第 58 条);**MES-9b 是下一刀**,然后 9c)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -7830,8 +7856,8 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | 14b | ✅ **MES-8b-2 · Wall display**(★ 已关闭,`v1.4.58`,2026-10-17,上面第 57 条;MES-8 Step 0 Q19 · Q20 · Q29;并入 F18 与月结页 390 px;**MES-8 全部关闭**)| 31(大屏)· F18 | 见 Step 0 交回 |
   | ~~14~~ | ~~⬜ **MES-8b · Analysis and display**~~ → 拆成上面 14a · 14b(Tim 2026-10-16)。原文:28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏),5 h 25 m – 10 h 00 m |
   | 15-0 | ✅ **NOROLE-SURFACE · 没有角色的已登录会话**(`v1.4.59`,2026-10-19;Tim 2026-10-19 MES-9 Q4 · Q30:先于 MES-9a,单独一刀;交回 `docs/handbacks/NOROLE-SURFACE.md`)| 35 条只看"已登录"的存储策略 → 模块谓词 · `user_roles` / `roles` / `role_permissions` · 金属价 · 科目表 · `collection_promise_status` · 一道"无角色可达面"的门 | 见 `docs/surveys/NOROLE-SURFACE/STEP0-HANDBACK.md` |
-  | 15a | ⬜ **MES-9a · Identity and isolation**(★ 下一刀;第一件事:线上干跑 hook;不成立就停、Q86 回来;fixture 275–277)| 27 的身份一半:`supplier_portal` 角色 + access token hook · `supplier_portal_users` · 供应商页的门户面板 · `/portal` 外壳 · 门户可达面 = 基线的门 | MES-9 Step 0 §11:2 h 21 – 5 h 56 |
-  | 15b | ⬜ **MES-9b · What a supplier sees** | 27 的读一半:采购单 · 收货 · 化验 · 对账单 · 销毁证书 | 2 h 00 – 4 h 56 |
+  | 15a | ✅ **MES-9a · Identity and isolation**(`v1.4.60`,2026-10-19,上面第 58 条;线上干跑 hook 成立,Q86 不回来;fixture 275;并入 `/settings/approvals` 390 px)| 27 的身份一半:`supplier_portal` 角色 + access token hook · `supplier_portal_users` · 供应商页的门户面板 · `/portal` 外壳 · 门户可达面 = 基线的门 | MES-9 Step 0 §11:2 h 21 – 5 h 56 |
+  | 15b | ⬜ **MES-9b · What a supplier sees**(★ 下一刀;fixture 276)| 27 的读一半:采购单 · 收货 · 化验 · 对账单 · 销毁证书 | 2 h 00 – 4 h 56 |
   | 15c | ⬜ **MES-9c · Certificate uploads and staff review** | 27 的写一半:合规证书上传 · 员工审核 | 1 h 51 – 4 h 14 |
   | ~~15~~ | ~~⬜ **MES-9 · Supplier portal**(最后;★ 下一刀)~~ → 拆成上面 15-0 · 15a · 15b · 15c(Tim 2026-10-19,MES-9 Q1 · Q2 · Q4 · Q30)。原文:27(供应商门户;先做内部专用的那次清扫,Q86),7 h 35 m – 13 h 15 m |
   合计 **≈ 97 h 40 m – 174 h 45 m**(勘察 §8.2;其中底 22 h 30 m – 37 h 30 m)。依赖图见勘察 §8.2 末尾。

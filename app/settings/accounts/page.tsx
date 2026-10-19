@@ -8,7 +8,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireManagePermissions } from '../guard'
 import UserRow, { type DirectoryRow, type RoleOption, type EmployeeOption } from './UserRow'
 import CreateAccountPanel from './CreateAccountPanel'
-import { mustRows } from '@/lib/db-helpers'
+import AccountSettingsPanel from './AccountSettingsPanel'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import { formatAuditStamp } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
@@ -25,7 +26,7 @@ export default async function PermissionUsersPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const [dirRes, rolesRes, empRes] = await Promise.all([
+    const [dirRes, rolesRes, empRes, setRes] = await Promise.all([
         supabase.from('user_directory').select('*').order('created_at', { ascending: true }),
         supabase
             .from('roles')
@@ -43,11 +44,14 @@ export default async function PermissionUsersPage({
             .select('id, code, legal_name, user_id')
             .is('deleted_at', null)
             .order('code'),
+        // MES-9a(MES-9 Step 0 Q24 · Q26):V38 · V40
+        supabase.from('account_settings').select('initial_password_valid_days, password_min_length').limit(1).maybeSingle(),
     ])
 
     const rows = (mustRows(dirRes)) as unknown as DirectoryRow[]
     const roles = (mustRows(rolesRes)) as RoleOption[]
     const employees = (mustRows(empRes)) as EmployeeOption[]
+    const accountSettings = mustOne(setRes, 'account_settings')
 
     const show = trailCount((await searchParams).trail)
     const fmt = (v: string | null) =>
@@ -66,6 +70,10 @@ export default async function PermissionUsersPage({
                 <span className="font-medium">{t('permissions.recoveryTitle')}</span>{' '}
                 {t('permissions.recoveryBody')}
             </div>
+
+            {/* MES-9a(MES-9 Step 0 Q5 · Q7):供应商门户账号【不在这张清单里】—— 它们不持角色、不挂员工档案,在各自供应商的页面上开、撤销 */}
+            <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]" data-note="portal-accounts-elsewhere">{t('accountSettings.portalElsewhere')}</p>
+            <AccountSettingsPanel v38={accountSettings?.initial_password_valid_days ?? null} v40={accountSettings?.password_min_length ?? null} />
 
             <CreateAccountPanel roles={roles} employees={employees} />
 
