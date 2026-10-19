@@ -284,6 +284,10 @@ export default async function MonthEndPage({
                 </Button>
             </form>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('finance.monthEnd.cpfNote')}</p>
+            {/* MES-8b-2(并入 MES8B1-390-MONTH-END-DETAIL):390 px 上四列的最小宽度合起来 364 px,内容区只有 326 px(整页溢出 6 px)。
+                包一层横向滚动 —— 一个宽度都不改:390 px 上表与四列逐像素同前、整页不再溢出;1280 px 上表与四列逐像素同前。
+                (量过的另外三个候选:状态列去掉 w-32 不动读数;说明列或步骤列 overflow-wrap:anywhere 能到 0,但把那一列挤成 41–45 px 的逐字断行。) */}
+            <div className="overflow-x-auto">
             <table className={`${tableC.root} w-full`}>
                 <tbody>
                     {steps.map((s, i) => (
@@ -309,6 +313,7 @@ export default async function MonthEndPage({
                     ))}
                 </tbody>
             </table>
+            </div>
         </ListPage>
     )
 }

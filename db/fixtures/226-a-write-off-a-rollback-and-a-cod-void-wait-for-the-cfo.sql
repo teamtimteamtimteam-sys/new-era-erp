@@ -182,7 +182,7 @@ BEGIN
        OR (SELECT gate_permissions FROM approval_chain_gates() WHERE subject_type = 'warehouse_request')
          IS DISTINCT FROM ARRAY['module.finance.view', 'data.view_prices']::text[] THEN
         RAISE EXCEPTION 'FIXTURE 226A1 失败:warehouse_request 的名册应当只有二级一行,门 = finance.view + view_prices'; END IF;
-    IF position('warehouse_request_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('warehouse_request_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 226A2 失败:operations_now 没有 warehouse_request_pending 那一支'; END IF;
     SELECT string_agg(s, ', ') INTO v_msg FROM unnest(ARRAY[
         'public.soft_delete_inbound_batch_internal(uuid, text, uuid)',

@@ -415,7 +415,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 102G 失败:免柜期那一支应当有放宽码集';
     END IF;
     SELECT COALESCE(array_agg(DISTINCT m[1] ORDER BY m[1]), '{}') INTO v_arms
-      FROM regexp_matches(pg_get_viewdef('public.operations_now'::regclass),
+      FROM regexp_matches(pg_get_viewdef('public.operations_arms_all'::regclass),
                           '''([a-z_0-9]+)''::text AS item_type', 'g') m;
     IF COALESCE(array_length(v_arms, 1), 0) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 102G 失败:一支都没解出来 —— 这是【解析器坏了】,不是"没有支"。空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 同一条)';

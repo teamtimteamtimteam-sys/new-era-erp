@@ -398,6 +398,12 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
         "resolves the CALLER's own permission set; returns an empty array for anon",
     "current_user_employee":
         "resolves the CALLER's own employee row; returns NULL for anon",
+    # MES-8b-2(MES-0 Q83 · MES-8 Step 0 Q19):空闲豁免与"别的页一律拒"的唯一判据。与 current_user_permissions 同一个形状 ——
+    #   它只答【调用者自己】是不是一块大屏(角色恰好 floor_display、码恰好 data.view_floor_board),读不到别人的任何东西;
+    #   每一个登录的人都必须调得到它(中间件以那个会话自己的身份问)。要它查一个码,一块大屏就永远证明不了自己是大屏。
+    "session_is_floor_display_only":
+        "MES-8b-2: resolves whether the CALLER's own session is a wall display (only floor_display, "
+        "only data.view_floor_board); reads nobody else's grants; false for anon",
     # APR-2c:审批是否生效。【必须是 definer,且必须留给 authenticated】——
     # finance_settings 的读策略要 module.finance.view,而需要知道这个标志的是
     # 【采购】那几块屏幕(procurement 没有财务权限)。界面有义务把"审批未生效"

@@ -169,7 +169,7 @@ BEGIN
        OR (SELECT gate_permissions FROM approval_chain_gates() WHERE subject_type = 'receipt_price_request')
          IS DISTINCT FROM ARRAY['module.inbound.view', 'data.view_purchase_prices']::text[] THEN
         RAISE EXCEPTION 'FIXTURE 220A1 失败:链的名册应当只有二级一行,门 = inbound.view + 采购码'; END IF;
-    IF position('receipt_price_request_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('receipt_price_request_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 220A2 失败:operations_now 没有 receipt_price_request_pending 那一支'; END IF;
 
     -- ══════════════ B · 提(审批开着)══════════════

@@ -102,7 +102,11 @@ INSERT INTO public.roles (code, name_en, name_zh, description_en, description_zh
     ('warehouse', 'Warehouse & Field', '仓储现场', 'Receiving, output and stock counts on the floor; no commercial data.', '现场收货、产出与盘点;不接触任何商务数据。', false, 70),
     ('hr', 'Human Resources', '人力资源', 'Employee records, payroll and training, including pay and identity data.', '员工档案、薪资与培训,含薪酬与身份信息。', false, 80),
     ('auditor', 'Read-only Auditor', '只读审计', 'Sees every module and all costs, changes nothing; no bank details, no salaries.', '可查看全部模块与成本,不能改动任何东西;不含银行明细与薪酬。', false, 90),
-    ('employee', 'Employee (unused)', '员工(暂未使用)', 'Not used for access. Employee self-service is row-level and applies automatically to any account linked to an employee record.', '不用于授权。员工自助是行级的,只要账号关联了员工档案即自动生效,与本角色无关。', false, 100);
+    ('employee', 'Employee (unused)', '员工(暂未使用)', 'Not used for access. Employee self-service is row-level and applies automatically to any account linked to an employee record.', '不用于授权。员工自助是行级的,只要账号关联了员工档案即自动生效,与本角色无关。', false, 100),
+    -- ★ MES-8b-2(2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19 · Q29,Tim):车间大屏。【一块屏一个账号】,由 admin 经 /settings/accounts 建,只挂这一个角色;
+    --   这个角色只持 data.view_floor_board。只持它(角色与码都只有这一个)的会话【不被空闲登出】,而且只打得开 /display;
+    --   给这个角色加任何一个别的码、或给那个账号加任何一个别的角色,豁免当场消失(session_is_floor_display_only)。本刀不建任何账号。
+    ('floor_display', 'Floor display', '车间大屏', 'A wall screen on the plant floor: one account per screen, holding only this role. It opens only the floor board (/display) — live counts from processing, safety and stock, no money, no names, no health details — and is not signed out when idle. Any other role or code on the account removes both.', '车间墙上的一块屏:一块屏一个账号,只挂这一个角色。它只打得开大屏(/display)—— 加工、安全与库存的实时计数,没有钱、没有名字、没有健康信息 —— 并且空闲时不被登出。账号上多一个角色或这个角色多一个码,两样都没有了。', false, 110);
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

@@ -20,6 +20,8 @@
 // 同样的定位,本文件是它的通用化。
 import { RefusalPage } from '@/app/components/ui/refusal'
 import { canEnter } from '@/lib/moduleAccess'
+import { isFloorDisplayOnly, FLOOR_BOARD_CODE } from '@/lib/floorDisplay'
+import { DISPLAY_PATH } from '@/lib/loginRoute'
 import { getTranslations } from '@/lib/i18n/server'
 import type { AccessScope, FunctionEntry } from '@/lib/modules'
 
@@ -160,3 +162,35 @@ export async function requireDeletedAccess(titleKey: string) {
     return refusal(titleKey, 'common.deletedDenied', 'common.deletedDeniedHint')
 }
 
+
+/**
+ * MES-8b-2(2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19,Tim):【一块车间大屏只打得开大屏】。
+ *     const floorRefusal = await requireNotFloorDisplay()
+ *     if (floorRefusal) return floorRefusal
+ * 会话恰好是一块大屏(lib/floorDisplay.ts:角色只有 floor_display、码只有 data.view_floor_board)时,拒绝,并且出路指回 /display ——
+ * 一块大屏的"首页"就是大屏。别的会话一律 null,而且一次库都不多打(码不恰好是那一个就不问)。
+ * 放在【根布局】(硬导航的每一页)与那几张【不要任何码】的页面上(首页、我的档案、我的评估、通知、欢迎页、提醒页 —— 软导航不重画根布局,
+ * 所以它们自己也问一次)。要码的页面不必放:一块大屏只有一个码,它们按自己的码本来就拒。
+ * 【这不是安全边界】,与本文件的每一支一样:边界在数据库 —— 大屏会话读不到任何要码的东西,floor_board() 只吐计数。
+ */
+export async function requireNotFloorDisplay() {
+    if (!(await isFloorDisplayOnly())) return null
+    const t = await getTranslations()
+    return (
+        <RefusalPage
+            title={t('display.refusedTitle')}
+            statement={t('display.refusedStatement')}
+            hint={t('display.refusedHint')}
+            backHomeLabel={t('display.openBoard')}
+            backHref={DISPLAY_PATH}
+        />
+    )
+}
+
+/**
+ * MES-8b-2:大屏那一页的门 —— data.view_floor_board(floor_display · admin · cfo)。措辞是数据类的拒绝(它是一个 data.* 码)。
+ */
+export async function requireFloorBoard() {
+    if (await canEnter(FLOOR_BOARD_CODE)) return null
+    return refusal('display.title', 'common.dataClassDenied', 'common.dataClassDeniedHint')
+}

@@ -153,8 +153,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 228A1 失败:处置在名册里应当只有二级一行,门是 finance.view + view_prices'; END IF;
     IF EXISTS (SELECT 1 FROM approval_chain_gates() WHERE subject_type = 'salary_change_request') THEN
         RAISE EXCEPTION 'FIXTURE 228A2 失败:调薪按人路由,不该在按级的名册里(Q2)'; END IF;
-    IF position('asset_disposal_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0
-       OR position('salary_change_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('asset_disposal_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0
+       OR position('salary_change_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 228A3 失败:operations_now 少了处置或调薪那一支'; END IF;
     SELECT string_agg(s, ', ') INTO v_msg FROM unnest(ARRAY[
         'public.salary_change_execute_internal(uuid)', 'public.salary_change_fingerprint(uuid)',

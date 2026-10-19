@@ -346,7 +346,7 @@ BEGIN
     -- ① 支的清单【从线上的视图定义现读】,不从行里数 —— 重建库里绝大多数支
     --    一行数据都没有,按行数只能数到本 fixture 自己立起来的那两支。
     SELECT COALESCE(array_agg(DISTINCT m[1] ORDER BY m[1]), '{}') INTO v_types
-      FROM regexp_matches(pg_get_viewdef('public.operations_now'::regclass),
+      FROM regexp_matches(pg_get_viewdef('public.operations_arms_all'::regclass),
                           '''([a-z_0-9]+)''::text AS item_type', 'g') m;
     IF array_length(v_types, 1) IS NULL OR array_length(v_types, 1) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';

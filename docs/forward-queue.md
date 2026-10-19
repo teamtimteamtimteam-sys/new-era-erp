@@ -1142,7 +1142,7 @@
 >    月结页的合规包那一行(警告,从不挡关账)· 导航 Safety 下的 Compliance packs。**没有 `/margin/inbound`**(委托书对 Q13 的复述:毛利是进料批页上的一节)。
 >    **并入**:供应商编辑页状态面板的两颗门 `flex-wrap`(390 px +40 / +30 → 0)· 新建采购单页 —— **元凶不是供应商下拉,是类别下拉与那颗三个码的权限门**,
 >    `PermissionGate` 多一个可选的 `wrap`、表单与类别下拉 `max-w-full`(390 px +134 / +120 / +246 → 0);1280 px 上逐个未变。两条 `MES8A-390-*` 关闭。
->    新登记 `MES8B1-EU-EFFICIENCY-WAITS-ON-V27`(第 8 节不算效率,Q28)与 `MES8B1-390-MONTH-END-DETAIL`(月结页 390 px 溢出 6 px,删掉本刀那一行仍是 6 —— 不是本刀造的)。
+>    新登记 `MES8B1-EU-EFFICIENCY-WAITS-ON-V27`(第 8 节不算效率,Q28)与 `MES8B1-390-MONTH-END-DETAIL`(月结页 390 px 溢出 6 px,删掉本刀那一行仍是 6 —— 不是本刀造的)(★ 后者已关闭:MES-8b-2 并入,表包一层横向滚动,390 px +6 → 0,下面第 57 条)。
 >    Fixture 新 **271**(9 臂)· **272**(9 臂),改 100 · 101 · 111 · 254 的计数(不放松);注入 **88 格**(271 的 34 + 272 的 54),全部红在自己那一臂,
 >    在迁移之后的新重建上重跑一次(`INJECTIONS_OWN_EXIT=0`)。`check-pdf-routes` 多 CPK 三例三格(14 例 · 15 格)。
 >    迁移 `db/migrations/2026-10-17-mes8b1-margin-exposure-and-compliance-pack.sql`(先在线上 COMMIT→ROLLBACK 干跑,`DRY_OWN_EXIT=0`,54 s),
@@ -1155,7 +1155,7 @@
 >    `CPK-2026-09` 八节齐、没有受伤的细节;没理由重出按名拒、带理由 `-2`、旧的一字不动;PDF 从冻下来的那一行渲染、存档、下载重算一致、改坏字节对不上(路由 409);
 >    每一步之后 AP / AR 清单 = 总账、未解释 0.00;桶读回 0 个对象,销毁证书的桶逐字未变。七个真角色的只读读数表、开场 / 收尾读数在交回里。
 >    验证与读数(开场 / 收尾、逐角色读数表、页面清单、未经询问的决定)在 `docs/handbacks/MES-8b-1.md`。
->    **下一刀 MES-8b-2 · 大屏**(见下面「⬜ ★ MES 组」第 14b 行)—— ★ **未开工**:MES-8b-1 close-out 的 b 项量到一处不工作(下面),按委托书第 1.5 条停下,等 Tim。
+>    ~~**下一刀 MES-8b-2 · 大屏**(见下面「⬜ ★ MES 组」第 14b 行)—— ★ **未开工**:MES-8b-1 close-out 的 b 项量到一处不工作(下面),按委托书第 1.5 条停下,等 Tim。~~ ★ MES-8b-2 已关闭(下面第 57 条;那一处不工作的由 F18 修掉)。
 >    ★ **部署:Tim 在 Vercel 上确认 `f084de52` 已部署(MES-8b-1 close-out + MES-8b-2 委托书,2026-10-17)。破窗已闭合(带界,按类标注)**:
 >    起点 **2026-10-17 02:30:23 CST**(测量:`db/migration-windows.tsv`,`2026-10-17-mes8b1-margin-exposure-and-compliance-pack.sql`)·
 >    终点下界 **2026-10-17 03:23:30 CST**(测量:推送把 `origin/main` 移到 `f084de52`,
@@ -1184,11 +1184,38 @@
 >    **11 批 / 115,288 kg** 的物料 `kind_code` 为空(其中 5 批带含量),产出批 12 批 / 3,816 kg 全部为空 —— 页面对每一个看得见它的角色写着
 >    「USD 0.00. Incomplete」,"not measured" 只列 `ZZ-PROCCOST1-DEMO` 100 kg 一批,其余 23 批哪儿都不出现。原因:`inventory_metal_exposure` 内连
 >    `material_kinds` 再取 `may_ever_be_processed`,把"没有人决定过"(`materials.kind_code` 刻意可空,`materials_kind_stated` 是 `NOT VALID`)当成"不可投料"。
->    Fixture 271 的每一种物料都有种类,没有"主语缺席"那一臂。毛利不受影响。登记 `MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK`(`docs/known-issues.md`),**没有修**,
+>    Fixture 271 的每一种物料都有种类,没有"主语缺席"那一臂。毛利不受影响。登记 `MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK`(`docs/known-issues.md`),**没有修**(★ 已修:Tim 选了建议的那一条,MES-8b-2 的 F18,下面第 57 条 —— 线上 23 批 / 119,104 kg 列在「kind not stated」下),
 >    按委托书第 1.5 条**没有开始第 2 步**。建议与另一条路(当作切换时会清掉的测试数据记进 `docs/known-wrong-until-cutover.md`,然后照常开 MES-8b-2)见 close-out 文件 §2 b-3。
 >    **c** MES-8b-1 交回 §10 的 19 条决定逐条列在 close-out 文件里(第 4 条就是上面那一处的来源)。
 >    ☞ **记录(信息,不是缺陷)**:按进料批的毛利【只是】进料批页上的一节,**没有**跨批的清单页(MES-8b-1 决定 2);Tim 要的时候再排一张清单页。
 >    卖方结算的收入**只有在 SETTLE-1 让卖方结算能过账之后**才会进毛利 —— 今天毛利的收入只取 `sales_records`(Q11),一条结算都过不了账。
+>
+> 57. **✅ 车间大屏(一个新角色 `floor_display` 只看一块只读的牌子 —— 加工 · 安全 · 库存 23 支提醒此刻各有几件,只有数,没有钱、名字与健康信息 ·
+>    只挂这个角色、只持这一个码的会话空闲时不被登出,也只打得开 `/display`;别的每一个账号的空闲登出照旧)—— 并入 F18(价格敞口页把物料种类没说的库存
+>    逐批列出,不再丢掉)与月结页 390 px 的 6 px 溢出 —— MES-8b-2(`v1.4.58`,2026-10-17)。**
+>    MES 组的第二十二刀(Tim 2026-10-17:MES-8 Step 0 的 Q19 · Q20 · Q29 与 Q21–Q24 里 8b-2 那一半照推荐裁定;Q19:Q83 取代 IDLE-DRAFT「一个值不分角色」的【恰好一种】情形;
+>    MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK 按建议修成 F18;月结页那一格以最小的宽度改动修掉)。**一个新角色、一个新码**:`floor_display`(不是系统角色)·
+>    `data.view_floor_board` → floor_display · admin · cfo —— 线上授权只多了这三行;**本刀不建任何账号**(Q29)。没有新审批、没有新的审计主语、没有遮蔽的列。
+>    **表**一张:`floor_board_settings`(V28 一行,全空;进变更记录,豁免仍 8)。**视图**:`operations_arms_all`(operations_now 的全部支,不按读者过滤,不给人读)——
+>    `operations_now` 改成"它 + 按读者的那一句过滤"(列与行逐字同前;fixture 76 · 79 · 102 · 111 · 185 · 220 · 223–229 读视图正文的那几句改指基视图,一句都没放松;
+>    `check-reminder-arms` 与 `check-i18n` 改读基视图的镜像)。**函数**:`floor_board_arms`(23 支,闭合)· `floor_board`(只吐计数)· `session_is_floor_display_only`
+>    (豁免与"别的页一律拒"的唯一判据)· `set_floor_board_settings`(V28,`action.manage_permissions`);`inventory_metal_exposure` 换成 F18 那一版。**待补的值** V28(34 支;
+>    要有一个在用的大屏账号才出一行 —— 线上 0 行)。
+>    **应用**:`/display`(没有外壳的大屏页:计数、「refreshed at hh:mm」与刷新钮,V28 没给不自动刷新;底下 V28 的面板给不是大屏的读者)· 中间件(**只在一次请求已经判成
+>    空闲过期时**问一次判据,问不到照旧登出)· 根布局与六张不要码的页面(一块大屏的会话一律拒、出路指回 `/display`)· `/finance/price-exposure` 的「Kind not stated」一节 ·
+>    月结页那张表包一层横向滚动(390 px +6 → 0;1280 px 表与四列逐像素同前)。
+>    Fixture 新 **273**(7 臂)· 271 加 **KIND** 一臂(在自己的事务里造出"种类没说"那种物料);注入 **22 格**(271 的 5 + 273 的 17),全部红在自己那一臂(第一版有一格
+>    没咬 —— 271 的"不完整"在那支 fixture 里本来就成立,判据改成两边都量);在迁移之后的新重建上重跑一次(`INJECTIONS_OWN_EXIT=0`)。
+>    迁移 `db/migrations/2026-10-17-mes8b2-wall-display.sql`(先在线上 COMMIT→ROLLBACK 干跑,`DRY_OWN_EXIT=0`),
+>    **破窗起点 2026-10-17 13:42:39 CST**(`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。
+>    **窗口里坏掉的**(推导):没有在用的东西坏 —— 旧应用读 `operations_now` 的行逐行同前;读 `inventory_metal_exposure` 多两个键,旧页面不画它们(就是今天的样子);
+>    V28 那一支线上 0 行;空闲豁免是应用代码,部署之前一个大屏会话仍会被登出 —— 线上没有这样的会话。
+>    **线上验证**(`db/scripts/2026-10-17-mes8b2-live-proof.mjs`,一笔回滚的事务 + 一台跑本刀代码、连线上的 next,一次性账号,`MES8B2_PROOF_EXIT=0`):一个只挂 `floor_display` 的一次性账号
+>    打开 `/display` —— 23 块牌子、只有数、没有外壳;13 条别的路由一律是那一句拒绝;活动 cookie 设成 31 分钟以前仍然进得去;七个真角色的克隆在 31 分钟时各被登出一次、29 分钟时都还在;
+>    `floor_display` 逐个多加目录里的 84 个码(子事务里、撤掉)—— 每一次豁免都没了、大屏照样开;F18 线上 23 批 / 119,104 kg 列在「kind not stated」下、合计不完整;
+>    AP / AR 未解释 0.00;收尾 0 个一次性账号、0 个探针角色、0 个 `floor_display` 授权。七个真角色的只读读数表、开场 / 收尾读数在交回里。
+>    验证与读数在 `docs/handbacks/MES-8b-2.md`。**MES-8 至此全部关闭**(8a · 8b-1 · 8b-2)。
+>    **下一刀 MES-9 · 供应商门户**(见下面「⬜ ★ MES 组」第 15 行 —— MES 组的最后一刀;先做内部专用的那次清扫,MES-0 Q86)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -7697,7 +7724,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);~~**MES-7b-2 安全巡检与环境监测是下一刀**~~ ★ MES-7b-2 已关闭(2026-10-16,上面第 54 条);~~**MES-8a 供应商评分卡与对账单是下一刀**~~ ★ MES-8a 已关闭(2026-10-16,上面第 55 条);~~**MES-8b-1 按进料批的利润、金属敞口与合规包是下一刀**~~ ★ MES-8b-1 已关闭(2026-10-17,上面第 56 条);**MES-8b-2 大屏是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);~~**MES-7b-2 安全巡检与环境监测是下一刀**~~ ★ MES-7b-2 已关闭(2026-10-16,上面第 54 条);~~**MES-8a 供应商评分卡与对账单是下一刀**~~ ★ MES-8a 已关闭(2026-10-16,上面第 55 条);~~**MES-8b-1 按进料批的利润、金属敞口与合规包是下一刀**~~ ★ MES-8b-1 已关闭(2026-10-17,上面第 56 条);~~**MES-8b-2 大屏是下一刀**~~ ★ MES-8b-2 已关闭(2026-10-17,上面第 57 条;MES-8 全部关闭);**MES-9 供应商门户是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -7734,9 +7761,9 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | ~~12~~ | (拆成上面 12a · 12b;原文保留)~~**MES-7b · Inspections and incidents**~~(~~★ 下一刀~~;★ **Step 0 交回 `docs/surveys/MES-7b/STEP0-HANDBACK.md`(2026-10-16),等 Tim 答 Q1–Q28** —— 推荐拆两刀:7b-1 事故登记(+ F12 · F13,F14 待裁)、7b-2 安全巡检与环境监测;★ **并入(Tim 2026-10-16,MES-7a-2 close-out 的裁定),归下一个建库的刀**:**F12** 线上 `material_kinds` 备件那一行的说明由下一支迁移改成仓库里的新说法("received as lots so stock and cost are counted; issued against a maintenance record; no per-piece traceability"),`MES7A2-SPARE-PART-NOTE-LIVE-STALE` · **F13** 两支少数了流水类型的构建检查(`check-enum-mirrors` · `check-i18n`)解析类型清单时,注释既藏不掉也加不进一项,每一支各带一格让它变红的故障,`MES7A2-ENUM-PARSERS-STOP-AT-A-COMMENT`)| 23(安全巡检)· 24(热失控 / 排放) | 8 h 05 m – 15 h 15 m |
   | 13 | ✅ **MES-8a · Supplier scorecards and statements**(★ 已关闭,`v1.4.56`,2026-10-16,上面第 55 条;并入 F17;Tim 2026-10-16:MES-8 切三刀 —— 8a · 8b-1 · 8b-2)| 25(评分卡)· 26(供应商对账单)· F17 | 5 h 45 m – 9 h 45 m |
   | 14a | ✅ **MES-8b-1 · Inbound margin, inventory exposure, compliance pack**(★ 已关闭,`v1.4.57`,2026-10-17,上面第 56 条;并入两处 390 px 溢出)| 28(按进料批的利润)· 29(金属敞口)· 30(合规包) | 见 `docs/surveys/MES-8/STEP0-HANDBACK.md` |
-  | 14b | ⬜ **MES-8b-2 · Wall display**(★ 下一刀;MES-8 Step 0 Q19 · Q20 · Q29;Q19 的闲置豁免照旧)| 31(大屏) | 见 Step 0 交回 |
+  | 14b | ✅ **MES-8b-2 · Wall display**(★ 已关闭,`v1.4.58`,2026-10-17,上面第 57 条;MES-8 Step 0 Q19 · Q20 · Q29;并入 F18 与月结页 390 px;**MES-8 全部关闭**)| 31(大屏)· F18 | 见 Step 0 交回 |
   | ~~14~~ | ~~⬜ **MES-8b · Analysis and display**~~ → 拆成上面 14a · 14b(Tim 2026-10-16)。原文:28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏),5 h 25 m – 10 h 00 m |
-  | 15 | ⬜ **MES-9 · Supplier portal**(最后) | 27(供应商门户;先做内部专用的那次清扫,Q86) | 7 h 35 m – 13 h 15 m |
+  | 15 | ⬜ **MES-9 · Supplier portal**(最后;★ 下一刀) | 27(供应商门户;先做内部专用的那次清扫,Q86) | 7 h 35 m – 13 h 15 m |
   合计 **≈ 97 h 40 m – 174 h 45 m**(勘察 §8.2;其中底 22 h 30 m – 37 h 30 m)。依赖图见勘察 §8.2 末尾。
 * ~~**⬜ MES-5a-2 · Energy —— ★ MES 组的下一刀**~~ **✅ 已关闭(MES-5a-2,`v1.4.44`,2026-10-08,上面第 43 条)** —— Tim 2026-10-08 答了 Q19–Q36
   (Q22 · Q24 照推荐裁定;Q20 改了一处:**不建设备转换器** —— 没有电表给过数据格式,不对着一个编出来的格式写 `transform_meter_reading_v1`);

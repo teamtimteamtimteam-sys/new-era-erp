@@ -6,7 +6,9 @@ import IdleWatcher from "@/app/components/IdleWatcher";
 import { ActionMessageRegion } from "@/app/components/ui/action-message";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
-import { isBareChromePath } from "@/lib/loginRoute";
+import { isBareChromePath, isDisplayPath } from "@/lib/loginRoute";
+import { requireNotFloorDisplay } from "@/app/components/moduleGuard";
+import { isFloorDisplayOnly } from "@/lib/floorDisplay";
 import AppChrome from "@/app/components/AppChrome";
 import { getModuleAccess } from "@/lib/moduleAccess";
 import { headers } from "next/headers";
@@ -139,13 +141,25 @@ export default async function RootLayout({
   const pathname = (await headers()).get("x-pathname") ?? "";
   const bare = isBareChromePath(pathname);
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // ★ MES-8b-2(2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19,Tim):车间大屏
+  //   · /display 不画顶栏、面包屑与告知区(一块墙上的屏);但【空闲监视器照挂】,除非这个会话就是一块大屏 ——
+  //     admin、cfo 打开 /display 时空闲登出与那两分钟预警一样不少(判据在服务端,lib/floorDisplay.ts)。
+  //   · 一块大屏的会话打开【任何别的】一页(硬导航都经过这里):整页换成一句拒绝,出路指回 /display,不画外壳。
+  //     软导航不重画根布局,所以那几张不要码的页面自己也问一次(requireNotFloorDisplay);要码的页面按码本来就拒。
+  //   · 别的会话:isFloorDisplayOnly 先看本次请求已经取过的码,码不恰好是 data.view_floor_board 就不再打库 —— 一次查询都不多。
+  // ══════════════════════════════════════════════════════════════════════════
+  const display = isDisplayPath(pathname);
+  const floorRefusal = bare || display ? null : await requireNotFloorDisplay();
+  const floorSession = display ? await isFloorDisplayOnly() : false;
+
   // ★【NAV-CLEANUP-1 ⑤】面包屑的第一截与顶栏的高亮必须是【同一个答案】,
   //   而那个答案要知道"这个读者进得去哪些模块"。可进性只能在服务端算(要读库),
   //   所以在这里算一次,传给那个客户端组件。
   //   【为什么不在 Breadcrumbs 里自己算】它是 'use client';而且顶栏已经算过一次,
   //   getModuleAccess 走的是 React cache —— 同一次渲染里不会打第二次库。
   //   登录页那一侧(bare)不渲染面包屑,所以那里一次都不算。
-  const openModuleIds = bare
+  const openModuleIds = bare || display || floorRefusal
     ? []
     : (await getModuleAccess()).filter((m) => m.allowed).map((m) => m.module.id);
 
@@ -162,7 +176,9 @@ export default async function RootLayout({
               【登录页不挂它】:那里没有会话可以超时,而它要监视的「还有两分钟」
               在一张登录表单上没有意义。草稿的清理由 /login 自己的
               ClearRestrictedDrafts 负责,与这一个无关。 */}
-          {!bare && (
+          {/* MES-8b-2:/display 上没有外壳,只有空闲监视器 —— 而且只对不是大屏的会话。 */}
+          {display && !floorSession && <IdleWatcher />}
+          {!bare && !display && !floorRefusal && (
             <AppChrome>
               <IdleWatcher />
               <TopNav />
@@ -180,7 +196,7 @@ export default async function RootLayout({
               <ActionMessageRegion />
             </AppChrome>
           )}
-          {children}
+          {floorRefusal ?? children}
         </I18nProvider>
       </body>
     </html>

@@ -223,7 +223,31 @@ export async function updateSession(request: NextRequest) {
     // ════════════════════════════════════════════════════════════════════════
     const rawActivity = request.cookies.get(ACTIVITY_COOKIE)?.value
     const lastActivity = rawActivity ? Number(rawActivity) : null
-    const idleExpired = isIdleExpired(lastActivity)
+    let idleExpired = isIdleExpired(lastActivity)
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ★ MES-8b-2(2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19,Tim):【车间大屏不被空闲登出 —— 只有它】
+    //
+    // IDLE-DRAFT 的「一个值,不分角色」只在一种情形下被取代:会话的角色【恰好】是 floor_display、码【恰好】是
+    // data.view_floor_board。判据只有一份,在库里(session_is_floor_display_only),由会话自己的 auth.uid() 求值 ——
+    // 浏览器送来的东西(包括上面那个活动 cookie)只决定"空闲了多久",【不参与】"豁不豁免"。
+    //
+    // 【为什么只在这里问、而且只在已经判成过期时问】本文件抬头那条:中间件跑在每一个请求上,一次额外查询是全站的账。
+    // 豁免只在【本来要登出】的那一刻才有意义,所以只在 idleExpired 已经为真、并且有会话时问一次 ——
+    // 别的请求一次都不多问,空闲没过期的会话一次都不多问。
+    //
+    // 【别的会话的行为一个字节不变】它们问到的是 false,于是 idleExpired 原样为真,走下面同一条登出路(同一个重定向、
+    // 同样清掉认证 cookie 与活动标记)。★ 问不到(网络、库)也是原样登出 —— 那正是今天的行为;把"问不到"读成"豁免",
+    // 会让一次故障把每一个会话都变成不会超时的会话。代价照直写:一块大屏若恰好在过期那一刻问不到库,会被登出一次。
+    // ════════════════════════════════════════════════════════════════════════
+    if (idleExpired && user) {
+        try {
+            const { data: exempt, error: exemptError } = await supabase.rpc('session_is_floor_display_only')
+            if (!exemptError && exempt === true) idleExpired = false
+        } catch {
+            // 抛出来的同样是"问不到":idleExpired 保持为真,照今天的路登出(见上)。
+        }
+    }
 
     // 【判断不出】—— 挡住,并说出来。放在 `!user` 之前,因为这两种情形的 user 都是 null。
     // 公开路径放行:登录页本来就不需要会话,而认证不通时登录本身会各自报它的错。

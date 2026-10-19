@@ -147,7 +147,7 @@ BEGIN
        OR (SELECT gate_permissions FROM approval_chain_gates() WHERE subject_type = 'gst_filing_request')
          IS DISTINCT FROM ARRAY['module.finance.view', 'data.view_prices']::text[] THEN
         RAISE EXCEPTION 'FIXTURE 229A1 失败:GST 申报在名册里应当只有二级一行,门是 finance.view + view_prices'; END IF;
-    IF position('gst_filing_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('gst_filing_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 229A2 失败:operations_now 少了 gst_filing_pending 那一支'; END IF;
     SELECT string_agg(s, ', ') INTO v_msg FROM unnest(ARRAY[
         'public.gst_filing_execute_internal(uuid)', 'public.assert_po_manager(uuid)']) s

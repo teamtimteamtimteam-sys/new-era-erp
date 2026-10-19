@@ -152,7 +152,8 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 //   supplier_statement_issues)。一张带 code 列:supplier_statements(SST,登记进 document_types),所以 EXPECTED_CODE_TABLES 97 → 98。
 // MES-8b-1(2026-10-17):317 → 320。三张合规包的表(compliance_settings · compliance_packs · compliance_pack_issues)。一张带 code 列:
 //   compliance_packs(CPK,登记进 document_types),所以 EXPECTED_CODE_TABLES 98 → 99。
-const EXPECTED_TABLES = 320   // HISTORY-1(2026-09-28):+ change_log
+// MES-8b-2(2026-10-17):320 → 321。一张车间大屏的设定表(floor_board_settings,V28)。没有 code 列,EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 321   // HISTORY-1(2026-09-28):+ change_log · MES-8b-2(2026-10-17):+ floor_board_settings
 const EXPECTED_CODE_TABLES = 99
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

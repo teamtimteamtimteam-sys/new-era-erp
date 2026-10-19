@@ -77,6 +77,20 @@ export function isBareChromePath(pathname: string): boolean {
     return matches(BARE_CHROME_PATHS, pathname)
 }
 
+/**
+ * 【车间大屏那一页】(MES-8b-2,2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19)。
+ *
+ * 它【不】进 BARE_CHROME_PATHS:那一张清单是"没进系统 / 还没设好的人"的那几屏,根布局对它们连空闲监视器都不挂,
+ * 而 check-nav-routes 的判据 ⑦ 禁止任何链接指向它们。大屏不是那一类 —— 它要会话、要码,而且对【不是大屏】的读者
+ * (admin、cfo 打开它)空闲登出必须照旧,包括浏览器那一半的两分钟预警。所以根布局另外认它:不画顶栏与面包屑,
+ * 空闲监视器【只对大屏会话】不挂(由服务端判,见 lib/floorDisplay.ts)。
+ */
+export const DISPLAY_PATH = '/display'
+
+export function isDisplayPath(pathname: string): boolean {
+    return matches([DISPLAY_PATH], pathname)
+}
+
 /** 两个判据【同一份】匹配规则:整条相等,或者是它下面的一层。 */
 function matches(paths: readonly string[], pathname: string): boolean {
     return paths.some((p) => pathname === p || pathname.startsWith(p + '/'))

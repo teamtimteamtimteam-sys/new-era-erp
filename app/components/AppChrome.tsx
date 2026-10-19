@@ -53,13 +53,14 @@
 //   ☞ 这条由 `scripts/probe-nav-geometry.mjs` 在两个视口上量过顶栏的盒子来兜底,
 //     不靠"我认为它不会变"。
 import { usePathname } from 'next/navigation'
-import { isBareChromePath } from '@/lib/loginRoute'
+import { isBareChromePath, isDisplayPath } from '@/lib/loginRoute'
 
 export default function AppChrome({ children }: { children: React.ReactNode }) {
     // 判据【一个字没改】—— 仍然是 isBareChromePath,仍然是 lib/loginRoute.ts 那一份。
     // 改的是【谁来问】:`headers()` 一个会话求值一次,`usePathname()` 每次软导航都问。
     const pathname = usePathname() ?? ''
-    if (isBareChromePath(pathname)) return null
+    // MES-8b-2:大屏那一页同样不画外壳(根布局在服务端已经不画;这一道管【软导航进来】的那一半)。
+    if (isBareChromePath(pathname) || isDisplayPath(pathname)) return null
     return (
         <div className="contents" data-app-chrome={pathname}>
             {children}

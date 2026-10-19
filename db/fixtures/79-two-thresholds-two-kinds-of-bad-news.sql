@@ -62,7 +62,7 @@ BEGIN
     -- 【前提显式设】两个阈值都是运营改得动的列(README 第 5 条)
     UPDATE processing_settings SET wo_input_overrun_pct = 10, wo_output_shortfall_pct = 10;
 
-    def_view := pg_get_viewdef('public.operations_now'::regclass, true);
+    def_view := pg_get_viewdef('public.operations_arms_all'::regclass, true);
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZ79-S', 'fixture 79 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
@@ -306,7 +306,7 @@ BEGIN
     IF v_inj = def_view THEN
         RAISE EXCEPTION 'FIXTURE 79 注入 失败:在视图定义里没找到读【投入阈值】那段子查询 —— 这个注入什么也没删,下面那句"应当不再起作用"会变成空转';
     END IF;
-    EXECUTE 'CREATE OR REPLACE VIEW public.operations_now AS ' || v_inj;
+    EXECUTE 'CREATE OR REPLACE VIEW public.operations_arms_all AS ' || v_inj;
     UPDATE processing_settings SET wo_input_overrun_pct = 20;
     IF NOT EXISTS (SELECT 1 FROM operations_now
                     WHERE item_type = 'work_order_variance_beyond' AND item_id = woOpen) THEN

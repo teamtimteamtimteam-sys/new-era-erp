@@ -435,11 +435,26 @@ CREATE VIEW public.pending_values WITH (security_invoker = off) AS
             'EU recycling-efficiency method and targets'::text AS item_label,
             '/compliance/packs'::text AS href
            FROM compliance_settings cs
-          WHERE cs.id AND (cs.eu_efficiency_method IS NULL OR cs.eu_efficiency_targets IS NULL)) p
+          WHERE cs.id AND (cs.eu_efficiency_method IS NULL OR cs.eu_efficiency_targets IS NULL)
+        UNION ALL
+         SELECT 'V28'::text AS value_code,
+            'action.manage_permissions'::text AS permission,
+            NULL::uuid AS item_id,
+            'floor_board_settings'::text AS item_code,
+            'Wall-display refresh interval and tiles'::text AS item_label,
+            '/display'::text AS href
+           FROM floor_board_settings fb
+          WHERE fb.id AND (fb.refresh_seconds IS NULL OR fb.tiles IS NULL)
+            AND (EXISTS ( SELECT 1
+                   FROM user_roles ur
+                     JOIN roles r ON r.id = ur.role_id
+                     JOIN auth.users u ON u.id = ur.user_id
+                  WHERE r.code = 'floor_display'::text AND ur.revoked_at IS NULL AND r.is_active AND u.deleted_at IS NULL
+                    AND (u.banned_until IS NULL OR u.banned_until < now())))) p
   WHERE has_permission(p.permission);
 
 COMMENT ON VIEW public.pending_values IS
-    'MES-1:还没给的标准值(/settings/pending-values)。一支一个值,每一支带自己的权限码;MES-1 播 V5(网关心跳间隔)与 V6(班次的起止时刻 —— 传输异常的工作时间);MES-2 加 V8(校准到期提醒的提前天数)与 V33(在用仪器的量程);MES-3a 加 V2(执照 × 类别的库存上限)、V29(NEA 类别与物料的类别)、V3(每个安全状态的滞留提醒天数)、V4(每个安全状态要不要隔离)与 V34(隔离库位);MES-3b 加 V30(危险品编号的标记 · 包装说明 · 标签尺寸)、V31(电池料的 HS 编码)与 V35(电池料的危险品编号);MES-4a 加 V1(转化型工序的物料平衡容差)与 V36(声明了有范围的参数的上下限),并把 V6 的去处搬到班次字典(V6 同时答 V7);MES-4b 加 V10(勾了电解液挥发的工序的电解液份额)与 V11(交叉污染流的警戒线)。MES-5a-1 加 V9(物料的放电通过电压,只在那种物料有了放电结果之后才列);MES-5a-2 加 V25(共用池的电怎么摊,有共用池电表而规则为空时一行)。MES-5b-1 加 V37(每道工序 × 每种产出形态的预期质量得率;只在那道工序有了至少一张 MES-4a 之后的消耗炉次时才列 —— V9 的先例:没人能动手的行不列)。MES-6a-1 加 V16(没有合同天数的样品留多少天;只在有一份没处置、留样日 Not yet set 的样品时才列)与 V14(仲裁费怎么分;每一份有过一件开着或已结案的争议而规则为空的合同一行)。MES-6b-1 加 V17(卖方合同的质量验收限;每一份挂了销售单而口径没声明的卖方合同一行)。MES-7a-2 加 V21(备件的最低库存;每一种收过至少一批而最低库存为空的备件物料一行)。MES-7b-1 加 V19(NEA 书面报告的工作日数;空着或还没对着执照确认时一行)。MES-7b-2 加 V18(巡检清单的频率与检查项;一张启用的清单都没有时一行,之后每一张频率空着的启用清单一行)与 V20(监测参数的排放限值;字典空着时一行,之后每一个没有限值的启用参数一行)。MES-8a 加 V23(供应商评分的权重、等级线与评审周期;三样里有一样空着就一行)与 V24(每一个等级的预付上限与抽样级别;有了等级线之后,每一个缺其中一样的等级一行)。MES-8b-1 加 V26(NEA 申报的格式与频率)与 V27(欧盟回收效率的方法与目标)—— 两支都是从第一天起就一行(合规包的设定一行、全空),读 module.compliance.view。之后每一刀加它自己的支,并在同一个提交里往 docs/mes-pending-values.md 加行。';
+    'MES-1:还没给的标准值(/settings/pending-values)。一支一个值,每一支带自己的权限码;MES-1 播 V5(网关心跳间隔)与 V6(班次的起止时刻 —— 传输异常的工作时间);MES-2 加 V8(校准到期提醒的提前天数)与 V33(在用仪器的量程);MES-3a 加 V2(执照 × 类别的库存上限)、V29(NEA 类别与物料的类别)、V3(每个安全状态的滞留提醒天数)、V4(每个安全状态要不要隔离)与 V34(隔离库位);MES-3b 加 V30(危险品编号的标记 · 包装说明 · 标签尺寸)、V31(电池料的 HS 编码)与 V35(电池料的危险品编号);MES-4a 加 V1(转化型工序的物料平衡容差)与 V36(声明了有范围的参数的上下限),并把 V6 的去处搬到班次字典(V6 同时答 V7);MES-4b 加 V10(勾了电解液挥发的工序的电解液份额)与 V11(交叉污染流的警戒线)。MES-5a-1 加 V9(物料的放电通过电压,只在那种物料有了放电结果之后才列);MES-5a-2 加 V25(共用池的电怎么摊,有共用池电表而规则为空时一行)。MES-5b-1 加 V37(每道工序 × 每种产出形态的预期质量得率;只在那道工序有了至少一张 MES-4a 之后的消耗炉次时才列 —— V9 的先例:没人能动手的行不列)。MES-6a-1 加 V16(没有合同天数的样品留多少天;只在有一份没处置、留样日 Not yet set 的样品时才列)与 V14(仲裁费怎么分;每一份有过一件开着或已结案的争议而规则为空的合同一行)。MES-6b-1 加 V17(卖方合同的质量验收限;每一份挂了销售单而口径没声明的卖方合同一行)。MES-7a-2 加 V21(备件的最低库存;每一种收过至少一批而最低库存为空的备件物料一行)。MES-7b-1 加 V19(NEA 书面报告的工作日数;空着或还没对着执照确认时一行)。MES-7b-2 加 V18(巡检清单的频率与检查项;一张启用的清单都没有时一行,之后每一张频率空着的启用清单一行)与 V20(监测参数的排放限值;字典空着时一行,之后每一个没有限值的启用参数一行)。MES-8a 加 V23(供应商评分的权重、等级线与评审周期;三样里有一样空着就一行)与 V24(每一个等级的预付上限与抽样级别;有了等级线之后,每一个缺其中一样的等级一行)。MES-8b-1 加 V26(NEA 申报的格式与频率)与 V27(欧盟回收效率的方法与目标)—— 两支都是从第一天起就一行(合规包的设定一行、全空),读 module.compliance.view。MES-8b-2 加 V28(车间大屏自己刷新的间隔与画哪几块牌子;设定那一行有一样空着、并且有一个在用的 floor_display 账号时一行 —— 没有大屏就没有人能动手,读 action.manage_permissions)。之后每一刀加它自己的支,并在同一个提交里往 docs/mes-pending-values.md 加行。';
 
 GRANT SELECT ON public.pending_values TO authenticated;
 REVOKE ALL ON public.pending_values FROM anon;

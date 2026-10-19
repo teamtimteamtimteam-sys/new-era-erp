@@ -120,7 +120,7 @@ BEGIN
     RESET ROLE;
 
     -- ── E 臂:看板四支换码,采购那一支不换 ────────────────────────────────
-    DECLARE v_def text := pg_get_viewdef('public.operations_now'::regclass);
+    DECLARE v_def text := pg_get_viewdef('public.operations_arms_all'::regclass);
             v_arm text;
     BEGIN
         FOREACH v_arm IN ARRAY ARRAY['free_time_expiring','container_no_arrival',

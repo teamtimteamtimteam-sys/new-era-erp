@@ -3538,6 +3538,12 @@ lpad('14002',4,'0') = '1400'
 > 写在这里,免得它看起来像一个没人考虑过的选项。
 >
 > **浏览器那一半没有走过** —— `docs/manual-walk-list.md` §16,含那个三十分钟的观察。
+>
+> ★ **MES-8b-2(2026-10-17,`v1.4.58`)· 「一个值不分角色」在【恰好一种】情形下被取代(Tim 2026-10-17,MES-8 Step 0 Q19;MES-0 Q83):**
+> 一个会话的角色【恰好】是 `floor_display`、码【恰好】是 `data.view_floor_board`(一块车间大屏)时,不被空闲登出。**多一个角色或多一个码,豁免当场消失。**
+> 判据只有一份,在库里(`session_is_floor_display_only()`,由会话自己的 `auth.uid()` 求值 —— 浏览器送来的东西不参与);中间件**只在一次请求已经判成空闲过期时**
+> 问它一次,问不到就照这一条原来的样子登出。**别的每一个会话一字不变**:三十分钟、两分钟预警、只读不写那个活动 cookie(fixture 273 IDLE;线上以七个真角色的克隆
+> 在 31 分钟时各被登出一次 —— `docs/handbacks/MES-8b-2.md`)。上面那几段原文一个字不改:它们对每一个别的会话仍然是真的。
 
 ## `inbound_batches.status` / `output_batches.status`:没人写、没约束、却在界面上(STK-1 记,2026-08-12,未修)
 
@@ -10361,7 +10367,7 @@ AT-1a(2026-09-29,Q16)把 `formatDate` 改成 `DD/MM/YYYY` 之后,这两处的状
 | `/finance/freight/new` | **+27px** | 一颗页面级原生 `<select>` | `FREIGHT-NEW-PHONE-OVERFLOW`(同一个 27px,同一个元凶) |
 | `/sales/orders/new` | **+8px** | 一颗原生 `<select>` | `docs/forward-queue.md` 「Round 2 停在哪、Round 3 怎么修的」那张表(当时 6,`NewOrderForm.tsx` 的 `flex gap-2` 行) |
 | `/sales/quotes/[id]` | **+8px** | 明细编辑器加行那一排的物料 `<select>` | `AT1B2-QUOTE-PAGE-390-OVERFLOW`(同一个 8px) |
-| `/finance/month-end` | **+6px** | 一个表格格子(`td.px-3 py-2.5 align-middle text-[15px] text-gray-600`) | 无 —— 本条是第一次登记 |
+| ~~`/finance/month-end`~~ ✅ **已关闭(MES-8b-2,`v1.4.58`,2026-10-17)** | ~~**+6px**~~ → **0** | 一个表格格子(`td.px-3 py-2.5 align-middle text-[15px] text-gray-600`)—— 四列的 min-content 合起来比内容区宽 38 px;表包一层 `overflow-x-auto`,一个宽度都不改。前后读数在 `MES8B1-390-MONTH-END-DETAIL` 的关闭说明里 | 无 —— 本条是第一次登记 |
 
 **为什么说不是选择器造成的(测量,不是推断):** 这一刀没有改前读数(改前那棵树的 dev server 起不来,DATE-PICK-1 §8 第 26 条),所以
 `scripts/probe-date-pick1.mjs` 在**同一页**上把一个选择器换回原生 `<input type="date">` 再量一次,再换回来再量一次:
@@ -11054,14 +11060,33 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 所以等方法定了,算的人手里有当月的质量。fixture 272 的 V2627 臂钉着"给了也不算"(`computed` 注入成 true 必红)。
 **删除条件:** V27 由 Tim 给出方法(Regulation (EU) 2023/1542 的哪一种计法、按哪个口径)之后,单独一刀把效率按那个方法算出来,冻进包里;第 8 节不再只是一句话。
 
-### MES8B1-390-MONTH-END-DETAIL · 月结页在 390 px 上横向溢出 6 px —— 清单表格的"说明"那一列(MES-8b-1 版式勘察量到;【不是】本刀加的那一行造成的)
+### ~~MES8B1-390-MONTH-END-DETAIL · 月结页在 390 px 上横向溢出 6 px —— 清单表格的"说明"那一列(MES-8b-1 版式勘察量到;【不是】本刀加的那一行造成的)~~ —— ✅ **关闭于 MES-8b-2(`v1.4.58`,2026-10-17,并入)**
+
+**怎么关的:** 先量元凶的 min-content(本地挽具,同一页同一棵 DOM,`fixprobe` 逐个注入):390 px 上四列的最小宽度是 40 · 110 · 105 · 109 = **364 px**,内容区只有 **326 px**。
+三个候选都量过:状态列去掉 `w-32` —— 读数 **6 → 6**(它本来就只有 105 px,不是它撑的;这一刀先照它改过一次,线上普查同样 6 → 6,于是撤回);
+说明列或步骤列 `overflow-wrap: anywhere` —— 6 → 0,但把那一列挤成 41–45 px 的逐字断行。**落地的是第三个:给那张表包一层 `overflow-x-auto`** ——
+一个宽度都不改。线上普查(`scripts/survey-phone.mjs`,自证每次咬人):390 px **+6 → 0**(表仍是 364 px,放在 326 px 的滚动容器里);1280 px 0 → 0,
+表 **832 px → 832 px**、四列 40 · 205 · 128 · 458 逐像素同前(本地挽具同一读数)。同一行顺手划掉 `DATEPICK1-390-FIVE-PAGES-OVERFLOW` 表里月结那一格。
+
+**原条目(照录):**
 
 **是什么:** 本地 co8a(九月已锁、十月开着、没有工资期间)上 `/finance/month-end` 在 390 px 宽整页溢出 **6 px**(admin · cco · finance · cto · cfo · gm;warehouse 进不去这一页),
 元凶是清单表格"说明"那一列的格子(宽 109 px,右缘 396 px),例如「No payroll period for this month」。
 **本刀加的 0 px —— 量出来的,不是推的:** 在同一棵 DOM 上把本刀加的合规包那一行删掉再量,读数 **6 → 6**;本刀对这一页的改动只有那一行。1280 px 上 0。
 **删除条件:** 那张表在窄屏让说明列换行(或把说明挪到状态下面一行),390 px 读回 0。
 
-### MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK · 价格敞口页的库存一节把【物料种类没说】的批整批丢掉,一个字都不提(MES-8b-1 close-out 量到,2026-10-17;未修)
+### ~~MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK · 价格敞口页的库存一节把【物料种类没说】的批整批丢掉,一个字都不提(MES-8b-1 close-out 量到,2026-10-17;未修)~~ —— ✅ **关闭于 MES-8b-2(`v1.4.58`,2026-10-17,并入 F18 —— Tim 选了建议的那一条)**
+
+**怎么关的:** `inventory_metal_exposure()` 多一张清单 `kind_not_stated`(物料 `kind_code` 为空的在库批:代码与 kg,单位不是 kg 的照列数量与单位)与
+`kind_not_stated_kg`;**不估值**(它可能含金属,也可能不含 —— 没有人说过它是哪一种料);只要有一批,`complete` 就是 false。种类【说了】而不可投料的
+(备件 · 耗材 · 包装)照旧哪儿都不出现 —— 那是一个决定,不是缺席。页面多一节「Kind not stated — N batch(es), K kg」,合计那一句的「Incomplete」说出这一类。
+**为什么门这次看得见:** fixture 271 多一臂 KIND —— 在它自己的事务里造出线上那 7 种物料的形状(去掉 `materials_kind_stated`、插一种没有种类的物料、再以
+`NOT VALID` 加回),三批在库(250 kg 带 Ni 含量 · 产出 40 kg · 7 pcs):逐批列出、不估值(Ni 的吨数与值不变)、不进 not measured、不完整 —— 并且【两边都量】:
+把别的料都改成不可投料之后它是不完整的【唯一】原因(第一版只看"不完整",而那一句在这支 fixture 里本来就因为别的原因成立 —— 一格注入把它摘掉,第一版照样绿;
+注入格因此先红了没咬,判据改成两边都量);备件照旧不出现(EXPO 臂)。注入 5 格,各自红在自己那一臂。
+**线上(迁移之后):** 迁移之后(2026-10-17 14:31,`db/scripts/2026-10-17-mes8b2-live-proof.mjs` 以只持 finance.view + data.view_prices 的一次性账号读;14:35 收尾读数以 admin 的会话再读一次)—— **kind_not_stated 23 批 / 119,104 kg**(进料 11 批 115,288 kg · 产出 12 批 3,816 kg,逐批代码与 kg 列出),`complete` = false,已计量且有价的部分仍是 0.00(那 23 批不估值 —— 它们没有种类),not measured 仍是 1 批 100 kg。**开场读数(迁移之前,同一支函数、同一个会话):这一栏不存在,23 批哪儿都不出现。** 毛利不受影响;没有一种物料的种类被改过(物料与种类两张表的指纹开场 = 收尾)。
+
+**原条目(照录):**
 
 **是什么:** `inventory_metal_exposure()` 取在库时内连 `material_kinds` 再取 `may_ever_be_processed`(`db/functions/inventory_metal_exposure.sql:33-42`,后半 `:101-110` 同一句),
 于是物料 `kind_code` 为空的批 **既不估值、也不进 "not measured"、也不进 "unit not kg"** —— 它们从这一节里消失。而 `kind_code` 为空是一个**刻意允许的状态**
@@ -11075,3 +11100,24 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 **建议(等 Tim):** 种类没说的批单列一栏「kind not stated」(代码、kg),不估值,并让 `complete = false` —— 与 "not measured" / "not in kg" 同一种处置;271 加一臂
 (一种没有种类、带含量、在库的物料)和它的注入格。**另一条路:** 当作切换那天清库时会消失的测试数据(新行必须说出种类),记进 `docs/known-wrong-until-cutover.md`。
 **删除条件:** 二选一落地 —— 函数把种类没说的批列出来、271 那一臂绿、线上页面不再读 0.00;或者 Tim 裁定按测试数据处理并记进 known-wrong-until-cutover。
+
+## MES-8b-2(`v1.4.58`,2026-10-17)—— 车间大屏 · F18 · 月结页 390 px
+
+### MES8B2-FRESH-CLONE-91083D75 · `91083d75`(MES-8b-1 close-out 的文档提交)欠的那一次冷构建,本刀开头补上了 —— 绿(记录,不是缺陷)
+
+`91083d75` 推送时没有从它自己冷构建过一次(close-out 那一刀只写了文档)。本刀第一件事:`git clone` 到仓库外的临时目录、检出 `91083d755735bee5bba60c5b3b383ada739d8118`、
+没有 `.env.local`,`npm ci` → **`CI_EXIT=0`**,`npm run build` → **`BUILD_EXIT=0`**(两个退出码都由脚本自己写进日志)。没有要修的;这一条留着,是为了"欠过、补过"有一处记录。
+**删除条件:** 下一刀读过即可删。
+
+### MES8B2-DISPLAY-SOFT-NAV-INTO-DISPLAY · 一个【不是大屏】的读者软导航进 `/display` 时,浏览器那一半的空闲预警不跟进来(登记,不修)
+
+`/display` 不画外壳,`AppChrome`(客户端)在软导航到它时把外壳连同里面的 `IdleWatcher` 一起收起;根布局只在【硬导航】打开 `/display` 时为不是大屏的会话
+单挂一个 `IdleWatcher`。于是 admin / cfo 若从别的页【点链接】进 `/display`,那两分钟的预警不出现 —— **服务端的空闲登出照旧**(中间件逐请求判,下一次请求
+就登出,fixture 与线上 HTTP 都量过)。**今天走不到:** 没有任何链接指向 `/display`(它在 `check-nav-routes` 的例外表里,入口是墙上那块屏自己打开的地址)。
+**删除条件:** 哪天给 `/display` 加一个站内入口,同一刀让 `AppChrome` 在 `/display` 上为不是大屏的会话保留 `IdleWatcher`,或者不加入口。
+
+### MES8B2-V28-PANEL-ON-THE-BOARD · V28 的设定面板画在大屏页底下(给不是大屏的读者),没有单独的设置页(登记,刻意的)
+
+Step 0 §6 写的是「`/display`(settings panel for admin)」;本刀照做:面板只画给【不是大屏】的会话(一块挂在墙上的屏不该画一张管理员表单),持
+`action.manage_permissions` 的按得动,别的(cfo)画成按不动、说出码。V28 那一支待补的值指向 `/display`。**删除条件:** 若 Tim 要一张单独的设置页,搬过去并改那一支的 href。
+

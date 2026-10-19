@@ -387,6 +387,9 @@ DEFINER_NO_CHECK_ALLOWED = {
     "has_permission": "the permission check itself",
     "current_user_permissions": "resolves the caller's own permission set",
     "current_user_employee": "resolves the caller's own employee row",
+    # MES-8b-2:空闲豁免与"别的页一律拒"的唯一判据 —— 只答【调用者自己】是不是一块大屏,读不到别人的授权(与上面两支同一个形状);
+    #   每一个登录的人都必须调得到(中间件以那个会话自己的身份问),要它查一个码,一块大屏就永远证明不了自己是大屏。
+    "session_is_floor_display_only": "resolves whether the caller's own session is a wall display",
     "is_reviewer_of": "the identity check itself",
     "require_permission": "raises on behalf of its callers",
     "require_reviewer_of": "raises on behalf of its callers",

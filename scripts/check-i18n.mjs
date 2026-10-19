@@ -415,7 +415,7 @@ const MANIFEST = {
     //   加一种单据而少一句译文,这里当场红 —— 屏幕上那一行否则会画一个空标签,
     //   而一个空标签与"这一类没有关联记录"在读的人眼里分不开。
     'search.docType.':      { kind: 'enum', values: () => sqlSeedCodes('db/tables/document_types.sql', 'document_types') },
-    'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_now.sql', 'item_type') },
+    'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_arms_all.sql', 'item_type') },
     // ── CONV-6 ⑨:运营 Overview 的「投入 / 产出」──────────────────────────
     // 后缀集合是 work_order_fulfilment 那两支的 side 别名 —— 从视图镜像现读。
     // 【为什么不写死两个】那两个字符串是视图【吐给屏幕】的值本身;写死一份清单,
@@ -882,6 +882,7 @@ const MANIFEST = {
         return [...ts, 'grade_breaches'] } },
     'supplierStatements.errors.':  { kind: 'enum', values: () => tsSet('app/finance/supplier-statements/supplierStatementErrorCodes.ts', 'SUPPLIER_STATEMENT_ERROR_CODES') },
     'compliancePacks.errors.':     { kind: 'enum', values: () => tsSet('app/compliance/packs/complianceErrorCodes.ts', 'COMPLIANCE_PACK_ERROR_CODES') },
+    'display.errors.':             { kind: 'enum', values: () => tsSet('app/display/displayErrorCodes.ts', 'FLOOR_BOARD_ERROR_CODES') },
     'supplierStatements.doc.kind_': { kind: 'enum', values: () => tsRegex('db/functions/supplier_statement_data.sql',
                                   /WHEN 'purchase' THEN '(\w+)'|IN \('purchase', '(\w+)', '(\w+)', '(\w+)', '(\w+)'\)\) l/g) },
     'supplierStatements.doc.open_': { kind: 'enum', values: () => tsRegex('db/functions/ap_aging_asof.sql',

@@ -410,6 +410,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.fixed_a
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.fixed_assets
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.floor_board_settings
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.floor_board_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.forwarder_details
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('supplier_id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.forwarder_details

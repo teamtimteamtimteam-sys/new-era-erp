@@ -126,7 +126,7 @@ BEGIN
     -- 两次都表现为"注入之后行为没变",而那与"这一支本来就没读配置"在结果上
     -- 一模一样。所以这里先断言【替换确实改动了字节】,再谈行为。
     DECLARE
-        v_def text := pg_get_viewdef('public.operations_now'::regclass, true);
+        v_def text := pg_get_viewdef('public.operations_arms_all'::regclass, true);
         v_inj text;
         -- 【用对空白不敏感的模式,而不是逐字复制排版】pg_get_viewdef 的缩进随
         -- 嵌套深度变化,照抄一次就等于把这份 fixture 钉在今天这个排版上。
@@ -136,7 +136,7 @@ BEGIN
         IF v_inj = v_def THEN
             RAISE EXCEPTION 'FIXTURE 76 注入 失败:在视图定义里没找到那段读配置的子查询 —— 这个注入什么也没删,下面那句"应当不再起作用"会变成空转';
         END IF;
-        EXECUTE 'CREATE OR REPLACE VIEW public.operations_now AS ' || v_inj;
+        EXECUTE 'CREATE OR REPLACE VIEW public.operations_arms_all AS ' || v_inj;
     END;
     -- 现在视图里是写死的 14,改配置应当【不再起作用】
     UPDATE pricing_settings SET metal_quote_stale_days = 30;

@@ -266,6 +266,11 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 -- operations / warehouse / sales。对三个角色是扩大,对任何人都不是缩小。
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ★ MES-8b-2(2026-10-17,MES-0 Q83 · Q90,Tim):floor_display 只持 data.view_floor_board —— 一个码,不多一个(多一个,空闲豁免就没了)。
+--   admin 由上面那一句(目录里每一个码)自动拿到它;线上的 cfo 由迁移授(本文件没有 cfo 这个角色,见上)。
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, 'data.view_floor_board' FROM roles r WHERE r.code = 'floor_display';
+
 -- employee:【一个模块权限都不给】—— 员工自助是行级的,靠 current_user_employee()
 -- 限定到本人相关的行。给模块权限反而会把整张表打开。
 

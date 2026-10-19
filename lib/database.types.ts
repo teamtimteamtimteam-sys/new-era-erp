@@ -10319,6 +10319,30 @@ export type Database = {
           },
         ]
       }
+      floor_board_settings: {
+        Row: {
+          id: boolean
+          refresh_seconds: number | null
+          tiles: string[] | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          refresh_seconds?: number | null
+          tiles?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          refresh_seconds?: number | null
+          tiles?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       forwarder_details: {
         Row: {
           created_at: string
@@ -40582,6 +40606,18 @@ export type Database = {
           },
         ]
       }
+      operations_arms_all: {
+        Row: {
+          doc_kind: string | null
+          item_code: string | null
+          item_date: string | null
+          item_id: string | null
+          item_type: string | null
+          permission: string | null
+          subject: string | null
+        }
+        Relationships: []
+      }
       operations_now: {
         Row: {
           days_waiting: number | null
@@ -49598,6 +49634,15 @@ export type Database = {
         Args: { p_date: string; p_prefix: string }
         Returns: string
       }
+      floor_board: { Args: never; Returns: Json }
+      floor_board_arms: {
+        Args: never
+        Returns: {
+          item_type: string
+          section: string
+          sort_order: number
+        }[]
+      }
       forbid_self_approval: {
         Args: {
           p_raiser_user: string
@@ -51651,6 +51696,7 @@ export type Database = {
         Args: { p_raiser: string; p_subject_employee: string; p_user: string }
         Returns: string
       }
+      session_is_floor_display_only: { Args: never; Returns: boolean }
       set_approvals_policy: {
         Args: {
           p_enabled: boolean
@@ -51702,6 +51748,10 @@ export type Database = {
         Returns: Json
       }
       set_finance_settings: { Args: { p_changes: Json }; Returns: Json }
+      set_floor_board_settings: {
+        Args: { p_refresh_seconds: number; p_tiles: string[] }
+        Returns: Json
+      }
       set_goal_actual_value: {
         Args: { p_actual_value: number; p_goal_id: string }
         Returns: Json

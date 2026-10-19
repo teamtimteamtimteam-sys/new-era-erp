@@ -21,6 +21,7 @@ import {
 import { ListPage } from '@/app/components/ui/list-page'
 import MyReviewsTable, { type MyReviewRow } from './MyReviewsTable'
 import { formatDate } from '@/lib/dates'
+import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
 
 type SubjectRow = {
     review_id: string
@@ -33,6 +34,9 @@ type SubjectRow = {
 }
 
 export default async function MyReviewsPage() {
+    // MES-8b-2:这一页不要任何码,所以一块车间大屏的会话(软导航不重画根布局)要在这里被拒、指回 /display。
+    const floorRefusal = await requireNotFloorDisplay()
+    if (floorRefusal) return floorRefusal
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()

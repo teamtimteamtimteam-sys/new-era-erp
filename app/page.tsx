@@ -120,8 +120,12 @@ import HomeMark from '@/app/components/home/HomeMark'
 import RememberGreeting from '@/app/components/home/RememberGreeting'
 import SearchEntry from '@/app/components/search/SearchEntry'
 import styles from './home.module.css'
+import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
 
 export default async function Home() {
+    // MES-8b-2:这一页不要任何码,所以一块车间大屏的会话(软导航不重画根布局)要在这里被拒、指回 /display。
+    const floorRefusal = await requireNotFloorDisplay()
+    if (floorRefusal) return floorRefusal
     const t = await getTranslations()
     const perms = await getMyPermissions()
     // ★【UI-1b】两样新东西,各自可以【缺席】而不留下痕迹 ★

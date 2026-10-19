@@ -182,7 +182,7 @@ BEGIN
        OR (SELECT gate_permissions FROM approval_chain_gates() WHERE subject_type = 'invoice_request')
          IS DISTINCT FROM ARRAY['module.finance.view', 'data.view_prices']::text[] THEN
         RAISE EXCEPTION 'FIXTURE 223A1 失败:链的名册应当只有二级一行,门 = finance.view + view_prices'; END IF;
-    IF position('invoice_request_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('invoice_request_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 223A2 失败:operations_now 没有 invoice_request_pending 那一支'; END IF;
     IF has_function_privilege('authenticated', 'public.void_invoice_internal(uuid, text, date)', 'EXECUTE')
        OR has_function_privilege('authenticated', 'public.create_credit_note_internal(uuid, date, text, jsonb)', 'EXECUTE')

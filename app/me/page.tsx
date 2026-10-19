@@ -31,6 +31,7 @@ import AvatarPanel from './AvatarPanel'
 import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
 import { formatDate, formatDateTime, formatMonth } from '@/lib/dates'
+import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
 
 type MyKpiRow = {
     id: string; cycle_name: string; cycle_status: string; gate: string | null
@@ -45,6 +46,9 @@ type MyKpiRow = {
 }
 
 export default async function MePage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
+    // MES-8b-2:这一页不要任何码,所以一块车间大屏的会话(软导航不重画根布局)要在这里被拒、指回 /display。
+    const floorRefusal = await requireNotFloorDisplay()
+    if (floorRefusal) return floorRefusal
     const trailShow = trailCount((await searchParams).trail)
     const supabase = await createClient()
     const t = await getTranslations()

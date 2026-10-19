@@ -124,7 +124,7 @@ BEGIN
        OR (SELECT gate_permissions FROM approval_chain_gates() WHERE subject_type = 'journal_request')
          IS DISTINCT FROM ARRAY['module.finance.view', 'data.view_prices']::text[] THEN
         RAISE EXCEPTION 'FIXTURE 225A1 失败:journal_request 的名册应当只有二级一行,门 = finance.view + view_prices'; END IF;
-    IF position('journal_request_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('journal_request_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 225A2 失败:operations_now 没有 journal_request_pending 那一支'; END IF;
     SELECT string_agg(s, ', ') INTO v_msg FROM unnest(ARRAY[
         'public.post_journal_entry(date, text, text, uuid, jsonb)',

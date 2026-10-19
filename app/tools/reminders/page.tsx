@@ -64,6 +64,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { REMINDERS, specFor, type OpsRow } from '@/lib/reminders'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { Refusal, RefusalBlock } from '@/app/components/ui/refusal'
+import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
 
 // 一块里最多列几件;其余交给那一支自己的列表。
 // 【8 而不是首页的 5】首页是路过,这一页是【专程来看的地方】—— 同一个数在两种
@@ -85,6 +86,9 @@ type HrAlertRow = {
 }
 
 export default async function RemindersPage() {
+    // MES-8b-2:这一页不要任何码,所以一块车间大屏的会话(软导航不重画根布局)要在这里被拒、指回 /display。
+    const floorRefusal = await requireNotFloorDisplay()
+    if (floorRefusal) return floorRefusal
     const t = await getTranslations()
     const supabase = await createClient()
     const perms = await getMyPermissions()

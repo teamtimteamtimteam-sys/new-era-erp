@@ -11,11 +11,15 @@ import { mustRows } from '@/lib/db-helpers'
 import { subjectHref, eventParams, type NotificationRow } from './notificationTypes'
 import MarkReadButtons from './MarkReadButtons'
 import { formatAuditStamp } from '@/lib/dates'
+import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
 
 // 有界:一页 50 条。更早的属于报表中心那一刀,不属于收件箱。
 const PAGE_LIMIT = 50
 
 export default async function NotificationsPage() {
+    // MES-8b-2:这一页不要任何码,所以一块车间大屏的会话(软导航不重画根布局)要在这里被拒、指回 /display。
+    const floorRefusal = await requireNotFloorDisplay()
+    if (floorRefusal) return floorRefusal
     const t = await getTranslations()
     const supabase = await createClient()
     const {

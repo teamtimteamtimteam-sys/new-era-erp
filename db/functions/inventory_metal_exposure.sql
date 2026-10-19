@@ -10,7 +10,13 @@
 --   ★ 不折算(Q81:USD,换算的那一条裁定还开着 —— BLOCKERS-0 Q1/Q2),不设阈值(Q12)。
 --   ★ 门(Q13,AGENTS.md 常设决定 2):data.view_prices AND (module.finance.view OR module.processing.view);不满足按名拒,页面先画「受限」。
 --     (一份"一行都没有"的敞口与一次拒绝是两件事 —— 返回集合的函数用零行表示受限就分不开,CLEANUP-A。)
--- NOTE: introduced by db/migrations/2026-10-17-mes8b1-margin-exposure-and-compliance-pack.sql.
+-- ★ MES-8b-2 F18(2026-10-17,Tim 裁定 MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK):【物料种类没说】不是「不可投料」。
+--   materials.kind_code 刻意可空(「留空的意思就是没有人决定过」),而上面那条"只看可能含金属的料"原本写成内连 material_kinds ——
+--   于是种类没说的批既不估值、也不进 not measured、也不进 unit not kg,从这一节里【整批消失】(线上 23 批)。
+--   现在:种类没说、在库的批单列一栏 kind_not_stated(代码与 kg;单位不是 kg 的照列数量与单位),【不估值】,
+--   只要有一批,complete 就是 false。种类【说了】而那一种不可投料的(备件、耗材、包装)照旧不进来 —— 那是一个决定,不是缺席。
+-- NOTE: introduced by db/migrations/2026-10-17-mes8b1-margin-exposure-and-compliance-pack.sql;
+--   F18 by db/migrations/2026-10-17-mes8b2-wall-display.sql.
 CREATE OR REPLACE FUNCTION public.inventory_metal_exposure()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -22,6 +28,7 @@ DECLARE
     v_metals jsonb;
     v_unmeasured jsonb;
     v_not_kg jsonb;
+    v_kind_not_stated jsonb;
     v_total numeric;
     v_complete boolean;
 BEGIN
@@ -119,13 +126,34 @@ BEGIN
       INTO v_unmeasured, v_not_kg
       FROM stock s WHERE s.qty > 0;
 
+    -- F18:物料种类没说的在库批 —— 列出来,不估值(它可能含金属,也可能不含;没有人说过它是哪一种料)。
+    WITH stock AS (
+        SELECT 'inbound'::text AS kind, b.code, b.unit, sum(mv.qty_delta) AS qty
+          FROM inventory_movements mv JOIN inbound_batches b ON b.id = mv.inbound_batch_id
+          JOIN materials m ON m.id = b.material_id
+         WHERE b.deleted_at IS NULL AND m.kind_code IS NULL GROUP BY b.id, b.code, b.unit
+        UNION ALL
+        SELECT 'output'::text, b.code, b.unit, sum(mv.qty_delta)
+          FROM inventory_movements mv JOIN output_batches b ON b.id = mv.output_batch_id
+          JOIN materials m ON m.id = b.material_id
+         WHERE b.deleted_at IS NULL AND m.kind_code IS NULL GROUP BY b.id, b.code, b.unit
+    )
+    SELECT COALESCE(jsonb_agg(jsonb_build_object('kind', s.kind, 'code', s.code,
+                                                 'kg', CASE WHEN s.unit = 'kg' THEN round(s.qty, 3) END,
+                                                 'qty', round(s.qty, 3), 'unit', s.unit) ORDER BY s.code, s.kind), '[]'::jsonb)
+      INTO v_kind_not_stated
+      FROM stock s WHERE s.qty > 0;
+
     RETURN jsonb_build_object(
         'as_of', v_today,
         'metals', COALESCE(v_metals, '[]'::jsonb),
         'value_usd_priced', round(COALESCE(v_total, 0), 2),
-        'complete', COALESCE(v_complete, true) AND jsonb_array_length(v_unmeasured) = 0 AND jsonb_array_length(v_not_kg) = 0,
+        'complete', COALESCE(v_complete, true) AND jsonb_array_length(v_unmeasured) = 0 AND jsonb_array_length(v_not_kg) = 0
+                    AND jsonb_array_length(v_kind_not_stated) = 0,
         'not_measured', v_unmeasured,
         'not_measured_kg', (SELECT COALESCE(round(sum((x ->> 'kg')::numeric), 3), 0) FROM jsonb_array_elements(v_unmeasured) x),
-        'unit_not_kg', v_not_kg);
+        'unit_not_kg', v_not_kg,
+        'kind_not_stated', v_kind_not_stated,
+        'kind_not_stated_kg', (SELECT COALESCE(round(sum((x ->> 'kg')::numeric), 3), 0) FROM jsonb_array_elements(v_kind_not_stated) x));
 END;
 $function$

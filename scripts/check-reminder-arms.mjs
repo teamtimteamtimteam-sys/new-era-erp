@@ -22,7 +22,7 @@
 //
 // ════════════════════════════════════════════════════════════════════════════
 // 【瞄准 · AIM】
-//   我读的是      :`db/views/operations_now.sql` 与 `lib/reminders.ts` 两份**源码文本**,
+//   我读的是      :`db/views/operations_arms_all.sql`(MES-8b-2 起支住在这里)与 `lib/reminders.ts` 两份**源码文本**,
 //                   各用一条正则抽出一组支名。
 //   我声称管的是  :视图里有一支提醒,首页上就得有一块对应的牌子。
 //   两者不同之处  :**我读的是注册表,不是屏幕。** `lib/reminders.ts` 里有一条
@@ -41,7 +41,7 @@
 import { readFileSync } from 'node:fs'
 import { assertPinned, assertPopulation } from './lib/selfproof.mjs'
 
-const VIEW = 'db/views/operations_now.sql'
+const VIEW = 'db/views/operations_arms_all.sql'  // MES-8b-2:支的定义搬进了基视图
 const REG = 'lib/reminders.ts'
 
 // 【与 check-i18n 的解析器认同一种写法】'<name>'::text AS item_type。
@@ -120,7 +120,7 @@ if (missing.length || extra.length) {
         )
     }
     console.error(
-        '  加一支 = 同时改 db/views/operations_now.sql · lib/reminders.ts ·' +
+        '  加一支 = 同时改 db/views/operations_arms_all.sql · lib/reminders.ts ·' +
             ' docs/dashboard-arm-inventory.md · messages/{zh,en}.ts。'
     )
     process.exit(1)

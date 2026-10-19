@@ -2,6 +2,8 @@
 // MES-8b-1(2026-10-17,MES-0 Q81;MES-8 Step 0 Q12 · Q13,Tim):还在库的料里,可计价金属按最新的价值多少 —— 这一页的第二节。
 //   【算术一个字都不在这里】读 inventory_metal_exposure():每一个可计价金属一行 —— 在库 kg × 含量 % × 今天或之前最新的一条价(美元 / 吨,带那条价的日子);
 //   没有含量的批「Not measured」(列 kg,不估值);没有价的金属「No price」;同一天几条价「Price ambiguous」;不折算、不设阈值。
+//   ★ MES-8b-2 F18:物料【种类没说】的在库批单列一栏「Kind not stated」(代码与 kg,单位不是 kg 的照列数量与单位)—— 不估值,
+//     只要有一批,合计就标「Incomplete」。种类说了而不可投料的(备件、耗材、包装)照旧不进这一节(那是一个决定,不是缺席)。
 //   【门】AGENTS.md 常设决定 2(与 /margin 同一份判据 FN.margin.permission);不满足的读者看到「Restricted」与要的码,不调用那支函数。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -16,6 +18,7 @@ type Exposure = {
     as_of: string; metals: ExposureLine[]; value_usd_priced: number; complete: boolean
     not_measured: { kind: string; code: string; kg: number }[]; not_measured_kg: number
     unit_not_kg: { kind: string; code: string; qty: number; unit: string }[]
+    kind_not_stated: { kind: string; code: string; kg: number | null; qty: number; unit: string }[]; kind_not_stated_kg: number
 }
 
 export default async function InventoryExposureSection() {
@@ -48,6 +51,16 @@ export default async function InventoryExposureSection() {
                 {e.unit_not_kg.length > 0 && (
                     <p className="text-[color:var(--brand-muted-text)] mt-2">{t('inventoryExposure.unitNotKg')} {e.unit_not_kg.map((b) => `${b.code} ${b.qty} ${b.unit}`).join(' · ')}</p>
                 )}
+            </div>
+            <div className="mt-4 text-sm max-w-3xl" data-section="exposure-kind-not-stated">
+                <h3 className="font-medium mb-1">{t('inventoryExposure.kindNotStatedTitle', { kg: fmtKg(e.kind_not_stated_kg), n: String(e.kind_not_stated.length) })}</h3>
+                {e.kind_not_stated.length === 0 ? <p className="text-[color:var(--brand-muted-text)]">{t('inventoryExposure.allKindsStated')}</p>
+                    : <>
+                        <p className="text-[color:var(--brand-muted-text)]">{t('inventoryExposure.kindNotStatedWhy')}</p>
+                        <p className="text-[color:var(--brand-muted-text)] mt-1 break-words" data-value="exposure-kind-not-stated-list">
+                            {e.kind_not_stated.map((b) => b.kg !== null ? `${b.code} ${fmtKg(b.kg)} kg` : `${b.code} ${b.qty} ${b.unit}`).join(' · ')}
+                        </p>
+                    </>}
             </div>
             <p className="text-xs text-[color:var(--brand-muted-text)] mt-3 max-w-3xl">{t('inventoryExposure.noConversion')}</p>
         </section>

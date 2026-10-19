@@ -160,12 +160,15 @@ export function RefusalPage({
     statement,
     hint,
     backHomeLabel,
+    backHref = '/',
 }: {
     title: React.ReactNode
     statement: React.ReactNode
     hint?: React.ReactNode
     /** 传了就画「回首页」。不传的调用方要问问自己:被挡住的人怎么离开这一页? */
     backHomeLabel?: React.ReactNode
+    /** 那条出路指向哪儿。默认首页;MES-8b-2 的大屏拒绝指回 /display —— 一块大屏的"首页"就是大屏。 */
+    backHref?: string
 }) {
     return (
         <div className="p-8 max-w-2xl" data-access-denied="1">
@@ -174,7 +177,7 @@ export function RefusalPage({
             {/* 【用 Link,不用裸 <a>】裸 <a> 是一次整页重载 —— 合并三份副本
                 不该顺手把 moduleGuard 那份的导航行为改掉。 */}
             {backHomeLabel && (
-                <Link href="/" className="inline-block mt-4 text-sm hover:underline app-link app-link-inline">
+                <Link href={backHref} className="inline-block mt-4 text-sm hover:underline app-link app-link-inline">
                     {backHomeLabel}
                 </Link>
             )}

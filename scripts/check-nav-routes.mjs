@@ -115,6 +115,9 @@ const EXCEPTIONS = new Map([
     ['/my-reviews', '本人的绩效评估。同 /me:它是"我自己的东西",不是一个模块功能。'],
     ['/notifications', '通知列表。入口是顶栏的铃铛,不是二级菜单。'],
     ['/brand-sampler', 'BRAND-1 的样式取样页,用完即删的开发页,不进导航。'],
+    // ★ MES-8b-2(2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19 · Q20):车间大屏。它的入口是挂在墙上的那块屏自己(管理员在那块屏上
+    //   打开这个地址一次),不是菜单 —— 而一块大屏的会话除了它什么都打不开。门 data.view_floor_board(floor_display · admin · cfo)。
+    ['/display', '车间大屏(/display):墙上那块屏自己打开的地址,不是二级菜单;一块大屏的会话只打得开它(lib/floorDisplay.ts)。'],
     // ★ COD-2(2026-09-08):两条【不是给本系统用户走的】路由 ★
     ['/verify/cod/[token]',
         '销毁证书的核验页。**本系统第一条不需要会话的业务路由**(PUBLIC_PATHS 里加的那一条),' +

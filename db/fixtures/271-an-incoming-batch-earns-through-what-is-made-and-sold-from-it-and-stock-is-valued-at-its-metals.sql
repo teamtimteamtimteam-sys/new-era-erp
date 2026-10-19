@@ -18,6 +18,11 @@
 --            明天那一条价不算("今天或之前");Co 一条价都没有 → no_price、不估值、金属吨数照列;Mn 同一天两条价(两个指数)→ price_ambiguous;
 --            惩罚元素 f 的含量不进来;价比含量旧 → price_older_than_content 计数;B 一种可计价金属的含量都没有 → not measured(列 kg,不估值);
 --            单位不是 kg 的批另列;备件不进来;合计只加估了值的金属、complete = false
+--   KIND     ★ MES-8b-2 F18(Tim 裁定 MES8B1-EXPOSURE-SKIPS-UNKINDED-STOCK):物料【种类没说】的在库批 —— 进料 250 kg(带 Ni 10% 的含量)、
+--            产出 40 kg、一批 7 pcs —— 列进 kind_not_stated(代码与 kg,不是 kg 的照列数量与单位),【不估值】(Ni 的吨数与值不变),
+--            不进 not measured,合计标不完整、kind_not_stated_kg = 290;种类【说了】而不可投料的备件照旧哪儿都不出现。
+--            种类为空的物料在重建库里只能这样造:去掉 materials_kind_stated、插、再以 NOT VALID 加回 —— 与线上那 7 行的来历同一个形状
+--            (约束之前就在),整段随本 fixture 的事务回滚。
 --   LOG      本刀的新表都进变更记录(三张,豁免仍 8);两支函数不写任何东西
 --
 -- 自带数据(README 第 2 条);以 postgres 直写布景(收货与产出的流水由触发器写,消耗与销售的流水在这里写);读者那几臂切成 authenticated + JWT。
@@ -157,7 +162,7 @@ DECLARE
     u_all uuid; u_fin uuid; u_proc uuid; u_noprice uuid; u_pricesonly uuid;
     D date := CURRENT_DATE - 20;
     m uuid; m_spare uuid; s uuid; cust uuid;
-    ia uuid; ib uuid; ic uuid; id_ uuid; ie uuid; i_pcs uuid; i_spare uuid;
+    ia uuid; ib uuid; ic uuid; id_ uuid; ie uuid; i_pcs uuid; i_spare uuid; m_nk uuid; i_nk uuid; o_nk uuid;
     r1 uuid; r2 uuid; r3 uuid; r4 uuid; r5 uuid;
     o1 uuid; o2 uuid; o3 uuid; o4 uuid; o5 uuid; o6 uuid;
     v_m jsonb; v_m2 jsonb; v_l jsonb; v_e jsonb; v_x jsonb; v_msg text; v_txt text; v_n bigint;
@@ -337,6 +342,55 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 271 EXPO: a batch not in kg is listed apart, not summed, got %', v_e -> 'unit_not_kg'; END IF;
     IF ((v_e ->> 'value_usd_priced')::numeric <> 1140.00 + 0 OR (v_e ->> 'complete')::boolean IS NOT FALSE OR (v_e ->> 'as_of')::date <> (now() AT TIME ZONE 'Asia/Singapore')::date) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 271 EXPO: the total adds only valued metals (1,140.00), says it is incomplete, and is as of today (Singapore), got %', v_e - 'metals'; END IF;
+    IF (jsonb_array_length(v_e -> 'kind_not_stated') <> 0 OR (v_e ->> 'kind_not_stated_kg')::numeric <> 0) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 EXPO: every material here has a kind → nothing under "kind not stated", got %', v_e -> 'kind_not_stated'; END IF;
+
+    -- ══════════════ KIND(MES-8b-2 F18)══════════════
+    RAISE NOTICE 'fixture 271 · KIND';
+    PERFORM pg_temp.f271_as(u_all);
+    -- 一种【种类没说】的物料:线上 7 行就是这样来的(约束加上之前就在)。去掉约束、插、再以 NOT VALID 加回 —— 随事务回滚。
+    ALTER TABLE materials DROP CONSTRAINT materials_kind_stated;
+    INSERT INTO materials (code, name) VALUES ('FX271-NK', 'fixture 271 material with no kind') RETURNING id INTO m_nk;
+    ALTER TABLE materials ADD CONSTRAINT materials_kind_stated CHECK (kind_code IS NOT NULL AND may_be_processed IS NOT NULL) NOT VALID;
+    IF ((SELECT kind_code FROM materials WHERE id = m_nk) IS NOT NULL
+        OR (SELECT convalidated FROM pg_constraint WHERE conrelid = 'public.materials'::regclass AND conname = 'materials_kind_stated')) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND 前置失败: the material must have no kind and the constraint must be back, NOT VALID'; END IF;
+    i_nk := pg_temp.f271_ib('FX271-NK-IN', m_nk, s, 250, 1);
+    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (i_nk, 'ni', 10, 'manual');
+    INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date) VALUES ('FX271-NK-OUT', m_nk, 40, 40, D) RETURNING id INTO o_nk;
+    PERFORM pg_temp.f271_ib('FX271-NK-PCS', m_nk, s, 7, NULL, 'pcs');
+    v_e := pg_temp.f271_get(u_proc, $q$SELECT inventory_metal_exposure()$q$);
+    IF (jsonb_array_length(v_e -> 'kind_not_stated') <> 3
+        OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'kind_not_stated') x WHERE x ->> 'code' = 'FX271-NK-IN' AND x ->> 'kind' = 'inbound' AND (x ->> 'kg')::numeric = 250)
+        OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'kind_not_stated') x WHERE x ->> 'code' = 'FX271-NK-OUT' AND x ->> 'kind' = 'output' AND (x ->> 'kg')::numeric = 40)
+        OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'kind_not_stated') x WHERE x ->> 'code' = 'FX271-NK-PCS' AND jsonb_typeof(x -> 'kg') = 'null'
+                                                                                  AND (x ->> 'qty')::numeric = 7 AND x ->> 'unit' = 'pcs')
+        OR (v_e ->> 'kind_not_stated_kg')::numeric <> 290) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND: a material with no kind → its stock is listed under "kind not stated" with code and kg (250 + 40 = 290; the pcs batch with its quantity and unit), got %', v_e -> 'kind_not_stated'; END IF;
+    SELECT x INTO v_l FROM jsonb_array_elements(v_e -> 'metals') x WHERE x ->> 'metal' = 'ni';
+    IF ((v_l ->> 'metal_kg')::numeric <> 76 OR (v_l ->> 'value_usd')::numeric <> 1140.00 OR (v_l ->> 'batches')::int <> 2
+        OR (v_e ->> 'value_usd_priced')::numeric <> 1140.00) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND: the kindless batch is NOT valued — its Ni content adds nothing (Ni stays 76 kg / 1,140.00, total 1,140.00), got %', v_l - 'batch_lines'; END IF;
+    IF (EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'not_measured') x WHERE x ->> 'code' LIKE 'FX271-NK%')
+        OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'unit_not_kg') x WHERE x ->> 'code' LIKE 'FX271-NK%')) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND: a kindless batch is listed once, under "kind not stated" — not as "not measured" or "not in kg", got %', v_e - 'metals'; END IF;
+    IF (EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'kind_not_stated') x WHERE x ->> 'code' = 'FX271-SP')
+        OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'not_measured') x WHERE x ->> 'code' = 'FX271-SP')
+        OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_e -> 'metals') l, jsonb_array_elements(l -> 'batch_lines') b WHERE b ->> 'code' = 'FX271-SP')) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND: a recorded kind that may not be processed (the spare part) keeps today''s treatment — absent from every list'; END IF;
+    -- 「不完整」要两边都量:先把本 fixture 别的料都改成【说了、不可投料】的种类(于是它们整批离开这一节,没价 / 没计量 / 不是 kg 那几样
+    --   原因一起消失),只剩种类没说的那几批 —— complete 必须为 false;再给它们也定一个种类 —— complete 必须回到 true。
+    --   (只看第一半是空的:本 fixture 里 complete 本来就因为别的原因是 false —— 一格注入把这一项从合计里摘掉,第一版照样绿。)
+    UPDATE materials SET kind_code = 'consumable', may_be_processed = false, form_code = NULL, source_code = NULL WHERE id = m;
+    v_e := pg_temp.f271_get(u_proc, $q$SELECT inventory_metal_exposure()$q$);
+    IF (jsonb_array_length(v_e -> 'not_measured') <> 0 OR jsonb_array_length(v_e -> 'unit_not_kg') <> 0 OR jsonb_array_length(v_e -> 'kind_not_stated') <> 3) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND 前置失败: with the other material made non-processable only the kindless batches remain, got %', v_e - 'metals'; END IF;
+    IF ((v_e ->> 'complete')::boolean IS NOT FALSE) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND: the section is incomplete while any kindless batch exists (and for no other reason here), got %', v_e ->> 'complete'; END IF;
+    UPDATE materials SET kind_code = 'consumable', may_be_processed = false WHERE id = m_nk;
+    v_e := pg_temp.f271_get(u_proc, $q$SELECT inventory_metal_exposure()$q$);
+    IF (jsonb_array_length(v_e -> 'kind_not_stated') <> 0 OR (v_e ->> 'complete')::boolean IS NOT TRUE) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 KIND: once the kind is stated (here: not processable) the batches leave the list and the section is complete again, got %', v_e - 'metals'; END IF;
 
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 271 · LOG';
@@ -350,7 +404,7 @@ BEGIN
         OR (SELECT provolatile FROM pg_proc WHERE oid = 'public.inventory_metal_exposure()'::regprocedure) <> 's') IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 271 LOG: both readers are STABLE (they write nothing)'; END IF;
 
-    RAISE NOTICE 'FIXTURE 271 全部通过: GATE · PATH · MARGIN · UNSOLD · REVENUE · NOCOMP · NOSALE · EXPO · LOG';
+    RAISE NOTICE 'FIXTURE 271 全部通过: GATE · PATH · MARGIN · UNSOLD · REVENUE · NOCOMP · NOSALE · EXPO · KIND · LOG';
 END
 $$;
 

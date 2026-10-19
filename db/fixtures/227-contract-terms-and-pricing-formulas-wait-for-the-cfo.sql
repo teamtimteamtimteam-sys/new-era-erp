@@ -112,7 +112,7 @@ BEGIN
          IS DISTINCT FROM ARRAY['module.pricing.view', 'data.view_prices', 'data.view_purchase_prices',
                                 'module.suppliers.view', 'module.customers.view']::text[] THEN
         RAISE EXCEPTION 'FIXTURE 227A1 失败:链的名册应当只有二级一行,门是裁定的那五个码'; END IF;
-    IF position('terms_request_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('terms_request_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 227A2 失败:operations_now 没有 terms_request_pending 那一支'; END IF;
     SELECT string_agg(s, ', ') INTO v_msg FROM unnest(ARRAY[
         'public.terms_request_submit_internal(text, uuid, jsonb, text)', 'public.terms_request_execute_internal(uuid)',

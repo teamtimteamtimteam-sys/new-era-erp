@@ -1531,3 +1531,31 @@ V2627 · GATE · LOCK · ARM · SECT · NOINJ · NUM · PDF) pin every rule belo
 - `inbound_batch_margin` and `inventory_metal_exposure` are STABLE readers (fixture 271 LOG asserts `provolatile = 's'`); they write nothing.
 - The PDF view (`GET /compliance/packs/[id]/pdf`) renders from the frozen payload and writes nothing; only the archive (`POST`) writes, and it writes
   one `compliance_pack_issues` row plus one storage object (storage is not in the change log — it never was).
+
+## 33. The wall display and the exposure fix (MES-8b-2, v1.4.58, 2026-10-17)
+
+Hand-back `docs/handbacks/MES-8b-2.md`; fixture 273 (arms REG · ARMS · COUNTS · GATE · IDLE · V28 · LOG) and fixture 271's new arm KIND pin every rule
+below, each fault-injected by `db/scripts/2026-10-17-mes8b2-fixture-injections.py` (5 cells on 271 + 17 on 273, every arm red at least once, re-run on a
+fresh rebuild after the migration). Fixtures 271 LOG and 273 LOG keep the exclusions at **8**.
+
+### 33.1 Logged, excluded, masked
+
+- **One new table, logged.** `floor_board_settings` (the single V28 row: refresh interval and tiles, empty on live): public tables **320 → 321**, bound
+  **312 → 313**, exclusions stay **8**, mask rules stay **119** (the board carries counts only; the settings row carries no person, money or health detail).
+- **The settings row changes only through `set_floor_board_settings`** (`action.manage_permissions`, both values as a pair). Its bootstrap INSERT precedes
+  the table's change-log trigger in the migration, so it has no row.
+- **The migration's own `change_log` rows:** one `permissions` INSERT (`data.view_floor_board`), one `roles` INSERT (`floor_display`) and three
+  `role_permissions` INSERTs (`floor_display` · `admin` · `cfo`) — read back on live by the migration's `txid` (hand-back §closing readings).
+  No account was created and no grant of `floor_display` exists.
+
+### 33.2 Audit trail
+
+- **No new trail subject** (MES-8 Step 0 Q22 for this cut: none unless the role or code needs one — they do not). The role and the code appear where
+  every role and code already appears (Settings › Roles and the role's own trail); V28's changes are in the change log under `floor_board_settings`.
+
+### 33.3 Not logged because nothing is written
+
+- `floor_board()`, `floor_board_arms()` and `session_is_floor_display_only()` write nothing (`floor_board` and the exemption predicate are STABLE —
+  fixture 273 LOG; `floor_board_arms` is IMMUTABLE). The base view `operations_arms_all` and the reshaped `operations_now` are views.
+- `inventory_metal_exposure()` (F18) stays STABLE (fixture 271 LOG); it only reads one more list — stock whose material has no kind.
+- The idle exemption itself is a decision in the middleware, not a write: a display that is not signed out leaves no row anywhere.

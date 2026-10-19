@@ -816,6 +816,8 @@ REVOKE EXECUTE ON FUNCTION public.supplier_grade_advice_internal(uuid, jsonb, nu
 --   set_compliance_settings · compliance_pack_month_status【不收】:它们是 DEFINER,自己查码。
 REVOKE EXECUTE ON FUNCTION public.guard_compliance_pack_write() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.guard_compliance_pack_issue_write() FROM authenticated;
+-- MES-8b-2(2026-10-17,MES-8 Step 0 Q19 · Q20):本刀没有要收的函数 —— floor_board · set_floor_board_settings · session_is_floor_display_only 是 DEFINER,
+--   自己查码(session_is_floor_display_only 只读调用者自己的授权,所以对每一个登录的人开放);floor_board_arms 是纯函数,不读任何表。
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】—— 收回 anon / authenticated(与 PUBLIC)在 public 里【每一张视图】上的

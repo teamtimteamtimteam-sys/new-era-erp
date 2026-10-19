@@ -204,8 +204,8 @@ BEGIN
        OR (SELECT gate_permissions FROM approval_chain_gates() WHERE subject_type = 'shipping_release')
          IS DISTINCT FROM ARRAY['module.sales.view', 'data.view_prices']::text[] THEN
         RAISE EXCEPTION 'FIXTURE 224A1 失败:链的名册应当只有二级一行,门 = sales.view + view_prices'; END IF;
-    IF position('shipping_release_pending' IN pg_get_viewdef('public.operations_now'::regclass)) = 0
-       OR position('shipping_release_ready' IN pg_get_viewdef('public.operations_now'::regclass)) = 0 THEN
+    IF position('shipping_release_pending' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0
+       OR position('shipping_release_ready' IN pg_get_viewdef('public.operations_arms_all'::regclass)) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 224A2 失败:operations_now 应当有 shipping_release_pending 与 shipping_release_ready 两支'; END IF;
     IF has_function_privilege('authenticated', 'public.release_reservation_internal(uuid, numeric, text)', 'EXECUTE')
        OR has_function_privilege('authenticated', 'public.reserve_stock_internal(uuid, uuid, numeric, uuid)', 'EXECUTE')
