@@ -94,10 +94,12 @@ CREATE TRIGGER trg_accounts_system_protected
     FOR EACH ROW EXECUTE FUNCTION public.guard_system_account();
 
 ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+-- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q1–Q5,Tim):读不再是 USING (true) —— 一个没有角色的会话一行都读不到;谓词 = 今天读它的那几页的码之并(没有一个角色丢掉一条路)。
+--   科目名在留痕与变更记录里照旧解析得出:trail_ref_label 只经 SECURITY DEFINER 的 record_trail / change_log_rows 走到(Q5)。
 CREATE POLICY "accounts select by permission"
     ON public.accounts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (true);
+    USING (has_permission('module.finance.view'::text));
 
 -- ROLE-1 Batch 2a(Q10):写权从「财务(编辑)」换到 action.finance_settings(CFO 一个)。
 CREATE POLICY "accounts insert by permission"

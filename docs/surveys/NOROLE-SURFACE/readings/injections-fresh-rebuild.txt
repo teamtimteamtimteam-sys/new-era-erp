@@ -1,0 +1,26 @@
+✓ open:user_roles → FIXTURE 274 REL: a session without the code reads 5 row(s) of user_roles (who norole)
+✓ open:roles → FIXTURE 274 REL: a session without the code reads 12 row(s) of roles (who norole)
+✓ open:role_permissions → FIXTURE 274 REL: a session without the code reads 274 row(s) of role_permissions (who norole)
+✓ open:permissions → FIXTURE 274 REL: a session without the code reads 85 row(s) of permissions (who norole)
+✓ open:metal_prices → FIXTURE 274 REL: a session without the code reads 1 row(s) of metal_prices (who norole)
+✓ open:metal_price_indices → FIXTURE 274 REL: a session without the code reads 2 row(s) of metal_price_indices (who norole)
+✓ open:pricing_settings → FIXTURE 274 REL: a session without the code reads 1 row(s) of pricing_settings (who norole)
+✓ open:accounts → FIXTURE 274 REL: a session without the code reads 45 row(s) of accounts (who norole)
+✓ open:collection_promise_status → FIXTURE 274 REL: a session without the code reads 1 row(s) of collection_promise_status (who norole)
+✓ narrow:accounts (finance viewer loses it) → FIXTURE 274 REL: module.finance.view alone reads 0 of 45 row(s) of accounts
+✓ trail:change-history reader → FIXTURE 274 TRAIL: the change-log reader sees the role grant 0 time(s) unrestricted (expected 1)
+✓ trail:employee page (hr viewer) → FIXTURE 274 TRAIL: the employee page trail hides the linked account's role grant from an HR viewer
+✓ storage:company-assets open read → FIXTURE 274 BUCKET: a session without the code sees a file in company-assets
+✓ storage:po open upload → FIXTURE 274 BUCKET: a session without the code uploads into po-documents
+✓ storage:material update back → FIXTURE 274 NOUPDATE: module.materials.edit updates a file in material-attachments
+✓ storage:customer delete recorded → FIXTURE 274 DELETE: a recorded attachment was deleted through storage
+✓ storage:cod orphan cleanup gone → FIXTURE 274 DELETE: action.issue_cod does not delete an orphan in cod-documents (rc 0)
+✓ storage:qt delete opened → FIXTURE 274 DELETE: module.sales.edit deletes from qt-documents, a bucket whose route never removes
+✓ storage:bucket-only policy back (shape) → FIXTURE 274 SHAPE: 53 storage policies (expected 52)
+✓ baseline (no injection) → passes
+✓ verdict 7: injected USING (true) on accounts named
+✓ verdict 7: deleted baseline line named
+✓ verdict 7: unreadable baseline is red
+✓ verdict 7 clean, always-on cells (probe · blinded query · removed line · unreadable baseline) bit
+INJECTIONS pass=24 fail=0
+INJ_OWN_EXIT=0

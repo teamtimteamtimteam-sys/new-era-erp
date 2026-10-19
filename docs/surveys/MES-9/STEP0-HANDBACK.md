@@ -376,8 +376,8 @@ setting changed by Tim, listed on the pending page.**
 ❓ **Q27 — Storage grants for the role.** Supabase's guide grants `anon` to a custom role. ➡️ **Do not; grant only the storage privileges the dry run proves
 necessary, and put them in the baseline.**
 
-❓ **Q28 — Fixtures and gates.** ➡️ **New gate check (portal census) with its own exit code or inside verdict 6; new fixtures 274 (9a: link, triggers, hook
-claims, revocation, session check), 275 (9b: two suppliers × every baseline function), 276 (9c: submissions, accept/reject, fingerprints); every arm
+❓ **Q28 — Fixtures and gates.** ➡️ **New gate check (portal census) with its own exit code or inside verdict 6; new fixtures ~~274~~ **275** (9a: link, triggers, hook
+claims, revocation, session check), ~~275~~ **276** (9b: two suppliers × every baseline function), ~~276~~ **277** (9c: submissions, accept/reject, fingerprints); every arm
 fault-injected; injection run repeated on a fresh rebuild.**
 
 ❓ **Q29 — Throwaway portal accounts in proofs.** ➡️ **Extend `mintThrowaway` with a `{ portalOf: <throwaway supplier> }` shape in 9a (prefix `mes9aprobe`),
@@ -424,3 +424,5 @@ Recorded by NOROLE-SURFACE Step 0 (`docs/surveys/NOROLE-SURFACE/STEP0-HANDBACK.m
 - **Before the first real supplier account:** the production domain (Q13), **V38**, **V39**, **V40**, and the **paid plan**.
 
 Order: **NOROLE-SURFACE → MES-9a → MES-9b → MES-9c.**
+
+★ **Renumbered by NOROLE-SURFACE (Step 0 Q13, Tim 2026-10-19): fixture 274 is NOROLE-SURFACE's; MES-9's planned fixtures are 275 (9a) · 276 (9b) · 277 (9c).**

@@ -2194,6 +2194,18 @@ IOD-2 那次是【事后被人发现的】9 小时;SO-2 的预留那一刀报的
 
 > ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G21
 
+## ★★ Management API 的 `/postgrest` 端点会吐出项目的 JWT 密钥 —— 读它的脚本必须先剥掉(NOROLE-SURFACE,2026-10-19)
+
+> **`GET https://api.supabase.com/v1/projects/<ref>/postgrest` 的返回体里有 `jwt_secret` —— 那是签发每一个会话令牌的密钥。**
+> 拿到它的人能给自己签一张【任何角色、任何用户】的 JWT,绕开一切 RLS 与 `has_permission`。
+
+NOROLE-SURFACE Step 0 为了读 `db_schema`(PostgREST 暴露哪几个 schema)读过一次这个端点,当时只读了那一个字段,没有写到任何地方。规矩:
+
+* **任何读这个端点的脚本,在存、印、记日志、写文件【之前】先把 `jwt_secret`(以及任何名字里带 `secret` / `key` 的字段)剥掉**
+  —— 最好只挑出要的那几个字段(`db_schema`、`max_rows`),别的一个都不留在变量里;
+* **绝不写进文件、日志、交回报告或提交**,也不贴进对话;一次 `curl … | jq` 打到终端上就已经是一次泄漏;
+* 只要 `db_schema`,另一条路是读 PostgREST 自己的 OpenAPI 根(`GET /rest/v1/` 带 anon 钥匙)—— 它不带密钥。
+
 ## Migrations apply over direct psql, never the Management API
 
 ```
@@ -2584,7 +2596,15 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 2. ★ **报告里那一行差值要说清它【是什么】**:是「基线那天到今天之间活数据变了」,
    还是「这一刀改的东西推动了它」。**两者在数字上长得一模一样,而只有前者不该停手。**
 
-## 存储桶与它的策略【不在镜像里】,所以它们的断言不能是 fixture(UI-1d,2026-09-05)
+## ~~存储桶与它的策略【不在镜像里】,所以它们的断言不能是 fixture(UI-1d,2026-09-05)~~ ★ 已不成立(NOROLE-SURFACE,2026-10-19)
+
+> ★ **现在:存储进了仓库。** `db/storage/buckets-and-policies.sql` 是 19 个桶与 storage.objects 上每一条策略的镜像(全新安装照
+> `docs/fresh-install-checklist.md` 第 2b 步跑它);`db/gate.py` 把 `db/storage/platform-storage-stub.sql`(一个形状对得上的 storage 桩,
+> **只给本地重建用,绝不对着 Supabase 跑**)和它装进重建库旁边,于是 **存储策略的断言【可以】是 fixture 了**(fixture 274 以真的 RLS
+> 跑读 / 传 / 改 / 删);判词七(`db/check_norole.py`)逐条把装出来的样子与线上比 —— **一支迁移动了一个桶或一条存储策略,同一个提交改
+> 本文件,否则判词七红。** 桩证得了策略的【逻辑】,证不了 Storage API 本身(字节、签名链接、upsert、`storage.protect_delete`),那一半
+> 仍然只有线上的 HTTP 证明答得了。下面的原文【不删】—— 它记的是那天的事实,而一条撤回的规矩与一条从没写过的规矩读起来一样。
+
 
 想给 `avatars` 桶的 own-avatar-only 策略写一份 `db/fixtures/*.sql` 的人会踩空:
 

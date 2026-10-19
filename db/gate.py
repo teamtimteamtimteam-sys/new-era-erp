@@ -22,6 +22,8 @@ pooler 里跑(40+ 分钟,先后死于 DNS 与 socket 耗尽),verify_rebuild 在�
            (VERIFY-1:此前它混在 2 里,见 db/verify_rebuild.py 抬头那一段)
   exit 6 = 【匿名面】anon 够得着的东西不再是基线的子集(COD-2,db/check_grants.py)
            —— 它【只在线上跑】,因为镜像里根本没有 GRANT,那正是它要补的缺口
+  exit 7 = 【无角色面】一个登录了、没有角色的会话(或只挂 floor_display 的会话)够得着的东西不再是基线的子集
+           (NOROLE-SURFACE,db/check_norole.py)—— 线上与重建两侧都问;--offline 只问重建侧(Step 0 Q12)
 
 ════════════════════════════════════════════════════════════════════════════
 ★★【--offline 是【多出来的一相】,不是"门,但快一点"】★★(VERIFY-1,2026-09-05)
@@ -604,6 +606,19 @@ def main() -> int:
         invariant_failed = (vr.returncode == 3)
         structural_drift = (vr.returncode == 1)
 
+        # ── NOROLE-SURFACE(Q11):存储桶与存储策略的镜像,装进重建库旁的一个 storage 桩 ──────────────────────
+        # 重建本身照旧不造 storage(prelude 不变);这一步让 db/storage/buckets-and-policies.sql 被【跑一遍】而不只是被读一遍 ——
+        # 判词七拿装出来的样子与线上比,fixture 274 在它上面以真的 RLS 跑存储那几臂。装不上 = 一次全新安装建不出存储 = 判词七红。
+        storage_install_problem = ""
+        si = subprocess.run(["psql", local, "-X", "-q", "-v", "ON_ERROR_STOP=1",
+                             "-f", os.path.join(HERE, "storage", "platform-storage-stub.sql"),
+                             "-f", os.path.join(HERE, "storage", "buckets-and-policies.sql")], capture_output=True, text=True)
+        if si.returncode != 0:
+            storage_install_problem = (si.stderr or si.stdout).strip()[-300:]
+            print(f"storage    ✗ db/storage/buckets-and-policies.sql 装不进重建库旁的桩:{storage_install_problem}")
+        else:
+            print("storage    db/storage/buckets-and-policies.sql 装进了重建库旁的 storage 桩 ✓")
+
         # ── check_mirrors 独有的四项,对着同一个本地重建 ───────────────────────
         print("\n== seeds / bootstrap / integrity / definer(对本地重建;线上只拉小表)")
         problems = []
@@ -874,6 +889,23 @@ def main() -> int:
             if tmpl_gap:
                 problems.append(f"import template ({label}): {tmpl_gap}")
 
+        # ── 判词七【无角色面】(NOROLE-SURFACE):故障注入格 + 一次调用 ─────────────────────────────────────────
+        if os.environ.get("GATE_NOROLE_FAULT") == "policy":
+            psql(local, 'CREATE POLICY "zz norole fault accounts open" ON public.accounts FOR SELECT TO authenticated USING (true);')
+            print("norole     ★ 故障注入:GATE_NOROLE_FAULT=policy —— 重建库的 accounts 上多了一条 USING (true)(判词七该红并点名它,正是它该做的)")
+
+        def run_norole(offline: bool):
+            cmd = [sys.executable, os.path.join(HERE, "check_norole.py"), "--rebuild", local]
+            cmd += ["--offline"] if offline else ["--live", args.live]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            out = (r.stdout or "") + (r.stderr or "")
+            for line in out.rstrip().split(chr(10)):
+                print("   " + line if not line.startswith("==") else line)
+            if storage_install_problem:
+                print("判词【无角色面】:✗ 存储镜像装不上(见上)")
+                return 1
+            return r.returncode
+
         # ── 两个判词,分开说 ────────────────────────────────────────────────
         elapsed = time.time() - t0
         if OFF:
@@ -887,7 +919,9 @@ def main() -> int:
             print("   ★ 判词【匿名面】(db/check_grants.py)【没有跑】—— 它【不可能】离线跑:")
             print("     镜像里根本没有 GRANT,那正是它要补的缺口。一个离线版本会什么都")
             print("     不断言却打印绿色,而那是本仓库反复付账的那种失败。")
+            print("   ★ 判词【无角色面】(db/check_norole.py)只跑了【重建侧】—— 线上那一侧与存储镜像 vs 线上由整门跑。")
             print("   ★★ 迁移之后必须再跑一次不带 --offline 的整门。★★")
+            norole_rc = run_norole(offline=True)
             if problems or fixture_fails or invariant_failed:
                 if fixture_fails:
                     print(f"迁移前相位:✗ {len(fixture_fails)} 个 fixture 失败:")
@@ -898,6 +932,9 @@ def main() -> int:
                 if invariant_failed:
                     print("迁移前相位:✗ B1/B2(重建侧)失败")
                 return 4 if (fixture_fails and not problems and not invariant_failed) else 1
+            if norole_rc != 0:
+                print("迁移前相位:✗ 判词【无角色面】(重建侧)")
+                return 7
             print("迁移前相位:✓ 干净 —— 可以往下走(备份 → 迁移 → 整门)")
             return 0
         print(f"\n== 三个判词(wall-clock {elapsed:.0f}s)")
@@ -937,6 +974,14 @@ def main() -> int:
             return 5
         if grants_rc != 0:
             return 6
+
+        # ── 判词七:无角色面(NOROLE-SURFACE)── 两侧都问,外加存储镜像 vs 线上;退出码 7 是它自己的 ─────────
+        norole_rc = run_norole(offline=False)
+        if norole_rc == 5:
+            print("判词【无角色面】:够不到线上 —— 环境故障,原样重跑即可")
+            return 5
+        if norole_rc != 0:
+            return 7
         return 0
     finally:
         subprocess.run(["pg_ctl", "-D", datadir, "stop", "-m", "immediate"], capture_output=True)

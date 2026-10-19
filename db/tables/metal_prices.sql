@@ -101,10 +101,12 @@ CREATE TRIGGER trg_metal_prices_anomaly
 -- 3. RLS: authenticated-only full access
 ALTER TABLE public.metal_prices ENABLE ROW LEVEL SECURITY;
 
+-- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q1–Q5,Tim):读不再是 USING (true) —— 一个没有角色的会话一行都读不到;谓词 = 今天读它的那几页的码之并(没有一个角色丢掉一条路)。
+--   仓库经 /inventory 读原始行情而不持 data.view_prices —— Tim 裁定照旧(行情是市场参考价,不是买卖价;NOROLE-WAREHOUSE-RAW-METAL-PRICES)。
 CREATE POLICY "metal_prices select by permission"
     ON public.metal_prices
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (true);
+    USING (has_any_permission(ARRAY['module.pricing.view'::text, 'module.suppliers.view'::text, 'module.inventory.view'::text, 'module.materials.view'::text]));
 
 -- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
 --   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。

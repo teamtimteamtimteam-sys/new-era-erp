@@ -92,10 +92,15 @@ CREATE TRIGGER trg_user_roles_last_admin
     FOR EACH ROW EXECUTE FUNCTION public.guard_last_admin();
 
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+-- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q1–Q5,Tim):读不再是 USING (true) —— 一个没有角色的会话一行都读不到;谓词 = 今天读它的那几页的码之并(没有一个角色丢掉一条路)。
+--   每个会话自己的码照旧经 current_user_permissions()(SECURITY DEFINER)拿;本表直读只有 /settings 那几页(action.manage_permissions),外加【自己那几行】(Q3)。
+--   ★ Tim 2026-10-19(NOROLE-SURFACE 施工中的 Q21):审计记录也是读者 —— trail_row_visible 对每一行重判它自己这张表的读策略,
+--     于是员工页的审计记录(module.hr.view,AUDIT-TRAIL Q21/Q24 的账号镜像)与 /settings/change-history(data.view_change_log)
+--     要的码一并写进谓词;否则角色授予那几行对它们一律变成「受限」。
 CREATE POLICY "user_roles select by permission"
     ON public.user_roles
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (true);
+    USING (has_any_permission(ARRAY['action.manage_permissions'::text, 'module.hr.view'::text, 'data.view_change_log'::text]) OR (user_id = auth.uid()));
 
 CREATE POLICY "user_roles insert by permission"
     ON public.user_roles

@@ -1,0 +1,1276 @@
+{
+ "admin /settings/roles": {
+  "status": 200,
+  "location": "",
+  "tr": 21,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /settings/roles/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 19,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /settings/accounts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /settings/approvals": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /settings/reference": {
+  "status": 200,
+  "location": "",
+  "tr": 88,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /settings/dictionaries": {
+  "status": 200,
+  "location": "",
+  "tr": 86,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /settings/change-history": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /tools/pricing/metal-prices": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /tools/pricing/metal-prices/bulk": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /tools/pricing/metal-prices/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /tools/pricing/formulas/new": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /tools/pricing/formulas/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /contracts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /inventory": {
+  "status": 200,
+  "location": "",
+  "tr": 5,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /inventory/output/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 7,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/journal": {
+  "status": 200,
+  "location": "",
+  "tr": 21,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/journal/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/journal/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /finance/trial-balance": {
+  "status": 200,
+  "location": "",
+  "tr": 34,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/bank": {
+  "status": 200,
+  "location": "",
+  "tr": 2,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/expenses": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/expenses/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/expenses/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /finance/assets": {
+  "status": 200,
+  "location": "",
+  "tr": 3,
+  "restricted": false,
+  "denied": false
+ },
+ "admin /finance/claims": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "admin /hr/employees/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 6,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /settings/roles": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /settings/roles/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /settings/accounts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /settings/approvals": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /settings/reference": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /settings/dictionaries": {
+  "status": 200,
+  "location": "",
+  "tr": 86,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /settings/change-history": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /tools/pricing/metal-prices": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /tools/pricing/metal-prices/bulk": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /tools/pricing/metal-prices/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /tools/pricing/formulas/new": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /tools/pricing/formulas/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /contracts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /inventory": {
+  "status": 200,
+  "location": "",
+  "tr": 5,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /inventory/output/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 7,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/journal": {
+  "status": 200,
+  "location": "",
+  "tr": 21,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/journal/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/journal/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /finance/trial-balance": {
+  "status": 200,
+  "location": "",
+  "tr": 34,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/bank": {
+  "status": 200,
+  "location": "",
+  "tr": 2,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/expenses": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/expenses/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/expenses/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /finance/assets": {
+  "status": 200,
+  "location": "",
+  "tr": 3,
+  "restricted": false,
+  "denied": false
+ },
+ "cco /finance/claims": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cco /hr/employees/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 6,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /settings/roles": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /settings/roles/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /settings/accounts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /settings/approvals": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /settings/reference": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /settings/dictionaries": {
+  "status": 200,
+  "location": "",
+  "tr": 86,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /settings/change-history": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /tools/pricing/metal-prices": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /tools/pricing/metal-prices/bulk": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /tools/pricing/metal-prices/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /tools/pricing/formulas/new": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /tools/pricing/formulas/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /contracts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /inventory": {
+  "status": 200,
+  "location": "",
+  "tr": 5,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /inventory/output/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 7,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/journal": {
+  "status": 200,
+  "location": "",
+  "tr": 21,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/journal/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/journal/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /finance/trial-balance": {
+  "status": 200,
+  "location": "",
+  "tr": 34,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/bank": {
+  "status": 200,
+  "location": "",
+  "tr": 2,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/expenses": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/expenses/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/expenses/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /finance/assets": {
+  "status": 200,
+  "location": "",
+  "tr": 3,
+  "restricted": false,
+  "denied": false
+ },
+ "cfo /finance/claims": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cfo /hr/employees/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 6,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /settings/roles": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /settings/roles/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /settings/accounts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /settings/approvals": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /settings/reference": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /settings/dictionaries": {
+  "status": 200,
+  "location": "",
+  "tr": 86,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /settings/change-history": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /tools/pricing/metal-prices": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /tools/pricing/metal-prices/bulk": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /tools/pricing/metal-prices/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /tools/pricing/formulas/new": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /tools/pricing/formulas/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /contracts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /inventory": {
+  "status": 200,
+  "location": "",
+  "tr": 5,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /inventory/output/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 7,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/journal": {
+  "status": 200,
+  "location": "",
+  "tr": 21,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/journal/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/journal/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /finance/trial-balance": {
+  "status": 200,
+  "location": "",
+  "tr": 34,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/bank": {
+  "status": 200,
+  "location": "",
+  "tr": 2,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/expenses": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/expenses/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/expenses/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /finance/assets": {
+  "status": 200,
+  "location": "",
+  "tr": 3,
+  "restricted": false,
+  "denied": false
+ },
+ "cto /finance/claims": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "cto /hr/employees/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 6,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /settings/roles": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /settings/roles/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /settings/accounts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /settings/approvals": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /settings/reference": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /settings/dictionaries": {
+  "status": 200,
+  "location": "",
+  "tr": 86,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /settings/change-history": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /tools/pricing/metal-prices": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /tools/pricing/metal-prices/bulk": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /tools/pricing/metal-prices/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /tools/pricing/formulas/new": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /tools/pricing/formulas/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /contracts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /inventory": {
+  "status": 200,
+  "location": "",
+  "tr": 5,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /inventory/output/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 7,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/journal": {
+  "status": 200,
+  "location": "",
+  "tr": 21,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/journal/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/journal/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /finance/trial-balance": {
+  "status": 200,
+  "location": "",
+  "tr": 34,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/bank": {
+  "status": 200,
+  "location": "",
+  "tr": 2,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/expenses": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/expenses/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/expenses/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /finance/assets": {
+  "status": 200,
+  "location": "",
+  "tr": 3,
+  "restricted": false,
+  "denied": false
+ },
+ "finance /finance/claims": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "finance /hr/employees/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 6,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /settings/roles": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /settings/roles/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /settings/accounts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /settings/approvals": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /settings/reference": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /settings/dictionaries": {
+  "status": 200,
+  "location": "",
+  "tr": 86,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /settings/change-history": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /tools/pricing/metal-prices": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /tools/pricing/metal-prices/bulk": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /tools/pricing/metal-prices/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /tools/pricing/formulas/new": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /tools/pricing/formulas/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 8,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /contracts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /inventory": {
+  "status": 200,
+  "location": "",
+  "tr": 5,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /inventory/output/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 7,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/journal": {
+  "status": 200,
+  "location": "",
+  "tr": 21,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/journal/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/journal/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /finance/trial-balance": {
+  "status": 200,
+  "location": "",
+  "tr": 34,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/bank": {
+  "status": 200,
+  "location": "",
+  "tr": 2,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/expenses": {
+  "status": 200,
+  "location": "",
+  "tr": 11,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/expenses/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/expenses/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /finance/assets": {
+  "status": 200,
+  "location": "",
+  "tr": 3,
+  "restricted": false,
+  "denied": false
+ },
+ "gm /finance/claims": {
+  "status": 200,
+  "location": "",
+  "tr": 4,
+  "restricted": true,
+  "denied": false
+ },
+ "gm /hr/employees/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 6,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /settings/roles": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /settings/roles/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /settings/accounts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /settings/approvals": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /settings/reference": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /settings/dictionaries": {
+  "status": 200,
+  "location": "",
+  "tr": 42,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /settings/change-history": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /tools/pricing/metal-prices": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /tools/pricing/metal-prices/bulk": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /tools/pricing/metal-prices/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /tools/pricing/formulas/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /tools/pricing/formulas/<id>/edit": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /contracts": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /inventory": {
+  "status": 200,
+  "location": "",
+  "tr": 5,
+  "restricted": true,
+  "denied": false
+ },
+ "warehouse /inventory/output/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 7,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/journal": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/journal/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/journal/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/trial-balance": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/bank": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/expenses": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/expenses/new": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/expenses/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/assets": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /finance/claims": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ },
+ "warehouse /hr/employees/<id>": {
+  "status": 200,
+  "location": "",
+  "tr": 0,
+  "restricted": false,
+  "denied": false
+ }
+}

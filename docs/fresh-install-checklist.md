@@ -33,6 +33,22 @@ Standing up a new EVoltrya OS project from this repository.
 
    **Expect this step to take about nine minutes** against a remote project — it
    replays 92 functions, 73 tables and 38 views over the network.
+2b. **Create the storage buckets and their policies** (NOROLE-SURFACE, 2026-10-19). In the SQL editor of the **new Supabase
+   project**, run `db/storage/buckets-and-policies.sql` once. It creates the 19 private buckets and the 52 policies on
+   `storage.objects` (read and upload by the record's own permission code; delete only for a file no record points at; no
+   update outside `avatars` and `company-assets`). It is idempotent (buckets `ON CONFLICT DO UPDATE`, each policy
+   `DROP … IF EXISTS` then `CREATE`). **Until this runs every PDF route, attachment panel, avatar and logo fails** — the
+   rebuild in step 2 does not create storage, because the platform owns that schema.
+
+   **Do not run `db/storage/platform-storage-stub.sql` against a real project** — it is a stand-in for the platform's
+   storage schema that `db/gate.py` uses on a bare local rebuild, and it fails there (the schema already exists).
+
+   **Verify by reading it back:**
+   ```sql
+   SELECT count(*) FROM storage.buckets;                                -- 19, every one public = false
+   SELECT count(*) FROM pg_policies WHERE schemaname = 'storage';       -- 52
+   ```
+   `db/check_norole.py` (verdict 7 of `db/gate.py`) compares exactly these against `db/storage/buckets-and-policies.sql`.
 3. **Run any C0.5 scripts.** *Currently none* — every intended default is expressible
    as a bootstrap seed and is applied by step 2. If that ever stops being true, the
    script's invocation goes here.

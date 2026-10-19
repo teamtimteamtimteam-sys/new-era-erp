@@ -37,10 +37,14 @@ COMMENT ON COLUMN public.permissions.requires_view_any IS
     'MES-5b-1(MES-5a-2 close-out 裁定 f · MES-5b Step 0 Q30):一个动作码的持有人必须【至少】持其中一个码,才进得去用这个动作的页面。只有动作码声明;页面由这个码自己把门的写它自己;空 = 没有页面用它(action.anonymise_employee)。set_role_permissions 按名拒 ACTION_REQUIRES_VIEW|<码>|<查看码,…>。';
 
 ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
+-- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q1–Q5,Tim):读不再是 USING (true) —— 一个没有角色的会话一行都读不到;谓词 = 今天读它的那几页的码之并(没有一个角色丢掉一条路)。
+--   ★ Tim 2026-10-19(NOROLE-SURFACE 施工中的 Q21):审计记录也是读者 —— trail_row_visible 对每一行重判它自己这张表的读策略,
+--     于是员工页的审计记录(module.hr.view,AUDIT-TRAIL Q21/Q24 的账号镜像)与 /settings/change-history(data.view_change_log)
+--     要的码一并写进谓词;否则角色授予那几行对它们一律变成「受限」。
 CREATE POLICY "permissions select by permission"
     ON public.permissions
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (true);
+    USING (has_any_permission(ARRAY['action.manage_permissions'::text, 'data.view_change_log'::text]));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子 / INSTALL SEED】没有这些行,权限系统无从谈起。

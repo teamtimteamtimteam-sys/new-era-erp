@@ -3,6 +3,52 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ~~NOROLE-SURFACE · 一个登录了、没有角色的会话读得到权限表、金属价、科目表、催收承诺与 40 份存下的文件里的 38 份(Step 0 量到,2026-10-19)~~ —— ✅ **关闭于 NOROLE-SURFACE(`v1.4.59`,2026-10-19)**
+
+**找到(`docs/surveys/NOROLE-SURFACE/STEP0-HANDBACK.md` §1):** 一个随机 uuid 的 JWT(没有账号、没有角色)读得到 `user_roles` 9 · `roles` 14 · `role_permissions` 388 ·
+`permissions` 85 · `metal_prices` 12 · `metal_price_indices` 2 · `pricing_settings` 1 · `accounts` 46 行,40 份存储对象里的 38 份(13 个桶),能往 13 个桶上传、
+在 4 个附件桶里改与删;`collection_promise_status` 是一张 body 没有判据的属主视图(今天 0 行只因为基表是空的)。
+**怎么关的:** 一支迁移(`db/migrations/2026-10-19-norole-surface.sql`):八条读策略换成"今天读它的那几页的码之并"(Q2–Q5;四张权限表另认审计记录的
+读者 —— Tim 施工中的 Q21,见 `docs/change-log.md` §34.2),视图加 `WHERE has_permission('module.finance.view')`(Q6),35 条只看"已登录"的存储策略换成 34 条
+按码判的(Q7–Q10)。**读回(线上,迁移之后):** 一次性的无角色账号与只挂 `floor_display` 的账号经 PostgREST 读九个对象全是 0 行(`user_roles` 只有自己那一行),
+经 Storage API 在 19 个桶里 list 0 · download 拒 · upload 拒;七个真角色的克隆读到的与迁移前逐格相同(交回报告 §2–§4)。
+**常设的那一半:** 判词七【无角色面】(`db/check_norole.py`,`db/gate.py` 退出码 7)每一次整门都把一个无角色会话与一个大屏会话够得着的面逐条与
+`db/norole-surface-baseline.tsv`(126 条,每条带理由)比,多出一条就红;故障注入过(交回报告 §6)。
+
+## ~~NOROLE-SILENT-ORPHAN-CLEANUP · 三条 PDF 路由的孤儿清理是一次静悄悄的空操作(Step 0 §0.7,2026-10-19)~~ —— ✅ **关闭于 NOROLE-SURFACE(`v1.4.59`)**
+
+`app/inbound/[id]/cod/pdf/route.tsx:209` · `app/purchasing/orders/[id]/pdf/route.ts:192` · `app/output/[id]/traceability/pdf/route.tsx:167` 在记录失败时
+`storage.remove()` 刚传上去的文件,而 `cod-documents` / `po-documents` / `traceability-documents` 没有任何删除策略 —— 删除返回成功、文件留着。
+**现在:** 三个桶各有一条"上传码删【没有记录指着的】孤儿"(`NOT EXISTS (… issues i WHERE i.file_path = objects.name)`,coa-documents 的形状)。
+**线上读回:** 持路由那个码的克隆(warehouse → cod · finance → po · cto → traceability)把自己传上去的一份孤儿 remove 掉,服务端读回:文件没了(交回报告 §4)。
+**它留下的一件真事,单独登记:** `NOROLE-PO-ORPHAN-FILE`(下一条)。
+
+## NOROLE-PO-ORPHAN-FILE · `po-documents` 里有一份没有任何 `po_issues` 指着的 PDF —— 多半就是那次空操作的清理留下的(NOROLE-SURFACE 量到,2026-10-19)
+
+`po-documents/4112390a-2c5d-4779-9a5a-e05f340dc9b8/ba8da58e-5dcf-44a5-a6e4-0c7baed2e916.pdf`,建于 2026-09-07 11:00:33 CST(以 `postgres` 读 `storage.objects` 与
+`po_issues` 基表,只读)。同一张采购单另有两份【有】记录的 PDF。**本刀没有动它**(规矩:不碰本会话之前就存在的文件)。迁移之后它是唯一一份
+"删得掉"的既有文件:持 `module.purchasing.edit` 的人(admin · cco · cto · finance)经 Storage 删得掉它(孤儿的定义正是这样),而没有一个页面会去删。
+**要不要删、谁删,是 Tim 的一句话。**
+
+## NOROLE-METAL-PRICES-ACTION-CODE-ALONE · 只持 `action.metal_prices` 的角色读不到 `metal_prices`(NOROLE-SURFACE 记,2026-10-19)
+
+Q4 裁定 `metal_prices` 的读 = pricing / suppliers / inventory / materials 的查看码之一,**不含** `action.metal_prices`(`/tools/pricing/metal-prices/bulk`
+与 `[id]/edit` 由这个码自己把门,`permissions.requires_view_any` 声明的就是它自己)。线上持它的两个角色(admin · finance)都持 `module.pricing.view`,
+**七个真角色一条路都没少**;但一个将来只持这个动作码的角色进得去那两页、读不到行情,审计记录里那几行也是「受限」。fixture 240 的演员因此改成
+两个码都持(本刀)。要不要把 `action.metal_prices` 加进读谓词,是 Tim 的一句话 —— 不在本刀里顺手改(那会越过 Q4 的原文)。
+
+## NOROLE-WAREHOUSE-RAW-METAL-PRICES · 仓库经 `/inventory` 读原始金属行情而不持 `data.view_prices` —— ✅ **已裁定:照旧(Tim,2026-10-19,NOROLE-SURFACE Q4)**
+
+Tim:行情是**市场参考价**,不是买卖价;`data.view_prices` 管的是买卖与成本那一侧(常设裁定 1、ROLE-1 Batch 4a)。所以 `metal_prices` 的读谓词里留着
+`module.inventory.view`,仓库照旧看得见 `/inventory` 上的行情。**这不是一个开着的问题。**
+
+## ~~NOROLE-STORAGE-NOT-IN-REPO · 19 个桶与 53 条存储策略只活在迁移文件里,全新安装一个都建不出来(Step 0 §0.6,2026-10-19)~~ —— ✅ **关闭于 NOROLE-SURFACE(`v1.4.59`)**
+
+`db/storage/buckets-and-policies.sql`(19 个桶 · 52 条策略)是镜像;`docs/fresh-install-checklist.md` 第 2b 步建它;`db/gate.py` 每一次把它装进重建库旁的
+storage 桩(`db/storage/platform-storage-stub.sql`),判词七逐条与线上比(整门实测:19 个桶 · 52 条策略,与线上一致)。
+**顺带抓到的同族一件(已修):** `processing_metal_recovery_all`(一张无判据的属主基视图)的 `REVOKE ALL … FROM authenticated, anon` 只住在
+`db/migrations/2026-08-17-aud1-traceability-report.sql:174`,镜像里没有 —— 线上收着、重建出来的库开着。判词七在重建侧第一次跑就点了它的名;镜像补上了。
+
 ## ~~MES9-PUBLIC-SIGNUP-OPEN · 线上开着公开注册 —— 任何访客都能自建一个已确认的账号(MES-9 Step 0 量到,2026-10-19)~~ —— ✅ **关闭于 2026-10-19(Tim 在 Supabase 后台关掉,本条由 NOROLE-SURFACE Step 0 读回)**
 
 **找到(MES-9 Step 0 §0.1,`docs/surveys/MES-9/STEP0-HANDBACK.md`):** 以 anon 公钥读 `GET /auth/v1/settings` → `disable_signup: false`、`mailer_autoconfirm: true`、

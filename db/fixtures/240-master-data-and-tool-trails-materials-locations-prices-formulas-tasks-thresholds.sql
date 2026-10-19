@@ -102,7 +102,9 @@ DECLARE
     u_rel  uuid := gen_random_uuid();   -- 另一个持全部码的人(批准不能是送审人自己)
     u_mat  uuid := gen_random_uuid();   -- 只有 module.materials.view
     u_inv  uuid := gen_random_uuid();   -- 只有 module.inventory.view
-    u_mp   uuid := gen_random_uuid();   -- 只有 action.metal_prices
+    u_mp   uuid := gen_random_uuid();   -- action.metal_prices + module.pricing.view(NOROLE-SURFACE:metal_prices 的读从此要
+                                        --   pricing / suppliers / inventory / materials 的查看码之一(Tim 的 Q4)—— 持动作码的线上角色 finance · admin
+                                        --   两个都持;审计记录的每一行再过 metal_prices 自己的读规则,所以只持动作码的读者会读到「受限」)
     u_pv   uuid := gen_random_uuid();   -- 只有 module.pricing.view(没有价格码)
     u_t1   uuid := gen_random_uuid();   -- module.tasks.view + edit(两张任务的归属人)
     u_t2   uuid := gen_random_uuid();   -- module.tasks.view(团队任务的参与者;不是私人任务的归属人)
@@ -137,7 +139,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active) VALUES ('fx240-proc', 'f', 'f', true) RETURNING id INTO r_proc;
     INSERT INTO role_permissions (role_id, permission_code) SELECT r_all, code FROM permissions;
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_mat, 'module.materials.view'), (r_inv, 'module.inventory.view'), (r_mp, 'action.metal_prices'), (r_pv, 'module.pricing.view'),
+        (r_mat, 'module.materials.view'), (r_inv, 'module.inventory.view'), (r_mp, 'action.metal_prices'), (r_mp, 'module.pricing.view'), (r_pv, 'module.pricing.view'),
         (r_t1, 'module.tasks.view'), (r_t1, 'module.tasks.edit'), (r_t2, 'module.tasks.view'),
         (r_va, 'module.tasks.view'), (r_va, 'module.tasks.view_all'), (r_proc, 'module.processing.view');
     INSERT INTO user_roles (user_id, role_id) VALUES

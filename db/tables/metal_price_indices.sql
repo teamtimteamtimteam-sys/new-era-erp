@@ -66,8 +66,10 @@ SMM 今天是 CNY / house_assumption(METAL-3):Tim 说了按当天汇率换算是
 
 ALTER TABLE public.metal_price_indices ENABLE ROW LEVEL SECURITY;
 
+-- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q1–Q5,Tim):读不再是 USING (true) —— 一个没有角色的会话一行都读不到;谓词 = 今天读它的那几页的码之并(没有一个角色丢掉一条路)。
 CREATE POLICY "metal_price_indices select"
-    ON public.metal_price_indices AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+    ON public.metal_price_indices AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_any_permission(ARRAY['module.pricing.view'::text, 'module.suppliers.view'::text, 'action.metal_prices'::text]));
 
 -- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
 --   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。

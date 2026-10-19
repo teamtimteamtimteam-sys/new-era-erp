@@ -1,0 +1,643 @@
+SKIP|/contracts/undefined|no such record on live — this page has no subject to open
+PAGE|admin /settings/roles|before=200/21tr/--|after=200/21tr/--|same
+PAGE|admin /settings/roles/<id>|before=200/19tr/R-|after=200/19tr/R-|same
+PAGE|admin /settings/accounts|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|admin /settings/approvals|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|admin /settings/reference|before=200/88tr/--|after=200/88tr/--|same
+PAGE|admin /settings/dictionaries|before=200/86tr/R-|after=200/86tr/R-|same
+PAGE|admin /settings/change-history|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|admin /tools/pricing/metal-prices|before=200/11tr/--|after=200/11tr/--|same
+PAGE|admin /tools/pricing/metal-prices/bulk|before=200/8tr/--|after=200/8tr/--|same
+PAGE|admin /tools/pricing/metal-prices/<id>/edit|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|admin /tools/pricing/formulas/new|before=200/8tr/--|after=200/8tr/--|same
+PAGE|admin /tools/pricing/formulas/<id>/edit|before=200/8tr/R-|after=200/8tr/R-|same
+PAGE|admin /contracts|before=200/0tr/--|after=200/0tr/--|same
+PAGE|admin /inventory|before=200/5tr/--|after=200/5tr/--|same
+PAGE|admin /inventory/output/<id>|before=200/7tr/--|after=200/7tr/--|same
+PAGE|admin /finance/journal|before=200/21tr/--|after=200/21tr/--|same
+PAGE|admin /finance/journal/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|admin /finance/journal/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|admin /finance/trial-balance|before=200/34tr/--|after=200/34tr/--|same
+PAGE|admin /finance/bank|before=200/2tr/--|after=200/2tr/--|same
+PAGE|admin /finance/expenses|before=200/11tr/--|after=200/11tr/--|same
+PAGE|admin /finance/expenses/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|admin /finance/expenses/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|admin /finance/assets|before=200/3tr/--|after=200/3tr/--|same
+PAGE|admin /finance/claims|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|admin /hr/employees/<id>|before=200/6tr/R-|after=200/6tr/R-|same
+PAGE|cco /settings/roles|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cco /settings/roles/<id>|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cco /settings/accounts|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cco /settings/approvals|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cco /settings/reference|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cco /settings/dictionaries|before=200/86tr/R-|after=200/86tr/R-|same
+PAGE|cco /settings/change-history|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cco /tools/pricing/metal-prices|before=200/11tr/--|after=200/11tr/--|same
+PAGE|cco /tools/pricing/metal-prices/bulk|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cco /tools/pricing/metal-prices/<id>/edit|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cco /tools/pricing/formulas/new|before=200/8tr/--|after=200/8tr/--|same
+PAGE|cco /tools/pricing/formulas/<id>/edit|before=200/8tr/R-|after=200/8tr/R-|same
+PAGE|cco /contracts|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cco /inventory|before=200/5tr/--|after=200/5tr/--|same
+PAGE|cco /inventory/output/<id>|before=200/7tr/--|after=200/7tr/--|same
+PAGE|cco /finance/journal|before=200/21tr/--|after=200/21tr/--|same
+PAGE|cco /finance/journal/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cco /finance/journal/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cco /finance/trial-balance|before=200/34tr/--|after=200/34tr/--|same
+PAGE|cco /finance/bank|before=200/2tr/--|after=200/2tr/--|same
+PAGE|cco /finance/expenses|before=200/11tr/--|after=200/11tr/--|same
+PAGE|cco /finance/expenses/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cco /finance/expenses/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cco /finance/assets|before=200/3tr/--|after=200/3tr/--|same
+PAGE|cco /finance/claims|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cco /hr/employees/<id>|before=200/6tr/R-|after=200/6tr/R-|same
+PAGE|cfo /settings/roles|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cfo /settings/roles/<id>|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cfo /settings/accounts|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cfo /settings/approvals|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cfo /settings/reference|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cfo /settings/dictionaries|before=200/86tr/R-|after=200/86tr/R-|same
+PAGE|cfo /settings/change-history|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cfo /tools/pricing/metal-prices|before=200/11tr/--|after=200/11tr/--|same
+PAGE|cfo /tools/pricing/metal-prices/bulk|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cfo /tools/pricing/metal-prices/<id>/edit|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cfo /tools/pricing/formulas/new|before=200/8tr/--|after=200/8tr/--|same
+PAGE|cfo /tools/pricing/formulas/<id>/edit|before=200/8tr/R-|after=200/8tr/R-|same
+PAGE|cfo /contracts|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cfo /inventory|before=200/5tr/--|after=200/5tr/--|same
+PAGE|cfo /inventory/output/<id>|before=200/7tr/--|after=200/7tr/--|same
+PAGE|cfo /finance/journal|before=200/21tr/--|after=200/21tr/--|same
+PAGE|cfo /finance/journal/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cfo /finance/journal/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cfo /finance/trial-balance|before=200/34tr/--|after=200/34tr/--|same
+PAGE|cfo /finance/bank|before=200/2tr/--|after=200/2tr/--|same
+PAGE|cfo /finance/expenses|before=200/11tr/--|after=200/11tr/--|same
+PAGE|cfo /finance/expenses/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cfo /finance/expenses/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cfo /finance/assets|before=200/3tr/--|after=200/3tr/--|same
+PAGE|cfo /finance/claims|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cfo /hr/employees/<id>|before=200/6tr/R-|after=200/6tr/R-|same
+PAGE|cto /settings/roles|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cto /settings/roles/<id>|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cto /settings/accounts|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cto /settings/approvals|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cto /settings/reference|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cto /settings/dictionaries|before=200/86tr/R-|after=200/86tr/R-|same
+PAGE|cto /settings/change-history|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|cto /tools/pricing/metal-prices|before=200/11tr/--|after=200/11tr/--|same
+PAGE|cto /tools/pricing/metal-prices/bulk|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cto /tools/pricing/metal-prices/<id>/edit|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cto /tools/pricing/formulas/new|before=200/8tr/--|after=200/8tr/--|same
+PAGE|cto /tools/pricing/formulas/<id>/edit|before=200/8tr/R-|after=200/8tr/R-|same
+PAGE|cto /contracts|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cto /inventory|before=200/5tr/--|after=200/5tr/--|same
+PAGE|cto /inventory/output/<id>|before=200/7tr/--|after=200/7tr/--|same
+PAGE|cto /finance/journal|before=200/21tr/--|after=200/21tr/--|same
+PAGE|cto /finance/journal/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cto /finance/journal/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cto /finance/trial-balance|before=200/34tr/--|after=200/34tr/--|same
+PAGE|cto /finance/bank|before=200/2tr/--|after=200/2tr/--|same
+PAGE|cto /finance/expenses|before=200/11tr/--|after=200/11tr/--|same
+PAGE|cto /finance/expenses/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|cto /finance/expenses/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cto /finance/assets|before=200/3tr/--|after=200/3tr/--|same
+PAGE|cto /finance/claims|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|cto /hr/employees/<id>|before=200/6tr/R-|after=200/6tr/R-|same
+PAGE|finance /settings/roles|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|finance /settings/roles/<id>|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|finance /settings/accounts|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|finance /settings/approvals|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|finance /settings/reference|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|finance /settings/dictionaries|before=200/86tr/R-|after=200/86tr/R-|same
+PAGE|finance /settings/change-history|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|finance /tools/pricing/metal-prices|before=200/11tr/--|after=200/11tr/--|same
+PAGE|finance /tools/pricing/metal-prices/bulk|before=200/8tr/--|after=200/8tr/--|same
+PAGE|finance /tools/pricing/metal-prices/<id>/edit|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|finance /tools/pricing/formulas/new|before=200/8tr/--|after=200/8tr/--|same
+PAGE|finance /tools/pricing/formulas/<id>/edit|before=200/8tr/R-|after=200/8tr/R-|same
+PAGE|finance /contracts|before=200/0tr/--|after=200/0tr/--|same
+PAGE|finance /inventory|before=200/5tr/--|after=200/5tr/--|same
+PAGE|finance /inventory/output/<id>|before=200/7tr/--|after=200/7tr/--|same
+PAGE|finance /finance/journal|before=200/21tr/--|after=200/21tr/--|same
+PAGE|finance /finance/journal/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|finance /finance/journal/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|finance /finance/trial-balance|before=200/34tr/--|after=200/34tr/--|same
+PAGE|finance /finance/bank|before=200/2tr/--|after=200/2tr/--|same
+PAGE|finance /finance/expenses|before=200/11tr/--|after=200/11tr/--|same
+PAGE|finance /finance/expenses/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|finance /finance/expenses/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|finance /finance/assets|before=200/3tr/--|after=200/3tr/--|same
+PAGE|finance /finance/claims|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|finance /hr/employees/<id>|before=200/6tr/R-|after=200/6tr/R-|same
+PAGE|gm /settings/roles|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|gm /settings/roles/<id>|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|gm /settings/accounts|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|gm /settings/approvals|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|gm /settings/reference|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|gm /settings/dictionaries|before=200/86tr/R-|after=200/86tr/R-|same
+PAGE|gm /settings/change-history|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|gm /tools/pricing/metal-prices|before=200/11tr/--|after=200/11tr/--|same
+PAGE|gm /tools/pricing/metal-prices/bulk|before=200/0tr/--|after=200/0tr/--|same
+PAGE|gm /tools/pricing/metal-prices/<id>/edit|before=200/0tr/--|after=200/0tr/--|same
+PAGE|gm /tools/pricing/formulas/new|before=200/8tr/--|after=200/8tr/--|same
+PAGE|gm /tools/pricing/formulas/<id>/edit|before=200/8tr/R-|after=200/8tr/R-|same
+PAGE|gm /contracts|before=200/0tr/--|after=200/0tr/--|same
+PAGE|gm /inventory|before=200/5tr/--|after=200/5tr/--|same
+PAGE|gm /inventory/output/<id>|before=200/7tr/--|after=200/7tr/--|same
+PAGE|gm /finance/journal|before=200/21tr/--|after=200/21tr/--|same
+PAGE|gm /finance/journal/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|gm /finance/journal/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|gm /finance/trial-balance|before=200/34tr/--|after=200/34tr/--|same
+PAGE|gm /finance/bank|before=200/2tr/--|after=200/2tr/--|same
+PAGE|gm /finance/expenses|before=200/11tr/--|after=200/11tr/--|same
+PAGE|gm /finance/expenses/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|gm /finance/expenses/<id>|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|gm /finance/assets|before=200/3tr/--|after=200/3tr/--|same
+PAGE|gm /finance/claims|before=200/4tr/R-|after=200/4tr/R-|same
+PAGE|gm /hr/employees/<id>|before=200/6tr/R-|after=200/6tr/R-|same
+PAGE|warehouse /settings/roles|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|warehouse /settings/roles/<id>|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|warehouse /settings/accounts|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|warehouse /settings/approvals|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|warehouse /settings/reference|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|warehouse /settings/dictionaries|before=200/42tr/R-|after=200/42tr/R-|same
+PAGE|warehouse /settings/change-history|before=200/0tr/R-|after=200/0tr/R-|same
+PAGE|warehouse /tools/pricing/metal-prices|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /tools/pricing/metal-prices/bulk|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /tools/pricing/metal-prices/<id>/edit|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /tools/pricing/formulas/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /tools/pricing/formulas/<id>/edit|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /contracts|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /inventory|before=200/5tr/R-|after=200/5tr/R-|same
+PAGE|warehouse /inventory/output/<id>|before=200/7tr/--|after=200/7tr/--|same
+PAGE|warehouse /finance/journal|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/journal/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/journal/<id>|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/trial-balance|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/bank|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/expenses|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/expenses/new|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/expenses/<id>|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/assets|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /finance/claims|before=200/0tr/--|after=200/0tr/--|same
+PAGE|warehouse /hr/employees/<id>|before=200/0tr/--|after=200/0tr/--|same
+WHO|admin|codes=85
+WHO|cco|codes=49
+WHO|cfo|codes=36
+WHO|cto|codes=41
+WHO|finance|codes=43
+WHO|gm|codes=23
+WHO|warehouse|codes=31
+WHO|norole|codes=0
+WHO|display|codes=1
+REST|admin|user_roles|17|expected 17
+REST|admin|roles|22|expected 22
+REST|admin|role_permissions|697|expected 697
+REST|admin|permissions|85|expected 85
+REST|admin|metal_prices|12|expected 12
+REST|admin|metal_price_indices|2|expected 2
+REST|admin|pricing_settings|1|expected 1
+REST|admin|accounts|46|expected 46
+REST|admin|collection_promise_status|0|expected 0
+REST|cco|user_roles|17|expected 17
+REST|cco|roles|0|expected 0
+REST|cco|role_permissions|0|expected 0
+REST|cco|permissions|0|expected 0
+REST|cco|metal_prices|12|expected 12
+REST|cco|metal_price_indices|2|expected 2
+REST|cco|pricing_settings|1|expected 1
+REST|cco|accounts|46|expected 46
+REST|cco|collection_promise_status|0|expected 0
+REST|cfo|user_roles|17|expected 17
+REST|cfo|roles|22|expected 22
+REST|cfo|role_permissions|697|expected 697
+REST|cfo|permissions|85|expected 85
+REST|cfo|metal_prices|12|expected 12
+REST|cfo|metal_price_indices|2|expected 2
+REST|cfo|pricing_settings|1|expected 1
+REST|cfo|accounts|46|expected 46
+REST|cfo|collection_promise_status|0|expected 0
+REST|cto|user_roles|17|expected 17
+REST|cto|roles|0|expected 0
+REST|cto|role_permissions|0|expected 0
+REST|cto|permissions|0|expected 0
+REST|cto|metal_prices|12|expected 12
+REST|cto|metal_price_indices|2|expected 2
+REST|cto|pricing_settings|1|expected 1
+REST|cto|accounts|46|expected 46
+REST|cto|collection_promise_status|0|expected 0
+REST|finance|user_roles|17|expected 17
+REST|finance|roles|0|expected 0
+REST|finance|role_permissions|0|expected 0
+REST|finance|permissions|0|expected 0
+REST|finance|metal_prices|12|expected 12
+REST|finance|metal_price_indices|2|expected 2
+REST|finance|pricing_settings|1|expected 1
+REST|finance|accounts|46|expected 46
+REST|finance|collection_promise_status|0|expected 0
+REST|gm|user_roles|17|expected 17
+REST|gm|roles|0|expected 0
+REST|gm|role_permissions|0|expected 0
+REST|gm|permissions|0|expected 0
+REST|gm|metal_prices|12|expected 12
+REST|gm|metal_price_indices|2|expected 2
+REST|gm|pricing_settings|1|expected 1
+REST|gm|accounts|46|expected 46
+REST|gm|collection_promise_status|0|expected 0
+REST|warehouse|user_roles|1|expected 1
+REST|warehouse|roles|0|expected 0
+REST|warehouse|role_permissions|0|expected 0
+REST|warehouse|permissions|0|expected 0
+REST|warehouse|metal_prices|12|expected 12
+REST|warehouse|metal_price_indices|2|expected 2
+REST|warehouse|pricing_settings|1|expected 1
+REST|warehouse|accounts|0|expected 0
+REST|warehouse|collection_promise_status|0|expected 0
+REST|norole|user_roles|0|expected 0
+REST|norole|roles|0|expected 0
+REST|norole|role_permissions|0|expected 0
+REST|norole|permissions|0|expected 0
+REST|norole|metal_prices|0|expected 0
+REST|norole|metal_price_indices|0|expected 0
+REST|norole|pricing_settings|0|expected 0
+REST|norole|accounts|0|expected 0
+REST|norole|collection_promise_status|0|expected 0
+REST|display|user_roles|1|expected 1
+REST|display|roles|0|expected 0
+REST|display|role_permissions|0|expected 0
+REST|display|permissions|0|expected 0
+REST|display|metal_prices|0|expected 0
+REST|display|metal_price_indices|0|expected 0
+REST|display|pricing_settings|0|expected 0
+REST|display|accounts|0|expected 0
+REST|display|collection_promise_status|0|expected 0
+STORE|admin|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|cco|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|cfo|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|cto|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|finance|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|gm|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|warehouse|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|norole|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|display|avatars|list=0|download=400|upload=200|upsert=200|remove_own=true|remove_orphan=false
+STORE|admin|capture-photos|list=1|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cco|capture-photos|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|capture-photos|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|capture-photos|list=2|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|finance|capture-photos|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|capture-photos|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|capture-photos|list=3|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|norole|capture-photos|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|capture-photos|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|cn-documents|list=1|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cco|cn-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|cn-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|cn-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|cn-documents|list=2|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|gm|cn-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|cn-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|cn-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|cn-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|coa-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|coa-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cfo|coa-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|coa-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|coa-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|coa-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|coa-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|coa-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|coa-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|cod-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|cod-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|cod-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|cod-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|cod-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|cod-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|cod-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|norole|cod-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|cod-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|company-assets|list=1|download=200|upload=200|upsert=200|remove_own=true|remove_orphan=true
+STORE|cco|company-assets|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|company-assets|list=1|download=200|upload=200|upsert=200|remove_own=true|remove_orphan=true
+STORE|cto|company-assets|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|company-assets|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|company-assets|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|company-assets|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|company-assets|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|company-assets|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|compliance-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|compliance-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|compliance-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|compliance-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|finance|compliance-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|compliance-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|compliance-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|compliance-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|compliance-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|customer-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|customer-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cfo|customer-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|customer-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|finance|customer-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|gm|customer-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|customer-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|customer-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|customer-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|finance-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|finance-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|finance-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|finance-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|finance-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|gm|finance-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|finance-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|finance-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|finance-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|invoice-documents|list=1|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cco|invoice-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|invoice-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|invoice-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|invoice-documents|list=2|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|gm|invoice-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|invoice-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|invoice-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|invoice-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|material-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|material-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cfo|material-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|material-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|finance|material-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|gm|material-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|material-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|material-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|material-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|po-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|po-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cfo|po-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|po-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|finance|po-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|gm|po-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|po-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|po-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|po-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|qt-documents|list=1|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cco|qt-documents|list=2|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cfo|qt-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|qt-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|qt-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|qt-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|qt-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|qt-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|qt-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|shipment-documents|list=1|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cco|shipment-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|shipment-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|shipment-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|shipment-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|shipment-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|shipment-documents|list=2|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|norole|shipment-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|shipment-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|so-documents|list=1|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cco|so-documents|list=2|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cfo|so-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|so-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|so-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|so-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|so-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|so-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|so-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|statement-documents|list=1|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|cco|statement-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|statement-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|statement-documents|list=2|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|statement-documents|list=2|download=200|upload=200|upsert=400|remove_own=false|remove_orphan=false
+STORE|gm|statement-documents|list=3|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|statement-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|statement-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|statement-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|supplier-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|supplier-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cfo|supplier-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|supplier-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|finance|supplier-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|gm|supplier-attachments|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|supplier-attachments|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|norole|supplier-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|supplier-attachments|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|supplier-statement-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|supplier-statement-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cfo|supplier-statement-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|supplier-statement-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|finance|supplier-statement-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|gm|supplier-statement-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|supplier-statement-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|supplier-statement-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|supplier-statement-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|admin|traceability-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cco|traceability-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|cfo|traceability-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|cto|traceability-documents|list=1|download=200|upload=200|upsert=400|remove_own=true|remove_orphan=true
+STORE|finance|traceability-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|gm|traceability-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|warehouse|traceability-documents|list=1|download=200|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|norole|traceability-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+STORE|display|traceability-documents|list=0|download=400|upload=400|upsert=-|remove_own=-|remove_orphan=false
+ROUTE_CLEANUP|cod-documents|as warehouse clone|upload=200|orphan removed=true
+ROUTE_CLEANUP|po-documents|as finance clone|upload=200|orphan removed=true
+ROUTE_CLEANUP|traceability-documents|as cto clone|upload=200|orphan removed=true
+COD_BYTES|1b908c86-e368-485d-b89b-843e86a63a25/e7126939-405b-4b2f-a80a-db6d1781aee5.pdf|34701 bytes|sha256 ba299a4f3488fc543cdd1f410fabf6523434d39caa0dc58d6f376309c1f42101|recorded ba299a4f3488fc543cdd1f410fabf6523434d39caa0dc58d6f376309c1f42101|identical
+COD_BYTES|a04fd63f-7e0b-48a6-b51d-b96aabfdad98/c75e4b9c-1ad0-4ab1-8365-0e291654cc35.pdf|34746 bytes|sha256 717661f6a8166b5f9342324586208e21f29c217aa5d3c047b009e00f2513a4f9|recorded 717661f6a8166b5f9342324586208e21f29c217aa5d3c047b009e00f2513a4f9|identical
+NOROLE_PROOF: ✓ every cell matches the rulings
+
+✗ 收尾没有完成(120.0s)—— 退 6。没能确认删掉的:
+   · 删一次性文件 avatars/855cd5f9-d9e7-4b34-8179-664419f1658a.webp  →  DELETE /storage/v1/object/avatars/855cd5f9-d9e7-4b34-8179-664419f1658a.webp
+   · 删一次性文件 avatars/8916a72b-8302-4ad9-a038-161b21a75223.webp  →  DELETE /storage/v1/object/avatars/8916a72b-8302-4ad9-a038-161b21a75223.webp
+   · 删一次性文件 avatars/5fdbe5c2-8051-4247-a790-015cc992ad20.webp  →  DELETE /storage/v1/object/avatars/5fdbe5c2-8051-4247-a790-015cc992ad20.webp
+   · 删一次性文件 avatars/94b122dd-8151-4e57-8b58-4e74c215e15c.webp  →  DELETE /storage/v1/object/avatars/94b122dd-8151-4e57-8b58-4e74c215e15c.webp
+   · 删一次性文件 avatars/7cac89d0-37b7-4f73-8c62-0bfe23cd5410.webp  →  DELETE /storage/v1/object/avatars/7cac89d0-37b7-4f73-8c62-0bfe23cd5410.webp
+   · 删一次性文件 avatars/813c2e52-0ff1-4182-91f1-a13a310a2571.webp  →  DELETE /storage/v1/object/avatars/813c2e52-0ff1-4182-91f1-a13a310a2571.webp
+   · 删一次性文件 avatars/d73f2a6e-231a-43f3-95ef-f3805fa03c1c.webp  →  DELETE /storage/v1/object/avatars/d73f2a6e-231a-43f3-95ef-f3805fa03c1c.webp
+   · 删一次性文件 avatars/60824980-77ec-4635-89fd-9c5f09c70e79.webp  →  DELETE /storage/v1/object/avatars/60824980-77ec-4635-89fd-9c5f09c70e79.webp
+   · 删一次性文件 avatars/4e7228f8-a452-41ea-b623-4b03a8ab1f34.webp  →  DELETE /storage/v1/object/avatars/4e7228f8-a452-41ea-b623-4b03a8ab1f34.webp
+   · 删一次性文件 capture-photos/noroleprobe/1792394487536/cco.png  →  DELETE /storage/v1/object/capture-photos/noroleprobe/1792394487536/cco.png
+   · 删一次性文件 capture-photos/noroleprobe/1792394487536/cfo.png  →  DELETE /storage/v1/object/capture-photos/noroleprobe/1792394487536/cfo.png
+   · 删一次性文件 capture-photos/noroleprobe/1792394487536/finance.png  →  DELETE /storage/v1/object/capture-photos/noroleprobe/1792394487536/finance.png
+   · 删一次性文件 capture-photos/noroleprobe/1792394487536/gm.png  →  DELETE /storage/v1/object/capture-photos/noroleprobe/1792394487536/gm.png
+   · 删一次性文件 capture-photos/noroleprobe/1792394487536/norole.png  →  DELETE /storage/v1/object/capture-photos/noroleprobe/1792394487536/norole.png
+   · 删一次性文件 capture-photos/noroleprobe/1792394487536/display.png  →  DELETE /storage/v1/object/capture-photos/noroleprobe/1792394487536/display.png
+   · 删一次性文件 cn-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/cn-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 cn-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/cn-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 cn-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/cn-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 cn-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/cn-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 cn-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/cn-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 cn-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/cn-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 cn-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/cn-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 coa-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/coa-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/admin.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/admin.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/cco.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/cco.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/cfo.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/cfo.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/cto.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/cto.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/finance.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/finance.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/gm.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/gm.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/warehouse.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/warehouse.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/norole.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/norole.png
+   · 删一次性文件 company-assets/noroleprobe/1792394487536/display.png  →  DELETE /storage/v1/object/company-assets/noroleprobe/1792394487536/display.png
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 compliance-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/compliance-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 customer-attachments/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/customer-attachments/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 finance-attachments/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/finance-attachments/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 invoice-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/invoice-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 invoice-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/invoice-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 invoice-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/invoice-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 invoice-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/invoice-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 invoice-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/invoice-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 invoice-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/invoice-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 invoice-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/invoice-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 material-attachments/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/material-attachments/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 qt-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/qt-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 qt-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/qt-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 qt-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/qt-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 qt-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/qt-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 qt-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/qt-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 qt-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/qt-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 qt-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/qt-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 shipment-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/shipment-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 shipment-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/shipment-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 shipment-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/shipment-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 shipment-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/shipment-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 shipment-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/shipment-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 shipment-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/shipment-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 shipment-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/shipment-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 so-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/so-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 so-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/so-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 so-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/so-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 so-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/so-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 so-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/so-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 so-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/so-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 so-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/so-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 statement-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/statement-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 statement-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/statement-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 statement-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/statement-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 statement-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/statement-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 statement-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/statement-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 statement-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/statement-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 statement-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/statement-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 supplier-attachments/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/supplier-attachments/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/svc.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/svc.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 supplier-statement-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/supplier-statement-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/svc.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/svc.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/admin.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/admin.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/cco.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/cco.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/cfo.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/cfo.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/cto.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/cto.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/finance.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/finance.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/gm.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/gm.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/warehouse.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/warehouse.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/norole.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/norole.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/display.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/display.pdf
+   · 删一次性文件 cod-documents/noroleprobe/1792394487536/route-orphan-a5874e44-8c86-4366-ab16-1fd8aa891137.pdf  →  DELETE /storage/v1/object/cod-documents/noroleprobe/1792394487536/route-orphan-a5874e44-8c86-4366-ab16-1fd8aa891137.pdf
+   · 删一次性文件 po-documents/noroleprobe/1792394487536/route-orphan-d1e4d101-6184-49c3-b9ea-28b00fcbd766.pdf  →  DELETE /storage/v1/object/po-documents/noroleprobe/1792394487536/route-orphan-d1e4d101-6184-49c3-b9ea-28b00fcbd766.pdf
+   · 删一次性文件 traceability-documents/noroleprobe/1792394487536/route-orphan-6800536c-9325-4943-98a8-d75a7f5919f4.pdf  →  DELETE /storage/v1/object/traceability-documents/noroleprobe/1792394487536/route-orphan-6800536c-9325-4943-98a8-d75a7f5919f4.pdf
+   · 收回一次性授权 noroleprobe-1792394487536-clone-admin@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.855cd5f9-d9e7-4b34-8179-664419f1658a
+   · 收回一次性授权 noroleprobe-1792394487536-clone-cco@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.8916a72b-8302-4ad9-a038-161b21a75223
+   · 收回一次性授权 noroleprobe-1792394487536-clone-cfo@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.5fdbe5c2-8051-4247-a790-015cc992ad20
+   · 收回一次性授权 noroleprobe-1792394487536-clone-cto@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.94b122dd-8151-4e57-8b58-4e74c215e15c
+   · 收回一次性授权 noroleprobe-1792394487536-clone-finance@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.7cac89d0-37b7-4f73-8c62-0bfe23cd5410
+   · 收回一次性授权 noroleprobe-1792394487536-clone-gm@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.813c2e52-0ff1-4182-91f1-a13a310a2571
+   · 收回一次性授权 noroleprobe-1792394487536-clone-warehouse@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.d73f2a6e-231a-43f3-95ef-f3805fa03c1c
+   · 收回一次性授权 noroleprobe-1792394487536-norole@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.60824980-77ec-4635-89fd-9c5f09c70e79
+   · 收回一次性授权 noroleprobe-1792394487536-display@test.local  →  DELETE /rest/v1/user_roles?user_id=eq.4e7228f8-a452-41ea-b623-4b03a8ab1f34
+   · 删一次性角色 probe-noroleprobe-clone-admin-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-clone-admin-1792394487536
+   · 删一次性角色 probe-noroleprobe-clone-cco-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-clone-cco-1792394487536
+   · 删一次性角色 probe-noroleprobe-clone-cfo-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-clone-cfo-1792394487536
+   · 删一次性角色 probe-noroleprobe-clone-cto-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-clone-cto-1792394487536
+   · 删一次性角色 probe-noroleprobe-clone-finance-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-clone-finance-1792394487536
+   · 删一次性角色 probe-noroleprobe-clone-gm-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-clone-gm-1792394487536
+   · 删一次性角色 probe-noroleprobe-clone-warehouse-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-clone-warehouse-1792394487536
+   · 删一次性角色 probe-noroleprobe-norole-1792394487536(role_permissions 级联)  →  DELETE /rest/v1/roles?code=eq.probe-noroleprobe-norole-1792394487536
+   · 删一次性账号 noroleprobe-1792394487536-clone-admin@test.local  →  DELETE /auth/v1/admin/users/855cd5f9-d9e7-4b34-8179-664419f1658a
+   · 删一次性账号 noroleprobe-1792394487536-clone-cco@test.local  →  DELETE /auth/v1/admin/users/8916a72b-8302-4ad9-a038-161b21a75223
+   · 删一次性账号 noroleprobe-1792394487536-clone-cfo@test.local  →  DELETE /auth/v1/admin/users/5fdbe5c2-8051-4247-a790-015cc992ad20
+   · 删一次性账号 noroleprobe-1792394487536-clone-cto@test.local  →  DELETE /auth/v1/admin/users/94b122dd-8151-4e57-8b58-4e74c215e15c
+   · 删一次性账号 noroleprobe-1792394487536-clone-finance@test.local  →  DELETE /auth/v1/admin/users/7cac89d0-37b7-4f73-8c62-0bfe23cd5410
+   · 删一次性账号 noroleprobe-1792394487536-clone-gm@test.local  →  DELETE /auth/v1/admin/users/813c2e52-0ff1-4182-91f1-a13a310a2571
+   · 删一次性账号 noroleprobe-1792394487536-clone-warehouse@test.local  →  DELETE /auth/v1/admin/users/d73f2a6e-231a-43f3-95ef-f3805fa03c1c
+   · 删一次性账号 noroleprobe-1792394487536-norole@test.local  →  DELETE /auth/v1/admin/users/60824980-77ec-4635-89fd-9c5f09c70e79
+   · 删一次性账号 noroleprobe-1792394487536-display@test.local  →  DELETE /auth/v1/admin/users/4e7228f8-a452-41ea-b623-4b03a8ab1f34
+   · 收尾阶段到了 120s 截止时刻,还在飞的往返被中止
+  计划留在 /Users/timchen/Documents/projects/new-era-erp/.ephemeral/36545.json —— 下一次开跑会照它补删;也可以手工:npm run reap:ephemeral
+NOROLE_PROOF_EXIT=6
+PROOF_OWN_EXIT=6

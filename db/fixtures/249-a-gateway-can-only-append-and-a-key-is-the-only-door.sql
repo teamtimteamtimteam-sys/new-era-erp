@@ -236,10 +236,12 @@ BEGIN
     END LOOP;
     IF v_n IS DISTINCT FROM 12 THEN RAISE EXCEPTION 'FIXTURE 249 GRANT: swept % relations, expected 12', v_n; END IF;
 
-    -- ══════════════ POL · 那 44 条没动,也没有一条在 MES-1 的表上 ══════════════
+    -- ══════════════ POL · 那 36 条(NOROLE-SURFACE 之前是 44)没动,也没有一条在 MES-1 的表上 ══════════════
     SELECT count(*) INTO v_n FROM pg_policies
      WHERE schemaname = 'public' AND qual = 'true' AND 'authenticated' = ANY (roles) AND cmd IN ('SELECT', 'ALL');
-    IF v_n IS DISTINCT FROM 44 THEN RAISE EXCEPTION 'FIXTURE 249 POL: % open read policies for authenticated, expected 44', v_n; END IF;
+    -- ★ NOROLE-SURFACE(2026-10-19):44 → 36 —— user_roles · roles · role_permissions · permissions · metal_prices · metal_price_indices ·
+    --   pricing_settings · accounts 那八条从此带码(Step 0 Q1–Q5);剩下的 36 条(35 本字典 + company_profile)由判词七的基线逐条点名带理由。
+    IF v_n IS DISTINCT FROM 36 THEN RAISE EXCEPTION 'FIXTURE 249 POL: % open read policies for authenticated, expected 36', v_n; END IF;
     SELECT count(*) INTO v_n FROM pg_policies
      WHERE schemaname = 'public' AND qual = 'true'
        AND tablename IN ('devices', 'gateway_keys', 'ingest_settings', 'ingest_data_classes', 'ingest_inbox',

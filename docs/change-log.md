@@ -1559,3 +1559,30 @@ fresh rebuild after the migration). Fixtures 271 LOG and 273 LOG keep the exclus
   fixture 273 LOG; `floor_board_arms` is IMMUTABLE). The base view `operations_arms_all` and the reshaped `operations_now` are views.
 - `inventory_metal_exposure()` (F18) stays STABLE (fixture 271 LOG); it only reads one more list — stock whose material has no kind.
 - The idle exemption itself is a decision in the middleware, not a write: a display that is not signed out leaves no row anywhere.
+
+## 34. A session with no role reads nothing it should not (NOROLE-SURFACE, v1.4.59, 2026-10-19)
+
+Hand-back `docs/handbacks/NOROLE-SURFACE.md`; fixture 274 (arms REL · OWN · TRAIL · PROMISE · BUCKET · NOUPDATE · DELETE · SHAPE), live fixture 266 and
+verdict 7 (`db/check_norole.py`) pin every rule below, each fault-injected.
+
+### 34.1 Logged, excluded, masked
+
+- **No new table, no new column, no new trigger.** Public tables stay **321**, exclusions stay **8**, mask rules stay **119**.
+- **The migration writes no row.** It replaces eight SELECT policies, one view body and storage policies — DDL, which the change log does not record
+  (the migration file, the mirrors and verdict 7 are their record). Read back on live (as `postgres`, `change_log` base table): **0 rows** with `occurred_at` between 14:43:00 and 14:46:12 CST, the apply.
+
+### 34.2 Audit trail — the permission tables stay readable to the trails' readers (Tim, 2026-10-19, build Q21)
+
+- `record_trail` and `change_log_rows` show each row only if the reader passes **that row's own table's** read rule (`trail_row_visible`). Under Step 0
+  Q3 as first ruled, role grants on the employee page (`module.hr.view`, AUDIT-TRAIL Q21/Q24) and every `user_roles` / `roles` / `role_permissions` /
+  `permissions` row in `/settings/change-history` (cfo, `data.view_change_log`) would have turned **Restricted**. Tim ruled the readers' codes into the
+  predicates: `user_roles` = `action.manage_permissions` · `module.hr.view` · `data.view_change_log` or own rows; the other three =
+  `action.manage_permissions` · `data.view_change_log`. Fixture 274 TRAIL proves both trails still show the grant.
+- Account names referenced from other rows (an expense claim's `account_code`, a journal line's account) are still named in every trail: the label is
+  resolved by `trail_ref_label` under `record_trail`'s SECURITY DEFINER, not by the reader reading `accounts` (fixture 274 TRAIL, an employee with no code).
+
+### 34.3 Not logged because nothing is written
+
+- Storage: object rows live in `storage.objects`, which is the platform's schema and carries no change-log trigger (unchanged). The cut changes which
+  session may read, upload or remove a file, not what is recorded about it.
+

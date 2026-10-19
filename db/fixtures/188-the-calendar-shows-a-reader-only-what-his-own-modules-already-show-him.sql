@@ -95,7 +95,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 188C2 失败:employee 不该持有 module.pricing.view,而金属行情现在正靠它把门';
     END IF;
 
-    -- ══════════ D. 而【数据那一层没有被收窄】—— 这一条防的是后人读错 ═════
+    -- ══════════ D. ~~而【数据那一层没有被收窄】~~ ★ NOROLE-SURFACE 起数据那一层【也】收窄了(见本臂末尾)═════
     -- metal_prices 的 SELECT 仍然是 USING(true):employee 在【库里】仍然读得到行。
     -- ①b 收窄的是导航与路由守卫,不是数据。两者必须分得开,否则下一个人
     -- 会把"金属行情"当成受控数据,并据此做出别的决定。
@@ -118,12 +118,15 @@ BEGIN
     SELECT count(*) INTO n_emp_metal FROM metal_prices
      WHERE price_date = DATE '2027-05-02' AND metal = 'cu';
     RESET ROLE;
-    IF n_emp_metal <> 1 THEN
-        RAISE EXCEPTION 'FIXTURE 188D 失败:employee 在库那一层【应当】仍然读得到金属行情(实得 % 行)—— '
-            '读不到就说明有人把 metal_prices 的 RLS 也收窄了,而本刀明说没有动它', n_emp_metal;
+    -- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q4,Tim):这一臂【翻过来了】。原来它防的是"后人以为数据那一层也收窄了";
+    --   NOROLE-SURFACE 真的把 metal_prices 的读收窄成 pricing / suppliers / inventory / materials 的查看码之一,
+    --   于是一个不持任何码的 employee 在库里读到 0 行 —— 而管理员那一行在,所以这不是一次空转(上面 admin 刚插了它)。
+    IF n_emp_metal <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 188D 失败:一个不持任何码的 employee 在库里读到 % 行金属行情 —— '
+            'NOROLE-SURFACE 之后 metal_prices 的读要 pricing / suppliers / inventory / materials 的查看码之一', n_emp_metal;
     END IF;
 
-    RAISE NOTICE 'fixture 188 ok:发票 admin 1 / employee 0 · 公共假期两边都是 % · pricing 谓词 admin true / employee false · metal_prices 的 RLS 未动',
+    RAISE NOTICE 'fixture 188 ok:发票 admin 1 / employee 0 · 公共假期两边都是 % · pricing 谓词 admin true / employee false · metal_prices 对无码读者是 0 行(NOROLE-SURFACE)',
         n_admin_hol;
 END $$;
 ROLLBACK;

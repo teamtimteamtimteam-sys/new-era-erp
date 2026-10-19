@@ -87,3 +87,8 @@ CREATE VIEW public.processing_metal_recovery_all AS
 
 COMMENT ON VIEW public.processing_metal_recovery_all IS
     'AUD-1:processing_metal_recovery 的【无判据基视图】,理由与 batch_lineage_all 逐字相同。【不授权给任何人】;对外读 processing_metal_recovery。PROC-WIRE-1B-ii:recovery_blocked_by 多一个取值 output_not_applicable —— 状态改变型工序按定义没有产出腿,说它"产出没测过"会教人去补一份根本不存在的化验。没有工序类型的单仍然报 output_not_measured(说不出"不适用"的时候不许猜它)。';
+
+-- ★ NOROLE-SURFACE(2026-10-19):这一句此前【只住在迁移里】(db/migrations/2026-08-17-aud1-traceability-report.sql:174)——
+--   线上收着、重建出来的库开着(db/views/batch_lineage_all.sql 记过的同一个疤)。判词七在重建侧第一次跑就点了名:
+--   一张无判据的属主视图,authenticated 读得到。线上 relacl 2026-10-19 实测只有 postgres 与 service_role。
+REVOKE ALL ON public.processing_metal_recovery_all FROM authenticated, anon;
