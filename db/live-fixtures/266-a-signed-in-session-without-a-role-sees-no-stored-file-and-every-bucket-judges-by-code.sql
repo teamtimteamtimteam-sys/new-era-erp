@@ -8,7 +8,7 @@
 --   并由交回报告里的线上 HTTP 证明(一次性账号,list · download · upload · remove)证;线上策略 == 仓库镜像由判词七逐条比。
 -- 断言:
 --   NOROLE      一个没有角色的会话在 storage.objects 里一行都看不见(40 份文件、19 个桶)、在 storage.buckets 里一个桶都看不见
---   JUDGE       storage.objects 上每一条策略都带判据(has_permission / has_any_permission / 自己的头像 auth.uid());52 条
+--   JUDGE       storage.objects 上每一条策略都带判据(has_permission / has_any_permission / 自己的头像 auth.uid();门户那一条是 portal_can_read_object);53 条(MES-9b 起)
 --   NOUPDATE    UPDATE 只剩 avatars(自己的)与 company-assets(action.finance_settings);四个附件桶没有
 --   DELETE      会删的桶恰好是:avatars(自己的)· company-assets · coa · compliance · supplier-statement · cod · po · traceability ·
 --               四个附件桶 —— 除 avatars 与 company-assets 之外每一条删除都带 NOT EXISTS(记录表.列 = objects.name)
@@ -37,10 +37,13 @@ BEGIN
     PERFORM set_config('request.jwt.claims', '', true);
 
     SELECT count(*) INTO v_n FROM pg_policies WHERE schemaname = 'storage' AND tablename = 'objects';
+    -- MES-9b(2026-10-19):第 53 条是门户那一条读策略(TO supplier_portal,判据 portal_can_read_object —— 门户会话的判据,它不持任何码)
     SELECT string_agg(policyname, ', ') INTO v_bad FROM pg_policies
-     WHERE schemaname = 'storage' AND COALESCE(qual, '') || COALESCE(with_check, '') !~ '(has_permission|has_any_permission|auth\.uid\(\))';
-    IF v_n <> 52 OR v_bad IS NOT NULL THEN
-        RAISE EXCEPTION 'LIVE FIXTURE 266 JUDGE: % storage policies (ruled 52); without a judge: %', v_n, COALESCE(v_bad, '-');
+     WHERE schemaname = 'storage' AND COALESCE(qual, '') || COALESCE(with_check, '') !~ '(has_permission|has_any_permission|auth\.uid\(\))'
+       AND NOT (policyname = 'portal reads its own logged issued documents' AND roles = ARRAY['supplier_portal']::name[]
+                AND cmd = 'SELECT' AND qual ~ 'portal_can_read_object\(bucket_id, name\)');
+    IF v_n <> 53 OR v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 266 JUDGE: % storage policies (ruled 53); without a judge: %', v_n, COALESCE(v_bad, '-');
     END IF;
     SELECT string_agg(policyname, ', ') INTO v_bad FROM pg_policies WHERE schemaname = 'storage' AND cmd IN ('UPDATE', 'ALL')
        AND policyname NOT IN ('own avatar update', 'finance settings update company-assets');

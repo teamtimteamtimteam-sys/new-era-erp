@@ -837,6 +837,18 @@ REVOKE EXECUTE ON FUNCTION public.portal_access_token_hook(jsonb) FROM authentic
 GRANT EXECUTE ON FUNCTION public.portal_access_token_hook(jsonb) TO supabase_auth_admin;
 -- 员工那一侧的(portal_user_create_link · portal_user_revoke · portal_contact_anonymise · portal_actor_labels · set_account_setting)
 --   照第 31 行授给 authenticated —— 它们是 DEFINER,自己查码(action.manage_portal_users / action.manage_permissions)或会话(auth.uid())。
+-- ④ MES-9b(2026-10-19,MES-9 Step 0 Q14 · Q22):供应商看得见什么 —— 四支,同 ① 的授法:【只】授 supplier_portal。
+--    portal_documents · portal_deliveries(清单,只读)· portal_document_open(写调用者自己的一行下载记录,交出路径与哈希)·
+--    portal_can_read_object(storage.objects 上那条 TO supplier_portal 的读策略的判据 —— 策略以调用者身份求值,所以门户角色要执行得到它)。
+--    fixture 276 对其中每一支跑两家供应商;判词八逐条比基线。
+REVOKE EXECUTE ON FUNCTION public.portal_documents() FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_deliveries() FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_document_open(text, uuid) FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_can_read_object(text, text) FROM authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.portal_documents() TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_deliveries() TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_document_open(text, uuid) TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_can_read_object(text, text) TO supplier_portal;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】—— 收回 anon / authenticated(与 PUBLIC)在 public 里【每一张视图】上的

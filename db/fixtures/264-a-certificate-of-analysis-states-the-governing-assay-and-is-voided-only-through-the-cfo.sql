@@ -4,7 +4,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 臂:
 --   REG    码 action.issue_coa 在、声明 module.output.view 与 module.quality.view;单据登记 coa → COA(无洞,/quality/coa);两张新表进变更记录、
---          豁免仍是 8、没有遮蔽的列(规则数不动、遮蔽零缺口);审计主语 coa 在(根 certificates_of_analysis,查看码 module.output.view)、
+--          豁免仍是 8 —— MES-9b 起是 9、没有遮蔽的列(规则数不动、遮蔽零缺口);审计主语 coa 在(根 certificates_of_analysis,查看码 module.output.view)、
 --          证书挂在两个批次主语下(产出批直接、进料批经加工单 → 产出腿 → 产出批两块垫脚石);仓库申请认 coa_void(主体 coa_id,恰好一个主体);
 --          遮蔽伴生视图有 coa_id;每一个角色仍满足"动作码蕴含查看码"
 --   N38    产出批的来料化学确定度 = 进料叶子(任意深度)上最弱的那一个:unknown_pending < 未记录 < mixed < single_known;不认得的码排最弱并
@@ -222,7 +222,7 @@ BEGIN
          AND table_name = 'certificates_of_analysis' AND numbering = 'gapless' AND route = '/quality/coa' AND view_permission = ARRAY['module.output.view']) THEN
         RAISE EXCEPTION 'FIXTURE 264 REG: the document registry carries coa → COA, gapless, /quality/coa, read by module.output.view'; END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') IS DISTINCT FROM 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') IS DISTINCT FROM 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 9 THEN
         RAISE EXCEPTION 'FIXTURE 264 REG: change-log coverage has no gap and exactly 8 exclusions, got %', v_j; END IF;
     SELECT count(*) INTO v_n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
      WHERE t.tgname = 'zzz_change_log' AND c.relname IN ('certificates_of_analysis', 'coa_issues');

@@ -20,7 +20,7 @@
 --          只给编辑不给查看 → EDIT_REQUIRES_VIEW;只持 module.quality.view 的角色持 action.apply_assay 存得下(动作码蕴含查看码)
 --   READ   样品与保管记录:质量查看码看得见两种批的;只持进料查看码的只看得见进料批的,只持产出查看码的只看得见产出批的;一个都不持的
 --          一行都读不到(基表经 RLS、sample_rows 经它自己的谓词,两条路都测);质量的设定只给质量查看码
---   LOG    四张新表进变更记录(覆盖零缺口、豁免仍是 8);审计主语 sample(成员 sample_events)· assay_dispute · quality_settings 登记了,
+--   LOG    四张新表进变更记录(覆盖零缺口、豁免仍是 8 —— MES-9b 起是 9);审计主语 sample(成员 sample_events)· assay_dispute · quality_settings 登记了,
 --          门是 module.quality.view;进料 / 产出两个批次主语多了样品、保管记录与争议;样品自己的记录读得出它的保管记录;V16 的修改在变更记录里
 --   PV     V16 空、而有一份没处置的 Not yet set 样品 → /settings/pending-values 有 V16 一行(质量查看码);只持进料查看码的人看不见;
 --          V16 设了 → 那一行消失
@@ -395,7 +395,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 260 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 260 LOG: change-log coverage (no gaps, 8 excluded), got %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'samples' AND op = 'INSERT' AND row_key ->> 'id' = s1::text)
        OR NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'sample_events' AND op = 'INSERT' AND new ->> 'sample_id' = s1::text)

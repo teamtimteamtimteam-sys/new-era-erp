@@ -1324,7 +1324,28 @@
 >    `check-trail-wording` 钉住的句子);**3 项没有任何 fixture 臂**(第一次登录被扣在换密码表单上 · 路由两向分隔 · `/settings/approvals` 的宽度)——
 >    都是应用那一半,SQL fixture 够不到,只由 MES-9a 的一次性 HTTP 证明 / 版式普查证过(前两项的库那一半在 275 里)。**缺的是记录,不是行为** ——
 >    登记 `MES9A-APP-HALF-NO-REGRESSION-CHECK`,没有建。交回 §10 的 21 条没问就做的决定逐条(只列标题)在 close-out 文件里。**没有缺的 —— 所以第 2 步(MES-9b)照常开始。**
->    **下一刀 MES-9b · What a supplier sees**(见下面「⬜ ★ MES 组」第 15b 行:采购单 · 收货 · 化验 · 对账单 · 销毁证书;存储策略 `TO supplier_portal` 与 Q22 的下载记录在那一刀)。
+>    ~~**下一刀 MES-9b · What a supplier sees**(见下面「⬜ ★ MES 组」第 15b 行:采购单 · 收货 · 化验 · 对账单 · 销毁证书;存储策略 `TO supplier_portal` 与 Q22 的下载记录在那一刀)。~~ ★ MES-9b 已关闭(下面第 59 条)。
+>
+> 59. **✅ 供应商在门户里看得见什么 —— 一位门户账号打开它自己那一家的采购单、对账单与销毁证书【签发时存下的那一份 PDF】(取的时候对着签发记录重算 sha256,
+>    对不上 409;没签发的写"还没签发"、作废的写"已作废"、被取代的写取代它的那一份,一律不按活数据渲染),看见它自己的收货与地磅单(按今天的记录,没有一个价钱;
+>    两家共用的地磅单只看见分给自己的那一份);别家的、内部的、活的价钱一样都看不见;每一次下载都记一行(只追加,员工在供应商页上看)—— MES-9b(`v1.4.61`,2026-10-19/20)。**
+>    MES 组的第二十四刀(Tim 2026-10-19:MES-9 Step 0 §15 —— Q14 · Q15 · Q16–Q18 · Q22 照推荐;续做时的四条裁定:备份分两部分取 · 化验结果这一刀不显示
+>    (`MES9B-FINAL-ASSAY-NOT-SHOWN`)· 19 支 storage 平台函数留在门户基线里(`MES9B-STORAGE-FUNCTIONS-FOLLOW-THE-PLATFORM`)· 线上不提交任何一次性签发档、不绕过任何触发器)。
+>    **没有新码、没有授权改动。** 一张新表 `portal_document_downloads`(变更记录的第九张豁免,8 → 9,每一处钉着 8 的检查都挪到 9,没有一处放松);四支门户函数
+>    (`portal_documents` · `portal_deliveries` · `portal_document_open` · `portal_can_read_object`,只授 `supplier_portal`);门户角色得到 storage 架构的 USAGE、`storage.objects`
+>    的 SELECT 与一条读策略 —— 只放行【两分钟内刚为之写下过下载记录】的那一个自己的对象,于是每一次取字节前面都有一行记录。门户基线 8 → 34 行(判词八;顺手修了它把
+>    长对象名截在 63 字节的量具问题)。存储策略 52 → 53(fixture 274 与线上 fixture 266 跟着挪,第 53 条按名认它的判据)。Fixture 新 **276**(9 臂);注入 33 格 + 3 支基线 +
+>    6 格判词八,在最后一次库改动之后的新重建上重跑一次。
+>    **备份改成分两部分取**(`db/backup.sh`,AGENTS.md 与 `docs/fresh-install-checklist.md`「从备份还原」):当晚两次整库备份都在 `COPY change_log` 处被服务端断开;
+>    新的那一份 `BACKUP_EXIT=0` —— 主 dump 1,973 秒退 0,change_log 15 段每段 8–45 秒、一次过,合计 64,239 行、seq 1–71,494,与开跑那一刻的 count / min / max 相同。
+>    迁移 `db/migrations/2026-10-19-mes9b-what-a-supplier-sees.sql`(先 COMMIT→ROLLBACK 干跑,`DRY_OWN_EXIT=0`),**破窗起点 2026-10-19 23:47:32 CST**
+>    (`db/migration-windows.tsv`),终点等 Tim 在 Vercel 上确认部署。迁移之后七个角色的副本 · 大屏 · 门户账号逐个登录、刷新、空闲、轮换照旧(`MES9A_SIGNIN_EXIT=0`)。
+>    **验证分两处**(裁定 4):取档的 HTTP 一半(存下的 PDF · 重算哈希 · 409 · 下载记录 · 别家的 404 · 作废的 410)在【本地重建库】上以自带数据证(`MES9B_LOCAL_PROOF_EXIT=0`);
+>    线上只证不需要已提交单据的那些 + 一笔回滚的事务(`MES9B_PROOF_EXIT=0`,67 格)。冒烟:第一次 302 ok / 0 失败但收尾撞上 504(`SMOKE_EXIT=6`,补删后读回干净);
+>    第二次 `/settings/change-history` 撞上 8 秒上限(`SMOKE_EXIT=1`,与本刀无关,登记 `CHANGE-HISTORY-8S-AFTER-BULK-GRANTS`)。
+>    **窗口里坏掉的**(推导):没有在用的东西坏 —— 旧应用不读任何新东西;线上没有门户账号。验证与读数在 `docs/handbacks/MES-9b.md`。
+>    **登记、没修**:`MES9B-FINAL-ASSAY-NOT-SHOWN` · `MES9B-STORAGE-FUNCTIONS-FOLLOW-THE-PLATFORM` · `MES9B-DOWNLOAD-LOG-RECORDS-THE-REQUEST` · `CHANGE-HISTORY-8S-AFTER-BULK-GRANTS`(`docs/known-issues.md`)。
+>    **下一刀 MES-9c · Certificate uploads and staff review**(见下面「⬜ ★ MES 组」第 15c 行;fixture 277)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -7833,7 +7854,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **✅ ~~`equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人~~**(★ ✅ U1-A)(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
-* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);~~**MES-7b-2 安全巡检与环境监测是下一刀**~~ ★ MES-7b-2 已关闭(2026-10-16,上面第 54 条);~~**MES-8a 供应商评分卡与对账单是下一刀**~~ ★ MES-8a 已关闭(2026-10-16,上面第 55 条);~~**MES-8b-1 按进料批的利润、金属敞口与合规包是下一刀**~~ ★ MES-8b-1 已关闭(2026-10-17,上面第 56 条);~~**MES-8b-2 大屏是下一刀**~~ ★ MES-8b-2 已关闭(2026-10-17,上面第 57 条;MES-8 全部关闭);~~**MES-9 供应商门户是下一刀**~~ ★ Tim 2026-10-19:~~**NOROLE-SURFACE 是下一刀**~~ ★ NOROLE-SURFACE 已关闭(2026-10-19,`v1.4.59`);~~**MES-9a 是下一刀**~~ ★ MES-9a 已关闭(2026-10-19,`v1.4.60`,上面第 58 条);**MES-9b 是下一刀**,然后 9c)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
+* **⬜ ★ 下一刀:MES 组 · 31 项采集 / 仓储 / 生产 / 质量 / 设备 / 供应商 / 分析功能,切 15 刀**(~~U1-B 已推送;**MES-1 是下一刀**~~ ★ MES-1 已关闭(2026-10-06,上面第 36 条);~~**MES-2 是下一刀**~~ ★ MES-2 已关闭(2026-10-06,上面第 37 条);~~**MES-3a 是下一刀**~~ ★ MES-3a 已关闭(2026-10-07,上面第 38 条);~~**MES-3b 是下一刀**~~ ★ MES-3b 已关闭(2026-10-07,上面第 39 条);~~**MES-4a 是下一刀**~~ ★ MES-4a 已关闭(2026-10-07,上面第 40 条);~~**MES-4b 是下一刀**~~ ★ MES-4b 已关闭(2026-10-08,上面第 41 条);~~**MES-5a 是下一刀**~~ ★ MES-5a-1 已关闭(2026-10-08,上面第 42 条);~~**MES-5a-2 Energy 是下一刀**~~ ★ MES-5a-2 已关闭(2026-10-08,上面第 43 条);~~**MES-5b 是下一刀**~~ ★ MES-5b-1 已关闭(2026-10-08,上面第 44 条);~~**MES-5b-2 Reversals 是下一刀**~~ ★ MES-5b-2 已关闭(2026-10-09,上面第 45 条);~~**MES-5b-3 Blending 是下一刀(将来那条线 —— Tim Q16:今天这条线不配料)**~~ ★ MES-5b-3 已关闭(2026-10-09,上面第 46 条);~~**MES-6a Samples, arbitration, F/Cl 是下一刀**~~ ★ MES-6a-1 已关闭(2026-10-09,上面第 47 条);~~**MES-6a-2 F / Cl and quality indicators 是下一刀**~~ ★ MES-6a-2 已关闭(2026-10-10,上面第 48 条);~~**MES-6b NCR, quality hold, CoA 是下一刀**~~ ★ MES-6b-1 已关闭(2026-10-15,上面第 49 条);~~**MES-6b-2 CoA 是下一刀**~~ ★ MES-6b-2 已关闭(2026-10-15,上面第 50 条);~~**MES-7a Spare parts and reliability 是下一刀**~~ ★ MES-7a-1 已关闭(2026-10-16,上面第 51 条);~~**MES-7a-2 Spare parts 是下一刀**~~ ★ MES-7a-2 已关闭(2026-10-16,上面第 52 条);~~**MES-7b Inspections and incidents 是下一刀**~~ ★ MES-7b-1 已关闭(2026-10-16,上面第 53 条);~~**MES-7b-2 安全巡检与环境监测是下一刀**~~ ★ MES-7b-2 已关闭(2026-10-16,上面第 54 条);~~**MES-8a 供应商评分卡与对账单是下一刀**~~ ★ MES-8a 已关闭(2026-10-16,上面第 55 条);~~**MES-8b-1 按进料批的利润、金属敞口与合规包是下一刀**~~ ★ MES-8b-1 已关闭(2026-10-17,上面第 56 条);~~**MES-8b-2 大屏是下一刀**~~ ★ MES-8b-2 已关闭(2026-10-17,上面第 57 条;MES-8 全部关闭);~~**MES-9 供应商门户是下一刀**~~ ★ Tim 2026-10-19:~~**NOROLE-SURFACE 是下一刀**~~ ★ NOROLE-SURFACE 已关闭(2026-10-19,`v1.4.59`);~~**MES-9a 是下一刀**~~ ★ MES-9a 已关闭(2026-10-19,`v1.4.60`,上面第 58 条);~~**MES-9b 是下一刀**~~ ★ MES-9b 已关闭(2026-10-19/20,`v1.4.61`,上面第 59 条);**MES-9c 是下一刀**)(MES-0 勘察 `docs/surveys/MES-0/README.md`;
   **Tim 2026-10-05:Q1–Q96 全部照建议答** —— 记在那份勘察的 §12)。**排在 U1-B 之后**(Q1:U1-B 原样先发,MES-1 在它推送之后开工)。
   逐刀的内容、表与页面数见勘察 §8.2;估时 = 底(1 h 30 m – 2 h 30 m)+ 工作量,勘察的口径(低端是更可能的结果,§8.1)。
   ★★ **硬前提(Q16,Tim 自己的动作):Supabase 项目在【第一台网关接上之前】换到付费档** —— 也就是 MES-1 的网关那条路在线上被用之前。
@@ -7874,8 +7895,8 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   | ~~14~~ | ~~⬜ **MES-8b · Analysis and display**~~ → 拆成上面 14a · 14b(Tim 2026-10-16)。原文:28(按进料批的利润)· 29(金属敞口)· 30(合规包)· 31(大屏),5 h 25 m – 10 h 00 m |
   | 15-0 | ✅ **NOROLE-SURFACE · 没有角色的已登录会话**(`v1.4.59`,2026-10-19;Tim 2026-10-19 MES-9 Q4 · Q30:先于 MES-9a,单独一刀;交回 `docs/handbacks/NOROLE-SURFACE.md`)| 35 条只看"已登录"的存储策略 → 模块谓词 · `user_roles` / `roles` / `role_permissions` · 金属价 · 科目表 · `collection_promise_status` · 一道"无角色可达面"的门 | 见 `docs/surveys/NOROLE-SURFACE/STEP0-HANDBACK.md` |
   | 15a | ✅ **MES-9a · Identity and isolation**(`v1.4.60`,2026-10-19,上面第 58 条;线上干跑 hook 成立,Q86 不回来;fixture 275;并入 `/settings/approvals` 390 px)| 27 的身份一半:`supplier_portal` 角色 + access token hook · `supplier_portal_users` · 供应商页的门户面板 · `/portal` 外壳 · 门户可达面 = 基线的门 | MES-9 Step 0 §11:2 h 21 – 5 h 56 |
-  | 15b | ⬜ **MES-9b · What a supplier sees**(★ 下一刀;fixture 276)| 27 的读一半:采购单 · 收货 · 化验 · 对账单 · 销毁证书 | 2 h 00 – 4 h 56 |
-  | 15c | ⬜ **MES-9c · Certificate uploads and staff review** | 27 的写一半:合规证书上传 · 员工审核 | 1 h 51 – 4 h 14 |
+  | 15b | ✅ **MES-9b · What a supplier sees**(`v1.4.61`,2026-10-19/20,上面第 59 条;fixture 276;化验结果这一刀不显示,Tim 裁定)| 27 的读一半:采购单 · 收货 · 对账单 · 销毁证书 · 地磅单 · 下载记录 | 2 h 00 – 4 h 56 |
+  | 15c | ⬜ **MES-9c · Certificate uploads and staff review**(★ 下一刀;fixture 277)| 27 的写一半:合规证书上传 · 员工审核 | 1 h 51 – 4 h 14 |
   | ~~15~~ | ~~⬜ **MES-9 · Supplier portal**(最后;★ 下一刀)~~ → 拆成上面 15-0 · 15a · 15b · 15c(Tim 2026-10-19,MES-9 Q1 · Q2 · Q4 · Q30)。原文:27(供应商门户;先做内部专用的那次清扫,Q86),7 h 35 m – 13 h 15 m |
   合计 **≈ 97 h 40 m – 174 h 45 m**(勘察 §8.2;其中底 22 h 30 m – 37 h 30 m)。依赖图见勘察 §8.2 末尾。
 * ~~**⬜ MES-5a-2 · Energy —— ★ MES 组的下一刀**~~ **✅ 已关闭(MES-5a-2,`v1.4.44`,2026-10-08,上面第 43 条)** —— Tim 2026-10-08 答了 Q19–Q36

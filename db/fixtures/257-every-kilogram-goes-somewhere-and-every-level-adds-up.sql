@@ -25,7 +25,7 @@
 --   FCHECK 动作码蕴含查看码(Q30 · Q31):set_role_permissions 拒一个持动作码而不持它那一页任何一个查看码的角色(ACTION_REQUIRES_VIEW,
 --          点出码与它要的查看码),持其中【任一】就放行,页面由码自己把门的持码即可;目录的声明合法、除了没有屏幕的那一个都声明了;
 --          重建库里【每一个】角色都满足;引导的 admin 持目录里每一个码(MES-5b-3 起含 module.tasks.view_all);引导的财务持 module.processing.view
---   LOG    没有新表 —— 变更记录覆盖零缺口、豁免仍是 8;V37 的改动进变更记录
+--   LOG    没有新表 —— 变更记录覆盖零缺口、豁免仍是 8 —— MES-9b 起是 9;V37 的改动进变更记录
 --
 -- 自带数据(README 第 2 条)。以 postgres 跑(绕过 RLS);读者那几臂真的切成 authenticated + 那个人的 JWT。日期 = 昨天,一炉从 09:00 跑到 11:00。
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -541,7 +541,7 @@ BEGIN
     -- ══════════════ LOG · 没有新表 ══════════════
     RAISE NOTICE 'fixture 257 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 257 LOG: change-log coverage %', v_j; END IF;
 
     RAISE NOTICE 'FIXTURE 257 全部通过:CONS · ATTR · BAL · PRE · MONTH · NOTKG · ROLL · INV · YIELD · V37 · GROUP · READ · FCHECK · LOG';

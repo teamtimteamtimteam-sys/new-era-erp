@@ -6,7 +6,7 @@
 -- 臂:
 --   REG      三张新表都在;设定那一行在、四样全空(Q18);包与签发档空;单据登记 CPK(读码 module.compliance.view,落点 /compliance/packs);
 --            两个新码:module.compliance.view 与 action.compliance_pack(声明 module.compliance.view);动作码蕴含查看码(每一个角色);
---            admin 持目录里每一个码;审计主语 compliance_pack(成员:签发档)与 compliance_settings;三张新表进变更记录,豁免仍 8;
+--            admin 持目录里每一个码;审计主语 compliance_pack(成员:签发档)与 compliance_settings;三张新表进变更记录,豁免仍 8 —— MES-9b 起是 9;
 --            没有遮蔽的列(规则仍 119);F16 仍是 0
 --   V2627    设定空着时 V26、V27 各一行(只给持 module.compliance.view 的人);给它们要 action.compliance_pack;格式没有频率 / 方法没有目标按名拒;
 --            给全之后两行都消失,预览的第 7、8 节照原样印出给的那几句、不算任何东西
@@ -143,8 +143,8 @@ BEGIN
         OR NOT EXISTS (SELECT 1 FROM trail_subject_members() x WHERE x.subject = 'compliance_pack' AND x.table_name = 'compliance_pack_issues' AND x.home)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 272 REG: trail subjects compliance_pack (with its issues) and compliance_settings'; END IF;
     v_j := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 272 REG: change-log coverage (gaps 0, exclusions 8): %', v_j; END IF;
+    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 272 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
     IF (EXISTS (SELECT 1 FROM change_log_mask_rules() WHERE table_name LIKE 'compliance_%') OR (SELECT count(*) FROM change_log_mask_rules()) <> 119) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 272 REG: no masked column in MES-8b-1 (rules stay 119)'; END IF;
     SELECT string_agg(c.relname || ':' || g.r || ':' || p.priv, ', ') INTO v_txt

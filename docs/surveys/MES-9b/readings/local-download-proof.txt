@@ -1,0 +1,24 @@
+· a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub + db/storage/buckets-and-policies.sql
+· seeded: suppliers A and B, a portal account each with a live session, orders (v1, v2), statements, certificates (issued, void), bytes on disk
+PASS|local HTTP A · order v2: 200 application/pdf, the stored bytes (sha256 76d1faf7312d… re-checked), one download-log row
+PASS|local HTTP A · order v1 (superseded): 200 application/pdf, the stored bytes (sha256 9e853a3702b0… re-checked), one download-log row
+PASS|local HTTP A · statement: 200 application/pdf, the stored bytes (sha256 a6bd9576691b… re-checked), one download-log row
+PASS|local HTTP A · certificate: 200 application/pdf, the stored bytes (sha256 cdb4d7b24387… re-checked), one download-log row
+PASS|local HTTP B · order v2: 200 application/pdf, the stored bytes (sha256 98854979c2bb… re-checked), one download-log row
+PASS|local HTTP B · statement: 200 application/pdf, the stored bytes (sha256 1b1b9faeac7b… re-checked), one download-log row
+PASS|local HTTP B · certificate: 200 application/pdf, the stored bytes (sha256 ea64689fbbc1… re-checked), one download-log row
+PASS|local HTTP A asks for B's order: 404 "portal.errors.PORTAL_DOCUMENT_NOT_FOUND", no log row written
+PASS|local HTTP A asks for B's statement: 404 "portal.errors.PORTAL_DOCUMENT_NOT_FOUND", no log row written
+PASS|local HTTP A asks for B's certificate: 404 "portal.errors.PORTAL_DOCUMENT_NOT_FOUND", no log row written
+PASS|local HTTP B asks for A's order: 404 "portal.errors.PORTAL_DOCUMENT_NOT_FOUND", no log row written
+PASS|local HTTP A asks for its void certificate: 410 "portal.errors.PORTAL_DOCUMENT_VOID {"0":"LOCAL-A-COD0"}"
+PASS|local HTTP an unknown kind: 400
+PASS|local HTTP a staff session: 403 "This download is for supplier portal sessions."
+PASS|local HTTP A downloads its altered order: 409 "Stored document does not match its recorded digest"
+PASS|local storage policy: an object A never logged → 0 row(s) visible
+PASS|local storage policy: A's just-logged object, asked by B → 0 row(s) visible
+PASS|local: a portal session reading the download log directly → refused (permission denied for table portal_document_downloads)
+LOG|A's download-log rows (kind:code:version, in order): purchase_order:LOCAL-A-PO1:2,purchase_order:LOCAL-A-PO1:1,supplier_statement:LOCAL-A-ST1:1,cod:LOCAL-A-COD1:-,purchase_order:LOCAL-A-PO1:2
+PASS|local: A has exactly 5 download-log rows (4 served + the 409 attempt; the refusals wrote none)
+STEP|done
+MES9B_LOCAL_PROOF_EXIT=0

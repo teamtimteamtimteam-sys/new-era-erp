@@ -10,7 +10,8 @@
 --   HOOK     access token hook:重建库里【每一个】角色的持有人、一个全码会话、一个没有角色的会话、一个只挂 floor_display 的会话 ——
 --            返回的 event 与传进去的逐字节相同;一个门户账号 → claims.role = supplier_portal、别的键一个不动;
 --            函数里的失败(user_id 不是 uuid · supabase_auth_admin 读不到表)→ 原样返回,不抛;supabase_auth_admin 照迁移的授法读得到
---   EVERY    supplier_portal 能执行的【每一支】函数(从目录里枚举 —— 判词八保证目录 = 基线;一支没有用例的函数让本臂红):
+--   EVERY    supplier_portal 能执行的【每一支】public 函数(从目录里枚举 —— 判词八保证目录 = 基线;一支没有用例的函数让本臂红;
+--            MES-9b 的四支按名交给 fixture 276 的 EVERY 臂,名单与目录对不上也红):
 --            两家供应商各自只看见自己那一家(对方的编号、名字、邮箱一个字都没有);员工角色(authenticated)调 → 42501;
 --            角色对了而令牌声明不对 → PORTAL_ROLE_REQUIRED;会话不在 → PORTAL_SESSION_ENDED;不是门户账号 → PORTAL_NOT_A_PORTAL_ACCOUNT;
 --            被封 → PORTAL_ACCESS_REVOKED
@@ -20,7 +21,7 @@
 --   TRAIL    审计记录里门户账号做的事:trail_actor → 「portal」+ 供应商名;portal_actor_labels 只回门户账号;供应商的审计记录列出门户链接
 --   VIEW     supplier_portal_accounts 对 module.suppliers.view 列出两家的账号、对没有码的人 0 行;user_directory 不列门户账号
 --   VALUES   V38 · V40 两支待补的值(action.manage_permissions)在;set_account_setting 给了 V38 那一行就没了;形状不对 / 键不认识按名拒
---   LOG      两张新表进变更记录,豁免仍是 8
+--   LOG      两张新表进变更记录,豁免是 9(MES-9b 加了门户下载记录)
 --   GRANTS   portal_* 只给 supplier_portal(authenticated · anon 调不到);hook 只给 supabase_auth_admin;portal_require_link 谁都不给
 -- 前提:db/platform-prelude.sql 建了 supplier_portal · supabase_auth_admin · authenticator 与 auth.sessions。自带数据(README 第 2 条)。
 -- 注入(故障注入的记录在 docs/handbacks/MES-9a.md):db/scripts/2026-10-19-mes9a-fixture-injections.py。
@@ -95,6 +96,11 @@ DECLARE
     v_cases jsonb := jsonb_build_object(
         'portal_me()', 'SELECT public.portal_me()::text',
         'portal_export_my_data()', 'SELECT public.portal_export_my_data()::text');
+    -- MES-9b(2026-10-19):这四支的两家供应商用例在 fixture 276 的 EVERY 臂(它们要单据、收货与存储);276 断言两支 fixture 合起来正好覆盖目录。
+    --   不在这里、也不在这份名单上的一支 → 本臂照旧红。
+    v_9b text[] := ARRAY['portal_documents()', 'portal_deliveries()', 'portal_document_open(p_kind text, p_issue_id uuid)',
+                         'portal_can_read_object(p_bucket text, p_name text)'];
+    v_9b_seen int := 0;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supplier_portal') OR to_regclass('auth.sessions') IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 275 SETUP: the prelude did not create supplier_portal / auth.sessions on this rebuild';
@@ -144,7 +150,7 @@ BEGIN
 
     -- ── LOG (before anything that reads the change log: the trail, the anonymisation) ──
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 275 LOG: change-log coverage %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'supplier_portal_users' AND row_key ->> 'id' = l_a::text AND op = 'INSERT') THEN
         RAISE EXCEPTION 'FIXTURE 275 LOG: the portal link is not change-logged'; END IF;
@@ -220,9 +226,13 @@ BEGIN
     FOR r IN SELECT p.oid::regprocedure::text AS sig, p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' AS key
                FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
               WHERE n.nspname = 'public' AND has_function_privilege('supplier_portal', p.oid, 'EXECUTE') ORDER BY 1 LOOP
+        IF NOT v_cases ? r.key AND r.key = ANY (v_9b) THEN
+            v_9b_seen := v_9b_seen + 1;
+            CONTINUE;
+        END IF;
         v_n := v_n + 1;
         IF NOT v_cases ? r.key THEN
-            RAISE EXCEPTION 'FIXTURE 275 EVERY: % is executable by supplier_portal and has no two-supplier case here', r.sig; END IF;
+            RAISE EXCEPTION 'FIXTURE 275 EVERY: % is executable by supplier_portal and has no two-supplier case here or in fixture 276', r.sig; END IF;
         v_fn := v_cases ->> r.key;
         -- A sees A, not B; B sees B, not A
         v := pg_temp.f275_call(u_a, 'supplier_portal', 'supplier_portal', sid_a, v_fn);
@@ -252,6 +262,8 @@ BEGIN
     IF v_n <> jsonb_array_length(jsonb_path_query_array(v_cases, '$.keyvalue()')) THEN
         RAISE EXCEPTION 'FIXTURE 275 EVERY: % function(s) executable by supplier_portal, % case(s) here — a case lost its function', v_n,
             jsonb_array_length(jsonb_path_query_array(v_cases, '$.keyvalue()')); END IF;
+    IF v_9b_seen <> cardinality(v_9b) THEN
+        RAISE EXCEPTION 'FIXTURE 275 EVERY: % of the % MES-9b functions are executable by supplier_portal — the name list here is stale', v_9b_seen, cardinality(v_9b); END IF;
 
     -- ── EXPORT ─────────────────────────────────────────────────────────────
     v := pg_temp.f275_call(u_b, 'supplier_portal', 'supplier_portal', sid_b, 'SELECT public.portal_export_my_data()::text');

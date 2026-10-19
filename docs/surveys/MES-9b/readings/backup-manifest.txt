@@ -1,0 +1,17 @@
+# change_log 截至 2026-10-19 23:01:01 CST:count=64239 min(seq)=1 max(seq)=71494;15 段,合计 64239 行;主 dump evoltrya-backup-2026-10-19-2300.dump
+# 还原:见 db/backup.sh 抬头「还原」与 docs/fresh-install-checklist.md
+000|seq 1..5000|rows 4043|exit 0|tries 1
+001|seq 5001..10000|rows 4731|exit 0|tries 1
+002|seq 10001..15000|rows 4446|exit 0|tries 1
+003|seq 15001..20000|rows 4644|exit 0|tries 1
+004|seq 20001..25000|rows 4477|exit 0|tries 1
+005|seq 25001..30000|rows 4648|exit 0|tries 1
+006|seq 30001..35000|rows 4875|exit 0|tries 1
+007|seq 35001..40000|rows 4519|exit 0|tries 1
+008|seq 40001..45000|rows 4816|exit 0|tries 1
+009|seq 45001..50000|rows 4773|exit 0|tries 1
+010|seq 50001..55000|rows 4655|exit 0|tries 1
+011|seq 55001..60000|rows 4809|exit 0|tries 1
+012|seq 60001..65000|rows 3293|exit 0|tries 1
+013|seq 65001..70000|rows 4016|exit 0|tries 1
+014|seq 70001..71494|rows 1494|exit 0|tries 1

@@ -1,0 +1,21 @@
+SIGNIN|copy of admin|mes9aprobe-1792424866547-si-admin@test.local|sign-in ok · token role authenticated|current_user_permissions() 86 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of cco|mes9aprobe-1792424866547-si-cco@test.local|sign-in ok · token role authenticated|current_user_permissions() 50 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of cfo|mes9aprobe-1792424866547-si-cfo@test.local|sign-in ok · token role authenticated|current_user_permissions() 36 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of cto|mes9aprobe-1792424866547-si-cto@test.local|sign-in ok · token role authenticated|current_user_permissions() 41 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of finance|mes9aprobe-1792424866547-si-finance@test.local|sign-in ok · token role authenticated|current_user_permissions() 43 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of gm|mes9aprobe-1792424866547-si-gm@test.local|sign-in ok · token role authenticated|current_user_permissions() 23 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|copy of warehouse|mes9aprobe-1792424866547-si-warehouse@test.local|sign-in ok · token role authenticated|current_user_permissions() 31 codes|refresh ok · role authenticated · refresh token rotated|idle: 29 min → / 200 · 31 min → 307 /login?reason=ended
+SIGNIN|display only (floor_display)|mes9aprobe-1792424866547-si-display@test.local|sign-in ok · token role authenticated|current_user_permissions() 1 codes|refresh ok · role authenticated · refresh token rotated|idle: 31 min → /display 200 (exempt, as today)
+SIGNIN|throwaway portal user|mes9aprobe-1792424866547-si-portal@test.local|sign-in ok · token role supplier_portal|portal_me() → its own supplier · current_user_permissions() refused (HTTP 403)|refresh ok · role supplier_portal · refresh token rotated|idle: n/a (portal idle logout is this cut's app code — proved on the local app in the live verification)
+ROTATION|copy of admin|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|copy of cco|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|copy of cfo|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|copy of cto|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|copy of finance|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|copy of gm|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|copy of warehouse|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|display only (floor_display)|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+ROTATION|throwaway portal user|grandparent token reused after 11 s → HTTP 400 refresh_token_already_used · active token still refreshes (HTTP 200) — as with the hook off
+STEP|done
+MES9A_SIGNIN_EXIT=0
+SIGNIN_OWN_EXIT=0

@@ -122,6 +122,10 @@ const EXCEPTIONS = new Map([
     //   并且打不开任何别的页;员工会话打开它得到一句拒绝。所以它不在员工的导航里,而且一条员工页面的链接都不该指向它。
     ['/portal', '供应商门户(/portal):供应商门户会话登录之后的落点,也是它唯一打得开的地方;员工会话打开它得到一句拒绝(lib/loginRoute.ts 的 isPortalPath)。'],
     ['/portal/my-data', '门户账号下载它自己的资料(一个 Route Handler,回一份 JSON 附件 —— 不是页面);入口是 /portal 上那条下载链接。'],
+    // ★ MES-9b(2026-10-19,MES-9 Step 0 Q14):门户的两页与一条取档的路由 —— 读者同样【只】是门户会话,入口在 /portal 首页那两条链接上。
+    ['/portal/documents', '门户的单据(/portal/documents):自己那一家的采购单 · 对账单 · 销毁证书,只以签发时存下的 PDF;入口是 /portal 首页的链接。'],
+    ['/portal/deliveries', '门户的交货(/portal/deliveries):自己那一家的收货与地磅单,按今天的记录、没有价钱;入口是 /portal 首页的链接。'],
+    ['/portal/documents/file', '门户取一份签发档(一个 Route Handler,回 PDF 附件 —— 不是页面);入口是 /portal/documents 上每一份的下载链接。'],
     // ★ COD-2(2026-09-08):两条【不是给本系统用户走的】路由 ★
     ['/verify/cod/[token]',
         '销毁证书的核验页。**本系统第一条不需要会话的业务路由**(PUBLIC_PATHS 里加的那一条),' +

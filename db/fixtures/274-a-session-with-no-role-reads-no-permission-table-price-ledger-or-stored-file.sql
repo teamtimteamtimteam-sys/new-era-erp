@@ -15,7 +15,7 @@
 --   NOUPDATE 四个附件桶的 UPDATE:连上传码都改不动一个文件(0 行)
 --   DELETE   七个删孤儿的桶:上传码删得掉一个没有记录指着的文件;只读码删不掉;一个有记录指着的文件(customer_attachments)上传码也删不掉;
 --            另 6 个文档桶与 company-assets 之外,没有一个桶对谁开着删;七条删除策略各自指着对的那张表、那一列
---   SHAPE    存储策略一共 52 条,没有一条不带判据;UPDATE 只剩 avatars 与 company-assets
+--   SHAPE    存储策略一共 53 条(MES-9b 起;第 53 条是门户那一条,判据 portal_can_read_object),没有一条不带判据;UPDATE 只剩 avatars 与 company-assets
 --
 -- 前提:db/gate.py 已把 db/storage/platform-storage-stub.sql 与 db/storage/buckets-and-policies.sql 装进了这个重建库
 --   (没有 storage 架构 → 本 fixture 按名红,而不是空转)。自带数据(README 第 2 条);读者那几臂切成 authenticated + JWT。
@@ -288,10 +288,13 @@ BEGIN
     END LOOP;
 
     -- ── SHAPE ──────────────────────────────────────────────────────────────
-    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage') <> 52 THEN
-        RAISE EXCEPTION 'FIXTURE 274 SHAPE: % storage policies (expected 52)', (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage'); END IF;
+    -- MES-9b(2026-10-19):第 53 条是门户那一条读策略(TO supplier_portal,判据 portal_can_read_object —— 门户会话的判据,它不持任何码)
+    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage') <> 53 THEN
+        RAISE EXCEPTION 'FIXTURE 274 SHAPE: % storage policies (expected 53)', (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage'); END IF;
     IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage'
-                AND COALESCE(qual, '') || COALESCE(with_check, '') !~ '(has_permission|has_any_permission|auth\.uid)') THEN
+                AND COALESCE(qual, '') || COALESCE(with_check, '') !~ '(has_permission|has_any_permission|auth\.uid)'
+                AND NOT (policyname = 'portal reads its own logged issued documents' AND roles = ARRAY['supplier_portal']::name[]
+                         AND cmd = 'SELECT' AND qual ~ 'portal_can_read_object\(bucket_id, name\)')) THEN
         RAISE EXCEPTION 'FIXTURE 274 SHAPE: a storage policy without a judge'; END IF;
     IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND cmd = 'UPDATE'
                 AND policyname NOT IN ('own avatar update', 'finance settings update company-assets')) THEN

@@ -2,7 +2,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
 
 // MES-9a(2026-10-19):供应商门户一族 DB 函数抛出的错误码 → 人话。【逐条从函数体枚举出来的】:
-//   portal_require_link(每一支门户函数的第一句)· portal_user_create_link · portal_user_revoke · portal_contact_anonymise · set_account_setting。
+//   portal_require_link(每一支门户函数的第一句)· portal_user_create_link · portal_user_revoke · portal_contact_anonymise · set_account_setting ·
+//   portal_document_open(MES-9b)。
 // 不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 export const PORTAL_ERROR_CODES = new Set([
     'PORTAL_ROLE_REQUIRED',
@@ -26,6 +27,10 @@ export const PORTAL_ERROR_CODES = new Set([
     'PORTAL_ALREADY_ANONYMISED',
     'ACCOUNT_SETTING_UNKNOWN',
     'ACCOUNT_SETTING_INVALID',
+    // MES-9b:portal_document_open
+    'PORTAL_DOCUMENT_NOT_FOUND',
+    'PORTAL_DOCUMENT_VOID',
+    'PORTAL_DOCUMENT_KIND_UNKNOWN',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

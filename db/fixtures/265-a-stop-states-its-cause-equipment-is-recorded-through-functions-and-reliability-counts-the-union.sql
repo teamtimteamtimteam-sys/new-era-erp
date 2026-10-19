@@ -25,7 +25,7 @@
 --           区间默认 = 取得日到此刻;区间倒着 → RELIABILITY_RANGE_INVALID;只列设备类;没有查看码按名拒
 --   LIST    equipment_usage 带着资产类别(/operation/equipment 只列 equipment 那一类,Q7)
 --   TRAIL   字典段 dictionary_downtime_causes 在册(没有新的记录主语);一段停机的 INSERT 在变更记录里带着原因与来源;
---           原因字典进变更记录,豁免仍是 8
+--           原因字典进变更记录,豁免仍是 8 —— MES-9b 起是 9
 --
 -- 自带数据(README 第 2 条);以 postgres 跑;员工的调用切成 authenticated + JWT(AGENTS.md:RLS 断言必须切角色)。
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -500,7 +500,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 265 TRAIL downtime_causes must be change-logged';
     END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 265 TRAIL change-log coverage %', v_j;
     END IF;
 

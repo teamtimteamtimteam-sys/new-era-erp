@@ -228,8 +228,9 @@ needed**, and the same lesson OPS-7 drew about `B1`/`is_system`.
 
 ```
 db/run_detached.sh --log /tmp/backup.log --label "备份" --token BACKUP --timeout 2700 \
-    -- ~/evoltrya-backups/backup.sh
+    -- db/backup.sh
 ```
+(MES-9b 起备份是仓库里的 `db/backup.sh`,分两部分取 —— 见下面「The backup runs BEFORE the migration」那一节。)
 
 **为什么是脚本而不是本文件下面那段样板。** 备份那一节已经把判据写清楚了 ——
 「唯一证据是 `backup.log` 里那一行【脚本自己打出来的退出码】」,并且给了
@@ -1824,8 +1825,20 @@ accepted for now, to be fixed deliberately — live next door in
 ## The backup runs BEFORE the migration, not after
 
 ```
-~/evoltrya-backups/backup.sh        # ~10 min measured 2026-08-14, over the pooler
+db/backup.sh        # MES-9b 起(2026-10-19,Tim 的裁定):分两部分;用 db/run_detached.sh 起,只认 BACKUP_EXIT=
 ```
+
+> ★★ **备份分两部分取(MES-9b,2026-10-19,Tim 裁定)。** 当天两次整库备份都在开跑约 25 分钟、`COPY public.change_log` 那一段被服务端断开
+> (`SSL SYSCALL error: EOF detected`),每次在线上留下一个攥着 638 把锁的 idle-in-transaction 后端(两次都以 `pg_terminate_backend` 收掉)。
+> 于是规矩改成:**没有任何一条连接需要撑过几分钟** ——
+> ① 一次 `pg_dump --exclude-table-data=public.change_log`(其余一切照取,change_log 的表结构也在);
+> ② change_log 的数据按 `seq` 切成连续小段(默认 5,000 个 seq,实测 ≈ 26 秒一段),每段一条 `\copy`,写成主 dump 旁边的编号文件;
+>    一段失败只重试那一段一次,再失败就停;
+> ③ 判据三样:主 dump 自己的退出码 0、每一段自己的退出码 0、**各段行数合计 = 开跑那一刻的 `count(*)`,首尾 seq = 开跑那一刻的 min / max**
+>    (三个数记在 `<时刻>.change_log.manifest` 里)。原脚本的四道检查(隔离名优先、体积下限、`pg_restore --list`、TOC 条目数比上一份)一条没减。
+> **还原**照 `db/backup.sh` 抬头那四步(主 dump → 逐段 `\copy … FROM` → 对清单 → `setval`),`docs/fresh-install-checklist.md`「从备份还原」同一份。
+> 故障注入与一次真的还原:`db/scripts/2026-10-19-backup-injections.sh`(6 格)。旧的 `~/evoltrya-backups/backup.sh` 不再是这道闸。
+> 下面的历史段落写的是旧脚本,判据(只认脚本自己打出的那一行)不变。
 
 > ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G08
 

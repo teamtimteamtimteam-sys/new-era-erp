@@ -20,7 +20,7 @@
 --   IND    五个指标的定义(只有定义,没有值、没有限);两张化验表单那条路(record_assay_result 的 p_indicators,进料与产出)记得下;
 --          值 ≥ 0、没有上限(1e6 也收);负数、不认识的码、同一份里重复按名拒;不给就是零行;读跟着化验的父批次(进料查看码
 --          读得到进料那一份、读不到产出那一份;什么码都没有读到 0 行);停用一个指标照旧读得出已记的值
---   LOG    两张新表进变更记录(覆盖零缺口、豁免仍是 8);审计:指标挂在两个批次主语下,指标字典是一本字典主语;
+--   LOG    两张新表进变更记录(覆盖零缺口、豁免仍是 8 —— MES-9b 起是 9);审计:指标挂在两个批次主语下,指标字典是一本字典主语;
 --          一份化验的指标行进变更记录
 --
 -- 自带数据(README 第 2 条)。以 postgres 跑(绕过 RLS);员工的调用真的切成 authenticated + 那个人的 JWT。
@@ -485,7 +485,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 262 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 262 LOG: change-log coverage %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'zzz_change_log' AND tgrelid = 'public.assay_indicators'::regclass)
        OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'zzz_change_log' AND tgrelid = 'public.assay_result_indicators'::regclass) THEN

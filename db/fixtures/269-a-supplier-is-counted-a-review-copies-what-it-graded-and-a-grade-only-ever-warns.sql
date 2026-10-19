@@ -5,7 +5,7 @@
 -- 臂:
 --   REG     四张新表都在;设定那一行在、四样全空(Q4:什么都不猜);评审与对账单空;单据登记 SST;码 action.supplier_review 声明
 --           module.suppliers.view;审计主语 supplier_scorecard_review(集合)· supplier_score_settings · supplier_statement 与成员;四张新表进变更记录,
---           豁免仍是 8;没有遮蔽的列(规则仍 119);新视图 authenticated 读得到,底视图 grn_discrepancies_all 读不到;F16 仍是 0;
+--           豁免仍是 8 —— MES-9b 起是 9;没有遮蔽的列(规则仍 119);新视图 authenticated 读得到,底视图 grn_discrepancies_all 读不到;F16 仍是 0;
 --           计分项的名字正好是那十一项
 --   MEAS    计数:短交(按行,只在关了的单上比)· 超交 · 不合格报告按处置 · 化验争议(撤回的只显示)· 放电判断矛盾 · 证书断档的天数 ——
 --           每一项的 compared / not_compared;窗口之外的不算;别家的不算
@@ -144,8 +144,8 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM trail_subject_members() m WHERE m.subject = 'supplier' AND m.table_name = 'supplier_scorecard_reviews' AND NOT m.home)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 269 REG: trail subjects supplier_scorecard_review / supplier_score_settings / supplier_statement and their members'; END IF;
     v_j := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 269 REG: change-log coverage (gaps 0, exclusions 8): %', v_j; END IF;
+    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 269 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
     IF (EXISTS (SELECT 1 FROM unnest(ARRAY['supplier_score_settings', 'supplier_scorecard_reviews', 'supplier_statements', 'supplier_statement_issues']) t
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass))) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 269 REG: every new table is change-logged'; END IF;

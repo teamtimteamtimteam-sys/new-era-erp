@@ -1,0 +1,144 @@
+BEGIN
+WHO|postgres|bypassrls=true
+NOW|2026-10-20 01:43:51 CST
+APPROVALS|enabled=true|l1=finance|l2=cfo|threshold=1000
+ACCOUNTS_LOGIN|all=7|disabled=0|test_local=0
+ACCOUNT|admin@swm-os.test|banned=false|admin
+ACCOUNT|chooer@evoltrya.test|banned=false|finance
+ACCOUNT|fusheng@evoltrya.test|banned=false|warehouse
+ACCOUNT|phua@evolytra.test|banned=false|cto
+ACCOUNT|sandra@evoltrya.test|banned=false|cco
+ACCOUNT|tim@evoltrya.test|banned=false|cfo
+ACCOUNT|vince@evoltrya.test|banned=false|gm
+ROLECODES|admin=86 auditor=22 cco=50 cfo=36 cto=41 finance=43 floor_display=1 gm=23 hr=8 operations=16 procurement=16 sales=17 warehouse=31
+ROLEPERMS_MD5|4ba5fe6f853e3eb12f192ad6f0e34790
+CALIB|require_calibrated_since=NULL
+THROWAWAY|probe roles=0|test.local accounts=0|mes9a/9b probe accounts=0|ZZ-PROBE mes9 suppliers=0|mes9 probe contacts=0|ZZ-PROBE-MES9B rows=0|grants without an account=0
+PORTAL|role supplier_portal=true|links=0|account_settings=NULL/NULL|code action.manage_portal_users holders=admin,cco
+PORTAL_9B|download log=0|storage USAGE=true|storage.objects SELECT=true|portal storage policies=1|portal functions=portal_can_read_object,portal_deliveries,portal_document_open,portal_documents,portal_export_my_data,portal_me|change-log exclusions=9
+STORAGE_POLICY_NAMES|md5=30e84743651ded9a35b3ae13d1d8da23
+FP_CONTACTS|1|40a5f6c87a486db0abaddd7fdaa3a40f
+PENDING|1|{"code": "CLM-2026-0004", "doc_id": "bc021e6c-0b2e-4b8f-a5ff-82c1840ed097", "amount_base": 1000.00, "fixed_level": null, "subject_type": "expense_claim", "blocks_disable": false, "raiser_user_id": "476bf8c8-c248-4352-9a75-945bf52ca390", "subject_employee_id": "81cf6510-7ee0-4017-bc85-273c900f2e13"}
+COD|COD-2026-0001|issued|recorded sha256=ba299a4f3488fc543cdd1f410fabf6523434d39caa0dc58d6f376309c1f42101|path=1b908c86-e368-485d-b89b-843e86a63a25/e7126939-405b-4b2f-a80a-db6d1781aee5.pdf|snapshot md5=c9ae944b8d1ce8724dfb813e5e4f0cca
+COD|COD-2026-0002|issued|recorded sha256=717661f6a8166b5f9342324586208e21f29c217aa5d3c047b009e00f2513a4f9|path=a04fd63f-7e0b-48a6-b51d-b96aabfdad98/c75e4b9c-1ad0-4ab1-8365-0e291654cc35.pdf|snapshot md5=9719291546c416dfd7c499ef97310415
+OBJ|avatars|01ae00e4-306f-4527-8537-10291e4750c7.webp|7266|"895b4447b46e229d10a3181fc841124c"|2026-09-08 02:10:56.883829+08
+OBJ|avatars|321f1819-8449-48f7-9ae0-78b2c4b50f35.webp|5514|"6b351ca2bf68cc4e0f5071828bc608c0"|2026-09-08 02:10:56.006356+08
+OBJ|cn-documents|a4d827ce-d184-4ec0-9b59-8bfa959ffc9a/f1788207fd5f145711f930d957b3aab71a577ecb02d198da5701d88ebcd1bf36.pdf|11852|"00e4cfb96ddeb59bd696254ad3b02ac0"|2026-08-15 19:33:00.624995+08
+OBJ|cod-documents|1b908c86-e368-485d-b89b-843e86a63a25/e7126939-405b-4b2f-a80a-db6d1781aee5.pdf|34701|"7fcb4d675886f70ff33a232b0abee881"|2026-09-08 02:21:33.866586+08
+OBJ|cod-documents|a04fd63f-7e0b-48a6-b51d-b96aabfdad98/c75e4b9c-1ad0-4ab1-8365-0e291654cc35.pdf|34746|"b9f5e8e19e38ef914aadb2c8c38ce9b2"|2026-09-08 10:37:26.948002+08
+OBJ|company-assets|logo/6a736095-f65e-483d-8fc1-6e6a7aeadad4.png|61200|"5de0b41ea86d8ba0655682925cc5f60b"|2026-07-31 00:37:27.163919+08
+OBJ|customer-attachments|49cae213-cd4e-43cd-9b0e-6792cd45971c/6c4684da-f163-4b92-827f-e4bccf1532b5-CAPITAL_INJECTION.pdf|82857|"aac8bc598d621346387b56ba8bfb5577"|2026-06-28 20:29:09.771315+08
+OBJ|customer-attachments|fdfefcd3-d313-4314-b8fc-b6e0fc96afab/5bf6c343-5921-4217-aa57-daf8815de4ef-SWM_Bank_Transaction_FEB_2026.pdf|272305|"3ba6f7c95f841c24d709ead11a0a8012"|2026-07-30 23:57:40.117288+08
+OBJ|finance-attachments|7d82c861-e984-445c-8c69-75adc61a3724/ab631e77-e7a4-4e97-99bf-bb696b48938c-20260828_EHIV-07511.pdf|144100|"679ccce773f061ff925c8f810a2b6ef4"|2026-09-14 12:08:07.203146+08
+OBJ|finance-attachments|8d1e7f3e-0741-4867-a460-f205c818e134/ae9482ff-40df-46ae-bd53-106e34f9ca52-SWM_Bank_Transaction_DEC_2025.pdf|265634|"2b03280304be825abe8ed99b5dc9588f"|2026-07-30 17:10:41.946466+08
+OBJ|finance-attachments|9c4da4e2-6a2b-4d97-a781-e706e177a38e/3608a317-d719-4881-bcac-02bc2cebc430-SWM_Bank_Transaction_MAR_2026.pdf|274796|"e76ccf2513b04b1545902e4051125720"|2026-07-30 17:09:05.177461+08
+OBJ|finance-attachments|9c4da4e2-6a2b-4d97-a781-e706e177a38e/a98e62c5-a713-4979-927b-856c6fb8b1e7-SWM_Bank_Transaction_APR_2026.pdf|271927|"3c811c3ff8315b4fc9c669b5628bbc05"|2026-07-30 17:07:10.595418+08
+OBJ|invoice-documents|24e1c9f0-8b8a-4439-a186-32166f94af11/06640e814f115854a5e1d3e9b1ce6e220b4bd72f465ca4b2facc7a19b15b9df8.pdf|53587|"135bd66f863db1482e5a1e0368f4fff5"|2026-08-26 01:08:23.233502+08
+OBJ|invoice-documents|39723f3f-e11b-4ed8-a0b0-0e150a5f7501/c6510f60f421f9a7429dacb64ab0c39dbbd4c524ca3dceef9ae1b1eaa12aacf3.pdf|53144|"60fb6c80000fabd8265f05110b346400"|2026-08-17 19:40:13.476654+08
+OBJ|invoice-documents|b82d06cf-fc0b-4233-9aba-44ba5e895190/26123f396bb55755cb5c1ebb48fe88a4b1818ec76c03cdd4025e7159d9179bcb.pdf|53224|"3f2aac646309ccfc3f2ab03824a6f128"|2026-08-16 01:24:17.925144+08
+OBJ|invoice-documents|b82d06cf-fc0b-4233-9aba-44ba5e895190/d5d94c9623504c04d2d030e845c127f24e9ee5d38d44bb453167962c4fb3430f.pdf|53224|"c536091a331899d050fd3bde4b9ab08e"|2026-08-16 01:24:35.875815+08
+OBJ|material-attachments|f9b246e9-57ad-4180-b169-9d1c0995e37d/4a5f6f11-7859-4da0-a339-98759ae38b46-CAPITAL_INJECTION.pdf|82857|"aac8bc598d621346387b56ba8bfb5577"|2026-06-28 20:56:49.420583+08
+OBJ|material-attachments|f9b246e9-57ad-4180-b169-9d1c0995e37d/c2f9e803-a3bc-40df-8185-75dafe532582-Comparison.pdf|9151|"d17a9ced2b70f175b25d370dc8562f57"|2026-07-03 11:58:54.401449+08
+OBJ|po-documents|14956797-c2ef-49a2-acbd-8b3eae2d79e0/5d35fae0-7565-4066-893c-8177cba3d6c5.pdf|21218|"c9df5dede1510dc6de61f1b264a88f3f"|2026-09-03 16:46:32.762572+08
+OBJ|po-documents|1d93835d-16fb-4aa5-9196-eb3c157191ef/70371edb-6076-4e50-b7aa-5a74568a5267.pdf|52661|"dbf099290cc07d0a87459f057dae7277"|2026-08-21 15:34:34.910359+08
+OBJ|po-documents|4112390a-2c5d-4779-9a5a-e05f340dc9b8/2c97cf3e-a570-44dd-ab51-ff2a211481b3.pdf|21492|"d4e8a45e72658b5aed3bca66aca48a52"|2026-09-08 10:41:46.363988+08
+OBJ|po-documents|4112390a-2c5d-4779-9a5a-e05f340dc9b8/ba8da58e-5dcf-44a5-a6e4-0c7baed2e916.pdf|21289|"bb65dba3f1abdce881204a222d29848b"|2026-09-07 11:00:33.801555+08
+OBJ|po-documents|4112390a-2c5d-4779-9a5a-e05f340dc9b8/f917e828-1e66-4c2b-b7d5-5d8d00a458af.pdf|21136|"b4b283391f942e77c5a7e139b3b4de56"|2026-09-03 16:52:01.20074+08
+OBJ|po-documents|6a3f70c7-5656-44c6-b357-7f953cfea50b/ce3e6ad2-c4f1-45a5-9f08-6300d482ee16.pdf|19623|"ab229fb43920cc61e6c049f1353dddf2"|2026-09-09 15:43:07.90535+08
+OBJ|po-documents|6d2ce1ff-728e-4594-bd7b-155002f54de7/b3da989f-b2bf-42eb-b967-c6835556a403.pdf|52658|"1d22785de9b31632349a85a8b9c66ece"|2026-08-10 14:06:15.357598+08
+OBJ|po-documents|861fe74b-14d8-45f7-992c-92aa9aaaac90/a90d926c-c8ba-4281-a19f-7595d77ca0de.pdf|52979|"be4104b2d5b4d87526de2fdc9a5cc1a4"|2026-08-17 19:30:03.845971+08
+OBJ|po-documents|8dd34409-7973-45a0-b49a-2caad4f3a236/8a9918c1-f508-46d8-854e-1b42581866e3.pdf|20422|"e788ef1548dcca5e61717396e3968eda"|2026-09-03 11:52:26.194474+08
+OBJ|po-documents|e6c26a97-579e-4475-9057-7db0af5471d0/0bf0b95d-6e6a-4a28-8935-47408523cf43.pdf|21445|"36c5717286319afc18c4a693c45372d8"|2026-09-08 16:04:24.081066+08
+OBJ|po-documents|e6c26a97-579e-4475-9057-7db0af5471d0/0e46baa1-aed6-4671-9167-05eb0b7a2cdd.pdf|21558|"f9cb7138eebb9709b97c48bb70030681"|2026-09-08 10:52:39.602979+08
+OBJ|qt-documents|8642da1b-1c78-44d7-bb1d-b4081036987a/fc3bd6825504e27f43a636f8bf10b1a2636638c4a65e2b2bd6b2cb231783df7f.pdf|19914|"20b0c97441c4ce6373cb56ddf054671c"|2026-09-08 23:15:43.624206+08
+OBJ|qt-documents|896c59df-89fc-486f-b50e-d290803cf0bb/e69c116281d6d38bf75f32d75949e2509627d53499a5ec2bfb7336085e2e2834.pdf|12686|"125406b09e77439d56f6917718cff8d4"|2026-08-15 22:48:40.144024+08
+OBJ|qt-documents|896c59df-89fc-486f-b50e-d290803cf0bb/f5b444196ab6dd584925317bd11cf8d6a50447688b82e65262bcc835f16bb67d.pdf|12739|"6b36119770c3b2ce1e90cdae2d132b9b"|2026-08-15 22:48:12.739277+08
+OBJ|shipment-documents|9895abe0-17cc-4a82-afc5-a108f9ae2221/0ef19fadca58a5463bddeec84445a39d640df62a8f289f595f8cb23519e1ba27.pdf|11621|"15e9f356b70f56e59b8da6906fe1a3f8"|2026-08-14 23:14:10.275864+08
+OBJ|shipment-documents|9895abe0-17cc-4a82-afc5-a108f9ae2221/a756b30f554c155762a265fc9c015919e9c22f5811a6291f0c197373796cd5ba.pdf|11683|"6f7111dc9dc6c71540c52efbccafecf5"|2026-08-17 19:37:34.724541+08
+OBJ|shipment-documents|9895abe0-17cc-4a82-afc5-a108f9ae2221/ca23882a89d2f1cad8f8777ca8487f31a86fc055966fb4a50f961106f5577cfa.pdf|11683|"6a3c52281d01a9204c81df1f4d3efbb5"|2026-08-17 19:36:58.957213+08
+OBJ|so-documents|0564cb00-6890-4dee-b9ba-0f8618540cf4/1379ae53262a5fc22605061e24ad75cc46f5c4787bcc9e01f4124c637f67b7a3.pdf|10432|"329a6b79f90b57e715aa9ea43c7f3119"|2026-08-14 00:40:10.486306+08
+OBJ|so-documents|0564cb00-6890-4dee-b9ba-0f8618540cf4/4673f29fb4b15162cfc709966fec78bd73035a3f3ed93883d9d5d057640f4232.pdf|10495|"1edbb69f113708f22b412ca8b57ee379"|2026-08-17 19:33:11.462323+08
+OBJ|supplier-attachments|42951a0a-8bb2-417b-b498-c84a24fb9436/5d67f4f7-fa30-4b84-9855-6ef202c5e9ac-CAPITAL_INJECTION.pdf|82857|"aac8bc598d621346387b56ba8bfb5577"|2026-06-28 17:49:15.352369+08
+OBJ|supplier-attachments|42951a0a-8bb2-417b-b498-c84a24fb9436/86278945-cee0-4015-a350-ae01f1c69695-Screenshot_2026-06-28_at_5.49.23_PM.png|182820|"ad8632fb9d5ca7f86410f442a6b37834"|2026-06-28 18:24:20.90644+08
+OBJ|traceability-documents|40b395cb-6c04-43bb-9d82-dfe35f679549/e82b0300-14f3-45a4-8ace-d33125cce476.pdf|14181|"d4d933cd760f5f982a4081f5d15c2909"|2026-08-17 20:22:23.805441+08
+OBJ_TOTAL|40|md5=2ff2f65e7d5fcac5e2fbfdebe5f026bc
+BUCKETS|avatars:false,capture-photos:false,cn-documents:false,coa-documents:false,cod-documents:false,company-assets:false,compliance-documents:false,customer-attachments:false,finance-attachments:false,invoice-documents:false,material-attachments:false,po-documents:false,qt-documents:false,shipment-documents:false,so-documents:false,statement-documents:false,supplier-attachments:false,supplier-statement-documents:false,traceability-documents:false
+STORAGE_POLICIES|53
+FP|accounts|46|ae4bd6b07117006434b9012901abfd8d
+FP|certificates_of_destruction|3|8c1a7c1234cdc9fb179ba377c64b0a05
+FP|cn_issues|1|87ea11a53df6a401451bacb2aced2706
+FP|coa_issues|0|d41d8cd98f00b204e9800998ecf8427e
+FP|cod_issues|2|097dacfa233e71e7cf70482c25249b4e
+FP|collection_chases|0|d41d8cd98f00b204e9800998ecf8427e
+FP|collection_promises|0|d41d8cd98f00b204e9800998ecf8427e
+FP|company_compliance|1|f904b61751b7a5806e90eb1216d2a665
+FP|company_profile|1|b6afa17e8445a867efbef82eb0743d0f
+FP|compliance_pack_issues|0|d41d8cd98f00b204e9800998ecf8427e
+FP|compliance_packs|0|d41d8cd98f00b204e9800998ecf8427e
+FP|counterparty_contacts|1|e2766ab180d489913ae2ef72d9e34ad9
+FP|customer_attachments|2|38e21580c60a5c92cbdd108c3c6ff9c4
+FP|customer_statements|0|d41d8cd98f00b204e9800998ecf8427e
+FP|employee_accounts|1|90cf131d56ca913efec792e799e2bfe1
+FP|employees|22|6b4586070d227db1e07e5ae7eaff4edb
+FP|environmental_results|0|d41d8cd98f00b204e9800998ecf8427e
+FP|expenses|10|cc8989fb55cb2d4e91de5b6483885be3
+FP|finance_attachments|4|b10627597b34dc320bdf1f88a8bc6474
+FP|finance_settings|1|b1ec28c2d2ce9545450ece6a6d7572f2
+FP|inbound_batch_metals|19|29ddbb4816530c6f2a957738623ba4df
+FP|inbound_batches|24|6f7a76012dc73688558b16efc89196b5
+FP|incidents|0|d41d8cd98f00b204e9800998ecf8427e
+FP|inspection_findings|0|d41d8cd98f00b204e9800998ecf8427e
+FP|inspection_runs|0|d41d8cd98f00b204e9800998ecf8427e
+FP|inventory_movements|107|fe4000bb3d5d69e0fb3f28a2cbc4cafc
+FP|invoice_issues|4|9be786595930a44adb9ab7db449eb8cd
+FP|journal_entries|83|d9827dd94ef851c4d8543d53d864a5be
+FP|journal_lines|186|8d4caebbc3e58acacced693c571f81ab
+FP|management_packs|0|d41d8cd98f00b204e9800998ecf8427e
+FP|material_attachments|2|5d9ab459ebadda3c52e4dea375c9e030
+FP|material_kinds|5|14857b50956bdf177a208fe86774a065
+FP|materials|9|bbc864cc1069e03523fe6cec2cb97c4b
+FP|metal_price_indices|2|151e550ceb77b736f2e42ca9b4deaa0e
+FP|metal_prices|12|7c792a418521ae8936266dd9f1925c02
+FP|output_batch_metals|6|20bbc9445e9598933f54262368c8e379
+FP|output_batches|20|aa50fafe38b7dc66365ed1daf79a2d14
+FP|payments|13|d7f9bac8eac2fbf70ae751c0a5ff1636
+FP|pending_documents|1|50e22b4ddc0aaefde583ee037ffac383
+FP|permissions|86|2ac1c563260eb4fccf11b3b3b1a0d128
+FP|po_issues|10|06bceebde5c13ac95f0b69933946caa4
+FP|pricing_settings|1|5e8654b43427f92cdb354de4b09d36d3
+FP|processing_inputs|14|3014d1b64388e2e43137533780e0bff3
+FP|processing_outputs|17|a827aa42672893c95f7a1e929c82e524
+FP|processing_runs|14|4984946aa027ca74e3ebb79d6c498994
+FP|purchase_orders|11|1de05245cab59f3e5fe46692dbf21321
+FP|qt_issues|3|9ca6ecc463de38866eb0c0c89e3534cb
+FP|receipt_ceiling_checks|0|d41d8cd98f00b204e9800998ecf8427e
+FP|role_permissions|390|a50e01cf0a1ade65c5b7c753d7f9e4eb
+FP|roles|14|dfe6ac86b4e71490f09a14586cf4463a
+FP|sales_records|9|1849da1defcb15b2df512426ea81c766
+FP|sales_settlements|0|d41d8cd98f00b204e9800998ecf8427e
+FP|shipment_issues|3|999d6487d04ddeb1719be90e7adef8e5
+FP|so_issues|2|73bce50f32bfa007e39978c54df9f3da
+FP|statement_issues|0|d41d8cd98f00b204e9800998ecf8427e
+FP|supplier_attachments|2|e31c552787834eb8d846e78b61786d21
+FP|supplier_compliance|4|f43d03c132eb813d622f9871427f7b65
+FP|supplier_portal_users|0|d41d8cd98f00b204e9800998ecf8427e
+FP|supplier_statement_issues|0|d41d8cd98f00b204e9800998ecf8427e
+FP|supplier_statements|0|d41d8cd98f00b204e9800998ecf8427e
+FP|suppliers|17|3d18cc35677c3f4a187169ae49078f41
+FP|traceability_report_issues|1|e0e612271c479ea680e18daf7c1b6a08
+FP|user_roles|9|2372199afc0ae559a703d5b048992be5
+FP|weighbridge_ticket_shares|0|d41d8cd98f00b204e9800998ecf8427e
+FP|weighbridge_tickets|0|d41d8cd98f00b204e9800998ecf8427e
+CHANGELOG|rows=66038|max seq=73294
+VIEWS|198|writable_pairs=0
+TABLES|324
+PENDING_ARMS|36|REMINDER_ARMS=0
+t
+SET
+RECON|ap|list=422188.32|ledger=381604.42|unexplained=0.00
+RECON|ar|list=57545.87|ledger=43002.12|unexplained=0.00
+INVCTL|inventory_raw|ledger=61387.92|subledger=172403.48|unexplained=0.00|reconciled=true
+INVCTL|inventory_fg|ledger=134.86|subledger=388.20|unexplained=0.00|reconciled=true
+RESET
+ROLLBACK
+READ_OWN_EXIT=0

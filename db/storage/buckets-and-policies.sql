@@ -115,7 +115,7 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
     file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 
--- ── 策略(52)—— NOROLE-SURFACE 的 34 条在前,其余 18 条(本刀之前就带着码)照线上原文在后 ─────────────────
+-- ── 策略(53)—— NOROLE-SURFACE 的 34 条在前,其余 18 条(本刀之前就带着码)照线上原文在后,MES-9b 的门户那一条在文末 ─────────────────
 
 DROP POLICY IF EXISTS "cn-documents read by finance.view" ON storage.objects;
 CREATE POLICY "cn-documents read by finance.view"
@@ -391,3 +391,18 @@ DROP POLICY IF EXISTS "supplier-statement-documents upload by finance edit" ON s
 CREATE POLICY "supplier-statement-documents upload by finance edit"
     ON storage.objects AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (((bucket_id = 'supplier-statement-documents'::text) AND has_permission('module.finance.edit'::text)));
+
+
+-- ── 供应商门户(MES-9b,2026-10-19,MES-9 Step 0 §3 · Q14 · Q22 · Q27,Tim)—— 第 53 条策略,与它要的两条授权 ─────────────────
+-- 门户会话(数据库角色 supplier_portal,由 access token hook 写进令牌)经 Storage API 只读得到【三个单据桶里、它两分钟内刚为之写下过
+--   一行下载记录的那一个对象】(portal_can_read_object;那一行只由 portal_document_open 为调用者自己那一家的、没作废的签发档写)。
+--   于是每一次取字节前面都有一行下载记录(Q22),而一个别家的、没签发的、作废的对象它连"存在"都看不见。不能写、不能删、不能列别的。
+-- 授权只给干跑与线上证明需要的(Q27):storage 架构的 USAGE 与 storage.objects 的 SELECT(行由下面这条策略筛)。storage.buckets 不授 ——
+--   Storage API 以它自己的身份查桶。这两条授权与这条策略都按名列在 db/portal-grants-baseline.tsv(判词八)。
+GRANT USAGE ON SCHEMA storage TO supplier_portal;
+GRANT SELECT ON storage.objects TO supplier_portal;
+
+DROP POLICY IF EXISTS "portal reads its own logged issued documents" ON storage.objects;
+CREATE POLICY "portal reads its own logged issued documents"
+    ON storage.objects AS PERMISSIVE FOR SELECT TO supplier_portal
+    USING (((bucket_id = ANY (ARRAY['po-documents'::text, 'cod-documents'::text, 'supplier-statement-documents'::text])) AND public.portal_can_read_object(bucket_id, name)));

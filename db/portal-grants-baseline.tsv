@@ -1,7 +1,8 @@
 # db/portal-grants-baseline.tsv —— 供应商门户角色 supplier_portal 够得着的【每一样】东西,一行一样(MES-9a,2026-10-19;MES-9 Step 0 Q3 · Q27,Tim)。
 # 由 db/check_portal.py(判词八,db/gate.py 退出码 8)断言:**线上与重建库上,从目录里逐条列出来的那张表,必须与本文件【逐条相等】** ——
 #   多一条(有人把一张表、一支函数、一条策略授给了它)红;少一条(门户的一支函数没了)也红。这不是一个上限,是一份约定。
-# 加一行 = 给门户开一扇门:同一个提交里要有那支迁移、一条写下来的理由(最后一列),以及 fixture 275 EVERY 臂里那支函数的两家供应商用例。
+# 加一行 = 给门户开一扇门:同一个提交里要有那支迁移、一条写下来的理由(最后一列),以及那支函数的两家供应商用例
+#   (public 里的门户函数:MES-9a 那两支在 fixture 275 EVERY 臂,MES-9b 那四支在 fixture 276 EVERY 臂;两支 fixture 合起来必须正好覆盖目录)。
 # 格式:kind \t object \t privilege \t reason(理由必填 —— 没有理由的一行读不懂,判词八按"读不懂"红)。
 # 系统目录(pg_catalog / information_schema)里的关系与函数不逐条列(PostgreSQL 对 PUBLIC 开着它们,对每一个角色都一样,只有元数据,PostgREST 不暴露);
 #   它们的架构 USAGE 照列。
@@ -17,3 +18,35 @@ schema	information_schema	USAGE	PostgreSQL 对每一个角色都开着(系统目
 # ── 函数(每一支在 fixture 275 EVERY 臂里有一个两家供应商的用例)──
 function	public.portal_me()	EXECUTE	/portal 外壳顶上那一行:调用者自己那一家的编号与名字、它自己那位联系人、登录邮箱(MES-9a)
 function	public.portal_export_my_data()	EXECUTE	个人资料访问请求:调用者自己的联系人、链接、账号与供应商(MES-9 Step 0 Q20)
+schema	storage	USAGE	MES-9b(Q14 · Q27):门户会话经 Storage API 读它自己的签发档要这一条;只给 USAGE,不给 CREATE
+# ── 函数(public · MES-9b,每一支在 fixture 276 EVERY 臂里有一个两家供应商的用例)──
+function	public.portal_documents()	EXECUTE	/portal/documents:调用者自己那一家的采购单 · 对账单 · 销毁证书的清单与每一份签发档(没有一个价钱;Q14 · Q15)
+function	public.portal_deliveries()	EXECUTE	/portal/deliveries:调用者自己那一家的收货与记在上面的地磅单,按今天记着的样子(没有一个价钱;Q14 · Q15)
+function	public.portal_document_open(p_kind text, p_issue_id uuid)	EXECUTE	取一份签发档:写调用者自己的一行下载记录(Q22),交出桶 · 路径 · 记下的 sha256 —— 门户会话唯一写得进的东西
+function	public.portal_can_read_object(p_bucket text, p_name text)	EXECUTE	storage.objects 上门户那条读策略的判据(策略以调用者身份求值,所以门户角色要执行得到它);只放行两分钟内有下载记录的那一个对象
+# ── storage(MES-9b):一张表的 SELECT(行由下面那条策略筛)与一条策略 ──
+relation	storage.objects	SELECT	MES-9b(Q14 · Q27):Storage API 以令牌里的角色查 storage.objects;哪几行读得到由下面那条策略决定 —— 只有两分钟内刚为之写下过下载记录的、自己那一家的签发档
+policy	storage.objects	portal reads its own logged issued documents	MES-9b(Q14 · Q22):三个单据桶里、portal_can_read_object 成立的那一个对象;不能写、不能删
+# ── storage 架构里对 PUBLIC 开着 EXECUTE 的平台函数(MES-9b 授了 storage 的 USAGE 之后,它们才进得了这个角色的可达面)──
+#   PostgreSQL 默认对 PUBLIC 开新函数的 EXECUTE,平台没有收回;它们全是调用者权限(没有一支 SECURITY DEFINER,线上 2026-10-19 量),
+#   所以门户会话调它们,读到的仍然只有上面那条策略放行的行。重建侧由 db/storage/platform-storage-stub.sql 里的同名替身对上。
+#   平台升级 storage 改了签名 → 判词八线上红 → 照新签名改这里与替身(docs/known-issues.md MES9B-STORAGE-FUNCTIONS-FOLLOW-THE-PLATFORM)。
+function	storage.allow_any_operation(expected_operations text[])	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.allow_only_operation(expected_operation text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.enforce_bucket_lifecycle_service_role()	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.enforce_bucket_name_length()	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.extension(name text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.filename(name text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.foldername(name text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.get_common_prefix(p_key text, p_prefix text, p_delimiter text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.get_size_by_bucket(noncurrent_versions text, delete_markers text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer, next_key_token text, next_upload_token text, raw_prefix_param text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.list_objects_with_delimiter(_bucket_id text, prefix_param text, delimiter_param text, max_keys integer, start_after text, next_token text, sort_order text, noncurrent_versions text, delete_markers text, next_token_archived_at timestamp with time zone, next_token_version text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.operation()	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.protect_bucket_control_columns()	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.protect_delete()	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.search(prefix text, bucketname text, limits integer, levels integer, offsets integer, search text, sortcolumn text, sortorder text, noncurrent_versions text, delete_markers text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.search_by_timestamp(p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text, noncurrent_versions text, delete_markers text, p_start_after_version text)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.search_v2(prefix text, bucket_name text, limits integer, levels integer, start_after text, sort_order text, sort_column text, sort_column_after text, noncurrent_versions text, delete_markers text, start_after_archived_at timestamp with time zone, start_after_version text, start_after_is_continuation boolean)	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛
+function	storage.update_updated_at_column()	EXECUTE	Supabase Storage 的平台函数,对 PUBLIC 开着 EXECUTE(不是本仓库授的,也收不回 —— 属主是 supabase_storage_admin);调用者权限,读到的行仍由 storage.objects 的策略筛

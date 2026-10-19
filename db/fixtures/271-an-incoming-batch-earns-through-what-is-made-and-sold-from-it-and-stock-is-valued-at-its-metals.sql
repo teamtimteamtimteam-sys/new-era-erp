@@ -23,7 +23,7 @@
 --            不进 not measured,合计标不完整、kind_not_stated_kg = 290;种类【说了】而不可投料的备件照旧哪儿都不出现。
 --            种类为空的物料在重建库里只能这样造:去掉 materials_kind_stated、插、再以 NOT VALID 加回 —— 与线上那 7 行的来历同一个形状
 --            (约束之前就在),整段随本 fixture 的事务回滚。
---   LOG      本刀的新表都进变更记录(三张,豁免仍 8);两支函数不写任何东西
+--   LOG      本刀的新表都进变更记录(三张,豁免仍 8 —— MES-9b 起是 9);两支函数不写任何东西
 --
 -- 自带数据(README 第 2 条);以 postgres 直写布景(收货与产出的流水由触发器写,消耗与销售的流水在这里写);读者那几臂切成 authenticated + JWT。
 -- 全部判定写成 IF (…) IS NOT FALSE —— 一个 NULL 也是红。
@@ -395,8 +395,8 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 271 · LOG';
     v_x := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 8) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 271 LOG: change-log coverage (gaps 0, exclusions 8): %', v_x; END IF;
+    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 271 LOG: change-log coverage (gaps 0, exclusions 9): %', v_x; END IF;
     IF (EXISTS (SELECT 1 FROM unnest(ARRAY['compliance_settings', 'compliance_packs', 'compliance_pack_issues']) t
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass))) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 271 LOG: every new table is change-logged'; END IF;

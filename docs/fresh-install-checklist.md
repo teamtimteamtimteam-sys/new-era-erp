@@ -34,9 +34,12 @@ Standing up a new EVoltrya OS project from this repository.
    **Expect this step to take about nine minutes** against a remote project — it
    replays 92 functions, 73 tables and 38 views over the network.
 2b. **Create the storage buckets and their policies** (NOROLE-SURFACE, 2026-10-19). In the SQL editor of the **new Supabase
-   project**, run `db/storage/buckets-and-policies.sql` once. It creates the 19 private buckets and the 52 policies on
+   project**, run `db/storage/buckets-and-policies.sql` once. It creates the 19 private buckets and the 53 policies on
    `storage.objects` (read and upload by the record's own permission code; delete only for a file no record points at; no
-   update outside `avatars` and `company-assets`). It is idempotent (buckets `ON CONFLICT DO UPDATE`, each policy
+   update outside `avatars` and `company-assets`; and — MES-9b, 2026-10-19 — one read policy `TO supplier_portal` for the
+   supplier portal's own just-logged issued documents, with the two grants it needs: `USAGE` on schema `storage` and `SELECT`
+   on `storage.objects`). **It needs the `supplier_portal` role to exist** (step 6b's two lines, run before step 2) and the
+   function `public.portal_can_read_object` (step 2). It is idempotent (buckets `ON CONFLICT DO UPDATE`, each policy
    `DROP … IF EXISTS` then `CREATE`). **Until this runs every PDF route, attachment panel, avatar and logo fails** — the
    rebuild in step 2 does not create storage, because the platform owns that schema.
 
@@ -46,7 +49,9 @@ Standing up a new EVoltrya OS project from this repository.
    **Verify by reading it back:**
    ```sql
    SELECT count(*) FROM storage.buckets;                                -- 19, every one public = false
-   SELECT count(*) FROM pg_policies WHERE schemaname = 'storage';       -- 52
+   SELECT count(*) FROM pg_policies WHERE schemaname = 'storage';       -- 53 (one of them TO supplier_portal)
+   SELECT has_schema_privilege('supplier_portal', 'storage', 'USAGE'),
+          has_table_privilege('supplier_portal', 'storage.objects', 'SELECT');   -- true, true
    ```
    `db/check_norole.py` (verdict 7 of `db/gate.py`) compares exactly these against `db/storage/buckets-and-policies.sql`.
 3. **Run any C0.5 scripts.** *Currently none* — every intended default is expressible
@@ -233,6 +238,27 @@ Standing up a new EVoltrya OS project from this repository.
    (`https://<ref>.supabase.co`), `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
    `SUPABASE_SERVICE_ROLE_KEY`. These are the only three the application reads.
    Redeploy afterwards: Vercel does not rebuild on an environment-variable change.
+
+## 从备份还原 · Restoring from a backup (MES-9b, 2026-10-19 — Tim's ruling)
+
+The backup (`db/backup.sh`, run before every migration) comes in **two parts** beside each other in `~/evoltrya-backups/`:
+`evoltrya-backup-<stamp>.dump` (everything except the **data** of `public.change_log`; the table itself is in it, empty) and
+`evoltrya-backup-<stamp>.change_log.NNN.copy` (that table's rows, in contiguous `seq` ranges), plus `evoltrya-backup-<stamp>.change_log.manifest`
+(the count, min and max `seq` read the moment the backup started, and each chunk's range and rows). A set is complete only when all three kinds are
+there under those names — anything still called `*.INCOMPLETE` never passed its checks.
+
+1. `pg_restore -d "<empty database dsn>" evoltrya-backup-<stamp>.dump`
+2. Load the chunks back **in number order**:
+   ```
+   for f in evoltrya-backup-<stamp>.change_log.*.copy; do psql "<dsn>" -c "\copy public.change_log FROM '$f'"; done
+   ```
+   (text COPY format, the table's own column order; `change_log` refuses UPDATE and DELETE, not INSERT, and `COPY` writes the given `seq`
+   values into its identity column).
+3. Check against the manifest: `SELECT count(*), min(seq), max(seq) FROM public.change_log` must equal the manifest's three numbers.
+4. `SELECT setval(pg_get_serial_sequence('public.change_log', 'seq'), (SELECT max(seq) FROM public.change_log));` — the next change-log row must
+   land above every restored one.
+
+Proved end to end on a local database by `db/scripts/2026-10-19-backup-injections.sh` (the restored table equals the source row for row).
 
 ## What step 2 already gives you
 

@@ -1,0 +1,12 @@
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-1280b.log:· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-1280b.log:  [  1/4] 15s  ovf=0 clip=0 /suppliers/42951a0a-8bb2-417b-b498-c84a24fb9436/edit
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-1280b.log:  [  2/4] 23s  ovf=0 clip=0 /portal
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-1280b.log:  [  3/4] 33s  ovf=0 clip=0 /portal/documents
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-1280b.log:  [  4/4] 42s  ovf=0 clip=0 /portal/deliveries
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-1280b.log:USABLE (U1 AND U2):                   [33m4[39m / [33m4[39m
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-390b.log:· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-390b.log:  [  1/4] 26s  ovf=0 clip=0 /suppliers/42951a0a-8bb2-417b-b498-c84a24fb9436/edit
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-390b.log:  [  2/4] 36s  ovf=0 clip=0 /portal
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-390b.log:  [  3/4] 47s  ovf=0 clip=0 /portal/documents
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-390b.log:  [  4/4] 59s  ovf=0 clip=0 /portal/deliveries
+/Users/timchen/.claude/jobs/44fff67a/tmp/survey9b-390b.log:USABLE (U1 AND U2):                   [33m4[39m / [33m4[39m

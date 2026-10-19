@@ -18,7 +18,7 @@
 --   V28      待补的值:没有大屏账号时没有 V28 那一行;有了一个在用的大屏账号 → 持 action.manage_permissions 的人看见一行,大屏自己看不见;
 --            设了之后那一行消失,floor_board() 只画选中的牌子、按选中的顺序、带回间隔;只给一半 / 未知的牌子 / 重复 / 空 / 非正的间隔 /
 --            不持码的人 → 按名拒;清空 → 回到全部牌子、没有间隔
---   LOG      floor_board_settings 进变更记录(豁免仍 8);floor_board 与 session_is_floor_display_only 是 STABLE(不写任何东西)
+--   LOG      floor_board_settings 进变更记录(豁免仍 8 —— MES-9b 起是 9);floor_board 与 session_is_floor_display_only 是 STABLE(不写任何东西)
 --
 -- 自带数据(README 第 2 条);读者那几臂切成 authenticated + JWT。全部判定写成 IF (…) IS NOT FALSE —— 一个 NULL 也是红。
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -299,8 +299,8 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 273 · LOG';
     v_x := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 8) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 273 LOG: change-log coverage (gaps 0, exclusions 8): %', v_x; END IF;
+    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 273 LOG: change-log coverage (gaps 0, exclusions 9): %', v_x; END IF;
     IF (NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = 'public.floor_board_settings'::regclass)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 273 LOG: floor_board_settings is change-logged'; END IF;
     IF ((SELECT provolatile FROM pg_proc WHERE oid = 'public.floor_board()'::regprocedure) <> 's'

@@ -1,0 +1,56 @@
+PASS|sign-in: both throwaway portal accounts signed in over HTTP (password grant) and hold a supplier_portal token (A SUP-2026-0458 · B SUP-2026-0459)
+PASS|HTTP A: /portal → 200, its own supplier SUP-2026-0458, links to its documents and deliveries, nothing of the other
+PASS|HTTP A: staff route / → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /suppliers → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /finance/journal → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /inventory → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /purchasing/orders → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /suppliers/7ade2183-8cdb-4ca2-8a43-958082635f97/edit → 200, refused with the way back to /portal
+PASS|HTTP A: /portal/documents → 200, the empty state for a supplier with no issued document (three "None.", no download link)
+PASS|HTTP A: /portal/deliveries → 200, "as recorded at …", the empty state (no receipt, no ticket)
+PASS|HTTP A: PostgREST portal_documents / portal_deliveries → 200 / 200, its own supplier, empty lists
+PASS|HTTP A: portal_document_open on a real purchase_order issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP A: /portal/documents/file for that purchase_order → 404
+PASS|HTTP A: portal_document_open on a real cod issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP A: /portal/documents/file for that cod → 404
+PASS|HTTP A: the Storage API with the portal token, a real issued certificate's object → 400 (refused)
+PASS|HTTP A: the Storage API with the portal token lists nothing in the three document buckets
+PASS|HTTP B: /portal → 200, its own supplier SUP-2026-0459, links to its documents and deliveries, nothing of the other
+PASS|HTTP B: staff route / → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /suppliers → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /finance/journal → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /inventory → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /purchasing/orders → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /suppliers/81229666-a921-417c-a786-c38264485467/edit → 200, refused with the way back to /portal
+PASS|HTTP B: /portal/documents → 200, the empty state for a supplier with no issued document (three "None.", no download link)
+PASS|HTTP B: /portal/deliveries → 200, "as recorded at …", the empty state (no receipt, no ticket)
+PASS|HTTP B: PostgREST portal_documents / portal_deliveries → 200 / 200, its own supplier, empty lists
+PASS|HTTP B: portal_document_open on a real purchase_order issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP B: /portal/documents/file for that purchase_order → 404
+PASS|HTTP B: portal_document_open on a real cod issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP B: /portal/documents/file for that cod → 404
+PASS|HTTP B: the Storage API with the portal token, a real issued certificate's object → 400 (refused)
+PASS|HTTP B: the Storage API with the portal token lists nothing in the three document buckets
+PASS|HTTP: the refusals wrote no download-log row (read back as postgres: 0)
+PASS|staff: a cco copy on /portal/documents/file → 403
+PASS|staff: a cco copy on /portal/documents → refused
+PASS|layout: /portal as a portal user at 390 px — page overflow 0 px
+PASS|layout: /portal as a portal user at 1280 px — page overflow 0 px
+PASS|layout: /portal/documents as a portal user at 390 px — page overflow 0 px
+PASS|layout: /portal/documents as a portal user at 1280 px — page overflow 0 px
+PASS|layout: /portal/deliveries as a portal user at 390 px — page overflow 0 px
+PASS|layout: /portal/deliveries as a portal user at 1280 px — page overflow 0 px
+FAIL|tx: the rolled-back transaction ran to its end (psql exit 3: ERROR:  INVALID_STATUS_TRANSITION|draft|approved)
+PASS|tx: after the ROLLBACK, 0 orders / receipts / tickets / certificates / statements / download-log rows of this run remain (read 0)
+ROLES|role|codes|supplier page|portal accounts section|download log section|download rows shown|PostgREST portal_document_downloads (A)
+ROLES|admin|86|200|sees|sees|"No downloads yet."|HTTP 200, 0 rows
+ROLES|cco|50|200|sees|sees|"No downloads yet."|HTTP 200, 0 rows
+ROLES|cfo|36|200|sees|sees|"No downloads yet."|HTTP 200, 0 rows
+ROLES|cto|41|200|sees|sees|"No downloads yet."|HTTP 200, 0 rows
+ROLES|finance|43|200|sees|sees|"No downloads yet."|HTTP 200, 0 rows
+ROLES|gm|23|200|sees|sees|"No downloads yet."|HTTP 200, 0 rows
+ROLES|warehouse|31|200|sees|sees|"No downloads yet."|HTTP 200, 0 rows
+STEP|done with 1 FAIL
+AFTER|nothing but the throwaway suppliers, contacts, links and accounts was committed (removed by the plan); residue is read separately, as postgres, by docs/surveys/MES-9b/live-readings.sql
+MES9B_PROOF_EXIT=1
+PROOFRUN_EXIT=1

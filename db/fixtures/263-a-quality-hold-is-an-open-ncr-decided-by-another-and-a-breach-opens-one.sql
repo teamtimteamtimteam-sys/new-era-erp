@@ -3,7 +3,7 @@
 --   (MES-6b-1,2026-10-15;MES-0 Q53 · Q65 · Q66;MES-6b Step 0 Q2–Q9 · Q15 · Q16 · Q21–Q27 · Q33 · Q36–Q39,Tim 照推荐裁定)
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 臂:
---   REG    码 action.ncr_decide 在、声明 module.quality.view;单据登记 ncr → NCR;三张新表进变更记录、豁免仍是 8;审计主语 ncr 在、
+--   REG    码 action.ncr_decide 在、声明 module.quality.view;单据登记 ncr → NCR;三张新表进变更记录、豁免仍是 8 —— MES-9b 起是 9;审计主语 ncr 在、
 --          报告挂在两个批次主语下、判定挂在产出批下、质量验收限挂在合同下
 --   NCR    开:module.quality.edit(没有 → PERMISSION_DENIED);恰好一批;来源 manual / customer_complaint 收,quality_limit 只由系统开
 --          (NCR_SOURCE_SYSTEM_ONLY)、别的 NCR_SOURCE_INVALID;★ MES-7b-2(Q15):inspection 不再保留 —— 引用一条巡检发现时收、那一批进质量暂扣
@@ -226,7 +226,7 @@ BEGIN
          AND table_name = 'nonconformance_reports' AND numbering = 'gapless' AND route = '/quality/ncr') THEN
         RAISE EXCEPTION 'FIXTURE 263 REG: the document registry carries ncr → NCR, gapless, /quality/ncr'; END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 263 REG: change-log coverage has no gap and exactly 8 exclusions, got %', v_j; END IF;
     SELECT count(*) INTO v_n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
      WHERE t.tgname = 'zzz_change_log' AND c.relname IN ('nonconformance_reports', 'contract_quality_limits', 'quality_limit_judgements');

@@ -1,0 +1,11 @@
+psql:<stdin>:800: NOTICE:  MES9B pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:<stdin>:800: NOTICE:  MES9B pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:<stdin>:800: NOTICE:  MES9B pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:<stdin>:800: NOTICE:  MES9B pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:<stdin>:800: NOTICE:  MES9B pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:<stdin>:800: NOTICE:  MES9B pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:<stdin>:800: NOTICE:  MES9B pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:<stdin>:800: NOTICE:  MES9B pending stocktake ST-2026-0089 → chooer@evoltrya.test
+DRY|inside|tables=324|supplier_portal executes=portal_can_read_object,portal_deliveries,portal_document_open,portal_documents,portal_export_my_data,portal_me|storage USAGE=true|storage.objects SELECT=true|storage policies=53|portal policies=1|exclusions=9|gaps=[]|authenticated executes portal_documents=false
+DRY|after rollback|download log table=false|tables=323|storage policies=52|storage USAGE=false
+DRY_OWN_EXIT=0

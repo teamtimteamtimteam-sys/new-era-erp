@@ -5,7 +5,7 @@
 -- 臂:
 --   REG      6800 是系统科目(expense、启用);分录来源认得 maintenance_part,而且它【不经冲销申请】(source_path);流水类型认得两种新类型;
 --            material_kinds 那一行备件的说明改写成"按批收货、挂保养记录出库、不逐件追溯";审计成员(设备是家,进料批与它的分录也看得见);
---            出库表进变更记录,豁免仍是 8;待定值 V21 那一支在
+--            出库表进变更记录,豁免仍是 8 —— MES-9b 起是 9;待定值 V21 那一支在
 --   PERM     没有 module.inventory.edit 的人出不了、退不了(PERMISSION_DENIED|module.inventory.edit)
 --   REFUSE   日期必填 / 不在未来 · 保养记录找不到 · 资本化了的记录 PART_ISSUE_CAPITALISED · 没有明细 · 不是备件 PART_NOT_SPARE_PART ·
 --            没定价 SPARE_PART_UNPRICED · 数量 ≤ 0 · 超过可用(单条与按批合计)PART_ISSUE_EXCEEDS_AVAILABLE;拒了什么都没写
@@ -419,7 +419,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 266 TRAIL the return must be in the change log with its reason';
     END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 266 TRAIL change-log coverage %', v_j;
     END IF;
 

@@ -26,7 +26,7 @@
 --          五支财务函数各自动得了戳:relieve(盖冲抵)· remit(盖汇出)· post(插已结的行 + 盖冲抵)· reverse_expense(清冲抵)·
 --          reverse_electricity_allocation(清两种)—— 在用到它们的那几臂里各自被走到,GUARD 末尾再总的断言一次(Q26)
 --   MASK   没有 data.view_prices 的读者:撤回记录的三列金额为空、件数照见;三列不在列级授权里(Q32)
---   LOG    撤回进变更记录(覆盖零缺口、豁免仍是 8);审计记录:撤回在那张单上、也在它覆盖过的炉上;V37 的改动在工序页自己的记录上(Q27 · Q32)
+--   LOG    撤回进变更记录(覆盖零缺口、豁免仍是 8 —— MES-9b 起是 9);审计记录:撤回在那张单上、也在它覆盖过的炉上;V37 的改动在工序页自己的记录上(Q27 · Q32)
 --   AGREE  每一步之后:应付清单 = 总账,两边 unexplained 0.00
 --
 -- 自带数据(README 第 2 条)。以 postgres 跑(绕过 RLS);员工的调用真的切成 authenticated + 那个人的 JWT。
@@ -564,7 +564,7 @@ BEGIN
     -- ══════════════ LOG · 变更记录与审计记录 ══════════════
     RAISE NOTICE 'fixture 258 · LOG';
     v_j := change_log_coverage_gaps();
-    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 8 THEN
+    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 9 THEN
         RAISE EXCEPTION 'FIXTURE 258 LOG: the reversals table is logged, exclusions still 8 — got %', v_j; END IF;
     IF (SELECT count(*) FROM change_log WHERE table_name = 'electricity_allocation_reversals' AND op = 'INSERT') <> 3 THEN
         RAISE EXCEPTION 'FIXTURE 258 LOG: the three reversals should be in the change log'; END IF;

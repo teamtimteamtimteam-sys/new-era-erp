@@ -1,0 +1,10 @@
+参照:上一份备份 evoltrya-backup-2026-10-19-1730.dump，9669 条 TOC
+开始备份 Evoltrya OS 数据库...
+  落盘到隔离名:evoltrya-backup-2026-10-19-2153.dump.INCOMPLETE
+  验证通过后才改名为:evoltrya-backup-2026-10-19-2153.dump
+pg_dump: error: Dumping the contents of table "change_log" failed: PQgetCopyData() failed.
+pg_dump: detail: Error message from server: SSL SYSCALL error: EOF detected
+pg_dump: detail: Command was: COPY public.change_log (seq, occurred_at, txid, table_name, row_key, op, actor_account, actor_employee, actor_kind, db_role, changed_columns, old, new, redacted_at) TO stdout;
+❌ 备份失败:pg_dump 退出码 1（网络中断、密码错误、或服务端断开）
+   已删除未完成的文件:evoltrya-backup-2026-10-19-2153.dump.INCOMPLETE
+BACKUP_EXIT=1

@@ -3,6 +3,8 @@
 //   还没换掉初始密码、最近一次登录、撤销(时刻 · 人 · 理由)、匿名化。V38 没给时照直说「初始密码不会过期」(Q24)。
 //   开 / 撤销 / 匿名化 action.manage_portal_users(admin · cco)—— 控件看得见、按不动、说出码(PermissionGate)。
 //   一个门户账号只看得见这一家自己的记录、看不见公司的任何内部页面(判词八 · fixture 275);那句话就写在这一块的说明里。
+// MES-9b(2026-10-19,MES-9 Step 0 Q22):下面多一块【经门户下载的单据】—— 这一家的门户账号要走过的每一份签发档(谁 · 哪一份 · 什么时候),
+//   读 portal_document_downloads(只追加;读策略 module.suppliers.view,与这一块同一个码);最近 50 次。
 import { getTranslations } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
@@ -10,6 +12,17 @@ import { can } from '@/lib/permissions'
 import { formatAuditStamp } from '@/lib/dates'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import PortalAccountForms from './PortalAccountForms'
+
+type DownloadRow = {
+    id: string
+    portal_user_id: string
+    document_kind: 'purchase_order' | 'supplier_statement' | 'cod'
+    document_code: string
+    version: number | null
+    downloaded_at: string
+}
+
+const DOWNLOADS_SHOWN = 50
 
 type PortalAccountRow = {
     id: string
@@ -33,14 +46,23 @@ export default async function PortalAccountsPanel({ supplierId, contacts }: {
 }) {
     const t = await getTranslations()
     const supabase = await createClient()
-    const [accRes, setRes] = await Promise.all([
+    const [accRes, setRes, dlRes] = await Promise.all([
         supabase.from('supplier_portal_accounts')
             .select('id, contact_id, contact_name, account_email, created_at, created_by, revoked_at, revoked_by, revoked_reason, anonymised_at, last_sign_in_at, must_change_password, banned')
             .eq('supplier_id', supplierId).order('created_at', { ascending: false }),
         supabase.from('account_settings').select('initial_password_valid_days').limit(1).maybeSingle(),
+        supabase.from('portal_document_downloads')
+            .select('id, portal_user_id, document_kind, document_code, version, downloaded_at')
+            .eq('supplier_id', supplierId).order('downloaded_at', { ascending: false }).limit(DOWNLOADS_SHOWN),
     ])
     const rows = mustRows(accRes, 'supplier_portal_accounts') as unknown as PortalAccountRow[]
     const settings = mustOne(setRes, 'account_settings')
+    const downloads = mustRows(dlRes, 'portal_document_downloads') as unknown as DownloadRow[]
+    const accountOf = new Map(rows.map((r) => [r.id, `${r.contact_name} · ${r.account_email ?? '—'}`]))
+    const docLabel = (d: DownloadRow) =>
+        d.document_kind === 'purchase_order' ? t('portal.kindPurchaseOrder', { code: d.document_code, v: String(d.version ?? '') })
+        : d.document_kind === 'supplier_statement' ? t('portal.kindStatement', { code: d.document_code, v: String(d.version ?? '') })
+        : t('portal.kindCod', { code: d.document_code })
     const canManage = await can('action.manage_portal_users')
     const names = await loadActorNames(supabase, rows.flatMap((r) => [r.created_by, r.revoked_by]))
     const live = new Set(rows.filter((r) => !r.revoked_at).map((r) => r.contact_id))
@@ -90,6 +112,28 @@ export default async function PortalAccountsPanel({ supplierId, contacts }: {
                 </ul>
             )}
             <PortalAccountForms mode="create" supplierId={supplierId} canManage={canManage} contacts={eligible} />
+            <div className="mt-5" data-section="supplier-portal-downloads">
+                <h3 className="mb-1 font-medium">{t('portal.downloadsTitle')}</h3>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('portal.downloadsWhat')}</p>
+                {downloads.length === 0 ? (
+                    <p className="text-sm" data-empty="portal-downloads">{t('portal.downloadsNone')}</p>
+                ) : (
+                    <>
+                        <ul className="divide-y divide-gray-200 border-y border-gray-200 text-sm">
+                            {downloads.map((d) => (
+                                <li key={d.id} className="py-1.5 flex flex-wrap gap-x-4 gap-y-0.5" data-portal-download={d.id}>
+                                    <span className="min-w-[10rem]" title={t('portal.downloadsColWhen')}>{formatAuditStamp(d.downloaded_at)}</span>
+                                    <span className="break-all" title={t('portal.downloadsColWho')}>{accountOf.get(d.portal_user_id) ?? '—'}</span>
+                                    <span title={t('portal.downloadsColDocument')}>{docLabel(d)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        {downloads.length === DOWNLOADS_SHOWN && (
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('portal.downloadsShowing', { n: String(DOWNLOADS_SHOWN) })}</p>
+                        )}
+                    </>
+                )}
+            </div>
         </section>
     )
 }

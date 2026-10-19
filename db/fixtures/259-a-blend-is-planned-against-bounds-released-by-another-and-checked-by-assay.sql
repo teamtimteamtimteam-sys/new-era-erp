@@ -20,7 +20,7 @@
 --          (within / above_max / metal_not_in_assay);应用那份化验之后批次的含量来源是 assay
 --   READ   含量只给看得见那一批的人:只持加工查看的读者 → 含量 NULL、受限;持产出查看、不持进料查看的读者 → 产出那一行看得见、进料那一行受限,
 --          预测整份受限;没有加工查看的读者一行计划都读不到
---   LOG    三张新表进变更记录(覆盖零缺口、豁免仍是 8);审计主语 blending_plan 登记了、门是加工查看码;目标与批次在它的记录上
+--   LOG    三张新表进变更记录(覆盖零缺口、豁免仍是 8 —— MES-9b 起是 9);审计主语 blending_plan 登记了、门是加工查看码;目标与批次在它的记录上
 --   ADMIN  引导的 admin 持目录里【每一个】码(含 module.tasks.view_all);把每一个码经 set_role_permissions 存给一个角色 —— 过得了"动作码蕴含查看码"
 --
 -- 自带数据(README 第 2 条)。以 postgres 跑(绕过 RLS);员工的调用真的切成 authenticated + 那个人的 JWT。
@@ -408,7 +408,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 259 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
         RAISE EXCEPTION 'FIXTURE 259 LOG: change-log coverage (no gaps, 8 excluded), got %', v_j; END IF;
     IF (SELECT count(DISTINCT table_name) FROM change_log WHERE table_name IN ('blending_plans', 'blending_plan_targets', 'blending_plan_lines')
           AND row_key ->> 'id' IN (SELECT id::text FROM blending_plans UNION ALL SELECT id::text FROM blending_plan_targets UNION ALL SELECT id::text FROM blending_plan_lines)) <> 3 THEN

@@ -1,8 +1,10 @@
 // app/portal/page.tsx
 // MES-9a(2026-10-19,MES-9 Step 0 §2 · Q10 · Q20,Tim):【供应商门户的首页】—— 你是谁(哪一家、哪一位联系人、登录的邮箱)、
-//   你的个人资料(下载一份系统里关于你的一切 —— PDPA 的访问请求),以及门户接下来会有什么(9b:采购单、收货、化验、对账单、销毁证书)。
+//   你的个人资料(下载一份系统里关于你的一切 —— PDPA 的访问请求)。
+// MES-9b(2026-10-19,Q14):两个入口 —— /portal/documents(签发档,只以存下的 PDF)与 /portal/deliveries(收货与地磅单,按今天的记录,没有价钱)。
 //   读的只有 portal_me()(只授 supplier_portal;先过 portal_require_link:角色 · 链接 · 撤销 · 会话)。
 //   门户函数按名拒的三种(撤销了 · 会话结束了 · 令牌不是门户角色)各说一句人话;别的失败照常抛(失败不是空集)。
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAuditStamp } from '@/lib/dates'
@@ -43,10 +45,17 @@ export default async function PortalHomePage() {
                     {t('portal.accountLine', { email: me.account_email, since: formatAuditStamp(me.linked_at) })}
                 </p>
             </div>
-            <section>
-                <h2 className="mb-1">{t('portal.comingTitle')}</h2>
-                <p className="text-sm text-[color:var(--brand-muted-text)] max-w-2xl">{t('portal.comingBody')}</p>
+            <section data-portal-section="documents">
+                <h2 className="mb-1">{t('portal.homeDocumentsTitle')}</h2>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-2 max-w-2xl">{t('portal.homeDocumentsBody')}</p>
+                <Link href="/portal/documents" className="text-sm app-link hover:underline">{t('portal.homeDocumentsLink')}</Link>
             </section>
+            <section data-portal-section="deliveries">
+                <h2 className="mb-1">{t('portal.homeDeliveriesTitle')}</h2>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-2 max-w-2xl">{t('portal.homeDeliveriesBody')}</p>
+                <Link href="/portal/deliveries" className="text-sm app-link hover:underline">{t('portal.homeDeliveriesLink')}</Link>
+            </section>
+            <p className="text-xs text-[color:var(--brand-muted-text)] max-w-2xl">{t('portal.homeOnlyYours')}</p>
             <section>
                 <h2 className="mb-1">{t('portal.myDataTitle')}</h2>
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-2 max-w-2xl">{t('portal.myDataBody')}</p>

@@ -4,7 +4,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 臂:
 --   REG      两个安全码是 module 码;七种事故种类、没有 other(插一行 other 被 CHECK 拒);单据登记 INC;审计主语与成员;遮蔽规则恰好五条、
---            受伤的五列不在列授权里;六张新表进变更记录,豁免仍是 8,遮蔽零缺口;V19 = 2、未确认、带出处;F12 备件说明(重建侧)是新说法;
+--            受伤的五列不在列授权里;六张新表进变更记录,豁免仍是 8 —— MES-9b 起是 9,遮蔽零缺口;V19 = 2、未确认、带出处;F12 备件说明(重建侧)是新说法;
 --            不合格报告的来源认得 incident;新视图对 authenticated 只读(属主视图写不穿)
 --   GRANT    引导的每一个持 module.processing.view 的角色都持 module.safety.view;持编辑码的都持查看码;data.view_health 不在仓库手里;
 --            set_role_permissions 拒只给编辑码不给查看码(EDIT_REQUIRES_VIEW)
@@ -198,8 +198,8 @@ BEGIN
     IF v_txt IS NOT NULL OR NOT has_column_privilege('authenticated', 'public.incidents'::regclass, 'what_happened', 'SELECT') THEN
         RAISE EXCEPTION 'FIXTURE 267 REG: the injury columns must be out of the column grant (got %) and the rest in it', v_txt; END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8 THEN
-        RAISE EXCEPTION 'FIXTURE 267 REG: change-log coverage (gaps 0, exclusions 8): %', v_j; END IF;
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
+        RAISE EXCEPTION 'FIXTURE 267 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
     IF EXISTS (SELECT 1 FROM unnest(ARRAY['incident_kinds', 'safety_settings', 'incidents', 'incident_updates', 'incident_batches',
                                           'shift_handover_incident_refs']) t
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass)) THEN

@@ -1,0 +1,8 @@
+✓ ① clean run → BACKUP_EXIT=0 (5 chunk(s), 核对:各段行数合计 21 vs count 21 · 首 seq 1 vs min 1 · 末 seq 23 vs max 23)
+✓ ① restore: change_log 21|1|23|31d0218c754bf4b2c3efcd0514d30bf3 = source 21|1|23|31d0218c754bf4b2c3efcd0514d30bf3 (count|min|max|md5 of every row); other table 50 rows
+✓ ① restore: the sequence continues above the restored max (next seq 24)
+✓ ② chunk 1 fails once → retried once, BACKUP_EXIT=0
+✓ ③ chunk 1 fails twice → BACKUP_EXIT=1, refused by name, no good-named file left
+✓ ④ a row dropped from chunk 0 → the count check refuses, BACKUP_EXIT=1, no good-named dump
+BACKUP_INJECTIONS pass=6 fail=0
+BKINJ_OWN_EXIT=0

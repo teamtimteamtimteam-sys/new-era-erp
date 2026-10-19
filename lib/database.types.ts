@@ -21085,6 +21085,94 @@ export type Database = {
           },
         ]
       }
+      portal_document_downloads: {
+        Row: {
+          bucket_id: string
+          document_code: string
+          document_kind: string
+          downloaded_at: string
+          file_path: string
+          id: string
+          issue_id: string
+          portal_user_id: string
+          sha256: string
+          supplier_id: string
+          user_id: string
+          version: number | null
+        }
+        Insert: {
+          bucket_id: string
+          document_code: string
+          document_kind: string
+          downloaded_at?: string
+          file_path: string
+          id?: string
+          issue_id: string
+          portal_user_id: string
+          sha256: string
+          supplier_id: string
+          user_id: string
+          version?: number | null
+        }
+        Update: {
+          bucket_id?: string
+          document_code?: string
+          document_kind?: string
+          downloaded_at?: string
+          file_path?: string
+          id?: string
+          issue_id?: string
+          portal_user_id?: string
+          sha256?: string
+          supplier_id?: string
+          user_id?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_document_downloads_portal_user_id_fkey"
+            columns: ["portal_user_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_portal_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_document_downloads_portal_user_id_fkey"
+            columns: ["portal_user_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_portal_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_document_downloads_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_document_downloads_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "portal_document_downloads_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_scorecard_rows"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "portal_document_downloads_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ports: {
         Row: {
           code: string
@@ -50567,7 +50655,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      portal_can_read_object: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
       portal_contact_anonymise: { Args: { p_link_id: string }; Returns: Json }
+      portal_deliveries: { Args: never; Returns: Json }
+      portal_document_open: {
+        Args: { p_issue_id: string; p_kind: string }
+        Returns: Json
+      }
+      portal_documents: { Args: never; Returns: Json }
       portal_export_my_data: { Args: never; Returns: Json }
       portal_me: { Args: never; Returns: Json }
       portal_require_link: { Args: never; Returns: string }

@@ -1,0 +1,40 @@
+PASS|sign-in: both throwaway portal accounts signed in over HTTP (password grant) and hold a supplier_portal token (A SUP-2026-0456 · B SUP-2026-0457)
+PASS|HTTP A: /portal → 200, its own supplier SUP-2026-0456, links to its documents and deliveries, nothing of the other
+PASS|HTTP A: staff route / → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /suppliers → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /finance/journal → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /inventory → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /purchasing/orders → 200, refused with the way back to /portal
+PASS|HTTP A: staff route /suppliers/b91d1656-f3fe-4495-bbe5-279d50c03887/edit → 200, refused with the way back to /portal
+PASS|HTTP A: /portal/documents → 200, the empty state for a supplier with no issued document (three "None.", no download link)
+PASS|HTTP A: /portal/deliveries → 200, "as recorded at …", the empty state (no receipt, no ticket)
+PASS|HTTP A: PostgREST portal_documents / portal_deliveries → 200 / 200, its own supplier, empty lists
+PASS|HTTP A: portal_document_open on a real purchase_order issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP A: /portal/documents/file for that purchase_order → 404
+PASS|HTTP A: portal_document_open on a real cod issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP A: /portal/documents/file for that cod → 404
+PASS|HTTP A: the Storage API with the portal token, a real issued certificate's object → 400 (refused)
+PASS|HTTP A: the Storage API with the portal token lists nothing in the three document buckets
+PASS|HTTP B: /portal → 200, its own supplier SUP-2026-0457, links to its documents and deliveries, nothing of the other
+PASS|HTTP B: staff route / → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /suppliers → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /finance/journal → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /inventory → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /purchasing/orders → 200, refused with the way back to /portal
+PASS|HTTP B: staff route /suppliers/3cedd314-d12f-4c94-9ff8-3f1a8f299e27/edit → 200, refused with the way back to /portal
+PASS|HTTP B: /portal/documents → 200, the empty state for a supplier with no issued document (three "None.", no download link)
+PASS|HTTP B: /portal/deliveries → 200, "as recorded at …", the empty state (no receipt, no ticket)
+PASS|HTTP B: PostgREST portal_documents / portal_deliveries → 200 / 200, its own supplier, empty lists
+PASS|HTTP B: portal_document_open on a real purchase_order issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP B: /portal/documents/file for that purchase_order → 404
+PASS|HTTP B: portal_document_open on a real cod issued to another supplier → 400 PORTAL_DOCUMENT_NOT_FOUND
+PASS|HTTP B: /portal/documents/file for that cod → 404
+PASS|HTTP B: the Storage API with the portal token, a real issued certificate's object → 400 (refused)
+PASS|HTTP B: the Storage API with the portal token lists nothing in the three document buckets
+PASS|HTTP: the refusals wrote no download-log row (read back as postgres: 0)
+TypeError: Cannot read properties of undefined (reading 'split')
+    at main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-19-mes9b-live-proof.mjs:152:90)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+AFTER|nothing but the throwaway suppliers, contacts, links and accounts was committed (removed by the plan); residue is read separately, as postgres, by docs/surveys/MES-9b/live-readings.sql
+MES9B_PROOF_EXIT=1
+PROOFRUN_EXIT=1

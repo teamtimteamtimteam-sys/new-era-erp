@@ -56,6 +56,10 @@ each entry with its reason:
 | `gateway_outages` | **ingestion log (MES-1)**: itself an append-only record of gateway silences; logging it again doubles the volume and adds no fact |
 | `ingest_inbox` | **ingestion log (MES-1)**: itself an append-only landing table; its status changes are recorded on the row (attempts, last attempt, who, discard reason) |
 | `ingest_transmissions` | **ingestion log (MES-1)**: itself an append-only log of every gateway call; logging it again doubles the volume and adds no fact |
+| `scan_events` | **scan log (MES-3b)**: itself an append-only record of every scan resolved on a page; logging it again doubles the volume and adds no fact *(row added by MES-9b: this table listed seven of the eight)* |
+| `portal_document_downloads` | **supplier portal download log (MES-9b, MES-9 Step 0 Q22)**: itself an append-only record of every issued document a portal user took; logging it again doubles the volume and adds no fact |
+
+**Exclusions: 9** (MES-9b moved every check that pinned 8 to 9 — eighteen fixtures, the migration's self-proof — and none was loosened; §36).
 
 **Ingestion logs are the second accepted kind of exclusion (MES-0 Q14, built in MES-1, 2026-10-06; outages on the page, MES-1 Step 0 Q21).** A gateway may call
 every few seconds; each of these three tables is already the record of what arrived, when, from where and what became of
@@ -1625,3 +1629,37 @@ verdict-8 cells fault-injected by `db/scripts/2026-10-19-mes9a-fixture-injection
 - Enabling or disabling the access-token hook is a Supabase project setting (Management API / dashboard), not a database write; the hand-back records
   when it was enabled. Bans and global sign-out are Supabase Auth state (`auth.users.banned_until`, `auth.sessions`) — the revoke itself is logged on
   `supplier_portal_users`.
+
+## 36. What a supplier sees in the portal (MES-9b, v1.4.61, 2026-10-19)
+
+Hand-back `docs/handbacks/MES-9b.md`; fixture 276 (arms DOCS · DELIV · OPEN · STORE · LOG · EXCL · EVERY · WRITES · GRANTS) and verdict 8
+(`db/portal-grants-baseline.tsv`, 8 → 34 lines) pin every rule below; the cells are fault-injected by `db/scripts/2026-10-19-mes9b-fixture-injections.py`,
+re-run on a fresh rebuild after the last database edit.
+
+### 36.1 Logged, excluded, masked
+
+- **One new table, excluded: `portal_document_downloads`** — the supplier portal's download log (MES-9 Step 0 Q22: "a download log for portal users only,
+  append-only, excluded from the change log"). One row per issued document a portal account took: the account, its link and supplier, the kind, the issue
+  row, the document's code and version, the bucket, the path, the recorded sha256, the moment. Append-only by its own guard
+  (`guard_portal_document_download_append_only`: UPDATE refused per row, DELETE / TRUNCATE per statement). Written only by `portal_document_open()`;
+  read by `module.suppliers.view` on the supplier page. **The reason, in `change_log_exclusions()`:** "Supplier portal download log (MES-9b, MES-9 Step 0
+  Q22): itself an append-only record of every issued document a portal user took; logging it again doubles the volume and adds no fact." — the
+  ingestion-log kind of exclusion (§2).
+- **Exclusions 8 → 9.** Every check that pinned 8 now pins 9 — `change_log_coverage_gaps()` in fixtures 235 · 256–260 · 262–269 · 271–273 · 275, the new
+  fixture 276 (which also asserts the ninth entry's reason) and the migration's self-proof. Each one still demands zero gaps; none was loosened.
+  Public tables **323 → 324**, bound **315 → 315**, mask rules unchanged (no new logged column).
+- **The migration writes no `change_log` row** (it adds a table, functions, two storage grants and a storage policy; no row of any logged table) — read back
+  by its `txid` in its self-proof.
+
+### 36.2 What a portal session writes
+
+- **Only its own download-log rows, only through `portal_document_open()`.** Fixture 276 WRITES: after a portal session has run all four portal functions,
+  no `change_log` row carries `db_role = 'supplier_portal'`, and the role holds no INSERT / UPDATE / DELETE / TRUNCATE on any relation in `public` or
+  `storage`. The download log itself is excluded (above), so a portal account's reads leave exactly one kind of trace: its rows there.
+
+### 36.3 Not logged because it is not a table write
+
+- **Reads of issued documents by staff** are still not logged (`docs/pdpa.md`, the decision stands); only portal accounts' downloads are, and only in the
+  download log.
+- **The bytes** stay where they were issued (`po-documents` · `supplier-statement-documents` · `cod-documents`); the portal reads them, never writes them.
+

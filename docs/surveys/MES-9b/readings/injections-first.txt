@@ -1,0 +1,45 @@
+== a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub
+✓ DOCS: a draft / pending / rejected order is listed → FIXTURE 276 DOCS: purchase orders listed → [{"id": "e59f5dc7-cfad-434a-8e74-1d393ab23fab", "code": "FX276-SA-PO7", "state": "open", "issues": [], "order_date": "2026-09-07"}, {"id": "67ee24c9-6b38-4492-b371-454cb8cbe6c3"
+✓ DOCS: the supplier filter dropped from the orders → FIXTURE 276 DOCS: purchase orders listed → [{"id": "b9e44c90-399a-47a6-883c-8cb028271b73", "code": "FX276-SB-PO5", "state": "cancelled", "issues": [{"current": true, "version": 1, "issue_id": "740c7989-1e10-4376-bf5a-de5
+✓ DOCS: a void certificate offers its document → FIXTURE 276 DOCS: certificates → [{"id": "584299cb-52b7-4a53-8eae-d9abe43f56f2", "code": null, "issue": null, "state": "pending", "issued_at": null, "completed_on": "2026-09-13", "receipt_code": "FX276-SA-B3", "replaced_
+✓ DOCS: a price (the order's estimated total) leaks → FIXTURE 276 DOCS: A's documents carry B's data, a price or an internal note: {"cods": [{"id": "cb1d8375-fb5e-4739-b67d-a39ac887955e", "code": null, "issue": null, "state": "pending", "issued_at": null, "completed_on": "2
+✓ DELIV: the unit price leaks → FIXTURE 276 DELIV: A's deliveries carry B's data, a price, a plate or an internal note: {"as_of": "2026-10-19T21:22:01.840703+08:00", "tickets": [{"code": "FX276-WB-SHARED", "shares": [{"kg": 311, "receipt_code": "FX276-
+✓ DELIV: a shared ticket shows the other supplier's share → FIXTURE 276 DELIV: tickets → [{"code": "FX276-WB-SHARED", "shares": [{"kg": 311, "receipt_code": "FX276-SA-B1"}, {"kg": 422, "receipt_code": "FX276-SB-B1"}], "voided": false, "direction": "inbound", "completed_at": "2026
+✓ DELIV: a soft-deleted receipt is shown → FIXTURE 276 DELIV: receipts → [{"code": "FX276-SA-B3", "unit": "kg", "tickets": [], "material": "fixture 276 black mass", "quantity": 33, "arrival_date": "2026-09-13", "purchase_order_code": null}, {"code": "FX276-SA-B2"
+✓ OPEN: the ownership check removed → FIXTURE 276 OPEN: A opened purchase_order|fe2978c5-13b2-4b89-b6e2-e365229b319c (B's, missing, wrong kind or a deleted order) → {"bucket": "po-documents", "log_id": "e26e0065-4f88-4e1f-900a-ae9e1069178e", "sha256": "22222
+✓ OPEN: a deleted order's document is handed out → FIXTURE 276 OPEN: A opened purchase_order|f83b8dee-7f4b-4a18-ad25-3d408cb1a709 (B's, missing, wrong kind or a deleted order) → {"bucket": "po-documents", "log_id": "8b4e4504-8624-444e-96b0-9e5b9a6a034c", "sha256": "66666
+✓ OPEN: a void certificate is handed out → FIXTURE 276 OPEN: a void certificate → {"bucket": "cod-documents", "log_id": "7a6cdffc-4724-4a49-8458-33cfcd718d44", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "filename": "FX276-SA-COD
+✓ OPEN: no download log row is written → FIXTURE 276 OPEN: the download log row is missing or wrong
+✓ STORE: the two-minute window removed (any old log row opens the object) → FIXTURE 276 STORE: a log row three minutes old still opened 1 object(s)
+✓ STORE: the predicate ignores whose log row it is → FIXTURE 276 STORE: B, who logged nothing, sees 3 object(s)
+✓ STORE: the predicate raises instead of answering false → FIXTURE 276 STORE: an ended session still sees ERR|P0001|PORTAL_SESSION_ENDED object(s) (the predicate must not raise either)
+✓ STORE: the portal policy reads every document object → FIXTURE 276 STORE: A sees in storage → cod-documents:54ea3c81-24b7-4c0f-b792-620c93547c14/x.pdf,cod-documents:61a9b934-bcc9-4a5f-8e1d-fedb471617e8/x.pdf,cod-documents:97d4f726-69e0-4bbe-8622-5037984efc25/x.pdf,cod-docume
+✓ LOG: the delete guard dropped → FIXTURE 276 LOG: DELETE FROM portal_document_downloads went through
+✓ LOG: the update guard dropped → FIXTURE 276 LOG: UPDATE portal_document_downloads SET document_code = 'x' went through
+✓ LOG: staff may insert directly → FIXTURE 276 LOG: a direct insert by authenticated → d4f4bd29-6f97-45cf-a896-9814e2fc9a2b
+✓ LOG: the read predicate dropped → FIXTURE 276 LOG: a reader without module.suppliers.view reads 4 log row(s)
+✓ EXCL: the ninth exclusion removed (back to 8) → FIXTURE 276 EXCL: change-log coverage {"gaps": ["unbound:portal_document_downloads"], "bound": 315, "examined": 324, "excluded": 8}
+✓ EXCL: the download log bound to the change log → FIXTURE 276 EXCL: change-log coverage {"gaps": ["excluded_but_bound:portal_document_downloads"], "bound": 316, "examined": 324, "excluded": 9}
+✓ EVERY: one more function granted to supplier_portal → FIXTURE 276 EVERY: portal_actor_labels(uuid[]) is executable by supplier_portal and has no two-supplier case here or in fixture 275
+✓ EVERY: portal_documents granted to authenticated → FIXTURE 276 EVERY: portal_documents() as authenticated — ERR|P0001|PORTAL_ROLE_REQUIRED
+✓ EVERY: portal_deliveries answers about the first link, not the caller's → FIXTURE 276 EVERY: portal_deliveries() as B → {"as_of": "2026-10-19T21:22:02.62856+08:00", "tickets": [{"code": "FX276-WB-SHARED", "shares": [{"kg": 311, "receipt_code": "FX276-SA-B1"}], "voided": false, "direction": "in
+✓ EVERY: portal_document_open skips the session check (no portal_require_link) → FIXTURE 276 EVERY: portal_document_open(text,uuid) (claim) → {"bucket": "po-documents", "log_id": "04e94d79-46b3-4567-959c-361f8ea23520", "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "fil
+✓ WRITES: a portal function also writes a business row → FIXTURE 276 WRITES: a portal session wrote a change-logged row: suppliers:UPDATE
+✓ WRITES: supplier_portal may insert into a public table → FIXTURE 276 WRITES: supplier_portal can write public.suppliers
+✓ GRANTS: CREATE on schema storage → FIXTURE 276 GRANTS: supplier_portal must hold USAGE (only) on schema storage
+✓ GRANTS: a second storage policy for the portal → FIXTURE 276 GRANTS: exactly one storage policy applies to supplier_portal
+✓ 275 EVERY: a public function executable by supplier_portal with no case in 275 or 276 → FIXTURE 275 EVERY: portal_actor_labels(uuid[]) is executable by supplier_portal and has no two-supplier case here or in fixture 276
+✓ 275 LOG: the exclusions back at 8 → FIXTURE 275 LOG: change-log coverage {"gaps": ["unbound:portal_document_downloads"], "bound": 315, "examined": 324, "excluded": 8}
+✓ 274 SHAPE: a 54th storage policy → FIXTURE 274 SHAPE: 54 storage policies (expected 53)
+✓ 274 SHAPE: the portal policy loses its judge → FIXTURE 274 SHAPE: a storage policy without a judge
+✓ baseline 274 (no injection) → FIXTURE 274 全部通过: REL · OWN · TRAIL · PROMISE · BUCKET · NOUPDATE · DELETE · SHAPE
+✓ baseline 275 (no injection) → FIXTURE 275 全部通过: CODE · LINK · SEP · HOOK · EVERY · EXPORT · REVOKE · ANON · TRAIL · VIEW · VALUES · LOG · GRANTS
+✓ baseline 276 (no injection) → FIXTURE 276 全部通过: DOCS · DELIV · OPEN · STORE · LOG · EXCL · EVERY · WRITES · GRANTS
+✓ verdict 8: an extra storage grant (storage.buckets → supplier_portal) is named
+✓ verdict 8: an extra storage policy for the portal is named
+✓ verdict 8: a missing grant (portal_document_open revoked) is named
+✓ verdict 8: storage USAGE revoked → the schema line and the storage functions are named missing
+✓ verdict 8: a deleted baseline line (the portal policy) is named
+✓ verdict 8 clean; always-on cells (unreadable baseline · blinded query · probe grant · removed line) bit
+INJECTIONS pass=42 fail=0
+INJ_OWN_EXIT=0

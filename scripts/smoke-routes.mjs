@@ -1156,6 +1156,10 @@ const EXPECTED = {
     //   (42501 → 403)。一个 200 才是坏了 —— 那意味着员工那一面调得到门户函数。门户会话那一半(200、只有自己的)由线上证明证
     //   (db/scripts/2026-10-19-mes9a-live-proof.mjs ⑤)。不写库。
     '/portal/my-data': [403],
+    // ── MES-9b(2026-10-19,MES-9 Step 0 Q14 · Q22):门户取一份签发档 —— 路由先问"这是不是一个门户会话",员工会话一律 403
+    //   (不调任何函数、不写下载记录)。门户会话那一半(200 + 重算的哈希 · 409 · 别家的 404)由线上证明证
+    //   (db/scripts/2026-10-19-mes9b-live-proof.mjs)。不写库。
+    '/portal/documents/file': [403],
     // ── ★★ /me/avatar —— 与上面那一条【同一个提交带进来的】,而预检把它遮了两天 ★★
     // 【它不是任何一刀弄坏的,这句话是量出来的】
     //   · `git show HEAD:scripts/smoke-routes.mjs | grep -c 'me/avatar'` = **0** —— 在 HEAD 上就没登记过;

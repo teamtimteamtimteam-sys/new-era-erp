@@ -83,7 +83,9 @@ rels AS (SELECT c.oid, n.nspname, c.relname, c.relkind, c.relacl FROM pg_class c
 fns AS (SELECT p.oid, n.nspname, p.proacl, p.pronamespace FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
          WHERE n.oid NOT IN (SELECT oid FROM sys) AND NOT @@BLIND@@)
 SELECT * FROM (
-    SELECT 'role' AS k, r.rolname AS o,
+    -- ::text 是承重的(MES-9b 量到):第一支的列类型决定整个 UNION 的类型,rolname 是 63 字节的 name —— 不转,后面每一个更长的对象名
+    --   (storage.search_v2(...) 这类长签名)都会被截在 63 字节,两条路于是对不上(响亮地红,不是悄悄地绿;但它是量具的错,不是可达面的)。
+    SELECT 'role' AS k, r.rolname::text AS o,
            concat_ws(' ', CASE WHEN r.rolcanlogin THEN 'login' ELSE 'nologin' END, CASE WHEN r.rolinherit THEN 'inherit' ELSE 'noinherit' END,
                      CASE WHEN r.rolsuper THEN 'superuser' ELSE 'nosuperuser' END, CASE WHEN r.rolcreatedb THEN 'createdb' ELSE 'nocreatedb' END,
                      CASE WHEN r.rolcreaterole THEN 'createrole' ELSE 'nocreaterole' END,

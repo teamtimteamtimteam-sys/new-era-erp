@@ -4,7 +4,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 臂:
 --   REG    八张新表都在、一张清单 / 一个参数都不引导;单据登记 INS;审计主语 inspection_run · inspection_template ·
---          dictionary_environmental_parameters · safety_environment 与成员;八张新表进变更记录,豁免仍是 8;新表没有遮蔽的列(规则仍 119);
+--          dictionary_environmental_parameters · safety_environment 与成员;八张新表进变更记录,豁免仍是 8 —— MES-9b 起是 9;新表没有遮蔽的列(规则仍 119);
 --          不合格报告的来源约束认 inspection、并且 inspection ⇔ 引用一条发现;新视图 authenticated 只读、底视图读不到
 --   F16    没有一张 public 视图对 anon / authenticated 带 INSERT / UPDATE / DELETE / TRUNCATE;一句零行的写穿视图对 authenticated 按 42501 拒
 --   TPL    存清单要 module.safety.edit;代号必填 / 只许大写字母数字 / 不重复;名字、片区、频率 ≥ 1、至少一项、每项有字 —— 各自按名拒;
@@ -146,8 +146,8 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM trail_subject_members() m WHERE m.subject = 'inspection_template' AND m.table_name = 'inspection_template_items' AND m.home)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 268 REG: trail subjects inspection_run / inspection_template / dictionary_environmental_parameters / safety_environment and their members'; END IF;
     v_j := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 8) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 268 REG: change-log coverage (gaps 0, exclusions 8): %', v_j; END IF;
+    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 268 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
     IF (EXISTS (SELECT 1 FROM unnest(ARRAY['inspection_templates', 'inspection_template_items', 'inspection_runs', 'inspection_results',
                                           'inspection_findings', 'inspection_finding_closures', 'environmental_parameters', 'environmental_results']) t
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass))) IS NOT FALSE THEN

@@ -63,6 +63,41 @@ MES-9a 委托书的 fixture 清单(15 项,逐项对照见 `docs/surveys/MES-9b/M
 `docs/surveys/MES-9a/readings/live-proof.txt:5-9`、`:13-28`、`:47`、`:50`、`:52`)与版式普查证过。**行为是对的;缺的是一道会在下一次改动时变红的检查。**
 与 `MES8B2-APP-HALF-NO-REGRESSION-CHECK` 同一个形状、同一个原因(SQL fixture 没有 JS / HTTP 运行器);MES-9a 交回没有逐项对照,这一条补的是那句话。
 **可选的修法(未做):** 冒烟加一个一次性门户会话走三五条员工路由并断言那一句拒绝,员工会话断言 `/portal` 被拒。**删除条件:** 那一道落地,或 Tim 裁定一次性证明就够。
+**MES-9b 同一形状再多三条路由**(`/portal/documents` · `/portal/deliveries` · `/portal/documents/file`):库那一半在 fixture 276,冒烟只证员工会话打开取档路由是 403;
+门户会话那一半(页面只列自己的、取档 200 + 重算的哈希、别家的 404、改过的字节 409)只由 MES-9b 的一次性线上证明证过(`db/scripts/2026-10-19-mes9b-live-proof.mjs`)。
+
+## MES9B-STORAGE-FUNCTIONS-FOLLOW-THE-PLATFORM · 门户角色的可达面里有 19 支 Supabase Storage 的平台函数 —— 平台一升级,判词八就会红(MES-9b 记,2026-10-19;刻意的)
+
+MES-9b 给 `supplier_portal` 授了 `storage` 架构的 USAGE(门户会话经 Storage API 读它自己的签发档要它)。于是 storage 里**对 PUBLIC 开着 EXECUTE** 的 19 支平台函数
+(`storage.search` · `search_v2` · `list_objects_with_delimiter` · `foldername` …,2026-10-19 在线上逐条读出,全是调用者权限)进了这个角色"够得着"的那一面。它们不是本仓库授的、
+也收不回(属主 `supabase_storage_admin`),调它们读到的行仍由 `storage.objects` 上那条门户策略筛 —— 所以它们按名进了 `db/portal-grants-baseline.tsv`(带理由),重建侧由
+`db/storage/platform-storage-stub.sql` 里 19 支同签名的替身对上(函数体按名抛)。**后果要照直说:** Supabase 升级 storage、改了其中一支的签名或多加一支,判词八线上那一侧会红 ——
+那是门户角色够得着的东西真的变了,不是误报。**处置:** 照新签名改基线与替身(两处,同一个提交),并读一眼新函数是不是调用者权限。**删除条件:** 平台把这些函数对 PUBLIC 收回。
+顺带修掉的量具问题:判词八的枚举 SQL 第一支 `rolname` 是 63 字节的 `name`,整个 UNION 跟着它截断 —— 签名更长的对象名两条路对不上(响亮地红);`::text` 修掉(`db/check_portal.py`)。
+
+## MES9B-FINAL-ASSAY-NOT-SHOWN · 门户不显示"决定价格的最终化验结果" —— Step 0 §4 列了它,委托书重述的 Q14 没有(MES-9b 记,2026-10-19;问 Tim)
+
+MES-0 Q84 与 MES-9 Step 0 §4 / Q14 的推荐里有"自己那几批的最终化验结果(金属 %、水分、日期、化验室)按今天的记录显示";MES-9b 委托书把 Q14 重述为
+"采购单 · 对账单 · 销毁证书只以签发的 PDF;收货与地磅单按今天的记录、没有价钱",**没有提化验**,fixture 清单与线上验证也没有。本刀照委托书的重述做,**没有显示化验** ——
+它是一类新的对外数据(化学成分),不在重述里就不顺手加。**要 Tim 定:** 要的话,一支 `portal_assays()`(只读 `is_final` 的那一份、只回金属 % / 水分 / 日期 / 化验室名,
+不回对方的结果、争议细节)+ 交货页上的一列,一个小切次。**删除条件:** Tim 裁定不要(删本条),或那一刀落地。
+
+## CHANGE-HISTORY-8S-AFTER-BULK-GRANTS · `/settings/change-history` 撞上 8 秒的语句上限 —— 当最近的几十次操作是大批的一次性授权时(MES-9b 冒烟量到,2026-10-20;登记,不修)
+
+**量到的:** MES-9b 的第二次冒烟(01:09 起)`/settings/change-history` → HTTP 500,`change_log_rows: 57014 canceling statement due to statement timeout`;第一次冒烟(00:30)同一页 200。
+以 admin 的身份、只读重量(`change_log_rows(…, p_limit 51, p_by_entry true)`,`authenticated` 的 8 秒上限):**两次都在 8.5 秒处被取消**;放开上限跑完是 **8.0 秒**,
+读到的是最近 51 次操作 = **501 行**(seq 72,794–73,294)—— 全是当晚证明脚本与冒烟自己的一次性账号、角色与授权(当晚 change_log 多了约 1,800 行,其中 1,652 行是
+`role_permissions`)。耗时在逐行的审计记录计算里(`trail_row_record` → `trail_subject_members` / `trail_current_image`);`(table_name, row_key)` 有索引。
+**不是 MES-9b 的代码造成的**(本刀没有改这几支函数与那一页),是【数据量】:一页的代价随"最近那几次操作有多少行"涨,而一次克隆角色就是一笔几十行的操作。
+**今天的后果:** 最近的操作被大批授权占满时,打开变更记录页会 500(冒烟会红);正常业务的写入把它们挤出最近那一窗之后自己恢复。
+**可选的修法(未做,另一刀):** 按操作而不是按行先截断,再算审计记录;或者给 `change_log_rows` 的那一段一个更便宜的路径。**删除条件:** 那一刀落地。
+
+## MES9B-DOWNLOAD-LOG-RECORDS-THE-REQUEST · 一行下载记录说的是"它要走了这一份",不是"它拿到了完全对的字节"(MES-9b 记,2026-10-19;刻意的)
+
+`portal_document_open()` 先写下载记录、再交出路径与哈希;路由随后取字节、重算 sha256,对不上就 409。所以一次 409 也留下一行(线上验证 409 那一格实测:记录 +1)。
+**为什么这样排:** 存储策略只放行【两分钟内刚记过】的那一个对象 —— 记录必须先于取字节,否则"每一次取字节前面都有一行记录"就不成立(Q22 的完整性是机制,不是约定)。
+记录是只追加的,不能事后补一句"结果是 409"。**员工读它时的含义:** 这位门户账号在那一刻要过这一份签发档;它拿没拿到对的字节,看同一时刻有没有人报过一份档案对不上。
+**删除条件:** 若 Tim 要区分"交出了"与"被拒了",加一支由路由在交出字节之后调的记录函数(第二行,同样只追加)。
 
 ## NOROLE-PO-ORPHAN-FILE · `po-documents` 里有一份没有任何 `po_issues` 指着的 PDF —— 多半就是那次空操作的清理留下的(NOROLE-SURFACE 量到,2026-10-19)
 

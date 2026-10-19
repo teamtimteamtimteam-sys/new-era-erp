@@ -20,7 +20,7 @@
 --   CCY    外币账单按名拒,本位币从数据读(Q28);时间段重叠拒;量到的超过账单拒
 --   PERM   没有 module.finance.edit 过不了账;没有 module.finance.view 看不了预览;没有 action.confirm_capture 记不了读数(Q27)
 --   MASK   没有 data.view_prices 的读者:金额为空、kWh 照见;五列金额不在列级授权里(Q30)
---   LOG    四张新表都进变更记录(覆盖零缺口、豁免仍是 8);审计记录:读数在电表上,一张单与它的行在那张单上,分给一炉的那一行也在那一炉上(Q31)
+--   LOG    四张新表都进变更记录(覆盖零缺口、豁免仍是 8 —— MES-9b 起是 9);审计记录:读数在电表上,一张单与它的行在那张单上,分给一炉的那一行也在那一炉上(Q31)
 --   V25    有共用池电表而规则为空 → 待补的值那一行;写下规则那一行就消失;规则写下之后分摊【仍然】把共用池留在 6200(本刀不按它摊)(Q32)
 --   REV    一次分摊的费用单不许单独冲(EXPENSE_IS_ELECTRICITY_ALLOCATION)
 --   ALLOC-PAID ★ MES-5b-2(Step 0 Q29,MES-5a-2 close-out 裁定 b):一张【已付】的本位币电费单 —— 借 2200 / 借 6200 / 贷【本位币银行】;
@@ -447,7 +447,7 @@ BEGIN
     -- ══════════════ LOG · 变更记录与审计记录 ══════════════
     RAISE NOTICE 'fixture 256 · LOG';
     v_j := change_log_coverage_gaps();
-    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 8 THEN
+    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 9 THEN
         RAISE EXCEPTION 'FIXTURE 256 LOG: every new table logged, exclusions still 8 — got %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'meter_readings' AND op = 'INSERT')
        OR NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'electricity_allocations' AND op = 'INSERT')
