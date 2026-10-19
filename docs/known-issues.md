@@ -3,6 +3,24 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ~~MES9-PUBLIC-SIGNUP-OPEN · 线上开着公开注册 —— 任何访客都能自建一个已确认的账号(MES-9 Step 0 量到,2026-10-19)~~ —— ✅ **关闭于 2026-10-19(Tim 在 Supabase 后台关掉,本条由 NOROLE-SURFACE Step 0 读回)**
+
+**找到(MES-9 Step 0 §0.1,`docs/surveys/MES-9/STEP0-HANDBACK.md`):** 以 anon 公钥读 `GET /auth/v1/settings` → `disable_signup: false`、`mailer_autoconfirm: true`、
+email 提供方开着 —— 即任何访客自建的账号【当场已确认】,而一个没有角色的已登录会话今天读得到 14 个私有桶里 40 个存储对象中的 38 个、`user_roles`、`roles`、
+`role_permissions`、金属价、科目表,能往 13 个桶上传、在 4 个桶里改删(该清单与它的修法是 `NOROLE-SURFACE`,见 `docs/forward-queue.md`)。
+`docs/fresh-install-checklist.md` 第 6 步本来就要求关掉;线上从来没关过。应用自己没有注册入口(`app/` · `lib/` 里 `signUp` 0 处)。
+
+**怎么关的:** Tim 关掉了 Supabase → Authentication 的「Allow new users to sign up」。**读回(2026-10-19 11:45:44 CST):**
+① 以 anon 公钥读 `https://wvywpohbwkiinmipmuku.supabase.co/auth/v1/settings` → **`disable_signup: true`**,`mailer_autoconfirm: true`(注册已关,此值不再有入口可用),
+`anonymous_users: false`,外部提供方只有 `email: true`;② `docs/surveys/NOROLE-SURFACE/signup-readings.sql`(以 `postgres`、`rolbypassrls = true` 读 `auth.users` 基表,
+`BEGIN READ ONLY … ROLLBACK`,11:46:15 CST,`READ_OWN_EXIT=0`)→ **`auth.users` 7 行**,0 封禁、0 删除、0 匿名,`auth.identities` 全部 `email` 7 条,
+最晚一个建于 2026-09-23;MES-9 Step 0 读数(10:21 CST)之后新建 **0** 个。7 个账号逐一是已知的那 7 个:admin@swm-os.test(admin)· chooer@evoltrya.test(finance)·
+fusheng@evoltrya.test(warehouse)· phua@evolytra.test(cto)· sandra@evoltrya.test(cco)· tim@evoltrya.test(cfo)· vince@evoltrya.test(gm)。
+**关注册不挡建账号:** `/settings/accounts` 的建号走 service role 的管理接口 —— `app/settings/accounts/accountActions.ts:107`
+`admin.auth.admin.createUser({ … email_confirm: true … })`,`admin` 来自 `createAdminClient()`(`:90`,`lib/supabase/admin.ts:22-35`,`SUPABASE_SERVICE_ROLE_KEY`);
+Supabase 的 `disable_signup` 只管公开的 `/signup`,不管 admin 接口 [D]。**没有用建一个账号去证**(那是本块之外的一次线上写)。
+**残余:** 这一条只关了【外面的门】;一个没有角色的【内部】会话能读到什么,仍是 `NOROLE-SURFACE` 的事。
+
 ## ~~MES5A1-VIEW-REPLAY-ORDER-NOT-TOPOLOGICAL · 重建时视图的重放顺序【不是】拓扑排序 —— 一张视图可能在它读的那张视图之前被建(MES-5a-1 登记,2026-10-08)~~ —— ✅ **关闭于 MES-5b-1(`v1.4.45`,2026-10-08)**
 
 **怎么关的:** `db/check_mirrors.py` 的 `view_replay_order` 改按【依赖的深度】排(读零张视图 = 0,读的视图里最深的 + 1),同深度再按文件名 ——
@@ -3187,6 +3205,9 @@ quote-driven / 两者都是),三处旧文案(`fxPage.gapsTitle`、`fxPage.gapsMi
 > "它压在每一张表单的路上" —— 那个更大的说法**碰巧是对的**,但对的理由与本条
 > 记的机制**不是同一件事**。一个被转述放大的问题,和一个被正确诊断的问题,
 > 在队列里长得一模一样。
+>
+> ★ **① 已决定(Tim,2026-10-19,MES-9 Step 0 Q9 照推荐接受):刷新令牌重用间隔保持 10 秒(Supabase 的默认与建议),轮换照开;
+> ① 按"已决定"关闭。** 机制本身没变 —— 下面的手工复现步骤仍然适用于以后任何动到中间件的刀。原文保留:
 >
 > **仍然开着的只有 ①,而它是一次【配置取舍】,归 Tim** ——
 > `security_refresh_token_reuse_interval`(现为 10 秒)或关掉轮换。

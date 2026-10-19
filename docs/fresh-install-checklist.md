@@ -81,7 +81,11 @@ Standing up a new EVoltrya OS project from this repository.
    ```
    If the second query returns no rows, **stop** — the prerequisite was not met.
 5. **Verify login.**
-6. **Disable public signup** in Supabase Auth.
+6. **Disable public signup** in Supabase Auth (Authentication → "Allow new users to sign up" off).
+   **Verify by reading it back**, not by remembering: `GET https://<ref>.supabase.co/auth/v1/settings` with the anon key
+   must return `"disable_signup": true`. The live project ran with signup open until 2026-10-19 although this step existed
+   (`docs/known-issues.md` `MES9-PUBLIC-SIGNUP-OPEN`). Closing it does not stop `/settings/accounts` from creating staff
+   accounts — that path uses the service-role admin API (`app/settings/accounts/accountActions.ts:107`).
 7. **Enter the per-install values** (these cannot be seeded — they are this company's
    data, not a design default).
 

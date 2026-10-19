@@ -1,7 +1,7 @@
 # MES-9 Step 0 — the supplier portal (2026-10-19)
 
 **STOP GATE.** Read-only survey and grilling. No code edit, no migration, no live write (the step-1 close-out's throwaways are in
-`MES-8b-2-CLOSEOUT.md` and are gone). Waiting on Tim's answers to Q0–Q30 (§12).
+`MES-8b-2-CLOSEOUT.md` and are gone). ~~Waiting on Tim's answers to Q0–Q30 (§12).~~ **Answered by Tim 2026-10-19 — closed rulings in §15.**
 
 Tags: **[M]** measured (file:line, a grep, or a named live query with its identity) · **[I]** inferred · **[R]** a standing ruling · **[D]** from vendor
 documentation (fetched 2026-10-19; Supabase docs carry no version date).
@@ -403,4 +403,24 @@ so the cleanup plan removes the link, the account and the throwaway supplier.**
 
 ## §14 · Stop
 
-No code edits and no migrations. Waiting on Tim's answers to Q0–Q30.
+No code edits and no migrations. ~~Waiting on Tim's answers to Q0–Q30.~~ Answered — §15.
+
+## §15 · Tim's rulings (2026-10-19) — closed
+
+Recorded by NOROLE-SURFACE Step 0 (`docs/surveys/NOROLE-SURFACE/STEP0-HANDBACK.md`), also in `docs/forward-queue.md` (the MES-8b-2 item and the MES-group table, rows
+15-0 · 15a · 15b · 15c).
+
+- **Q0** — done by Tim: "Allow new users to sign up" turned off. Read back 2026-10-19 11:45:44 CST with the anon key: `disable_signup: true`; `auth.users` = the 7
+  known accounts, 0 created since this Step 0 (`docs/known-issues.md` `MES9-PUBLIC-SIGNUP-OPEN`, closed).
+- **Q1** — **three cuts: MES-9a identity and isolation · MES-9b what a supplier sees · MES-9c certificate uploads and staff review.**
+- **Q2** — **isolation by a separate `supplier_portal` Postgres role set by the access-token hook, replacing MES-0 Q86.** The first act of MES-9a is a **live dry run
+  of the hook**; if it fails, MES-9a stops and reports, and **Q86 is the fallback**.
+- **Q4 and Q30 (Tim)** — **the no-role internal surface is fixed first, as its own cut `NOROLE-SURFACE`, before MES-9a** (not after MES-9c as §12 recommended).
+- **Q12** — all three MES-9 cuts are built and proved **on the free plan with throwaway suppliers**; **the paid plan is required before the first real supplier
+  account**.
+- **Q23** — **MFA is not required in MES-9a**; it is offered later.
+- **Every other recommendation — Q3, Q5–Q11, Q13–Q22, Q24–Q29 — is accepted exactly as stated in §12.** (Q9 therefore closes SESSION-1 ① as decided: reuse
+  interval stays 10 s — noted in `docs/known-issues.md`.)
+- **Before the first real supplier account:** the production domain (Q13), **V38**, **V39**, **V40**, and the **paid plan**.
+
+Order: **NOROLE-SURFACE → MES-9a → MES-9b → MES-9c.**
