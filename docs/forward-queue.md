@@ -1215,6 +1215,35 @@
 >    `floor_display` 逐个多加目录里的 84 个码(子事务里、撤掉)—— 每一次豁免都没了、大屏照样开;F18 线上 23 批 / 119,104 kg 列在「kind not stated」下、合计不完整;
 >    AP / AR 未解释 0.00;收尾 0 个一次性账号、0 个探针角色、0 个 `floor_display` 授权。七个真角色的只读读数表、开场 / 收尾读数在交回里。
 >    验证与读数在 `docs/handbacks/MES-8b-2.md`。**MES-8 至此全部关闭**(8a · 8b-1 · 8b-2)。
+>    ★ **部署:Tim 在 Vercel 上确认 `4236db6a` 已部署(MES-8b-2 close-out + MES-9 Step 0 委托书,2026-10-19)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-17 13:42:39 CST**(测量:`db/migration-windows.tsv`,`2026-10-17-mes8b2-wall-display.sql`)·
+>    终点下界 **2026-10-19 09:49:03 CST**(测量:推送把 `origin/main` 移到 `4236db6a`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`4236db6a refs/remotes/origin/main@{2026-10-19 09:49:03 +0800}: update by push`;
+>    这一次推送 `91083d75..4236db6a` 只带本刀自己的提交 `4236db6a`(2026-10-19 09:47:29))·
+>    终点上界 **2026-10-19 09:59:02 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 44 h 06 min 24 s,至多 44 h 16 min 23 s。**(长,是因为本刀的提交与推送比它的迁移晚了两天 —— 收尾读数 10-17 14:35:26,提交 10-19 09:47:29 ——
+>    不是因为部署。)
+>    窗口里坏掉的(**推导**,MES-8b-2 交回 §12,没有在线上量):没有在用的东西坏。
+>    窗口里的只读读数(2026-10-19 10:03:19 CST,`postgres`,基表;`docs/surveys/MES-9/mes8b2-closeout-readings.sql`,`READ_OWN_EXIT=0`):
+>    变更记录 13:42:39 起只有 MES-8b-2 自己的证明 / 冒烟一次性行(13:58–14:35,角色 12 / 12 · 授权 13 / 13 · role_permissions 650 / 650 · 员工 9 / 9 · 评估 4 / 4 · 草稿合同 2 / 2,逐表 INSERT = DELETE);
+>    **10-17 14:35:26 之后到本会话 0 行**(同事也没有写过任何一张有记录的表);变更记录 55,961 行、max seq 60,611 —— 与 MES-8b-2 的收尾读数逐字相同。
+>    `floor_display` 0 个持有者 · V28 空 · 视图 197 张,对 anon / authenticated 带写授权的 **0** 对 · 两张销毁证书的字节与 eTag 逐字未变 · 审批开着 · `require_calibrated_since` 为空。
+>    **已部署的就是 `4236db6a` 的代码**(测量:一次性账号在线上打开 `/display` 是 23 块计数牌子、别的页是大屏那一句拒绝、价格敞口页有「Kind not stated」一节、
+>    月结页的表在横向滚动里 —— 都只从 `4236db6a` 起才有)。
+>    ★ **Tim 裁定(2026-10-19):`data.view_floor_board` 由 floor_display · admin · cfo 持有 —— 照建成的样子接受**(MES-8b-2 决定 3;`docs/role-matrix.md` 两行同步)。
+>    ★ **close-out 的核对(委托书第 1.3–1.4 条,逐项证据在 `docs/surveys/MES-9/MES-8b-2-CLOSEOUT.md`)**:
+>    **SESSION-1 手工复现(第一次在动过中间件之后真的走了)** —— 在已部署的应用上、一个真浏览器、一个一次性账号:经 `/login` 表单登录;
+>    `/inventory/locations/new` 用一个**已有**库位的号提交(库位没有硬删的路,我自己的库位删不掉,所以撞号用已有的号 —— 被拒在库里,那一行一个字都没读回、没改)→
+>    本地化的重号拒绝 + 会话还在(没有一个 `Max-Age=0`、刷新不跳 `/login`);`/me` 头像上传与移除两次**成功**提交(另一个模块),会话都在;把 cookie 里的
+>    `expires_at` 改到一小时以前再走一遍 —— 服务端刷新了会话(新的刷新令牌),拒绝、成功、会话全部照旧。**没有会话回归。**
+>    **a** 委托书列的 14 项 fixture:8 项有臂(271 KIND · 273 COUNTS · GATE · IDLE · V28 · LOG);4 项只有库那一半有臂(`/display` 的门、别的会话空闲登出不变、
+>    豁免在服务端判、「refreshed at」);**2 项没有任何 fixture**(别的路由拒绝大屏会话、月结页宽度)—— 应用那一半只由 MES-8b-2 的一次性 HTTP 证明与版式普查证过,
+>    今天在已部署的应用上重量一遍都对。SQL fixture 够不到它们(没有 JS 运行器)。**缺的是记录,不是行为** —— 登记 `MES8B2-APP-HALF-NO-REGRESSION-CHECK`。
+>    **b** 已部署的应用上:大屏账号 `/display` 23 块牌子、「Refreshed at」、没有外壳;六条别的路由各是那一句拒绝、出路指回 `/display`;admin · cfo 克隆看得见牌子与 V28 面板,
+>    finance · warehouse 被拒;价格敞口页 admin · cfo · finance 列出「Kind not stated — 23 batch(es), 119,104 kg」、合计「Incomplete」,warehouse 被拒;
+>    月结页 390 px 四个克隆整页溢出都是 **0**。**没有缺的、没有坏的** —— 所以第 2 步(MES-9 Step 0)照常开始。
+>    **c** MES-8b-2 交回 §10 的 16 条决定逐条列在 close-out 文件里。收尾:0 个一次性账号、0 个探针角色、0 个 `floor_display` 持有者。
 >    **下一刀 MES-9 · 供应商门户**(见下面「⬜ ★ MES 组」第 15 行 —— MES 组的最后一刀;先做内部专用的那次清扫,MES-0 Q86)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**

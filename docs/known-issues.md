@@ -3292,6 +3292,10 @@ quote-driven / 两者都是),三处旧文案(`fxPage.gapsTitle`、`fxPage.gapsMi
 5. 想连"令牌到期"一起试:把 cookie 里存的 `expires_at` 改到过去(不动 token 本身),
    再走一遍第 2–4 步 —— 那模拟的是一个放了一小时的标签页。
 
+> ★ **最近一次照着走(MES-8b-2 close-out,2026-10-19,`4236db6a` 已部署):在【已部署的应用】上、真浏览器、一次性账号 —— 第 1–5 步全过,没有会话回归。**
+> 第 2 步撞的是一个【已有】库位的号(库位没有硬删的路,自己建的删不掉);第 4 步的成功提交是 `/me` 的头像上传与移除(另一个模块,唯一的记录是以自己 uid 命名的对象,
+> 用完即删)。第 5 步实测服务端真的刷新了会话(新的刷新令牌)。证据:`docs/surveys/MES-9/MES-8b-2-CLOSEOUT.md` §3,脚本 `docs/surveys/MES-9/mes8b2-closeout-probe.mjs`。
+
 > **写这条时踩到的坑,记下来免得下一个人重踩**:用脚本驱动 server action 时,
 > 【不要全页正则抓第一个 `$ACTION_ID_`】。外壳 `TopNav` 里的**退出登录**表单是页面上
 > 第一张表单,抓第一个 action id 会把"提交这张表"变成"**退出登录**" ——
@@ -11103,12 +11107,6 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 
 ## MES-8b-2(`v1.4.58`,2026-10-17)—— 车间大屏 · F18 · 月结页 390 px
 
-### MES8B2-FRESH-CLONE-91083D75 · `91083d75`(MES-8b-1 close-out 的文档提交)欠的那一次冷构建,本刀开头补上了 —— 绿(记录,不是缺陷)
-
-`91083d75` 推送时没有从它自己冷构建过一次(close-out 那一刀只写了文档)。本刀第一件事:`git clone` 到仓库外的临时目录、检出 `91083d755735bee5bba60c5b3b383ada739d8118`、
-没有 `.env.local`,`npm ci` → **`CI_EXIT=0`**,`npm run build` → **`BUILD_EXIT=0`**(两个退出码都由脚本自己写进日志)。没有要修的;这一条留着,是为了"欠过、补过"有一处记录。
-**删除条件:** 下一刀读过即可删。
-
 ### MES8B2-DISPLAY-SOFT-NAV-INTO-DISPLAY · 一个【不是大屏】的读者软导航进 `/display` 时,浏览器那一半的空闲预警不跟进来(登记,不修)
 
 `/display` 不画外壳,`AppChrome`(客户端)在软导航到它时把外壳连同里面的 `IdleWatcher` 一起收起;根布局只在【硬导航】打开 `/display` 时为不是大屏的会话
@@ -11121,3 +11119,12 @@ MES-7a-2 的交回(决定 16)已经写过"没有科目表那一页",并以试算
 Step 0 §6 写的是「`/display`(settings panel for admin)」;本刀照做:面板只画给【不是大屏】的会话(一块挂在墙上的屏不该画一张管理员表单),持
 `action.manage_permissions` 的按得动,别的(cfo)画成按不动、说出码。V28 那一支待补的值指向 `/display`。**删除条件:** 若 Tim 要一张单独的设置页,搬过去并改那一支的 href。
 
+### MES8B2-APP-HALF-NO-REGRESSION-CHECK · 大屏那一刀的【应用那一半】没有回归检查 —— 只被一次性证明证过(MES-8b-2 close-out 登记,2026-10-19;登记,不修)
+
+MES-8b-2 委托书的 fixture 清单(14 项,逐项对照见 `docs/surveys/MES-9/MES-8b-2-CLOSEOUT.md` §4 a)里,**两项没有任何 fixture**:
+**别的路由拒绝一块大屏的会话**(根布局 + 六张不要码的页面,`requireNotFloorDisplay`)与**月结页 390 px 的宽度修法**(`app/finance/month-end/page.tsx:290`);
+另有四项只有【库那一半】有臂(`/display` 的门、别的会话空闲登出不变、豁免在服务端判、「Refreshed at」)。应用那一半只由 MES-8b-2 的一次性 HTTP 证明
+(`db/scripts/2026-10-17-mes8b2-live-proof.mjs`)与版式普查证过,close-out 在已部署的应用上重量了一遍(全对)。**行为是对的;缺的是一道会在下一次改动时变红的检查。**
+SQL fixture 结构上够不到它们(没有 JS / HTTP 运行器 —— 与上面 SESSION-1 那一句同一个原因)。MES-8b-2 交回没有逐项对照,也没有说这两项没有 fixture —— 这一条补的是那句话。
+**可选的修法(未做):** 一道只读仓库文件的静态检查 —— 每一张不调 `requireModule` / `requireFunction` 的 `page.tsx` 必须调 `requireNotFloorDisplay`;
+冒烟加一个只挂 `floor_display` 的会话走三五条路由。**删除条件:** 二者之一落地,或 Tim 裁定一次性证明就够。
