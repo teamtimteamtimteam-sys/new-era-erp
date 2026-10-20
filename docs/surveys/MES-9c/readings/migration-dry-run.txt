@@ -1,0 +1,11 @@
+psql:<stdin>:2049: NOTICE:  MES9C pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0089 → chooer@evoltrya.test
+DRY|inside|tables=325|supplier_portal executes=portal_can_read_object,portal_can_upload_object,portal_certificates,portal_deliveries,portal_document_open,portal_documents,portal_export_my_data,portal_me,portal_submission_abandon,portal_submission_begin,portal_submission_finish|storage.objects INSERT=true|storage policies=56|portal policies=3|buckets=20|V39=10485760 {application/pdf,image/jpeg,image/png}|exclusions=9|gaps=[]|change_log_rows=change_log_rows(date,date,text,text,uuid,boolean,bigint,integer,text[],boolean,boolean,text[],bigint,integer)|authenticated executes change_log_rows=true|anon executes change_log_rows=false|authenticated executes portal_certificates=false
+DRY|after rollback|submissions table=false|tables=324|storage policies=53|buckets=19|change_log_rows=change_log_rows(date,date,text,text,uuid,boolean,bigint,integer,text[],boolean,boolean,text[])
+DRY_OWN_EXIT=0

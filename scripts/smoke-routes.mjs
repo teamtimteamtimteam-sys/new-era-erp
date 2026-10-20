@@ -1160,6 +1160,10 @@ const EXPECTED = {
     //   (不调任何函数、不写下载记录)。门户会话那一半(200 + 重算的哈希 · 409 · 别家的 404)由线上证明证
     //   (db/scripts/2026-10-19-mes9b-live-proof.mjs)。不写库。
     '/portal/documents/file': [403],
+    // ── MES-9c(2026-10-20,MES-9 Step 0 §5 · V39):门户交一份证书 —— 一个【只收 POST】的 Route Handler(multipart 表单)。冒烟发的是 GET,
+    //   Next 对没有 GET 的路由回 405 —— 那正是它该说的话(一个 200 才是坏了)。POST 那一半(门户会话 · V39 的两种拒绝 · 交上去)由本地重建上的
+    //   HTTP 证明证(db/scripts/2026-10-20-mes9c-local-upload-proof.mjs);员工会话 POST 是 403。不写库。
+    '/portal/certificates/upload': [405],
     // ── ★★ /me/avatar —— 与上面那一条【同一个提交带进来的】,而预检把它遮了两天 ★★
     // 【它不是任何一刀弄坏的,这句话是量出来的】
     //   · `git show HEAD:scripts/smoke-routes.mjs | grep -c 'me/avatar'` = **0** —— 在 HEAD 上就没登记过;

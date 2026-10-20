@@ -849,6 +849,21 @@ GRANT EXECUTE ON FUNCTION public.portal_documents() TO supplier_portal;
 GRANT EXECUTE ON FUNCTION public.portal_deliveries() TO supplier_portal;
 GRANT EXECUTE ON FUNCTION public.portal_document_open(text, uuid) TO supplier_portal;
 GRANT EXECUTE ON FUNCTION public.portal_can_read_object(text, text) TO supplier_portal;
+-- ⑤ MES-9c(2026-10-20,MES-9 Step 0 §5 · Q19 · V39):门户交证书 —— 五支,同 ① 的授法:【只】授 supplier_portal。
+--    portal_certificates(清单与 V39)· portal_submission_begin(先按 V39 判,登记一行 uploading)· portal_submission_finish(字节到了 → 等审核)·
+--    portal_submission_abandon(没传成 → 收回)· portal_can_upload_object(portal-uploads 上两条 TO supplier_portal 策略的判据)。
+--    fixture 277 对其中每一支跑两家供应商;判词八逐条比基线。员工审核那两支(portal_submission_accept · _reject)照第 31 行授给
+--    authenticated —— DEFINER,自己查 module.suppliers.edit(Q19)。
+REVOKE EXECUTE ON FUNCTION public.portal_certificates() FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_submission_begin(text, text, text, bigint, text, date, date) FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_submission_finish(uuid) FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_submission_abandon(uuid) FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.portal_can_upload_object(text, text) FROM authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.portal_certificates() TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_submission_begin(text, text, text, bigint, text, date, date) TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_submission_finish(uuid) TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_submission_abandon(uuid) TO supplier_portal;
+GRANT EXECUTE ON FUNCTION public.portal_can_upload_object(text, text) TO supplier_portal;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- F16(MES-7b-2,2026-10-16,Tim):【视图一律不可写】—— 收回 anon / authenticated(与 PUBLIC)在 public 里【每一张视图】上的

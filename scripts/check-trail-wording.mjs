@@ -7716,6 +7716,67 @@ if (FAULT === 'wording-drift-mes9a') dict.text = { ...dict.text, 'who.portal': '
     if (FAULT === 'wording-drift-mes9a' && !problems.gold36.length) problems.gold36.push('(注入 wording-drift-mes9a 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ㊲ MES-9c:供应商经门户交上来的证书 —— 门户账号开始传、交去审核、没传成(「谁做的」= Supplier portal — <供应商名>);员工接受(同一次
+//   操作里那张证书与那份附件)、驳回(理由在理由那一格,供应商在门户里看得见同一句)。每一句先由造句器造出来、逐句人工核过,再钉在这里 ——
+//   交回报告 docs/handbacks/MES-9c.md 列出。注入 wording-drift-mes9c → 这一臂必须红。
+problems.gold37 = []
+if (FAULT === 'wording-drift-mes9c') dict.text = { ...dict.text, 'sup.portalCertRejected': 'Certificate declined' }
+{
+    const sup = uuid(), sub = uuid(), u = uuid(), link = uuid(), comp = uuid(), att = uuid(), staff = uuid()
+    const refs = { supplier_id: { [sup]: { label: 'SUP-2026-0042' } }, cert_type_code: { nea_import: { label: 'NEA Import Permit' } },
+        document_id: { [att]: { label: 'permit.pdf' } } }
+    const SUB = { id: sub, portal_user_id: link, user_id: u, supplier_id: sup, cert_type_code: 'nea_import', cert_no: 'NEA-123', valid_from: '2026-01-01',
+        valid_until: '2027-01-01', file_name: 'permit.pdf', file_type: 'application/pdf', file_size: 123456, bucket_id: 'portal-uploads',
+        storage_path: `${sup}/${sub}.pdf`, status: 'uploading', created_at: '2026-10-20T02:00:00Z', submitted_at: null, decided_at: null, decided_by: null,
+        reject_reason: null, compliance_id: null, attachment_id: null }
+    const SENT = { ...SUB, status: 'submitted', submitted_at: '2026-10-20T02:00:05Z' }
+    const C = []
+    const add = (label, rows, actor) => C.push({ label, rows, actor })
+    const PORTAL = { state: 'portal', name: 'Acme Batteries' }, STAFF = { state: 'person', name: 'Sandra' }
+    add('portal cert · upload started', [{ table: 'portal_certificate_submissions', op: 'INSERT', key: { id: sub }, refs, new: SUB }], PORTAL)
+    add('portal cert · sent for review', [{ table: 'portal_certificate_submissions', op: 'UPDATE', key: { id: sub }, refs,
+        cols: ['status', 'submitted_at'], old: SUB, new: SENT }], PORTAL)
+    add('portal cert · upload did not complete', [{ table: 'portal_certificate_submissions', op: 'UPDATE', key: { id: sub }, refs,
+        cols: ['status'], old: SUB, new: { ...SUB, status: 'abandoned' } }], PORTAL)
+    add('portal cert · accepted', [
+        { table: 'supplier_attachments', op: 'INSERT', key: { id: att }, refs, new: { id: att, supplier_id: sup, storage_path: `${sup}/x-permit.pdf`, file_name: 'permit.pdf',
+            file_type: 'application/pdf', file_size: 123456, doc_category: null, notes: null, created_by: staff, updated_by: staff, deleted_at: null } },
+        { table: 'supplier_compliance', op: 'INSERT', key: { id: comp }, refs, new: { id: comp, supplier_id: sup, cert_type_code: 'nea_import', cert_no: 'NEA-123',
+            issuing_body: 'NEA', valid_from: '2026-01-01', valid_until: '2027-01-01', document_id: att, notes: null, deleted_at: null, created_by: staff, updated_by: staff } },
+        { table: 'portal_certificate_submissions', op: 'UPDATE', key: { id: sub }, refs, cols: ['status', 'decided_at', 'decided_by', 'compliance_id', 'attachment_id'],
+            old: SENT, new: { ...SENT, status: 'accepted', decided_at: '2026-10-20T03:00:00Z', decided_by: staff, compliance_id: comp, attachment_id: att } }], STAFF)
+    add('portal cert · rejected with its reason', [{ table: 'portal_certificate_submissions', op: 'UPDATE', key: { id: sub }, refs,
+        cols: ['status', 'decided_at', 'decided_by', 'reject_reason'], old: SENT,
+        new: { ...SENT, status: 'rejected', decided_at: '2026-10-20T03:00:00Z', decided_by: staff, reject_reason: 'The permit has expired' } }], STAFF)
+    const WANT = {
+        'portal cert · upload started': { title: "Certificate upload started through the supplier portal · NEA Import Permit", lines: [], reason: null, who: "Supplier portal — Acme Batteries" },
+        'portal cert · sent for review': { title: "Certificate sent for review through the supplier portal · NEA Import Permit", lines: [], reason: null, who: "Supplier portal — Acme Batteries" },
+        'portal cert · upload did not complete': { title: "Certificate upload through the supplier portal did not complete · NEA Import Permit", lines: [], reason: null, who: "Supplier portal — Acme Batteries" },
+        'portal cert · accepted': { title: "Certificate from the supplier portal accepted · NEA Import Permit", lines: ["(Compliance certificate added · NEA Import Permit)", "Issuing body: NEA", "Valid from: 01/01/2026", "Valid until: 01/01/2027", "Certificate document: permit.pdf", "(Attachment added)"], reason: null, who: "Sandra" },
+        'portal cert · rejected with its reason': { title: "Certificate from the supplier portal rejected · NEA Import Permit", lines: [], reason: "The permit has expired", who: "Sandra" },
+    }
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}` : `(${l.text})`
+    const got37 = {}
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD37', order: 1, prelog: false, at: '2026-10-20T02:00:00+00:00',
+            actor: c.actor, cols: null, old: null, new: null, ctx: null, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, subject: 'supplier', recordId: sup }) } catch (err) { problems.gold37.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD37')
+        if (mine.length !== 1) { problems.gold37.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, lines: e.lines.map(lineText), reason: e.reason?.text ?? e.reason ?? null, who: e.who?.name ?? e.who?.text ?? null }
+        got37[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold37.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'reason', 'who']) if (got[k] !== w[k]) problems.gold37.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold37.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (C.length !== Object.keys(WANT).length) problems.gold37.push(`㊲ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    if (process.env.TRAIL_GOLD37_PRINT) console.log(JSON.stringify(got37, null, 8))
+    if (FAULT === 'wording-drift-mes9c' && !problems.gold37.length) problems.gold37.push('(注入 wording-drift-mes9c 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -7723,7 +7784,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用', gold33: '㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果', gold34: '㉞ MES-8a 的供应商评审、评级设定与供应商对账单:签发、取代与 PDF', gold35: '㉟ MES-8b-1 的合规包:冻结、取代、PDF 与 V26 / V27', gold36: '㊱ MES-9a 的供应商门户账号:开、撤销、匿名化,与门户账号做的事' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审', gold14: '⑭ U1-B 的工作流与泄漏', gold15: '⑮ MES-1 的设备与网关钥匙', gold16: '⑯ MES-2 的校准记录与地磅单', gold17: '⑰ MES-3a 的安全状态、库存上限与 NEA 类别', gold18: '⑱ MES-3b 的标签与两本新字典', gold19: '⑲ MES-4a 的加工记录与工序配置', gold20: '⑳ MES-4b 的抽检、算出来的损耗与电芯构造', gold21: '㉑ MES-5a-1 的逐模组放电、通道与拆去隔离', gold22: '㉒ MES-5a-2 的电表读数、电费分摊与 V25', gold23: '㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平', gold24: '㉔ MES-5b-2 的电费单撤回与工序页上的 V37', gold25: '㉕ MES-5b-3 的配料计划', gold26: '㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由', gold27: '㉗ MES-6a-2 的氟与氯、物质的角色与化验指标', gold28: '㉘ MES-6b-1 的不合格报告、质量验收限与罚铜', gold29: '㉙ MES-6b-2 的分析证书、它的字节档案与作废', gold30: '㉚ MES-7a-1 的停机原因、来源与停机原因字典', gold31: '㉛ MES-7a-2 的备件出给保养与退回', gold32: '㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用', gold33: '㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果', gold34: '㉞ MES-8a 的供应商评审、评级设定与供应商对账单:签发、取代与 PDF', gold35: '㉟ MES-8b-1 的合规包:冻结、取代、PDF 与 V26 / V27', gold36: '㊱ MES-9a 的供应商门户账号:开、撤销、匿名化,与门户账号做的事', gold37: '㊲ MES-9c 的门户交上来的证书:开始传、交去审核、没传成、接受、驳回' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

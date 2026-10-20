@@ -63,11 +63,35 @@ MES-9a 委托书的 fixture 清单(15 项,逐项对照见 `docs/surveys/MES-9b/M
 `docs/surveys/MES-9a/readings/live-proof.txt:5-9`、`:13-28`、`:47`、`:50`、`:52`)与版式普查证过。**行为是对的;缺的是一道会在下一次改动时变红的检查。**
 与 `MES8B2-APP-HALF-NO-REGRESSION-CHECK` 同一个形状、同一个原因(SQL fixture 没有 JS / HTTP 运行器);MES-9a 交回没有逐项对照,这一条补的是那句话。
 **可选的修法(未做):** 冒烟加一个一次性门户会话走三五条员工路由并断言那一句拒绝,员工会话断言 `/portal` 被拒。**删除条件:** 那一道落地,或 Tim 裁定一次性证明就够。
+**MES-9c 同一形状再多两条路由**(`/portal/certificates` · `/portal/certificates/upload`):库那一半在 fixture 277;冒烟只证员工 GET 上传路由是 405;
+门户会话那一半(空状态与 V39 的两种拒绝在线上 HTTP 证;收下一份合格文件、接受、驳回在本地重建上证)见 `MES9C-REVIEW-PAGE-NOT-RENDERED-WITH-A-SUBMISSION`。
 **MES-9b 同一形状再多三条路由**(`/portal/documents` · `/portal/deliveries` · `/portal/documents/file`):库那一半在 fixture 276,冒烟只证员工会话打开取档路由是 403;
 门户会话那一半(页面只列自己的、取档 200 + 重算的哈希、别家的 404、改过的字节 409)只由 MES-9b 的一次性证明证过 —— ~~线上证明(`db/scripts/2026-10-19-mes9b-live-proof.mjs`)~~
 ★ **更正(MES-9b close-out,2026-10-20,`docs/surveys/MES-9c/MES-9b-CLOSEOUT.md` §2 a 第 1 项):** 页面的空态与别家的 404 是线上证明(`db/scripts/2026-10-19-mes9b-live-proof.mjs`)证的;
 **取档 200 + 重算的哈希与改过的字节 409 是【本地重建】那一支证的**(`db/scripts/2026-10-19-mes9b-local-download-proof.mjs`,`docs/surveys/MES-9b/readings/local-download-proof.txt:17`)——
 线上没有一份已提交的签发档可取(MES-9b 续做裁定 4)。路由那一段是 `app/portal/documents/file/route.ts:56-58`。
+
+## MES9C-LIVE-STORAGE-UPLOAD-BY-POLICY-NOT-BY-API · 门户经 Storage API 把字节真的传进 portal-uploads 那一步,线上只证到【策略与平台的预检】,没有证到【一次真的上传】(MES-9c 记,2026-10-20;刻意的)
+
+委托书:线上不提交任何一份申请。而 portal-uploads 的上传策略只放行【一行已提交的 uploading 申请】登记过的那一条路径 —— 所以一次真的 Storage API 上传要先在线上
+提交一行申请,那正是不许做的。**线上证到的(`db/scripts/2026-10-20-mes9c-live-proof.mjs`):** ① 在一笔回滚的事务里,以门户账号真令牌里的声明、在 `supplier_portal` 角色下,
+平台自己的上传预检 `storage.can_insert_object` 对它登记过的路径回 `PT200`(= 放行,随后由平台撤掉),对别的路径与对 B 回 `42501`;往 `storage.objects` 插那一行(连同 RETURNING
+读回)过得了线上的策略;② HTTP:以门户令牌经 Storage API 往一条没有申请的路径传 → 拒。**本地重建证到的(`db/scripts/2026-10-20-mes9c-local-upload-proof.mjs`):** 原样的上传路由
+走完 begin → 以同一身份插行(真的 RLS)→ finish。**没证到的:** Storage API 自己那一段(把字节写进对象存储、它那一次 INSERT 的确切形状)对一行真的申请。
+**风险的方向:** 若 Storage API 对 `supplier_portal` 还要别的授权,第一次真的上传会被拒、路由回「文件没能存下」并把那一行收回 —— 看得见地失败,不会悄悄存下不该存的东西。
+**删除条件:** 第一位真的供应商(或 Tim 用一个一次性账号在线上)交出第一份证书、那一份到了员工面前。
+
+## MES9C-ABANDONED-UPLOAD-BYTES-STAY · 一份没传成的申请若在 portal-uploads 留下了字节,那份字节留着(MES-9c 记,2026-10-20;刻意的)
+
+`portal-uploads` 没有删除策略:交上来的字节是那一份申请的凭据(驳回的也是),没有一条路由会删它。唯一会留下"没人用的字节"的路径是:字节传到了、`portal_submission_finish` 却
+发现大小或类型与登记的不符(`PORTAL_UPLOAD_MISMATCH`),路由于是把那一行标成 abandoned —— 字节还在桶里。今天 0 份(线上 0 份申请)。**删除条件:** Tim 要一个清理路径
+(例如员工 `module.suppliers.edit` 删 abandoned 那一行指着的对象,一条带 `NOT EXISTS` 的删除策略),或决定照旧。
+
+## MES9C-REVIEW-PAGE-NOT-RENDERED-WITH-A-SUBMISSION · 审核那一块与门户证书页【带着一份申请】的样子,只在动作与数据那一层证过(MES-9c 记,2026-10-20)
+
+线上没有一份已提交的申请(委托书),所以 `/suppliers/[id]/edit` 的「Certificates sent through the portal」与 `/portal/certificates` 在 HTTP 上只渲染过【空状态】(版式普查与线上证明);
+「等审核 · 接受 · 驳回与理由」那几种样子由本地重建上的【原样的动作与函数】证(接受 / 驳回经 `portalSubmissionActions.ts`,供应商看到的经 `portal_certificates()` —— 页面读的正是它),
+不是一次页面渲染。与 `MES9A-APP-HALF-NO-REGRESSION-CHECK` 同一个原因(SQL fixture 与本地证明都没有 Next 的渲染器)。**删除条件:** 冒烟或一支探针能带着一份一次性申请渲染这两页。
 
 ## MES9B-STORAGE-FUNCTIONS-FOLLOW-THE-PLATFORM · 门户角色的可达面里有 19 支 Supabase Storage 的平台函数 —— 平台一升级,判词八就会红(MES-9b 记,2026-10-19;刻意的)
 
@@ -85,7 +109,20 @@ MES-0 Q84 与 MES-9 Step 0 §4 / Q14 的推荐里有"自己那几批的最终化
 它是一类新的对外数据(化学成分),不在重述里就不顺手加。**要 Tim 定:** 要的话,一支 `portal_assays()`(只读 `is_final` 的那一份、只回金属 % / 水分 / 日期 / 化验室名,
 不回对方的结果、争议细节)+ 交货页上的一列,一个小切次。**删除条件:** Tim 裁定不要(删本条),或那一刀落地。
 
-## CHANGE-HISTORY-8S-AFTER-BULK-GRANTS · `/settings/change-history` 撞上 8 秒的语句上限 —— 当最近的几十次操作是大批的一次性授权时(MES-9b 冒烟量到,2026-10-20;登记,不修)
+## ~~CHANGE-HISTORY-8S-AFTER-BULK-GRANTS · `/settings/change-history` 撞上 8 秒的语句上限 —— 当最近的几十次操作是大批的一次性授权时(MES-9b 冒烟量到,2026-10-20;登记,不修)~~ —— ✅ **关闭于 MES-9c(F19,`v1.4.62`,2026-10-20)**
+
+**修法(F19,最小的那一种):** `change_log_rows` 多两个参数 `p_row_before` · `p_row_limit` —— 页面仍按原来的 `p_before` · `p_limit` 选出同一组操作,只是那一组的行按 seq 倒序、
+**一次至多 100 行**地分几次取(`app/settings/change-history/page.tsx` 的 `ROW_PAGE`)。读什么、谁读得到、怎么遮蔽一样都没变:几次调用交出的行与一次取完【逐行相同】
+(fixture 278 SAME,含审计记录的 actor / belongs_to / refs 与遮蔽);不给新参数的旧读法逐行不变(ROWMODE)。一次调用的代价从此有上界(100 行 × 实测每行 ≈ 17 ms),
+**与那一窗里有几百还是几千行无关**。fixture 278 自带一次 523 行的批量操作(一笔事务里 520 个角色),断言每一次分页调用 ≤ 100 行、≤ 4 秒,三格注入(无视行上限 · 游标重一行 ·
+游标不动)各自红。
+**线上的前后读数(都是页面默认那一读:21 次操作;以 admin 的身份、`authenticated` 的 8 秒上限):**
+* **之前**(2026-10-20 10:26 CST,迁移之前,只读,`docs/surveys/MES-9c/readings/f19-before.txt`):一次调用读完那 21 次操作的 **381 行**(其中 360 行是一次性角色的授权),
+  **9,557 ms 与 6,455 ms**(两次)—— 第一次已经超过 8 秒上限;耗时落在逐行的审计记录上:同一组行分开量,`trail_row_record` ≈ 3.4 s、`trail_refs` ≈ 1.5 s、读规则 ≈ 1.0 s。
+  已部署的(旧)页面以 cfo 与 admin 的同码克隆打开 → **HTTP 500**(18,373 ms · 14,639 ms;`readings/f19-deployed-before.txt`)。
+* **之后**(迁移之后,本刀的页面代码在本地 `next start` 上连线上,`readings/live-proof.txt`):同一读法分页 —— **328 行 4 次调用,最慢 1,704 ms**(1,704 · 1,538 · 1,571 · 476 ms);
+  页面以 cfo 与 admin 的克隆打开 → **HTTP 200**(20,342 ms · 12,614 ms 墙上时间 —— 本机到 Supabase 的往返每次约 0.5 s,一页要十来次往返;冒烟里同一页 200)。
+  ☞ 那两个墙上时间是【本机】量的,不是 Vercel 上的;判据是每一条语句都远在 8 秒之下,不是整页的秒数。
 
 **量到的:** MES-9b 的第二次冒烟(01:09 起)`/settings/change-history` → HTTP 500,`change_log_rows: 57014 canceling statement due to statement timeout`;第一次冒烟(00:30)同一页 200。
 以 admin 的身份、只读重量(`change_log_rows(…, p_limit 51, p_by_entry true)`,`authenticated` 的 8 秒上限):**两次都在 8.5 秒处被取消**;放开上限跑完是 **8.0 秒**,

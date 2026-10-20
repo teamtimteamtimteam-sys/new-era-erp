@@ -24,9 +24,19 @@ function	public.portal_documents()	EXECUTE	/portal/documents:调用者自己那�
 function	public.portal_deliveries()	EXECUTE	/portal/deliveries:调用者自己那一家的收货与记在上面的地磅单,按今天记着的样子(没有一个价钱;Q14 · Q15)
 function	public.portal_document_open(p_kind text, p_issue_id uuid)	EXECUTE	取一份签发档:写调用者自己的一行下载记录(Q22),交出桶 · 路径 · 记下的 sha256 —— 门户会话唯一写得进的东西
 function	public.portal_can_read_object(p_bucket text, p_name text)	EXECUTE	storage.objects 上门户那条读策略的判据(策略以调用者身份求值,所以门户角色要执行得到它);只放行两分钟内有下载记录的那一个对象
+# ── 函数(public · MES-9c,每一支在 fixture 277 EVERY 臂里有一个两家供应商的用例)──
+function	public.portal_certificates()	EXECUTE	/portal/certificates:调用者自己那一家的在册证书(类型 · 号 · 有效期至)、它自己交上来的每一份与状态(等审核 · 接受 · 驳回与理由)、可以交的证书类型与 V39(MES-9 Step 0 §4 · Q19)
+function	public.portal_submission_begin(p_cert_type text, p_file_name text, p_file_type text, p_file_size bigint, p_cert_no text, p_valid_from date, p_valid_until date)	EXECUTE	开始交一份证书:先按 V39 按名拒(任何字节存下之前),过了才给调用者自己那一家登记一行 uploading 的申请、给出桶里的路径(MES-9 Step 0 §5 · V39)
+function	public.portal_submission_finish(p_submission_id uuid)	EXECUTE	交完:确认字节真的到了 portal-uploads,那一份(调用者自己的)才变成等审核的申请(MES-9 Step 0 §5)
+function	public.portal_submission_abandon(p_submission_id uuid)	EXECUTE	没传成:把调用者自己那一份 uploading 的申请标成 abandoned(MES-9 Step 0 §5)
+function	public.portal_can_upload_object(p_bucket text, p_name text)	EXECUTE	portal-uploads 上两条门户策略(传 · 读回刚传的那一行)的判据:只放行调用者自己一行 uploading 申请登记过的那一条路径,十分钟内(MES-9 Step 0 §3 · §5)
 # ── storage(MES-9b):一张表的 SELECT(行由下面那条策略筛)与一条策略 ──
 relation	storage.objects	SELECT	MES-9b(Q14 · Q27):Storage API 以令牌里的角色查 storage.objects;哪几行读得到由下面那条策略决定 —— 只有两分钟内刚为之写下过下载记录的、自己那一家的签发档
 policy	storage.objects	portal reads its own logged issued documents	MES-9b(Q14 · Q22):三个单据桶里、portal_can_read_object 成立的那一个对象;不能写、不能删
+# ── storage(MES-9c):一张表的 INSERT 与两条策略 ──
+relation	storage.objects	INSERT	MES-9c(Q27 · §5):Storage API 以令牌里的角色往 storage.objects 插一行;哪一行插得进由下面那条策略决定 —— 只有调用者自己一行 uploading 申请登记过的那一条 portal-uploads 路径
+policy	storage.objects	portal uploads its own pending submission file	MES-9c(§5 · V39):portal-uploads 里 portal_can_upload_object 成立的那一条路径(INSERT);不能改、不能删
+policy	storage.objects	portal reads its own pending submission file	MES-9c(§5):同一个判据的 SELECT —— Storage API 插入之后读回那一行要它;过了十分钟或交完之后就看不见
 # ── storage 架构里对 PUBLIC 开着 EXECUTE 的平台函数(MES-9b 授了 storage 的 USAGE 之后,它们才进得了这个角色的可达面)──
 #   PostgreSQL 默认对 PUBLIC 开新函数的 EXECUTE,平台没有收回;它们全是调用者权限(没有一支 SECURITY DEFINER,线上 2026-10-19 量),
 #   所以门户会话调它们,读到的仍然只有上面那条策略放行的行。重建侧由 db/storage/platform-storage-stub.sql 里的同名替身对上。

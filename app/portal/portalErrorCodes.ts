@@ -3,7 +3,7 @@ import { fallbackForRawError } from '@/lib/machine-text'
 
 // MES-9a(2026-10-19):供应商门户一族 DB 函数抛出的错误码 → 人话。【逐条从函数体枚举出来的】:
 //   portal_require_link(每一支门户函数的第一句)· portal_user_create_link · portal_user_revoke · portal_contact_anonymise · set_account_setting ·
-//   portal_document_open(MES-9b)。
+//   portal_document_open(MES-9b)· portal_submission_begin / _finish / _abandon / _accept / _reject(MES-9c)。
 // 不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 export const PORTAL_ERROR_CODES = new Set([
     'PORTAL_ROLE_REQUIRED',
@@ -31,6 +31,22 @@ export const PORTAL_ERROR_CODES = new Set([
     'PORTAL_DOCUMENT_NOT_FOUND',
     'PORTAL_DOCUMENT_VOID',
     'PORTAL_DOCUMENT_KIND_UNKNOWN',
+    // MES-9c:portal_submission_begin · _finish · _abandon(门户)· portal_submission_accept · _reject(员工)
+    'PORTAL_UPLOAD_LIMITS_NOT_SET',
+    'PORTAL_UPLOAD_TYPE_NOT_ACCEPTED',
+    'PORTAL_UPLOAD_TOO_LARGE',
+    'PORTAL_UPLOAD_EMPTY',
+    'PORTAL_UPLOAD_NAME_REQUIRED',
+    'PORTAL_UPLOAD_NOT_STORED',
+    'PORTAL_UPLOAD_MISMATCH',
+    'PORTAL_CERT_TYPE_UNKNOWN',
+    'PORTAL_CERT_DATES_INVALID',
+    'PORTAL_SUBMISSION_NOT_FOUND',
+    'PORTAL_SUBMISSION_NOT_UPLOADING',
+    'PORTAL_SUBMISSION_NOT_WAITING',
+    'PORTAL_SUBMISSION_REASON_REQUIRED',
+    'PORTAL_SUBMISSION_FILE_PATH_INVALID',
+    'PORTAL_SUBMISSION_FILE_NOT_COPIED',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

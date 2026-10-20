@@ -19,6 +19,8 @@ export type Database = {
           id: boolean
           initial_password_valid_days: number | null
           password_min_length: number | null
+          portal_upload_max_bytes: number | null
+          portal_upload_types: string[] | null
           updated_at: string
           updated_by: string | null
         }
@@ -26,6 +28,8 @@ export type Database = {
           id?: boolean
           initial_password_valid_days?: number | null
           password_min_length?: number | null
+          portal_upload_max_bytes?: number | null
+          portal_upload_types?: string[] | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -33,6 +37,8 @@ export type Database = {
           id?: boolean
           initial_password_valid_days?: number | null
           password_min_length?: number | null
+          portal_upload_max_bytes?: number | null
+          portal_upload_types?: string[] | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -21081,6 +21087,149 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_certificate_submissions: {
+        Row: {
+          attachment_id: string | null
+          bucket_id: string
+          cert_no: string | null
+          cert_type_code: string
+          compliance_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          portal_user_id: string
+          reject_reason: string | null
+          status: string
+          storage_path: string
+          submitted_at: string | null
+          supplier_id: string
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          attachment_id?: string | null
+          bucket_id?: string
+          cert_no?: string | null
+          cert_type_code: string
+          compliance_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          portal_user_id: string
+          reject_reason?: string | null
+          status?: string
+          storage_path: string
+          submitted_at?: string | null
+          supplier_id: string
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          attachment_id?: string | null
+          bucket_id?: string
+          cert_no?: string | null
+          cert_type_code?: string
+          compliance_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          portal_user_id?: string
+          reject_reason?: string | null
+          status?: string
+          storage_path?: string
+          submitted_at?: string | null
+          supplier_id?: string
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_certificate_submissions_attachment_id_fkey"
+            columns: ["attachment_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "certificate_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "supplier_receiving_blocked"
+            referencedColumns: ["cert_type_code"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_compliance_id_fkey"
+            columns: ["compliance_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_compliance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_portal_user_id_fkey"
+            columns: ["portal_user_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_portal_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_portal_user_id_fkey"
+            columns: ["portal_user_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_portal_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_scorecard_rows"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -49088,6 +49237,8 @@ export type Database = {
           p_record?: string
           p_record_ids?: string[]
           p_removed_account?: boolean
+          p_row_before?: number
+          p_row_limit?: number
           p_table?: string
           p_tables?: string[]
           p_to?: string
@@ -50659,6 +50810,11 @@ export type Database = {
         Args: { p_bucket: string; p_name: string }
         Returns: boolean
       }
+      portal_can_upload_object: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
+      portal_certificates: { Args: never; Returns: Json }
       portal_contact_anonymise: { Args: { p_link_id: string }; Returns: Json }
       portal_deliveries: { Args: never; Returns: Json }
       portal_document_open: {
@@ -50669,6 +50825,41 @@ export type Database = {
       portal_export_my_data: { Args: never; Returns: Json }
       portal_me: { Args: never; Returns: Json }
       portal_require_link: { Args: never; Returns: string }
+      portal_submission_abandon: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
+      portal_submission_accept: {
+        Args: {
+          p_attachment_path: string
+          p_cert_no?: string
+          p_issuing_body?: string
+          p_submission_id: string
+          p_valid_from?: string
+          p_valid_until?: string
+        }
+        Returns: Json
+      }
+      portal_submission_begin: {
+        Args: {
+          p_cert_no?: string
+          p_cert_type: string
+          p_file_name: string
+          p_file_size: number
+          p_file_type: string
+          p_valid_from?: string
+          p_valid_until?: string
+        }
+        Returns: Json
+      }
+      portal_submission_finish: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
+      portal_submission_reject: {
+        Args: { p_reason: string; p_submission_id: string }
+        Returns: Json
+      }
       portal_user_create_link: {
         Args: { p_contact_id: string; p_supplier_id: string; p_user_id: string }
         Returns: string

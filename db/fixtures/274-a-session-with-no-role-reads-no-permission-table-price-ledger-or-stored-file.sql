@@ -15,7 +15,8 @@
 --   NOUPDATE 四个附件桶的 UPDATE:连上传码都改不动一个文件(0 行)
 --   DELETE   七个删孤儿的桶:上传码删得掉一个没有记录指着的文件;只读码删不掉;一个有记录指着的文件(customer_attachments)上传码也删不掉;
 --            另 6 个文档桶与 company-assets 之外,没有一个桶对谁开着删;七条删除策略各自指着对的那张表、那一列
---   SHAPE    存储策略一共 53 条(MES-9b 起;第 53 条是门户那一条,判据 portal_can_read_object),没有一条不带判据;UPDATE 只剩 avatars 与 company-assets
+--   SHAPE    存储策略一共 56 条(MES-9b 起第 53 条是门户那一条,判据 portal_can_read_object;MES-9c 起第 54–56 条:门户传 / 读回自己
+--            申请的那一条路径两条,判据 portal_can_upload_object,与员工读 portal-uploads 一条),没有一条不带判据;UPDATE 只剩 avatars 与 company-assets
 --
 -- 前提:db/gate.py 已把 db/storage/platform-storage-stub.sql 与 db/storage/buckets-and-policies.sql 装进了这个重建库
 --   (没有 storage 架构 → 本 fixture 按名红,而不是空转)。自带数据(README 第 2 条);读者那几臂切成 authenticated + JWT。
@@ -109,6 +110,8 @@ DECLARE
         'so-documents', jsonb_build_array(jsonb_build_array('module.sales.view'), jsonb_build_array('module.sales.edit')),
         'statement-documents', jsonb_build_array(jsonb_build_array('module.finance.view'), jsonb_build_array('module.finance.edit')),
         'supplier-attachments', jsonb_build_array(jsonb_build_array('module.suppliers.view'), jsonb_build_array('module.suppliers.edit')),
+        -- MES-9c(2026-10-20):门户交上来的证书 —— 员工读 module.suppliers.view;员工【没有】上传码(只有门户会话按它自己的申请传),没有删除
+        'portal-uploads', jsonb_build_array(jsonb_build_array('module.suppliers.view'), jsonb_build_array()),
         'traceability-documents', jsonb_build_array(jsonb_build_array('module.sales.view', 'module.processing.view'),
                                                     jsonb_build_array('module.sales.edit', 'module.processing.edit')),
         'company-assets', jsonb_build_array(jsonb_build_array('module.finance.view', 'module.purchasing.view', 'module.sales.view',
@@ -120,8 +123,8 @@ DECLARE
         'finance-attachments', 'finance_attachments.file_path', 'material-attachments', 'material_attachments.storage_path',
         'supplier-attachments', 'supplier_attachments.storage_path');
 BEGIN
-    IF to_regclass('storage.objects') IS NULL OR (SELECT count(*) FROM storage.buckets) < 19 THEN
-        RAISE EXCEPTION 'FIXTURE 274 SETUP: no storage stub with the 19 buckets on this rebuild — db/gate.py installs db/storage/* before the fixtures';
+    IF to_regclass('storage.objects') IS NULL OR (SELECT count(*) FROM storage.buckets) < 20 THEN
+        RAISE EXCEPTION 'FIXTURE 274 SETUP: no storage stub with the 20 buckets on this rebuild — db/gate.py installs db/storage/* before the fixtures';
     END IF;
 
     -- ── data of its own: one row in every object (as postgres) ──────────────
@@ -289,12 +292,17 @@ BEGIN
 
     -- ── SHAPE ──────────────────────────────────────────────────────────────
     -- MES-9b(2026-10-19):第 53 条是门户那一条读策略(TO supplier_portal,判据 portal_can_read_object —— 门户会话的判据,它不持任何码)
-    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage') <> 53 THEN
-        RAISE EXCEPTION 'FIXTURE 274 SHAPE: % storage policies (expected 53)', (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage'); END IF;
+    -- MES-9c(2026-10-20):54–56 —— 门户往 portal-uploads 传 / 读回自己申请的那一条路径(TO supplier_portal,判据 portal_can_upload_object)与员工读它
+    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage') <> 56 THEN
+        RAISE EXCEPTION 'FIXTURE 274 SHAPE: % storage policies (expected 56)', (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage'); END IF;
     IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage'
                 AND COALESCE(qual, '') || COALESCE(with_check, '') !~ '(has_permission|has_any_permission|auth\.uid)'
                 AND NOT (policyname = 'portal reads its own logged issued documents' AND roles = ARRAY['supplier_portal']::name[]
-                         AND cmd = 'SELECT' AND qual ~ 'portal_can_read_object\(bucket_id, name\)')) THEN
+                         AND cmd = 'SELECT' AND qual ~ 'portal_can_read_object\(bucket_id, name\)')
+                AND NOT (policyname = 'portal uploads its own pending submission file' AND roles = ARRAY['supplier_portal']::name[]
+                         AND cmd = 'INSERT' AND with_check ~ 'portal_can_upload_object\(bucket_id, name\)')
+                AND NOT (policyname = 'portal reads its own pending submission file' AND roles = ARRAY['supplier_portal']::name[]
+                         AND cmd = 'SELECT' AND qual ~ 'portal_can_upload_object\(bucket_id, name\)')) THEN
         RAISE EXCEPTION 'FIXTURE 274 SHAPE: a storage policy without a judge'; END IF;
     IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND cmd = 'UPDATE'
                 AND policyname NOT IN ('own avatar update', 'finance settings update company-assets')) THEN

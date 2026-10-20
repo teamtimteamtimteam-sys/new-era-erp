@@ -1,0 +1,24 @@
+== 预检 2026-10-20-mes9c-certificate-uploads.sql
+account    未引用任何科目码
+function   10 条 CREATE FUNCTION:1 替换 · 9 新建
+masked     加了 2 列,其中 0 列落在遮蔽表上
+✓ 预检通过
+== 破窗开始(migration applied at): 2026-10-20 11:31:15 CST  ← 切次报告要写的那个起点
+== applying 2026-10-20-mes9c-certificate-uploads.sql over direct psql (single transaction)
+psql:<stdin>:1693: NOTICE:  policy "portal uploads its own pending submission file" for relation "storage.objects" does not exist, skipping
+psql:<stdin>:1698: NOTICE:  policy "portal reads its own pending submission file" for relation "storage.objects" does not exist, skipping
+psql:<stdin>:1703: NOTICE:  policy "portal-uploads read by suppliers.view" for relation "storage.objects" does not exist, skipping
+psql:<stdin>:2049: NOTICE:  MES9C pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:<stdin>:2049: NOTICE:  MES9C pending stocktake ST-2026-0089 → chooer@evoltrya.test
+== re-asserting function grants (db/views/zzz_function_grants.sql)
+✓ committed atomically (含函数授权兜底)
+== 库已经是新的了(11:33:56) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)
+== 破窗起点已落盘:/Users/timchen/Documents/projects/new-era-erp/db/migration-windows.tsv
+   2026-10-20T11:33:56+0800  2026-10-20-mes9c-certificate-uploads.sql  bc4e461b
+APPLY_OWN_EXIT=0

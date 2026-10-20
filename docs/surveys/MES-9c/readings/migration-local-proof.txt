@@ -1,0 +1,18 @@
+OLD_BUILD=0
+OLD_STORAGE=0
+LOCAL_APPLY=0
+psql:/Users/timchen/.claude/jobs/44fff67a/tmp/migtest/mig-local.sql:1653: NOTICE:  policy "portal uploads its own pending submission file" for relation "storage.objects" does not exist, skipping
+psql:/Users/timchen/.claude/jobs/44fff67a/tmp/migtest/mig-local.sql:1658: NOTICE:  policy "portal reads its own pending submission file" for relation "storage.objects" does not exist, skipping
+psql:/Users/timchen/.claude/jobs/44fff67a/tmp/migtest/mig-local.sql:1663: NOTICE:  policy "portal-uploads read by suppliers.view" for relation "storage.objects" does not exist, skipping
+NEW_BUILD=0
+NEW_STORAGE=0
+SCHEMA_DIFF_LINES=       8
+--- schema.diff (only pg_dump's random estrict token differs):
+5c5
+< \restrict ABUT5QxeQl8caYqqasQQEDdasit8qm56kEjeupRkvvJvwPTd2A2nDoesOaYXaCx
+---
+> \restrict K6H8GF16Wy9TLV4NfYmMl4K5hfjMOOhTT7vxle6gvxnGV7lnO3WW2tt1YRIrMKo
+133375c133375
+< \unrestrict ABUT5QxeQl8caYqqasQQEDdasit8qm56kEjeupRkvvJvwPTd2A2nDoesOaYXaCx
+---
+> \unrestrict K6H8GF16Wy9TLV4NfYmMl4K5hfjMOOhTT7vxle6gvxnGV7lnO3WW2tt1YRIrMKo

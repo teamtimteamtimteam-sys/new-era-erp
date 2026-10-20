@@ -3919,3 +3919,26 @@ supplier_portal_users,revoked_by,actor,the account that revoked it,,,Revoked by,
 supplier_portal_users,revoked_reason,text,verbatim (the reason given when revoking),,,Reason for revoking,,,text
 supplier_portal_users,anonymised_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) — the moment its contact was anonymised on request",,,Contact anonymised,,,timestamp with time zone
 supplier_portal_users,anonymised_by,actor,the account that anonymised the contact,,,Anonymised by,,,uuid
+portal_certificate_submissions,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+portal_certificate_submissions,portal_user_id,technical,hide: the portal link (the trail's Who column names the portal account when it acts) — MES-9c (2026-10-20),,,Supplier portal account,,,uuid
+portal_certificate_submissions,user_id,technical,hide: the sign-in account (named by the trail's Who column when it acts) — MES-9c (2026-10-20),,,Sign-in account,,,uuid
+portal_certificate_submissions,supplier_id,fk_document,"suppliers.code (document number, prefix SUP) — MES-9c (2026-10-20)",,,Supplier,,,uuid
+portal_certificate_submissions,cert_type_code,dict,certificate_types.name_en (via code) — MES-9c (2026-10-20),,,Certificate type,,,text
+portal_certificate_submissions,cert_no,text,verbatim (the number the supplier gave),,,Certificate number,,,text
+portal_certificate_submissions,valid_from,date,formatDate (lib/dates.ts) — as the supplier gave it,,,Valid from,,,date
+portal_certificate_submissions,valid_until,date,formatDate (lib/dates.ts) — as the supplier gave it,,,Valid until,,,date
+portal_certificate_submissions,file_name,text,verbatim (the uploaded file's name),,,File,,,text
+portal_certificate_submissions,file_type,technical,hide: a MIME type (machine text; the file name says what it is),,,File type,,,text
+portal_certificate_submissions,file_size,technical,hide: bytes (the review panel shows it in KB),,,File size,,,bigint
+portal_certificate_submissions,bucket_id,technical,hide: always portal-uploads (machine text),,,Storage bucket,,,text
+portal_certificate_submissions,storage_path,technical,hide: an object key (machine text),,,Stored at,,,text
+portal_certificate_submissions,status,enum,"the review status — uploading / submitted / abandoned / accepted / rejected — MES-9c (2026-10-20)",,,Review status,,,text
+portal_certificate_submissions,created_at,audit_std,hide: the trail entry already says who and when,,,Upload started,,,timestamp with time zone
+portal_certificate_submissions,submitted_at,timestamp_audit,formatAuditStamp (lib/dates.ts) — the moment the file arrived and the certificate was sent for review,,,Sent for review,,,timestamp with time zone
+portal_certificate_submissions,decided_at,timestamp_audit,formatAuditStamp (lib/dates.ts) — the moment staff accepted or rejected it,,,Reviewed,,,timestamp with time zone
+portal_certificate_submissions,decided_by,actor,the staff account that accepted or rejected it,,,Reviewed by,,,uuid
+portal_certificate_submissions,reject_reason,text,verbatim (the reason the supplier sees in the portal),,,Reason for rejection,,,text
+portal_certificate_submissions,compliance_id,fk_other,supplier_compliance: the certificate created when it was accepted — MES-9c (2026-10-20),,,Compliance certificate,,,uuid
+portal_certificate_submissions,attachment_id,fk_other,supplier_attachments: the stored copy of the file in the supplier's attachments — MES-9c (2026-10-20),,,Stored file,,,uuid
+account_settings,portal_upload_max_bytes,number,"V39 — bytes per file a supplier may upload through the portal (Tim, 2026-10-20: 10 MB) — MES-9c",,,Portal upload limit (bytes per file),,,bigint
+account_settings,portal_upload_types,text,"V39 — the file types a supplier may upload through the portal (Tim, 2026-10-20: PDF / JPEG / PNG) — MES-9c",,,Portal upload file types,,,ARRAY

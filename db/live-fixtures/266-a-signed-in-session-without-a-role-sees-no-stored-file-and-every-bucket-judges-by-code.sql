@@ -7,12 +7,12 @@
 --   它不建任何身份(只读事务里建不了):有码那一半(每一个码读得到 / 传得进 / 删得掉孤儿)由 fixture 274 在重建库上以真的 RLS 证,
 --   并由交回报告里的线上 HTTP 证明(一次性账号,list · download · upload · remove)证;线上策略 == 仓库镜像由判词七逐条比。
 -- 断言:
---   NOROLE      一个没有角色的会话在 storage.objects 里一行都看不见(40 份文件、19 个桶)、在 storage.buckets 里一个桶都看不见
---   JUDGE       storage.objects 上每一条策略都带判据(has_permission / has_any_permission / 自己的头像 auth.uid();门户那一条是 portal_can_read_object);53 条(MES-9b 起)
+--   NOROLE      一个没有角色的会话在 storage.objects 里一行都看不见(40 份文件、20 个桶)、在 storage.buckets 里一个桶都看不见
+--   JUDGE       storage.objects 上每一条策略都带判据(has_permission / has_any_permission / 自己的头像 auth.uid();门户那一条是 portal_can_read_object;门户传 / 读回自己申请的那两条是 portal_can_upload_object);56 条(MES-9c 起)
 --   NOUPDATE    UPDATE 只剩 avatars(自己的)与 company-assets(action.finance_settings);四个附件桶没有
 --   DELETE      会删的桶恰好是:avatars(自己的)· company-assets · coa · compliance · supplier-statement · cod · po · traceability ·
 --               四个附件桶 —— 除 avatars 与 company-assets 之外每一条删除都带 NOT EXISTS(记录表.列 = objects.name)
---   BUCKETS     19 个桶,全部私有
+--   BUCKETS     20 个桶,全部私有(MES-9c 起多一个 portal-uploads)
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN READ ONLY;
 DO $live$
@@ -20,8 +20,8 @@ DECLARE
     v_n bigint; v_bad text;
 BEGIN
     SELECT count(*) INTO v_n FROM storage.buckets;
-    IF v_n <> 19 OR EXISTS (SELECT 1 FROM storage.buckets WHERE public) THEN
-        RAISE EXCEPTION 'LIVE FIXTURE 266 BUCKETS: % buckets, or one is public (ruled: 19, all private)', v_n;
+    IF v_n <> 20 OR EXISTS (SELECT 1 FROM storage.buckets WHERE public) THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 266 BUCKETS: % buckets, or one is public (ruled: 20, all private)', v_n;
     END IF;
     IF (SELECT count(*) FROM storage.objects) = 0 THEN
         RAISE EXCEPTION 'LIVE FIXTURE 266 NOROLE: live holds no stored file at all — the arm below would be vacuous';
@@ -41,9 +41,14 @@ BEGIN
     SELECT string_agg(policyname, ', ') INTO v_bad FROM pg_policies
      WHERE schemaname = 'storage' AND COALESCE(qual, '') || COALESCE(with_check, '') !~ '(has_permission|has_any_permission|auth\.uid\(\))'
        AND NOT (policyname = 'portal reads its own logged issued documents' AND roles = ARRAY['supplier_portal']::name[]
-                AND cmd = 'SELECT' AND qual ~ 'portal_can_read_object\(bucket_id, name\)');
-    IF v_n <> 53 OR v_bad IS NOT NULL THEN
-        RAISE EXCEPTION 'LIVE FIXTURE 266 JUDGE: % storage policies (ruled 53); without a judge: %', v_n, COALESCE(v_bad, '-');
+                AND cmd = 'SELECT' AND qual ~ 'portal_can_read_object\(bucket_id, name\)')
+       -- MES-9c(2026-10-20):门户往 portal-uploads 传 / 读回它自己申请的那一条路径(判据 portal_can_upload_object)
+       AND NOT (policyname = 'portal uploads its own pending submission file' AND roles = ARRAY['supplier_portal']::name[]
+                AND cmd = 'INSERT' AND with_check ~ 'portal_can_upload_object\(bucket_id, name\)')
+       AND NOT (policyname = 'portal reads its own pending submission file' AND roles = ARRAY['supplier_portal']::name[]
+                AND cmd = 'SELECT' AND qual ~ 'portal_can_upload_object\(bucket_id, name\)');
+    IF v_n <> 56 OR v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 266 JUDGE: % storage policies (ruled 56); without a judge: %', v_n, COALESCE(v_bad, '-');
     END IF;
     SELECT string_agg(policyname, ', ') INTO v_bad FROM pg_policies WHERE schemaname = 'storage' AND cmd IN ('UPDATE', 'ALL')
        AND policyname NOT IN ('own avatar update', 'finance settings update company-assets');

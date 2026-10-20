@@ -1,0 +1,64 @@
+BEFORE|submissions|portal-uploads objects|supplier-attachments objects|supplier_compliance|supplier_attachments = 0|0|2|4|2
+PASS|sign-in: both throwaway portal accounts signed in over HTTP and hold a supplier_portal token (A SUP-2026-0465 · B SUP-2026-0466)
+PASS|HTTP A: /portal → 200, links to its certificates
+PASS|HTTP A: /portal/certificates → 200, empty state (none on file, none sent), "Up to 10 MB per file · PDF · JPEG · PNG", the upload form, nothing of the other
+PASS|HTTP A: PostgREST portal_certificates → 200, its own supplier, empty lists, V39 = 10485760 · PDF / JPEG / PNG, 9 certificate types
+PASS|HTTP B: /portal → 200, links to its certificates
+PASS|HTTP B: /portal/certificates → 200, empty state (none on file, none sent), "Up to 10 MB per file · PDF · JPEG · PNG", the upload form, nothing of the other
+PASS|HTTP B: PostgREST portal_certificates → 200, its own supplier, empty lists, V39 = 10485760 · PDF / JPEG / PNG, 9 certificate types
+PASS|HTTP A: upload of 10.2 MB → 303 /portal/certificates?error=PORTAL_UPLOAD_TOO_LARGE&p=10485760
+PASS|HTTP A: upload of a GIF → 303 /portal/certificates?error=PORTAL_UPLOAD_TYPE_NOT_ACCEPTED&p=application%2Foctet-stream
+PASS|HTTP A: the page says the refusal by name ("That file is too large…")
+PASS|HTTP A: the Storage API with the portal token, a portal-uploads path no submission registered → 400 (refused)
+PASS|HTTP: after the two refused uploads and the refused Storage write, submissions / objects / certificates / attachments unchanged (0|0|2|4|2)
+PASS|staff: a cco copy POSTs the upload route → 403
+PASS|staff: a cco copy on /portal/certificates → refused
+PASS|F19: /settings/change-history as a cfo copy → 200 in 20342 ms, entries listed
+F19|http|cfo|200|20342 ms
+PASS|F19: /settings/change-history as a admin copy → 200 in 12614 ms, entries listed
+F19|http|admin|200|12614 ms
+F19|db|call 1|100 rows|1704 ms
+F19|db|call 2|100 rows|1538 ms
+F19|db|call 3|100 rows|1571 ms
+F19|db|call 4|28 rows|476 ms
+F19|db|paged|328 rows in 4 calls|slowest 1704 ms
+PASS|F19: the page's default request, paged at 100 rows a call, as admin: slowest call 1704 ms (well under 8 s)
+PASS|layout: /portal as a portal user at 390 px — page overflow 0 px
+PASS|layout: /portal as a portal user at 1280 px — page overflow 0 px
+PASS|layout: /portal/certificates as a portal user at 390 px — page overflow 0 px
+PASS|layout: /portal/certificates as a portal user at 1280 px — page overflow 0 px
+PASS|layout: /portal/certificates?error=PORTAL_UPLOAD_TOO_LARGE&p=10485760 as a portal user at 390 px — page overflow 0 px
+PASS|layout: /portal/certificates?error=PORTAL_UPLOAD_TOO_LARGE&p=10485760 as a portal user at 1280 px — page overflow 0 px
+PASS|tx V39: 10 MB + 1 byte refused at begin, by name
+PASS|tx V39: a GIF refused at begin, by name
+PASS|tx A begin: one uploading submission for its own supplier (path under its supplier)
+PASS|tx the platform's upload pre-check (storage.can_insert_object) admits A's registered path (PT200 = admitted, then undone by the platform)
+PASS|tx the platform's upload pre-check refuses a path no submission registered (42501)
+PASS|tx the platform's upload pre-check refuses B on A's path (42501)
+PASS|tx A stores its bytes' row through the live portal policy (insert + read back)
+PASS|tx B cannot finish A's submission (PORTAL_SUBMISSION_NOT_FOUND)
+PASS|tx A finish: waiting for review
+PASS|tx the upload wrote only its own submission rows (no certificate, stock, price or ledger change)
+PASS|tx a gm copy (no module.suppliers.edit) cannot review (PERMISSION_DENIED)
+PASS|tx the portal session cannot call the review functions (42501)
+PASS|tx the cco copy stores the copy's row in supplier-attachments (live upload policy)
+PASS|tx accept: one supplier_compliance row (type from the submission, number checked by staff) with the copied file as its attachment
+PASS|tx reject without a reason refused (PORTAL_SUBMISSION_REASON_REQUIRED)
+PASS|tx reject with a reason
+PASS|tx A sees its two submissions — accepted, and rejected with the reason — and the new certificate on file
+PASS|tx B sees none of A's submissions or certificates
+PASS|tx B cannot touch A's submission (PORTAL_SUBMISSION_NOT_FOUND)
+PASS|tx the trail names the portal for the portal account's 4 submission rows ("Supplier portal — <supplier>")
+PASS|tx: the rolled-back transaction ran to its end (psql exit 0)
+PASS|tx: after the ROLLBACK, submissions / objects / certificates / attachments are back to before (0|0|2|4|2 = 0|0|2|4|2)
+ROLES|role|codes|supplier page|review section|can review (module.suppliers.edit)|/settings/change-history
+ROLES|admin|86|200|sees ("Nothing has been sent through the portal.")|yes|opens (11518 ms)
+ROLES|cco|50|200|sees ("Nothing has been sent through the portal.")|yes|refused
+ROLES|cfo|36|200|sees ("Nothing has been sent through the portal.")|no — shown, unpressable, names the code|opens (14176 ms)
+ROLES|cto|41|200|sees ("Nothing has been sent through the portal.")|yes|refused
+ROLES|finance|43|200|sees ("Nothing has been sent through the portal.")|yes|refused
+ROLES|gm|23|200|sees ("Nothing has been sent through the portal.")|no — shown, unpressable, names the code|refused
+ROLES|warehouse|31|200|sees ("Nothing has been sent through the portal.")|yes|refused
+STEP|done
+AFTER|nothing but the throwaway suppliers, contacts, links and accounts was committed (removed by the plan); residue is read separately, as postgres, by docs/surveys/MES-9c/live-readings.sql
+MES9C_PROOF_EXIT=0

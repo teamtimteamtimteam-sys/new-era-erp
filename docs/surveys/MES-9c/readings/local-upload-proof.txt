@@ -1,0 +1,18 @@
+· a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub + db/storage/buckets-and-policies.sql
+· seeded: suppliers A and B, a portal account each with a live session, a staff editor (module.suppliers.edit) and a staff viewer (view only)
+PASS|local HTTP oversize (10 MB + 31 bytes): 303 → /portal/certificates?error=PORTAL_UPLOAD_TOO_LARGE&p=10485760; submissions 0, portal-uploads objects 0
+PASS|local HTTP wrong type (GIF): 303 → /portal/certificates?error=PORTAL_UPLOAD_TYPE_NOT_ACCEPTED&p=application%2Foctet-stream; submissions 0, portal-uploads objects 0
+PASS|local HTTP a GIF named .pdf and sent as application/pdf: judged by its first bytes → /portal/certificates?error=PORTAL_UPLOAD_TYPE_NOT_ACCEPTED&p=application%2Foctet-stream; nothing stored
+PASS|local HTTP a staff session posting the upload route: 403 "Certificate upload is for supplier portal sessions."
+PASS|local HTTP valid PDF: 303 → /portal/certificates?submitted=1; one submission waiting for review (31 bytes, application/pdf), its bytes in portal-uploads at 8bd99390-08aa-4dc4-9…
+PASS|local: the upload created no certificate and no attachment (it is a submission waiting for review)
+PASS|local HTTP valid PNG: 303 → waiting for review
+PASS|local review: a viewer (module.suppliers.view only) accepting → refused ("permissions.errDenied"), nothing copied
+PASS|local review: the editor accepts → certificate nea_import LOCAL-PERMIT-1-CHECKED valid until 2027-12-31, the file copied into supplier-attachments (3abfbd8a-e7cb-4365-b545-efa123e93…, same bytes) and attached
+PASS|local review: rejecting without a reason → refused ("portal.errors.PORTAL_SUBMISSION_REASON_REQUIRED")
+PASS|local review: the editor rejects with a reason
+PASS|local review: the editor and the viewer can both open the submitted file (portal-uploads read policy, module.suppliers.view)
+PASS|local supplier view (portal_certificates, what /portal/certificates renders): LOCAL-BASEL-1:rejected:The scan is unreadable — send a clearer copy, LOCAL-PERMIT-1:accepted:-; the accepted certificate on file
+PASS|local: B sees none of A's submissions or certificates
+STEP|done
+MES9C_LOCAL_PROOF_EXIT=0

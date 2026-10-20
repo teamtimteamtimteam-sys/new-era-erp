@@ -45,7 +45,7 @@ export default async function PermissionUsersPage({
             .is('deleted_at', null)
             .order('code'),
         // MES-9a(MES-9 Step 0 Q24 · Q26):V38 · V40
-        supabase.from('account_settings').select('initial_password_valid_days, password_min_length').limit(1).maybeSingle(),
+        supabase.from('account_settings').select('initial_password_valid_days, password_min_length, portal_upload_max_bytes, portal_upload_types').limit(1).maybeSingle(),
     ])
 
     const rows = (mustRows(dirRes)) as unknown as DirectoryRow[]
@@ -73,7 +73,8 @@ export default async function PermissionUsersPage({
 
             {/* MES-9a(MES-9 Step 0 Q5 · Q7):供应商门户账号【不在这张清单里】—— 它们不持角色、不挂员工档案,在各自供应商的页面上开、撤销 */}
             <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]" data-note="portal-accounts-elsewhere">{t('accountSettings.portalElsewhere')}</p>
-            <AccountSettingsPanel v38={accountSettings?.initial_password_valid_days ?? null} v40={accountSettings?.password_min_length ?? null} />
+            <AccountSettingsPanel v38={accountSettings?.initial_password_valid_days ?? null} v40={accountSettings?.password_min_length ?? null}
+                v39={{ maxBytes: accountSettings?.portal_upload_max_bytes ?? null, types: accountSettings?.portal_upload_types ?? null }} />
 
             <CreateAccountPanel roles={roles} employees={employees} />
 

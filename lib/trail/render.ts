@@ -1067,7 +1067,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         // MES-8a:这一家的评审也出现在它下面(家在评分卡页那条集合记录里)
         'supplier_scorecard_reviews',
         // MES-9a:这一家的门户账号 —— 开、撤销、匿名化
-        'supplier_portal_users'],
+        'supplier_portal_users',
+        // MES-9c:这一家的门户账号交上来的证书 —— 交、接受、驳回
+        'portal_certificate_submissions'],
     container: ['containers', 'container_milestones', 'container_documents'],
     forwarder: ['suppliers', 'forwarder_details', 'forwarder_rate_quotes'],
     lane: ['lanes', 'lane_document_requirements'],
@@ -2821,8 +2823,9 @@ function describeCommission(d: TrailDict, rows: TrailRow[], opts: BuildOptions):
 
 // ── 供应商(与货代:账上同一行 suppliers)────────────────────────────────────
 // MES-9a:供应商门户账号(开 · 撤销 · 匿名化)也归这一家
+// MES-9c:门户交上来的证书(交 · 接受 · 驳回)也归这一家
 const SUPPLIER_TABLES = new Set(['suppliers', 'supplier_compliance', 'supplier_attachments', 'supplier_status_history', 'forwarder_details', 'forwarder_rate_quotes',
-    'supplier_portal_users'])
+    'supplier_portal_users', 'portal_certificate_submissions'])
 /** 一步状态变动 → 一句话(supplier_status_moves() 里的每一步都有它的说法)*/
 function supplierMove(from: string | null, to: string | null): TrailTextKey {
     switch (to) {
@@ -2883,6 +2886,22 @@ function describeSupplier(d: TrailDict, rows: TrailRow[], opts: BuildOptions, su
         if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'sup.portalCreated'), who), lines: [], key: true, weight: 70 })
         else if (r.op === 'UPDATE' && isSet(r, 'anonymised_at')) out.push({ title: withPart(tx(d, 'sup.portalAnonymised'), who), lines: [], key: true, weight: 70 })
         else if (r.op === 'UPDATE' && isSet(r, 'revoked_at')) out.push({ title: withPart(tx(d, 'sup.portalRevoked'), who), lines: [], reason: typed(r.new?.['revoked_reason']), key: true, weight: 70 })
+        else out.push(describeGeneric(d, r, opts))
+    }
+    // MES-9c(MES-9 Step 0 §5 · Q19 · Q21):门户交上来的证书 —— 开始传(门户账号)· 交去审核(门户账号)· 没传成 · 接受(员工;同一次操作里
+    //   那张证书与那份附件各自也有一句)· 驳回(员工;理由在理由那一格,供应商在门户里看得见同一句)。证书类型是标题的 part,号是第二个 part。
+    for (const r of by('portal_certificate_submissions')) {
+        const kind = refLabel(r, 'cert_type_code'), part = typed(str(r, 'cert_no'))
+        const to = str(r, 'status', 'new')
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'sup.portalCertStarted'), kind), part, lines: [], key: true, weight: 45 })
+        else if (r.op === 'UPDATE' && changed(r, 'status') && to === 'submitted')
+            out.push({ title: withPart(tx(d, 'sup.portalCertSent'), kind), part, lines: [], key: true, weight: 70 })
+        else if (r.op === 'UPDATE' && changed(r, 'status') && to === 'abandoned')
+            out.push({ title: withPart(tx(d, 'sup.portalCertAbandoned'), kind), part, lines: [], key: true, weight: 40 })
+        else if (r.op === 'UPDATE' && changed(r, 'status') && to === 'accepted')
+            out.push({ title: withPart(tx(d, 'sup.portalCertAccepted'), kind), part, lines: [], key: true, weight: 75 })
+        else if (r.op === 'UPDATE' && changed(r, 'status') && to === 'rejected')
+            out.push({ title: withPart(tx(d, 'sup.portalCertRejected'), kind), part, lines: [], reason: typed(r.new?.['reject_reason']), key: true, weight: 75 })
         else out.push(describeGeneric(d, r, opts))
     }
     for (const r of by('forwarder_details')) {

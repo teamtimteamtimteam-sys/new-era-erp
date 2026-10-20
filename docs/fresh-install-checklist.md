@@ -34,12 +34,14 @@ Standing up a new EVoltrya OS project from this repository.
    **Expect this step to take about nine minutes** against a remote project — it
    replays 92 functions, 73 tables and 38 views over the network.
 2b. **Create the storage buckets and their policies** (NOROLE-SURFACE, 2026-10-19). In the SQL editor of the **new Supabase
-   project**, run `db/storage/buckets-and-policies.sql` once. It creates the 19 private buckets and the 53 policies on
+   project**, run `db/storage/buckets-and-policies.sql` once. It creates the 20 private buckets and the 56 policies on
    `storage.objects` (read and upload by the record's own permission code; delete only for a file no record points at; no
    update outside `avatars` and `company-assets`; and — MES-9b, 2026-10-19 — one read policy `TO supplier_portal` for the
    supplier portal's own just-logged issued documents, with the two grants it needs: `USAGE` on schema `storage` and `SELECT`
-   on `storage.objects`). **It needs the `supplier_portal` role to exist** (step 6b's two lines, run before step 2) and the
-   function `public.portal_can_read_object` (step 2). It is idempotent (buckets `ON CONFLICT DO UPDATE`, each policy
+   on `storage.objects`; and — MES-9c, 2026-10-20 — the `portal-uploads` bucket (10 MB · PDF / JPEG / PNG, the V39 values) with two policies
+   `TO supplier_portal` that admit only the path of the portal account's own pending submission, one staff read policy, and the portal role's
+   `INSERT` on `storage.objects`). **It needs the `supplier_portal` role to exist** (step 6b's two lines, run before step 2) and the
+   functions `public.portal_can_read_object` and `public.portal_can_upload_object` (step 2). It is idempotent (buckets `ON CONFLICT DO UPDATE`, each policy
    `DROP … IF EXISTS` then `CREATE`). **Until this runs every PDF route, attachment panel, avatar and logo fails** — the
    rebuild in step 2 does not create storage, because the platform owns that schema.
 
@@ -48,10 +50,11 @@ Standing up a new EVoltrya OS project from this repository.
 
    **Verify by reading it back:**
    ```sql
-   SELECT count(*) FROM storage.buckets;                                -- 19, every one public = false
-   SELECT count(*) FROM pg_policies WHERE schemaname = 'storage';       -- 53 (one of them TO supplier_portal)
+   SELECT count(*) FROM storage.buckets;                                -- 20, every one public = false
+   SELECT count(*) FROM pg_policies WHERE schemaname = 'storage';       -- 56 (three of them TO supplier_portal)
    SELECT has_schema_privilege('supplier_portal', 'storage', 'USAGE'),
-          has_table_privilege('supplier_portal', 'storage.objects', 'SELECT');   -- true, true
+          has_table_privilege('supplier_portal', 'storage.objects', 'SELECT'),
+          has_table_privilege('supplier_portal', 'storage.objects', 'INSERT');   -- true, true, true
    ```
    `db/check_norole.py` (verdict 7 of `db/gate.py`) compares exactly these against `db/storage/buckets-and-policies.sql`.
 3. **Run any C0.5 scripts.** *Currently none* — every intended default is expressible
@@ -138,7 +141,8 @@ Standing up a new EVoltrya OS project from this repository.
      middleware signs out (`/login?reason=portal_unavailable`). **Disable it at once if any staff sign-in or refresh fails
      after enabling it.**
    * **Before the first real supplier account** (Tim, MES-9 Step 0 §15): the paid plan, the production domain, and the
-     values V38 / V39 / V40 (`docs/mes-pending-values.md`).
+     values V38 / V40 (`docs/mes-pending-values.md`). V39 (upload limits) was set by Tim on 2026-10-20 — 10 MB · PDF / JPEG / PNG — and ships as the
+     `account_settings` defaults, so a fresh install already has it.
 7. **Enter the per-install values** (these cannot be seeded — they are this company's
    data, not a design default).
 

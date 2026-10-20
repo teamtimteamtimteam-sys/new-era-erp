@@ -1663,3 +1663,40 @@ re-run on a fresh rebuild after the last database edit.
   download log.
 - **The bytes** stay where they were issued (`po-documents` · `supplier-statement-documents` · `cod-documents`); the portal reads them, never writes them.
 
+
+## 37. Supplier certificate uploads and staff review; the change-history pages (MES-9c, v1.4.62, 2026-10-20)
+
+Hand-back `docs/handbacks/MES-9c.md`; fixture 277 (arms V39 · ONLY · UPLOAD · REVIEW · ACCEPT · REJECT · EVERY · GRANTS · TRAIL · EXCL), fixture 278 (F19:
+BULK · SAME · BOUND · ROWMODE) and verdict 8 (`db/portal-grants-baseline.tsv`, 34 → 42 lines) pin every rule below; the cells are fault-injected by
+`db/scripts/2026-10-20-mes9c-fixture-injections.py`, re-run on a fresh rebuild after the last database edit.
+
+### 37.1 Logged, excluded, masked
+
+- **One new table, logged: `portal_certificate_submissions`** — a certificate a supplier portal account sent for its own supplier, waiting for staff
+  review (MES-9 Step 0 §5 · Q19). Bound like every other table (`zzz_change_log` + `zzz_change_log_truncate`, key `id`); **not** an exclusion — a
+  submission is a record whose life (sent · accepted · rejected with a reason) is exactly what the trail is for. **Exclusions stay 9.** No masked column
+  (`change_log_mask_rules()` has no row for it; fixture 277 EXCL asserts both).
+- **Who the trail says did it.** The rows a portal account writes (begin, finish, abandon) carry `actor_account` = that account; `trail_actor()` reads it as
+  `portal` + the supplier's name, which the trail renders **"Supplier portal — <supplier name>"** (check-trail-wording ㊲ pins the sentences). Accepting and
+  rejecting are written by the staff reviewer and read as that person. The submissions sit under the **supplier's** trail (`trail_subject_members`,
+  subject `supplier`, home), next to its compliance certificates and attachments.
+- **Accepting writes three rows in one operation** — the submission (→ accepted), one `supplier_attachments` row (the copied file) and one
+  `supplier_compliance` row (the certificate, `document_id` = that attachment) — so the trail shows one entry: "Certificate from the supplier portal
+  accepted · <type>", with the certificate and the attachment as its lines.
+- **V39** (`account_settings.portal_upload_max_bytes` · `portal_upload_types`) was added by `ADD COLUMN … DEFAULT`: the live row took Tim's values without an
+  UPDATE, so the migration wrote **no** change-log row (read back by its `txid` in its self-proof). Clearing it later would be an ordinary logged update.
+- Public tables **324 → 325**, bound **315 → 316**.
+
+### 37.2 What a portal session writes
+
+- **Only its own submissions, only through `portal_submission_begin / _finish / _abandon`, and the bytes of its own registered path.** Fixture 277 ONLY:
+  across a whole upload (begin → bytes → finish) every other public table's fingerprint is unchanged (stock, prices, ledger, certificates, attachments
+  included), and the change log gains only the submission's own rows, written by the portal account. The role's write privileges are exactly
+  `storage.objects` INSERT (verdict 8; the migration's self-proof), filtered by `portal_can_upload_object`.
+
+### 37.3 The change-history page reads in bounded pages (F19)
+
+- `change_log_rows` gained `p_row_before` · `p_row_limit`: the page still chooses its operations exactly as before (`p_before` · `p_limit`), but takes
+  their rows at most 100 per call. Nothing about **what** is read changed — the rows handed over across the calls equal the single call's rows
+  (fixture 278 SAME), and the old readings without the new parameters are unchanged (ROWMODE). See `docs/known-issues.md`
+  CHANGE-HISTORY-8S-AFTER-BULK-GRANTS (closed) for the timings.

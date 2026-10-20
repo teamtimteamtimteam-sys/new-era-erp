@@ -14,6 +14,7 @@ import { can } from '@/lib/permissions'
 import ContactsPanel, { type ContactRow } from '@/app/sales/customers/ContactsPanel'
 import ScorecardPanel from './ScorecardPanel'
 import PortalAccountsPanel from './PortalAccountsPanel'
+import PortalSubmissionsPanel from './PortalSubmissionsPanel'
 import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'
@@ -260,6 +261,8 @@ export default async function EditSupplierPage({
                 开 / 撤销 / 匿名化 action.manage_portal_users(admin · cco)。 */}
             <PortalAccountsPanel supplierId={supplier.id}
                 contacts={supplierContacts.map((c) => ({ id: c.id, name: c.name, email: c.email }))} />
+            {/* MES-9c(MES-9 Step 0 Q19):这一家的门户账号交上来的证书 —— 读 module.suppliers.view,接受 / 驳回 module.suppliers.edit。 */}
+            <PortalSubmissionsPanel supplierId={supplier.id} />
             </EndedFieldset>
 
             {/* AUDIT-TRAIL-1b-2(Q2):供应商只有这一页(没有详情页),所以审计记录挂在编辑页底 ——

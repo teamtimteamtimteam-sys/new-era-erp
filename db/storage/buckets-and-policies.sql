@@ -17,7 +17,7 @@
 SET client_min_messages = warning;   -- DROP POLICY IF EXISTS 在全新安装上每一条都会说一句 skipping
 
 
--- ── 桶(19)────────────────────────────────────────────────────────────────
+-- ── 桶(20;MES-9c 起多一个 portal-uploads)────────────────────────────────────────────────────────────────
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('avatars', 'avatars', false, 262144, ARRAY['image/webp'])
@@ -76,6 +76,13 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('po-documents', 'po-documents', false, NULL, NULL)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- MES-9c(2026-10-20,MES-9 Step 0 §5 · V39,Tim):门户交上来的证书。上限与 V39 同一个数(10 MB · PDF / JPEG / PNG)——
+--   portal_submission_begin 先按 V39 拒(任何字节存下之前),桶自己再拦一道。
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('portal-uploads', 'portal-uploads', false, 10485760, ARRAY['application/pdf', 'image/jpeg', 'image/png'])
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
     file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
 
@@ -406,3 +413,29 @@ DROP POLICY IF EXISTS "portal reads its own logged issued documents" ON storage.
 CREATE POLICY "portal reads its own logged issued documents"
     ON storage.objects AS PERMISSIVE FOR SELECT TO supplier_portal
     USING (((bucket_id = ANY (ARRAY['po-documents'::text, 'cod-documents'::text, 'supplier-statement-documents'::text])) AND public.portal_can_read_object(bucket_id, name)));
+
+
+-- ── 门户交上来的证书(MES-9c,2026-10-20,MES-9 Step 0 §5 · Q19 · Q27 · V39,Tim)—— 第 54–56 条策略,与它要的一条授权 ─────────────
+-- 门户会话只往 portal-uploads 里传【它自己一行 uploading 的申请登记过的那一条路径】(portal_can_upload_object;那一行只由
+--   portal_submission_begin 在 V39 判过之后写)—— 别家的、别人的、交完的、十分钟以前登记的,一律传不进来。插入之后 Storage API
+--   读回那一行,所以同一个判据也给一条 SELECT。门户角色没有 UPDATE / DELETE 的授权,也没有那两种策略。
+-- 授权只多一条(Q27):storage.objects 的 INSERT(行由下面那条策略筛)。按名列在 db/portal-grants-baseline.tsv(判词八)。
+GRANT INSERT ON storage.objects TO supplier_portal;
+
+DROP POLICY IF EXISTS "portal uploads its own pending submission file" ON storage.objects;
+CREATE POLICY "portal uploads its own pending submission file"
+    ON storage.objects AS PERMISSIVE FOR INSERT TO supplier_portal
+    WITH CHECK (((bucket_id = 'portal-uploads'::text) AND public.portal_can_upload_object(bucket_id, name)));
+
+DROP POLICY IF EXISTS "portal reads its own pending submission file" ON storage.objects;
+CREATE POLICY "portal reads its own pending submission file"
+    ON storage.objects AS PERMISSIVE FOR SELECT TO supplier_portal
+    USING (((bucket_id = 'portal-uploads'::text) AND public.portal_can_upload_object(bucket_id, name)));
+
+-- 员工:看交上来的文件(审核要看、接受时要从这里抄到 supplier-attachments)= module.suppliers.view(与审核那一块同一个码)。
+--   没有员工的上传、没有 UPDATE、【没有 DELETE】:交上来的字节是那一份申请的凭据(驳回的也是),没有一条路由会删它
+--   (一份没传成的申请若在桶里留下了字节,它留着 —— docs/known-issues.md MES9C-ABANDONED-UPLOAD-BYTES-STAY)。
+DROP POLICY IF EXISTS "portal-uploads read by suppliers.view" ON storage.objects;
+CREATE POLICY "portal-uploads read by suppliers.view"
+    ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated
+    USING (((bucket_id = 'portal-uploads'::text) AND has_permission('module.suppliers.view'::text)));

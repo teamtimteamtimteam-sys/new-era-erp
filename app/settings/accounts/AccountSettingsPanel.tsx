@@ -2,6 +2,7 @@
 
 // MES-9a(2026-10-19,MES-9 Step 0 §9 · Q24 · Q26,Tim):账号那一侧的两个待补的值 —— V38(初始密码在第一次登录之前有效几天)与
 //   V40(项目的密码最短长度,Supabase 的设置 —— 这里记 Tim 在 Supabase 改好之后定的那个数)。一次给一个,空 = 清掉。
+// MES-9c(2026-10-20):多一行只读的 V39(门户上传的上限,Tim 定的 10 MB · PDF / JPEG / PNG;改它要一支迁移)。
 //   这一页的门是 action.manage_permissions,写的函数(set_account_setting)查同一个码。两个值今天都【不被执行】—— 屏幕照直说。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
@@ -10,7 +11,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { setAccountSetting } from './accountSettingsActions'
 
-export default function AccountSettingsPanel({ v38, v40 }: { v38: number | null; v40: number | null }) {
+export default function AccountSettingsPanel({ v38, v40, v39 }: { v38: number | null; v40: number | null; v39: { maxBytes: number | null; types: string[] | null } }) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -31,6 +32,10 @@ export default function AccountSettingsPanel({ v38, v40 }: { v38: number | null;
         <div className="mb-6 rounded border border-gray-200 px-4 py-3 text-sm space-y-3" data-section="account-settings">
             <p className="font-medium">{t('accountSettings.title')}</p>
             <p data-value="v38">{v38 == null ? t('accountSettings.v38NotSet') : t('accountSettings.v38Set', { days: String(v38) })}</p>
+            {/* MES-9c:V39 只读 —— Tim 定的数,改它要一支迁移(没有设值的界面) */}
+            <p data-value="v39">{v39.maxBytes == null || v39.types == null
+                ? t('accountSettings.v39NotSet')
+                : t('accountSettings.v39Set', { mb: String(Math.round((v39.maxBytes / 1048576) * 10) / 10), types: v39.types.join(' · ') })}</p>
             <p data-value="v40">{v40 == null ? t('accountSettings.v40NotSet') : t('accountSettings.v40Set', { n: String(v40) })}</p>
             {error && <p className="text-red-600" data-error="account-settings">{error}</p>}
             <div className="flex flex-wrap gap-3 items-end">

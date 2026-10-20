@@ -543,6 +543,12 @@ export const TRAIL_TEXT = {
     'sup.portalCreated': 'Supplier portal account created',
     'sup.portalRevoked': 'Supplier portal account revoked',
     'sup.portalAnonymised': 'Supplier portal contact anonymised on request',
+    // MES-9c(MES-9 Step 0 §5 · Q19):门户交上来的证书
+    'sup.portalCertStarted': 'Certificate upload started through the supplier portal',
+    'sup.portalCertSent': 'Certificate sent for review through the supplier portal',
+    'sup.portalCertAbandoned': 'Certificate upload through the supplier portal did not complete',
+    'sup.portalCertAccepted': 'Certificate from the supplier portal accepted',
+    'sup.portalCertRejected': 'Certificate from the supplier portal rejected',
     'sup.reviewCorrected': 'Correcting supplier review recorded',
     'sup.notGraded': 'Not graded — V23 not set',
     'sup.statementIssued': 'Supplier statement issued',

@@ -15,7 +15,7 @@
 // 【分页】AUDIT-TRAIL-1b-1(Tim 的折入 2,推翻 AT-1a 决定 21):与每一页的审计记录同一个样子 —— 先 20 次操作,
 //   然后"Show older entries"把列表【接长】20 次(?show=40,上限 500),不再是"最新 / 较早"两个翻页链接。
 //   change_log_rows 一次最多给 200 次操作,所以要多读时按它自己的键集(p_before = 已读到的最旧那次操作的最大 seq)
-//   分几次读。只看关键事件时往前多读(要显示的数的 5 倍,上限 1,000)凑满,并说出藏了几条日常编辑。
+//   分几次读;F19(MES-9c)起同一组事务的行也按 seq 分页取(p_row_before / p_row_limit),交出的行与一次取完逐行相同。只看关键事件时往前多读(要显示的数的 5 倍,上限 1,000)凑满,并说出藏了几条日常编辑。
 // 【折入 3(Q7)】列表那一段里的每一个字都是英文:列头、每一句、空状态、分页说明、"Show older entries"都来自
 //   lib/trail/text.ts;标题、说明、筛选随界面语言走(与任何别的页面的外框一样)。
 import Link from 'next/link'
@@ -40,6 +40,7 @@ import AuditTrailList, { OlderEntriesLink, type ViewEntry } from '@/app/componen
 const PAGE = 20
 const MAX_SHOW = 500
 const CHUNK = 200
+const ROW_PAGE = 100   // F19:一次调用至多算 100 行的审计记录(线上实测每行 ≈ 17 ms → ≈ 1.7 s,远在 8 秒之下)
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type LogRow = Parameters<typeof fromChangeLog>[0] & { seq: number }
@@ -109,19 +110,29 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
         let read = 0
         while (read < target) {
             const want = Math.min(CHUNK, target - read)
-            const chunk = mustRows(await supabase.rpc('change_log_rows', {
-                p_from: from || undefined,
-                p_to: to || undefined,
-                p_table: type || undefined,
-                p_tables: !type && area ? types.filter((x) => x.area === area).map((x) => x.tbl) : undefined,
-                p_record_ids: recordIds,
-                p_actor: UUID.test(who) ? who : undefined,
-                p_no_session: who === 'system',
-                p_removed_account: who === 'removed',
-                p_by_entry: true,
-                p_before: before,
-                p_limit: want,
-            }), 'change_log_rows') as unknown as LogRow[]
+            // F19:同一组事务的行按 seq 分几次取(每次至多 ROW_PAGE 行)—— 一次批量授权几百行时,单次调用不再撞 8 秒上限
+            const chunk: LogRow[] = []
+            let rowBefore: number | undefined
+            for (;;) {
+                const part = mustRows(await supabase.rpc('change_log_rows', {
+                    p_from: from || undefined,
+                    p_to: to || undefined,
+                    p_table: type || undefined,
+                    p_tables: !type && area ? types.filter((x) => x.area === area).map((x) => x.tbl) : undefined,
+                    p_record_ids: recordIds,
+                    p_actor: UUID.test(who) ? who : undefined,
+                    p_no_session: who === 'system',
+                    p_removed_account: who === 'removed',
+                    p_by_entry: true,
+                    p_before: before,
+                    p_limit: want,
+                    p_row_before: rowBefore,
+                    p_row_limit: ROW_PAGE,
+                }), 'change_log_rows') as unknown as LogRow[]
+                chunk.push(...part)
+                if (part.length < ROW_PAGE) break
+                rowBefore = Math.min(...part.map((r) => r.seq))
+            }
             const tops = new Map<number, number>()
             for (const r of chunk) tops.set(r.txid, Math.max(tops.get(r.txid) ?? 0, r.seq))
             rows.push(...chunk)
@@ -170,25 +181,26 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
             state={{ kind: 'ok' }}
         >
             {/* ── 筛选:日期 · 区域 · 记录类型 · 记录 · 谁 · 只看关键事件 ─────────────── */}
+            {/* MES-9c:三颗下拉按它最长的那一项撑宽,390 px 上整页溢出 +21 px —— 与 /settings/approvals(MES-9a)同一个修法:max-w-full。 */}
             <form className="flex flex-wrap items-end gap-2 mb-4 text-sm" action="/settings/change-history">
-                <label className="flex flex-col gap-1">
+                <label className="flex flex-col gap-1 min-w-0 max-w-full">
                     {t('changeHistory.filterFrom')}
                     <DatePicker name="from" defaultValue={from} />
                 </label>
-                <label className="flex flex-col gap-1">
+                <label className="flex flex-col gap-1 min-w-0 max-w-full">
                     {t('changeHistory.filterTo')}
                     <DatePicker name="to" defaultValue={to} />
                 </label>
-                <label className="flex flex-col gap-1">
+                <label className="flex flex-col gap-1 min-w-0 max-w-full">
                     {t('changeHistory.filterArea')}
-                    <select name="area" defaultValue={area} className={CONTROL_SELECT}>
+                    <select name="area" defaultValue={area} className={`${CONTROL_SELECT} max-w-full`}>
                         <option value="">{t('changeHistory.allAreas')}</option>
                         {areas.map((a) => <option key={a} value={a}>{a}</option>)}
                     </select>
                 </label>
-                <label className="flex flex-col gap-1">
+                <label className="flex flex-col gap-1 min-w-0 max-w-full">
                     {t('changeHistory.filterType')}
-                    <select name="type" defaultValue={type} className={CONTROL_SELECT}>
+                    <select name="type" defaultValue={type} className={`${CONTROL_SELECT} max-w-full`}>
                         <option value="">{t('changeHistory.allTypes')}</option>
                         {areas.filter((a) => !area || a === area).map((a) => (
                             <optgroup key={a} label={a}>
@@ -197,14 +209,14 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
                         ))}
                     </select>
                 </label>
-                <label className="flex flex-col gap-1">
+                <label className="flex flex-col gap-1 min-w-0 max-w-full">
                     {t('changeHistory.filterRecord')}
                     <input type="text" name="record" defaultValue={record} placeholder={t('changeHistory.recordPlaceholder')}
                            className={CONTROL_INPUT} />
                 </label>
-                <label className="flex flex-col gap-1">
+                <label className="flex flex-col gap-1 min-w-0 max-w-full">
                     {t('changeHistory.filterActor')}
-                    <select name="who" defaultValue={who} className={CONTROL_SELECT}>
+                    <select name="who" defaultValue={who} className={`${CONTROL_SELECT} max-w-full`}>
                         <option value="">{t('changeHistory.allActors')}</option>
                         {filters.people.filter((p) => p.actor.state === 'person' && p.actor.name).map((p) => (
                             <option key={p.employee} value={p.employee}>{p.actor.name}</option>

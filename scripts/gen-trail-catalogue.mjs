@@ -734,6 +734,8 @@ const TABLE_NAMES = {
     compliance_packs: 'compliance pack', compliance_pack_issues: 'compliance pack PDF issue', compliance_settings: 'compliance pack settings',
     // MES-9a(2026-10-19):供应商门户账号(挂在供应商的审计记录下)· 账号那一侧的设定(V38 / V40)
     supplier_portal_users: 'supplier portal account', account_settings: 'account settings',
+    // MES-9c(2026-10-20):供应商经门户交上来的证书(挂在供应商的审计记录下)
+    portal_certificate_submissions: 'certificate sent through the supplier portal',
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',
@@ -999,6 +1001,9 @@ const ENUM_OVERRIDES = {
     'suppliers#tax_residence': { resident: 'Singapore tax resident', non_resident: 'Non-resident' },
     'customer_attachments#doc_category': { 'hazardous-waste-permit': 'Hazardous waste permit', 'import-license': 'Import licence',
         'export-license': 'Export licence', 'basel-document': 'Basel document', contract: 'Contract', other: 'Other' },
+    // MES-9c:门户交上来的证书的审核状态
+    'portal_certificate_submissions#status': { uploading: 'Uploading', submitted: 'Waiting for review', abandoned: 'Upload did not complete',
+        accepted: 'Accepted', rejected: 'Rejected' },
     'supplier_attachments#doc_category': { 'hazardous-waste-permit': 'Hazardous waste permit', 'import-license': 'Import licence',
         'export-license': 'Export licence', 'basel-document': 'Basel document', contract: 'Contract', other: 'Other' },
     'container_documents#status': { pending: 'Pending', received: 'Received', not_applicable: 'Not applicable' },

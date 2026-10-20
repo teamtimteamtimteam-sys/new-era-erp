@@ -15,11 +15,12 @@
 --   LOG      下载记录:只经那支函数写(员工与门户会话直接写 → 42501);改 / 删 / 清空 → PORTAL_DOWNLOAD_LOG_APPEND_ONLY;
 --            员工 module.suppliers.view 读得到、没有码的读 0 行、门户会话直接读 → 42501
 --   EXCL     变更记录的豁免是 9(第九张是 portal_document_downloads,理由写着 Q22),零缺口;它一行变更记录都不写
---   EVERY    supplier_portal 能执行的【每一支】public 函数(从目录里枚举):MES-9b 的四支在这里各有两家供应商的用例,MES-9a 的两支在 fixture 275;
+--   EVERY    supplier_portal 能执行的【每一支】public 函数(从目录里枚举):MES-9b 的四支在这里各有两家供应商的用例,MES-9a 的两支在 fixture 275,
+--            MES-9c 的五支在 fixture 277(按名交过去,名单与目录对不上也红);
 --            两支 fixture 合起来必须正好覆盖目录,多一支没有用例就红。每一支:A 只见 A、B 只见 B;员工会话 42501;令牌声明不对 / 会话结束 /
 --            不是门户账号 / 被封 → 各自按名拒(portal_can_read_object 是 RLS 判据,绝不抛 —— 那几种一律回 false)
 --   WRITES   门户会话跑遍四支函数之后:变更记录里没有一行出自 supplier_portal,唯一多出来的行在下载记录里(每一次取档一行);
---            它对任何 public 关系都没有写权限,对 storage.objects 只有 SELECT
+--            它对任何 public 关系都没有写权限,对 storage.objects 只有 SELECT(与 MES-9c 起的 INSERT,行由 277 的那条策略筛)
 --   GRANTS   四支只授 supplier_portal(authenticated · anon 调不到);基线里的 storage 授权在(USAGE · SELECT)
 -- 前提:db/platform-prelude.sql 建了 supplier_portal 与 auth.sessions;db/gate.py 在 fixture 之前装好了 storage 桩与 db/storage/buckets-and-policies.sql。
 --   自带数据(README 第 2 条)。注入(故障注入的记录在 docs/handbacks/MES-9b.md):db/scripts/2026-10-19-mes9b-fixture-injections.py。
@@ -149,6 +150,12 @@ DECLARE
     l_a uuid; l_b uuid; da jsonb; db jsonb; u_view uuid; u_none uuid; u_mgr uuid;
     t_shared uuid; v text; v_j jsonb; v_n bigint; v_n2 int; v_m bigint; v_log0 bigint; v_cl0 bigint; r record; v_fn text; v_other text;
     v_cases jsonb; v_275 text[] := ARRAY['portal_me()', 'portal_export_my_data()'];
+    -- MES-9c(2026-10-20):这五支的两家供应商用例在 fixture 277 的 EVERY 臂;277 断言三支 fixture 合起来正好覆盖目录。
+    v_277 text[] := ARRAY['portal_certificates()',
+                          'portal_submission_begin(p_cert_type text, p_file_name text, p_file_type text, p_file_size bigint, p_cert_no text, p_valid_from date, p_valid_until date)',
+                          'portal_submission_finish(p_submission_id uuid)', 'portal_submission_abandon(p_submission_id uuid)',
+                          'portal_can_upload_object(p_bucket text, p_name text)'];
+    v_k bigint := 0;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supplier_portal') OR to_regclass('auth.sessions') IS NULL
        OR to_regclass('storage.objects') IS NULL THEN
@@ -328,6 +335,7 @@ BEGIN
                FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
               WHERE n.nspname = 'public' AND has_function_privilege('supplier_portal', p.oid, 'EXECUTE') ORDER BY 1 LOOP
         IF r.key = ANY (v_275) THEN v_m := v_m + 1; CONTINUE; END IF;
+        IF r.key = ANY (v_277) THEN v_k := v_k + 1; CONTINUE; END IF;
         IF NOT v_cases ? r.key THEN
             RAISE EXCEPTION 'FIXTURE 276 EVERY: % is executable by supplier_portal and has no two-supplier case here or in fixture 275', r.sig; END IF;
         v_n := v_n + 1;
@@ -381,6 +389,8 @@ BEGIN
                 RAISE EXCEPTION 'FIXTURE 276 EVERY: % (%) → %', r.sig, v_other, left(v, 200); END IF;
         END LOOP;
     END LOOP;
+    IF v_k <> cardinality(v_277) THEN
+        RAISE EXCEPTION 'FIXTURE 276 EVERY: % of the % MES-9c functions are executable by supplier_portal — the name list here is stale', v_k, cardinality(v_277); END IF;
     IF v_n <> 4 OR v_m <> cardinality(v_275) THEN
         RAISE EXCEPTION 'FIXTURE 276 EVERY: % MES-9b function(s) here (expected 4) and % MES-9a function(s) in fixture 275 (expected %) — the catalogue and the two fixtures disagree',
             v_n, v_m, cardinality(v_275); END IF;
@@ -391,7 +401,9 @@ BEGIN
             (SELECT string_agg(DISTINCT c.table_name || ':' || c.op, ', ') FROM change_log c WHERE c.seq > v_cl0 AND c.db_role = 'supplier_portal'); END IF;
     SELECT string_agg(n.nspname || '.' || c.relname, ', ') INTO v FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
      WHERE n.nspname IN ('public', 'storage') AND c.relkind IN ('r', 'v', 'm', 'p')
-       AND has_table_privilege('supplier_portal', c.oid, 'INSERT,UPDATE,DELETE,TRUNCATE');
+       AND (has_table_privilege('supplier_portal', c.oid, 'UPDATE,DELETE,TRUNCATE')
+            -- MES-9c(2026-10-20):storage.objects 的 INSERT 是门户交证书要的(行由 portal_can_upload_object 那条策略筛;fixture 277 STORE)
+            OR (has_table_privilege('supplier_portal', c.oid, 'INSERT') AND (n.nspname, c.relname) <> ('storage', 'objects')));
     IF v IS NOT NULL THEN RAISE EXCEPTION 'FIXTURE 276 WRITES: supplier_portal can write %', v; END IF;
     SELECT string_agg(n.nspname || '.' || c.relname, ', ') INTO v FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
      WHERE n.nspname IN ('public', 'storage') AND c.relkind IN ('r', 'v', 'm', 'p') AND has_table_privilege('supplier_portal', c.oid, 'SELECT');
@@ -407,8 +419,11 @@ BEGIN
     END LOOP;
     IF NOT has_schema_privilege('supplier_portal', 'storage', 'USAGE') OR has_schema_privilege('supplier_portal', 'storage', 'CREATE') THEN
         RAISE EXCEPTION 'FIXTURE 276 GRANTS: supplier_portal must hold USAGE (only) on schema storage'; END IF;
-    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage' AND 'supplier_portal' = ANY (roles)) <> 1 THEN
-        RAISE EXCEPTION 'FIXTURE 276 GRANTS: exactly one storage policy applies to supplier_portal'; END IF;
+    -- MES-9c(2026-10-20):1 → 3(门户往 portal-uploads 传 / 读回它自己申请的那一条路径,fixture 277);MES-9b 的那一条按名在
+    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage' AND 'supplier_portal' = ANY (roles)) <> 3
+       OR NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND policyname = 'portal reads its own logged issued documents'
+                       AND roles = ARRAY['supplier_portal']::name[] AND cmd = 'SELECT') THEN
+        RAISE EXCEPTION 'FIXTURE 276 GRANTS: exactly three storage policies apply to supplier_portal, the MES-9b read among them'; END IF;
 
     RAISE NOTICE 'FIXTURE 276 全部通过: DOCS · DELIV · OPEN · STORE · LOG · EXCL · EVERY · WRITES · GRANTS';
 END

@@ -98,8 +98,13 @@ DECLARE
         'portal_export_my_data()', 'SELECT public.portal_export_my_data()::text');
     -- MES-9b(2026-10-19):这四支的两家供应商用例在 fixture 276 的 EVERY 臂(它们要单据、收货与存储);276 断言两支 fixture 合起来正好覆盖目录。
     --   不在这里、也不在这份名单上的一支 → 本臂照旧红。
+    -- MES-9c(2026-10-20):再加五支,它们的两家供应商用例在 fixture 277 的 EVERY 臂(它们要申请、V39 与存储)。名单名字仍叫 v_9b(=「后面几刀的」)。
     v_9b text[] := ARRAY['portal_documents()', 'portal_deliveries()', 'portal_document_open(p_kind text, p_issue_id uuid)',
-                         'portal_can_read_object(p_bucket text, p_name text)'];
+                         'portal_can_read_object(p_bucket text, p_name text)',
+                         'portal_certificates()',
+                         'portal_submission_begin(p_cert_type text, p_file_name text, p_file_type text, p_file_size bigint, p_cert_no text, p_valid_from date, p_valid_until date)',
+                         'portal_submission_finish(p_submission_id uuid)', 'portal_submission_abandon(p_submission_id uuid)',
+                         'portal_can_upload_object(p_bucket text, p_name text)'];
     v_9b_seen int := 0;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supplier_portal') OR to_regclass('auth.sessions') IS NULL THEN
@@ -263,7 +268,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 275 EVERY: % function(s) executable by supplier_portal, % case(s) here — a case lost its function', v_n,
             jsonb_array_length(jsonb_path_query_array(v_cases, '$.keyvalue()')); END IF;
     IF v_9b_seen <> cardinality(v_9b) THEN
-        RAISE EXCEPTION 'FIXTURE 275 EVERY: % of the % MES-9b functions are executable by supplier_portal — the name list here is stale', v_9b_seen, cardinality(v_9b); END IF;
+        RAISE EXCEPTION 'FIXTURE 275 EVERY: % of the % MES-9b / MES-9c functions are executable by supplier_portal — the name list here is stale', v_9b_seen, cardinality(v_9b); END IF;
 
     -- ── EXPORT ─────────────────────────────────────────────────────────────
     v := pg_temp.f275_call(u_b, 'supplier_portal', 'supplier_portal', sid_b, 'SELECT public.portal_export_my_data()::text');

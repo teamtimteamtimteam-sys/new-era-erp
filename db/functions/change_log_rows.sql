@@ -23,8 +23,14 @@
 --   调薪申请要 hr.view 加 data.view_pay,评审与 KPI 要 data.view_reviews,账号事件要 manage_permissions。
 --   一个持 view_change_log 而没有 view_pay 的人,以前在这里读得到每一笔调薪的金额。今天持这个码的两个人(admin、cfo)
 --   两样都有,所以那时没有人读到 —— 它是一个躺着的洞,不是一次泄漏。同一行在同一次调用里只判一次(v_vis_cache)。
+-- F19(MES-9c,2026-10-20,Tim):p_by_entry 时再给一个【行的】键集 —— p_row_limit(1–200)与 p_row_before(seq)。
+--   事务照旧由 p_before / p_limit 选出(同一组 txid),只是那组事务里的行按 seq 倒序、一次最多交 p_row_limit 行,
+--   p_row_before = 上一次交到的最小 seq。为什么:每一行要算一次审计记录(trail_row_record · trail_refs · 读规则),
+--   一次批量授权就是几百行一笔事务 —— 一次调用的代价随"最近那几次操作有多少行"涨,撞上 authenticated 的 8 秒上限
+--   (CHANGE-HISTORY-8S-AFTER-BULK-GRANTS:381 行 6.5–9.6 秒)。分页之后每一次调用的行数有上界,而几次调用合起来交出的行
+--   与不分页那一次【逐行相同】(fixture 278)。不给 p_row_limit = 原样,一行都不变。
 -- 【SECURITY DEFINER 的理由】change_log 对应用角色没有任何授权;读 auth.users 取邮箱与账号是否还在。
-CREATE OR REPLACE FUNCTION public.change_log_rows(p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_table text DEFAULT NULL::text, p_record text DEFAULT NULL::text, p_actor uuid DEFAULT NULL::uuid, p_no_session boolean DEFAULT false, p_before bigint DEFAULT NULL::bigint, p_limit integer DEFAULT 50, p_tables text[] DEFAULT NULL::text[], p_removed_account boolean DEFAULT false, p_by_entry boolean DEFAULT false, p_record_ids text[] DEFAULT NULL::text[])
+CREATE OR REPLACE FUNCTION public.change_log_rows(p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_table text DEFAULT NULL::text, p_record text DEFAULT NULL::text, p_actor uuid DEFAULT NULL::uuid, p_no_session boolean DEFAULT false, p_before bigint DEFAULT NULL::bigint, p_limit integer DEFAULT 50, p_tables text[] DEFAULT NULL::text[], p_removed_account boolean DEFAULT false, p_by_entry boolean DEFAULT false, p_record_ids text[] DEFAULT NULL::text[], p_row_before bigint DEFAULT NULL::bigint, p_row_limit integer DEFAULT NULL::integer)
  RETURNS TABLE(seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor_account uuid, actor_email text, actor_employee uuid, actor_employee_code text, actor_employee_name text, actor_kind text, db_role text, changed_columns text[], old jsonb, new jsonb, redacted_at timestamp with time zone, row_restricted boolean, txid bigint, actor jsonb, belongs_to jsonb, refs jsonb)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -88,9 +94,10 @@ BEGIN
            AND (NOT COALESCE(p_removed_account, false)
                 OR (c.actor_kind = 'user' AND c.actor_employee IS NULL AND u.id IS NULL))
            AND (CASE WHEN COALESCE(p_by_entry, false) THEN c.txid = ANY (v_txids)
+                                                           AND (p_row_before IS NULL OR c.seq < p_row_before)
                      ELSE (p_before IS NULL OR c.seq < p_before) END)
          ORDER BY c.seq DESC
-         LIMIT CASE WHEN COALESCE(p_by_entry, false) THEN NULL ELSE v_limit END
+         LIMIT CASE WHEN COALESCE(p_by_entry, false) THEN (CASE WHEN p_row_limit IS NOT NULL THEN LEAST(GREATEST(p_row_limit, 1), 200) END) ELSE v_limit END
     LOOP
         seq := r.c_seq;
         occurred_at := r.c_at;
