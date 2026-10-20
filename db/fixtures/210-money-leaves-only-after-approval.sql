@@ -145,11 +145,11 @@ BEGIN
             jsonb_build_array(jsonb_build_object('expense_id', v_exp_emp, 'amount_doc', 50))) THEN
         RAISE EXCEPTION 'FIXTURE 210A4 失败:付员工一张【不是报销单生成】的费用,应当要申请'; END IF;
     -- 把它变成一张已批准报销单生成的费用 → 整笔付它不要申请
-    INSERT INTO expense_claims (code, employee_id, spend_date, amount_ccy, currency, description,
-                                no_receipt_reason, status, decided_at, decided_by, account_code,
-                                posting_date, expense_id, created_by)
-    VALUES ('FX210-CLM', e_emp, d, 50, v_base, 'fx210', 'none', 'approved', now(), u_cfo, v_acct,
-            d, v_exp_emp, u_fin);
+    INSERT INTO expense_claims (code, employee_id, spend_date, amount_ccy, currency, description, status, decided_at, decided_by, posting_date, expense_id, created_by) VALUES
+        ('FX210-CLM', e_emp, d, 50, v_base, 'fx210', 'approved', now(), u_cfo, d, v_exp_emp, u_fin);
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        ((SELECT id FROM expense_claims WHERE code = 'FX210-CLM'), 1, d, 50, 'fx210', 'none', v_acct, NULL);
     IF payment_request_required('out', 'employee', e_emp, 50, v_base,
             jsonb_build_array(jsonb_build_object('expense_id', v_exp_emp, 'amount_doc', 50))) THEN
         RAISE EXCEPTION 'FIXTURE 210A4 失败:整笔付一张已批准报销单生成的费用,不该要申请(Tim 的 Q1)'; END IF;

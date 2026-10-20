@@ -1,0 +1,12 @@
+approvals | t | finance | cfo | 1000
+real accounts | 7 | 0
+roles | admin@swm-os.test=admin; chooer@evoltrya.test=finance; fusheng@evoltrya.test=warehouse; phua@evolytra.test=cto; sandra@evoltrya.test=cco; tim@evoltrya.test=cfo; vince@evoltrya.test=gm
+throwaway users | 0
+throwaway roles | 0
+cod rows | 2
+require_calibrated_since | NULL
+expense_lines/items | 10 | 4
+DO
+recon (read as tim@, list_ledger_reconciliation) | ap=0.00 ar=0.00
+orphan grants|0
+finance role holders|1

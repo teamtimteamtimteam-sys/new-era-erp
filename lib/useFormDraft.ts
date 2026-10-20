@@ -50,6 +50,11 @@ export type DraftState = {
     restricted: boolean
     /** 已经套用过一份草稿(界面上要一直显示,直到提交) */
     restored: boolean
+    /**
+     * EXPENSE-MULTILINE-1:按了"恢复"而那份草稿【整份】恢复不了(onRestore 说重建不出来)——
+     * 于是一个格子都没有写,草稿原样留着可以丢弃。界面要把这件事说出来,不许装作恢复过。
+     */
+    restoreFailed: boolean
     restore: () => void
     discard: () => void
 }
@@ -91,8 +96,17 @@ export function useFormDraft(opts: {
     subject: string | null
     /** 表单元素 */
     formRef: React.RefObject<HTMLFormElement | null>
+    /**
+     * ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Step 0 Q8):【整份恢复,或者一点都不恢复】。
+     * 这张表单里有本钩子按构造够不着的东西 —— React 受控的格子与一张行网格(IDLE-DRAFT-GRID-HALF-RESTORE 的四条理由)。
+     * 给了 onRestore,恢复的第一步就是把草稿里的全部值交给它,由表单自己把受控的状态(连同网格)重建出来;
+     * 它返回 false(网格解析不出来、少了一列……)= 这份草稿【一个格子都不写】,restoreFailed 为真,界面照直说。
+     * 返回 true 之后,剩下那些非受控的格子(隐藏的日期框、普通输入)才照旧逐个写回。
+     * 不给 onRestore 的表单行为一个字节都没变。
+     */
+    onRestore?: (values: Record<string, string>) => boolean
 }): DraftState {
-    const { formKey, table, subject, formRef } = opts
+    const { formKey, table, subject, formRef, onRestore } = opts
     const restricted = MASKED_TABLES.has(table)
 
     // 【草稿按人隔离,而 user id 在这里自己取】(IDLE-DRAFT A4)
@@ -125,6 +139,7 @@ export function useFormDraft(opts: {
     const [found, setFound] = useState<DraftPayload | null>(null)
     const [stale, setStale] = useState(false)
     const [restored, setRestored] = useState(false)
+    const [restoreFailed, setRestoreFailed] = useState(false)
     const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // 开局:看看有没有草稿。**不套用** —— 套用是人的一次点击(见 4.2)。
@@ -172,12 +187,18 @@ export function useFormDraft(opts: {
 
     const discard = useCallback(() => {
         if (key) storageFor(restricted)?.removeItem(key)
-        setFound(null); setStale(false); setRestored(false)
+        setFound(null); setStale(false); setRestored(false); setRestoreFailed(false)
     }, [key, restricted])
 
     const restore = useCallback(() => {
         const form = formRef.current
         if (!form || !found || stale) return
+        // 【整份,或者一点都不】受控的部分(含网格)先重建;重建不出来就一个格子都不写。
+        if (onRestore) {
+            let ok = false
+            try { ok = onRestore(found.values) } catch { ok = false }
+            if (!ok) { setRestoreFailed(true); return }
+        }
         for (const [name, value] of Object.entries(found.values)) {
             const el = form.elements.namedItem(name)
             if (!el) continue
@@ -192,8 +213,9 @@ export function useFormDraft(opts: {
             }
         }
         setFound(null)
+        setRestoreFailed(false)
         setRestored(true)     // ← 界面上一直显示"这是恢复出来的",直到提交
-    }, [found, stale, formRef])
+    }, [found, stale, formRef, onRestore])
 
-    return { found, stale, restricted, restored, restore, discard }
+    return { found, stale, restricted, restored, restoreFailed, restore, discard }
 }

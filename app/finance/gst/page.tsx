@@ -36,7 +36,8 @@ export default async function GstPage() {
         // 发票根本不经过总账就能让 box1 不为零。所以这里量的是【单据】:
         // 发票行 + 费用单。仍然是一个测量,不是一个假设。
         supabase.from('invoice_lines_masked').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
-        supabase.from('expenses').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
+        // EXPENSE-MULTILINE-1:税码在费用单的【行】上(expense_lines),与发票那一侧一样数行
+        supabase.from('expense_lines').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
         // ★ APR-10:哪几期挂着一张等 CFO 批的申报申请 —— 状态那一列说"等批准"
         supabase.from('gst_filing_requests').select('period_id').eq('status', 'submitted'),
     ])

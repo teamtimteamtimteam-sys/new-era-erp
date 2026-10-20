@@ -187,6 +187,16 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             selfDecided: d.self_decided,
         }]))
 
+    // ★ EXPENSE-MULTILINE-1(Tim 2026-10-20):每张报销单的明细 —— 明细表的读规则与表头同一条(这张单说的就是你)
+    const expenseClaimHeaders = mustRows(expenseClaimRes) as { claim_id: string }[]
+    const expenseClaimItems = expenseClaimHeaders.length
+        ? mustRows(await supabase.from('expense_claim_items')
+            .select('claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason')
+            .in('claim_id', expenseClaimHeaders.map((h) => h.claim_id))
+            .order('line_no'), 'expense_claim_items (me)') as { claim_id: string }[]
+        : []
+    const expenseClaimRows = expenseClaimHeaders.map((h) => ({ ...h, items: expenseClaimItems.filter((i) => i.claim_id === h.claim_id) }))
+
     // ★ OVERTIME-1(Tim Q14):现场员工看得见自己【已批准】的加班 —— 属主权限的读者,只给调用者自己的行
     //   (员工读不到批次,"批准了没有"住在批次上;与 my_document_decisions 同形)。
     //   面板只对现场员工、或者有过批准加班的人画:一块对办公室员工恒空的面板读起来像"漏了数据"。
@@ -480,7 +490,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     trails={Object.fromEntries((mustRows(expenseClaimRes) as { claim_id: string }[]).map((r) => [r.claim_id,
                         <AuditTrail key={r.claim_id} subject="my_expense_claim" id={r.claim_id} show={trailShow} anchor={`my-claim-trail-${r.claim_id}`} compact />]))}
                     employeeId={employeeId}
-                    rows={(mustRows(expenseClaimRes)) as never}
+                    rows={expenseClaimRows as never}
                     baseCurrency={baseCurrency}
                     decisions={decisions}
                 />

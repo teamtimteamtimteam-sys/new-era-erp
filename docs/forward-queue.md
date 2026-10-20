@@ -1425,14 +1425,14 @@
 > * ✅ **Tim 2026-10-20 裁定(d2 #17):挡** —— `close_period` 按名拒 `CLOSE_LEDGER_LIST_UNEXPLAINED` / `CLOSE_RECON_UNANSWERABLE`,FIN-CHAIN-1 做掉(fixture 282)。原文:(挡不挡关账 —— 清单 ↔ 总账有未解释的差时 `close_period` 要不要拒 —— 是 Tim 的一句裁定,不是一刀;
 >   见 `docs/known-issues.md` § APRECON1B-CHECK-DOES-NOT-BLOCK-CLOSE。)
 
-> 61. **✅ 销售链与财务链的几处正确性、科目表增补十四个科目、Tim 2026-10-20 的 35 条裁定记进各自的出处 —— FIN-CHAIN-1(`v1.4.63`,2026-10-20)。**
+> 61. **✅ 销售链与财务链的几处正确性、科目表增补十四个科目、Tim 2026-10-20 的 35 条裁定记进各自的出处 —— FIN-CHAIN-1(`v1.4.63`,2026-10-20)。 **【已关闭】部署 Tim 2026-10-20 19:32 CST 确认;生产上运费冲销表单带必填冲销日(只读核对,`docs/handbacks/FIN-CHAIN-1.md` §5)。**
 >    (委托书 A–E;Step 0 Q1–Q13 照 Tim 的回复;**C4 结算过账与 C5 薪资付款冲销拆出本刀**。)**没有新码、没有授权改动、没有新审批。**
 >    十四个非系统科目(2600 应付借款 · 负债 · 货币性 · 筹资;十三个费用科目)· 作废挂着在册发票的订单按名拒 · 订单流的销售不再开 sale 票 · 显式的短装收尾 ·
 >    报价状态只经函数写(行级守卫)· 六扇出钱的门按名拒明天 · 带未解释差额的月份关不了 · 管理包与 /finance 首页读新勾稽 · 运费冲销日由人选 ·
 >    报销决定钮问 `data.view_prices` · 对账单与其余对外单据印英文日期 · 试算表标出系统科目 · 贷项凭证无数量的行印 N/A。
 >    Fixture 新 **279 · 280 · 281 · 282 · 283 · 284**;既有的 100 · 101 · 213 · 242 传冲销日、209 的关账人补两个价格码、214 的目录数 6 → 5、68 一句注释。
 >    迁移 `db/migrations/2026-10-20-fin-chain-1.sql`(线上 COMMIT→ROLLBACK 干跑 `DRY_OWN_EXIT=0`),**破窗起点 2026-10-20 17:43:01 CST**(`db/migration-windows.tsv`),
->    终点等 Tim 在 Vercel 上确认部署。**窗口里坏掉的**(推导):旧应用的运费冲销不传日期 → 按名拒 `REVERSAL_DATE_REQUIRED`,什么都不写;其余都是收紧,线上此刻一件都碰不到。
+>    **终点 2026-10-20 19:32 CST(Tim 在 Vercel 上确认部署 —— 他的读数,不是本机的测量),破窗 ≈ 1 h 49 min。** **窗口里坏掉的**(推导):旧应用的运费冲销不传日期 → 按名拒 `REVERSAL_DATE_REQUIRED`,什么都不写;其余都是收紧,线上此刻一件都碰不到。
 >    验证与读数在 `docs/handbacks/FIN-CHAIN-1.md` 与 `docs/surveys/FIN-CHAIN-1/readings/`。
 >    **关闭**:APR5-CANCEL-INVOICED-ORDER-LEAVES-INVOICE-LIVE(279)· APR5-SALE-INVOICE-RE-BILLS-ORDER-FLOW-SALES(279)· APR5-QUOTE-STATUS-DIRECT-UPDATE(280)·
 >    APR5-PARTIALLY-SHIPPED-HAS-NO-EXIT(279)· APRECON1B-CASH-DOORS-DATE-RULE(281)· APRECON1-GL-CONTROL-RECON-HIDES-DEFECTS(282)· APRECON1B-CHECK-DOES-NOT-BLOCK-CLOSE(282)·
@@ -1442,13 +1442,35 @@
 >
 > **FIN-CHAIN-1 之后的队列(Tim 2026-10-20;FIN-CHAIN-1 委托书 E 与 Step 0 Q1 · Q6 的裁定)**
 >
-> 62. **⬜ ★ 下一刀:EXPENSE-MULTILINE-1 —— 一张费用单变成【表头 + 行】。** 表头:日期 · 收款方 · 币种;每一行:自己的科目 · 税码 · 金额 · 备注。
->    **Tim 把它裁成单独的一刀**,因为它要重塑 `expenses` 这张表,而付款申请、员工报销与资本化三家都在读它。
->    (FIN-CHAIN-1 的十三个新费用科目已经在费用单的下拉里;这一刀改的是"一张单只能挂一个科目"这件事本身。)
+> 62. **✅ EXPENSE-MULTILINE-1 —— 一张费用单变成【表头 + 行】,一张报销单变成【表头 + 明细】(`v1.4.64`,2026-10-20)。**
+>    ~~表头:日期 · 收款方 · 币种;每一行:自己的科目 · 税码 · 金额 · 备注。Tim 把它裁成单独的一刀,因为它要重塑 `expenses` 这张表。~~
+>    **Tim 2026-10-20 的裁定,逐条(Step 0 Q1–Q16 · Step 0b Q1–Q10):**
+>    Q1 资本支出单【恰好一行】、不与普通行混(`EXPENSE_CAPITAL_SOLE_LINE`);资产表、资产成本冲回与设备采购单行的链接保持原样;按行资本化停放(见下)·
+>    Q2 同一张单可以混税码;带代扣的单任何一行都不许带 GST(按单据判)· Q3【Tim 改判】报销单可以有多笔明细,批准时每一笔是那张费用单的一行 ·
+>    Q4 冲销只能整张 · Q5 线上 10 张费用单机械地各转成一行(测试数据,已进 `docs/known-wrong-until-cutover.md`)· Q6 付款申请照旧指着同一张单 ·
+>    Q7 行数没有上限(至少一行)· Q8 费用表单的草稿整份恢复或一点都不恢复,只这一张(`useFormDraft` 的 `onRestore`);下单 / 配方表单仍登记在 IDLE-DRAFT-GRID-HALF-RESTORE ·
+>    Q9 清单一张单一行,科目栏印科目或「N 个科目」,按科目筛 = 任何一行在这个科目上,筛着科目时合计只加那几行 ·
+>    Q10 表头存合计、库强制它 = 各行之和(`guard_expense_totals`)· Q11 `record_expense` 原签名是 `record_expense_document` 的单行包装 ·
+>    Q12 一张单一个代扣性质与税率,按净额之和算 · Q13 被 Q1 取代(采购单行留在一行的资本单上)· Q14 加工费那扇 paid 侧门只登记(`docs/known-issues.md` § RELIEVE-PAID-AT-CREATION)·
+>    Q15 费用不做导出;全系统统一的导出排队(TABLE-EXPORT,见下)· Q16 税按行 round,不设改写栏。
+>    报销(Step 0b):Q1 财务批准时逐笔给科目与税码,什么都不预选 · Q2 收据上传拆成下一刀 CLAIM-RECEIPTS-1(62b)· Q3 驳回只能整张,理由可以点名哪一笔 ·
+>    Q4 一张单一个币种 · Q5 明细可以各有日期,同一个日历月;外币的单所有明细同一天;单的日期 = 最晚那一笔(决定审批档次、默认入账日与汇率),两条都按名拒 ·
+>    Q6 医疗报销不分笔 · Q7 表头有一句必填的「用途」,搜索读它,明细不进搜索 · Q8 `submit_expense_claim` / `decide_expense_claim` 原签名是单笔包装,多笔的单走旧调用按名拒 ·
+>    Q9 线上 4 张报销单机械地各转成一笔(已进 known-wrong)· Q10 报销表单不做草稿。
+>    迁移 `db/migrations/2026-10-20-expense-multiline-1.sql`;fixture 新 **285 · 286**;交回 `docs/handbacks/EXPENSE-MULTILINE-1.md`。
+> 62b. **⬜ ★ 下一刀(排在 63 之前):CLAIM-RECEIPTS-1 —— 员工给报销单的每一笔传收据。**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0b Q2,从那一刀拆出来。)
+>    Tim 裁定的形状:收据【按笔】;每一笔要么有自己的收据、要么有自己的无收据理由,批准时逐笔查;员工只能往【自己的、还在 submitted 的】单上传;
+>    财务读得到;新的库与存储权限规矩,带它自己的 grilling 与线上证明。**理由(照录):这是员工第一次拿到存储的写权限,一个新的安全面。**
+>    在它之前每一笔都带一句无收据理由。见 `docs/known-issues.md` § EXPENSE-CLAIM-NO-RECEIPT-UPLOAD。
 > 63. **⬜ PAYROLL-PAY-REVERSAL-1 —— 工资 / 公积金 / 扣款付款的冲销路(排在 EXPENSE-MULTILINE-1 之后)。** Tim 裁定的形状,原样照录:
 >    **CFO 批准,不分金额;冲掉整张付款分录;冲销日由人选、必填;清掉已付的戳;对这些分录的通用日记账冲销申请
 >    (`journal_entry_reversal_route.sql:55-63`)按名拒,并指向这条新路。**(Tim FIN-CHAIN-1 Step 0 Q6:从 FIN-CHAIN-1 拆出来。)
 >    `docs/known-issues.md` § PAYROLL-PAYMENT-NO-REVERSAL-PATH 仍然开着,指着这一条。
+> * **⬜ TABLE-EXPORT · Excel + CSV export on every table (Tim 2026-10-20)** —— 系统里【每一张】表格之后都有 Excel 与 CSV 导出,做成一个统一的功能(Tim,
+>    EXPENSE-MULTILINE-1 Step 0 Q15)。费用单此前没有任何导出(Step 0 量过),EXPENSE-MULTILINE-1 也不单独做。
+> * **⬜(停放)按行资本化 —— 一张费用单上有资本行与普通行混在一起**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0 Q1)。今天资本单恰好一行、不与普通行混
+>    (`EXPENSE_CAPITAL_SOLE_LINE`)。**触发条件:一张真实的发票把一件资本项目与别的费用开在一起。** 那时它是自己的一刀:资产 / 成本明细 / 折旧锚点 / 维修资本化
+>    要多一个行的引用,冲销要逐条退成本(`reverse_expense_internal` 今天只读一条成本明细)。
 > * **⬜ SETTLE-POST · 销售结算过账 —— 一个组,不是一刀**(Tim 2026-10-20,Step 0 Q1:不进 FIN-CHAIN-1)。量过的:结算行不连任何发票、没有币种列;
 >    没有借项凭证;贷项凭证拒绝已付清的发票;两段式开票不存在(`docs/index-pricing-spec.md:215-226`)。动手之前要 Tim 先裁八件事
 >    (逐条写在 `docs/known-issues.md` § SETTLE-1):① 差额由哪一种单据承载 ② 暂定发票已付清、终价更低时怎么办 ③ 差额用哪一天的汇率

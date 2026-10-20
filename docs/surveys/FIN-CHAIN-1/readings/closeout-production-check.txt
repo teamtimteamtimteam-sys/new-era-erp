@@ -1,0 +1,6 @@
+PASS|GET /finance/freight/<FRT doc> HTTP 200
+CHUNKS|18 script chunks referenced by the page
+HIT|/_next/static/chunks/0zcrzqhpp13zc.js reverseDateHint=true reverseButton=true required:!0=true
+PASS|the deployed freight-page client code carries the reversal date field (finance.freight.reverseDate + its hint, beside the reverse button)
+PASS|page renders the document as reversed (so the control is correctly not drawn on live today)
+CLOSEOUT_CHECK_EXIT=0

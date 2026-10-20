@@ -141,7 +141,7 @@ BEGIN
         v_open := round(v_value - v_settled, 2);
         v_dest_code := v_batch.code;
     ELSE
-        SELECT e.id, e.code, e.currency, e.fx_rate, e.amount_ccy, e.tax_rate_pct, e.tax_ccy,
+        SELECT e.id, e.code, e.currency, e.fx_rate, e.amount_ccy, e.tax_ccy,
                e.supplier_id, e.status, e.payment_status
         INTO v_exp
         FROM expenses e WHERE e.id = p_expense_id;

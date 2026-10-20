@@ -11373,3 +11373,35 @@ MES-8b-2 委托书的 fixture 清单(14 项,逐项对照见 `docs/surveys/MES-9/
 SQL fixture 结构上够不到它们(没有 JS / HTTP 运行器 —— 与上面 SESSION-1 那一句同一个原因)。MES-8b-2 交回没有逐项对照,也没有说这两项没有 fixture —— 这一条补的是那句话。
 **可选的修法(未做):** 一道只读仓库文件的静态检查 —— 每一张不调 `requireModule` / `requireFunction` 的 `page.tsx` 必须调 `requireNotFloorDisplay`;
 冒烟加一个只挂 `floor_display` 的会话走三五条路由。**删除条件:** 二者之一落地,或 Tim 裁定一次性证明就够。
+
+## EXPENSE-MULTILINE-1(`v1.4.64`,2026-10-20)—— 费用单 = 表头 + 行;报销单 = 表头 + 明细
+
+### EXPENSE-CLAIM-NO-RECEIPT-UPLOAD · 员工给报销单【一张收据都传不上去】—— 每一笔只能靠一句"无收据理由"过审批(EXPENSE-MULTILINE-1 Step 0b 量到;Tim 2026-10-20:登记,去处 CLAIM-RECEIPTS-1)
+
+**是什么(量过,2026-10-20):** 报销单的凭据判据是"那张单上有附件,或者那一笔自己有一句无收据理由"(`decide_expense_claim_items`,
+`EXPENSE_CLAIM_NO_EVIDENCE|单号|第几笔`;EXPENSE-MULTILINE-1 之前是整张单一句,`decide_expense_claim.sql:166`)。而**应用里没有任何一条路
+能把收据挂到报销单上**:附件的挂靠类型只有 `sale | inbound | payment | expense`(`app/components/finance/financeAttachmentTypes.ts:35`),
+`finance_attachments` 的写策略要 `module.finance.edit`、读策略要 `module.finance.view`(线上 `pg_policy`),而一个普通员工两样都不持。
+线上带 `claim_id` 的附件:**0 张**。于是在今天,`has_receipt` 只可能为假,每一笔都必须写理由,否则谁都批不了(CLM-2026-0004 就是这样,
+见 `docs/known-wrong-until-cutover.md` 那一行)。
+**去处:** ★ **Tim 2026-10-20(Step 0b Q2):收据上传拆出 EXPENSE-MULTILINE-1,作为紧接着的下一刀 CLAIM-RECEIPTS-1**(`docs/forward-queue.md`),
+形状照裁定:收据按笔;每一笔要么有自己的收据、要么有自己的无收据理由,批准时逐笔查;员工只能往【自己的、还在 submitted 的】单上传;
+财务读得到;新的库与存储权限规矩,自带 grilling 与线上证明。理由:这是员工第一次拿到存储的写权限,一个新的安全面。
+**在它之前:** 每一笔都带一句无收据理由(今天的规矩要求的就是这个);`/me` 的表单每一笔都有那一格,并且说明了为什么。
+
+### RELIEVE-PAID-AT-CREATION · 加工费结算(`relieve_processing_accruals`)仍然能把一张费用单【生下来就是已付】—— PAY-REQ-1 关掉的那扇侧门的另一半(EXPENSE-MULTILINE-1 Step 0 量到;Tim 2026-10-20 Q14:只登记,不在本刀修)
+
+**是什么:** PAY-REQ-1(Tim 2026-09-23)让 `record_expense` 对 `p_payment_status = 'paid'` 按名拒(`EXPENSE_PAID_AT_CREATION_REFUSED`):钱离开之前要先批,
+付款走付款申请 → CFO 批准。`relieve_processing_accruals` 不经 `record_expense`,自己写 `expenses`,而它的签名【默认】就是
+`p_payment_status text DEFAULT 'paid'`(`db/functions/relieve_processing_accruals.sql:21`)—— 走默认值就直接贷银行,没有申请、没有批准。
+EXPENSE-MULTILINE-1 只给它补了那一行 `expense_lines`(表头合计 = 行之和),**没有动它的付款状态**。
+**为什么记成一扇门而不是一个 bug:** 它与 `post_electricity_allocation`(电费账单也可以 paid)同族:两条系统写入者都是在 PAY-REQ-1 之前定的形状,
+而 PAY-REQ-1 的裁定只说了 `record_expense` 那一扇。**要不要连这两扇一起关,是一条 Tim 还没下的裁定。**
+**去处:** 未排;下一次碰付款申请或月结结算的那一刀,先把它摆到 Tim 面前。
+
+### EXPENSE-MULTILINE-1 对 IDLE-DRAFT-GRID-HALF-RESTORE 的影响 · 费用表单【整份恢复,或者一点都不恢复】;下单表单与配方表单仍是原样(Tim 2026-10-20 Q8)
+
+`useFormDraft` 多了一个可选的 `onRestore(values) → boolean`:给了它的表单,恢复的第一步由表单自己把受控状态(连同行网格)重建出来;
+返回 `false` → 一个格子都不写,横幅说"没能整份恢复"(`DraftBanner` 的 `restore-failed`)。**只有 `/finance/expenses/new` 接了它**
+(Tim Q8:这一张;`NewOrderForm` / `FormulaForm` 仍登记在上面那一条下,**那一条不关**)。不给 `onRestore` 的表单行为一个字节都没变。
+⚠ 本刀没有对它做浏览器里的恢复走查(本机没有 Chrome;版式勘察跑的是首屏);它的证据是代码路径与 `tsc`/构建 —— 照直记下,不算成一次测量。

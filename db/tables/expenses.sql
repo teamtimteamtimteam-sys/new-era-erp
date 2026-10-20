@@ -10,6 +10,13 @@
 -- 分录先行,无回填 UPDATE)。冲销生成镜像单(status 'posted',notes 'REVERSAL: <原单号>' —— MES-6a-1 起只有这一句机器字,
 -- 人写的理由在原单的 reversal_reason 上;挂冲销分录,不带核销行)—— 镜像行在 ap_open_items 里被排除(它只是记录凭证)。
 --
+-- ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Step 0 Q1–Q16):一张费用单是【表头 + 行】。本表是表头:日期 · 收款方 · 币种 · 备注 ·
+--   【单据合计】(amount_ccy / amount_base / tax_ccy / tax_base);每一行自己的科目 · 税码 · 净额 · 税 · 备注住在 expense_lines。
+--   表头的四个合计由库强制等于各行之和(guard_expense_totals,延迟的约束触发器,两张表各挂一条)—— 读表头的
+--   六张视图、付款、账龄、对账单、定金冲抵上限一个字都不必改(Q10)。account_code / tax_code / tax_rate_pct 从表头拿掉了:
+--   一张多行的单据没有【一个】科目,留着它就是一句谎。资本支出单【恰好一行】、不与普通行混(Q1),所以资产、采购单行与
+--   维修资本化那几条链接仍挂在表头(单据 = 那一行)。
+--
 -- NOTE: introduced by db/migrations/2026-07-30-phase3-s2a-expenses.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
@@ -17,7 +24,6 @@ CREATE TABLE public.expenses (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     code                text NOT NULL UNIQUE,  -- gapless 'EXP-YYYY-NNNN', assigned by record_expense
     expense_date        date NOT NULL,
-    account_code        text NOT NULL REFERENCES public.accounts (code),
     amount_ccy          numeric NOT NULL CHECK (amount_ccy > 0),
     currency            text NOT NULL REFERENCES public.currencies (code),
     fx_rate             numeric NOT NULL CHECK (fx_rate > 0),
@@ -50,13 +56,7 @@ CREATE TABLE public.expenses (
     purchase_order_line_id uuid,
     -- ── GST-2 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
     -- 【amount_ccy 始终是【不含税净额】】供应商账单上的总额 = 净额 + 税。
-    -- GST 关着时两者相等,所以这条口径对既有行为是恒等的。
-    -- 【可抵与不可抵是两条路】TX/ZP 的税借 1400 进项税(进 box7,要得回来);
-    -- BL 的税【借开支科目本身且那条腿不带税码】—— 采购净额仍进 box5,税不进
-    -- box7。"有税但要不回来"与"没有税"不是一回事,而税率分不开它们。
-    -- 【资本支出上那笔不可抵的税进资产成本】它和买价一样是为取得资产付出去的钱。
-    tax_code            text REFERENCES public.tax_codes (code),
-    tax_rate_pct        numeric,
+    -- ★ EXPENSE-MULTILINE-1:税码与税率搬到了每一行(expense_lines);表头这里只剩【本单合计】的本位币税额。
     tax_base            numeric NOT NULL DEFAULT 0,
     -- PAYEE-1a:往来对象【二选一】。两句话,刻意分开写:
     --   * 【从不两个】任何状态下都不许同时挂供应商与员工 —— 一笔钱不可能
@@ -74,9 +74,8 @@ CREATE TABLE public.expenses (
         )
     ),
     -- 【三列是一件事,不是三件】
-    CONSTRAINT expenses_tax_shape CHECK (
-        (tax_code IS NULL     AND tax_rate_pct IS NULL     AND tax_base = 0)
-     OR (tax_code IS NOT NULL AND tax_rate_pct IS NOT NULL AND tax_base >= 0))
+    -- ★ EXPENSE-MULTILINE-1:三列一件事的那条形状挪到了 expense_lines_tax_shape(每一行自己的码、率、税);表头的合计只剩【不为负】。
+    CONSTRAINT expenses_tax_shape CHECK (tax_base >= 0)
 );
 
 COMMENT ON COLUMN public.expenses.employee_id IS 'PAYEE-1a:这笔费用欠的是【员工】(报销)。与 supplier_id 恰一非空 —— 一笔钱不可能同时欠着供应商和员工。
@@ -158,7 +157,6 @@ BEGIN
     IF NEW.id                  IS DISTINCT FROM OLD.id
        OR NEW.code                IS DISTINCT FROM OLD.code
        OR NEW.expense_date        IS DISTINCT FROM OLD.expense_date
-       OR NEW.account_code        IS DISTINCT FROM OLD.account_code
        OR NEW.amount_ccy          IS DISTINCT FROM OLD.amount_ccy
        OR NEW.currency            IS DISTINCT FROM OLD.currency
        OR NEW.fx_rate             IS DISTINCT FROM OLD.fx_rate
@@ -264,13 +262,10 @@ CREATE POLICY "expenses insert by permission"
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.expenses.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';
 
--- GST-2:未注册时写不进税码(与 invoice_lines / credit_note_lines 同一道闸)。
-CREATE TRIGGER trg_expenses_tax_code_registered
-    BEFORE INSERT OR UPDATE OF tax_code ON public.expenses
-    FOR EACH ROW EXECUTE FUNCTION public.guard_document_tax_code();
+-- GST-2 那道"未注册时写不进税码"的闸(trg_expenses_tax_code_registered)随税码搬到了 expense_lines(EXPENSE-MULTILINE-1)。
 
 COMMENT ON COLUMN public.expenses.tax_base IS
-    'GST-2:本单的进项税,以【本位币】计。**amount_ccy 始终是不含税的净额** —— 供应商账单上的总额 = 净额 + 税。可抵的(TX/ZP)那一笔税借 1400 进项税;不可抵的(BL)【有税但要不回来】,那笔税借进费用科目本身、且【不带税码】,好让 box5 报的仍然是采购净额。';
+    'GST-2:本单的进项税,以【本位币】计。**amount_ccy 始终是不含税的净额** —— 供应商账单上的总额 = 净额 + 税。可抵的(TX/ZP)那一笔税借 1400 进项税;不可抵的(BL)【有税但要不回来】,那笔税借进费用科目本身、且【不带税码】,好让 box5 报的仍然是采购净额。★ EXPENSE-MULTILINE-1:这是【各行 tax_base 之和】(guard_expense_totals 强制),每一行的码与率在 expense_lines。';
 
 -- ── WHT-1:预提税裁定冻在债务上(ALTER 加的列排在末尾,与 attnum 顺序一致)──
 ALTER TABLE public.expenses
@@ -343,12 +338,10 @@ COMMENT ON COLUMN public.expenses.wht_treaty_ref IS
 ALTER TABLE public.expenses
     ADD COLUMN tax_ccy numeric NOT NULL DEFAULT 0;
 
--- 【与 expenses_tax_shape 同一件事的第四列】没有税码就没有税;有税码时税 ≥ 0
--- (ZP / EP / OP 是 0%,税码在、税为 0 —— 那是合法的)。
+-- 【与 expenses_tax_shape 同一件事的第四列】★ EXPENSE-MULTILINE-1:码在行上(expense_lines_tax_shape 管"没有税码就没有税"),
+-- 表头的合计只剩【不为负】。
 ALTER TABLE public.expenses
-    ADD CONSTRAINT expenses_tax_ccy_shape CHECK (
-        (tax_code IS NULL AND tax_ccy = 0)
-     OR (tax_code IS NOT NULL AND tax_ccy >= 0));
+    ADD CONSTRAINT expenses_tax_ccy_shape CHECK (tax_ccy >= 0);
 
 COMMENT ON COLUMN public.expenses.tax_ccy IS
 'CLAIM-GST-1:本单过账时记下的进项税,以【单据币种】计 —— 就是 record_expense 贷 2000 的那条
@@ -388,3 +381,53 @@ COMMENT ON COLUMN public.expenses.reversal_reason IS
 【不遮】(Q35):费用单不遮是常设裁定 1(持 module.finance.view 就看得见钱);理由框提示不要写健康细节。';
 COMMENT ON COLUMN public.expenses.reversed_at IS 'MES-6a-1(F3):冲销的时刻(与 reversal_reason 同一步写)。';
 COMMENT ON COLUMN public.expenses.reversed_by IS 'MES-6a-1(F3):谁冲销的(auth.uid(),与 reversal_reason 同一步写)。';
+
+-- ── EXPENSE-MULTILINE-1(Tim 2026-10-20,Q10):表头的合计【等于】各行之和,而且至少一行 ─────────────────────────
+-- 【为什么存合计而不是让读者求和】读表头的有六张视图、付款、账龄、对账单、定金冲抵、报销单状态 —— 让它们各自去 sum 行,
+--   就是十几份同一个算术;存一份、由库强制它等于行之和,读者一个字都不必改,而两边分不开(分开就提交不了)。
+-- 【为什么是延迟的约束触发器】表头先插(行的外键指着它),行后插;"等不等"只有在两边都写完之后才答得了 ——
+--   所以在提交时问。两张表各挂一条(本表 AFTER INSERT · expense_lines AFTER INSERT),同一支函数:
+--   一张没有行的表头,与一行后来被直插进一张旧表头,都在提交那一刻按名拒。表头与行都不可改(guard_expense_mutation ·
+--   guard_expense_line_mutation),所以只有 INSERT 这一种事件能让两边分开。
+-- 【SECURITY DEFINER】它要读两张表的全部行来比;以调用者身份读,一个只持 finance.edit 的直插者会读到零行而误判。
+CREATE OR REPLACE FUNCTION public.guard_expense_totals()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_id uuid;
+    v_h  record;
+    v_s  record;
+BEGIN
+    IF TG_TABLE_NAME = 'expenses' THEN
+        v_id := NEW.id;
+    ELSE
+        v_id := NEW.expense_id;
+    END IF;
+    SELECT e.code, e.amount_ccy, e.amount_base, e.tax_ccy, e.tax_base INTO v_h FROM expenses e WHERE e.id = v_id;
+    IF NOT FOUND THEN
+        RETURN NULL;   -- 外键已经保证行有表头;这里只为不在一个不存在的表头上编一句话
+    END IF;
+    SELECT count(*) AS n,
+           COALESCE(sum(l.amount_ccy), 0) AS amount_ccy, COALESCE(sum(l.amount_base), 0) AS amount_base,
+           COALESCE(sum(l.tax_ccy), 0) AS tax_ccy, COALESCE(sum(l.tax_base), 0) AS tax_base
+      INTO v_s FROM expense_lines l WHERE l.expense_id = v_id;
+    IF v_s.n = 0 THEN
+        RAISE EXCEPTION 'EXPENSE_HAS_NO_LINES|%', v_h.code;
+    END IF;
+    IF v_h.amount_ccy IS DISTINCT FROM v_s.amount_ccy OR v_h.amount_base IS DISTINCT FROM v_s.amount_base
+       OR v_h.tax_ccy IS DISTINCT FROM v_s.tax_ccy OR v_h.tax_base IS DISTINCT FROM v_s.tax_base THEN
+        RAISE EXCEPTION 'EXPENSE_TOTALS_MISMATCH|%|header %/%/%/%|lines %/%/%/%', v_h.code,
+            v_h.amount_ccy, v_h.amount_base, v_h.tax_ccy, v_h.tax_base,
+            v_s.amount_ccy, v_s.amount_base, v_s.tax_ccy, v_s.tax_base;
+    END IF;
+    RETURN NULL;
+END;
+$function$;
+
+CREATE CONSTRAINT TRIGGER trg_expenses_totals_match
+    AFTER INSERT ON public.expenses
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION public.guard_expense_totals();

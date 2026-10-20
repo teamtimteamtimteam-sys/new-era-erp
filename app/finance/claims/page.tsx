@@ -25,7 +25,7 @@ import { canViewPrices } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import ClaimDecisionPanel, { type ClaimRow } from './ClaimDecisionPanel'
+import ClaimDecisionPanel, { type ClaimItem, type ClaimRow } from './ClaimDecisionPanel'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 // AUDIT-TRAIL-1c-3(Tim 的 Q20):每一张报销单一段审计记录(提交 · 决定 · 撤回 · 收据 · 批准时记下的费用单);
@@ -43,12 +43,23 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
     //   与日记账 / 发票 / GST 三张页面的决定钮同一个判据。此前它问 module.finance.edit,于是对 CFO 说"缺 .edit",而库会放行。
     const canDecide = await canViewPrices()
 
-    const rows = mustRows(
+    const headers = mustRows(
         await supabase
             .from('expense_claim_status')
             .select('*')
             .order('spend_date', { ascending: false })
-    ) as unknown as ClaimRow[]
+    ) as unknown as Omit<ClaimRow, 'items'>[]
+    // EXPENSE-MULTILINE-1:每张单的明细(同一条读规则:持 finance.view,或者那张单说的就是你)
+    const items = headers.length
+        ? mustRows(
+            await supabase.from('expense_claim_items')
+                .select('claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code')
+                .in('claim_id', headers.map((h) => h.claim_id))
+                .order('line_no'),
+            'expense_claim_items',
+        ) as unknown as (ClaimItem & { claim_id: string })[]
+        : []
+    const rows: ClaimRow[] = headers.map((h) => ({ ...h, items: items.filter((i) => i.claim_id === h.claim_id) }))
 
     const accounts = mustRows(
         await supabase.from('accounts')

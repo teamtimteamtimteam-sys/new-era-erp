@@ -65,7 +65,7 @@ BEGIN
     VALUES ('ZZ-F284-S', 'fixture 284 supplier', 'SG', 'active', 'service_vendor') RETURNING id INTO v_sup;
     PERFORM record_expense(p_expense_date := CURRENT_DATE - 1, p_account_code := '6010', p_amount := 120,
         p_currency := v_base, p_payment_status := 'unpaid', p_supplier_id := v_sup);
-    IF NOT EXISTS (SELECT 1 FROM expenses e WHERE e.account_code = '6010') THEN
+    IF NOT EXISTS (SELECT 1 FROM expense_lines l WHERE l.account_code = '6010') THEN   -- EXPENSE-MULTILINE-1:科目在行上
         RAISE EXCEPTION 'FIXTURE 284D1 失败:新费用科目 6010 应当记得进费用单'; END IF;
     BEGIN
         PERFORM record_expense(p_expense_date := CURRENT_DATE - 1, p_account_code := '2600', p_amount := 120,

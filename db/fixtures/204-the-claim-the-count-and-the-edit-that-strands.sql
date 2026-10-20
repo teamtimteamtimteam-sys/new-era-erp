@@ -145,12 +145,17 @@ BEGIN
     --   两条腿才分得开(合在一起写,B 那一臂会被 A 那一臂顺带通过)。
     --   金额一律本位币,于是它不依赖 fx_rates 里有没有那一天的牌价 ——
     --   这一支要验的是分档与四眼,不是 THE FX RULE。
-    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency,
-                                description, no_receipt_reason, status, created_by) VALUES
-        (c_hi,  'FX204-C-HI',  e_subj, DATE '2030-03-01', 1000.00, v_base, 'hi',  'none', 'submitted', u_rais),
-        (c_lo,  'FX204-C-LO',  e_subj, DATE '2030-03-01',  999.99, v_base, 'lo',  'none', 'submitted', u_rais),
-        (c_ctl, 'FX204-C-CTL', e_subj, DATE '2030-03-01',  100.00, v_base, 'ctl', 'none', 'submitted', u_rais),
-        (c_sub, 'FX204-C-SUB', e_subj, DATE '2030-03-01',  100.00, v_base, 'sub', 'none', 'submitted', u_rais);
+    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency, description, status, created_by) VALUES
+        (c_hi, 'FX204-C-HI', e_subj, DATE '2030-03-01', 1000.00, v_base, 'hi', 'submitted', u_rais),
+        (c_lo, 'FX204-C-LO', e_subj, DATE '2030-03-01', 999.99, v_base, 'lo', 'submitted', u_rais),
+        (c_ctl, 'FX204-C-CTL', e_subj, DATE '2030-03-01', 100.00, v_base, 'ctl', 'submitted', u_rais),
+        (c_sub, 'FX204-C-SUB', e_subj, DATE '2030-03-01', 100.00, v_base, 'sub', 'submitted', u_rais);
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        (c_hi, 1, DATE '2030-03-01', 1000.00, 'hi', 'none', NULL, NULL),
+        (c_lo, 1, DATE '2030-03-01', 999.99, 'lo', 'none', NULL, NULL),
+        (c_ctl, 1, DATE '2030-03-01', 100.00, 'ctl', 'none', NULL, NULL),
+        (c_sub, 1, DATE '2030-03-01', 100.00, 'sub', 'none', NULL, NULL);
 
     INSERT INTO stocktakes (id, code, status, created_by)
       VALUES (st_id, 'FX204-ST-1', 'open', u_rais);
@@ -228,7 +233,7 @@ BEGIN
     -- ══════════════════════ E ★★ 名册:报销那两行,以及它们的【门】 ══════════════════════
     -- 【零必须是一次测量,不是一次缺席】—— 先断言那两行在,再比码。
     SELECT count(*) INTO v_n FROM approval_chain_gates()
-     WHERE subject_type = 'expense_claim' AND action_function = 'decide_expense_claim';
+     WHERE subject_type = 'expense_claim' AND action_function = 'decide_expense_claim_items';  -- EXPENSE-MULTILINE-1:名册登记真正把关的那一支
     IF v_n <> 2 THEN
         RAISE EXCEPTION 'FIXTURE 204E 失败:approval_chain_gates() 里报销那条链应当有两行(一级与二级),实得 %', v_n; END IF;
     FOR v_lvl IN 1..2 LOOP

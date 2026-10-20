@@ -16,6 +16,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import ReverseExpenseButton from './ReverseExpenseButton'
 import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
+import ExpenseLinesTable, { type ExpenseLineRow } from './ExpenseLinesTable'
 import { can } from '@/lib/permissions'
 import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
@@ -60,7 +61,7 @@ export default async function ExpenseDetailPage({
 
     const { data: expense, error } = await supabase
         .from('expenses')
-        .select('id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense, purchase_order_line_id, reversal_reason, reversed_at, reversed_by')
+        .select('id, code, expense_date, amount_ccy, currency, fx_rate, amount_base, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense, purchase_order_line_id, reversal_reason, reversed_at, reversed_by')
         .eq('id', id)
         .single()
 
@@ -100,13 +101,14 @@ export default async function ExpenseDetailPage({
     }
 
     // 科目名 / 供应商 / 分录 / 核销行 / 镜像单双向 / 附件,页级小查询
-    const [accountRes, supplierRes, journalRes, allocsRes, reversedByRes, reversalOfRes, attachRes, elecRes, reliefRes, prepayRes] =
+    // ★ EXPENSE-MULTILINE-1:科目在【行】上(expense_lines),表头只有合计。行与它们的科目名一起读。
+    const [linesRes, supplierRes, journalRes, allocsRes, reversedByRes, reversalOfRes, attachRes, elecRes, reliefRes, prepayRes] =
         await Promise.all([
             supabase
-                .from('accounts')
-                .select('code, name_en, name_zh')
-                .eq('code', expense.account_code)
-                .single(),
+                .from('expense_lines')
+                .select('line_no, account_code, amount_ccy, tax_code, tax_ccy, notes')
+                .eq('expense_id', id)
+                .order('line_no'),
             // ★ FIX-2b:查名视图。基表要 module.suppliers.view,而本页的门是财务;
             //   零行 + `?? '—'`(第 226 行)把一张【有供应商的】费用单渲染成
             //   「没有往来对象」—— 一句关于这笔钱的假话,而且是在钱的页面上。
@@ -146,11 +148,18 @@ export default async function ExpenseDetailPage({
     const reliefCount = Number(mustCount(reliefRes, 'processing_cost_entry_lookup (relieved estimates)') ?? 0)
     const prepaidCount = Number(mustCount(prepayRes, 'prepayment_applications_masked') ?? 0)
 
-    const accountName = accountRes.data
-        ? locale === 'zh'
-            ? accountRes.data.name_zh
-            : accountRes.data.name_en
-        : ''
+    const lineData = mustRows(linesRes, 'expense_lines')
+    const lineAccounts = lineData.length
+        ? mustRows(await supabase.from('accounts').select('code, name_en, name_zh')
+            .in('code', [...new Set(lineData.map((l) => l.account_code))]), 'accounts (expense lines)')
+        : []
+    const accountNameOf = new Map(lineAccounts.map((a) => [a.code, locale === 'zh' ? a.name_zh : a.name_en]))
+    const lineRows: ExpenseLineRow[] = lineData.map((l) => ({
+        lineNo: l.line_no, accountCode: l.account_code,
+        accountName: accountNameOf.get(l.account_code) ?? '',
+        taxCode: l.tax_code, netCcy: Number(l.amount_ccy), taxCcy: Number(l.tax_ccy), notes: l.notes,
+    }))
+    const distinctAccounts = new Set(lineRows.map((l) => l.accountCode))
 
     const allocs = ((allocsRes.data as unknown as AllocRow[] | null) ?? [])
 
@@ -225,13 +234,11 @@ export default async function ExpenseDetailPage({
         { label: t('expense.colCode'), value: expense.code, mono: true },
         { label: t('expense.colDate'), value: formatDate(expense.expense_date, dateLocale) },
         {
+            // 一个科目就印它;几个科目就说几个 —— 逐行的科目在下面那张行表里(Q9 同一句话)
             label: t('expense.colAccount'),
-            value: (
-                <>
-                    <span>{expense.account_code}</span>
-                    <span className="ml-1">{accountName}</span>
-                </>
-            ),
+            value: distinctAccounts.size === 1 && lineRows[0]
+                ? (<><span>{lineRows[0].accountCode}</span><span className="ml-1">{lineRows[0].accountName}</span></>)
+                : t('expense.accountsMany', { n: distinctAccounts.size }),
         },
         {
             label: t('expense.colAmount'),
@@ -320,6 +327,12 @@ export default async function ExpenseDetailPage({
                 actions={expense.status === 'posted' ? <ReverseExpenseButton canEdit={canEdit} expenseId={expense.id} subject={expense.code}
                                                                              consequence={reverseConsequence} blocked={reverseBlocked} /> : undefined}
             />
+
+            {/* EXPENSE-MULTILINE-1:这张单的行 */}
+            <h2 className="mb-3">{t('expense.detailLines')}</h2>
+            <div className="mb-6">
+                <ExpenseLinesTable rows={lineRows} currency={String(expense.currency)} />
+            </div>
 
             {/* EQP-1c-b(P5):设备侧的冲抵门。只在【这张费用单确实挂在一条采购单行上】
                 时出现 —— 没有那条行,就没有"哪张单上的定金"这个问题。

@@ -1091,7 +1091,9 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     payment: ['payments', 'payment_allocations', 'finance_attachments', 'payment_requests', 'approval_log', 'journal_entries'],
     payment_request: ['payment_requests', 'approval_log', 'payments', 'bank_transfers', 'wht_remittances', 'journal_entries'],
     expense: ['expenses', 'payment_allocations', 'finance_attachments', 'prepayment_applications', 'expense_claims', 'approval_log',
-        'fixed_asset_cost_entries', 'journal_entries', 'medical_claims'],
+        'fixed_asset_cost_entries', 'journal_entries', 'medical_claims',
+        // EXPENSE-MULTILINE-1:费用单的行
+        'expense_lines'],
     payable: ['inbound_batches', 'payment_allocations', 'freight_allocations', 'prepayment_applications', 'finance_attachments', 'price_history',
         'journal_entries'],
     // AUDIT-TRAIL-1c-2
@@ -1116,8 +1118,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     company_profile: ['company_profile'],
     year_close: ['year_closes', 'journal_entries'],
     journal_request: ['journal_requests', 'approval_log', 'journal_entries'],
-    expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses'],
-    my_expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses'],
+    expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses', 'expense_claim_items'],
+    my_expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses', 'expense_claim_items'],
     bank_transfer: ['bank_transfers', 'journal_entries', 'payment_requests', 'approval_log'],
     wht_remittance: ['wht_remittances', 'journal_entries', 'payment_requests', 'approval_log'],
     cash_forecast: ['cash_forecasts'],
@@ -3748,7 +3750,8 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
         }
         if (r.op === 'INSERT') {
             const root = subject === 'expense' && id === rootId
-            const ls = root ? vlines(d, r, ['expense_date', 'supplier_id', 'payee_name', 'employee_id', 'account_code', 'amount_ccy', 'tax_ccy', 'amount_base',
+            // EXPENSE-MULTILINE-1:科目在行上(下面 expense_lines 那一段逐行说);EXPENSE-MULTILINE-1 之前的旧影像里那一列不再印
+            const ls = root ? vlines(d, r, ['expense_date', 'supplier_id', 'payee_name', 'employee_id', 'amount_ccy', 'tax_ccy', 'amount_base',
                 'payment_status', 'bank_account_code', 'wht_nature', 'wht_rate_pct', 'wht_amount_ccy', 'purchase_order_line_id'], opts) : vlines(d, r, ['amount_ccy'], opts)
             // AUDIT-TRAIL-1d-2:医疗报销付款建的费用单,notes 是 pay_medical_claim 写的 "Medical claim MC-… (EMP-…)" —— 系统写的,
             //   在报销单那一页上不冒充一个理由(报销单就是这一页)
@@ -3772,12 +3775,27 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
         const id = idOf(r)
         const code = str(r, 'code')
         const to = changed(r, 'status') ? str(r, 'status', 'new') : (r.prelog && (r.cols ?? []).includes('decided_at')) ? str(r, 'status', 'new') : null
-        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'exp.claimSubmitted'), code), lines: vlines(d, r, ['employee_id', 'spend_date', 'account_code', 'amount_ccy'], opts),
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'exp.claimSubmitted'), code), lines: vlines(d, r, ['employee_id', 'spend_date', 'amount_ccy'], opts),
                                           reason: typed(r.new?.['description']), key: true, weight: 70, recordId: id, absorbsApproval: true })
         else if (to === 'approved' || to === 'rejected') out.push({ title: withPart(tx(d, to === 'approved' ? 'exp.claimApproved' : 'exp.claimRejected'), code), lines: [],
                                           reason: typed(r.new?.['decision_notes']), key: true, weight: 80, recordId: id, absorbsApproval: true })
         else if (to === 'withdrawn' || isSet(r, 'withdrawn_at')) out.push({ title: withPart(tx(d, 'exp.claimWithdrawn'), code), lines: [], key: true, weight: 80, recordId: id, absorbsApproval: true })
         else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: withPart(tx(d, 'exp.claimChanged'), code), lines: ls, key: false, weight: 30, recordId: id }) }
+        else out.push(describeGeneric(d, r, opts))
+    }
+    // ── EXPENSE-MULTILINE-1(Tim 2026-10-20):费用单的行 · 报销单的明细 ──────────────────────────────────────
+    for (const r of by('expense_lines')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'exp.lineRecorded', { n: String(r.new?.['line_no'] ?? '') }),
+                   // 没有税码的行不说"GST 0.00"(那是一句关于不存在的税的话)
+                   lines: vlines(d, r, r.new?.['tax_code'] ? ['account_code', 'amount_ccy', 'tax_code', 'tax_ccy'] : ['account_code', 'amount_ccy'], opts),
+                   reason: typed(r.new?.['notes']), key: false, weight: 50 })
+    }
+    for (const r of by('expense_claim_items')) {
+        const n = String(r.new?.['line_no'] ?? r.old?.['line_no'] ?? '')
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'exp.claimItemAdded', { n }), lines: vlines(d, r, ['spend_date', 'amount_ccy'], opts),
+                                          reason: typed(r.new?.['description']), key: false, weight: 50 })
+        else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'exp.claimItemCoded', { n }), lines: ls, key: false, weight: 45 }) }
         else out.push(describeGeneric(d, r, opts))
     }
     for (const r of by('fixed_asset_cost_entries')) {
@@ -3845,7 +3863,7 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
     }
     const known = new Set(['journal_entries', 'journal_lines', 'journal_requests', 'invoice_requests', 'payment_requests', 'approval_log', 'invoices',
         'invoice_lines', 'invoice_issues', 'credit_notes', 'credit_note_lines', 'cn_issues', 'payments', 'payment_allocations', 'bank_transfers',
-        'wht_remittances', 'expenses', 'expense_claims', 'fixed_asset_cost_entries', 'prepayment_applications', 'finance_attachments',
+        'wht_remittances', 'expenses', 'expense_claims', 'expense_lines', 'expense_claim_items', 'fixed_asset_cost_entries', 'prepayment_applications', 'finance_attachments',
         'inbound_batches', 'price_history', 'freight_allocations', ...LEDGER2_TABLES, ...LEDGER3_TABLES])
     for (const r of rows) if (r.table && !known.has(r.table)) out.push(describeGeneric(d, r, opts))
     return out

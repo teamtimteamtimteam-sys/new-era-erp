@@ -8921,9 +8921,93 @@ export type Database = {
           },
         ]
       }
-      expense_claims: {
+      expense_claim_items: {
         Row: {
           account_code: string | null
+          amount_ccy: number
+          claim_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          line_no: number
+          no_receipt_reason: string | null
+          spend_date: string
+          tax_code: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          amount_ccy: number
+          claim_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          line_no: number
+          no_receipt_reason?: string | null
+          spend_date: string
+          tax_code?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          amount_ccy?: number
+          claim_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          line_no?: number
+          no_receipt_reason?: string | null
+          spend_date?: string
+          tax_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_claim_items_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_claim_items_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "expense_claim_items_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claim_status"
+            referencedColumns: ["claim_id"]
+          },
+          {
+            foreignKeyName: "expense_claim_items_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claim_items_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_claim_items_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      expense_claims: {
+        Row: {
           amount_ccy: number
           code: string
           created_at: string
@@ -8936,16 +9020,13 @@ export type Database = {
           employee_id: string
           expense_id: string | null
           id: string
-          no_receipt_reason: string | null
           posting_date: string | null
           spend_date: string
           status: string
           submitted_at: string
-          tax_code: string | null
           withdrawn_at: string | null
         }
         Insert: {
-          account_code?: string | null
           amount_ccy: number
           code: string
           created_at?: string
@@ -8958,16 +9039,13 @@ export type Database = {
           employee_id: string
           expense_id?: string | null
           id?: string
-          no_receipt_reason?: string | null
           posting_date?: string | null
           spend_date: string
           status?: string
           submitted_at?: string
-          tax_code?: string | null
           withdrawn_at?: string | null
         }
         Update: {
-          account_code?: string | null
           amount_ccy?: number
           code?: string
           created_at?: string
@@ -8980,29 +9058,13 @@ export type Database = {
           employee_id?: string
           expense_id?: string | null
           id?: string
-          no_receipt_reason?: string | null
           posting_date?: string | null
           spend_date?: string
           status?: string
           submitted_at?: string
-          tax_code?: string | null
           withdrawn_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "expense_claims_account_code_fkey"
-            columns: ["account_code"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "expense_claims_account_code_fkey"
-            columns: ["account_code"]
-            isOneToOne: false
-            referencedRelation: "bank_unmatched_journal_lines"
-            referencedColumns: ["account_code"]
-          },
           {
             foreignKeyName: "expense_claims_currency_fkey"
             columns: ["currency"]
@@ -9108,15 +9170,85 @@ export type Database = {
             referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      expense_lines: {
+        Row: {
+          account_code: string
+          amount_base: number
+          amount_ccy: number
+          created_at: string
+          created_by: string | null
+          expense_id: string
+          id: string
+          line_no: number
+          notes: string | null
+          tax_base: number
+          tax_ccy: number
+          tax_code: string | null
+          tax_rate_pct: number | null
+        }
+        Insert: {
+          account_code: string
+          amount_base: number
+          amount_ccy: number
+          created_at?: string
+          created_by?: string | null
+          expense_id: string
+          id?: string
+          line_no: number
+          notes?: string | null
+          tax_base?: number
+          tax_ccy?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
+        }
+        Update: {
+          account_code?: string
+          amount_base?: number
+          amount_ccy?: number
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string
+          id?: string
+          line_no?: number
+          notes?: string | null
+          tax_base?: number
+          tax_ccy?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "expense_claims_tax_code_fkey"
+            foreignKeyName: "expense_lines_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_lines_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "expense_lines_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_lines_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
             referencedRelation: "tax_code_lookup"
             referencedColumns: ["code"]
           },
           {
-            foreignKeyName: "expense_claims_tax_code_fkey"
+            foreignKeyName: "expense_lines_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
             referencedRelation: "tax_codes"
@@ -9126,7 +9258,6 @@ export type Database = {
       }
       expenses: {
         Row: {
-          account_code: string
           amount_base: number
           amount_ccy: number
           bank_account_code: string | null
@@ -9151,8 +9282,6 @@ export type Database = {
           supplier_id: string | null
           tax_base: number
           tax_ccy: number
-          tax_code: string | null
-          tax_rate_pct: number | null
           wht_amount_ccy: number
           wht_nature: string | null
           wht_payee_residence: string | null
@@ -9160,7 +9289,6 @@ export type Database = {
           wht_treaty_ref: string | null
         }
         Insert: {
-          account_code: string
           amount_base: number
           amount_ccy: number
           bank_account_code?: string | null
@@ -9185,8 +9313,6 @@ export type Database = {
           supplier_id?: string | null
           tax_base?: number
           tax_ccy?: number
-          tax_code?: string | null
-          tax_rate_pct?: number | null
           wht_amount_ccy?: number
           wht_nature?: string | null
           wht_payee_residence?: string | null
@@ -9194,7 +9320,6 @@ export type Database = {
           wht_treaty_ref?: string | null
         }
         Update: {
-          account_code?: string
           amount_base?: number
           amount_ccy?: number
           bank_account_code?: string | null
@@ -9219,8 +9344,6 @@ export type Database = {
           supplier_id?: string | null
           tax_base?: number
           tax_ccy?: number
-          tax_code?: string | null
-          tax_rate_pct?: number | null
           wht_amount_ccy?: number
           wht_nature?: string | null
           wht_payee_residence?: string | null
@@ -9228,20 +9351,6 @@ export type Database = {
           wht_treaty_ref?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "expenses_account_code_fkey"
-            columns: ["account_code"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "expenses_account_code_fkey"
-            columns: ["account_code"]
-            isOneToOne: false
-            referencedRelation: "bank_unmatched_journal_lines"
-            referencedColumns: ["account_code"]
-          },
           {
             foreignKeyName: "expenses_currency_fkey"
             columns: ["currency"]
@@ -9430,20 +9539,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expenses_tax_code_fkey"
-            columns: ["tax_code"]
-            isOneToOne: false
-            referencedRelation: "tax_code_lookup"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "expenses_tax_code_fkey"
-            columns: ["tax_code"]
-            isOneToOne: false
-            referencedRelation: "tax_codes"
-            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "expenses_wht_nature_fkey"
@@ -36774,7 +36869,6 @@ export type Database = {
       }
       expense_claim_status: {
         Row: {
-          account_code: string | null
           amount_ccy: number | null
           claim_id: string | null
           code: string | null
@@ -36792,30 +36886,15 @@ export type Database = {
           has_receipt: boolean | null
           is_owing: boolean | null
           is_paid: boolean | null
-          no_receipt_reason: string | null
+          item_count: number | null
           payment_status: string | null
           posting_date: string | null
           settled_ccy: number | null
           spend_date: string | null
           status: string | null
           submitted_at: string | null
-          tax_code: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "expense_claims_account_code_fkey"
-            columns: ["account_code"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "expense_claims_account_code_fkey"
-            columns: ["account_code"]
-            isOneToOne: false
-            referencedRelation: "bank_unmatched_journal_lines"
-            referencedColumns: ["account_code"]
-          },
           {
             foreignKeyName: "expense_claims_currency_fkey"
             columns: ["currency"]
@@ -36920,20 +36999,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "expenses"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_claims_tax_code_fkey"
-            columns: ["tax_code"]
-            isOneToOne: false
-            referencedRelation: "tax_code_lookup"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "expense_claims_tax_code_fkey"
-            columns: ["tax_code"]
-            isOneToOne: false
-            referencedRelation: "tax_codes"
-            referencedColumns: ["code"]
           },
         ]
       }
@@ -49773,6 +49838,16 @@ export type Database = {
         }
         Returns: Json
       }
+      decide_expense_claim_items: {
+        Args: {
+          p_approve: boolean
+          p_claim_id: string
+          p_items?: Json
+          p_notes?: string
+          p_posting_date?: string
+        }
+        Returns: Json
+      }
       decide_gst_filing_request: {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
@@ -51306,6 +51381,27 @@ export type Database = {
         }
         Returns: Json
       }
+      record_expense_document: {
+        Args: {
+          p_amount_includes_tax?: boolean
+          p_asset?: Json
+          p_bank_account?: string
+          p_currency: string
+          p_employee_id?: string
+          p_expense_date: string
+          p_lines: Json
+          p_maintenance_id?: string
+          p_notes?: string
+          p_payee_name?: string
+          p_payment_status?: string
+          p_purchase_order_line?: string
+          p_supplier_id?: string
+          p_wht_nature?: string
+          p_wht_rate_pct?: number
+          p_wht_treaty_ref?: string
+        }
+        Returns: Json
+      }
       record_export_freight_document: {
         Args: {
           p_amount: number
@@ -52511,6 +52607,15 @@ export type Database = {
           p_employee_id: string
           p_no_receipt_reason?: string
           p_spend_date: string
+        }
+        Returns: Json
+      }
+      submit_expense_claim_items: {
+        Args: {
+          p_currency: string
+          p_employee_id: string
+          p_items: Json
+          p_purpose: string
         }
         Returns: Json
       }

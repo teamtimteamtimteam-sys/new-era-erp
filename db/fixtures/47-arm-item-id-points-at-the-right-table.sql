@@ -197,9 +197,12 @@ BEGIN
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
     VALUES ('ZZFIX47-AR4', v_ib4, CURRENT_DATE - 200, now(), 'as_received', 'ours');
     -- 二:挂账开支单(unpaid 必须有供应商且不能有银行科目 —— expenses_payment_shape)
-    INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate,
+    --   EXPENSE-MULTILINE-1:表头 + 一行(科目在行上;表头合计 = 行之和,提交时核对)
+    INSERT INTO expenses (code, expense_date, amount_ccy, currency, fx_rate,
         amount_base, payment_status, supplier_id)
-    VALUES ('ZZFIX47-EXP', CURRENT_DATE - 200, '6100', 300, v_ccy, 1, 300, 'unpaid', v_sup);
+    VALUES ('ZZFIX47-EXP', CURRENT_DATE - 200, 300, v_ccy, 1, 300, 'unpaid', v_sup);
+    INSERT INTO expense_lines (expense_id, line_no, account_code, amount_ccy, amount_base)
+    SELECT id, 1, '6100', 300, 300 FROM expenses WHERE code = 'ZZFIX47-EXP';
 
     -- ── fx_rate_gap:今天或之前最近的一个工作日有外币过账、无牌价 ────────────
     -- 本支限 rate_date >= CURRENT_DATE - 45,所以这一天必须相对今天。此前用的是 2027-03-03

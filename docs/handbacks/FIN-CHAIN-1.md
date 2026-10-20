@@ -64,3 +64,17 @@ in the migration). The end of the window is Tim's reading on Vercel.
 - On live, `close_period` cannot reach the new refusal today: the 8 never-allocated processing runs (AT1C3-LIVE-MONTH-CLOSE-BLOCKED-BY-UNALLOCATED-RUNS, Tim's own
   action d1 #13) refuse first. The new refusal is proved on the rebuild (fixture 282).
 - C4 and C5 queued as Tim ruled (`docs/forward-queue.md` SETTLE-POST group; item 63 PAYROLL-PAY-REVERSAL-1).
+
+## 5 · Close-out (EXPENSE-MULTILINE-1 Part 1, 2026-10-20)
+
+- **Pushed commit:** `2157a340f09e6e58e42a8b2777de4c9d09c71830` (`v1.4.63`); HEAD = origin/main = `git ls-remote origin main`, tree clean, re-read at the start of EXPENSE-MULTILINE-1.
+- **Broken window: opened 2026-10-20 17:43:01 CST** (migration committed; printed by `apply_migration.sh`, `db/migration-windows.tsv`) — **closed 2026-10-20 19:32 CST**
+  (Tim confirmed the deployment on Vercel; **this end point is Tim's report, not a reading this machine took**). **Length ≈ 1 h 49 min** (17:43:01 → 19:32; Tim's end point is to the minute, so the seconds are not known).
+  **Broken in it:** only the freight reversal button — the old page sent no date and `reverse_freight_document` refused by name (`REVERSAL_DATE_REQUIRED`), writing nothing.
+- **Read-only check on production (finished 19:37:11 CST, after Tim's confirmation)** — `readings/closeout-production-check.txt`, `CLOSEOUT_CHECK_EXIT=0`:
+  live has **4 freight documents and all 4 are reversed** (read as `postgres` on the base table, `rolbypassrls`), so the reversal form cannot be drawn on
+  production for any document today and none was created to make it appear. Instead a finance-clone throwaway (`finchain1probe`, removed by its plan; read back
+  0 accounts · 0 roles · 0 probe grants) opened `/finance/freight/<FRT>` on `https://new-era-erp.vercel.app` (HTTP 200, rendered as reversed), and of the 18 client
+  chunks that page loads, one (`0zcrzqhpp13zc.js`) carries `finance.freight.reverseDate`, its hint and `required` beside the reverse button. Neither the key nor
+  the `DatePicker` existed in that control before FIN-CHAIN-1 (`git show 1ae65bb3:…`, 0 and 0), so **the deployed reversal form has the required date field.**
+- **FIN-CHAIN-1 is closed** (`docs/forward-queue.md` item 61).

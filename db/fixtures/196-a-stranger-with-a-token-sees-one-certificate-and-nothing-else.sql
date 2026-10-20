@@ -410,10 +410,11 @@ BEGIN
     VALUES ('F196-EMP', 'fixture 196 employee', 'office', 'full_time', 'active',
             CURRENT_DATE - 100, emp_user)
     RETURNING id INTO emp;
-    INSERT INTO expense_claims (code, employee_id, spend_date, amount_ccy, currency,
-                                description, no_receipt_reason, status, created_by)
-    VALUES ('F196-EXP', emp, CURRENT_DATE - 2, 42, 'SGD',
-            'fixture 196 claim', 'fixture 196:收据丢了', 'submitted', v_issuer);
+    INSERT INTO expense_claims (code, employee_id, spend_date, amount_ccy, currency, description, status, created_by) VALUES
+        ('F196-EXP', emp, CURRENT_DATE - 2, 42, 'SGD', 'fixture 196 claim', 'submitted', v_issuer);
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        ((SELECT id FROM expense_claims WHERE code = 'F196-EXP'), 1, CURRENT_DATE - 2, 42, 'fixture 196 claim', 'fixture 196:收据丢了', NULL, NULL);
 
     -- 【前提自证:基表【真的】有行,而视图【真的】吐得出内容】
     -- 没有这两句,下面那两个 0 可能只是因为库里什么都没有 —— 而那正是

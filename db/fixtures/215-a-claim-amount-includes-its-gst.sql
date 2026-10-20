@@ -223,7 +223,9 @@ BEGIN
     v_c := (v_res->>'claim_id')::uuid;
     PERFORM set_config('request.jwt.claims', c_approver, true);
     v_exp := (decide_expense_claim(v_c, true, '6120', 'ZP', NULL, NULL)->>'expense_id')::uuid;
-    SELECT amount_ccy, tax_ccy, tax_code, journal_entry_id INTO v_net, v_tax, v_msg, v_je FROM expenses WHERE id = v_exp;
+    -- EXPENSE-MULTILINE-1:税码在行上
+    SELECT e.amount_ccy, e.tax_ccy, l.tax_code, e.journal_entry_id INTO v_net, v_tax, v_msg, v_je
+      FROM expenses e JOIN expense_lines l ON l.expense_id = e.id AND l.line_no = 1 WHERE e.id = v_exp;
     IF v_net <> 50.00 OR v_tax <> 0 OR v_msg IS DISTINCT FROM 'ZP' THEN
         RAISE EXCEPTION 'FIXTURE 215D 失败:报 50.00(ZP)应当记 50.00 + 0、税码 ZP,实得 % + %、%', v_net, v_tax, v_msg;
     END IF;

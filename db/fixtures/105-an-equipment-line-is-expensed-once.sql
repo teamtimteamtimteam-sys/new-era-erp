@@ -228,9 +228,10 @@ BEGIN
     --     函数层挡得住走门的人;这一层挡的是 authenticated 的表级 INSERT。
     v_denied := false; v_msg := NULL; v_hint := NULL;
     BEGIN
-        INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate,
+        -- EXPENSE-MULTILINE-1:科目搬到了行上(expense_lines);表头这一插仍在 BEFORE INSERT 触发器那一层被拒
+        INSERT INTO expenses (code, expense_date, amount_ccy, currency, fx_rate,
                               amount_base, payment_status, bank_account_code, purchase_order_line_id)
-        VALUES ('ZZFIX105-DIRECT-1', DATE '2025-02-08', v_exp_acct, 500, v_ccy, 1, 500,
+        VALUES ('ZZFIX105-DIRECT-1', DATE '2025-02-08', 500, v_ccy, 1, 500,
                 'paid', '1000', v_line_mat);
     EXCEPTION WHEN OTHERS THEN
         v_denied := true; v_msg := SQLERRM;
@@ -436,9 +437,9 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate,
+        INSERT INTO expenses (code, expense_date, amount_ccy, currency, fx_rate,
                               amount_base, payment_status, bank_account_code, purchase_order_line_id)
-        VALUES ('ZZFIX105-DIRECT-2', DATE '2025-02-06', v_exp_acct, 100, v_ccy, 1, 100,
+        VALUES ('ZZFIX105-DIRECT-2', DATE '2025-02-06', 100, v_ccy, 1, 100,
                 'paid', '1000', v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;

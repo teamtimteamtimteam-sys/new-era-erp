@@ -537,8 +537,8 @@ BEGIN
         IF SQLERRM NOT LIKE 'EXPENSE_IMMUTABLE%' THEN RAISE EXCEPTION 'FIXTURE 261 F3: no reason outside the posted → reversed step, got %', SQLERRM; END IF;
     END;
     BEGIN
-        INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, supplier_id, reversal_reason)
-        VALUES ('ZZ261-EXP-X', v_today, '6400', 1, v_base, 1, 1, 'unpaid', v_other_sup, 'pre-written');
+        INSERT INTO expenses (code, expense_date, amount_ccy, currency, fx_rate, amount_base, payment_status, supplier_id, reversal_reason)
+        VALUES ('ZZ261-EXP-X', v_today, 1, v_base, 1, 1, 'unpaid', v_other_sup, 'pre-written');
         RAISE EXCEPTION 'F261_PROBE';
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE '%expenses_reversal_shape%' THEN RAISE EXCEPTION 'FIXTURE 261 F3: a posted expense cannot carry a reversal reason (CHECK), got %', SQLERRM; END IF;

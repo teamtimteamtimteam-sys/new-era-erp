@@ -37,7 +37,22 @@ export const EXPENSE_CLAIM_ERROR_CODES = new Set([
     // U1-B:审批开着、而除了提单人(与报销的主角)之外没有一个人能决定它 —— submit_expense_claim 先拒,
     //   不让一张注定没人能批的单子进队列。{0} 是单号。
     'EXPENSE_CLAIM_NO_OTHER_DECIDER',
+    // EXPENSE-MULTILINE-1(Tim 2026-10-20):表头 + 明细
+    'EXPENSE_CLAIM_ITEMS_REQUIRED', 'EXPENSE_CLAIM_ITEMS_INVALID', 'EXPENSE_CLAIM_PURPOSE_REQUIRED',
+    'EXPENSE_CLAIM_ITEMS_SPAN_MONTHS', 'EXPENSE_CLAIM_FOREIGN_ITEMS_ONE_DATE', 'EXPENSE_CLAIM_HAS_ITEMS',
+    'EXPENSE_CLAIM_ITEM_UNKNOWN', 'EXPENSE_CLAIM_HAS_NO_ITEMS', 'EXPENSE_CLAIM_TOTALS_MISMATCH',
+    'EXPENSE_CLAIM_ITEM_IMMUTABLE',
 ])
+
+// ★ EXPENSE-MULTILINE-1:多笔的报销单上,逐笔的那几条拒绝在码尾多带一个【第几笔】(单笔与此前逐字相同,不带)。
+//   这张表说那个数在第几个参数 —— 多出来的那一个就是,文案前面加一句「第 N 笔:」。
+const ITEM_SUFFIXED: Record<string, number> = {
+    EXPENSE_CLAIM_SPEND_DATE_REQUIRED: 0,    // '…|<笔>'
+    EXPENSE_CLAIM_DESCRIPTION_REQUIRED: 0,
+    EXPENSE_CLAIM_ACCOUNT_REQUIRED: 1,       // '…|<单号>|<笔>'
+    EXPENSE_CLAIM_TAX_CODE_REQUIRED: 1,
+    EXPENSE_CLAIM_NO_EVIDENCE: 1,
+}
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 
@@ -61,6 +76,11 @@ export async function localizeExpenseClaimError(message: string): Promise<string
     // FX_RATE_MISSING 归 THE FX RULE 那一族 —— 措辞归它们自己,这里不复述。
     if (!EXPENSE_CLAIM_ERROR_CODES.has(match[1])) return await fallbackForRawError(raw, 'localizeExpenseClaimError@app/finance/claims/claimErrorCodes.ts')
     const params: Record<string, string> = {}
-    if (match[2]) match[2].split('|').forEach((v, i) => { params[String(i)] = v })
+    const parts = match[2] ? match[2].split('|') : []
+    parts.forEach((v, i) => { params[String(i)] = v })
+    const at = ITEM_SUFFIXED[match[1]]
+    if (at !== undefined && parts.length === at + 1) {
+        return t('expenseClaims.itemError', { n: parts[at] }) + ' ' + t('expenseClaims.errors.' + match[1], params)
+    }
     return t('expenseClaims.errors.' + match[1], params)
 }

@@ -25,6 +25,11 @@
 //
 // ★ EMP-SELF-1(G2,Tim 2026-09-27):多一列「决定」(谁、何时、备注,DecisionCell)。
 //   备注此前叠在「事由」格里;现在它跟着决定人走,于是从事由格里拿掉 —— 同一句话不在一行里出现两次。
+//
+// ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Step 0 Q3 · Step 0b Q4–Q7 · Q10):一张报销单 = 一句用途 + 一个币种 + 若干笔明细
+//   (每一笔:哪天 · 收据上的金额 · 说明 · 没有收据时的理由)。同一个日历月;外币的单所有明细同一天 —— 两条都由
+//   submit_expense_claim_items 按名拒,这里不再判一遍。在 CLAIM-RECEIPTS-1 之前员工传不了收据,所以每一笔都要写理由。
+//   这张表单【没有】草稿(Step 0b Q10)。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition, type ReactNode } from 'react'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
@@ -35,11 +40,14 @@ import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限�
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DecisionCell, { type Decision } from './DecisionCell'
 
+export type MyClaimItem = { line_no: number; spend_date: string; amount_ccy: number; description: string; no_receipt_reason: string | null }
 type Row = {
     claim_id: string; code: string; spend_date: string; amount_ccy: number
     currency: string; description: string; status: string
     is_owing: boolean; is_paid: boolean; has_receipt: boolean
-    no_receipt_reason: string | null; decision_notes: string | null
+    decision_notes: string | null
+    // EXPENSE-MULTILINE-1:明细(页面另读 expense_claim_items,按单挂上来)
+    items: MyClaimItem[]
     expense_reversed: boolean | null
     // CLAIM-GST-1:批准之后那张费用单上的净额与税(expense_claim_status 末尾追加的两列)
     expense_net_ccy: number | null; expense_tax_ccy: number | null
@@ -57,17 +65,18 @@ export default function MyExpenseClaimsPanel({
     const t = useTranslations()
     const [open, setOpen] = useState(false)
     // 【花钱那天不预填】—— 一个决定成本落在哪个期间的日期,预填就是奖励留空;
-    // 服务端也独立地拒空(合取,不是二选一)。
-    const [spendDate, setSpendDate] = useState('')
-    const [spendDateBad, setSpendDateBad] = useState(false)
-    const [amount, setAmount] = useState('')
+    // 服务端也独立地拒空(合取,不是二选一)。逐笔。
+    type ItemDraft = { key: string; spendDate: string; bad: boolean; amount: string; description: string; noReceipt: string }
+    const blankItem = (): ItemDraft => ({ key: Math.random().toString(36).slice(2), spendDate: '', bad: false, amount: '', description: '', noReceipt: '' })
+    const [items, setItems] = useState<ItemDraft[]>(() => [blankItem()])
+    const setItem = (key: string, patch: Partial<ItemDraft>) => setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)))
+    const [purpose, setPurpose] = useState('')
     const [currency, setCurrency] = useState(baseCurrency)
-    const [description, setDescription] = useState('')
-    const [noReceipt, setNoReceipt] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [pending, startTransition] = useTransition()
 
-    const canSubmit = spendDate !== '' && amount !== '' && description.trim() !== ''
+    const canSubmit = purpose.trim() !== '' && items.every((x) => x.spendDate !== '' && !x.bad && x.amount !== '' && x.description.trim() !== '')
+    const reset = () => { setItems([blankItem()]); setPurpose('') }
 
     /* 撤回钮。TABLE-PHONE-3 当时把它写成一个共用的画法,是因为同一颗钮要在两个
        断点各画一次(桌面在自己那一列,手机叠在「单号」格里);TABLE-STYLE-1 之后
@@ -110,12 +119,17 @@ export default function MyExpenseClaimsPanel({
             render: (r) => (
                 <>
                     {r.description}
-                    <span className="block text-xs text-gray-500">
-                        {r.has_receipt ? t('expenseClaims.hasReceipt')
-                            : r.no_receipt_reason
-                                ? `${t('expenseClaims.noReceipt')} — ${r.no_receipt_reason}`
-                                : t('expenseClaims.noReceipt')}
-                    </span>
+                    {/* EXPENSE-MULTILINE-1:用途之下逐笔 —— 说明、金额与它的凭据 */}
+                    {r.items.map((it) => (
+                        <span key={it.line_no} className="block text-xs text-gray-500">
+                            {t('expenseClaims.itemNo', { n: it.line_no })} · {it.description} · {money(it.amount_ccy)}
+                            {' — '}
+                            {r.has_receipt ? t('expenseClaims.hasReceipt')
+                                : it.no_receipt_reason
+                                    ? `${t('expenseClaims.noReceipt')}: ${it.no_receipt_reason}`
+                                    : t('expenseClaims.noReceipt')}
+                        </span>
+                    ))}
                 </>
             ),
         },
@@ -175,45 +189,69 @@ export default function MyExpenseClaimsPanel({
                 </Button>
             )}
             {employeeId && open && (
-                <div className="mb-4 rounded border border-gray-300 p-3 flex flex-wrap gap-3 items-end max-w-3xl">
-                    <label className="">{t('expenseClaims.spendDate')}
-                        <DatePicker value={spendDate} max={businessToday()}
-                            onChange={setSpendDate} onInvalidChange={setSpendDateBad}
-                            className="flex" />
-                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.spendDateHint')}</span></label>
-                    <label className="">{t('expenseClaims.amount')}
-                        <input type="number" step="0.01" min="0" value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            className={`${CONTROL_INPUT} block w-32`} />
-                        <span className="block text-xs text-[color:var(--brand-muted-text)] max-w-[16rem]">{t('expenseClaims.amountHint')}</span></label>
-                    <label className="">{t('expenseClaims.currency')}
-                        <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                            className={`${CONTROL_INPUT} block w-20`} /></label>
-                    <label className="flex-1 min-w-[16rem]">{t('expenseClaims.description')}
-                        <input value={description} onChange={(e) => setDescription(e.target.value)}
-                            className={`${CONTROL_INPUT} block w-full`} />
-                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.descriptionHint')}</span></label>
-                    <label className="flex-1 min-w-[16rem]">{t('expenseClaims.noReceiptReason')}
-                        <input value={noReceipt} onChange={(e) => setNoReceipt(e.target.value)}
-                            className={`${CONTROL_INPUT} block w-full`} />
-                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.noReceiptReasonHint')}</span></label>
-                    <Button type="button" disabled={pending || !canSubmit || spendDateBad}
-                        onClick={() => {
-                            setError(null)
-                            startTransition(async () => {
-                                const r = await submitClaim({
-                                    employeeId: employeeId!, spendDate, amount, currency,
-                                    description, noReceiptReason: noReceipt,
+                <div className="mb-4 max-w-3xl space-y-3 rounded border border-gray-300 p-3">
+                    <div className="flex flex-wrap items-end gap-3">
+                        <label className="min-w-0 flex-1 basis-64">{t('expenseClaims.purpose')}
+                            <input value={purpose} onChange={(e) => setPurpose(e.target.value)}
+                                className={`${CONTROL_INPUT} block w-full`} />
+                            <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.purposeHint')}</span></label>
+                        <label className="">{t('expenseClaims.currency')}
+                            <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                                className={`${CONTROL_INPUT} block w-20`} /></label>
+                    </div>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.itemsHint')}</p>
+                    {items.map((x, n) => (
+                        <div key={x.key} className="flex flex-wrap items-end gap-3 rounded border border-gray-200 p-2">
+                            <span className="w-full text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.itemNo', { n: n + 1 })}</span>
+                            <label className="">{t('expenseClaims.spendDate')}
+                                <DatePicker value={x.spendDate} max={businessToday()}
+                                    onChange={(v) => setItem(x.key, { spendDate: v })}
+                                    onInvalidChange={(bad) => setItem(x.key, { bad })}
+                                    className="flex" /></label>
+                            <label className="">{t('expenseClaims.amount')}
+                                <input type="number" step="0.01" min="0" value={x.amount}
+                                    onChange={(e) => setItem(x.key, { amount: e.target.value })}
+                                    className={`${CONTROL_INPUT} block w-32`} /></label>
+                            <label className="min-w-0 flex-1 basis-56">{t('expenseClaims.description')}
+                                <input value={x.description} onChange={(e) => setItem(x.key, { description: e.target.value })}
+                                    className={`${CONTROL_INPUT} block w-full`} /></label>
+                            <label className="min-w-0 flex-1 basis-56">{t('expenseClaims.noReceiptReason')}
+                                <input value={x.noReceipt} onChange={(e) => setItem(x.key, { noReceipt: e.target.value })}
+                                    className={`${CONTROL_INPUT} block w-full`} /></label>
+                            {items.length > 1 && (
+                                <Button variant="secondary" size="xs" type="button"
+                                    aria-label={t('expenseClaims.removeItemAria', { n: n + 1 })}
+                                    onClick={() => setItems((xs) => xs.filter((y) => y.key !== x.key))}>
+                                    {t('expenseClaims.removeItem')}
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">
+                        {t('expenseClaims.spendDateHint')} {t('expenseClaims.amountHint')} {t('expenseClaims.noReceiptReasonHint')}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="xs" type="button" onClick={() => setItems((xs) => [...xs, blankItem()])}>
+                            {t('expenseClaims.addItem')}
+                        </Button>
+                        <Button type="button" disabled={pending || !canSubmit}
+                            onClick={() => {
+                                setError(null)
+                                startTransition(async () => {
+                                    const r = await submitClaim({
+                                        employeeId: employeeId!, currency, purpose,
+                                        items: items.map((x) => ({ spendDate: x.spendDate, amount: x.amount,
+                                                                   description: x.description, noReceiptReason: x.noReceipt })),
+                                    })
+                                    if (r.error) setError(r.error)
+                                    else { setOpen(false); reset() }
                                 })
-                                if (r.error) setError(r.error)
-                                else { setOpen(false); setSpendDate(''); setAmount(''); setDescription(''); setNoReceipt('') }
-                            })
-                        }}>
-                        {t('expenseClaims.submit')}
-                    </Button>
+                            }}>
+                            {t('expenseClaims.submit')}
+                        </Button>
+                    </div>
                 </div>
             )}
-
             <DataTable
                 rows={rows}
                 columns={columns}

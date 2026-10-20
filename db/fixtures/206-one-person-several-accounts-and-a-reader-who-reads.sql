@@ -84,11 +84,15 @@ BEGIN
         (e_nop, 'FX206-NOP', 'Nobody',     'full_time', 'office', DATE '2020-01-01', NULL);
 
     -- 金额一律本位币,一级(< 门槛)—— 这一支验的是"是谁",不是分档
-    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency,
-                                description, no_receipt_reason, status, created_by) VALUES
-        (c_forc, 'FX206-C-FORC', e_c, DATE '2030-03-01', 50.00, v_base, 'for c', 'none', 'submitted', u_main),
-        (c_own,  'FX206-C-OWN',  e_a, DATE '2030-03-01', 50.00, v_base, 'own',   'none', 'submitted', u_main),
-        (c_ctl,  'FX206-C-CTL',  e_c, DATE '2030-03-01', 50.00, v_base, 'ctl',   'none', 'submitted', u_main);
+    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency, description, status, created_by) VALUES
+        (c_forc, 'FX206-C-FORC', e_c, DATE '2030-03-01', 50.00, v_base, 'for c', 'submitted', u_main),
+        (c_own, 'FX206-C-OWN', e_a, DATE '2030-03-01', 50.00, v_base, 'own', 'submitted', u_main),
+        (c_ctl, 'FX206-C-CTL', e_c, DATE '2030-03-01', 50.00, v_base, 'ctl', 'submitted', u_main);
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        (c_forc, 1, DATE '2030-03-01', 50.00, 'for c', 'none', NULL, NULL),
+        (c_own, 1, DATE '2030-03-01', 50.00, 'own', 'none', NULL, NULL),
+        (c_ctl, 1, DATE '2030-03-01', 50.00, 'ctl', 'none', NULL, NULL);
 
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_main), true);
     -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。

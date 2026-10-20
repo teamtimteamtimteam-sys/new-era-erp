@@ -104,12 +104,15 @@ BEGIN
                                'expense', v_expense_id, v_lines);
 
     -- 发票立成正常开支单据:挂账的走既有收付款核销;科目 = 该成本类型的 5xxx
-    INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
+    INSERT INTO expenses (id, code, expense_date, amount_ccy, currency, fx_rate,
                           amount_base, payment_status, bank_account_code, supplier_id,
                           payee_name, notes, journal_entry_id, created_by)
-    VALUES (v_expense_id, v_code, p_expense_date, fin_cost_account(v_type), p_actual_amount, base_currency_code(), 1,
+    VALUES (v_expense_id, v_code, p_expense_date, p_actual_amount, base_currency_code(), 1,
             p_actual_amount, p_payment_status, v_bank, p_supplier_id,
             p_payee_name, p_notes, (v_je->>'entry_id')::uuid, auth.uid());
+    -- ★ EXPENSE-MULTILINE-1:这张单的那一行 —— 该成本类型的 5xxx 与实际金额,与表头合计相等(guard_expense_totals)。
+    INSERT INTO expense_lines (expense_id, line_no, account_code, amount_ccy, amount_base, created_by)
+    VALUES (v_expense_id, 1, fin_cost_account(v_type), p_actual_amount, p_actual_amount, auth.uid());
 
     PERFORM set_config('evoltrya.cost_settlement_ctx', '1', true);
     UPDATE processing_cost_entries

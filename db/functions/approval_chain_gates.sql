@@ -78,9 +78,11 @@ AS $function$
         --      造成的。写成 view + prices,那一天它仍然是 1。
         --    【approve 与 reject 不分两行】与采购单不同:本链两支分支【都】分档
         --    (驳回也落一行带 level 的留痕),所以两边都要看得见金额,门一样宽。
-        ('expense_claim'::text, 'decide_expense_claim'::text, 1::smallint,
+        -- ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Step 0b Q8):分档与那一句按级要人的调用住在 decide_expense_claim_items;
+        --   decide_expense_claim 是它的单笔包装,自己不分档 —— 名册登记的是【真正把关的那一支】(fixture 203E:名册 = 目录)。
+        ('expense_claim'::text, 'decide_expense_claim_items'::text, 1::smallint,
             ARRAY['module.finance.view', 'data.view_prices']::text[]),
-        ('expense_claim'::text, 'decide_expense_claim'::text, 2::smallint,
+        ('expense_claim'::text, 'decide_expense_claim_items'::text, 2::smallint,
             ARRAY['module.finance.view', 'data.view_prices']::text[]),
         -- ★★ PAY-REQ-1(Tim 的矩阵:付款与冲销付款,CFO 批每一张,不分档):
         --    【只有二级这一行】。decide_payment_request 直接要二级审批人(不按金额分档),

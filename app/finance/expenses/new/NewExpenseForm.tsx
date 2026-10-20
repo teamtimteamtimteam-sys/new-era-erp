@@ -6,8 +6,13 @@ import { CounterpartyOptions } from '@/app/components/finance/counterpartyOption
 // 本地开销多为新币,与销售面板的 USD 默认刻意不同)、付款状态(默认挂账 ——
 // 账单通常先到后付):paid → 银行账户(默认随币种,可改)+ 收款方(可选);
 // unpaid → 供应商(必选,后续核销要用)。底部实时 USD 预览 + 将要生成的分录说明。
-// 提交走 createExpense(rpc record_expense)。
-import { useActionState, useState } from 'react'
+// 提交走 createExpense(rpc record_expense_document)。
+// ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Step 0 Q1–Q16):一张单是【表头 + 行】。表头:日期 · 收款方 · 币种 · 备注
+//   (与代扣、资本那两块);每一行:自己的科目 · 税码 · 不含税净额 · 行备注,可加可删,没有上限(Q7)。
+//   资本支出单恰好一行(Q1):勾上资本时网格只剩那一行、科目定死 1500,有多行时那个勾选框按不动并说为什么。
+//   行网格整份进一个隐藏格子(lines_json)—— 提交读它,草稿也存它;恢复草稿时由 onRestore 把整张网格与
+//   受控的表头一起重建,重建不出来就【一个格子都不写】(Q8,IDLE-DRAFT-GRID-HALF-RESTORE 的那一条)。
+import { useActionState, useCallback, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
@@ -62,6 +67,29 @@ function todayIsoLocal(): string {
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
+// EXPENSE-MULTILINE-1:一行。taxTouched = 这一行的税码被人改过(没改过就跟着供应商的默认走,与单行时同一条)。
+type ExpenseLine = { key: string; account: string; taxCode: string; taxTouched: boolean; amount: string; notes: string }
+let lineSeq = 0
+const newLine = (): ExpenseLine => ({ key: `l${++lineSeq}`, account: '', taxCode: '', taxTouched: false, amount: '', notes: '' })
+// 网格进出草稿 / 提交的那一种形状 —— 与 record_expense_document 的 p_lines 逐键相同
+type WireLine = { account_code: string; amount: string; tax_code: string; notes: string }
+function parseWireLines(raw: string | undefined): ExpenseLine[] | null {
+    if (!raw) return null
+    let v: unknown
+    try { v = JSON.parse(raw) } catch { return null }
+    if (!Array.isArray(v) || v.length === 0) return null
+    const out: ExpenseLine[] = []
+    for (const x of v) {
+        if (!x || typeof x !== 'object') return null
+        const w = x as Partial<WireLine>
+        if (typeof w.account_code !== 'string' || typeof w.amount !== 'string'
+            || typeof w.tax_code !== 'string' || typeof w.notes !== 'string') return null
+        out.push({ ...newLine(), account: w.account_code, amount: w.amount, taxCode: w.tax_code,
+                   taxTouched: w.tax_code !== '', notes: w.notes })
+    }
+    return out
+}
+
 export default function NewExpenseForm({
     accounts,
     suppliers,
@@ -100,19 +128,17 @@ canEdit: boolean
     // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
     // 不在这里声明 —— 见 lib/useFormDraft.ts 抬头。
     const formRef = useRef<HTMLFormElement>(null)
-    const draft = useFormDraft({ formKey: 'finance/expenses/new', table: 'expenses', subject: null, formRef })
 
-    const [accountCode, setAccountCode] = useState('')
-    // GST-2:进项税码。跟随所选供应商的默认(未手改过时),否则空 ——
+    // EXPENSE-MULTILINE-1:行。GST-2 的进项税码逐行:跟随所选供应商的默认(未手改过时),否则空 ——
     // 空 + 已注册 = 数据库按名拒(TAX_CODE_REQUIRED|supplier),不猜。
-    const [taxCode, setTaxCode] = useState('')
-    const [taxCodeTouched, setTaxCodeTouched] = useState(false)
+    const [lines, setLines] = useState<ExpenseLine[]>(() => [newLine()])
+    const setLine = (key: string, patch: Partial<ExpenseLine>) =>
+        setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)))
     // WHT-1:代扣裁定的三个部件。【没有默认值】 —— 空是"没有人回答过",
     // 而对一个非居民收款人,record_expense 会按名拒(WHT_NATURE_REQUIRED)。
     const [whtNature, setWhtNature] = useState('')
     const [whtTreatyRate, setWhtTreatyRate] = useState('')
     const [whtTreatyRef, setWhtTreatyRef] = useState('')
-    const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('SGD') // 本地开销默认新币(销售面板默认 USD,刻意不同)
     // ★ PAY-REQ-1(Tim 2026-09-23):开支【永远】记成欠收款人的 —— 「已付」那一支退休了。
     //   钱离开要先批:付它走一张付款申请(CFO 批准后由财务付),record_expense 对 'paid' 按名拒。
@@ -130,23 +156,48 @@ canEdit: boolean
     const [counterparty, setCounterparty] = useState('')
     const [residual, setResidual] = useState('')
 
+    // ★ Q8:草稿【整份恢复,或者一点都不恢复】—— 网格与受控的表头由这里重建;网格解析不出来就返回 false,
+    //   useFormDraft 于是一个格子都不写,横幅照直说"没能整份恢复"。非受控的格子(日期、备注)由钩子随后写回。
+    const onRestore = useCallback((v: Record<string, string>) => {
+        const restoredLines = parseWireLines(v['lines_json'])
+        if (!restoredLines) return false
+        const isCap = v['capital'] === 'on'
+        if (isCap && restoredLines.length !== 1) return false
+        setLines(restoredLines)
+        setCurrency(v['currency'] || baseCurrency)
+        setCounterparty(v['counterparty'] ?? '')
+        setCapital(isCap)
+        setCapitalMode(v['capital_mode'] === 'existing' ? 'existing' : 'new')
+        setAssetId(v['asset_id'] ?? '')
+        setPoLineId(v['purchase_order_line_id'] ?? '')
+        setResidual(v['asset_residual'] ?? '')
+        setWhtNature(v['wht_nature'] ?? '')
+        setWhtTreatyRate(v['wht_treaty_rate_pct'] ?? '')
+        setWhtTreatyRef(v['wht_treaty_ref'] ?? '')
+        return true
+    }, [baseCurrency])
+    const draft = useFormDraft({ formKey: 'finance/expenses/new', table: 'expenses', subject: null, formRef, onRestore })
+
     // 银行账户默认跟随币种(SGD → 1000,USD → 1010),之后仍可手动改
     function onCurrencyChange(c: string) {
         setCurrency(c)
     }
 
-    // 实时预览只对本位币直给;外币的 SGD 值由当日牌价决定(DB 侧),预览不猜数
-    const amountNum = Number(amount)
-    const amountValid = !!amount && !Number.isNaN(amountNum) && amountNum > 0
-    const amountSgd = currency === baseCurrency && amountValid ? round2(amountNum) : null
+    // 实时预览只对本位币直给;外币的 SGD 值由当日牌价决定(DB 侧),预览不猜数。合计 = 各行净额之和。
+    const amounts = lines.map((l) => Number(l.amount))
+    const amountValid = lines.every((l, i) => !!l.amount && !Number.isNaN(amounts[i]) && amounts[i] > 0)
+    const amountNum = round2(amounts.reduce((a, b) => a + (Number.isNaN(b) ? 0 : b), 0))
+    const amountSgd = currency === baseCurrency && amountValid ? amountNum : null
 
-    const accountLabel = accounts.find((a) => a.code === accountCode)
+    const accountLabel = accounts.find((a) => a.code === lines[0]?.account)
     // D5:资本支出的借方【就是 1500】—— record_expense 把它定死了,而科目下拉在
     // 资本模式下是隐藏的,于是此前这里落到 '…'(走查看到的那个省略号)。
     // 名字由服务端从库里取,不写死。
     const previewAccount = capital
         ? capitalAccountLabel
         : (accountLabel ? `${accountLabel.code} ${accountLabel.name}` : '…')
+    // 资本单恰好一行(Q1):有多行时资本那个勾选框按不动
+    const capitalBlocked = !capital && lines.length > 1
 
     // ── D3:这台机器、这家供应商、还没被报销过的设备行 ────────────────────
     // 三个条件全部照抄 record_expense 的守卫,不另想一套(见 page.tsx 的注释)。
@@ -161,7 +212,12 @@ canEdit: boolean
     // 对象,于是这里是空的,人必须自己选一个;数据库那边按名拒,不猜。
     const supplierDefaultTaxCode =
         suppliers.find((sp) => sp.id === supplierId)?.default_tax_code ?? null
-    const effTaxCode = taxCodeTouched ? taxCode : (supplierDefaultTaxCode ?? '')
+    const effTax = (l: ExpenseLine) => (l.taxTouched ? l.taxCode : (supplierDefaultTaxCode ?? ''))
+    // 提交与草稿读的那一份:表单状态 → p_lines 的形状(资本那一行科目定死 1500)
+    const wire: WireLine[] = lines.map((l) => ({
+        account_code: capital ? '1500' : l.account, amount: l.amount,
+        tax_code: gstRegistered ? effTax(l) : '', notes: l.notes,
+    }))
 
     // ── WHT-1:要不要追问代扣 ────────────────────────────────────────────────
     // ★【判据是【申报过是非居民】,不是"外国供应商"】★ 居民身份是声明的,
@@ -208,78 +264,21 @@ canEdit: boolean
                 <div className="self-end pb-2">
                     <label className="inline-flex items-center gap-2">
                         <input className={CONTROL_CHECKBOX} type="checkbox" name="capital" checked={capital}
+                               disabled={capitalBlocked}
                                onChange={(e) => setCapital(e.target.checked)} />
                         {t('expense.form.capital')}
                     </label>
+                    {capitalBlocked && (
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-xs">{t('expense.form.capitalOneLine')}</p>
+                    )}
                 </div>
-                {/* 费用科目(仅 active expense 科目,按编码排序);资本行固定 1500 */}
-                {!capital ? (
-                    <div className="flex-1 min-w-[16rem]">
-                        <label className="block mb-1">
-                            {t('expense.form.account')} <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            name="account_code"
-                            required
-                            value={accountCode}
-                            onChange={(e) => setAccountCode(e.target.value)}
-                            className={`${CONTROL_SELECT} w-full`}
-                        >
-                            <option value="" disabled>
-                                {t('expense.form.selectAccount')}
-                            </option>
-                            {accounts.map((a) => (
-                                <option key={a.code} value={a.code}>
-                                    {a.code} {a.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                ) : (
+                {/* 资本行科目固定 1500(EXPENSE-MULTILINE-1:普通费用的科目在下面每一行上)*/}
+                {capital && (
                     <p className="flex-1 min-w-[16rem] self-end pb-2 text-sm text-[color:var(--brand-muted-text)]">
                         {t('expense.form.capitalHint')}
                     </p>
                 )}
             </div>
-
-            {/* ★【GST-2:进项税码 —— 只在已注册时出现】★
-                未注册时这张表单与建 GST 之前一模一样,连这一格都不长出来。
-                【p_amount 始终是不含税净额】税另算,所以这里要把话说清楚,
-                否则人会把供应商账单上的总额填进金额栏。 */}
-            {gstRegistered && (
-                <div className="flex flex-wrap gap-4">
-                    <div className="flex-1 min-w-[16rem]">
-                        <label className="block mb-1">
-                            {t('expense.form.taxCode')} <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            name="tax_code"
-                            value={effTaxCode}
-                            onChange={(e) => { setTaxCodeTouched(true); setTaxCode(e.target.value) }}
-                            className={`${CONTROL_SELECT} w-full`}
-                        >
-                            <option value="">{t('expense.form.taxCodePick')}</option>
-                            {taxCodes.map((c) => (
-                                <option key={c.code} value={c.code}>
-                                    {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。
-                                        拼接在中文界面下勉强能读,在英文界面下就是把中文推给一个读不懂它的人。 */}
-                                    {c.code} · {locale === 'zh' ? c.name_zh : c.name_en}
-                                    {c.is_claimable ? '' : ` — ${t('expense.form.taxCodeBlocked')}`}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expense.form.taxCodeNetHint')}</p>
-                        {!taxCodeTouched && supplierDefaultTaxCode && (
-                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
-                                {t('expense.form.taxCodeFromSupplier', { code: supplierDefaultTaxCode })}
-                            </p>
-                        )}
-                        {!effTaxCode && (
-                            <p className="text-xs text-amber-700 mt-1">{t('expense.form.taxCodeNoDefault')}</p>
-                        )}
-                    </div>
-                </div>
-            )}
 
             {/* ★★【WHT-1:预提税 —— 只在收款人【申报为非居民】时出现】★★
                 这是 4.1 的前半句:**代扣在哪里裁定**。它在这里,而不是在付款屏幕上,
@@ -343,19 +342,6 @@ canEdit: boolean
             )}
 
             <div className="flex flex-wrap gap-4">
-                {/* 金额(必填,原币)*/}
-                <div>
-                    <label className="block mb-1">
-                        {t('expense.form.amount')} <span className="text-red-600">*</span>
-                    </label>
-                    <DecimalInput
-                        name="amount"
-                        required
-                        value={amount}
-                        onChange={setAmount}
-                        className="w-36"
-                    />
-                </div>
                 {/* 币种(默认 SGD)*/}
                 <div>
                     <label className="block mb-1">{t('expense.form.currency')}</label>
@@ -407,6 +393,92 @@ canEdit: boolean
                         </select>
                         <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('expense.form.alwaysUnpaidHint')}</p>
                     </div>
+            </div>
+
+            {/* ── EXPENSE-MULTILINE-1:行 —— 每一行自己的科目 · 税码 · 不含税净额 · 备注 ──────────────
+                【整张网格进一个隐藏格子】提交读它、草稿存它;网格里的控件自己不带 name。
+                390px 上每一行是一块会换行的卡片(flex-wrap),桌面上一行排开。 */}
+            <input type="hidden" name="lines_json" value={JSON.stringify(wire)} />
+            <div className="space-y-2" data-expense-lines="">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="font-medium">{t('expense.form.linesHeading')}</h3>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">
+                        {capital ? t('expense.form.capitalOneLine') : t('expense.form.linesHint')}
+                    </p>
+                </div>
+                {lines.map((l, i) => (
+                    <div key={l.key} className="flex flex-wrap items-end gap-2 rounded border border-gray-200 p-2">
+                        <span className="w-full text-xs text-[color:var(--brand-muted-text)] sm:w-auto sm:self-center">
+                            {t('expense.form.lineNo', { n: i + 1 })}
+                        </span>
+                        {!capital && (
+                            <label className="flex min-w-0 flex-1 basis-56 flex-col text-sm">
+                                <span>{t('expense.form.account')} <span className="text-red-600">*</span></span>
+                                <select required value={l.account}
+                                        onChange={(e) => setLine(l.key, { account: e.target.value })}
+                                        className={`${CONTROL_SELECT} w-full`}>
+                                    <option value="" disabled>{t('expense.form.selectAccount')}</option>
+                                    {accounts.map((a) => (
+                                        <option key={a.code} value={a.code}>{a.code} {a.name}</option>
+                                    ))}
+                                </select>
+                            </label>
+                        )}
+                        {/* ★【GST-2:进项税码 —— 只在已注册时出现】★ 逐行;未注册时这张表单与建 GST 之前一样,连这一格都不长出来 */}
+                        {gstRegistered && (
+                            <label className="flex min-w-0 flex-1 basis-48 flex-col text-sm">
+                                <span>{t('expense.form.taxCode')} <span className="text-red-600">*</span></span>
+                                <select value={effTax(l)}
+                                        onChange={(e) => setLine(l.key, { taxTouched: true, taxCode: e.target.value })}
+                                        className={`${CONTROL_SELECT} w-full`}>
+                                    <option value="">{t('expense.form.taxCodePick')}</option>
+                                    {taxCodes.map((c) => (
+                                        <option key={c.code} value={c.code}>
+                                            {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。 */}
+                                            {c.code} · {locale === 'zh' ? c.name_zh : c.name_en}
+                                            {c.is_claimable ? '' : ` — ${t('expense.form.taxCodeBlocked')}`}
+                                        </option>
+                                    ))}
+                                </select>
+                                {!effTax(l) && (
+                                    <span className="text-xs text-amber-700 mt-1">{t('expense.form.taxCodeNoDefault')}</span>
+                                )}
+                            </label>
+                        )}
+                        <label className="flex flex-col text-sm">
+                            <span>{t('expense.form.lineAmount')} <span className="text-red-600">*</span></span>
+                            <DecimalInput required value={l.amount}
+                                          onChange={(v) => setLine(l.key, { amount: v })} className="w-32" />
+                        </label>
+                        <label className="flex min-w-0 flex-1 basis-40 flex-col text-sm">
+                            <span>{t('expense.form.lineNotes')}</span>
+                            <input type="text" value={l.notes}
+                                   onChange={(e) => setLine(l.key, { notes: e.target.value })}
+                                   className={`${CONTROL_INPUT} w-full`} />
+                        </label>
+                        {lines.length > 1 && (
+                            <Button type="button" variant="secondary" size="xs"
+                                    aria-label={t('expense.form.removeLineAria', { n: i + 1 })}
+                                    onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
+                                {t('expense.form.removeLine')}
+                            </Button>
+                        )}
+                    </div>
+                ))}
+                {gstRegistered && (
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expense.form.taxCodeNetHint')}</p>
+                )}
+                {gstRegistered && supplierDefaultTaxCode && lines.some((l) => !l.taxTouched) && (
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">
+                        {t('expense.form.taxCodeFromSupplier', { code: supplierDefaultTaxCode })}
+                    </p>
+                )}
+                {!capital && (
+                    <Button type="button" variant="secondary" size="xs"
+                            onClick={() => setLines((ls) => [...ls, newLine()])}>
+                        {t('expense.form.addLine')}
+                    </Button>
+                )}
             </div>
 
             <div className="flex flex-wrap gap-4">
@@ -563,7 +635,9 @@ canEdit: boolean
                     )}
                 </div>
                 <p className="text-[color:var(--brand-muted-text)]">
-                    {t('expense.previewUnpaid', { account: previewAccount })}
+                    {lines.length === 1
+                        ? t('expense.previewUnpaid', { account: previewAccount })
+                        : t('expense.previewUnpaidLines', { n: lines.length })}
                 </p>
             </div>
 

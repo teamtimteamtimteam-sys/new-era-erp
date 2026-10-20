@@ -47,6 +47,21 @@ export default function DraftBanner({ draft, locale = 'zh' }: { draft: DraftStat
         )
     }
 
+    // ③b EXPENSE-MULTILINE-1:按了恢复,而那份草稿【整份】恢复不了 —— 一个格子都没写,照直说,只给"丢弃"
+    if (draft.found && draft.restoreFailed) {
+        return (
+            <div data-draft="restore-failed"
+                 className="text-sm bg-amber-50 border border-amber-300 rounded px-3 py-2 mb-3">
+                <p className="text-amber-900 mb-2">
+                    {t('draft.restoreFailed', { when: when(draft.found.at, locale) })}
+                </p>
+                <Button variant="secondary" size="xs" type="button" onClick={draft.discard}>
+                    {t('draft.discard')}
+                </Button>
+            </div>
+        )
+    }
+
     // ③ 发现一份可用的草稿
     if (draft.found) {
         return (

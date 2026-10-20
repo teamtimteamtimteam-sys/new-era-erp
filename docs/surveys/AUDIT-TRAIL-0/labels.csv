@@ -3942,3 +3942,27 @@ portal_certificate_submissions,compliance_id,fk_other,supplier_compliance: the c
 portal_certificate_submissions,attachment_id,fk_other,supplier_attachments: the stored copy of the file in the supplier's attachments — MES-9c (2026-10-20),,,Stored file,,,uuid
 account_settings,portal_upload_max_bytes,number,"V39 — bytes per file a supplier may upload through the portal (Tim, 2026-10-20: 10 MB) — MES-9c",,,Portal upload limit (bytes per file),,,bigint
 account_settings,portal_upload_types,text,"V39 — the file types a supplier may upload through the portal (Tim, 2026-10-20: PDF / JPEG / PNG) — MES-9c",,,Portal upload file types,,,ARRAY
+expense_lines,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+expense_lines,expense_id,fk_document,"expenses.code (document number, prefix EXP)",assets.detail.colExpense,Expense,,text-only,,uuid
+expense_lines,line_no,number,"number with unit (qty kg, %, rate); Intl en-US grouping",expense.colLineNo,#,,high,app/finance/expenses/[id]/ExpenseLinesTable.tsx:26,integer
+expense_lines,account_code,dict,accounts.name_en (via code),expense.colAccount,Account,,high,app/finance/expenses/[id]/ExpenseLinesTable.tsx:28,text
+expense_lines,amount_ccy,money,"formatAmount(n, row.currency) (lib/format.ts:32)",assets.detail.colAmountCcy,Amount,,text-only,,numeric
+expense_lines,amount_base,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",assets.detail.colAmountBase,Amount (base),,text-only,,numeric
+expense_lines,tax_code,dict,tax_codes.name_en (via code),expense.form.taxCode,Tax code,,high,app/finance/expenses/[id]/ExpenseLinesTable.tsx:31,text
+expense_lines,tax_rate_pct,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Tax rate %,,,numeric
+expense_lines,tax_ccy,money,"formatAmount(n, row.currency) (lib/format.ts:32)",,,GST,,,numeric
+expense_lines,tax_base,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",,,GST (base),,,numeric
+expense_lines,notes,text,verbatim,expense.form.lineNotes,Line notes,,high,app/finance/expenses/[id]/ExpenseLinesTable.tsx:41,text
+expense_lines,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+expense_lines,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+expense_claim_items,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+expense_claim_items,claim_id,fk_document,"expense_claims.code (document number, prefix CLM)",,,Expense claim,,,uuid
+expense_claim_items,line_no,number,"number with unit (qty kg, %, rate); Intl en-US grouping",expense.colLineNo,#,,text-only,,integer
+expense_claim_items,spend_date,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",expenseClaims.spendDate,Date of the spend,,text-only,,date
+expense_claim_items,amount_ccy,money,"formatAmount(n, row.currency) (lib/format.ts:32)",assets.detail.colAmountCcy,Amount,,text-only,,numeric
+expense_claim_items,description,text,verbatim,assets.colDescription,Description,,text-only,,text
+expense_claim_items,no_receipt_reason,text,verbatim,,,No-receipt reason,,,text
+expense_claim_items,account_code,dict,accounts.name_en (via code),expense.colAccount,Account,,text-only,,text
+expense_claim_items,tax_code,dict,tax_codes.name_en (via code),expense.form.taxCode,Tax code,,text-only,,text
+expense_claim_items,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
+expense_claim_items,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid

@@ -205,7 +205,7 @@ BEGIN
     v_res := submit_expense_claim(v_emp, d_spend, 30, v_base, '既没票也没理由', NULL);
     v_c3 := (v_res->>'claim_id')::uuid;
     IF EXISTS (SELECT 1 FROM finance_attachments WHERE claim_id = v_c3)
-       OR COALESCE(btrim((SELECT no_receipt_reason FROM expense_claims WHERE id = v_c3)),'') <> '' THEN
+       OR COALESCE(btrim((SELECT no_receipt_reason FROM expense_claim_items WHERE claim_id = v_c3 AND line_no = 1)),'') <> '' THEN   -- EXPENSE-MULTILINE-1:理由在明细上
         RAISE EXCEPTION 'FIXTURE 140D 失败(空转):第三笔身上有凭据 —— 这一臂要测的正是"两条都没有"';
     END IF;
     PERFORM set_config('request.jwt.claims',
@@ -408,19 +408,20 @@ BEGIN
     SELECT string_agg(l, E'\n') INTO v_src
       FROM (SELECT regexp_replace(l, '--.*$', '') AS l
               FROM regexp_split_to_table(
-                     pg_get_functiondef('public.decide_expense_claim(uuid,boolean,text,text,date,text)'::regprocedure),
+                     -- EXPENSE-MULTILINE-1:四眼与分档住在按明细的那一支,decide_expense_claim 是它的单笔包装(Tim Step 0b Q8)
+                     pg_get_functiondef('public.decide_expense_claim_items(uuid,boolean,jsonb,date,text)'::regprocedure),
                      E'\n') AS l) q;
     -- ★★ APR-3:判据换成了全库唯一那一份,两条腿一次传进去
     --   (提报人 created_by · 单据说的那位 employee_id)。
     -- ★ APR-ROUTE-1(2026-09-23):多了第三个参数 —— 单据类型,没有默认值。
     --   R2 的例外按类型判,所以这一句钉的也是"它说出了自己是报销单"。
     IF v_src NOT LIKE '%forbid_self_approval(v_c.created_by, v_c.employee_id, ''expense_claim'')%' THEN
-        RAISE EXCEPTION 'FIXTURE 140J 失败:decide_expense_claim 里【没有】那一次四眼调用 —— 而 guard_payment_sod 明确豁免了付给员工的款,上游这道闸一撤,自己批自己就通了';
+        RAISE EXCEPTION 'FIXTURE 140J 失败:decide_expense_claim_items 里【没有】那一次四眼调用 —— 而 guard_payment_sod 明确豁免了付给员工的款,上游这道闸一撤,自己批自己就通了';
     END IF;
     -- 【对齐用的空格数不算数,绑定关系才算数】第一版把 p_employee_id 与 :=
     -- 之间的空格数写死成三个,而 pg_get_functiondef 存的是四个 —— 断言于是
     -- 因为【排版】而红。钉的应当是"这个参数绑到了这笔申请的员工",不是缩进。
-    IF v_src NOT LIKE '%record_expense(%p_employee_id%:= v_c.employee_id%' THEN
+    IF v_src NOT LIKE '%record_expense_document(%p_employee_id%:= v_c.employee_id%' THEN   -- EXPENSE-MULTILINE-1:一张单一张费用单,经写入者本身
         RAISE EXCEPTION 'FIXTURE 140J 失败:批准没有把费用挂到【那名员工】头上 —— 应付就说不出欠谁';
     END IF;
     IF v_src NOT LIKE '%p_payment_status%:= ''unpaid''%' THEN

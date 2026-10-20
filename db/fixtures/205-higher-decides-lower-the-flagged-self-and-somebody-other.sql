@@ -115,12 +115,17 @@ BEGIN
         (e5, 'FX205-E5', 'E5 five',  'full_time', 'office', DATE '2020-01-01', u_cfo);
 
     -- 金额一律本位币 —— 不依赖 fx_rates,这一支验的是路由,不是 THE FX RULE。
-    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency,
-                                description, no_receipt_reason, status, created_by) VALUES
-        (c_l1own,  'FX205-C-L1OWN',  e1, DATE '2030-03-01',   60.00, v_base, 'l1 own',  'none', 'submitted', u_l1),
-        (c_hi_pl,  'FX205-C-HIPL',   e4, DATE '2030-03-01', 1500.00, v_base, 'hi plain','none', 'submitted', u_plain),
-        (c_l2own,  'FX205-C-L2OWN',  e2, DATE '2030-03-01', 1500.00, v_base, 'l2 own',  'none', 'submitted', u_l2),
-        (c_l2for4, 'FX205-C-L2FOR4', e4, DATE '2030-03-01', 1500.00, v_base, 'for 4',   'none', 'submitted', u_l2);
+    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency, description, status, created_by) VALUES
+        (c_l1own, 'FX205-C-L1OWN', e1, DATE '2030-03-01', 60.00, v_base, 'l1 own', 'submitted', u_l1),
+        (c_hi_pl, 'FX205-C-HIPL', e4, DATE '2030-03-01', 1500.00, v_base, 'hi plain', 'submitted', u_plain),
+        (c_l2own, 'FX205-C-L2OWN', e2, DATE '2030-03-01', 1500.00, v_base, 'l2 own', 'submitted', u_l2),
+        (c_l2for4, 'FX205-C-L2FOR4', e4, DATE '2030-03-01', 1500.00, v_base, 'for 4', 'submitted', u_l2);
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        (c_l1own, 1, DATE '2030-03-01', 60.00, 'l1 own', 'none', NULL, NULL),
+        (c_hi_pl, 1, DATE '2030-03-01', 1500.00, 'hi plain', 'none', NULL, NULL),
+        (c_l2own, 1, DATE '2030-03-01', 1500.00, 'l2 own', 'none', NULL, NULL),
+        (c_l2for4, 1, DATE '2030-03-01', 1500.00, 'for 4', 'none', NULL, NULL);
 
     INSERT INTO medical_claims (id, code, employee_id, claim_date, claim_year, amount_sgd, status, created_by) VALUES
         (mc_l2own,  'FX205-MC-L2',  e2, DATE '2030-03-04', 2030, 10, 'submitted', u_l2),
@@ -341,7 +346,7 @@ BEGIN
         UPDATE finance_settings SET approval_threshold_base = 1001;
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM;
-        v_denied := (SQLERRM LIKE 'APPROVALS_POLICY_WOULD_STRAND|FX205-C-L2FOR4|2|fx205-l2|decide_expense_claim|%'); END;
+        v_denied := (SQLERRM LIKE 'APPROVALS_POLICY_WOULD_STRAND|FX205-C-L2FOR4|2|fx205-l2|decide_expense_claim_items|%'); END;   -- EXPENSE-MULTILINE-1:名册登记真正把关的那一支
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 205R4b 失败:★ 一张只有它自己的提单人批得动的在途单,应当让策略编辑按名拒并点出 FX205-C-L2FOR4,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
 

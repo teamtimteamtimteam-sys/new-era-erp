@@ -8,6 +8,9 @@
 // 审批的人陈述【会计】(记哪个科目、哪个税码)。一个员工不可能知道科目表,
 // 而进项税可抵(TX)还是不可抵(BL)是一个财务判断 —— 不是一个能默认的东西。
 //
+// ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Step 0b Q1 · Q3):科目与税码【逐笔】给,什么都不预选;驳回只能整张,
+//   理由可以点名是哪一笔。每一笔的凭据(附件或它自己的无收据理由)摆在那一笔旁边。
+//
 // 【入账日那一格默认留空】留空 = 按花钱那天入账(成本属于它发生的期间)。
 // 只有那个期间已经关账、服务端按名拒(PERIOD_LOCKED)之后,才另给一个日子 ——
 // 界面【不】替人回落到今天,那正是 FIN-10 拆掉的那种默认。
@@ -22,12 +25,18 @@ import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
+export type ClaimItem = {
+    line_no: number; spend_date: string; amount_ccy: number; description: string
+    no_receipt_reason: string | null; account_code: string | null; tax_code: string | null
+}
 export type ClaimRow = {
     claim_id: string; code: string; employee_code: string; employee_name: string
     spend_date: string; amount_ccy: number; currency: string; description: string
-    status: string; no_receipt_reason: string | null; has_receipt: boolean
-    decision_notes: string | null; account_code: string | null; tax_code: string | null
+    status: string; has_receipt: boolean
+    decision_notes: string | null
     posting_date: string | null; is_owing: boolean; is_paid: boolean
+    // EXPENSE-MULTILINE-1:明细(页面另读 expense_claim_items,按单挂上来)
+    items: ClaimItem[]
     expense_reversed: boolean | null
     // CLAIM-GST-1:批准之后那张费用单上的净额与税(expense_claim_status 末尾追加的两列)
     expense_net_ccy: number | null; expense_tax_ccy: number | null
@@ -48,12 +57,16 @@ export default function ClaimDecisionPanel({
 }) {
     const locale = useLocale()
     const t = useTranslations()
-    const [sel, setSel] = useState<Record<string, { acct: string; tax: string; post: string; notes: string }>>({})
+    type Sel = { post: string; notes: string; items: Record<number, { acct: string; tax: string }> }
+    const [sel, setSel] = useState<Record<string, Sel>>({})
     const [error, setError] = useState<string | null>(null)
     const [pendingTx, startTransition] = useTransition()
-    const get = (id: string) => sel[id] ?? { acct: '', tax: '', post: '', notes: '' }
-    const set = (id: string, patch: Partial<{ acct: string; tax: string; post: string; notes: string }>) =>
+    const get = (id: string): Sel => sel[id] ?? { post: '', notes: '', items: {} }
+    const set = (id: string, patch: Partial<Sel>) =>
         setSel((s) => ({ ...s, [id]: { ...get(id), ...patch } }))
+    const getItem = (id: string, n: number) => get(id).items[n] ?? { acct: '', tax: '' }
+    const setItem = (id: string, n: number, patch: Partial<{ acct: string; tax: string }>) =>
+        set(id, { items: { ...get(id).items, [n]: { ...getItem(id, n), ...patch } } })
     // DATE-PICK-1:批准靠按钮 onClick 提交(不走原生表单)—— 哪一张的入账日框里是敲错的日子,就关掉【那一张】的批准钮。
     //   驳回不送日期,不受它影响。
     const [postBad, setPostBad] = useState<Record<string, boolean>>({})
@@ -134,35 +147,50 @@ export default function ClaimDecisionPanel({
                                 <span>{money(c.amount_ccy)} {c.currency}</span>
                                 <span className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.colSpent')} {formatDate(c.spend_date, locale)}</span>
                             </div>
-                            <p className="text-sm mb-1">{c.description}</p>
-                            {/* 【凭据是哪一种,审批人必须看得见】 */}
-                            <p className="text-xs mb-2 text-[color:var(--brand-muted-text)]">
-                                {c.has_receipt
-                                    ? <span className="text-green-700">{t('expenseClaims.hasReceipt')}</span>
-                                    : c.no_receipt_reason
-                                        ? <span className="text-amber-800">{t('expenseClaims.noReceipt')} — {c.no_receipt_reason}</span>
-                                        : <span className="text-red-700">{t('expenseClaims.noReceipt')}</span>}
-                            </p>
+                            {/* 表头的用途(Step 0b Q7) */}
+                            <p className="text-sm mb-2">{c.description}</p>
                             <PermissionGate code="data.view_prices" allowed={canDecide}>
+                                {/* ★ 逐笔:日期 · 金额 · 说明 · 凭据,和财务给这一笔的科目与税码(什么都不预选) */}
+                                <div className="mb-2 space-y-2">
+                                    {c.items.map((it) => (
+                                        <div key={it.line_no} className="flex flex-wrap items-end gap-2 rounded border border-gray-200 p-2">
+                                            <div className="min-w-0 basis-full text-sm sm:basis-64 sm:flex-1">
+                                                <span className="text-xs text-[color:var(--brand-muted-text)] mr-1">
+                                                    {t('expenseClaims.itemNo', { n: it.line_no })} · {formatDate(it.spend_date, locale)}
+                                                </span>
+                                                <span className="font-medium">{money(it.amount_ccy)} {c.currency}</span>
+                                                <span className="block break-words">{it.description}</span>
+                                                {/* 【凭据是哪一种,审批人必须看得见】—— 逐笔 */}
+                                                <span className="block text-xs">
+                                                    {c.has_receipt
+                                                        ? <span className="text-green-700">{t('expenseClaims.hasReceipt')}</span>
+                                                        : it.no_receipt_reason
+                                                            ? <span className="text-amber-800">{t('expenseClaims.noReceipt')} — {it.no_receipt_reason}</span>
+                                                            : <span className="text-red-700">{t('expenseClaims.noReceipt')}</span>}
+                                                </span>
+                                            </div>
+                                            <label className="flex min-w-0 flex-1 basis-44 flex-col text-sm">{t('expenseClaims.accountCode')}
+                                                <select value={getItem(c.claim_id, it.line_no).acct}
+                                                    onChange={(e) => setItem(c.claim_id, it.line_no, { acct: e.target.value })}
+                                                    className={`${CONTROL_SELECT} w-full`}>
+                                                    <option value=""></option>
+                                                    {accounts.map((a) => (
+                                                        <option key={a.code} value={a.code}>{a.code} {a.name_en}</option>
+                                                    ))}
+                                                </select></label>
+                                            <label className="flex min-w-0 flex-1 basis-36 flex-col text-sm">{t('expenseClaims.taxCode')}
+                                                <select value={getItem(c.claim_id, it.line_no).tax}
+                                                    onChange={(e) => setItem(c.claim_id, it.line_no, { tax: e.target.value })}
+                                                    className={`${CONTROL_SELECT} w-full`}>
+                                                    <option value=""></option>
+                                                    {taxCodes.map((x) => (
+                                                        <option key={x.code} value={x.code}>{x.code} {x.name_en}</option>
+                                                    ))}
+                                                </select></label>
+                                        </div>
+                                    ))}
+                                </div>
                                 <div className="flex flex-wrap gap-2 items-end">
-                                    <label className="">{t('expenseClaims.accountCode')}
-                                        <select value={get(c.claim_id).acct}
-                                            onChange={(e) => set(c.claim_id, { acct: e.target.value })}
-                                            className={`${CONTROL_SELECT} block`}>
-                                            <option value=""></option>
-                                            {accounts.map((a) => (
-                                                <option key={a.code} value={a.code}>{a.code} {a.name_en}</option>
-                                            ))}
-                                        </select></label>
-                                    <label className="">{t('expenseClaims.taxCode')}
-                                        <select value={get(c.claim_id).tax}
-                                            onChange={(e) => set(c.claim_id, { tax: e.target.value })}
-                                            className={`${CONTROL_SELECT} block`}>
-                                            <option value=""></option>
-                                            {taxCodes.map((x) => (
-                                                <option key={x.code} value={x.code}>{x.code} {x.name_en}</option>
-                                            ))}
-                                        </select></label>
                                     <label className="">{t('expenseClaims.postingDate')}
                                         <DatePicker value={get(c.claim_id).post}
                                             onChange={(v) => set(c.claim_id, { post: v })}
@@ -175,7 +203,11 @@ export default function ClaimDecisionPanel({
                                     <Button type="button" disabled={pendingTx || !!postBad[c.claim_id]}
                                         onClick={() => run(() => decideClaim({
                                             claimId: c.claim_id, approve: true,
-                                            accountCode: get(c.claim_id).acct, taxCode: get(c.claim_id).tax,
+                                            items: c.items.map((it) => ({
+                                                lineNo: it.line_no,
+                                                accountCode: getItem(c.claim_id, it.line_no).acct,
+                                                taxCode: getItem(c.claim_id, it.line_no).tax,
+                                            })),
                                             postingDate: get(c.claim_id).post, notes: get(c.claim_id).notes,
                                         }))}>
                                         {t('expenseClaims.approve')}
@@ -189,6 +221,7 @@ export default function ClaimDecisionPanel({
                                     </Button>
                                 </div>
                             </PermissionGate>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expenseClaims.rejectWholeHint')}</p>
                             <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expenseClaims.postingDateHint')}</p>
                             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.taxCodeHint')}</p>
                             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.gstBackedOutHint')}</p>

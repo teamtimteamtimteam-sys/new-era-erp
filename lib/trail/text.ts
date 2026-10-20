@@ -682,6 +682,10 @@ export const TRAIL_TEXT = {
     'exp.claimChanged': 'Expense claim changed',
     'exp.capitalised': 'Capitalised into an asset',
     'exp.prepaymentReleased': 'Prepayment released against this bill',
+    // EXPENSE-MULTILINE-1(Tim 2026-10-20)
+    'exp.lineRecorded': 'Line {n}',
+    'exp.claimItemAdded': 'Item {n}',
+    'exp.claimItemCoded': 'Item {n} coded at approval',
     // ── 应付(Q5:只说钱的那一面)───────────────────────────────────────────────
     'pab.edited': 'Payable details changed',
     'pab.priceSet': 'Price set',

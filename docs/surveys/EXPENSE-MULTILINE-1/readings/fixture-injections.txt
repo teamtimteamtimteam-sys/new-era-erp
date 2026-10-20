@@ -1,0 +1,6 @@
+EXPENSE-MULTILINE-1 · fault injections on fixtures 285 / 286 (local rebuild at /tmp/em1s, 2026-10-20 ~21:55 CST; never against live)
+inj1 drop trg_expense_lines_totals_match + trg_expenses_totals_match -> FIXTURE 285F 失败:没有行的表头应当在提交时被拒 EXPENSE_HAS_NO_LINES
+inj2 record_expense_document without the capital sole-line refusal   -> FIXTURE 285C 失败:1500 混在两行里应当按名拒 EXPENSE_CAPITAL_SOLE_LINE
+inj3 decide_expense_claim wrapper accepting multi-item claims       -> FIXTURE 286D 失败:旧决定碰到三笔的单应当 EXPENSE_CLAIM_HAS_ITEMS
+inj4 extra policy USING (true) on expense_claim_items                -> FIXTURE 286I 失败:一个不持财务、也不是报销人的人应当读到 0 笔
+restored (mirrors re-applied) -> 285 全部通过 · 286 全部通过

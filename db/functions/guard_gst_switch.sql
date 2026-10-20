@@ -44,7 +44,7 @@ BEGIN
           INTO v_n, v_codes
           FROM expenses e
           JOIN journal_entries je ON je.id = e.journal_entry_id
-         WHERE e.tax_code IS NOT NULL
+         WHERE EXISTS (SELECT 1 FROM expense_lines l WHERE l.expense_id = e.id AND l.tax_code IS NOT NULL)   -- EXPENSE-MULTILINE-1:税码在行上
            AND e.status = 'posted'
            AND je.status = 'posted'
            AND EXISTS (SELECT 1 FROM journal_lines jl

@@ -277,6 +277,15 @@ same door as the machine itself, each translated at its own date's rate.
 > down now, instead of only somewhere to be turned away.
 
 > *Enforcement:* `record_expense`'s capital branch requires an asset reference; fixtures 77, 105, 107.
+>
+> **An expense is a header plus lines, and a capital purchase is a document of exactly one line** — **SETTLED —
+> 2026-10-20, ruled by Tim (EXPENSE-MULTILINE-1).** Each line carries its own expense account and tax code; GST is computed
+> and rounded per line (a cent's difference from a supplier who rounds on the total is accepted); the document posts as one
+> journal entry and is owed as one payable; reversal is of the whole document. A capital line (1500) is the only line on
+> its document and is never mixed with ordinary lines (`EXPENSE_CAPITAL_SOLE_LINE`), so the asset, PO-line and
+> maintenance links stay on the document. Withholding is one nature and one rate per document, computed on the sum of the
+> line nets, and a document that withholds carries no GST on any line. *Enforcement:* `record_expense_document`;
+> `guard_expense_totals` (header totals = sum of lines); fixture 285.
 
 ### 4.4 Fixed assets are non-monetary and are never revalued. — **SETTLED**
 
@@ -634,6 +643,13 @@ raises an error while leaving it blank glides into the current period.
   nothing has to be recovered when someone leaves. At six people, after-the-fact reimbursement is
   sufficient — and it carries an approval step by construction, where a float hands money over
   before anyone has seen a receipt.
+* **A claim has items, and it still becomes one expense.** — **SETTLED — 2026-10-20, ruled by Tim (EXPENSE-MULTILINE-1).**
+  A claim is a header (claimant, one currency, a required purpose) plus items (date, receipt amount, description,
+  no-receipt reason). On approval it becomes **one** expense document with **one line per item**; finance gives each
+  item its own account and tax code at that moment, nothing pre-selected. Rejection is of the whole claim. All items fall
+  in one calendar month (one document, one posting period), and a claim in a foreign currency has one date for all its
+  items (one document, one rate — the rate is the transaction's own day's, 1.2). The claim's date is its latest item's,
+  and that date sets the approval level, the default posting date and the rate. Medical claims are not itemised.
 * **The claimant cannot approve their own claim** (`EXPENSE_CLAIM_SELF_APPROVAL`, via
   `assert_segregated`). Note that `guard_payment_sod` deliberately exempts payments to employees,
   reasoning that HR creates the record and finance pays it — two modules, not one person end to

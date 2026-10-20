@@ -119,7 +119,7 @@ VALUES
     ('container', 'CTR', 'containers', 'gapless', NULL, '/logistics/containers', 'detail', 'notes', ARRAY['container_number', 'vessel', 'voyage', 'bl_number', 'notes']::text[], ARRAY['module.logistics.view']::text[]),
     ('credit_note', 'CN', 'credit_notes', 'gapless', NULL, '/finance/credit-notes', 'list', 'reason', ARRAY['reason']::text[], ARRAY['module.finance.view']::text[]),
     ('employee', 'EMP', 'employees', 'gapless', NULL, '/hr/employees', 'detail', 'legal_name', ARRAY['legal_name', 'preferred_name']::text[], ARRAY['module.hr.view']::text[]),
-    ('expense_claim', 'CLM', 'expense_claims', 'gapless', NULL, '/hr/claims', 'list', 'description', ARRAY['description', 'no_receipt_reason', 'decision_notes']::text[], ARRAY['module.finance.view']::text[]),
+    ('expense_claim', 'CLM', 'expense_claims', 'gapless', NULL, '/hr/claims', 'list', 'description', ARRAY['description', 'decision_notes']::text[], ARRAY['module.finance.view']::text[]),
     ('fixed_asset', 'FA', 'fixed_assets', 'gapless', NULL, '/finance/assets', 'detail', 'description', ARRAY['description', 'category', 'notes']::text[], ARRAY['module.finance.view']::text[]),
     ('cash_forecast', 'FCST', 'cash_forecasts', 'gapless', NULL, '/finance/cash-forecast', 'list', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
     ('leave_request', 'LV', 'leave_requests', 'gapless', NULL, '/hr/leave', 'detail', NULL, ARRAY['decision_notes']::text[], ARRAY['module.hr.view']::text[]),

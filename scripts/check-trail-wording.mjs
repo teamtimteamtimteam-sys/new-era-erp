@@ -900,11 +900,17 @@ if (FAULT === 'wording-drift-1c1') dict.text = { ...dict.text, 'je.reversed': 'J
     // ── 费用(Q12:引用里的员工名照 ActorName 的规矩)──
     const ex = id('ex'), exm = id('exm')
     G('expense · recorded; an employee the reader may not see reads Restricted (Q12)', { subject: 'expense', recordId: ex }, [
-        { table: 'expenses', op: 'INSERT', key: { id: ex }, new: { code: 'EXP-2026-0012', expense_date: '2026-10-03', employee_id: 'e1', account_code: '6100', amount_ccy: 80, currency: 'SGD',
+        // EXPENSE-MULTILINE-1(Tim 2026-10-20):科目住在【行】上 —— 表头那一句不再说科目,行那一句说
+        { table: 'expenses', op: 'INSERT', key: { id: ex }, new: { code: 'EXP-2026-0012', expense_date: '2026-10-03', employee_id: 'e1', amount_ccy: 80, currency: 'SGD',
           amount_base: 80, payment_status: 'unpaid', status: 'posted', notes: 'Taxi to the port' },
-          refs: { employee_id: { e1: { person: { state: 'restricted' } } }, account_code: { 6100: { label: 'Travel' } } } }],
-      { title: 'Expense recorded · EXP-2026-0012', lines: ['Expense date: 03/10/2026', 'Employee: Restricted', 'Account: Travel', 'Amount: 80.00 SGD',
+          refs: { employee_id: { e1: { person: { state: 'restricted' } } } } }],
+      { title: 'Expense recorded · EXP-2026-0012', lines: ['Expense date: 03/10/2026', 'Employee: Restricted', 'Amount: 80.00 SGD',
         'Amount (base currency): 80.00 SGD', 'Payment status: Unpaid'], reason: 'Taxi to the port' })
+    G('expense · a line carries its own account (EXPENSE-MULTILINE-1)', { subject: 'expense', recordId: ex }, [
+        { table: 'expense_lines', op: 'INSERT', new: { expense_id: ex, line_no: 1, account_code: '6100', amount_ccy: 80,
+          tax_code: null, tax_ccy: 0, notes: 'Taxi to the port' },
+          refs: { account_code: { 6100: { label: 'Travel' } } } }],
+      { title: 'Line 1', lines: ['Account: Travel', 'Amount: 80.00 SGD'], reason: 'Taxi to the port' })
     G('expense · attachment (child line)', { subject: 'expense', recordId: ex }, [
         { table: 'finance_attachments', op: 'INSERT', new: { expense_id: ex, file_name: 'taxi-receipt.jpg', doc_type: 'receipt' } }],
       { title: 'Attachment added', part: 'taxi-receipt.jpg', lines: ['Document type: Receipt'] })

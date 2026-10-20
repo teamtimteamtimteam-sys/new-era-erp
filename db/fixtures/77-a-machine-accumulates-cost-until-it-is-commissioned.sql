@@ -59,7 +59,10 @@ BEGIN
     -- 六次都是这样(PAYEE-1a、EQP-1b-ii、GST-2、WHT-1、CAPEX-1、CLAIM-GST-1),所以它是规律不是意外:regprocedure 找不到
     -- 那个签名就当场报错,于是"签名动了"永远不会静悄悄地过去。改签名的人在这里
     -- 补一个类型,顺带确认自己知道这份 fixture 在注入什么。
-    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid,uuid,text,text,numeric,text,uuid,boolean)'::regprocedure);
+    -- ★ EXPENSE-MULTILINE-1(第七次,换了对象而不是签名):资本化那一段原样搬进了 record_expense_document,
+    --   record_expense 只剩一个单行包装(Tim Q11)—— 注入要摘的那道门住在写入者里,所以这里取写入者的定义;
+    --   下面那笔 record_expense 调用经包装走到被注入过的那一份,于是注入仍然证明的是同一道门。
+    'public.record_expense_document(date,text,jsonb,text,text,uuid,text,text,jsonb,uuid,uuid,text,numeric,text,uuid,boolean)'::regprocedure);
     def_close := pg_get_functiondef('public.close_period(date,text)'::regprocedure);
     def_sis   := pg_get_functiondef('public.set_asset_in_service(uuid,date)'::regprocedure);
 
@@ -306,7 +309,7 @@ BEGIN
         'IF v_target.in_service_date IS NOT NULL THEN',
         'IF false THEN');
     IF v_inj = def_rec THEN
-        RAISE EXCEPTION 'FIXTURE 77 注入2 失败:在 record_expense 里没找到【投用后必须经维修记录】那道门的原文 —— 这个注入什么也没删';
+        RAISE EXCEPTION 'FIXTURE 77 注入2 失败:在 record_expense_document 里没找到【投用后必须经维修记录】那道门的原文 —— 这个注入什么也没删';
     END IF;
     EXECUTE v_inj;
     SELECT cost_base INTO v_cost FROM fixed_assets WHERE id = v_asset2;

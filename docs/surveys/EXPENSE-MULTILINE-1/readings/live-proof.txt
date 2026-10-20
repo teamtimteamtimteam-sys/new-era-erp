@@ -1,0 +1,17 @@
+CLONES|finance 43 · cfo 36 · admin 86 · real finance role 43 (view_prices true)
+PASS|H1: /finance/expenses/new (finance copy) HTTP 200 draws the line grid (hidden lines_json, "+ Add a line") and no single amount field
+PASS|H2: /finance/expenses HTTP 200 lists the converted one-line expenses with their account (no "N accounts" on any of them)
+PASS|H3: /finance/expenses/EXP-2026-0007 HTTP 200 shows the lines table with its one line on 6120
+PASS|H4: /finance/claims (cfo copy) HTTP 200: the pending CLM-2026-0004 is drawn item by item ("Item 1")
+PASS|T1: EXP-2026-0011 — two lines (6100 TX, 6120 BL), header = sum of lines (300 net + 27 GST), one journal entry 327/327, only the claimable 18 to 1400
+PASS|T2: a capital line mixed with an ordinary line is refused by name (EXPENSE_CAPITAL_SOLE_LINE)
+PASS|T3: CLM-2026-0005 — three items on one claim, header 183.50 = sum of items, date = the latest item (2026-10-02)
+PASS|T4: the old one-account decide refuses a three-item claim by name (EXPENSE_CLAIM_HAS_ITEMS)
+PASS|T5: a level-1 approver (real finance role) approves item by item → one expense, three lines, owed to the employee, = the three receipts (183.50)
+PASS|T6: the deferred totals guards (expenses / expense_lines / expense_claims / expense_claim_items) pass for every document this transaction wrote
+TX_DONE
+PASS|tx: the transaction leg ran to the end and rolled back (psql exit 0)
+PASS|after ROLLBACK: probe expenses / claims 0; the 10 live expenses still one line each, the 4 claims one item each (read 0|0|10|4|10|4)
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan)
+EM1_PROOF_EXIT=0

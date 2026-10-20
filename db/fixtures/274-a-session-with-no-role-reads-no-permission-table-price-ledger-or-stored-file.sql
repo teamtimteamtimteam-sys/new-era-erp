@@ -194,8 +194,11 @@ BEGIN
     INSERT INTO auth.users (id, email) VALUES (u_log, 'fx274-emp@test.local');
     INSERT INTO employees (id, code, legal_name, employment_type, work_category, hire_date, user_id)
     VALUES (gen_random_uuid(), 'FX274-E', 'FX274 Employee', 'full_time', 'office', DATE '2020-01-01', u_log) RETURNING id INTO v_chase;
-    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency, description, no_receipt_reason, status, account_code)
-    VALUES (v_cus, 'FX274-CLAIM', v_chase, CURRENT_DATE, 10, 'SGD', 'fixture 274 claim', 'none', 'submitted', '9274');
+    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency, description, status) VALUES
+        (v_cus, 'FX274-CLAIM', v_chase, CURRENT_DATE, 10, 'SGD', 'fixture 274 claim', 'submitted');
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        (v_cus, 1, CURRENT_DATE, 10, 'fixture 274 claim', 'none', '9274', NULL);
     IF pg_temp.f274_n(u_log, 'SELECT count(*) FROM public.accounts') IS DISTINCT FROM 0::bigint THEN
         RAISE EXCEPTION 'FIXTURE 274 TRAIL: the arm is vacuous — the employee reads accounts'; END IF;
     PERFORM pg_temp.f274_as(u_log);

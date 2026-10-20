@@ -72,7 +72,20 @@ const EXPENSE_ERROR_CODES = new Set([
     'TAX_CODE_INACTIVE', 'TAX_CODE_WRONG_SIDE', 'TAX_RATE_NOT_FOUND',
     // PAY-REQ-1:开支不再能在建单时记成已付 —— 付款走付款申请。
     'EXPENSE_PAID_AT_CREATION_REFUSED',
+    // EXPENSE-MULTILINE-1(Tim 2026-10-20):表头 + 行
+    'EXPENSE_LINES_REQUIRED', 'EXPENSE_LINE_INVALID', 'EXPENSE_CAPITAL_SOLE_LINE',
+    'EXPENSE_HAS_NO_LINES', 'EXPENSE_TOTALS_MISMATCH', 'EXPENSE_LINE_IMMUTABLE',
 ])
+
+// ★ EXPENSE-MULTILINE-1:多行单据上,逐行的那几条拒绝在码尾多带一个行号(单行单据与此前逐字相同,不带)。
+//   这张表说【行号在第几个参数】—— 多出来的那一个就是行号,文案前面加一句「第 N 行:」,其余参数照旧。
+//   判据是"参数个数比单行时多一个",不是"最后一个参数长得像数字"(科目码本身就是数字)。
+const LINE_SUFFIXED: Record<string, number> = {
+    AMOUNT_INVALID: 0,          // 'AMOUNT_INVALID|<行>'
+    ACCOUNT_NOT_FOUND: 1,       // 'ACCOUNT_NOT_FOUND|<科目>|<行>'
+    ACCOUNT_INACTIVE: 1,
+    ACCOUNT_NOT_EXPENSE: 1,
+}
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
@@ -87,11 +100,15 @@ export async function localizeExpenseError(message: string): Promise<string> {
 
     const code = match[1]
     const params: Record<string, string> = {}
-    if (match[2]) {
-        match[2].split('|').forEach((v, i) => {
-            params[String(i)] = v // '0' -> first param, '1' -> second, ...
-        })
-    }
+    const parts = match[2] ? match[2].split('|') : []
+    parts.forEach((v, i) => {
+        params[String(i)] = v // '0' -> first param, '1' -> second, ...
+    })
 
-    return (await getTranslations())('expense.errors.' + code, params)
+    const t = await getTranslations()
+    const lineAt = LINE_SUFFIXED[code]
+    if (lineAt !== undefined && parts.length === lineAt + 1) {
+        return t('expense.form.lineError', { n: parts[lineAt] }) + ' ' + t('expense.errors.' + code, params)
+    }
+    return t('expense.errors.' + code, params)
 }

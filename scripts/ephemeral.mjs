@@ -254,7 +254,7 @@ export const THROWAWAY_EMAIL_PREFIXES = Object.freeze([
     'draft1probe', 'draft2probe', 'draft3probe', 'draft3before', 'draft4probe', 'draft5probe',
     'draft6probe', 'draft7probe', 'mes1probe', 'mes2probe', 'mes5a2probe', 'mes5b1probe', 'mes5b2probe', 'mes5b3probe', 'mes6a1probe', 'mes6a2probe',
     'mes6b1probe', 'mes6b2probe', 'mes7a1probe', 'mes7a2probe', 'mes7b1probe', 'mes7b2probe', 'mes8aprobe', 'mes8b1probe', 'mes8b2probe',
-    'noroleprobe', 'mes9aprobe', 'mes9bprobe', 'mes9cprobe', 'finchain1probe',
+    'noroleprobe', 'mes9aprobe', 'mes9bprobe', 'mes9cprobe', 'finchain1probe', 'em1probe',
 ])
 /** U1-B 之前用过、现在没人再造的前缀 —— 清扫仍然要认得它们留下的东西。 */
 export const THROWAWAY_LEGACY_EMAIL_PREFIXES = Object.freeze(['probe', 'pdf'])

@@ -431,9 +431,11 @@ BEGIN
     -- ══════════════ Q · Q20:R2 的标记经 my_document_decisions() 读出来 ══════════════
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
     UPDATE finance_settings SET approvals_enabled = false, approval_level2_role_code = 'fx232-l2';
-    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency,
-                                description, no_receipt_reason, status, created_by)
-    VALUES (x_cfo, 'FX232-X-CFO', e_cfo, DATE '2026-03-02', 40.00, v_base, 'taxi', 'none', 'submitted', u_cfo);
+    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency, description, status, created_by) VALUES
+        (x_cfo, 'FX232-X-CFO', e_cfo, DATE '2026-03-02', 40.00, v_base, 'taxi', 'submitted', u_cfo);
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        (x_cfo, 1, DATE '2026-03-02', 40.00, 'taxi', 'none', NULL, NULL);
     INSERT INTO medical_claims (id, code, employee_id, claim_date, claim_year, amount_sgd, status, created_by)
     VALUES (mc_cfo, 'FX232-MC-CFO', e_cfo, DATE '2026-03-02', 2026, 10, 'submitted', u_cfo);
     PERFORM pg_temp.f232_expect('Q1', pg_temp.f232_try(u_cfo, format('SELECT decide_expense_claim(%L, false, NULL, NULL, NULL, %L)', x_cfo, 'mine, declined')), 'OK');

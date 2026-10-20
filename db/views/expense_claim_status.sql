@@ -1,4 +1,8 @@
 -- db/views/expense_claim_status.sql
+-- ★ EXPENSE-MULTILINE-1(Tim 2026-10-20):表头这一行不再带 account_code / tax_code / no_receipt_reason —— 它们搬到了
+--   每一笔明细(expense_claim_items,页面另读);多了 item_count。description 现在是整张单的【用途】(Step 0b Q7)。
+--   属主权限与行谓词原样。【明细为什么不并进这张视图】一行一张单是它的全部契约(清单、在途、/me 都按单读);
+--   明细是一对多,另读那张表 —— 它的读策略与本视图的行谓词同一条。
 -- CLAIM-1：每一笔报销一行，而「付了没有」是从核销额【推导】出来的。
 --
 -- ★ WITH (security_invoker = off) 与 COMMENT ON VIEW 都是【手工补回来的】★
@@ -58,12 +62,9 @@ SELECT c.id AS claim_id,
     c.amount_ccy,
     c.currency,
     c.description,
-    c.no_receipt_reason,
     c.status,
     c.decided_at,
     c.decision_notes,
-    c.account_code,
-    c.tax_code,
     c.posting_date,
     c.expense_id,
     x.payment_status,
@@ -75,7 +76,10 @@ SELECT c.id AS claim_id,
            FROM finance_attachments fa
           WHERE fa.claim_id = c.id AND fa.deleted_at IS NULL)) AS has_receipt,
     x.amount_ccy AS expense_net_ccy,
-    x.tax_ccy AS expense_tax_ccy
+    x.tax_ccy AS expense_tax_ccy,
+    ( SELECT count(*) AS count
+           FROM expense_claim_items i
+          WHERE i.claim_id = c.id) AS item_count
    FROM expense_claims c
      JOIN employees e ON e.id = c.employee_id
      LEFT JOIN expenses x ON x.id = c.expense_id

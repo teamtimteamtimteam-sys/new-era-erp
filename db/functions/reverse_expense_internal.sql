@@ -140,17 +140,25 @@ BEGIN
     -- 另外 5 列:status(默认 posted,镜像是在册凭证)、reversed_by_expense(NULL,
     -- 镜像自己没被冲)、created_at(now())——三条都是有意的;employee_id 是唯一
     -- 的漏抄;purchase_order_line_id 是唯一有意不抄的。
-    INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
+    INSERT INTO expenses (id, code, expense_date, amount_ccy, currency, fx_rate,
                           amount_base, payment_status, bank_account_code, supplier_id,
                           employee_id,
                           payee_name, notes, journal_entry_id, created_by)
-    VALUES (v_mirror_id, v_mirror_code, CURRENT_DATE, v_orig.account_code,
+    VALUES (v_mirror_id, v_mirror_code, CURRENT_DATE,
             v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_base,
             v_orig.payment_status, v_orig.bank_account_code, v_orig.supplier_id,
             v_orig.employee_id,
             v_orig.payee_name,
             'REVERSAL: ' || v_orig.code,
             (v_je->>'reversal_id')::uuid, auth.uid());
+
+    -- ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Q4:冲销是整张单):镜像单带着原单的【每一行】—— 科目 + 净额(原币与本位币),
+    --   不带税码、税为 0,与镜像表头一致(镜像表头一向只抄净额,不带税码;那张冲销分录才是把税翻回去的东西)。
+    --   表头合计 = 各行之和由 guard_expense_totals 在提交时照样强制。
+    INSERT INTO expense_lines (expense_id, line_no, account_code, amount_ccy, amount_base, notes, created_by)
+    SELECT v_mirror_id, l.line_no, l.account_code, l.amount_ccy, l.amount_base, NULL, auth.uid()
+      FROM expense_lines l
+     WHERE l.expense_id = p_expense_id;
 
     UPDATE expenses
     SET status = 'reversed', reversed_by_expense = v_mirror_id,

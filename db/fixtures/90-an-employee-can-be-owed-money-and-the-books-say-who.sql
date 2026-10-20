@@ -371,8 +371,10 @@ BEGIN
     SELECT count(*) INTO n FROM expenses
      WHERE id = (v_claim->>'expense_id')::uuid
        AND employee_id = emp_c AND supplier_id IS NULL
-       AND payment_status = 'unpaid' AND tax_code = 'BL'
-       AND tax_rate_pct IS NOT NULL;
+       AND payment_status = 'unpaid'
+       -- EXPENSE-MULTILINE-1:码与率在行上
+       AND EXISTS (SELECT 1 FROM expense_lines l WHERE l.expense_id = expenses.id
+                    AND l.tax_code = 'BL' AND l.tax_rate_pct IS NOT NULL);
     IF n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 90K2 那笔费用要挂在那个员工身上、没有供应商、并且【带着 BL 与一个算出来的税率】,实得 % 行', n;
     END IF;

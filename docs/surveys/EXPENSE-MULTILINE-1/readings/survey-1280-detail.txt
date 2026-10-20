@@ -1,0 +1,25 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 5c30685e-e340-4081-99c8-4d6cde2ad506
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/1] 16s  ovf=0 clip=0 /finance/expenses/0a1710e9-4a19-4fb9-8b77-95101f63f7a1
+
+════ 1280px SURVEY ════
+measured: [33m1[39m  errored: [33m0[39m  redirected (excluded): [33m0[39m  not-found (excluded): [33m0[39m  unresolvable routes: [33m25[39m
+U1 pan-free (no page overflow):       [33m1[39m / [33m1[39m
+U2 no clipped ledger:                 [33m1[39m / [33m1[39m
+USABLE (U1 AND U2):                   [33m1[39m / [33m1[39m
+
+pages FAILING U1 (page overflows): [33m0[39m
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): [33m0[39m
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: [33m1[39m / [33m1[39m  median per page: [33m20[39m
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/viewport-1280.json
+· cleaned up ephemeral survey account(s)
+SURVEY_OWN_EXIT=0

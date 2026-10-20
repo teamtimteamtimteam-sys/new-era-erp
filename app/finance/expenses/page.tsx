@@ -54,32 +54,47 @@ export default async function ExpensesListPage({
     const account = (sp.account ?? '').trim()
     const requestedPage = parsePage(sp.page)
 
+    // ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Q9):科目住在【行】上。按科目筛 = 【任何一行】记在这个科目上的单据;
+    //   筛着科目时,合计只加【那几行】(一张三行单里只有一行是差旅,差旅的合计不该把另外两行也算进去)。
+    //   不筛科目时合计照旧是表头合计之和。每一张单仍然是清单上的一行。
+    const accountLineBase = new Map<string, number>()   // 筛着科目时:单据 id → 这个科目那几行的本位币净额之和
+    if (account) {
+        const linesRes = await supabase.from('expense_lines').select('expense_id, amount_base').eq('account_code', account)
+        for (const l of mustRows(linesRes, 'expense_lines (account filter)') as { expense_id: string; amount_base: number }[]) {
+            accountLineBase.set(l.expense_id, (accountLineBase.get(l.expense_id) ?? 0) + Number(l.amount_base))
+        }
+    }
+    // 一个没有任何一行落在这个科目上的筛选,应当是【空】,而不是"不筛";in.() 收一个永远对不上的 id。
+    const NO_MATCH = '00000000-0000-0000-0000-000000000000'
+    const accountIds = account ? (accountLineBase.size ? [...accountLineBase.keys()] : [NO_MATCH]) : null
+
     // 过滤链(expenses 不可变表,无软删)。最小链式子集,避免 supabase 深泛型。
     interface Chain {
         gte(c: string, v: string): Chain
         lte(c: string, v: string): Chain
         eq(c: string, v: string): Chain
+        in(c: string, v: string[]): Chain
     }
     const applyFilters = <T,>(query: T): T => {
         let chain = query as unknown as Chain
         if (dateFrom) chain = chain.gte('expense_date', dateFrom)
         if (dateTo) chain = chain.lte('expense_date', dateTo)
         if (status) chain = chain.eq('payment_status', status)
-        if (account) chain = chain.eq('account_code', account)
+        if (accountIds) chain = chain.in('id', accountIds)
         return chain as unknown as T
     }
 
-    // 1) 匹配总数 + 筛选集 USD 合计(全集,不只当前页;页级规模小,直接取列求和)
+    // 1) 匹配总数 + 筛选集本位币合计(全集,不只当前页;页级规模小,直接取列求和)
     const [{ count }, sumRes] = await Promise.all([
         applyFilters(supabase.from('expenses').select('id', { count: 'exact', head: true })),
-        applyFilters(supabase.from('expenses').select('amount_base')),
+        applyFilters(supabase.from('expenses').select('id, amount_base')),
     ])
 
     const total = count ?? 0
     const totalUsd =
         Math.round(
-            ((sumRes.data as { amount_base: number }[] | null) ?? []).reduce(
-                (s, r) => s + r.amount_base,
+            ((sumRes.data as { id: string; amount_base: number }[] | null) ?? []).reduce(
+                (s, r) => s + (account ? (accountLineBase.get(r.id) ?? 0) : r.amount_base),
                 0
             ) * 100
         ) / 100
@@ -92,7 +107,7 @@ export default async function ExpensesListPage({
     const { data: expenses, error } = await applyFilters(
         supabase
             .from('expenses')
-            .select('id, code, expense_date, account_code, amount_ccy, currency, amount_base, payment_status, supplier_id, payee_name, status')
+            .select('id, code, expense_date, amount_ccy, currency, amount_base, payment_status, supplier_id, payee_name, status')
     )
         .order('expense_date', { ascending: false })
         .order('created_at', { ascending: false })
@@ -115,8 +130,9 @@ export default async function ExpensesListPage({
 
     const rows = expenses ?? []
 
-    // 3) 科目名(工具栏 + 行内展示)与供应商名(页级小 .in)
-    const [accountsRes, suppliersRes] = await Promise.all([
+    // 3) 科目名(工具栏 + 行内展示)、这一页每张单的行科目、供应商名(页级小 .in)
+    const pageIds = rows.map((r) => r.id)
+    const [accountsRes, suppliersRes, pageLinesRes] = await Promise.all([
         supabase
             .from('accounts')
             .select('code, name_en, name_zh')
@@ -132,7 +148,16 @@ export default async function ExpensesListPage({
                   supabase.from('supplier_lookup').select('id, legal_name').in('id', supplierIds)
                 : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null })
         })(),
+        pageIds.length
+            ? supabase.from('expense_lines').select('expense_id, account_code').in('expense_id', pageIds)
+            : Promise.resolve({ data: [] as { expense_id: string; account_code: string }[], error: null }),
     ])
+    const accountsByExpense = new Map<string, Set<string>>()
+    for (const l of mustRows(pageLinesRes, 'expense_lines (page accounts)') as { expense_id: string; account_code: string }[]) {
+        const set = accountsByExpense.get(l.expense_id) ?? new Set<string>()
+        set.add(l.account_code)
+        accountsByExpense.set(l.expense_id, set)
+    }
     const accountOptions = (mustRows(accountsRes)).map((a) => ({
         code: a.code,
         name: locale === 'zh' ? a.name_zh : a.name_en,
@@ -150,12 +175,16 @@ export default async function ExpensesListPage({
         return `/finance/expenses?${params.toString()}`
     }
 
-    const tableRows: ExpenseRow[] = rows.map((r) => ({
+    const tableRows: ExpenseRow[] = rows.map((r) => {
+        // 一个科目就印它;几个科目就说几个(Q9)
+        const codes = [...(accountsByExpense.get(r.id) ?? new Set<string>())]
+        const one = codes.length === 1 ? codes[0] : null
+        return {
         id: r.id,
         code: r.code,
         expenseDate: formatDate(r.expense_date, locale),
-        accountCode: r.account_code,
-        accountName: accountNameByCode.get(r.account_code) ?? '',
+        accountCode: one ?? '',
+        accountName: one ? (accountNameByCode.get(one) ?? '') : t('expense.accountsMany', { n: codes.length }),
         amountCcy: r.amount_ccy,
         currency: r.currency,
         amountBase: r.amount_base,
@@ -165,7 +194,7 @@ export default async function ExpensesListPage({
             ? supplierNameById.get(r.supplier_id ?? '') ?? '—'
             : r.payee_name || '—',
         status: r.status,
-    }))
+    }})
 
     return (
         <ListPage
@@ -184,7 +213,9 @@ export default async function ExpensesListPage({
 
             {/* 汇总:当前筛选集的笔数 + USD 合计 */}
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
-                {t('expense.filteredTotal', { count: total, amount: formatMoneyBare(totalUsd, '同句 filteredTotal 文案「{count} 笔 · {amount} {ccy}」里的 {ccy}'), ccy: baseCurrency })}
+                {account
+                    ? t('expense.filteredTotalAccount', { count: total, amount: formatMoneyBare(totalUsd, '同句 filteredTotalAccount 文案里的 {ccy}'), ccy: baseCurrency, account })
+                    : t('expense.filteredTotal', { count: total, amount: formatMoneyBare(totalUsd, '同句 filteredTotal 文案「{count} 笔 · {amount} {ccy}」里的 {ccy}'), ccy: baseCurrency })}
             </p>
 
             <ExpensesTable rows={tableRows} empty={t('expense.empty')} />

@@ -273,8 +273,10 @@ BEGIN
     IF mc IS NULL THEN RAISE EXCEPTION 'FIXTURE 245 C: submit_medical_claim returned no id: %', v_r; END IF;
     PERFORM pg_temp.f245_run(u_all, format($q$SELECT decide_medical_claim(%L::uuid, false, 'Dental is not covered')$q$, mc));
     UPDATE medical_claims SET description = 'GP visit — fever' WHERE id = mc;
-    INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, employee_id)
-        VALUES ('FX245-EXP', CURRENT_DATE, '6100', 85, (SELECT code FROM currencies WHERE is_base), 1, 85, 'unpaid', e_emp) RETURNING id INTO ex;
+    INSERT INTO expenses (code, expense_date, amount_ccy, currency, fx_rate, amount_base, payment_status, employee_id)
+        VALUES ('FX245-EXP', CURRENT_DATE, 85, (SELECT code FROM currencies WHERE is_base), 1, 85, 'unpaid', e_emp) RETURNING id INTO ex;
+    -- EXPENSE-MULTILINE-1:科目在行上
+    INSERT INTO expense_lines (expense_id, line_no, account_code, amount_ccy, amount_base) VALUES (ex, 1, '6100', 85, 85);
     UPDATE medical_claims SET expense_id = ex WHERE id = mc;
     v_j := pg_temp.f245_ok('C', pg_temp.f245_trail(u_all, 'medical_claim', mc::text));
     PERFORM pg_temp.f245_need('C (submitted)', v_j, 'medical_claims', 'INSERT');

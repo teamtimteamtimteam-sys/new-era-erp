@@ -131,10 +131,13 @@ BEGIN
         -- 由 HR 那个人的【附加账号】决定的一张:读者应当显示它主人的名字
         (mc_alt, 'FX231-MC-ALT', e_emp, DATE '2030-03-04', 2030, 10, 'rejected', now(), u_hr2, 'alt says no', u_emp);
 
-    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency,
-                                description, no_receipt_reason, status, created_by) VALUES
-        (x_s, 'FX231-X-S', e_emp, DATE '2030-03-01', 20.00, v_base, 'taxi', 'none', 'submitted', u_emp),
-        (x_r, 'FX231-X-R', e_emp, DATE '2030-03-01', 30.00, v_base, 'lunch', 'none', 'submitted', u_emp);
+    INSERT INTO expense_claims (id, code, employee_id, spend_date, amount_ccy, currency, description, status, created_by) VALUES
+        (x_s, 'FX231-X-S', e_emp, DATE '2030-03-01', 20.00, v_base, 'taxi', 'submitted', u_emp),
+        (x_r, 'FX231-X-R', e_emp, DATE '2030-03-01', 30.00, v_base, 'lunch', 'submitted', u_emp);
+    -- EXPENSE-MULTILINE-1:每张报销单一笔明细(无收据理由、科目、税码搬到了明细上;表头的合计与日期 = 明细推出来的那一个)
+    INSERT INTO expense_claim_items (claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code) VALUES
+        (x_s, 1, DATE '2030-03-01', 20.00, 'taxi', 'none', NULL, NULL),
+        (x_r, 1, DATE '2030-03-01', 30.00, 'lunch', 'none', NULL, NULL);
 
     -- ══════════════ N · 没有员工档案的账号,与 NULL 的 p_employee_id ══════════════
     IF (SELECT account_person(u_none)) IS NOT NULL THEN

@@ -1,7 +1,9 @@
 'use server'
 
 import { parseCounterparty } from '@/app/components/finance/counterpartyOptions'
-// 开支登记:表单 → rpc record_expense(校验、无缝编号、自动分录一个事务)。
+// 开支登记:表单 → rpc record_expense_document(校验、无缝编号、自动分录一个事务)。
+// ★ EXPENSE-MULTILINE-1(Tim 2026-10-20):表头 + 行。行从隐藏格子 lines_json 读(表单的网格整份放在那里),
+//   逐行的科目 / 金额先在这里说人话,其余规矩(科目类型、税码、资本单恰好一行、代扣)全在库里 —— 不写第二份。
 // ★ PAY-REQ-1(Tim 2026-09-23):恒为 unpaid —— 借费用科目/贷 2000 应付(成为 AP 单据)。
 //   「已付」那一支退休了:钱离开之前要先批,付款走付款申请(record_expense 对 'paid' 按名拒)。
 // 科目/供应商/期间锁等校验在 DB 内,错误码本地化后展示;成功跳开支详情。
@@ -21,8 +23,12 @@ export async function createExpense(
     const t = await getTranslations()
 
     const expenseDate = String(formData.get('expense_date') ?? '').trim()
-    const accountCodeRaw = String(formData.get('account_code') ?? '').trim()
-    const amountRaw = String(formData.get('amount') ?? '').trim()
+    // EXPENSE-MULTILINE-1:行。[{account_code, amount, tax_code, notes}] —— 与 p_lines 逐键相同
+    let rawLines: { account_code?: unknown; amount?: unknown; tax_code?: unknown; notes?: unknown }[] = []
+    try {
+        const v = JSON.parse(String(formData.get('lines_json') ?? '[]'))
+        if (Array.isArray(v)) rawLines = v
+    } catch { rawLines = [] }
     const currency = String(formData.get('currency') ?? await getBaseCurrency())
     // PAYEE-1b:一个字段同时带来"哪一种"与"哪一个" —— 两者不可能不一致。
     const counterparty = parseCounterparty(String(formData.get('counterparty') ?? '').trim())
@@ -40,12 +46,25 @@ export async function createExpense(
     if (!expenseDate || Number.isNaN(Date.parse(expenseDate))) {
         return { error: t('finance.errDate') }
     }
-    if (!isCapital && !accountCodeRaw) {
-        return { error: t('expense.errors.ACCOUNT_NOT_FOUND', { 0: '?' }) }
+    if (rawLines.length === 0) {
+        return { error: t('expense.errors.EXPENSE_LINES_REQUIRED') }
     }
-    const amount = Number(amountRaw)
-    if (!amountRaw || Number.isNaN(amount) || amount <= 0) {
-        return { error: t('expense.errors.AMOUNT_INVALID') }
+    const lines: { account_code: string; amount: number; tax_code?: string; notes?: string }[] = []
+    for (const [i, l] of rawLines.entries()) {
+        const prefix = rawLines.length > 1 ? t('expense.form.lineError', { n: i + 1 }) + ' ' : ''
+        const account = isCapital ? '1500' : String(l.account_code ?? '').trim()
+        if (!account) return { error: prefix + t('expense.errors.ACCOUNT_NOT_FOUND', { 0: '?' }) }
+        const amountRaw = String(l.amount ?? '').trim()
+        const amount = Number(amountRaw)
+        if (!amountRaw || Number.isNaN(amount) || amount <= 0) {
+            return { error: prefix + t('expense.errors.AMOUNT_INVALID') }
+        }
+        // GST-2:进项税码。未注册时表单不渲染这一格,所以这里是空串 → 不送,让数据库走"未注册"的分支。
+        // **不在这里替人挑一个** —— TX、ZP、EP、BL、OP 在申报表上的行为各不相同。
+        const taxCode = String(l.tax_code ?? '').trim()
+        const lineNotes = String(l.notes ?? '').trim()
+        lines.push({ account_code: account, amount, ...(taxCode ? { tax_code: taxCode } : {}),
+                     ...(lineNotes ? { notes: lineNotes } : {}) })
     }
     if (!counterparty) {
         // 服务端也会拒(COUNTERPARTY_REQUIRED_FOR_UNPAID),这里只是早一步说人话
@@ -82,11 +101,6 @@ export async function createExpense(
         }
     }
 
-    // GST-2:进项税码。未注册时表单不渲染这一格,所以这里是空串 → 送 undefined,
-    // 让数据库走"未注册"的分支(那一支与建 GST 之前逐字一样)。
-    // **不在这里替人挑一个** —— TX、ZP、EP、BL、OP 在申报表上的行为各不相同。
-    const taxCode = String(formData.get('tax_code') ?? '').trim()
-
     // WHT-1:代扣裁定的三个部件。**空一律送 undefined,不替人填** ——
     // 对一个非居民收款人,record_expense 按名拒(WHT_NATURE_REQUIRED),
     // 而"不适用"是一个显式的值('none'),不是一个空格子。
@@ -97,10 +111,9 @@ export async function createExpense(
     const whtTreatyRef = String(formData.get('wht_treaty_ref') ?? '').trim()
 
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc('record_expense', {
+    const { data, error } = await supabase.rpc('record_expense_document', {
         p_expense_date: expenseDate,
-        p_account_code: isCapital ? '1500' : accountCodeRaw,
-        p_amount: amount,
+        p_lines: lines,
         p_currency: currency,
         // FIN-0:不传汇率 —— 外币按费用日行方卖出价自动估值,当天缺牌价 DB 直接拒
         p_payment_status: 'unpaid',
@@ -114,7 +127,6 @@ export async function createExpense(
         // 新建模式那一笔【不可能】带它(行上的 asset_id 是外键,资产得先存在),
         // 而 record_expense 对那种组合按名拒(EXPENSE_CREATES_ASSET)。
         ...(isAppend && poLineIdRaw ? { p_purchase_order_line: poLineIdRaw } : {}),
-        p_tax_code: taxCode || undefined,
         p_wht_nature: whtNature || undefined,
         p_wht_rate_pct: whtTreatyRateRaw ? Number(whtTreatyRateRaw) : undefined,
         p_wht_treaty_ref: whtTreatyRef || undefined,

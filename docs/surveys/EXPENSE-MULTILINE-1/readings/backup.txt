@@ -1,0 +1,30 @@
+参照:上一份备份 evoltrya-backup-2026-10-20-1706.dump,9779 条 TOC
+开跑:change_log count=74039 min(seq)=1 max(seq)=81407(读于 2026-10-20 22:01:50 CST)
+① 主 dump(不含 public.change_log 的数据)→ evoltrya-backup-2026-10-20-2201.dump.INCOMPLETE
+   MAIN_DUMP_EXIT=0(1832 秒)
+   TOC 9782 条(上一份 9779 条,下限 8801)✓
+② change_log 按 seq 切段,每段 5000 个 seq
+   CHUNK_EXIT=0 chunk=000 seq 1..5000 try 1 (32 秒)
+psql: error: could not translate host name "aws-1-ap-southeast-1.pooler.supabase.com" to address: nodename nor servname provided, or not known
+   CHUNK_EXIT=2 chunk=001 seq 5001..10000 try 1 (30 秒)
+   CHUNK_EXIT=0 chunk=001 seq 5001..10000 try 2 (26 秒)
+   CHUNK_EXIT=0 chunk=002 seq 10001..15000 try 1 (21 秒)
+   CHUNK_EXIT=0 chunk=003 seq 15001..20000 try 1 (21 秒)
+   CHUNK_EXIT=0 chunk=004 seq 20001..25000 try 1 (24 秒)
+   CHUNK_EXIT=0 chunk=005 seq 25001..30000 try 1 (31 秒)
+   CHUNK_EXIT=0 chunk=006 seq 30001..35000 try 1 (59 秒)
+   CHUNK_EXIT=0 chunk=007 seq 35001..40000 try 1 (48 秒)
+   CHUNK_EXIT=0 chunk=008 seq 40001..45000 try 1 (29 秒)
+   CHUNK_EXIT=0 chunk=009 seq 45001..50000 try 1 (29 秒)
+   CHUNK_EXIT=0 chunk=010 seq 50001..55000 try 1 (54 秒)
+   CHUNK_EXIT=0 chunk=011 seq 55001..60000 try 1 (33 秒)
+   CHUNK_EXIT=0 chunk=012 seq 60001..65000 try 1 (121 秒)
+   CHUNK_EXIT=0 chunk=013 seq 65001..70000 try 1 (64 秒)
+   CHUNK_EXIT=0 chunk=014 seq 70001..75000 try 1 (65 秒)
+   CHUNK_EXIT=0 chunk=015 seq 75001..80000 try 1 (58 秒)
+   CHUNK_EXIT=0 chunk=016 seq 80001..81407 try 1 (19 秒)
+   核对:各段行数合计 74039 vs count 74039 · 首 seq 1 vs min 1 · 末 seq 81407 vs max 81407
+✅ 备份成功:evoltrya-backup-2026-10-20-2201.dump + 17 段 change_log(evoltrya-backup-2026-10-20-2201.change_log.manifest)
+-rw-r--r--  1 timchen  staff   7.5M 20 Oct 22:32 /Users/timchen/evoltrya-backups/evoltrya-backup-2026-10-20-2201.dump
+(已保留最近 14 份备份)
+BACKUP_EXIT=0

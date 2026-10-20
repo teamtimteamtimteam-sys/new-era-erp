@@ -278,8 +278,10 @@ BEGIN
     -- (a) TX 可抵:净额 200 进 box5,税 18 进 box7
     v_exp := record_expense(v_inv_date, v_exp_acct, 200, v_base, NULL, 'unpaid', NULL,
                             v_sup, NULL, NULL, NULL, NULL, NULL, NULL);   -- 税码走供应商默认 TX
-    SELECT tax_code, tax_rate_pct, tax_base, amount_ccy INTO v_row
-      FROM expenses WHERE id = (v_exp->>'expense_id')::uuid;
+    -- EXPENSE-MULTILINE-1:码与率在行上,合计在表头
+    SELECT l.tax_code, l.tax_rate_pct, e.tax_base, e.amount_ccy INTO v_row
+      FROM expenses e JOIN expense_lines l ON l.expense_id = e.id AND l.line_no = 1
+     WHERE e.id = (v_exp->>'expense_id')::uuid;
     IF v_row.tax_code <> 'TX' OR v_row.tax_base <> 18.00 OR v_row.amount_ccy <> 200 THEN
         RAISE EXCEPTION 'FIXTURE 129 Da 失败:应当是 TX / 税 18.00 / 净额 200,实得 % / % / %',
             COALESCE(v_row.tax_code,'(空)'), v_row.tax_base, v_row.amount_ccy;

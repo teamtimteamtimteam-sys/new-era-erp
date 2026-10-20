@@ -75,13 +75,16 @@ BEGIN
                                'expense', v_exp_id, v -> 'journal');
     v_je_id := (v_je ->> 'entry_id')::uuid;
 
-    INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status,
+    INSERT INTO expenses (id, code, expense_date, amount_ccy, currency, fx_rate, amount_base, payment_status,
                           bank_account_code, supplier_id, payee_name, notes, journal_entry_id, created_by)
-    VALUES (v_exp_id, v_code, p_bill_date, fin_cost_account('electricity'), p_bill_amount, v_base, 1, p_bill_amount, p_payment_status,
+    VALUES (v_exp_id, v_code, p_bill_date, p_bill_amount, v_base, 1, p_bill_amount, p_payment_status,
             CASE WHEN p_payment_status = 'paid' THEN p_bank_account END, p_supplier_id, NULLIF(btrim(COALESCE(p_payee_name, '')), ''),
             'Electricity bill ' || v_ref || ' · ' || p_period_from || ' – ' || p_period_to
               || CASE WHEN NULLIF(btrim(COALESCE(p_notes, '')), '') IS NOT NULL THEN ' · ' || btrim(p_notes) ELSE '' END,
             v_je_id, auth.uid());
+    -- ★ EXPENSE-MULTILINE-1:这张单的那一行 —— 名义科目(电费的 5xxx)与账单金额,与表头合计相等(guard_expense_totals)。
+    INSERT INTO expense_lines (expense_id, line_no, account_code, amount_ccy, amount_base, created_by)
+    VALUES (v_exp_id, 1, fin_cost_account('electricity'), p_bill_amount, p_bill_amount, auth.uid());
 
     INSERT INTO electricity_allocations (id, period_from, period_to, bill_date, invoice_ref, supplier_id, payee_name, currency,
         bill_amount, bill_kwh, price_per_kwh, metered_kwh, allocated_kwh, shared_pool_kwh, unallocated_metered_kwh, unmetered_kwh,
