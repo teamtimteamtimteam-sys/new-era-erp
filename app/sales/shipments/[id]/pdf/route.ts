@@ -18,7 +18,6 @@ import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { localizeSalesOrderError } from '@/app/sales/orders/salesOrderErrorCodes'
 import { formatDocumentDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'shipment-documents'
 
@@ -36,7 +35,9 @@ type ShipmentDoc = {
 }
 
 async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
-    const locale = await getLocale()
+    // FIN-CHAIN-1(Tim d2 #12 · Step 0 Q9,2026-10-20):对外单据一律英文 —— 日期也是。此前这里跟着界面语言取 locale,
+    //   于是中文界面开出来的英文单据印着 `2026年9月1日`。
+    const locale = 'en'
     const supabase = await createClient()
     const row = mustOne(await supabase.rpc('shipment_document', { p_shipment_id: id }),
                         'shipment_document') as unknown as ShipmentDoc | null

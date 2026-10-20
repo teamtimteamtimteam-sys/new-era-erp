@@ -18,12 +18,12 @@ import { createHash } from 'node:crypto'
 import type { ReactElement } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { mustOne } from '@/lib/db-helpers'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, translatorFor } from '@/lib/i18n/server'
+import { noSignatureEn } from '@/app/components/pdf/noSignature'
 import StatementDocument, { type StatementDocData, type StatementLine } from './StatementDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizeStatementError } from '../../statementErrorCodes'
 import { formatAuditStamp, formatDocumentDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'statement-documents'
 
@@ -39,9 +39,13 @@ type Row = {
 }
 
 async function loadDoc(id: string): Promise<StatementDocData | null> {
-    const locale = await getLocale()
+    // ★ FIN-CHAIN-1(Tim d2 #12,2026-10-20):客户对账单【一律英文】,日期在内 —— 与发票、贷项凭证、送货单等对外单据
+    //   同一条政策(收件人不是这套系统的用户)。此前它是八份里唯一跟随界面语言的那一份(CONV-0 ③ 量到)。
+    //   正文用钉死在英文的翻译器;界面上的报错(下面那句"公司抬头不全")仍按看这一页的人的语言说。
+    const locale = 'en'
     const supabase = await createClient()
-    const t = await getTranslations()
+    const t = translatorFor('en')
+    const tUi = await getTranslations()
 
     const st = mustOne(
         await supabase.from('customer_statements')
@@ -68,7 +72,7 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
     // 【没有公司抬头就不出这份文书】一份没有我们名字的"要钱的纸"寄出去是真实事故 ——
     // 与 record_invoice_issue 的同一条,而且这里说的是【去哪儿补】。
     if (!company || !company.legal_name) {
-        throw new Error(t('statements.errors.COMPANY_PROFILE_INCOMPLETE'))
+        throw new Error(tUi('statements.errors.COMPANY_PROFILE_INCOMPLETE'))
     }
 
     // 【上传的 logo 不再下载】PDF-1:对外单据印的是矢量字标(见文档组件里的说明),
@@ -107,7 +111,7 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
         issued_at: formatAuditStamp(st.issued_at),
         superseded: st.superseded_at !== null,
         company,
-        // 【按界面语言选一条,不拼接】—— check-bilingual-concat 拒绝把 zh 与 en 拼起来印
+        // 【一律英文,不拼接】—— check-bilingual-concat 拒绝把 zh 与 en 拼起来印;FIN-CHAIN-1 起这里只取英文那一条
         t: {
             title: t('statements.doc.title'),
             summary: t('statements.doc.summary'),
@@ -126,9 +130,9 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
             ageing: t('statements.doc.ageing'),
             frozenNote: t('statements.doc.frozenNote', { at: formatAuditStamp(st.issued_at) }),
             noDueDate: t('statements.doc.noDueDate'),
-            // CONV-0 ②f:无需签章那一句。本份单据【跟随界面语言】,
-            // 所以它走 t() 而不是 noSignatureEn() —— 八份里只有它与可追溯报告如此。
-            noSignature: t('pdf.noSignature.statement'),
+            // CONV-0 ②f:无需签章那一句。FIN-CHAIN-1(Tim d2 #12)起本份单据一律英文 ——
+            // 与另外六份同走 noSignatureEn();八份里只剩可追溯报告跟随界面语言。
+            noSignature: noSignatureEn('statement'),
             colDoc: t('statements.doc.colDoc'),
             colKind: t('statements.doc.colKind'),
             colDate: t('statements.doc.colDate'),

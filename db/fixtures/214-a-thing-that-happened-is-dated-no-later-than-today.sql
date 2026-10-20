@@ -9,6 +9,8 @@
 --   D  由系统代填冲销日的七个调用点走 reversal_date_for(今天与原分录日里较晚的那个)——
 --      一张记在本月末的分录,今天就能被撤回,冲销落在月末,而不是被拒(Batch B Q5)。
 --      ★ 目录断言:六支函数里那七次调用都经 reversal_date_for,没有一处再直接递 CURRENT_DATE。
+--      (FIN-CHAIN-1,2026-10-20:运费冲销改由人选冲销日 —— 现在是五支函数里的六次调用;运费冲销仍在
+--       「不许直接递 CURRENT_DATE」那一圈里,它的新规矩由 fixture 283 钉着。)
 --
 -- 日期全部相对今天:这份 fixture 测的正是"今天"这条线本身。
 -- 当天恰好是月末时,D 的"没有它就会被拒"那一半没有可分的两边 —— 照直说出来(NOTICE),不假装。
@@ -192,7 +194,7 @@ BEGIN
     END IF;
     -- 目录断言:七次代填全部经 reversal_date_for,没有一处再直接递 CURRENT_DATE
     FOREACH v_fn IN ARRAY ARRAY['reverse_expense(uuid,text)', 'reverse_payment_internal(uuid,text)',
-                                'reverse_freight_document(uuid,text)', 'unpost_payroll_period_internal(uuid,text)',  -- PAYROLL-APR-1:函数体搬进了引擎
+                                'reverse_freight_document(uuid,text,date)', 'unpost_payroll_period_internal(uuid,text)',  -- PAYROLL-APR-1:函数体搬进了引擎;FIN-CHAIN-1:运费冲销改由人给日期(第三个参数),仍然不许直接递 CURRENT_DATE
                                 'rollback_processing_run(uuid,text)', 'allocate_processing_costs(uuid,text)'] LOOP
         IF to_regprocedure('public.' || v_fn) IS NULL THEN
             RAISE EXCEPTION 'FIXTURE 214D 前提失败:找不到 % —— 签名变了,这条目录断言要跟着改', v_fn;
@@ -203,8 +205,9 @@ BEGIN
     END LOOP;
     SELECT count(*) INTO v_n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'public' AND p.prokind = 'f' AND pg_get_functiondef(p.oid) ~ 'reverse_journal_entry_internal\([^,]*,\s*reversal_date_for\(';
-    IF v_n <> 6 THEN
-        RAISE EXCEPTION 'FIXTURE 214D 失败:经 reversal_date_for 代填冲销日的函数应当恰好 6 支(七次调用),实得 %', v_n;
+    -- FIN-CHAIN-1(Tim 2026-10-20,Step 0 Q7):运费冲销改由人选冲销日,离开了这一族 —— 6 支 → 5 支(七次 → 六次)。
+    IF v_n <> 5 THEN
+        RAISE EXCEPTION 'FIXTURE 214D 失败:经 reversal_date_for 代填冲销日的函数应当恰好 5 支(六次调用;运费冲销 FIN-CHAIN-1 起由人选日),实得 %', v_n;
     END IF;
 
     SET CONSTRAINTS ALL IMMEDIATE;

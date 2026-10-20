@@ -13,7 +13,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatAmount } from '@/lib/format'
+import { formatAmount, businessToday } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
@@ -85,7 +85,8 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                    ⚠ 「只读底色该长什么样」那一条(z③)Tim 2026-09-11 已裁**留**,
                      见 `app/hr/payroll/PayrollGrid.tsx` 那一行的注释。 */}
             {/* ★ DATE-PICK-1:日期框自带它的 32px 框,上面说的那个红底类随原生框一起退场;空着时仍由 aria-invalid 画红描边。 */}
-            <DatePicker value={date} required aria-invalid={date === ''}
+            {/* FIN-CHAIN-1(Tim Step 0 Q13):钱离开银行是已经发生的事 —— 晚于今天服务端按名拒 DOCUMENT_DATE_IN_FUTURE,框也不给选。 */}
+            <DatePicker value={date} required aria-invalid={date === ''} max={businessToday()}
                         onChange={setDate} onInvalidChange={setDateBad} className="flex" />
                 <span className="mt-1 block max-w-md text-[color:var(--brand-muted-text)]">{t('finance.payrollPay.dateHint')}</span>
             </label>

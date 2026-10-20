@@ -185,7 +185,7 @@ BEGIN
             jsonb_build_array(jsonb_build_object('inbound_batch_id', ib1), jsonb_build_object('inbound_batch_id', ib2)), 'fixture 242 port to yard', NULL)
             ->> 'freight_document_id')::uuid;
     UPDATE freight_documents SET notes = 'fixture 242 port to yard (corrected)' WHERE id = frt;
-    PERFORM reverse_freight_document(frt, 'fixture 242 billed twice');
+    PERFORM reverse_freight_document(frt, 'fixture 242 billed twice', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = frt)));
     SELECT journal_entry_id, reversal_entry_id INTO frt_je, frt_rev FROM freight_documents WHERE id = frt;
     v_j := pg_temp.f242_ok('F', pg_temp.f242_trail(u_all, 'freight', frt::text));
     PERFORM pg_temp.f242_need('F (recorded)', v_j, 'freight_documents', 'INSERT');

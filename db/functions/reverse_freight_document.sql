@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.reverse_freight_document(p_freight_document_id uuid, p_reason text)
+CREATE OR REPLACE FUNCTION public.reverse_freight_document(p_freight_document_id uuid, p_reason text, p_reversal_date date DEFAULT NULL::date)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -11,6 +11,14 @@ DECLARE
     v_je jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+
+    -- ★ FIN-CHAIN-1(Tim 2026-10-20,Step 0 Q7 · APR4-FREIGHT-REVERSAL-DATED-TODAY):【冲销日由人选,必填,不默认】——
+    --   与日记账冲销申请 · 发票作废 · 代扣税缴纳 · 银行划转那四个由人给日期的冲销同一条(FIN-10:决定期间的日期不许默认)。
+    --   不许早于原分录(reverse_journal_entry_internal 按名拒 REVERSAL_BEFORE_ORIGINAL);落在已关账的期间按名拒
+    --   PERIOD_LOCKED(post_journal_entry)—— 锁永远赢。
+    IF p_reversal_date IS NULL THEN
+        RAISE EXCEPTION 'REVERSAL_DATE_REQUIRED';
+    END IF;
 
     -- 【理由必填,拒绝按名】—— AUDEL 家族那一条。
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
@@ -40,11 +48,11 @@ BEGIN
           USING HINT = '这张运费单已经被付过款 —— 先冲掉那笔付款,再冲销单据';
     END IF;
 
-    -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)。
+    -- 冲其分录(冲销日 = 人选的那一天;期间锁在 post_journal_entry 内生效)。
     -- 【镜像的是原分录本身】,所以两个方向自动各自对称:进料侧冲掉 1200/5000,
     -- 出境侧冲掉 6300 —— 这个函数一个科目码都不需要知道。
-    -- AP-RECON-1 Batch B:冲销日 = 今天与原分录日里较晚的那个(reversal_date_for;冲销不许早于原分录)
-    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, reversal_date_for(v_orig.journal_entry_id),
+    -- FIN-CHAIN-1:冲销日 = p_reversal_date(此前是 reversal_date_for —— 今天与原分录日里较晚的那个,没有人选得了)
+    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, p_reversal_date,
         'Freight reversal ' || v_orig.code);
 
     -- 【状态只能从这里改】—— 守卫认这个标记,PostgREST 够不着它。

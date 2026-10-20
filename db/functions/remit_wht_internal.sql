@@ -56,6 +56,10 @@ BEGIN
         -- 还没发生的代扣汇不出去。
         RAISE EXCEPTION 'WHT_REMIT_DATE_BEFORE_PERIOD|%|%', p_remitted_on, v_month;
     END IF;
+    -- FIN-CHAIN-1(Tim AP-RECON-1 Batch B Q6,2026-10-20 落地):钱离开银行是一件【已经发生】的事 —— 日期晚于今天按名拒(与 record_payment_internal 同一句)。
+    IF p_remitted_on > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|wht_remittance|%|%', p_remitted_on, CURRENT_DATE;
+    END IF;
 
     -- 【参考号必填,而 gst_periods 那一条允许空 —— 两者不是同一件事】
     -- GST 那边"申报"与"缴款"是两个动作,回执可能晚到;这里是【一次缴款】,

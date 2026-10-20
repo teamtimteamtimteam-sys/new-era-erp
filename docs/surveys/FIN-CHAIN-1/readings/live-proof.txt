@@ -1,0 +1,32 @@
+CLONES|finance 43 codes · cfo 36 (finance.edit false, view_prices true) · admin 86 · cco 50 (sales.edit true)
+PASS|A4: /finance/expenses/new (finance copy) HTTP 200 lists all 13 new expense accounts in the account picker, and not 2600 Loan Payable
+PASS|A5: /finance/trial-balance?all=1 HTTP 200 marks system accounts (6800, 2000 carry the System badge; 2600 and 6010 do not)
+PASS|A5: the badge reads 系统 in Chinese
+PASS|C2: /finance HTTP 200 — the ledger-vs-list block states the new basis, shows the ar and ap legs, and the out-of-date sentence is gone
+PASS|C3: /finance/month-end HTTP 200 (8914 ms)
+PASS|C7: /finance/claims (cfo copy — finance.view + view_prices, no .edit) HTTP 200: the pending claim is listed and no control names module.finance.edit
+PASS|A1/A2: the 14 accounts are on live as ruled (non-system, active; 2600 liability · monetary · financing; it is not in the expense picker's predicate)
+PASS|C1: payroll_payment refuses tomorrow by name (DOCUMENT_DATE_IN_FUTURE|payroll_payment)
+PASS|C1: cpf_payment refuses tomorrow by name (DOCUMENT_DATE_IN_FUTURE|cpf_payment)
+PASS|C1: deductions_payment refuses tomorrow by name (DOCUMENT_DATE_IN_FUTURE|deductions_payment)
+PASS|C1: processing_cost_remittance refuses tomorrow by name (DOCUMENT_DATE_IN_FUTURE|processing_cost_remittance)
+PASS|C1: wht_remittance refuses tomorrow by name (DOCUMENT_DATE_IN_FUTURE|wht_remittance)
+PASS|C1: bank_transfer refuses tomorrow by name (DOCUMENT_DATE_IN_FUTURE|bank_transfer)
+PASS|C1: a bank-transfer request planned for tomorrow is refused at submit (finance copy)
+PASS|B1: cancelling a confirmed order with a live invoice is refused by name (cco copy) — SO_CANCEL_HAS_LIVE_INVOICE|SO-2026-0005|INV-2026-0010
+PASS|B2: the live order-flow sale (batch OUT-2026-0118) cannot be billed again on a sale-type invoice (SALE_IS_ORDER_FLOW)
+PASS|B4: a direct insert of an issued quotation is refused by name
+PASS|B4: a direct status update is refused by name (QT-2026-0003)
+PASS|B4: a direct notes edit still works (that is what a quotation is for)
+PASS|C6: reversing FRT-2026-0001 without a reversal date is refused by name (REVERSAL_DATE_REQUIRED), the document untouched
+PASS|C6: the two-argument signature is gone (no overload)
+INFO|C3: before — ap unexplained 0.00, ar unexplained 0.00
+PASS|C3: an unexplained manual entry into 2000 moves the check close_period reads (ap unexplained -777.00)
+INFO|C3: close_period(last month-end) on live, finance copy → ERR|PROCESSING_COSTS_UNALLOCATED|2026-09-30|8|PROC-2026-0001, PROC-2026-0009, PROC-2026-0106, PROC-2026-0107, PROC-2026-0108, PROC-2026-0162, PROC-2026-0163, PROC-2026-0225 (an earlier gate may answer first; the refusal itself is pinned by fixture 282)
+PASS|C3: the live close_period carries the ledger-vs-list refusal
+TX_DONE
+PASS|tx: the transaction leg ran to the end and rolled back (psql exit 0)
+PASS|after ROLLBACK: the 14 accounts are there; probe customers / journals / materials = 0 (read 14|0|0|0)
+STEP|done
+AFTER|nothing but the throwaway accounts was committed (removed by the plan)
+FINCHAIN1_PROOF_EXIT=0

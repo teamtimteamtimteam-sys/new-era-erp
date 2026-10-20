@@ -10,6 +10,8 @@ const INVOICE_ERROR_CODES = new Set([
     // SAL-C:无主销售不能开给客户 —— 发票是对外声称谁欠钱
     'SALE_NOT_ATTRIBUTED',
     'ALREADY_INVOICED', 'DUPLICATE_SALE', 'MIXED_CURRENCY',
+    // FIN-CHAIN-1(Tim APR-5 Q12):订单流的销售已经在订单发票上了,不许再开一张 sale 票。
+    'SALE_IS_ORDER_FLOW',
     'INVOICE_NOT_FOUND', 'INVOICE_ALREADY_VOID', 'REASON_REQUIRED',
     'INVOICE_IMMUTABLE', 'TERMS_INVALID',
     // PARTY-1:账期不再兜底 30 天 —— 客户没设、调用也没给,就按名拒。

@@ -38,7 +38,6 @@ import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { canViewBanking } from '@/lib/permissions'
 import { formatDocumentDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'invoice-documents'
 
@@ -64,7 +63,9 @@ function contentDispositionFilename(name: string): string {
 async function buildInvoicePdf(id: string): Promise<
     { ok: true; buffer: Buffer; code: string } | { ok: false; response: NextResponse }
 > {
-    const locale = await getLocale()
+    // FIN-CHAIN-1(Tim d2 #12 · Step 0 Q9,2026-10-20):对外单据一律英文 —— 日期也是。此前这里跟着界面语言取 locale,
+    //   于是中文界面开出来的英文单据印着 `2026年9月1日`。
+    const locale = 'en'
     const supabase = await createClient()
 
     const [invRes, companyRes, settingsRes, totalsRes] = await Promise.all([

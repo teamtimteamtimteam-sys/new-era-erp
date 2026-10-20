@@ -21,7 +21,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
-import { can } from '@/lib/permissions'
+import { canViewPrices } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -37,7 +37,11 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
     const t = await getTranslations()
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()
-    const canDecide = await can('module.finance.edit')
+    // ★ FIN-CHAIN-1(Tim 2026-10-20,ROLE1-EXPENSE-CLAIM-DECIDE-BUTTON-WRONG-CODE):决定钮问的是【库的那一道门】——
+    //   decide_expense_claim 要 module.finance.view + data.view_prices(再加审批级别,那一层按名拒),从来不要 .edit
+    //   (Tim APR-3 Q1)。本页已经过了 requireModule(MOD.finance),所以 finance.view 必在;剩下的就是价格码 ——
+    //   与日记账 / 发票 / GST 三张页面的决定钮同一个判据。此前它问 module.finance.edit,于是对 CFO 说"缺 .edit",而库会放行。
+    const canDecide = await canViewPrices()
 
     const rows = mustRows(
         await supabase

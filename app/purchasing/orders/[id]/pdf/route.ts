@@ -18,7 +18,6 @@ import type { CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocu
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 import { formatDocumentDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 
 // 与发票同一套响应头转义(RFC 6266/5987)—— 文件名是拼进 HTTP 头的
@@ -76,7 +75,8 @@ async function renderPo(supabase: Awaited<ReturnType<typeof createClient>>, poId
     // ★ DATE-1(Q8:打印件跟着屏幕走)—— data 整份来自 po_document_data,
     //   日期是库里的原值。在这里【就地】格式化,文档组件那一侧一个字都不用改。
     //   ⚠ 付款条款的 due_date 也要跟上,否则同一张纸上两种日期长相。
-    const locale = await getLocale()
+    // FIN-CHAIN-1(Tim d2 #12,2026-10-20):对外单据一律英文 —— 日期也是(此前跟着界面语言,中文界面印出 `2026年9月1日`)。
+    const locale = 'en'
     data.order_date = formatDocumentDate(data.order_date, locale)
     if (data.expected_delivery_date) data.expected_delivery_date = formatDocumentDate(data.expected_delivery_date, locale)
     for (const term of data.payment_terms ?? []) {

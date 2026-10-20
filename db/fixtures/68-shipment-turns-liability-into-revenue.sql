@@ -476,7 +476,8 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'SO_TRANSITION_NOT_ALLOWED|closed|%' THEN RAISE; END IF;
     END;
-    -- partially_shipped 没有任何手动去处(发出去的货收不回来)
+    -- partially_shipped 作废不得(发出去的货收不回来)。FIN-CHAIN-1 起它有且只有一个手动去处:显式的短装收尾 → closed
+    -- (理由必填、开了票没发的必须先被贷项取消 —— fixture 279 钉着)。
     BEGIN
         PERFORM set_sales_order_status(so2, 'cancelled', 'x');
         RAISE EXCEPTION 'FIXTURE 68J 失败:发过货的单不该作废得了';

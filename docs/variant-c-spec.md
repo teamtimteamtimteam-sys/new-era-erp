@@ -2039,11 +2039,11 @@ app/stocktakes/[id]/page.tsx:216
   它不是漂移,是**一处带含义的状态样式**(「这个日期是估的,不是定的」);
   同一套写法也在 `app/finance/cash-forecast/ForecastGrid.tsx:51` 的 `estimated:` 上。
   照 §4.1 转过去会**把那个含义抹掉**。已登记进 `docs/forward-queue.md`,等一次「状态样式」的裁定。
-* **Q8 · `table` 与 `card` 要不要从 `GUARDED` 毕业?**
+* ~~**Q8 · `table` 与 `card` 要不要从 `GUARDED` 毕业?**~~ → **已答(Tim 2026-10-20,d2 #24,FIN-CHAIN-1 记):毕业;修掉那条只画 1 px 的表头线 —— 进样式队列(`docs/forward-queue.md`「FIN-CHAIN-1 之后的队列」)。**
   ★ §7.1 给这一条添了新证据:C 的表头线在 `table.tsx` 那条路上渲染成 1px,
   而在 `DataTable` 那条路上是对的 2px。
 * ~~**`xs` 档(45 处)算不算在「三个尺寸档」里?**(§5.2)~~ → **已答:Tim 在 STYLE-2 裁定【不动】,见 §2A 的 E4。**
-* **`<Refusal>` 的字重 500 是刻意的吗?**(§4.5)
+* ~~**`<Refusal>` 的字重 500 是刻意的吗?**(§4.5)~~ → **已答(Tim 2026-10-20,d2 #25,FIN-CHAIN-1 记):是刻意的。关闭。**
 
 ---
 

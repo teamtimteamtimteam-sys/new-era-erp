@@ -124,7 +124,8 @@ BEGIN
         v_seen := v_seen || v_sale_id;
 
         SELECT sr.id, sr.customer_id, sr.quantity, sr.unit_price, sr.currency,
-               sr.amount_base, ob.code AS batch_code, ob.unit, m.name AS material_name
+               sr.amount_base, ob.code AS batch_code, ob.unit, m.name AS material_name,
+               sr.sales_order_line_id
         INTO v_sale
         FROM sales_records sr
         JOIN output_batches ob ON ob.id = sr.output_batch_id
@@ -138,6 +139,13 @@ BEGIN
         -- SAL-C:【但无主的销售不能开给客户】。开票是对外声称"这个人欠这笔钱";
         -- 声称之前,销售自己得先记下这件事。出路是先补挂
         -- (attribute_sale_customer),不是在这里默认它属于收票人。
+        -- ★ FIN-CHAIN-1(Tim APR-5 Q12,2026-10-20):【订单流的销售已经开过票了】—— 它是 ship_order 写的
+        --   (sales_order_line_id 非空),它的钱在订单发票(kind='order')上,而那张票在发货【之前】就开了。
+        --   再开一张 sale 型的票 = 同一批货向客户要两次钱,而 ALREADY_INVOICED 看不见它(订单发票的行挂在
+        --   订单行上,不挂在销售记录上)。按名拒;/finance/invoices/new 的候选清单也不列它们。
+        IF v_sale.sales_order_line_id IS NOT NULL THEN
+            RAISE EXCEPTION 'SALE_IS_ORDER_FLOW|%', v_sale.batch_code;
+        END IF;
         IF v_sale.customer_id IS NULL THEN
             RAISE EXCEPTION 'SALE_NOT_ATTRIBUTED|%', v_sale.batch_code;
         END IF;

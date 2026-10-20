@@ -29,10 +29,14 @@ export default function TransitionPanel({
     const [error, setError] = useState('')
     const [reason, setReason] = useState('')
 
+    // FIN-CHAIN-1:短装收尾(partially_shipped → closed)与作废一样要理由 —— 库按名拒 SO_CLOSE_REASON_REQUIRED。
+    const closeShort = status === 'partially_shipped'
+    const needsReason = (to: string) => to === 'cancelled' || (closeShort && to === 'closed')
+
     function go(to: string) {
         setError('')
         startTransition(async () => {
-            const res = await transitionOrder(orderId, to, to === 'cancelled' ? reason : '')
+            const res = await transitionOrder(orderId, to, needsReason(to) ? reason : '')
             if (res.error) setError(res.error)
             else { setReason(''); router.refresh() }
         })
@@ -45,9 +49,9 @@ export default function TransitionPanel({
     return (
         <div className="border border-gray-300 rounded px-4 py-3">
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-            {nextStates.includes('cancelled') && (
+            {nextStates.some(needsReason) && (
                 <div className="mb-3">
-                    <label className="block mb-1">{t('sales.cancelReason')}</label>
+                    <label className="block mb-1">{t(closeShort ? 'sales.closeShortReason' : 'sales.cancelReason')}</label>
                     <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>
@@ -56,10 +60,10 @@ export default function TransitionPanel({
                 {nextStates.map((to) => (
                     <div key={to} className="flex-1 min-w-[14rem]">
                         <Button variant={to === 'cancelled' ? 'destructive' : 'secondary'} className="w-full" type="button" onClick={() => go(to)}
-                                disabled={isPending || (to === 'cancelled' && reason.trim() === '')}>
-                            {isPending ? t('common.saving') : t(ACTION_KEY[to] ?? 'sales.action.generic')}
+                                disabled={isPending || (needsReason(to) && reason.trim() === '')}>
+                            {isPending ? t('common.saving') : t(closeShort && to === 'closed' ? 'sales.action.closeShort' : (ACTION_KEY[to] ?? 'sales.action.generic'))}
                         </Button>
-                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t(CONSEQUENCE_KEY[to] ?? 'sales.consequence.generic')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t(closeShort && to === 'closed' ? 'sales.consequence.closeShort' : (CONSEQUENCE_KEY[to] ?? 'sales.consequence.generic'))}</p>
                     </div>
                 ))}
             </div>

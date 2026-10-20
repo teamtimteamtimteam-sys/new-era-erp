@@ -224,7 +224,7 @@ BEGIN
     v_res := record_freight_document(D0, v_fwd, 40, v_base, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b1)), 'f213 freight to reverse', NULL);
     v_fd_rev := (v_res->>'freight_document_id')::uuid;
-    PERFORM reverse_freight_document(v_fd_rev, 'f213');
+    PERFORM reverse_freight_document(v_fd_rev, 'f213', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = v_fd_rev)));
     PERFORM pg_temp.f213_agree('A11 运费冲销');
 
     -- 挂账付款:具名的一行,金额就是它;冲掉之后那一行是 0(冲销对两边都不算)

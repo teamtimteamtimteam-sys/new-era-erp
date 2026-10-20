@@ -30,11 +30,13 @@ export const soStatusKey = (s: string) => SO_STATUS_KEY[s] ?? 'sales.status.unkn
 // partially_shipped / shipped 不在任何一行的右边 —— 它们由 ship_order 按
 // "已发 vs 已订"现算后写入,不是人能点的;这张表只管人能点的那些。
 // confirmed → closed 那条路【关掉了】:一张还没发货的订单"走完了"说不通。
-// partially_shipped 没有任何去处:发出去的货收不回来,更正走贷项凭证。
+// partially_shipped 作废不得:发出去的货收不回来,更正走贷项凭证。
+// ★ FIN-CHAIN-1(Tim 2026-10-20,APR-5 Q12 · Step 0 Q5):它有且只有一个去处 —— 显式的【短装收尾】→ closed:
+//   理由必填;开了票没发的那一截必须先被贷项取消(否则库按名拒 SO_CLOSE_INVOICED_UNSHIPPED);剩下的预留当场释放。
 export const SO_ALLOWED_NEXT: Record<string, SoStatus[]> = {
     draft: ['confirmed', 'cancelled'],
     confirmed: ['cancelled'],
-    partially_shipped: [],
+    partially_shipped: ['closed'],
     shipped: ['closed'],
     closed: [],
     cancelled: [],

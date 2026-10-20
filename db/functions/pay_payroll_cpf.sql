@@ -32,6 +32,10 @@ BEGIN
     IF p_payment_date IS NULL THEN
         RAISE EXCEPTION 'PAYMENT_DATE_REQUIRED';
     END IF;
+    -- FIN-CHAIN-1(Tim AP-RECON-1 Batch B Q6,2026-10-20 落地):钱离开银行是一件【已经发生】的事 —— 日期晚于今天按名拒(与 record_payment_internal 同一句)。
+    IF p_payment_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|cpf_payment|%|%', p_payment_date, CURRENT_DATE;
+    END IF;
     IF NOT (has_permission('module.finance.edit') OR has_permission('module.hr.edit')) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.finance.edit';
     END IF;

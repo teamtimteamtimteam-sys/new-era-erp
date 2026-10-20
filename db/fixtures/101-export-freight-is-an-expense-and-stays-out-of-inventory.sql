@@ -307,7 +307,7 @@ BEGIN
     -- F2 理由必填
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM reverse_freight_document(v_fd_out, '   ');
+        PERFORM reverse_freight_document(v_fd_out, '   ', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = v_fd_out)));
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'FREIGHT_REVERSAL_REASON_REQUIRED|%' THEN
@@ -318,7 +318,7 @@ BEGIN
     -- F3 已被结清的单据不许冲销(冲掉它会让一笔真付过的钱挂在"不欠任何人"的单据上)
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM reverse_freight_document(v_fd_pay, 'fixture 101:试图冲销已结清的');
+        PERFORM reverse_freight_document(v_fd_pay, 'fixture 101:试图冲销已结清的', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = v_fd_pay)));
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'FREIGHT_HAS_SETTLEMENT|%' THEN
@@ -327,7 +327,7 @@ BEGIN
     END IF;
 
     -- F4 正路:净额归零 + 账龄消失 + 留痕
-    v_res := reverse_freight_document(v_fd_out, 'fixture 101:货代开错了船名');
+    v_res := reverse_freight_document(v_fd_out, 'fixture 101:货代开错了船名', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = v_fd_out)));
     v_fd_rev := (v_res->>'reversal_entry_id')::uuid;
 
     -- 【净额归零要按科目逐个看】只看总额,一个"冲了但冲到别的科目"的实现照样是零
@@ -360,7 +360,7 @@ BEGIN
     -- F5 冲销是【一次性】的
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM reverse_freight_document(v_fd_out, 'fixture 101:再冲一次');
+        PERFORM reverse_freight_document(v_fd_out, 'fixture 101:再冲一次', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = v_fd_out)));
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'FREIGHT_ALREADY_REVERSED|%' THEN
@@ -370,7 +370,7 @@ BEGIN
 
     -- F6 【进境单据同样冲得掉】—— 一条门,两个方向;镜像的是原分录,所以
     --    进料侧自动冲掉 1200/5000,这个函数一个科目码都不需要知道。
-    v_res := reverse_freight_document(v_fd_in, 'fixture 101:进货运费也要冲得掉');
+    v_res := reverse_freight_document(v_fd_in, 'fixture 101:进货运费也要冲得掉', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = v_fd_in)));
     SELECT COALESCE(SUM(jl.debit - jl.credit), 0) INTO v_net
       FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
      WHERE jl.entry_id IN ((SELECT journal_entry_id FROM freight_documents WHERE id = v_fd_in),

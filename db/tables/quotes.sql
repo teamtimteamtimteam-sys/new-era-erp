@@ -82,6 +82,13 @@ CREATE TRIGGER trg_quotes_converted_immutable
     BEFORE UPDATE OR DELETE ON public.quotes
     FOR EACH ROW EXECUTE FUNCTION public.guard_quote_converted_immutable();
 
+-- FIN-CHAIN-1(Tim 2026-10-20,APR5-QUOTE-STATUS-DIRECT-UPDATE):【状态只经函数写】—— 直连改 status /
+-- converted_order_id / decline_reason(或直连插一行不是 draft 的)按名拒 QT_STATUS_THROUGH_FUNCTION_ONLY;
+-- 其余列照旧可以直连改(那是报价的用途)。属主路径放行。名字排在 converted 守卫之后(见函数抬头)。
+CREATE TRIGGER trg_quotes_status_through_function
+    BEFORE INSERT OR UPDATE ON public.quotes
+    FOR EACH ROW EXECUTE FUNCTION public.guard_quote_status_through_function();
+
 -- updated_at 由它维护 —— "签发之后又改过"那个信号比的就是它与最新一版
 -- qt_issues.issued_at,所以它不是装饰。
 -- 【自己的时钟,不借共用的 update_updated_at —— fu1】那个助手写的是 now(),

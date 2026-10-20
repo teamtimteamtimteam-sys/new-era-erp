@@ -63,6 +63,19 @@ type ReconSide = {
     variances: { code: string; amount_base: number }[]
 }
 type Recon = { as_of: string; base_currency: string; sides: ReconSide[] }
+// ★ FIN-CHAIN-1(Tim 2026-10-20,AP-RECON-1 Q8 的改基 · Step 0 Q3):应收 / 应付两条腿改读 list_ledger_reconciliation ——
+//   月结那一步读的、关账要求的同一支(未结清单 ↔ 控制科目,全账、不截日,只认三种具名的差)。旧那一支按【机制】分类,
+//   它的 reconciled = true 只是"差额按机制分完了",会把缺陷一起吸进去(APRECON1-GL-CONTROL-RECON-HIDES-DEFECTS)。
+//   库存两条腿只有旧那一支在答(inventory_control_reconciliation 经它接上),照旧从它来。
+type ListSide = {
+    side: string
+    control_account: string
+    refusal: string | null
+    list_base: number | null
+    ledger_base: number | null
+    unexplained_base: number | null
+}
+type ListRecon = { base_currency: string; sides: ListSide[] }
 
 export default async function FinanceOverviewPage() {
     const locale = await getLocale()
@@ -81,7 +94,7 @@ export default async function FinanceOverviewPage() {
     // 【而传进去的那一天由 businessToday() 给】—— 见下面那段:它必须是业务时区的
     // 今天。提醒页的 days_waiting 走的是另一条路(视图里的 CURRENT_DATE),
     // 两条路都绕开了"渲染进程所在时区的今天"这个陷阱,只是绕法不同。
-    const [settingsRes, reconRes] = await Promise.all([
+    const [settingsRes, reconRes, listRes] = await Promise.all([
         supabase.from('finance_settings').select('locked_before, system_start_date').maybeSingle(),
         // ★【实测 508ms(2026-09-04,live)】★ 这不是一笔便宜的读数,而它落在
         //   一张【专程打开的】模块页上,不是所有人都会落地的首页 ——
@@ -93,6 +106,8 @@ export default async function FinanceOverviewPage() {
         //   存货腿按名拒绝回答。实测:库里问 CURRENT_DATE 四条腿全平,而浏览器里
         //   渲染出来的同一页 reconRefusals = 2。理由整段写在 lib/format.ts。
         supabase.rpc('gl_control_reconciliation', { p_as_of: businessToday() }),
+        // FIN-CHAIN-1:应收 / 应付两条腿的判词从这里来(见上面 ListSide 的注释)。
+        supabase.rpc('list_ledger_reconciliation'),
     ])
 
     const settings = mustOne(settingsRes, 'finance_settings') as
@@ -100,8 +115,25 @@ export default async function FinanceOverviewPage() {
         | null
     // 【RPC 也要过 mustOne】—— 一次失败的勾稽必须是失败,不能悄悄变成"没有腿"。
     const recon = mustOne(reconRes as never, 'gl_control_reconciliation') as unknown as Recon | null
-    const sides = recon?.sides ?? []
-    const ccy = recon?.base_currency ?? null
+    const list = mustOne(listRes as never, 'list_ledger_reconciliation') as unknown as ListRecon | null
+    const ccy = recon?.base_currency ?? list?.base_currency ?? null
+    // 应收 / 应付:新勾稽的腿,换成这一块画的那个形状(清单 = 单据那一侧);库存:旧勾稽的腿,原样。
+    const listSides: ReconSide[] = (list?.sides ?? []).map((s) => ({
+        side: s.side,
+        control_account: s.control_account,
+        ledger_base: s.ledger_base,
+        subledger_base: s.list_base,
+        difference_base: null,
+        unexplained_base: s.unexplained_base,
+        reconciled: s.unexplained_base == null ? null : Number(s.unexplained_base) === 0,
+        refusal: s.refusal,
+        subledger_basis: 'list',
+        variances: [],
+    }))
+    const sides: ReconSide[] = [
+        ...['ar', 'ap'].flatMap((k) => listSides.filter((s) => s.side === k)),
+        ...(recon?.sides ?? []).filter((s) => s.side !== 'ar' && s.side !== 'ap'),
+    ]
 
     const ar = sides.find((s) => s.side === 'ar')
     const ap = sides.find((s) => s.side === 'ap')

@@ -51891,7 +51891,11 @@ export type Database = {
         Returns: Json
       }
       reverse_freight_document: {
-        Args: { p_freight_document_id: string; p_reason: string }
+        Args: {
+          p_freight_document_id: string
+          p_reason: string
+          p_reversal_date?: string
+        }
         Returns: Json
       }
       reverse_journal_entry: {

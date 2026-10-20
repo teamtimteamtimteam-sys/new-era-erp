@@ -62,6 +62,9 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT ro.id, x.code FROM roles ro JOIN (VALUES
         ('fx209-fin',  'module.finance.edit'), ('fx209-fin', 'module.finance.view'),
+        -- FIN-CHAIN-1(Tim 2026-10-20,Step 0 Q2):关账先问清单 ↔ 总账,而那一支要看得见两侧的价格 —— 看不见就按名拒
+        --   CLOSE_RECON_UNANSWERABLE(答不上来不是对得上)。线上的 finance 角色两个价格码都持;本支测的是重开的门,不是它。
+        ('fx209-fin',  'data.view_prices'), ('fx209-fin', 'data.view_purchase_prices'),
         ('fx209-reop', 'action.finance_reopen'), ('fx209-reop', 'module.finance.view'),
         ('fx209-proc', 'module.processing.edit'), ('fx209-proc', 'module.processing.view'),
         ('fx209-proc', 'module.purchasing.edit'), ('fx209-proc', 'module.purchasing.view'),

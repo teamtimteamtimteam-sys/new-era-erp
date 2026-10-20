@@ -10,7 +10,8 @@
 --     · 资产负债  → balance_sheet(end)
 --     · 现金流量  → cash_flow_statement(start, end)
 --     · 应收/应付账龄 → ar_aging_asof / ap_aging_asof
---     · 控制科目勾稽 → gl_control_reconciliation
+--     · 控制科目勾稽 → gl_control_reconciliation(按机制的分解 —— 不是缺陷检查)
+--     · 清单 ↔ 总账   → list_ledger_reconciliation(应收/应付的「未解释」从它来,FIN-CHAIN-1)
 --     · 月末外币就绪 → fx_month_end_readiness(视图)
 --     · 银行对账     → bank_reconciliations(已冻结的那些行)
 --     · 现金预测     → cash_forecasts(已冻结的那一份,不是现算)
@@ -67,6 +68,9 @@ DECLARE
     v_unexp_sides jsonb;
     v_inv_refused boolean;
     v_inv_refusal text;
+    -- FIN-CHAIN-1(Tim 2026-10-20,AP-RECON-1 Q8 的改基):应收 / 应付的「未解释」改由清单 ↔ 总账那一支答。
+    v_list    jsonb;
+    v_list_refused jsonb;
 BEGIN
     PERFORM require_permission('module.finance.view');
     IF p_period_month IS NULL THEN
@@ -93,6 +97,11 @@ BEGIN
     v_ar    := ar_aging_asof(v_aging);
     v_ap    := ap_aging_asof(v_aging);
     v_recon := gl_control_reconciliation(v_aging);
+    -- ★ FIN-CHAIN-1:gl_control_reconciliation 按【机制】分类(起单/结算/重估),它的"起单差异"会把缺陷一起吸进去
+    --   (AP-RECON-1 §3)—— 它的 reconciled = true 只是"差额按机制分完了"。应收与应付【有没有没人解释过的差】
+    --   改问 list_ledger_reconciliation(月结页与关账读的同一支)。它不截日:冻进包里的是【冻结那一刻】读到的答案,
+    --   所以连同读它的时刻一起存(list_ledger_read_at)。存货两条腿只有旧的那一支在答,照旧从它来。
+    v_list := list_ledger_reconciliation() || jsonb_build_object('read_at', now());
 
     -- ── 月末外币就绪:【读那张视图,不自己判】 ───────────────────────────────
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -156,17 +165,28 @@ BEGIN
            AND o.entry_date NOT BETWEEN v_start AND v_end
       ) x;
 
+    -- FIN-CHAIN-1:应收/应付取清单 ↔ 总账那一支;存货两条腿取旧的那一支(只有它在答)。
     SELECT COALESCE(SUM((s->>'unexplained_base')::numeric), 0) INTO v_unexp
-      FROM jsonb_array_elements(v_recon->'sides') s;
+      FROM (SELECT s FROM jsonb_array_elements(v_list->'sides') s
+            UNION ALL
+            SELECT s FROM jsonb_array_elements(v_recon->'sides') s WHERE s->>'side' LIKE 'inventory%') x(s);
 
     -- ★ INV-VAL-1:【是哪一条腿】。SUM 会把 NULL 跳过去,于是一条【被拒绝、
     -- 根本没评估过】的腿会让 control_unexplained 显示 false —— 那是一句假话。
     -- 所以拒绝单独记一条,不混进"解释干净了"里。
     SELECT COALESCE(jsonb_agg(s->>'side' ORDER BY s->>'side'), '[]'::jsonb)
       INTO v_unexp_sides
-      FROM jsonb_array_elements(v_recon->'sides') s
+      FROM (SELECT s FROM jsonb_array_elements(v_list->'sides') s
+            UNION ALL
+            SELECT s FROM jsonb_array_elements(v_recon->'sides') s WHERE s->>'side' LIKE 'inventory%') x(s)
      WHERE (s->>'unexplained_base') IS NOT NULL
        AND (s->>'unexplained_base')::numeric <> 0;
+
+    -- 清单 ↔ 总账那一边答不上来(看不见那一侧的价格)是一句【具名的拒绝】,不是"解释干净了"。
+    SELECT COALESCE(jsonb_agg(s->>'side' ORDER BY s->>'side'), '[]'::jsonb)
+      INTO v_list_refused
+      FROM jsonb_array_elements(v_list->'sides') s
+     WHERE s->>'refusal' IS NOT NULL;
 
     SELECT bool_or(s->>'subledger_basis' = 'refused'),
            max(s->>'refusal')
@@ -189,6 +209,7 @@ BEGIN
         'ar_aging',      v_ar,
         'ap_aging',      v_ap,
         'control_reconciliation', v_recon,
+        'list_ledger_reconciliation', v_list,
         'fx_month_end',  v_fx,
         'bank_reconciliations', v_bank,
         'cash_forecasts', v_forecast,
@@ -207,6 +228,10 @@ BEGIN
             'control_unexplained_base', v_unexp,
             -- ★ INV-VAL-1(R3/4b):冻结的记录自己说出是哪一条腿没解释干净。
             'control_unexplained_sides', v_unexp_sides,
+            -- ★ FIN-CHAIN-1:应收/应付的「未解释」此后来自 list_ledger_reconciliation,读于 list_ledger_read_at。
+            'control_unexplained_basis', 'list_ledger_reconciliation',
+            'list_ledger_read_at',     v_list->'read_at',
+            'list_ledger_refused_sides', v_list_refused,
             -- ★【存货这一节被拒绝了,而拒绝【不是】零】(R3/4c)
             -- 已关账的月份 aging_as_of = 月末(过去),存货明细侧重建不出来,
             -- 于是这一节是一句【具名的拒绝】。它必须与"存货为零"长得完全不一样:

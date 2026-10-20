@@ -47,6 +47,10 @@ BEGIN
     IF p_transfer_date IS NULL THEN
         RAISE EXCEPTION 'DATE_REQUIRED';
     END IF;
+    -- FIN-CHAIN-1(Tim AP-RECON-1 Batch B Q6,2026-10-20 落地):钱离开银行是一件【已经发生】的事 —— 日期晚于今天按名拒(与 record_payment_internal 同一句)。
+    IF p_transfer_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|bank_transfer|%|%', p_transfer_date, CURRENT_DATE;
+    END IF;
 
     v_from_ccy := bank_native_currency(p_from_account);
     v_to_ccy   := bank_native_currency(p_to_account);

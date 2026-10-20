@@ -1,0 +1,38 @@
+== 预检 2026-10-20-fin-chain-1.sql
+account    引用 25 个科目码,9 个已 is_system,16 个不是 ✗
+function   13 条 CREATE FUNCTION:10 替换 · 3 新建
+masked     本迁移不加列
+  ⚠ 科目 2600:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 3000:存在但没打 is_system —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6010:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6130:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6140:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6210:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6220:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6230:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6240:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6250:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6310:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6410:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6420:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6510:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6520:不在 accounts 里 —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 科目 6900:存在但没打 is_system —— 重建出来的库不会带它,而这支迁移点名要它
+  ⚠ 本迁移自己动了 is_system —— 若上面这些码就是它 promote 的,这条警告即可忽略(预检读的是执行【前】的库)
+✓ 预检通过(带 17 条警告,已放行)
+== 破窗开始(migration applied at): 2026-10-20 17:40:18 CST  ← 切次报告要写的那个起点
+== applying 2026-10-20-fin-chain-1.sql over direct psql (single transaction)
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:<stdin>:1962: NOTICE:  FINCHAIN1 pending stocktake ST-2026-0089 → chooer@evoltrya.test
+== re-asserting function grants (db/views/zzz_function_grants.sql)
+✓ committed atomically (含函数授权兜底)
+== 库已经是新的了(17:43:01) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)
+== 破窗起点已落盘:/Users/timchen/Documents/projects/new-era-erp/db/migration-windows.tsv
+   2026-10-20T17:43:01+0800  2026-10-20-fin-chain-1.sql  1ae65bb3
+APPLY_OWN_EXIT=0

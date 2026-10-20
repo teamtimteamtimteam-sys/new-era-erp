@@ -94,7 +94,7 @@ export default function CreditNoteDocument({
                         <Text style={[docStyles.cell, { width: COLS[1].width }]}>{l.description}</Text>
                         <Text style={[docStyles.cell, { width: COLS[2].width }]}>{KIND_FACE[l.kind] ?? l.kind}</Text>
                         <Text style={[docStyles.cell, { width: COLS[3].width, textAlign: 'right' }]}>
-                            {l.qty === null ? '' : l.qty}
+                            {/* FIN-CHAIN-1(Tim d2 #29 · PDF-R4-BLANKS):减收入的行没有数量 —— 印出这个事实,不印一个空格子 */}{l.qty === null ? 'N/A' : l.qty}
                         </Text>
                         <Text style={[docStyles.cell, { width: COLS[4].width, textAlign: 'right' }]}>
                             {money(l.amount)}

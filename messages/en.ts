@@ -159,6 +159,10 @@ const en = {
         sideAr: 'Receivables',
         sideAp: 'Payables',
         reconOk: 'Every part of the difference is accounted for.',
+        // FIN-CHAIN-1 (Tim 2026-10-20, AP-RECON-1 Q8 rebase)
+        reconMechanismLabel: 'Breakdown by mechanism — not a defect check',
+        reconBasisList: 'Unexplained differences in this pack come from the lists-vs-ledger check for receivables and payables (the one month-end closing requires), read at {at}; the stock legs come from the table above.',
+        cvListRefused: 'The lists-vs-ledger check could not be answered for {sides} when this pack was produced — an unanswered check is not a pass.',
         // ★ A2: the line that matters, printed where the remainder is ★
         reconFinding: 'UNEXPLAINED: {amount} {ccy}. The control account and its subsidiary ledger disagree by an amount nobody has accounted for — most often a manual journal posted straight to the control account. This is a finding, not a decoration: open the general ledger export for this period, filter to the control account, and find the postings that belong to no document.',
         // ── what it cannot see ──
@@ -1070,8 +1074,8 @@ const en = {
         lockedNone: 'No lock date has ever been set — every period is still editable. That is not "locked to a very early date", it is "never locked".',
         systemStart: 'System start date: {date} (anything earlier was migrated in, not recorded by this system).',
         reconTitle: 'Ledger vs sub-ledger',
-        reconSource: 'The balance on each control account, against the balance the underlying documents add up to.',
-        reconSpans: 'The ledger side is on Trial Balance; the document side is spread across Receivables, Payables and the inventory pages — whether the two agree is answered by no page at all.',
+        reconSource: 'Receivables and payables: the open-items lists against their control accounts (1100, 2000), all dates — the same check the Month-end step reads and closing a month requires. Stock: the stock ledger against 1200 / 1220.',
+        reconSpans: 'The ledger side is on Trial Balance and the list side on Receivables and Payables. Lists vs ledger names every part of a receivables or payables difference, and a month with an unexplained amount cannot be closed.',
         reconLine: 'ledger {ledger} · documents {subledger}',
         reconRefused: 'This leg cannot reach its basis right now, so it has no figure — answering anyway would give a confident 0.00.',
         reconNoSides: 'The reconciliation returned no legs at all. That is the result of a query, not "all four agree".',
@@ -4488,6 +4492,7 @@ const en = {
         colMaterial: 'Material',
         colSeq: '#',
         cancelReason: 'Cancellation reason',
+        closeShortReason: 'Why is the rest not being shipped?',
         issues: 'Issued versions',
         issuesNote: 'Each re-issue appends a new version; older versions are kept because the copy the customer holds is a specific version. There is no "sent" flag — the system does not know what the counterparty received.',
         noIssues: 'Not issued yet.',
@@ -4509,6 +4514,7 @@ const en = {
         action: {
             confirmed: 'Confirm order',
             closed: 'Close order',
+            closeShort: 'Close short',
             cancelled: 'Cancel order',
             generic: 'Change status',
         },
@@ -4516,6 +4522,7 @@ const en = {
             confirm: 'Freezes customer, currency, FX rate, order date and all lines. Notes stay editable. Refused if the customer is on credit hold.',
             close: 'Marks this order finished. Closed is a final state — it cannot be reopened.',
             cancel: 'Requires a reason. Cancelled is a final state.',
+            closeShort: 'Ends this order with what has been shipped. Requires a reason. Any quantity that was invoiced but not shipped must first be cancelled with a credit note; remaining reservations are released. Closed is a final state.',
             generic: 'Changes the order status.',
         },
         credit: {
@@ -4772,6 +4779,9 @@ const en = {
             SO_NO_LINES: 'Order {0} has no lines — an order with nothing on it cannot be confirmed.',
             SO_TRANSITION_NOT_ALLOWED: 'An order in state {0} cannot move to {1}. The allowed moves are listed on the order page.',
             SO_CANCEL_REASON_REQUIRED: 'Cancelling order {0} needs a reason — three months from now nobody will remember why it was cancelled.',
+            SO_CANCEL_HAS_LIVE_INVOICE: 'Order {0} cannot be cancelled while invoice {1} is still live — the customer would still owe it. Raise a void request for {1} on its invoice page first; once it is voided, cancel the order.',
+            SO_CLOSE_REASON_REQUIRED: 'Closing order {0} short needs a reason — say why the rest is not being shipped.',
+            SO_CLOSE_INVOICED_UNSHIPPED: 'Order {0} line {1}: {2} was invoiced but never shipped and has not been cancelled. Raise a credit note (unshipped cancellation) for it first, then close the order.',
             SO_CUSTOMER_ON_HOLD: 'Customer {0} is on credit hold, so this order cannot be confirmed. Lift the hold under Customers, or leave the order as a draft.',
             SO_CONFIRMED_IMMUTABLE: 'This order is confirmed, so {0} can no longer be changed. Amending a confirmed order is a separate action that does not exist yet — cancel and raise a new one.',
             SO_STATUS_NOT_EDITABLE: 'The status cannot be edited directly ({0} → {1}); use the transition buttons on the order page.',
@@ -5038,6 +5048,7 @@ const en = {
             QT_DECLINE_REASON_REQUIRED: 'Recording a decline needs a reason — three months from now nobody will remember why this one did not close.',
             QT_NOT_ISSUABLE: 'Quotation {0} is {1}, so it can no longer be issued — that state means this one is finished.',
             QT_CONVERTED_IMMUTABLE: 'Quotation {1} became a sales order and can no longer be changed ({0}) — the offer and the order it produced must not drift apart.',
+            QT_STATUS_THROUGH_FUNCTION_ONLY: 'A quotation\'s {0} on {1} only changes through its own actions — issue the PDF, decline with a reason, or convert to an order. It cannot be edited directly.',
             QT_HISTORY_IMMUTABLE: 'Quotation history is append-only and cannot be changed.',
             QT_CONVERT_LINES_LOST: 'The conversion did not copy every line ({0} sent, {1} created), so nothing was saved. Report this rather than retrying.',
             ORDER_DATE_REQUIRED: 'The order date is required — it is the day the customer accepted, and it is never filled in for you.',
@@ -8448,6 +8459,9 @@ const en = {
         showAll: 'Show zero-activity accounts',
         hideZero: 'Hide zero-activity accounts',
         inactive: 'Inactive',
+        // FIN-CHAIN-1(Tim d2 #34):system accounts are marked here instead of on a separate chart-of-accounts page.
+        systemAccount: 'System',
+        systemAccountHint: 'A system account: the software posts to it by code, so it cannot be renamed, deactivated or deleted.',
         unbalancedWarning: 'Trial balance does not balance — check the journal!',
         emptyState: 'No journal activity yet',
         loadError: 'Load failed',
@@ -8671,6 +8685,9 @@ const en = {
             reverseTitle: 'Reverse this freight document?',
             reverseConsequence: 'The journal entry will be mirrored back to zero, this document leaves the AP ageing, and the reversal cannot be undone. A document that has already been paid against cannot be reversed at all — reverse the payment first.',
             reverseReason: 'Why is it being reversed?',
+            reverseDate: 'Reversal date',
+            reverseDateHint: 'Required — it decides which period the reversing entry posts to. Not before the document date ({date}); a closed period is refused.',
+            reverseOnDate: 'The reversing entry will be dated {date}.',
             colReversedBy: 'Reversed by',
             basis: {
                 weight: 'By weight',
@@ -8710,6 +8727,7 @@ const en = {
                 FREIGHT_ALREADY_REVERSED: '{0} has already been reversed.',
                 FREIGHT_HAS_SETTLEMENT: '{0} has already been paid against ({1} settled), so it cannot be reversed — reverse the payment first, then this document.',
                 FREIGHT_REVERSAL_REASON_REQUIRED: 'Give a reason for reversing {0} — a reversal with no reason leaves nobody able to answer why, later.',
+                REVERSAL_DATE_REQUIRED: 'Choose the reversal date — it decides which period the reversing entry posts to, and it is never filled in for you. Nothing was changed.',
                 FREIGHT_STATUS_NO_DIRECT_UPDATE: 'The status of {0} can only be changed by reversing it, which records the reason, who did it, and mirrors the journal entry back to zero.',
                 FREIGHT_PAID_AT_CREATION_REFUSED: 'A freight document can no longer be recorded as already paid. It is recorded as owed to the forwarder; pay it through a payment request, which the CFO approves first.',
             },
@@ -9264,6 +9282,13 @@ const en = {
             // on screen does not mean nobody wrote the words; search the same
             // object for the code before adding one.
             // The three below genuinely had none, and each states the next step.
+            CLOSE_LEDGER_LIST_UNEXPLAINED:
+                // FIN-CHAIN-1: {0} = ap | ar, {1} = the unexplained amount in base currency.
+                'This period cannot be closed: on the {0} side (ap = payables, ar = receivables) the open-items list and its control account disagree by {1} that nobody has '
+                + 'explained. Open Finance → Lists vs ledger to see which document or entry it is, correct it, then close.',
+            CLOSE_RECON_UNANSWERABLE:
+                'This period cannot be closed: the lists-vs-ledger check for the {0} side (ap = payables, ar = receivables) could not be answered for you ({1}) — '
+                + 'it needs permission to see that side\'s prices. An unanswered check is not a passed one; ask someone who holds it to close.',
             PROCESSING_COSTS_UNALLOCATED:
                 // U1-B: {2} is the comma-separated list of run codes (not a total) — name them.
                 'Period {0} cannot be closed: {1} submitted processing run(s) up to that date never had '
@@ -9816,6 +9841,7 @@ const en = {
             SALE_WRONG_CUSTOMER: 'Sale {0} belongs to a different customer',
             SALE_NOT_ATTRIBUTED: 'Sale on batch {0} belongs to no customer, so it cannot be invoiced to one — an invoice states that a named customer owes this money, and the sale itself does not record that. Attach a customer to the sale first (Finance → Receivables → open the sale).',
             ALREADY_INVOICED: 'Sale {0} is already on invoice {1}',
+            SALE_IS_ORDER_FLOW: 'Sale {0} was shipped against a sales order, and that order\'s invoice already bills it. It cannot be invoiced a second time here.',
             DUPLICATE_SALE: 'Sale {0} appears more than once',
             MIXED_CURRENCY: 'All lines must share one currency ({0} vs {1})',
             INVOICE_NOT_FOUND: 'Invoice not found',

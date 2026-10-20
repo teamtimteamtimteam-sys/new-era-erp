@@ -16,7 +16,7 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatAmount, formatMoneyBare } from '@/lib/format'
+import { formatAmount, formatMoneyBare, businessToday } from '@/lib/format'
 import { remitCosts, relieveAccruals } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
@@ -96,7 +96,8 @@ canEdit: boolean
                    ⚠ 「只读底色该长什么样」那一条(z③)Tim 2026-09-11 已裁**留**,
                      见 `app/hr/payroll/PayrollGrid.tsx` 那一行的注释。 */}
             {/* ★ DATE-PICK-1:日期框自带它的 32px 框,上面说的那个红底类随原生框一起退场;空着时仍由 aria-invalid 画红描边。 */}
-            <DatePicker id={id} value={value} required aria-invalid={value === ''}
+            {/* FIN-CHAIN-1(Tim Step 0 Q13):晚于今天服务端按名拒 DOCUMENT_DATE_IN_FUTURE,框也不给选。 */}
+            <DatePicker id={id} value={value} required aria-invalid={value === ''} max={businessToday()}
                         onChange={set} onInvalidChange={setBad} className="flex" />
             <span className="mt-1 block max-w-[16rem] text-[color:var(--brand-muted-text)]">{t(hintKey)}</span>
         </label>

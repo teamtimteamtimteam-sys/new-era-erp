@@ -49,6 +49,9 @@ export default async function NewInvoicePage() {
         supabase
             .from('sales_records_masked')
             .select('id, customer_id, quantity, unit_price, currency, amount_base, sale_date, output_batches(code, unit, materials(name))')
+            // FIN-CHAIN-1(Tim APR-5 Q12):订单流的销售(ship_order 写下的,sales_order_line_id 非空)已经在订单发票上了 ——
+            //   它们不是候选;create_invoice 对它们按名拒 SALE_IS_ORDER_FLOW,这里同一个判据,不给人一个必然被拒的勾选框。
+            .is('sales_order_line_id', null)
             .order('sale_date', { ascending: false }),
         supabase.from('finance_settings').select('gst_registered').limit(1).single(),
         // GST-2:销项税码与【按生效期间挂着的】税率史。

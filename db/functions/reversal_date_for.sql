@@ -12,6 +12,8 @@
 -- 人给了一个早于原分录的日子,就按名拒 —— 那是一个可以改的输入,不是一个要替人改的数。
 --
 -- 它只是一个表达式,抽出来是为了七处写的是同一句话,而不是七份各自记得 GREATEST 的副本。
+-- ★ FIN-CHAIN-1(Tim 2026-10-20,Step 0 Q7):运费冲销【不再】走这里 —— reverse_freight_document 改为由人选冲销日
+--   (必填、不默认、不早于原分录)。调用点从七个变成六个。
 --
 -- NOTE: introduced by db/migrations/2026-09-24-aprecon1b-the-list-and-the-ledger-agree.sql.
 CREATE OR REPLACE FUNCTION public.reversal_date_for(p_entry_id uuid)

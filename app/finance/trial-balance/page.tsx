@@ -50,6 +50,8 @@ type AccountRow = {
     name_zh: string
     account_type: string
     is_active: boolean
+    // FIN-CHAIN-1(Tim d2 #34):系统科目在这里标出 —— 不另建科目表页。
+    is_system: boolean
 }
 
 export default async function FinancePage({
@@ -73,7 +75,7 @@ export default async function FinancePage({
     const [accountsRes, linesRes] = await Promise.all([
         supabase
             .from('accounts')
-            .select('id, code, name_en, name_zh, account_type, is_active')
+            .select('id, code, name_en, name_zh, account_type, is_active, is_system')
             .order('code'),
         // ★ U1-A(Tim 的 UNBLOCK-1 Q2,2026-10-05):按科目的合计问库(trial_balance_totals,属主身份),不再把每一行拉回来自己加。
         //   journal_lines 上那条 restrictive 策略让不持 data.view_pay 的财务读者读不到工资分录的行;逐行求和会让那几行
@@ -191,12 +193,26 @@ export default async function FinancePage({
                                         </div>
                                     </td>
                                     <td className={tableC.cell}>
-                                        {accountName(r)}
-                                        {!r.is_active && (
-                                            <span className="ml-2 px-2 py-0.5 bg-gray-200 rounded text-xs">
-                                                {t('finance.inactive')}
-                                            </span>
-                                        )}
+                                        {/* FIN-CHAIN-1:名字与两枚标放进一个会换行的 flex —— 390 px 上标折到下一行,
+                                            而不是把整张表撑宽(实测:不换行时整页 +21 px,换行后 0)。 */}
+                                        <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                            <span>{accountName(r)}</span>
+                                            {r.is_system && (
+                                                <span
+                                                    data-system-account={r.code}
+                                                    title={t('finance.systemAccountHint')}
+                                                    className="px-2 py-0.5 bg-gray-100 rounded text-xs"
+                                                    style={{ color: 'var(--brand-text)' }}
+                                                >
+                                                    {t('finance.systemAccount')}
+                                                </span>
+                                            )}
+                                            {!r.is_active && (
+                                                <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
+                                                    {t('finance.inactive')}
+                                                </span>
+                                            )}
+                                        </span>
                                     </td>
                                     <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {formatAmount(r.debits, baseCurrency)}

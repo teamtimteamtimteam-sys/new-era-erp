@@ -1266,6 +1266,7 @@
 >    ★ **NOROLE-SURFACE 已关闭(`v1.4.59`,2026-10-19,交回 `docs/handbacks/NOROLE-SURFACE.md`)**:八条读策略 + 一张视图 + 35 → 34 条存储策略;存储进了仓库
 >    (`db/storage/`);判词七【无角色面】(`db/check_norole.py`,退出码 7)常设;fixture 274 + 线上 fixture 266。Tim 施工中裁了一条(Q21):四张权限表的读谓词另认
 >    审计记录的读者(`module.hr.view` 员工页 · `data.view_change_log` 变更记录)。留给 Tim 的两件:`NOROLE-PO-ORPHAN-FILE` · `NOROLE-METAL-PRICES-ACTION-CODE-ALONE`。
+>    ★ **Tim 2026-10-20 裁定(d2 #2,FIN-CHAIN-1 记):`action.metal_prices` 加进 `metal_prices` 的读谓词 —— 归「上线准备组」。**
 >    ★ **部署:Tim 在 Vercel 上确认 `c61acce6` 已部署(NOROLE-SURFACE close-out + MES-9a 委托书,2026-10-19)。破窗已闭合(带界,按类标注)**:
 >    起点 **2026-10-19 14:46:11 CST**(测量:`db/migration-windows.tsv`,`2026-10-19-norole-surface.sql`)·
 >    终点下界 **2026-10-19 16:36:39 CST**(测量:推送把 `origin/main` 移到 `c61acce6`,
@@ -1401,27 +1402,68 @@
 >    close-out 文件 §4;**25 / 25 关闭,MES 组关闭**。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
+> ★ **Tim 2026-10-20 裁定(d2 #18,FIN-CHAIN-1 记):先后定了 —— AP-RECON-1 的两件(下面那一组)进了 FIN-CHAIN-1(`v1.4.63`);LEAVE-BAL-1 这两件排在 FIN-CHAIN-1【之后】、在真实员工开始请假【之前】。**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
 > * **⬜ `/me` 只画年假的余额**(LEAVE-BAL-1 Q15)—— 其余有额度的假别(病假、育儿假……)本人在 `/me` 上看不到余额,
 >   只在超额被拒时从那句拒绝里读到"可请 N 天"。`leave_balance` 已经能按假别回答,缺的只是那一块面板。
 > * ~~**⬜ 角色权限的改动不留历史**~~ —— ★ **挪走(HISTORY-0,2026-09-28)**:原文逐字搬到本文件
 >   「⬜ HISTORY family (HISTORY-0 survey, HISTORY-1 unification)」一节。
-> * **同事的端到端测试排在版本号【之后】,时间由 Tim 定,它【不再】挡版本号。**
+> * **同事的端到端测试排在版本号【之后】,时间由 Tim 定,它【不再】挡版本号。** ★ **Tim 2026-10-20 裁定(d2 #19):在 FIN-CHAIN-1 部署之后【一周之内】。**
 > * ~~Tim 开同事账号~~ —— **删掉:同事的账号已经在了**(EMP-SELF-1 Step 0 实测:sandra@ · chooer@ · phua@ · fusheng@ · vince@
 >   各自绑在自己的员工档案上,`/me` 读得到自己的请假与报销)。
 >
-> **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
-> * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
+> **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):** ★ **Tim 2026-10-20(d2 #18):这两件与「挡不挡关账」都进了 FIN-CHAIN-1 —— 已做,见下面三处的就地更正。**
+> * ~~**⬜ 管理包那一版 `gl_control_reconciliation` 的改基**~~ **✅ FIN-CHAIN-1(`v1.4.63`,fixture 282 C 臂)做掉** —— 包的「未解释」改由 `list_ledger_reconciliation` 答(连同读它的时刻),旧的按机制分解原样保留并标成「不是缺陷检查」;/finance 首页那一块的应收应付腿读同一支(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
 >   Batch B 只改了它的表头,签名与键不动。见 `docs/known-issues.md` § APRECON1-GL-CONTROL-RECON-HIDES-DEFECTS。
-> * **⬜ 六扇出钱的门也按名拒明天**(Tim AP-RECON-1 Batch B Q6):`pay_payroll_lines` · `pay_payroll_cpf` ·
+> * ~~**⬜ 六扇出钱的门也按名拒明天**~~ **✅ FIN-CHAIN-1(`v1.4.63`,fixture 281)做掉** —— 六扇门各自按名拒 `DOCUMENT_DATE_IN_FUTURE`;量下来【零】份既有 fixture 要挪(读过每一处调用的日期参数,Step 0)(Tim AP-RECON-1 Batch B Q6):`pay_payroll_lines` · `pay_payroll_cpf` ·
 >   `pay_payroll_deductions` · `remit_processing_costs` · `remit_wht_internal` · `record_bank_transfer_internal`
 >   今天只受"不晚于本月末"约束。见 `docs/known-issues.md` § APRECON1B-CASH-DOORS-DATE-RULE。
 >   ☞ 那一刀要先跑一次 `db/gate.py --offline` 量一下会红多少份 fixture,再报价 —— Batch B 的 32 份就是这么量出来的。
 > * **⬜ 冒烟走查期间的 REST 往返加单次上限**(CLAIM-GST-1 只给了收尾):先量一次走查里最慢的往返,再定上限。
 >   见 `docs/known-issues.md` § CLAIMGST1-SMOKE-WALK-CALLS-UNBOUNDED。
-> * (挡不挡关账 —— 清单 ↔ 总账有未解释的差时 `close_period` 要不要拒 —— 是 Tim 的一句裁定,不是一刀;
+> * ✅ **Tim 2026-10-20 裁定(d2 #17):挡** —— `close_period` 按名拒 `CLOSE_LEDGER_LIST_UNEXPLAINED` / `CLOSE_RECON_UNANSWERABLE`,FIN-CHAIN-1 做掉(fixture 282)。原文:(挡不挡关账 —— 清单 ↔ 总账有未解释的差时 `close_period` 要不要拒 —— 是 Tim 的一句裁定,不是一刀;
 >   见 `docs/known-issues.md` § APRECON1B-CHECK-DOES-NOT-BLOCK-CLOSE。)
+
+> 61. **✅ 销售链与财务链的几处正确性、科目表增补十四个科目、Tim 2026-10-20 的 35 条裁定记进各自的出处 —— FIN-CHAIN-1(`v1.4.63`,2026-10-20)。**
+>    (委托书 A–E;Step 0 Q1–Q13 照 Tim 的回复;**C4 结算过账与 C5 薪资付款冲销拆出本刀**。)**没有新码、没有授权改动、没有新审批。**
+>    十四个非系统科目(2600 应付借款 · 负债 · 货币性 · 筹资;十三个费用科目)· 作废挂着在册发票的订单按名拒 · 订单流的销售不再开 sale 票 · 显式的短装收尾 ·
+>    报价状态只经函数写(行级守卫)· 六扇出钱的门按名拒明天 · 带未解释差额的月份关不了 · 管理包与 /finance 首页读新勾稽 · 运费冲销日由人选 ·
+>    报销决定钮问 `data.view_prices` · 对账单与其余对外单据印英文日期 · 试算表标出系统科目 · 贷项凭证无数量的行印 N/A。
+>    Fixture 新 **279 · 280 · 281 · 282 · 283 · 284**;既有的 100 · 101 · 213 · 242 传冲销日、209 的关账人补两个价格码、214 的目录数 6 → 5、68 一句注释。
+>    迁移 `db/migrations/2026-10-20-fin-chain-1.sql`(线上 COMMIT→ROLLBACK 干跑 `DRY_OWN_EXIT=0`),**破窗起点 2026-10-20 17:43:01 CST**(`db/migration-windows.tsv`),
+>    终点等 Tim 在 Vercel 上确认部署。**窗口里坏掉的**(推导):旧应用的运费冲销不传日期 → 按名拒 `REVERSAL_DATE_REQUIRED`,什么都不写;其余都是收紧,线上此刻一件都碰不到。
+>    验证与读数在 `docs/handbacks/FIN-CHAIN-1.md` 与 `docs/surveys/FIN-CHAIN-1/readings/`。
+>    **关闭**:APR5-CANCEL-INVOICED-ORDER-LEAVES-INVOICE-LIVE(279)· APR5-SALE-INVOICE-RE-BILLS-ORDER-FLOW-SALES(279)· APR5-QUOTE-STATUS-DIRECT-UPDATE(280)·
+>    APR5-PARTIALLY-SHIPPED-HAS-NO-EXIT(279)· APRECON1B-CASH-DOORS-DATE-RULE(281)· APRECON1-GL-CONTROL-RECON-HIDES-DEFECTS(282)· APRECON1B-CHECK-DOES-NOT-BLOCK-CLOSE(282)·
+>    APR4-FREIGHT-REVERSAL-DATED-TODAY(283)· ROLE1-EXPENSE-CLAIM-DECIDE-BUTTON-WRONG-CODE(线上证明)· PDF-R4-BLANKS · MES7A2CO-NO-CHART-OF-ACCOUNTS-PAGE ·
+>    以及按裁定关闭的 MES9C-ABANDONED-UPLOAD-BYTES-STAY · U1B-EXPENSE-CLAIM-DESCRIPTION-IN-EXPENSE-NOTES · CONTRACT-1 ① · GHOST-GRANTS C-1 ①(挪进 known-wrong);
+>    MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS 早在 MES-7b-1 就关了,只是标题没划(本刀划掉)。
+>
+> **FIN-CHAIN-1 之后的队列(Tim 2026-10-20;FIN-CHAIN-1 委托书 E 与 Step 0 Q1 · Q6 的裁定)**
+>
+> 62. **⬜ ★ 下一刀:EXPENSE-MULTILINE-1 —— 一张费用单变成【表头 + 行】。** 表头:日期 · 收款方 · 币种;每一行:自己的科目 · 税码 · 金额 · 备注。
+>    **Tim 把它裁成单独的一刀**,因为它要重塑 `expenses` 这张表,而付款申请、员工报销与资本化三家都在读它。
+>    (FIN-CHAIN-1 的十三个新费用科目已经在费用单的下拉里;这一刀改的是"一张单只能挂一个科目"这件事本身。)
+> 63. **⬜ PAYROLL-PAY-REVERSAL-1 —— 工资 / 公积金 / 扣款付款的冲销路(排在 EXPENSE-MULTILINE-1 之后)。** Tim 裁定的形状,原样照录:
+>    **CFO 批准,不分金额;冲掉整张付款分录;冲销日由人选、必填;清掉已付的戳;对这些分录的通用日记账冲销申请
+>    (`journal_entry_reversal_route.sql:55-63`)按名拒,并指向这条新路。**(Tim FIN-CHAIN-1 Step 0 Q6:从 FIN-CHAIN-1 拆出来。)
+>    `docs/known-issues.md` § PAYROLL-PAYMENT-NO-REVERSAL-PATH 仍然开着,指着这一条。
+> * **⬜ SETTLE-POST · 销售结算过账 —— 一个组,不是一刀**(Tim 2026-10-20,Step 0 Q1:不进 FIN-CHAIN-1)。量过的:结算行不连任何发票、没有币种列;
+>    没有借项凭证;贷项凭证拒绝已付清的发票;两段式开票不存在(`docs/index-pricing-spec.md:215-226`)。动手之前要 Tim 先裁八件事
+>    (逐条写在 `docs/known-issues.md` § SETTLE-1):① 差额由哪一种单据承载 ② 暂定发票已付清、终价更低时怎么办 ③ 差额用哪一天的汇率
+>    ④ USD 的结算额与非 USD 订单的关系 ⑤ 结算要不要 CFO 批、它的单据日 ⑥ 收入在发货时还是结算时从 2500 转出 ⑦ 差额的税码
+>    ⑧ 采购侧的镜像。
+> * **⬜ PORTAL-FINAL-ASSAY-1 · 门户显示终审化验结果**(Tim 2026-10-20,d2 #1)—— 只 `is_final` 的那些:金属 %、水分、日期、实验室。
+>    一刀小活;**排在第一个真实供应商账号之前**。见 `docs/known-issues.md` § MES9B-FINAL-ASSAY-NOT-SHOWN。
+> * **⬜ REACH-NAV-REGISTRY · `--reach` 改成让爬虫读导航注册表**(Tim 2026-10-20,d2 #21)。见 `docs/known-issues.md` § REACH-FRONTIER · SMOKE-REACH。
+> * **⬜ 工具类 · 删掉 `scripts/check-css-declarations.mjs`**(Tim 2026-10-20,d2 #28:它从来没有人跑过)。同一刀把引用它的文档一并改掉:
+>    `docs/known-issues.md:2425` · `docs/base-components.md:318,329,561` · `docs/manual-walk-list.md:1510`(交回报告是历史,不改)。
+> * **⬜ 样式队列 · `table` 与 `card` 从 GUARDED 毕业,并修掉那条只画 1 px 的表头线**(Tim 2026-10-20,d2 #24;spec §9 Q8 · §7.1)。
+> * **⬜ 样式队列 · 控件状态恰好三种:可编辑 · 只读 · 禁用;「只读」进 `control-style.ts`**(Tim 2026-10-20,d2 #26;`docs/known-issues.md` § POLISH1-CONTROL-STATE-VOCAB)。
+> * **⬜ 下一刀表格刀:`PayrollGrid` 与 `ForwarderPanels` 换成 tableC**(Tim 2026-10-20,d2 #9);`forwarders/page:203` 不动。
+> * 另外三件已有条目、只是裁了时点:LEAVE-BAL-1 那两件排在 FIN-CHAIN-1 之后、真实员工请假之前(d2 #18,见上面「LEAVE-BAL-1 留下的」);
+>    同事的端到端测试在 FIN-CHAIN-1 部署后一周之内(d2 #19);下一次隐私整理在真实员工请病假之前(d2 #15,见「HISTORY family」那一条)。
 
 ## 与 `Evoltrya-OS-Doc3-Roadmap.pdf` 的分工 —— 说的是【角色】,不是名字
 
@@ -1879,6 +1921,7 @@
    ☞ 所以"它不通、以及为什么"写在 `docs/approvals.md` §3e,**而不是留给下一个人重新发现**。
 
    **3b-ii ★ 工单要不要一个【真的】审批人 —— 未裁,等 Tim。**
+   ★ **Tim 2026-10-20 裁定(d2 #5,FIN-CHAIN-1 记):暂时【不要】独立审批人。触发条件:真实生产开始。**
    APR-2 把 `require_approver_for(1)` 从 `release_work_order` 上摘掉了,理由是那道闸
    **谁都过不去**(`docs/approvals.md` §3c N7 有逐项实测)。
    ☞ 代价照直说:**工单如今只有 `module.processing.edit` 这一道门 + 四眼,没有独立审批人。**
@@ -1922,6 +1965,7 @@
    >   业务需求(货出门之前要有人点头)由**销售订单上的发货前放行**接住,归 APR-5。
 
 4. **部门数据范围。** 【从「事件驱动」折进来的】——
+   ★ **Tim 2026-10-20 裁定(d2 #23,FIN-CHAIN-1 记):上线之后的一个阶段。是【默认筛选】,不是墙;没有部门的行人人可见;总账、字典、权限矩阵与编号序列【不】分部门;问题 3 在那个阶段自己的勘察里按表族逐一回答。**
    规格见 `docs/as-built-divergences.md` 第 1 条(那条记着:这个维度**今天不存在**,
    不是"有钩子等着启用")。
    > **⚠ 停闸已触发(2026-08-24,DEPT-SURVEY)—— 【只停了本件】。**
@@ -1968,7 +2012,7 @@
 **下面两条都写成【未决】。括号里的是提议,不是决定** ——
 本仓库对"把建议写得像结论"付过账(`docs/forward-queue.md` 自己的 CPF 那一条)。
 
-* **刷新令牌的重用窗口(`security_refresh_token_reuse_interval`)—— 未决。**
+* **刷新令牌的重用窗口(`security_refresh_token_reuse_interval`)—— ✅ Tim 2026-10-20 裁定(d2 #4):放宽到 60 秒。** 这是 **Tim 自己在 Supabase 面板上的动作**(Auth 设置),本仓库不改它;已记进 `docs/state-of-the-queue-2026-10-20.md` d1 第 46 条。
   今天是 **10 秒**(实测)。**提议:放宽到 60 秒,作为一次可回退的对冲。**
   为什么现在要裁:轮换重用吊销的触发条件正是【一阵并发刷新】,而十三个人同时
   掉线、同时刷新就会造出它(推理与实测都在 `docs/known-issues.md` 的 SESSION-1 条)。
@@ -2603,6 +2647,7 @@
   > * **开市日历是空的**,所以今天每一段计价期都会按名拒;**在册 10 条报价一条都没标指数**。
   >   两条都是**数据**任务,不是代码任务,规模与返回条件记在 `docs/known-issues.md`。
   > * **采购侧没做** —— §9 明说需要 Tim 说明,本刀刻意不替它作答。
+  > ★ **Tim 2026-10-20 裁定(d2 #7,FIN-CHAIN-1 记):采购侧【会】按金属指数结算。触发条件:第一份按指数定价的采购合同。**
 * ~~**一刀:** 合同登记簿 + 卖方已承诺条款 + 保险登记簿~~ —— **CONTRACT-1 做了一部分(2026-08-30)**
   > **【做了什么】** `contracts` 一张表同时装买卖两侧(`side` 是**派生列**,写不动;
   > 一行恰好属于一边,而**它不把任何客户与任何供应商连起来** —— 同一家公司在两侧
@@ -2708,7 +2753,7 @@
   >
   > ★**【买方向为什么不划掉】**★ 队列这一句的主语有两半,而**买进那一半今天在
   > 结构上就说不出来**:PRICE-1 只做了卖方向,`docs/index-pricing-spec.md` **§9**
-  > 「采购侧要不要也用指数联动」**Tim 至今没有回答**,那一刀因此刻意不去扩
+  > 「采购侧要不要也用指数联动」**Tim 至今没有回答**,那一刀因此刻意不去扩 ★ **(已答 —— Tim 2026-10-20,d2 #7:会;触发条件是第一份按指数定价的采购合同)**
   > `pricing_term_commitments`(扩它等于替 Tim 把问题答了)。
   > 所以报告把它印成**一句具名的话,永远不是一个 0 吨** ——
   > 0 吨的意思是"我们没有浮动价买进",而真相是"这个系统还不会记这件事"。
@@ -2942,7 +2987,7 @@ PUR-1 已经把这一行改成从二维码自己的负载里推导域名
    四条策略一个字没改,两个对象一个字节没动。
    ☞ **它留下的那条残余,由 CDN-1 关掉(见下面「本刀之外的两次动作」)。**
 
-### ⬜ 匿名收缩 —— **仍然等 Tim 裁(COD-2 【没有】做掉它)**
+### ⬜ 匿名收缩 —— ~~**仍然等 Tim 裁(COD-2 【没有】做掉它)**~~ ★ **Tim 2026-10-20 已裁(d2 #6):做方案 1 与 4,方案 3 暂缓 —— 归「上线准备组」**
 
 > **★ 更正,2026-09-08(DBLOCK-1)★ 本条一度被读成"COD-2 顺手做掉了"。没有。**
 > COD-2 撤的是**它自己翻出来的那一个** `company_profile_masked` —— 一次点名的修复,
@@ -2958,7 +3003,7 @@ PUR-1 已经把这一行改成从二维码自己的负载里推导域名
 见 `docs/anon-surface.md` 的「Proposed narrowing」。**本刀一条都没有执行**,
 `PUBLIC_PATHS` 也一个字没动。
 
-> **推荐(但归 Tim 裁)**:先做那两张视图 + 改默认授权(新建关系不再自动授给 `anon`),
+> **推荐(但归 Tim 裁)**:先做那两张视图 + 改默认授权(新建关系不再自动授给 `anon`), ★ **(已裁 —— Tim 2026-10-20,d2 #6:照推荐,做 `docs/anon-surface.md` 的方案 1 与 4,方案 3 暂缓)**
 > 两件都小、都能一句话回滚;**整片撤销先押着**,等到有一个检查能告诉你"哪一次撤销
 > 弄坏了哪一处"再说。
 
@@ -3124,7 +3169,7 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
   >   **N9**(390px 上 ⌘K 什么都不做 —— 判据是"触发钮此刻看不看得见",不是一个写死的断点)·
   >   **N10**(390px 首页那个入口画着,而且量得到盒子)。
   >
-  > ### ☞ 仍然开着的那一条:**给手机一个顶栏入口**
+  > ### ☞ ~~仍然开着的那一条:**给手机一个顶栏入口**~~ ✅ **Tim 2026-10-20 裁定(d2 #8):不做 —— 关闭。**
   > 今天手机上只有首页那一条路。要不要给顶栏那一格加一个手机形态(一颗放大镜、
   > 或者抽屉里的一行),**是一件独立的活**,Tim 没有裁过。
   > ⚠ 动它之前先读 `app/components/nav/SearchShell.tsx` 里那段 `hidden md:block`
@@ -3443,6 +3488,7 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 > * **所以这 3 张的状态不是「没量」,是【量过了、等一个裁定】:**
 >   TABLE-STYLE-2 实测它们穿上 `tableC` 之后 390px 横滚变成 **450 / 30 / 5px**
 >   (第三张从**完全不滚**变成**要滚**),按「变差由 Tim 裁」停手。
+> ★ **Tim 2026-10-20 裁定(d2 #9,FIN-CHAIN-1 记):`PayrollGrid` 与 `ForwarderPanels` 接受 tableC —— 随下一刀表格刀走;`forwarders/page:203` 保持现在的样子(0 滚动)。**
 >   ☞ **等的是裁定,不是工时,也不是测量。**
 > * **`PayrollGrid` 另有一个更硬的拦路者**:它是 B 类(格子里 12 处受控输入),
 >   要**草稿模型**才转得动。它的手机代价已登记且已被接受:
@@ -3764,7 +3810,7 @@ CONV-1 把 `/inbound` 的 `sortHref` 收进了组件,但**分页链接仍留在�
 商业单据,与那六份同族。
 **这不是 CONV-0 造成的,CONV-0 只是量到了它**(②f 枚举八份单据时)。
 **没有在那一刀里修**,因为改一份对外单据的语言政策是 Tim 的决定,不是收敛的副产物。
-**要裁的是:对账单归哪一边。**
+**要裁的是:对账单归哪一边。** ✅ **Tim 2026-10-20 裁定(d2 #12):一律英文,与其它对外单据一样 —— FIN-CHAIN-1(`v1.4.63`)做掉,日期在内。**
 
 ### ★【CHART-1 ④(2026-09-03):两张图【建了图元层却没建】,各自等一件具体的事】★
 
@@ -3860,7 +3906,7 @@ NAV-CLEANUP-1 ② 把 10 个页内同级导航组件删掉了(它们是二级菜
 > | | 状态 |
 > |---|---|
 > | **「它们在注册表里吗」** —— 一个事实问题 | ✅ **在。这一半今天是假的记录,已更正。** |
-> | ★ **「人力菜单要不要把它们列出来」** —— (a)/(b)/(c) 那个**产品问题** | ⬜ ★★ **仍然开着,仍然归 Tim。本刀一个字都没有替它选。** |
+> | ★ **「人力菜单要不要把它们列出来」** —— (a)/(b)/(c) 那个**产品问题** | ✅ **Tim 2026-10-20 裁定(d2 #10):(c) —— 五个 `/hr/leave` 页面留在请假页里,不进菜单。关闭。** |
 > | ⚠ **那份重复的清单** | ⬜ **同一件事在两个地方写着**(`LeaveSubnav.tsx` 手写一份 + 注册表一份)——见下面「那三份与注册表重复的页内清单」,**SEARCH-1 量到了、没有改**,理由是它动三个渲染点而那一刀的停止条件盯着渲染几何 |
 >
 > ⚠ **而「五条对全部 11 个角色都没有第二个入口」这句话,本刀【没有重量】** ——
@@ -3872,7 +3918,7 @@ NAV-CLEANUP-1 ② 把 10 个页内同级导航组件删掉了(它们是二级菜
 「声明顺序里**这个读者进得去的**第一个属主」。于是 **operations 打开收货时,
 顶栏亮的是【库存】**(它进不去采购,但进得去库存)。
 
-**Tim 在 ⑤ 的裁定里预期的是【运营】。** 规则与预期对不上,而**对不上的是预期** ——
+**Tim 在 ⑤ 的裁定里预期的是【运营】。** 规则与预期对不上,而**对不上的是预期** —— ★ **Tim 2026-10-20 裁定(d2 #11,FIN-CHAIN-1 记):operations 用户在 `/inbound` 高亮【运营】(运营排在库存之前)—— 归「上线准备组」。**
 按他自己写的规则,库存是正确答案。要让答案变成运营,得把 `operation` 在那条
 `modules` 数组里**排到 `inventory` 前面**,那是**一次产品判断**:
 「一个车间的人打开收货,他更该觉得自己在【运营】还是在【库存】?」
@@ -4688,14 +4734,14 @@ BTN-3c 开工时**必须重量**,不许引用这里的 18。
 
 ### ★ 等 Tim 裁的三件(本刀停在闸上,没有动手)
 
-1. **20 条不在菜单里的功能 —— 分组已经交出去,菜单一条都没动。**
+1. **20 条不在菜单里的功能 —— 分组已经交出去,菜单一条都没动。** ✅ **Tim 2026-10-20 裁定(d2 #13):20 条留在菜单之外;关闭。**
    实测结论与勘察的措辞不同:那 20 条【每一条都】在某个菜单页上有一个看得见的入口
    (11 个控件槽按钮 · 7 张索引卡 · 5 个 `/hr/leave` 标签页 · 1 条孙辈)。
    所以问题不是"到不了",是"菜单要不要列它们"。**那是裁定,不是修复。**
 2. **`/finance/journal/new` 是 `/finance/journal` 的子页,却与它并排挂在菜单上。**
    全仓库只有两条这种条目,另一条(`/hr/kpi/score`)本刀已按委托搬走。
    这一条【没有动】:它是一个"新建"动作,把常用动作提上菜单是正当做法,
-   与 KPI 打分那种【功能子页】不是一回事。要不要一起搬,Tim 裁。
+   与 KPI 打分那种【功能子页】不是一回事。要不要一起搬,Tim 裁。 ✅ **Tim 2026-10-20 裁定(d2 #13):`/finance/journal/new` 留在菜单上;关闭。**
 3. ~~**`/contracts` 的创建门**~~ **—— 已由 MANUAL-FIX-2 建成(2026-09-07),本条关闭。**
    Tim 裁定(T3)创建表单可以选初始状态(draft / active)——【插入字段,不是状态流转】,
    围栏挡的是流转。于是那个"建出来也挂不上单据"的死结解开了。
@@ -4771,6 +4817,11 @@ COD-0 勘察的更正)。两章各写各的:一章讲**这批料被合法处理�
 的值(`inbound_batches.stage` 的 `待加工/加工中/已加工完` 是点过名的一处),
 中文版会第一个撞上它们 —— 那是队尾第 6、7 两条早就记下的形状。
 **先做 ①,再做 ②**,理由是 ② 要把 ① 那两章也翻进去。
+
+### ⬜ 队尾 ③ · `/settings/deleted` 并入变更记录(Tim 2026-10-20,d2 #16)
+
+`/settings/deleted`(软删的记录)由变更记录页吸收,不再是一张单独的页。触发条件 HISTORY-0 Q30 写的那一条(变更记录的机制存在)
+早已满足;**Tim 把它排在队尾**。原条目在下面「HISTORY family」那一节。
 
 
 ## 2026-09-08 之后落地的几刀 —— **补记**(DBLOCK-1 补,2026-09-08)
@@ -5177,7 +5228,7 @@ Tim 在闸上点名给三处硬删补确认框(LossPanel · HolidaysTable · 绩
 * **实例 4(幽灵主语)已修**:`58 处 subject / 57 个开标签 → 57 / 57`。
 * **新钉住的**:`survey-conflated-booleans` 那条只断言"两边非空"的自检,
   现在钉的是**结构不变量**(AST 靠 `&&` 认出的文件,粗筛子必须命中)。
-* **孤儿 `check-css-declarations.mjs`:交回给 Tim 裁定,没有自己接进构建链。**
+* **孤儿 `check-css-declarations.mjs`:交回给 Tim 裁定,没有自己接进构建链。** ★ **Tim 2026-10-20 裁定(d2 #28):删掉它(从来没有人跑过)—— 作为一条工具类条目排队(见「FIN-CHAIN-1 裁定立的队列条目」)。**
   它要**两棵构建产物树**做差分(不带参数 exit 2),而构建只产出其中一棵、
   另一棵没有任何机制保留 —— **它接不进去**,而 R-Q3 对"不好办"那一支写的是交回。
 * 脚本普查的实测数、以及**本刀量下来为假的每一条断言**,见交回报告。
@@ -5520,6 +5571,22 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 
 ★ **本刀【没有】版本号** —— Tim 压着版本线,等手搓表格手机档一起发一个号,两刀共用。
 
+## 上线准备组 · go-live readiness group(Tim 2026-10-20,FIN-CHAIN-1 委托书 E · Step 0 Q11)
+
+**这一组是"第一个真实用户之前要做完的事",不是一刀。** Tim 2026-10-20 把下面八件裁定归进来;顺序与切法归 Tim。
+每一件在它自己的原条目里也记了这一句裁定。
+
+| # | 要做的事 | 裁定(d2 第几条)| 原条目 |
+|---|---|---|---|
+| 1 | `action.metal_prices` 加进 `metal_prices` 的读谓词 | #2 | `docs/known-issues.md` § NOROLE-METAL-PRICES-ACTION-CODE-ALONE |
+| 2 | 匿名收缩:做 `docs/anon-surface.md` 的方案 1 与 4;方案 3 暂缓 | #6 | 本文件「⬜ 匿名收缩」 |
+| 3 | `/inbound` 对 operations 用户高亮【运营】(运营排在库存之前) | #11 | 本文件「NAV-CLEANUP-1 ⑤」 |
+| 4 | 改了已批准供应商的法定名 / 税号 / 类型 → 回到 `pending_review`、清掉批准戳 | #14 | 本文件「ROLE-1 Batch 2」那一条 |
+| 5 | 空角色:auditor = 每个模块只读;employee = 只有 `/me`;hr、procurement、sales 删掉 —— 连同 ROLE1-BOOTSTRAP-MISSING-ROLES 一起做 | #27 | `docs/known-issues.md` § ROLE1-UNHELD-HR-ROLE-LOST-REVIEWS · ROLE1-BOOTSTRAP-MISSING-ROLES |
+| 6 | `container_overview` 的读者 = `module.logistics.view` | #30 | `docs/known-issues.md` § CONV-6-LOGISTICS-GATE |
+| 7 | `/my-reviews` 用与 `/me` 同一个断点 —— 先量 768 px 的顶栏 | #31 | `docs/known-issues.md` § CONV-6-MYREVIEWS-GAP |
+| 8 | ~~物料平衡页只在三个数【都】为空时才是空态~~ ✅ **早已做掉** —— MES-7b-1(`v1.4.54`,F14:`lib/balanceEmptyState.ts` + 构建链里的 `check-balance-empty-state.mjs`)落地的判据与这条裁定逐字相同;那一条的标题只是一直没划掉(FIN-CHAIN-1 划掉了)。**这一组实际要做的是前七行。** | #33 | `docs/known-issues.md` § MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS |
+
 ## ★★★ 还开着的条目 · 按【它今天挡不挡得住一个人】分 —— 一份索引(QUEUE-RECONCILE 立案,2026-09-20)★★★
 
 > ### ★ 为什么加这一节,以及它【不是】什么
@@ -5570,19 +5637,19 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | ★★ **审批开关归谁改** | 今天任何持 `module.finance.edit` 的人都能翻它,**而 `finance` 正是一级审批角色** | 刀序表第 5 行;`known-issues` 的 `APPROVALS-SWITCH-UNGUARDED` |
 | ~~★★ **`FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED`**~~ ★★ **✅ 已结清(FA-HIST-1,2026-09-20)—— Tim 裁了,而且裁的比两条选项都大** <br>★ **裁定(Tim,2026-09-20)**:① 走**选项 ②**(影子表),不加那两列;② 覆盖这张表的**每一次**写入,不只是那个计划投用日;③ **操作员要读得到** —— 一份只活在数据库里的留痕不算做到。<br>★ **落地**:`fixed_asset_history`(23 对带类型的成对列)+ 基表上的 `trg_fixed_assets_history`(AFTER INSERT OR UPDATE)+ `/finance/assets/[id]` 末尾的留痕面板(中英双语 · 具名空状态)。判据 `db/fixtures/201`。<br>★★★ **而本行原文里那个「五支写函数」是【错】的,两个方向都错** —— 线上目录扫描(2026-09-20)实测:真集是 **7 支函数 / 8 条写语句**。⚠ `depreciate_fixed_assets` **根本不写这张表**(它只写 `fixed_asset_depreciation`);⚠⚠ 而动【钱】的 `record_expense` / `reverse_expense` **从来不在任何一份名单上** —— ☞ **照那份五支的名单建出来的留痕会对成本变动全盲。** 这不是一处字面更正,它改变了这一刀的覆盖范围。<br>★ **原文留着划掉,不删** —— 一条被悄悄改掉的旧读数,与一条从来没写过的读数,在读的人眼里没有区别(本文件对这件事有成文的处置)。<br>★ **状态:✅ 不再等任何人。**<br><br><details><summary>原文(结清前,B3 交回时写下 —— 一个字没改,含那个已更正的「五支」)</summary><br>★★ **`FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED`**(B3 交回立,2026-09-20;★ **归【乙】:没有人因此打不开、按不动或读到错的数 —— 它等一句话**)\| ★ **两条路,二选一,而这是一个【业务问题】,不是一个工程问题:**<br>① 给 `fixed_assets` 加 `updated_by` / `updated_at` 两列 —— **便宜,但只记得住【最后一次】**;<br>② 建一张 `fixed_asset_history` 影子表 —— **与这个库其余 11 处同形,记得住【每一次】**。<br>☞ ★★ **判准就是这两条的差额:要的是「谁改的」,还是「改过几次」。**<br>★★★ **而这个问题【比「计划投用日」大】,这一格要照直写出来:`fixed_assets` 这张表【从来就没有过留痕】** —— `create_fixed_asset` · `set_asset_in_service` · `set_asset_acceptance` · `dispose_fixed_asset` · `depreciate_fixed_assets`,**五支写函数,没有一支写任何历史**(线上实测)。☞ **所以它覆盖的是这张表的【全部写函数】,不只是 B3 新加的那一支。**<br>⚠ **不要在没有裁定的情况下挑一条** —— B3 按 Tim 的 C5 自己写的那一条办:**说出来,而不是发明一张表。**<br>★ **状态:⬜ 等 Tim。** ⚠ **本行【不记录任何建议】** —— 上面两条是**选项**,委托书明令不把建议写成裁定。 \| `known-issues.md` 同名条;`docs/handbacks/B3.md` §4(C5)与 §15 第 1 条</details> | ~~★ **两条路,二选一**~~ **已选 ②** | `known-issues.md` 同名条(**已关闭**);`docs/handbacks/FA-HIST-1.md`;~~`docs/handbacks/B3.md` §4~~(**该节那个「五支」已就地更正**)|
 | ★★ **加班倍率** | ★ **OVERTIME-1(Tim Q2,2026-09-28):不在系统里 —— 倍率、乘数与底薪归薪资服务商(政策 7.1)。** 原文:谁落在《雇佣法令》第四部分之内 · 倍率多少 · 休息日与公共假期那三条不同的规矩 | 刀序表第 6 行;`known-issues` 同名条 |
-| ★ **匿名收缩** | 五条备选,各自的代价与回滚方式都写好了 | 「证书族 · ⬜ 匿名收缩」 |
+| ★ **匿名收缩** | 五条备选,各自的代价与回滚方式都写好了 · ✅ **Tim 2026-10-20:做 1 与 4,3 暂缓 → 上线准备组** | 「证书族 · ⬜ 匿名收缩」 |
 | ★ **状态样式** ~~(三件一次裁)~~ ★★ **【就地更正 —— B3 close-out,2026-09-20:那三件在 POLISH-1 round 2(2026-09-12)就已经逐件结清了,「三件一次裁」这句话在今天是假的】** | ~~只读底色 · 琥珀虚线「这是估的」· 两条错误样式叠着~~ —— ★ **三件逐件,带证据:**<br>· **z②(两条错误样式叠着)✅ 做了** —— 拿掉调用点那条**画不出来**的死类。★ 实测:`app/finance/payroll-payments/PayPanel.tsx:85-86` 与 `app/finance/processing-costs/CostSettlePanel.tsx:92-93` 今天只剩 `bg-red-50`,**`border-red-400` 不在**(全树 `border-red-400` 的 10 个命中里没有这两个文件);两个文件里还留着写下理由的注释。<br>· **z③(只读底色)✅ 裁了:留着** —— Tim 2026-09-11(INPUT-3 Q9)裁【留】,R10 又确认一次。★ 实测 `app/hr/payroll/PayrollGrid.tsx:144` 的 `read-only:bg-gray-100` **今天仍在** —— ☞ **这是裁定的结果,不是漏做**,而两者在屏幕上长得一模一样,所以必须写下来。<br>· **z④(琥珀虚线「这是估的」)✅ 做了** —— ★ 实测 `app/purchasing/orders/[id]/ExpectedDateControl.tsx:56` 与 `:59` 两处都是 `text-amber-900`(9.06:1)。<br>★★ **证据(文档侧,两处互证):`docs/handbacks/POLISH-1.md` §3.4「R10 —— z② z③ z④」逐件写着处置;而同一份 §11「本条目还开着 9 件」那张名单里【没有】z② z③ z④** —— 一张说做了,一张的余量里不含它们,**两边对得上。**<br>★★★ **而这一行要问的那句话【仍然开着】,只是它不再挂着那三件:**「这套系统的『控件状态』有哪几种,没有人裁过」—— `app/components/ui/control-style.ts` 今天只有 `disabled:` 与 `aria-invalid:` 两支,**没有 `read-only:` 那一支**,而树里恰好有**一处**只读底色。☞ **去处:⬜ 一次「控件状态词汇表」的裁定(未排期)。** | ~~「POLISH-1 · z② z③ z④」~~ ★ **改指 `known-issues.md` · `POLISH1-CONTROL-STATE-VOCAB`**(那一条的「去处」一格写的就是这次裁定)|
 | ★ **横幅 / 小片配色** ~~(四件一次裁)~~ ★★ **【就地更正 —— B3 close-out,2026-09-20:四件里【三件】已结,今天开着的是【两件】,而其中一件是 round 3 新提的】** | ~~info 用哪个 **token** · 紫/天蓝/翠绿那 6 处是状态还是漂移 · 日历小片今天 **3.13 / 3.12:1** · 那条浅蓝底红字的横幅~~<br>★ **已结清的三件,带证据:**<br>· **info 用哪个 token —— ✅ 已裁,而答案是「不需要一个 info 蓝」**(round 2 的 R12,2026-09-12):30 个活的站点分成四族 —— 8 条真 info 横幅换成 `<Alert>` 的 default 档(白底 + 与字同色的 1px 描边,14.13:1)· **13 处状态片明确豁免(S3)** · 2 处归 `BTN-TRIGGER-1` · 7 处行内强调出局。★ 实测 `app/components/ui/alert.tsx` 今天**仍然只有 `default` 与 `destructive` 两档**,**没有新开 `info` 档**。证据:`POLISH-1.md` §3.3 · `variant-c-spec.md` §4.4a 与 §4.7.10.2 那一格的就地更正。<br>· **日历小片(z⑤)—— ✅ 做了**(R13):三枚色片底换成 `-tint` 档,**3.13 / 3.12 / 3.12 → 7.33 / 6.96 / 7.11**(余量 +2.83 / +2.46 / +2.61),★ 并顺手把 `/hr/leave/calendar` 那份**手抄的第二份定义**改成引用。实测 `app/brand-tokens.css:109 · 111 · 113` 三个 `-tint` token 在册。证据 `POLISH-1.md` §3.2。<br>· **那条浅蓝底红字的横幅(u)—— ✅ 做了**(R8,而且是 **3 处**不是 1 处):**3.62:1 → 4.53:1**,换的是【形状】不只是颜色。★ 实测 `app/tools/calendar/page.tsx:104` 今天是 `<Alert variant="destructive">`,上面还留着写下 R8 理由的注释块。证据 `POLISH-1.md` §3.1。<br>★★ **今天真的开着的是【两件】:**<br>· ★ **紫 / 天蓝 / 翠绿那 6 处是状态还是漂移 —— 仍然没有裁。** 逐字见 `variant-c-spec.md` §4.7.10.2 那一格:「⚠ **紫 / 天蓝 / 翠绿那 6 处仍然没有裁** —— 它们不在 R12 的射程里,原样留在队列中。」(`text-purple-800` 4 处 · `text-sky-800` 1 处 · `text-emerald-900` 1 处;与 §4.4a 那族「行内强调 7 处」出局的落在一起)。<br>· ★ **【新提 —— POLISH-1 round 3,2026-09-13】「提示 / 警告横幅」的【琥珀档】没有标准。** `app/hr/kpi/page.tsx:168` 那条**手搓的**缺员横幅(`border-l-4 border-amber-500 bg-amber-50`)——★★ **R12 裁的是【蓝】,一个字都没有裁琥珀。** 证据 `docs/handbacks/POLISH-1-r3.md` §5 那一格与 §11 第 3 条,以及 `known-issues.md · POLISH1-HANDROLLED-BANNERS`。 | ~~「POLISH-1 · u z⑤ z⑥」~~ ★ **改指 `variant-c-spec.md` §4.7.10.2**(紫 / 天蓝 / 翠绿那 6 处)**+ `docs/handbacks/POLISH-1-r3.md` §5**(琥珀档)|
 | ★ **48px 与 30px 两个档** | 共享 Button 的档位表要不要为两个**已经存在的几何**多开档 | `POLISH1R3-NO-48PX-BUTTON-STEP` · `POLISH1R3-DATATABLE-PAGER-NO-STEP` |
 | ★ **那 7 个 reversal 对话框 + 三处触发钮** | **一次裁定的两半**,不要分开修 | `POLISH1-REVERSAL-DIALOG-TIERS` · `BTN-TRIGGER-1` ③ |
-| ★ **`/inbound` 的属主声明顺序** | 一个车间的人打开收货,他更该觉得自己在【运营】还是【库存】?**改动是一行,判断不是** | 「NAV-CLEANUP-1 ⑤」 |
-| ★ **`/hr/leave` 五页要不要进菜单** | (a)/(b)/(c) 三选一 —— ★ **注册表那一半已经做掉了**(见那一条的就地更正)| 「NAV-CLEANUP-1 ②」 |
-| ★ **对账单归哪一边** | 八份对外单据里**唯一**跟随界面语言的那一份 | 「CONV-0 ③」 |
+| ★ **`/inbound` 的属主声明顺序** | 一个车间的人打开收货,他更该觉得自己在【运营】还是【库存】?**改动是一行,判断不是** · ✅ **Tim 2026-10-20:运营 → 上线准备组** | 「NAV-CLEANUP-1 ⑤」 |
+| ★ **`/hr/leave` 五页要不要进菜单** | (a)/(b)/(c) 三选一 —— ★ **注册表那一半已经做掉了**(见那一条的就地更正)· ✅ **Tim 2026-10-20:(c),关闭** | 「NAV-CLEANUP-1 ②」 |
+| ★ **对账单归哪一边** | 八份对外单据里**唯一**跟随界面语言的那一份 · ✅ **Tim 2026-10-20:一律英文,FIN-CHAIN-1 做掉** | 「CONV-0 ③」 |
 | ★ **两处硬删要不要确认框** | Tim 的裁定精确点了三处;Direction B 还有两处一按就永久销毁 | 「ALERT-2a」末尾 |
 | ★★ **年终导出包要装什么** | ★ **去问一次公司的外部会计师。**(Tim:这是给你的,不是给下一刀的。)| 「阶段 7 · 年终导出」 |
-| ★ **刷新令牌的重用窗口** | 今天 10 秒,提议 60 秒。**期限:在同事账号发出去之前** | 「开着的两个决定」 |
-| ★ **部门数据范围** | 已重新归档为一个**阶段**,不是一刀 | 「阶段 3 · 第 4 件」 |
-| ★ **LME 半自动取数** | ★ **它可能等的不是时间,是一次商业决定**(行情是付费授权的)| 「阶段 7 · 效率类」;它同时挡着 `/metal-prices` 的折线图(B5)与汇率查询工具 |
+| ★ **刷新令牌的重用窗口** | 今天 10 秒,提议 60 秒。**期限:在同事账号发出去之前** · ✅ **Tim 2026-10-20:60 秒 —— Tim 自己在 Supabase 面板上做** | 「开着的两个决定」 |
+| ★ **部门数据范围** | 已重新归档为一个**阶段**,不是一刀 · ✅ **Tim 2026-10-20:上线之后的一个阶段;默认筛选不是墙(见那一条)** | 「阶段 3 · 第 4 件」 |
+| ★ **LME 半自动取数** | ★ **它可能等的不是时间,是一次商业决定**(行情是付费授权的)· ✅ **Tim 2026-10-20 裁定(d2 #22):暂不买 LME 授权,价格手录;触发条件:第一份按指数结算的合同** | 「阶段 7 · 效率类」;它同时挡着 `/metal-prices` 的折线图(B5)与汇率查询工具 |
 | ★ **`EXEC-VIEWS-PLAN-EXPIRED`** | gm 那一包是 view-only 还是 view+edit | 「内部验收」(丙) |
 
 ### 丙 · 量过、没修 —— **登记,不是待办**
@@ -5601,7 +5668,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | **机器字漏到人前面** | `BUGFIX1B-*` 一族 | 909 个码里 **132** 个没有映射器 · 那条只写在注释里的契约 · `detail` 里的原文 · `ALERT-3`(**默认不做**)|
 | **文案** | 散 | `COPY-MONTHEND-FILTER-KEY` · `JOURNAL-EXPORT-JS-SORT` · `DATE1-CSV-UTC` · `DATE1-YMD-BUILDERS` · 拼音排序键 · TOOLS-1(甲)(乙)· 手册队尾 ① ② · ★ **`COPY-ASSET-IS-NOT-ALWAYS-A-MACHINE`**(新,见下) |
 | ★ **`COPY-ASSET-IS-NOT-ALWAYS-A-MACHINE`** | `/finance/assets/[id]` 留痕面板 + 文案 | **⬜ 非阻塞 · 文案条目**(FA-HIST-1 close-out 立,2026-09-20;Tim 线上走查发现)。<br>FA-HIST-1 的留痕面板**把每一台固定资产都叫「这台机器」**(zh「这台机器还没有留下任何变更记录」/ en "Nothing has been recorded against this machine yet.",空状态那两条尤其明显)。<br>★ **而一台固定资产不一定是机器**:`fixed_assets.category` 的取值就摆着 —— `equipment` · **`vehicle`** · **`office`** · `other`。**一辆车、一台电脑、一次装修**,都会被这块面板称作「这台机器」。<br>⚠ **射程比这一块面板大**:`assets.detail.*` 与 `assets.actions.*` 里也有同一个词(例如 `noCostEntries` 的「this machine」),**要一起看,不要只改留痕那两条** —— 只改一处会让同一页上两种说法并存,那比统一地说错更难读。<br>☞ **要答的一句**:中文用「这台设备」「这项资产」还是按 `category` 分别说?**这是一次用词裁定,不是一次实现** —— 而它落在【文案】这一族,不是缺陷族。 |
-| ★ **`--reach` 的补课** | `known-issues` | **11 条**独立条目 —— ★ **它们是审计轨迹,不是缺陷**;⚠ 而 `--reach` 本身「结构上验证不了导航」(C-1b),**Tim 没有裁过怎么修** |
+| ★ **`--reach` 的补课** | `known-issues` | **11 条**独立条目 —— ★ **它们是审计轨迹,不是缺陷**;⚠ 而 `--reach` 本身「结构上验证不了导航」(C-1b)· ✅ **Tim 2026-10-20 裁定(d2 #21):让爬虫读导航注册表 —— 已排队(见「FIN-CHAIN-1 裁定立的队列条目」)** |
 | **历史长尾** | `known-issues`,2026-08-06 → 2026-09-05 | 约 **55** 条结构性条目,**每一条都带着自己的删除条件** |
 
 ---
@@ -5637,7 +5704,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | **原生 `<label>`** | Tim 2026-09-10 R13 | ✅ **FONT-1 做掉了** —— 631 个落点剥干净,值由 `app/globals.css` 一处给 |
 | **链接色** | F3 | ✅ **FONT-1 做掉了** —— `--brand-ocean-text` `#00709D`,251 个落点 |
 | ★ **正文 / 次级那一半** | F4 的另一半 | ✅ ★★ **FONT-2 做掉了(2026-09-11)** —— 本文件有自己的一节 |
-| `<Refusal>` 的**字重 500** 是刻意的吗 | spec §9 · §4.5 | ⬜ 等 Tim(**FONT-1 没有碰它**) |
+| `<Refusal>` 的**字重 500** 是刻意的吗 | spec §9 · §4.5 | ✅ **Tim 2026-10-20 裁定(d2 #25):是刻意的 —— 关闭** |
 | ★ `<label>` 的字号不再穿透到控件里 | 本文件「原生 `<label>`」那一节 | ✅ 已记 —— ★ **但只对了一半**:**字号**不穿透,★ **字重穿透了**(240 个控件 / 42 条路由)。★ **FONT-1 round 3 的 T4 修好了**,就地更正见那一节 |
 | ★ `tableC.cell` 的 15px 不再穿透到控件里(实测 **51** 个) | 同上 | ✅ 已记 |
 | ★ **T4:`/tools/pricing/metal-prices/new` 那颗被截的下拉** | 见下面「Q21 那一族下拉」 | ⬜ ★ **移到【合并的小件】那一刀**,与 `/bulk` 那一颗并排 —— 理由:**字体没有救它**(实测 24.05 → 23.92) |
@@ -6343,7 +6410,7 @@ purchasing 10/0/1 · settings 7/1/1 · inventory 8/0/0 · components 4/1/1 · st
 |---|---|
 | **值已经量到** | `docs/variant-c-spec.md` §4.4:圆角 **12px** · 内边距 16px · 底 `#FFFFFF` · 投影 `shadow-md` · 边缘是 **1px `ring`** · `CardTitle` 16/500/22 · `CardDescription` 14/400/20 |
 | ★★ **一个必须带着走的坑** | §7.2:变体 C 的 `card` **写着** `border-[color:var(--brand-border)]`,而**实测 `border-width: 0px`** —— **颜色设了、宽度是 0,什么都没画**;屏幕上那条边是库自己的 `ring-1`。<br>☞ **照那个"边框色"去复刻,会复刻出一条【今天根本不存在】的边。**<br>⚠ **INPUT-3 没有重量这一条**(它要在 `/brand-sampler` 上量,而 `--mode=drift` 结构上跳过那一页)—— 原样转述 spec §7.2,**不冒充读数**。 |
-| **还开着的裁定** | spec §9 **Q8**:「`table` 与 `card` 要不要从 `GUARDED` 毕业?」—— ★ **等 Tim**,本刀动手前要先有这个答案 |
+| **还开着的裁定** | spec §9 **Q8**:「`table` 与 `card` 要不要从 `GUARDED` 毕业?」—— ✅ **Tim 2026-10-20 裁定(d2 #24):毕业;1 px 表头线的修法进样式队列(见「FIN-CHAIN-1 裁定立的队列条目」)** |
 | **归谁** | ★ **此前没有任何一刀领** → **归本刀** |
 
 #### ③ 390px 上装不下的原生 `<select>` —— ★★ **两个口径并排,不要把它们当成同一个数** ★★
@@ -7606,7 +7673,7 @@ INPUT-0 §9 Q8「归本族还是归字体那一刀」到此关闭。
 | ★ **顺带并进本包、不单列的一条** | 甲表那句「**合同单据挂接** · `link_document_to_contract` 在 `app/` 与 `lib/` 里一个调用点都没有」—— ★★ **今天是假的**(`app/purchasing/orders/[id]/contractActions.ts:41` 就是那支 rpc,外加 `ContractLinkPanel.tsx`)。**甲表那一行已经就地划掉并更正过**,这里只登记它属于同一族。⚠ 原文那句「覆盖率永远 0 / N」**没有复测** —— `NOT MEASURED`。 |
 | **状态** | ⬜ **入队,【不排期】**(Tim 2026-09-20:不是现在)。★ **触发条件:第一份合同被建出来的那一天**,按本文件的维护规则把它挪档,并写下是什么触发了它。 |
 
-### ⬜ COLW-2 · 第二条列宽规矩 —— **Tim 2026-09-20 推迟;★★ 而它的规格【不在这个仓库里】**
+### ~~⬜ COLW-2 · 第二条列宽规矩 —— **Tim 2026-09-20 推迟;★★ 而它的规格【不在这个仓库里】**~~ ✅ **划掉(Tim 2026-10-20,d2 #35):Tim 说不出它是什么 —— 不再是一条条目**
 
 | | |
 |---|---|
@@ -7671,7 +7738,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 * **化验归 cto**:`apply_assay_result` / `unapply_assay_result` / `record_assay_result` 换成新码(工作名 `action.apply_assay`)。
   ⚠ 化验会【改价】(按已提交的条款重算)—— Step 0 已点名,B2 开工前要 Tim 确认"cto 应用化验、价随之重算"是他要的。
 
-* **⬜ 改了一家已批准供应商的法定名 / 税号 / 类型,它就回到待审**(Tim,ROLE-1 Batch 2a grilling Q8:本刀不做,登记在这里)。
+* **⬜ 改了一家已批准供应商的法定名 / 税号 / 类型,它就回到待审**(Tim,ROLE-1 Batch 2a grilling Q8:本刀不做,登记在这里)。 ★ **Tim 2026-10-20 裁定(d2 #14):回到 `pending_review` 并清掉批准戳(不是拒绝那次改动)—— 归「上线准备组」。**
   今天 `suppliers.edit` 可以在一家 `approved` / `active` 供应商上改 `legal_name` / `tax_id` / `counterparty_type`,而批准照旧有效 ——
   批的是"这一家",改完之后它可能已经不是那一家。`suppliers` 上【没有】银行资料列,所以这条路改不了收款账户;
   风险是"批过的身份被换掉"。做法候选:一支 BEFORE UPDATE 守卫把这三列的改动连同状态一起退回 `pending_review`
@@ -7976,13 +8043,13 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   Q35 `relieve_processing_accruals` 那句 `'SGD', 1` 字面量与币种检查看不见 `VALUES` 字面量这个盲区:MES-5a-2 记进 `docs/known-issues.md`,
   动到那支函数就顺手改掉字面量;放宽检查是另一个决定(会要它自己的一轮放行清单)。
   Q29–Q34、Q36 里能源的那一半(分摊表的遮蔽、留痕、变更记录、迁移形状、fixture)随 MES-5a-2 按 §12 D 的推荐做。
-* **⬜ 下一次隐私整理(Tim 排期;U1-B close-out 立这一条,2026-10-06)** —— U1-B 量到、登记、没修的两处,同一个形状(人写的字带着健康信息,
+* **⬜ 下一次隐私整理(Tim 排期;U1-B close-out 立这一条,2026-10-06)** ★ **Tim 2026-10-20 裁定(d2 #15):病假的决定备注跟 `data.view_health` 走;一般报销的描述【不】遮蔽。排在真实员工开始请病假【之前】。** —— U1-B 量到、登记、没修的两处,同一个形状(人写的字带着健康信息,
   走到了不持 `data.view_health` 的读者面前),都在 Tim 对医疗报销费用单那条裁定的范围之外,所以作为一项等 Tim 定界线:
   * **病假的批准 / 驳回理由** —— `leave_requests.decision_notes` 与审批留痕上请假那几行的 `note`,对持 `module.hr.view` 而不持
     `data.view_health` 的读者照旧读得到。`docs/known-issues.md` 的 `U1B-LEAVE-DECISION-NOTE-HEALTH-TEXT`。
   * **普通报销的说明被抄进它生成的费用单的备注** —— `decide_expense_claim` 把员工写的说明拼进 `expenses.notes`,费用页印给每一个持
     `module.finance.view` 的人。`docs/known-issues.md` 的 `U1B-EXPENSE-CLAIM-DESCRIPTION-IN-EXPENSE-NOTES`。
-* **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;
+* **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)★ **Tim 2026-10-20 裁定(d2 #16):吸收进变更记录 —— 排在队尾(「队尾 ③」)。**—— 见下面「事件触发」那一节的原条目;
   触发条件(那个历史机制存在)**今天已经成立**。
 
 ## 维护规则

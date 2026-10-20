@@ -193,6 +193,32 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('6500', 'Bank Charges', '银行手续费', 'expense', false, false),
     ('6900', 'Miscellaneous', '杂项开支', 'expense', false, false);
 
+-- FIN-CHAIN-1(2026-10-20,Tim 2026-10-20 裁定的科目表增补;Step 0 Q10):十四个【非系统】科目 —— 建账的人的地盘,
+-- 引擎不按 code 点名其中任何一个(于是不进上面那段系统种子;预检对每一个各报一句警告,预期之内)。
+--   · 2600 应付借款:一笔借来的钱,【货币性】(外币借款要重估,与 2000 / 2150 同);现金流量表归【筹资】
+--     (借款与还款是筹资活动 —— FIN-30 的判据,与 3000 / 3100 同)。它【只经手工分录】用:费用单的科目下拉
+--     只列 account_type = 'expense',负债进不去(record_expense 也按名拒 ACCOUNT_NOT_EXPENSE)。
+--   · 十三个费用科目:非货币性。费用单 / 报销的科目下拉按 account_type = 'expense' 取,它们自动出现。
+--   · 【故意不建】Freight Charges · Other Operating Expenses · Repairs & Maintenance(已有 6800)· Share Capital
+--     (已有 3000);6300 'Transport & Logistics' 与 6900 'Miscellaneous' 保留原名(Tim)。
+-- 【引导默认值仍然正确(AGENTS.md 的 RUNTIME CONFIG 规矩:不只是"有效")】本刀没有改变 accounts 任何一列的含义;
+--   既有的每一行默认值说的仍是它原来那件事;新加的十四行就是 Tim 裁定的那十四个,名字与类型逐字照抄。
+INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
+    ('2600', 'Loan Payable', '应付借款', 'liability', false, true),
+    ('6010', 'Equipment Rental', '设备租赁费', 'expense', false, false),
+    ('6130', 'Staff Training & Development', '员工培训与发展', 'expense', false, false),
+    ('6140', 'Recruitment Expenses', '招聘费用', 'expense', false, false),
+    ('6210', 'Telephone & Internet', '电话与网络费', 'expense', false, false),
+    ('6220', 'IT & Software Expenses', 'IT与软件费用', 'expense', false, false),
+    ('6230', 'Printing & Stationery', '印刷与文具', 'expense', false, false),
+    ('6240', 'Office Expenses', '办公费用', 'expense', false, false),
+    ('6250', 'Cleaning Expenses', '清洁费用', 'expense', false, false),
+    ('6310', 'Vehicle Expenses', '车辆费用', 'expense', false, false),
+    ('6410', 'Licences & Permits', '执照与许可费', 'expense', false, false),
+    ('6420', 'Insurance Expenses', '保险费', 'expense', false, false),
+    ('6510', 'Business Travel Expenses', '差旅费', 'expense', false, false),
+    ('6520', 'Entertainment Expenses', '业务招待费', 'expense', false, false);
+
 -- SO-3a:合同负债 —— 订单流发票的贷方(借 1100 应收 / 贷 2500)。
 -- 【is_monetary = false,是一个决定】这笔负债【以货清偿,不以钱清偿】:发货把它
 -- 释放进收入(按发票存下来的入账汇率),它永远不会被一笔外币现金结掉。把它标成
@@ -230,7 +256,7 @@ UPDATE public.accounts SET cash_flow_section = 'investing' WHERE code IN ('1500'
 -- 依赖它(cash_flow_statement 里一个科目码都没有,它读的是这两列)。所以这只是
 -- 引导默认值。OPS-7 预检当时对 3000 报了警告 —— 查过之后确认不需要升:
 -- 警告的职责是让人当场去查,不是替人下结论。
-UPDATE public.accounts SET cash_flow_section = 'financing' WHERE code IN ('3000','3100');
+UPDATE public.accounts SET cash_flow_section = 'financing' WHERE code IN ('3000','3100','2600');   -- 2600:FIN-CHAIN-1(Tim Q10)
 
 COMMENT ON COLUMN public.accounts.is_cash IS
     '这个科目是不是【现金及现金等价物】(FIN-30)。现金流量表据此取科目,不写死 1000/1010 —— 开一个新银行账户只该改数据,不该改代码。注意与 is_monetary 的区别:1100 应收是 monetary(要重估)但不是现金。';

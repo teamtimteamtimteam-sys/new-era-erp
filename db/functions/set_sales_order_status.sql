@@ -11,6 +11,8 @@ DECLARE
     v_res   record;
     v_freed numeric := 0;
     v_left  int;
+    v_inv   text;
+    v_short record;
 BEGIN
     PERFORM require_permission('module.sales.edit');
 
@@ -28,10 +30,13 @@ BEGIN
     -- 【发出去的货收不回来】partially_shipped 是终点之一:2500 已经释放进 4000、
     -- 库存已经离开台账,作废它需要的是【贷项凭证】(sales_records 表头停放的
     -- 未来概念),不是一次状态跳转。shipped 只能走向 closed,同理。
+    -- ★ FIN-CHAIN-1(Tim 2026-10-20,APR-5 Q12 · Step 0 Q5):partially_shipped → closed 是一次【显式的短装收尾】——
+    --   理由必填;还有【开了票、没发、也没被贷项取消】的数量就按名拒(先开未发货取消的贷项);
+    --   剩下的预留当场释放;写一行历史。从不自动发生。作废(cancelled)仍然不许 —— 发出去的货收不回来。
     v_ok := CASE v_order.status
         WHEN 'draft'             THEN p_to IN ('confirmed','cancelled')
         WHEN 'confirmed'         THEN p_to IN ('cancelled')
-        WHEN 'partially_shipped' THEN false      -- 见上:更正走贷项凭证
+        WHEN 'partially_shipped' THEN p_to IN ('closed')   -- 短装收尾(FIN-CHAIN-1);作废仍走贷项凭证
         WHEN 'shipped'           THEN p_to IN ('closed')
         WHEN 'closed'            THEN false      -- 终态
         WHEN 'cancelled'         THEN false      -- 终态
@@ -43,6 +48,42 @@ BEGIN
 
     IF p_to = 'cancelled' AND (p_reason IS NULL OR btrim(p_reason) = '') THEN
         RAISE EXCEPTION 'SO_CANCEL_REASON_REQUIRED|%', v_order.code;
+    END IF;
+
+    -- ★ FIN-CHAIN-1(Tim 2026-10-20,APR-5 Q12 · Step 0 Q4):一张挂着【在册订单流发票】的订单不许作废 ——
+    --   作废了它,那张票还在册:应收与 2500 的合同负债就挂在一张已经不存在的订单上。按名拒,
+    --   并点名那张票;先提发票作废申请(CFO 批),票作废之后再来作废订单。不替人自动提申请(Q4)。
+    IF p_to = 'cancelled' THEN
+        SELECT i.code INTO v_inv
+          FROM invoices i
+         WHERE i.sales_order_id = p_order_id AND i.kind = 'order' AND i.status = 'issued'
+         ORDER BY i.code
+         LIMIT 1;
+        IF FOUND THEN
+            RAISE EXCEPTION 'SO_CANCEL_HAS_LIVE_INVOICE|%|%', v_order.code, v_inv;
+        END IF;
+    END IF;
+
+    -- ★ FIN-CHAIN-1:短装收尾的两道闸 —— 理由必填;每一条订单行【开票 − 未发货取消 − 已发】必须 ≤ 0。
+    --   开票 − 取消只有一处推导(sales_order_line_releasable_all,ship_order 的天花板读同一张);已发 = Σ shipment_lines。
+    --   一张在等 CFO 的未发货取消贷项还没有落账,所以那一截仍然算"没取消" —— 等它批了再收尾。
+    IF v_order.status = 'partially_shipped' AND p_to = 'closed' THEN
+        IF p_reason IS NULL OR btrim(p_reason) = '' THEN
+            RAISE EXCEPTION 'SO_CLOSE_REASON_REQUIRED|%', v_order.code;
+        END IF;
+        SELECT l.line_no, x.open_qty INTO v_short
+          FROM sales_order_lines l
+          CROSS JOIN LATERAL (
+              SELECT COALESCE((SELECT sum(ra.releasable_qty) FROM sales_order_line_releasable_all ra
+                                WHERE ra.sales_order_line_id = l.id), 0)
+                   - COALESCE((SELECT sum(sl.qty) FROM shipment_lines sl
+                                WHERE sl.sales_order_line_id = l.id), 0) AS open_qty) x
+         WHERE l.sales_order_id = p_order_id AND x.open_qty > 0
+         ORDER BY l.line_no
+         LIMIT 1;
+        IF FOUND THEN
+            RAISE EXCEPTION 'SO_CLOSE_INVOICED_UNSHIPPED|%|%|%', v_order.code, v_short.line_no, trim_scale(v_short.open_qty);
+        END IF;
     END IF;
 
     -- 【确认要看客户的信用冻结】一张确认了的订单是一个承诺;对一个被冻结的
@@ -68,8 +109,9 @@ BEGIN
     -- 放在前面,任何一条释放失败都会把整个作废一起回滚 —— 要么单据作废了、
     -- 货也放回来了,要么两件都没发生。
     -- 【closed 不释放,那是另一件事】走完的订单,它的货是发出去了,不是放回去了。
+    -- ★ FIN-CHAIN-1:【短装收尾】要释放 —— 没发的那一截不会再发了,扣着它就是谁也卖不掉的货。
     -- ════════════════════════════════════════════════════════════════════════
-    IF p_to = 'cancelled' THEN
+    IF p_to = 'cancelled' OR (v_order.status = 'partially_shipped' AND p_to = 'closed') THEN
         FOR v_res IN
             SELECT r.id, r.qty
               FROM sales_order_reservations r
@@ -77,7 +119,8 @@ BEGIN
              WHERE l.sales_order_id = p_order_id AND r.released_at IS NULL AND r.consumed_at IS NULL
              ORDER BY r.created_at
         LOOP
-            PERFORM release_reservation(v_res.id, NULL, 'order cancelled: ' || btrim(p_reason));
+            PERFORM release_reservation(v_res.id, NULL,
+                CASE WHEN p_to = 'cancelled' THEN 'order cancelled: ' ELSE 'order closed short: ' END || btrim(p_reason));
             v_freed := v_freed + v_res.qty;
         END LOOP;
 

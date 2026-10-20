@@ -13,6 +13,7 @@ DECLARE
     v_dep      numeric;
     v_run_n    integer;
     v_runs     text;
+    v_side     jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
     IF p_period_end IS NULL
@@ -41,6 +42,19 @@ BEGIN
           USING HINT = '这些加工单已提交但从未分摊成本 —— 料已经动了,而 1200 还没有被解除。'
                     || '在关账之前把它们分摊掉,或者冲销掉不该存在的那些。';
     END IF;
+
+    -- ★ FIN-CHAIN-1(Tim 2026-10-20,AP-RECON-1 Q11 的裁定):清单 ↔ 总账有【未解释】的差,就不许关账。
+    -- 判据就是月结页那一步读的那一支(list_ledger_reconciliation):它不截日 —— 关 M 月时问的是【此刻】全账的勾稽,
+    -- 所以 M 之后才出现的差同样挡住关 M(Tim 认的取舍:宁可严,而且按名说出来)。
+    -- 一边答不上来(调用者看不见那一侧的价格,refusal 非空)也按名拒 —— 答不上来不是对得上,绝不读成 0。
+    FOR v_side IN SELECT s FROM jsonb_array_elements(list_ledger_reconciliation() -> 'sides') s LOOP
+        IF v_side ->> 'refusal' IS NOT NULL OR v_side ->> 'unexplained_base' IS NULL THEN
+            RAISE EXCEPTION 'CLOSE_RECON_UNANSWERABLE|%|%', v_side ->> 'side', COALESCE(v_side ->> 'refusal', 'NO_ANSWER');
+        END IF;
+        IF (v_side ->> 'unexplained_base')::numeric <> 0 THEN
+            RAISE EXCEPTION 'CLOSE_LEDGER_LIST_UNEXPLAINED|%|%', v_side ->> 'side', v_side ->> 'unexplained_base';
+        END IF;
+    END LOOP;
 
     SELECT COUNT(DISTINCT jl.entry_id),
            round(COALESCE(SUM(jl.debit), 0), 2),

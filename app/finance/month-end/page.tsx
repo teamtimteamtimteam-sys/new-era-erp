@@ -75,7 +75,8 @@ export default async function MonthEndPage({
         supabase.from('processing_run_allocation_status')
             .select('code, allocated_at, last_cost_change, is_stale, safe_to_reallocate'),
         // AP-RECON-1 Batch B(Tim Q11):清单 ↔ 总账。全账、不截日 —— 它说的是【此刻】,
-        // 不是所选月份;它【不】挡锁期(挡不挡关账是以后的决定),所以永远不是 blocked。
+        // 不是所选月份。★ FIN-CHAIN-1(Tim 2026-10-20,Q11 的裁定):它【挡】锁期 —— close_period 读同一支,
+        // 没对上(或答不上来)就按名拒,所以这一步没对上时是 blocked。
         supabase.rpc('list_ledger_reconciliation'),
         // ★ U1-B(UNBLOCK-1 Step 0 §3 5.1):close_period 按名拒 PROCESSING_COSTS_UNALLOCATED 时数的【就是这一支】——
         //   已提交、从未分摊、日期不晚于月末。清单此前自己数另一样东西(下面 staleAllocation 那一步),
@@ -228,12 +229,12 @@ export default async function MonthEndPage({
                 : '',
         },
         {
-            // AP-RECON-1 Batch B:每一边的未解释数,链到明细页。【只有 done / outstanding】——
-            // 它不挡 close_period(Tim Q11),所以这里画不出 blocked;答不上来(没有
-            // 那一边的价格码 —— AP 是 data.view_purchase_prices、AR 是 data.view_prices,ROLE-1 Batch 4a)时
-            // 是 outstanding 并照直说出来,而不是一个假的 done。
+            // AP-RECON-1 Batch B:每一边的未解释数,链到明细页。
+            // ★ FIN-CHAIN-1(Tim 2026-10-20,AP-RECON-1 Q11 的裁定):它【挡】close_period 了 —— 未解释 ≠ 0 →
+            //   CLOSE_LEDGER_LIST_UNEXPLAINED;答不上来(没有那一边的价格码)→ CLOSE_RECON_UNANSWERABLE。所以没对上就是 blocked,
+            //   与未分摊加工单那一步同一个画法;答不上来照直说出来,而不是一个假的 done。
             key: 'listVsLedger', href: '/finance/list-vs-ledger',
-            state: reconAgrees ? 'done' : 'outstanding',
+            state: reconAgrees ? 'done' : 'blocked',
             detail: reconRefused ? t('finance.monthEnd.listVsLedgerRestricted')
                  : t('finance.monthEnd.listVsLedgerDetail', {
                        ap: formatAmount(Number(reconSide('ap')?.unexplained_base ?? 0), baseCurrency),

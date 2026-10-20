@@ -441,8 +441,11 @@ d1 is complete on its own.
 43. **Manual walk §28** — shell and navigation, all open; 28.2 (home-page feel) has Tim as its only judge. (`docs/manual-walk-list.md:2304`; also `:2317`)
 44. **Manual walk §31.6** — the six CONV-9 §30 items, none walked. (`docs/manual-walk-list.md:2582`)
 45. **On a real device and network, judge whether the 5–7 s wait after setting a password is acceptable** (decides whether `/me` gets lighter). (`docs/manual-walk-list.md:2892`)
+46. **Widen the refresh-token reuse interval from 10 s to 60 s in the Supabase dashboard** (Auth settings, `security_refresh_token_reuse_interval`) — ruled by Tim 2026-10-20 (d2 #4); a dashboard action, not a cut. *Added by FIN-CHAIN-1.* (`docs/forward-queue.md:1971`; also `docs/known-issues.md:3375`)
 
 ### d2 · Decisions recorded as waiting on Tim
+
+> **All 35 were ruled by Tim on 2026-10-20, as recommended (FIN-CHAIN-1 brief, section E).** Each ruling is recorded with that date at its source location listed below; entries a ruling closes are struck there, and work a ruling creates is queued in `docs/forward-queue.md` ("FIN-CHAIN-1 之后的队列" and the new "上线准备组 · go-live readiness group"). Two corrections found while recording them: #33 was already built in MES-7b-1 (`v1.4.54`, F14) — the entry's heading had simply never been struck; and #29's stock-snapshot half was already built in IA-BUILD-1. This list is kept as the 2026-10-20 snapshot it was written as.
 
 1. Should the portal show a supplier's final assay results, or drop it (`MES9B-FINAL-ASSAY-NOT-SHOWN`)? (`docs/known-issues.md:109`)
 2. Should `action.metal_prices` join the `metal_prices` read predicate? (`docs/known-issues.md:155`; also `docs/forward-queue.md:1268`)

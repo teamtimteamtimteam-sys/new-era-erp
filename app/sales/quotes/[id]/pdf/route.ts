@@ -23,12 +23,12 @@ import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@
 import { localizeQuoteError } from '../../quoteErrorCodes'
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { formatDocumentDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'qt-documents'
 
 async function loadDoc(id: string): Promise<QuoteDocData | null> {
-    const locale = await getLocale()
+    // FIN-CHAIN-1(Tim d2 #12,2026-10-20):对外单据一律英文 —— 日期也是(此前跟着界面语言,中文界面印出 `2026年9月1日`)。
+    const locale = 'en'
     const supabase = await createClient()
     const q = mustOne(
         await supabase.from('quote_status')

@@ -14,7 +14,8 @@ import { localizeFreightError } from '../../freightErrorCodes'
 
 export async function reverseFreight(
     id: string,
-    reason: string
+    reason: string,
+    reversalDate: string
 ): Promise<{ error?: string }> {
     const supabase = await createClient()
     // 【理由原样送下去,不在这里 trim 成 null】—— 服务端的判据是
@@ -31,6 +32,9 @@ export async function reverseFreight(
     const { error } = await supabase.rpc('reverse_freight_document', {
         p_freight_document_id: id,
         p_reason: reason,
+        // ★ FIN-CHAIN-1(Tim 2026-10-20,Step 0 Q7):冲销日由人选,必填、不默认。空串【不】在这里补成今天 ——
+        //   不传就是 NULL,库按名拒 REVERSAL_DATE_REQUIRED(AGENTS.md:决定期间的日期两道闸,服务端那一道独立成立)。
+        ...(reversalDate.trim() === '' ? {} : { p_reversal_date: reversalDate }),
     })
     if (error) return { error: await localizeFreightError(error.message) }
 

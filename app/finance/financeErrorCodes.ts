@@ -17,6 +17,8 @@ const FINANCE_ERROR_CODES = new Set([
     // 而它们【不在这个集合里】—— 于是掉进下面那句 `return raw`,屏幕上出现的是
     // DEPRECIATION_OUTSTANDING 这一串大写字母本身。文案见 finance.errors.*。
     'DEPRECIATION_OUTSTANDING', 'PROCESSING_COSTS_UNALLOCATED',
+    // FIN-CHAIN-1(Tim AP-RECON-1 Q11 的裁定,2026-10-20):清单 ↔ 总账有未解释的差 / 答不上来,关账按名拒。
+    'CLOSE_LEDGER_LIST_UNEXPLAINED', 'CLOSE_RECON_UNANSWERABLE',
     'JOURNAL_IMMUTABLE', 'JE_LINE_INVALID',
     'CLOSE_NOT_FOUND', 'ALREADY_REOPENED', 'REASON_REQUIRED',
     // FIN-23:年结

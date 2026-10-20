@@ -38,8 +38,9 @@
 -- 拿它去减总账会得到一个自信的假"未解释"。所以此时两边都【按名拒】:
 -- refusal = 'PRICES_RESTRICTED',数字为 NULL —— 答不上来不是对不上。
 --
--- 月结页(/finance/month-end)有一步读它,每一边一个未解释数;它【不】挡 close_period
--- (Q11:挡不挡关账是以后的决定)。明细页:/finance/list-vs-ledger。
+-- 月结页(/finance/month-end)有一步读它,每一边一个未解释数。**FIN-CHAIN-1(Tim 2026-10-20)起它挡 close_period**:
+-- 任何一边未解释 ≠ 0 → CLOSE_LEDGER_LIST_UNEXPLAINED;任何一边答不上来 → CLOSE_RECON_UNANSWERABLE(此前 Q11 留白)。
+-- /finance 首页那一块与管理包的「未解释」也读它。明细页:/finance/list-vs-ledger。
 -- 行为断言:db/fixtures/213-the-list-and-the-ledger-agree-and-a-difference-has-a-name.sql
 --
 -- NOTE: introduced by db/migrations/2026-09-24-aprecon1b-the-list-and-the-ledger-agree.sql.

@@ -143,7 +143,7 @@ export default function ClaimDecisionPanel({
                                         ? <span className="text-amber-800">{t('expenseClaims.noReceipt')} — {c.no_receipt_reason}</span>
                                         : <span className="text-red-700">{t('expenseClaims.noReceipt')}</span>}
                             </p>
-                            <PermissionGate code="module.finance.edit" allowed={canDecide}>
+                            <PermissionGate code="data.view_prices" allowed={canDecide}>
                                 <div className="flex flex-wrap gap-2 items-end">
                                     <label className="">{t('expenseClaims.accountCode')}
                                         <select value={get(c.claim_id).acct}

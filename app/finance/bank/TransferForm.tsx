@@ -6,6 +6,7 @@
 //   财务在申请页上执行并给出实际转账日;分录只在执行那一刻过账。成功由 action 跳到那张申请。
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
+import { businessToday } from '@/lib/format'
 import { submitTransferRequest } from './transferActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -15,13 +16,6 @@ import { DatePicker } from '@/app/components/ui/date-picker'
 const inp = CONTROL_INPUT
 const sel = CONTROL_SELECT
 
-function todayIsoLocal(): string {
-    const d = new Date()
-    const yyyy = d.getFullYear()
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
-    return `${yyyy}-${mm}-${dd}`
-}
 
 export default function TransferForm({ canEdit }: { canEdit: boolean }) {
     const t = useTranslations()
@@ -33,7 +27,9 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
     const [inn, setInn] = useState('')
     // 预填今天是【便利】不是默认值(清空即禁钮并点名)。Batch B 起它是【计划】转账日 ——
     // 实际转账日在执行那一步给(必填),两者可以不同。
-    const [date, setDate] = useState(todayIsoLocal)
+    // FIN-CHAIN-1(Tim Step 0 Q13):预填的是【业务时区】的今天(businessToday),不是浏览器时钟 —— 在 SGT 早上八点之前,
+    //   浏览器若在 UTC 会预填出昨天;而计划日晚于今天的申请在提交时就按名拒(DOCUMENT_DATE_IN_FUTURE),所以框也封顶在今天。
+    const [date, setDate] = useState(() => businessToday())
     const [ref, setRef] = useState('')
     // DATE-PICK-1:提交走按钮 onClick,不走原生表单 —— 框里是一个敲错的日子时把按钮关掉
     const [dateBad, setDateBad] = useState(false)
@@ -56,7 +52,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
             )}
             <div className="flex gap-2 flex-wrap items-end text-xs text-[color:var(--brand-muted-text)]">
                 <label>{t('finance.transfer.plannedDate')}
-                    <DatePicker value={date} onChange={setDate} onInvalidChange={setDateBad} className="flex" />
+                    <DatePicker value={date} max={businessToday()} onChange={setDate} onInvalidChange={setDateBad} className="flex" />
                 </label>
                 <label>{t('finance.transfer.from')}
                     <select value={from} onChange={(e) => setFrom(e.target.value)} className={`block ${sel}`}>

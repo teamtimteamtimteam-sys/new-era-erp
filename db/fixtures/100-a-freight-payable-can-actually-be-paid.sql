@@ -165,7 +165,7 @@ BEGIN
     -- 没有 reverse_freight_document"。那个缺口已经补上,而且补的同时立了一条守卫:
     -- 直接 UPDATE status 现在【按名被拒】(FREIGHT_STATUS_NO_DIRECT_UPDATE)。
     -- 所以这一句改走正门 —— 本臂要的仍然只是"status 是 reversed 时会怎样"。
-    PERFORM reverse_freight_document(v_fd2, 'fixture 100 B1:把它冲掉,好测已冲销的单据');
+    PERFORM reverse_freight_document(v_fd2, 'fixture 100 B1:把它冲掉,好测已冲销的单据', GREATEST(CURRENT_DATE, (SELECT je.entry_date FROM freight_documents fd JOIN journal_entries je ON je.id = fd.journal_entry_id WHERE fd.id = v_fd2)));
 
     v_denied := false; v_msg := NULL;
     BEGIN

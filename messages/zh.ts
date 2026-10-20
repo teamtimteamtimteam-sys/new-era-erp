@@ -149,6 +149,10 @@ const zh = {
         sideAr: '应收',
         sideAp: '应付',
         reconOk: '差额的每一部分都有出处。',
+        // FIN-CHAIN-1(Tim 2026-10-20,AP-RECON-1 Q8 的改基)
+        reconMechanismLabel: '按机制的分解 —— 不是缺陷检查',
+        reconBasisList: '本包的「未解释」:应收与应付取清单对总账那一支勾稽(关账要求的那一支),读于 {at};库存两条腿取上表。',
+        cvListRefused: '出这份包时,清单对总账对 {sides} 答不上来 —— 答不上来不等于对得上。',
         reconFinding: '未解释:{amount} {ccy}。控制科目与它的明细账差着一笔【没有人解释过】的钱 —— 最常见的来路是一张直接打进控制科目的手工分录。**这是一条发现,不是一个装饰**:请导出本期的总账明细,筛到这个科目,找出那些不属于任何单据的分录行。',
         cannotSeeHeading: '这份包看不见什么',
         cannotSeeNone: '这份包知道该找的东西,一样都不缺。',
@@ -988,8 +992,8 @@ const zh = {
         lockedNone: '还没有设过封账日 —— 所有期间都仍然改得动。这不是「封到了很早」,是「一天都没封」。',
         systemStart: '系统启用日:{date}(此前的数是迁移进来的,不是这套系统记的)。',
         reconTitle: '总账 ↔ 明细账',
-        reconSource: '控制科目上的账面余额,与它对应的那一叠单据算出来的余额,两边对照。',
-        reconSpans: '账面那一侧在【试算平衡】,单据那一侧散在【应收】与【应付】与库存各页 —— 【两侧对不对得上】没有任何一页在回答。',
+        reconSource: '应收与应付:未结清单对它们的控制科目(1100、2000),全账、不截日 —— 与月结那一步读的、关账要求的是同一支勾稽。库存:库存台账对 1200 / 1220。',
+        reconSpans: '账面那一侧在【试算平衡】,清单那一侧在【应收】与【应付】。应收应付的差每一笔由哪几项构成,看【清单对总账】;有未解释差额的月份关不了账。',
         reconLine: '账面 {ledger} · 单据 {subledger}',
         reconRefused: '这一条腿此刻取不到依据,所以它没有数 —— 照答会给出一个自信的 0.00。',
         reconNoSides: '勾稽没有返回任何一条腿。这是一次查询的结果,不是「四条腿都平了」。',
@@ -4373,6 +4377,7 @@ const zh = {
         colMaterial: '物料',
         colSeq: '序号',
         cancelReason: '作废理由',
+        closeShortReason: '剩下的为什么不发了?',
         issues: '签发版本',
         issuesNote: '每次重新签发都【追加】一个新版本,旧版本原样留着 —— 客户手里那份是某个具体版本。【没有"已发送"标志】:系统不知道对方收没收到。',
         noIssues: '尚未签发。',
@@ -4394,6 +4399,7 @@ const zh = {
         action: {
             confirmed: '确认订单',
             closed: '关闭订单',
+            closeShort: '短装收尾',
             cancelled: '作废订单',
             generic: '变更状态',
         },
@@ -4401,6 +4407,7 @@ const zh = {
             confirm: '确认之后【冻结】客户、币种、汇率、订单日与全部行;备注仍可改。客户处于信用冻结时会被拒。',
             close: '标记这张单走完了。关闭是终态,不能再打开。',
             cancel: '必须填理由。作废是终态。',
+            closeShort: '按已经发出去的那些收尾。必须填理由。开了票却没发的数量要先开一张贷项凭证取消掉;还许出去的预留当场释放。关闭是终态。',
             generic: '变更这张单的状态。',
         },
         credit: {
@@ -4656,6 +4663,9 @@ const zh = {
             SO_NO_LINES: '订单 {0} 没有任何行 —— 一张什么都没有的单不能确认。',
             SO_TRANSITION_NOT_ALLOWED: '处于【{0}】的订单不能变成【{1}】。允许的去处列在订单页上。',
             SO_CANCEL_REASON_REQUIRED: '作废订单 {0} 必须填理由 —— 三个月后没有人说得出它当初为什么作废。',
+            SO_CANCEL_HAS_LIVE_INVOICE: '订单 {0} 挂着在册的发票 {1},作废不得 —— 作废了订单,客户仍然欠着那张票。先在 {1} 的发票页提一张作废申请;票作废之后再作废订单。',
+            SO_CLOSE_REASON_REQUIRED: '短装收尾订单 {0} 必须填理由 —— 说清剩下的为什么不发了。',
+            SO_CLOSE_INVOICED_UNSHIPPED: '订单 {0} 第 {1} 行:{2} 开了票、没发货,也还没被取消。先为它开一张贷项凭证(未发货取消),再收尾。',
             SO_CUSTOMER_ON_HOLD: '客户 {0} 处于信用冻结,这张单不能确认。请到客户页解冻,或者让这张单先留作草稿。',
             SO_CONFIRMED_IMMUTABLE: '这张单已确认,【{0}】不能再改。改一张已确认的单是另一个动作,今天还不存在 —— 作废它,重开一张。',
             SO_STATUS_NOT_EDITABLE: '状态不能直接改({0} → {1});请用订单页上的转换按钮。',
@@ -4919,6 +4929,7 @@ const zh = {
             QT_DECLINE_REASON_REQUIRED: '记录谢绝要写理由 —— 三个月后没有人记得起这一单为什么没成。',
             QT_NOT_ISSUABLE: '报价【{0}】现在是【{1}】,不能再签发 —— 那个状态的意思就是这件事已经结束了。',
             QT_CONVERTED_IMMUTABLE: '报价【{1}】已经变成一张销售订单,不能再改({0})—— 报出去的那份与照它下的单不能分家。',
+            QT_STATUS_THROUGH_FUNCTION_ONLY: '报价 {1} 的「{0}」只经它自己的动作改变 —— 签发 PDF、填理由谢绝、或转成订单;不能直接编辑。',
             QT_HISTORY_IMMUTABLE: '报价留痕只增不改。',
             QT_CONVERT_LINES_LOST: '转换没有把每一行都抄过去(递进来 {0} 行、建出 {1} 行),所以什么都没保存。请报告,不要重试。',
             ORDER_DATE_REQUIRED: '订单日必填 —— 它是客户接受的那一天,而且永远不会替你填。',
@@ -8235,6 +8246,9 @@ const zh = {
         showAll: '显示无发生额科目',
         hideZero: '隐藏无发生额科目',
         inactive: '已停用',
+        // FIN-CHAIN-1(Tim d2 #34):系统科目在试算表上标出,不另建科目表页。
+        systemAccount: '系统',
+        systemAccountHint: '系统科目:软件按科目代码往里过账,所以它不能改名、停用或删除。',
         unbalancedWarning: '试算不平衡——请检查分录!',
         emptyState: '暂无分录',
         loadError: '读取失败',
@@ -8457,6 +8471,9 @@ const zh = {
             reverseTitle: '要冲销这张运费单吗?',
             reverseConsequence: '它的分录会被原样镜像回零,这张单据会离开应付账龄,而冲销【不可撤销】。已经被付过款的单据【冲不了】—— 要先把那笔付款冲掉。',
             reverseReason: '为什么要冲销?',
+            reverseDate: '冲销日',
+            reverseDateHint: '必填 —— 它决定冲销分录落在哪个期间。不能早于单据日({date});已关账的期间会被拒。',
+            reverseOnDate: '冲销分录的日期是 {date}。',
             colReversedBy: '冲销人',
             basis: {
                 weight: '按重量',
@@ -8496,6 +8513,7 @@ const zh = {
                 FREIGHT_ALREADY_REVERSED: '{0} 已经冲销过了。',
                 FREIGHT_HAS_SETTLEMENT: '{0} 已经被付过款(已结 {1}),所以冲不了 —— 先把那笔付款冲掉,再冲这张单据。',
                 FREIGHT_REVERSAL_REASON_REQUIRED: '请写明冲销 {0} 的理由 —— 没有理由的冲销,事后没人答得出为什么。',
+                REVERSAL_DATE_REQUIRED: '请选冲销日 —— 它决定冲销分录落在哪个期间,系统不会替你填。什么都没有改。',
                 FREIGHT_STATUS_NO_DIRECT_UPDATE: '{0} 的状态只能通过【冲销】来改,冲销会记下理由、经手人,并把那张分录原样镜像回零。',
                 FREIGHT_PAID_AT_CREATION_REFUSED: '运费单不能再在录入时记成已付。它会记成欠货代的款;付款请提付款申请,先经 CFO 批准。',
             },
@@ -9051,6 +9069,13 @@ const zh = {
             // 下面三条是【真的没有】的,每一条都说到接下来怎么办 ——
             // Tim 在 ALERT-1 闸上裁定:「已经对过账了」这半句话不算一句拒绝。
             // ══════════════════════════════════════════════════════════
+            CLOSE_LEDGER_LIST_UNEXPLAINED:
+                // FIN-CHAIN-1:{0} = ap | ar(应付 / 应收),{1} = 未解释的本位币金额。
+                '这个期间关不了:{0} 那一边(ap = 应付,ar = 应收)的未结清单与它的控制科目差 {1},而这笔差没有人解释过。'
+                + '去「财务 → 清单对总账」看是哪一张单据或分录,改正之后再关账。',
+            CLOSE_RECON_UNANSWERABLE:
+                '这个期间关不了:{0} 那一边(ap = 应付,ar = 应收)的清单对总账对你答不上来({1})—— 它要看得见那一侧价格的权限。'
+                + '答不上来不等于对得上;请持有这个权限的人来关账。',
             PROCESSING_COSTS_UNALLOCATED:
                 // U1-B:{2} 是逗号分隔的单号清单(不是张数)—— 把它们点出来。
                 '{0} 这个期间关不了:截至那天有 {1} 张已提交的加工单成本从未分摊 —— {2}。'
@@ -9589,6 +9614,7 @@ const zh = {
             SALE_WRONG_CUSTOMER: '销售 {0} 属于其他客户',
             SALE_NOT_ATTRIBUTED: '批次 {0} 上的这笔销售不属于任何客户,因此不能开票给客户 —— 发票是对外声称「某人欠这笔钱」,而销售本身没有记录这件事。请先把它补挂给客户(财务 → 应收 → 打开该笔销售)。',
             ALREADY_INVOICED: '销售 {0} 已开在发票 {1} 上',
+            SALE_IS_ORDER_FLOW: '销售 {0} 是按销售订单发的货,那张订单的发票已经向客户收过这笔钱了 —— 不能在这里再开一次。',
             DUPLICATE_SALE: '销售 {0} 重复出现',
             MIXED_CURRENCY: '所有明细必须为同一币种({0} 与 {1} 不一致)',
             INVOICE_NOT_FOUND: '发票不存在',

@@ -19,6 +19,8 @@ const QUOTE_ERROR_CODES = new Set([
     // 结构性守卫:正常路径撞不到(转过的报价页面上一个可编辑控件都不画),
     // 撞上时必须说人话而不是抛触发器原文。
     'QT_CONVERTED_IMMUTABLE',
+    // FIN-CHAIN-1(Tim APR-5 Q12):报价的状态只经函数写 —— 直连改 status / converted_order_id / decline_reason 按名拒。
+    'QT_STATUS_THROUGH_FUNCTION_ONLY',
     'QT_HISTORY_IMMUTABLE',
     'QT_CONVERT_LINES_LOST',
     // 转换会调 create_sales_order —— 它的拒绝原样冒上来,所以也要认得

@@ -9,7 +9,12 @@ export async function getLocale(): Promise<Locale> {
 }
 
 export async function getTranslations() {
-    const locale = await getLocale()
+    return translatorFor(await getLocale())
+}
+
+// FIN-CHAIN-1(Tim d2 #12,2026-10-20):【一份语言被钉死的翻译器】—— 对外单据一律英文,不跟随界面语言。
+//   名字里带着 locale 参数,是要让调用点看得见"这里的语言是选定的",而不是"忘了国际化"(noSignatureEn 同一条)。
+export function translatorFor(locale: Locale) {
     const messages = MESSAGES[locale]
     return (key: string, params?: Record<string, string | number>): string => {
         const parts = key.split('.')

@@ -7,7 +7,7 @@
 import { formatAmount } from '@/lib/format'
 import { getTranslations } from '@/lib/i18n/server'
 import { ReconTable, SplitPairsTable, type ReconRow, type SplitRow } from './PackTables'
-import { formatDate } from '@/lib/dates'
+import { formatDate, formatAuditStamp } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 type Recon = {
@@ -53,6 +53,16 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
     }
     if (cv.no_bank_reconciliation) notes.push(t('pack.cvNoBankRec'))
     if (cv.no_cash_forecast) notes.push(t('pack.cvNoForecast'))
+    // ★ FIN-CHAIN-1(Tim 2026-10-20,AP-RECON-1 Q8 的改基):本刀之后出的包,应收 / 应付的「未解释」来自
+    //   list_ledger_reconciliation(caveats.control_unexplained_basis 说出来);之前冻下来的包没有这一键,原样照旧画 ——
+    //   已存档的包一个字都不改。
+    const listBasis = cv.control_unexplained_basis === 'list_ledger_reconciliation'
+    const listRefused = Array.isArray(cv.list_ledger_refused_sides) ? (cv.list_ledger_refused_sides as string[]) : []
+    if (listBasis && listRefused.length > 0) notes.push(t('pack.cvListRefused', { sides: listRefused.join(', ') }))
+    const unexplainedTotal = listBasis
+        ? Number(cv.control_unexplained_base ?? 0)
+        : sides.reduce((a, s) => a + Number(s.unexplained_base), 0)
+    const hasFinding = listBasis ? Boolean(cv.control_unexplained) : sides.some((s) => !s.reconciled)
 
     // ════════════════════════════════════════════════════════════════════════
     // ★ TABLE-CONVERT-2:两张表搬进了 PackTables.tsx('use client')。
@@ -104,23 +114,30 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
             {/* ── ★ 勾稽:本包唯一一条两边独立推导的 ★ ───────────────────── */}
             <h2 className="mb-1">{t('pack.reconHeading')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('pack.reconWhy')}</p>
+            {listBasis && (
+                <p className="text-xs font-medium mb-1" style={{ color: 'var(--brand-text)' }}>{t('pack.reconMechanismLabel')}</p>
+            )}
             <div className="mb-2">
                 <ReconTable rows={reconRows} />
             </div>
             {/* ★【未解释余额是一条【发现】,不是一个装饰】★ 说出它是什么、以及
                 该怎么办 —— 一个没有解释也没有动作的大红数字,正是"清不掉的告警"
                 那个形状,而这个仓库为学会忽略告警付过账。 */}
-            {sides.some((s) => !s.reconciled) ? (
+            {listBasis && (
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">
+                    {t('pack.reconBasisList', { at: formatAuditStamp(String(cv.list_ledger_read_at ?? '')) })}
+                </p>
+            )}
+            {hasFinding ? (
                 <p className="text-sm mb-6 bg-red-50 border border-red-300 text-red-900 px-3 py-2 rounded max-w-3xl">
                     {t('pack.reconFinding', {
-                        amount: formatAmount(
-                            sides.reduce((a, s) => a + Number(s.unexplained_base), 0), ''),
+                        amount: formatAmount(unexplainedTotal, ''),
                         ccy,
                     })}
                 </p>
-            ) : (
+            ) : listRefused.length === 0 ? (
                 <p className="text-sm mb-6 text-green-800">{t('pack.reconOk')}</p>
-            )}
+            ) : null /* 答不上来不是"每一部分都有出处" —— 那一句由上面的缺席清单说 */}
 
             {/* ── 这份包看不见什么 ────────────────────────────────────────── */}
             <h2 className="mb-2">{t('pack.cannotSeeHeading')}</h2>
