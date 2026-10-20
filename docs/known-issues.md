@@ -64,7 +64,10 @@ MES-9a 委托书的 fixture 清单(15 项,逐项对照见 `docs/surveys/MES-9b/M
 与 `MES8B2-APP-HALF-NO-REGRESSION-CHECK` 同一个形状、同一个原因(SQL fixture 没有 JS / HTTP 运行器);MES-9a 交回没有逐项对照,这一条补的是那句话。
 **可选的修法(未做):** 冒烟加一个一次性门户会话走三五条员工路由并断言那一句拒绝,员工会话断言 `/portal` 被拒。**删除条件:** 那一道落地,或 Tim 裁定一次性证明就够。
 **MES-9b 同一形状再多三条路由**(`/portal/documents` · `/portal/deliveries` · `/portal/documents/file`):库那一半在 fixture 276,冒烟只证员工会话打开取档路由是 403;
-门户会话那一半(页面只列自己的、取档 200 + 重算的哈希、别家的 404、改过的字节 409)只由 MES-9b 的一次性线上证明证过(`db/scripts/2026-10-19-mes9b-live-proof.mjs`)。
+门户会话那一半(页面只列自己的、取档 200 + 重算的哈希、别家的 404、改过的字节 409)只由 MES-9b 的一次性证明证过 —— ~~线上证明(`db/scripts/2026-10-19-mes9b-live-proof.mjs`)~~
+★ **更正(MES-9b close-out,2026-10-20,`docs/surveys/MES-9c/MES-9b-CLOSEOUT.md` §2 a 第 1 项):** 页面的空态与别家的 404 是线上证明(`db/scripts/2026-10-19-mes9b-live-proof.mjs`)证的;
+**取档 200 + 重算的哈希与改过的字节 409 是【本地重建】那一支证的**(`db/scripts/2026-10-19-mes9b-local-download-proof.mjs`,`docs/surveys/MES-9b/readings/local-download-proof.txt:17`)——
+线上没有一份已提交的签发档可取(MES-9b 续做裁定 4)。路由那一段是 `app/portal/documents/file/route.ts:56-58`。
 
 ## MES9B-STORAGE-FUNCTIONS-FOLLOW-THE-PLATFORM · 门户角色的可达面里有 19 支 Supabase Storage 的平台函数 —— 平台一升级,判词八就会红(MES-9b 记,2026-10-19;刻意的)
 

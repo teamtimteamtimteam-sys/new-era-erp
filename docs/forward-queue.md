@@ -1345,6 +1345,21 @@
 >    第二次 `/settings/change-history` 撞上 8 秒上限(`SMOKE_EXIT=1`,与本刀无关,登记 `CHANGE-HISTORY-8S-AFTER-BULK-GRANTS`)。
 >    **窗口里坏掉的**(推导):没有在用的东西坏 —— 旧应用不读任何新东西;线上没有门户账号。验证与读数在 `docs/handbacks/MES-9b.md`。
 >    **登记、没修**:`MES9B-FINAL-ASSAY-NOT-SHOWN` · `MES9B-STORAGE-FUNCTIONS-FOLLOW-THE-PLATFORM` · `MES9B-DOWNLOAD-LOG-RECORDS-THE-REQUEST` · `CHANGE-HISTORY-8S-AFTER-BULK-GRANTS`(`docs/known-issues.md`)。
+>    ★ **部署:Tim 在 Vercel 上确认 `50a4e552` 已部署(MES-9b close-out + MES-9c 委托书,2026-10-20)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-19 23:47:32 CST**(测量:`db/migration-windows.tsv`,`2026-10-19-mes9b-what-a-supplier-sees.sql`)·
+>    终点下界 **2026-10-20 02:01:36 CST**(测量:推送把 `origin/main` 移到 `50a4e552`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`50a4e552 refs/remotes/origin/main@{2026-10-20 02:01:36 +0800}: update by push`;
+>    这一次推送 `ba926879..50a4e552` 只带本刀自己的提交 `50a4e552`(2026-10-20 01:59:44))·
+>    终点上界 **2026-10-20 10:20:10 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 2 h 14 min 04 s,至多 10 h 32 min 38 s**(上界跨了一夜,到这一次会话的第一条命令为止;它是界,不是量)。
+>    窗口里坏掉的(**推导**,MES-9b 交回 §10,没有在线上量):没有在用的东西坏(上一段)。
+>    ★ **close-out 的核对(委托书第 1.2 条,逐项证据在 `docs/surveys/MES-9c/MES-9b-CLOSEOUT.md`)**:MES-9b 委托书的 fixture 清单 8 项,**7 项整项有覆盖**
+>    (fixture 276 的臂 DOCS · DELIV · OPEN · STORE · LOG · EXCL · EVERY · WRITES · GRANTS,fixture 275 EVERY,判词八的比对与四个常开自检格);
+>    **第 1 项只有库那一半有 fixture 臂**(OPEN 交出的是签发时记下的路径与哈希)—— 取字节时重算哈希、对不上 409 是路由 `app/portal/documents/file/route.ts:56-58`,
+>    SQL fixture 够不到,只由 MES-9b 的【本地重建】HTTP 证明证过一次。**缺的是记录,不是行为** —— 已在 `MES9A-APP-HALF-NO-REGRESSION-CHECK` 的 MES-9b 那一段里;
+>    那一段原写「只由一次性【线上】证明证过」,409 其实是本地重建那一支证的,本次更正。交回 §11 的 22 条没问就做的决定逐条(只列标题)在 close-out 文件里。
+>    **没有缺的 —— 所以第 2 步(MES-9c)照常开始。**
 >    **下一刀 MES-9c · Certificate uploads and staff review**(见下面「⬜ ★ MES 组」第 15c 行;fixture 277)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
