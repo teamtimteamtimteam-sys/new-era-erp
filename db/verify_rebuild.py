@@ -482,6 +482,11 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "ingest_submit":
         "MES-1: the anonymous gateway entry point; the caller's authority IS the 244-bit gateway key, and "
         "requiring a permission would make it answer no gateway",
+    # CLAIM-RECEIPTS-1(2026-10-21,Tim Q1):收据的上限 —— 与门户同一个数(account_settings V39)。员工读不到 account_settings,
+    #   而表单要印出那个数;它吐出的只有两个数,没有登录的调用者读到 NULL。两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    "claim_receipt_limits":
+        "CLAIM-RECEIPTS-1: returns only the two receipt limits (max bytes, accepted types — the portal's V39) the claim "
+        "form prints; employees cannot read account_settings and hold no code; NULL with no session",
 }
 
 # AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,

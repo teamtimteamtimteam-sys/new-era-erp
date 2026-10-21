@@ -1118,8 +1118,8 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     company_profile: ['company_profile'],
     year_close: ['year_closes', 'journal_entries'],
     journal_request: ['journal_requests', 'approval_log', 'journal_entries'],
-    expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses', 'expense_claim_items'],
-    my_expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses', 'expense_claim_items'],
+    expense_claim: ['expense_claims', 'approval_log', 'expense_claim_receipts', 'expenses', 'expense_claim_items'],
+    my_expense_claim: ['expense_claims', 'approval_log', 'expense_claim_receipts', 'expenses', 'expense_claim_items'],
     bank_transfer: ['bank_transfers', 'journal_entries', 'payment_requests', 'approval_log'],
     wht_remittance: ['wht_remittances', 'journal_entries', 'payment_requests', 'approval_log'],
     cash_forecast: ['cash_forecasts'],
@@ -3389,11 +3389,18 @@ export type FinCtx = {
     expenseReason: Map<string, string>
     /** 冲销分录 id → 它冲的那一张原分录的单号(原分录今天的 reversed_by 指着它) */
     journalOrigin: Map<string, string | null>
+    /** CLAIM-RECEIPTS-1:报销单明细 id → 它是第几笔(收据那一句说"item n";明细的行在别的那次操作里 —— 看整页) */
+    claimItemNo: Map<string, string>
 }
 export function finContext(rows: TrailRow[]): FinCtx {
-    const c: FinCtx = { paymentMirror: new Map(), paymentOrigin: new Map(), expenseMirror: new Map(), expenseOrigin: new Map(), expenseReason: new Map(), journalOrigin: new Map() }
+    const c: FinCtx = { paymentMirror: new Map(), paymentOrigin: new Map(), expenseMirror: new Map(), expenseOrigin: new Map(), expenseReason: new Map(), journalOrigin: new Map(),
+                        claimItemNo: new Map() }
     for (const r of rows) {
         const img = imgOf(r)
+        if (r.table === 'expense_claim_items') {
+            const id = idOf(r)
+            if (id && img['line_no'] != null && !c.claimItemNo.has(id)) c.claimItemNo.set(id, String(img['line_no']))
+        }
         if (r.table === 'journal_entries' && typeof img['reversed_by'] === 'string' && !c.journalOrigin.has(img['reversed_by'] as string)) {
             c.journalOrigin.set(img['reversed_by'] as string, typeof img['code'] === 'string' ? img['code'] as string : null)
         }
@@ -3798,6 +3805,18 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
         else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'exp.claimItemCoded', { n }), lines: ls, key: false, weight: 45 }) }
         else out.push(describeGeneric(d, r, opts))
     }
+    // ── CLAIM-RECEIPTS-1(Tim 2026-10-21):一笔明细的收据 —— 第几笔从整页里那一笔的行读(fc.claimItemNo),文件名是 part ──────────
+    for (const r of by('expense_claim_receipts')) {
+        const n = fc.claimItemNo.get(String(imgOf(r)['item_id'] ?? ''))
+        const file = typed(str(r, 'file_name'))
+        const part = n && file ? { ...file, text: `${tx(d, 'exp.claimItemAdded', { n })} · ${file.text}` } : file
+        const to = str(r, 'status', 'new')
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'exp.receiptStarted'), part, lines: [], key: false, weight: 20 })
+        else if (r.op === 'UPDATE' && changed(r, 'status') && to === 'attached') out.push({ title: tx(d, 'exp.receiptAttached'), part, lines: [], key: true, weight: 45 })
+        else if (r.op === 'UPDATE' && changed(r, 'status') && to === 'abandoned') out.push({ title: tx(d, 'exp.receiptAbandoned'), part, lines: [], key: false, weight: 25 })
+        else if (r.op === 'UPDATE' && changed(r, 'status') && to === 'removed') out.push({ title: tx(d, 'exp.receiptRemoved'), part, lines: [], key: true, weight: 45 })
+        else out.push(describeGeneric(d, r, opts))
+    }
     for (const r of by('fixed_asset_cost_entries')) {
         if (subject === 'fixed_asset') continue    // AUDIT-TRAIL-1c-2:在资产那一页上从资产这一边说("Cost added · EXP-…")
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
@@ -3863,7 +3882,7 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
     }
     const known = new Set(['journal_entries', 'journal_lines', 'journal_requests', 'invoice_requests', 'payment_requests', 'approval_log', 'invoices',
         'invoice_lines', 'invoice_issues', 'credit_notes', 'credit_note_lines', 'cn_issues', 'payments', 'payment_allocations', 'bank_transfers',
-        'wht_remittances', 'expenses', 'expense_claims', 'expense_lines', 'expense_claim_items', 'fixed_asset_cost_entries', 'prepayment_applications', 'finance_attachments',
+        'wht_remittances', 'expenses', 'expense_claims', 'expense_lines', 'expense_claim_items', 'expense_claim_receipts', 'fixed_asset_cost_entries', 'prepayment_applications', 'finance_attachments',
         'inbound_batches', 'price_history', 'freight_allocations', ...LEDGER2_TABLES, ...LEDGER3_TABLES])
     for (const r of rows) if (r.table && !known.has(r.table)) out.push(describeGeneric(d, r, opts))
     return out

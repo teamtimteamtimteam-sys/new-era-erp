@@ -207,7 +207,7 @@ const OVERRIDES = {
         performed_by_name: 'Done by (name)', performed_by_supplier_id: 'Done by (supplier)', performed_on: 'Done on',
         capitalised_expense_id: 'Capitalised through expense' },
     equipment_service_intervals: { lead_days: 'Warn this many days before', lead_kg: 'Warn this many kilograms before' },
-    finance_attachments: { claim_id: 'Claim', doc_type: 'Document type' },
+    finance_attachments: { doc_type: 'Document type' },
     fixed_assets: { code: 'Asset number', cost_base: 'Cost (base currency)', in_service_date: 'In service from',
         planned_in_service_date: 'Planned in service from', useful_life_months: 'Useful life (months)',
         // AUDIT-TRAIL-1c-2(财务那一页,Q10 · Q26):资产页上被替掉的"Change history"面板(FA-HIST-1)给每一列配过页面上的
@@ -736,6 +736,8 @@ const TABLE_NAMES = {
     supplier_portal_users: 'supplier portal account', account_settings: 'account settings',
     // MES-9c(2026-10-20):供应商经门户交上来的证书(挂在供应商的审计记录下)
     portal_certificate_submissions: 'certificate sent through the supplier portal',
+    // CLAIM-RECEIPTS-1(2026-10-21):报销单每一笔的收据(挂在报销单的审计记录下)
+    expense_claim_receipts: 'expense claim receipt',
     // MES-5a-1(2026-10-08):逐模组放电结果 · 通道分配 · 拆去隔离的模组
     discharge_module_results: 'module discharge result', discharge_channel_assignments: 'discharge channel assignment',
     discharge_module_splits: 'quarantine split',
@@ -1002,6 +1004,8 @@ const ENUM_OVERRIDES = {
     'customer_attachments#doc_category': { 'hazardous-waste-permit': 'Hazardous waste permit', 'import-license': 'Import licence',
         'export-license': 'Export licence', 'basel-document': 'Basel document', contract: 'Contract', other: 'Other' },
     // MES-9c:门户交上来的证书的审核状态
+    // CLAIM-RECEIPTS-1:一份收据到了哪一步
+    'expense_claim_receipts#status': { uploading: 'Uploading', attached: 'Attached', abandoned: 'Upload did not complete', removed: 'Removed' },
     'portal_certificate_submissions#status': { uploading: 'Uploading', submitted: 'Waiting for review', abandoned: 'Upload did not complete',
         accepted: 'Accepted', rejected: 'Rejected' },
     'supplier_attachments#doc_category': { 'hazardous-waste-permit': 'Hazardous waste permit', 'import-license': 'Import licence',

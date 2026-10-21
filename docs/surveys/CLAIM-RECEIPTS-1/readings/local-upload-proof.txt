@@ -1,0 +1,13 @@
+· a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub + db/storage/buckets-and-policies.sql
+· seeded: a claimant (employee profile, no codes), another employee, a module.finance.view reader, a full-permission finance decider
+PASS|L1: submitClaim (unchanged action) as the claimant → CLM-2026-0001, the reply carries both items' ids (Q12)
+PASS|L2: uploadReceipt (begin → direct upload → finish, unchanged code) a PDF on item 1 → no error; row attached; its bytes in the local claim-receipts at 6bb97b44-b24e-48ff…
+PASS|L3: a GIF sent as image/jpeg → refused by its first bytes ("expenseClaims.errors.CLAIM_RECEIPT_TYPE_NOT_ACCEPTED {"0":"application…"); the row is abandoned; its bytes stay in the bucket (Q5 · d2 #3): objects 2
+PASS|L4: another employee attaching to this claim → "expenseClaims.errors.CLAIM_RECEIPT_NOT_YOURS {"0":"CLM-2026-0001"}…"; nothing stored
+PASS|L5: a PNG on item 2 → attached (no error)
+PASS|L6: the claimant removes item 1's PDF → removed (bytes stay); its own link to it now fails, the finance reader's link opens, another employee gets no link to item 2's
+PASS|L7: approving with item 1's receipt removed and no reason → "expenseClaims.itemError {"n":"1"} expenseClaims.errors.EXPENSE_CLAIM_NO_EVIDENCE {"0":"CLM…"
+PASS|L7: item 1 attached again → approved (ok)
+PASS|L8: attaching after approval → "expenseClaims.errors.CLAIM_RECEIPT_CLAIM_NOT_SUBMITTED {"0":"CLM-2026-0001","1":…"
+PASS|L8: after approval the claimant still opens item 2's receipt, byte for byte the PNG it sent (Q6)
+CR1_LOCAL_PROOF_EXIT=0

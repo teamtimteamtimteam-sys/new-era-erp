@@ -6,6 +6,8 @@
 --   批准时整张单生出【一张】费用单(record_expense_document),每一笔明细一行、行备注 = 明细说明;
 --   表头备注 = 'Expense claim <单号> (<员工号>) — <用途>'。
 --   decide_expense_claim(旧签名)是这一支的【单笔包装】(Q8):多笔的单走旧调用按名拒(EXPENSE_CLAIM_HAS_ITEMS)。
+-- ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Step 0 Q13):凭据【按笔】查 —— 这一笔有一份 attached 的收据(expense_claim_receipts),
+--   或者它自己有一句无收据理由。整张单的附件那条路(finance_attachments.claim_id)退役了(那一列已删,线上 0 行)。
 --   下面 CLAIM-1 / APR-3 / CLAIM-GST-1 的说明原样保留 —— 它们说的是这一支的门、分档与税,而那几样一个字都没变。
 -- 报销单的决定路径。CLAIM-1 建的;★ APR-3(2026-09-22)把它接上审批引擎。
 --
@@ -70,7 +72,6 @@ AS $function$
 DECLARE
     v_c        expense_claims%ROWTYPE;
     v_emp      employees%ROWTYPE;
-    v_has_att  boolean;
     v_exp      jsonb;
     v_item     record;
     v_pick     jsonb;     -- 财务给这一笔的那一条 {line_no, account_code, tax_code}
@@ -158,9 +159,6 @@ BEGIN
         END IF;
     END LOOP;
 
-    SELECT EXISTS (SELECT 1 FROM finance_attachments
-                    WHERE claim_id = p_claim_id AND deleted_at IS NULL) INTO v_has_att;
-
     FOR v_item IN SELECT * FROM expense_claim_items WHERE claim_id = p_claim_id ORDER BY line_no LOOP
         SELECT x INTO v_pick FROM jsonb_array_elements(COALESCE(p_items, '[]'::jsonb)) x
          WHERE NULLIF(x->>'line_no', '')::integer = v_item.line_no LIMIT 1;
@@ -183,12 +181,12 @@ BEGIN
             RAISE EXCEPTION 'EXPENSE_CLAIM_TAX_CODE_REQUIRED|%|%', v_c.code, v_item.line_no;
         END IF;
 
-        -- ★【凭据:要么有附件,要么有一句说得出为什么没有】★ —— 逐笔(Tim Step 0b Q2)
+        -- ★【凭据:要么有收据,要么有一句说得出为什么没有】★ —— 逐笔(Tim Step 0b Q2;CLAIM-RECEIPTS-1 Q13:收据也按笔)
         -- 【为什么查在这一步而不是提交那一步】凭据真正起作用的时刻,正是有人要据它做决定的时刻。
         -- 【为什么留了一条例外的路】一条没有例外出口的规矩会被绕过 —— 允许没有收据,但要求把【为什么】说出来。
-        -- ⚠ 在 CLAIM-RECEIPTS-1 之前员工传不了收据(docs/known-issues.md § EXPENSE-CLAIM-NO-RECEIPT-UPLOAD),
-        --   所以今天实际上每一笔都要有自己的无收据理由。
-        IF NOT v_has_att AND COALESCE(btrim(v_item.no_receipt_reason), '') = '' THEN
+        -- 只算 attached 的:还在上传的(uploading)、没传成的(abandoned)、被拿掉的(removed)都不算。
+        IF NOT EXISTS (SELECT 1 FROM expense_claim_receipts r WHERE r.item_id = v_item.id AND r.status = 'attached')
+           AND COALESCE(btrim(v_item.no_receipt_reason), '') = '' THEN
             RAISE EXCEPTION 'EXPENSE_CLAIM_NO_EVIDENCE|%|%', v_c.code, v_item.line_no;
         END IF;
 

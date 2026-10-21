@@ -7,6 +7,8 @@
 --   (`num_nonnulls(sales_record_id, inbound_batch_id, payment_id, expense_id,
 --     claim_id) = 1` —— 同一行上永远只有一个),
 --   而它经 `expense_claims.expense_id` 的那条**直接外键是真的**。
+--   ★ CLAIM-RECEIPTS-1(2026-10-21,Tim Q13):`finance_attachments.claim_id` 删了,那条假桥今天已经不存在;
+--     B 臂照旧守着那条直接外键(边数 1),上面这段记的是这份 fixture 当初为什么写。
 --   ☞ **一支把整组关系一起删掉的筛子,会在这里安静地删掉一条真关系,
 --     而没有任何东西会红。** 所以判据必须作用在【边】上,不能作用在【对】上,
 --     而这份 fixture 就是那句话的看守。

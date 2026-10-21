@@ -4,6 +4,8 @@
 --   * AP documents  → inbound_batch_id (priced inbound batch)
 --   * payments      → payment_id
 --   * expenses      → expense_id (supplement 2a)
+-- ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q13):claim_id(CLAIM-1 加的第五个父亲)删了 —— 报销单的收据按笔住在 expense_claim_receipts
+--   (私有桶 claim-receipts)。那一列从没有一条路写过它(线上 0 行),而它是"整张单有附件"那条已退役的凭据路。
 -- Files live in the private Storage bucket "finance-attachments" (created alongside,
 -- same pattern as supplier-attachments: private, 4 authenticated storage.objects
 -- policies, file-type whitelist PDF/images/Word/Excel enforced in app code).
@@ -24,10 +26,8 @@ CREATE TABLE public.finance_attachments (
     inbound_batch_id uuid REFERENCES public.inbound_batches (id),
     payment_id       uuid REFERENCES public.payments (id),
     -- expense_id 在列序末尾(s2a 用 ALTER ADD COLUMN 追加;镜像按线上 attnum 排)
-    -- CLAIM-1：claim_id 并入这条「恰好一个父亲」的不变量。加列而不改它，
-    -- 结果是新列写得进表结构、写不进一行数据 —— 干跑当场撞出来的。
     CONSTRAINT finance_attachments_one_parent
-        CHECK (num_nonnulls(sales_record_id, inbound_batch_id, payment_id, expense_id, claim_id) = 1),
+        CHECK (num_nonnulls(sales_record_id, inbound_batch_id, payment_id, expense_id) = 1),
     -- Original filename as uploaded, for display.
     file_name        text NOT NULL,
     -- Path/key inside the finance-attachments bucket, e.g. "{parent_id}/{uuid}-{filename}".
@@ -42,9 +42,7 @@ CREATE TABLE public.finance_attachments (
     created_by       uuid DEFAULT auth.uid(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
     updated_by       uuid,
-    expense_id       uuid REFERENCES public.expenses (id),
-    -- CLAIM-1（ALTER 加的列留在末尾，按镜像惯例）：这份附件属于哪一笔报销申请。
-    claim_id         uuid REFERENCES public.expense_claims (id)
+    expense_id       uuid REFERENCES public.expenses (id)
 );
 
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)
@@ -81,11 +79,6 @@ CREATE INDEX idx_finance_attachments_sale ON public.finance_attachments (sales_r
 CREATE INDEX idx_finance_attachments_inbound ON public.finance_attachments (inbound_batch_id);
 CREATE INDEX idx_finance_attachments_payment ON public.finance_attachments (payment_id);
 CREATE INDEX idx_finance_attachments_expense ON public.finance_attachments (expense_id);
-CREATE INDEX idx_finance_attachments_claim ON public.finance_attachments (claim_id)
-    WHERE claim_id IS NOT NULL;
-
-COMMENT ON COLUMN public.finance_attachments.claim_id IS
-    'CLAIM-1:这份附件属于哪一笔报销申请。沿用本表既有的【每种主体一列可空外键】写法(sales_record_id / inbound_batch_id / payment_id / expense_id),不另起 (subject_type, subject_id) —— 一张表里两种写法比任何一种单独用都坏。';
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

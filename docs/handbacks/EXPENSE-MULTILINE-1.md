@@ -63,3 +63,17 @@ The end of the window is Tim's reading on Vercel.
   employee profile). Multi-line / multi-item layouts at 390 px are not measured.
 - `relieve_processing_accruals` / `post_electricity_allocation` can still write a `paid` expense (Q14, registered).
 - Receipts cannot be uploaded to claims until CLAIM-RECEIPTS-1 (registered; next cut).
+
+## 5 · Close-out (CLAIM-RECEIPTS-1 Part 1, 2026-10-21)
+
+- **Pushed commit:** `7636a66ca0c1079fcc8741b74962b10b409dcb68` (`v1.4.64`); HEAD = origin/main = `git ls-remote origin main`, tree clean, re-read at the start of CLAIM-RECEIPTS-1.
+- **Broken window: opened 2026-10-20 22:54:25 CST** (migration committed; printed by `apply_migration.sh`, `db/migration-windows.tsv`) — **closed 2026-10-21 00:58 CST**
+  (Tim confirmed the deployment on Vercel; **this end point is Tim's report, not a reading this machine took**). **Length ≈ 2 h 04 min** (22:54:25 → 00:58; Tim's end point is to the minute, so the seconds are not known).
+  **Why it was this long:** auto mode refused the `git push` from this session, so the cut stopped with the commit made and printed the push line; Tim ran it himself. The wait for that hand-off is inside the window.
+  **Broken in it:** as derived in §2 — the expense list, the expense detail, `/finance/claims`, the claims block on `/me` and the GST page's coded-expense count errored; recording through the three wrapper functions kept working.
+- **Read-only check on production (2026-10-21 10:16 CST, after Tim's confirmation)** — `docs/surveys/CLAIM-RECEIPTS-1/readings/closeout-production-check.txt`, `CLOSEOUT_CHECK_EXIT=0`,
+  script `db/scripts/2026-10-21-expense-multiline-1-closeout-check.mjs`: a finance-clone throwaway (`em1probe`, shared helper) opened on `https://new-era-erp.vercel.app`
+  `/finance/expenses` (HTTP 200, table rendered, EXP-2026-0007 in it), the EXP-2026-0007 detail page (HTTP 200, lines table, its line on 6120) and `/finance/claims`
+  (HTTP 200, table rendered, CLM-2026-0004 drawn item by item). GET only. Read back as `postgres` afterwards: `em1probe` accounts 0 · throwaway roles 0 · grants without a user 0.
+- **Not measured, handed to Tim's own browser** (`docs/manual-walk-list.md` §33): the draft restore of a multi-line expense, and the expense form with three or four lines at 390 px.
+- **EXPENSE-MULTILINE-1 is closed** (`docs/forward-queue.md` item 62).

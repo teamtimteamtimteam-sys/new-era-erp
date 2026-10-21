@@ -482,6 +482,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     #   244 位随机的网关钥匙(函数里只比 sha256);一个匿名的入口若还要问 has_permission,它就永远回答不了任何一台网关。
     #   够得着的面是白名单(只插入三份采集日志,只回调用者自己的序号),失败预算住在函数体里。verify_rebuild 的两张表同改。
     "ingest_submit": "the anonymous plant-gateway entry point (MES-1), deliberately unchecked: the caller's authority IS possession of a 244-bit gateway key compared by sha256. It only inserts into the three ingestion logs, returns only the caller's own sequence numbers and fixed codes, and keeps its abuse budget in the function body",
+    # CLAIM-RECEIPTS-1(2026-10-21,Tim Q1):收据的上限 —— 与门户同一个数(account_settings V39)。员工读不到 account_settings,
+    #   而表单要把那个数印出来、浏览器要先判一遍;它吐出的只有两个数(字节上限 · 类型清单),没有登录的调用者读到 NULL。
+    #   要它查一个码,一个不持任何码的员工就看不见自己要遵守的上限。两处 allowlist 必须一致(db/verify_rebuild.py 同改)。
+    "claim_receipt_limits": "CLAIM-RECEIPTS-1: returns only the two receipt limits (max bytes, accepted types — the portal's V39, Tim Q1) that the claim form prints; employees cannot read account_settings and hold no code; NULL with no session",
     # C-1(2026-09-04):real_role_grants —— real_role_holders 的行级形状,四条判据的唯一住处。
     # 同源同理由:读 auth.users,EXECUTE 已从 authenticated 收回(zzz_function_grants.sql)。
     # 唯一调用方 guard_last_admin 是属主身份跑的触发器,收回之后照常工作。

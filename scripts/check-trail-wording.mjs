@@ -1748,6 +1748,14 @@ if (FAULT === 'wording-drift-1c3') dict.text = { ...dict.text, 'plock.monthClose
         { table: null, op: null, hidden: true, actor: null }])
     add('expense claim · description corrected (field edit)', { subject: 'expense_claim', recordId: cl }, [
         { table: 'expense_claims', op: 'UPDATE', key: { id: cl }, cols: ['description'], old: { description: 'Taxi' }, new: { description: 'Taxi to the port' }, ctx: { code: 'CLM-2026-0005' } }])
+    // CLAIM-RECEIPTS-1(Tim 2026-10-21):一笔的收据 —— 到了 · 拿掉(只读这一次操作的行时,标题后只有文件名;第几笔由下面那一格看整页)
+    const rcp = id('rcp'), itm = id('itm')
+    add('expense claim · a receipt arrived (CLAIM-RECEIPTS-1)', { subject: 'expense_claim', recordId: cl }, [
+        { table: 'expense_claim_receipts', op: 'UPDATE', key: { id: rcp }, cols: ['status', 'attached_at'], old: { status: 'uploading', attached_at: null },
+          new: { status: 'attached', attached_at: '2026-10-21T02:00:00Z' }, ctx: { claim_id: cl, item_id: itm, file_name: 'taxi.jpg' } }])
+    add('expense claim · the claimant removed a receipt (CLAIM-RECEIPTS-1 Q5)', { subject: 'my_expense_claim', recordId: cl }, [
+        { table: 'expense_claim_receipts', op: 'UPDATE', key: { id: rcp }, cols: ['status', 'removed_at', 'removed_by'], old: { status: 'attached', removed_at: null },
+          new: { status: 'removed', removed_at: '2026-10-21T03:00:00Z' }, ctx: { claim_id: cl, item_id: itm, file_name: 'taxi.jpg' } }])
     // ── 行内转账 ──
     const bt = id('bt'), btj = id('btj'), btr = id('btr')
     add('bank transfer · made (key event)', { subject: 'bank_transfer', recordId: bt }, [
@@ -2012,6 +2020,18 @@ if (FAULT === 'wording-drift-1c3') dict.text = { ...dict.text, 'plock.monthClose
                 ],
                 "reason": null
         },
+        "expense claim · a receipt arrived (CLAIM-RECEIPTS-1)": {
+                "title": "Receipt attached",
+                "part": "taxi.jpg",
+                "lines": [],
+                "reason": null
+        },
+        "expense claim · the claimant removed a receipt (CLAIM-RECEIPTS-1 Q5)": {
+                "title": "Receipt removed",
+                "part": "taxi.jpg",
+                "lines": [],
+                "reason": null
+        },
         "bank transfer · made (key event)": {
                 "title": "Bank transfer made",
                 "part": null,
@@ -2184,6 +2204,19 @@ if (FAULT === 'wording-drift-1c3') dict.text = { ...dict.text, 'plock.monthClose
         if (got.reason !== w.reason) problems.gold10.push(`${c.label}:理由「${got.reason}」≠「${w.reason}」`)
     }
     if (process.env.TRAIL_GOLD10_PRINT) console.log(JSON.stringify(Object.fromEntries(Object.entries(got10).map(([k, v]) => [k, v.got])), null, 8))
+    // CLAIM-RECEIPTS-1:收据那一句说的是【第几笔】—— 明细的行在别的那次操作里(提交),造句器看整页(fc.claimItemNo)
+    {
+        const base = { prelog: false, at: '2026-10-21T02:00:00+00:00', actor: { state: 'person', name: 'Chooer' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false }
+        const it2 = uuid(), rc2 = uuid(), cl2 = uuid()
+        const es = R.buildEntries(dict, [
+            { ...base, group: 'SUBMIT', order: 1, table: 'expense_claim_items', op: 'INSERT', key: { id: it2 }, new: { claim_id: cl2, line_no: 2, spend_date: '2026-10-01', amount_ccy: 20, description: 'Parking' } },
+            { ...base, group: 'ATTACH', order: 2, table: 'expense_claim_receipts', op: 'UPDATE', key: { id: rc2 }, cols: ['status', 'attached_at'],
+              old: { status: 'uploading' }, new: { status: 'attached', attached_at: '2026-10-21T02:00:00Z' }, ctx: { claim_id: cl2, item_id: it2, file_name: 'parking.pdf' } },
+        ], { currency: 'SGD', subject: 'expense_claim', recordId: cl2 })
+        const a = es.find((e) => e.title === 'Receipt attached')
+        if (!a || a.titlePart?.text !== 'Item 2 · parking.pdf') problems.gold10.push(`收据那一句应当说「Receipt attached · Item 2 · parking.pdf」,造出了「${a ? a.title + ' · ' + (a.titlePart?.text ?? '') : es.map((e) => e.title).join(' | ')}」`)
+    }
+
     // 链接:年结那一句里的结转分录、缴纳冲销那一句里的冲销分录是点得过去的单据
     const hrefOf = (label, text) => got10[label]?.e?.lines?.find((l) => l.t === 'value' && l.value.text === text)?.value?.href
     if (!hrefOf('year close · closed (key event; the closing journal is a line)', 'JE-2026-0200')?.startsWith('/finance/journal/')) problems.gold10.push('year close:结转分录那一行不是链接')

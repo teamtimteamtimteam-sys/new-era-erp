@@ -377,10 +377,11 @@ AS $function$
         ('journal_request', 2, 'journal_entries', 'journal_requests', 'result_journal_entry_id', '{}'::jsonb, 'up',   true, false),
         -- ── 报销单(Q20):审批 · 收据(附件)· 批准时记下的那张费用单(往上)。/me 上报销人自己读同样的几张(M8)──────
         ('expense_claim',    1, 'approval_log',        'expense_claims', 'subject_id', '{"subject_type": "expense_claim"}'::jsonb, 'down', true, true),
-        ('expense_claim',    2, 'finance_attachments', 'expense_claims', 'claim_id',   '{}'::jsonb, 'down', true, true),
+        -- CLAIM-RECEIPTS-1(Tim 2026-10-21,Q13 · 委托书:收据进报销单的审计记录):每一笔的收据取代了整张单的附件那条路
+        ('expense_claim',    2, 'expense_claim_receipts', 'expense_claims', 'claim_id', '{}'::jsonb, 'down', true, true),
         ('expense_claim',    3, 'expenses',            'expense_claims', 'expense_id', '{}'::jsonb, 'up',   true, false),
         ('my_expense_claim', 1, 'approval_log',        'expense_claims', 'subject_id', '{"subject_type": "expense_claim"}'::jsonb, 'down', true, false),
-        ('my_expense_claim', 2, 'finance_attachments', 'expense_claims', 'claim_id',   '{}'::jsonb, 'down', true, false),
+        ('my_expense_claim', 2, 'expense_claim_receipts', 'expense_claims', 'claim_id', '{}'::jsonb, 'down', true, false),
         ('my_expense_claim', 3, 'expenses',            'expense_claims', 'expense_id', '{}'::jsonb, 'up',   true, false),
         -- EXPENSE-MULTILINE-1(Tim 2026-10-20):报销单的明细 —— 家在报销单那一块(/finance/claims);/me 上本人读同样的几笔
         ('expense_claim',    4, 'expense_claim_items', 'expense_claims', 'claim_id',   '{}'::jsonb, 'down', true, true),

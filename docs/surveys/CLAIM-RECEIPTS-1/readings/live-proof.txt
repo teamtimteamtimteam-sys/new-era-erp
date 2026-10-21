@@ -1,0 +1,35 @@
+BEFORE(postgres)|receipt rows|claim-receipts objects|claims|expenses|all stored objects = 0|0|4|10|40
+MINTED|employee with profile (1 codes) · other employee · finance copy 43 codes · real finance role 43 codes
+PASS|H1: /me (throwaway employee, only module.tasks.view) HTTP 200, the expense-claims block is drawn
+PASS|H2: /finance/claims (finance copy) HTTP 200: CLM-2026-0004's item says "No receipt"; the decided register has a "Receipts" column
+PASS|H3: /finance/expenses/EXP-2026-0007 HTTP 200: "Receipts from claim CLM-2026-0002" is on the page (Q8, read in place)
+PASS|H4: PostgREST claim_receipt_limits as the employee → 200 {"set":true,"types":["application/pdf","image/jpeg","image/png"],"max_bytes":10485760}
+PASS|H5: the Storage API with the employee's token, a claim-receipts path nobody registered → HTTP 400 (refused)
+PASS|H5: the Storage API with the finance copy's token, a claim-receipts path nobody registered → HTTP 400 (refused)
+PASS|H5: after the refused Storage writes, receipts / objects / claims / expenses unchanged (0|0|4|10|40)
+PASS|T1: CLM-2026-0005 submitted by the throwaway employee (two items, no reasons) — the reply carries each item's id (Q12)
+PASS|T2: a HEIC file refused at begin, by name
+PASS|T2: a Word file refused at begin, by name
+PASS|T2: 10 MB + 1 byte refused at begin (the portal's number, Q1)
+PASS|T2: another employee cannot begin on this claim (CLAIM_RECEIPT_NOT_YOURS, Q4)
+PASS|T2: the employee registers one uploading receipt under its claim and item
+PASS|T3: the platform's upload pre-check (storage.can_insert_object) admits the employee's registered path (PT200 = admitted, then undone by the platform)
+PASS|T3: the pre-check refuses a path nothing registered (42501)
+PASS|T3: the pre-check refuses another employee on the employee's registered path (42501)
+PASS|T4: the employee stores the bytes' row through the live upload policy (insert + read back)
+PASS|T4: another employee cannot finish it
+PASS|T4: finish → attached (size and type match)
+PASS|T4: the finance copy reads the receipt object (live read policy, Q7)
+PASS|T4: another employee does not see it (0 rows)
+PASS|T4: another employee reads none of its receipt rows
+PASS|T5: item 1 has its receipt, item 2 has neither — refused item by item (EXPENSE_CLAIM_NO_EVIDENCE|CLM-2026-0005|2)
+PASS|T5: with a receipt on each item a level-1 approver (real finance role) approves → one expense, two lines
+PASS|T6: after approval a receipt cannot be removed (Q6)
+PASS|T6: after approval nothing more can be attached
+PASS|T6: the employee still reads both of its receipts after approval (Q6)
+TX_DONE
+PASS|tx: the transaction leg ran to the end and rolled back (psql exit 0)
+PASS|after ROLLBACK: receipt rows · claim-receipts objects · claims · expenses · all stored objects 0|0|4|10|40 → 0|0|4|10|40
+STEP|done
+AFTER|nothing but the throwaway accounts, their grants and employee profiles was committed (removed by the plan); no byte was uploaded
+CR1_PROOF_EXIT=0

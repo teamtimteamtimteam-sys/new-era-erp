@@ -1,0 +1,11 @@
+psql:<stdin>:1913: NOTICE:  CR1 pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:<stdin>:1913: NOTICE:  CR1 pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:<stdin>:1913: NOTICE:  CR1 pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:<stdin>:1913: NOTICE:  CR1 pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:<stdin>:1913: NOTICE:  CR1 pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:<stdin>:1913: NOTICE:  CR1 pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:<stdin>:1913: NOTICE:  CR1 pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:<stdin>:1913: NOTICE:  CR1 pending stocktake ST-2026-0089 → chooer@evoltrya.test
+DRY|inside|tables=328|receipts table=true|receipt rows=0|receipt functions=7|authenticated executes begin=true|anon executes begin=false|finance_attachments.claim_id=false|has_receipt=false|storage policies=58|buckets=21|claim-receipts=10485760 {application/pdf,image/jpeg,image/png}|objects=40|exclusions=9|gaps=[]
+DRY|after rollback|tables=327|receipts table=false|finance_attachments.claim_id=true|storage policies=56|buckets=20|objects=40
+DRY_OWN_EXIT=0

@@ -30,8 +30,12 @@
 //   (每一笔:哪天 · 收据上的金额 · 说明 · 没有收据时的理由)。同一个日历月;外币的单所有明细同一天 —— 两条都由
 //   submit_expense_claim_items 按名拒,这里不再判一遍。在 CLAIM-RECEIPTS-1 之前员工传不了收据,所以每一笔都要写理由。
 //   这张表单【没有】草稿(Step 0b Q10)。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+// ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Step 0 Q2 · Q3 · Q5 · Q9 · Q12):每一笔有它自己的文件选择框(一份或几份);提交之后紧接着逐份传
+//   (照片先在浏览器里缩成 JPEG,PDF 原样);一份传失败,在下面的表里那一笔上重试。每一笔要么有文件、要么有无收据理由,才按得下提交 ——
+//   库在批准时照样逐笔查。表里每一笔列出它的收据,单还在 submitted 时可以再加、可以拿掉一份(Q5)。
+import { CONTROL_INPUT, CONTROL_FILE_BUTTON } from '@/app/components/ui/control-style'
 import { useState, useTransition, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
@@ -39,12 +43,14 @@ import { DatePicker } from '@/app/components/ui/date-picker'
 import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限按新加坡的今天,与服务端拒「将来」的那一天同一天
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DecisionCell, { type Decision } from './DecisionCell'
+import ClaimReceipts, { PREPARE_FAILURE_KEYS, type ReceiptRow } from './ClaimReceipts'
+import { prepareReceipt, uploadReceipt, RECEIPT_ACCEPT, type ReceiptLimits } from './uploadClaimReceipt'
 
-export type MyClaimItem = { line_no: number; spend_date: string; amount_ccy: number; description: string; no_receipt_reason: string | null }
+export type MyClaimItem = { id: string; line_no: number; spend_date: string; amount_ccy: number; description: string; no_receipt_reason: string | null }
 type Row = {
     claim_id: string; code: string; spend_date: string; amount_ccy: number
     currency: string; description: string; status: string
-    is_owing: boolean; is_paid: boolean; has_receipt: boolean
+    is_owing: boolean; is_paid: boolean
     decision_notes: string | null
     // EXPENSE-MULTILINE-1:明细(页面另读 expense_claim_items,按单挂上来)
     items: MyClaimItem[]
@@ -60,22 +66,32 @@ const money = (n: number) =>
 //   没有页面码,报销单自己的读规则就是门)。审批留痕那一支不给本人开口子,所以那几行是 Restricted(Q4);谁决定的、为什么,
 //   本人在表里的「决定」一格已经看得到(EMP-SELF-1)。
 export default function MyExpenseClaimsPanel({
-    employeeId, rows, baseCurrency, decisions, trails = {},
-}: { employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision>; trails?: Record<string, ReactNode> }) {
+    employeeId, rows, baseCurrency, decisions, trails = {}, receipts = [], limits = null,
+}: {
+    employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision>; trails?: Record<string, ReactNode>
+    /** CLAIM-RECEIPTS-1:这几张单上 attached 的收据(页面另读 expense_claim_receipts) */
+    receipts?: ReceiptRow[]
+    /** CLAIM-RECEIPTS-1:收据的上限(claim_receipt_limits —— 与门户同一个数) */
+    limits?: ReceiptLimits | null
+}) {
     const t = useTranslations()
+    const router = useRouter()
     const [open, setOpen] = useState(false)
     // 【花钱那天不预填】—— 一个决定成本落在哪个期间的日期,预填就是奖励留空;
     // 服务端也独立地拒空(合取,不是二选一)。逐笔。
-    type ItemDraft = { key: string; spendDate: string; bad: boolean; amount: string; description: string; noReceipt: string }
-    const blankItem = (): ItemDraft => ({ key: Math.random().toString(36).slice(2), spendDate: '', bad: false, amount: '', description: '', noReceipt: '' })
+    type ItemDraft = { key: string; spendDate: string; bad: boolean; amount: string; description: string; noReceipt: string; files: File[] }
+    const blankItem = (): ItemDraft => ({ key: Math.random().toString(36).slice(2), spendDate: '', bad: false, amount: '', description: '', noReceipt: '', files: [] })
     const [items, setItems] = useState<ItemDraft[]>(() => [blankItem()])
     const setItem = (key: string, patch: Partial<ItemDraft>) => setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)))
     const [purpose, setPurpose] = useState('')
     const [currency, setCurrency] = useState(baseCurrency)
     const [error, setError] = useState<string | null>(null)
+    const [notice, setNotice] = useState<string | null>(null)
     const [pending, startTransition] = useTransition()
 
-    const canSubmit = purpose.trim() !== '' && items.every((x) => x.spendDate !== '' && !x.bad && x.amount !== '' && x.description.trim() !== '')
+    // Q12:每一笔要么有文件、要么有无收据理由(库在批准时照样逐笔查)
+    const canSubmit = purpose.trim() !== '' && items.every((x) => x.spendDate !== '' && !x.bad && x.amount !== '' && x.description.trim() !== ''
+        && (x.files.length > 0 || x.noReceipt.trim() !== ''))
     const reset = () => { setItems([blankItem()]); setPurpose('') }
 
     /* 撤回钮。TABLE-PHONE-3 当时把它写成一个共用的画法,是因为同一颗钮要在两个
@@ -124,10 +140,13 @@ export default function MyExpenseClaimsPanel({
                         <span key={it.line_no} className="block text-xs text-gray-500">
                             {t('expenseClaims.itemNo', { n: it.line_no })} · {it.description} · {money(it.amount_ccy)}
                             {' — '}
-                            {r.has_receipt ? t('expenseClaims.hasReceipt')
+                            {receipts.some((x) => x.item_id === it.id) ? t('expenseClaims.hasReceipt')
                                 : it.no_receipt_reason
                                     ? `${t('expenseClaims.noReceipt')}: ${it.no_receipt_reason}`
                                     : t('expenseClaims.noReceipt')}
+                            {/* CLAIM-RECEIPTS-1:这一笔的收据;单还在 submitted 时可以再加、可以拿掉(Q5 · Q9) */}
+                            <ClaimReceipts itemId={it.id} receipts={receipts.filter((x) => x.item_id === it.id)}
+                                canUpload={r.status === 'submitted'} limits={limits} />
                         </span>
                     ))}
                 </>
@@ -182,6 +201,9 @@ export default function MyExpenseClaimsPanel({
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
+            {notice && (
+                <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{notice}</div>
+            )}
 
             {employeeId && !open && (
                 <Button variant="default" className="mb-3 text-sm" type="button" onClick={() => setOpen(true)}>
@@ -215,6 +237,14 @@ export default function MyExpenseClaimsPanel({
                             <label className="min-w-0 flex-1 basis-56">{t('expenseClaims.description')}
                                 <input value={x.description} onChange={(e) => setItem(x.key, { description: e.target.value })}
                                     className={`${CONTROL_INPUT} block w-full`} /></label>
+                            {/* CLAIM-RECEIPTS-1(Q2 · Q9):这一笔的收据 —— 一份或几份;手机上这个框给「拍照 · 照片图库 · 文件」 */}
+                            <label className="min-w-0 flex-1 basis-56">{t('expenseClaims.attachReceipt')}
+                                <input type="file" multiple accept={RECEIPT_ACCEPT}
+                                    onChange={(e) => setItem(x.key, { files: Array.from(e.target.files ?? []) })}
+                                    className={`${CONTROL_FILE_BUTTON} block max-w-full`} />
+                                {x.files.length > 1 && (
+                                    <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.receipts.filesChosen', { n: x.files.length })}</span>
+                                )}</label>
                             <label className="min-w-0 flex-1 basis-56">{t('expenseClaims.noReceiptReason')}
                                 <input value={x.noReceipt} onChange={(e) => setItem(x.key, { noReceipt: e.target.value })}
                                     className={`${CONTROL_INPUT} block w-full`} /></label>
@@ -230,21 +260,40 @@ export default function MyExpenseClaimsPanel({
                     <p className="text-xs text-[color:var(--brand-muted-text)]">
                         {t('expenseClaims.spendDateHint')} {t('expenseClaims.amountHint')} {t('expenseClaims.noReceiptReasonHint')}
                     </p>
+                    {limits?.set && limits.max_bytes != null && (
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">
+                            {t('expenseClaims.receipts.limitsHint', { mb: String(Math.round(limits.max_bytes / 1048576)) })}
+                        </p>
+                    )}
                     <div className="flex flex-wrap gap-2">
                         <Button variant="secondary" size="xs" type="button" onClick={() => setItems((xs) => [...xs, blankItem()])}>
                             {t('expenseClaims.addItem')}
                         </Button>
                         <Button type="button" disabled={pending || !canSubmit}
                             onClick={() => {
-                                setError(null)
+                                setError(null); setNotice(null)
                                 startTransition(async () => {
                                     const r = await submitClaim({
                                         employeeId: employeeId!, currency, purpose,
                                         items: items.map((x) => ({ spendDate: x.spendDate, amount: x.amount,
                                                                    description: x.description, noReceiptReason: x.noReceipt })),
                                     })
-                                    if (r.error) setError(r.error)
-                                    else { setOpen(false); reset() }
+                                    if (r.error) { setError(r.error); return }
+                                    // Q12:单已提交 —— 紧接着逐份传每一笔的收据;传不上的,在表里那一笔上重试
+                                    const problems: string[] = []
+                                    for (const [n, x] of items.entries()) {
+                                        const itemId = r.items?.find((i) => i.line_no === n + 1)?.item_id
+                                        for (const f of x.files) {
+                                            if (!itemId || !limits) { problems.push(f.name); continue }
+                                            const p = await prepareReceipt(f, limits)
+                                            if (!p.ok) { problems.push(`${f.name}: ${t(PREPARE_FAILURE_KEYS[p.why])}`); continue }
+                                            const e = await uploadReceipt(itemId, p)
+                                            if (e) problems.push(`${f.name}: ${e}`)
+                                        }
+                                    }
+                                    if (problems.length) setNotice(t('expenseClaims.receipts.someFailed', { code: r.code ?? '', list: problems.join(' · ') }))
+                                    setOpen(false); reset()
+                                    router.refresh()
                                 })
                             }}>
                             {t('expenseClaims.submit')}

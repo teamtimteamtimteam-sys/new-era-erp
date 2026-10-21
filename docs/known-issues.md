@@ -11376,7 +11376,10 @@ SQL fixture 结构上够不到它们(没有 JS / HTTP 运行器 —— 与上面
 
 ## EXPENSE-MULTILINE-1(`v1.4.64`,2026-10-20)—— 费用单 = 表头 + 行;报销单 = 表头 + 明细
 
-### EXPENSE-CLAIM-NO-RECEIPT-UPLOAD · 员工给报销单【一张收据都传不上去】—— 每一笔只能靠一句"无收据理由"过审批(EXPENSE-MULTILINE-1 Step 0b 量到;Tim 2026-10-20:登记,去处 CLAIM-RECEIPTS-1)
+### ~~EXPENSE-CLAIM-NO-RECEIPT-UPLOAD · 员工给报销单【一张收据都传不上去】—— 每一笔只能靠一句"无收据理由"过审批(EXPENSE-MULTILINE-1 Step 0b 量到;Tim 2026-10-20:登记,去处 CLAIM-RECEIPTS-1)~~ —— ✅ **关闭于 CLAIM-RECEIPTS-1(`v1.4.65`,2026-10-21)**
+
+★ **关闭:** 员工(与替他提单的人)给每一笔传自己的收据(PDF / JPEG / PNG,10 MB;照片先在浏览器里缩成 JPEG),私有桶 `claim-receipts`,只在单还是 submitted 时;批准时逐笔查「有一份 attached 的收据,或者有一句无收据理由」(`decide_expense_claim_items`);整张单的附件那条路(`finance_attachments.claim_id`)退役了。Tim 2026-10-21 的十四条裁定见 `docs/forward-queue.md` 第 62b 项;fixture 287;`docs/handbacks/CLAIM-RECEIPTS-1.md`。下面的原文留着 —— 它记的是那一天的事实。
+
 
 **是什么(量过,2026-10-20):** 报销单的凭据判据是"那张单上有附件,或者那一笔自己有一句无收据理由"(`decide_expense_claim_items`,
 `EXPENSE_CLAIM_NO_EVIDENCE|单号|第几笔`;EXPENSE-MULTILINE-1 之前是整张单一句,`decide_expense_claim.sql:166`)。而**应用里没有任何一条路
@@ -11388,6 +11391,28 @@ SQL fixture 结构上够不到它们(没有 JS / HTTP 运行器 —— 与上面
 形状照裁定:收据按笔;每一笔要么有自己的收据、要么有自己的无收据理由,批准时逐笔查;员工只能往【自己的、还在 submitted 的】单上传;
 财务读得到;新的库与存储权限规矩,自带 grilling 与线上证明。理由:这是员工第一次拿到存储的写权限,一个新的安全面。
 **在它之前:** 每一笔都带一句无收据理由(今天的规矩要求的就是这个);`/me` 的表单每一笔都有那一格,并且说明了为什么。
+
+### PORTAL-UPLOAD-CAPPED-BY-VERCEL-4-5-MB · 门户承诺「每份不超过 10 MB」,而生产上 4.3 MB 以上的文件在到达应用之前就被 Vercel 拒了(CLAIM-RECEIPTS-1 Q14 量到,2026-10-21)
+
+**量过的(生产,`https://new-era-erp.vercel.app`,2026-10-21 21:3x CST,一次性门户账号,`db/scripts/2026-10-21-claim-receipts-1-q14-portal-upload-limit.mjs`
+→ `docs/surveys/CLAIM-RECEIPTS-1/readings/q14-portal-upload-limit.txt`,`Q14_EXIT=0`):** 每一次都送故意认不出的字节,于是到了应用的那几次都在
+`portal_submission_begin` 按名拒(`PORTAL_UPLOAD_TYPE_NOT_ACCEPTED`),一个字节都没存(门户申请 0 → 0、`portal-uploads` 对象 0 → 0)。
+**到得了应用的最大一份:4,489,216 字节的文件(4.28 MB;整个请求体 4,489,496 字节)。最小被拒的一份:4,505,600 字节(4.30 MB;请求体 4,505,880 字节)——
+HTTP 413 `FUNCTION_PAYLOAD_TOO_LARGE`,由 Vercel 回、在应用之前。** 二分到 16 KB。上限落在请求体 4,489,496 与 4,505,880 字节之间,与 Vercel 文档写的 4.5 MB 一致。
+**为什么 MES-9c 没看见:** 它那次 10.2 MB 的拒绝是对着本地 `next start` 证的(`docs/handbacks/MES-9c.md` §7),本地没有这个平台上限。
+**后果:** 一位供应商在门户上传一份 4.3–10 MB 的证书,屏幕上不是那句「文件太大」,而是 Vercel 的 413 页 —— 门户页写的 10 MB 是假的。今天线上没有门户账号,所以没有人遇到过。
+**去处:** ★ **Tim 2026-10-21(CLAIM-RECEIPTS-1 Q14):登记,修法进「上线准备组」(`docs/forward-queue.md` 那一组第 9 行),必须在第一个真实供应商账号之前落地;本刀不修。**
+修法的形状已经有了:报销收据(CLAIM-RECEIPTS-1)的字节从浏览器直传存储,路由 / 服务端动作只做登记(begin)与确认(finish,在那里按文件头认类型)。
+
+### SETTINGS-DICTIONARIES-30-SECOND-LOAD · `/settings/dictionaries` 一次要 30–45 秒,smoke 里有一次它的用量查询失败了(CLAIM-RECEIPTS-1 量到,2026-10-21;不是本刀碰的页)
+
+**量过的:** CLAIM-RECEIPTS-1 的 smoke(`docs/surveys/CLAIM-RECEIPTS-1/readings/smoke.txt`,`SMOKE_EXIT=1`)里只有这一条红:HTTP 500,
+`用量查询失败(materials): `(`app/settings/dictionaries/page.tsx:150`)—— **错误信息是空的**,也就是 PostgREST 那一侧没有给出一个码,
+最像一次网络 / 超时层面的失败(那一跑整体就慢:278 条计时合计 1,972 s)。随后在本刀代码的 `next start` 上、对着线上,以一次性 admin 克隆打开它三次:
+**HTTP 200 · 200 · 200,分别 30.2 s · 45.6 s · 39.1 s**(`readings/smoke-dictionaries-recheck.txt`)。页面本身是好的;慢在它为每一条字典值各发一条
+`count(*)` 用量查询(`pMap` 并发)—— 条数一多、链路一慢,就有一条会掉。
+**为什么记:** 判词"查不到不是零"在这里是对的(它宁可 500 也不把用量说成 0),所以这不是吞错误;但一张 40 秒的页面迟早在 Vercel 的函数时限上撞墙。
+**去处:** 未排。修法的方向是把逐值的用量查询换成一支按表聚合的函数(一次往返)。
 
 ### RELIEVE-PAID-AT-CREATION · 加工费结算(`relieve_processing_accruals`)仍然能把一张费用单【生下来就是已付】—— PAY-REQ-1 关掉的那扇侧门的另一半(EXPENSE-MULTILINE-1 Step 0 量到;Tim 2026-10-20 Q14:只登记,不在本刀修)
 

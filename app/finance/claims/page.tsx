@@ -20,12 +20,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import { canViewPrices } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ClaimDecisionPanel, { type ClaimItem, type ClaimRow } from './ClaimDecisionPanel'
+import type { ReceiptRow } from '@/app/me/ClaimReceipts'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 // AUDIT-TRAIL-1c-3(Tim 的 Q20):每一张报销单一段审计记录(提交 · 决定 · 撤回 · 收据 · 批准时记下的费用单);
@@ -53,13 +54,37 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
     const items = headers.length
         ? mustRows(
             await supabase.from('expense_claim_items')
-                .select('claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code')
+                .select('id, claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code')
                 .in('claim_id', headers.map((h) => h.claim_id))
                 .order('line_no'),
             'expense_claim_items',
         ) as unknown as (ClaimItem & { claim_id: string })[]
         : []
     const rows: ClaimRow[] = headers.map((h) => ({ ...h, items: items.filter((i) => i.claim_id === h.claim_id) }))
+    // ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q6 · Q7):每一笔的收据 —— 持 finance.view 读全部(本页的门就是它);只列 attached 的
+    //   (拿掉的从单上隐去,Q5)。替人提单的人(expense_claims.created_by = 我)在这里也传得了(Q4),所以读一下每张单是谁提的。
+    const receipts = headers.length
+        ? mustRows(
+            await supabase.from('expense_claim_receipts')
+                .select('id, item_id, file_name')
+                .in('claim_id', headers.map((h) => h.claim_id))
+                .eq('status', 'attached')
+                .order('created_at'),
+            'expense_claim_receipts',
+        ) as ReceiptRow[]
+        : []
+    const raisers = headers.length
+        ? mustRows(
+            await supabase.from('expense_claims').select('id, created_by').in('id', headers.map((h) => h.claim_id)),
+            'expense_claims (raisers)',
+        ) as { id: string; created_by: string | null }[]
+        : []
+    // 认证读不出来(error)时不猜"是不是提单人" —— 那就不画替人提单的那个上传框;库照样判(claim_receipt_begin)
+    const { data: meData, error: meErr } = await supabase.auth.getUser()
+    const me = meErr ? null : (meData.user?.id ?? null)
+    const raisedByMe = raisers.filter((r) => me && r.created_by === me).map((r) => r.id)
+    const receiptLimits = mustOne(await supabase.rpc('claim_receipt_limits'), 'claim_receipt_limits') as
+        { set: boolean; max_bytes: number | null; types: string[] | null } | null
 
     const accounts = mustRows(
         await supabase.from('accounts')
@@ -95,6 +120,9 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
                 taxCodes={taxCodes.filter((x) => x.is_active && x.side === 'input')}
                 canDecide={canDecide}
                 baseCurrency={baseCurrency}
+                receipts={receipts}
+                raisedByMe={raisedByMe}
+                receiptLimits={receiptLimits}
             />
         </ListPage>
     )

@@ -820,7 +820,6 @@ finance_attachments,created_by,audit_std,hide: the trail entry already says who 
 finance_attachments,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
 finance_attachments,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
 finance_attachments,expense_id,fk_document,"expenses.code (document number, prefix EXP)",assets.detail.colExpense,Expense,,text-only,,uuid
-finance_attachments,claim_id,fk_document,"expense_claims.code (document number, prefix CLM)",hr.subnav.claims,Claims,,text-only,,uuid
 finance_settings,id,own_key,show as-is: the record's own business key (code/number),,,ID,,,boolean
 finance_settings,locked_before,date,"formatDate (lib/dates.ts:193) → today ""01 Sep 2026""; Tim now asks DD/MM/YYYY",finance.lockedBefore,Period locked before,,high,app/finance/settings/LockForm.tsx:49,date
 finance_settings,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
@@ -3966,3 +3965,17 @@ expense_claim_items,account_code,dict,accounts.name_en (via code),expense.colAcc
 expense_claim_items,tax_code,dict,tax_codes.name_en (via code),expense.form.taxCode,Tax code,,text-only,,text
 expense_claim_items,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
 expense_claim_items,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+expense_claim_receipts,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
+expense_claim_receipts,claim_id,fk_document,"expense_claims.code (document number, prefix CLM) — CLAIM-RECEIPTS-1 (2026-10-21)",,,Expense claim,,,uuid
+expense_claim_receipts,item_id,technical,hide: the claim item (the trail's heading says which item),,,Claim item,,,uuid
+expense_claim_receipts,file_name,text,verbatim (the uploaded file's name),,,File,,,text
+expense_claim_receipts,file_type,technical,hide: a MIME type (machine text; the file name says what it is),,,File type,,,text
+expense_claim_receipts,file_size,technical,hide: bytes (machine text),,,File size,,,bigint
+expense_claim_receipts,bucket_id,technical,hide: always claim-receipts (machine text),,,Storage bucket,,,text
+expense_claim_receipts,storage_path,technical,hide: an object key (machine text),,,Stored at,,,text
+expense_claim_receipts,status,enum,"the receipt's state — uploading / attached / abandoned / removed — CLAIM-RECEIPTS-1 (2026-10-21)",,,Receipt status,,,text
+expense_claim_receipts,created_at,audit_std,hide: the trail entry already says who and when,,,Upload started,,,timestamp with time zone
+expense_claim_receipts,created_by,audit_std,hide: the trail entry already says who and when,,,Uploaded by,,,uuid
+expense_claim_receipts,attached_at,timestamp_audit,formatAuditStamp (lib/dates.ts) — the moment the file arrived and counted as the item's receipt,,,Attached,,,timestamp with time zone
+expense_claim_receipts,removed_at,timestamp_audit,formatAuditStamp (lib/dates.ts) — the moment it was removed from the claim (the file stays stored),,,Removed,,,timestamp with time zone
+expense_claim_receipts,removed_by,actor,the account that removed it from the claim,,,Removed by,,,uuid

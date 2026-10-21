@@ -34,14 +34,16 @@ Standing up a new EVoltrya OS project from this repository.
    **Expect this step to take about nine minutes** against a remote project — it
    replays 92 functions, 73 tables and 38 views over the network.
 2b. **Create the storage buckets and their policies** (NOROLE-SURFACE, 2026-10-19). In the SQL editor of the **new Supabase
-   project**, run `db/storage/buckets-and-policies.sql` once. It creates the 20 private buckets and the 56 policies on
+   project**, run `db/storage/buckets-and-policies.sql` once. It creates the 21 private buckets and the 58 policies on
    `storage.objects` (read and upload by the record's own permission code; delete only for a file no record points at; no
    update outside `avatars` and `company-assets`; and — MES-9b, 2026-10-19 — one read policy `TO supplier_portal` for the
    supplier portal's own just-logged issued documents, with the two grants it needs: `USAGE` on schema `storage` and `SELECT`
    on `storage.objects`; and — MES-9c, 2026-10-20 — the `portal-uploads` bucket (10 MB · PDF / JPEG / PNG, the V39 values) with two policies
    `TO supplier_portal` that admit only the path of the portal account's own pending submission, one staff read policy, and the portal role's
-   `INSERT` on `storage.objects`). **It needs the `supplier_portal` role to exist** (step 6b's two lines, run before step 2) and the
-   functions `public.portal_can_read_object` and `public.portal_can_upload_object` (step 2). It is idempotent (buckets `ON CONFLICT DO UPDATE`, each policy
+   `INSERT` on `storage.objects`; and — CLAIM-RECEIPTS-1, 2026-10-21 — the `claim-receipts` bucket (10 MB · PDF / JPEG / PNG, the same V39 values)
+   with two policies `TO authenticated`: upload only to the caller's own just-registered receipt path, read by `module.finance.view` or by the
+   claim's own people; no update, no delete). **It needs the `supplier_portal` role to exist** (step 6b's two lines, run before step 2) and the
+   functions `public.portal_can_read_object`, `public.portal_can_upload_object`, `public.claim_receipt_can_upload` and `public.claim_receipt_can_read` (step 2). It is idempotent (buckets `ON CONFLICT DO UPDATE`, each policy
    `DROP … IF EXISTS` then `CREATE`). **Until this runs every PDF route, attachment panel, avatar and logo fails** — the
    rebuild in step 2 does not create storage, because the platform owns that schema.
 

@@ -1,0 +1,18 @@
+BEFORE(postgres)|portal submissions|portal-uploads objects = 0|0
+TRY|file 1048576 B (1.000 MB) · request body 1048856 B · HTTP 303 → PORTAL_UPLOAD_TYPE_NOT_ACCEPTED · 5594 ms · reached-app
+TRY|file 2097152 B (2.000 MB) · request body 2097432 B · HTTP 303 → PORTAL_UPLOAD_TYPE_NOT_ACCEPTED · 5268 ms · reached-app
+TRY|file 3145728 B (3.000 MB) · request body 3146008 B · HTTP 303 → PORTAL_UPLOAD_TYPE_NOT_ACCEPTED · 5377 ms · reached-app
+TRY|file 4194304 B (4.000 MB) · request body 4194584 B · HTTP 303 → PORTAL_UPLOAD_TYPE_NOT_ACCEPTED · 8714 ms · reached-app
+TRY|file 4718592 B (4.500 MB) · request body 4718872 B · HTTP 413 · Request Entity Too Large FUNCTION_PAYLOAD_TOO_LARGE arn1::nqdzj-1792589446737-18aacf5c4c3f  · 3989 ms · platform-refused
+TRY|file 4456448 B (4.250 MB) · request body 4456728 B · HTTP 303 → PORTAL_UPLOAD_TYPE_NOT_ACCEPTED · 6060 ms · reached-app
+TRY|file 4587520 B (4.375 MB) · request body 4587800 B · HTTP 413 · Request Entity Too Large FUNCTION_PAYLOAD_TOO_LARGE arn1::5mz9m-1792589456812-9a5ae8015596  · 4111 ms · platform-refused
+TRY|file 4521984 B (4.313 MB) · request body 4522264 B · HTTP 413 · Request Entity Too Large FUNCTION_PAYLOAD_TOO_LARGE arn1::fz9jk-1792589460917-39b791c19a00  · 4940 ms · platform-refused
+TRY|file 4489216 B (4.281 MB) · request body 4489496 B · HTTP 303 → PORTAL_UPLOAD_TYPE_NOT_ACCEPTED · 6975 ms · reached-app
+TRY|file 4505600 B (4.297 MB) · request body 4505880 B · HTTP 413 · Request Entity Too Large FUNCTION_PAYLOAD_TOO_LARGE arn1::mdb5t-1792589472846-0151c9434246  · 3585 ms · platform-refused
+RESULT|largest file that reached the app: 4489216 B (4.281 MB) · smallest refused before it: 4505600 B (4.297 MB)
+PASS|at least one size reached the app (the measurement has a lower bound)
+AFTER(postgres)|portal submissions|portal-uploads objects = 0|0
+PASS|nothing stored: portal submissions and portal-uploads objects 0|0 → 0|0
+STEP|done
+Q14_EXIT=0
+READBACK(postgres)|cr1probe accounts=0 · ZZ-PROBE suppliers=0 · portal links=0 · grants without a user=0

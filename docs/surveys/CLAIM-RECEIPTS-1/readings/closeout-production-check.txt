@@ -1,0 +1,7 @@
+CLONE|finance copy holds 43 codes
+PASS|C1: https://new-era-erp.vercel.app/finance/expenses HTTP 200, table rendered (<table> present, EXP-2026-0007 in it)
+PASS|C2: https://new-era-erp.vercel.app/finance/expenses/<EXP-2026-0007> HTTP 200, lines table rendered ("Lines", the one line on 6120)
+PASS|C3: https://new-era-erp.vercel.app/finance/claims HTTP 200, table rendered, pending CLM-2026-0004 drawn item by item ("Item 1")
+STEP|done
+CLOSEOUT_CHECK_EXIT=0
+READBACK(postgres, 2026-10-21 10:17 CST)|auth.users em1probe*=0 · throwaway roles=0 · grants without a user=0

@@ -26,7 +26,7 @@ import MyPayslipsTable, { type PayslipRow } from './MyPayslipsTable'
 import MyTrainingTable, { type TrainingRow } from './MyTrainingTable'
 import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import AvatarPanel from './AvatarPanel'
 import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
@@ -191,11 +191,22 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     const expenseClaimHeaders = mustRows(expenseClaimRes) as { claim_id: string }[]
     const expenseClaimItems = expenseClaimHeaders.length
         ? mustRows(await supabase.from('expense_claim_items')
-            .select('claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason')
+            .select('id, claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason')
             .in('claim_id', expenseClaimHeaders.map((h) => h.claim_id))
             .order('line_no'), 'expense_claim_items (me)') as { claim_id: string }[]
         : []
     const expenseClaimRows = expenseClaimHeaders.map((h) => ({ ...h, items: expenseClaimItems.filter((i) => i.claim_id === h.claim_id) }))
+    // ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q6):每一笔的收据 —— 读规则:这张单说的就是你(或你替人提的);只列 attached 的
+    //   (拿掉的从单上隐去,Q5)。上限从库里来(claim_receipt_limits,与门户同一个数),不在这里另写一份。
+    const expenseClaimReceipts = expenseClaimHeaders.length
+        ? mustRows(await supabase.from('expense_claim_receipts')
+            .select('id, item_id, file_name')
+            .in('claim_id', expenseClaimHeaders.map((h) => h.claim_id))
+            .eq('status', 'attached')
+            .order('created_at'), 'expense_claim_receipts (me)') as { id: string; item_id: string; file_name: string }[]
+        : []
+    const receiptLimits = mustOne(await supabase.rpc('claim_receipt_limits'), 'claim_receipt_limits') as
+        { set: boolean; max_bytes: number | null; types: string[] | null } | null
 
     // ★ OVERTIME-1(Tim Q14):现场员工看得见自己【已批准】的加班 —— 属主权限的读者,只给调用者自己的行
     //   (员工读不到批次,"批准了没有"住在批次上;与 my_document_decisions 同形)。
@@ -491,6 +502,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                         <AuditTrail key={r.claim_id} subject="my_expense_claim" id={r.claim_id} show={trailShow} anchor={`my-claim-trail-${r.claim_id}`} compact />]))}
                     employeeId={employeeId}
                     rows={expenseClaimRows as never}
+                    receipts={expenseClaimReceipts}
+                    limits={receiptLimits}
                     baseCurrency={baseCurrency}
                     decisions={decisions}
                 />

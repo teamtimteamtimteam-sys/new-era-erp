@@ -62,7 +62,9 @@ STORAGE_MIRROR = HERE / "storage" / "buckets-and-policies.sql"
 # 判据函数 —— 只有这一份。一个表达式 / body 里出现其中之一,就算"有人在判";否则点名。
 JUDGE = (r"(has_permission|has_any_permission|require_permission|require_any_permission|require_[a-z_]+\(|"
          r"current_user_permissions|approval_log_readable|can_view_task|can_edit_task|can_write_task|assert_[a-z_]+\(|"
-         r"auth\.uid\(\)|current_user_employee|arm_permission)")
+         r"auth\.uid\(\)|current_user_employee|arm_permission|"
+         # CLAIM-RECEIPTS-1(2026-10-21):claim-receipts 上两条存储策略的判据(各自判 auth.uid() / current_user_employee() / has_permission)
+         r"claim_receipt_can_upload\(|claim_receipt_can_read\()")
 KINDS = ("rows", "storage", "call", "policy", "rls-off", "view", "definer")
 FLOORS = {"relations": 400, "policies": 400, "functions": 500}
 

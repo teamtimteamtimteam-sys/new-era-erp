@@ -1443,6 +1443,8 @@
 > **FIN-CHAIN-1 之后的队列(Tim 2026-10-20;FIN-CHAIN-1 委托书 E 与 Step 0 Q1 · Q6 的裁定)**
 >
 > 62. **✅ EXPENSE-MULTILINE-1 —— 一张费用单变成【表头 + 行】,一张报销单变成【表头 + 明细】(`v1.4.64`,2026-10-20)。**
+>    **已关闭(2026-10-21,CLAIM-RECEIPTS-1 Part 1):** Tim 2026-10-21 00:58 CST 确认部署;破窗 2026-10-20 22:54:25 → 00:58(≈ 2 h 04 min,推送被 auto mode 拒、由 Tim 自己跑,窗口因此拉长);
+>    生产只读检查三页 200 且表格画出(`docs/handbacks/EXPENSE-MULTILINE-1.md` §5);没量到的两件交给 Tim 自己的浏览器(`docs/manual-walk-list.md` §33)。
 >    ~~表头:日期 · 收款方 · 币种;每一行:自己的科目 · 税码 · 金额 · 备注。Tim 把它裁成单独的一刀,因为它要重塑 `expenses` 这张表。~~
 >    **Tim 2026-10-20 的裁定,逐条(Step 0 Q1–Q16 · Step 0b Q1–Q10):**
 >    Q1 资本支出单【恰好一行】、不与普通行混(`EXPENSE_CAPITAL_SOLE_LINE`);资产表、资产成本冲回与设备采购单行的链接保持原样;按行资本化停放(见下)·
@@ -1458,7 +1460,18 @@
 >    Q6 医疗报销不分笔 · Q7 表头有一句必填的「用途」,搜索读它,明细不进搜索 · Q8 `submit_expense_claim` / `decide_expense_claim` 原签名是单笔包装,多笔的单走旧调用按名拒 ·
 >    Q9 线上 4 张报销单机械地各转成一笔(已进 known-wrong)· Q10 报销表单不做草稿。
 >    迁移 `db/migrations/2026-10-20-expense-multiline-1.sql`;fixture 新 **285 · 286**;交回 `docs/handbacks/EXPENSE-MULTILINE-1.md`。
-> 62b. **⬜ ★ 下一刀(排在 63 之前):CLAIM-RECEIPTS-1 —— 员工给报销单的每一笔传收据。**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0b Q2,从那一刀拆出来。)
+> 62b. **✅ CLAIM-RECEIPTS-1 —— 员工给报销单的每一笔传收据(`v1.4.65`,2026-10-21)。**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0b Q2,从那一刀拆出来。)
+>    **Tim 2026-10-21 的裁定,逐条(Step 0 Q1–Q14):** Q1 与门户同一个上限 —— 10 MB · PDF / JPEG / PNG(读的就是 V39 那两列),HEIC / Word / Excel 按名拒并说为什么 ·
+>    Q2 普通的文件选择框,不强制相机 · Q3 照片在浏览器里缩到长边约 2,000 px、存成 JPEG,PDF 原样 · Q4 能传的是这张单说的员工与替他提单的人,只在 submitted 时,别人都不行;
+>    提单人不能批照旧 · Q5 submitted 时可以加、可以拿掉一份,拿掉的从单上隐去、谁 / 何时记下,对象留在桶里,没有任何员工持存储的删除权限 ·
+>    Q6 决定之后收据留作记录、谁都拿不掉;员工读自己的,持财务权限的读全部,不另设 HR / 审计的规矩 · Q7 admin · cco · cfo · cto · finance · gm 读每一名员工的收据,不铸新码 ·
+>    Q8 从批准的报销单生出的费用单详情页上有「Receipts from claim CLM-…」,原地读,不抄 · Q9 一笔可以几份文件,逐份查上限,不设份数上限 ·
+>    Q10 整个项目的存储到了 900 MB,新的收据按名拒(CLAIM_RECEIPT_STORAGE_FULL),付费方案之前别的都不做 · Q11 重新提交是一张新单,收据不跟过去 ·
+>    Q12 每一笔一个文件选择框,提交之后紧接着传,传失败的在表里重试;每一笔有文件或无收据理由才按得下提交,库在批准时照样查 ·
+>    Q13 整张单的附件那条路退役:`finance_attachments.claim_id` 删掉,整张单的那条凭据判据拿掉 · Q14 量门户在生产上的上传上限 → 登记,修法进「上线准备组」(第 9 行)。
+>    另外三条本刀自己的决定 Tim 接受:收据上传不发通知 · 财务经 60 秒的链接打开 · 收据进报销单的审计记录。
+>    迁移 `db/migrations/2026-10-21-claim-receipts-1.sql`;fixture 新 **287**;交回 `docs/handbacks/CLAIM-RECEIPTS-1.md`。
+>    ~~原登记(2026-10-20):~~
 >    Tim 裁定的形状:收据【按笔】;每一笔要么有自己的收据、要么有自己的无收据理由,批准时逐笔查;员工只能往【自己的、还在 submitted 的】单上传;
 >    财务读得到;新的库与存储权限规矩,带它自己的 grilling 与线上证明。**理由(照录):这是员工第一次拿到存储的写权限,一个新的安全面。**
 >    在它之前每一笔都带一句无收据理由。见 `docs/known-issues.md` § EXPENSE-CLAIM-NO-RECEIPT-UPLOAD。
@@ -5607,6 +5620,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | 5 | 空角色:auditor = 每个模块只读;employee = 只有 `/me`;hr、procurement、sales 删掉 —— 连同 ROLE1-BOOTSTRAP-MISSING-ROLES 一起做 | #27 | `docs/known-issues.md` § ROLE1-UNHELD-HR-ROLE-LOST-REVIEWS · ROLE1-BOOTSTRAP-MISSING-ROLES |
 | 6 | `container_overview` 的读者 = `module.logistics.view` | #30 | `docs/known-issues.md` § CONV-6-LOGISTICS-GATE |
 | 7 | `/my-reviews` 用与 `/me` 同一个断点 —— 先量 768 px 的顶栏 | #31 | `docs/known-issues.md` § CONV-6-MYREVIEWS-GAP |
+| 9 | ★ **门户上传在生产上收不下 4.3 MB 以上的文件** —— Vercel 在应用之前就拒(HTTP 413 `FUNCTION_PAYLOAD_TOO_LARGE`),而门户页上写着「每份不超过 10 MB」。修法:字节从浏览器直传存储(报销收据 CLAIM-RECEIPTS-1 的形状),路由只做登记与确认。**必须在第一个真实供应商账号之前落地。** | Tim 2026-10-21(CLAIM-RECEIPTS-1 Q14) | `docs/known-issues.md` § PORTAL-UPLOAD-CAPPED-BY-VERCEL-4-5-MB |
 | 8 | ~~物料平衡页只在三个数【都】为空时才是空态~~ ✅ **早已做掉** —— MES-7b-1(`v1.4.54`,F14:`lib/balanceEmptyState.ts` + 构建链里的 `check-balance-empty-state.mjs`)落地的判据与这条裁定逐字相同;那一条的标题只是一直没划掉(FIN-CHAIN-1 划掉了)。**这一组实际要做的是前七行。** | #33 | `docs/known-issues.md` § MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS |
 
 ## ★★★ 还开着的条目 · 按【它今天挡不挡得住一个人】分 —— 一份索引(QUEUE-RECONCILE 立案,2026-09-20)★★★

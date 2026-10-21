@@ -17,6 +17,7 @@ import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachments
 import ReverseExpenseButton from './ReverseExpenseButton'
 import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
 import ExpenseLinesTable, { type ExpenseLineRow } from './ExpenseLinesTable'
+import ClaimReceipts, { type ReceiptRow } from '@/app/me/ClaimReceipts'
 import { can } from '@/lib/permissions'
 import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
@@ -195,6 +196,19 @@ export default async function ExpenseDetailPage({
     const reverseConsequence = reliefCount > 0 ? t('expense.reverseReliefConsequence', { n: reliefCount }) : undefined
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端水合不一致
+    // ★ CLAIM-RECEIPTS-1(Q8):这张费用单若出自一张报销单,读那张单每一笔的 attached 收据(读规则:finance.view —— 本页的门)
+    const fromClaim = mustOne(await supabase.from('expense_claims').select('id, code').eq('expense_id', id).maybeSingle(),
+        'expense_claims (from claim)') as { id: string; code: string } | null
+    const claimReceipts = fromClaim
+        ? {
+            code: fromClaim.code,
+            items: mustRows(await supabase.from('expense_claim_items').select('id, line_no, description, no_receipt_reason')
+                .eq('claim_id', fromClaim.id).order('line_no'), 'expense_claim_items (expense)') as
+                { id: string; line_no: number; description: string; no_receipt_reason: string | null }[],
+            receipts: mustRows(await supabase.from('expense_claim_receipts').select('id, item_id, file_name')
+                .eq('claim_id', fromClaim.id).eq('status', 'attached').order('created_at'), 'expense_claim_receipts (expense)') as ReceiptRow[],
+        }
+        : null
     const attachments = (mustRows(attachRes)).map((a) => ({
         id: a.id,
         file_name: a.file_name,
@@ -391,6 +405,25 @@ export default async function ExpenseDetailPage({
 
             {/* 凭据附件(发票/收据)*/}
             <FinanceAttachmentsPanel canEdit={canEdit} parent={{ kind: 'expense', id: expense.id }} rows={attachments} />
+
+            {/* ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q8):从一张批准的报销单生出来的费用单 —— 那张单每一笔的收据【原地】读出来,不抄一份 */}
+            {claimReceipts && (
+                <section className="mb-8">
+                    <h2 className="mb-1">{t('expenseClaims.receipts.fromClaim', { code: claimReceipts.code })}</h2>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('expenseClaims.receipts.fromClaimHint')}</p>
+                    {claimReceipts.items.map((it) => (
+                        <div key={it.id} className="mb-2 text-sm">
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.itemNo', { n: it.line_no })}</span>{' '}
+                            <span className="break-words">{it.description}</span>
+                            {it.no_receipt_reason && !claimReceipts.receipts.some((x) => x.item_id === it.id) && (
+                                <span className="block text-xs text-amber-800">{t('expenseClaims.noReceipt')} — {it.no_receipt_reason}</span>
+                            )}
+                            <ClaimReceipts itemId={it.id} receipts={claimReceipts.receipts.filter((x) => x.item_id === it.id)}
+                                canUpload={false} limits={null} />
+                        </div>
+                    ))}
+                </section>
+            )}
 
             <AuditTrail subject="expense" id={expense.id} show={trailCount((await searchParams).trail)} />
         </ListPage>

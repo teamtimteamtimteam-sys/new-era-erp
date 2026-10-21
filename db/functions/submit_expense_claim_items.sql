@@ -112,7 +112,10 @@ BEGIN
         END IF;
     END IF;
 
-    RETURN jsonb_build_object('claim_id', v_id, 'code', v_code, 'status', 'submitted', 'item_count', v_n);
+    -- CLAIM-RECEIPTS-1(Tim 2026-10-21,Q12):回每一笔的 id —— 表单在提交之后紧接着给每一笔传它的收据(claim_receipt_begin 要那一笔的 id)
+    RETURN jsonb_build_object('claim_id', v_id, 'code', v_code, 'status', 'submitted', 'item_count', v_n,
+                              'items', (SELECT jsonb_agg(jsonb_build_object('line_no', i.line_no, 'item_id', i.id) ORDER BY i.line_no)
+                                          FROM expense_claim_items i WHERE i.claim_id = v_id));
 END;
 $function$
 ;

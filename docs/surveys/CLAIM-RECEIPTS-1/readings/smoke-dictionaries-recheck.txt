@@ -1,0 +1,4 @@
+TRY 1|/settings/dictionaries (admin copy, this cut on next start, live DB) HTTP 200 · 30185 ms · no usage-count error
+TRY 2|/settings/dictionaries (admin copy, this cut on next start, live DB) HTTP 200 · 45597 ms · no usage-count error
+TRY 3|/settings/dictionaries (admin copy, this cut on next start, live DB) HTTP 200 · 39139 ms · no usage-count error
+DICT_RECHECK_EXIT=0

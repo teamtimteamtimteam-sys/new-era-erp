@@ -686,6 +686,12 @@ export const TRAIL_TEXT = {
     'exp.lineRecorded': 'Line {n}',
     'exp.claimItemAdded': 'Item {n}',
     'exp.claimItemCoded': 'Item {n} coded at approval',
+    // CLAIM-RECEIPTS-1(Tim 2026-10-21):一笔明细的收据 —— 开始传 · 到了 · 没传成 · 拿掉(对象留在桶里)
+    //   标题后那一段是「Item n · 文件名」(第几笔从整页里那一笔的行读;读不到时只说文件名)
+    'exp.receiptStarted': 'Receipt upload started',
+    'exp.receiptAttached': 'Receipt attached',
+    'exp.receiptAbandoned': 'Receipt upload did not complete',
+    'exp.receiptRemoved': 'Receipt removed',
     // ── 应付(Q5:只说钱的那一面)───────────────────────────────────────────────
     'pab.edited': 'Payable details changed',
     'pab.priceSet': 'Price set',

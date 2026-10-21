@@ -11,7 +11,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { localizeExpenseClaimError } from './claimErrorCodes'
 
-export type ClaimState = { error?: string; success?: boolean; claimId?: string }
+export type ClaimState = { error?: string; success?: boolean; claimId?: string; code?: string; items?: { line_no: number; item_id: string }[] }
 
 export type ClaimItemInput = { spendDate: string; amount: string; description: string; noReceiptReason?: string | null }
 
@@ -33,7 +33,9 @@ export async function submitClaim(input: {
     })
     if (error) return { error: await localizeExpenseClaimError(error.message) }
     revalidatePath('/me'); revalidatePath('/finance/claims')
-    return { success: true, claimId: (data as { claim_id?: string } | null)?.claim_id }
+    // CLAIM-RECEIPTS-1(Q12):带回每一笔的 id —— 表单紧接着给每一笔传它的收据
+    const d = data as { claim_id?: string; code?: string; items?: { line_no: number; item_id: string }[] } | null
+    return { success: true, claimId: d?.claim_id, code: d?.code, items: d?.items ?? [] }
 }
 
 export async function withdrawClaim(claimId: string): Promise<ClaimState> {

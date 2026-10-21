@@ -42,7 +42,22 @@ export const EXPENSE_CLAIM_ERROR_CODES = new Set([
     'EXPENSE_CLAIM_ITEMS_SPAN_MONTHS', 'EXPENSE_CLAIM_FOREIGN_ITEMS_ONE_DATE', 'EXPENSE_CLAIM_HAS_ITEMS',
     'EXPENSE_CLAIM_ITEM_UNKNOWN', 'EXPENSE_CLAIM_HAS_NO_ITEMS', 'EXPENSE_CLAIM_TOTALS_MISMATCH',
     'EXPENSE_CLAIM_ITEM_IMMUTABLE',
+    // CLAIM-RECEIPTS-1(Tim 2026-10-21):报销单每一笔的收据(claim_receipt_begin / _finish / _abandon / _remove)
+    'CLAIM_RECEIPT_ITEM_NOT_FOUND', 'CLAIM_RECEIPT_NOT_YOURS', 'CLAIM_RECEIPT_CLAIM_NOT_SUBMITTED', 'CLAIM_RECEIPT_LIMITS_NOT_SET',
+    'CLAIM_RECEIPT_TYPE_NOT_ACCEPTED', 'CLAIM_RECEIPT_EMPTY', 'CLAIM_RECEIPT_TOO_LARGE', 'CLAIM_RECEIPT_NAME_REQUIRED',
+    'CLAIM_RECEIPT_STORAGE_FULL', 'CLAIM_RECEIPT_NOT_FOUND', 'CLAIM_RECEIPT_NOT_UPLOADING', 'CLAIM_RECEIPT_NOT_STORED',
+    'CLAIM_RECEIPT_MISMATCH', 'CLAIM_RECEIPT_NOT_ATTACHED', 'CLAIM_RECEIPT_IMMUTABLE',
 ])
+
+// CLAIM-RECEIPTS-1:库给的是字节数;句子说 MB(一个人读得懂的数,不是另一份上限 —— 只是同一个数换个单位)
+const MB_PARAMS: Record<string, (parts: string[]) => Record<string, string>> = {
+    CLAIM_RECEIPT_TOO_LARGE: (p) => ({ mb: mb(p[0]) }),
+    CLAIM_RECEIPT_STORAGE_FULL: (p) => ({ usedMb: mb(p[0]), ceilingMb: mb(p[1]) }),
+}
+function mb(bytes: string | undefined): string {
+    const n = Number(bytes)
+    return Number.isFinite(n) ? String(Math.round(n / 1048576)) : (bytes ?? '')
+}
 
 // ★ EXPENSE-MULTILINE-1:多笔的报销单上,逐笔的那几条拒绝在码尾多带一个【第几笔】(单笔与此前逐字相同,不带)。
 //   这张表说那个数在第几个参数 —— 多出来的那一个就是,文案前面加一句「第 N 笔:」。
@@ -78,6 +93,7 @@ export async function localizeExpenseClaimError(message: string): Promise<string
     const params: Record<string, string> = {}
     const parts = match[2] ? match[2].split('|') : []
     parts.forEach((v, i) => { params[String(i)] = v })
+    if (MB_PARAMS[match[1]]) Object.assign(params, MB_PARAMS[match[1]](parts))
     const at = ITEM_SUFFIXED[match[1]]
     if (at !== undefined && parts.length === at + 1) {
         return t('expenseClaims.itemError', { n: parts[at] }) + ' ' + t('expenseClaims.errors.' + match[1], params)

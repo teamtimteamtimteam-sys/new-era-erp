@@ -136,9 +136,10 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 286E 失败:被拒的决定不该在明细上留下科目'; END IF;
 
     -- ══════════ F · 批准:一张费用单、三行 ══════════
-    -- 第 3 笔补一份附件(今天只有财务挂得上 —— CLAIM-RECEIPTS-1 之前员工传不了)
-    INSERT INTO finance_attachments (claim_id, file_name, file_path, mime_type)
-    VALUES (c1, 'parking.pdf', format('%s/parking.pdf', c1), 'application/pdf');
+    -- 第 3 笔补一份收据(★ CLAIM-RECEIPTS-1:收据按笔,expense_claim_receipts;以 postgres 直接落一行 attached —— 传的那一半由 fixture 287 证)
+    INSERT INTO expense_claim_receipts (claim_id, item_id, file_name, file_type, file_size, storage_path, status, created_by, attached_at)
+    SELECT c1, i.id, 'parking.pdf', 'application/pdf', 2048, format('%s/%s/parking.pdf', c1, i.id), 'attached', u_emp, now()
+      FROM expense_claim_items i WHERE i.claim_id = c1 AND i.line_no = 3;
     v_res := decide_expense_claim_items(c1, true, jsonb_build_array(
         jsonb_build_object('line_no', 1, 'account_code', '6120', 'tax_code', 'TX'),
         jsonb_build_object('line_no', 2, 'account_code', '6120', 'tax_code', 'BL'),

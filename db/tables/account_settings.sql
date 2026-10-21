@@ -7,6 +7,8 @@
 --   ★ 今天两个都【不被执行】(docs/known-issues.md:MES9A-V38-NOT-ENFORCED · MES9A-V40-IS-A-RECORD)——
 --     这里存的是 Tim 定的值,好让待补的值页面在它们还空着时说出来;执行那一半是登记在案的后续。
 --   V39  portal_upload_max_bytes · portal_upload_types   供应商在门户上传一份证书的上限:每份最大字节数、收哪几种文件(MIME)。
+--        ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q1):【报销单收据的上限也是这两列】—— "与门户同一个数"(claim_receipt_begin · claim_receipt_limits 读它们)。
+--          引导值仍然正确(10 MB · PDF / JPEG / PNG 就是 Tim 给收据定的那个数);改它们会同时改两处上限。
 --        ★ Tim 2026-10-20(MES-9c 委托书)定了:10 MB(10,485,760 字节)· PDF / JPEG / PNG —— 所以这两列【带默认值】,引导与线上都从第一天
 --        就是这个数(MES-9c 迁移以 ADD COLUMN … DEFAULT 加上,线上那一行当场得到它,不经一次 UPDATE)。清空它 = 门户上传按名拒
 --        (PORTAL_UPLOAD_LIMITS_NOT_SET),待补的值页面列出 V39。执行在 portal_submission_begin(任何字节存下之前)与桶 portal-uploads。

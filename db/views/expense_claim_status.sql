@@ -1,4 +1,7 @@
 -- db/views/expense_claim_status.sql
+-- ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q13):has_receipt 拿掉了 —— 它问的是【整张单】有没有附件(finance_attachments.claim_id,
+--   那一列已删);收据现在按笔(expense_claim_receipts),两张页面各自另读那张表、逐笔说。一张单一个"有收据"的布尔值正是
+--   逐笔规矩要拆掉的那个说法。拿掉一列要 DROP + CREATE(迁移里这么做)。
 -- ★ EXPENSE-MULTILINE-1(Tim 2026-10-20):表头这一行不再带 account_code / tax_code / no_receipt_reason —— 它们搬到了
 --   每一笔明细(expense_claim_items,页面另读);多了 item_count。description 现在是整张单的【用途】(Step 0b Q7)。
 --   属主权限与行谓词原样。【明细为什么不并进这张视图】一行一张单是它的全部契约(清单、在途、/me 都按单读);
@@ -72,9 +75,6 @@ SELECT c.id AS claim_id,
     COALESCE(a.settled_ccy, 0::numeric) AS settled_ccy,
     c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) >= (x.amount_ccy + x.tax_ccy) AS is_paid,
     c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) < (x.amount_ccy + x.tax_ccy) AS is_owing,
-    (EXISTS ( SELECT 1
-           FROM finance_attachments fa
-          WHERE fa.claim_id = c.id AND fa.deleted_at IS NULL)) AS has_receipt,
     x.amount_ccy AS expense_net_ccy,
     x.tax_ccy AS expense_tax_ccy,
     ( SELECT count(*) AS count

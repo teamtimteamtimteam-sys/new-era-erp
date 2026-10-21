@@ -17,7 +17,7 @@
 SET client_min_messages = warning;   -- DROP POLICY IF EXISTS 在全新安装上每一条都会说一句 skipping
 
 
--- ── 桶(20;MES-9c 起多一个 portal-uploads)────────────────────────────────────────────────────────────────
+-- ── 桶(21;MES-9c 起多一个 portal-uploads,CLAIM-RECEIPTS-1 起多一个 claim-receipts)────────────────────────────────────────────────────────────────
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('avatars', 'avatars', false, 262144, ARRAY['image/webp'])
@@ -26,6 +26,13 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('capture-photos', 'capture-photos', false, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- CLAIM-RECEIPTS-1(2026-10-21,Tim Q1):报销单每一笔的收据。上限与门户同一个数(10 MB · PDF / JPEG / PNG)——
+--   claim_receipt_begin 先按 account_settings 的那两列拒(任何字节存下之前),桶自己再拦一道。
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('claim-receipts', 'claim-receipts', false, 10485760, ARRAY['application/pdf', 'image/jpeg', 'image/png'])
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
     file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
 
@@ -439,3 +446,20 @@ DROP POLICY IF EXISTS "portal-uploads read by suppliers.view" ON storage.objects
 CREATE POLICY "portal-uploads read by suppliers.view"
     ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated
     USING (((bucket_id = 'portal-uploads'::text) AND has_permission('module.suppliers.view'::text)));
+
+
+-- ── 报销单的收据(CLAIM-RECEIPTS-1,2026-10-21,Tim Q4 · Q5 · Q6 · Q7)—— 第 57–58 条策略 ─────────────────────────────────────
+-- 传:只有【这个会话自己】一行 uploading 的收据登记过的那一条路径(claim_receipt_can_upload;那一行只由 claim_receipt_begin 写 ——
+--   它判过调用者是这张单说的员工或替他提单的人、单仍是 submitted、上限与 900 MB 的存储余量)。
+-- 读:持 module.finance.view 的读全部;员工与提单人读自己那张单的 attached 收据,和自己刚登记、还在传的那一条(Storage API 的读回)
+--   (claim_receipt_can_read)。
+-- 【没有 UPDATE、没有 DELETE】(Q5):拿掉一份收据只是那一行变成 removed,对象留在桶里;没有任何员工持存储的删除权限 —— 与门户同一条。
+DROP POLICY IF EXISTS "claim receipts upload own registered path" ON storage.objects;
+CREATE POLICY "claim receipts upload own registered path"
+    ON storage.objects AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (((bucket_id = 'claim-receipts'::text) AND public.claim_receipt_can_upload(bucket_id, name)));
+
+DROP POLICY IF EXISTS "claim receipts read by finance.view or own claim" ON storage.objects;
+CREATE POLICY "claim receipts read by finance.view or own claim"
+    ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated
+    USING (((bucket_id = 'claim-receipts'::text) AND public.claim_receipt_can_read(bucket_id, name)));

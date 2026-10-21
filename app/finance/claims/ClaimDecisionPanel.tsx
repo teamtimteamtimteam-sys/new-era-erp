@@ -10,6 +10,8 @@
 //
 // ★ EXPENSE-MULTILINE-1(Tim 2026-10-20,Step 0b Q1 · Q3):科目与税码【逐笔】给,什么都不预选;驳回只能整张,
 //   理由可以点名是哪一笔。每一笔的凭据(附件或它自己的无收据理由)摆在那一笔旁边。
+// ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q4 · Q6 · Q7):每一笔列出它的收据,点开是一个 60 秒的链接;替人提单的人在这里给那张单传、拿掉(单还在
+//   submitted 时)。已决的登记簿多一列「收据」—— 决定之后收据留作记录,财务照样打得开(Q6)。
 //
 // 【入账日那一格默认留空】留空 = 按花钱那天入账(成本属于它发生的期间)。
 // 只有那个期间已经关账、服务端按名拒(PERIOD_LOCKED)之后,才另给一个日子 ——
@@ -24,15 +26,17 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
+import ClaimReceipts, { type ReceiptRow } from '@/app/me/ClaimReceipts'
+import type { ReceiptLimits } from '@/app/me/uploadClaimReceipt'
 
 export type ClaimItem = {
-    line_no: number; spend_date: string; amount_ccy: number; description: string
+    id: string; line_no: number; spend_date: string; amount_ccy: number; description: string
     no_receipt_reason: string | null; account_code: string | null; tax_code: string | null
 }
 export type ClaimRow = {
     claim_id: string; code: string; employee_code: string; employee_name: string
     spend_date: string; amount_ccy: number; currency: string; description: string
-    status: string; has_receipt: boolean
+    status: string
     decision_notes: string | null
     posting_date: string | null; is_owing: boolean; is_paid: boolean
     // EXPENSE-MULTILINE-1:明细(页面另读 expense_claim_items,按单挂上来)
@@ -46,7 +50,7 @@ const money = (n: number) =>
     Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export default function ClaimDecisionPanel({
-    pending, decided, accounts, taxCodes, canDecide, trails = {},
+    pending, decided, accounts, taxCodes, canDecide, trails = {}, receipts = [], raisedByMe = [], receiptLimits = null,
 }: {
     pending: ClaimRow[]; decided: ClaimRow[]
     accounts: { code: string; name_en: string }[]
@@ -54,6 +58,8 @@ export default function ClaimDecisionPanel({
     canDecide: boolean; baseCurrency: string
     /** AUDIT-TRAIL-1c-3(Q20):每一张报销单的审计记录(页面在服务端造好)—— 待批的在卡片末尾,已决的在登记簿下面一张一行 */
     trails?: Record<string, ReactNode>
+    /** CLAIM-RECEIPTS-1:这些单上 attached 的收据 · 我替人提的那几张单的 id · 收据的上限 */
+    receipts?: ReceiptRow[]; raisedByMe?: string[]; receiptLimits?: ReceiptLimits | null
 }) {
     const locale = useLocale()
     const t = useTranslations()
@@ -93,6 +99,20 @@ export default function ClaimDecisionPanel({
                             {t('expenseClaims.splitNetGst', { net: money(c.expense_net_ccy), tax: money(c.expense_tax_ccy) })}
                         </span>
                     )}
+                </>
+            ),
+        },
+        {
+            // CLAIM-RECEIPTS-1(Q6):决定之后收据留作记录 —— 逐笔列出,点开就是那一份
+            key: 'receipts', header: t('expenseClaims.receipts.col'),
+            render: (c) => (
+                <>
+                    {c.items.filter((it) => receipts.some((x) => x.item_id === it.id)).map((it) => (
+                        <span key={it.id} className="block">
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.itemNo', { n: it.line_no })}</span>
+                            <ClaimReceipts itemId={it.id} receipts={receipts.filter((x) => x.item_id === it.id)} canUpload={false} limits={null} />
+                        </span>
+                    ))}
                 </>
             ),
         },
@@ -162,12 +182,14 @@ export default function ClaimDecisionPanel({
                                                 <span className="block break-words">{it.description}</span>
                                                 {/* 【凭据是哪一种,审批人必须看得见】—— 逐笔 */}
                                                 <span className="block text-xs">
-                                                    {c.has_receipt
+                                                    {receipts.some((x) => x.item_id === it.id)
                                                         ? <span className="text-green-700">{t('expenseClaims.hasReceipt')}</span>
                                                         : it.no_receipt_reason
                                                             ? <span className="text-amber-800">{t('expenseClaims.noReceipt')} — {it.no_receipt_reason}</span>
                                                             : <span className="text-red-700">{t('expenseClaims.noReceipt')}</span>}
                                                 </span>
+                                                <ClaimReceipts itemId={it.id} receipts={receipts.filter((x) => x.item_id === it.id)}
+                                                    canUpload={raisedByMe.includes(c.claim_id)} limits={receiptLimits} />
                                             </div>
                                             <label className="flex min-w-0 flex-1 basis-44 flex-col text-sm">{t('expenseClaims.accountCode')}
                                                 <select value={getItem(c.claim_id, it.line_no).acct}

@@ -9006,6 +9006,79 @@ export type Database = {
           },
         ]
       }
+      expense_claim_receipts: {
+        Row: {
+          attached_at: string | null
+          bucket_id: string
+          claim_id: string
+          created_at: string
+          created_by: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          item_id: string
+          removed_at: string | null
+          removed_by: string | null
+          status: string
+          storage_path: string
+        }
+        Insert: {
+          attached_at?: string | null
+          bucket_id?: string
+          claim_id: string
+          created_at?: string
+          created_by: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          item_id: string
+          removed_at?: string | null
+          removed_by?: string | null
+          status?: string
+          storage_path: string
+        }
+        Update: {
+          attached_at?: string | null
+          bucket_id?: string
+          claim_id?: string
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          item_id?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          status?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_claim_receipts_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claim_status"
+            referencedColumns: ["claim_id"]
+          },
+          {
+            foreignKeyName: "expense_claim_receipts_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claim_receipts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claim_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_claims: {
         Row: {
           amount_ccy: number
@@ -9596,7 +9669,6 @@ export type Database = {
       }
       finance_attachments: {
         Row: {
-          claim_id: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -9615,7 +9687,6 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          claim_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -9634,7 +9705,6 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          claim_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -9653,20 +9723,6 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "finance_attachments_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "expense_claim_status"
-            referencedColumns: ["claim_id"]
-          },
-          {
-            foreignKeyName: "finance_attachments_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "expense_claims"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "finance_attachments_expense_id_fkey"
             columns: ["expense_id"]
@@ -36883,7 +36939,6 @@ export type Database = {
           expense_net_ccy: number | null
           expense_reversed: boolean | null
           expense_tax_ccy: number | null
-          has_receipt: boolean | null
           is_owing: boolean | null
           is_paid: boolean | null
           item_count: number | null
@@ -49350,6 +49405,27 @@ export type Database = {
         Args: { p_location_id: string; p_material_id: string }
         Returns: string[]
       }
+      claim_receipt_abandon: { Args: { p_receipt_id: string }; Returns: Json }
+      claim_receipt_begin: {
+        Args: {
+          p_file_name: string
+          p_file_size: number
+          p_file_type: string
+          p_item_id: string
+        }
+        Returns: Json
+      }
+      claim_receipt_can_read: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
+      claim_receipt_can_upload: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
+      claim_receipt_finish: { Args: { p_receipt_id: string }; Returns: Json }
+      claim_receipt_limits: { Args: never; Returns: Json }
+      claim_receipt_remove: { Args: { p_receipt_id: string }; Returns: Json }
       close_equipment_downtime: {
         Args: { p_downtime_id: string; p_ended_at: string }
         Returns: Json

@@ -97,9 +97,12 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 140A 失败:取号不对 —— %', v_res->>'code';
     END IF;
 
-    -- 凭据:挂一份附件上去(D 臂会再测另外两条路)
-    INSERT INTO finance_attachments (claim_id, file_name, file_path, mime_type)
-    VALUES (v_c1, 'taxi.pdf', format('%s/taxi.pdf', v_c1), 'application/pdf');
+    -- 凭据:给那一笔挂一份收据上去(D 臂会再测另外两条路)
+    -- ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q13):收据按笔住在 expense_claim_receipts(整张单的附件那条路退役了);
+    --   这里以 postgres 直接落一行 attached —— 传的那一半(begin / 存储策略 / finish)由 fixture 287 证。
+    INSERT INTO expense_claim_receipts (claim_id, item_id, file_name, file_type, file_size, storage_path, status, created_by, attached_at)
+    SELECT v_c1, i.id, 'taxi.pdf', 'application/pdf', 1024, format('%s/%s/taxi.pdf', v_c1, i.id), 'attached', v_claimant, now()
+      FROM expense_claim_items i WHERE i.claim_id = v_c1 AND i.line_no = 1;
 
     -- ══ 批准之前:账上【没有】这笔费用 ═══════════════════════════════════
     SELECT count(*) INTO v_before FROM expenses
@@ -204,7 +207,7 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_claimant), true);
     v_res := submit_expense_claim(v_emp, d_spend, 30, v_base, '既没票也没理由', NULL);
     v_c3 := (v_res->>'claim_id')::uuid;
-    IF EXISTS (SELECT 1 FROM finance_attachments WHERE claim_id = v_c3)
+    IF EXISTS (SELECT 1 FROM expense_claim_receipts WHERE claim_id = v_c3)
        OR COALESCE(btrim((SELECT no_receipt_reason FROM expense_claim_items WHERE claim_id = v_c3 AND line_no = 1)),'') <> '' THEN   -- EXPENSE-MULTILINE-1:理由在明细上
         RAISE EXCEPTION 'FIXTURE 140D 失败(空转):第三笔身上有凭据 —— 这一臂要测的正是"两条都没有"';
     END IF;

@@ -1,0 +1,26 @@
+== a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub
+✓ BEGIN: anyone with an item id may register an upload (Q4 dropped) → FIXTURE 287A 失败:另一名员工 → {"id": "ce794544-48e9-48f7-9bdd-4e8c6f3791bb", "path": "c3348cfd-5dc3-4b96-80ca-a19d7c1adfb8/c71b870d-0755-425b-b20c-56b2e8a9ec52/ce794544-48e9-48f7-9bdd-4e8c6f3791bb.pdf", "bucket": "claim-receipts"}
+✓ BEGIN: the 900 MB storage guard dropped (Q10) → FIXTURE 287A 失败:存储满 → {"id": "a9adaf0a-685d-4519-bbf4-ee11053080fa", "path": "187d9d42-82ad-4523-a7db-70ac6dcaf073/05cac291-b6c4-4bf5-89e6-b2c52edb73cd/a9adaf0a-685d-4519-bbf4-ee11053080fa.pdf", "bucket": "claim-receipts"}
+✓ BEGIN: a withdrawn claim still takes receipts → FIXTURE 287A 失败:撤回的单 → {"id": "82574f3a-1d21-4ebb-a7fb-68db5c0ca820", "path": "962c1252-1e24-4bcc-87a4-7111ae1a897f/204dd60a-9cc4-425a-94bf-59b9dc98b7be/82574f3a-1d21-4ebb-a7fb-68db5c0ca820.pdf", "bucket": "claim-receipts"}
+✓ UPLOAD: the upload policy admits any claim-receipts path → FIXTURE 287B 失败:一条没登记过的路径传得进
+✓ UPLOAD: the judge ignores who registered the path → FIXTURE 287B 失败:员工本人传得进替他提单的人登记的路径
+✓ UPLOAD: the ten-minute window dropped → FIXTURE 287B 失败:十分钟以前登记的路径还传得进
+✓ UPLOAD: a delete policy on claim-receipts (Q5: nobody deletes) → FIXTURE 287B 失败:有人改得动或删得掉 claim-receipts 里的对象
+✓ FINISH: the size / type check dropped → FIXTURE 287C 失败:大小对不上 → {"id": "ed1b5297-1daf-48be-aaf8-bbac634e802e", "state": "attached"}
+✓ READ: the read judge lets every signed-in person read → FIXTURE 287D 失败:另一名员工读到了别人的收据
+✓ READ: a removed receipt still readable by the claimant (Q5: hidden) → FIXTURE 287E 失败:拿掉的那份员工不该再读到、财务应当照样读到
+✓ REMOVE: anyone may remove a receipt → FIXTURE 287E 失败:别人拿掉 → {"id": "8998aa02-96cf-450f-81c3-e8d5981877f3", "state": "removed"}
+✓ DECIDE: an uploading (not arrived) receipt counts as evidence → FIXTURE 287F 失败:第 2 笔没有 attached 的收据 → {"code": "CLM-2026-0001", "level": null, "status": "approved", "claim_id": "81e73a10-cf3d-484b-81d6-c2b4d72f2024", "expense_id": "782099aa-6eb9-474c-b7f5-51e3cc123b41", "posting_date": "2026-09-03"}
+✓ DECIDE: evidence judged per claim, not per item (the retired route's shape) → FIXTURE 287F 失败:第 2 笔没有 attached 的收据 → {"code": "CLM-2026-0001", "level": null, "status": "approved", "claim_id": "d0a7772e-5822-47b6-8a4e-70eb2715877f", "expense_id": "e2164e38-b003-42d2-994c-0c3ee2955cac", "posting_date": "2026-09-03"}
+✓ AFTER: a receipt can be removed after approval (Q6) → FIXTURE 287G 失败:批准之后拿掉 → {"id": "e466c9b2-d28e-4c7f-a45d-4cbce4f56e24", "state": "removed"}
+✓ GUARD: the status guard dropped → FIXTURE 287H 失败:attached → uploading → OK
+✓ SHAPE: the claims trail still hangs finance_attachments → FIXTURE 287I 失败:两条报销单审计记录应当挂收据、不再挂 finance_attachments
+✓ 274 SHAPE: a 59th storage policy → FIXTURE 274 SHAPE: 59 storage policies (expected 58)
+✓ 274 SHAPE: the receipt upload policy loses its judge → FIXTURE 274 SHAPE: a storage policy without a judge
+✓ 140 D: evidence ignores the receipt (only the reason counts) → ERROR:  EXPENSE_CLAIM_NO_EVIDENCE|CLM-2026-0001|1
+✓ baseline 140 (no injection) → clean
+✓ baseline 274 (no injection) → FIXTURE 274 全部通过: REL · OWN · TRAIL · PROMISE · BUCKET · NOUPDATE · DELETE · SHAPE
+✓ baseline 286 (no injection) → FIXTURE 286 全部通过:三笔提交(A)· 同月 / 外币同日(B)· 用途与说明必填(C)· 旧决定拒多笔(D)· 逐笔的拒绝(E)· 一张单三行、按行拆税(F)· 驳回整张(G)· 旧签名单笔(H)· 本人读得到、旁人读不到(I)· 合计守卫(J)
+✓ baseline 287 (no injection) → FIXTURE 287 全部通过: BEGIN · UPLOAD · FINISH · READ · REMOVE · DECIDE · AFTER · GUARD · SHAPE
+INJECTIONS pass=23 fail=0
+INJ_OWN_EXIT=0
