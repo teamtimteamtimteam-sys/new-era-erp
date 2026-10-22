@@ -15,6 +15,10 @@
 -- 内层算子,无调用者检查;EXECUTE 已从 authenticated 收回。
 -- NOTE: introduced by db/migrations/2026-09-24-payrollapr1-payroll-posts-only-after-cfo-approval.sql.
 
+-- ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q1 · Q3 · Q6):第三种 payment_reversal 试跑工资付款冲销的引擎。真正的冲销日在【执行】时
+--   由人给(Q3),试跑只能拿一个探测日:reversal_date_for(原付款)= 今天与原付款日里较晚的那一个(付款日不晚于今天,所以就是今天)。
+--   它答得了的:已冲过、认不出、银行行已配对(Q6)、今天落在锁定期;答不了的(人在执行时给的那一天)由执行再判。
+
 CREATE OR REPLACE FUNCTION public.payroll_request_dry_run(p_request_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -35,6 +39,8 @@ BEGIN
             v_res := post_payroll_period_internal(v_r.payroll_period_id);
         WHEN 'reversal' THEN
             v_res := unpost_payroll_period_internal(v_r.payroll_period_id, v_r.notes);
+        WHEN 'payment_reversal' THEN
+            v_res := reverse_payroll_payment_internal(v_r.target_entry_id, reversal_date_for(v_r.target_entry_id), v_r.notes);
         ELSE
             RAISE EXCEPTION 'PAYROLL_REQUEST_KIND_UNKNOWN|%|%', v_r.label, v_r.kind;
         END CASE;

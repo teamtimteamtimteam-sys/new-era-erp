@@ -29,6 +29,11 @@
 -- 错读成 'request' —— xmodule 那一族)。本体【不问码】:它也在批准与试跑的内层被调用(那里的主语未必持
 -- 凭证页的码,以 postgres 跑的 fixture 根本没有主语);而它只回一个词,不回任何金额、任何行
 -- (db/check_mirrors.py DEFINER_NO_CHECK_ALLOWED 记着这条理由)。
+-- ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q8):工资【付款】分录与它们的冲销有了自己的路(付款冲销申请),
+--   从 'request' 挪进第五个答案 'payroll_payment':三个读它的人(reverse_journal_entry · 冲销申请的提交与过账)按名拒
+--   JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL,凭证页的钮看得见、按不动、指向付薪页。认它的判据:
+--   戳指着它或它的原件(payroll_payment_entry_kind)—— 或者一张付款冲销申请以它或它的原件为目标
+--   (冲掉之后戳清了,冲销件只能从申请上认出来)。其余的工资分录(过账与它的冲销)仍是 'source_path'。
 -- NOTE: introduced by db/migrations/2026-09-25-apr6-manual-journals-wait-for-the-cfo.sql.
 
 CREATE OR REPLACE FUNCTION public.journal_entry_reversal_route(p_entry_id uuid)
@@ -52,12 +57,13 @@ BEGIN
                             'asset_disposal', 'maintenance_part') THEN
         RETURN 'source_path';
     END IF;
-    IF v_je.source_type = 'payroll' AND NOT (
-           EXISTS (SELECT 1 FROM payroll_lines pl
-                    WHERE pl.paid_journal_entry_id IN (v_je.id, v_je.source_id))
-           OR EXISTS (SELECT 1 FROM payroll_periods pp
-                       WHERE pp.cpf_journal_entry_id IN (v_je.id, v_je.source_id)
-                          OR pp.deductions_journal_entry_id IN (v_je.id, v_je.source_id))) THEN
+    IF v_je.source_type = 'payroll' THEN
+        IF payroll_payment_entry_kind(v_je.id) IS NOT NULL
+           OR payroll_payment_entry_kind(v_je.source_id) IS NOT NULL
+           OR EXISTS (SELECT 1 FROM payroll_requests r
+                       WHERE r.kind = 'payment_reversal' AND r.target_entry_id IN (v_je.id, v_je.source_id)) THEN
+            RETURN 'payroll_payment';
+        END IF;
         RETURN 'source_path';
     END IF;
     RETURN 'request';

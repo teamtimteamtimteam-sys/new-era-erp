@@ -1,0 +1,15 @@
+read as postgres (rolbypassrls = true), 2026-10-22 17:53 CST, after every live step of PAYROLL-PAY-REVERSAL-1
+approvals | t | finance | cfo | 1000
+real accounts | 7 | 0
+roles | admin@swm-os.test=admin; chooer@evoltrya.test=finance; fusheng@evoltrya.test=warehouse; phua@evolytra.test=cto; sandra@evoltrya.test=cco; tim@evoltrya.test=cfo; vince@evoltrya.test=gm
+throwaway users | 0
+throwaway roles | 0
+throwaway employees | 0
+orphan grants | 0
+cod rows | 2 | 717661f6,ba299a4f
+require_calibrated_since | NULL
+payroll | JE-2026-0017:posted,JE-2026-0018:posted,JE-2026-0019:posted,JE-2026-0020:posted | 0 | 2
+portal-uploads bucket and policies unchanged | 10485760 | {application/pdf,image/jpeg,image/png} | 3
+claim-receipts bucket | 10485760 | 0
+NOTICE:  recon (read as tim@, list_ledger_reconciliation) | ap=0.00 ar=0.00
+DO

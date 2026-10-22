@@ -106,3 +106,15 @@ promises 10 MB. Registered `docs/known-issues.md` § PORTAL-UPLOAD-CAPPED-BY-VER
 13. **Removing a receipt has no confirmation dialog** — the record is kept and finance still sees it; nothing is destroyed.
 14. **A new throwaway prefix `cr1probe`** in `scripts/ephemeral.mjs` (sweeps recognise it).
 15. **Fixture number 287.**
+
+## 6 · Close-out (PAYROLL-PAY-REVERSAL-1 Part 1, 2026-10-22)
+
+- **Pushed commit:** `5709a2c06aea49d54105b7ffbb4bba56fa316bf7` (`v1.4.65`); HEAD = origin/main = `git ls-remote origin main`, tree clean, re-read at the start of PAYROLL-PAY-REVERSAL-1.
+- **Broken window: opened 2026-10-21 22:14:40 CST** (migration committed; printed by `apply_migration.sh`, `db/migration-windows.tsv`) — **closed 2026-10-21 23:40 CST**
+  (Tim confirmed the deployment on Vercel; **this end point is Tim's report, not a reading this machine took**). **Length ≈ 1 h 25 min** (22:14:40 → 23:40; Tim's end point is to the minute, so the seconds are not known).
+  **Broken in it:** as derived in §2 — nothing visibly broken (every item read "No receipt", which was true with 0 receipts on live).
+- **Read-only check on production (2026-10-22 09:51 CST, after Tim's confirmation)** — `docs/surveys/CLAIM-RECEIPTS-1/readings/closeout-production-check-2.txt`, `CLOSEOUT_CHECK_EXIT=0`,
+  script `db/scripts/2026-10-22-claim-receipts-1-closeout-check.mjs`: a finance-clone throwaway (`cr1probe`, shared helper) opened on `https://new-era-erp.vercel.app`
+  `/finance/claims` (HTTP 200 in 9.4 s, table rendered, the "Receipts" column header drawn) and `/settings/dictionaries` (**HTTP 200 in 15.4 s** — status and time recorded only,
+  as asked; the slowness is `SETTINGS-DICTIONARIES-30-SECOND-LOAD`, not investigated). GET only. Read back as `postgres` afterwards: `cr1probe` accounts 0 · probe roles 0 · grants without a user 0.
+- **CLAIM-RECEIPTS-1 is closed** (`docs/forward-queue.md` item 62b). §4's iPhone walk (`docs/manual-walk-list.md` §34) is still Tim's.

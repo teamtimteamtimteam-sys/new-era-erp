@@ -27,7 +27,7 @@ export type PayrollPeriodRow = {
     journalEntryId: string | null
     journalCode: string
     /** PAYROLL-APR-1:这一期挂着的那张未了结申请(种类 + 状态);没有就是 null。 */
-    openRequest: { kind: 'post' | 'reversal'; status: 'submitted' | 'approved' } | null
+    openRequest: { kind: 'post' | 'reversal' | 'payment_reversal'; status: 'submitted' | 'approved' } | null
 }
 
 export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeriodRow[]; empty: React.ReactNode }) {

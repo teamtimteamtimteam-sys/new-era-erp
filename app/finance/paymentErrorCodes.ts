@@ -27,6 +27,8 @@ const PAYMENT_ERROR_CODES = new Set([
     // REVERSAL_DATE_REQUIRED 的文案 FIN-10 就写好了(finance.errors 下),
     // 只是没有人把这个码编进任何一个集合,所以那句人话一直没被用上。
     'PAYMENT_NOT_FOUND', 'PAYMENT_ALREADY_REVERSED', 'REVERSAL_DATE_REQUIRED',
+    // PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Q6):银行行已配对,付款 / 转账的冲销按名拒(提、批、执行三处)
+    'REVERSAL_BANK_MATCHED',
     // FIN-22 / FA-1a:固定资产。处置与投用经这条路报出来(月结的动作都走
     // month-end/actions.ts,而它统一用这个本地化器)。
     'ASSET_NOT_FOUND', 'ASSET_ALREADY_DISPOSED', 'ASSET_ALREADY_IN_SERVICE',

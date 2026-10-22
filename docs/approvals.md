@@ -1389,7 +1389,7 @@ posted period's line both went through. Now: `PAYROLL_STATUS_THROUGH_FUNCTION_ON
 columns, and an INSERT born posted) · `PAYROLL_LINES_FROZEN` (lines and approved figures of a posted or requested period) ·
 `reverse_journal_entry` refuses a period's posting entry **and its reversal** (`JE_REVERSE_USE_SOURCE_PATH`). Payroll
 **payment** entries are left open on purpose: they have no proper reversal path (`docs/known-issues.md` §
-PAYROLL-PAYMENT-NO-REVERSAL-PATH).
+PAYROLL-PAYMENT-NO-REVERSAL-PATH). ★ **Retired by PAYROLL-PAY-REVERSAL-1 (2026-10-22, §3z): they now have one, and the generic route refuses them.**
 
 ## 3m · ROLE-1 Batch 4a (2026-09-25) — two price codes, and what that does to the approval gates
 
@@ -1988,6 +1988,32 @@ finance · cfo · cco (§3i). Self-approval rules apply to cco as to every appro
   past both the balance check and four eyes.
 - **Serialised per employee (Q13).** Submit and approve lock the employee's row, so two requests for the same person cannot pass
   the check at the same moment.
+
+## 3z · PAYROLL-PAY-REVERSAL-1 (2026-10-22) — a payroll payment is reversed only when the CFO approves it
+
+The cut is `docs/handbacks/PAYROLL-PAY-REVERSAL-1.md`; this section records only what changes **for approvals**. Tim's rulings: Step 0 Q1–Q9.
+
+**Nothing in the engine changed.** A third kind on `payroll_requests` — `payment_reversal`, with `target_entry_id` naming the salary, CPF or
+deductions payment entry — rides the chain §3l built: same `decide_payroll_request` (level 2, every one, no threshold; the raiser can never
+approve), same gate `{module.hr.view, data.view_pay}`, same `approval_pending_documents` arm (`blocks_disable`, `fixed_level = 2`), same
+`approval_log` subject type, same reminder. Each of those reads only columns every payroll request has, and each was read to confirm it.
+
+* **Raise:** finance (`module.hr.edit`), from the payroll payments page — `submit_payroll_payment_reversal_request(entry, reason)`; the
+  reason is required. One open request per period (any kind). Submit and approve each dry-run the reversal engine (`payroll_request_dry_run`,
+  probe date = today): an entry already reversed, an entry that is not a standing payment, a payment matched to a bank statement line are
+  refused in the engine's own words before the CFO sees them.
+* **Execute:** finance, the raiser included — `reverse_payroll_payment(request, reversal date)`. The date is given **here**, never defaulted
+  (the PAY-REQ-1 §3k shape: execution takes a date and nothing else).
+* **The approval log's amount is still the period's gross** (N4 — this chain is not tiered, the amount is for reading). The payment's own amount
+  is shown on the payroll payments page and on the period's request panel, read from the entry.
+* **While it waits**, the period is frozen exactly as for the other two kinds (`payroll_period_frozen = 'requested'`), but other unpaid lines in
+  the period can still be paid (Q9 — the fingerprint does not include paid stamps).
+* **Approvals OFF:** born `approved` with an `auto_approved` row.
+* **The generic journal reversal request** (`submit_journal_reversal_request` / `journal_request_post_internal`, §3s) now refuses payroll payment
+  entries by name (`JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL`) instead of routing them to the CFO as a manual reversal — §3l's "payment entries are
+  left open on purpose" is retired.
+* **A bank-matched payment is refused** at raise, approve and execute (`REVERSAL_BANK_MATCHED`) — and the same check now guards the
+  `payment_reversal`, `bank_transfer_reversal` and `wht_remittance_reversal` kinds of `payment_requests` (§3j / §3k), in their engines.
 
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 

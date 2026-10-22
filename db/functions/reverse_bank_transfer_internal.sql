@@ -6,6 +6,9 @@
 --
 -- NOTE: introduced by db/migrations/2026-09-23-payreqb-transfers-and-wht-through-requests.sql.
 
+-- ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q6):银行行已经配上了对账单行就不冲 —— 按名拒 REVERSAL_BANK_MATCHED
+--   (assert_entry_not_bank_matched;先取消配对,对完账的先撤销对账)。提、批两次试跑与执行走的都是这支引擎,所以三处都拒。
+
 CREATE OR REPLACE FUNCTION public.reverse_bank_transfer_internal(p_transfer_id uuid, p_reversal_date date DEFAULT NULL::date, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -29,6 +32,8 @@ BEGIN
     IF v_t.reversed_at IS NOT NULL THEN
         RAISE EXCEPTION 'TRANSFER_ALREADY_REVERSED|%', p_transfer_id;
     END IF;
+
+    PERFORM assert_entry_not_bank_matched(v_t.journal_entry_id);
 
     v_je := reverse_journal_entry_internal(v_t.journal_entry_id,
                 p_reversal_date,

@@ -442,6 +442,7 @@ d1 is complete on its own.
 44. **Manual walk §31.6** — the six CONV-9 §30 items, none walked. (`docs/manual-walk-list.md:2582`)
 45. **On a real device and network, judge whether the 5–7 s wait after setting a password is acceptable** (decides whether `/me` gets lighter). (`docs/manual-walk-list.md:2892`)
 46. **Widen the refresh-token reuse interval from 10 s to 60 s in the Supabase dashboard** (Auth settings, `security_refresh_token_reuse_interval`) — ruled by Tim 2026-10-20 (d2 #4); a dashboard action, not a cut. *Added by FIN-CHAIN-1.* (`docs/forward-queue.md:1971`; also `docs/known-issues.md:3375`)
+47. **Have HR check the childcare-leave proration against MOM's own pro-rated childcare leave calculator** — the formula and its table are in `docs/manual-walk-list.md` §35.1 (and in `docs/handbacks/PAYROLL-PAY-REVERSAL-1.md`); ruled by Tim 2026-10-22 (PAYROLL-PAY-REVERSAL-1 Q11). *Added by PAYROLL-PAY-REVERSAL-1.* (`docs/manual-walk-list.md` §35.1)
 
 ### d2 · Decisions recorded as waiting on Tim
 
@@ -553,5 +554,5 @@ The file's own rule (`docs/known-wrong-until-cutover.md:3-4`): test data that re
 - **a · open cuts in `docs/forward-queue.md`:** 46 items (MES group excluded — closed). Items stating a size of their own: 4 (ALERT-2b family, COPY-MONTHEND-FILTER-KEY, 匿名收缩, NARROW-COVERAGE-2 ④); the rest "no estimate recorded".
 - **b · `docs/known-issues.md`:** 391 entries read; **130 closed** (of them 5 with an unstruck heading whose text records the close); **261 open** — b1 defects **111** (of them 41 marked `(?)`, mostly latent) · b2 regression-check gaps **51** (12 `(?)`) · b3 accepted limitations **89** (34 `(?)`, ruling still open) · b4 outside party / platform **10** (4 `(?)`).
 - **c · pending values:** 34 live arms + 1 registered-not-built in the file; on `/settings/pending-values` today **36 rows across 19 values**; 14 more values not set whose arm lists nothing yet; 1 supplied (V39).
-- **d · Tim's own:** d1 things to do **45** (of them 24 supply or record a pending value from §c) · d2 decisions waiting **35**.
+- **d · Tim's own:** d1 things to do **47** (was 45 at 2026-10-20; +46 FIN-CHAIN-1, +47 PAYROLL-PAY-REVERSAL-1; of them 24 supply or record a pending value from §c) · d2 decisions waiting **35**.
 - **e · `docs/known-wrong-until-cutover.md`:** 60 lines — 57 items the production fresh rebuild removes, 1 struck as no longer true (6600, line 10), 2 records of deliberate removals (FIX-1, line 45; ACCOUNTS-CLEAN, line 69).

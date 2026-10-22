@@ -34,7 +34,14 @@ CREATE TABLE public.leave_types (
     created_at                     timestamptz NOT NULL DEFAULT now(),
     created_by                     uuid DEFAULT auth.uid(),
     updated_at                     timestamptz NOT NULL DEFAULT now(),
-    updated_by                     uuid DEFAULT auth.uid()
+    updated_by                     uuid DEFAULT auth.uid(),
+    -- ★ PAYROLL-PAY-REVERSAL-1 · B1(Tim 2026-10-22,Step 0 Q10 · Q11):按服务期给额度 —— 只对按年额度的假别(default_days_per_year 不为空)有意义;
+    --   算式在 leave_service_entitlement。服务期 = hire_date 到请假开始日之间【完整的月数】。(ALTER 加的列,在最后。)
+    qualifying_service_months      smallint NOT NULL DEFAULT 0 CHECK (qualifying_service_months >= 0),
+    service_rule                   text NOT NULL DEFAULT 'full' CHECK (service_rule IN ('full', 'steps', 'prorate_first_year')),
+    service_steps                  jsonb,
+    prorate_minimum_days           numeric CHECK (prorate_minimum_days IS NULL OR prorate_minimum_days >= 0),
+    CONSTRAINT leave_types_service_steps_shape CHECK ((service_rule = 'steps') = (service_steps IS NOT NULL))
 );
 
 CREATE TRIGGER trg_leave_types_updated_at
@@ -157,6 +164,17 @@ INSERT INTO public.leave_types
  '经批准的课程考试假。',
  true, false, 2, NULL, true, true, NULL, 130,
  '⚠️ NOT statutory in Singapore — 2 days is a PLACEHOLDER pending confirmation from the staff handbook.');
+
+-- ★ PAYROLL-PAY-REVERSAL-1 · B1(Tim 2026-10-22,Step 0 Q11):每一种按年额度的假别对服务期的规矩。【引导默认值仍然正确】——
+--   既有各列的意思一个字没变;新的四列是新增的规矩,值就是 Tim 的裁定:
+--   门诊病假 / 住院假:满 3 个完整月才有,MOM 的台阶 5 / 15(第 3 个月)· 8 / 30(第 4)· 11 / 45(第 5)· 第 6 个月起 14 / 60;
+--   育儿假 / 延长育儿假:满 3 个月才有,不满 12 个月按月折算(育儿假至少 2 天);
+--   产假 / 陪产假 / 共享育儿假 / 婴儿看护假:满 3 个月才有,之后整年,不折算;婚假 / 恩恤假 / 考试假:公司政策,没有资格期。
+UPDATE public.leave_types SET qualifying_service_months = 3, service_rule = 'steps', service_steps = '{"3": 5, "4": 8, "5": 11}'::jsonb WHERE code = 'sick';
+UPDATE public.leave_types SET qualifying_service_months = 3, service_rule = 'steps', service_steps = '{"3": 15, "4": 30, "5": 45}'::jsonb WHERE code = 'hospitalisation';
+UPDATE public.leave_types SET qualifying_service_months = 3, service_rule = 'prorate_first_year', prorate_minimum_days = 2 WHERE code = 'childcare';
+UPDATE public.leave_types SET qualifying_service_months = 3, service_rule = 'prorate_first_year' WHERE code = 'extended_childcare';
+UPDATE public.leave_types SET qualifying_service_months = 3 WHERE code IN ('maternity', 'paternity', 'shared_parental', 'infant_care');
 
 -- ============================================================================
 

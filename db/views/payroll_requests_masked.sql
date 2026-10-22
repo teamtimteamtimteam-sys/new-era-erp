@@ -33,7 +33,8 @@ CREATE VIEW public.payroll_requests_masked WITH (security_invoker = off) AS
     executed_by,
     result_journal_entry_id,
     created_at,
-    created_by
+    created_by,
+    target_entry_id
    FROM payroll_requests
   WHERE has_permission('module.hr.view'::text);
 

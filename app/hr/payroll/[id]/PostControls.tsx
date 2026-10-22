@@ -17,30 +17,36 @@
 // ★ AUDIT-TRAIL-1d-3(Tim 的 Q27):这一块下面原来那一段"以往的申请"(每一张了结的申请:状态 · 时刻 · 决定的说明)是一段
 //   纯粹的决定史 —— 换成页底的审计记录(谁、何时、送审 / 批准 / 驳回 / 撤回 / 执行,理由在同一句里)。
 //   挂着的那一张申请与过账 / 撤销的按钮是【控制】,留着(与 1c-1 的发票申请同一个裁定)。
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Refusal } from '@/app/components/ui/refusal'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { formatAmount } from '@/lib/format'
+import { formatAmount, businessToday } from '@/lib/format'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import {
     submitPayrollRequest,
     decidePayrollRequest,
     withdrawPayrollRequest,
     postPayroll,
     unpostPayroll,
+    reversePayrollPayment,
 } from '../actions'
 
 export type PayrollRequestView = {
     id: string
     label: string
-    kind: 'post' | 'reversal'
+    kind: 'post' | 'reversal' | 'payment_reversal'
     status: 'submitted' | 'approved' | 'rejected' | 'withdrawn' | 'executed'
     notes: string | null
     decisionNotes: string | null
     createdText: string
+    /** ★ PAYROLL-PAY-REVERSAL-1:payment_reversal 冲的那一张付款分录 */
+    targetEntryId: string | null
+    /** 那一次付款(付薪页同一支读者答的):编号 · 种类 · 金额(受限为 null)· 日期 · 银行行配在哪张对账单(没配为 null) */
+    target: { code: string; kind: 'salary' | 'cpf' | 'deductions'; amount: number | null; entryDate: string; bankStatement: string | null } | null
 }
 
 export function PayrollRequestPanel({
@@ -70,6 +76,9 @@ export function PayrollRequestPanel({
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
+    // ★ PAYROLL-PAY-REVERSAL-1(Tim Q3):冲销日由执行的人给、必填、不默认 —— 空着(或敲错)执行钮按不下去,动作层与库各自再拒一次
+    const [revDate, setRevDate] = useState('')
+    const [revDateBad, setRevDateBad] = useState(false)
 
     function run(headline: string, fn: () => Promise<{ error?: string }>) {
         start(async () => {
@@ -163,6 +172,20 @@ export function PayrollRequestPanel({
                         <dd>
                             {t('hr.payrollRequest.kind.' + open.kind)} · <span className="font-mono">{open.label}</span> · {open.createdText}
                         </dd>
+                        {open.kind === 'payment_reversal' && (
+                            <>
+                                <dt className="text-[color:var(--brand-muted-text)]">{t('hr.payrollRequest.payment')}</dt>
+                                <dd>
+                                    {open.target ? (
+                                        <>
+                                            <span className="font-mono">{open.target.code}</span> · {t('finance.payrollPay.paymentKind.' + open.target.kind)}
+                                            {' · '}{open.target.entryDate}{' · '}
+                                            {open.target.amount === null ? <Refusal>{t('common.restricted')}</Refusal> : formatAmount(open.target.amount, currency)}
+                                        </>
+                                    ) : t('hr.payrollRequest.paymentGone')}
+                                </dd>
+                            </>
+                        )}
                         {open.notes && (
                             <>
                                 <dt className="text-[color:var(--brand-muted-text)]">{t('hr.payrollRequest.reason')}</dt>
@@ -218,7 +241,38 @@ export function PayrollRequestPanel({
                         </>
                     )}
 
-                    {open.status === 'approved' && (
+                    {open.status === 'approved' && open.kind === 'payment_reversal' && (
+                        <PermissionGate code="module.hr.edit" allowed={canRaise}>
+                            <div className="flex flex-wrap items-start gap-3">
+                                <label className="block text-sm">
+                                    {t('hr.payrollRequest.reversalDate')} <span className="text-red-600">*</span>
+                                    {/* FIN-CHAIN-1 的规矩:钱回来是已经发生的事 —— 晚于今天服务端按名拒,框也不给选 */}
+                                    <DatePicker value={revDate} required aria-invalid={revDate === ''} max={businessToday()}
+                                                onChange={setRevDate} onInvalidChange={setRevDateBad} className="flex" />
+                                    <span className="mt-1 block max-w-md text-xs text-[color:var(--brand-muted-text)]">{t('hr.payrollRequest.reversalDateHint')}</span>
+                                </label>
+                                <ConfirmButton
+                                    subject={`${subject} · ${open.target?.code ?? open.label}`}
+                                    title={t('hr.payrollRequest.executePaymentReversalConfirm')}
+                                    body={t('hr.payrollRequest.executePaymentReversalBody', { date: revDate })}
+                                    confirmLabel={t('hr.payrollRequest.executePaymentReversal')}
+                                    tier="reversal"
+                                    triggerVariant="reversal"
+                                    disabled={pending || revDate === '' || revDateBad || !!open.target?.bankStatement}
+                                    onConfirm={() => run(notDone, () => reversePayrollPayment(periodId, open.id, revDate))}
+                                >
+                                    {pending ? t('common.saving') : t('hr.payrollRequest.executePaymentReversal')}
+                                </ConfirmButton>
+                            </div>
+                            {open.target?.bankStatement && (
+                                <p className="text-xs text-[color:var(--brand-text)]">
+                                    {t('finance.payrollPay.bankMatched', { statement: open.target.bankStatement })}
+                                </p>
+                            )}
+                        </PermissionGate>
+                    )}
+
+                    {open.status === 'approved' && open.kind !== 'payment_reversal' && (
                         <PermissionGate code="module.hr.edit" allowed={canRaise}>
                             {open.kind === 'post' ? (
                                 <ConfirmButton

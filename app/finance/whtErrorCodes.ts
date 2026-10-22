@@ -48,6 +48,8 @@ const WHT_ERROR_CODES = new Set([
     'WHT_REMITTANCE_ALREADY_REQUESTED',
     'WHT_REMITTANCE_NOT_FOUND',
     'WHT_REMITTANCE_ALREADY_REVERSED',
+    // PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Q6):银行行已配对,缴纳的冲销按名拒
+    'REVERSAL_BANK_MATCHED',
     'WHT_REVERSAL_ALREADY_REQUESTED',
     // ── wht_rate_for:税率解析(与 tax_rate_for / fx_rate_for 同一条规矩)──
     'WHT_NATURE_UNKNOWN',

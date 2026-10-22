@@ -514,6 +514,9 @@ const OVERRIDES = {
         name_en: 'Name (English)', name_zh: 'Name (Chinese)', description_en: 'Description (English)', description_zh: 'Description (Chinese)',
         is_paid: 'Paid', is_accrued: 'Accrues', default_days_per_year: 'Standard days', requires_certificate_after_days: 'Certificate after (days)',
         requires_approval: 'Needs approval', allows_half_day: 'Half days', gender_restriction: 'Only for', is_active: 'Active', notes: 'Notes',
+        // PAYROLL-PAY-REVERSAL-1 · B1(Tim 2026-10-22):按服务期给额度的四列
+        qualifying_service_months: 'Months of service before any days', service_rule: 'New-starter rule', service_steps: 'Days by month of service',
+        prorate_minimum_days: 'Minimum days when pro-rated',
     },
     public_holidays: {
         holiday_date: 'Date', name_en: 'Name (English)', name_zh: 'Name (Chinese)', country: 'Country', is_active: 'Active', notes: 'Notes',
@@ -564,6 +567,7 @@ const OVERRIDES = {
         gross_total: 'Gross total', amount_base: 'Amount (base currency)', notes: 'Reason', decided_at: 'Decided on', decided_by: 'Decided by',
         decision_notes: 'Decision notes', withdrawn_at: 'Withdrawn on', withdrawn_by: 'Withdrawn by', executed_at: 'Carried out on',
         executed_by: 'Carried out by', result_journal_entry_id: 'Journal',
+        target_entry_id: 'Payment reversed',  // PAYROLL-PAY-REVERSAL-1
     },
     performance_reviews: {
         employee_id: 'Employee', review_type: 'Review type', cycle_id: 'Cycle', period_start: 'Period start', period_end: 'Period end',
@@ -1049,6 +1053,9 @@ const ENUM_OVERRIDES = {
     'invoices#kind': { sale: 'From a sale', order: 'From a sales order' },
     'invoices#status': { issued: 'Issued', void: 'Void' },
     'journal_requests#kind': { entry: 'Manual journal', reversal: 'Reversal' },
+    // PAYROLL-PAY-REVERSAL-1:前两种照 humanize 原来说的那两个词(Post · Reversal)写死,第三种是新的
+    'payroll_requests#kind': { post: 'Post', reversal: 'Reversal', payment_reversal: 'Payment reversal' },
+    'leave_types#service_rule': { full: 'Full year', steps: 'Steps by month of service', prorate_first_year: 'Pro-rated in the first year' },
     'journal_requests#status': { submitted: 'Waiting for approval', approved: 'Approved and posted', rejected: 'Rejected', withdrawn: 'Withdrawn' },
     'expenses#wht_payee_residence': { resident: 'Singapore tax resident', non_resident: 'Non-resident' },
     'expense_claims#status': { submitted: 'Waiting for approval', withdrawn: 'Withdrawn', approved: 'Approved', rejected: 'Rejected' },

@@ -13,6 +13,9 @@
 --   签名不变:旧的冲销钮在破窗里调它,得到的是一句按名的拒绝,而不是一次不经批准的冲销。
 --   冲销的本体一直在 reverse_journal_entry_internal(EXECUTE 早已收回),各单据自己的冲销路径照旧调它。
 
+-- ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q8):路由的第五个答案 'payroll_payment'(工资付款分录与它们的冲销)按名拒
+--   JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL —— 它们有自己的冲销路(付薪页上的付款冲销申请),从这里冲会留下已付的戳。
+
 CREATE OR REPLACE FUNCTION public.reverse_journal_entry(p_entry_id uuid, p_reversal_date date, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -35,6 +38,9 @@ BEGIN
     END IF;
     IF v_route = 'source_path' THEN
         RAISE EXCEPTION 'JE_REVERSE_USE_SOURCE_PATH|%|%', v_code, v_src;
+    END IF;
+    IF v_route = 'payroll_payment' THEN
+        RAISE EXCEPTION 'JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL|%', v_code;
     END IF;
     RAISE EXCEPTION 'JOURNAL_NEEDS_APPROVED_REQUEST|%', v_code;
 END;

@@ -1461,6 +1461,10 @@ leave_types,created_at,audit_std,hide: the trail entry already says who and when
 leave_types,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
 leave_types,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
 leave_types,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+leave_types,qualifying_service_months,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Months of service before any days,,,smallint
+leave_types,service_rule,enum,"message keys: none — ENUM_OVERRIDES leave_types#service_rule (PAYROLL-PAY-REVERSAL-1)",,,New-starter rule,,,text
+leave_types,service_steps,jsonb,no generic rendering: needs a per-column renderer or hide (never raw JSON),,,Days by month of service,,,jsonb
+leave_types,prorate_minimum_days,number,"number with unit (qty kg, %, rate); Intl en-US grouping",,,Minimum days when pro-rated,,,numeric
 list_ledger_residue,side,own_key,show as-is: the record's own business key (code/number),commissions.colSide,Side,,text-only,,text
 list_ledger_residue,doc_code,own_key,show as-is: the record's own business key (code/number),,,Doc code,,,text
 list_ledger_residue,amount_base,money,"formatAmount(n, base currency from getBaseCurrency lib/currency.ts:16) (lib/format.ts:32)",assets.detail.colAmountCcy,Amount,,text-only,,numeric
@@ -1882,6 +1886,7 @@ payroll_requests,executed_by,actor,bare auth-account uuid (no FK) → person nam
 payroll_requests,result_journal_entry_id,fk_document,"journal_entries.code (document number, prefix JE)",,,Result journal entry,,,uuid
 payroll_requests,created_at,audit_std,hide: the trail entry already says who and when,,,Created on,,,timestamp with time zone
 payroll_requests,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
+payroll_requests,target_entry_id,fk_document,"journal_entries.code (document number, prefix JE) — PAYROLL-PAY-REVERSAL-1",,,Payment reversed,,,uuid
 performance_reviews,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 performance_reviews,employee_id,fk_person,"employees.id → person name: loadActorNames(…, employeeIds) space=""employee"" (app/components/ActorName.tsx:49,119); employee_lookup view for readers without hr.view",attendance.colEmployee,Employee,,text-only,,uuid
 performance_reviews,review_type,enum,"message keys reviews.type_<v> (registered in scripts/check-i18n.mjs, build-checked)",,,Review type,,,text

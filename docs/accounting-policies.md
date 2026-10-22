@@ -620,6 +620,28 @@ not exempt from the period lock** and never has been; the payment date is subjec
 
 > *Enforcement:* `unpost_payroll_period` raises `PAYROLL_CPF_PAID`.
 
+**How a payroll payment is reversed — SETTLED — 2026-10-22, ruled by Tim (PAYROLL-PAY-REVERSAL-1, Step 0 Q1–Q9).**
+Until this cut the sentence above named a reversal that did not exist: the only "undo" for a salary, CPF or deductions
+payment was the generic journal reversal, which put the ledger back and left the paid stamp on, so the period could never
+be unposted and the line never paid again. Now:
+
+* **It is a request the CFO approves, whatever the amount** — a third kind on `payroll_requests` (`payment_reversal`),
+  raised by finance from the payroll payments page, decided at level 2, carried out by finance (the raiser may).
+* **The unit is the whole payment entry** — one pay call, one CPF remittance or one deductions remittance. One person's line
+  cannot be reversed alone; people who were paid correctly are paid again afterwards.
+* **The reversal date is the day the money came back**, chosen by the person carrying it out; required, never defaulted; not
+  before the payment, not after today, and not inside a locked period. If the payment's month is closed, the reversal goes in
+  an open month and the original stays where it is.
+* **The period stays posted.** The paid stamp and entry link are cleared on exactly the lines that entry paid (net-zero lines
+  included — the pay call stamps them too); for CPF or deductions, that remittance's date and link. The period can be paid
+  again; once no payment remains, the unpost request works again (this policy's first sentence).
+* **A payment matched to a bank statement line is not reversed** until it is unmatched (and the statement unreconciled, if it is).
+  The same check applies to the payment, bank-transfer and WHT-remittance reversals.
+* **The generic journal reversal refuses these entries and their reversals by name** (`JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL`).
+
+> *Enforcement:* `submit_payroll_payment_reversal_request` · `reverse_payroll_payment` → `reverse_payroll_payment_internal`;
+> `journal_entry_reversal_route` (`payroll_payment`); `assert_entry_not_bank_matched`; fixtures 288 · 289.
+
 ---
 
 ### 7.4 An employee expense claim recognises both the cost and the debt to the employee at the moment it is approved, dated the day the money was spent. — **SETTLED — 2026-08-28, ruled by Tim (CLAIM-1)**

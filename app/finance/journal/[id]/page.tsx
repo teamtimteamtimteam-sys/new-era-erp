@@ -226,7 +226,7 @@ export default async function JournalDetailPage({
                         ),
                     },
                 ]}
-                actions={entry.status === 'posted' && (route === 'request' || route === 'source_path')
+                actions={entry.status === 'posted' && (route === 'request' || route === 'source_path' || route === 'payroll_payment')
                     ? <ReverseButton canEdit={canEditGate} entryId={entry.id} subject={entry.code}
                         route={route} sourceType={entry.source_type} openRequestLabel={openReversalLabel} />
                     : undefined}

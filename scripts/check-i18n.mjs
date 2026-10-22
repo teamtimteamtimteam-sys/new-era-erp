@@ -904,6 +904,9 @@ const MANIFEST = {
     // PAYROLL-APR-1(2026-09-24):工资过账 / 撤销申请的种类与状态,真源是 payroll_requests 的两条 CHECK
     'hr.payrollRequest.status.': { kind: 'enum', values: () => sqlEnum('db/tables/payroll_requests.sql', 'status') },
     'hr.payrollRequest.kind.':   { kind: 'enum', values: () => sqlEnum('db/tables/payroll_requests.sql', 'kind') },
+    // PAYROLL-PAY-REVERSAL-1:付薪页上每一次付款的种类 —— 真源是 payroll_payment_entries 回的那个联合(paymentEntries.ts)
+    'finance.payrollPay.paymentKind.': { kind: 'enum', values: () => tsRegex('app/finance/payroll-payments/paymentEntries.ts',
+                                  /kind: '(\w+)' \| '(\w+)' \| '(\w+)'/g) },
     // ROLE-1 Batch 4b(2026-09-25):收货定价申请的来源与状态,真源是 receipt_price_requests 的两条 CHECK
     'inbound.priceRequest.status.': { kind: 'enum', values: () => sqlEnum('db/tables/receipt_price_requests.sql', 'status') },
     'inbound.priceRequest.source.': { kind: 'enum', values: () => sqlEnum('db/tables/receipt_price_requests.sql', 'source') },

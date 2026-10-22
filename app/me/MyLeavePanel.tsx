@@ -41,6 +41,8 @@ type Breakdown = {
 type Balance = {
     granted: number; consumed: number; expired: number; available: number
     pending: number; bookable: number; breakdown: Breakdown[]
+    // ★ PAYROLL-PAY-REVERSAL-1 · B2:leave_balances() 每一项带上假别与它的性别限定(员工档案没有性别 → 只标、不筛)
+    leave_type_code: string; gender_restriction: 'female' | 'male' | null
 }
 type Req = {
     id: string; code: string; leave_type_code: string
@@ -49,11 +51,15 @@ type Req = {
 }
 
 // AUDIT-TRAIL-1d-2(Q14):每一张自己的请假一段审计记录(服务端造好,按请假 id 交进来;折起来,与报销那一块同一个做法)
+//
+// ★ PAYROLL-PAY-REVERSAL-1 · B2(Tim 2026-10-22,Step 0 Q12):余额从【一次调用】读来(leave_balances)—— 每一种有额度的假一行
+//   (年假在内,共 12 种),列「已用」与「可用」;产假 / 陪产假对每个人都列出来(员工档案没有性别),标「视资格而定」。
+//   年假那一项照旧在上面画六个数与逐笔明细。按服务期给的额度(B1)就在「可用」里:不满 3 个月的人病假是 0。
 export default function MyLeavePanel({
-    employeeId, balance, requests, types, decisions, trails = {},
+    employeeId, balances, requests, types, decisions, trails = {},
 }: {
     employeeId: string
-    balance: Balance | null
+    balances: Balance[]
     requests: Req[]
     types: LeaveTypeOption[]
     decisions: Record<string, Decision>
@@ -64,6 +70,7 @@ export default function MyLeavePanel({
     const [open, setOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [busy, startTransition] = useTransition()
+    const balance = balances.find((b) => b.leave_type_code === 'annual') ?? null
     const typeName = (c: string) => {
         const x = types.find((y) => y.code === c)
         return x ? (locale === 'zh' ? x.name_zh : x.name_en) : c
@@ -87,6 +94,16 @@ export default function MyLeavePanel({
             key: 'grantStatus', header: t('leave.grantStatus'), priority: true,
             render: (b) => t(`leave.grantStatus_${b.status}`),
         },
+    ]
+
+    const allColumns: Column<Balance>[] = [
+        {
+            key: 'type', header: t('leave.type'), priority: true,
+            render: (b) => <>{typeName(b.leave_type_code)}{b.gender_restriction
+                ? <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('me.leaveEligibilityNote')}</span> : null}</>,
+        },
+        { key: 'used', header: t('leave.taken'), align: 'right', priority: true, render: (b) => b.consumed },
+        { key: 'available', header: t('leave.available'), align: 'right', priority: true, render: (b) => b.available },
     ]
 
     const requestColumns: Column<Req>[] = [
@@ -176,6 +193,19 @@ export default function MyLeavePanel({
                         rows={balance.breakdown}
                         columns={breakdownColumns}
                         rowKey={(b) => b.grant_id ?? `accrual-${b.leave_year}`}
+                        phone={{ mode: 'columns' }}
+                    />
+                </div>
+            )}
+
+            {balances.length > 0 && (
+                <div className="rounded border border-gray-200 p-4 mb-3">
+                    <h3 className="mb-1 text-sm">{t('me.allLeaveBalances')}</h3>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('me.allLeaveBalancesHint')}</p>
+                    <DataTable
+                        rows={balances}
+                        columns={allColumns}
+                        rowKey={(b) => b.leave_type_code}
                         phone={{ mode: 'columns' }}
                     />
                 </div>

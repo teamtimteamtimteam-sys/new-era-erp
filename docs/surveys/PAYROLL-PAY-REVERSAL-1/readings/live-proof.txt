@@ -1,0 +1,22 @@
+BEFORE(postgres)|payroll entries|line stamps|period stamps|payroll requests|journal entries|bank statements|leave requests = JE-2026-0017:posted,JE-2026-0018:posted,JE-2026-0019:posted,JE-2026-0020:posted|2026-08-04 20:14:44.397843+08/bc3b3db0-5b34-49d9-a6f9-9cd8923237ed|2026-08-04/2026-08-04/posted|0|83|2|6
+MINTED|finance copy 43 codes · real cfo role 36 codes · employee with profile · other employee
+PASS|H1: /finance/payroll-payments (finance copy) HTTP 200: the "Payments" table lists JE-2026-0018 / 0019 / 0020, each with "Request reversal"
+PASS|H2: /finance/journal/JE-2026-0018 HTTP 200: the reverse button points to the payroll payments page (Q8)
+PASS|H3: /me (throwaway employee hired 2026-09-01) HTTP 200: the "Every leave type" table is drawn, maternity / paternity marked "Depends on eligibility" (Q12)
+PASS|H4: PostgREST leave_balances(own) → 200, 12 items, first annual, sick available 0 (B1: under 3 full months)
+PASS|H4: another employee asks for that employee's balances → 400 {"code":"P0001","details":null,"hint":null,"message":"PERMISSION_DENIED|module.hr.view"}
+PASS|T1: the generic journal reversal refuses JE-2026-0018 by name (JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL, Q8)
+PASS|T1: the finance copy raises a payment reversal on JE-2026-0018 → PAY-2026-0001 · payment_reversal #1 submitted, no journal entry written
+PASS|T2: a holder of the real cfo role approves it (level 2, the payroll gate)
+PASS|T3: a reversal date before the payment is refused (REVERSAL_BEFORE_ORIGINAL, Q4)
+PASS|T3: tomorrow is refused (DOCUMENT_DATE_IN_FUTURE, Q4)
+PASS|T3: executed today → JE-2026-0018 reversed, the line it paid is unpaid again (1 cleared), PAY-2026-0001 still posted, CPF untouched, the reversal still routes to payroll_payment
+PASS|T4: the CPF payment matched to a bank statement line → the reversal request is refused by name (REVERSAL_BANK_MATCHED, Q6)
+PASS|T5: the new starter (hired 2026-09-01) has 0 days of sick leave (B1)
+PASS|T5: a day of sick leave is refused by name (INSUFFICIENT_BALANCE)
+TX_DONE
+PASS|tx: the transaction leg ran to the end and rolled back (psql exit 0)
+PASS|after ROLLBACK: the three payroll payments, every stamp, payroll requests, journal entries, bank statements and leave requests unchanged
+STEP|done
+AFTER|nothing but the throwaway accounts, their grants and employee profiles was committed (removed by the plan)
+PPR1_PROOF_EXIT=0

@@ -11,7 +11,10 @@
 //     APR-6 让屏幕与库问同一个问题。
 //   · 已经挂着一张在等的冲销申请 —— 灰掉,说出那一张的编号。
 //   · 'request' —— 可以提;没有 module.finance.edit 的人看得见、按不动、带理由。
+//   · ★ 'payroll_payment'(PAYROLL-PAY-REVERSAL-1,Tim 2026-10-22,Q8)—— 工资 / CPF / 扣款的付款与它们的冲销:钮看得见、按不动,
+//     说出它在哪里冲(付薪页上的付款冲销申请),并给一条去那里的链接。库里三处同样按名拒 JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL。
 import { useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { requestReversal } from '../requestActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -25,7 +28,7 @@ export default function ReverseButton({ entryId, subject, canEdit, route, source
     subject: string
     canEdit: boolean
     /** journal_entry_reversal_route 的答案 */
-    route: 'request' | 'source_path'
+    route: 'request' | 'source_path' | 'payroll_payment'
     sourceType: string | null
     /** 这张分录上已经在等的冲销申请(没有为 null) */
     openRequestLabel: string | null
@@ -52,6 +55,20 @@ export default function ReverseButton({ entryId, subject, canEdit, route, source
             }
             router.refresh()
         })
+    }
+
+    if (route === 'payroll_payment') {
+        return (
+            <span className="inline-flex flex-col items-start gap-1.5">
+                <Button type="button" variant="destructive" disabled>
+                    {t('finance.journalRequest.requestReversal')}
+                </Button>
+                <span className="text-xs text-[color:var(--brand-muted-text)] max-w-xs">
+                    {t('finance.journalRequest.usePayrollPaymentReversal')}{' '}
+                    <Link href="/finance/payroll-payments" className="underline">{t('finance.payrollPay.title')}</Link>
+                </span>
+            </span>
+        )
     }
 
     if (route === 'source_path' || openRequestLabel) {

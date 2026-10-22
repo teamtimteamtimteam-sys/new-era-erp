@@ -10,8 +10,9 @@
 --     别人还在等的单不算,批准不可能让已批超过额度)。
 --   · 'balance_checked':这个假别【有没有额度】—— 年假(is_accrued)或 default_days_per_year 不为空。
 --     只有 unpaid 没有(Q1)。没有额度的假别 available/bookable 照算(= 0 或授予),但【没有人拿它拒】。
---   · 按年额度:default_days_per_year 整年给足,按【开始日】所在公历年扣已批(Q5 · Q7);
---     不按入职折算(Q6,已登记 known-issues)。
+--   · 按年额度:按【开始日】所在公历年扣已批(Q5 · Q7)。
+--   ★ PAYROLL-PAY-REVERSAL-1 · B1(Tim 2026-10-22):额度按服务期给(leave_service_entitlement)—— LEAVE-BAL-1 Q6 登记的
+--     「整年给足、不看服务期」(LEAVEBAL1-NO-NEW-HIRE-PRORATING)到此关闭。
 --
 -- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql;
 --       LEAVE-BAL-1 by db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql.
@@ -36,6 +37,7 @@ DECLARE
     v_yr_used numeric := 0;
     v_pending numeric := 0;
     v_checked boolean;
+    v_svc     jsonb;
     r         record;
 BEGIN
     -- 【本人或 HR】与 leave_balance 同一道口径。
@@ -104,7 +106,11 @@ BEGIN
       FROM leave_types lt WHERE lt.code = p_leave_type_code;
     v_checked := COALESCE(v_type.is_accrued, false) OR v_type.default_days_per_year IS NOT NULL;
     IF NOT COALESCE(v_type.is_accrued, false) AND v_type.default_days_per_year IS NOT NULL THEN
-        v_yearly := v_type.default_days_per_year;
+        -- ★ PAYROLL-PAY-REVERSAL-1 · B1(Tim 2026-10-22,Q10 · Q11):按服务期给 —— 资格期、MOM 的台阶、第一年按月折算,
+        --   全是 leave_types 上的列,算式在 leave_service_entitlement。服务期量到 p_as_of(提交与审批传的是请假的开始日)。
+        v_svc := leave_service_entitlement(p_leave_type_code,
+                     (SELECT e.hire_date FROM employees e WHERE e.id = p_employee_id), p_as_of);
+        v_yearly := (v_svc ->> 'days')::numeric;
         SELECT COALESCE(SUM(lr.days), 0) INTO v_yr_used
           FROM leave_requests lr
          WHERE lr.employee_id = p_employee_id AND lr.leave_type_code = p_leave_type_code
@@ -118,7 +124,9 @@ BEGIN
             'grant_id', NULL, 'leave_year', v_year, 'grant_type', 'yearly_entitlement',
             'days', v_yearly, 'consumed', v_yr_used, 'carried_forward_out', 0,
             'remaining', v_yearly - v_yr_used,
-            'expires_on', NULL, 'status', 'active');
+            'expires_on', NULL, 'status', 'active',
+            'service_months', v_svc -> 'service_months', 'full_days', v_svc -> 'full_days',
+            'qualifying_months', v_svc -> 'qualifying_months', 'service_rule', v_svc -> 'rule');
     END IF;
 
     -- ── 还在等批的(LEAVE-BAL-1):只有【提交】扣它;审批不扣(Q10 Option A)──────────────

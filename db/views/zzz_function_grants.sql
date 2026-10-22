@@ -405,6 +405,15 @@ REVOKE EXECUTE ON FUNCTION public.post_payroll_period_internal(uuid) FROM authen
 REVOKE EXECUTE ON FUNCTION public.unpost_payroll_period_internal(uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.payroll_request_dry_run(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.payroll_period_fingerprint(uuid) FROM authenticated;
+-- PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22):四支内层函数,没有调用者检查,靠的就是调不到 ——
+--   reverse_payroll_payment_internal —— 冲一次工资付款的引擎;外门是 reverse_payroll_payment(要一张批过的申请)与申请的两次试跑。
+--   assert_entry_not_bank_matched —— 银行行已配对就按名拒(Q6);只在四支冲销引擎的函数体内调用。
+--   payroll_payment_entry_kind —— 从已付的戳认付款种类;只在引擎、路由、付薪页读者(都是 DEFINER)里调用。
+--   leave_service_entitlement —— 按服务期给的额度(B1);只在 leave_balance_internal 里调用。
+REVOKE EXECUTE ON FUNCTION public.reverse_payroll_payment_internal(uuid, date, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_entry_not_bank_matched(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.payroll_payment_entry_kind(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.leave_service_entitlement(text, date, date) FROM authenticated;
 
 -- ROLE-1 Batch 4a(2026-09-25,侧门 (c)):reprice_inbound_batch 是每一条定价路径落进来的那支【引擎】
 --   (写 unit_price、price_history,过 purchase 分录)。它留着 authenticated 的 EXECUTE,就是

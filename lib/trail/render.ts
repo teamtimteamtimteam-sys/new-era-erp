@@ -5125,16 +5125,18 @@ export function splitPayrollUnpostNote(notes: string | null): { notes: string | 
 /** 申请的 label "PAY-2026-0001 · post #1" → 期间编号(那一截原样的种类不上屏)与种类 */
 function payrollLabel(label: string | null): { code: string | null; kind: string | null } {
     if (!label) return { code: null, kind: null }
-    const m = label.match(/^(.+?) · (post|reversal) #\d+$/)
+    const m = label.match(/^(.+?) · (post|reversal|payment_reversal) #\d+$/)
     const code = m ? m[1] : label.split(' · ')[0]
     return { code: DOC_CODE.test(code) ? code : null, kind: m ? m[2] : null }
 }
 const PAYROLL_REQUEST_TEXT = {
     post: { sent: 'prl.sentPost', approved: 'prl.approvedPost', rejected: 'prl.rejectedPost', withdrawn: 'prl.withdrawnPost' },
     reversal: { sent: 'prl.sentUnpost', approved: 'prl.approvedUnpost', rejected: 'prl.rejectedUnpost', withdrawn: 'prl.withdrawnUnpost' },
+    // PAYROLL-PAY-REVERSAL-1:第三种
+    payment_reversal: { sent: 'prl.sentPayRev', approved: 'prl.approvedPayRev', rejected: 'prl.rejectedPayRev', withdrawn: 'prl.withdrawnPayRev' },
 } as const
 function prlKey(kind: string | null, what: 'sent' | 'approved' | 'rejected' | 'withdrawn'): TrailTextKey {
-    return PAYROLL_REQUEST_TEXT[kind === 'reversal' ? 'reversal' : 'post'][what]
+    return PAYROLL_REQUEST_TEXT[kind === 'reversal' || kind === 'payment_reversal' ? kind : 'post'][what]
 }
 function describePay(d: TrailDict, rows: TrailRow[], opts: BuildOptions, hc: HrCtx): Block2[] {
     const out: Block2[] = []
@@ -5293,7 +5295,9 @@ function describePay(d: TrailDict, rows: TrailRow[], opts: BuildOptions, hc: HrC
             out.push({ title: withPart(tx(d, prlKey(kind, to)), code), lines: [], reason: typed(r.new?.['decision_notes']), key: true, weight: 90, recordId: id, absorbsApproval: true })
         } else if (to === 'executed') {
             // 执行与过账 / 撤销同一笔 —— 工资期那一句说它;万一它单独出现,照它的种类说那一步
-            if (!postRow && !unpostRow) out.push({ title: withPart(tx(d, kind === 'reversal' ? 'prl.unposted' : 'prl.posted'), code), lines: [], key: true, weight: 90 })
+            // PAYROLL-PAY-REVERSAL-1:付款冲销的执行没有工资期那一句(期间仍 posted),所以它自己说
+            if (kind === 'payment_reversal') out.push({ title: withPart(tx(d, 'prl.paymentReversed'), code), lines: [], key: true, weight: 90 })
+            else if (!postRow && !unpostRow) out.push({ title: withPart(tx(d, kind === 'reversal' ? 'prl.unposted' : 'prl.posted'), code), lines: [], key: true, weight: 90 })
         } else if (r.op === 'UPDATE') {
             const ls = changeLines(d, r, opts, new Set(['decided_at', 'decided_by', 'executed_at', 'executed_by', 'result_journal_entry_id', 'label', 'snapshot']))
             if (ls.length) out.push({ title: withPart(tx(d, 'prl.requestChanged'), code), lines: ls, key: false, weight: 35, recordId: id })

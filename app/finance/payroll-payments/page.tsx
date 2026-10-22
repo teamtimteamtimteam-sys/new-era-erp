@@ -11,7 +11,9 @@ import { ListPage } from '@/app/components/ui/list-page'
 import PayPanel from './PayPanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustOne } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
+import type { PayrollPaymentEntry } from './paymentEntries'
 import { formatDate } from '@/lib/dates'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
@@ -37,7 +39,7 @@ export default async function PayrollPaymentsPage({ searchParams }: { searchPara
         .select('id, code, period_month, status, net_pay_total, employer_cpf_total, employee_cpf_total, other_deductions_total, cpf_paid_at, deductions_paid_at')
         .eq('status', 'posted').is('deleted_at', null)
         .order('period_month', { ascending: false }).limit(6)
-    const ids = (periods ?? []).map((p) => p.id)
+    const ids = (periods ?? []).map((p) => p.id).filter((x): x is string => !!x)
     const { data: lines } = ids.length
         ? await supabase.from('payroll_lines_masked')
             .select('id, payroll_period_id, employee_id, net_pay, paid_at')
@@ -47,12 +49,19 @@ export default async function PayrollPaymentsPage({ searchParams }: { searchPara
     const { data: emps } = empIds.length
         ? await supabase.from('employee_lookup').select('id, code, legal_name').in('id', empIds)
         : { data: [] }
+    // ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Q1 · Q6 · Q8):每一期的【每一次付款】一行 —— 冲销申请从这里提;
+    //   通用日记账冲销按名拒时指的就是这一页。读者带门(finance.view 或 hr.view),失败即抛,不读成"没有付款"。
+    const payments = ids.length
+        ? ((mustOne(await supabase.rpc('payroll_payment_entries', { p_period_ids: ids }), 'payroll_payment_entries') ?? []) as unknown as PayrollPaymentEntry[])
+        : []
+    const canRaise = await can('module.hr.edit')
     const payJournals = mustRows(await supabase.from('journal_entries').select('id, code, entry_date, status')
         .eq('source_type', 'payroll').order('created_at', { ascending: false }).limit(24), 'journal_entries payroll') as
         { id: string; code: string; entry_date: string; status: string }[]
     return (
         <ListPage title={t('finance.payrollPay.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
-            <PayPanel periods={(periods ?? []) as never} lines={(lines ?? []) as never} employees={(emps ?? []) as never} baseCurrency={baseCurrency} />
+            <PayPanel periods={(periods ?? []) as never} lines={(lines ?? []) as never} employees={(emps ?? []) as never} baseCurrency={baseCurrency}
+                      payments={payments} canRaise={canRaise} />
             <ListTrail intro="listTrail.intro.payroll" show={trailCount((await searchParams).trail)}
                 records={payJournals.map((j) => ({ subject: 'journal_entry' as const, id: j.id, href: `/finance/journal/${j.id}`,
                     label: `${j.code} · ${formatDate(j.entry_date, 'en')}${j.status === 'reversed' ? ' (reversed)' : ''}` }))} />

@@ -1,0 +1,6 @@
+CLONE|finance copy holds 43 codes
+PASS|C1: https://new-era-erp.vercel.app/finance/claims HTTP 200 in 9367 ms, table rendered, receipts column header ("Receipts") drawn
+RECORD|C2: https://new-era-erp.vercel.app/settings/dictionaries HTTP 200 in 15421 ms (15.4 s) — recorded, not judged
+STEP|done
+CLOSEOUT_CHECK_EXIT=0
+READBACK(postgres, 2026-10-22 09:51 CST)|auth.users cr1probe*=0 · roles with code like '%probe%'=0 · grants without a user=0

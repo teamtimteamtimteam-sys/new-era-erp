@@ -1,0 +1,28 @@
+参照:上一份备份 evoltrya-backup-2026-10-21-2127.dump,9825 条 TOC
+开跑:change_log count=76376 min(seq)=1 max(seq)=83823(读于 2026-10-22 10:43:02 CST)
+① 主 dump(不含 public.change_log 的数据)→ evoltrya-backup-2026-10-22-1042.dump.INCOMPLETE
+   MAIN_DUMP_EXIT=0(1357 秒)
+   TOC 9855 条(上一份 9825 条,下限 8842)✓
+② change_log 按 seq 切段,每段 5000 个 seq
+   CHUNK_EXIT=0 chunk=000 seq 1..5000 try 1 (21 秒)
+   CHUNK_EXIT=0 chunk=001 seq 5001..10000 try 1 (9 秒)
+   CHUNK_EXIT=0 chunk=002 seq 10001..15000 try 1 (7 秒)
+   CHUNK_EXIT=0 chunk=003 seq 15001..20000 try 1 (20 秒)
+   CHUNK_EXIT=0 chunk=004 seq 20001..25000 try 1 (10 秒)
+   CHUNK_EXIT=0 chunk=005 seq 25001..30000 try 1 (6 秒)
+   CHUNK_EXIT=0 chunk=006 seq 30001..35000 try 1 (8 秒)
+   CHUNK_EXIT=0 chunk=007 seq 35001..40000 try 1 (7 秒)
+   CHUNK_EXIT=0 chunk=008 seq 40001..45000 try 1 (5 秒)
+   CHUNK_EXIT=0 chunk=009 seq 45001..50000 try 1 (6 秒)
+   CHUNK_EXIT=0 chunk=010 seq 50001..55000 try 1 (6 秒)
+   CHUNK_EXIT=0 chunk=011 seq 55001..60000 try 1 (24 秒)
+   CHUNK_EXIT=0 chunk=012 seq 60001..65000 try 1 (4 秒)
+   CHUNK_EXIT=0 chunk=013 seq 65001..70000 try 1 (8 秒)
+   CHUNK_EXIT=0 chunk=014 seq 70001..75000 try 1 (5 秒)
+   CHUNK_EXIT=0 chunk=015 seq 75001..80000 try 1 (11 秒)
+   CHUNK_EXIT=0 chunk=016 seq 80001..83823 try 1 (4 秒)
+   核对:各段行数合计 76376 vs count 76376 · 首 seq 1 vs min 1 · 末 seq 83823 vs max 83823
+✅ 备份成功:evoltrya-backup-2026-10-22-1042.dump + 17 段 change_log(evoltrya-backup-2026-10-22-1042.change_log.manifest)
+-rw-r--r--  1 timchen  staff   7.6M 22 Oct 11:05 /Users/timchen/evoltrya-backups/evoltrya-backup-2026-10-22-1042.dump
+(已保留最近 14 份备份)
+BACKUP_EXIT=0

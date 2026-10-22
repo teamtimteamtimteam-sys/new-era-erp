@@ -36,9 +36,13 @@
 --   审批页上说出「本期含你自己的工资行」,approval_log 的备注记下它;**不**标 self_decided
 --   (approval_log_self_decided_scope 本来也不许,那是同一句裁定的第二道保险)。
 --
--- 【两种申请】
+-- 【三种申请】
 --   post     —— 过账一个 draft 的期间。
 --   reversal —— 撤销一个 posted 的期间;理由必填(审批人读的就是它,也是撤销分录上的那一句)。
+--   payment_reversal —— ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q1):冲掉一次工资 / CPF / 扣款【付款】(target_entry_id =
+--     那一张付款分录;整张冲,Q2)。理由必填。批同一条链(CFO,不分档);执行 = reverse_payroll_payment(冲销日由执行的人给,Q3)。
+--     期间冻结与一期一张照用;它开着的时候期间里别的未付行照样能付(Q9:指纹不含已付的戳)。
+--     留痕的金额仍是这一期的 gross(N4 —— 这条链不分档,金额只供读);那一次付款的金额在付薪页与申请面板上从分录读。
 --
 -- 【批的是哪一组数 —— 以及它在等待期间被冻住】(grilling Q4)
 --   snapshot = payroll_period_fingerprint(期间):五个合计、行数、逐行摘要、发薪日、币种、汇率。
@@ -60,7 +64,7 @@
 CREATE TABLE public.payroll_requests (
     id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     payroll_period_id       uuid NOT NULL REFERENCES public.payroll_periods (id) ON DELETE RESTRICT,
-    kind                    text NOT NULL CHECK (kind IN ('post', 'reversal')),
+    kind                    text NOT NULL CHECK (kind IN ('post', 'reversal', 'payment_reversal')),
     status                  text NOT NULL DEFAULT 'submitted'
         CHECK (status IN ('submitted', 'withdrawn', 'approved', 'rejected', 'executed')),
     label                   text NOT NULL,
@@ -83,8 +87,10 @@ CREATE TABLE public.payroll_requests (
     result_journal_entry_id uuid REFERENCES public.journal_entries (id) ON DELETE RESTRICT,
     created_at              timestamptz NOT NULL DEFAULT now(),
     created_by              uuid NOT NULL,
+    -- ★ PAYROLL-PAY-REVERSAL-1:payment_reversal 冲的是哪一张付款分录(ALTER 加的列,在最后)
+    target_entry_id         uuid REFERENCES public.journal_entries (id) ON DELETE RESTRICT,
     CONSTRAINT payroll_requests_reversal_reason CHECK (
-        kind <> 'reversal' OR btrim(COALESCE(notes, '')) <> ''),
+        kind NOT IN ('reversal', 'payment_reversal') OR btrim(COALESCE(notes, '')) <> ''),
     CONSTRAINT payroll_requests_decision_shape CHECK ((decided_at IS NULL) = (decided_by IS NULL)),
     CONSTRAINT payroll_requests_reject_reason CHECK (
         status <> 'rejected' OR (decided_at IS NOT NULL AND btrim(COALESCE(decision_notes, '')) <> '')),
@@ -94,7 +100,8 @@ CREATE TABLE public.payroll_requests (
     CONSTRAINT payroll_requests_executed_shape CHECK (
         (status = 'executed') = (executed_at IS NOT NULL)
         AND (executed_at IS NULL) = (executed_by IS NULL)
-        AND (executed_at IS NULL) = (result_journal_entry_id IS NULL))
+        AND (executed_at IS NULL) = (result_journal_entry_id IS NULL)),
+    CONSTRAINT payroll_requests_payment_reversal_target CHECK ((kind = 'payment_reversal') = (target_entry_id IS NOT NULL))
 );
 
 COMMENT ON TABLE public.payroll_requests IS
@@ -103,11 +110,15 @@ COMMENT ON TABLE public.payroll_requests IS
 COMMENT ON COLUMN public.payroll_requests.amount_base IS
     'PAYROLL-APR-1:gross_total × fx_rate(期间自己的汇率),两位小数 —— approval_log 冻结的金额(Tim 的 N4:工资按 gross 路由;这条链不分档,金额只供审批人读与留痕)。';
 
+COMMENT ON COLUMN public.payroll_requests.target_entry_id IS
+    'PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22):payment_reversal 冲的那一张付款分录(工资 / CPF / 扣款,payroll_payment_entry_kind 认种类)。另外两种为 NULL(payroll_requests_payment_reversal_target)。';
+
 CREATE UNIQUE INDEX payroll_requests_one_open_per_period
     ON public.payroll_requests (payroll_period_id)
     WHERE status IN ('submitted', 'approved');
 CREATE INDEX payroll_requests_payroll_period_id_rel ON public.payroll_requests (payroll_period_id);
 CREATE INDEX payroll_requests_result_journal_entry_id_rel ON public.payroll_requests (result_journal_entry_id);
+CREATE INDEX payroll_requests_target_entry_id_rel ON public.payroll_requests (target_entry_id);
 
 ALTER TABLE public.payroll_requests ENABLE ROW LEVEL SECURITY;
 
@@ -125,5 +136,5 @@ REVOKE ALL ON public.payroll_requests FROM anon;
 --   列授权不随 ADD COLUMN 自动延伸:给这张表加列,要回到这一行,并把它放进 payroll_requests_masked(gate 的 colgrant)。
 REVOKE SELECT ON public.payroll_requests FROM authenticated;
 GRANT SELECT (id, payroll_period_id, kind, status, label, currency, fx_rate, notes, decided_at, decided_by, decision_notes,
-              withdrawn_at, withdrawn_by, executed_at, executed_by, result_journal_entry_id, created_at, created_by)
+              withdrawn_at, withdrawn_by, executed_at, executed_by, result_journal_entry_id, created_at, created_by, target_entry_id)
     ON public.payroll_requests TO authenticated;

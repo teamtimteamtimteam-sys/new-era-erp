@@ -21,6 +21,13 @@ import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { formatAuditStamp, formatMonth } from '@/lib/dates'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { useLocale } from '@/lib/i18n/client'
+import Link from 'next/link'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Refusal } from '@/app/components/ui/refusal'
+import { formatDate } from '@/lib/dates'
+import { submitPayrollPaymentReversal } from '@/app/hr/payroll/actions'
+import type { PayrollPaymentEntry } from './paymentEntries'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
     employer_cpf_total: number; employee_cpf_total: number; other_deductions_total: number
@@ -36,7 +43,13 @@ function cpfDue(periodMonth: string): string {
 // baseCurrency:本面板一个字都没写币种 —— 工资表没有 thead,CPF/代扣款按钮的文案
 // (「汇 CPF {amount}」「汇代扣款 {amount}」)也只有数字。所以每个金额自己带币种,
 // 币种来自数据(currencies.is_base),由页面传入(CCY-1)。
-export default function PayPanel({ periods, lines, employees, baseCurrency }: { periods: Period[]; lines: Line[]; employees: Emp[]; baseCurrency: string }) {
+// ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Q1 · Q2 · Q6 · Q7):每一期下面多一张「付款」表 —— 每一次付款(一次付薪调用 · 一次 CPF · 一次扣款)一行,
+//   各带一颗「申请冲销」(整张冲,不能只冲一个人;理由必填;CFO 批,在工资期页上执行并给冲销日)。按不下去的时候【看得见、说出为什么】(DBLOCK-1):
+//   银行行已经配上了对账单行(先取消配对)· 这一期已经挂着一张申请(一期同时只挂一张)· 没有 module.hr.edit。
+export default function PayPanel({ periods, lines, employees, baseCurrency, payments, canRaise }: {
+    periods: Period[]; lines: Line[]; employees: Emp[]; baseCurrency: string
+    payments: PayrollPaymentEntry[]; canRaise: boolean
+}) {
     const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
@@ -98,6 +111,61 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                 const unpaid = pls.filter((l) => !l.paid_at)
                 const chosen = unpaid.filter((l) => sel[l.id]).map((l) => l.id)
                 const cpf = Number(p.employer_cpf_total ?? 0) + Number(p.employee_cpf_total ?? 0)
+                const pays = payments.filter((x) => x.payroll_period_id === p.id && x.status === 'posted')
+                const openReq = pays.find((x) => x.open_request)?.open_request ?? null
+                const payColumns: Column<PayrollPaymentEntry>[] = [
+                    {
+                        key: 'code', header: t('finance.payrollPay.colEntry'), priority: true,
+                        render: (x) => <Link href={`/finance/journal/${x.entry_id}`} className="font-mono underline">{x.code}</Link>,
+                    },
+                    {
+                        key: 'kind', header: t('finance.payrollPay.colKind'),
+                        render: (x) => <>{t('finance.payrollPay.paymentKind.' + x.kind)}{x.kind === 'salary' && x.lines_paid !== null
+                            ? <span className="text-xs text-[color:var(--brand-muted-text)]"> · {t('finance.payrollPay.linesPaid', { n: x.lines_paid })}</span> : null}</>,
+                    },
+                    { key: 'date', header: t('finance.payrollPay.colDate'), render: (x) => formatDate(x.entry_date, locale) },
+                    {
+                        key: 'amount', header: t('finance.payrollPay.colAmount'), priority: true, align: 'right',
+                        render: (x) => x.amount === null ? <Refusal>{t('common.restricted')}</Refusal> : formatAmount(x.amount, baseCurrency),
+                    },
+                    {
+                        key: 'reverse', header: '', priority: true, align: 'right',
+                        render: (x) => {
+                            const why = x.bank_statement
+                                ? t('finance.payrollPay.bankMatched', { statement: x.bank_statement })
+                                : openReq
+                                    ? (openReq.target_entry_id === x.entry_id
+                                        ? t('finance.payrollPay.reversalWaiting', { label: openReq.label })
+                                        : t('finance.payrollPay.periodRequestOpen', { label: openReq.label }))
+                                    : null
+                            return (
+                                <PermissionGate code="module.hr.edit" allowed={canRaise}>
+                                    <span className="inline-flex flex-col items-end gap-1">
+                                        <ConfirmButton
+                                            subject={`${p.code} · ${x.code}`}
+                                            title={t('finance.payrollPay.reversalConfirm')}
+                                            body={t('finance.payrollPay.reversalBody')}
+                                            confirmLabel={t('finance.payrollPay.requestReversal')}
+                                            tier="reversal"
+                                            triggerVariant="reversal"
+                                            triggerSize="xs"
+                                            reason={{ placeholder: t('hr.payrollRequest.reasonPlaceholder') }}
+                                            disabled={pending || !!why}
+                                            onConfirm={(reason) => run(() => submitPayrollPaymentReversal(p.id, x.entry_id, reason))}
+                                        >
+                                            {t('finance.payrollPay.requestReversal')}
+                                        </ConfirmButton>
+                                        {why && (
+                                            <span className="block max-w-[16rem] text-xs text-[color:var(--brand-muted-text)]">
+                                                {why}{openReq && !x.bank_statement && <> <Link href={`/hr/payroll/${p.id}`} className="underline">{t('finance.payrollPay.openPeriod')}</Link></>}
+                                            </span>
+                                        )}
+                                    </span>
+                                </PermissionGate>
+                            )
+                        },
+                    },
+                ]
 
                 const columns: Column<Line>[] = [
                     {
@@ -140,6 +208,12 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                                 phone={{ mode: 'columns' }}
                             />
                         </div>
+                        {pays.length > 0 && (
+                            <div className="mb-3">
+                                <h4 className="mb-1 text-sm">{t('finance.payrollPay.paymentsTitle')}</h4>
+                                <DataTable rows={pays} columns={payColumns} rowKey={(x) => x.entry_id} phone={{ mode: 'columns' }} />
+                            </div>
+                        )}
                         <div className="flex gap-2 flex-wrap items-center text-sm">
                             <Button type="button" disabled={pending || chosen.length === 0 || date === '' || dateBad}
                                 onClick={() => run(() => payLines(p.id, chosen, date, ''))}>

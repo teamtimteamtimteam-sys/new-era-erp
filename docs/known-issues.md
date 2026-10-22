@@ -250,7 +250,10 @@ MOM 的规矩是住院假 60 天**包含**门诊病假的 14 天(`leave_types` �
 要做对,需要一个【共享额度】的配置列(哪个假别算进哪个池),而不是在函数里写死两个假别码 —— 那是另一刀。Tim Q4:**本刀分开算,登记**。
 **删除条件:** 假别之间的共享额度有了配置并进了 `leave_balance_internal`。
 
-## LEAVEBAL1-NO-NEW-HIRE-PRORATING · 年假以外的额度对新入职的人整年给足,病假也没有三个月的资格期(LEAVE-BAL-1 登记,2026-09-28,Tim Q6)
+## ~~LEAVEBAL1-NO-NEW-HIRE-PRORATING · 年假以外的额度对新入职的人整年给足,病假也没有三个月的资格期(LEAVE-BAL-1 登记,2026-09-28,Tim Q6)~~ —— ✅ **关闭于 PAYROLL-PAY-REVERSAL-1(`v1.4.66`,2026-10-22)**
+
+> ★ **怎么关的(Tim 2026-10-22,PAYROLL-PAY-REVERSAL-1 Step 0 Q10 · Q11):** 服务期 = `hire_date` 到请假开始日之间【完整的月数】(不满一个月的那一截不算);规矩是 `leave_types` 上的四列(`qualifying_service_months` · `service_rule` · `service_steps` · `prorate_minimum_days`),算式在 `leave_service_entitlement`,`leave_balance_internal` 的按年额度读它。门诊病假 / 住院假满 3 个月才有,MOM 的台阶 5/15 · 8/30 · 11/45,第 6 个月起 14/60(资格期同样覆盖住院假);育儿假 / 延长育儿假满 3 个月才有,不满 12 个月按月折算(育儿假至少 2 天);产假 / 陪产假 / 共享育儿假 / 婴儿看护假满 3 个月整年;婚假 / 恩恤假 / 考试假没有资格期。fixture 290 钉着(逐月的算式、完整的月、余额与提交)。线上四份占位入职日仍是 HR 的事(GHOST-GRANTS C-1 ②),不是代码。下面是原文。
+
 
 `leave_balance_internal` 的「按年额度」来源把 `default_days_per_year` **整年给足**,不按入职月份折算;病假也不看服务期。
 MOM 的规矩:门诊 / 住院病假要**服务满 3 个月**才有,3 到 6 个月之间按服务月数折算,满 6 个月才是 14 / 60 天。
@@ -10094,7 +10097,19 @@ sale 型发票 · 订单发票 · 加工应计转费用 七个门上。**另外�
 会按净额付、那笔税照旧开着 —— 不报错。线上 **0 张**付款申请(`postgres` 读 `payment_requests` 基表,2026-09-24 10:12),
 所以没有任何一张受影响;记下是为了下一个看见"付了之后还欠 9 块"的人知道从哪里来。
 
-## PAYROLL-PAYMENT-NO-REVERSAL-PATH —— 工资、CPF、扣款的付款【没有】正经的冲销路径(PAYROLL-APR-1 grilling,Tim 的 Q5,2026-09-24) —— ★ **已裁(Tim 2026-10-20):要 CFO 批 —— 排成 PAYROLL-PAY-REVERSAL-1(EXPENSE-MULTILINE-1 之后)**
+## ~~REVERSAL-OF-A-BANK-MATCHED-ENTRY · 付款、行内转账、代扣税缴纳的冲销不看银行行配没配上 —— 冲完,对账单上那一行配着一张已经不在账上的分录(PAYROLL-PAY-REVERSAL-1 Step 0 量到,2026-10-22)~~ —— ✅ **登记并关闭于 PAYROLL-PAY-REVERSAL-1(`v1.4.66`,Tim 2026-10-22 Step 0 Q6:同一刀加上,登记,收尾的提交里划掉)**
+
+Step 0 量的:`grep -l bank_line_matches db/functions/*.sql` 只命中配对 / 取消配对 / 对账行 / 两支留痕函数 —— **没有一条冲销路看它**。冲销把原分录翻成 `reversed`,
+而 `bank_line_matches` 那一行照旧指着它;`match_bank_line` 自己对 reversed 分录按名拒(`JL_ENTRY_REVERSED`),所以这个状态只能从冲销那一侧产生,而且之后
+对完账的单子连取消配对都做不了(`STATEMENT_RECONCILED`)。线上当时:工资的三张付款都没有配对,付款 / 转账 / 缴纳这一侧的配对没有逐张量。
+**修法:** `assert_entry_not_bank_matched(分录)` 按名拒 `REVERSAL_BANK_MATCHED|分录|对账单|open|reconciled`,四支冲销引擎(工资付款 · `reverse_payment_internal` ·
+`reverse_bank_transfer_internal` · `reverse_wht_remittance_internal`)在冲之前调它;提、批两次试跑与执行走的是同一支引擎,所以三处都拒。不自动取消配对。
+fixture 288(工资:提 · 批 · 执行,open 与 reconciled 两种说法)与 289(另外三条路各一臂)钉着;注入矩阵 27 / 27(`docs/surveys/PAYROLL-PAY-REVERSAL-1/readings/fixture-injections.txt`)。
+
+## ~~PAYROLL-PAYMENT-NO-REVERSAL-PATH —— 工资、CPF、扣款的付款【没有】正经的冲销路径(PAYROLL-APR-1 grilling,Tim 的 Q5,2026-09-24)~~ —— ✅ **关闭于 PAYROLL-PAY-REVERSAL-1(`v1.4.66`,2026-10-22)**
+
+> ★ **怎么关的(Tim 2026-10-22,Step 0 Q1–Q9):** `payroll_requests` 第三种 `payment_reversal`(`target_entry_id` = 那一张付款分录):财务从付薪页提(`submit_payroll_payment_reversal_request`,理由必填)、CFO 批(`decide_payroll_request`,二级、不分档)、财务在工资期页上执行(`reverse_payroll_payment`,冲销日由人给、必填、不早于原付款、不晚于今天、不落锁定期)。整张冲;期间仍 posted;那张分录付过的行(含净额为零的行)或那一期的 CPF / 扣款清掉戳与链接,于是能再付,一笔付款都不剩时撤销过账又走得通。通用日记账冲销对这些分录与它们的冲销按名拒 `JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL`(`journal_entry_reversal_route` 的第五个答案 `payroll_payment`)。银行行已配对的按名拒 `REVERSAL_BANK_MATCHED`。fixture 288 钉着。下面是原文。
+
 
 ★ **Tim 2026-10-20 裁定(FIN-CHAIN-1 Step 0 Q6,从 FIN-CHAIN-1 拆出来):** CFO 批准,不分金额;冲掉整张付款分录;冲销日由人选、必填;清掉已付的戳;对这些分录的通用日记账冲销申请(`journal_entry_reversal_route.sql:55-63`)按名拒、指向新路。排成 `docs/forward-queue.md` 第 63 条 **PAYROLL-PAY-REVERSAL-1**(EXPENSE-MULTILINE-1 之后)。**本条仍然开着,直到那一刀落地。**
 

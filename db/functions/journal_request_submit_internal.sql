@@ -19,6 +19,9 @@
 -- 内层算子,无调用者检查;EXECUTE 已从 authenticated 收回。
 -- NOTE: introduced by db/migrations/2026-09-25-apr6-manual-journals-wait-for-the-cfo.sql.
 
+-- ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q8):路由的第五个答案 'payroll_payment'(工资付款分录与它们的冲销)按名拒
+--   JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL —— 它们有自己的冲销路(付薪页上的付款冲销申请),从这里冲会留下已付的戳。
+
 CREATE OR REPLACE FUNCTION public.journal_request_submit_internal(p_kind text, p_entry_date date, p_memo text, p_lines jsonb, p_target_entry_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -63,6 +66,9 @@ BEGIN
         END IF;
         IF v_route = 'source_path' THEN
             RAISE EXCEPTION 'JE_REVERSE_USE_SOURCE_PATH|%|%', v_je.code, v_je.source_type;
+        END IF;
+        IF v_route = 'payroll_payment' THEN
+            RAISE EXCEPTION 'JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL|%', v_je.code;
         END IF;
         SELECT q.label INTO v_open FROM journal_requests q
          WHERE q.target_entry_id = v_je.id AND q.kind = 'reversal' AND q.status = 'submitted';

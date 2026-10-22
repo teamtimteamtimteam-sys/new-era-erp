@@ -1403,9 +1403,9 @@
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > ★ **Tim 2026-10-20 裁定(d2 #18,FIN-CHAIN-1 记):先后定了 —— AP-RECON-1 的两件(下面那一组)进了 FIN-CHAIN-1(`v1.4.63`);LEAVE-BAL-1 这两件排在 FIN-CHAIN-1【之后】、在真实员工开始请假【之前】。**
-> * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
+> * **✅ 新入职的人的额度折算 + 病假的三个月资格期 —— PAYROLL-PAY-REVERSAL-1 B1(`v1.4.66`,2026-10-22;Tim Q10 · Q11,见上面第 63 条)。** 原文:(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
-> * **⬜ `/me` 只画年假的余额**(LEAVE-BAL-1 Q15)—— 其余有额度的假别(病假、育儿假……)本人在 `/me` 上看不到余额,
+> * **✅ `/me` 只画年假的余额 —— PAYROLL-PAY-REVERSAL-1 B2(`v1.4.66`,2026-10-22;Tim Q12,见上面第 63 条)。** 原文:(LEAVE-BAL-1 Q15)—— 其余有额度的假别(病假、育儿假……)本人在 `/me` 上看不到余额,
 >   只在超额被拒时从那句拒绝里读到"可请 N 天"。`leave_balance` 已经能按假别回答,缺的只是那一块面板。
 > * ~~**⬜ 角色权限的改动不留历史**~~ —— ★ **挪走(HISTORY-0,2026-09-28)**:原文逐字搬到本文件
 >   「⬜ HISTORY family (HISTORY-0 survey, HISTORY-1 unification)」一节。
@@ -1461,6 +1461,8 @@
 >    Q9 线上 4 张报销单机械地各转成一笔(已进 known-wrong)· Q10 报销表单不做草稿。
 >    迁移 `db/migrations/2026-10-20-expense-multiline-1.sql`;fixture 新 **285 · 286**;交回 `docs/handbacks/EXPENSE-MULTILINE-1.md`。
 > 62b. **✅ CLAIM-RECEIPTS-1 —— 员工给报销单的每一笔传收据(`v1.4.65`,2026-10-21)。**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0b Q2,从那一刀拆出来。)
+   **已关闭(2026-10-22,PAYROLL-PAY-REVERSAL-1 Part 1):** Tim 2026-10-21 23:40 CST 确认部署;破窗 2026-10-21 22:14:40 → 23:40(≈ 1 h 25 min,终点是 Tim 的读数);
+   生产只读检查 `/finance/claims` 200、表格与收据栏画出,`/settings/dictionaries` 200、15.4 s(只记不查)(`docs/handbacks/CLAIM-RECEIPTS-1.md` §6);iPhone 那一趟仍是 Tim 的(`docs/manual-walk-list.md` §34)。
 >    **Tim 2026-10-21 的裁定,逐条(Step 0 Q1–Q14):** Q1 与门户同一个上限 —— 10 MB · PDF / JPEG / PNG(读的就是 V39 那两列),HEIC / Word / Excel 按名拒并说为什么 ·
 >    Q2 普通的文件选择框,不强制相机 · Q3 照片在浏览器里缩到长边约 2,000 px、存成 JPEG,PDF 原样 · Q4 能传的是这张单说的员工与替他提单的人,只在 submitted 时,别人都不行;
 >    提单人不能批照旧 · Q5 submitted 时可以加、可以拿掉一份,拿掉的从单上隐去、谁 / 何时记下,对象留在桶里,没有任何员工持存储的删除权限 ·
@@ -1475,7 +1477,19 @@
 >    Tim 裁定的形状:收据【按笔】;每一笔要么有自己的收据、要么有自己的无收据理由,批准时逐笔查;员工只能往【自己的、还在 submitted 的】单上传;
 >    财务读得到;新的库与存储权限规矩,带它自己的 grilling 与线上证明。**理由(照录):这是员工第一次拿到存储的写权限,一个新的安全面。**
 >    在它之前每一笔都带一句无收据理由。见 `docs/known-issues.md` § EXPENSE-CLAIM-NO-RECEIPT-UPLOAD。
-> 63. **⬜ PAYROLL-PAY-REVERSAL-1 —— 工资 / 公积金 / 扣款付款的冲销路(排在 EXPENSE-MULTILINE-1 之后)。** Tim 裁定的形状,原样照录:
+> 63. **✅ PAYROLL-PAY-REVERSAL-1 —— 工资 / 公积金 / 扣款付款的冲销路,四条冲销路都不冲已配对的银行行,新入职的人按服务期给假,`/me` 列出每一种假(`v1.4.66`,2026-10-22)。**
+>    **Tim 2026-10-22 的裁定,逐条(Step 0 Q1–Q13):** Q1 payroll_requests 第三种 payment_reversal,财务提、CFO 二级批、财务执行(提单人也可以);审批关着生下来 approved;期间冻结与一期一张照用 ·
+>    Q2 只能整张冲,不能只冲一个人;付对了的人之后再付 · Q3 冲销日在执行时由人选、必填、不默认 · Q4 不早于原付款、不晚于今天;原付款的月份关了就记在开着的月份,原件不动;落在锁定期按期间锁拒 ·
+>    Q5 期间仍 posted,那张分录付过的行(含净额为零)清掉戳与链接,CPF / 扣款清那一期的日期与链接;能再付,一笔付款都不剩时撤销过账又走得通;历史在申请行与已冲销的分录上 ·
+>    Q6 银行行已配对的,提 · 批 · 执行三处按名拒(先取消配对,对完账的先撤销对账),不自动取消配对;**同一刀加到付款 · 行内转账 · 代扣税缴纳三条冲销路**,各一臂 fixture;登记并在收尾的提交里划掉 ·
+>    Q7 CPF 与扣款与工资同一种申请,种类从已付的戳认 · Q8 通用日记账冲销对这些分录与它们的冲销按名拒 JE_REVERSE_USE_PAYROLL_PAYMENT_REVERSAL,指向付薪页 · Q9 付款冲销申请开着时,那一期别的未付行照样能付 ·
+>    Q10 服务期从 hire_date 数,完整的月,到请假开始日;不满一个月的那一截不算;四份占位入职日仍是 HR 的事 ·
+>    Q11 规矩是 leave_types 上的列:门诊病假 / 住院假满 3 个月,MOM 台阶 5/15 · 8/30 · 11/45、第 6 个月起 14/60(资格期覆盖住院假);育儿假 / 延长育儿假满 3 个月,不满 12 个月按月折算,育儿假至少 2 天
+>    (折算算式交 HR 对 MOM 的计算器,`docs/manual-walk-list.md` §35.1、d1 第 47 条);产假 / 陪产假 / 共享育儿假 / 婴儿看护假满 3 个月整年;婚假 / 恩恤假 / 考试假没有资格期 ·
+>    Q12 `/me` 一张表列 12 种(年假在内),已用与可用,一次调用;产假 / 陪产假对每个人都列、标「视资格而定」· Q13「住院假含病假」仍是单独的一刀(LEAVE-BAL-1 Q4)。
+>    迁移 `db/migrations/2026-10-22-payroll-pay-reversal-1.sql`;fixture 新 **288 · 289 · 290**;交回 `docs/handbacks/PAYROLL-PAY-REVERSAL-1.md`。
+>    **关闭**:PAYROLL-PAYMENT-NO-REVERSAL-PATH(288)· LEAVEBAL1-NO-NEW-HIRE-PRORATING(290)· 本刀登记并划掉的 REVERSAL-OF-A-BANK-MATCHED-ENTRY(288 · 289)。
+>    ~~原登记:~~ Tim 裁定的形状,原样照录:
 >    **CFO 批准,不分金额;冲掉整张付款分录;冲销日由人选、必填;清掉已付的戳;对这些分录的通用日记账冲销申请
 >    (`journal_entry_reversal_route.sql:55-63`)按名拒,并指向这条新路。**(Tim FIN-CHAIN-1 Step 0 Q6:从 FIN-CHAIN-1 拆出来。)
 >    `docs/known-issues.md` § PAYROLL-PAYMENT-NO-REVERSAL-PATH 仍然开着,指着这一条。
@@ -5620,7 +5634,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | 5 | 空角色:auditor = 每个模块只读;employee = 只有 `/me`;hr、procurement、sales 删掉 —— 连同 ROLE1-BOOTSTRAP-MISSING-ROLES 一起做 | #27 | `docs/known-issues.md` § ROLE1-UNHELD-HR-ROLE-LOST-REVIEWS · ROLE1-BOOTSTRAP-MISSING-ROLES |
 | 6 | `container_overview` 的读者 = `module.logistics.view` | #30 | `docs/known-issues.md` § CONV-6-LOGISTICS-GATE |
 | 7 | `/my-reviews` 用与 `/me` 同一个断点 —— 先量 768 px 的顶栏 | #31 | `docs/known-issues.md` § CONV-6-MYREVIEWS-GAP |
-| 9 | ★ **门户上传在生产上收不下 4.3 MB 以上的文件** —— Vercel 在应用之前就拒(HTTP 413 `FUNCTION_PAYLOAD_TOO_LARGE`),而门户页上写着「每份不超过 10 MB」。修法:字节从浏览器直传存储(报销收据 CLAIM-RECEIPTS-1 的形状),路由只做登记与确认。**必须在第一个真实供应商账号之前落地。** | Tim 2026-10-21(CLAIM-RECEIPTS-1 Q14) | `docs/known-issues.md` § PORTAL-UPLOAD-CAPPED-BY-VERCEL-4-5-MB |
+| 9 | ★ **门户上传在生产上收不下 4.3 MB 以上的文件** —— Vercel 在应用之前就拒(HTTP 413 `FUNCTION_PAYLOAD_TOO_LARGE`),而门户页上写着「每份不超过 10 MB」。修法:字节从浏览器直传存储(报销收据 CLAIM-RECEIPTS-1 的形状),路由只做登记与确认。**必须在第一个真实供应商账号之前落地。** ★ **报销收据读的是同一组 V39 列**(`account_settings.portal_upload_max_bytes` / `portal_upload_types`,`claim_receipt_begin` 与 `claim_receipt_limits`;CLAIM-RECEIPTS-1 交回 §5 决定 1)—— **修门户上限的那一刀必须说清它对收据做了什么**(改 V39 两边一起变)。 | Tim 2026-10-21(CLAIM-RECEIPTS-1 Q14) | `docs/known-issues.md` § PORTAL-UPLOAD-CAPPED-BY-VERCEL-4-5-MB |
 | 8 | ~~物料平衡页只在三个数【都】为空时才是空态~~ ✅ **早已做掉** —— MES-7b-1(`v1.4.54`,F14:`lib/balanceEmptyState.ts` + 构建链里的 `check-balance-empty-state.mjs`)落地的判据与这条裁定逐字相同;那一条的标题只是一直没划掉(FIN-CHAIN-1 划掉了)。**这一组实际要做的是前七行。** | #33 | `docs/known-issues.md` § MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS |
 
 ## ★★★ 还开着的条目 · 按【它今天挡不挡得住一个人】分 —— 一份索引(QUEUE-RECONCILE 立案,2026-09-20)★★★

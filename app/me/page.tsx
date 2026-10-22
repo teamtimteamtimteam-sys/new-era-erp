@@ -155,7 +155,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
 
     // 自助的假期与报销:全部靠 cut 4 的行级策略 + HR-2a 的函数,不需要任何模块权限
     const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes, expenseClaimRes, decisionRes] = await Promise.all([
-        supabase.rpc('leave_balance', { p_employee_id: employeeId, p_leave_type_code: 'annual' }),
+        // ★ PAYROLL-PAY-REVERSAL-1 · B2(Tim 2026-10-22,Q12):每一种有额度的假,一次调用(年假在内;年假那一项照旧画逐笔明细)
+        supabase.rpc('leave_balances', { p_employee_id: employeeId }),
         // U1-A(UNBLOCK-1 Q8):leave_requests 有了遮蔽伴生视图,读它(这几列对本人原样;本人自己的健康数据也照给)
         supabase.from('leave_requests_masked')
             // EMP-SELF-1:decision_notes —— 本人行策略本来就放行这一列(EMP-SELF-0 §1.5 记下的那一处)
@@ -478,7 +479,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             <div id="leave" className="scroll-mt-20">
                 <MyLeavePanel
                     employeeId={employeeId}
-                    balance={balRes.data as never}
+                    balances={(mustOne(balRes, 'leave_balances') ?? []) as never}
                     requests={(mustRows(myLeaveRes)) as never}
                     types={(mustRows(typeRes)) as never}
                     decisions={decisions}

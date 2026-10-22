@@ -16457,8 +16457,12 @@ export type Database = {
           name_en: string
           name_zh: string
           notes: string | null
+          prorate_minimum_days: number | null
+          qualifying_service_months: number
           requires_approval: boolean
           requires_certificate_after_days: number | null
+          service_rule: string
+          service_steps: Json | null
           sort_order: number
           updated_at: string
           updated_by: string | null
@@ -16478,8 +16482,12 @@ export type Database = {
           name_en: string
           name_zh: string
           notes?: string | null
+          prorate_minimum_days?: number | null
+          qualifying_service_months?: number
           requires_approval?: boolean
           requires_certificate_after_days?: number | null
+          service_rule?: string
+          service_steps?: Json | null
           sort_order?: number
           updated_at?: string
           updated_by?: string | null
@@ -16499,8 +16507,12 @@ export type Database = {
           name_en?: string
           name_zh?: string
           notes?: string | null
+          prorate_minimum_days?: number | null
+          qualifying_service_months?: number
           requires_approval?: boolean
           requires_certificate_after_days?: number | null
+          service_rule?: string
+          service_steps?: Json | null
           sort_order?: number
           updated_at?: string
           updated_by?: string | null
@@ -20689,6 +20701,7 @@ export type Database = {
           result_journal_entry_id: string | null
           snapshot: Json
           status: string
+          target_entry_id: string | null
           withdrawn_at: string | null
           withdrawn_by: string | null
         }
@@ -20712,6 +20725,7 @@ export type Database = {
           result_journal_entry_id?: string | null
           snapshot: Json
           status?: string
+          target_entry_id?: string | null
           withdrawn_at?: string | null
           withdrawn_by?: string | null
         }
@@ -20735,6 +20749,7 @@ export type Database = {
           result_journal_entry_id?: string | null
           snapshot?: Json
           status?: string
+          target_entry_id?: string | null
           withdrawn_at?: string | null
           withdrawn_by?: string | null
         }
@@ -20777,6 +20792,20 @@ export type Database = {
           {
             foreignKeyName: "payroll_requests_result_journal_entry_id_fkey"
             columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
@@ -41929,6 +41958,7 @@ export type Database = {
           result_journal_entry_id: string | null
           snapshot: Json | null
           status: string | null
+          target_entry_id: string | null
           withdrawn_at: string | null
           withdrawn_by: string | null
         }
@@ -41952,6 +41982,7 @@ export type Database = {
           result_journal_entry_id?: string | null
           snapshot?: never
           status?: string | null
+          target_entry_id?: string | null
           withdrawn_at?: string | null
           withdrawn_by?: string | null
         }
@@ -41975,6 +42006,7 @@ export type Database = {
           result_journal_entry_id?: string | null
           snapshot?: never
           status?: string | null
+          target_entry_id?: string | null
           withdrawn_at?: string | null
           withdrawn_by?: string | null
         }
@@ -42017,6 +42049,20 @@ export type Database = {
           {
             foreignKeyName: "payroll_requests_result_journal_entry_id_fkey"
             columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
@@ -48952,6 +48998,10 @@ export type Database = {
         Args: { p_assay_result_id: string }
         Returns: boolean
       }
+      assert_entry_not_bank_matched: {
+        Args: { p_entry_id: string }
+        Returns: undefined
+      }
       assert_material_form_saleable: {
         Args: { p_material_id: string }
         Returns: undefined
@@ -50552,6 +50602,18 @@ export type Database = {
         }
         Returns: Json
       }
+      leave_balances: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: Json
+      }
+      leave_service_entitlement: {
+        Args: {
+          p_as_of: string
+          p_hire_date: string
+          p_leave_type_code: string
+        }
+        Returns: Json
+      }
       line_spoken_for: {
         Args: { p_sales_order_line_id: string }
         Returns: number
@@ -50937,6 +50999,14 @@ export type Database = {
           p_direction: string
         }
         Returns: boolean
+      }
+      payroll_payment_entries: {
+        Args: { p_period_ids: string[] }
+        Returns: Json
+      }
+      payroll_payment_entry_kind: {
+        Args: { p_entry_id: string }
+        Returns: string
       }
       payroll_period_fingerprint: {
         Args: { p_period_id: string }
@@ -52090,6 +52160,14 @@ export type Database = {
         Args: { p_memo?: string; p_payment_id: string }
         Returns: Json
       }
+      reverse_payroll_payment: {
+        Args: { p_request_id: string; p_reversal_date: string }
+        Returns: Json
+      }
+      reverse_payroll_payment_internal: {
+        Args: { p_entry_id: string; p_memo?: string; p_reversal_date: string }
+        Returns: Json
+      }
       reverse_wht_remittance_internal: {
         Args: {
           p_memo?: string
@@ -52789,6 +52867,10 @@ export type Database = {
       }
       submit_payment_reversal_request: {
         Args: { p_notes: string; p_payment_id: string }
+        Returns: Json
+      }
+      submit_payroll_payment_reversal_request: {
+        Args: { p_entry_id: string; p_notes: string }
         Returns: Json
       }
       submit_payroll_request: {

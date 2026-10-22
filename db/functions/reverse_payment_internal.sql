@@ -11,6 +11,9 @@
 -- 只设不清,同一事务里后面任何一笔直连 INSERT 都会畅通无阻(APR-2c fu2 实测过)。
 -- fixture 127 的 B5 臂把"立起来"与"落下去"一起断言。
 
+-- ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q6):银行行已经配上了对账单行就不冲 —— 按名拒 REVERSAL_BANK_MATCHED
+--   (assert_entry_not_bank_matched;先取消配对,对完账的先撤销对账)。提、批两次试跑与执行走的都是这支引擎,所以三处都拒。
+
 CREATE OR REPLACE FUNCTION public.reverse_payment_internal(p_payment_id uuid, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -36,6 +39,8 @@ BEGIN
 
     -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)
     -- AP-RECON-1 Batch B:冲销日 = 今天与原分录日里较晚的那个(reversal_date_for;冲销不许早于原分录)
+    PERFORM assert_entry_not_bank_matched(v_orig.journal_entry_id);
+
     v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, reversal_date_for(v_orig.journal_entry_id), 'Payment reversal ' || v_orig.code);
 
     -- 镜像收付款单(现金退回),挂冲销分录,不带核销行

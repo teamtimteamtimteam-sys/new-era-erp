@@ -15,6 +15,9 @@
 -- 内层算子,无调用者检查;EXECUTE 已从 authenticated 收回。
 -- NOTE: introduced by db/migrations/2026-09-23-payreqb-transfers-and-wht-through-requests.sql.
 
+-- ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q6):银行行已经配上了对账单行就不冲 —— 按名拒 REVERSAL_BANK_MATCHED
+--   (assert_entry_not_bank_matched;先取消配对,对完账的先撤销对账)。提、批两次试跑与执行走的都是这支引擎,所以三处都拒。
+
 CREATE OR REPLACE FUNCTION public.reverse_wht_remittance_internal(p_remittance_id uuid, p_reversal_date date DEFAULT NULL::date, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -37,6 +40,8 @@ BEGIN
     IF v_st IS DISTINCT FROM 'posted' THEN
         RAISE EXCEPTION 'WHT_REMITTANCE_ALREADY_REVERSED|%', v_w.code;
     END IF;
+
+    PERFORM assert_entry_not_bank_matched(v_w.journal_entry_id);
 
     v_je := reverse_journal_entry_internal(v_w.journal_entry_id, p_reversal_date,
                 COALESCE(p_memo, 'Reverse withholding tax remittance ' || v_w.code));

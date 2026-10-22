@@ -180,3 +180,38 @@ export async function unpostPayroll(periodId: string): Promise<{ error?: string 
     refreshPayroll(periodId)
     return {}
 }
+
+// ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Step 0 Q1 · Q3):工资 / CPF / 扣款付款的冲销 —— payroll_requests 的第三种。
+//   提:从付薪页上那一次付款提(整张冲,Q2;理由必填)。批:CFO,同一个 decidePayrollRequest。
+//   执行:冲销日由执行的人给、必填、不默认(Q3)—— 空着不提交,库也按名拒 REVERSAL_DATE_REQUIRED(两道闸,AGENTS.md「Dates … never defaulted」)。
+export async function submitPayrollPaymentReversal(
+    periodId: string, entryId: string, notes: string
+): Promise<{ error?: string }> {
+    if (notes.trim() === '') {
+        return { error: (await getTranslations())('hr.payrollRequest.reasonRequired') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('submit_payroll_payment_reversal_request', {
+        p_entry_id: entryId,
+        p_notes: notes.trim(),
+    })
+    if (error) return { error: await localizeHrError(error.message) }
+    refreshPayroll(periodId)
+    return {}
+}
+
+export async function reversePayrollPayment(
+    periodId: string, requestId: string, reversalDate: string
+): Promise<{ error?: string }> {
+    if (reversalDate.trim() === '') {
+        return { error: (await getTranslations())('hr.errors.REVERSAL_DATE_REQUIRED') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('reverse_payroll_payment', {
+        p_request_id: requestId,
+        p_reversal_date: reversalDate,
+    })
+    if (error) return { error: await localizeHrError(error.message) }
+    refreshPayroll(periodId)
+    return {}
+}

@@ -19,7 +19,8 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import PayrollLinesTable, { type PayrollLineRow } from './PayrollLinesTable'
 import { Button } from '@/app/components/ui/button'
 import { formatDate, formatMonth, formatAuditStamp } from '@/lib/dates'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustOne } from '@/lib/db-helpers'
+import type { PayrollPaymentEntry } from '@/app/finance/payroll-payments/paymentEntries'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
@@ -71,7 +72,7 @@ export default async function PayrollDetailPage({
         // PAYROLL-APR-1:这一期的申请,最新的在前(读策略与本页同一个码,module.hr.view)
         supabase
             .from('payroll_requests_masked')
-            .select('id, label, kind, status, notes, decision_notes, created_at')
+            .select('id, label, kind, status, notes, decision_notes, created_at, target_entry_id')
             .eq('payroll_period_id', id)
             .order('created_at', { ascending: false }),
         can('module.hr.edit'),
@@ -102,8 +103,9 @@ export default async function PayrollDetailPage({
     const subjectLabel = `${formatMonth(period.period_month, locale)} · ${period.code}`
 
     type ReqRow = {
-        id: string; label: string; kind: 'post' | 'reversal'
+        id: string; label: string; kind: PayrollRequestView['kind']
         status: PayrollRequestView['status']; notes: string | null; decision_notes: string | null; created_at: string
+        target_entry_id: string | null
     }
     const requests: PayrollRequestView[] = (mustRows(reqRes, 'payroll requests') as unknown as ReqRow[]).map((r) => ({
         id: r.id,
@@ -113,8 +115,21 @@ export default async function PayrollDetailPage({
         notes: r.notes,
         decisionNotes: r.decision_notes,
         createdText: formatAuditStamp(r.created_at),
+        targetEntryId: r.target_entry_id,
+        target: null,
     }))
     const openRequest = requests.find((r) => r.status === 'submitted' || r.status === 'approved') ?? null
+    // ★ PAYROLL-PAY-REVERSAL-1:一张开着的【付款冲销】申请要说出它冲的是哪一次付款(编号 · 种类 · 金额 · 银行行配没配上)——
+    //   从付薪页同一支读者问(payroll_payment_entries),不在这里另写一份判据
+    if (openRequest?.kind === 'payment_reversal' && openRequest.targetEntryId) {
+        const payRes = await supabase.rpc('payroll_payment_entries', { p_period_ids: [id] })
+        const pays = (mustOne(payRes, 'payroll_payment_entries') ?? []) as unknown as PayrollPaymentEntry[]
+        const p = pays.find((x) => x.entry_id === openRequest.targetEntryId)
+        openRequest.target = p
+            ? { code: p.code, kind: p.kind, amount: p.amount === null ? null : Number(p.amount),
+                entryDate: formatDate(p.entry_date, locale), bankStatement: p.bank_statement }
+            : null
+    }
     // 看这一页的人自己在本期里有没有工资行(按人认:current_user_employee 就是 account_person)
     const myEmployeeId = (meRes.data as string | null) ?? null
     const ownLineCode = myEmployeeId

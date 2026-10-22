@@ -1,0 +1,30 @@
+== a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub
+✓ ROUTE: payroll payments fall back to 'request' (Q8 undone) → FIXTURE 288C1 失败:三张付款分录应当路由到 payroll_payment、过账分录仍是 source_path
+✓ GENERIC: reverse_journal_entry no longer refuses the new route → FIXTURE 288C2 失败:通用冲销口冲工资付款应当按名拒,实得 JOURNAL_NEEDS_APPROVED_REQUEST|JE-2026-0002
+✓ GENERIC: the journal reversal request no longer refuses the new route → FIXTURE 288C3 失败:日记账冲销申请对 CPF 付款应当按名拒,实得 OK
+✓ SUBMIT: the reason is no longer required → FIXTURE 288D1 失败:没理由应当按名拒,实得 new row for relation "payroll_requests" violates check constraint "payroll_requests_reversal_reason"
+✓ SUBMIT: a posting entry is accepted as a payment → FIXTURE 288D2 失败:过账分录不是一次付款,应当按名拒,实得 OK
+✓ BANK: the payroll engine ignores bank matches (Q6) → FIXTURE 288F1 失败:付款已配上对账单行,批准应当按名拒(open),实得 OK
+✓ BANK: the refusal never says reconciled → FIXTURE 288F2 失败:对完账的对账单,拒绝应当说 reconciled,实得 REVERSAL_BANK_MATCHED|JE-2026-0002|BS-2026-0001|open
+✓ DOOR: execution takes no date and uses today (Q3 undone) → FIXTURE 288H2 失败:没给冲销日应当按名拒,实得 OK
+✓ ENGINE: a reversal dated tomorrow is accepted (Q4) → FIXTURE 288H3 失败:晚于今天的冲销日应当按名拒,实得 OK
+✓ ENGINE: only the first line's stamp is cleared (Q5: net-zero line stays stamped) → FIXTURE 288I2 失败:S1 付过的两行(含净额为零)应当清掉戳,S2 那一行不动,实得 {"code": "JE-2026-0002", "kind": "salary", "cleared": 1, "entry_id": "e70e8425-ebf0-47d7-adff-0269c8a560d0", "request_id": "39e10a39-41a0-4bb1-a499-e9f49ce8fc6c", "reversal_id": "bab185d0-19
+✓ ENGINE: the stamps are not cleared at all → FIXTURE 288I2 失败:S1 付过的两行(含净额为零)应当清掉戳,S2 那一行不动,实得 {"code": "JE-2026-0002", "kind": "salary", "cleared": 2, "entry_id": "2375925d-d3e3-4042-8887-9c3f06145c3e", "request_id": "97f0314a-8bff-407a-a8d2-aaf11cd872f0", "reversal_id": "150edcb1-92
+✓ ENGINE: CPF's date stays stamped (Q5 / Q7) → FIXTURE 288K2 失败:CPF 与扣款的日期与链接、每一行的戳都应当清掉
+✓ DRY RUN: payment_reversal is not dry-run at submit / approve → FIXTURE 288F1 失败:付款已配上对账单行,批准应当按名拒(open),实得 OK
+✓ BANK: the payment reversal ignores bank matches → FIXTURE 289-payment ① 失败:已配对的 payment 提冲销申请应当按名拒,实得 OK
+✓ BANK: the bank-transfer reversal ignores bank matches → FIXTURE 289-transfer ① 失败:已配对的 transfer 提冲销申请应当按名拒,实得 OK
+✓ BANK: the WHT remittance reversal ignores bank matches → FIXTURE 289-wht ① 失败:已配对的 wht 提冲销申请应当按名拒,实得 OK
+✓ SERVICE: no qualifying period (the full year from day one, the LEAVE-BAL-1 shape) → FIXTURE 290B 失败:childcare 服务 2 个完整月应当 0 天,实得 2
+✓ SERVICE: a part-month counts as a month → FIXTURE 290B 失败:sick 服务 3 个完整月应当 5 天,实得 8
+✓ SERVICE: proration rounds down instead of half-up → FIXTURE 290B 失败:childcare 服务 5 个完整月应当 3 天,实得 2
+✓ SERVICE: the childcare minimum is ignored → FIXTURE 290B2 失败:育儿假 2 天/年、服务 3 个月,折出 1 天,下限应当抬到 2,实得 1
+✓ BALANCE: leave_balance_internal goes back to the whole year → FIXTURE 290D1 失败:入职 70 天的人病假应当 available = 0(查额度),实得 {"as_of": "2026-10-22", "expired": 0, "granted": 14, "pending": 0, "bookable": 14, "consumed": 0, "available": 14, "breakdown": [{"days": 14, "source": "yearly", "status": "active", "cons
+✓ ME: leave_balances drops annual leave → FIXTURE 290E1 失败:leave_balances 应当按 sort_order 回每一种有额度的假(年假在内、无薪假不在),实得 sick,hospitalisation,maternity,paternity,shared_parental,childcare,extended_childcare,infant_care,compassionate,marriage,examination
+✓ ME: leave_balances lets anyone read → FIXTURE 290E3 失败:别人(没有 hr.view)读一个员工的余额应当按名拒,实得 (读到了)
+✓ SEED: hospitalisation loses its steps → FIXTURE 290A 失败:leave_types 的服务期规矩不是 Tim 的裁定:childcare:3:prorate_first_year:-:2 compassionate:0:full:-:- examination:0:full:-:- extended_childcare:3:prorate_first_year:-:- hospitalisation:3:full:-:- infant_care:3:full:-:- marriage:0:full:-:
+✓ baseline 288 (no injection) → FIXTURE 288 全部通过:A 门 · B 布景 · C 通用口按名拒 · D 提 · E 申请开着时别的行照付 · F 批的时候银行行已配对(open / reconciled)· G 批 · H 执行的日期与谁能执行 · I 执行(整张冲、戳清掉、期间仍 posted)· J 再付 · K CPF / 扣款同一种、提交时配对按名拒、一笔不剩时撤销过账又提得上 · L 审批关着
+✓ baseline 289 (no injection) → FIXTURE 289 全部通过:付款 · 行内转账 · 代扣税缴纳 —— 银行行已配对,提交与执行都按名拒(open / reconciled 两种说法);取消配对之后照常冲
+✓ baseline 290 (no injection) → FIXTURE 290 全部通过:A 引导值 = 裁定 · B 逐月的算式 · C 完整的月 · D 余额与提交 · E /me 一次调用 12 种
+INJECTIONS pass=27 fail=0
+INJ_OWN_EXIT=0

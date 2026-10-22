@@ -973,6 +973,12 @@ export const TRAIL_TEXT = {
     'prl.rejectedUnpost': 'Payroll unposting rejected',
     'prl.withdrawnPost': 'Payroll posting request withdrawn',
     'prl.withdrawnUnpost': 'Payroll unposting request withdrawn',
+    // PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22):第三种申请 —— 冲销一次工资 / CPF / 扣款付款(页面的话:"Request reversal")
+    'prl.sentPayRev': 'Payroll payment reversal sent for approval',
+    'prl.approvedPayRev': 'Payroll payment reversal approved',
+    'prl.rejectedPayRev': 'Payroll payment reversal rejected',
+    'prl.withdrawnPayRev': 'Payroll payment reversal request withdrawn',
+    'prl.paymentReversed': 'Payroll payment reversed',
     'prl.requestChanged': 'Payroll request changed',
     'prl.ownLine': "This period includes the approver's own pay line: {code}",
     // ── 评审(G45–G53;Q6:每一份评审的那一段以开它的那一句开头;Q7:批准那一句按评审自己的几列说结论;Q35:评审页上的说法)──

@@ -1,0 +1,11 @@
+psql:<stdin>:1690: NOTICE:  PPR1 pending expense_claim CLM-2026-0004 → tim@evoltrya.test
+psql:<stdin>:1690: NOTICE:  PPR1 pending medical_claim_approved (pay) MC-2026-0001 → admin@swm-os.test chooer@evoltrya.test
+psql:<stdin>:1690: NOTICE:  PPR1 pending stocktake ST-2026-0082 → chooer@evoltrya.test
+psql:<stdin>:1690: NOTICE:  PPR1 pending stocktake ST-2026-0083 → chooer@evoltrya.test
+psql:<stdin>:1690: NOTICE:  PPR1 pending stocktake ST-2026-0084 → chooer@evoltrya.test
+psql:<stdin>:1690: NOTICE:  PPR1 pending stocktake ST-2026-0085 → chooer@evoltrya.test
+psql:<stdin>:1690: NOTICE:  PPR1 pending stocktake ST-2026-0086 → chooer@evoltrya.test
+psql:<stdin>:1690: NOTICE:  PPR1 pending stocktake ST-2026-0089 → chooer@evoltrya.test
+DRY|inside|tables=328|target_entry_id=true|masked view has it=true|authenticated executes submit=true|authenticated executes engine=false|anon executes door=false|routes=JE-2026-0017:source_path,JE-2026-0018:payroll_payment,JE-2026-0019:payroll_payment,JE-2026-0020:payroll_payment|leave rules=childcare:3:prorate_first_year,compassionate:0:full,examination:0:full,extended_childcare:3:prorate_first_year,hospitalisation:3:steps,infant_care:3:full,marriage:0:full,maternity:3:full,paternity:3:full,shared_parental:3:full,sick:3:steps|exclusions=9|gaps=[]
+DRY|after rollback|tables=328|target_entry_id=false|service_rule=false|reverse_payroll_payment=false|routes=JE-2026-0017:source_path,JE-2026-0018:request,JE-2026-0019:request,JE-2026-0020:request
+DRY_OWN_EXIT=0

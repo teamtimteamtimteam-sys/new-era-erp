@@ -614,6 +614,8 @@ DEFINER_NO_CHECK_ALLOWED = {
     "unpost_payroll_period_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "payroll_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "payroll_period_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # PAYROLL-PAY-REVERSAL-1(2026-10-22):工资付款冲销的内层引擎 —— 外门是 reverse_payroll_payment(要一张批过的申请)与申请的两次试跑。
+    "reverse_payroll_payment_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # 它【必须】留给 authenticated:调它的是两支 INVOKER 守卫(period_close_floor 同一条)。
     "payroll_period_frozen": "PAYROLL-APR-1: called by two INVOKER guards, so EXECUTE must stay with the caller; returns one state word (posted/requested/open) already shown on the payroll page",
     # ROLE-1 Batch 4b:收货定价申请的内层算子 —— 靠的是调不到(zzz_function_grants.sql)。
