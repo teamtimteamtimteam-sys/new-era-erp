@@ -18,7 +18,8 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xMoney } from '@/lib/export/cells'
 
 /** 服务端传下来的【纯数据】—— 一个函数都没有,所以过得了边界。 */
 export type CommissionRow = {
@@ -31,6 +32,9 @@ export type CommissionRow = {
     recognition_trigger: string
     valid_from: string
     valid_to: string
+    /** TABLE-EXPORT-1:有效期两端的原始 `YYYY-MM-DD`(valid_from / valid_to 是屏幕上格式化过的那串)。 */
+    validFromRaw: string
+    validToRaw: string
     remarks: string | null
     agentCode: string | null
     agentName: string | null
@@ -45,9 +49,10 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
     //   · 费率是这张登记簿存在的理由 —— 人来这一页就是查"这家收多少"。
     //   方向(买/卖)、基准、触发点、有效期、备注都是【读到那一行之后才要问的】,
     //   进展开区。
-    const columns: Column<CommissionRow>[] = [
+    const columns: ExportableColumn<CommissionRow>[] = [
         {
             key: 'agent', header: t('commissions.colAgent'), priority: true,
+            exportAs: (r) => xText(r.agentCode === null ? null : r.agentCode + (r.agentName ? ` · ${r.agentName}` : '')),
             render: (r) => (
                 <>
                     <Link href={`/sales/commissions/${r.id}/edit`} className="hover:underline app-link">
@@ -57,10 +62,20 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
                 </>
             ),
         },
-        { key: 'side', header: t('commissions.colSide'), render: (r) => t('commissions.side.' + r.side) },
-        { key: 'basis', header: t('commissions.colBasis'), render: (r) => t('commissions.basis.' + r.basis) },
+        { key: 'side', header: t('commissions.colSide'), render: (r) => t('commissions.side.' + r.side),
+          exportAs: (r) => xText(t('commissions.side.' + r.side)) },
+        { key: 'basis', header: t('commissions.colBasis'), render: (r) => t('commissions.basis.' + r.basis),
+          exportAs: (r) => xText(t('commissions.basis.' + r.basis)) },
         {
             key: 'rate', header: t('commissions.colRate'), priority: true, align: 'right',
+            // TABLE-EXPORT-1:这一格是「费率 或 金额」二选一,与屏幕同一个判断 —— 费率写成百分数(屏幕上的那个数),
+            //   金额写成钱,币种跟着金额走(Excel 里进数字格式,CSV 里跟在数后面)—— 与屏幕同。
+            exportAs: (r) =>
+                r.rate_pct !== null
+                    ? xNum(r.rate_pct, 'pct')
+                    : r.amount_ccy !== null && r.currency
+                      ? xMoney(r.amount_ccy, r.currency)
+                      : xText(null),
             render: (r) =>
                 r.rate_pct !== null
                     ? `${r.rate_pct}%`
@@ -68,9 +83,12 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
                       ? formatAmount(Number(r.amount_ccy), r.currency)
                       : null,
         },
-        { key: 'trigger', header: t('commissions.colTrigger'), render: (r) => t('commissions.trigger.' + r.recognition_trigger) },
-        { key: 'validity', header: t('commissions.colValidity'), render: (r) => `${r.valid_from} → ${r.valid_to}` },
-        { key: 'remarks', header: t('commissions.colRemarks'), render: (r) => r.remarks },
+        { key: 'trigger', header: t('commissions.colTrigger'), render: (r) => t('commissions.trigger.' + r.recognition_trigger),
+          exportAs: (r) => xText(t('commissions.trigger.' + r.recognition_trigger)) },
+        // TABLE-EXPORT-1:一格装着两个日子,导出成一格就只能是文字 —— 用原始的 `YYYY-MM-DD` 拼,不用屏幕上格式化过的那串。
+        { key: 'validity', header: t('commissions.colValidity'), render: (r) => `${r.valid_from} → ${r.valid_to}`,
+          exportAs: (r) => xText(`${r.validFromRaw} → ${r.validToRaw}`) },
+        { key: 'remarks', header: t('commissions.colRemarks'), render: (r) => r.remarks, exportAs: (r) => xText(r.remarks) },
     ]
 
     return (
@@ -79,6 +97,7 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
             columns={columns}
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
+            exportSpec={{ name: 'sales-commissions', title: t('commissions.title') }}
         />
     )
 }

@@ -1,4 +1,4 @@
-// RPT-1:快照的取数 —— 页面、CSV、PDF 三处共用这一份(进料导出的规矩)。
+// RPT-1:快照的取数 —— 页面与 PDF 共用这一份(进料导出的规矩;TABLE-EXPORT-1 起 Excel / CSV 从页面那张表写)。
 //
 // INV-VAL-1:这一份现在同时带回【金额】。取数从 stock_snapshot 换成
 // inventory_valuation_snapshot,而两者【数出同样的量】是一条被断言过的性质

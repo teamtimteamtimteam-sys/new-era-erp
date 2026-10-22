@@ -6,7 +6,6 @@ import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { Button } from '@/app/components/ui/button'
 
 export default function CustomerToolbar() {
     const t = useTranslations()
@@ -52,14 +51,6 @@ export default function CustomerToolbar() {
         }, 300)
     }
 
-    // 导出链接:带上当前 q / sort / dir,导出的就是用户此刻筛选到的结果。
-    // 但【剔除 page】—— 导出永远是全部匹配行,不受分页影响。
-    // 用普通 <a>(而非 next/link):整页请求命中 route handler,Content-Disposition 触发下载。
-    const exportParams = new URLSearchParams(searchParams.toString())
-    exportParams.delete('page')
-    const exportQs = exportParams.toString()
-    const exportHref = exportQs ? `/sales/customers/export?${exportQs}` : '/sales/customers/export'
-
     return (
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <input
@@ -69,13 +60,6 @@ export default function CustomerToolbar() {
                 placeholder={t('customers.searchPlaceholder')}
                 className={`${CONTROL_INPUT} w-72 max-w-full`}
             />
-            <Button asChild variant="outline">
-                <a
-                    href={exportHref}
-                >
-                    {t('customers.export')}
-                </a>
-            </Button>
         </div>
     )
 }

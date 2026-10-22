@@ -11,7 +11,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xMoney, xMasked } from '@/lib/export/cells'
 
 export type MarginFlag = { label: string; hint: string; tone: 'amber' | 'red' }
 
@@ -37,6 +38,17 @@ export type MarginRow = {
     cost: string | null
     margin: string | null
     marginPct: string | null
+    // TABLE-EXPORT-1:导出用的原始值(Excel 里是数,不是格式化好的串)。null 的含义与上面三格相同。
+    qtySoldQty: number
+    revenueAmt: number | null
+    costAmt: number | null
+    marginAmt: number | null
+    marginPctNum: number | null
+    /**
+     * data.view_prices。batch_margin 的行谓词与本页的守卫(FN.margin)都已要求它,所以今天恒为真;
+     * 带着它是为了让导出与 <MaskedValue> 同一条判据 —— 守卫哪天放宽,导出也只会写「受限」,不会写空格。
+     */
+    canViewPrices: boolean
     ok: boolean
     flags: MarginFlag[]
 }
@@ -63,9 +75,12 @@ export default function MarginTable({ rows, empty }: { rows: MarginRow[]; empty:
     // ★ 手机上留【批次】与【毛利】—— 批次是身份,而毛利是这一页存在的全部理由
     //   (Doc 2 说"生意最需要、而 Xero 结构上做不出来"的那个数)。
     //   收入与成本是它的两个来源,进展开区。
-    const columns: Column<MarginRow>[] = [
+    // TABLE-EXPORT-1:金额是本位币的数(币种在页面副标题里,与屏幕同);毛利率是屏幕上那个百分数;
+    //   算不出来的三格导出为空格(不是 0)—— 为什么算不出来,在旗标那一列里按名写着。
+    const columns: ExportableColumn<MarginRow>[] = [
         {
             key: 'batch', header: t('margin.colBatch'), priority: true,
+            exportAs: (r) => xText(`${r.batchCode} · ${r.materialName}`),
             render: (r) => (
                 <>
                     <Link href={r.outputHref} className="text-sm hover:underline app-link">
@@ -75,18 +90,32 @@ export default function MarginTable({ rows, empty }: { rows: MarginRow[]; empty:
                 </>
             ),
         },
-        { key: 'run', header: t('margin.colRun'), className: 'text-sm', render: (r) => r.runCode },
-        { key: 'qty', header: t('margin.colQty'), align: 'right', className: 'text-sm', render: (r) => r.qtySold },
-        { key: 'revenue', header: t('margin.colRevenue'), align: 'right', className: 'text-sm', render: (r) => r.revenue },
+        { key: 'run', header: t('margin.colRun'), className: 'text-sm', render: (r) => r.runCode, exportAs: (r) => xText(r.runCode) },
+        {
+            key: 'qty', header: t('margin.colQty'), align: 'right', className: 'text-sm', render: (r) => r.qtySold,
+            exportAs: (r) => xNum(r.qtySoldQty, 'qty'),
+        },
+        {
+            key: 'revenue', header: t('margin.colRevenue'), align: 'right', className: 'text-sm', render: (r) => r.revenue,
+            exportAs: (r) => xMasked(r.revenueAmt, r.canViewPrices, xMoney),
+        },
         // 【算不出来就说算不出来】—— 不是 0,也不是空白
-        { key: 'cost', header: t('margin.colCost'), align: 'right', className: 'text-sm', render: (r) => r.cost ?? '—' },
+        {
+            key: 'cost', header: t('margin.colCost'), align: 'right', className: 'text-sm', render: (r) => r.cost ?? '—',
+            exportAs: (r) => xMasked(r.costAmt, r.canViewPrices, xMoney),
+        },
         {
             key: 'margin', header: t('margin.colMargin'), priority: true, align: 'right',
             className: 'text-sm', render: (r) => r.margin ?? '—',
+            exportAs: (r) => xMasked(r.marginAmt, r.canViewPrices, xMoney),
         },
-        { key: 'marginPct', header: t('margin.colMarginPct'), align: 'right', className: 'text-sm', render: (r) => r.marginPct ?? '—' },
+        {
+            key: 'marginPct', header: t('margin.colMarginPct'), align: 'right', className: 'text-sm', render: (r) => r.marginPct ?? '—',
+            exportAs: (r) => xMasked(r.marginPctNum, r.canViewPrices, (v) => xNum(v, 'pct')),
+        },
         {
             key: 'flags', header: t('margin.colFlags'),
+            exportAs: (r) => xText(r.flags.map((f) => f.label).join(' · ')),
             render: (r) => (
                 <div className="flex flex-wrap gap-1">
                     {r.flags.map((f, i) => (
@@ -105,6 +134,7 @@ export default function MarginTable({ rows, empty }: { rows: MarginRow[]; empty:
             phone={{ mode: 'columns' }}
             empty={empty}
             rowClassName={(r) => (r.ok ? undefined : 'bg-gray-50')}
+            exportSpec={{ name: 'margin', title: t('margin.title') }}
         />
     )
 }

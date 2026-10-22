@@ -24,6 +24,7 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import SharedPoolRulePanel from './SharedPoolRulePanel'
+import { xText, xMoney, xMasked } from '@/lib/export/cells'
 
 type AllocRow = {
     id: string; period_from: string; period_to: string; bill_date: string; invoice_ref: string; currency: string
@@ -68,6 +69,19 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
             overhead: money(a.overhead_amount),
             expense: <Link href={`/finance/expenses/${a.expense_id}`} className="app-link hover:underline">{expCode.get(a.expense_id) ?? '—'}</Link>,
         },
+        // TABLE-EXPORT-1:三笔金额与屏幕同一个判据(MaskedValue · showPrices)—— 没权限且库里给 NULL 就写「受限」,不留空。
+        //   区间、账单号 · 日期、三个度数挤在一格里的那几列照旧是一格字,但里面是【原始值】(YYYY-MM-DD、不带千分位的数),不是 formatDate 的显示串。
+        exports: {
+            period: xText(`${a.period_from} – ${a.period_to}`),
+            bill: xText(`${a.invoice_ref} · ${a.bill_date}${reversed.has(a.id) ? ` · ${t('energy.reversedTag')}` : ''}`),
+            amount: xMasked(a.bill_amount, showPrices, xMoney),
+            kwh: xText(`${Number(a.bill_kwh)} / ${Number(a.metered_kwh)} / ${Number(a.allocated_kwh)}`),
+            // TABLE-EXPORT-1:「分到加工单」「分到间接费用」两列的列头不带币种,屏幕上那一格是 formatAmount(…, 本位币)—— 币种一起写;
+            //   账单金额那一列的列头已经写着币种,照旧不带
+            runs: xMasked(a.allocated_amount, showPrices, (v) => xMoney(v, baseCurrency)),
+            overhead: xMasked(a.overhead_amount, showPrices, (v) => xMoney(v, baseCurrency)),
+            expense: xText(expCode.get(a.expense_id) ?? '—'),
+        },
     }))
 
     // 电表:设备表要加工查看码 —— 读不到时说「受限」,不把 RLS 的零行说成"没有电表"
@@ -96,6 +110,13 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
                     machine: eq ? `${eq.equipment_code}${eq.equipment_description ? ` — ${eq.equipment_description}` : ''}` : t('energy.sharedPool'),
                     last: last ? `${Number(last.register_kwh)} kWh · ${formatAuditStamp(last.read_at)}` : t('energy.noReadingsShort'),
                 },
+                // TABLE-EXPORT-1:最后一次读数是「度数 · 时刻」一格字 —— 时刻写原始 ISO,不写 formatAuditStamp;没读过照屏幕那句话
+                exports: {
+                    meter: xText(m.code),
+                    name: xText(m.name + (m.retired_at ? ` · ${t('devices.retired')}` : '')),
+                    machine: xText(eq ? `${eq.equipment_code}${eq.equipment_description ? ` — ${eq.equipment_description}` : ''}` : t('energy.sharedPool')),
+                    last: xText(last ? `${Number(last.register_kwh)} kWh · ${last.read_at}` : t('energy.noReadingsShort')),
+                },
             }
         })
     }
@@ -118,6 +139,7 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
                     ]}
                     rows={allocRows}
                     empty={t('energy.noAllocations')}
+                    exportSpec={{ name: 'finance-electricity-allocations', title: t('energy.allocationsTitle') }}
                 />
                 {!canEdit && <p className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{t('energy.postNeedsEdit')}</p>}
             </section>
@@ -135,6 +157,7 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
                         ]}
                         rows={meterRows}
                         empty={t('energy.noMeters')}
+                        exportSpec={{ name: 'finance-electricity-meters', title: t('energy.metersTitle') }}
                     />
                     : <p className="text-sm" data-meters="restricted">{t('energy.metersRestricted')}</p>}
             </section>

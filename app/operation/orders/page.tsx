@@ -87,6 +87,9 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
             progressLabel: !p || p.planned === 0 ? null : `${p.consumed} / ${p.planned}`,
             unplannedMaterials: p?.unplannedMaterials ?? 0,
             notes: o.notes ?? '—',
+            // TABLE-EXPORT-1:导出读原始值
+            scheduledDate: o.scheduled_date,
+            notesText: o.notes,
         }
     })
 

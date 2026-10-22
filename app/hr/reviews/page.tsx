@@ -85,6 +85,8 @@ export default async function ReviewsPage({
             cycleName: r.cycle_id ? (cycleById.get(r.cycle_id) ?? '—') : '—',
             periodStart: formatDate(r.period_start, locale),
             periodEnd: formatDate(r.period_end, locale),
+            periodStartRaw: r.period_start,
+            periodEndRaw: r.period_end,
             reviewerCode: rev?.code ?? null,
             reviewerName: rev?.legal_name ?? null,
             status: r.status,

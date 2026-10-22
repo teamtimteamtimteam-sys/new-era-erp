@@ -28,6 +28,9 @@ const HEADERS = [
     'Open (base)',
 ]
 
+// ★ TABLE-EXPORT-1(Tim 2026-10-22 Q15):五条保留的专用导出不许在 1,000 行处悄悄停下。本路由【按构造】停不下:
+//   `ar_aging_asof` 是 `RETURNS jsonb`(一个值,不是一组行),PostgREST 的 max_rows(线上 1000,实测)只截【行】,
+//   而账龄的每一行都在那一个 jsonb 里。fixture 291 钉住这个形状(它一旦改成返回一组行,闸就红)。
 export async function GET(request: NextRequest) {
     const asOf = parseAsOf({ as_of: request.nextUrl.searchParams.get('as_of') ?? undefined })
 

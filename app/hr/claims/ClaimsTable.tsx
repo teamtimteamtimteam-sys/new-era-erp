@@ -7,7 +7,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate, xMoney, xMasked } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
 
 export type ClaimRow = {
@@ -15,8 +16,12 @@ export type ClaimRow = {
     code: string
     employeeLabel: string
     claimDate: string
+    /** TABLE-EXPORT-1:导出用的原始日历日;null = 没有日期。 */
+    claimDateRaw: string | null
     /** U1-A(UNBLOCK-1 Q8):不持 data.view_health 的人(本人的除外)是 null */
     amountSgd: string | null
+    /** TABLE-EXPORT-1:导出用的原始金额(一个数,不是「12.00 SGD」);受限时同样是 null。 */
+    amountSgdRaw: number | string | null
     settlementState: string
     expenseCode: string
 }
@@ -36,30 +41,35 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
 
     // ★ 手机上留【单号】与【状态】—— 单号是身份,而状态是这张登记簿存在的理由:
     //   它回答"这笔钱到底付了没有",那是读者打开这一页要问的那一件事。
-    const columns: Column<ClaimRow>[] = [
+    const columns: ExportableColumn<ClaimRow>[] = [
         {
             key: 'code', header: t('claims.code'), priority: true, className: 'text-xs',
+            exportAs: (r) => xText(r.code),
             render: (r) => (
                 <Link href={`/hr/claims/${r.claimId}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),
         },
-        { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel },
-        { key: 'date', header: t('claims.date'), render: (r) => r.claimDate },
+        { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel, exportAs: (r) => xText(r.employeeLabel) },
+        { key: 'date', header: t('claims.date'), render: (r) => r.claimDate, exportAs: (r) => xDate(r.claimDateRaw) },
         {
             key: 'amount', header: t('claims.amount'), align: 'right',
+            // TABLE-EXPORT-1 Q3(健康一族,data.view_health):与屏幕同一条判据 —— amountSgd 为 null 就是「受限」
+            //   币种:屏幕上这一格写着「… SGD」(列本身就叫 amount_sgd),导出跟着写同一个。
+            exportAs: (r) => xMasked(r.amountSgdRaw, r.amountSgd !== null, (v) => xMoney(v, 'SGD')),
             render: (r) => (r.amountSgd === null ? <Refusal>{t('common.restricted')}</Refusal> : `${r.amountSgd} SGD`),
         },
         {
             key: 'state', header: t('claims.state'), priority: true,
+            exportAs: (r) => xText(t(`claims.state_${r.settlementState}`)),
             render: (r) => (
                 <span className={`rounded px-2 py-0.5 text-xs ${CLS[r.settlementState ?? ''] ?? ''}`}>
                     {t(`claims.state_${r.settlementState}`)}
                 </span>
             ),
         },
-        { key: 'expense', header: t('claims.expense'), className: 'text-xs', render: (r) => r.expenseCode },
+        { key: 'expense', header: t('claims.expense'), className: 'text-xs', render: (r) => r.expenseCode, exportAs: (r) => xText(r.expenseCode) },
     ]
 
     return (
@@ -69,6 +79,7 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
             rowKey={(r) => r.claimId}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'hr-medical-claims', title: t('hr.subnav.claims') }}
         />
     )
 }

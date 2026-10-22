@@ -7,7 +7,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate, xTime } from '@/lib/export/cells'
 import AcknowledgeButton from './AcknowledgeButton'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -20,6 +21,9 @@ export type HandoverRow = {
     acknowledged: boolean
     /** 已签收时:签收人 + 时刻,已在服务端按本地格式拼好。 */
     acknowledgedLabel: string | null
+    /** TABLE-EXPORT-1:导出用的原始值 —— 交接日 `YYYY-MM-DD`、签收时刻 ISO(屏幕上那两个是排好的字)。 */
+    handoverDateRaw: string
+    acknowledgedAt: string | null
 }
 
 export default function HandoversTable({
@@ -29,18 +33,20 @@ export default function HandoversTable({
 
     // ★ 手机上留【日期】与【签收】—— 日期是身份,而签收状态是这一页存在的理由
     //   (抬头第一句:未签收的必须一眼看得出来)。交接双方进展开区。
-    const columns: Column<HandoverRow>[] = [
+    const columns: ExportableColumn<HandoverRow>[] = [
         // AUDIT-TRAIL-1b-1(Q23):日期那一格是这一张交接班的入口(交接的内容、提到的停机、它的审计记录都在那一页)
-        { key: 'date', header: t('processing.handover.colDate'), priority: true,
+        { key: 'date', header: t('processing.handover.colDate'), priority: true, exportAs: (r) => xDate(r.handoverDateRaw),
           render: (r) => <Link href={`/operation/handovers/${r.id}`} className="app-link hover:underline">{r.handoverDate}</Link> },
-        { key: 'shift', header: t('processing.handover.colShift'), render: (r) => r.shiftLabel },
-        { key: 'from', header: t('processing.handover.colFrom'), render: (r) => r.fromName },
-        { key: 'to', header: t('processing.handover.colTo'), render: (r) => r.toName },
+        { key: 'shift', header: t('processing.handover.colShift'), render: (r) => r.shiftLabel, exportAs: (r) => xText(r.shiftLabel) },
+        { key: 'from', header: t('processing.handover.colFrom'), render: (r) => r.fromName, exportAs: (r) => xText(r.fromName) },
+        { key: 'to', header: t('processing.handover.colTo'), render: (r) => r.toName, exportAs: (r) => xText(r.toName) },
         {
             // ★【未签收 vs 已签收:一个【具名的状态】,不是一个空格】★
             //   空格读起来像"这一栏不重要";而未签收的意思是
             //   【下一个班的人还没说他看过这些话】。
+            // TABLE-EXPORT-1:签收了 → 那个时刻(Excel 里是真日期,按新加坡时间);没签收 → 同一个具名的「未签收」,不是空格
             key: 'ack', header: t('processing.handover.colAck'), priority: true,
+            exportAs: (r) => (r.acknowledged ? xTime(r.acknowledgedAt) : xText(t('processing.handover.pending'))),
             render: (r) =>
                 r.acknowledged ? (
                     <span className="inline-block px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">
@@ -68,6 +74,7 @@ export default function HandoversTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             rowClassName={(r) => (r.acknowledged ? undefined : 'bg-amber-50')}
+            exportSpec={{ name: 'operation-handovers', title: t('processing.handover.title') }}
         />
     )
 }

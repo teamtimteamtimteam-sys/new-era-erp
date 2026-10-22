@@ -23,6 +23,7 @@ import { formatAuditStamp } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText, xInt, xTime } from '@/lib/export/cells'
 import DeviceForm from './DeviceForm'
 import { EMPTY_DEVICE, type Option } from './deviceFields'
 import IngestSettingsPanel, { type SettingValues } from './IngestSettingsPanel'
@@ -94,6 +95,15 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                 interval: h?.heartbeat_interval_s != null ? t('devices.seconds', { n: String(h.heartbeat_interval_s) }) : t('devices.notYetSet'),
                 keys: String(h?.active_keys ?? 0),
             },
+            // TABLE-EXPORT-1:最后一次听到是真时刻、心跳间隔是秒数、钥匙是整数;「从没听到」「还没定」照屏幕写成那句话
+            exports: {
+                code: xText(g.code),
+                name: xText(g.name),
+                status: xText(h ? t('devices.status.' + h.status) : null),
+                heard: h?.last_heard_at ? xTime(h.last_heard_at) : xText(t('devices.neverHeard')),
+                interval: h?.heartbeat_interval_s != null ? xInt(h.heartbeat_interval_s) : xText(t('devices.notYetSet')),
+                keys: xInt(h?.active_keys ?? 0),
+            },
         }
     })
     const deviceRows: CellRow[] = others.map((d) => ({
@@ -106,6 +116,16 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
             dataClass: d.data_class ? classLabel.get(d.data_class) ?? d.data_class : '—',
             station: d.station ?? '—',
             interface: d.retired_at ? t('devices.retired') : t('devices.interface.' + d.interface_status),
+        },
+        // TABLE-EXPORT-1:与屏幕同一组字(网关没有就是「无网关」);停用的那台由「接口」一列说出来
+        exports: {
+            code: xText(d.code),
+            name: xText(d.name),
+            kind: xText(t('devices.kind.' + d.kind)),
+            gateway: xText(d.gateway_id && byId.get(d.gateway_id) ? byId.get(d.gateway_id)!.code : t('devices.noGateway')),
+            dataClass: xText(d.data_class ? classLabel.get(d.data_class) ?? d.data_class : null),
+            station: xText(d.station),
+            interface: xText(d.retired_at ? t('devices.retired') : t('devices.interface.' + d.interface_status)),
         },
     }))
 
@@ -138,6 +158,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                     ]}
                     rows={gatewayRows}
                     empty={t('devices.noGateways')}
+                    exportSpec={{ name: 'operation-devices-gateways', title: t('devices.gatewaysTitle') }}
                 />
             </section>
 
@@ -155,6 +176,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                     ]}
                     rows={deviceRows}
                     empty={t('devices.noDevices')}
+                    exportSpec={{ name: 'operation-devices', title: t('devices.devicesTitle') }}
                 />
             </section>
 

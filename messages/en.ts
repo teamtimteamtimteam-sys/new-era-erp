@@ -1374,6 +1374,23 @@ const en = {
     //   check-i18n 看不见这种缺陷:硬写的字面量【一个键都不引用】,
     //   于是它落在那个检查器的宇宙之外(见 scripts/cjk-rendered-baseline.json 抬头)。
     table: {
+        // TABLE-EXPORT-1(Tim 2026-10-22):统一导出。逐条裁定见 docs/table-export.md。
+        export: {
+            excel: 'Export Excel',
+            csv: 'Export CSV',
+            busy: 'Preparing…',
+            tooMany: 'This table has {count} matching rows; one export is limited to {cap}. Narrow the filters and export again.',
+            denied: 'You do not have access to this table, so it cannot be exported.',
+            failed: 'The export could not be prepared: {detail}',
+            aboutTable: 'Table',
+            aboutFilters: 'Filters',
+            aboutNoFilters: 'None',
+            aboutRows: 'Rows',
+            aboutBy: 'Exported by',
+            aboutByUnknown: 'Could not be read (the sign-in check did not answer)',
+            aboutAt: 'Exported at (Singapore time)',
+            aboutLanguage: 'Language',
+        },
         columns: 'Columns {shown}/{total}',
         // 报量,不报警:排序看得见全体 —— 这一句解释的正是【为什么第一页就是全体的前 N 名】。
         partialNotice: 'This screen shows {shown} of {total} rows — the sorting is done in the database over ALL rows, so page one is the top {shown} of the whole set, not just of this screen.',
@@ -1925,7 +1942,6 @@ const en = {
         },
         searchPlaceholder: 'Search code, name, tax ID, country…',
         allStatuses: 'All statuses',
-        export: 'Export',
         pagination: {
             prev: '← Previous',
             next: 'Next →',
@@ -2583,7 +2599,6 @@ const en = {
             created: 'Created',
         },
         searchPlaceholder: 'Search code, name, tax ID, country…',
-        export: 'Export',
         pagination: {
             prev: '← Previous',
             next: 'Next →',
@@ -2727,7 +2742,6 @@ const en = {
         searchPlaceholder: 'Search code, name, spec…',
         allKinds: 'All kinds',
         kindUndecided: 'kind not decided',
-        export: 'Export',
         pagination: {
             prev: '← Previous',
             next: 'Next →',
@@ -2873,6 +2887,7 @@ const en = {
         ton: 't',
         gram: 'g',
         piece: 'pcs',
+        hour: 'h',
     },
     // GRN-1b:收货差异(GRN-1a 建的 grn_discrepancies / receiving_settings 的屏幕那一半)
     grn: {
@@ -3027,7 +3042,6 @@ const en = {
         allStages: 'All stages',
         allSuppliers: 'All suppliers',
         allMaterials: 'All materials',
-        export: 'Export',
         condition: {
             title: 'Condition on arrival',
             needsEdit: 'Recording the condition of a load needs edit rights in the inbound module.',
@@ -3253,7 +3267,6 @@ const en = {
         allStates: 'All states',
         allCustomers: 'All customers',
         allMaterials: 'All materials',
-        export: 'Export',
         pagination: {
             prev: '← Previous',
             next: 'Next →',
@@ -4388,7 +4401,6 @@ const en = {
         },
         title: 'Inventory reports',
         intro: 'Read-only views over stock as it stands. Nothing here is stored — every figure is derived from the movement ledger when you open the page.',
-        csv: 'CSV',
         pdf: 'PDF',
         colMaterial: 'Material',
         colLocation: 'Location',

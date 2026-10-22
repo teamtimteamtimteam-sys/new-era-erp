@@ -72,10 +72,12 @@ export default async function ContainersPage() {
             laneLabel: laneLabel(r.lane_id as string | null),
             vessel: (r.vessel as string) ?? '—',
             departureDate: r.departure_date ? formatDate(r.departure_date, locale) : '—',
+            departureDateRaw: (r.departure_date as string | null) ?? null,
             milestoneLabel: r.latest_milestone
                 ? `${t('logistics.milestoneLabel.' + (r.latest_milestone as string))} · ${r.latest_milestone_date as string}`
                 : null,
             shipmentCount: String(r.shipment_count ?? 0),
+            shipmentCountNum: Number(r.shipment_count ?? 0),
             docsLabel: doc.label,
             docsTone: doc.tone,
         }

@@ -21,6 +21,7 @@ import { fmtKg, fmtPct, num } from '@/lib/massFormat'
 import { ListPage } from '@/app/components/ui/list-page'
 import MassTable, { type MassCell, type MassRow } from '../balance/MassTable'
 import { labelMaps, remainderOrder } from '../balance/labels'
+import { xText, xNum, xRestricted, type ExportCell } from '@/lib/export/cells'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 const GROUPS = ['all', 'machine', 'chemistry', 'supplier'] as const
@@ -86,6 +87,15 @@ export default async function YieldPage({ searchParams }: { searchParams: Promis
         }
         return l.group_label ?? l.group_key
     }
+    // TABLE-EXPORT-1:与上面三个画格子的函数同位的【导出一格】—— 读原始值;得率是屏幕上那个百分数(xNum 'pct')。
+    //   低于预期的标记只在屏幕上(一格只能是一个数);受限的组名写「受限」,与屏幕同一个判据(group_label_restricted)。
+    const expectedX = (kind: string, v: number | string | null): ExportCell =>
+        kind !== 'output' ? xText(null) : num(v) === null ? xText(t('massBalance.yield.expectedNotSet')) : xNum(v, 'pct')
+    const groupX = (l: YieldLine): ExportCell => {
+        if (l.group_label_restricted) return xRestricted
+        const g = groupText(l)
+        return xText(typeof g === 'string' ? g : g.text)
+    }
     const sortLine = (a: { line_kind: string; line_key: string | null }, b: { line_kind: string; line_key: string | null }) =>
         (LINE_ORDER[a.line_kind] - LINE_ORDER[b.line_kind])
         || (a.line_kind === 'output' ? labels.formSort(a.line_key) - labels.formSort(b.line_key)
@@ -109,10 +119,13 @@ export default async function YieldPage({ searchParams }: { searchParams: Promis
             }
             for (const l of ls) {
                 const cells: MassCell[] = [labels.op(op || null)]
-                if (group !== 'all') cells.push(groupText(l))
+                const exports: ExportCell[] = [xText(labels.op(op || null))]
+                if (group !== 'all') { cells.push(groupText(l)); exports.push(groupX(l)) }
                 cells.push(lineText(l.line_kind, l.line_key, l.recoverable), fmtKg(l.qty), fmtKg(l.input_qty),
                     yieldCell(l.yield_pct, l.below_expected), expectedCell(l.line_kind, l.expected_yield_pct))
-                sumRows.push({ key: `${op}|${k}|${l.line_kind}|${l.line_key ?? ''}`, cells, emphasis: l.line_kind === 'total_output' })
+                exports.push(xText(lineText(l.line_kind, l.line_key, l.recoverable)), xNum(l.qty, 'qty'), xNum(l.input_qty, 'qty'),
+                    xNum(l.yield_pct, 'pct'), expectedX(l.line_kind, l.expected_yield_pct))
+                sumRows.push({ key: `${op}|${k}|${l.line_kind}|${l.line_key ?? ''}`, cells, exports, emphasis: l.line_kind === 'total_output' })
             }
         }
     }
@@ -128,6 +141,11 @@ export default async function YieldPage({ searchParams }: { searchParams: Promis
             { text: r.era_mes4a ? r.run_code : `${r.run_code} · ${t('massBalance.yield.preMes4aRun')}`, href: `/operation/processing/${r.run_id}` },
             labels.op(r.operation_type_code), lineText(r.line_kind, r.line_key, r.recoverable), fmtKg(r.qty), fmtKg(r.input_qty),
             yieldCell(r.yield_pct, r.below_expected), expectedCell(r.line_kind, r.expected_yield_pct),
+        ],
+        exports: [
+            xText(r.era_mes4a ? r.run_code : `${r.run_code} · ${t('massBalance.yield.preMes4aRun')}`),
+            xText(labels.op(r.operation_type_code)), xText(lineText(r.line_kind, r.line_key, r.recoverable)), xNum(r.qty, 'qty'), xNum(r.input_qty, 'qty'),
+            xNum(r.yield_pct, 'pct'), expectedX(r.line_kind, r.expected_yield_pct),
         ],
     }))
 
@@ -156,12 +174,12 @@ export default async function YieldPage({ searchParams }: { searchParams: Promis
             </nav>
             {(group === 'chemistry' || group === 'supplier') && <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">{t('massBalance.yield.sharedNote')}</p>}
             {notes.map((n) => <p key={n} className="text-sm text-amber-800 mb-1" data-pre-mes4a>{n}</p>)}
-            <MassTable testId="yield-summary" empty={t('massBalance.yield.noRuns')}
+            <MassTable testId="yield-summary" empty={t('massBalance.yield.noRuns')} exportSpec={{ name: 'operation-yield-summary', title: t('massBalance.yield.title') }}
                        headers={[...sumHeaders, { label: t('massBalance.yield.colQty'), align: 'right' }, { label: t('massBalance.yield.colInput'), align: 'right' },
                                  { label: t('massBalance.yield.colYield'), priority: true, align: 'right' }, { label: t('massBalance.yield.colExpected'), align: 'right' }]}
                        rows={sumRows} />
             <h2 className="mt-8 mb-2">{t('massBalance.yield.runsTitle')}</h2>
-            <MassTable testId="yield-runs" empty={t('massBalance.yield.noRuns')}
+            <MassTable testId="yield-runs" empty={t('massBalance.yield.noRuns')} exportSpec={{ name: 'operation-yield-runs', title: t('massBalance.yield.runsTitle') }}
                        headers={[{ label: t('massBalance.yield.colRun'), priority: true }, { label: t('massBalance.colOperation') },
                                  { label: t('massBalance.yield.colLine'), priority: true }, { label: t('massBalance.yield.colQty'), align: 'right' },
                                  { label: t('massBalance.yield.colInput'), align: 'right' }, { label: t('massBalance.yield.colYield'), priority: true, align: 'right' },

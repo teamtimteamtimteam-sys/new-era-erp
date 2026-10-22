@@ -34,6 +34,7 @@ export default async function CoaListPage() {
         batchCode: c.batch_code,
         issuedTo: c.sales_order_code ? `${c.customer_name ?? '—'} · ${c.sales_order_code}` : t('coa.panel.noOrder'),
         issued: formatAuditStamp(c.issued_at) ?? '—',
+        issuedAt: c.issued_at,
         issuedBy: c.issued_by_name ? `${c.issued_by_name}${c.issued_by_position ? `, ${c.issued_by_position}` : ''}` : '',
         replacedBy: c.replaced_by_code,
         hasBytes: c.has_bytes,

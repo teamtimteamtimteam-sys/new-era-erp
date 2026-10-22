@@ -30,7 +30,8 @@
 //   分页也留在页面上(服务端 .range),没有打开 DataTable 自己的客户端分页。
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xDate, xTime } from '@/lib/export/cells'
 import DeleteButton from './DeleteButton'
 import type { InboundSortCol } from './inboundQuery'
 import { Button } from '@/app/components/ui/button'
@@ -57,6 +58,8 @@ export type InboundTableRow = {
     remaining: number
     unit: string
     arrivalDate: string | null
+    /** TABLE-EXPORT-1:导出用的原始日历日 `YYYY-MM-DD`(Excel 里是真日期,不是格式化过的那串字)。 */
+    arrivalDateRaw: string | null
     stageLabel: string
     status: string
     pricingStatus: string
@@ -68,10 +71,12 @@ export type InboundTableRow = {
     /** APR-7:碰到这一批的那一张在等的仓库申请 */
     openWarehouseRequest: string | null
     createdLabel: string
+    /** TABLE-EXPORT-1:导出用的原始时刻(Excel 里是真日期,按新加坡时间)。 */
+    createdAt: string
 }
 
 export default function InboundTable({
-    rows, sort, dir, filterQuery, shown, total, canWriteOff,
+    rows, sort, dir, filterQuery, shown, total, canWriteOff, exportHref,
 }: {
     rows: InboundTableRow[]
     sort: InboundSortCol
@@ -82,6 +87,8 @@ export default function InboundTable({
     total: number
     /** ROLE-1 Batch 3b:can('action.batch_write_off'),页面算好传进来。 */
     canWriteOff: boolean
+    /** TABLE-EXPORT-1:服务端翻页取全的那条路由(带当前筛选与排序)。 */
+    exportHref: string
 }) {
     const t = useTranslations()
 
@@ -95,22 +102,25 @@ export default function InboundTable({
     }
 
     const pill = 'px-2 py-1 rounded text-xs'
-    const columns: Column<InboundTableRow>[] = [
+    const columns: ExportableColumn<InboundTableRow>[] = [
         {
             key: 'code', header: t('inbound.colCode'), priority: true, sortable: true,
-            className: 'text-sm',
+            className: 'text-sm', exportAs: (b) => xText(b.code),
             render: (b) => (
                 <Link href={`/inbound/${b.id}/edit`} className="hover:underline app-link">{b.code}</Link>
             ),
         },
-        { key: 'material', header: t('inbound.colMaterial'), priority: true, render: (b) => b.materialName },
+        { key: 'material', header: t('inbound.colMaterial'), priority: true, render: (b) => b.materialName, exportAs: (b) => xText(b.materialName) },
         {
             key: 'remaining_qty', header: t('inbound.colRemaining'), priority: true, sortable: true, align: 'right',
+            exportAs: (b) => xNum(b.remaining, 'qty', b.unit), // TABLE-EXPORT-1:屏幕上是「12 kg」,单位一起写
             render: (b) => `${b.remaining} ${b.unit}`,
         },
-        { key: 'supplier', header: t('inbound.colSupplier'), render: (b) => b.supplierName },
+        { key: 'supplier', header: t('inbound.colSupplier'), render: (b) => b.supplierName, exportAs: (b) => xText(b.supplierName) },
         {
             key: 'source', header: t('inbound.colSource'), className: 'whitespace-nowrap',
+            // R4:未说明 —— 导出里同样是那句话,不是空格
+            exportAs: (b) => xText(b.sourceKind === 'unexplained' ? t('inbound.source.unexplained') : b.sourceLabel),
             render: (b) =>
                 b.sourceKind === 'po' ? (
                     <span className={pill + ' bg-blue-100 text-blue-800'}>{b.sourceLabel}</span>
@@ -125,16 +135,25 @@ export default function InboundTable({
         },
         {
             key: 'quantity', header: t('inbound.colQuantity'), sortable: true, align: 'right',
+            exportAs: (b) => xNum(b.quantity, 'qty', b.unit),
             render: (b) => `${b.quantity} ${b.unit}`,
         },
         {
             key: 'arrival_date', header: t('inbound.colArrivalDate'), sortable: true,
+            exportAs: (b) => xDate(b.arrivalDateRaw),
             render: (b) => b.arrivalDate ?? '—',
         },
-        { key: 'stage', header: t('inbound.colStage'), render: (b) => <span className={pill + ' bg-gray-200'}>{b.stageLabel}</span> },
-        { key: 'status', header: t('inbound.colStatus'), render: (b) => <span className={pill + ' bg-gray-200'}>{b.status}</span> },
+        { key: 'stage', header: t('inbound.colStage'), exportAs: (b) => xText(b.stageLabel), render: (b) => <span className={pill + ' bg-gray-200'}>{b.stageLabel}</span> },
+        { key: 'status', header: t('inbound.colStatus'), exportAs: (b) => xText(b.status), render: (b) => <span className={pill + ' bg-gray-200'}>{b.status}</span> },
         {
             key: 'pricing', header: t('assay.colPricingStatus'), className: 'whitespace-nowrap',
+            // 屏幕上是一个状态角标 + 两个可选标记(⚠ 未应用化验 · 在等 CFO 的定价申请);导出成一格里的几段,
+            // ⚠ 那个标记用它自己的悬停文案说出来(一个符号在表格里没有悬停)
+            exportAs: (b) => xText([
+                t('assay.pricingStatus.' + b.pricingStatus),
+                b.hasUnappliedAssay ? t('assay.hasUnappliedMarker') : null,
+                b.openPriceRequest ? `${t('inbound.priceRequest.status.submitted')} ${b.openPriceRequest}` : null,
+            ].filter(Boolean).join(' · ')),
             render: (b) => (
                 <>
                     <span className={pill + ' ' + (
@@ -161,12 +180,13 @@ export default function InboundTable({
             key: 'created_at', header: t('inbound.colCreated'), sortable: true,
             className: 'text-sm text-gray-600',
             render: (b) => b.createdLabel,
+            exportAs: (b) => xTime(b.createdAt),
         },
-        { key: 'actions', header: t('inbound.colActions'), render: (b) => <DeleteButton id={b.id} code={b.code} canWriteOff={canWriteOff}
+        { key: 'actions', header: t('inbound.colActions'), exportAs: false, render: (b) => <DeleteButton id={b.id} code={b.code} canWriteOff={canWriteOff}
             needsRequest={b.needsWriteOffRequest} openRequestLabel={b.openWarehouseRequest}
             lockedReason={b.openPriceRequest ? t('inbound.priceRequest.deleteLocked', { label: b.openPriceRequest }) : undefined} /> },
         {
-            key: 'label', header: t('batchLabel.col'),
+            key: 'label', header: t('batchLabel.col'), exportAs: false,
             render: (b) => (
                 <Button asChild variant="link" size="inline">
                     <a href={`/inbound/${b.id}/label`} target="_blank" rel="noopener noreferrer">{t('batchLabel.col')}</a>
@@ -187,6 +207,7 @@ export default function InboundTable({
                 active: { key: sort, dir },
                 href,
             }}
+            exportSpec={{ name: 'inbound', title: t('inbound.listTitle'), serverRows: exportHref }}
         />
     )
 }

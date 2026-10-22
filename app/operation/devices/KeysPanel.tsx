@@ -11,13 +11,16 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xTime } from '@/lib/export/cells'
 import { issueGatewayKey, revokeGatewayKey } from './actions'
 
 /** 时刻由页面在服务端排好(审计戳那一族);这里只摆。 */
 export type KeyRow = {
     id: string; prefix: string; issued_at: string; revoked_at: string | null
     revoked_by: string | null; revoke_reason: string | null
+    /** TABLE-EXPORT-1:导出用的原始时刻(Excel 里是真日期,按新加坡时间)—— 上面两个是画好的审计戳。 */
+    issuedAtIso: string; revokedAtIso: string | null
 }
 
 export default function KeysPanel({ gatewayId, gatewayCode, rows, canManage, retired }: {
@@ -48,15 +51,22 @@ export default function KeysPanel({ gatewayId, gatewayCode, rows, canManage, ret
         })
     }
 
-    const columns: Column<KeyRow>[] = [
+    // TABLE-EXPORT-1:钥匙只导出前缀(与屏幕同一个样子,哈希哪里都没有);撤回那一格屏幕上是「时刻 · 理由」,
+    //   导出把时刻写成真日期(一格只装一种类型)—— 理由于是接在「状态」一格的「已撤回」后面,一个字都不丢
+    const columns: ExportableColumn<KeyRow>[] = [
         { key: 'prefix', header: t('devices.keys.colKey'), priority: true,
+          exportAs: (r) => xText(`ngk_${r.prefix}…`),
           render: (r) => <span className="font-mono">{`ngk_${r.prefix}…`}</span> },
         { key: 'state', header: t('devices.keys.colState'), priority: true,
+          exportAs: (r) => xText(r.revoked_at
+              ? [t('devices.keys.revoked'), r.revoke_reason].filter(Boolean).join(' · ')
+              : t('devices.keys.active')),
           render: (r) => r.revoked_at ? t('devices.keys.revoked') : t('devices.keys.active') },
-        { key: 'issued', header: t('devices.keys.colIssued'), render: (r) => r.issued_at },
+        { key: 'issued', header: t('devices.keys.colIssued'), render: (r) => r.issued_at, exportAs: (r) => xTime(r.issuedAtIso) },
         { key: 'revoked', header: t('devices.keys.colRevoked'),
+          exportAs: (r) => xTime(r.revokedAtIso),
           render: (r) => r.revoked_at ? `${r.revoked_at} · ${r.revoke_reason ?? ''}` : '—' },
-        { key: 'actions', header: '', priority: true, className: 'whitespace-nowrap',
+        { key: 'actions', header: '', priority: true, className: 'whitespace-nowrap', exportAs: false,
           render: (r) => r.revoked_at ? null : (
               <PermissionGate code="action.manage_devices" allowed={canManage} inline>
                   <ConfirmButton
@@ -79,7 +89,8 @@ export default function KeysPanel({ gatewayId, gatewayCode, rows, canManage, ret
 
     return (
         <div className="space-y-3 text-sm">
-            <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={t('devices.keys.none')} />
+            <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={t('devices.keys.none')}
+                       exportSpec={{ name: 'operation-gateway-keys', title: t('devices.keys.title') }} />
             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('devices.keys.rotateHint')}</p>
             {!retired && (
                 <PermissionGate code="action.manage_devices" allowed={canManage}>

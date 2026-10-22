@@ -1,57 +1,22 @@
-import { fallbackForRawError } from '@/lib/machine-text'
 // app/inventory/reports/reportShared.ts
 // RPT-1:四张报表共用的取数与导出零件。
 //
-// 【为什么共用】页面、CSV、PDF 三处必须回答【同一个问题】。三处各写一份过滤,
+// 【为什么共用】页面、导出、PDF 三处必须回答【同一个问题】。三处各写一份过滤,
 // 屏幕上的表与导出的文件迟早不一样,而那种不一样没有任何东西会报错 ——
 // 进料导出那一份(app/inbound/export/route.ts)早就是这么做的:导出复用列表页
 // 自己的过滤模块,所以"当前视图"只有一个定义。这里照抄那条。
 
 
-// ── CSV ─────────────────────────────────────────────────────────────────────
-// 一律加双引号、内部双引号翻倍:字段里的逗号/换行/引号都不会破坏 CSV。
-export function csvCell(value: unknown): string {
-    if (value === null || value === undefined) return '""'
-    return '"' + String(value).replace(/"/g, '""') + '"'
-}
-
-// UTC 输出 —— 服务器时区不该影响导出的字面值(同进料导出)。
-export function csvDateTime(value: string | null): string {
-    if (!value) return ''
-    const d = new Date(value)
-    if (Number.isNaN(d.getTime())) return value
-    const p = (n: number) => String(n).padStart(2, '0')
-    return (
-        `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}` +
-        ` ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`
-    )
-}
+// ── 导出 ─────────────────────────────────────────────────────────────────────
+// TABLE-EXPORT-1(Tim 2026-10-22 Q5):四张报表各自那条手写的 CSV 路由(…/export/route.ts)删掉了,
+// 由表上的统一导出(Excel / CSV,app/components/ui/table-export.tsx)取代 —— 四页都不分页,
+// 表手里已经是全体,所以不需要服务端那一半。csvCell / csvDateTime / csvResponse / exportFailed
+// 随之没有调用者,一并删去;下面的 todayStamp 还被 PDF 的文件名用着(pdfShared.tsx),留下。
 
 export function todayStamp(): string {
     const d = new Date()
     const p = (n: number) => String(n).padStart(2, '0')
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
-
-export function csvResponse(name: string, headers: string[], rows: unknown[][]): Response {
-    const lines = [headers.map(csvCell).join(',')]
-    for (const r of rows) lines.push(r.map(csvCell).join(','))
-    // ﻿:Excel 靠 BOM 才认得出 UTF-8,否则中文列名是乱码。
-    return new Response('﻿' + lines.join('\n'), {
-        headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="${name}-${todayStamp()}.csv"`,
-        },
-    })
-}
-
-// 【失败不是空文件】—— 一个 0 行的 CSV 与"确实没有数据"长得一模一样,
-// 而前者是错误。同进料导出:500 + 原因。
-// ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文 —— 它会原样出现在浏览器窗口里。
-//   生码 / 数据库报错换成一句人话 + 一个可追查的短码;人话句子原样留着。
-//   ☞ 它因此变成 async:翻译要 await。四个调用点都在 async 函数里。
-export async function exportFailed(error: { message: string }): Promise<Response> {
-    return new Response(`Export failed: ${await fallbackForRawError(error.message, 'inventory/reports/export')}`, { status: 500 })
 }
 
 

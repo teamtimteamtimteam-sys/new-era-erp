@@ -106,6 +106,8 @@ export default async function ForwardersPage() {
         paymentTerms: termsById.get(r.id) ?? '—',
         // 【零不写成 0.00】—— 没有欠款给 null,由表说那句话
         owedLabel: owed.get(r.id) ? formatAmount(owed.get(r.id)!, baseCcy) : null,
+        owedCcy: baseCcy,
+        owedAmt: owed.get(r.id) ? owed.get(r.id)! : null,
     }))
 
     return (

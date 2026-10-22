@@ -51,6 +51,8 @@ export default async function WipPage() {
             ? ((locale === 'zh' ? r.awaiting_operation_zh : r.awaiting_operation_en) ?? r.awaiting_operation_type_code)
             : null,
         safetyStatesRecorded: r.safety_states_recorded,
+        remainingQty: r.remaining_qty,
+        unit: r.unit,
     }))
 
     return (

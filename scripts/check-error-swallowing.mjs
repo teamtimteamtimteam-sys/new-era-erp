@@ -112,13 +112,6 @@ const ALLOWLIST = [
             + '两者的区别正是 FIN-7-fu 修它的理由,注释就在旁边。',
     },
     {
-        path: 'app/sales/customers/export/route.ts', match: 'data ?? []',
-        reason: '导出路由在上面 `if (error) return new Response(..., { status: 500 })` —— '
-            + '失败已经变成 500,?? [] 到不了。',
-    },
-    { path: 'app/materials/export/route.ts', match: 'data ?? []', reason: '同 customers/export:error 先返回 500。' },
-    { path: 'app/suppliers/export/route.ts', match: 'data ?? []', reason: '同 customers/export:error 先返回 500。' },
-    {
         path: 'app/finance/bank/import/ImportStatementForm.tsx', match: 'setCsvRows(res.data',
         reason: '【不是查询】这是 PapaParse 的解析结果(res.data 是 CSV 行),'
             + '不是 Supabase 的 { data, error }。同名不同物 —— 本检查靠名字判断,'

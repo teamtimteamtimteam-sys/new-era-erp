@@ -47,6 +47,7 @@ export default async function NcrListPage() {
         batchCode: n.batch_code,
         batchHref: batchHref(n.batch_kind, (n.inbound_batch_id ?? n.output_batch_id)!),
         opened: formatDate(n.opened_at, locale),
+        openedAt: n.opened_at,
         description: n.description,
     }))
 

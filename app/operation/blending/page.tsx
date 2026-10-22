@@ -49,8 +49,12 @@ export default async function BlendingPlansPage() {
         statusLabel: t(blendingStatusKey(p.status)),
         material: matOf.get(p.output_material_id) ?? '—',
         createdLabel: formatDate(p.created_at.slice(0, 10), locale) ?? '—',
+        createdAt: p.created_at,
         run: p.run_id ? runOf.get(p.run_id) ?? null : null,
         notes: p.notes ?? '—',
+        // TABLE-EXPORT-1:导出读原始值
+        materialText: matOf.get(p.output_material_id) ?? null,
+        notesText: p.notes,
     }))
 
     return (

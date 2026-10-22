@@ -27,6 +27,7 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import ReverseAllocationControl from './ReverseAllocationControl'
+import { xText, xNum, xMoney, xMasked } from '@/lib/export/cells'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -109,6 +110,19 @@ export default async function ElectricityAllocationPage({ params, searchParams }
             kwh: num(l.kwh),
             amount: money(l.amount),
         },
+        // TABLE-EXPORT-1:度数与分钟是数(xNum),份额是屏幕上那个百分数(share × 100,xNum 'pct');
+        //   金额与屏幕同一个判据(MaskedValue · showPrices)—— 没权限且库里给 NULL 就写「受限」。
+        exports: {
+            run: xText(runCode.get(l.run_id) ?? '—'),
+            machine: xText(eqCode.get(l.equipment_id) ?? '—'),
+            basis: xText(l.basis === 'recorded_energy' ? t('energy.basisRecorded') : t('energy.basisRunTime')),
+            own: xNum(l.run_energy_kwh, 'qty'),
+            minutes: xNum(l.run_minutes, 'qty'),
+            share: xNum(Number(l.share) * 100, 'pct'),
+            machineKwh: xNum(l.machine_kwh, 'qty'),
+            kwh: xNum(l.kwh, 'qty'),
+            amount: xMasked(l.amount, showPrices, xMoney),
+        },
     }))
 
     return (
@@ -160,6 +174,7 @@ export default async function ElectricityAllocationPage({ params, searchParams }
                     ]}
                     rows={lineRows}
                     empty={t('energy.noRunsCovered')}
+                    exportSpec={{ name: 'finance-electricity-allocation-lines', title: t('energy.runsTitle') }}
                 />
             </section>
 

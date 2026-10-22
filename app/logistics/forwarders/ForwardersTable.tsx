@@ -7,7 +7,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xRestricted } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
 
 export type ForwarderRow = {
@@ -18,6 +19,10 @@ export type ForwarderRow = {
     paymentTerms: string
     /** null = 没有欠款。【零不写成 0.00】—— 没有欠款是一句话,不是一个金额。 */
     owedLabel: string | null
+    /** TABLE-EXPORT-1:未结余额的币种(本位币)—— 屏幕上 owedLabel 里写着它。 */
+    owedCcy: string | null
+    /** TABLE-EXPORT-1:导出用的原始未结余额(本位币);null 与 owedLabel 同义 —— 没有欠款。 */
+    owedAmt: number | null
 }
 
 export default function ForwardersTable({
@@ -42,19 +47,23 @@ export default function ForwardersTable({
 
     // ★ 手机上留【货代】与【未结应付】—— 名字是身份,而未结应付是这份名单
     //   与供应商名单共用同一张 ap_open_items 视图的全部意义。
-    const columns: Column<ForwarderRow>[] = [
+    // TABLE-EXPORT-1:两个「扣下了」的格子与屏幕同一条判据(moneyRestricted / termsRestricted)写「受限」,
+    //   绝不写空格;「没有欠款」导出同一句话,不是 0。未结余额是本位币的数(与屏幕上那个数同一个)。
+    const columns: ExportableColumn<ForwarderRow>[] = [
         {
             key: 'name', header: t('logistics.colName'), priority: true,
+            exportAs: (r) => xText(r.legalName),
             render: (r) => (
                 <Link href={`/logistics/forwarders/${r.id}`} className="hover:underline app-link">
                     {r.legalName}
                 </Link>
             ),
         },
-        { key: 'code', header: t('logistics.colCode'), className: 'text-xs', render: (r) => r.code },
-        { key: 'routes', header: t('logistics.colMainRoutes'), render: (r) => r.mainRoutes },
+        { key: 'code', header: t('logistics.colCode'), className: 'text-xs', render: (r) => r.code, exportAs: (r) => xText(r.code) },
+        { key: 'routes', header: t('logistics.colMainRoutes'), render: (r) => r.mainRoutes, exportAs: (r) => xText(r.mainRoutes) },
         {
             key: 'terms', header: t('logistics.colPaymentTerms'),
+            exportAs: (r) => (termsRestricted ? xRestricted : xText(r.paymentTerms)),
             render: (r) =>
                 termsRestricted
                     ? <Refusal why={t('logistics.termsRestrictedHint')}>{t('common.restricted')}</Refusal>
@@ -62,6 +71,9 @@ export default function ForwardersTable({
         },
         {
             key: 'owed', header: t('logistics.colBalanceOwed'), priority: true, align: 'right',
+            exportAs: (r) => (moneyRestricted
+                ? xRestricted
+                : r.owedAmt === null ? xText(t('logistics.noBalance')) : xMoney(r.owedAmt, r.owedCcy)),
             render: (r) =>
                 moneyRestricted
                     ? <Refusal why={t('logistics.owedRestrictedHint')}>{t('common.restricted')}</Refusal>
@@ -69,5 +81,10 @@ export default function ForwardersTable({
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} />
+    return (
+        <DataTable
+            rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
+            exportSpec={{ name: 'logistics-forwarders', title: t('logistics.forwardersTitle') }}
+        />
+    )
 }

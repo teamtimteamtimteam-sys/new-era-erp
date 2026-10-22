@@ -24,6 +24,7 @@ import { formatAuditStamp, formatDate, formatDateTime } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import AcknowledgeButton from '../AcknowledgeButton'
 import CellsTable, { type CellRow } from '../../equipment/CellsTable'
+import { xText, xTime } from '@/lib/export/cells'
 
 type Handover = {
     id: string; shift_code: string; handover_date: string; outgoing_employee_id: string; incoming_employee_id: string
@@ -97,6 +98,8 @@ export default async function HandoverPage({ params, searchParams }: {
     const itemTable: CellRow[] = itemRows.map((r) => ({
         id: r.id,
         cells: { type: typeName(r.item_type_code), body: <span className="whitespace-pre-wrap break-words">{r.body}</span> },
+        // TABLE-EXPORT-1:两格都是字
+        exports: { type: xText(typeName(r.item_type_code)), body: xText(r.body) },
     }))
     const downTable: CellRow[] = downRows.map((d) => {
         const m = machines.find((x) => x.equipment_id === d.equipment_id)
@@ -122,6 +125,16 @@ export default async function HandoverPage({ params, searchParams }: {
                         </span>
                     </span>
                 ) : <span className="break-words">{d.reason}</span>,
+            },
+            // TABLE-EXPORT-1:起止是真时刻(原始 ISO);后来作废了 / 还没结束 —— 屏幕上那两句话照原样写成字,不留空
+            exports: {
+                machine: xText(m ? m.equipment_code : '—'),
+                from: xTime(d.started_at),
+                to: d.voided_at ? xText(t('processing.handover.downtimeVoidedLater'))
+                    : d.ended_at ? xTime(d.ended_at) : xText(t('processing.handover.downtimeOngoing')),
+                reason: xText(d.voided_at
+                    ? `${d.reason} · ${t('equipment.down.voidedBecause', { reason: d.void_reason ?? '—', when: formatDateTime(d.voided_at, locale) })}`
+                    : d.reason),
             },
         }
     })
@@ -176,6 +189,7 @@ export default async function HandoverPage({ params, searchParams }: {
                     ]}
                     rows={itemTable}
                     empty={t('processing.handover.noItems')}
+                    exportSpec={{ name: 'operation-handover-items', title: t('processing.handover.itemsTitle') }}
                 />
             </section>
 
@@ -190,6 +204,7 @@ export default async function HandoverPage({ params, searchParams }: {
                     ]}
                     rows={downTable}
                     empty={t('processing.handover.noEquipment')}
+                    exportSpec={{ name: 'operation-handover-equipment', title: t('processing.handover.equipmentTitle') }}
                 />
             </section>
 

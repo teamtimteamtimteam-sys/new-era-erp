@@ -20,7 +20,8 @@ import { recordChase, recordPromiseOutcome } from './chaseActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate, xMoney } from '@/lib/export/cells'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限按新加坡的今天,与服务端拒「将来」的那一天同一天
 import { formatDate } from '@/lib/dates'
@@ -96,9 +97,12 @@ export default function ChasePanel({
     //   叠在单号格里那一段手写的展开块【拿掉了】:组件自己画那一段。
     //   ★ 「纪要」下面那串关联单据原来在两个断点各画一份,现在只画一次
     //     (组件把同一个 render 用在行里和展开区)。
-    const columns: Column<Chase>[] = [
+    // ★ TABLE-EXPORT-1(Tim 2026-10-22):每一列读【原始值】导出。这一段整段挂在 canFinance 上(页面不渲染就没有表),
+    //   所以格子里没有「受限」这一说 —— 看得见表的人,看得见每一格。
+    const columns: ExportableColumn<Chase>[] = [
         {
             key: 'code', header: t('chases.colCode'), priority: true,
+            exportAs: (c) => xText(c.code + (c.superseded_at ? ` (${t('chases.superseded')})` : '')),
             render: (c) => (
                 <>
                     {c.code}
@@ -110,14 +114,21 @@ export default function ChasePanel({
                 </>
             ),
         },
-        { key: 'date', header: t('chases.colDate'), render: (c) => c.chased_on },
-        { key: 'channel', header: t('chases.colChannel'), render: (c) => t('chases.channel_' + c.channel) },
+        { key: 'date', header: t('chases.colDate'), render: (c) => c.chased_on, exportAs: (c) => xDate(c.chased_on) },
+        { key: 'channel', header: t('chases.colChannel'), render: (c) => t('chases.channel_' + c.channel),
+          exportAs: (c) => xText(t('chases.channel_' + c.channel)) },
         {
             key: 'who', header: t('chases.colWho'),
+            exportAs: (c) => xText(c.reached ? c.contacted_person : t('chases.notReached')),
             render: (c) => (c.reached ? (c.contacted_person ?? '—') : t('chases.notReached')),
         },
         {
             key: 'summary', header: t('chases.colSummary'),
+            // 纪要 + 下面那串关联单据,与屏幕同一份字(导出里一格,用「 · 」隔开)
+            exportAs: (c) => xText([
+                c.summary,
+                c.documents.map((d) => `${t('chases.subject_' + d.subject_type)} ${d.subject_code ?? ''}`.trim()).join(' · '),
+            ].filter(Boolean).join(' · ')),
             render: (c) => (
                 <>
                     {c.summary}
@@ -133,9 +144,16 @@ export default function ChasePanel({
         },
         {
             key: 'owed', header: t('chases.owedAtChase'), align: 'right', priority: true, render: (c) => money(c.owed_base),
+            exportAs: (c) => xMoney(c.owed_base),
         },
         {
             key: 'promise', header: t('chases.colPromise'), priority: true,
+            // TABLE-EXPORT-1:一格里是 金额 币种 → 日期 · 结果 三样东西,一格只能装一种类型,所以是文字;
+            //   拼的是【原始】金额与 `YYYY-MM-DD`,不是屏幕上格式化过的那串。没有承诺 = 屏幕上那句话。
+            exportAs: (c) => xText(c.promise
+                ? [`${c.promise.promised_amount_ccy} ${c.promise.currency} → ${c.promise.promised_date}`,
+                   c.promise.outcome ? t('chases.outcome_' + c.promise.outcome) : null].filter(Boolean).join(' · ')
+                : t('chases.promiseNone')),
             render: (c) => (c.promise ? (
                 <>
                     <span>
@@ -305,6 +323,7 @@ export default function ChasePanel({
                 phone={{ mode: 'columns' }}
                 empty={t('chases.none')}
                 rowClassName={(c) => (c.superseded_at ? 'text-gray-400' : undefined)}
+                exportSpec={{ name: 'customer-chases', title: t('chases.sectionTitle') }}
             />
             {/* 冻结的数与今天的数【并排】—— 表里那一列是当时告诉客户的数 */}
             {chases.length > 0 && (

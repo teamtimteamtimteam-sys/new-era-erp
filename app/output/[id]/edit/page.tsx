@@ -532,7 +532,8 @@ export default async function EditOutputPage({
             {checkRows.length > 0 && (
                 <section className="mt-6" data-section="contamination-checks">
                     <h2 className="mb-2">{t('contamination.batchTitle')}</h2>
-                    <ContaminationChecksList rows={checkRows} emptyKey="contamination.emptyBatch" />
+                    <ContaminationChecksList rows={checkRows} emptyKey="contamination.emptyBatch"
+                        exportSpec={{ name: 'operation-contamination-checks-batch', title: t('contamination.batchTitle') }} />
                 </section>
             )}
 

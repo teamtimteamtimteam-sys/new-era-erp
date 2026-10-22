@@ -3,9 +3,9 @@
 //
 // ★★ CONV-5:这一页是本刀里【唯一真正用上 ListPage empty 分支】的一张 ★★
 // 其余 40 张的空态都由 DataTable 自己的 empty 说(因为它们的出口 —— 筛选栏、
-// 新建按钮 —— 一旦落进 empty 分支就会被吞掉)。这一页不一样:它的两个出口
-// (CSV / PDF 导出)是【抬头动作】,住在 ListPage 的 actions 里,而 actions 画在
-// 状态分支【之前】。于是 monitored === 0 可以如实走 empty 分支,
+// 新建按钮 —— 一旦落进 empty 分支就会被吞掉)。这一页不一样:它的出口
+// (PDF 导出;TABLE-EXPORT-1 之前还有一条 CSV,现在 Excel / CSV 在表上)是【抬头动作】,
+// 住在 ListPage 的 actions 里,而 actions 画在状态分支【之前】。于是 monitored === 0 可以如实走 empty 分支,
 // 那句「没有人设过任何阈值」正是 RefusalBlock 这个形状要说的话 ——
 // 而它与「所有物料都在阈值之上」是两件不同的事,页面原本就把它们分开说,
 // 本刀没有把这个区别压平。
@@ -34,6 +34,10 @@ export default async function SafetyPage() {
             thresholdQty: `${r.safety_stock_qty} ${r.unit}`,
             shortfall: isBelow ? `${short} ${r.unit}` : '—',
             isBelow,
+            available: r.available_qty,
+            threshold: r.safety_stock_qty,
+            shortfallQty: isBelow ? short : null,
+            unit: r.unit,
         }
     })
 
@@ -43,9 +47,6 @@ export default async function SafetyPage() {
             intro={t('reports.safety.desc')}
             actions={
                 <div className="flex gap-2">
-                    <Button asChild variant="outline">
-                        <a href="/inventory/reports/safety/export">{t('reports.csv')}</a>
-                    </Button>
                     <Button asChild variant="outline">
                         <a href="/inventory/reports/safety/pdf" target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
                     </Button>

@@ -1295,6 +1295,23 @@ const zh = {
     },
     // ── COPY-1(2026-09-06):表格外壳自己的词。见 en.ts 同一处的说明。
     table: {
+        // TABLE-EXPORT-1(Tim 2026-10-22):统一导出。逐条裁定见 docs/table-export.md。
+        export: {
+            excel: '导出 Excel',
+            csv: '导出 CSV',
+            busy: '正在准备…',
+            tooMany: '这张表有 {count} 行符合条件;一次导出最多 {cap} 行。请收窄筛选后再导出。',
+            denied: '你没有这张表的访问权限,所以不能导出。',
+            failed: '导出没有准备好:{detail}',
+            aboutTable: '表',
+            aboutFilters: '筛选',
+            aboutNoFilters: '无',
+            aboutRows: '行数',
+            aboutBy: '导出人',
+            aboutByUnknown: '读不出来(登录校验没有回应)',
+            aboutAt: '导出时间(新加坡时间)',
+            aboutLanguage: '语言',
+        },
         columns: '列 {shown}/{total}',
         partialNotice: '这一屏 {shown} 行,全体 {total} 行 —— 排序在数据库里对【全体】做,所以第一页就是全体的前 {shown} 名。',
         selectAll: '全选',
@@ -1837,7 +1854,6 @@ const zh = {
         },
         searchPlaceholder: '搜索编号、名称、税号、国家…',
         allStatuses: '全部状态',
-        export: '导出',
         pagination: {
             prev: '← 上一页',
             next: '下一页 →',
@@ -2474,7 +2490,6 @@ const zh = {
             created: '创建时间',
         },
         searchPlaceholder: '搜索编号、名称、税号、国家…',
-        export: '导出',
         pagination: {
             prev: '← 上一页',
             next: '下一页 →',
@@ -2617,7 +2632,6 @@ const zh = {
         searchPlaceholder: '搜索编号、名称、规格…',
         allKinds: '全部种类',
         kindUndecided: '未决定种类',
-        export: '导出',
         pagination: {
             prev: '← 上一页',
             next: '下一页 →',
@@ -2763,6 +2777,7 @@ const zh = {
         ton: '吨',
         gram: '克',
         piece: '件',
+        hour: '小时',
     },
     // GRN-1b:收货差异(GRN-1a 建的 grn_discrepancies / receiving_settings 的屏幕那一半)
     grn: {
@@ -2916,7 +2931,6 @@ const zh = {
         allStages: '全部阶段',
         allSuppliers: '全部供应商',
         allMaterials: '全部物料',
-        export: '导出',
         condition: {
             title: '到货状态',
             needsEdit: '记录一批货的状态要【进料模块】的编辑权限。',
@@ -3142,7 +3156,6 @@ const zh = {
         allStates: '全部状态',
         allCustomers: '全部客户',
         allMaterials: '全部物料',
-        export: '导出',
         pagination: {
             prev: '← 上一页',
             next: '下一页 →',
@@ -4273,7 +4286,6 @@ const zh = {
         },
         title: '库存报表',
         intro: '只读的库存视图。这里没有任何东西是存下来的 —— 每一个数字都在你打开页面时从流水现算。',
-        csv: 'CSV',
         pdf: 'PDF',
         colMaterial: '物料',
         colLocation: '库位',

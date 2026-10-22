@@ -9,7 +9,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import type { MaterialKind } from './materialKindOptions'
-import { Button } from '@/app/components/ui/button'
 
 export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind[]; locale: string }) {
     const t = useTranslations()
@@ -60,14 +59,6 @@ export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind
         router.push(buildHref({ kind: value || null, page: null }))
     }
 
-    // 导出链接:带上当前 q / kind / sort / dir,导出的就是用户此刻筛选到的结果。
-    // 但【剔除 page】—— 导出永远是全部匹配行,不受分页影响。
-    // 用普通 <a>(而非 next/link):整页请求命中 route handler,Content-Disposition 触发下载。
-    const exportParams = new URLSearchParams(searchParams.toString())
-    exportParams.delete('page')
-    const exportQs = exportParams.toString()
-    const exportHref = exportQs ? `/materials/export?${exportQs}` : '/materials/export'
-
     return (
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <input
@@ -89,13 +80,6 @@ export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind
                     </option>
                 ))}
             </select>
-            <Button asChild variant="outline">
-                <a
-                    href={exportHref}
-                >
-                    {t('materials.export')}
-                </a>
-            </Button>
         </div>
     )
 }

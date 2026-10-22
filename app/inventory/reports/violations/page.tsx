@@ -3,7 +3,8 @@
 // CONV-5:三段都是真正的行登记簿,三张表都换(违规段一张 + 未决定段那个
 // 复用组件一张)。★ state 恒为 'ok' —— 计数与那句 countNote(「未决定的两段
 // 永远不进这个数」)必须无条件出现,走 empty 分支会把这条判据一起吞掉;
-// 而 CSV/PDF 两个出口住在 actions 里,画在状态分支之前。
+// 而 PDF 那个出口住在 actions 里,画在状态分支之前(TABLE-EXPORT-1:CSV 那条路由删了,
+// Excel / CSV 在每张表上,三段各一份)。
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -12,19 +13,21 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { ViolationsTable, UndecidedTable, type ViolationRow, type UndecidedTableRow } from './ViolationsTables'
 import { Button } from '@/app/components/ui/button'
 
-function Undecided({ title, note, colA, colB, rows, qtyLabel }: {
+function Undecided({ title, note, colA, colB, rows, qtyLabel, exportName }: {
     title: string; note: string; colA: string; colB: string; rows: UndecidedRow[]; qtyLabel: string
+    exportName: string
 }) {
     // 一段没有行就整段不出现 —— 这不是"空态",是"这一段不适用"。
     if (rows.length === 0) return null
     const tableRows: UndecidedTableRow[] = rows.map((r, i) => ({
-        key: String(i), code: r.code, name: r.name, other: r.other, qty: `${r.qty} ${r.unit}`,
+        key: String(i), code: r.code, name: r.name, other: r.other, qty: `${r.qty} ${r.unit}`, qtyRaw: r.qty, unit: r.unit,
     }))
     return (
         <section className="mb-8">
             <h2 className="mb-1">{title}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{note}</p>
-            <UndecidedTable rows={tableRows} colA={colA} colB={colB} qtyLabel={qtyLabel} />
+            <UndecidedTable rows={tableRows} colA={colA} colB={colB} qtyLabel={qtyLabel}
+                            exportName={exportName} exportTitle={title} />
         </section>
     )
 }
@@ -41,6 +44,7 @@ export default async function ViolationsPage() {
         materialCode: v.material_code,
         classCode: v.class_code,
         qty: String(v.qty),
+        qtyRaw: v.qty,
     }))
 
     return (
@@ -49,9 +53,6 @@ export default async function ViolationsPage() {
             intro={t('reports.violations.desc')}
             actions={
                 <div className="flex gap-2">
-                    <Button asChild variant="outline">
-                        <a href="/inventory/reports/violations/export">{t('reports.csv')}</a>
-                    </Button>
                     <Button asChild variant="outline">
                         <a href="/inventory/reports/violations/pdf" target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
                     </Button>
@@ -73,11 +74,13 @@ export default async function ViolationsPage() {
             <Undecided title={t('reports.violations.sectionUnconfigured')}
                        note={t('reports.violations.unconfiguredNote')}
                        colA={t('reports.colLocation')} colB={t('reports.colMaterial')}
-                       qtyLabel={t('reports.colQty')} rows={unconfigured} />
+                       qtyLabel={t('reports.colQty')} rows={unconfigured}
+                       exportName="class-violations-unconfigured-locations" />
             <Undecided title={t('reports.violations.sectionUnclassified')}
                        note={t('reports.violations.unclassifiedNote')}
                        colA={t('reports.colMaterial')} colB={t('reports.colLocation')}
-                       qtyLabel={t('reports.colQty')} rows={unclassified} />
+                       qtyLabel={t('reports.colQty')} rows={unclassified}
+                       exportName="class-violations-unclassified-materials" />
         </ListPage>
     )
 }

@@ -2,17 +2,15 @@
 // 盘点单列表页。暂无筛选工具栏;count+range 分页端口自 processing 列表。
 // 新建按钮直接提交 createStocktake(空单 → 跳详情开始点数)。
 import { createClient } from '@/lib/supabase/server'
-import { formatTimestamp } from '@/lib/format'
 import Link from 'next/link'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { stocktakeStatusLabelKey } from './status'
+import { getTranslations } from '@/lib/i18n/server'
 import { createStocktake } from './actions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import StocktakesTable, { type StocktakeRow } from './StocktakesTable'
 import { Button } from '@/app/components/ui/button'
-import { formatAuditStamp } from '@/lib/dates'
+import { stocktakeCount, stocktakePage, shapeStocktakeRows } from './stocktakeRows'
 import { can } from '@/lib/permissions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -36,24 +34,13 @@ export default async function StocktakesPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
-
-    // 状态标签(未知值回退原样)
-    const statusLabel = (v: string | null) => {
-        const k = stocktakeStatusLabelKey(v)
-        return k ? t(k) : v ?? '—'
-    }
 
     const requestedPage = parsePage(sp.page)
     // ROLE-1 Batch 3a:开单是录数的第一步,归 action.stocktake_count(仓库)。按不动时点名那个码。
     const canCount = await can('action.stocktake_count')
 
     // 1) 匹配总数
-    const { count } = await supabase
-        .from('stocktakes')
-        .select('id', { count: 'exact', head: true })
-        .is('deleted_at', null)
+    const { count } = await stocktakeCount(supabase)
 
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / STOCKTAKE_PAGE_SIZE))
@@ -61,13 +48,8 @@ export default async function StocktakesPage({
     const from = (page - 1) * STOCKTAKE_PAGE_SIZE
     const to = from + STOCKTAKE_PAGE_SIZE - 1
 
-    // 2) 取当前页
-    const { data: rows, error } = await supabase
-        .from('stocktakes')
-        .select('id, code, status, started_at, posted_at, notes')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .range(from, to)
+    // 2) 取当前页(TABLE-EXPORT-1:select / 排序 / 映射住在 stocktakeRows.ts,导出路由走同一份)
+    const { data: rows, error } = await stocktakePage(supabase, from, to)
 
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
@@ -93,15 +75,7 @@ export default async function StocktakesPage({
     // CONV-5:套 CONV-1 的两文件模板。state 恒为 'ok' —— 「新建盘点单」是一个
     // server action 表单,住在 actions 里(状态分支之前);一张盘点单都没有的时候
     // 它正是唯一能做的事。
-    const tableRows: StocktakeRow[] = (rows ?? []).map((r) => ({
-        id: r.id,
-        code: r.code,
-        statusLabel: statusLabel(r.status),
-        // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
-        startedLabel: formatAuditStamp(r.started_at),
-        postedLabel: r.posted_at ? formatTimestamp(r.posted_at, dateLocale) : null,
-        notes: r.notes ?? '—',
-    }))
+    const tableRows: StocktakeRow[] = await shapeStocktakeRows(rows ?? [])
 
     return (
         <ListPage
@@ -122,7 +96,8 @@ export default async function StocktakesPage({
                 {t('stocktakes.recordCount', { count: total })}
             </p>
 
-            <StocktakesTable rows={tableRows} empty={t('stocktakes.emptyState')} />
+            {/* TABLE-EXPORT-1 Q2:导出取【全部】盘点单 —— 这一页没有筛选,排序固定,不带 page。 */}
+            <StocktakesTable rows={tableRows} empty={t('stocktakes.emptyState')} exportHref="/stocktakes/export" />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

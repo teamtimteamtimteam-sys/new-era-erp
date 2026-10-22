@@ -10,23 +10,19 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
-import { processingStatusLabelKey } from '../status'
 import ProcessingToolbar from './ProcessingToolbar'
 import {
     parseProcessingListParams,
     parseProcessingPage,
-    applyProcessingFilters,
     PROCESSING_PAGE_SIZE,
 } from '../processingQuery'
-import { mustRows } from '@/lib/db-helpers'
+import { processingCount, processingPage, shapeProcessingRows } from './processingRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { ListPage } from '@/app/components/ui/list-page'
 import ProcessingTable, { type ProcessingRunRow } from './ProcessingTable'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 export default async function ProcessingPage({
     searchParams,
@@ -39,7 +35,6 @@ export default async function ProcessingPage({
         page?: string
     }>
 }) {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.processing)
@@ -49,21 +44,12 @@ export default async function ProcessingPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    // 状态标签(未知值回退原样)
-    const statusLabel = (v: string | null) => {
-        const k = processingStatusLabelKey(v)
-        return k ? t(k) : v ?? '—'
-    }
-
     const { dateFrom, dateTo, sort, dir } = parseProcessingListParams(sp)
     const requestedPage = parseProcessingPage(sp.page)
     const filterParams = { dateFrom, dateTo, sort, dir }
 
-    // 1) 匹配总数
-    const { count } = await applyProcessingFilters(
-        supabase.from('processing_runs').select('id', { count: 'exact', head: true }),
-        filterParams
-    )
+    // 1) 匹配总数(TABLE-EXPORT-1:读取挪进 processingRows.ts,与导出路由共用一份)
+    const { count } = await processingCount(supabase, filterParams)
 
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / PROCESSING_PAGE_SIZE))
@@ -71,35 +57,8 @@ export default async function ProcessingPage({
     const from = (page - 1) * PROCESSING_PAGE_SIZE
     const to = from + PROCESSING_PAGE_SIZE - 1
 
-    // 2) 取当前页
-    const baseQuery = supabase
-        .from('processing_runs')
-        .select('id, code, process_date, total_input, total_output, loss_qty, status, created_at, work_order_id')
-
-    const { data: runs, error } = await applyProcessingFilters(baseQuery, filterParams).range(from, to)
-
-    // WO-1c:把这一页上出现的工单编号一次取回来 —— 逐行去查会是 N+1,
-    // 而列表最多 PROCESSING_PAGE_SIZE 行,一次 in() 就够。
-    const woIds = Array.from(new Set((runs ?? [])
-        .map((r) => (r as { work_order_id: string | null }).work_order_id)
-        .filter(Boolean))) as string[]
-    const woCode = new Map<string, string>()
-    if (woIds.length > 0) {
-        const woRows = mustRows(
-            await supabase.from('work_orders').select('id, code').in('id', woIds),
-            'work_orders') as { id: string; code: string }[]
-        woRows.forEach((w) => woCode.set(w.id, w.code))
-    }
-
-    // MES-4a(Q19–Q21):这一页上每一炉的物料平衡状态 —— 读 processing_run_balance(结算函数读的是同一张底视图),一次 in() 取回。
-    const runIds = (runs ?? []).map((r) => r.id)
-    const balanceState = new Map<string, string>()
-    if (runIds.length > 0) {
-        const bRows = mustRows(
-            await supabase.from('processing_run_balance').select('run_id, balance_state').in('run_id', runIds),
-            'processing_run_balance')
-        bRows.forEach((b) => { if (b.run_id && b.balance_state) balanceState.set(b.run_id, b.balance_state) })
-    }
+    // 2) 取当前页 —— 工单编号与物料平衡状态的补读也在 shapeProcessingRows 里(WO-1c · MES-4a)
+    const { data: runs, error } = await processingPage(supabase, filterParams, from, to)
 
     // 分页链接:保留日期 + sort/dir,只改 page
     function pageHref(targetPage: number) {
@@ -127,20 +86,14 @@ export default async function ProcessingPage({
         )
     }
 
-    const tableRows: ProcessingRunRow[] = (runs ?? []).map((r) => ({
-        id: r.id,
-        code: r.code,
-        processDate: formatDate(r.process_date, locale) ?? '—',
-        totalInput: r.total_input != null ? String(r.total_input) : '—',
-        totalOutput: r.total_output != null ? String(r.total_output) : '—',
-        lossLabel:
-            (r.loss_qty != null ? String(r.loss_qty) : '—') +
-            (r.loss_qty != null && r.total_input ? ` (${((r.loss_qty / r.total_input) * 100).toFixed(1)}%)` : ''),
-        statusLabel: statusLabel(r.status),
-        workOrderId: r.work_order_id,
-        workOrderCode: r.work_order_id ? (woCode.get(r.work_order_id) ?? '—') : '—',
-        balanceState: balanceState.get(r.id) ?? null,
-    }))
+    const tableRows: ProcessingRunRow[] = await shapeProcessingRows(supabase, runs ?? [])
+    // TABLE-EXPORT-1 Q2:导出取【全部匹配行】—— 同一套筛选与排序,不带 page。
+    const exportParams = new URLSearchParams()
+    if (dateFrom) exportParams.set('date_from', dateFrom)
+    if (dateTo) exportParams.set('date_to', dateTo)
+    exportParams.set('sort', sort)
+    exportParams.set('dir', dir)
+    const exportHref = `/operation/processing/export?${exportParams.toString()}`
 
     const canCommit = await can('action.processing_commit')
 
@@ -171,7 +124,7 @@ export default async function ProcessingPage({
                 {t('processing.recordCount', { count: total })}
             </p>
 
-            <ProcessingTable rows={tableRows} empty={t('processing.emptyState')} />
+            <ProcessingTable rows={tableRows} empty={t('processing.emptyState')} exportHref={exportHref} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

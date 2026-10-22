@@ -54,6 +54,9 @@ const STUBS = {
     '@/lib/i18n/client': { useTranslations: () => (k) => k },
     '@/lib/utils': { cn: (...a) => a.flat(Infinity).filter((x) => typeof x === 'string' && x).join(' ') },
     '@/lib/sortCollation': { compareForSort: (a, b) => String(a).localeCompare(String(b)) },
+    // TABLE-EXPORT-1:导出那两颗按钮【可以】桩 —— 它们画在控件区,不在表格里,本支数的表尾格子一格都不经过它;
+    //   真载进来要带上 exceljs 的动态 import 与浏览器端 Supabase 客户端,与本支要证的事无关。
+    '@/app/components/ui/table-export': { TableExportBar: () => null },
 }
 
 // ★ `table-style.ts` 【不桩】,真的载进来 —— 表尾用的是 tableC 的类串,

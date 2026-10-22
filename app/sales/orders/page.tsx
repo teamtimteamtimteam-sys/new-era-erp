@@ -45,6 +45,7 @@ export default async function SalesOrdersPage() {
         customerLabel: r.customers ? `${r.customers.code} — ${r.customers.legal_name}` : '—',
         // 日期按 locale 格式化在服务端做完 —— locale 不过 RSC 边界
         orderDateLabel: formatDate(r.order_date, locale),
+        orderDate: r.order_date,
         statusLabel: t(soStatusKey(r.status)),
         currency: r.currency,
     }))

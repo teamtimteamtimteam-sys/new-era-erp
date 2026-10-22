@@ -22,6 +22,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import CellsTable, { type CellRow } from './CellsTable'
+import { xText, xInt, xNum, xDate } from '@/lib/export/cells'
 
 const KG = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -61,6 +62,16 @@ export default async function EquipmentListPage() {
                 ? <span data-monitored="yes">{t('equipment.page.monitoredYes')}</span>
                 : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700" data-monitored="no">{t('equipment.intervals.notMonitored')}</span>,
         },
+        // TABLE-EXPORT-1:导出读【原始值】—— 次数是整数、加工量是公斤数、最后一次是真日期;「—」是没有值,导出成空格;「没在盯」照屏幕写成那句话
+        exports: {
+            code: xText(r.equipment_code),
+            description: xText(r.equipment_description),
+            status: xText(t('assets.status.' + r.equipment_status)),
+            runs: xInt(r.run_count),
+            processed: xNum(r.input_kg, 'qty', t('units.kg')), // TABLE-EXPORT-1:屏幕上是「1,234 kg」,单位一起写
+            lastRun: xDate(r.last_run_date),
+            monitored: xText(monitored.has(r.equipment_id) ? t('equipment.page.monitoredYes') : t('equipment.intervals.notMonitored')),
+        },
     }))
 
     return (
@@ -78,6 +89,7 @@ export default async function EquipmentListPage() {
                 ]}
                 rows={tableRows}
                 empty={t('equipment.page.empty')}
+                exportSpec={{ name: 'operation-equipment', title: t('equipment.page.listTitle') }}
             />
         </ListPage>
     )

@@ -1,6 +1,7 @@
 'use client'
 
-// 进料列表工具栏:搜索(code)+ 阶段下拉 + 供应商下拉 + 物料下拉 + 导出。
+// 进料列表工具栏:搜索(code)+ 阶段下拉 + 供应商下拉 + 物料下拉。
+// (TABLE-EXPORT-1:导出链接拿掉了 —— Excel / CSV 在表上,经 /inbound/export 翻页取全。)
 // 阶段用 STAGE_OPTIONS(value/labelKey);供应商/物料是 FK-id 下拉,选项由 page 以 props 传入。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
@@ -9,7 +10,6 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { STAGE_OPTIONS } from './options'
 import { PRICING_STATUS_VALUES } from './inboundQuery'
-import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type PartyOption = { id: string; label: string }
@@ -72,11 +72,6 @@ export default function InboundToolbar({
         router.push(buildHref({ [key]: value || null, page: null }))
     }
 
-    // 导出链接:带上当前所有筛选,但【剔除 page】—— 导出永远是全部匹配行。
-    const exportParams = new URLSearchParams(searchParams.toString())
-    exportParams.delete('page')
-    const exportQs = exportParams.toString()
-    const exportHref = exportQs ? `/inbound/export?${exportQs}` : '/inbound/export'
 
     return (
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -150,13 +145,6 @@ export default function InboundToolbar({
                     onChange={(v) => onFilterChange('date_to', v)}
                 />
             </label>
-            <Button asChild variant="outline">
-                <a
-                    href={exportHref}
-                >
-                    {t('inbound.export')}
-                </a>
-            </Button>
         </div>
     )
 }

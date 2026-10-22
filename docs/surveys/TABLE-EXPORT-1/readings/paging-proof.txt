@@ -1,0 +1,14 @@
+PASS|P1: 2,500 rows behind max_rows 1000 → fetchAllPages returned 2500, all distinct and in order (5 requests)
+PASS|P1: one un-paged read of the same source returns 1000 (the silent cut the paging removes)
+PASS|P2: max_rows lowered to 500 → still 2500 rows (stop condition is an empty page, not a short one)
+PASS|P3: 50001 matching rows → HTTP 413 EXPORT_TOO_MANY_ROWS, count 50001, rows fetched: 0 requests
+PASS|P3: exactly 50000 → HTTP 200, 50000 rows
+PASS|P4: a failed read throws (EXPORT_READ_FAILED|p4|permission denied), never an empty set
+PASS|P5: app/finance/journal/export/route.ts reads its row source through fetchAllPages
+PASS|P5: app/finance/gst/[periodId]/export/route.ts reads its row source through fetchAllPages
+PASS|P5: app/finance/receivables/export/route.ts reads a single value (shape pinned by fixture 291)
+PASS|P5: app/finance/payables/export/route.ts reads a single value (shape pinned by fixture 291)
+PASS|P5: app/finance/packs/[id]/export/route.ts reads a single value (shape pinned by fixture 291)
+PASS|P5: readAging calls ar_aging_asof / ap_aging_asof (the jsonb functions fixture 291 pins)
+PAGING_PROOF_EXIT=0
+X_OWN_EXIT=0

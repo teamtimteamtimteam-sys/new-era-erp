@@ -78,6 +78,8 @@ export default async function PayrollListPage() {
         code: p.code,
         periodMonth: formatMonth(p.period_month, locale) ?? '',
         paymentDate: formatDate(p.payment_date, locale),
+        periodMonthRaw: p.period_month,
+        paymentDateRaw: p.payment_date,
         currency: p.currency,
         grossTotal: p.gross_total,
         netPayTotal: p.net_pay_total,

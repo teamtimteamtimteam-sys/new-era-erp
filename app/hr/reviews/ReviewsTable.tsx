@@ -7,7 +7,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xInt } from '@/lib/export/cells'
 
 export type ReviewsTableRow = {
     id: string
@@ -17,6 +18,9 @@ export type ReviewsTableRow = {
     cycleName: string
     periodStart: string
     periodEnd: string
+    /** TABLE-EXPORT-1:导出用的原始日历日(YYYY-MM-DD),不是屏幕上格式化过的那串字。 */
+    periodStartRaw: string
+    periodEndRaw: string
     reviewerCode: string | null
     reviewerName: string | null
     status: string
@@ -30,23 +34,28 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
     // ★ 手机上留【员工】与【状态】—— 员工是身份,状态是这张登记簿存在的理由
     //   (一份在 submitted 里躺了三周的评估就是一件待办)。停留天数紧跟状态,
     //   但它是读到这一行之后才要问的,进展开区。
-    const columns: Column<ReviewsTableRow>[] = [
+    const columns: ExportableColumn<ReviewsTableRow>[] = [
         {
             key: 'employee', header: t('reviews.employee'), priority: true, className: 'whitespace-nowrap',
+            exportAs: (r) => xText(`${r.employeeCode} ${r.employeeLabel}`.trim()),
             render: (r) => (
                 <Link href={`/hr/reviews/${r.id}`} className="hover:underline app-link">
                     <span>{r.employeeCode}</span> {r.employeeLabel}
                 </Link>
             ),
         },
-        { key: 'type', header: t('reviews.type'), render: (r) => r.typeLabel },
-        { key: 'cycle', header: t('reviews.cycle'), render: (r) => r.cycleName },
+        { key: 'type', header: t('reviews.type'), render: (r) => r.typeLabel, exportAs: (r) => xText(r.typeLabel) },
+        { key: 'cycle', header: t('reviews.cycle'), render: (r) => r.cycleName, exportAs: (r) => xText(r.cycleName) },
         {
             key: 'period', header: t('reviews.period'), className: 'whitespace-nowrap text-xs',
             render: (r) => `${r.periodStart} → ${r.periodEnd}`,
+            // 一格装着两个日期,写不成一个 Excel 日期格 —— 用原始 YYYY-MM-DD 写成文字(可排序、可复制),不用屏幕上的格式
+            exportAs: (r) => xText(`${r.periodStartRaw} → ${r.periodEndRaw}`),
         },
         {
             key: 'reviewer', header: t('reviews.reviewer'), className: 'whitespace-nowrap',
+            // 【没有评估人】是一句话,不是空白 —— 导出照写那句话
+            exportAs: (r) => xText(r.reviewerCode ? `${r.reviewerCode} ${r.reviewerName ?? ''}`.trim() : t('reviews.noReviewer')),
             render: (r) =>
                 r.reviewerCode ? (
                     <>
@@ -58,6 +67,7 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
         },
         {
             key: 'status', header: t('reviews.status'), priority: true,
+            exportAs: (r) => xText(t(`reviews.status_${r.status}`)),
             render: (r) => (
                 <span className={'inline-block rounded px-2 py-0.5 text-xs ' + r.statusCls}>
                     {t(`reviews.status_${r.status}`)}
@@ -66,6 +76,8 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
         },
         {
             key: 'inState', header: t('reviews.inState'), className: 'whitespace-nowrap text-gray-600',
+            // 屏幕是「N 天」;导出写那个天数本身(一个整数)
+            exportAs: (r) => xInt(r.daysInState),
             render: (r) => t('hr.daysRemaining', { n: r.daysInState }),
         },
     ]
@@ -77,6 +89,7 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'hr-reviews', title: t('hr.subnav.reviews') }}
         />
     )
 }

@@ -40,7 +40,8 @@ import {
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { PO_CATEGORIES, type PoCategory } from '@/lib/poCategory'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xMoney } from '@/lib/export/cells'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
 const initialState: CreateOrderState = {}
@@ -1168,21 +1169,26 @@ canEdit: boolean
 //   转换前叠加块与桌面格各写了一份;现在只有一份 render,两档同一个字。
 export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
     const t = useTranslations()
-    const columns: Column<CalcLine>[] = [
+    // TABLE-EXPORT-1:百分比导出成屏幕上那个数(90 就是 90,不是 0.9);单价与金属价值是 USD 的数。
+    //   计价% 为 null(条款未列明)与单价 / 金属价值为 null(算不出)导出为空格 —— 不是 0。
+    const columns: ExportableColumn<CalcLine>[] = [
         {
             key: 'metal',
             header: t('purchasing.calcColMetal'),
             priority: true,
+            exportAs: (cl) => xText(t('metals.' + cl.metal)),
             render: (cl) => t('metals.' + cl.metal),
         },
         {
             key: 'contentPct',
             header: t('purchasing.calcColContentPct'),
+            exportAs: (cl) => xNum(cl.content_pct, 'pct'),
             render: (cl) => `${cl.content_pct}%`,
         },
         {
             key: 'payablePct',
             header: t('purchasing.calcColPayablePct'),
+            exportAs: (cl) => xNum(cl.payable_pct, 'pct'),
             render: (cl) => `× ${cl.payable_pct}%`,
         },
         {
@@ -1190,6 +1196,7 @@ export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
             header: t('purchasing.calcColUnitPrice'),
             align: 'right',
             priority: true,
+            exportAs: (cl) => xMoney(cl.price_usd_per_tonne),
             render: (cl) =>
                 cl.price_usd_per_tonne !== null
                     ? formatMoneyBare(cl.price_usd_per_tonne, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD') + '/t'
@@ -1200,6 +1207,7 @@ export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
             header: t('purchasing.calcColMetalValue'),
             align: 'right',
             priority: true,
+            exportAs: (cl) => xMoney(cl.metal_value_usd),
             render: (cl) =>
                 formatMoneyBare(cl.metal_value_usd, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD'),
         },
@@ -1207,6 +1215,7 @@ export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
     // 没有给 empty:转换前 lines 为空时画的是一张只有表头的表,这一处从来没有空态文案。
     return (
         <DataTable rows={lines} columns={columns} rowKey={(cl) => cl.metal}
-                   phone={{ mode: 'columns' }} />
+                   phone={{ mode: 'columns' }}
+                   exportSpec={{ name: 'purchase-order-pricing-lines', title: t('pricing.calcResult') }} />
     )
 }

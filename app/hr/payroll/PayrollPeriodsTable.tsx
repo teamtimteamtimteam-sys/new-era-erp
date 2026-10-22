@@ -10,7 +10,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { MaskedValue } from '@/app/components/MaskedValue'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate, xInt, xMoney, xMasked, xRestricted } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
 
 export type PayrollPeriodRow = {
@@ -18,6 +19,9 @@ export type PayrollPeriodRow = {
     code: string
     periodMonth: string
     paymentDate: string
+    /** TABLE-EXPORT-1:导出用的原始日历日(YYYY-MM-DD),不是屏幕上格式化过的那串字。 */
+    periodMonthRaw: string
+    paymentDateRaw: string | null
     currency: string
     /** U1-A(UNBLOCK-1 Q9):不持 data.view_pay 的人是 null —— 印「受限」,不印 0.00 */
     grossTotal: number | null
@@ -35,9 +39,11 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
 
     // ★ 手机上留【期间】与【实发合计】—— 期间是身份,实发合计是这张登记簿
     //   存在的理由(这个月到底付出去多少)。应发与人数进展开区。
-    const columns: Column<PayrollPeriodRow>[] = [
+    const columns: ExportableColumn<PayrollPeriodRow>[] = [
         {
             key: 'period', header: t('hr.colPeriod'), priority: true, className: 'text-sm',
+            // 期间是一个月,不是一天 —— 从原始 period_month 取 YYYY-MM,后接单号(这一格画的两样)
+            exportAs: (r) => xText(`${r.periodMonthRaw.slice(0, 7)} ${r.code}`),
             render: (r) => (
                 <>
                     <Link href={`/hr/payroll/${r.id}`} className="hover:underline app-link">
@@ -47,20 +53,24 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
                 </>
             ),
         },
-        { key: 'paymentDate', header: t('hr.colPaymentDate'), render: (r) => r.paymentDate },
-        { key: 'currency', header: t('hr.colCurrency'), render: (r) => r.currency },
+        { key: 'paymentDate', header: t('hr.colPaymentDate'), render: (r) => r.paymentDate, exportAs: (r) => xDate(r.paymentDateRaw) },
+        { key: 'currency', header: t('hr.colCurrency'), render: (r) => r.currency, exportAs: (r) => xText(r.currency) },
         {
             key: 'gross', header: t('hr.colGrossTotal'), align: 'right', className: 'text-sm',
+            // TABLE-EXPORT-1 Q3(薪酬一族,data.view_pay):与 MaskedValue 同一个 canView
+            exportAs: (r) => xMasked(r.grossTotal, r.grossTotal !== null, xMoney),
             render: (r) => <MaskedValue value={r.grossTotal} canView={r.grossTotal !== null} format={(v: number) => formatMoneyBare(v, '同行「币种」列(hr.colCurrency)')} />,
         },
         {
             key: 'net', header: t('hr.colNetTotal'), priority: true, align: 'right',
             className: 'text-sm font-medium',
+            exportAs: (r) => xMasked(r.netPayTotal, r.netPayTotal !== null, xMoney),
             render: (r) => <MaskedValue value={r.netPayTotal} canView={r.netPayTotal !== null} format={(v: number) => formatMoneyBare(v, '同行「币种」列(hr.colCurrency)')} />,
         },
-        { key: 'lines', header: t('hr.colLineCount'), align: 'right', className: 'text-sm', render: (r) => r.lineCount },
+        { key: 'lines', header: t('hr.colLineCount'), align: 'right', className: 'text-sm', render: (r) => r.lineCount, exportAs: (r) => xInt(r.lineCount) },
         {
             key: 'status', header: t('hr.colStatus'),
+            exportAs: (r) => xText(t('hr.payrollStatus.' + r.status)),
             render: (r) => (
                 <span className={'px-2 py-1 rounded text-xs ' + (r.status === 'posted' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800')}>
                     {t('hr.payrollStatus.' + r.status)}
@@ -70,6 +80,9 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
         {
             // PAYROLL-APR-1(Tim 的 Q9):过账与撤销都要先经 CFO 批准 —— 这一格说出哪一期在等谁。
             key: 'request', header: t('hr.payrollRequest.title'),
+            exportAs: (r) => xText(r.openRequest
+                ? `${t('hr.payrollRequest.kind.' + r.openRequest.kind)} · ${t('hr.payrollRequest.status.' + r.openRequest.status)}`
+                : null),
             render: (r) =>
                 r.openRequest ? (
                     <span className={'px-2 py-1 rounded text-xs ' + (r.openRequest.status === 'submitted'
@@ -82,6 +95,10 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
         },
         {
             key: 'journal', header: t('assay.journalLink'), className: 'text-sm',
+            // 三态照屏幕:没有分录 = 空格;有分录而读不到 = 受限(不是空);读得到 = 分录号
+            exportAs: (r) => !r.journalEntryId
+                ? xText(null)
+                : r.journalCode === 'restricted' ? xRestricted : xText(r.journalCode === '—' ? null : r.journalCode),
             // ★ FIX-2a(b):三态,不是两态。没有分录 = 破折号(诚实);
             //   有分录但读不到 = 具名受限,而且【不画链接】—— 一个点进去必然
             //   被拒的链接,是把拒绝推迟到下一屏,不是把它说出来。
@@ -105,6 +122,7 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'hr-payroll-periods', title: t('hr.payrollTitle') }}
         />
     )
 }

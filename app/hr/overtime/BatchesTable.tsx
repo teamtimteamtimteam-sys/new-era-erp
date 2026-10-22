@@ -5,7 +5,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xInt, xNum } from '@/lib/export/cells'
 
 export type BatchRow = {
     id: string
@@ -29,24 +30,26 @@ export const OVERTIME_STATUS_CLS: Record<string, string> = {
 export default function BatchesTable({ rows, empty }: { rows: BatchRow[]; empty: React.ReactNode }) {
     const t = useTranslations()
 
-    const columns: Column<BatchRow>[] = [
+    const columns: ExportableColumn<BatchRow>[] = [
         {
             key: 'label', header: t('overtime.colBatch'), priority: true,
+            exportAs: (r) => xText(r.label),
             render: (r) => (
                 <Link className="hover:underline app-link" href={`/hr/overtime/${r.id}`}>{r.label}</Link>
             ),
         },
         {
             key: 'status', header: t('overtime.colStatus'), priority: true,
+            exportAs: (r) => xText(t('overtime.status_' + r.status)),
             render: (r) => (
                 <span className={'rounded px-2 py-0.5 text-xs ' + (OVERTIME_STATUS_CLS[r.status] ?? 'bg-gray-100 text-gray-600')}>
                     {t('overtime.status_' + r.status)}
                 </span>
             ),
         },
-        { key: 'people', header: t('overtime.colPeople'), align: 'right', render: (r) => r.people },
-        { key: 'lines', header: t('overtime.colLines'), align: 'right', render: (r) => r.lineCount },
-        { key: 'hours', header: t('overtime.colHours'), align: 'right', render: (r) => r.hours.toFixed(2) },
+        { key: 'people', header: t('overtime.colPeople'), align: 'right', render: (r) => r.people, exportAs: (r) => xInt(r.people) },
+        { key: 'lines', header: t('overtime.colLines'), align: 'right', render: (r) => r.lineCount, exportAs: (r) => xInt(r.lineCount) },
+        { key: 'hours', header: t('overtime.colHours'), align: 'right', render: (r) => r.hours.toFixed(2), exportAs: (r) => xNum(r.hours, 'qty') },
     ]
 
     return (
@@ -56,6 +59,7 @@ export default function BatchesTable({ rows, empty }: { rows: BatchRow[]; empty:
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'hr-overtime-batches', title: t('overtime.title') }}
         />
     )
 }

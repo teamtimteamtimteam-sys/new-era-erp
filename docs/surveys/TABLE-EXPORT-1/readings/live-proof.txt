@@ -1,0 +1,48 @@
+PASS|F1 purchase prices · restricted reader (module.purchasing.view) · /purchasing/orders → CSV downloaded: purchase-orders_2026-10-22_2219.csv
+PASS|F1 purchase prices · restricted · CSV column "Subtotal (excl. GST)": 7 rows, 7 "Restricted", 0 numbers, 0 blank (want every row "Restricted")
+PASS|F1 purchase prices · restricted · Excel downloaded: purchase-orders_2026-10-22_2219.xlsx
+PASS|F1 purchase prices · restricted · Excel column "Subtotal (excl. GST)": 7 cells, 7 "Restricted", 0 numbers
+PASS|F1 restricted · About sheet "Exported by" = te1probe-1792678753265-f1r@test.local (want te1probe-1792678753265-f1r@test.local)
+PASS|F1 purchase prices · permitted reader (data.view_purchase_prices + module.purchasing.view) · /purchasing/orders → CSV downloaded: purchase-orders_2026-10-22_2220.csv
+PASS|F1 purchase prices · permitted · CSV column "Subtotal (excl. GST)": 7 rows, 7 numbers, 0 "Restricted" (want ≥1 number, 0 "Restricted")
+PASS|F1 purchase prices · permitted · Excel downloaded: purchase-orders_2026-10-22_2220.xlsx
+PASS|F1 purchase prices · permitted · Excel column "Subtotal (excl. GST)": 7 cells typed Number, 0 "Restricted"
+PASS|F1 purchase prices · permitted · Excel has 8 cells typed Date (dates are real dates, not text)
+PASS|F1 permitted · About sheet "Exported by" = te1probe-1792678753265-f1p@test.local (want te1probe-1792678753265-f1p@test.local)
+PASS|F2 prices · restricted reader (module.inventory.view) · /inventory → CSV downloaded: inventory_2026-10-22_2221.csv
+PASS|F2 prices · restricted · CSV column "Stock Value (SGD)": 4 rows, 4 "Restricted", 0 numbers, 0 blank (want every row "Restricted")
+PASS|F2 prices · restricted · Excel downloaded: inventory_2026-10-22_2221.xlsx
+PASS|F2 prices · restricted · Excel column "Stock Value (SGD)": 4 cells, 4 "Restricted", 0 numbers
+PASS|F2 restricted · About sheet "Exported by" = te1probe-1792678753265-f2r@test.local (want te1probe-1792678753265-f2r@test.local)
+PASS|F2 prices · permitted reader (data.view_prices + module.inventory.view) · /inventory → CSV downloaded: inventory_2026-10-22_2221.csv
+PASS|F2 prices · permitted · CSV column "Stock Value (SGD)": 4 rows, 3 numbers, 0 "Restricted" (want ≥1 number, 0 "Restricted")
+PASS|F2 prices · permitted · Excel downloaded: inventory_2026-10-22_2221.xlsx
+PASS|F2 prices · permitted · Excel column "Stock Value (SGD)": 3 cells typed Number, 0 "Restricted"
+PASS|F2 permitted · About sheet "Exported by" = te1probe-1792678753265-f2p@test.local (want te1probe-1792678753265-f2p@test.local)
+PASS|F3 pay · restricted reader (module.hr.view) · /hr/payroll → CSV downloaded: hr-payroll-periods_2026-10-22_2221.csv
+PASS|F3 pay · restricted · CSV column "Gross total": 1 rows, 1 "Restricted", 0 numbers, 0 blank (want every row "Restricted")
+PASS|F3 pay · restricted · Excel downloaded: hr-payroll-periods_2026-10-22_2221.xlsx
+PASS|F3 pay · restricted · Excel column "Gross total": 1 cells, 1 "Restricted", 0 numbers
+PASS|F3 restricted · About sheet "Exported by" = te1probe-1792678753265-f3r@test.local (want te1probe-1792678753265-f3r@test.local)
+PASS|F3 pay · permitted reader (data.view_pay + module.hr.view) · /hr/payroll → CSV downloaded: hr-payroll-periods_2026-10-22_2222.csv
+PASS|F3 pay · permitted · CSV column "Gross total": 1 rows, 1 numbers, 0 "Restricted" (want ≥1 number, 0 "Restricted")
+PASS|F3 pay · permitted · Excel downloaded: hr-payroll-periods_2026-10-22_2222.xlsx
+PASS|F3 pay · permitted · Excel column "Gross total": 1 cells typed Number, 0 "Restricted"
+PASS|F3 pay · permitted · Excel has 1 cells typed Date (dates are real dates, not text)
+PASS|F3 permitted · About sheet "Exported by" = te1probe-1792678753265-f3p@test.local (want te1probe-1792678753265-f3p@test.local)
+PASS|F4 health · restricted reader (module.hr.view) · /hr/claims → CSV downloaded: hr-medical-claims_2026-10-22_2222.csv
+PASS|F4 health · restricted · CSV column "Amount": 1 rows, 1 "Restricted", 0 numbers, 0 blank (want every row "Restricted")
+PASS|F4 health · restricted · Excel downloaded: hr-medical-claims_2026-10-22_2222.xlsx
+PASS|F4 health · restricted · Excel column "Amount": 1 cells, 1 "Restricted", 0 numbers
+PASS|F4 restricted · About sheet "Exported by" = te1probe-1792678753265-f4r@test.local (want te1probe-1792678753265-f4r@test.local)
+PASS|F4 health · permitted reader (data.view_health + module.hr.view) · /hr/claims → CSV downloaded: hr-medical-claims_2026-10-22_2222.csv
+PASS|F4 health · permitted · CSV column "Amount": 1 rows, 1 numbers, 0 "Restricted" (want ≥1 number, 0 "Restricted")
+PASS|F4 health · permitted · Excel downloaded: hr-medical-claims_2026-10-22_2222.xlsx
+PASS|F4 health · permitted · Excel column "Amount": 1 cells typed Number, 0 "Restricted"
+PASS|F4 health · permitted · Excel has 1 cells typed Date (dates are real dates, not text)
+PASS|F4 permitted · About sheet "Exported by" = te1probe-1792678753265-f4p@test.local (want te1probe-1792678753265-f4p@test.local)
+PASS|G1 /purchasing/orders/export as a reader without module.purchasing.view → HTTP 403 {"code":"EXPORT_DENIED"}
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan)
+TE1_PROOF_EXIT=0
+X_OWN_EXIT=0

@@ -30,10 +30,10 @@ export function toCheckListRows(raw: unknown[], labels: { stream: (c: string) =>
                                 locale: string, canOpenRuns: boolean): CheckListRow[] {
     return (raw as Raw[]).map((c) => ({
         id: c.id, runCode: c.run_code, runHref: canOpenRuns ? `/operation/processing/${c.run_id}` : null,
-        date: formatDate(c.process_date, locale), shift: labels.shift(c.shift_code), stream: labels.stream(c.stream_code),
+        date: formatDate(c.process_date, locale), processDate: c.process_date, shift: labels.shift(c.shift_code), stream: labels.stream(c.stream_code),
         kind: c.kind === 'not_sampled' ? 'not_sampled' : 'sampled', batchCode: c.output_batch_code,
         ratePct: c.rate_pct === null ? null : Number(c.rate_pct), warningPctAt: c.warning_pct_at === null ? null : Number(c.warning_pct_at),
-        above: c.above_warning, sampledAt: c.sampled_at ? formatDateTime(c.sampled_at, locale) : null,
+        above: c.above_warning, sampledAt: c.sampled_at ? formatDateTime(c.sampled_at, locale) : null, sampledAtIso: c.sampled_at,
         notSampledReason: c.not_sampled_reason, corrected: c.corrects_id !== null, correctionReason: c.correction_reason,
     }))
 }

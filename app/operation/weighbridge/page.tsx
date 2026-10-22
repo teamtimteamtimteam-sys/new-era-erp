@@ -19,6 +19,7 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText, xNum, xTime } from '@/lib/export/cells'
 import { ManualWeighingForm } from '@/app/operation/capture/CaptureControls'
 import { INSTRUMENT_KINDS, type Option } from '@/app/operation/capture/captureFields'
 
@@ -47,6 +48,7 @@ export default async function WeighbridgePage() {
         .sort((a, b) => (a.kind === 'weighbridge' ? 0 : 1) - (b.kind === 'weighbridge' ? 0 : 1))
         .map((d) => ({ id: d.id, label: `${d.code} — ${d.name}` }))
     const kg = (n: number | null) => (n == null ? '—' : t('capture.kg', { n: String(n) }))
+    const kgUnit = t('units.kg')
 
     const rows: CellRow[] = tickets.map((x) => ({
         id: x.ticket_id,
@@ -63,6 +65,20 @@ export default async function WeighbridgePage() {
                     <span className="block text-xs text-amber-700">{t('weighbridge.difference', { kg: String(x.difference_kg) })}</span>}</span>
             ),
             created: formatAuditStamp(x.created_at),
+        },
+        // TABLE-EXPORT-1:四个重量是公斤数(原始值,没有就空 —— 屏幕上是「—」,不是 0);建单时刻是真时刻。
+        //   「已分」那一格屏幕上挂着的差额那一句不进数字格(它是一个提示,不是这一格的值)
+        // TABLE-EXPORT-1:屏幕上四个重量都是「12 kg」(capture.kg),单位用同一个本地化标签 units.kg 一起写
+        exports: {
+            code: xText(x.code),
+            vehicle: xText(x.vehicle_reg),
+            direction: xText(t('weighbridge.direction.' + x.direction)),
+            status: xText(t('weighbridge.status.' + x.status)),
+            gross: xNum(x.gross_kg, 'qty', kgUnit),
+            tare: xNum(x.tare_kg, 'qty', kgUnit),
+            net: xNum(x.net_kg, 'qty', kgUnit),
+            shared: xNum(x.net_kg == null ? null : x.shared_kg, 'qty', kgUnit),
+            created: xTime(x.created_at),
         },
     }))
 
@@ -83,6 +99,7 @@ export default async function WeighbridgePage() {
                     ]}
                     rows={rows}
                     empty={t('weighbridge.empty')}
+                    exportSpec={{ name: 'operation-weighbridge-tickets', title: t('weighbridge.title') }}
                 />
             </section>
             <section className="mb-8">

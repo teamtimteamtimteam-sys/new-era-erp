@@ -44,9 +44,11 @@ export default async function DisputesPage() {
         assays: [d.our_assay_code, d.counterparty_assay_code, d.umpire_assay_code].filter(Boolean).join(' · '),
         diff: d.max_diff_pct == null ? '—'
             : `${Number(d.max_diff_pct).toFixed(3)} · ${d.limit_pct_at == null ? t('quality.limitNotSet') : t('quality.disputes.limitOf', { limit: String(Number(d.limit_pct_at)) })}`,
+        maxDiffPct: d.max_diff_pct == null ? null : Number(d.max_diff_pct),
         beyond: d.beyond_limit === true,
         governing: d.governing_assay_code ? `${d.governing_assay_code} · ${t(resultPartyKey(d.governing_party ?? ''))}` : '—',
         opened: formatDate(d.created_at, locale),
+        createdAt: d.created_at,
     }))
 
     return (

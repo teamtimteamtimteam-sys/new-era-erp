@@ -1,0 +1,8 @@
+== a fresh local rebuild (db/verify_rebuild.py --skip-diff) + storage stub
+✓ A: the GL source itself stops at 1,000 rows (the cut PostgREST makes, moved into the database) → FIXTURE 291A 失败:造了 1002 条分录行,journal_export_lines 读回 1000 条
+✓ B: AR ageing becomes a row set (its export route would now be cut by max_rows) → FIXTURE 291B 失败:ar_aging_asof 不再是「返回一个 jsonb」—— 它的导出路由从此会被 max_rows 截,必须改成翻页
+✓ B: the GL source becomes a single value (red at arm A: the read itself fails before B is reached) → ERROR:  column x.entry_code does not exist
+✓ B: (period_id, box) on gst_return_boxes is no longer unique (paging by box could repeat or skip) → FIXTURE 291B 失败:gst_return_boxes 的 (period_id, box) 不再唯一 —— F5 快照按 box 翻页会重行或漏行
+✓ baseline 291 (no injection) → FIXTURE 291 全部通过:总账源 1002 行一行不少(截到 1,000 的读只有 1000)· 两个行源可翻页 · 四个值源 max_rows 截不到
+INJECTIONS pass=5 fail=0
+INJ_OWN_EXIT=0

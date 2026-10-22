@@ -21,6 +21,7 @@ import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { Refusal } from '@/app/components/ui/refusal'
 import CellsTable, { type CellRow } from '../CellsTable'
+import { xText, xInt, xNum } from '@/lib/export/cells'
 import { hours, reliabilityWords, type ReliabilityRow } from '../reliability'
 import { localizeEquipmentError } from '../equipmentErrorCodes'
 
@@ -79,6 +80,17 @@ export default async function ReliabilityPage({ searchParams }: { searchParams: 
                     </span>
                 ),
             },
+            // TABLE-EXPORT-1:有数的那几格导出【数】(小时);没有数的那几句(没有运转小时 / 没有故障 / 没有修复)照屏幕写成那句话
+            exports: {
+                machine: xText([r.equipment_code, r.equipment_description].filter(Boolean).join(' · ')),
+                hours: r.mtbf_state === 'no_hours' ? xText(t('equipment.rel.noHoursShort')) : xNum(r.operating_hours, 'qty'),
+                failures: xInt(r.failures),
+                // TABLE-EXPORT-1:MTBF / MTTR 的列头不说单位,屏幕上那一句里说「… h」—— 用本页「运转小时」那一格同一个 'h' 一起写;
+                //   运转小时那一列的列头已经说了是小时,照旧不带
+                mtbf: r.mtbf_state === 'value' ? xNum(r.mtbf_hours, 'qty', t('units.hour')) : xText(w.mtbf),
+                mttr: r.mttr_hours === null ? xText(w.mttr) : xNum(r.mttr_hours, 'qty', t('units.hour')),
+                basis: xText([w.denominator, w.gaps].filter(Boolean).join(' ')),
+            },
         }
     })
 
@@ -121,6 +133,7 @@ export default async function ReliabilityPage({ searchParams }: { searchParams: 
                     ]}
                     rows={tableRows}
                     empty={t('equipment.page.empty')}
+                    exportSpec={{ name: 'operation-equipment-reliability', title: t('equipment.rel.pageTitle') }}
                 />
             )}
             <p className="text-xs text-[color:var(--brand-muted-text)] mt-4">{t('equipment.rel.notAvailability')}</p>

@@ -12,7 +12,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveContact, removeContact } from './contactActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText } from '@/lib/export/cells'
 import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 export type ContactRow = {
@@ -109,9 +110,10 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
     //     所以【没有】新增任何 i18n key。
     //   ☞ 与 TABLE-CONVERT-2 对 assets / close 的处置同一条,同样当成
     //     【手机可见列多了一列】报出来,不藏在"同一组"里面。
-    const columns: Column<ContactRow>[] = [
+    const columns: ExportableColumn<ContactRow>[] = [
         {
             key: 'name', header: t('contacts.colName'), priority: true,
+            exportAs: (r) => xText(r.name + (r.name_inferred ? ` (${t('contacts.inferredTag')})` : '')),
             render: (r) => (
                 <>
                     {r.name}
@@ -123,17 +125,18 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                 </>
             ),
         },
-        { key: 'role', header: t('contacts.colRole'), render: (r) => r.role ?? '—' },
-        { key: 'email', header: t('contacts.colEmail'), className: 'break-all', render: (r) => r.email ?? '—' },
-        { key: 'phone', header: t('contacts.colPhone'), priority: true, render: (r) => r.phone ?? '—' },
+        { key: 'role', header: t('contacts.colRole'), render: (r) => r.role ?? '—', exportAs: (r) => xText(r.role) },
+        { key: 'email', header: t('contacts.colEmail'), className: 'break-all', render: (r) => r.email ?? '—', exportAs: (r) => xText(r.email) },
+        { key: 'phone', header: t('contacts.colPhone'), priority: true, render: (r) => r.phone ?? '—', exportAs: (r) => xText(r.phone) },
         {
             key: 'primary', header: t('contacts.colPrimary'), priority: true,
+            exportAs: (r) => xText(r.is_primary ? t('contacts.primaryTag') : null),
             render: (r) => (r.is_primary
                 ? <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">{t('contacts.primaryTag')}</span>
                 : <span className="text-xs text-gray-400">—</span>),
         },
         // 空列头 —— 与转换之前逐字相同(那一列本来就没有列头,两颗钮自己带着字)。
-        { key: 'actions', header: '', priority: true, className: 'whitespace-nowrap', render: rowControls },
+        { key: 'actions', header: '', priority: true, className: 'whitespace-nowrap', render: rowControls, exportAs: false },
     ]
 
     return (
@@ -146,6 +149,8 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                     rowKey={(r) => r.id}
                     phone={{ mode: 'columns' }}
                     empty={t('contacts.noneYet')}
+                    // TABLE-EXPORT-1:同一个面板服务客户与供应商 —— 文件名按归属那一侧分开
+                    exportSpec={{ name: supplierId ? 'supplier-contacts' : 'customer-contacts', title: t('contacts.sectionTitle') }}
                 />
             </div>
 

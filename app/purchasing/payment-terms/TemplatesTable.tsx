@@ -7,7 +7,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText } from '@/lib/export/cells'
 import DeleteTemplateButton from './DeleteTemplateButton'
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
@@ -26,15 +27,19 @@ export default function TemplatesTable({ rows, empty, canEdit }: { rows: Templat
 
     // ★ 手机上留【模板名】与【付款条件】—— 名字是身份,而那一串"几成 / 什么时候"
     //   就是这个模板【是什么】,它不是一个可以点开再看的细节。
-    const columns: Column<TemplateRow>[] = [
-        { key: 'name', header: t('purchasing.colName'), priority: true, className: 'font-medium', render: (r) => r.name },
-        { key: 'description', header: t('purchasing.colDescription'), className: 'text-sm text-gray-600', render: (r) => r.description },
+    // TABLE-EXPORT-1:「付款条件」那一格本来就是一句话(几成 · 什么时候),导出同一句 ——
+    //   它不是一个数,拆不出一格带类型的值;定额腿被遮蔽时屏幕上那个「—」也原样跟着(不比屏幕多)。
+    const columns: ExportableColumn<TemplateRow>[] = [
+        { key: 'name', header: t('purchasing.colName'), priority: true, className: 'font-medium', render: (r) => r.name, exportAs: (r) => xText(r.name) },
+        { key: 'description', header: t('purchasing.colDescription'), className: 'text-sm text-gray-600', render: (r) => r.description, exportAs: (r) => xText(r.description) },
         {
             key: 'terms', header: t('purchasing.form.paymentTerms'), priority: true, className: 'text-sm',
             render: (r) => r.termsSummary,
+            exportAs: (r) => xText(r.termsSummary),
         },
         {
             key: 'status', header: t('purchasing.colStatus'),
+            exportAs: (r) => xText(r.isActive ? t('pricing.form.active') : t('finance.inactive')),
             render: (r) => (
                 <span className={'px-2 py-1 rounded text-xs ' + (r.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600')}>
                     {r.isActive ? t('pricing.form.active') : t('finance.inactive')}
@@ -42,7 +47,7 @@ export default function TemplatesTable({ rows, empty, canEdit }: { rows: Templat
             ),
         },
         {
-            key: 'actions', header: t('metalPrices.colActions'), className: 'text-sm whitespace-nowrap',
+            key: 'actions', header: t('metalPrices.colActions'), className: 'text-sm whitespace-nowrap', exportAs: false,
             render: (r) => (
                 <>
                     <Button asChild variant="link" size="inline" className="mr-3">
@@ -56,5 +61,10 @@ export default function TemplatesTable({ rows, empty, canEdit }: { rows: Templat
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} />
+    return (
+        <DataTable
+            rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
+            exportSpec={{ name: 'payment-term-templates', title: t('purchasing.templatesTitle') }}
+        />
+    )
 }

@@ -27,14 +27,24 @@ export default async function LedgerPage({
     const sp = await searchParams
     const params = parseLedgerParams(sp)
     const rows = await fetchLedger(params)
-    // 【CSV / PDF 必须与屏幕上看到的是同一份】—— movement 也要带上,
+    // 【PDF 必须与屏幕上看到的是同一份】—— movement 也要带上,
     //  否则导出的是一整张流水,而人以为导的是他正在看的那一条。
+    //  (TABLE-EXPORT-1:CSV 那条路由删了 —— Excel / CSV 由表上的统一导出从表手里那一份写,天然是同一份。)
     const qs = new URLSearchParams(
         Object.entries({
             from: params.from, to: params.to, material_id: params.materialId,
             batch: params.batchCode, movement: params.movementId,
         }).filter(([, v]) => v) as [string, string][]
     ).toString()
+
+    // TABLE-EXPORT-1:导出的 About 表写【生效的】筛选(含默认 90 天那个起点);指名一条流水时日期窗不生效,
+    //   与 describeFilters 同一条判据。
+    const exportFilters: Array<[string, string]> = params.movementId
+        ? [['movement', params.movementId]]
+        : ([
+            [t('reports.ledger.from'), params.from], [t('reports.ledger.to'), params.to],
+            [t('reports.ledger.material'), params.materialId], [t('reports.ledger.batch'), params.batchCode],
+        ] as Array<[string, string]>).filter(([, v]) => v)
 
     const tableRows: LedgerTableRow[] = rows.map((r) => {
         const f = flatten(r)
@@ -48,6 +58,7 @@ export default async function LedgerPage({
             type: f.type,
             status: t(statusKey(f.status)),
             qty: String(f.qty),
+            qtyDelta: f.qty,
         }
     })
 
@@ -57,9 +68,6 @@ export default async function LedgerPage({
             intro={t('reports.ledger.desc')}
             actions={
                 <div className="flex gap-2">
-                    <Button asChild variant="outline">
-                        <a href={`/inventory/reports/ledger/export?${qs}`}>{t('reports.csv')}</a>
-                    </Button>
                     <Button asChild variant="outline">
                         <a href={`/inventory/reports/ledger/pdf?${qs}`} target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
                     </Button>
@@ -112,7 +120,7 @@ export default async function LedgerPage({
             </form>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('reports.ledger.windowNote')}</p>
 
-            <LedgerTable rows={tableRows} empty={t('reports.ledger.empty')} />
+            <LedgerTable rows={tableRows} empty={t('reports.ledger.empty')} filters={exportFilters} />
         </ListPage>
     )
 }

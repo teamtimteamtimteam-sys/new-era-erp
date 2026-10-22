@@ -74,3 +74,16 @@ One: the brief points to "docs/known-issues.md … the /me leave-balance entry" 
 10. **The bank-match refusal is one code with the statement's state as a parameter**; the sentence tells both steps (unmatch; unreconcile first if reconciled).
 11. **Throwaway prefix `ppr1probe`**; fixtures 288 · 289 · 290.
 12. **The leave-type editor (`/hr/leave/types`) does not edit the four new columns** — they change by migration; the trail names them if they change.
+
+## 6 · Close-out (TABLE-EXPORT-1 Part 1, 2026-10-22)
+
+- **Pushed commit:** `daec5c952939f0ca9aaa5a4335fa188d473ce321` (`v1.4.66`); HEAD = origin/main = `git ls-remote origin main`, tree clean, re-read at the start of TABLE-EXPORT-1.
+- **Broken window: opened 2026-10-22 11:15:48 CST** (migration committed; printed by `apply_migration.sh`, `db/migration-windows.tsv`) — **closed 2026-10-22 19:07 CST**
+  (Tim confirmed the deployment on Vercel; **this end point is Tim's report, not a reading this machine took**). **Length ≈ 7 h 51 min** (11:15:48 → 19:07; the seconds of the end are not known).
+  **The length is the gap before Tim saw the report, not a failure** — the deployment itself was not observed failing. Broken in it: as derived in §2 (the old voucher page offered "Request reversal" on a payroll payment and showed the database's raw refusal if pressed).
+- **A `.next` delete ran although the tool call showed as rejected** (Tim's report, during this cut's session). This machine did not observe it; it is recorded here as Tim stated it. Per the TABLE-EXPORT-1 brief, a recurrence stops the cut and is reported.
+- **Read-only check on production (2026-10-22 ≈ 19:10 CST, after Tim's confirmation)** — `docs/surveys/TABLE-EXPORT-1/readings/ppr1-closeout-production-check.txt`, `CLOSEOUT_CHECK_EXIT=0`,
+  script `db/scripts/2026-10-22-payroll-pay-reversal-1-closeout-check.mjs`: one finance-clone throwaway (`ppr1probe`, shared helper, with an employee profile hired 2026-09-01) opened on `https://new-era-erp.vercel.app`
+  the voucher of JE-2026-0018 (HTTP 200 in 7.7 s; "Request reversal" rendered `disabled`, the line pointing to `/finance/payroll-payments` drawn) and `/me` (HTTP 200 in 8.9 s; "Every leave type" table drawn). GET only.
+  Read back as `postgres` (`rolbypassrls`) at 19:11:14 CST: `ppr1probe` accounts 0 · roles created in the last 30 min 0 · `ZZ-PROBE-PPR1*` employees 0 · grants without a user 0 · cleanup plans in `.ephemeral/` 0.
+- **PAYROLL-PAY-REVERSAL-1 is closed** (`docs/forward-queue.md` item 63). §3's three items are still Tim's (`docs/manual-walk-list.md` §35).

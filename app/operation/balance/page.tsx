@@ -21,6 +21,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import MassTable, { type MassRow } from './MassTable'
 import { labelMaps, remainderOrder, type MonthlyLine } from './labels'
 import { balancePageIsEmpty } from '@/lib/balanceEmptyState'
+import { xText, xNum, xInt } from '@/lib/export/cells'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
@@ -54,27 +55,38 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
     const runsOf = (ls: MonthlyLine[], line: string) => ls.filter((l) => l.line === line).reduce((s, l) => s + (num(l.runs) ?? 0), 0)
     const plantRows: MassRow[] = []
     const inputLine = plant.find((l) => l.line === 'input')
-    plantRows.push({ key: 'input', emphasis: true, cells: [t('massBalance.lineInput'), fmtKg(inputLine?.qty ?? 0), String(inputLine?.runs ?? 0)] })
+    // TABLE-EXPORT-1:exports 与 cells 同位 —— 数是原始值(公斤 xNum 'qty',张数 xInt),不是 fmtKg 画出来的字
+    plantRows.push({ key: 'input', emphasis: true, cells: [t('massBalance.lineInput'), fmtKg(inputLine?.qty ?? 0), String(inputLine?.runs ?? 0)],
+        exports: [xText(t('massBalance.lineInput')), xNum(inputLine?.qty ?? 0, 'qty'), xInt(inputLine?.runs ?? 0)] })
     for (const l of plant.filter((x) => x.line === 'output').sort((a, b) => labels.formSort(a.line_key) - labels.formSort(b.line_key))) {
-        plantRows.push({ key: `o:${l.line_key}`, cells: [t('massBalance.lineOutput', { form: labels.form(l.line_key) }), fmtKg(l.qty), String(l.runs)] })
+        plantRows.push({ key: `o:${l.line_key}`, cells: [t('massBalance.lineOutput', { form: labels.form(l.line_key) }), fmtKg(l.qty), String(l.runs)],
+            exports: [xText(t('massBalance.lineOutput', { form: labels.form(l.line_key) })), xNum(l.qty, 'qty'), xInt(l.runs)] })
     }
     for (const l of plant.filter((x) => x.line === 'loss').sort((a, b) => labels.lossSort(a.line_key) - labels.lossSort(b.line_key))) {
-        plantRows.push({ key: `l:${l.line_key}:${l.basis}`, cells: [t('massBalance.lineLoss', { category: labels.loss(l.line_key), basis: labels.basis(l.basis) }), fmtKg(l.qty), String(l.runs)] })
+        const text = t('massBalance.lineLoss', { category: labels.loss(l.line_key), basis: labels.basis(l.basis) })
+        plantRows.push({ key: `l:${l.line_key}:${l.basis}`, cells: [text, fmtKg(l.qty), String(l.runs)],
+            exports: [xText(text), xNum(l.qty, 'qty'), xInt(l.runs)] })
     }
     for (const l of plant.filter((x) => x.line === 'remainder').sort((a, b) => remainderOrder(a.line_key) - remainderOrder(b.line_key))) {
+        const text = t('massBalance.lineRemainder', { state: labels.remainder(l.line_key) })
         plantRows.push({ key: `r:${l.line_key}`, cells: [
-            { text: t('massBalance.lineRemainder', { state: labels.remainder(l.line_key) }), tone: l.line_key === 'open' ? 'notSet' : undefined },
-            fmtKg(l.qty), String(l.runs)] })
+            { text, tone: l.line_key === 'open' ? 'notSet' : undefined },
+            fmtKg(l.qty), String(l.runs)],
+            exports: [xText(text), xNum(l.qty, 'qty'), xInt(l.runs)] })
     }
     for (const l of plant.filter((x) => x.line === 'pass_through')) {
-        plantRows.push({ key: `p:${l.line_key}`, cells: [
-            { text: l.line_key === 'split' ? t('massBalance.linePassSplit') : t('massBalance.linePassDischarge'), tone: 'muted' }, fmtKg(l.qty), String(l.runs)] })
+        const text = l.line_key === 'split' ? t('massBalance.linePassSplit') : t('massBalance.linePassDischarge')
+        plantRows.push({ key: `p:${l.line_key}`, cells: [{ text, tone: 'muted' }, fmtKg(l.qty), String(l.runs)],
+            exports: [xText(text), xNum(l.qty, 'qty'), xInt(l.runs)] })
     }
     for (const l of plant.filter((x) => x.line === 'reversed')) {
-        plantRows.push({ key: 'reversed', cells: [{ text: t('massBalance.lineReversed'), tone: 'muted' }, fmtKg(l.qty), String(l.runs)] })
+        plantRows.push({ key: 'reversed', cells: [{ text: t('massBalance.lineReversed'), tone: 'muted' }, fmtKg(l.qty), String(l.runs)],
+            exports: [xText(t('massBalance.lineReversed')), xNum(l.qty, 'qty'), xInt(l.runs)] })
     }
     for (const l of plant.filter((x) => x.line === 'not_kg')) {
-        plantRows.push({ key: 'notkg', cells: [{ text: t('massBalance.lineNotKg'), tone: 'notSet' }, '—', String(l.runs)] })
+        // 不是 kg 的那几张没有公斤数可加 —— 屏幕画「—」,导出留空(不是一个编出来的 0)
+        plantRows.push({ key: 'notkg', cells: [{ text: t('massBalance.lineNotKg'), tone: 'notSet' }, '—', String(l.runs)],
+            exports: [xText(t('massBalance.lineNotKg')), xNum(null, 'qty'), xInt(l.runs)] })
     }
 
     // ── 每道工序:一行一道 ────────────────────────────────────────────────────
@@ -86,6 +98,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             key: code || '(none)',
             cells: [labels.op(code || null), fmtKg(sumOf(ls, 'input')), fmtKg(sumOf(ls, 'output')), fmtKg(sumOf(ls, 'loss')),
                 fmtKg(sumOf(ls, 'remainder')), fmtKg(sumOf(ls, 'pass_through')), fmtKg(sumOf(ls, 'reversed')), String(runsOf(ls, 'input'))],
+            exports: [xText(labels.op(code || null)), ...(['input', 'output', 'loss', 'remainder', 'pass_through', 'reversed'] as const)
+                .map((line) => xNum(sumOf(ls, line), 'qty')), xInt(runsOf(ls, 'input'))],
         }
     })
 
@@ -94,6 +108,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
         key: String(r.unit),
         cells: [String(r.unit), fmtKg(r.opening), fmtKg(r.received), fmtKg(r.produced), fmtKg(r.consumed), fmtKg(r.sold),
             fmtKg(r.written_off), fmtKg(r.adjusted), fmtKg(r.voided), fmtKg(r.issued_to_maintenance), fmtKg(r.moved), fmtKg(r.closing)],
+        exports: [xText(String(r.unit)), ...[r.opening, r.received, r.produced, r.consumed, r.sold,
+            r.written_off, r.adjusted, r.voided, r.issued_to_maintenance, r.moved, r.closing].map((v) => xNum(v, 'qty'))],
     }))
     const undatedUnits = roll.filter((r) => r.month === null).length
 
@@ -119,13 +135,13 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
 
             <h2 className="mb-2">{t('massBalance.plantTitle')}</h2>
             <p className="text-sm mb-2" data-identity>{identity}</p>
-            <MassTable testId="plant" empty={t('massBalance.noData')}
+            <MassTable testId="plant" empty={t('massBalance.noData')} exportSpec={{ name: 'operation-mass-balance-plant', title: t('massBalance.plantTitle') }}
                        headers={[{ label: t('massBalance.colLine'), priority: true }, { label: t('massBalance.colQty'), priority: true, align: 'right' },
                                  { label: t('massBalance.colRuns'), align: 'right' }]}
                        rows={plantRows} />
 
             <h2 className="mt-8 mb-2">{t('massBalance.opTitle')}</h2>
-            <MassTable testId="operations" empty={t('massBalance.noData')}
+            <MassTable testId="operations" empty={t('massBalance.noData')} exportSpec={{ name: 'operation-mass-balance-operations', title: t('massBalance.opTitle') }}
                        headers={[{ label: t('massBalance.colOperation'), priority: true }, { label: t('massBalance.colInput'), priority: true, align: 'right' },
                                  { label: t('massBalance.colOutput'), align: 'right' }, { label: t('massBalance.colNamedLoss'), align: 'right' },
                                  { label: t('massBalance.colRemainder'), priority: true, align: 'right' }, { label: t('massBalance.colPassThrough'), align: 'right' },
@@ -135,7 +151,7 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
             <h2 className="mt-8 mb-2">{t('massBalance.rollTitle')}</h2>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">{t('massBalance.rollIntro')}</p>
             {undatedUnits > 0 && <p className="text-sm text-amber-800 mb-2" data-undated>{t('massBalance.rollUndated', { n: undatedUnits })}</p>}
-            <MassTable testId="rollforward" empty={t('massBalance.noData')}
+            <MassTable testId="rollforward" empty={t('massBalance.noData')} exportSpec={{ name: 'operation-stock-rollforward', title: t('massBalance.rollTitle') }}
                        headers={[{ label: t('massBalance.colUnit'), priority: true }, { label: t('massBalance.colOpening'), align: 'right' },
                                  { label: t('massBalance.colReceived'), align: 'right' }, { label: t('massBalance.colProduced'), align: 'right' },
                                  { label: t('massBalance.colConsumed'), align: 'right' }, { label: t('massBalance.colSold'), align: 'right' },

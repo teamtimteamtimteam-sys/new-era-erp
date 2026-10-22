@@ -1,0 +1,76 @@
+(node:1430) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/trail/machineTokens.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⚠ 滞留的临时行 6 条（超过 2 小时，没有哪一次运行还应当持有它们）:
+  · materials          ZZ-SMOKE-PROBE  (1848.7h)  ← 【仍被引用:inbound_batches.material_id × 1】不要直接删
+  · materials          ZZ-SMOKE-M25  (1848.7h)  ← 【仍被引用:inbound_batches.material_id × 1、output_batches.material_id × 2】不要直接删
+  · materials          ZZ-SMOKE-NTF  (1681.3h)  ← 【仍被引用:inbound_batches.material_id × 2】不要直接删
+  · suppliers          ZZ-SMOKE-S25  (1848.7h)  ← 【仍被引用:inbound_batches.supplier_id × 1】不要直接删
+  · customers          ZZ-SMOKE-CJK  (1206.3h)  (无人引用)
+  · inbound_batches    ZZ-SMOKE-IB25  (1848.7h)  ← 【仍被引用:processing_inputs.inbound_batch_id × 1】不要直接删
+
+【本检查只报告,不删除】归属与年龄正是一次清扫无法安全知道、而报告可以
+照直说出来的东西:同样的不确定,报告说错了人多看一眼,清扫做错了正在跑的活被毁掉。
+怎么处置由人决定 —— 尤其是上面标着【仍被引用】的那些:删掉它们会让一张真单据
+指向一个已删的行,而那比留着残骸坏得多。
+  (临时行体检报了滞留行 —— 见上;冒烟继续,处置由人决定)
+  一次性会话已授权:smoke-1792675961908-all@test.local ← probe-smoke-all-1792675961908(86 码)
+  SKIP /b/[code]  (writes an append-only scan row — proved by fixture 252 LINK and the MES-3b role table)
+  SKIP /compliance/packs/[id]  (no data in compliance_packs)
+  SKIP /compliance/packs/[id]/pdf  (no data in compliance_packs)
+  SKIP /finance/electricity/[id]  (no data in electricity_allocations)
+  SKIP /finance/packs/[id]  (no data in management_packs)
+  SKIP /finance/packs/[id]/export  (no data in management_packs)
+  SKIP /finance/payment-requests/[id]  (no data in payment_requests)
+  SKIP /finance/statements/[id]/pdf  (no data in customer_statements)
+  SKIP /finance/supplier-statements/[id]  (no data in supplier_statements)
+  SKIP /finance/supplier-statements/[id]/pdf  (no data in supplier_statements)
+  SKIP /hr/attendance/[id]  (no data in attendance_periods)
+  SKIP /hr/overtime/[id]  (no data in overtime_batches)
+  SKIP /loc/[code]  (writes an append-only scan row — proved by fixture 252 LINK and the MES-3b role table)
+  SKIP /operation/blending/[id]  (no data in blending_plans)
+  SKIP /operation/handovers/[id]  (no data in shift_handovers)
+  operation-types/[code] → deep_discharge(变更记录 1 行:审计记录必须有内容)
+  SKIP /operation/weighbridge/[id]  (no data in weighbridge_tickets)
+  SKIP /output/[id]/assays/[assayId]  (no data in assay_results)
+  SKIP /quality/coa/[id]  (no data in certificates_of_analysis)
+  SKIP /quality/disputes/[id]  (no data in assay_disputes)
+  SKIP /quality/ncr/[id]  (no data in nonconformance_reports)
+  SKIP /quality/samples/[id]  (no data in samples)
+  SKIP /safety/incidents/[id]  (no data in incidents)
+  SKIP /safety/inspections/[id]  (no data in inspection_runs)
+  SKIP /safety/inspections/templates/[id]  (no data in inspection_templates)
+  SKIP /sales/commissions/[id]/edit  (no data in commission_agreements)
+  ok   /finance/gst/a08fd421-3c78-4c88-b51f-d60070d895a4?box=box1  (钻取列出了 INV-2026-0009)
+  ok   /finance/journal/export?from=2027-09-05&to=2027-09-05  (钻取列出了 JE-2027-0003)
+
+== 按角色的可达性:【跳过】(默认关闭)—— 改了导航/守卫/新增页面之后,跑你动过的那个角色:--reach=finance(三个全跑用 --reach,约 100 分钟,留给推送前的整轮)
+
+== 303 routes + 1 reviewer-view check + 2 query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav) + 1 overlap-entry probe + 1 retention-panel probe + 1 signed-out /login probe: 304 ok, 25 skipped (no data), 0 FAILED
+
+== 最慢的 20 条路由(dev server 单次墙上时间,含按需编译)==
+   【读法】含编译时间,不是生产时延;可比的是彼此的相对大小与改动前后的差。
+    1. /settings/dictionaries              36734 ms  → HTTP 200
+    2. /logistics/lanes                    28280 ms  → HTTP 200
+    3. /output/[id]/edit                   26796 ms  → HTTP 200
+    4. /finance/fx                         21520 ms  → HTTP 200
+    5. /sales/customers/[id]               21379 ms  → HTTP 200
+    6. /operation/processing/[id]          17597 ms  → HTTP 200
+    7. /purchasing/orders/[id]             17559 ms  → HTTP 200
+    8. /finance/assets/[id]                16008 ms  → HTTP 200
+    9. /materials/[id]/edit                15790 ms  → HTTP 200
+   10. /settings/change-history            15745 ms  → HTTP 200
+   11. /tools/pricing/formulas/[id]/edit   15579 ms  → HTTP 200
+   12. /finance/payroll-payments           15251 ms  → HTTP 200
+   13. /finance/claims                     15000 ms  → HTTP 200
+   14. /logistics/forwarders/[id]          14193 ms  → HTTP 200
+   15. /settings/import                    13943 ms  → HTTP 200
+   16. /operation/equipment/[id]           13126 ms  → HTTP 200
+   17. /suppliers/[id]/edit                12835 ms  → HTTP 200
+   18. /finance/electricity                12432 ms  → HTTP 200
+   19. /finance/invoices/[id]              11914 ms  → HTTP 200
+   20. /inbound/export                     11914 ms  → HTTP 200
+   ── 计时 278 条 · 合计 1831.6s · 中位数 5578 ms
+SMOKE_EXIT=0

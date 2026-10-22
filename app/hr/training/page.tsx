@@ -92,6 +92,8 @@ export default async function TrainingPage({
             categoryLabel: r.category ? t('hr.trainingCategory.' + r.category) : '—',
             completedDate: formatDate(r.completed_date, locale),
             expiryDate: r.expiry_date ? formatDate(r.expiry_date, locale) : null,
+            completedDateRaw: r.completed_date,
+            expiryDateRaw: r.expiry_date,
             expiryState: expired ? 'expired' : soon ? 'soon' : 'none',
             provider: r.provider ?? '—',
             certificateRef: r.certificate_ref ?? '—',

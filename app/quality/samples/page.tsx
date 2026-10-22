@@ -54,8 +54,11 @@ export default async function SamplesPage({ searchParams }: { searchParams: Prom
         where: s.state === 'at_lab' ? (s.laboratory_code ?? '—')
             : s.state === 'disposed' ? (formatDate(s.disposed_at, locale) || '—')
             : (s.storage_location_code ?? t('quality.noLocation')),
+        disposedAt: s.state === 'disposed' ? s.disposed_at : null,
         takenLabel: formatDate(s.taken_on, locale) || '—',
+        takenOn: s.taken_on,
         keepUntil: s.retain_until ? formatDate(s.retain_until, locale) || '—' : t('quality.notYetSet'),
+        retainUntil: s.retain_until,
         flag: s.retention_due ? 'due' : s.disposed_early ? 'early' : null,
     }))
 

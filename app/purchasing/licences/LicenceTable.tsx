@@ -3,7 +3,8 @@
 // app/purchasing/licences/LicenceTable.tsx
 // CONV-3 · 公司执照登记簿的那张表。见 docs/list-page-template.md 的 Kind-E 一节。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xDate } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import type { LicenceRow, CertType } from './LicencePanel'
 
@@ -22,37 +23,47 @@ export default function LicenceTable({
     // ★【手机上留哪两列】种类是身份,到期日是这张登记簿存在的理由 ——
     // 人来查这一页多半是想知道"什么时候要续"。证号、状态、贮存上限是
     // 读到那一条之后才要问的,进展开区。
-    const columns: Column<LicenceRow>[] = [
+    // TABLE-EXPORT-1:四处「未录入 / 上限未设」导出为同一句话(不是空格);到期日是真日期,上限是数(吨)。
+    const kindName = (r: LicenceRow) => {
+        const ct = certTypes.find((c) => c.code === r.cert_type_code)
+        return ct ? ct.name_en : r.cert_type_code
+    }
+    const notRecorded = t('company.licence.notRecorded')
+    const columns: ExportableColumn<LicenceRow>[] = [
         {
             key: 'kind', header: t('company.licence.colKind'), priority: true,
-            render: (r) => {
-                const ct = certTypes.find((c) => c.code === r.cert_type_code)
-                return ct ? ct.name_en : r.cert_type_code
-            },
+            render: (r) => kindName(r),
+            exportAs: (r) => xText(kindName(r)),
         },
         {
             key: 'no', header: t('company.licence.colNo'),
+            exportAs: (r) => xText(r.cert_no ?? notRecorded),
             render: (r) => r.cert_no ?? <span className="text-amber-800">{t('company.licence.notRecorded')}</span>,
         },
         {
             key: 'status', header: t('company.licence.colStatus'),
+            exportAs: (r) => xText(r.status ? t('company.licence.status.' + r.status) : notRecorded),
             render: (r) => (r.status
                 ? t('company.licence.status.' + r.status)
                 : <span className="text-amber-800">{t('company.licence.notRecorded')}</span>),
         },
         {
             key: 'validity', header: t('company.licence.colValidity'), priority: true,
+            exportAs: (r) => (r.valid_until ? xDate(r.valid_until) : xText(notRecorded)),
             render: (r) => r.valid_until ?? <span className="text-amber-800">{t('company.licence.notRecorded')}</span>,
         },
         {
             // ★ 上限那一格:空 = 【没有人录过】,不是【没有上限】★
             key: 'limit', header: t('company.licence.colStorageLimit'), align: 'right',
+            exportAs: (r) => (r.approved_storage_limit_tonnes !== null
+                ? xNum(r.approved_storage_limit_tonnes, 'qty')
+                : xText(t('company.licence.limitNotSet'))),
             render: (r) => (r.approved_storage_limit_tonnes !== null
                 ? r.approved_storage_limit_tonnes
                 : <span className="font-medium text-red-800">{t('company.licence.limitNotSet')}</span>),
         },
         {
-            key: 'actions', header: '',
+            key: 'actions', header: '', exportAs: false,
             render: (r) => canEdit ? (
                 <>
                     <Button variant="link" size="inline" type="button" disabled={pending}
@@ -79,6 +90,7 @@ export default function LicenceTable({
             //   (LicencePanel 的标题行),不受行数门槛管 —— 但整页仍然要恒为 ok,
             //   否则 ListPage 的 empty 分支会把那个按钮也一起藏掉。
             empty={t('company.licence.none')}
+            exportSpec={{ name: 'company-licences', title: t('company.licence.title') }}
         />
     )
 }

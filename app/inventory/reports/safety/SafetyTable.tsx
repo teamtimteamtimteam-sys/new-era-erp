@@ -6,7 +6,8 @@
 // 在每个 <td> 上重复一遍 class。
 
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum } from '@/lib/export/cells'
 
 export type SafetyRow = {
     materialId: string
@@ -16,6 +17,12 @@ export type SafetyRow = {
     thresholdQty: string
     shortfall: string
     isBelow: boolean
+    /** TABLE-EXPORT-1:导出用的原始数(缺口 null = 不缺,屏幕上是「—」)。 */
+    available: number
+    threshold: number | null
+    shortfallQty: number | null
+    /** TABLE-EXPORT-1:屏幕上三个数后面跟着的单位(原样的码)—— 导出时一起写。 */
+    unit: string
 }
 
 export default function SafetyTable({ rows }: { rows: SafetyRow[] }) {
@@ -23,20 +30,21 @@ export default function SafetyTable({ rows }: { rows: SafetyRow[] }) {
 
     // ★ 4 列表:手机上留【物料】与【缺口】—— 物料是身份,缺口是这张报表存在的
     //   理由(要补多少)。可用量与阈值是推导出缺口的两个中间量,进展开区。
-    const columns: Column<SafetyRow>[] = [
+    const columns: ExportableColumn<SafetyRow>[] = [
         {
             key: 'material', header: t('reports.colMaterial'), priority: true,
+            exportAs: (r) => xText(`${r.code} ${r.name}`),
             render: (r) => (
                 <>
                     <span className="text-xs">{r.code}</span> {r.name}
                 </>
             ),
         },
-        { key: 'available', header: t('reports.colAvailable'), align: 'right', render: (r) => r.availableQty },
-        { key: 'threshold', header: t('reports.colThreshold'), align: 'right', render: (r) => r.thresholdQty },
+        { key: 'available', header: t('reports.colAvailable'), align: 'right', render: (r) => r.availableQty, exportAs: (r) => xNum(r.available, 'qty', r.unit) },
+        { key: 'threshold', header: t('reports.colThreshold'), align: 'right', render: (r) => r.thresholdQty, exportAs: (r) => xNum(r.threshold, 'qty', r.unit) },
         {
             key: 'shortfall', header: t('reports.colShortfall'), priority: true, align: 'right',
-            className: 'font-medium', render: (r) => r.shortfall,
+            className: 'font-medium', render: (r) => r.shortfall, exportAs: (r) => xNum(r.shortfallQty, 'qty', r.unit),
         },
     ]
 
@@ -46,6 +54,7 @@ export default function SafetyTable({ rows }: { rows: SafetyRow[] }) {
             columns={columns}
             rowKey={(r) => r.materialId}
             phone={{ mode: 'columns' }}
+            exportSpec={{ name: 'safety-stock', title: t('reports.safety.title') }}
             rowClassName={(r) => (r.isBelow ? 'bg-amber-50' : undefined)}
         />
     )

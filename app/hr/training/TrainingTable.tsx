@@ -7,7 +7,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate } from '@/lib/export/cells'
 import DeleteTrainingButton from './DeleteTrainingButton'
 import { Button } from '@/app/components/ui/button'
 
@@ -20,6 +21,9 @@ export type TrainingRow = {
     categoryLabel: string
     completedDate: string
     expiryDate: string | null
+    /** TABLE-EXPORT-1:导出用的原始日历日(Excel 里是真日期);到期日 null = 不会过期。 */
+    completedDateRaw: string
+    expiryDateRaw: string | null
     expiryState: 'expired' | 'soon' | 'none'
     provider: string
     certificateRef: string
@@ -30,9 +34,10 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
 
     // ★ 手机上留【员工】与【到期日】—— 员工是身份,而到期日是这张登记簿存在的
     //   理由:证书过期意味着这个人暂时不能上那道工序(见 page.tsx 抬头)。
-    const columns: Column<TrainingRow>[] = [
+    const columns: ExportableColumn<TrainingRow>[] = [
         {
             key: 'employee', header: t('hr.colEmployee'), priority: true, className: 'text-sm',
+            exportAs: (r) => xText(r.employeeId ? `${r.employeeCode ?? ''} ${r.employeeName ?? ''}`.trim() : '—'),
             render: (r) =>
                 r.employeeId ? (
                     <Link href={`/hr/employees/${r.employeeId}`} className="hover:underline app-link">
@@ -43,12 +48,14 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
                     '—'
                 ),
         },
-        { key: 'name', header: t('hr.colTrainingName'), render: (r) => r.trainingName },
-        { key: 'category', header: t('hr.colCategory'), className: 'text-sm', render: (r) => r.categoryLabel },
-        { key: 'completed', header: t('hr.colCompletedDate'), className: 'text-sm', render: (r) => r.completedDate },
+        { key: 'name', header: t('hr.colTrainingName'), render: (r) => r.trainingName, exportAs: (r) => xText(r.trainingName) },
+        { key: 'category', header: t('hr.colCategory'), className: 'text-sm', render: (r) => r.categoryLabel, exportAs: (r) => xText(r.categoryLabel) },
+        { key: 'completed', header: t('hr.colCompletedDate'), className: 'text-sm', render: (r) => r.completedDate, exportAs: (r) => xDate(r.completedDateRaw) },
         {
             key: 'expiry', header: t('hr.colExpiryDate'), priority: true,
             className: 'text-sm whitespace-nowrap',
+            // 一格是一个真日期;「已过期 / 快到期」那枚标记由这个日期与今天推得出,不写进日期格
+            exportAs: (r) => xDate(r.expiryDateRaw),
             render: (r) => (
                 <>
                     {r.expiryDate ?? '—'}
@@ -65,10 +72,10 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
                 </>
             ),
         },
-        { key: 'provider', header: t('hr.colProvider'), className: 'text-sm', render: (r) => r.provider },
-        { key: 'cert', header: t('hr.colCertificateRef'), className: 'text-sm', render: (r) => r.certificateRef },
+        { key: 'provider', header: t('hr.colProvider'), className: 'text-sm', render: (r) => r.provider, exportAs: (r) => xText(r.provider) },
+        { key: 'cert', header: t('hr.colCertificateRef'), className: 'text-sm', render: (r) => r.certificateRef, exportAs: (r) => xText(r.certificateRef) },
         {
-            key: 'actions', header: t('metalPrices.colActions'), className: 'text-sm whitespace-nowrap',
+            key: 'actions', header: t('metalPrices.colActions'), className: 'text-sm whitespace-nowrap', exportAs: false,
             render: (r) => (
                 <>
                     <Button asChild variant="link" size="inline" className="mr-3">
@@ -89,6 +96,7 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'hr-training', title: t('hr.trainingTitle') }}
         />
     )
 }

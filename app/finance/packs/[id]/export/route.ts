@@ -8,6 +8,8 @@ import { csvRow, csvResponse } from '@/lib/csv'
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
 
+// ★ TABLE-EXPORT-1(Tim 2026-10-22 Q15):五条保留的专用导出不许在 1,000 行处悄悄停下。本路由【按构造】停不下:
+//   它按 id 读【一行】(.single()),整份管理包是那一行里的 `payload` jsonb —— PostgREST 的 max_rows 只截行数。
 export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string }> },

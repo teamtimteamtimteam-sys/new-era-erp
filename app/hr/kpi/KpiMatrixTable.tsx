@@ -8,7 +8,8 @@
 // 按 Tim 在 CONV-5 Q2 的裁定:真正的行登记簿才换,报告体保持原样。
 
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xInt, xNum } from '@/lib/export/cells'
 
 export type KpiMatrixRow = {
     positionCode: string
@@ -29,25 +30,27 @@ export default function KpiMatrixTable({ rows, empty }: { rows: KpiMatrixRow[]; 
     //   "这个职位到底挂了几条 KPI",O1–O5 那五列是拆开看时才要问的东西。
     //   ★ 权重合计【不】进手机列:页顶那句 matrixNotWeights 明说这张矩阵
     //     不是权重表,把它单独留在小屏上会正好造成那句话要防的误读。
-    const columns: Column<KpiMatrixRow>[] = [
+    const columns: ExportableColumn<KpiMatrixRow>[] = [
         {
             key: 'position', header: t('kpi.colPosition'), priority: true, className: 'text-sm',
+            exportAs: (r) => xText(`${r.positionCode} · ${r.positionTitle}`),
             render: (r) => (
                 <>
                     <span className="text-xs text-gray-500">{r.positionCode}</span> · {r.positionTitle}
                 </>
             ),
         },
-        { key: 'o1', header: 'O1', align: 'right', className: 'text-sm', render: (r) => r.o1 },
-        { key: 'o2', header: 'O2', align: 'right', className: 'text-sm', render: (r) => r.o2 },
-        { key: 'o3', header: 'O3', align: 'right', className: 'text-sm', render: (r) => r.o3 },
-        { key: 'o4', header: 'O4', align: 'right', className: 'text-sm', render: (r) => r.o4 },
-        { key: 'o5', header: 'O5', align: 'right', className: 'text-sm', render: (r) => r.o5 },
+        { key: 'o1', header: 'O1', align: 'right', className: 'text-sm', render: (r) => r.o1, exportAs: (r) => xInt(r.o1) },
+        { key: 'o2', header: 'O2', align: 'right', className: 'text-sm', render: (r) => r.o2, exportAs: (r) => xInt(r.o2) },
+        { key: 'o3', header: 'O3', align: 'right', className: 'text-sm', render: (r) => r.o3, exportAs: (r) => xInt(r.o3) },
+        { key: 'o4', header: 'O4', align: 'right', className: 'text-sm', render: (r) => r.o4, exportAs: (r) => xInt(r.o4) },
+        { key: 'o5', header: 'O5', align: 'right', className: 'text-sm', render: (r) => r.o5, exportAs: (r) => xInt(r.o5) },
         {
             key: 'kpiCount', header: t('kpi.colKpiCount'), priority: true, align: 'right', className: 'text-sm',
+            exportAs: (r) => xInt(r.kpiCount),
             render: (r) => r.kpiCount,
         },
-        { key: 'weightTotal', header: t('kpi.colWeightTotal'), align: 'right', className: 'text-sm', render: (r) => r.weightTotal },
+        { key: 'weightTotal', header: t('kpi.colWeightTotal'), align: 'right', className: 'text-sm', render: (r) => r.weightTotal, exportAs: (r) => xNum(r.weightTotal, 'pct') },
     ]
 
     return (
@@ -57,6 +60,7 @@ export default function KpiMatrixTable({ rows, empty }: { rows: KpiMatrixRow[]; 
             rowKey={(r) => r.positionCode}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'hr-kpi-matrix', title: t('kpi.matrixTitle') }}
         />
     )
 }

@@ -4,7 +4,8 @@
 // MES-6b-2 · 分析证书清单那张表。手机上留【号】与【状态】—— 号是身份,状态(已签发 / 已作废、有没有在等的作废申请)是这一页的问题。
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xTime } from '@/lib/export/cells'
 import WarehouseRequestButton from '@/app/components/inventory/WarehouseRequestButton'
 
 export type CoaListRow = {
@@ -16,6 +17,8 @@ export type CoaListRow = {
     batchCode: string
     issuedTo: string
     issued: string
+    /** TABLE-EXPORT-1:导出用的原始时刻(ISO),Excel 里是真日期(新加坡时间)。两个调用点(/quality/coa 与批次页的 CoaSection)都给。 */
+    issuedAt: string | null
     issuedBy: string
     replacedBy: string | null
     hasBytes: boolean
@@ -29,13 +32,20 @@ export default function CoaTable({ rows, empty, canIssue, hideBatch = false }: {
     hideBatch?: boolean
 }) {
     const t = useTranslations()
-    const columns: Column<CoaListRow>[] = [
+    // TABLE-EXPORT-1:状态一格写「已签发 / 已作废」加上「被 … 取代」那一句(与屏幕同两段);
+    //   签发一格导出签发时刻 —— 签发人是同一格里的第二件事,一格只放得下一个带类型的值,另列不在本刀。
+    //   下载 / 作废申请那一列是控件,不导出。
+    const statusText = (r: CoaListRow) =>
+        r.statusLabel + (r.replacedBy ? ` · ${t('coa.replacedBy', { code: r.replacedBy })}` : '')
+    const columns: ExportableColumn<CoaListRow>[] = [
         {
             key: 'code', header: t('coa.col.code'), priority: true,
+            exportAs: (r) => xText(r.code),
             render: (r) => <Link href={`/quality/coa/${r.id}`} className="hover:underline app-link">{r.code}</Link>,
         },
         {
             key: 'status', header: t('coa.col.status'), priority: true,
+            exportAs: (r) => xText(statusText(r)),
             render: (r) => (
                 <span className="inline-flex flex-wrap gap-1">
                     <span className={`px-2 py-1 rounded text-xs ${r.status === 'issued' ? 'bg-green-100' : 'bg-gray-200'}`}>{r.statusLabel}</span>
@@ -46,13 +56,17 @@ export default function CoaTable({ rows, empty, canIssue, hideBatch = false }: {
         // 批次页上那一批就是自己 —— 不再画"批次"一列
         ...(hideBatch ? [] : [{
             key: 'batch', header: t('coa.col.batch'),
+            exportAs: (r: CoaListRow) => xText(r.batchCode),
             render: (r: CoaListRow) => <Link href={`/output/${r.batchId}/edit`} className="hover:underline app-link">{r.batchCode}</Link>,
         }]),
-        { key: 'issuedTo', header: t('coa.col.issuedTo'), render: (r) => r.issuedTo },
-        { key: 'issued', header: t('coa.col.issued'), render: (r) => <span>{r.issued}<span className="block text-xs text-[color:var(--brand-muted-text)]">{r.issuedBy}</span></span> },
+        { key: 'issuedTo', header: t('coa.col.issuedTo'), render: (r) => r.issuedTo, exportAs: (r) => xText(r.issuedTo) },
+        {
+            key: 'issued', header: t('coa.col.issued'), exportAs: (r) => xTime(r.issuedAt),
+            render: (r) => <span>{r.issued}<span className="block text-xs text-[color:var(--brand-muted-text)]">{r.issuedBy}</span></span>,
+        },
         {
             // 下载与作废申请是要按的控件 —— 手机上留在表里(TABLE-STYLE-1 R1)
-            key: 'actions', header: t('coa.col.actions'), priority: true,
+            key: 'actions', header: t('coa.col.actions'), priority: true, exportAs: false,
             render: (r) => (
                 <span className="flex flex-wrap gap-x-3 gap-y-1 items-start">
                     {r.hasBytes ? (
@@ -68,5 +82,10 @@ export default function CoaTable({ rows, empty, canIssue, hideBatch = false }: {
             ),
         },
     ]
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} />
+    return (
+        <DataTable
+            rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
+            exportSpec={{ name: 'quality-coa', title: t('coa.list.title') }}
+        />
+    )
 }

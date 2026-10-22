@@ -51,6 +51,7 @@ export default async function OperationTypesPage() {
             kindText: transforming ? t('processing.opType.transforming') : t('processing.opType.stateChanging'),
             // 状态改变型的工序没有平衡可结(Q22),容差对它没有意义 —— 写"不适用",不写"还没给"。
             tolerance: !transforming ? 'na' : o.balance_tolerance_pct === null ? 'unset' : String(Number(o.balance_tolerance_pct)) + '%',
+            tolerancePct: o.balance_tolerance_pct === null ? null : Number(o.balance_tolerance_pct),
             fields: fields.filter((f) => f.operation_type_code === o.code && f.is_active).length,
             machines: links.filter((l) => l.operation_type_code === o.code).length,
             recipes: recipes.filter((r) => r.operation_type_code === o.code && r.is_active).length,

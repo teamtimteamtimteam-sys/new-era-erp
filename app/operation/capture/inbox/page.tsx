@@ -18,6 +18,7 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText, xInt, xTime } from '@/lib/export/cells'
 import { ProcessReceivedButton, RowActions } from './InboxControls'
 
 const INBOX_STATUSES = ['received', 'failed', 'awaiting_transform', 'transformed', 'discarded'] as const
@@ -88,6 +89,22 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     ? <RowActions id={r.id} label={label} canManage={canManage} />
                     : null,
             },
+            // TABLE-EXPORT-1:编号是整数、收到是真时刻;状态那一格屏幕上挂着的错误码 / 丢弃理由 / 重试次数一并写出;
+            //   载荷与转换结果写成一行 JSON(屏幕上是展开才看得见的同一份)
+            exports: {
+                id: xInt(r.id),
+                at: xTime(r.received_at),
+                device: xText(r.device_id && devices.get(r.device_id) ? devices.get(r.device_id)! : t('inbox.manual')),
+                dataClass: xText(classes.get(r.data_class) ?? r.data_class),
+                seq: xText(r.stream ? `${r.stream} · ${r.seq}` : '—'),
+                status: xText([
+                    t('inbox.status.' + r.status),
+                    r.error_code,
+                    r.discard_reason,
+                    r.attempts > 1 ? t('inbox.attempts', { n: String(r.attempts) }) : null,
+                ].filter(Boolean).join(' · ')),
+                payload: xText(JSON.stringify(r.payload) + (r.transform_result != null ? ` · ${JSON.stringify(r.transform_result)}` : '')),
+            },
         }
     })
 
@@ -120,10 +137,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     { key: 'dataClass', header: t('inbox.colClass') },
                     { key: 'seq', header: t('inbox.colStreamSeq') },
                     { key: 'payload', header: t('inbox.colPayload') },
-                    { key: 'actions', header: '', priority: true },
+                    { key: 'actions', header: '', priority: true, control: true },
                 ]}
                 rows={tableRows}
                 empty={t('inbox.empty')}
+                exportSpec={{ name: 'operation-capture-inbox', title: t('inbox.title') }}
             />
         </ListPage>
     )

@@ -9929,6 +9929,10 @@ Tim 在 D1 里对同一件事已经裁过同样的话:
 `lib/format.ts` 立过一条相反的规矩(服务器时间戳一律按业务时区展示),
 两者从来没有对过账。
 
+> ★ **TABLE-EXPORT-1(Tim 2026-10-22 Q7):统一导出【已经】按新加坡时间写时刻(Excel 里是真的日期格,CSV 里是 `YYYY-MM-DD HH:mm:ss`)。**
+> 这一条因此**只对统一导出关闭**;五条保留的专用导出(GST F5 · 总账 · 应收账龄 · 应付账龄 · 管理包)仍按下面的 D3 原样,
+> `formatCsvTimestamp()` 仍是 UTC —— 那一半**仍然开着**。被统一导出取代的九条列表导出已经删掉了(`docs/table-export.md` Q5)。
+
 **★ DATE-1 【不】改它,理由是 Tim 的 D3:** 改它就是**改导出的字节**,而 D3 裁的是
 导出不变。一次"顺手修好"会让今天导出的行与昨天导出的行对不上,
 **而没有任何人要求过这件事**。
@@ -11445,3 +11449,37 @@ EXPENSE-MULTILINE-1 只给它补了那一行 `expense_lines`(表头合计 = 行�
 返回 `false` → 一个格子都不写,横幅说"没能整份恢复"(`DraftBanner` 的 `restore-failed`)。**只有 `/finance/expenses/new` 接了它**
 (Tim Q8:这一张;`NewOrderForm` / `FormulaForm` 仍登记在上面那一条下,**那一条不关**)。不给 `onRestore` 的表单行为一个字节都没变。
 ⚠ 本刀没有对它做浏览器里的恢复走查(本机没有 Chrome;版式勘察跑的是首屏);它的证据是代码路径与 `tsc`/构建 —— 照直记下,不算成一次测量。
+
+## TABLE-EXPORT-1(`v1.4.67`,2026-10-22)—— 每张表的 Excel 与 CSV 导出(第一刀)
+
+### SPECIAL-EXPORTS-NO-MODULE-CHECK · 五条保留的专用导出路由不查模块权限,只靠行级安全(TABLE-EXPORT-1 Step 0 量到;Tim 2026-10-22:登记,不在本刀修)
+
+**是什么:** `app/finance/gst/[periodId]/export/route.ts` · `app/finance/journal/export/route.ts` · `app/finance/receivables/export/route.ts` ·
+`app/finance/payables/export/route.ts` · `app/finance/packs/[id]/export/route.ts` —— 五条都【不】调 `canEnter` / `requireModule`
+(Step 0 实测:`grep -c "requireModule\|requireFunction\|can("` 每条 0),而它们的页面各自有守卫。它们读到什么由库决定
+(RLS、`require_permission`、属主函数里的判据):总账走 `journal_export_lines` 的 `require_permission('module.finance.view')`,
+账龄与 F5 走各自函数里的判据,管理包与 F5 快照走表上的 RLS。
+**为什么记:** 页面与路由的守卫是两份 —— 页面拒绝的人仍然可以直接敲路由的地址,得到的是库的拒绝(一段报错文字),
+不是页面那句具名拒绝;而【只靠库】这件事今天没有任何一道检查在看。统一导出的 JSON 路由(本刀新写的)都调了与页面同一个
+`canEnter`(`exportDenied()`),所以这一条只剩这五条。
+**去处:** 未排(Tim 2026-10-22:登记)。修法是每条路由第一行加页面同一个判据。
+
+
+### PAYROLL-PERIOD-MONTH-SLICED · `/hr/payroll` 的「期间」一格在英文界面上显示成「Sep 202」(TABLE-EXPORT-1 转换时量到;登记,不在本刀修)
+
+**是什么:** `app/hr/payroll/page.tsx:79` 把 `period_month` 先过 `formatMonth(…, locale)`(英文是「Sep 2026」),
+`app/hr/payroll/PayrollPeriodsTable.tsx:50` 再 `.slice(0, 7)` —— 那是给 `YYYY-MM` 写的切法,切在一个显示串上就成了「Sep 202」。
+这是 `docs/known-issues.md`「display date used as data」那一族(格式化过的日期被当成数据再加工)。
+**导出不受影响:** 统一导出读原始的 `periodMonthRaw`(`YYYY-MM`)。**去处:** 未排;改法是去掉那个 `.slice`,屏幕直接用 `formatMonth` 的结果。
+
+### LIST-PAGES-SILENT-ROW-CAPS · 几张列表页只读前 N 行或在 1,000 行处停下,一个字都不说 —— 它们的导出与屏幕同样只有那么多(TABLE-EXPORT-1 量到;登记,不在本刀修)
+
+**是什么(逐条读过源码):**
+- `.limit(N)` 而屏幕上没有「只显示前 N 条」:`/sales/orders` 与 `/sales/quotes` 200(`app/sales/orders/page.tsx:38` · `app/sales/quotes/page.tsx:28`)、
+  `/hr/claims` 300 · `/hr/leave` 300 · `/hr/reviews` 200(各自 `page.tsx` 的 `.limit(`)。
+- 读法本身就会被 PostgREST 的 `max_rows = 1000`(线上实测)截:`/inventory/reports/ledger` 的 `fetchLedger` 写的是 `.limit(2000)`
+  (`app/inventory/reports/ledger/ledgerQuery.ts:65`)而实际最多回 1,000;`/inventory/storage-safety` 的三条读、`/hr/payroll` 读全部 `payroll_lines`、
+  `/hr/training` 读 `training_records`,都没有翻页。
+**为什么记在这里:** Tim 2026-10-22 Q2 说导出取【全部】的结果。这些页的表手里只有它读到的那一份,所以导出也只有那一份 ——
+导出没有比屏幕少,但屏幕本身就少了,而且不说。今天线上没有一张受影响的表超过这些数(只有 `change_log` 77,155 行与 `ingest_inbox` 2,005 行过千,两张都不是这些页的源)。
+**去处:** 未排。改法:要么像 TABLE-EXPORT-1 的九张分页表那样改成服务端分页 + 翻页取全的导出路由,要么在页上说出「只显示最近 N 条」。

@@ -59,6 +59,7 @@ export default async function CommissionsPage() {
         rate_pct: r.rate_pct, amount_ccy: r.amount_ccy, currency: r.currency,
         recognition_trigger: r.recognition_trigger,
         valid_from: formatDate(r.valid_from, locale), valid_to: formatDate(r.valid_to, locale), remarks: r.remarks,
+        validFromRaw: r.valid_from, validToRaw: r.valid_to,
         agentCode: r.suppliers?.code ?? null,
         agentName: r.suppliers?.legal_name ?? null,
     }))

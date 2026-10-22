@@ -1,0 +1,6 @@
+CLONE|finance copy holds 43 codes · employee with profile
+PASS|C1: https://new-era-erp.vercel.app/finance/journal/JE-2026-0018 HTTP 200 in 7676 ms: "Request reversal" rendered disabled=true, pointer to /finance/payroll-payments drawn
+PASS|C2: https://new-era-erp.vercel.app/me HTTP 200 in 8906 ms: the "Every leave type" table is drawn
+STEP|done
+CLOSEOUT_CHECK_EXIT=0
+X_OWN_EXIT=0

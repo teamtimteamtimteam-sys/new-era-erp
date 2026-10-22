@@ -20,6 +20,7 @@ import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { inspectionResultKey } from '../../safetyTypes'
 import FindingsPanel, { type FindingRow, type FailRow } from './FindingsPanel'
+import { xText } from '@/lib/export/cells'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -75,6 +76,12 @@ export default async function InspectionRunPage({ params, searchParams }: {
             result: <span className={`px-2 py-0.5 rounded text-xs ${x.result === 'fail' ? 'bg-amber-100' : 'bg-gray-100'}`} data-result={x.result}>{t(inspectionResultKey(x.result))}</span>,
             note: x.note ?? '—',
         },
+        // TABLE-EXPORT-1:检查项是屏幕上那一串(序号 + 文字);结果是屏幕上那个词;没写备注照屏幕写「—」
+        exports: {
+            item: xText(`${x.position}. ${x.item_text}`),
+            result: xText(t(inspectionResultKey(x.result))),
+            note: xText(x.note ?? '—'),
+        },
     }))
 
     const correct = canEdit && !superseded
@@ -125,6 +132,7 @@ export default async function InspectionRunPage({ params, searchParams }: {
                               { key: 'note', header: t('safety.run.colNote') }]}
                     rows={resultRows}
                     empty="—"
+                    exportSpec={{ name: 'safety-inspection-results', title: t('safety.run.resultsTitle') }}
                 />
             </section>
 

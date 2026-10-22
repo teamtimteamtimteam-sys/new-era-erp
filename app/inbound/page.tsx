@@ -7,45 +7,24 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import InboundTable, { type InboundTableRow } from './InboundTable'
 import InboundToolbar, { type PartyOption } from './InboundToolbar'
-import { STAGE_OPTIONS, labelKeyForValue } from './options'
+import { inboundCount, inboundPage, shapeInboundRows } from './inboundRows'
 import {
     parseInboundListParams,
     parseInboundPage,
-    applyInboundFilters,
     resolveInboundSearchIds,
     buildInboundSearchOr,
     INBOUND_PAGE_SIZE,
 } from './inboundQuery'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustCount, mustRows } from '@/lib/db-helpers'
-import { openWarehouseRequestsByCode } from '@/lib/warehouseRequests'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { MOD } from '@/lib/modules'
-import { formatAuditStamp, formatDate } from '@/lib/dates'
 
-// FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
-type InboundRow = {
-    id: string
-    code: string
-    quantity: number
-    unit: string
-    remaining_qty: number
-    arrival_date: string | null
-    stage: string
-    status: string
-    pricing_status: string
-    created_at: string
-    // RECV-SOURCE-1:来源三态(采购行 / 理由 / 未说明)—— 列表列要用
-    purchase_order_id: string | null
-    purchase_order_line_id: string | null
-    source_reason_code: string | null
-    // FIX-2b:内嵌换成两个 FK —— 名字在 TS 里从查名视图拼(见 baseQuery 的注释)。
-    material_id: string | null
-    supplier_id: string | null
-}
+// TABLE-EXPORT-1:行的类型、select、「库里的行 → 表的行」(含化验状态 · 定价申请 · 销毁证书 ·
+// 仓库申请 · 来源三态)都搬进了 inboundRows.ts,与导出路由共用。注释随代码一起搬过去了。
 
 export default async function InboundPage({
     searchParams,
@@ -73,8 +52,6 @@ export default async function InboundPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { q, stage, supplierId, materialId, dateFrom, dateTo, pricingStatus, sort, dir } =
         parseInboundListParams(sp)
@@ -88,11 +65,7 @@ export default async function InboundPage({
     // 1) 匹配总数(同样套用过滤 + 搜索;只 select 'id' 不带嵌入 —— 过滤都打在本表列上,无需 join)
     //    + 同时取供应商/物料下拉选项(独立查询,并行)。
     const [{ count }, suppliersRes, materialsRes, unpricedRes] = await Promise.all([
-        applyInboundFilters(
-            supabase.from('inbound_batches').select('id', { count: 'exact', head: true }),
-            filterParams,
-            searchOr
-        ),
+        inboundCount(supabase, filterParams, searchOr),
         // ★★【FIX-2b:两张下拉换读查名视图】★★ suppliers 的门是 module.suppliers.view、
         //   materials 的门是 module.materials.view,而本页的门是 module.inbound.view。
         //   实测(2026-09-06,模拟会话):Fu Sheng 从两张基表各读到 **0 行**,
@@ -139,97 +112,11 @@ export default async function InboundPage({
     const from = (page - 1) * INBOUND_PAGE_SIZE
     const to = from + INBOUND_PAGE_SIZE - 1
 
-    // 2) 取当前页的行:带嵌入的 select(materials/suppliers 名字用于展示)+ 过滤 + 排序 + .range
-    // ★★【FIX-2b:内嵌拿掉了 —— 它是同一条缺陷的第二半,而且更难看见】★★
-    //   `materials ( name )` / `suppliers ( legal_name )` 是 PostgREST 的内嵌:
-    //   它读的是【基表】,所以对 warehouse 与 operations 一律解析成 null,
-    //   下面 tableRows 的 `?? '—'` 把它渲染成一根破折号。
-    //   于是屏幕上是【一整列的破折号】—— 而破折号读起来是"这条记录没填",
-    //   不是"你看不到"。名字改在 TS 里从两张查名视图拼(本仓库既有做法:
-    //   「视图上不做 embed,分开查、在 TS 里拼」,见 /finance/expenses/new 的注释)。
-    const baseQuery = supabase.from('inbound_batches').select(`
-        id, code, quantity, unit, remaining_qty, arrival_date, stage, status, pricing_status, created_at,
-        purchase_order_id, purchase_order_line_id, source_reason_code,
-        material_id, supplier_id
-    `)
+    // 2) 取当前页的行:过滤 + 排序 + .range(FIX-2b 的「内嵌拿掉」注释随 select 搬进了 inboundRows.ts)
+    const { data: batches, error } = await inboundPage(supabase, filterParams, searchOr, from, to)
 
-    const { data, error } = await applyInboundFilters(
-        baseQuery,
-        filterParams,
-        searchOr
-    ).range(from, to)
-    const batches = data as unknown as InboundRow[] | null
-
-    // 本页各批次是否有"已记录未应用"的化验(cut 5b);只查当前页的 id —— 同
-    // 采购单详情页取已抵扣额的做法
-    const pageIds = (batches ?? []).map((b) => b.id)
-    const { data: assayStatusRows } = pageIds.length
-        ? await supabase
-              .from('batch_assay_status')
-              .select('inbound_batch_id, has_unapplied_assay')
-              .in('inbound_batch_id', pageIds)
-        : { data: [] as { inbound_batch_id: string | null; has_unapplied_assay: boolean | null }[] }
-    // ── ROLE-1 Batch 4b:哪几张收货挂着在等 CFO 的定价申请 ─────────────────────────
-    //   申请表的读策略要 inbound.view + 采购码;不持采购码的人不去读(读了是 0 行,而 0 行
-    //   不许画成"没有申请")—— 那时这一列不画徽标,注销按钮照常,由库按名拒(RECEIPT_PRICE_REQUEST_OPEN)。
-    const openPriceRequestByBatch = new Map<string, string>()
-    if ((batches ?? []).length > 0 && await can('data.view_purchase_prices')) {
-        const reqRes = await supabase
-            .from('receipt_price_requests')
-            .select('inbound_batch_id, label')
-            .eq('status', 'submitted')
-            .in('inbound_batch_id', (batches ?? []).map((b) => b.id))
-        for (const r of mustRows(reqRes) as { inbound_batch_id: string; label: string }[]) {
-            openPriceRequestByBatch.set(r.inbound_batch_id, r.label)
-        }
-    }
-    // ── APR-7:注销要不要经 CFO(grilling Q1 —— 与库里 batch_write_off_needs_request 同一条判据:
-    //   还有料,或挂着一张【已签发】的销毁证书),以及哪一张在等的申请碰到了这一批。
-    //   证书表的读策略是 action.issue_cod;读不到的人(他们也不持注销的码)这一格按"没有证书"画,
-    //   库照样按名拒。
-    const issuedCodBatches = new Set<string>()
-    if ((batches ?? []).length > 0 && await can('action.issue_cod')) {
-        const codRes = await supabase
-            .from('certificates_of_destruction')
-            .select('inbound_batch_id')
-            .eq('status', 'issued')
-            .in('inbound_batch_id', (batches ?? []).map((b) => b.id))
-        for (const r of mustRows(codRes) as { inbound_batch_id: string }[]) issuedCodBatches.add(r.inbound_batch_id)
-    }
-    const openWarehouseRequest = await can('module.inventory.view')
-        ? await openWarehouseRequestsByCode(supabase)
-        : new Map<string, string>()
-    const unappliedByBatch = new Set(
-        (assayStatusRows ?? [])
-            .filter((r) => r.has_unapplied_assay)
-            .map((r) => r.inbound_batch_id ?? '')
-    )
-
-    // ── RECV-SOURCE-1:来源列的三态 ─────────────────────────────────────────────
-    // 【未说明永远不是空白格】8 张早于本刀的无单收货按 R4 不回填,在这里必须
-    // 读作【未说明】(琥珀),与"对着采购行"(蓝)与"有理由"(灰)看得出区别。
-    // 理由标签从字典读、按语言选一个(GST-FIX-3);采购单号躲在
-    // module.purchasing.view 后面(OPS-14),没有权限时给一句通用的"对着采购单",
-    // 不让 RLS 丢行把"有单"渲染成别的东西。
-    const canViewPurchasing = await can('module.purchasing.view')
     // ROLE-1 Batch 3b:收货与注销各有自己的码(库里 create_inbound_batch / soft_delete_inbound_batch 照样按码拒)
     const [canReceive, canWriteOff] = await Promise.all([can('action.receive_goods'), can('action.batch_write_off')])
-    const poIds = [...new Set((batches ?? [])
-        .filter((b) => b.purchase_order_line_id && b.purchase_order_id)
-        .map((b) => b.purchase_order_id as string))]
-    const poCodeById = new Map<string, string>()
-    if (canViewPurchasing && poIds.length) {
-        const poRes = await supabase.from('purchase_orders_masked').select('id, code').in('id', poIds)
-        for (const r of mustRows(poRes, 'purchase_orders_masked')) {
-            if (r.id && r.code) poCodeById.set(r.id, r.code)
-        }
-    }
-    const reasonRes = await supabase
-        .from('inbound_source_reasons').select('code, name_en, name_zh')
-    const reasonLabelByCode = new Map(
-        mustRows(reasonRes, 'inbound_source_reasons')
-            .map((r) => [r.code, locale === 'zh' ? r.name_zh : r.name_en])
-    )
 
     // 下拉选项:供应商按 legal_name、物料按 name 作为显示标签
     // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)。
@@ -254,48 +141,8 @@ export default async function InboundPage({
         .filter((s) => s.counterparty_type !== 'forwarder')
         .map((s) => ({ id: s.id, label: s.legal_name }))
 
-    // stage 存储值反查成本地化文案;未知值原样显示
-    const stageLabel = (value: string) => {
-        const key = labelKeyForValue(STAGE_OPTIONS, value)
-        return key ? t(key) : value
-    }
-
-    // ── CONV-1:把这一页要显示的东西【在服务端压平成纯数据】───────────────────
-    //   来源那一列要三样服务端才知道的东西(采购单号 / 理由字典的本地化名字 /
-    //   两样都没有 = 未说明),阶段标签要 options 的反查。都在这里算完,
-    //   客户端只拿到「这一格该显示什么」。理由见 InboundTable.tsx 的抬头。
-    const tableRows: InboundTableRow[] = (batches ?? []).map((b) => {
-        const poCode = b.purchase_order_line_id
-            ? (poCodeById.get(b.purchase_order_id ?? '') ?? t('inbound.source.fromPo'))
-            : null
-        return {
-            id: b.id,
-            code: b.code,
-            // FIX-2b:名字来自两张查名视图(上面那两次查询),不再来自内嵌。
-            // 拼不上仍然是 '—',但那时它的含义回到了【真的没有这一项】:
-            // 权限那一半已经在视图的谓词里答过了。
-            materialName: (b.material_id ? materialNameById.get(b.material_id) : null) ?? '—',
-            supplierName: (b.supplier_id ? supplierNameById.get(b.supplier_id) : null) ?? '—',
-            sourceKind: b.purchase_order_line_id ? 'po' : b.source_reason_code ? 'reason' : 'unexplained',
-            sourceLabel: b.purchase_order_line_id
-                ? poCode
-                : b.source_reason_code
-                  ? (reasonLabelByCode.get(b.source_reason_code) ?? b.source_reason_code)
-                  : null,
-            quantity: b.quantity,
-            remaining: b.remaining_qty,
-            unit: b.unit,
-            arrivalDate: b.arrival_date ? formatDate(b.arrival_date, dateLocale) : null,
-            stageLabel: stageLabel(b.stage),
-            status: b.status,
-            pricingStatus: b.pricing_status,
-            hasUnappliedAssay: unappliedByBatch.has(b.id),
-            openPriceRequest: openPriceRequestByBatch.get(b.id) ?? null,
-            needsWriteOffRequest: b.remaining_qty > 0 || issuedCodBatches.has(b.id),
-            openWarehouseRequest: openWarehouseRequest.get(b.code) ?? null,
-            createdLabel: formatAuditStamp(b.created_at),
-        }
-    })
+    // CONV-1 的「在服务端压平成纯数据」—— 现在在 shapeInboundRows 里(TABLE-EXPORT-1 搬过去,原样)。
+    const tableRows: InboundTableRow[] = await shapeInboundRows(supabase, batches ?? [], { materialNameById, supplierNameById })
 
     // 排序链接要带上的筛选参数(不含 sort/dir/page)—— 交给客户端那张表去拼 URL。
     const filterParamsForLinks = new URLSearchParams()
@@ -306,6 +153,11 @@ export default async function InboundPage({
     if (dateFrom) filterParamsForLinks.set('date_from', dateFrom)
     if (dateTo) filterParamsForLinks.set('date_to', dateTo)
     if (pricingStatus) filterParamsForLinks.set('pricing_status', pricingStatus)
+    // TABLE-EXPORT-1 Q2:导出取【全部匹配行】—— 同一套筛选与排序,不带 page。
+    const exportParams = new URLSearchParams(filterParamsForLinks)
+    exportParams.set('sort', sort)
+    exportParams.set('dir', dir)
+    const exportHref = `/inbound/export?${exportParams.toString()}`
 
     // 【sortHref 删掉了】它此前拼的那条链接现在由 InboundTable 拼 ——
     // 判据一个字没变(保留全部筛选、只改 sort/dir、不带 page),
@@ -422,6 +274,7 @@ export default async function InboundPage({
                 shown={tableRows.length}
                 total={total}
                 canWriteOff={canWriteOff}
+                exportHref={exportHref}
             />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}

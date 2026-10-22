@@ -9,43 +9,23 @@ import DeleteButton from './DeleteButton'
 import OutputToolbar, { type PartyOption } from './OutputToolbar'
 import { ListPage } from '@/app/components/ui/list-page'
 import OutputTable, { type OutputTableRow } from './OutputTable'
-import { STATE_OPTIONS, labelKeyForValue } from '../inbound/options'
+import { outputCount, outputPage, shapeOutputRows } from './outputRows'
 import {
     parseOutputListParams,
     parseOutputPage,
-    applyOutputFilters,
     resolveOutputSearchIds,
     buildOutputSearchOr,
     OUTPUT_PAGE_SIZE,
     type OutputSortCol,
 } from './outputQuery'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustRows } from '@/lib/db-helpers'
-import { openWarehouseRequestsByCode } from '@/lib/warehouseRequests'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
-import { formatAuditStamp, formatDate } from '@/lib/dates'
 
-// FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
-// customers 可空:库存中的批次还没指派客户。
-type OutputRow = {
-    id: string
-    code: string
-    quantity: number
-    unit: string
-    remaining_qty: number
-    output_date: string | null
-    state: string
-    status: string
-    created_at: string
-    materials: { name: string } | null
-    customers: { legal_name: string } | null
-    // PROC-WIRE-1A:【另一条轴】—— 这批是干什么用的。是否可售【由字典那一列回答】,
-    // 不由把码写死在这里回答,否则多一种不可售用途就要改代码。
-    output_batch_purposes: { name_en: string; name_zh: string; is_saleable_stock: boolean } | null
-}
+// TABLE-EXPORT-1:行的类型、select、「库里的行 → 表的行」都搬进了 outputRows.ts(与导出路由共用)。
 
 export default async function OutputPage({
     searchParams,
@@ -72,8 +52,6 @@ export default async function OutputPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
     // ROLE-1 Batch 3b:注销产出批次归 action.batch_write_off
     const canWriteOff = await can('action.batch_write_off')
 
@@ -88,11 +66,7 @@ export default async function OutputPage({
     // 1) 匹配总数(同样套用过滤 + 搜索;只 select 'id' 不带嵌入 —— 过滤都打在本表列上,无需 join)
     //    + 同时取客户/物料下拉选项(独立查询,并行)。
     const [{ count }, customersRes, materialsRes] = await Promise.all([
-        applyOutputFilters(
-            supabase.from('output_batches').select('id', { count: 'exact', head: true }),
-            filterParams,
-            searchOr
-        ),
+        outputCount(supabase, filterParams, searchOr),
         supabase
             .from('customer_lookup')
             .select('id, legal_name')
@@ -112,12 +86,7 @@ export default async function OutputPage({
     const to = from + OUTPUT_PAGE_SIZE - 1
 
     // 2) 取当前页的行:带嵌入的 select(materials/customers 名字用于展示)+ 过滤 + 排序 + .range
-    const baseQuery = supabase.from('output_batches').select(`
-        id, code, quantity, unit, remaining_qty, output_date, state, status, created_at,
-        materials ( name ),
-        customers ( legal_name ),
-        output_batch_purposes ( name_en, name_zh, is_saleable_stock )
-    `)
+    //    (TABLE-EXPORT-1:select 与映射住在 outputRows.ts,导出路由走同一份)
 
     // ── 这里【故意】没有"有未应用化验"的角标(PROC-1c 记,2026-08-12)──────────
     // 进料列表有一个(app/inbound/page.tsx,读 batch_assay_status.has_unapplied_assay)。
@@ -136,12 +105,7 @@ export default async function OutputPage({
     // 代价也不是加一个 <span>:batch_assay_status 是进料专用视图(它的每一行都是
     // 一个 inbound_batch),产出侧要么新建一个同形视图,要么把它改成双父 ——
     // 那是一次机制改动,该有它自己的一刀和自己的理由,不该混在一次显示改动里。
-    const { data, error } = await applyOutputFilters(
-        baseQuery,
-        filterParams,
-        searchOr
-    ).range(from, to)
-    const batches = data as unknown as OutputRow[] | null
+    const { data: batches, error } = await outputPage(supabase, filterParams, searchOr, from, to)
 
     // 下拉选项:客户按 legal_name、物料按 name 作为显示标签
     // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死。
@@ -155,12 +119,6 @@ export default async function OutputPage({
         id: m.id,
         label: m.name,
     }))
-
-    // state 存储值反查成本地化文案;未知值原样显示
-    const stateLabel = (value: string) => {
-        const key = labelKeyForValue(STATE_OPTIONS, value)
-        return key ? t(key) : value
-    }
 
     // 表头排序链接:保留所有筛选,只改 sort/dir;不带 page —— 改排序回到第 1 页。
     function pageHref(targetPage: number) {
@@ -194,30 +152,8 @@ export default async function OutputPage({
 
     // CONV-5:套 CONV-1 的两文件模板。
     // ★ Q7:排序仍是服务端的。★ state 恒为 'ok' —— OutputToolbar 是真实出口。
-    // APR-7:哪一张在等的仓库申请碰到了这一批(注销它自己的,或回滚它那张加工单的)
-    const openWarehouseRequest = await can('module.inventory.view')
-        ? await openWarehouseRequestsByCode(supabase)
-        : new Map<string, string>()
-    const tableRows: OutputTableRow[] = (batches ?? []).map((b) => ({
-        id: b.id,
-        code: b.code,
-        materialName: b.materials?.name ?? '—',
-        customerName: b.customers?.legal_name ?? '—',
-        quantity: `${b.quantity} ${b.unit}`,
-        remaining: `${b.remaining_qty} ${b.unit}`,
-        // APR-7(grilling Q1):还有料 → 注销是一张给 CFO 的申请;空批一步删
-        needsWriteOffRequest: b.remaining_qty > 0,
-        openWarehouseRequest: openWarehouseRequest.get(b.code) ?? null,
-        outputDate: formatDate(b.output_date, dateLocale) ?? '—',
-        stateLabel: stateLabel(b.state),
-        // PROC-WIRE-1A:用途角标的语言在服务端选好;可售的批次没有这个角标
-        purposeTag:
-            b.output_batch_purposes && !b.output_batch_purposes.is_saleable_stock
-                ? (locale === 'zh' ? b.output_batch_purposes.name_zh : b.output_batch_purposes.name_en)
-                : null,
-        status: b.status,
-        createdLabel: formatAuditStamp(b.created_at),
-    }))
+    // APR-7 的仓库申请、PROC-WIRE-1A 的用途角标、语言选择 —— 都在 shapeOutputRows 里(TABLE-EXPORT-1 搬过去,原样)。
+    const tableRows: OutputTableRow[] = await shapeOutputRows(supabase, batches ?? [])
 
     // 排序链接要原样带上的筛选参数 —— 【URL 名,不是变量名】,
     // 与转换前那个 sortHref 逐字一致(customer_id / material_id / date_from / date_to)。
@@ -228,6 +164,8 @@ export default async function OutputPage({
     if (materialId) filterQuery.material_id = materialId
     if (dateFrom) filterQuery.date_from = dateFrom
     if (dateTo) filterQuery.date_to = dateTo
+    // TABLE-EXPORT-1 Q2:导出取【全部匹配行】—— 同一套筛选与排序,不带 page。
+    const exportHref = `/output/export?${new URLSearchParams({ ...filterQuery, sort, dir }).toString()}`
 
     return (
         <ListPage
@@ -262,6 +200,7 @@ export default async function OutputPage({
                 shown={tableRows.length}
                 total={total}
                 canWriteOff={canWriteOff}
+                exportHref={exportHref}
             />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}

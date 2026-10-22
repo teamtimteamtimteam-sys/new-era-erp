@@ -12,15 +12,13 @@ import CustomersTable, { type CustomerTableRow } from './CustomersTable'
 import {
     parseCustomerListParams,
     parseCustomerPage,
-    applyCustomerFilters,
     CUSTOMER_PAGE_SIZE,
     type CustomerSortCol,
 } from './customerQuery'
+import { customerCount, customerPage, shapeCustomerRows } from './customerRows'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { mustRows } from '@/lib/db-helpers'
-import { formatAuditStamp } from '@/lib/dates'
 
 export default async function CustomersPage({
     searchParams,
@@ -48,10 +46,7 @@ export default async function CustomersPage({
     const filterParams = { q, sort, dir }
 
     // 1) 先取匹配总数(同样套用过滤,所以总页数对当前搜索是准确的)。head:true 只要 count 不要行。
-    const { count } = await applyCustomerFilters(
-        supabase.from('customers').select('id', { count: 'exact', head: true }),
-        filterParams
-    )
+    const { count } = await customerCount(supabase, filterParams)
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / CUSTOMER_PAGE_SIZE))
     // 把页码上钳到总页数(手输过大的 ?page= 时回落到最后一页,而不是空表)
@@ -60,27 +55,8 @@ export default async function CustomersPage({
     const to = from + CUSTOMER_PAGE_SIZE - 1
 
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
-    const baseQuery = supabase
-        .from('customers')
-        .select('id, code, legal_name, country, customer_types, status, created_at')
-
-    const { data: customers, error } = await applyCustomerFilters(
-        baseQuery,
-        filterParams
-    ).range(from, to)
-
-    // PARTY-1:联系人搬进了 counterparty_contacts,一个客户可以有好几个 ——
-    // 列表这一栏画的是【主联系人】那一行。分开一次查询是因为 PostgREST 的
-    // 嵌套过滤在这里要不到"只要 is_primary 的那一行",而在 TS 里再筛一遍
-    // 就是把一条筛选写两遍。
-    const contactRows = mustRows(
-        await supabase.from('counterparty_contacts')
-            .select('customer_id, name, email, name_inferred')
-            .in('customer_id', (customers ?? []).map((c) => c.id).length
-                ? (customers ?? []).map((c) => c.id) : ['00000000-0000-0000-0000-000000000000'])
-            .is('deleted_at', null).eq('is_primary', true),
-        'counterparty_contacts') as { customer_id: string; name: string; email: string | null; name_inferred: boolean }[]
-    const primaryByCustomer = new Map(contactRows.map((r) => [r.customer_id, r]))
+    //    (select 与主联系人那一次补查都在 customerRows.ts —— 与导出路由同一份)
+    const { data: customers, error } = await customerPage(supabase, filterParams, from, to)
 
     // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q。不带 page —— 改排序回到第 1 页。
     function sortHref(col: CustomerSortCol) {
@@ -121,25 +97,12 @@ export default async function CustomersPage({
     // ★ Q7:排序仍是服务端的(表头仍是链接),行为一个字没变。
     // ★ state 恒为 'ok' —— CustomerToolbar 与 /sales/customers/overlap 入口都是真实出口;
     //   那条 overlap 链接【有冒烟可达性探针盯着】,删了当场红。
-    const tableRows: CustomerTableRow[] = (customers ?? []).map((c) => {
-        const p = primaryByCustomer.get(c.id)
-        return {
-            id: c.id,
-            code: c.code,
-            legalName: c.legal_name,
-            country: c.country,
-            contactName: p?.name ?? null,
-            contactInferred: Boolean(p?.name_inferred),
-            email: p?.email ?? '—',
-            types: c.customer_types?.join(', ') ?? '',
-            status: c.status,
-            // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
-            createdLabel: formatAuditStamp(c.created_at),
-        }
-    })
+    const tableRows: CustomerTableRow[] = await shapeCustomerRows(supabase, customers ?? [])
 
     const filterQuery: Record<string, string> = {}
     if (q) filterQuery.q = q
+    // TABLE-EXPORT-1 Q2:导出取【全部匹配行】—— 同一套筛选与排序,不带 page。
+    const exportHref = `/sales/customers/export?${new URLSearchParams({ ...filterQuery, sort, dir }).toString()}`
 
     return (
         <ListPage
@@ -180,6 +143,7 @@ export default async function CustomersPage({
                 filterQuery={filterQuery}
                 shown={tableRows.length}
                 total={total}
+                exportHref={exportHref}
             />
 
             <div className="mt-4 flex items-center justify-between">

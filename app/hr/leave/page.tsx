@@ -89,6 +89,8 @@ export default async function LeaveRequestsPage({
             typeLabel: ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : r.leave_type_code,
             startDate: formatDate(r.start_date, locale),
             endDate: formatDate(r.end_date, locale),
+            startDateRaw: r.start_date,
+            endDateRaw: r.end_date,
             days: r.days,
             status: r.status,
         }

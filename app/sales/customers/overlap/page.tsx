@@ -62,6 +62,10 @@ export default async function CounterpartyOverlapPage() {
         supplierName: m.supplier_name,
         arOpen: formatAmount(Number(m.ar_open_base ?? 0), base),
         apOpen: formatAmount(Number(m.ap_open_base ?? 0), base),
+        // TABLE-EXPORT-1:导出读的原始数 —— 与上面两串同一个数(同一个 ?? 0)
+        arOpenBase: Number(m.ar_open_base ?? 0),
+        apOpenBase: Number(m.ap_open_base ?? 0),
+        ccy: base,
     }))
     const byNameRows: ByNameRow[] = report.by_name.map((m) => ({
         key: `${m.customer_id}-${m.supplier_id}`,

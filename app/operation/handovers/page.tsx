@@ -84,6 +84,9 @@ export default async function HandoversPage() {
         fromName: nameOf(r.outgoing_employee_id),
         toName: nameOf(r.incoming_employee_id),
         acknowledged: Boolean(r.acknowledged_at),
+        // TABLE-EXPORT-1:导出读原始值
+        handoverDateRaw: r.handover_date,
+        acknowledgedAt: r.acknowledged_at,
         // 时刻按 locale 格式化在服务端做完 —— dl 不过 RSC 边界
         acknowledgedLabel: r.acknowledged_at
             ? t('processing.handover.acknowledgedBy', {

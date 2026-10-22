@@ -1478,6 +1478,9 @@
 >    财务读得到;新的库与存储权限规矩,带它自己的 grilling 与线上证明。**理由(照录):这是员工第一次拿到存储的写权限,一个新的安全面。**
 >    在它之前每一笔都带一句无收据理由。见 `docs/known-issues.md` § EXPENSE-CLAIM-NO-RECEIPT-UPLOAD。
 > 63. **✅ PAYROLL-PAY-REVERSAL-1 —— 工资 / 公积金 / 扣款付款的冲销路,四条冲销路都不冲已配对的银行行,新入职的人按服务期给假,`/me` 列出每一种假(`v1.4.66`,2026-10-22)。**
+   **已关闭(2026-10-22,TABLE-EXPORT-1 Part 1):** Tim 2026-10-22 19:07 CST 确认部署;破窗 2026-10-22 11:15:48 → 19:07(≈ 7 h 51 min,终点是 Tim 的读数;时长是 Tim 看到报告之前的间隔,不是故障);
+   生产只读检查:finance 克隆打开 JE-2026-0018 凭证页 200、「Request reversal」disabled 并指向付薪页,`/me` 200、「Every leave type」表画出,一次性账号读回 0(`docs/handbacks/PAYROLL-PAY-REVERSAL-1.md` §6);
+   另记:一次显示为被拒的 `.next` 删除实际跑了(Tim 报告);§3 三项仍是 Tim 的(`docs/manual-walk-list.md` §35)。
 >    **Tim 2026-10-22 的裁定,逐条(Step 0 Q1–Q13):** Q1 payroll_requests 第三种 payment_reversal,财务提、CFO 二级批、财务执行(提单人也可以);审批关着生下来 approved;期间冻结与一期一张照用 ·
 >    Q2 只能整张冲,不能只冲一个人;付对了的人之后再付 · Q3 冲销日在执行时由人选、必填、不默认 · Q4 不早于原付款、不晚于今天;原付款的月份关了就记在开着的月份,原件不动;落在锁定期按期间锁拒 ·
 >    Q5 期间仍 posted,那张分录付过的行(含净额为零)清掉戳与链接,CPF / 扣款清那一期的日期与链接;能再付,一笔付款都不剩时撤销过账又走得通;历史在申请行与已冲销的分录上 ·
@@ -1493,7 +1496,19 @@
 >    **CFO 批准,不分金额;冲掉整张付款分录;冲销日由人选、必填;清掉已付的戳;对这些分录的通用日记账冲销申请
 >    (`journal_entry_reversal_route.sql:55-63`)按名拒,并指向这条新路。**(Tim FIN-CHAIN-1 Step 0 Q6:从 FIN-CHAIN-1 拆出来。)
 >    `docs/known-issues.md` § PAYROLL-PAYMENT-NO-REVERSAL-PATH 仍然开着,指着这一条。
-> * **⬜ TABLE-EXPORT · Excel + CSV export on every table (Tim 2026-10-20)** —— 系统里【每一张】表格之后都有 Excel 与 CSV 导出,做成一个统一的功能(Tim,
+> 64. **✅ TABLE-EXPORT-1 —— 统一的 Excel 与 CSV 导出挂在共享的表上;一半的列表页(按整个模块)、九条旧导出被取代、五条专用导出翻页取全(`v1.4.67`,2026-10-22)。**
+>    (Tim 2026-10-20 EXPENSE-MULTILINE-1 Step 0 Q15 立案;2026-10-22 排进上线准备组之前。)**Tim 2026-10-22 的裁定 Q1–Q15 逐条记在 `docs/table-export.md`。**
+>    本刀转完的模块:materials · suppliers · sales · output · inbound · inventory · hr · operation · purchasing · quality · margin · stocktakes · logistics
+>    (114 张列表页里 57 张);共享的 CellsTable / MassTable 把导出写成必填,于是它们在 operation 之外的调用点(详情页、settings、safety、finance/electricity)也一起有了导出。
+>    剩下的列表页(finance · me · settings 等)点名在 `scripts/table-export-exemptions.mjs`,去处 TABLE-EXPORT-2;详情页的表与手搓的报表去处 TABLE-EXPORT-3。
+>    fixture 新 **291**;交回 `docs/handbacks/TABLE-EXPORT-1.md`。登记 `docs/known-issues.md` § SPECIAL-EXPORTS-NO-MODULE-CHECK(Tim:不在本刀修)。
+> 64a. **⬜ TABLE-EXPORT-2 —— 剩下的列表页(Tim 2026-10-22 Q15)。** 紧接 TABLE-EXPORT-1,排在上线准备组之前。范围 = `scripts/table-export-exemptions.mjs` 里
+>    `cut: 'TABLE-EXPORT-2'` 的那些条目(TABLE-EXPORT-1 收尾时 57 条:finance 34 · me 8 · settings 5 · 其余小模块);做完时那一类条目为零。
+>    照 TABLE-EXPORT-1 的形状:每一列 `exportAs`(原始值、带类型),服务端分页的页抽出共用的读取 + `export/route.ts`(与页面同一个守卫)。
+> 64b. **⬜ TABLE-EXPORT-3 —— 详情页里的表与手搓的财务报表(Tim 2026-10-22 Q1 · Q15)。** 紧接 TABLE-EXPORT-2,排在上线准备组之前。
+>    范围 = 清单里 `cut: 'TABLE-EXPORT-3'` 的条目(TABLE-EXPORT-1 收尾时 104 条:详情页 DataTable、可编辑表、手搓 `<table>` —— 试算表、损益表、资产负债表、现金流量表、月结……);
+>    做完时清单归零、`scripts/table-export-exemptions.mjs` 可以删掉。可编辑(录入用)的表要不要导出,是那一刀开工时摆给 Tim 的一个问题。
+> * ~~**⬜ TABLE-EXPORT · Excel + CSV export on every table (Tim 2026-10-20)**~~ —— 分成三刀(Tim 2026-10-22 Q15),见上面 64 · 64a · 64b。原文:系统里【每一张】表格之后都有 Excel 与 CSV 导出,做成一个统一的功能(Tim,
 >    EXPENSE-MULTILINE-1 Step 0 Q15)。费用单此前没有任何导出(Step 0 量过),EXPENSE-MULTILINE-1 也不单独做。
 > * **⬜(停放)按行资本化 —— 一张费用单上有资本行与普通行混在一起**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0 Q1)。今天资本单恰好一行、不与普通行混
 >    (`EXPENSE_CAPITAL_SOLE_LINE`)。**触发条件:一张真实的发票把一件资本项目与别的费用开在一起。** 那时它是自己的一刀:资产 / 成本明细 / 折旧锚点 / 维修资本化
@@ -5623,6 +5638,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 ## 上线准备组 · go-live readiness group(Tim 2026-10-20,FIN-CHAIN-1 委托书 E · Step 0 Q11)
 
 **这一组是"第一个真实用户之前要做完的事",不是一刀。** Tim 2026-10-20 把下面八件裁定归进来;顺序与切法归 Tim。
+★ **Tim 2026-10-22(TABLE-EXPORT-1 Q15):TABLE-EXPORT-2 与 TABLE-EXPORT-3 排在这一组【之前】**(上面第 64a · 64b 条)。
 每一件在它自己的原条目里也记了这一句裁定。
 
 | # | 要做的事 | 裁定(d2 第几条)| 原条目 |

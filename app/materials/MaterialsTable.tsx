@@ -11,7 +11,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xTime } from '@/lib/export/cells'
 import DeleteButton from './DeleteButton'
 
 export type MaterialTableRow = {
@@ -29,15 +30,19 @@ export type MaterialTableRow = {
     unitLabel: string
     /** null = 【没有人设过这个阈值】,不是"没事"。 */
     safetyStockLabel: string | null
+    /** TABLE-EXPORT-1:导出用的原始值(Excel 里是一个数,不是「12 kg」这串字)。 */
+    safetyStockQty: number | null
     /** MES-3b:null = 没人选过 / 没给过(V35 · V31),不是"不是危险品"。 */
     dgCode: string | null
     hsCode: string | null
     status: string
     createdLabel: string
+    /** TABLE-EXPORT-1:导出用的原始时刻(Excel 里是真日期,按新加坡时间)。 */
+    createdAt: string
 }
 
 export default function MaterialsTable({
-    rows, empty, sort, dir, filterQuery, shown, total,
+    rows, empty, sort, dir, filterQuery, shown, total, exportHref,
 }: {
     rows: MaterialTableRow[]
     empty: React.ReactNode
@@ -46,6 +51,8 @@ export default function MaterialsTable({
     filterQuery: Record<string, string>
     shown: number
     total: number
+    /** TABLE-EXPORT-1:服务端翻页取全的那条路由(带当前筛选与排序)。 */
+    exportHref: string
 }) {
     const t = useTranslations()
 
@@ -59,25 +66,30 @@ export default function MaterialsTable({
     // ★ 手机上留【物料号】与【物料名】—— 物料号是身份,名字是这份主数据被查的理由。
     //   四处"具名的缺席"都在展开区里,而它们【仍然是那四句话】,不是空白 ——
     //   展开区渲染的是同一个 render,所以那条判据在小屏上没有被削掉。
-    const columns: Column<MaterialTableRow>[] = [
+    const columns: ExportableColumn<MaterialTableRow>[] = [
         {
             key: 'code', header: t('materials.colCode'), priority: true, sortable: true, className: 'text-sm',
+            exportAs: (r) => xText(r.code),
             render: (r) => (
                 <Link href={`/materials/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),
         },
-        { key: 'name', header: t('materials.colName'), priority: true, sortable: true, render: (r) => r.name },
+        { key: 'name', header: t('materials.colName'), priority: true, sortable: true, render: (r) => r.name, exportAs: (r) => xText(r.name) },
         {
             // PROC-1:【没人决定过】按名印出来,不留空 —— 空白会被读成"没有种类"
             key: 'category', header: t('materials.colCategory'),
+            exportAs: (r) => xText(r.kindLabel ?? t('materials.kindUndecided')),
             render: (r) => r.kindLabel ?? <span className="text-amber-700">{t('materials.kindUndecided')}</span>,
         },
-        { key: 'chemistry', header: t('materials.colChemistry'), render: (r) => r.chemistry },
+        { key: 'chemistry', header: t('materials.colChemistry'), render: (r) => r.chemistry, exportAs: (r) => xText(r.chemistry) },
         {
             // MAT-1:【未分类要说出来,不能画成空白】
             key: 'wasteClass', header: t('materials.colWasteClass'), className: 'text-sm',
+            exportAs: (r) => xText(r.wasteClassLabel
+                ? r.wasteClassLabel + (r.wasteControlled ? ` (${t('materials.wasteClass.controlled')})` : '')
+                : t('materials.wasteClass.unclassified')),
             render: (r) =>
                 r.wasteClassLabel ? (
                     <>
@@ -95,6 +107,9 @@ export default function MaterialsTable({
         {
             // ASY-P2:【"无化验要求"要说出来,不能画成空白】
             key: 'assay', header: t('materials.colAssayRequired'), className: 'text-sm',
+            exportAs: (r) => xText(r.assayMetals.length === 0
+                ? t('materials.assayPolicy.noRequirement')
+                : r.assayMetals.map((c) => t('metals.' + c)).join(', ')),
             render: (r) =>
                 r.assayMetals.length === 0 ? (
                     <span className="text-gray-400">{t('materials.assayPolicy.noRequirement')}</span>
@@ -105,26 +120,32 @@ export default function MaterialsTable({
         {
             // MES-3b(Q17):危险品 UN 编号 · HS 编码 —— 一格两行;都没给就说没给(没人给过,不是"不是危险品")
             key: 'shippingIds', header: t('materials.colShippingIds'),
+            exportAs: (r) => xText((r.dgCode || r.hsCode)
+                ? [r.dgCode, r.hsCode && `HS ${r.hsCode}`].filter(Boolean).join(' · ')
+                : t('materials.shippingIdsNotSet')),
             render: (r) => (r.dgCode || r.hsCode)
                 ? <>{r.dgCode && <span className="block">{r.dgCode}</span>}{r.hsCode && <span className="block">HS {r.hsCode}</span>}</>
                 : <span className="text-gray-400">{t('materials.shippingIdsNotSet')}</span>,
         },
-        { key: 'unit', header: t('materials.colUnit'), render: (r) => r.unitLabel },
+        { key: 'unit', header: t('materials.colUnit'), render: (r) => r.unitLabel, exportAs: (r) => xText(r.unitLabel) },
         {
             // SS-1:【绝不留空】—— 空白读起来像"没事",而真实含义是"没有人设过这个阈值"
             key: 'safetyStock', header: t('materials.colSafetyStock'),
+            // TABLE-EXPORT-1:屏幕上这一格是「12 kg」(safetyStockLabel),单位与它同一个本地化标签
+            exportAs: (r) => r.safetyStockQty === null ? xText(t('materials.notMonitored')) : xNum(r.safetyStockQty, 'qty', r.unitLabel),
             render: (r) => r.safetyStockLabel ?? <span className="text-gray-400">{t('materials.notMonitored')}</span>,
         },
         {
-            key: 'status', header: t('materials.colStatus'),
+            key: 'status', header: t('materials.colStatus'), exportAs: (r) => xText(r.status),
             render: (r) => <span className="px-2 py-1 bg-gray-200 rounded text-xs">{r.status}</span>,
         },
         {
             key: 'created_at', header: t('materials.colCreated'), sortable: true,
             className: 'text-sm text-gray-600', render: (r) => r.createdLabel,
+            exportAs: (r) => xTime(r.createdAt),
         },
         {
-            key: 'actions', header: t('materials.colActions'),
+            key: 'actions', header: t('materials.colActions'), exportAs: false,
             render: (r) => <DeleteButton id={r.id} name={r.name} />,
         },
     ]
@@ -137,6 +158,7 @@ export default function MaterialsTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             sorting={{ mode: 'server', coverage: { shown, total }, active: { key: sort, dir }, href }}
+            exportSpec={{ name: 'materials', title: t('materials.listTitle'), serverRows: exportHref }}
         />
     )
 }

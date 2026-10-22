@@ -486,8 +486,14 @@ export default async function InventoryPage() {
                                 r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—',
                             marketValueText:
                                 r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—',
+                            // TABLE-EXPORT-1:同四个数的原始值(与上面四串字同一个判据,null 处同为「—」)
+                            avgPrice: r.pricedQty > 0 && r.stockValue !== null ? r.stockValue / r.pricedQty : null,
+                            stockValue: r.stockValue,
+                            costValue: r.costValue,
+                            marketValue: r.marketValue,
                         }
                     })}
+                    pricesRestricted={pricesRestricted}
                 />
                 <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                     {t('inventory.footerNote')}

@@ -24,6 +24,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import { formatAuditStamp } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText, xNum, xTime, xRestricted } from '@/lib/export/cells'
 import { ManualWeighingForm } from '@/app/operation/capture/CaptureControls'
 import { INSTRUMENT_KINDS, type Option } from '@/app/operation/capture/captureFields'
 import { ShareForm, VoidTicket, PhotoPanel } from './TicketControls'
@@ -104,6 +105,8 @@ export default async function TicketPage({ params, searchParams }: {
     }
 
     const kg = (n: number | null) => (n == null ? '—' : t('capture.kg', { n: String(n) }))
+    // TABLE-EXPORT-1:屏幕上的重量都是「12 kg」(capture.kg),导出带同一个本地化单位标签
+    const kgUnit = t('units.kg')
     const weighingRows: CellRow[] = weighings.map((w) => ({
         id: w.weighing_id,
         cells: {
@@ -119,6 +122,14 @@ export default async function TicketPage({ params, searchParams }: {
                 </span>
             ),
             source: t('capture.source.' + w.source),
+        },
+        // TABLE-EXPORT-1:重量是公斤数、时刻是真时刻;仪器那一格连同它下面的校准状态一起写出
+        exports: {
+            role: xText(t('weighing.role.' + w.role)),
+            weight: xNum(w.weight_kg, 'qty', kgUnit),
+            at: xTime(w.captured_at),
+            instrument: xText(`${w.device_code ?? '—'} · ${t('calibration.status.' + w.status)}`),
+            source: xText(t('capture.source.' + w.source)),
         },
     }))
     const shareRows: CellRow[] = shares.map((s) => {
@@ -139,6 +150,17 @@ export default async function TicketPage({ params, searchParams }: {
                     </span>
                 ) : '—',
                 at: formatAuditStamp(s.created_at),
+            },
+            // TABLE-EXPORT-1:读不到的收货单 / 发货行在屏幕上是「受限」,导出同样是「受限」(与屏幕同一条判据:那一份的标签读不读得到);
+            //   收货单数量只在读得到那张单时才是一个数,收货单读不到时同样「受限」,发货行没有这一格(屏幕上「—」)
+            exports: {
+                target: s.inbound_batch_id
+                    ? (b ? xText(b.code) : xRestricted)
+                    : (s.shipment_line_id && lineLabel.get(s.shipment_line_id)) ? xText(lineLabel.get(s.shipment_line_id!)!) : xRestricted,
+                kind: xText(s.inbound_batch_id ? t('weighbridge.shareKind.receipt') : t('weighbridge.shareKind.line')),
+                kg: xNum(s.kg, 'qty', kgUnit),
+                quantity: b ? xNum(b.quantity, 'qty', kgUnit) : s.inbound_batch_id ? xRestricted : xText('—'),
+                at: xTime(s.created_at),
             },
         }
     })
@@ -180,6 +202,7 @@ export default async function TicketPage({ params, searchParams }: {
                     ]}
                     rows={weighingRows}
                     empty="—"
+                    exportSpec={{ name: 'operation-weighbridge-ticket-weighings', title: t('weighbridge.weighingsTitle') }}
                 />
                 {tk.status === 'open' && (
                     <div className="mt-4">
@@ -204,6 +227,7 @@ export default async function TicketPage({ params, searchParams }: {
                     ]}
                     rows={shareRows}
                     empty={t('weighbridge.noShares')}
+                    exportSpec={{ name: 'operation-weighbridge-ticket-shares', title: t('weighbridge.sharesTitle') }}
                 />
                 {tk.deleted_receipt_shares > 0 && <p className="mt-1 text-xs text-amber-700">{t('weighbridge.deletedShares', { n: String(tk.deleted_receipt_shares) })}</p>}
                 {tk.status === 'complete' && (

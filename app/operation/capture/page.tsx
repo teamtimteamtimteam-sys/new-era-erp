@@ -22,6 +22,7 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText, xNum, xInt, xTime } from '@/lib/export/cells'
 import { ProcessReceivedButton } from './inbox/InboxControls'
 import { DraftActions, ManualWeighingForm, CorrectWeighing } from './CaptureControls'
 import { INSTRUMENT_KINDS, type OpenTicket, type Option } from './captureFields'
@@ -90,6 +91,7 @@ export default async function CapturePage() {
         .filter((d) => !d.retired_at && (INSTRUMENT_KINDS as readonly string[]).includes(d.kind))
         .map((d) => ({ id: d.id, label: `${d.code} — ${d.name}` }))
 
+    const kgUnit = t('units.kg')
     const draftRows: CellRow[] = drafts.map((d) => {
         const dev = d.device_id ? byId.get(d.device_id) : null
         const kg = Number(d.proposed?.weight_kg ?? 0)
@@ -104,6 +106,14 @@ export default async function CapturePage() {
                 age: t('capture.days', { n: String(age) }),
                 actions: <DraftActions draftId={d.id} label={`${dev?.code ?? '#' + d.inbox_id} · ${kg} kg`} proposedKg={kg}
                                        openTickets={openTickets} canConfirm={canConfirm} />,
+            },
+            // TABLE-EXPORT-1:导出读原始值 —— 读数是一个数(kg),收到是真时刻,等了几天是整数
+            exports: {
+                weight: xNum(kg, 'qty', kgUnit), // TABLE-EXPORT-1:屏幕上是「12 kg」(capture.kg),单位一起写
+                device: xText(dev ? dev.code : '—'),
+                station: xText(d.station ?? '—'),
+                received: xTime(d.created_at),
+                age: xInt(age),
             },
         }
     })
@@ -137,6 +147,14 @@ export default async function CapturePage() {
                 source: t('capture.source.' + w.source),
                 actions: w.is_current ? <CorrectWeighing weighingId={w.weighing_id} currentKg={Number(w.weight_kg)} canConfirm={canConfirm} /> : null,
             },
+            // TABLE-EXPORT-1:重量是一个数;屏幕上挂在它下面的「改过 / 更正」两句与仪器下面的校准状态,导出同样写出来(读者不必回屏幕看)
+            exports: {
+                at: xTime(w.captured_at),
+                weight: xNum(w.weight_kg, 'qty', kgUnit),
+                role: xText(w.ticket_id ? `${t('weighing.role.' + w.role)} · ${tickets.get(w.ticket_id) ?? '—'}` : t('weighing.role.' + w.role)),
+                instrument: xText(`${w.device_code ?? '—'} · ${t('calibration.status.' + w.status)}`),
+                source: xText(t('capture.source.' + w.source)),
+            },
         }
     })
 
@@ -157,10 +175,11 @@ export default async function CapturePage() {
                         { key: 'station', header: t('capture.colStation') },
                         { key: 'received', header: t('capture.colReceived') },
                         { key: 'age', header: t('capture.colAge'), priority: true },
-                        { key: 'actions', header: '', priority: true },
+                        { key: 'actions', header: '', priority: true, control: true },
                     ]}
                     rows={draftRows}
                     empty={t('capture.noPending')}
+                    exportSpec={{ name: 'operation-capture-pending', title: t('capture.pendingTitle') }}
                 />
             </section>
 
@@ -179,10 +198,11 @@ export default async function CapturePage() {
                         { key: 'role', header: t('capture.colSubject'), priority: true },
                         { key: 'instrument', header: t('capture.colInstrument') },
                         { key: 'source', header: t('capture.colSource') },
-                        { key: 'actions', header: '', priority: true },
+                        { key: 'actions', header: '', priority: true, control: true },
                     ]}
                     rows={weighingRows}
                     empty={t('capture.noWeighings')}
+                    exportSpec={{ name: 'operation-capture-recent', title: t('capture.recentTitle') }}
                 />
                 <p className="mt-2 text-sm">
                     <Link href="/operation/calibration" className="app-link hover:underline">{t('calibration.title')}</Link>

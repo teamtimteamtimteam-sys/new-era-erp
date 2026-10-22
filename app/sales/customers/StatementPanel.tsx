@@ -22,7 +22,8 @@ import { previewStatement, issueStatement } from './statementActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xTime } from '@/lib/export/cells'
 import { DatePicker } from '@/app/components/ui/date-picker'
 
 type Preview = {
@@ -91,9 +92,11 @@ export default function StatementPanel({
     //   【这张表【没有】列选判断要搬】—— 转换之前一个 hidden sm:table-cell 都没有,
     //   四列在 390px 上全部看得见。于是四列全部 priority:那是把「今天手机上四列都在」
     //   原样说了一遍,不是新做了一次判断。
-    const columns: Column<Issued>[] = [
+    // ★ TABLE-EXPORT-1(Tim 2026-10-22):这一段整段挂在 canFinance 上,格子里没有「受限」这一说。
+    const columns: ExportableColumn<Issued>[] = [
         {
             key: 'code', header: t('statements.colCode'), priority: true,
+            exportAs: (x) => xText(x.code + (x.superseded_at ? ` (${t('statements.superseded')})` : '')),
             render: (x) => (
                 <>
                     <Link href={`/finance/statements/${x.id}/pdf`}
@@ -109,13 +112,18 @@ export default function StatementPanel({
         {
             key: 'period', header: t('statements.colPeriod'), priority: true,
             render: (x) => `${x.period_start} → ${x.period_end}`,
+            // 一格两个日子 —— 只能是文字;屏幕上本来就是原始的 `YYYY-MM-DD`
+            exportAs: (x) => xText(`${x.period_start} → ${x.period_end}`),
         },
         {
             key: 'closing', header: t('statements.doc.closing'), align: 'right', priority: true, render: (x) => money(x.closing_base),
+            exportAs: (x) => xMoney(x.closing_base),
         },
         {
             key: 'issued', header: t('statements.colIssued'), priority: true,
             render: (x) => x.issued_at.slice(0, 10),
+            // 签发是一个时刻 —— 导出写真的时刻(新加坡时间,Q7),不是屏幕上截下来的那一天
+            exportAs: (x) => xTime(x.issued_at),
         },
     ]
 
@@ -216,6 +224,7 @@ export default function StatementPanel({
                 phone={{ mode: 'columns' }}
                 empty={t('statements.noneIssued')}
                 rowClassName={(x) => (x.superseded_at ? 'text-gray-400' : undefined)}
+                exportSpec={{ name: 'customer-statements', title: t('statements.issuedTitle') }}
             />
         </section>
     )

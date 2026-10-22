@@ -30,6 +30,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '../CellsTable'
+import { xText, xNum, xDate } from '@/lib/export/cells'
 import DowntimePanel, { type DowntimeRow } from './DowntimePanel'
 import MaintenancePanel from './MaintenancePanel'
 import ServiceIntervalPanel, { type IntervalRow } from './ServiceIntervalPanel'
@@ -230,6 +231,14 @@ export default async function EquipmentPage({ params, searchParams }: {
             input: r.total_input === null ? '—' : `${KG.format(Number(r.total_input))} kg`,
             output: r.total_output === null ? '—' : `${KG.format(Number(r.total_output))} kg`,
         },
+        // TABLE-EXPORT-1:导出读原始值 —— 加工日是真日期,投入 / 产出是公斤数(「—」= 没有值,导出成空格)
+        exports: {
+            code: xText(r.code),
+            date: xDate(r.process_date),
+            // TABLE-EXPORT-1:屏幕上是「1,234 kg」,单位一起写
+            input: xNum(r.total_input, 'qty', t('units.kg')),
+            output: xNum(r.total_output, 'qty', t('units.kg')),
+        },
     }))
     const words = relRow ? reliabilityWords(relRow, t) : null
 
@@ -329,6 +338,7 @@ export default async function EquipmentPage({ params, searchParams }: {
                     ]}
                     rows={runTable}
                     empty={t('equipment.page.noRuns')}
+                    exportSpec={{ name: 'operation-equipment-runs', title: t('equipment.page.runsTitle') }}
                 />
             </section>
 

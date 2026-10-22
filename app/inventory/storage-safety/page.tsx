@@ -71,6 +71,9 @@ export default async function StorageSafetyPage() {
         batches: String(r.batches),
         status: r.status,
         statusText: statusText(r.status),
+        onHandT: r.on_hand_t,
+        limitT: r.limit_tonnes,
+        batchCount: r.batches,
     }))
     const licence = ceilings[0]?.cert_no ?? null
     const dwellRows: DwellRow[] = dwell.map((r) => ({
@@ -78,10 +81,12 @@ export default async function StorageSafetyPage() {
         recorded: formatDate(r.recorded_on, locale), days: String(r.days_recorded),
         period: r.dwell_warning_days === null ? t('storageSafety.history.periodNotSet') : t('storageSafety.history.periodDays', { n: String(r.dwell_warning_days) }),
         past: r.dwell_status === 'past', status: r.dwell_status,
+        recordedOn: r.recorded_on, daysRecorded: r.days_recorded, periodDays: r.dwell_warning_days,
     }))
     const exposureRows: ExposureRow[] = exposure.map((r, i) => ({
         key: `${r.batch_id}|${r.location_id ?? '-'}|${r.safety_state_code}|${i}`, href: hrefOf(r.batch_kind, r.batch_id), batch: r.batch_code,
         state: nm(r), location: r.location_code ?? t('storageSafety.unspecified'), qty: String(r.qty), recorded: formatDate(r.recorded_on, locale),
+        qtyRaw: r.qty, recordedOn: r.recorded_on,
     }))
     const pastCount = dwellRows.filter((r) => r.past).length
 

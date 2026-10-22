@@ -765,6 +765,11 @@ STYLE-0 报告说 variant C「只覆盖 A/B/C 之间变化过的那五个轴」,
 > ☞ 另外:**`<td>` 仍然是 14px**(本刀只动表头);那 **276 个手搓表头**也不在本刀里
 > —— 它们住在 66 个仍在手搓的文件中,由棘轮按【只减不增】压着。
 
+> ### ★ 导出(TABLE-EXPORT-1,Tim 2026-10-22)
+> 每一张表的控件区右端有两颗 `outline` · `sm` 按钮:「Export Excel / 导出 Excel」与「Export CSV / 导出 CSV」
+> (`app/components/ui/table-export.tsx`,由 `<DataTable exportSpec>` 画出)。控件区本来就是 `flex-wrap`,
+> 两颗按钮 `ml-auto` 靠右,手机上与筛选框不同行时自己折到下一行。导出的内容规矩(15 条裁定)见 `docs/table-export.md`。
+
 ### 4.3a ★★★ 列宽 —— **本仓库的第一条**(POLISH-1,2026-09-12,Tim 的裁定 R6 + R7)★★★
 
 > ### ★ 在这一条之前,这套系统对列宽**一条规矩都没有**。

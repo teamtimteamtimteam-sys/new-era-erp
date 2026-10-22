@@ -11,14 +11,13 @@ import SuppliersTable, { type SupplierTableRow } from './SuppliersTable'
 import {
     parseSupplierListParams,
     parseSupplierPage,
-    applySupplierFilters,
     SUPPLIER_PAGE_SIZE,
     type SupplierSortCol,
 } from './supplierQuery'
+import { supplierCount, supplierPage, shapeSupplierRows } from './supplierRows'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
-import { formatAuditStamp } from '@/lib/dates'
 
 export default async function SuppliersPage({
     searchParams,
@@ -47,10 +46,7 @@ export default async function SuppliersPage({
     const filterParams = { q, status, sort, dir }
 
     // 1) 先取匹配总数(同样套用过滤,所以总页数对当前筛选是准确的)。head:true 只要 count 不要行。
-    const { count } = await applySupplierFilters(
-        supabase.from('suppliers').select('id', { count: 'exact', head: true }).neq('counterparty_type', 'forwarder'),
-        filterParams
-    )
+    const { count } = await supplierCount(supabase, filterParams)
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / SUPPLIER_PAGE_SIZE))
     // 把页码上钳到总页数(手输过大的 ?page= 时回落到最后一页,而不是空表)
@@ -59,18 +55,8 @@ export default async function SuppliersPage({
     const to = from + SUPPLIER_PAGE_SIZE - 1
 
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
-    const baseQuery = supabase
-        .from('suppliers')
-        .select(
-            'id, code, legal_name, short_name, country, supplier_types, status, tax_id, created_at'
-        )
-        // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
-        .neq('counterparty_type', 'forwarder')
-
-    const { data: suppliers, error } = await applySupplierFilters(
-        baseQuery,
-        filterParams
-    ).range(from, to)
+    //    (select 与「货代不进名单」都在 supplierRows.ts —— 与导出路由同一份)
+    const { data: suppliers, error } = await supplierPage(supabase, filterParams, from, to)
 
     // 分页链接:保留当前的 q / status / sort / dir,只改 page
     function pageHref(targetPage: number) {
@@ -103,20 +89,13 @@ export default async function SuppliersPage({
     //   与 /inbound 同一个口子)。href 是函数,过不了 RSC 边界,所以这里只传参数。
     // ★ state 恒为 'ok' —— 筛选工具栏与那两条入口链接都是真实出口(§⑩-3);
     //   /contracts 与 /sales/commissions 两条链接【有冒烟可达性探针盯着】,删了当场红。
-    const tableRows: SupplierTableRow[] = (suppliers ?? []).map((s) => ({
-        id: s.id,
-        code: s.code,
-        legalName: s.legal_name,
-        country: s.country,
-        types: s.supplier_types?.join(', ') ?? '',
-        status: s.status,
-        // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
-        createdLabel: formatAuditStamp(s.created_at),
-    }))
+    const tableRows: SupplierTableRow[] = shapeSupplierRows(suppliers ?? [])
 
     const filterQuery: Record<string, string> = {}
     if (q) filterQuery.q = q
     if (status) filterQuery.status = status
+    // TABLE-EXPORT-1 Q2:导出取【全部匹配行】—— 同一套筛选与排序,不带 page。
+    const exportHref = `/suppliers/export?${new URLSearchParams({ ...filterQuery, sort, dir }).toString()}`
 
     return (
         <ListPage
@@ -172,6 +151,7 @@ export default async function SuppliersPage({
                 filterQuery={filterQuery}
                 shown={tableRows.length}
                 total={total}
+                exportHref={exportHref}
             />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}

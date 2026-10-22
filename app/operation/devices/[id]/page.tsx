@@ -25,6 +25,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText, xInt, xDate, xTime } from '@/lib/export/cells'
 import DeviceControls from '../DeviceControls'
 import KeysPanel, { type KeyRow } from '../KeysPanel'
 import { TERM_KEYS, type DeviceValues, type Option } from '../deviceFields'
@@ -90,6 +91,7 @@ export default async function DevicePage({ params, searchParams }: {
 
     const termRows: CellRow[] = TERM_KEYS.map((k) => ({
         id: k, cells: { term: t('devices.terms.' + k), state: t('devices.termState.' + d[k]) },
+        exports: { term: xText(t('devices.terms.' + k)), state: xText(t('devices.termState.' + d[k])) },
     }))
 
     // ── 网关那几块 ──────────────────────────────────────────────────────────
@@ -121,6 +123,8 @@ export default async function DevicePage({ params, searchParams }: {
         const keyRows: KeyRow[] = keys.map((k) => ({
             id: k.id, prefix: k.key_prefix, issued_at: formatAuditStamp(k.issued_at),
             revoked_at: k.revoked_at ? formatAuditStamp(k.revoked_at) : null, revoked_by: null, revoke_reason: k.revoke_reason,
+            // TABLE-EXPORT-1:导出用的原始时刻(Excel 里是真日期,按新加坡时间)
+            issuedAtIso: k.issued_at, revokedAtIso: k.revoked_at,
         }))
         gatewayBlocks = (
             <>
@@ -149,8 +153,10 @@ export default async function DevicePage({ params, searchParams }: {
                     <CellsTable
                         columns={[{ key: 'code', header: t('devices.colCode'), priority: true }, { key: 'name', header: t('devices.colName'), priority: true },
                                   { key: 'kind', header: t('devices.colKind') }]}
-                        rows={carried.map((x) => ({ id: x.id, cells: { code: link(x), name: x.name, kind: t('devices.kind.' + x.kind) } }))}
+                        rows={carried.map((x) => ({ id: x.id, cells: { code: link(x), name: x.name, kind: t('devices.kind.' + x.kind) },
+                            exports: { code: xText(x.code), name: xText(x.name), kind: xText(t('devices.kind.' + x.kind)) } }))}
                         empty={t('devices.carriedNone')}
+                        exportSpec={{ name: 'operation-gateway-carried-devices', title: t('devices.carriedTitle') }}
                     />
                 </section>
 
@@ -177,8 +183,20 @@ export default async function DevicePage({ params, searchParams }: {
                                 seq: c.stream ? `${c.stream} · ${c.first_seq ?? '—'}–${c.last_seq ?? '—'}` : '—',
                                 address: c.client_address,
                             },
+                            // TABLE-EXPORT-1:时刻是真时刻;条数那一格是一句「收 · 认 · 重 · 拒」四个数的话,照屏幕写成那句话(一格装不下四个数)
+                            exports: {
+                                at: xTime(c.received_at),
+                                result: xText(t('devices.result.' + c.result)),
+                                messages: xText(c.message_count != null
+                                    ? t('devices.messagesCounts', { n: String(c.message_count), a: String(c.accepted_count ?? 0),
+                                                                    d: String(c.duplicate_count ?? 0), r: String(c.rejected_count ?? 0) })
+                                    : null),
+                                seq: xText(c.stream ? `${c.stream} · ${c.first_seq ?? '—'}–${c.last_seq ?? '—'}` : null),
+                                address: xText(c.client_address),
+                            },
                         }))}
                         empty={t('devices.callsNone')}
+                        exportSpec={{ name: 'operation-gateway-calls', title: t('devices.callsTitle') }}
                     />
                 </section>
 
@@ -187,8 +205,10 @@ export default async function DevicePage({ params, searchParams }: {
                     <CellsTable
                         columns={[{ key: 'stream', header: t('devices.colStream'), priority: true },
                                   { key: 'range', header: t('devices.colMissing'), priority: true }, { key: 'n', header: t('devices.colCount'), align: 'right' }]}
-                        rows={gaps.map((g, i) => ({ id: `${g.stream}-${i}`, cells: { stream: g.stream, range: `${g.missing_from}–${g.missing_to}`, n: String(g.missing_count) } }))}
+                        rows={gaps.map((g, i) => ({ id: `${g.stream}-${i}`, cells: { stream: g.stream, range: `${g.missing_from}–${g.missing_to}`, n: String(g.missing_count) },
+                            exports: { stream: xText(g.stream), range: xText(`${g.missing_from}–${g.missing_to}`), n: xInt(g.missing_count) } }))}
                         empty={t('devices.gapsNone')}
+                        exportSpec={{ name: 'operation-gateway-sequence-gaps', title: t('devices.gapsTitle') }}
                     />
                 </section>
 
@@ -200,8 +220,11 @@ export default async function DevicePage({ params, searchParams }: {
                                   { key: 'interval', header: t('devices.colInterval') }]}
                         rows={outages.map((o) => ({ id: String(o.id), cells: {
                             from: formatAuditStamp(o.silent_from), to: formatAuditStamp(o.silent_to),
-                            interval: t('devices.seconds', { n: String(o.interval_s) }) } }))}
+                            interval: t('devices.seconds', { n: String(o.interval_s) }) },
+                            // TABLE-EXPORT-1:两头是真时刻,间隔是秒数
+                            exports: { from: xTime(o.silent_from), to: xTime(o.silent_to), interval: xInt(o.interval_s) } }))}
                         empty={t('devices.outagesNone')}
+                        exportSpec={{ name: 'operation-gateway-outages', title: t('devices.outagesTitle') }}
                     />
                 </section>
 
@@ -214,8 +237,11 @@ export default async function DevicePage({ params, searchParams }: {
                                   { key: 'address', header: t('devices.colAddress') }]}
                         rows={anomalies.map((a, i) => ({ id: `${a.transmission_id ?? ''}-${a.inbox_id ?? ''}-${i}`, cells: {
                             at: formatAuditStamp(a.occurred_at), what: t('devices.anomaly.' + a.anomaly), seq: a.seq != null ? String(a.seq) : '—',
-                            n: String(a.occurrences), address: a.client_address ?? '—' } }))}
+                            n: String(a.occurrences), address: a.client_address ?? '—' },
+                            exports: { at: xTime(a.occurred_at), what: xText(t('devices.anomaly.' + a.anomaly)), seq: xInt(a.seq),
+                                       n: xInt(a.occurrences), address: xText(a.client_address) } }))}
                         empty={t('devices.anomaliesNone')}
+                        exportSpec={{ name: 'operation-gateway-anomalies', title: t('devices.anomaliesTitle') }}
                     />
                 </section>
             </>
@@ -236,8 +262,11 @@ export default async function DevicePage({ params, searchParams }: {
                               { key: 'seq', header: t('devices.colStreamSeq') }]}
                     rows={rows.map((r) => ({ id: String(r.id), cells: {
                         at: formatAuditStamp(r.received_at), status: t('inbox.status.' + r.status),
-                        seq: r.stream ? `${r.stream} · ${r.seq}` : '—' } }))}
+                        seq: r.stream ? `${r.stream} · ${r.seq}` : '—' },
+                        exports: { at: xTime(r.received_at), status: xText(t('inbox.status.' + r.status)),
+                                   seq: xText(r.stream ? `${r.stream} · ${r.seq}` : null) } }))}
                     empty={t('devices.messagesNone')}
+                    exportSpec={{ name: 'operation-device-messages', title: t('devices.messagesTitle') }}
                 />
                 <p className="mt-2 text-sm"><Link href="/operation/capture/inbox" className="app-link hover:underline">{t('devices.openInbox')}</Link></p>
             </section>
@@ -273,6 +302,17 @@ export default async function DevicePage({ params, searchParams }: {
                 actions: r.voided_at || d.retired_at ? null
                     : <VoidCalibration id={r.id} deviceId={id} label={`${d.code} · ${r.calibrated_on}`} canManage={canManage} />,
             },
+            // TABLE-EXPORT-1:两个日期是真日期,记录时刻是真时刻;屏幕上「作废」是划线 + 记录格下的一句 ——
+            //   导出没有划线,所以那句作废说明接在「结果」一格后面(不然一条作废的校准在文件里读起来是有效的)
+            exports: {
+                calibrated: xDate(r.calibrated_on),
+                validUntil: xDate(r.valid_until),
+                result: xText(r.voided_at
+                    ? `${t('calibration.result.' + r.result)} · ${t('calibration.voidedNote', { reason: r.void_reason ?? '' })}`
+                    : t('calibration.result.' + r.result)),
+                certificate: xText([r.certificate_no, r.calibrating_body].filter(Boolean).join(' · ') || null),
+                recorded: xTime(r.recorded_at),
+            },
         }))
         calibrationBlock = (
             <section className="mt-8">
@@ -288,10 +328,11 @@ export default async function DevicePage({ params, searchParams }: {
                         { key: 'result', header: t('calibration.colResult') },
                         { key: 'certificate', header: t('calibration.colCertificate') },
                         { key: 'recorded', header: t('calibration.colRecorded') },
-                        { key: 'actions', header: '', priority: true },
+                        { key: 'actions', header: '', priority: true, control: true },
                     ]}
                     rows={recRows}
                     empty={t('calibration.noRecords')}
+                    exportSpec={{ name: 'operation-device-calibrations', title: t('calibration.deviceTitle') }}
                 />
                 {!d.retired_at && (
                     <div className="mt-3">
@@ -370,7 +411,8 @@ export default async function DevicePage({ params, searchParams }: {
                 <h2 className="mb-2">{t('devices.terms.title')}</h2>
                 <p className="mb-2 text-xs text-[color:var(--brand-muted-text)]">{t('devices.terms.hint')}</p>
                 <CellsTable columns={[{ key: 'term', header: t('devices.terms.colTerm'), priority: true }, { key: 'state', header: t('devices.terms.colState'), priority: true }]}
-                            rows={termRows} empty="—" />
+                            rows={termRows} empty="—"
+                            exportSpec={{ name: 'operation-device-terms', title: t('devices.terms.title') }} />
             </section>
 
             <AuditTrail subject="device" id={id} show={trailCount((await searchParams).trail)} />

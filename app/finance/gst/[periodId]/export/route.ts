@@ -14,7 +14,7 @@
 //   所以文件名与文件里的第一行都【写明这一份是哪一种】。
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { mustRows } from '@/lib/db-helpers'
+import { fetchAllPages } from '@/lib/export/serverRows'
 import { fallbackForRawError } from '@/lib/machine-text'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number }
@@ -48,13 +48,20 @@ export async function GET(
     let rows: { box: string; label_en: string; label_zh: string; value: number }[]
 
     if (filed) {
-        // mustRows:查询失败必须【失败】—— 一份读成空表的导出会被当成"这一期没有数"。
-        const snapRes = await supabase.from('gst_return_boxes')
-            .select('box, label_en, label_zh, value_base').eq('period_id', periodId).order('box')
-        rows = (mustRows(snapRes) as Snap[]).map(r => ({
+        // fetchAllPages 与 mustRows 同一条:查询失败必须【失败】—— 一份读成空表的导出会被当成"这一期没有数"。
+        // TABLE-EXPORT-1(Tim 2026-10-22 Q15):五条保留的专用导出一律翻页取全,不靠「这张表本来就小」——
+        //   (period_id, box) 唯一,所以按 box 翻页是一个确定的次序。一期的格子是 IRAS 那一组固定的格(box1–box9 · box13,见 db/tables/gst_return_boxes.sql),远不到 1,000;
+        //   翻页在这里是一条不依赖那个事实的保证,不是一次性能需要。
+        const snap = await fetchAllPages(
+            (lo, hi) => supabase.from('gst_return_boxes')
+                .select('box, label_en, label_zh, value_base').eq('period_id', periodId).order('box').range(lo, hi),
+            'gst_return_boxes',
+        )
+        rows = (snap as Snap[]).map(r => ({
             box: r.box, label_en: r.label_en, label_zh: r.label_zh, value: r.value_base,
         }))
     } else {
+        // TABLE-EXPORT-1(Q15):`f5_return` 是 `RETURNS jsonb`(一个值),max_rows 截不到它;fixture 291 钉住这个形状。
         const { data, error } = await supabase.rpc('f5_return', {
             p_period_start: period.period_start, p_period_end: period.period_end,
         })

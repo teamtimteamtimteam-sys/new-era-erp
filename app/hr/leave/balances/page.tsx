@@ -59,6 +59,13 @@ export default async function BalancesPage() {
         pending: String(b?.pending ?? '—'),
         bookable: String(b?.bookable ?? '—'),
         expiringSoon,
+        raw: {
+            granted: b?.granted ?? null,
+            consumed: b?.consumed ?? null,
+            available: b?.available ?? null,
+            pending: b?.pending ?? null,
+            bookable: b?.bookable ?? null,
+        },
     }))
 
     return (

@@ -44,9 +44,6 @@ export default async function SnapshotPage() {
             actions={
                 <div className="flex gap-2">
                     <Button asChild variant="outline">
-                        <a href="/inventory/reports/snapshot/export">{t('reports.csv')}</a>
-                    </Button>
-                    <Button asChild variant="outline">
                         <a href="/inventory/reports/snapshot/pdf" target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
                     </Button>
                 </div>
@@ -93,6 +90,7 @@ export default async function SnapshotPage() {
                                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('reports.unspecifiedLocationNote')}</p>
                             )}
                             <SnapshotGroupTable
+                                locationLabel={g.code ? `${g.code} — ${g.name ?? ''}` : t('reports.unspecifiedLocation')}
                                 rows={g.rows.map((r, i): SnapshotRow => ({
                                     key: String(i),
                                     materialCode: r.material_code,
@@ -102,6 +100,10 @@ export default async function SnapshotPage() {
                                     qty: `${r.qty} ${r.unit}`,
                                     value: money(r.value_base),
                                     uncosted: r.uncosted_qty !== 0 ? `${r.uncosted_qty} ${r.unit}` : '—',
+                                    qtyRaw: r.qty,
+                                    valueBase: r.value_base,
+                                    uncostedQty: r.uncosted_qty,
+                                    unit: r.unit,
                                 }))}
                             />
                         </section>
@@ -119,6 +121,8 @@ export default async function SnapshotPage() {
                             batches: a.batches,
                             qty: String(a.qty),
                             value: money(a.value_base),
+                            qtyRaw: a.qty,
+                            valueBase: a.value_base,
                         }))}
                     />
                 </section>

@@ -16,6 +16,7 @@ import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText } from '@/lib/export/cells'
 
 type Pending = { value_code: string; item_id: string | null; item_code: string; item_label: string; href: string }
 
@@ -46,6 +47,8 @@ export default async function PendingValuesPage() {
                         item: <Link href={r.href} className="app-link hover:underline">{r.item_code}</Link>,
                         label: r.item_label,
                     },
+                    // TABLE-EXPORT-1:两格都是字 —— 记录号与它的名字,与屏幕同一份
+                    exports: { item: xText(r.item_code), label: xText(r.item_label) },
                 }))
                 return (
                     <section key={code} className="mb-8" data-pending-value={code}>
@@ -56,6 +59,11 @@ export default async function PendingValuesPage() {
                                       { key: 'label', header: t('pendingValues.colName'), priority: true }]}
                             rows={tableRows}
                             empty="—"
+                            exportSpec={{
+                                // 一支值一张表 —— 文件名按值码分开(小写、连字符)
+                                name: `settings-pending-values-${code.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                                title: `${code} · ${t('pendingValues.value.' + code)}`,
+                            }}
                         />
                     </section>
                 )

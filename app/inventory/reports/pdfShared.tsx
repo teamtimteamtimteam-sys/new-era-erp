@@ -41,8 +41,8 @@ export async function renderReport(opts: {
 }
 
 // 【失败要说得出原因】字体覆盖守卫会在遇到裁剪范围外的字时抛错 —— 那时给一句
-// 能行动的话(改用 CSV),而不是一个 500 白屏。同 exportFailed 的判断:
-// 一份空白/损坏的 PDF 与"没有数据"长得一样,而前者是错误。
+// 能行动的话(改用表上的导出;TABLE-EXPORT-1 之前那是一条 CSV 路由),而不是一个 500 白屏。
+// 同那条旧 CSV 路由失败时的判断:一份空白/损坏的 PDF 与"没有数据"长得一样,而前者是错误。
 export function pdfFailed(e: unknown): Response {
     const msg = (e as { message?: string })?.message ?? String(e)
     return new Response(`PDF failed: ${msg}`, { status: 500 })

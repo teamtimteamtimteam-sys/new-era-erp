@@ -1,6 +1,6 @@
 // app/output/outputQuery.ts
 // 产出批次列表的查询逻辑(搜索 code / 状态 state / 客户 / 物料 / 排序 / 软删除过滤)集中在这里。
-// 列表页 page.tsx 和 CSV 导出 export/route.ts 都调用这里 —— 过滤条件只有一份定义,两边不漂移。
+// 列表页 page.tsx 和导出路由 export/route.ts(TABLE-EXPORT-1 起经 outputRows.ts)都调用这里 —— 过滤条件只有一份定义,两边不漂移。
 // 端口自 inbound:supplier→customer、stage→state。
 //   * 关联方筛选用【FK-id 下拉】—— .eq('customer_id', id) / .eq('material_id', id)。
 //   * 嵌入(materials(name) / customers(legal_name))只用于展示;过滤都打在本表列上。
@@ -45,7 +45,7 @@ export interface OutputListParams {
 export const OUTPUT_PAGE_SIZE = 20
 
 // 解析并校验 page 参数(1-based;非法/缺省一律按第 1 页)。
-// 注意:分页只用于列表页;CSV 导出忽略 page,永远返回全部匹配行。
+// 注意:分页只用于列表页;导出忽略 page,永远返回全部匹配行(翻页取全,lib/export/serverRows.ts)。
 export function parseOutputPage(value: string | undefined): number {
     const n = Number(value)
     return Number.isInteger(n) && n >= 1 ? n : 1

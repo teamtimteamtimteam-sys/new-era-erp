@@ -3,7 +3,8 @@
 // app/hr/leave/holidays/HolidaysTable.tsx
 // CONV-3 · 公共假期登记簿的那张表。见 docs/list-page-template.md 的 Kind-E 一节。
 import { useTranslations, useLocale } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate } from '@/lib/export/cells'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 export type HolidayRow = {
@@ -31,10 +32,12 @@ export default function HolidaysTable({
 
     // ★【手机上留哪两列】日期与名称是身份 —— 没有它们,下面那一行是哪一天、
     // 叫什么都不知道。备注是读到那一天才要问的东西,进展开区。
-    const columns: Column<HolidayRow>[] = [
-        { key: 'date', header: t('leave.date'), priority: true, render: (r) => r.holiday_date },
+    const columns: ExportableColumn<HolidayRow>[] = [
+        { key: 'date', header: t('leave.date'), priority: true, render: (r) => r.holiday_date, exportAs: (r) => xDate(r.holiday_date) },
         {
             key: 'name', header: t('leave.holidayName'), priority: true,
+            // 补假标记照屏幕带上 —— 只看键分不出哪一行是补的
+            exportAs: (r) => xText((locale === 'zh' ? r.name_zh : r.name_en) + (r.is_in_lieu ? ` ${t('leave.inLieuTag')}` : '')),
             render: (r) => (
                 <>
                     {locale === 'zh' ? r.name_zh : r.name_en}
@@ -50,14 +53,16 @@ export default function HolidaysTable({
         },
         {
             key: 'holidayKey', header: t('leave.holidayKey'), className: 'text-xs',
+            exportAs: (r) => xText(r.holiday_key),
             render: (r) => r.holiday_key,
         },
         {
             key: 'notes', header: t('leave.notes'),
+            exportAs: (r) => xText(r.notes),
             render: (r) => r.notes ?? <span className="text-[color:var(--brand-muted-text)]">—</span>,
         },
         {
-            key: 'actions', header: '',
+            key: 'actions', header: '', exportAs: false,
             // ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
             //   `deleteHoliday` → `app/hr/leave/types/actions.ts:59` →
             //   `public_holidays` 走 `.delete()`,行没了、没人记、恢复不了。
@@ -101,6 +106,7 @@ export default function HolidaysTable({
             //   不画 children —— 用它会把这张表单一起藏起来。
             //   CONV-2 §⑥ 第 3 条撞过同一个缺陷,这里照那条判据走。
             empty={t('leave.noHolidays', { 0: String(year) })}
+            exportSpec={{ name: 'hr-public-holidays', title: t('leave.subnav.holidays') }}
         />
     )
 }

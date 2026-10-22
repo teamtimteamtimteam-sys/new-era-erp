@@ -7,7 +7,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum } from '@/lib/export/cells'
 
 export type LeaveRequestRow = {
     id: string
@@ -17,6 +18,9 @@ export type LeaveRequestRow = {
     typeLabel: string
     startDate: string
     endDate: string
+    /** TABLE-EXPORT-1:导出用的原始日历日(YYYY-MM-DD),不是屏幕上格式化过的那串字。 */
+    startDateRaw: string
+    endDateRaw: string
     days: number
     status: string
 }
@@ -33,9 +37,11 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
 
     // ★ 手机上留【单号】与【状态】—— 单号是身份,而这是一张待办清单:
     //   状态就是它存在的理由(谁还等着批)。日期区间进展开区。
-    const columns: Column<LeaveRequestRow>[] = [
+    const columns: ExportableColumn<LeaveRequestRow>[] = [
         {
             key: 'code', header: t('leave.code'), priority: true, className: 'text-xs',
+            // 例外标记照屏幕带上 —— 它是这张单要另眼看的理由,不能在文件里消失
+            exportAs: (r) => xText(r.isException ? `${r.code} (${t('leave.exception')})` : r.code),
             render: (r) => (
                 <>
                     <Link href={`/hr/leave/${r.id}`} className="hover:underline app-link">
@@ -49,12 +55,15 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
                 </>
             ),
         },
-        { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel },
-        { key: 'type', header: t('leave.type'), render: (r) => r.typeLabel },
-        { key: 'dates', header: t('leave.dates'), render: (r) => `${r.startDate} → ${r.endDate}` },
-        { key: 'days', header: t('leave.days'), align: 'right', render: (r) => r.days },
+        { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel, exportAs: (r) => xText(r.employeeLabel) },
+        { key: 'type', header: t('leave.type'), render: (r) => r.typeLabel, exportAs: (r) => xText(r.typeLabel) },
+        { key: 'dates', header: t('leave.dates'), render: (r) => `${r.startDate} → ${r.endDate}`,
+            // 一格装着两个日期,写不成一个 Excel 日期格 —— 用原始 YYYY-MM-DD 写成文字(可排序、可复制),不用屏幕上的格式
+            exportAs: (r) => xText(`${r.startDateRaw} → ${r.endDateRaw}`) },
+        { key: 'days', header: t('leave.days'), align: 'right', render: (r) => r.days, exportAs: (r) => xNum(r.days, 'qty') },
         {
             key: 'status', header: t('leave.status'), priority: true,
+            exportAs: (r) => xText(t(`leave.status_${r.status}`)),
             render: (r) => (
                 <span className={`rounded px-2 py-0.5 text-xs ${STATUS_CLS[r.status] ?? ''}`}>
                     {t(`leave.status_${r.status}`)}
@@ -70,6 +79,7 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'hr-leave-requests', title: t('leave.subnav.requests') }}
         />
     )
 }

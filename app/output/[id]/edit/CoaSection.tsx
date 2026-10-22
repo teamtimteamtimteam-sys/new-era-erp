@@ -74,6 +74,7 @@ export default async function CoaSection({ batchId }: { batchId: string }) {
         id: r.id, code: r.code, status: r.status, statusLabel: t('coa.status.' + r.status), batchId: r.output_batch_id, batchCode: r.batch_code,
         issuedTo: r.sales_order_code ? `${r.customer_name ?? '—'} · ${r.sales_order_code}` : t('coa.panel.noOrder'),
         issued: formatAuditStamp(r.issued_at) ?? '—',
+        issuedAt: r.issued_at,   // TABLE-EXPORT-1:导出用的原始签发时刻
         issuedBy: r.issued_by_name ? `${r.issued_by_name}${r.issued_by_position ? `, ${r.issued_by_position}` : ''}` : '',
         replacedBy: r.replaced_by_code, hasBytes: r.has_bytes, openRequestLabel: r.open_request_label,
     }))

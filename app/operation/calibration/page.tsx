@@ -21,6 +21,7 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
+import { xText, xDate } from '@/lib/export/cells'
 import { RecordCalibrationForm, CalibrationSettings } from './CalibrationControls'
 import type { Option } from '@/app/operation/capture/captureFields'
 
@@ -66,6 +67,17 @@ export default async function CalibrationPage() {
             validUntil: r.valid_until ? formatDate(r.valid_until, locale) : '—',
             certificate: [r.certificate_no, r.calibrating_body].filter(Boolean).join(' · ') || '—',
         },
+        // TABLE-EXPORT-1:两个日期是真日期(原始 YYYY-MM-DD);没有就照屏幕写「—」。状态连同「快到期」那一句一起写出
+        exports: {
+            code: xText(r.code),
+            name: xText(r.name),
+            kind: xText(t('devices.kind.' + r.kind)),
+            inUse: xText(r.in_use ? t('calibration.inUse') : t('calibration.reserved')),
+            status: xText(t('calibration.status.' + r.status) + (r.approaching ? ` · ${t('calibration.approaching')}` : '')),
+            calibrated: r.calibrated_on ? xDate(r.calibrated_on) : xText('—'),
+            validUntil: r.valid_until ? xDate(r.valid_until) : xText('—'),
+            certificate: xText([r.certificate_no, r.calibrating_body].filter(Boolean).join(' · ') || '—'),
+        },
     }))
 
     return (
@@ -84,6 +96,7 @@ export default async function CalibrationPage() {
                     ]}
                     rows={tableRows}
                     empty={t('calibration.empty')}
+                    exportSpec={{ name: 'operation-calibration', title: t('calibration.title') }}
                 />
             </section>
             <section className="mb-8">

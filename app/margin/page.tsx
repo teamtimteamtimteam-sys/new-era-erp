@@ -39,6 +39,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
+import { canViewPrices as canViewPricesNow } from '@/lib/permissions'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
@@ -79,6 +80,8 @@ export default async function MarginPage() {
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
+    // TABLE-EXPORT-1:价格这一类(data.view_prices)—— 导出的金额格按它写「受限」,与 MaskedValue 同一条判据
+    const canViewPrices = await canViewPricesNow()
 
     const rows = mustRows(
         await supabase
@@ -135,6 +138,12 @@ export default async function MarginPage() {
             cost: ok ? money(r.cost_current_base as number) : null,
             margin: ok ? money(r.margin_base as number) : null,
             marginPct: ok && r.margin_pct !== null ? `${r.margin_pct}%` : null,
+            qtySoldQty: Number(r.qty_sold),
+            revenueAmt: r.revenue_base,
+            costAmt: ok ? r.cost_current_base : null,
+            marginAmt: ok ? r.margin_base : null,
+            marginPctNum: ok ? r.margin_pct : null,
+            canViewPrices,
             ok,
             flags,
         }

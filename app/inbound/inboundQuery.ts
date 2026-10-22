@@ -1,6 +1,6 @@
 // app/inbound/inboundQuery.ts
 // 进料批次列表的查询逻辑(搜索 code / 阶段 stage / 供应商 / 物料 / 排序 / 软删除过滤)集中在这里。
-// 列表页 page.tsx 和 CSV 导出 export/route.ts 都调用这里 —— 过滤条件只有一份定义,两边不漂移。
+// 列表页 page.tsx 和导出路由 export/route.ts(TABLE-EXPORT-1 起经 inboundRows.ts)都调用这里 —— 过滤条件只有一份定义,两边不漂移。
 //
 // 事务表与主数据表的关键不同:这里有外键(supplier_id / material_id)。
 //   * 关联方筛选用【FK-id 下拉】—— .eq('supplier_id', id) / .eq('material_id', id),
@@ -50,7 +50,7 @@ export interface InboundListParams {
 export const INBOUND_PAGE_SIZE = 20
 
 // 解析并校验 page 参数(1-based;非法/缺省一律按第 1 页)。
-// 注意:分页只用于列表页;CSV 导出忽略 page,永远返回全部匹配行。
+// 注意:分页只用于列表页;导出忽略 page,永远返回全部匹配行(翻页取全,lib/export/serverRows.ts)。
 export function parseInboundPage(value: string | undefined): number {
     const n = Number(value)
     return Number.isInteger(n) && n >= 1 ? n : 1

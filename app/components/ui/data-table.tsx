@@ -66,6 +66,8 @@ import { tableC, TABLE_TEXT } from '@/app/components/ui/table-style'
 import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 // ★ POLISH-1 round 3(继承的第 ① 件):本文件那几个裸 <button> 走共享档位。
 import { Button } from '@/app/components/ui/button'
+import { TableExportBar, type TableExportSpec, type ExportColumnDef } from '@/app/components/ui/table-export'
+import type { ExportCell, NoExport } from '@/lib/export/cells'
 
 export type Column<T> = {
     /** 稳定的列键 —— 排序状态与列显隐都按它记。 */
@@ -262,6 +264,20 @@ export type FooterRow = {
     className?: string
 }
 
+/**
+ * ★★【TABLE-EXPORT-1(Tim 2026-10-22):一张开了导出的表,【每一列】都要说出自己导出什么】★★
+ * `exportAs` 读【原始值】,返回带类型的一格(lib/export/cells.ts);画控件的列写 `false`。
+ * 写成类型而不是注释:开了 exportSpec 却漏一列,`tsc` 就不过 —— 与 phone 必填同一个理由。
+ * 表头不是字符串(是一段 JSX)时,另给 `exportHeader`;两样都没有,本组件当场按名拒绝。
+ */
+export type ExportableColumn<T> = Column<T> & {
+    exportAs: ((row: T) => ExportCell) | NoExport
+    exportHeader?: string
+}
+
+type ExportOff = { exportSpec?: undefined }
+type ExportOn<T> = { exportSpec: TableExportSpec<T>; columns: ReadonlyArray<ExportableColumn<T>> }
+
 /** 不排。 */
 type SortingOff = { sorting?: undefined }
 /** 自己排 —— ★ 类型上只接受"我拿到了全部"。这就是 A1 那条裁定。 */
@@ -312,7 +328,7 @@ export type DataTableProps<T> = {
      */
     footer?: (rendered: readonly T[]) => ReadonlyArray<FooterRow>
     className?: string
-} & (SortingOff | SortingClient | SortingServer)
+} & (SortingOff | SortingClient | SortingServer) & (ExportOff | ExportOn<T>)
 
 const DIR_NEXT = { none: 'asc', asc: 'desc', desc: 'none' } as const
 type Dir = keyof typeof DIR_NEXT
@@ -370,6 +386,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
     //   **留着它,理由就是最后这一句。**
     //
     //   scroll 模式【不走这条路】:它已经回答过手机这个问题了,答案是"全部列都留着"。
+    const exportSpec = props.exportSpec
+    const exportCols: ReadonlyArray<ExportColumnDef<T>> | null = React.useMemo(() => {
+        if (!exportSpec) return null
+        const out: ExportColumnDef<T>[] = []
+        for (const c of columns as ReadonlyArray<ExportableColumn<T>>) {
+            if (c.exportAs === false) continue
+            const header = c.exportHeader ?? (typeof c.header === 'string' ? c.header : null)
+            if (header === null) {
+                throw new Error(
+                    `TABLE_EXPORT_HEADER_NOT_TEXT|${exportSpec.name}|${c.key}:` +
+                    '这一列的表头不是一段文字,导出不知道该写什么列名。给它一个 exportHeader(界面语言的那串字)。'
+                )
+            }
+            out.push({ key: c.key, header, exportAs: c.exportAs })
+        }
+        return out
+    }, [exportSpec, columns])
+
     const priorityCols = columns.filter((c) => c.priority)
     if (!phoneScroll && priorityCols.length === 0) {
         throw new Error(
@@ -504,7 +538,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return (
         <div className={cn('w-full', className)}>
             {/* ── 表上方的控件区 ──────────────────────────────────────────── */}
-            {(filter || columnToggle || partial) && (
+            {(filter || columnToggle || partial || exportSpec) && (
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                     {filter && (
                         <input
@@ -541,6 +575,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                 ))}
                             </div>
                         </details>
+                    )}
+                    {/* ★ TABLE-EXPORT-1:Excel / CSV。交出去的是排过、筛过、【没分页】的全体(Q2)。 */}
+                    {exportSpec && exportCols && (
+                        <TableExportBar spec={exportSpec} columns={exportCols} rows={() => sorted} />
                     )}
                     {/* ★ 只在服务端模式下出现,而且它【报量,不报警】—— 排序看得见全体。 */}
                     {partial && (

@@ -22,7 +22,7 @@
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
-import { mustRows } from '@/lib/db-helpers'
+import { fetchAllPages } from '@/lib/export/serverRows'
 import { isYmd } from '@/lib/dateFilter'
 import { csvRow, csvResponse } from '@/lib/csv'
 import { glCsvHeader, glCsvFilename } from '../../glExportCsv'
@@ -73,12 +73,17 @@ export async function GET(request: NextRequest) {
     const baseCurrency = await getBaseCurrency()
 
     // 【推导住在 journal_activity_lines 里,这里一行算术都没有】
-    const res = await supabase.rpc('journal_export_lines', {
-        p_from: from, p_to: to, p_include_year_close: includeYearClose,
-    })
-    // mustRows:查询失败必须【失败】。一份读成空表的导出会被当成"这一期没有分录",
+    // ★ TABLE-EXPORT-1(Tim 2026-10-22 Q15):翻页取全。线上 PostgREST max_rows = 1000(实测),
+    //   一个返回 TABLE 的函数经 .rpc() 同样被它截 —— 此前本路由在第 1,000 行处【悄悄】停下,抬头的行数照样「对得上」。
+    //   按 line_id(唯一)翻页;下面的排序与行号照旧在取全之后做。
+    // fetchAllPages 出错就抛:查询失败必须【失败】。一份读成空表的导出会被当成"这一期没有分录",
     // 而 RLS 把无权的人挡下来时正是这个形状 —— 报错,不返回一份空 CSV。
-    const rows = mustRows(res) as unknown as Line[]
+    const rows = await fetchAllPages(
+        (lo, hi) => supabase.rpc('journal_export_lines', {
+            p_from: from, p_to: to, p_include_year_close: includeYearClose,
+        }).order('line_id').range(lo, hi),
+        'journal_export_lines',
+    ) as unknown as Line[]
 
     const entryCodes = new Set(rows.map((r) => r.entry_code))
     const lines = await glCsvHeader({

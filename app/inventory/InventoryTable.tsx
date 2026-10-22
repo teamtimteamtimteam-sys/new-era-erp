@@ -9,7 +9,8 @@
 //   所以渲染出来的字与转换前逐字相同。
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xMoney, xMasked } from '@/lib/export/cells'
 
 export type InventoryTableRow = {
     materialId: string
@@ -24,9 +25,22 @@ export type InventoryTableRow = {
     stockValueText: string
     costValueText: string
     marketValueText: string
+    /** TABLE-EXPORT-1:四个钱数的原始值(null = 屏幕上那根「—」)。导出用,不再由那几串字反解。 */
+    avgPrice: number | null
+    stockValue: number | null
+    costValue: number | null
+    marketValue: number | null
 }
 
-export function InventoryTable({ rows }: { rows: readonly InventoryTableRow[] }) {
+export function InventoryTable({ rows, pricesRestricted }: {
+    rows: readonly InventoryTableRow[]
+    /**
+     * TABLE-EXPORT-1(Q3):页面那个 pricesRestricted(合计条据它画「价格受限」)——
+     * 均价 · 库存价值 · 成本价值三列被 data.view_prices 管着,读不到时每一行是 null。
+     * 导出里那一格写「Restricted」,不是空。市价价值不归这条权限管,照常导出。
+     */
+    pricesRestricted: boolean
+}) {
     const t = useTranslations()
 
     // ★ R-Q5:数与单位并成一个值,链接只挂在【数】上 —— 单位不是另一个去处。
@@ -44,18 +58,20 @@ export function InventoryTable({ rows }: { rows: readonly InventoryTableRow[] })
         </>
     )
 
-    const columns: Column<InventoryTableRow>[] = [
+    const columns: ExportableColumn<InventoryTableRow>[] = [
         {
             // 身份列:一行台账的主语是那一种物料。
             key: 'material',
             header: t('inventory.colMaterial'),
             priority: true,
             render: (r) => r.name,
+            exportAs: (r) => xText(r.name),
         },
         {
             key: 'category',
             header: t('inventory.colCategory'),
             render: (r) => r.category,
+            exportAs: (r) => xText(r.category),
         },
         {
             // ★ 进料库存留在手机上 —— 转换前它就没有 hidden sm:table-cell。
@@ -63,16 +79,19 @@ export function InventoryTable({ rows }: { rows: readonly InventoryTableRow[] })
             header: t('inventory.colInboundStock'),
             priority: true,
             render: (r) => qtyNode(r.inboundStock, r.unit, `/inventory/inbound/${r.materialId}`),
+            exportAs: (r) => xNum(r.inboundStock, 'qty', r.unit), // TABLE-EXPORT-1:屏幕上数后跟着单位,一起写
         },
         {
             key: 'avgPrice',
             header: t('valuation.colAvgPrice'),
             render: (r) => r.avgPriceText,
+            exportAs: (r) => xMasked(r.avgPrice, !pricesRestricted, xMoney),
         },
         {
             key: 'stockValue',
             header: t('valuation.colStockValue'),
             render: (r) => r.stockValueText,
+            exportAs: (r) => xMasked(r.stockValue, !pricesRestricted, xMoney),
         },
         {
             // ★ 产出量【连着它的链接一起折】—— 转换前它也是折起来的那五列之一,
@@ -81,11 +100,13 @@ export function InventoryTable({ rows }: { rows: readonly InventoryTableRow[] })
             key: 'outputStock',
             header: t('inventory.colOutputStock'),
             render: (r) => qtyNode(r.outputStock, r.unit, `/inventory/output/${r.materialId}`),
+            exportAs: (r) => xNum(r.outputStock, 'qty', r.unit),
         },
         {
             key: 'costValue',
             header: t('valuation.colCostValue'),
             render: (r) => r.costValueText,
+            exportAs: (r) => xMasked(r.costValue, !pricesRestricted, xMoney),
         },
         {
             // ★ 市价价值留在手机上 —— 转换前它就没有 hidden sm:table-cell。
@@ -93,6 +114,7 @@ export function InventoryTable({ rows }: { rows: readonly InventoryTableRow[] })
             header: t('valuation.colMarketValue'),
             priority: true,
             render: (r) => r.marketValueText,
+            exportAs: (r) => xMoney(r.marketValue),
         },
     ]
 
@@ -106,6 +128,7 @@ export function InventoryTable({ rows }: { rows: readonly InventoryTableRow[] })
             //   (手机 colSpan=3 一份、桌面 colSpan=8 一份),因为 colSpan 不能随
             //   断点变;组件自己按看得见的列数算 colSpan,所以这里只需要一份。
             empty={t('inventory.emptyState')}
+            exportSpec={{ name: 'inventory', title: t('inventory.listTitle') }}
         />
     )
 }

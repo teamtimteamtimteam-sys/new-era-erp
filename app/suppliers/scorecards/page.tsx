@@ -47,6 +47,7 @@ export default async function ScorecardsPage({ searchParams }: { searchParams: P
         window: r.window_from && r.window_to ? `${formatDate(r.window_from, locale)} – ${formatDate(r.window_to, locale)}` : '—',
         recorded: r.recorded_at ? formatAuditStamp(r.recorded_at) : '—',
         reviews: Number(r.review_count),
+        windowFrom: r.window_from, windowTo: r.window_to, recordedAt: r.recorded_at,
     }))
 
     return (

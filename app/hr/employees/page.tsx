@@ -19,25 +19,11 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import { formatDate } from '@/lib/dates'
+import {
+    parseEmployeeListParams, employeeFilterQuery, employeeCount, employeePage, shapeEmployeeRows,
+} from './employeeRows'
 
 const PAGE_SIZE = 20
-
-type Row = {
-    employee_id: string
-    code: string
-    legal_name: string
-    preferred_name: string | null
-    department_name_en: string | null
-    department_name_zh: string | null
-    job_title: string | null
-    employment_type: string
-    work_category: string
-    employment_status: string
-    hire_date: string
-    work_pass_alert: string | null
-    days_to_work_pass_expiry: number | null
-}
 
 function parsePage(value: string | undefined): number {
     const n = Number(value)
@@ -59,44 +45,17 @@ export default async function EmployeesPage({
     const t = await getTranslations()
     const locale = await getLocale()
 
-    const q = (sp.q ?? '').trim()
-    const dept = (sp.department ?? '').trim()
-    const status = (sp.status ?? '').trim()
-    const category = (sp.category ?? '').trim()
+    // TABLE-EXPORT-1:筛选、读取与映射都搬进 employeeRows.ts —— 页面与导出路由共用【一份】。
+    const params = parseEmployeeListParams(sp)
     const requestedPage = parsePage(sp.page)
 
-    interface Chain {
-        eq(c: string, v: string): Chain
-        or(f: string): Chain
-    }
-    const applyFilters = <T,>(query: T): T => {
-        let chain = query as unknown as Chain
-        if (dept) chain = chain.eq('department_id', dept)
-        if (status) chain = chain.eq('employment_status', status)
-        if (category) chain = chain.eq('work_category', category)
-        if (q) {
-            // or() 表达式里的逗号/括号会破坏语法,先清掉
-            const safe = q.replace(/[,()]/g, ' ')
-            chain = chain.or(`legal_name.ilike.%${safe}%,code.ilike.%${safe}%`)
-        }
-        return chain as unknown as T
-    }
-
-    const { count } = await applyFilters(
-        supabase.from('employee_directory').select('employee_id', { count: 'exact', head: true })
-    )
+    const { count } = await employeeCount(supabase, params)
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
 
     const [rowsRes, deptRes] = await Promise.all([
-        applyFilters(
-            supabase
-                .from('employee_directory')
-                .select('employee_id, code, legal_name, preferred_name, department_name_en, department_name_zh, job_title, employment_type, work_category, employment_status, hire_date, work_pass_alert, days_to_work_pass_expiry')
-        )
-            .order('code')
-            .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1),
+        employeePage(supabase, params, (page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1),
         supabase
             .from('departments')
             .select('id, code, name_en, name_zh')
@@ -104,37 +63,22 @@ export default async function EmployeesPage({
             .order('code'),
     ])
 
-    const rows = (rowsRes.data as unknown as Row[] | null) ?? []
     const departments: DeptOption[] = (mustRows(deptRes)).map((d) => ({
         id: d.id,
         label: `${d.code} — ${locale === 'zh' ? d.name_zh : d.name_en}`,
     }))
 
     function pageHref(target: number) {
-        const params = new URLSearchParams()
-        if (q) params.set('q', q)
-        if (dept) params.set('department', dept)
-        if (status) params.set('status', status)
-        if (category) params.set('category', category)
-        params.set('page', String(target))
-        return `/hr/employees?${params.toString()}`
+        const qs = employeeFilterQuery(params)
+        qs.set('page', String(target))
+        return `/hr/employees?${qs.toString()}`
     }
 
-    const tableRows: EmployeeRow[] = rows.map((r) => ({
-        employeeId: r.employee_id,
-        code: r.code,
-        legalName: r.legal_name,
-        preferredName: r.preferred_name,
-        // 部门名的语言在服务端选好 —— locale 不过 RSC 边界(CONV-1 §① 通则)
-        departmentLabel: (locale === 'zh' ? r.department_name_zh : r.department_name_en) ?? '—',
-        jobTitle: r.job_title ?? '—',
-        employmentTypeLabel: t('hr.employmentType.' + r.employment_type),
-        workCategoryLabel: t('hr.workCategory.' + r.work_category),
-        employmentStatus: r.employment_status,
-        hireDate: formatDate(r.hire_date, locale),
-        workPassAlert: r.work_pass_alert,
-        daysToWorkPassExpiry: r.days_to_work_pass_expiry,
-    }))
+    // TABLE-EXPORT-1:读失败必须【失败】(mustRows)—— 此前这里是 `(rowsRes.data as …) ?? []`,一次权限错误会画成「没有员工」。
+    const tableRows: EmployeeRow[] = await shapeEmployeeRows(mustRows(rowsRes, 'employees'))
+    // TABLE-EXPORT-1 Q2:导出取【全部匹配行】—— 同一套筛选,不带 page。
+    const exportQs = employeeFilterQuery(params).toString()
+    const exportHref = exportQs ? `/hr/employees/export?${exportQs}` : '/hr/employees/export'
 
     return (
         <ListPage
@@ -152,7 +96,7 @@ export default async function EmployeesPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <EmployeesTable rows={tableRows} empty={t('hr.employeesEmpty')} />
+            <EmployeesTable rows={tableRows} empty={t('hr.employeesEmpty')} exportHref={exportHref} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

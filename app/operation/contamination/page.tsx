@@ -44,7 +44,7 @@ export default async function ContaminationPage() {
     }[]
     const rows: GridRow[] = grid.map((g) => ({
         key: `${g.process_date}|${g.shift_code}|${g.stream_code}`,
-        date: formatDate(g.process_date, locale), shift: labels.shift(g.shift_code), stream: labels.stream(g.stream_code),
+        date: formatDate(g.process_date, locale), processDate: g.process_date, shift: labels.shift(g.shift_code), stream: labels.stream(g.stream_code),
         state: g.check_state === 'checked' ? 'checked' : g.check_state === 'not_sampled' ? 'not_sampled' : 'missing',
         maxRate: g.max_rate_pct === null ? null : Number(g.max_rate_pct), anyAbove: g.any_above_warning,
         runCode: g.first_run_code, runHref: canOpenRuns ? `/operation/processing/${g.first_run_id}` : null,
@@ -74,7 +74,8 @@ export default async function ContaminationPage() {
             <p className="text-sm mb-4">{missing === 0 ? t('contamination.noneMissing') : t('contamination.missingCount', { n: missing })}</p>
             <ContaminationGrid rows={rows} />
             <h2 className="mt-8 mb-2">{t('contamination.recentTitle')}</h2>
-            <ContaminationChecksList rows={checks} emptyKey="contamination.emptyRecent" />
+            <ContaminationChecksList rows={checks} emptyKey="contamination.emptyRecent"
+                exportSpec={{ name: 'operation-contamination-checks-recent', title: t('contamination.recentTitle') }} />
         </ListPage>
     )
 }

@@ -10,7 +10,8 @@ import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -49,21 +50,28 @@ export default function MeterPanel({ deviceId, retired, canRecord, readings }: {
     const lbl = 'block text-xs font-medium text-[color:var(--brand-muted-text)] mb-1'
     const muted = 'text-sm text-[color:var(--brand-muted-text)]'
 
-    const columns: Column<MeterReadingView>[] = [
-        { key: 'at', header: t('energy.colReadAt'), priority: true, render: (r) => r.readAt },
-        { key: 'kwh', header: t('energy.colRegister'), priority: true, align: 'right', render: (r) => `${r.registerKwh} kWh` },
+    // TABLE-EXPORT-1:读数时刻是真时刻(readAtIso,不是画好的审计戳);寄存器与增量是 kWh 的数;
+    //   清零那一行屏幕上说「寄存器清零」,导出写同一句话(不是一个编出来的 0)
+    const notesText = (r: MeterReadingView) => [r.reset && r.resetReason ? t('energy.resetBecause', { reason: r.resetReason }) : null, r.notes,
+        r.corrected ? t('energy.correctedBecause', { reason: r.correctionReason ?? '' }) : null].filter(Boolean).join(' · ')
+    const columns: ExportableColumn<MeterReadingView>[] = [
+        { key: 'at', header: t('energy.colReadAt'), priority: true, render: (r) => r.readAt, exportAs: (r) => xTime(r.readAtIso) },
+        { key: 'kwh', header: t('energy.colRegister'), priority: true, align: 'right', render: (r) => `${r.registerKwh} kWh`,
+          // TABLE-EXPORT-1:列头不说单位,屏幕上这一格是「123 kWh」—— 单位一起写
+          exportAs: (r) => xNum(r.registerKwh, 'qty', 'kWh') },
         {
             key: 'delta', header: t('energy.colSincePrevious'), align: 'right',
+            exportAs: (r) => (r.reset ? xText(t('energy.registerReset')) : xNum(r.delta, 'qty', 'kWh')),
             render: (r) => (r.reset ? <span className="text-amber-700" data-meter-reset="1">{t('energy.registerReset')}</span>
                 : r.delta === null ? '—' : `${r.delta} kWh`),
         },
         {
-            key: 'notes', header: '', className: 'text-[color:var(--brand-muted-text)]',
-            render: (r) => [r.reset && r.resetReason ? t('energy.resetBecause', { reason: r.resetReason }) : null, r.notes,
-                            r.corrected ? t('energy.correctedBecause', { reason: r.correctionReason ?? '' }) : null].filter(Boolean).join(' · '),
+            key: 'notes', header: '', exportHeader: t('energy.notes'), className: 'text-[color:var(--brand-muted-text)]',
+            render: notesText,
+            exportAs: (r) => xText(notesText(r) || null),
         },
         ...(!retired && canRecord ? [{
-            key: 'actions', header: '', align: 'right' as const, priority: true,
+            key: 'actions', header: '', align: 'right' as const, priority: true, exportAs: false as const,
             render: (r: MeterReadingView) => (
                 <Button variant="secondary" size="inline" type="button" className="text-sm" disabled={pending}
                         onClick={() => {
@@ -93,7 +101,8 @@ export default function MeterPanel({ deviceId, retired, canRecord, readings }: {
         <section className="mt-8" data-section="meter-readings">
             <h2 className="mb-1">{t('energy.readingsTitle')}</h2>
             <p className={`${muted} mb-3`}>{t('energy.readingsIntro')}</p>
-            <DataTable rows={readings} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('energy.noReadings')} />
+            <DataTable rows={readings} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('energy.noReadings')}
+                       exportSpec={{ name: 'operation-meter-readings', title: t('energy.readingsTitle') }} />
             {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
 
             {!retired && (
