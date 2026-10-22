@@ -1,0 +1,6 @@
+Error: THROWAWAY_UNKNOWN_PREFIX|te2probe —— 先把它加进 scripts/ephemeral.mjs 的 THROWAWAY_EMAIL_PREFIXES(清扫才认得它)
+    at mintThrowaway (file:///Users/timchen/Documents/projects/new-era-erp/scripts/ephemeral.mjs:302:15)
+    at main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-23-table-export-2a-live-proof.mjs:187:34)
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan)
+TE2A_PROOF_EXIT=1
+TE2A_PROOF_OWN_EXIT=1

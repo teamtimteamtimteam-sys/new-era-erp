@@ -10,7 +10,7 @@ import PayrollGrid from '../../PayrollGrid'
 import { loadGridData } from '../../loadGridData'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { formatDate, formatMonth } from '@/lib/dates'
+import { formatDate, formatMonth, toYearMonth } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 export default async function EditPayrollPage({
@@ -64,7 +64,10 @@ export default async function EditPayrollPage({
                 hasPrefill={hasPrefill}
                 monthLocked
                 defaults={{
-                    period_month: formatMonth(period.period_month, locale) ?? '',
+                    // ★ TABLE-EXPORT-2a(Tim 2026-10-22 Q9):PayrollGrid 要的是 'YYYY-MM'(月份框的值,也是 actions.ts 校验的形状)。
+                    //   从前这里给的是 formatMonth 的显示用的字:中文「2026年9月」月份框读不出来 → 空 → 保存被 PERIOD_MONTH_INVALID 拒;
+                    //   英文「Sep 2026」只是碰巧被 new Date 读对了。
+                    period_month: toYearMonth(period.period_month),
                     payment_date: formatDate(period.payment_date, locale) ?? '',
                     currency: period.currency ?? await getBaseCurrency(),
                     fx_rate: String(period.fx_rate ?? ''),

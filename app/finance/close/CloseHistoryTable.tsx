@@ -7,7 +7,8 @@
 //   函数跨不过 server→client 的边界,留在原地【编译不过】。与 TABLE-CONVERT-1 在
 //   app/me/page.tsx 上撞到的是同一条,处置也照抄:金额与时间在服务端格好再过界。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xInt, xMoney, xDate, xTime } from '@/lib/export/cells'
 import ReopenForm from './ReopenForm'
 
 export type CloseHistoryRow = {
@@ -20,6 +21,12 @@ export type CloseHistoryRow = {
     credits: string
     reopened: boolean
     reopenReason: string | null
+    // TABLE-EXPORT-2a:导出读原始值
+    periodEndRaw: string
+    closedAtRaw: string
+    debitsAmt: number
+    creditsAmt: number
+    baseCurrency: string
 }
 
 export default function CloseHistoryTable({
@@ -40,22 +47,30 @@ export default function CloseHistoryTable({
     //   ☞ 所以它 priority:true。屏幕上"不点就够得着"这件事因此【没有变】,
     //     变的是它从身份格里挪到了自己那一列 —— 与 TABLE-STYLE-1 对
     //     MyExpenseClaimsPanel 撤回钮做的处置逐字同形。
-    const columns: Column<CloseHistoryRow>[] = [
+    const columns: ExportableColumn<CloseHistoryRow>[] = [
         {
             key: 'periodEnd', header: t('finance.colPeriodEnd'), priority: true, render: (c) => c.periodEnd,
+            exportAs: (c) => xDate(c.periodEndRaw),
         },
-        { key: 'closedAt', header: t('finance.colClosedAt'), render: (c) => c.closedAt },
+        { key: 'closedAt', header: t('finance.colClosedAt'), render: (c) => c.closedAt, exportAs: (c) => xTime(c.closedAtRaw) },
         {
             key: 'entriesCount', header: t('finance.entriesCount'), align: 'right', render: (c) => c.entriesCount,
+            exportAs: (c) => xInt(c.entriesCount),
         },
         {
             key: 'debits', header: t('finance.colDebits'), align: 'right', priority: true, render: (c) => c.debits,
+            exportAs: (c) => xMoney(c.debitsAmt, c.baseCurrency),
         },
         {
             key: 'credits', header: t('finance.colCredits'), align: 'right', render: (c) => c.credits,
+            exportAs: (c) => xMoney(c.creditsAmt, c.baseCurrency),
         },
         {
             key: 'status', header: t('finance.colStatus'), priority: true,
+            // 一格:状态,重开的再接上重开理由(屏幕上是同一格里的两行)
+            exportAs: (c) => xText(c.reopened
+                ? t('finance.closeStatus.reopened') + (c.reopenReason ? ' — ' + c.reopenReason : '')
+                : t('finance.closeStatus.active')),
             render: (c) => (
                 <>
                     <span className={'px-2 py-1 rounded text-xs ' +
@@ -71,7 +86,7 @@ export default function CloseHistoryTable({
         // ★ 空列头与转换之前逐字相同(桌面档那一列本来就没有列头);
         //   那颗钮自己带着字,所以这里【没有】新增任何 i18n key。
         {
-            key: 'reopen', header: '', priority: true,
+            key: 'reopen', header: '', priority: true, exportAs: false,
             render: (c) => (c.reopened ? null : <ReopenForm canEdit={canEdit} periodEnd={c.periodEnd} />),
         },
     ]
@@ -83,6 +98,7 @@ export default function CloseHistoryTable({
             rowKey={(c) => c.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'month-closes', title: t('finance.closeHistory') }}
         />
     )
 }

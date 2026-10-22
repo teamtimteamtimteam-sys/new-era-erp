@@ -28,6 +28,7 @@ import { Refusal } from '@/app/components/ui/refusal'
 import { formatDate } from '@/lib/dates'
 import { submitPayrollPaymentReversal } from '@/app/hr/payroll/actions'
 import type { PayrollPaymentEntry } from './paymentEntries'
+import { cpfDue } from './cpfDue'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
     employer_cpf_total: number; employee_cpf_total: number; other_deductions_total: number
@@ -35,10 +36,6 @@ type Period = { id: string; code: string; period_month: string; net_pay_total: n
 type Line = { id: string; payroll_period_id: string; employee_id: string; net_pay: number | null; paid_at: string | null }
 type Emp = { id: string; code: string; legal_name: string }
 
-function cpfDue(periodMonth: string): string {
-    const [y, m] = periodMonth.slice(0, 7).split('-').map(Number)
-    return new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 14)).toISOString().slice(0, 10)
-}
 
 // baseCurrency:本面板一个字都没写币种 —— 工资表没有 thead,CPF/代扣款按钮的文案
 // (「汇 CPF {amount}」「汇代扣款 {amount}」)也只有数字。所以每个金额自己带币种,
@@ -224,7 +221,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency, paym
                                 : <Button type="button" disabled={pending || date === '' || dateBad}
                                     onClick={() => run(() => payCpf(p.id, date))}
                                     variant="secondary">
-                                    {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(formatMonth(p.period_month, locale)) })}
+                                    {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(p.period_month) })}
                                   </Button>)}
                             {Number(p.other_deductions_total ?? 0) > 0 && (p.deductions_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: formatAuditStamp(p.deductions_paid_at) })}</span>

@@ -6,7 +6,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xDate } from '@/lib/export/cells'
 import type { FxSortCol } from './fxQuery'
 import { Button } from '@/app/components/ui/button'
 
@@ -16,12 +17,14 @@ export type FxRateRow = {
     rateType: string
     rateSgdPerUnit: number
     rateDate: string
+    /** TABLE-EXPORT-2a:牌价日的原始日历日 */
+    rateDateRaw: string
     source: string
     notes: string | null
 }
 
 export default function FxRatesTable({
-    rows, sort, dir, currency, shown, total,
+    rows, sort, dir, currency, shown, total, exportHref,
 }: {
     rows: FxRateRow[]
     sort: FxSortCol
@@ -30,6 +33,8 @@ export default function FxRatesTable({
     currency: string
     shown: number
     total: number
+    /** TABLE-EXPORT-2a:服务端分页 —— 导出向这条路由要全部匹配行(同一套筛选与排序) */
+    exportHref: string
 }) {
     const t = useTranslations()
 
@@ -42,23 +47,26 @@ export default function FxRatesTable({
     }
 
     // ★ 手机上留【币种】与【牌价】—— 币种是身份,牌价是这张表存在的理由。
-    const columns: Column<FxRateRow>[] = [
+    const columns: ExportableColumn<FxRateRow>[] = [
         {
             key: 'currency', header: t('finance.fxPage.colCurrency'), priority: true, sortable: true,
-            className: 'text-sm', render: (r) => r.currency,
+            className: 'text-sm', render: (r) => r.currency, exportAs: (r) => xText(r.currency),
         },
         {
             key: 'rate_type', header: t('finance.fxPage.colType'), sortable: true, align: 'right',
             className: 'text-sm', render: (r) => t('finance.fxPage.rateType.' + r.rateType),
+            exportAs: (r) => xText(t('finance.fxPage.rateType.' + r.rateType)),
         },
         {
             key: 'rate_sgd_per_unit', header: t('finance.fxPage.colRate'), priority: true, sortable: true, align: 'right', render: (r) => r.rateSgdPerUnit,
+            // 一个汇率:Excel 里按 rate 那一档(六位小数)写成数
+            exportAs: (r) => xNum(r.rateSgdPerUnit, 'rate'),
         },
-        { key: 'rate_date', header: t('finance.fxPage.colRateDate'), sortable: true, render: (r) => r.rateDate },
-        { key: 'source', header: t('finance.fxPage.colSource'), className: 'text-sm text-gray-600', render: (r) => r.source },
-        { key: 'notes', header: t('finance.fxPage.colNotes'), className: 'text-sm', render: (r) => r.notes ?? '—' },
+        { key: 'rate_date', header: t('finance.fxPage.colRateDate'), sortable: true, render: (r) => r.rateDate, exportAs: (r) => xDate(r.rateDateRaw) },
+        { key: 'source', header: t('finance.fxPage.colSource'), className: 'text-sm text-gray-600', render: (r) => r.source, exportAs: (r) => xText(r.source) },
+        { key: 'notes', header: t('finance.fxPage.colNotes'), className: 'text-sm', render: (r) => r.notes ?? '—', exportAs: (r) => xText(r.notes) },
         {
-            key: 'actions', header: t('finance.fxPage.colActions'),
+            key: 'actions', header: t('finance.fxPage.colActions'), exportAs: false,
             render: (r) => (
                 <Button asChild variant="link" size="inline">
                     <Link href={`/finance/fx/${r.id}/edit`}>
@@ -76,6 +84,7 @@ export default function FxRatesTable({
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('finance.fxPage.emptyState')}
+            exportSpec={{ name: 'fx-rates', title: t('finance.fxTitle'), serverRows: exportHref }}
             sorting={{
                 mode: 'server',
                 coverage: { shown, total },

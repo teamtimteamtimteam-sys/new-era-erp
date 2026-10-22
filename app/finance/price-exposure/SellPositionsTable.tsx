@@ -5,7 +5,8 @@
 // (说出它看不见什么),只有这一张是逐条记录的表。
 
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xInt } from '@/lib/export/cells'
 
 export type SellPositionRow = {
     key: string
@@ -23,14 +24,14 @@ export default function SellPositionsTable({ rows }: { rows: SellPositionRow[] }
 
     // ★ 手机上留【合同】与【数量】—— 合同是身份,数量是这张表存在的理由
     //   (这一页问的是"敞口有多大")。
-    const columns: Column<SellPositionRow>[] = [
-        { key: 'contract', header: t('priceExposure.colContract'), priority: true, className: 'text-sm', render: (r) => r.contractCode },
-        { key: 'metal', header: t('priceExposure.colMetal'), className: 'text-sm', render: (r) => r.metal },
-        { key: 'index', header: t('priceExposure.colIndex'), className: 'text-sm', render: (r) => r.indexCode },
-        { key: 'baseEvent', header: t('priceExposure.colBaseEvent'), className: 'text-sm', render: (r) => r.baseEvent },
-        { key: 'qpMonths', header: t('priceExposure.colQpMonths'), align: 'right', className: 'text-sm', render: (r) => r.qpMonths },
-        { key: 'payable', header: t('priceExposure.colPayable'), align: 'right', className: 'text-sm', render: (r) => r.payablePct },
-        { key: 'quantity', header: t('priceExposure.colQuantity'), priority: true, align: 'right', className: 'text-sm', render: (r) => r.orderedQuantity },
+    const columns: ExportableColumn<SellPositionRow>[] = [
+        { key: 'contract', header: t('priceExposure.colContract'), priority: true, className: 'text-sm', render: (r) => r.contractCode, exportAs: (r) => xText(r.contractCode) },
+        { key: 'metal', header: t('priceExposure.colMetal'), className: 'text-sm', render: (r) => r.metal, exportAs: (r) => xText(r.metal) },
+        { key: 'index', header: t('priceExposure.colIndex'), className: 'text-sm', render: (r) => r.indexCode, exportAs: (r) => xText(r.indexCode) },
+        { key: 'baseEvent', header: t('priceExposure.colBaseEvent'), className: 'text-sm', render: (r) => r.baseEvent, exportAs: (r) => xText(r.baseEvent) },
+        { key: 'qpMonths', header: t('priceExposure.colQpMonths'), align: 'right', className: 'text-sm', render: (r) => r.qpMonths, exportAs: (r) => xInt(r.qpMonths) },
+        { key: 'payable', header: t('priceExposure.colPayable'), align: 'right', className: 'text-sm', render: (r) => r.payablePct, exportAs: (r) => xNum(r.payablePct, 'pct') },
+        { key: 'quantity', header: t('priceExposure.colQuantity'), priority: true, align: 'right', className: 'text-sm', render: (r) => r.orderedQuantity, exportAs: (r) => xNum(r.orderedQuantity, 'qty') },
     ]
 
     return (
@@ -39,6 +40,7 @@ export default function SellPositionsTable({ rows }: { rows: SellPositionRow[] }
             columns={columns}
             rowKey={(r) => r.key}
             phone={{ mode: 'columns' }}
+            exportSpec={{ name: 'sell-price-positions', title: t('priceExposure.title') }}
         />
     )
 }

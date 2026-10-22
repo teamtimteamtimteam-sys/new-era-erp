@@ -14,7 +14,8 @@ import StatementsTable, { type StatementRow } from './StatementsTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { parseStatementListParams, statementCount, statementPage, shapeStatementRows, statementExportHref } from './statementRows'
 import { can } from '@/lib/permissions'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
@@ -40,40 +41,18 @@ export default async function BankStatementsPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const account = sp.account === '1000' || sp.account === '1010' ? sp.account : ''
-    const status = sp.status === 'open' || sp.status === 'reconciled' ? sp.status : ''
+    // TABLE-EXPORT-2a:读取、筛选与「库里的行 → 表的行」(含逐张的行状态计数)搬进 statementRows.ts,与导出路由共用一份。
+    const params = parseStatementListParams(sp)
+    const { account, status } = params
     const requestedPage = parsePage(sp.page)
 
-    // 过滤链。最小链式子集,避免 supabase 深泛型。
-    interface Chain {
-        eq(c: string, v: string): Chain
-        is(c: string, v: null): Chain
-    }
-    const applyFilters = <T,>(query: T): T => {
-        let chain = (query as unknown as Chain).is('deleted_at', null)
-        if (account) chain = chain.eq('bank_account_code', account)
-        if (status) chain = chain.eq('status', status)
-        return chain as unknown as T
-    }
-
-    const { count } = await applyFilters(
-        supabase.from('bank_statements').select('id', { count: 'exact', head: true })
-    )
-
-    const total = count ?? 0
+    const total = mustCount(await statementCount(supabase, params), 'bank_statements count')
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
-    const { data: statements, error } = await applyFilters(
-        supabase
-            .from('bank_statements')
-            .select('id, code, bank_account_code, currency, period_start, period_end, opening_balance, closing_balance, status')
-    )
-        .order('period_end', { ascending: false })
-        .order('created_at', { ascending: false })
-        .range(from, to)
+    const { data: statements, error } = await statementPage(supabase, params, from, to)
 
     if (error) {
         return (
@@ -90,29 +69,6 @@ export default async function BankStatementsPage({
         )
     }
 
-    const rows = statements ?? []
-
-    // 行状态计数:页级一次取本页所有报表的行状态,在内存里聚合
-    const ids = rows.map((r) => r.id)
-    const { data: lineRows } = ids.length
-        ? await supabase
-              .from('bank_statement_lines')
-              .select('statement_id, match_status')
-              .in('statement_id', ids)
-        : { data: [] as { statement_id: string; match_status: string }[] }
-
-    type Counts = { total: number; matched: number; unmatched: number; ignored: number }
-    const countsById = new Map<string, Counts>()
-    for (const l of lineRows ?? []) {
-        const c = countsById.get(l.statement_id) ?? { total: 0, matched: 0, unmatched: 0, ignored: 0 }
-        c.total += 1
-        if (l.match_status === 'matched') c.matched += 1
-        else if (l.match_status === 'ignored') c.ignored += 1
-        else c.unmatched += 1
-        countsById.set(l.statement_id, c)
-    }
-    const zero: Counts = { total: 0, matched: 0, unmatched: 0, ignored: 0 }
-
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
         if (account) params.set('account', account)
@@ -121,23 +77,7 @@ export default async function BankStatementsPage({
         return `/finance/bank/statements?${params.toString()}`
     }
 
-    const tableRows: StatementRow[] = rows.map((r) => {
-        const c = countsById.get(r.id) ?? zero
-        return {
-            id: r.id,
-            code: r.code,
-            bankAccountCode: r.bank_account_code,
-            period: `${r.period_start} – ${r.period_end}`,
-            opening: r.opening_balance,
-            closing: r.closing_balance,
-            currency: r.currency,
-            lineTotal: c.total,
-            matched: c.matched,
-            unmatched: c.unmatched,
-            ignored: c.ignored,
-            status: r.status,
-        }
-    })
+    const tableRows: StatementRow[] = await shapeStatementRows(supabase, statements ?? [])
 
     // AUDIT-TRAIL-1c-3:删掉的对账单 —— 只给持 data.view_deleted 的人读(与它那一页的门同一个码)
     const canDeleted = await can('data.view_deleted')
@@ -163,7 +103,7 @@ export default async function BankStatementsPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <StatementsTable rows={tableRows} empty={t('bank.empty')} />
+            <StatementsTable rows={tableRows} empty={t('bank.empty')} exportHref={statementExportHref(params)} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

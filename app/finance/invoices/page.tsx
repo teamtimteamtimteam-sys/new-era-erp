@@ -10,15 +10,17 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { parseDateRange } from '@/lib/dateFilter'
-import { getBaseCurrency } from '@/lib/currency'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { fetchAllPages } from '@/lib/export/serverRows'
+import {
+    parseInvoiceListParams, issuedCount, issuedPage, voidCount, voidPage, shapeInvoiceRows, invoiceExportHref,
+    type InvoiceDbRow,
+} from './invoiceRows'
 import InvoicesToolbar from './InvoicesToolbar'
 import InvoicesTable, { type InvoiceRow } from './InvoicesTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 const PAGE_SIZE = 20
 
@@ -27,28 +29,11 @@ function parsePage(value: string | undefined): number {
     return Number.isInteger(n) && n >= 1 ? n : 1
 }
 
-type Row = {
-    invoice_id: string
-    code: string
-    kind: string | null
-    customer_name: string | null
-    issue_date: string
-    due_date: string
-    total_base: number
-    settled_base: number | null
-    open_base: number | null
-    payment_state: string | null
-    days_overdue: number | null
-    overdue: boolean
-    is_void: boolean
-}
-
 export default async function InvoicesPage({
     searchParams,
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string; state?: string; status?: string; page?: string }>
 }) {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -56,106 +41,33 @@ export default async function InvoicesPage({
 
     const sp = await searchParams
     const supabase = await createClient()
-    // 合计/已收/未收三列的列头都不写币种(「合计」「已收」「未收」)—— 数字自己带(CCY-1)
-    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const { dateFrom, dateTo } = parseDateRange(sp)
-    const state = ['unpaid', 'partial', 'paid', 'overdue'].includes(sp.state ?? '') ? sp.state! : ''
-    const status = sp.status === 'void' || sp.status === 'all' ? sp.status : 'issued'
+    // TABLE-EXPORT-2a:读取与「库里的行 → 表的行」搬进 invoiceRows.ts,与导出路由共用一份。
+    const params = parseInvoiceListParams(sp)
+    const { dateFrom, dateTo, state, status } = params
     const requestedPage = parsePage(sp.page)
 
-    interface Chain {
-        gte(c: string, v: string): Chain
-        lte(c: string, v: string): Chain
-        eq(c: string, v: string | boolean): Chain
-        gt(c: string, v: number): Chain
-    }
-    const applyDates = <T,>(query: T): T => {
-        let chain = query as unknown as Chain
-        if (dateFrom) chain = chain.gte('issue_date', dateFrom)
-        if (dateTo) chain = chain.lte('issue_date', dateTo)
-        return chain as unknown as T
-    }
-
-    let rows: Row[] = []
+    let rows: InvoiceDbRow[] = []
     let total = 0
     let page = 1
     let totalPages = 1
 
     if (status === 'void') {
         // 只看作废:invoice_status 里没有它们,直接查本表
-        const { count } = await applyDates(
-            supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'void')
-        )
-        total = count ?? 0
+        total = mustCount(await voidCount(supabase, params), 'invoices void count')
         totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
         page = Math.min(requestedPage, totalPages)
-        const { data } = await applyDates(
-            supabase
-                .from('invoices_masked')
-                .select('id, code, customer_id, issue_date, due_date, total_base, customers(legal_name)')
-                .eq('status', 'void')
-        )
-            .order('issue_date', { ascending: false })
-            .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
-        rows = ((data as unknown as { id: string; code: string; kind: string | null; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
-            invoice_id: i.id,
-            code: i.code,
-            kind: i.kind,
-            customer_name: i.customers?.legal_name ?? null,
-            issue_date: formatDate(i.issue_date, locale),
-            due_date: formatDate(i.due_date, locale),
-            total_base: i.total_base,
-            settled_base: null,
-            open_base: null,
-            payment_state: null,
-            days_overdue: null,
-            overdue: false,
-            is_void: true,
-        }))
+        rows = mustRows(await voidPage(supabase, params, (page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1), 'invoices void')
     } else {
-        const applyState = <T,>(query: T): T => {
-            let chain = applyDates(query) as unknown as Chain
-            if (state === 'overdue') chain = chain.eq('overdue', true)
-            else if (state) chain = chain.eq('payment_state', state)
-            return chain as unknown as T
-        }
-
-        const { count } = await applyState(
-            supabase.from('invoice_status').select('invoice_id', { count: 'exact', head: true })
-        )
-        total = count ?? 0
+        total = mustCount(await issuedCount(supabase, params), 'invoice_status count')
         totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
         page = Math.min(requestedPage, totalPages)
-        const { data } = await applyState(supabase.from('invoice_status').select('*'))
-            .order('issue_date', { ascending: false })
-            .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
-        rows = ((data as unknown as Omit<Row, 'is_void'>[] | null) ?? []).map((r) => ({ ...r, is_void: false }))
+        rows = mustRows(await issuedPage(supabase, params, (page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1), 'invoice_status')
 
         // status='all' 时把作废的补在后面(它们没有结算数字)
         if (status === 'all') {
-            const { data: voids } = await applyDates(
-                supabase
-                    .from('invoices_masked')
-                    .select('id, code, kind, issue_date, due_date, total_base, customers(legal_name)')
-                    .eq('status', 'void')
-            ).order('issue_date', { ascending: false })
-            const voidRows = ((voids as unknown as { id: string; code: string; kind: string | null; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
-                invoice_id: i.id,
-                code: i.code,
-                kind: i.kind,
-                customer_name: i.customers?.legal_name ?? null,
-                issue_date: formatDate(i.issue_date, locale),
-                due_date: formatDate(i.due_date, locale),
-                total_base: i.total_base,
-                settled_base: null,
-                open_base: null,
-                payment_state: null,
-                days_overdue: null,
-                overdue: false,
-                is_void: true,
-            }))
+            const voidRows = await fetchAllPages((from, to) => voidPage(supabase, params, from, to), 'invoices void (all)')
             rows = [...rows, ...voidRows]
             total += voidRows.length
         }
@@ -171,22 +83,7 @@ export default async function InvoicesPage({
         return `/finance/invoices?${params.toString()}`
     }
 
-    const tableRows: InvoiceRow[] = rows.map((r) => ({
-        invoiceId: r.invoice_id,
-        code: r.code,
-        kind: r.kind,
-        customerName: r.customer_name,
-        issueDate: formatDate(r.issue_date, locale),
-        dueDate: formatDate(r.due_date, locale),
-        daysOverdue: r.days_overdue,
-        overdue: r.overdue,
-        totalBase: r.total_base,
-        settledBase: r.settled_base,
-        openBase: r.open_base,
-        paymentState: r.payment_state,
-        isVoid: r.is_void,
-        baseCurrency,
-    }))
+    const tableRows: InvoiceRow[] = await shapeInvoiceRows(rows)
 
     return (
         <ListPage
@@ -204,7 +101,7 @@ export default async function InvoicesPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <InvoicesTable rows={tableRows} empty={t('invoice.empty')} />
+            <InvoicesTable rows={tableRows} empty={t('invoice.empty')} exportHref={invoiceExportHref(params)} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

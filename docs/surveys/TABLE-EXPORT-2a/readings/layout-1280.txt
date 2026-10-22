@@ -1,0 +1,46 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 65d411c6-16e5-4afc-a272-e1434115cdc1
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/22] 13s  ovf=0 clip=0 /finance/assets
+  [  2/22] 27s  ovf=0 clip=0 /finance/bank
+  [  3/22] 38s  ovf=0 clip=0 /finance/bank/statements
+  [  4/22] 48s  ovf=0 clip=0 /finance/cash-forecast
+  [  5/22] 63s  ovf=0 clip=0 /finance/claims
+  [  6/22] 72s  ovf=0 clip=0 /finance/close
+  [  7/22] 79s  ovf=0 clip=0 /finance/credit-notes
+  [  8/22] 88s  ovf=0 clip=0 /finance/expenses
+  [  9/22] 96s  ovf=0 clip=0 /finance/freight
+  [ 10/22] 121s  ovf=0 clip=0 /finance/fx
+  [ 11/22] 127s  ovf=0 clip=0 /finance/gst
+  [ 12/22] 137s  ovf=0 clip=0 /finance/invoices
+  [ 13/22] 150s  ovf=0 clip=0 /finance/journal
+  [ 14/22] 157s  ovf=0 clip=0 /finance/packs
+  [ 15/22] 165s  ovf=0 clip=0 /finance/payment-requests
+  [ 16/22] 172s  ovf=0 clip=0 /finance/payments
+  [ 17/22] 189s  ovf=0 clip=0 /finance/payroll-payments
+  [ 18/22] 199s  ovf=0 clip=0 /finance/price-exposure
+  [ 19/22] 207s  ovf=0 clip=0 /finance/self-approved
+  [ 20/22] 219s  ovf=0 clip=0 /finance/supplier-statements
+  [ 21/22] 229s  ovf=0 clip=0 /finance/wht
+  [ 22/22] 236s  ovf=0 clip=0 /hr/payroll
+
+════ 1280px SURVEY ════
+measured: 22  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       22 / 22
+U2 no clipped ledger:                 22 / 22
+USABLE (U1 AND U2):                   22 / 22
+
+pages FAILING U1 (page overflows): 0
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 22 / 22  median per page: 21
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/viewport-1280.json
+· cleaned up ephemeral survey account(s)
+SURVEY1280_OWN_EXIT=0

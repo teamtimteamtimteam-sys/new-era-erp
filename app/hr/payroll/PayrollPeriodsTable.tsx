@@ -47,7 +47,10 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
             render: (r) => (
                 <>
                     <Link href={`/hr/payroll/${r.id}`} className="hover:underline app-link">
-                        {r.periodMonth?.slice(0, 7)}
+                        {/* ★ TABLE-EXPORT-2a(Tim 2026-10-22 Q9):这里从前是 `.slice(0, 7)` —— 为 `YYYY-MM` 写的,而 periodMonth 是
+                            formatMonth 的【显示用的字】:英文「Sep 2026」被切成「Sep 202」,中文十到十二月「2026年10月」被切成「2026年10」。
+                            显示用的字就照原样显示(lib/dates.ts「显示用的日期被当成数据」)。 */}
+                        {r.periodMonth}
                     </Link>
                     <span className="text-gray-400 ml-2 text-xs">{r.code}</span>
                 </>

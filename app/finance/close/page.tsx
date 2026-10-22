@@ -118,6 +118,11 @@ export default async function ClosePage({
         credits: formatAmount(c.total_credits, baseCurrency),
         reopened: !!c.reopened_at,
         reopenReason: c.reopen_reason,
+        periodEndRaw: c.period_end,
+        closedAtRaw: c.closed_at,
+        debitsAmt: c.total_debits,
+        creditsAmt: c.total_credits,
+        baseCurrency,
     }))
     const activeCloses = new Set(closes.filter((c) => !c.reopened_at).map((c) => c.period_end))
 
@@ -209,6 +214,7 @@ export default async function ClosePage({
         baseCurrency,
         reopened: !!c.reopened_at,
         reopenReason: c.reopen_reason,
+        yearEndRaw: c.year_end,
     }))
 
     return (

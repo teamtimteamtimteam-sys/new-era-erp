@@ -1390,6 +1390,14 @@ const en = {
             aboutByUnknown: 'Could not be read (the sign-in check did not answer)',
             aboutAt: 'Exported at (Singapore time)',
             aboutLanguage: 'Language',
+            // TABLE-EXPORT-2a:屏幕上只用整行淡出 / 划线表示的状态,导出时写在那一行的身份格里(一格一个值,而列只有表的列 —— Q11)
+            rowInactive: 'inactive',
+            rowReversed: 'reversed',
+            rowSuperseded: 'superseded',
+            rowReopened: 'reopened',
+            rowVoid: 'void',
+            // TABLE-EXPORT-2a(Tim 2026-10-22 Q2):一张只读前 N 行的表,说出来
+            capNotice: 'Showing the first {shown} of {total} — narrow the filters or export.',
         },
         columns: 'Columns {shown}/{total}',
         // 报量,不报警:排序看得见全体 —— 这一句解释的正是【为什么第一页就是全体的前 N 名】。

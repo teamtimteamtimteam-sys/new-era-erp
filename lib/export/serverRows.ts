@@ -72,3 +72,47 @@ export async function exportRowsResponse<D, R>(o: {
 export function exportDenied(): Response {
     return Response.json({ code: 'EXPORT_DENIED' }, { status: 403 })
 }
+
+/**
+ * TABLE-EXPORT-2a:按 id 反查(名字、合计之类)时分批问 —— 页面一次只有 20 个 id,导出一次可以有几万个,
+ * 而 `.in('id', ids)` 是写进 URL 的:几百个 uuid 就会撞上地址长度。每批 IN_CHUNK 个,逐批问,出错就抛(不读成空)。
+ */
+export const IN_CHUNK = 100
+export async function inChunks<R>(
+    ids: readonly string[],
+    ask: (chunk: string[]) => PromiseLike<PageResult<R>>,
+    label: string,
+): Promise<R[]> {
+    const out: R[] = []
+    const uniq = [...new Set(ids)]
+    for (let i = 0; i < uniq.length; i += IN_CHUNK) {
+        const { data, error } = await ask(uniq.slice(i, i + IN_CHUNK))
+        if (error) throw new Error(`EXPORT_READ_FAILED|${label}|${error.message}`)
+        if (!data) throw new Error(`EXPORT_READ_FAILED|${label}|no data and no error`)
+        out.push(...data)
+    }
+    return out
+}
+
+/**
+ * TABLE-EXPORT-2a:一张表的行来自【几条读取】首尾相接(发票列表筛「全部」:在册的 invoice_status + 作废的 invoices_masked)。
+ * 与 exportRowsResponse 同一套规矩 —— 先把几条各数一遍,合计超过上限就按名拒绝(Q8);否则每一条各自翻页取全,
+ * 按给定的次序接起来,再交给同一个映射。
+ */
+export async function exportUnionResponse<D, R>(o: {
+    label: string
+    sources: ReadonlyArray<{
+        count: () => Promise<number>
+        page: (from: number, to: number) => PromiseLike<PageResult<D>>
+    }>
+    shape: (rows: D[]) => R[] | Promise<R[]>
+}): Promise<Response> {
+    const counts = await Promise.all(o.sources.map((s) => s.count()))
+    const n = counts.reduce((a, b) => a + b, 0)
+    if (n > EXPORT_CAP) {
+        return Response.json({ code: 'EXPORT_TOO_MANY_ROWS', count: n, cap: EXPORT_CAP }, { status: 413 })
+    }
+    const raw: D[] = []
+    for (const [i, s] of o.sources.entries()) raw.push(...(await fetchAllPages(s.page, `${o.label}#${i}`, EXPORT_CAP)))
+    return Response.json({ rows: await o.shape(raw) })
+}

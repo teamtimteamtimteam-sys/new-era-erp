@@ -83,6 +83,9 @@ export default async function SelfApprovedPage() {
         amountRestricted: r.amount_ccy === null && healthHidden(r),
         note: r.note ?? '',
         noteRestricted: r.note === null && healthHidden(r),
+        decidedAtRaw: r.decided_at,
+        amountCcy: r.amount_ccy,
+        currency: r.currency,
     }))
 
     return (

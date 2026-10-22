@@ -1813,6 +1813,21 @@ paragraph used to list and closed two of them:**
 ⚠ **这【不】意味着可以随手改线上** —— 备份闸、破窗、还原,规矩一条不减:
 测试数据也是 Tim 在用的那个系统的状态。变的只是**那些数字读起来是什么意思**。
 
+## ★★ 两张已签发的 COD —— 字节基线【只记在这里】(TABLE-EXPORT-2,2026-10-22)
+
+**每一刀的线上安全规矩里都有一条「两张已签发的 COD 逐字节不变」。比对的对象就是下面这两行,不是别的报告里的缩写。**
+量法:`node docs/surveys/MES-8a/cod-bytes.mjs`(Storage API 只读:列目录 + GET 下载,算存储对象本身的 sha256 与字节数,
+并与 `cod_issues.sha256` 并排印出)。来源:MES-8a 交回 `docs/handbacks/MES-8a.md:30` 的缩写;TABLE-EXPORT-2 Part 1
+(2026-10-22)重量一次,两份都与缩写的首尾和字节数一致、与 `cod_issues.sha256` 一致,于是把【完整】摘要记在这里。
+
+| COD | 存储对象 | 字节 | sha256 |
+|---|---|---|---|
+| COD-2026-0001 | `cod-documents/1b908c86-e368-485d-b89b-843e86a63a25/e7126939-405b-4b2f-a80a-db6d1781aee5.pdf` | 34,701 | `ba299a4f3488fc543cdd1f410fabf6523434d39caa0dc58d6f376309c1f42101` |
+| COD-2026-0002 | `cod-documents/a04fd63f-7e0b-48a6-b51d-b96aabfdad98/c75e4b9c-1ad0-4ab1-8365-0e291654cc35.pdf` | 34,746 | `717661f6a8166b5f9342324586208e21f29c217aa5d3c047b009e00f2513a4f9` |
+
+☞ **任何一刀读出来与这两行有一个字节不同:停下来报告,不要「顺手」改这张表。** 只有一次有意的重新签发(Tim 裁定过的)才改它,
+并在同一个提交里写明为什么。
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and

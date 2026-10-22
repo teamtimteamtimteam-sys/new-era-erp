@@ -14,11 +14,11 @@ import FxRatesTable, { type FxRateRow } from './FxRatesTable'
 import {
     parseFxListParams,
     parseFxPage,
-    applyFxFilters,
     FX_PAGE_SIZE,
 } from './fxQuery'
+import { fxCount, fxPage, shapeFxRows, fxExportHref } from './fxRows'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -27,16 +27,6 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
-
-type FxRow = {
-    id: string
-    currency: string
-    rate_type: string
-    rate_sgd_per_unit: number
-    rate_date: string
-    source: string
-    notes: string | null
-}
 
 export default async function FxRatesPage({
     searchParams,
@@ -64,26 +54,19 @@ export default async function FxRatesPage({
     const filterParams = { currency, sort, dir }
 
     // 1) 匹配总数 + 可选币种(非 SGD;并行)
-    const [{ count }, currenciesRes] = await Promise.all([
-        applyFxFilters(
-            supabase.from('fx_rates').select('id', { count: 'exact', head: true }),
-            filterParams
-        ),
+    // TABLE-EXPORT-2a:读取与映射在 fxRows.ts 里,与导出路由共用一份;总数数不出来就失败(mustCount)。
+    const [total, currenciesRes] = await Promise.all([
+        fxCount(supabase, filterParams).then((r) => mustCount(r, 'fx_rates count')),
         supabase.from('currencies').select('code').eq('is_base', false).order('code'),
     ])
 
-    const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / FX_PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * FX_PAGE_SIZE
     const to = from + FX_PAGE_SIZE - 1
 
     // 2) 取当前页的行
-    const { data, error } = await applyFxFilters(
-        supabase.from('fx_rates').select('id, currency, rate_type, rate_sgd_per_unit, rate_date, source, notes'),
-        filterParams
-    ).range(from, to)
-    const rows = data as unknown as FxRow[] | null
+    const { data: rows, error } = await fxPage(supabase, filterParams, from, to)
     const currencyOptions = (mustRows(currenciesRes)).map((c) => c.code)
 
     // 缺牌价的日子 —— 牌价是日课,漏一天可能永远补不回。
@@ -169,15 +152,7 @@ export default async function FxRatesPage({
         )
     }
 
-    const tableRows: FxRateRow[] = (rows ?? []).map((r) => ({
-        id: r.id,
-        currency: r.currency,
-        rateType: r.rate_type,
-        rateSgdPerUnit: r.rate_sgd_per_unit,
-        rateDate: formatDate(r.rate_date, locale),
-        source: r.source,
-        notes: r.notes,
-    }))
+    const tableRows: FxRateRow[] = await shapeFxRows(rows ?? [])
 
     // AUDIT-TRAIL-1c-3:撤回了的汇率(清单的过滤把它们挡在外面 —— fxQuery.ts 的 applyFxFilters)
     const withdrawn = mustRows(await supabase.from('fx_rates').select('id, currency, rate_type, rate_date')
@@ -288,6 +263,7 @@ export default async function FxRatesPage({
                 currency={currency}
                 shown={tableRows.length}
                 total={total}
+                exportHref={fxExportHref(filterParams)}
             />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}

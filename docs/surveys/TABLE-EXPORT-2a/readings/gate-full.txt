@@ -1,0 +1,380 @@
+== platform substrate: absent (bare postgres)
+== prelude: db/platform-prelude.sql
+== database settings: db/database-settings.sql
+== replay db/functions (964 files)
+== replay db/tables (326 files)
+== replay db/views (200 files)
+
+REBUILD OK - db/platform-prelude.sql is SUFFICIENT for the current mirror set.
+
+== comparing the rebuilt database against live
+
+== invariants (checked against BOTH live and the rebuild)
+   live     B1 anon-executable: 0   B2 definer-unchecked-and-callable: 0
+   rebuild  B1 anon-executable: 0   B2 definer-unchecked-and-callable: 0
+   allowlisted: B1 2, B2 17 (approvals_enabled, claim_receipt_limits, cod_verification, contract_terms_lock_reason, current_user_employee, current_user_permissions, export_my_personal_data, has_permission, ingest_submit, journal_entry_reversal_route, payroll_period_frozen, period_close_floor, portal_actor_labels, receipt_price_open, review_approval_code, session_is_floor_display_only, storage_licence_in_force)
+
+NO DIFFERENCES — the rebuild matches live ✓
+storage    db/storage/buckets-and-policies.sql 装进了重建库旁的 storage 桩 ✓
+
+== seeds / bootstrap / integrity / definer(对本地重建;线上只拉小表)
+seed:permissions  live  86  mirrored  86  drifted 0
+seed:currencies   live   3  mirrored   3  drifted 0
+seed:document_types live  63  mirrored  63  drifted 0
+seed:tax_codes    live   9  mirrored   9  drifted 0
+seed:tax_rates    live  13  mirrored  13  drifted 0
+seed:wht_natures  live   7  mirrored   7  drifted 0
+seed:wht_rates    live   7  mirrored   7  drifted 0
+seed:positions    live   6  mirrored   6  drifted 0
+seed:kpi_organisation live   5  mirrored   5  drifted 0
+seed:kpi_position_templates live  30  mirrored  30  drifted 0
+seed:kpi_template_org_links live  41  mirrored  41  drifted 0
+seed:operation_kinds live   2  mirrored   2  drifted 0
+seed:output_batch_states live   3  mirrored   3  drifted 0
+seed:ingest_data_classes live   9  mirrored   9  drifted 0
+seed:accounts     live  37  mirrored  37  drifted 0
+bootstrap  全部 > 0 ✓
+chart      equity 2  non-system bootstrap 22  ✓
+integrity  unresolved 0 ✓
+colgrant   live: 526 个关系 · 14 批 · 40 张列清单授权表,无缺口 ✓
+colgrant   rebuild: 526 个关系 · 14 批 · 40 张列清单授权表,无缺口 ✓
+colreader  live: 无 invoker 视图读被收回的列 ✓
+colreader  rebuild: 无 invoker 视图读被收回的列 ✓
+xmodule    live: 8 个 invoker 视图 / 12 条基表依赖,无跨模块 ✓
+xmodule    rebuild: 8 个 invoker 视图 / 12 条基表依赖,无跨模块 ✓
+viewwrite  live: 198 张视图,没有一张对 anon / authenticated 可写 ✓
+viewwrite  rebuild: 198 张视图,没有一张对 anon / authenticated 可写 ✓(自证咬人 ✓)
+changelog  live: 328 张表 · 319 张记录 · 9 张豁免,零缺口 ✓
+changemask live: 39 张遮蔽表 / 119 列,遮蔽名单零缺口 ✓
+changelog  rebuild: 328 张表 · 319 张记录 · 9 张豁免,零缺口 ✓
+changemask rebuild: 39 张遮蔽表 / 119 列,遮蔽名单零缺口 ✓
+swallow    无吞错 ✓
+types      lib/database.types.ts 与线上一致 ✓
+guc        库级 GUC 一致 ✓ (allowlisted 1)
+currency   无写死 ✓
+fixture   01-settlement-closes-to-zero.sql             ✓
+fixture   02-revaluation-idempotent.sql                ✓
+fixture   03-confirmation-touches-no-leave.sql         ✓
+fixture   04-accrual-not-retroactive.sql               ✓
+fixture   05-payroll-one-line-per-employee.sql         ✓
+fixture   06-realised-vs-unrealised-accounts.sql       ✓
+fixture   07-locked-period-refuses.sql                 ✓
+fixture   08-over-allocation-refused.sql               ✓
+fixture   09-fx-reach-back-bounded.sql                 ✓
+fixture   10-holiday-alert-covers-fresh-install.sql    ✓
+fixture   100-a-freight-payable-can-actually-be-paid.sql ✓
+fixture   100-a-receiving-clerk-can-name-what-he-receives.sql ✓
+fixture   100-every-document-code-still-mints-identically.sql ✓
+fixture   101-a-declared-module-gate-is-the-one-the-policy-calls.sql ✓
+fixture   101-export-freight-is-an-expense-and-stays-out-of-inventory.sql ✓
+fixture   102-a-code-bearing-table-is-registered-or-excepted.sql ✓
+fixture   102-logistics-alerts-are-arms-that-recompute.sql ✓
+fixture   103-a-purchase-order-can-carry-a-machine.sql ✓
+fixture   103-a-voided-bridge-does-not-void-a-real-relation.sql ✓
+fixture   104-a-deposit-knows-its-own-currency.sql     ✓
+fixture   105-an-equipment-line-is-expensed-once.sql   ✓
+fixture   106-reversing-a-capital-expense-undoes-its-cost.sql ✓
+fixture   107-how-an-asset-card-comes-into-existence.sql ✓
+fixture   108-what-the-machine-did.sql                 ✓
+fixture   109-maintenance-and-repair-records.sql       ✓
+fixture   11-carry-forward-respects-system-start.sql   ✓
+fixture   110-the-pickers-read-the-masked-view.sql     ✓
+fixture   111-a-service-interval-is-due-and-a-baseline-is-not-a-zero.sql ✓
+fixture   112-a-material-kind-is-data-and-the-gate-reads-it.sql ✓
+fixture   113-five-axes-that-are-data-and-two-that-are-not-yet-gates.sql ✓
+fixture   114-capture-at-the-gate-and-a-set-that-survives-a-failure.sql ✓
+fixture   115-what-may-be-fed.sql                      ✓
+fixture   116-the-metal-list-is-a-dictionary.sql       ✓
+fixture   117-chemistry-and-laboratory-are-dictionaries.sql ✓
+fixture   118-what-basis-and-whose-result.sql          ✓
+fixture   119-the-substances-dictionary-is-alive.sql   ✓
+fixture   12-medical-limit-respects-system-start.sql   ✓
+fixture   120-a-thing-that-happened-cannot-happen-tomorrow.sql ✓
+fixture   121-the-dictionaries-have-a-door.sql         ✓
+fixture   122-what-the-period-lock-actually-locks.sql  ✓
+fixture   123-a-company-is-not-its-name.sql            ✓
+fixture   124-an-imported-code-does-not-collide-with-the-next-one.sql ✓
+fixture   125-a-file-filled-exactly-as-the-template-says-is-accepted.sql ✓
+fixture   126-a-person-who-left-long-enough-ago-stops-being-a-person-in-the-database.sql ✓
+fixture   127-one-rule-two-questions-and-a-switch-that-cannot-strand.sql ✓
+fixture   128-a-tax-code-is-not-a-rate-and-a-filed-return-is-a-record.sql ✓
+fixture   129-the-supply-is-reported-in-the-invoice-period.sql ✓
+fixture   13-two-date-bounds-intersect.sql             ✓
+fixture   130-a-switch-that-can-be-reached-and-cannot-strand.sql ✓
+fixture   131-a-statement-cannot-be-reconciled-while-the-bank-and-the-books-disagree.sql ✓
+fixture   132-the-book-balance-counts-both-sides-of-a-reversal-and-a-reconciliation-is-a-record.sql ✓
+fixture   133-revaluation-counts-both-sides-of-a-reversal-and-reclaims-a-prior-period.sql ✓
+fixture   134-a-rate-has-one-write-path-a-history-and-a-month-end-that-can-be-seen.sql ✓
+fixture   135-an-ageing-as-at-a-date-is-not-todays-ageing-with-a-different-heading.sql ✓
+fixture   136-the-probation-review-can-be-started-from-inside-the-product.sql ✓
+fixture   137-a-statement-is-frozen-at-issue-and-ties-to-the-ageing.sql ✓
+fixture   138-a-chase-is-a-fact-about-the-past-and-a-promise-can-be-cleared.sql ✓
+fixture   139-a-forecast-says-which-numbers-you-can-lean-on.sql ✓
+fixture   14-unallocated-is-payment-currency.sql       ✓
+fixture   140-a-claim-is-a-request-then-a-decision-then-a-debt.sql ✓
+fixture   141-a-month-of-attendance-is-an-assertion-that-payroll-stands-on.sql ✓
+fixture   142-the-payable-closes-in-full-while-the-bank-moves-by-the-net.sql ✓
+fixture   143-a-pack-is-a-document-and-its-tie-out-can-move.sql ✓
+fixture   144-a-machine-in-service-can-take-cost-and-the-past-stays-put.sql ✓
+fixture   145-a-counterparty-has-people-and-may-sit-on-both-sides.sql ✓
+fixture   146-a-kpi-is-copied-onto-a-person-and-the-past-stays-put.sql ✓
+fixture   147-a-document-copies-the-terms-in-force-and-the-contract-can-change-after.sql ✓
+fixture   148-a-quotational-period-average-refuses-a-missing-trading-day.sql ✓
+fixture   149-settlement-refuses-an-unstated-weight-basis-and-wet-differs-from-dry.sql ✓
+fixture   15-current-date-is-singapore-today.sql       ✓
+fixture   150-a-commission-names-when-it-is-owed-and-exposure-says-what-it-cannot-see.sql ✓
+fixture   151-both-levels-point-at-a-role-and-a-revoked-grant-is-not-a-holder.sql ✓
+fixture   152-an-unset-limit-refuses-to-judge-and-an-import-needs-a-human-check.sql ✓
+fixture   153-losses-are-three-things-not-one-number.sql ✓
+fixture   154-three-refusals-that-never-sound-alike.sql ✓
+fixture   155-a-form-must-answer-whether-it-may-be-sold.sql ✓
+fixture   156-a-sales-axis-still-answers-only-the-sales-question.sql ✓
+fixture   157-a-fourth-refusal-that-does-not-say-it-may-not-be-sold.sql ✓
+fixture   158-deep-discharge-can-actually-run.sql      ✓
+fixture   159-a-fire-gate-may-only-be-narrowed-per-operation.sql ✓
+fixture   16-fixed-assets-straight-line.sql            ✓
+fixture   160-a-discharge-leaves-its-cost-on-the-batch-and-a-rollback-takes-it-back.sql ✓
+fixture   161-a-write-off-relieves-the-whole-landed-cost-and-a-recount-nets-to-zero.sql ✓
+fixture   162-a-transforming-rollback-takes-back-its-capitalisation-and-its-deltas.sql ✓
+fixture   163-a-freight-reader-says-restricted-not-zero-and-a-narrow-whitelist-poisons-the-sum.sql ✓
+fixture   164-an-assertion-that-cannot-see-refuses-by-name.sql ✓
+fixture   165-a-self-produced-batch-answers-the-same-safety-question.sql ✓
+fixture   166-work-in-progress-is-visible-and-counted-once.sql ✓
+fixture   167-a-state-changing-run-has-no-output-to-measure.sql ✓
+fixture   168-the-purchase-time-judgement-does-not-block-a-receipt.sql ✓
+fixture   169-a-missing-side-is-null-and-not-assessed-is-not-unset.sql ✓
+fixture   17-year-end-close.sql                        ✓
+fixture   170-a-batch-promised-to-a-customer-refuses-the-earmark.sql ✓
+fixture   171-the-mirror-still-refuses-and-a-partial-promise-refuses-the-whole-batch.sql ✓
+fixture   172-a-valuation-that-ties-and-two-dates-that-cannot-be-cleared.sql ✓
+fixture   173-a-view-owner-does-not-lend-you-execute.sql ✓
+fixture   174-a-restricted-reader-gets-a-name-not-a-smaller-number.sql ✓
+fixture   176-a-machine-is-never-assayed.sql           ✓
+fixture   177-retention-is-optional-derived-and-never-pays-itself.sql ✓
+fixture   178-an-operation-is-not-optional-and-four-gates-become-reachable.sql ✓
+fixture   179-an-expected-output-says-where-its-number-came-from.sql ✓
+fixture   18-allocation-delta-split.sql                ✓
+fixture   180-a-handover-is-signed-for-by-the-person-taking-over.sql ✓
+fixture   181-a-reversed-entry-shows-both-the-posting-and-its-reversal.sql ✓
+fixture   182-a-seam-the-trail-cannot-follow-is-named-on-the-row.sql ✓
+fixture   183-a-reader-who-cannot-see-a-module-is-told-so-not-shown-an-empty-section.sql ✓
+fixture   184-a-receipt-must-say-where-it-came-from.sql ✓
+fixture   185-logistics-has-its-own-door-and-the-people-who-handle-the-goods-can-open-it.sql ✓
+fixture   186-a-reporting-loop-is-refused-and-an-org-chart-reads-no-masked-column.sql ✓
+fixture   187-the-extracted-basis-conversion-is-the-same-arithmetic-it-replaced.sql ✓
+fixture   188-the-calendar-shows-a-reader-only-what-his-own-modules-already-show-him.sql ✓
+fixture   189-a-cancelled-order-lets-go-of-the-machine-it-never-bought.sql ✓
+fixture   19-reprocessing.sql                          ✓
+fixture   190-a-purchase-order-carries-tax-and-remembers-the-rate-it-used.sql ✓
+fixture   191-a-grant-belonging-to-nobody-cannot-stand-in-for-the-last-administrator.sql ✓
+fixture   192-a-role-without-edit-rights-is-refused-by-the-database-not-by-a-hidden-button.sql ✓
+fixture   193-a-gate-that-can-be-edited-afterwards-is-not-a-gate.sql ✓
+fixture   194-a-reader-is-told-what-is-withheld-not-shown-an-empty-screen.sql ✓
+fixture   195-a-certificate-that-cannot-lie-about-what-was-destroyed.sql ✓
+fixture   196-a-stranger-with-a-token-sees-one-certificate-and-nothing-else.sql ✓
+fixture   197-the-purchase-order-document-carries-a-contract-a-place-and-a-price-status.sql ✓
+fixture   198-a-refused-write-raises-and-the-self-assessment-still-works.sql ✓
+fixture   199-rows-and-counts-are-one-visibility-and-the-negative-control-proves-it.sql ✓
+fixture   20-po-price-provenance.sql                   ✓
+fixture   200-a-plan-may-be-in-the-future-and-a-stranger-may-not-set-it.sql ✓
+fixture   201-a-fixed-asset-remembers-who-changed-it.sql ✓
+fixture   202-the-approvals-switch-has-exactly-one-door.sql ✓
+fixture   203-nobody-approves-their-own-and-somebody-can-approve-at-all.sql ✓
+fixture   204-the-claim-the-count-and-the-edit-that-strands.sql ✓
+fixture   205-higher-decides-lower-the-flagged-self-and-somebody-other.sql ✓
+fixture   206-one-person-several-accounts-and-a-reader-who-reads.sql ✓
+fixture   207-your-own-personal-task-and-nothing-of-anyone-elses.sql ✓
+fixture   208-a-receipt-priced-at-creation-posts-like-one-priced-later.sql ✓
+fixture   209-the-matrix-moves-the-keys-and-nobody-is-left-without-a-decider.sql ✓
+fixture   21-pricing-terms-committed.sql               ✓
+fixture   210-money-leaves-only-after-approval.sql     ✓
+fixture   211-transfers-and-wht-leave-only-after-approval.sql ✓
+fixture   212-the-list-carries-what-the-ledger-posted.sql ✓
+fixture   213-the-list-and-the-ledger-agree-and-a-difference-has-a-name.sql ✓
+fixture   214-a-thing-that-happened-is-dated-no-later-than-today.sql ✓
+fixture   215-a-claim-amount-includes-its-gst.sql      ✓
+fixture   216-the-cfo-owns-settings-credit-and-supplier-approval.sql ✓
+fixture   217-contracts-prices-direct-sale-and-assay-change-hands.sql ✓
+fixture   218-payroll-posts-only-after-cfo-approval.sql ✓
+fixture   219-purchase-prices-are-their-own-code-and-only-finance-prices-a-receipt.sql ✓
+fixture   22-template-fixed-amount-currency.sql        ✓
+fixture   220-a-receipt-price-reaches-the-ledger-only-when-the-cfo-approves.sql ✓
+fixture   221-the-counter-never-posts-and-four-gaps-close.sql ✓
+fixture   222-the-warehouse-makes-and-finance-releases.sql ✓
+fixture   223-a-credit-note-and-a-void-wait-for-the-cfo.sql ✓
+fixture   224-the-cfo-releases-and-the-warehouse-ships.sql ✓
+fixture   225-a-manual-journal-waits-for-the-cfo-and-the-system-does-not.sql ✓
+fixture   226-a-write-off-a-rollback-and-a-cod-void-wait-for-the-cfo.sql ✓
+fixture   227-contract-terms-and-pricing-formulas-wait-for-the-cfo.sql ✓
+fixture   228-a-salary-change-and-a-disposal-wait-for-approval.sql ✓
+fixture   229-a-gst-return-and-a-purchase-order-category-wait-for-the-right-person.sql ✓
+fixture   23-cash-flow-statement.sql                   ✓
+fixture   230-a-contract-is-filled-in-before-it-asks-the-cfo.sql ✓
+fixture   231-an-employee-finds-sees-and-withdraws-their-own.sql ✓
+fixture   232-site-staff-overtime-by-month.sql         ✓
+fixture   233-leave-cannot-be-booked-beyond-the-balance-and-a-name-has-a-first-part.sql ✓
+fixture   234-every-change-is-recorded-with-who-and-what-it-was.sql ✓
+fixture   235-an-account-is-disabled-not-deleted-and-every-table-is-covered.sql ✓
+fixture   236-a-record-shows-its-own-trail-and-nothing-else.sql ✓
+fixture   237-the-trail-registry-reaches-up-admits-by-page-and-names-only-whom-you-may-see.sql ✓
+fixture   238-a-batch-trail-keeps-every-old-row-and-adds-the-missing-kinds.sql ✓
+fixture   239-commercial-audit-trails-quotes-orders-shipments-customers-suppliers-logistics.sql ✓
+fixture   24-accrual-respects-system-start.sql         ✓
+fixture   240-master-data-and-tool-trails-materials-locations-prices-formulas-tasks-thresholds.sql ✓
+fixture   241-ledger-document-trails-journals-invoices-payments-requests-expenses-payables.sql ✓
+fixture   242-document-and-contract-trails-sales-freight-assets-statements-gst-fx-packs-contracts.sql ✓
+fixture   243-period-end-settings-and-list-trails-lock-gst-company-year-close-requests-claims-transfers-wht-forecasts-mappings.sql ✓
+fixture   244-accounts-settings-and-employees-trails-m9-m12-q13-save-employee.sql ✓
+fixture   245-leave-and-time-trails-leave-claims-overtime-attendance-me.sql ✓
+fixture   246-pay-and-performance-trails-payroll-reviews-cycles-scale-kpi-q19.sql ✓
+fixture   247-pay-and-personal-data-follow-each-role.sql ✓
+fixture   248-workflow-doors-and-the-last-leaks.sql    ✓
+fixture   249-a-gateway-can-only-append-and-a-key-is-the-only-door.sql ✓
+fixture   25-movement-business-date.sql                ✓
+fixture   250-a-reading-is-a-draft-until-someone-confirms-it-and-a-calibration-decides-what-it-may-price.sql ✓
+fixture   251-a-receipt-meets-its-licence-ceiling-a-hazard-goes-to-quarantine-and-a-state-keeps-its-history.sql ✓
+fixture   252-a-label-is-recorded-before-it-prints-and-a-scan-says-only-what-you-may-see.sql ✓
+fixture   253-a-run-states-its-hours-weighs-its-outputs-and-closes-its-balance-in-writing.sql ✓
+fixture   254-a-cell-batch-says-how-it-is-built-a-product-gets-its-own-number-and-a-loss-says-how-it-was-known.sql ✓
+fixture   255-a-batch-is-discharged-when-every-module-says-so-and-a-failed-one-goes-to-quarantine.sql ✓
+fixture   256-a-meter-reads-a-register-a-run-gets-its-share-and-a-bill-posts-once.sql ✓
+fixture   257-every-kilogram-goes-somewhere-and-every-level-adds-up.sql ✓
+fixture   258-a-posted-bill-can-be-taken-back-and-a-settled-cost-stays-settled.sql ✓
+fixture   259-a-blend-is-planned-against-bounds-released-by-another-and-checked-by-assay.sql ✓
+fixture   26-cross-module-view-agrees.sql              ✓
+fixture   260-a-sample-says-whose-it-is-where-it-is-and-how-long-it-stays.sql ✓
+fixture   261-a-dispute-holds-the-price-names-the-result-and-a-reversal-says-why.sql ✓
+fixture   262-fluorine-is-recorded-and-penalised-never-priced-and-an-assay-carries-its-indicators.sql ✓
+fixture   263-a-quality-hold-is-an-open-ncr-decided-by-another-and-a-breach-opens-one.sql ✓
+fixture   264-a-certificate-of-analysis-states-the-governing-assay-and-is-voided-only-through-the-cfo.sql ✓
+fixture   265-a-stop-states-its-cause-equipment-is-recorded-through-functions-and-reliability-counts-the-union.sql ✓
+fixture   266-a-spare-part-is-issued-to-a-repair-at-landed-cost-and-comes-back-with-a-reason.sql ✓
+fixture   267-an-incident-is-recorded-once-reminds-nea-hides-injuries-and-links-the-batches-a-person-confirms.sql ✓
+fixture   268-an-inspection-is-recorded-once-a-finding-is-followed-to-closure-and-an-exceedance-opens-an-incident.sql ✓
+fixture   269-a-supplier-is-counted-a-review-copies-what-it-graded-and-a-grade-only-ever-warns.sql ✓
+fixture   27-one-module-permission-shows-one-module.sql ✓
+fixture   270-a-supplier-statement-ties-to-the-ledger-is-frozen-and-is-corrected-by-another.sql ✓
+fixture   271-an-incoming-batch-earns-through-what-is-made-and-sold-from-it-and-stock-is-valued-at-its-metals.sql ✓
+fixture   272-a-locked-month-freezes-into-a-compliance-pack-that-carries-no-injury-and-is-corrected-by-another.sql ✓
+fixture   273-a-wall-display-sees-only-counts-and-is-the-only-session-that-is-not-logged-out-when-idle.sql ✓
+fixture   274-a-session-with-no-role-reads-no-permission-table-price-ledger-or-stored-file.sql ✓
+fixture   275-a-supplier-portal-account-is-one-supplier-and-reaches-only-its-own-rows.sql ✓
+fixture   276-a-supplier-sees-its-own-issued-documents-and-deliveries-and-every-download-is-logged.sql ✓
+fixture   277-a-supplier-sends-a-certificate-that-changes-nothing-until-staff-accept-it.sql ✓
+fixture   278-the-change-history-reads-a-bulk-operation-in-bounded-pages-and-loses-no-row.sql ✓
+fixture   279-an-order-with-a-live-invoice-cannot-be-cancelled-and-a-short-shipment-closes-on-purpose.sql ✓
+fixture   28-pnl-excludes-year-close-balance-sheet-includes-it.sql ✓
+fixture   280-a-quote-status-moves-only-through-its-functions.sql ✓
+fixture   281-money-leaving-the-bank-is-dated-no-later-than-today-at-every-door.sql ✓
+fixture   282-a-month-does-not-close-over-an-unexplained-difference.sql ✓
+fixture   283-a-freight-reversal-is-dated-by-the-person-who-reverses-it.sql ✓
+fixture   284-the-chart-of-accounts-carries-the-fourteen-accounts-tim-ruled.sql ✓
+fixture   285-an-expense-is-a-header-and-lines-and-posts-once.sql ✓
+fixture   286-a-claim-is-a-header-and-items-and-becomes-one-expense.sql ✓
+fixture   287-a-claim-item-carries-its-own-receipts-uploaded-only-by-its-people-while-submitted.sql ✓
+fixture   288-a-payroll-payment-is-reversed-whole-through-the-cfo-and-the-period-can-be-paid-again.sql ✓
+fixture   289-a-payment-transfer-or-wht-remittance-matched-to-the-bank-is-not-reversed.sql ✓
+fixture   29-cash-flow-counts-both-legs-of-a-reversal.sql ✓
+fixture   290-leave-is-given-by-service-and-me-reads-every-quota-type-in-one-call.sql ✓
+fixture   291-a-special-export-does-not-stop-at-a-thousand-rows.sql ✓
+fixture   30-operations-now-per-arm-and-per-module.sql ✓
+fixture   31-batch-margin-null-not-zero-and-both-cogs-figures.sql ✓
+fixture   32-approval-log-appends-and-freezes.sql      ✓
+fixture   33-purchase-order-rate-required-never-parity.sql ✓
+fixture   34-allocation-basis-is-chosen-and-load-bearing.sql ✓
+fixture   35-purchase-order-approval-routes-and-gates.sql ✓
+fixture   36-po-document-terms-on-paper-and-issues-are-records.sql ✓
+fixture   37-certificate-disposition-is-data.sql       ✓
+fixture   38-sell-quote-converts-on-the-buy-side.sql   ✓
+fixture   39-credit-null-is-not-zero.sql               ✓
+fixture   40-preview-refuses-where-apply-refuses.sql   ✓
+fixture   41-absent-term-is-not-a-zero-term.sql        ✓
+fixture   42-invoice-bills-in-document-currency.sql    ✓
+fixture   43-unmeasured-metal-is-not-a-measured-zero.sql ✓
+fixture   44-ownerless-sale-and-the-first-sale-that-crosses.sql ✓
+fixture   45-two-module-arm-agrees-with-the-page.sql   ✓
+fixture   46-credit-status-says-the-numbers-or-says-restricted.sql ✓
+fixture   47-arm-item-id-points-at-the-right-table.sql ✓
+fixture   48-price-anomaly-warns-and-still-saves.sql   ✓
+fixture   49-two-index-series-and-the-terms-that-pick-one.sql ✓
+fixture   50-quote-currency-converts-at-the-quotes-own-date.sql ✓
+fixture   51-freight-lands-in-the-batch-and-the-forwarder-gets-the-credit.sql ✓
+fixture   52-purchase-order-amendment.sql              ✓
+fixture   53-unclassified-is-not-non-controlled.sql    ✓
+fixture   54-output-assays-record-shared-apply-split.sql ✓
+fixture   55-storage-location-master-data.sql          ✓
+fixture   56-stock-status-split-and-pairing.sql        ✓
+fixture   57-location-plumbing-transfer-and-drain.sql  ✓
+fixture   58-batch-creation-has-one-door.sql           ✓
+fixture   59-allowed-classes-refuses-only-a-decision.sql ✓
+fixture   60-safety-stock-alerts-on-a-decision.sql     ✓
+fixture   61-notifications-are-events-not-arms.sql     ✓
+fixture   62-report-views-share-one-predicate.sql      ✓
+fixture   63-sales-order-is-a-commitment.sql           ✓
+fixture   64-reservation-is-a-promise-with-a-bucket.sql ✓
+fixture   65-order-creation-has-one-door.sql           ✓
+fixture   66-a-sale-has-as-many-legs-as-it-has.sql     ✓
+fixture   67-order-invoice-posts-and-the-panel-agrees-with-the-gate.sql ✓
+fixture   68-shipment-turns-liability-into-revenue.sql ✓
+fixture   69-a-line-remembers-what-it-already-shipped.sql ✓
+fixture   70-amending-a-sales-order-names-what-holds-it.sql ✓
+fixture   71-a-credit-note-reduces-what-is-owed-and-nothing-else.sql ✓
+fixture   72-a-quote-becomes-an-order-without-editing-the-deal.sql ✓
+fixture   73-an-invoice-version-is-a-record-of-what-was-sent.sql ✓
+fixture   74-a-plan-can-be-changed-but-not-below-what-was-already-done.sql ✓
+fixture   75-the-seam-between-a-plan-and-what-actually-happened.sql ✓
+fixture   76-a-threshold-that-lives-in-config-is-read-not-remembered.sql ✓
+fixture   77-a-machine-accumulates-cost-until-it-is-commissioned.sql ✓
+fixture   78-a-login-link-that-points-at-nothing-is-refused.sql ✓
+fixture   79-two-thresholds-two-kinds-of-bad-news.sql  ✓
+fixture   80-the-lines-behind-a-figure-sum-to-that-figure.sql ✓
+fixture   81-a-gap-row-says-which-kind-and-counts-its-own-unit.sql ✓
+fixture   82-a-half-done-assay-is-not-a-done-assay.sql ✓
+fixture   83-a-traceability-report-carries-what-it-was-told.sql ✓
+fixture   84-hard-delete-refuses-by-name-not-by-accident.sql ✓
+fixture   85-a-deletion-records-who-and-why.sql        ✓
+fixture   86-a-deleted-record-says-who-and-why-or-says-it-does-not-know.sql ✓
+fixture   87-a-receiving-discrepancy-says-which-kind-and-reads-its-thresholds.sql ✓
+fixture   88-a-supplier-pattern-shows-its-denominator-and-what-it-could-not-judge.sql ✓
+fixture   89-a-vendor-we-never-receive-goods-from-is-not-a-supplier-missing-its-papers.sql ✓
+fixture   90-an-employee-can-be-owed-money-and-the-books-say-who.sql ✓
+fixture   91-a-quote-says-where-it-came-from.sql       ✓
+fixture   92-a-personal-task-is-private-and-a-team-task-is-not.sql ✓
+fixture   93-steps-keep-their-shape-their-order-and-the-record-of-their-removal.sql ✓
+fixture   94-a-task-can-become-a-team-task-but-draining-one-never-makes-it-private.sql ✓
+fixture   95-ownership-is-employee-space-and-privacy-is-in-force.sql ✓
+fixture   97-a-forwarder-is-a-supplier-in-the-books-and-nowhere-else.sql ✓
+fixture   98-a-container-carries-two-customers-and-changes-neither-order.sql ✓
+fixture   99-the-container-creation-door.sql           ✓
+fixture   scripts/check-pdf-routes.mjs                 ✓  check-pdf-routes:14 个样例 全绿 · 15 个故障格各自咬人
+fixture   live:265-the-certificate-codes-are-held-by-the-ruled-roles.sql ✓
+fixture   live:266-a-signed-in-session-without-a-role-sees-no-stored-file-and-every-bucket-judges-by-code.sql ✓
+definer    0 SECURITY DEFINER function(s) with no recognisable caller check  (137 allowlisted)
+   import-template  live     ✓ 模板与目录一致
+   import-template  rebuild  ✓ 模板与目录一致
+
+== 三个判词(wall-clock 956s)
+判词【可重建性】:✓ 仓库能从零建出库(prelude 足够,B1/B2 双侧断言见上)
+判词【镜像 vs 线上】:✓ 一致(结构、种子、引导、自洽、definer)
+判词【行为断言】:✓ db/fixtures 全部通过(建出来的库跑起来是对的)
+== db/check_grants.py —— anon 够得着什么(线上)
+      注入自检:✓ 两格都变红(基线打瞎 · 查询打瞎)
+      relation  universe 526(两条路一致)
+      function  universe 1032(两条路一致)
+      column    universe 7028(两条路一致)
+      bucket    universe 21(两条路一致)
+      anon 够得着:关系 325 · 函数 2 · 公开桶 0 · 列级 ACL 0
+      函数(逐个点名,这一格【应该很短】):cod_verification(text), ingest_submit(text,text,jsonb)
+   判词【匿名面】:✓ 线上是基线的子集(基线 327 条)
+== db/check_norole.py —— 判词七【无角色面】
+      rebuild relations 498 · policies 658 · functions 570 · views 171 · buckets 21 · items 126
+      live    relations 503 · policies 658 · functions 570 · views 171 · buckets 21 · items 126
+      storage mirror: 21 buckets · 58 policies compared with live
+      self-tests: probe · unreadable baseline · blinded query · removed baseline line — all bit
+   判词【无角色面】:✓ rebuild · live 都是基线的子集(基线 126 条,每条带理由)
+== db/check_portal.py —— 判词八【门户面】(supplier_portal 的权限 = 基线,逐条)
+      rebuild 42 privilege line(s) · universe relations 579 · functions 1032
+      live    42 privilege line(s) · universe relations 579 · functions 1032
+      self-tests: unreadable baseline · blinded query · probe grant · removed baseline line — all bit
+   判词【门户面】:✓ rebuild · live 的 supplier_portal 权限与基线逐条相等(基线 42 条,每条带理由)
+GATE_EXIT=0

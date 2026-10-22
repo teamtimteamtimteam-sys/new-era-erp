@@ -76,6 +76,8 @@ export default async function PacksPage({
         lockedBeforeAt: String(p.locked_before_at_production),
         supersededAt: p.superseded_at ? formatAuditStamp(p.superseded_at) : null,
         supersededReason: p.superseded_reason as string | null,
+        producedAtRaw: String(p.produced_at),
+        lockedBeforeRaw: p.locked_before_at_production ? String(p.locked_before_at_production) : null,
     }))
 
     return (

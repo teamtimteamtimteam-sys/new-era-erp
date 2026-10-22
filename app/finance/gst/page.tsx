@@ -70,6 +70,7 @@ export default async function GstPage() {
             : waiting.has(p.id) ? 'awaiting' : 'open',
         filedOn: p.filed_on ? formatDate(p.filed_on, locale) : null,
         filedReference: p.filed_reference,
+        filedOnRaw: p.filed_on,
     }))
 
     return (

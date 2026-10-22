@@ -7,7 +7,8 @@
 
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate } from '@/lib/export/cells'
 import { formatDate, formatMonth } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 import Link from 'next/link'
@@ -29,22 +30,29 @@ export function WhtLiabilityTable({ rows, empty }: { rows: LiabilityRow[]; empty
     const locale = useLocale()
 
     // ★ 手机上留【月份】与【未汇缴】—— 未汇缴是这张表存在的理由(还欠多少)。
-    const columns: Column<LiabilityRow>[] = [
-        { key: 'month', header: t('wht.colMonth'), priority: true, render: (r) => formatMonth(r.periodMonth, locale) },
+    const columns: ExportableColumn<LiabilityRow>[] = [
+        { key: 'month', header: t('wht.colMonth'), priority: true, render: (r) => formatMonth(r.periodMonth, locale),
+            // 月份不是一个日子:导出写成原始的 YYYY-MM(从原始日期截,不从显示用的字截)
+            exportAs: (r) => xText(r.periodMonth.slice(0, 7)) },
         {
             key: 'withheld', header: t('wht.colWithheld'), align: 'right',
             render: (r) => formatAmount(r.withheldBase, r.baseCurrency),
+            exportAs: (r) => xMoney(r.withheldBase, r.baseCurrency),
         },
         {
             key: 'remitted', header: t('wht.colRemitted'), align: 'right',
             render: (r) => formatAmount(r.remittedBase, r.baseCurrency),
+            exportAs: (r) => xMoney(r.remittedBase, r.baseCurrency),
         },
         {
             key: 'unremitted', header: t('wht.colUnremitted'), priority: true, align: 'right', className: 'font-semibold',
             render: (r) => formatAmount(r.unremittedBase, r.baseCurrency),
+            exportAs: (r) => xMoney(r.unremittedBase, r.baseCurrency),
         },
         {
             key: 'due', header: t('wht.colDue'), className: 'text-xs',
+            // 一个真日期;「逾期 / 还有 N 天」由这个日子与今天推得出,不写进日期格(TABLE-EXPORT-1 同一个处置)
+            exportAs: (r) => xDate(r.dueDate),
             render: (r) => (
                 <>
                     <span>{r.dueDate}</span>
@@ -58,7 +66,8 @@ export function WhtLiabilityTable({ rows, empty }: { rows: LiabilityRow[]; empty
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.periodMonth} phone={{ mode: 'columns' }} empty={empty} />
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.periodMonth} phone={{ mode: 'columns' }} empty={empty}
+        exportSpec={{ name: 'wht-liability', title: t('wht.liabilityHeading') }} />
 }
 
 export type RemittanceRow = {
@@ -81,17 +90,22 @@ export function WhtRemittancesTable({ rows, empty, canEdit }: { rows: Remittance
     const locale = useLocale()
 
     // ★ 手机上留【单号】与【金额】—— 单号是身份,金额是这张登记簿存在的理由。
-    const columns: Column<RemittanceRow>[] = [
-        { key: 'code', header: t('wht.colCode'), priority: true, render: (r) => r.code },
-        { key: 'month', header: t('wht.colMonth'), render: (r) => formatMonth(r.periodMonth, locale) },
-        { key: 'remittedOn', header: t('wht.colRemittedOn'), className: 'text-xs', render: (r) => r.remittedOn },
+    const columns: ExportableColumn<RemittanceRow>[] = [
+        { key: 'code', header: t('wht.colCode'), priority: true, render: (r) => r.code, exportAs: (r) => xText(r.code) },
+        { key: 'month', header: t('wht.colMonth'), render: (r) => formatMonth(r.periodMonth, locale), exportAs: (r) => xText(r.periodMonth.slice(0, 7)) },
+        { key: 'remittedOn', header: t('wht.colRemittedOn'), className: 'text-xs', render: (r) => r.remittedOn, exportAs: (r) => xDate(r.remittedOn) },
         {
             key: 'amount', header: t('wht.colAmount'), priority: true, align: 'right',
             render: (r) => formatAmount(r.amountBase, r.baseCurrency),
+            exportAs: (r) => xMoney(r.amountBase, r.baseCurrency),
         },
-        { key: 'ref', header: t('wht.colIrasRef'), className: 'text-xs', render: (r) => r.filedReference },
+        { key: 'ref', header: t('wht.colIrasRef'), className: 'text-xs', render: (r) => r.filedReference, exportAs: (r) => xText(r.filedReference) },
         {
             key: 'action', header: t('wht.colStatus'),
+            // 状态这一格:已冲销 / 冲销申请在等(带单号);否则屏幕上是一颗钮 —— 那不是数据,导出空着
+            exportAs: (r) => xText(r.reversed ? t('wht.reversed')
+                : r.openRequestId ? t('wht.reversalRequested', { code: r.openRequestCode ?? '' })
+                : null),
             render: (r) => r.reversed ? (
                 <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-700">{t('wht.reversed')}</span>
             ) : r.openRequestId ? (
@@ -104,7 +118,8 @@ export function WhtRemittancesTable({ rows, empty, canEdit }: { rows: Remittance
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} />
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
+        exportSpec={{ name: 'wht-remittances', title: t('wht.remittancesHeading') }} />
 }
 
 export type WhtRateRow = {
@@ -119,18 +134,21 @@ export function WhtRatesTable({ rows }: { rows: WhtRateRow[] }) {
     const t = useTranslations()
 
     // ★ 手机上留【类别】与【税率】—— 类别是身份,税率是这张参照表存在的理由。
-    const columns: Column<WhtRateRow>[] = [
-        { key: 'nature', header: t('wht.colNature'), priority: true, render: (r) => r.name },
+    const columns: ExportableColumn<WhtRateRow>[] = [
+        { key: 'nature', header: t('wht.colNature'), priority: true, render: (r) => r.name, exportAs: (r) => xText(r.name) },
         {
             key: 'rate', header: t('wht.colRate'), priority: true, className: 'text-xs',
+            // 几段税率各有生效区间 —— 写成屏幕上那几行文字,以「; 」分开,日期取原始的
+            exportAs: (r) => xText(r.rates.map((rt) => `${Number(rt.rate_pct)}% · ${rt.effective_from} → ${rt.effective_to ?? '—'}`).join('; ')),
             render: (r) => r.rates.map((rt) => (
                 <div key={formatDate(rt.effective_from, locale)}>
                     {Number(rt.rate_pct)}% · {formatDate(rt.effective_from, locale)} → {formatDate(rt.effective_to, locale) ?? '—'}
                 </div>
             )),
         },
-        { key: 'statute', header: t('wht.colStatute'), className: 'text-xs text-gray-600', render: (r) => r.statuteRef },
+        { key: 'statute', header: t('wht.colStatute'), className: 'text-xs text-gray-600', render: (r) => r.statuteRef, exportAs: (r) => xText(r.statuteRef) },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }} />
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }}
+        exportSpec={{ name: 'wht-rates', title: t('wht.ratesHeading') }} />
 }

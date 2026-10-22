@@ -187,6 +187,13 @@ export default async function AssetsPage({
             plannedInServiceDate: a.planned_in_service_date ? formatDate(a.planned_in_service_date, locale) : null,
             hasCost: Number(a.cost_base) > 0,
             pendingDisposalLabel: pendingByAsset.get(a.id) ?? null,
+            acquisitionDateRaw: a.acquisition_date,
+            inServiceDateRaw: a.in_service_date,
+            currency: a.currency,
+            costCcyAmt: a.cost_ccy,
+            costBaseAmt: a.cost_base,
+            accumAmt: accum,
+            nbvAmt: Math.round((a.cost_base - accum) * 100) / 100,
         }
     })
     const bankAccounts = (mustRows(

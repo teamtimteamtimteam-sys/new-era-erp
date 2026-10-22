@@ -7,57 +7,28 @@ import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { getBaseCurrency } from '@/lib/currency'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { FREIGHT_SHOWN, freightCount, freightPage, shapeFreightRows } from './freightRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import FreightTable, { type FreightRow } from './FreightTable'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
-
-type FreightQueryRow = {
-    id: string
-    code: string
-    doc_date: string
-    amount_base: number
-    allocation_basis: string
-    payment_status: string
-    status: string
-    suppliers: { legal_name: string } | null
-}
 
 export default async function FreightListPage() {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
 
     const supabase = await createClient()
     const t = await getTranslations()
-    const baseCurrency = await getBaseCurrency()
 
-    const rows = mustRows(
-        await supabase
-            .from('freight_documents')
-            .select('id, code, doc_date, amount_base, allocation_basis, payment_status, status, suppliers ( legal_name )')
-            .is('deleted_at', null)
-            .order('doc_date', { ascending: false })
-            .limit(200),
-        'freight_documents'
-    ) as unknown as FreightQueryRow[]
-
-    const tableRows: FreightRow[] = rows.map((r) => ({
-        id: r.id,
-        code: r.code,
-        docDate: formatDate(r.doc_date, locale),
-        forwarder: r.suppliers?.legal_name ?? '—',
-        amountBase: r.amount_base,
-        baseCurrency,
-        allocationBasis: r.allocation_basis,
-        paymentStatus: r.payment_status,
-        reversed: r.status === 'reversed',
-    }))
+    // ★ TABLE-EXPORT-2a(Tim Q2):读取与映射搬进 freightRows.ts,与导出路由共用;只画最近 FREIGHT_SHOWN 张,而且说出来。
+    const [dbRows, total] = await Promise.all([
+        freightPage(supabase, 0, FREIGHT_SHOWN - 1).then((r) => mustRows(r, 'freight_documents')),
+        freightCount(supabase).then((r) => mustCount(r, 'freight_documents count')),
+    ])
+    const tableRows: FreightRow[] = await shapeFreightRows(dbRows)
 
     return (
         <ListPage
@@ -73,6 +44,7 @@ export default async function FreightListPage() {
                 ? { kind: 'empty', noRows: t('finance.freight.empty') }
                 : { kind: 'ok' }}
         >
+            <RowCapNotice shown={tableRows.length} total={total} />
             <FreightTable rows={tableRows} empty={t('finance.freight.empty')} />
         </ListPage>
     )

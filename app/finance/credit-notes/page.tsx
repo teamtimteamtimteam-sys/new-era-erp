@@ -12,15 +12,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
-import { can } from '@/lib/permissions'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { creditNoteCount, creditNotePage, shapeCreditNoteRows } from './creditNoteRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CreditNotesTable, { type CreditNoteRow } from './CreditNotesTable'
 import { Button } from '@/app/components/ui/button'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 const PAGE_SIZE = 20
 
@@ -34,7 +32,6 @@ export default async function CreditNotesPage({
 }: {
     searchParams: Promise<{ page?: string }>
 }) {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -43,116 +40,21 @@ export default async function CreditNotesPage({
     const t = await getTranslations()
     const supabase = await createClient()
 
-    // 客户名走 customers 表,而它在 module.customers.view 那道门后面。
-    // 【先问权限,再决定这一列说什么】—— 不问的话,查不到就渲染成「—」,
-    // 而那读起来是"这张凭证没有客户",不是"你看不到客户"(lib/permissions.ts
-    // 存在的全部理由)。同一句话在发票详情页 actorLabel 里已经写过一次。
-    const canReadCustomers = await can('module.customers.view')
-
-    const { count } = await supabase
-        .from('credit_notes')
-        .select('id', { count: 'exact', head: true })
-    const total = count ?? 0
+    // TABLE-EXPORT-2a:读取与「库里的行 → 表的行」(含客户那一格的权限判断)搬进 creditNoteRows.ts,与导出路由共用一份。
+    // 总数数不出来就失败(mustCount)—— 从前是 `count ?? 0`,一次失败会读成「没有贷项凭证」。
+    const total = mustCount(await creditNoteCount(supabase), 'credit_notes count')
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(parsePage(sp.page), totalPages)
 
     const notes = mustRows(
-        await supabase
-            .from('credit_notes')
-            .select('id, code, note_date, currency, invoice_id, reason')
-            .order('note_date', { ascending: false })
-            .order('code', { ascending: false })
-            .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1),
+        await creditNotePage(supabase, (page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1),
         'credit_notes'
-    ) as {
-        id: string; code: string; note_date: string
-        currency: string; invoice_id: string; reason: string
-    }[]
-
-    const noteIds = notes.map((n) => n.id)
-    const invoiceIds = Array.from(new Set(notes.map((n) => n.invoice_id).filter(Boolean)))
-
-    // 金额:凭证本身不存合计,它是各行之和(详情页也是这么算的 —— 一份实现两处读)
-    const lines = noteIds.length
-        ? (mustRows(
-              await supabase
-                  .from('credit_note_lines')
-                  .select('credit_note_id, amount')
-                  .in('credit_note_id', noteIds),
-              'credit_note_lines'
-          ) as { credit_note_id: string; amount: number }[])
-        : []
-    const totalByNote = new Map<string, number>()
-    for (const l of lines) {
-        totalByNote.set(l.credit_note_id, (totalByNote.get(l.credit_note_id) ?? 0) + Number(l.amount))
-    }
-
-    // 签发:最高版本号即当前版本;一条都没有 = 还没签发过(具名状态,不是 0)
-    const issues = noteIds.length
-        ? (mustRows(
-              await supabase
-                  .from('cn_issues')
-                  .select('credit_note_id, version')
-                  .in('credit_note_id', noteIds),
-              'cn_issues'
-          ) as { credit_note_id: string; version: number }[])
-        : []
-    const versionByNote = new Map<string, number>()
-    for (const i of issues) {
-        versionByNote.set(i.credit_note_id, Math.max(versionByNote.get(i.credit_note_id) ?? 0, i.version))
-    }
-
-    const invoices = invoiceIds.length
-        ? (mustRows(
-              await supabase.from('invoices_masked').select('id, code, customer_id').in('id', invoiceIds),
-              'invoices_masked'
-          ) as { id: string; code: string; customer_id: string }[])
-        : []
-    const invoiceById = new Map(invoices.map((i) => [i.id, i]))
-
-    const customerIds = Array.from(new Set(invoices.map((i) => i.customer_id).filter(Boolean)))
-    const customers =
-        canReadCustomers && customerIds.length
-            ? (mustRows(
-                  await supabase.from('customers').select('id, code, legal_name').in('id', customerIds),
-                  'customers'
-              ) as { id: string; code: string; legal_name: string }[])
-            : []
-    const customerById = new Map(customers.map((c) => [c.id, c]))
-
-    // ★ CONV-4:客户名列在服务端就压平成【纯数据】(ReactNode 可以过边界,
-    //   函数不能)—— 与 InboundTable 的通则同形。
-    function customerCell(invoiceId: string) {
-        if (!canReadCustomers) return <span className="text-[color:var(--brand-muted-text)]">{t('common.restricted')}</span>
-        const inv = invoiceById.get(invoiceId)
-        const c = inv ? customerById.get(inv.customer_id) : undefined
-        if (!c) return <span className="text-gray-400">—</span>
-        return (
-            <>
-                <span className="text-xs text-[color:var(--brand-muted-text)]">{c.code}</span> {c.legal_name}
-            </>
-        )
-    }
+    )
+    const tableRows: CreditNoteRow[] = await shapeCreditNoteRows(supabase, notes)
 
     function pageHref(targetPage: number) {
         return `/finance/credit-notes?page=${targetPage}`
     }
-
-    const tableRows: CreditNoteRow[] = notes.map((n) => {
-        const inv = invoiceById.get(n.invoice_id)
-        return {
-            id: n.id,
-            code: n.code,
-            noteDate: formatDate(n.note_date, locale),
-            customerCell: customerCell(n.invoice_id),
-            invoiceId: inv?.id ?? null,
-            invoiceCode: inv?.code ?? null,
-            total: Math.round((totalByNote.get(n.id) ?? 0) * 100) / 100,
-            currency: n.currency,
-            version: versionByNote.get(n.id) ?? null,
-            reason: n.reason,
-        }
-    })
 
     return (
         <ListPage

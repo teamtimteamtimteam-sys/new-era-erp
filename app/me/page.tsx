@@ -251,8 +251,12 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     // 【不叫 periodById】这一页下面已经有一个同名的 —— 那是【薪资】期间。
     // tsc 抓到了这次重名;两个都留着各自的全名,读的人就不必猜是哪一种期间。
     const attPeriodById = new Map(myPeriods.map((x) => [x.id, x]))
+    // ★ TABLE-EXPORT-2a(Tim 2026-10-22 Q9):按【原始的】期间月份排(YYYY-MM-DD 的字典序就是日期序)。
+    //   从前排的是 formatMonth 的显示用的字 —— 英文按月份名的字母排(「Sep 2025」在「Apr 2026」后面),不是按日子。
     const myAttendance = myLines
-        .map((l) => ({
+        .map((l) => ({ l, monthKey: labelOf('attendance', l.period_id)?.period_month ?? '' }))
+        .sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+        .map(({ l }) => ({
             code: labelOf('attendance', l.period_id)?.code ?? '—',
             periodMonth: formatMonth(labelOf('attendance', l.period_id)?.period_month, dateLocale) ?? '',
             status: attPeriodById.get(l.period_id)?.status ?? '',
@@ -263,7 +267,6 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             recorded: l.recorded_at !== null,
             unpaidDays: l.unpaid_days === null ? null : Number(l.unpaid_days),
         }))
-        .sort((a, b) => b.periodMonth.localeCompare(a.periodMonth))
 
     // 绩效评估的自助两段(HR-3d):
     // 自评 —— 两个窄视图,只在 status='self_review' 时有行;

@@ -11,7 +11,8 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { useState, useTransition } from 'react'
 import { saveForecastLine } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate } from '@/lib/export/cells'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -51,18 +52,22 @@ export default function RecurringLines({
     const dim = (r: Row) => !r.is_active
     const cell = (r: Row, content: React.ReactNode) =>
         dim(r) ? <span className="text-[color:var(--brand-muted-text)]">{content}</span> : content
-    const columns: Column<Row>[] = [
+    const columns: ExportableColumn<Row>[] = [
         {
             key: 'label', header: t('cashForecast.label'), priority: true,
             render: (r) => cell(r, r.label), className: 'break-words',
+            // 停用的行屏幕上只是淡出;导出时把那个状态写进这一格,不然它读起来与在用的行一样
+            exportAs: (r) => xText(r.is_active ? r.label : `${r.label} (${t('table.export.rowInactive')})`),
         },
-        { key: 'cadence', header: t('cashForecast.cadence'), render: (r) => cell(r, t('cashForecast.cadence_' + r.cadence)) },
+        { key: 'cadence', header: t('cashForecast.cadence'), render: (r) => cell(r, t('cashForecast.cadence_' + r.cadence)), exportAs: (r) => xText(t('cashForecast.cadence_' + r.cadence)) },
         {
             key: 'amount', header: t('cashForecast.amount'), priority: true, align: 'right',
+            // 屏幕上流出写在括号里;Excel 里是一个带符号的数(流出为负),币种跟着这一格
+            exportAs: (r) => xMoney(r.direction === 'out' ? -Number(r.amount_ccy) : Number(r.amount_ccy), r.currency),
             render: (r) => cell(r, `${r.direction === 'out' ? `(${Number(r.amount_ccy).toLocaleString()})` : Number(r.amount_ccy).toLocaleString()} ${r.currency}`),
         },
-        { key: 'startDate', header: t('cashForecast.startDate'), className: 'text-xs', render: (r) => cell(r, r.start_date) },
-        { key: 'endDate', header: t('cashForecast.endDate'), className: 'text-xs', render: (r) => cell(r, r.end_date ?? '—') },
+        { key: 'startDate', header: t('cashForecast.startDate'), className: 'text-xs', render: (r) => cell(r, r.start_date), exportAs: (r) => xDate(r.start_date) },
+        { key: 'endDate', header: t('cashForecast.endDate'), className: 'text-xs', render: (r) => cell(r, r.end_date ?? '—'), exportAs: (r) => xDate(r.end_date) },
     ]
 
     return (
@@ -146,6 +151,7 @@ export default function RecurringLines({
                 rowKey={(r) => r.id}
                 phone={{ mode: 'columns' }}
                 empty={t('cashForecast.noLines')}
+                exportSpec={{ name: 'cash-forecast-lines', title: t('cashForecast.linesTitle') }}
             />
         </section>
     )

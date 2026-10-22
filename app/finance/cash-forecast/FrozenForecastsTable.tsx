@@ -3,7 +3,8 @@
 // app/finance/cash-forecast/FrozenForecastsTable.tsx
 // CONV-3 · 「已冻结的预测」登记簿。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate, xTime } from '@/lib/export/cells'
 
 export type FrozenRow = {
     id: string; code: string; week_start: string
@@ -13,9 +14,10 @@ export type FrozenRow = {
 export default function FrozenForecastsTable({ rows }: { rows: FrozenRow[] }) {
     const t = useTranslations()
 
-    const columns: Column<FrozenRow>[] = [
+    const columns: ExportableColumn<FrozenRow>[] = [
         {
             key: 'code', header: t('cashForecast.colCode'), priority: true,
+            exportAs: (r) => xText(r.superseded_at ? `${r.code} (${t('cashForecast.superseded')})` : r.code),
             render: (r) => (
                 <>
                     {r.code}
@@ -27,8 +29,10 @@ export default function FrozenForecastsTable({ rows }: { rows: FrozenRow[] }) {
                 </>
             ),
         },
-        { key: 'weekStart', header: t('cashForecast.weekStart'), priority: true, className: 'text-xs', render: (r) => r.week_start },
-        { key: 'frozenAt', header: t('cashForecast.colFrozen'), className: 'text-xs', render: (r) => r.frozen_at.slice(0, 10) },
+        { key: 'weekStart', header: t('cashForecast.weekStart'), priority: true, className: 'text-xs', render: (r) => r.week_start, exportAs: (r) => xDate(r.week_start) },
+        { key: 'frozenAt', header: t('cashForecast.colFrozen'), className: 'text-xs', render: (r) => r.frozen_at.slice(0, 10),
+            // 冻结时刻是一个时刻:按 Q7 写成新加坡时间的日期格(屏幕上截了前十位 —— 那是 UTC 的日子,登记在交回里)
+            exportAs: (r) => xTime(r.frozen_at) },
     ]
 
     return (
@@ -38,6 +42,7 @@ export default function FrozenForecastsTable({ rows }: { rows: FrozenRow[] }) {
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('cashForecast.noneFrozen')}
+            exportSpec={{ name: 'frozen-cash-forecasts', title: t('cashForecast.frozenTitle'), serverRows: '/finance/cash-forecast/frozen/export' }}
         />
     )
 }

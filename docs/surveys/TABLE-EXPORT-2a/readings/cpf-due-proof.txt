@@ -1,0 +1,28 @@
+PASS|C1 control · old call cpfDue(formatMonth(2026-07-01, en)) = cpfDue("Jul 2026") throws → RangeError: Invalid time value
+PASS|C1 control · old call cpfDue(formatMonth(2026-09-01, en)) = cpfDue("Sep 2026") throws → RangeError: Invalid time value
+PASS|C1 control · old call cpfDue(formatMonth(2026-10-01, en)) = cpfDue("Oct 2026") throws → RangeError: Invalid time value
+PASS|C1 control · old call cpfDue(formatMonth(2026-12-01, en)) = cpfDue("Dec 2026") throws → RangeError: Invalid time value
+PASS|C1 control · old call cpfDue(formatMonth(2026-07-01, zh)) = cpfDue("2026年7月") throws → RangeError: Invalid time value
+PASS|C1 control · old call cpfDue(formatMonth(2026-09-01, zh)) = cpfDue("2026年9月") throws → RangeError: Invalid time value
+PASS|C1 control · old call cpfDue(formatMonth(2026-10-01, zh)) = cpfDue("2026年10月") throws → RangeError: Invalid time value
+PASS|C1 control · old call cpfDue(formatMonth(2026-12-01, zh)) = cpfDue("2026年12月") throws → RangeError: Invalid time value
+PASS|C1 fix · cpfDue(2026-07-01) = 2026-08-14 (want 2026-08-14)
+PASS|C1 fix · cpfDue(2026-09-01) = 2026-10-14 (want 2026-10-14)
+PASS|C1 fix · cpfDue(2026-10-01) = 2026-11-14 (want 2026-11-14)
+PASS|C1 fix · cpfDue(2026-12-01) = 2027-01-14 (want 2027-01-14)
+PASS|C1 source · PayPanel calls cpfDue(p.period_month) and no longer cpfDue(formatMonth(…))
+PASS|C2 control · old cell "Sep 2026".slice(0, 7) = "Sep 202" (cut)
+PASS|C2 control · old cell "2026年10月".slice(0, 7) = "2026年10" (cut)
+PASS|C2 control · old cell "2026年12月".slice(0, 7) = "2026年12" (cut)
+PASS|C2 control · old cell "2026年9月".slice(0, 7) = "2026年9月" (short enough — this month was never cut)
+PASS|C2 fix · the cell now shows formatMonth as is: Sep 2026 · 2026年10月
+PASS|C2 source · PayrollPeriodsTable renders {r.periodMonth} with no .slice(0, 7)
+PASS|C3 control · old default in zh: toYearMonth("2026年9月") = "" → the month box is empty and save is refused
+PASS|C3 fix · toYearMonth('2026-09-01') = 2026-09 (passes the action's /^\d{4}-\d{2}$/)
+PASS|C3 source · the edit page passes toYearMonth(period.period_month)
+PASS|C4 control · old sort by label: Sep 2025 · Jan 2026 · Dec 2025 · Apr 2026
+PASS|C4 fix · new sort by raw month: Apr 2026 · Jan 2026 · Dec 2025 · Sep 2025
+PASS|C4 source · /me sorts attendance by the raw month key, not by the label
+STEP|done
+CPF_PROOF_EXIT=0
+CPF_PROOF_OWN_EXIT=0

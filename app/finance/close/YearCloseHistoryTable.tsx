@@ -6,7 +6,8 @@
 
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate } from '@/lib/export/cells'
 
 export type YearCloseRow = {
     id: string
@@ -15,20 +16,26 @@ export type YearCloseRow = {
     baseCurrency: string
     reopened: boolean
     reopenReason: string | null
+    /** TABLE-EXPORT-2a:年末的原始日历日(导出是真日期) */
+    yearEndRaw: string
 }
 
 export default function YearCloseHistoryTable({ rows }: { rows: YearCloseRow[] }) {
     const t = useTranslations()
 
     // ★ 手机上留【年末】与【状态】—— 年末是身份,状态是这张表存在的理由。
-    const columns: Column<YearCloseRow>[] = [
-        { key: 'yearEnd', header: t('finance.yearClose.colYearEnd'), priority: true, className: 'text-sm', render: (r) => r.yearEnd },
+    const columns: ExportableColumn<YearCloseRow>[] = [
+        { key: 'yearEnd', header: t('finance.yearClose.colYearEnd'), priority: true, className: 'text-sm', render: (r) => r.yearEnd, exportAs: (r) => xDate(r.yearEndRaw) },
         {
             key: 'netResult', header: t('finance.yearClose.netResult'), align: 'right', className: 'text-sm',
             render: (r) => formatAmount(r.netResult, r.baseCurrency),
+            exportAs: (r) => xMoney(r.netResult, r.baseCurrency),
         },
         {
             key: 'status', header: t('finance.colStatus'), priority: true, className: 'text-sm',
+            exportAs: (r) => xText(r.reopened
+                ? t('finance.yearClose.reopened') + (r.reopenReason ? ' — ' + r.reopenReason : '')
+                : t('finance.yearClose.closed')),
             render: (r) => (r.reopened
                 ? t('finance.yearClose.reopened') + (r.reopenReason ? ' — ' + r.reopenReason : '')
                 : t('finance.yearClose.closed')),
@@ -44,6 +51,7 @@ export default function YearCloseHistoryTable({ rows }: { rows: YearCloseRow[] }
             // ★ CONV-4:已重开的年结整行发灰(转换前 <tr className="text-gray-400">)
             //   —— rowClassName 的又一处调用点。
             rowClassName={(r) => (r.reopened ? 'text-gray-400' : undefined)}
+            exportSpec={{ name: 'year-closes', title: t('finance.yearClose.title') }}
         />
     )
 }

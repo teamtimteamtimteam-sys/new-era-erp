@@ -8,19 +8,15 @@
 import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import PaymentRequestsTable, { type PaymentRequestRow } from './PaymentRequestsTable'
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { requestSubjectLabel } from './requestSubject'
+import { REQUEST_STATUSES, parseRequestFilter, requestCount, requestPage, shapeRequestRows, requestExportHref } from './requestRows'
 import { ListPage } from '@/app/components/ui/list-page'
-import { formatDate } from '@/lib/dates'
 
 const PAGE_SIZE = 20
-// 与 db/tables/payment_requests.sql 的 status CHECK 同一组取值;'open' / 'all' 是本页的两个合集。
-const STATUSES = ['submitted', 'approved', 'paid', 'rejected', 'withdrawn'] as const
-const OPEN = ['submitted', 'approved']
 
 function parsePage(value: string | undefined): number {
     const n = Number(value)
@@ -39,68 +35,18 @@ export default async function PaymentRequestsPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
 
-    const filter: string = sp.status === 'all' || (STATUSES as readonly string[]).includes(sp.status ?? '')
-        ? (sp.status as string) : 'open'
-    const statusSet = filter === 'open' ? OPEN : filter === 'all' ? null : [filter]
+    // TABLE-EXPORT-2a:读取与映射搬进 requestRows.ts,与导出路由共用一份。
+    const filter = parseRequestFilter(sp.status)
     const requestedPage = parsePage(sp.page)
 
-    interface Chain { in(c: string, v: string[]): Chain }
-    const applyFilters = <T,>(query: T): T => {
-        let chain = query as unknown as Chain
-        if (statusSet) chain = chain.in('status', statusSet)
-        return chain as unknown as T
-    }
-
-    const total = mustCount(
-        await applyFilters(supabase.from('payment_requests').select('id', { count: 'exact', head: true })),
-        'payment requests count'
-    )
+    const total = mustCount(await requestCount(supabase, filter), 'payment requests count')
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * PAGE_SIZE
 
-    const rows = mustRows(
-        await applyFilters(
-            supabase
-                .from('payment_requests')
-                .select('id, code, kind, status, counterparty_type, supplier_id, employee_id, customer_id, amount_ccy, currency, created_at, bank_account_code, to_account_code, period_month')
-        )
-            .order('created_at', { ascending: false })
-            .range(from, from + PAGE_SIZE - 1),
-        'payment requests'
-    )
-
-    const ids = (k: 'supplier_id' | 'employee_id' | 'customer_id') =>
-        Array.from(new Set(rows.map((r) => r[k]).filter(Boolean))) as string[]
-    const supplierIds = ids('supplier_id')
-    const employeeIds = ids('employee_id')
-    const customerIds = ids('customer_id')
-    type NameRow = { id: string; legal_name: string }
-    const none = Promise.resolve({ data: [] as NameRow[], error: null })
-    const [supRes, empRes, cusRes] = await Promise.all([
-        // 查名视图:这一页的门是 finance.view,基表挂的是各自模块(FIX-2a 那一课)。
-        supplierIds.length ? supabase.from('supplier_lookup').select('id, legal_name').in('id', supplierIds) : none,
-        employeeIds.length ? supabase.from('employee_lookup').select('id, legal_name').in('id', employeeIds) : none,
-        customerIds.length ? supabase.from('customer_lookup').select('id, legal_name').in('id', customerIds) : none,
-    ])
-    const nameById = new Map<string, string>()
-    for (const res of [supRes, empRes, cusRes]) {
-        for (const n of mustRows(res, 'payee names') as unknown as NameRow[]) nameById.set(n.id, n.legal_name)
-    }
-
-    const tableRows: PaymentRequestRow[] = rows.map((r) => ({
-        id: r.id,
-        code: r.code,
-        kind: r.kind,
-        // Batch B:转账与代扣税没有收款人 —— 印它挪的是什么(requestSubject.ts)
-        payee: requestSubjectLabel(t, locale, r) ?? nameById.get(r.supplier_id ?? r.employee_id ?? r.customer_id ?? '') ?? '—',
-        amountCcy: r.amount_ccy,
-        currency: r.currency,
-        status: r.status,
-        createdDate: formatDate(r.created_at, locale),
-    }))
+    const rows = mustRows(await requestPage(supabase, filter, from, from + PAGE_SIZE - 1), 'payment requests')
+    const tableRows: PaymentRequestRow[] = await shapeRequestRows(supabase, rows)
 
     const href = (status: string, p = 1) => {
         const params = new URLSearchParams()
@@ -109,7 +55,7 @@ export default async function PaymentRequestsPage({
         const q = params.toString()
         return q ? `/finance/payment-requests?${q}` : '/finance/payment-requests'
     }
-    const filters = ['open', ...STATUSES, 'all']
+    const filters = ['open', ...REQUEST_STATUSES, 'all']
 
     return (
         <ListPage
@@ -138,7 +84,7 @@ export default async function PaymentRequestsPage({
                 {t('finance.recordCount', { count: total })}
             </p>
 
-            <PaymentRequestsTable rows={tableRows} empty={t('finance.paymentRequests.empty')} />
+            <PaymentRequestsTable rows={tableRows} empty={t('finance.paymentRequests.empty')} exportHref={requestExportHref(filter)} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

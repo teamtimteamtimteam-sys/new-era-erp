@@ -29,6 +29,29 @@ feature, hung off the shared table layer, not added page by page. Scheduled by T
 | Q14 | Layout survey on a sample of 12 pages (one per module plus the paginated ones) at 390 px and desktop; the rest recorded as not measured. |
 | Q15 | **Three cuts.** TABLE-EXPORT-1 (v1.4.67): the mechanism, writer, About sheet, build check, the 9 replaced exports, about half the list pages by whole modules, and the 5 special exports paging past 1,000 rows. TABLE-EXPORT-2: the remaining list pages. TABLE-EXPORT-3: detail-page tables and finance reports; the exemption list reaches zero. |
 
+## The rulings — Tim 2026-10-22 (TABLE-EXPORT-2 Step 0)
+
+TABLE-EXPORT-1's rulings Q2–Q13 apply unchanged to every table TABLE-EXPORT-2 converts. These ten are new.
+
+| # | Ruling |
+|---|---|
+| Q1 | **Split**, because the whole scope does not fit one session. **TABLE-EXPORT-2a** (v1.4.68): every finance exemption entry not moved by Q7; the part B hard limits on finance pages (freight 200, supplier statements 300, bank transfers "recent" 50, frozen forecasts 20); part C as widened by Q9; Q8 on finance tables. **TABLE-EXPORT-2b** (v1.4.69): me, settings, safety, tools, compliance, my-reviews, contracts; part B on the modules TABLE-EXPORT-1 converted (sales, hr, inventory, operation, safety, compliance, /me); Q2's inbox paging and filter moves; Q4; Q8 on non-finance tables; Q10. 2b is queued directly after 2a, before TABLE-EXPORT-3. |
+| Q2 | A page that shows only its first N rows gets a notice: **"Showing the first N of M — narrow the filters or export"**; its export fetches every matching row up to the 50,000 cap through a route that runs the page's own read without the limit. Two additions (both 2b): `/operation/capture/inbox` gets real paging instead of a notice; the filters that today run after the cut (hr claims status, `app/hr/claims/page.tsx:42`; inventory ledger material and batch, `ledgerQuery.ts:84-90`) move before the cut so narrowing recovers hidden rows. |
+| Q3 | The general "a read with no paging stops at 1,000 rows" problem (fixed-asset net book value, payroll line counts, overtime totals, the expenses page total and the like) is **not** fixed in TABLE-EXPORT-2. Registered as one item in the go-live readiness group (`docs/forward-queue.md`) and in `docs/known-issues.md` § READ-ALL-STOPS-AT-1000, with one shared fix to be chosen then (read in pages, or warn when a read returns exactly 1,000 rows). |
+| Q4 | `/settings/change-history`: no export in this round; "show older" gets a notice when it stops at 500 entries (2b). A future export requires a date range — registered under TABLE-EXPORT-3. |
+| Q5 | `/me` tables are exported (2b). |
+| Q6 | `brand-sampler` moves to a **permanent exemption** with its reason (temporary design reference, made-up data, not in navigation). The exemption list therefore ends TABLE-EXPORT-3 with this one `PERMANENT` entry, not empty. |
+| Q7 | The 12 entries that are not record lists move to TABLE-EXPORT-3: previews and report bodies (depreciation preview, revaluation preview, cash-forecast grid, list-vs-ledger, management-pack body, price exposure, cash-flow detail, compliance-pack sections) go with the finance reports; forms and decision panels (bank import preview, electricity allocation preview, payroll-payments panel, processing-cost settle panel) go with the "should editable tables export" question. Dictionaries, the claims decided register and the WHT tables stay in TABLE-EXPORT-2. |
+| Q8 | Wherever "—" or a blank stands where 「受限」 belongs, **both the screen and the export** show 「受限」 / "Restricted". Finance tables in 2a (the invoice list's total and open amount); the rest in 2b; the payroll-payments and settle panels follow Q7. |
+| Q9 | Part C widened, all in 2a: `cpfDue` receives the raw month, so the unpaid CPF buttons on `/finance/payroll-payments` no longer throw (proven by running); Chinese October–December show 月 correctly; `/me` attendance sorts by date, not by month label; the `/hr/payroll/[id]/edit` month picker is checked and fixed. |
+| Q10 | `/hr/reviews` shows a failed read as an error, not an empty list (2b). |
+
+**Where Q2 lives in code (2a):** `app/components/ui/row-cap-notice.tsx` (the notice; it draws nothing when the page shows every row);
+each capped page has a `<page>Rows.ts` read module shared with an export route (`freight/export`, `supplier-statements/export`,
+`bank/transfers/export`, `cash-forecast/frozen/export`). `lib/export/serverRows.ts` gained `inChunks` (id look-ups in batches of 100,
+because an export can carry tens of thousands of ids into a URL) and `exportUnionResponse` (a table whose rows come from two reads:
+the invoice list's "all" filter).
+
 ## How it works (where each ruling lives in code)
 
 | Piece | File | Rulings |

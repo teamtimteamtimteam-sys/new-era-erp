@@ -20,7 +20,8 @@ import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style
 import { useState, useTransition, type ReactNode } from 'react'
 import { decideClaim } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -84,13 +85,15 @@ export default function ClaimDecisionPanel({
     //   它们是【看到那一行之后才问的】。
     //   【状态那一格整块搬过来,一个字没改】—— 它一格里最多能说四句话,
     //   而那四句的层次是 CLAIM-1 的判断,不是本刀的。
-    const decidedColumns: Column<ClaimRow>[] = [
-        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, className: 'text-xs', render: (c) => c.code },
-        { key: 'who', header: t('expenseClaims.colWho'), render: (c) => c.employee_name },
-        { key: 'spent', header: t('expenseClaims.colSpent'), className: 'text-xs', render: (c) => c.spend_date },
+    const decidedColumns: ExportableColumn<ClaimRow>[] = [
+        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, className: 'text-xs', render: (c) => c.code, exportAs: (c) => xText(c.code) },
+        { key: 'who', header: t('expenseClaims.colWho'), render: (c) => c.employee_name, exportAs: (c) => xText(c.employee_name) },
+        { key: 'spent', header: t('expenseClaims.colSpent'), className: 'text-xs', render: (c) => c.spend_date, exportAs: (c) => xDate(c.spend_date) },
         {
             key: 'amount', header: t('expenseClaims.colAmount'), priority: true, align: 'right',
             // CLAIM-GST-1:报的是含税总额;批准之后说出它被拆成了什么 —— 读落库的两个数,不在这里再算。
+            // 导出:一格一个数 —— 报的含税总额(带币种);净额 / GST 那一行小字是它拆出来的,不另占格
+            exportAs: (c) => xMoney(c.amount_ccy, c.currency),
             render: (c) => (
                 <>
                     {money(c.amount_ccy)} {c.currency}
@@ -105,6 +108,9 @@ export default function ClaimDecisionPanel({
         {
             // CLAIM-RECEIPTS-1(Q6):决定之后收据留作记录 —— 逐笔列出,点开就是那一份
             key: 'receipts', header: t('expenseClaims.receipts.col'),
+            // 收据是文件,一格装不下 —— 写成屏幕上那几样:第几笔 + 文件名,以「; 」分开
+            exportAs: (c) => xText(c.items.flatMap((it) => receipts.filter((x) => x.item_id === it.id)
+                .map((x) => `${t('expenseClaims.itemNo', { n: it.line_no })} ${x.file_name}`)).join('; ') || null),
             render: (c) => (
                 <>
                     {c.items.filter((it) => receipts.some((x) => x.item_id === it.id)).map((it) => (
@@ -118,6 +124,14 @@ export default function ClaimDecisionPanel({
         },
         {
             key: 'status', header: t('expenseClaims.colStatus'),
+            // 一格最多四句话(状态 · 冲销 / 欠款 / 已付 · 决定说明)—— 照屏幕的次序接成一行文字
+            exportAs: (c) => xText([
+                t('expenseClaims.status_' + c.status),
+                c.expense_reversed ? t('expenseClaims.reversed') : null,
+                !c.expense_reversed && c.is_owing ? t('expenseClaims.owingOther') : null,
+                !c.expense_reversed && c.is_paid ? t('expenseClaims.paid') : null,
+                c.decision_notes || null,
+            ].filter(Boolean).join(' · ')),
             render: (c) => (
                 <>
                     {t('expenseClaims.status_' + c.status)}
@@ -271,6 +285,7 @@ export default function ClaimDecisionPanel({
                         columns={decidedColumns}
                         rowKey={(c) => c.claim_id}
                         phone={{ mode: 'columns' }}
+                        exportSpec={{ name: 'expense-claims-decided', title: t('expenseClaims.decidedTitle') }}
                     />
                     {/* AUDIT-TRAIL-1c-3(Q20):已决的每一张一行,点开是它的审计记录 —— 登记簿的格子装不下一段记录 */}
                     <div className="mt-4 space-y-2">

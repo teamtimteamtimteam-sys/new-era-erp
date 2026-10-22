@@ -1,0 +1,45 @@
+PASS|P1 prices · restricted reader (module.finance.view) · /finance/invoices → CSV downloaded: invoices_2026-10-23_0136.csv
+PASS|P1 prices · restricted · CSV "Total": 6 "Restricted", 0 values (want every one "Restricted")
+PASS|P1 prices · restricted · Excel downloaded: invoices_2026-10-23_0136.xlsx
+PASS|P1 prices · restricted · Excel "Total": 6 cells, 6 "Restricted", 0 values
+PASS|P1 restricted · About sheet "Exported by" = te2probe-1792690543563-p1r@test.local (want te2probe-1792690543563-p1r@test.local)
+PASS|P1 prices · permitted reader (data.view_prices + module.finance.view) · /finance/invoices → CSV downloaded: invoices_2026-10-23_0136.csv
+PASS|P1 prices · permitted · CSV "Total": 6 values, 0 "Restricted" (want ≥1 value, 0 "Restricted")
+PASS|P1 prices · permitted · Excel downloaded: invoices_2026-10-23_0136.xlsx
+PASS|P1 prices · permitted · Excel "Total": 6 cells typed Number, 0 "Restricted"
+PASS|P1 prices · permitted · Excel has 12 cells typed Date (dates are real dates, not text)
+PASS|P1 permitted · About sheet "Exported by" = te2probe-1792690543563-p1p@test.local (want te2probe-1792690543563-p1p@test.local)
+PASS|P2 pay · restricted reader (module.finance.view) · /finance/journal → CSV downloaded: journal-entries_2026-10-23_0137.csv
+PASS|P2 pay · restricted · CSV "Amount (SGD)" (rows where Source = Payroll: 4 of 83): 4 "Restricted", 0 values (want every one "Restricted")
+PASS|P2 pay · restricted · CSV "Amount (SGD)" on the other 79 rows: 79 numbers (the mask is the payroll rows only, not the column)
+PASS|P2 pay · restricted · Excel downloaded: journal-entries_2026-10-23_0137.xlsx
+PASS|P2 pay · restricted · Excel "Amount (SGD)": 4 cells, 4 "Restricted", 0 values
+PASS|P2 restricted · About sheet "Exported by" = te2probe-1792690543563-p2r@test.local (want te2probe-1792690543563-p2r@test.local)
+PASS|P2 pay · permitted reader (data.view_pay + module.finance.view) · /finance/journal → CSV downloaded: journal-entries_2026-10-23_0137.csv
+PASS|P2 pay · permitted · CSV "Amount (SGD)" (rows where Source = Payroll: 4 of 83): 4 values, 0 "Restricted" (want ≥1 value, 0 "Restricted")
+PASS|P2 pay · permitted · Excel downloaded: journal-entries_2026-10-23_0138.xlsx
+PASS|P2 pay · permitted · Excel "Amount (SGD)": 4 cells typed Number, 0 "Restricted"
+PASS|P2 pay · permitted · Excel has 83 cells typed Date (dates are real dates, not text)
+PASS|P2 permitted · About sheet "Exported by" = te2probe-1792690543563-p2p@test.local (want te2probe-1792690543563-p2p@test.local)
+PASS|P3 identity · restricted reader (module.finance.view) · /finance/credit-notes → CSV downloaded: credit-notes_2026-10-23_0138.csv
+PASS|P3 identity · restricted · CSV "Customer": 1 "Restricted", 0 values (want every one "Restricted")
+PASS|P3 identity · restricted · Excel downloaded: credit-notes_2026-10-23_0138.xlsx
+PASS|P3 identity · restricted · Excel "Customer": 1 cells, 1 "Restricted", 0 values
+PASS|P3 restricted · About sheet "Exported by" = te2probe-1792690543563-p3r@test.local (want te2probe-1792690543563-p3r@test.local)
+PASS|P3 identity · permitted reader (module.customers.view + module.finance.view) · /finance/credit-notes → CSV downloaded: credit-notes_2026-10-23_0138.csv
+PASS|P3 identity · permitted · CSV "Customer": 1 values, 0 "Restricted" (want ≥1 value, 0 "Restricted")
+PASS|P3 identity · permitted · Excel downloaded: credit-notes_2026-10-23_0139.xlsx
+PASS|P3 identity · permitted · Excel "Customer": 1 text values, 0 "Restricted"
+PASS|P3 identity · permitted · Excel has 1 cells typed Date (dates are real dates, not text)
+PASS|P3 permitted · About sheet "Exported by" = te2probe-1792690543563-p3p@test.local (want te2probe-1792690543563-p3p@test.local)
+PASS|B1 /finance/freight → CSV downloaded: freight-documents_2026-10-23_0139.csv
+PASS|B1 /finance/freight/export → HTTP 200, 4 rows; the CSV has 4 data rows (want equal)
+PASS|B1 notice on the page: none (4 rows against the old limit of 200 — not past it, so no notice is due and "past the old limit" is NOT proven on live)
+PASS|G1 /finance/invoices/export as a reader without module.finance.view → HTTP 403 {"code":"EXPORT_DENIED"}
+PASS|G1 /finance/bank/transfers/export as a reader without module.finance.view → HTTP 403 {"code":"EXPORT_DENIED"}
+PASS|G1 /finance/journal/entries/export as a reader without module.finance.view → HTTP 403 {"code":"EXPORT_DENIED"}
+PASS|C1 /finance/payroll-payments as a finance reader → HTTP 200, no error boundary on the page
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan)
+TE2A_PROOF_EXIT=0
+TE2A_PROOF_OWN_EXIT=0

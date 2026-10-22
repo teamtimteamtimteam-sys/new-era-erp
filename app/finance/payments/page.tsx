@@ -5,19 +5,16 @@
 // CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
-import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { parseDateRange } from '@/lib/dateFilter'
 import PaymentsToolbar from './PaymentsToolbar'
 import PaymentsTable, { type PaymentRow } from './PaymentsTable'
-import { mustRows } from '@/lib/db-helpers'
+import { mustCount } from '@/lib/db-helpers'
+import { parsePaymentListParams, paymentCount, paymentPage, shapePaymentRows, paymentExportHref } from './paymentRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 const PAGE_SIZE = 20
 
@@ -31,7 +28,6 @@ export default async function PaymentsListPage({
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string; direction?: string; page?: string }>
 }) {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -39,46 +35,22 @@ export default async function PaymentsListPage({
 
     const sp = await searchParams
     const supabase = await createClient()
-    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const { dateFrom, dateTo } = parseDateRange(sp)
-    const direction = sp.direction === 'in' || sp.direction === 'out' ? sp.direction : ''
+    // TABLE-EXPORT-2a:读取与「库里的行 → 表的行」搬进 paymentRows.ts,与导出路由共用一份。
+    const params = parsePaymentListParams(sp)
+    const { dateFrom, dateTo, direction } = params
     const requestedPage = parsePage(sp.page)
 
-    // 过滤链(payments 不可变表,无软删)。最小链式子集,避免 supabase 深泛型。
-    interface Chain {
-        gte(c: string, v: string): Chain
-        lte(c: string, v: string): Chain
-        eq(c: string, v: string): Chain
-    }
-    const applyFilters = <T,>(query: T): T => {
-        let chain = query as unknown as Chain
-        if (dateFrom) chain = chain.gte('payment_date', dateFrom)
-        if (dateTo) chain = chain.lte('payment_date', dateTo)
-        if (direction) chain = chain.eq('direction', direction)
-        return chain as unknown as T
-    }
-
-    // 1) 匹配总数
-    const { count } = await applyFilters(
-        supabase.from('payments').select('id', { count: 'exact', head: true })
-    )
-
-    const total = count ?? 0
+    // 1) 匹配总数 —— 数不出来就失败(mustCount),不读成 0
+    const total = mustCount(await paymentCount(supabase, params), 'payments count')
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
     // 2) 取当前页(创建序最新在前)
-    const { data: payments, error } = await applyFilters(
-        supabase
-            .from('payments')
-            .select('id, code, direction, customer_id, supplier_id, amount_ccy, currency, amount_base, bank_account_code, payment_date, status')
-    )
-        .order('created_at', { ascending: false })
-        .range(from, to)
+    const { data: payments, error } = await paymentPage(supabase, params, from, to)
 
     if (error) {
         return (
@@ -95,28 +67,6 @@ export default async function PaymentsListPage({
         )
     }
 
-    const rows = payments ?? []
-
-    // 3) 往来单位名(页级两次小 .in)
-    const customerIds = Array.from(new Set(rows.map((r) => r.customer_id).filter(Boolean))) as string[]
-    const supplierIds = Array.from(new Set(rows.map((r) => r.supplier_id).filter(Boolean))) as string[]
-    const [customersRes, suppliersRes] = await Promise.all([
-        customerIds.length
-            ? supabase.from('customer_lookup').select('id, legal_name').in('id', customerIds)
-            : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
-        supplierIds.length
-            ? // LOG-1b:【这一处绝不过滤 counterparty_type】—— 它把 id 换成名字,不是选择器。
-              //         过滤它会让【货代那几笔运费付款】的收款方名字变成空白,
-              //         而那正是本模块存在的理由。
-              supabase.from('supplier_lookup').select('id, legal_name').in('id', supplierIds)
-            : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
-    ])
-    // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死(FIX-1 同一写法)。
-    const nameById = new Map<string, string>()
-    type NameRow = { id: string; legal_name: string }
-    for (const c of mustRows(customersRes) as unknown as NameRow[]) nameById.set(c.id, c.legal_name)
-    for (const s of mustRows(suppliersRes) as unknown as NameRow[]) nameById.set(s.id, s.legal_name)
-
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
         if (dateFrom) params.set('date_from', dateFrom)
@@ -126,19 +76,8 @@ export default async function PaymentsListPage({
         return `/finance/payments?${params.toString()}`
     }
 
-    const tableRows: PaymentRow[] = rows.map((r) => ({
-        id: r.id,
-        code: r.code,
-        paymentDate: formatDate(r.payment_date, locale),
-        direction: r.direction,
-        counterparty: nameById.get(r.customer_id ?? r.supplier_id ?? '') ?? '—',
-        amountCcy: r.amount_ccy,
-        currency: r.currency,
-        amountBase: r.amount_base,
-        baseCurrency,
-        bankAccountCode: r.bank_account_code,
-        status: r.status,
-    }))
+    // 3) 往来单位名(按 id 反查)与映射 —— 在 paymentRows.ts 里,与导出同一份
+    const tableRows: PaymentRow[] = await shapePaymentRows(supabase, payments ?? [])
 
     return (
         <ListPage
@@ -159,7 +98,7 @@ export default async function PaymentsListPage({
                 {t('finance.recordCount', { count: total })}
             </p>
 
-            <PaymentsTable rows={tableRows} empty={t('finance.paymentsEmpty')} />
+            <PaymentsTable rows={tableRows} empty={t('finance.paymentsEmpty')} exportHref={paymentExportHref(params)} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

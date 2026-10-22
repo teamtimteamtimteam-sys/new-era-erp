@@ -11465,7 +11465,17 @@ EXPENSE-MULTILINE-1 只给它补了那一行 `expense_lines`(表头合计 = 行�
 **去处:** 未排(Tim 2026-10-22:登记)。修法是每条路由第一行加页面同一个判据。
 
 
-### PAYROLL-PERIOD-MONTH-SLICED · `/hr/payroll` 的「期间」一格在英文界面上显示成「Sep 202」(TABLE-EXPORT-1 转换时量到;登记,不在本刀修)
+### ~~PAYROLL-PERIOD-MONTH-SLICED · `/hr/payroll` 的「期间」一格在英文界面上显示成「Sep 202」~~ ✅ 已关(TABLE-EXPORT-2a,`v1.4.68`,2026-10-22,Tim Q9)
+
+**关闭时记下的四件(同一个病:formatMonth 的【显示用的字】被当成数据再加工):**
+1. `/hr/payroll` 期间格:去掉 `.slice(0, 7)`,屏幕直接画 `formatMonth` 的结果(`PayrollPeriodsTable.tsx`)。**中文也坏过**:「2026年10月」被切成「2026年10」—— 十到十二月丢了「月」;一并修好。
+2. **`/finance/payroll-payments` 的公积金钮会崩**:`cpfDue(formatMonth(…))` 把「Sep 2026」/「2026年9月」切开 `split('-')` 得 NaN,`toISOString()` 抛 RangeError ——
+   每一颗【没付的】公积金钮都让那一块渲染失败。改成传原始的 `period_month`(`PayPanel.tsx`)。线上证明:按下一颗没付的公积金钮,见交回 §2。
+3. `/hr/payroll/[id]/edit` 的月份框:给 `PayrollGrid` 的是 `formatMonth` 的字,而它要 `YYYY-MM`。实测(`node -e new Date(...)`):「2026年9月」→ NaN,
+   于是中文界面上月份框是空的、保存被 `PERIOD_MONTH_INVALID` 拒;英文「Sep 2026」只是碰巧被 `new Date` 读对。改成 `toYearMonth(period_month)`。
+4. `/me` 考勤表按显示用的月份字排序(英文按月份名字母排:「Sep 2025」排在「Apr 2026」后面)—— 改成按原始的期间月份排。
+
+原登记照录:
 
 **是什么:** `app/hr/payroll/page.tsx:79` 把 `period_month` 先过 `formatMonth(…, locale)`(英文是「Sep 2026」),
 `app/hr/payroll/PayrollPeriodsTable.tsx:50` 再 `.slice(0, 7)` —— 那是给 `YYYY-MM` 写的切法,切在一个显示串上就成了「Sep 202」。
@@ -11483,3 +11493,44 @@ EXPENSE-MULTILINE-1 只给它补了那一行 `expense_lines`(表头合计 = 行�
 **为什么记在这里:** Tim 2026-10-22 Q2 说导出取【全部】的结果。这些页的表手里只有它读到的那一份,所以导出也只有那一份 ——
 导出没有比屏幕少,但屏幕本身就少了,而且不说。今天线上没有一张受影响的表超过这些数(只有 `change_log` 77,155 行与 `ingest_inbox` 2,005 行过千,两张都不是这些页的源)。
 **去处:** 未排。改法:要么像 TABLE-EXPORT-1 的九张分页表那样改成服务端分页 + 翻页取全的导出路由,要么在页上说出「只显示最近 N 条」。
+
+**TABLE-EXPORT-2(Tim 2026-10-22 Q2)裁定了改法:** 页上一句「只显示前 N 条,共 M 条 —— 收窄筛选,或导出全部」(`RowCapNotice`),
+导出走一条不带上限的路由取全部匹配行(上限 50,000)。**2a(`v1.4.68`)做完了财务那四页**:`/finance/freight` 200 · `/finance/supplier-statements` 300 ·
+`/finance/bank` 行内转账 50 · `/finance/cash-forecast` 冻结的预测 20。
+**其余去 TABLE-EXPORT-2b(`docs/forward-queue.md` 64a-2)**,TABLE-EXPORT-2 Step 0 重量过的完整名单(上面原登记漏了 9 页与 `/me` 三块):
+`/sales/orders` · `/sales/quotes` 200 · `/hr/claims` · `/hr/leave` 300 · `/hr/reviews` 200 · `/inventory/reports/ledger`(实为 1,000)·
+`/operation/capture/inbox` 200(**今天就在截:`ingest_inbox` 2,005 行,以 postgres 读,Tim Q2 裁定改成真分页**)· `/operation/capture` 待确认 200 ·
+`/operation/weighbridge` 200 · `/operation/contamination` 300 · `/compliance/packs` 300 · `/safety/inspections` 200 · `/safety/environment` 300 ·
+`/me` 请假 · 医疗报销 · 费用报销各 50;另有几张写着「最近」的(capture 已确认 50 · contamination 最近检查 50 · `/settings/import` 20)。
+**原登记那一句「两张都不是这些页的源」量下来是错的**:`/operation/capture/inbox` 读的正是 `ingest_inbox`。
+
+## TABLE-EXPORT-2a(`v1.4.68`,2026-10-22)—— 财务那一半的列表页导出
+
+### READ-ALL-STOPS-AT-1000 · 一次【不翻页】的读取在线上第 1,000 行处悄悄停下 —— 不只是导出,屏幕上的合计也会悄悄偏小(Tim 2026-10-22 TABLE-EXPORT-2 Q3:登记,不在 TABLE-EXPORT-2 修)
+
+**是什么:** 线上 PostgREST `max_rows = 1000`(TABLE-EXPORT-1 实测)。一条既不 `.range` 也不翻页的读取拿到第 1,000 行就停,不报错。
+TABLE-EXPORT-1 的规矩「表手里是全体就导出它手里那一份」默认了「读全部」真的读到全部 —— 过了 1,000 行就不成立。更要紧的是**屏幕上由这类读取算出来的数**:
+固定资产的累计折旧与净值(`app/finance/assets/page.tsx:103` 读全部 `fixed_asset_depreciation` 再按资产加总)· `/hr/payroll` 每期的人数(读全部 `payroll_lines`)·
+`/hr/overtime` 每批的人数与工时(读全部 `overtime_lines`)· `/finance/expenses` 筛选集的合计与按科目筛出的单据(`expenseRows.ts` 的 `resolveExpenseFilter`)·
+`/finance/claims` 读全部 `expense_claim_status` 等等。**今天线上没有一张超过 1,000 行**(以 `postgres` 读、基表:`fixed_asset_depreciation` 0 · `expenses` 10 · `expense_claims` 4)。
+**去处:** 上线准备组的一条(`docs/forward-queue.md`),届时选一个共用的修法 —— 一律翻页读,或在一次读取正好回 1,000 行时出声。
+**本刀顺手修掉的几处(都在本刀改写的读取里,不是另起的活):** 对账单列表逐张的行计数、分录清单逐张的金额 —— 改成分批且每批翻页(`statementRows.ts` · `journalRows.ts`)。
+
+### CHANGE-HISTORY-NO-EXPORT · `/settings/change-history` 没有导出(Tim 2026-10-22 TABLE-EXPORT-2 Q4)
+
+**是什么:** 它不是一张表(`AuditTrailList`,一张有序列表),不在豁免清单上,也没有导出。`change_log` 今天 **78,441 行**(TABLE-EXPORT-2 Step 0,以 `postgres` 读,基表)。
+**Tim 的裁定:** 本轮不做导出;「查看更早」停在 500 条时说出来(TABLE-EXPORT-2b)。**将来的导出要求一个日期区间** —— 登记在 TABLE-EXPORT-3(`docs/forward-queue.md` 64b)。
+
+### DISPLAY-TIMESTAMP-SLICED-AS-UTC · 两处屏幕把时刻的 UTC 表示直接截下来显示(TABLE-EXPORT-2a 转换时量到;登记,不在本刀修)
+
+**是什么:** `/finance/packs` 的「生成时间」是 `String(produced_at).slice(0, 19).replace('T', ' ')`(`app/finance/packs/page.tsx`),
+`/finance/cash-forecast` 冻结的预测的「冻结日」是 `frozen_at.slice(0, 10)`(`FrozenForecastsTable.tsx`)—— 两处都是 PostgREST 给的 UTC 表示,
+不是新加坡时间:新加坡早上 8 点之前做的那一次,屏幕上是前一天。**导出不受影响**:两列都按 Tim TABLE-EXPORT-1 Q7 写成新加坡时间的日期格,所以导出与屏幕在那八小时里会差一天 —— 对的是导出。
+**去处:** 未排;改法是用 `formatAuditStamp` / `formatDate`(它们按业务时区读时刻)。
+
+### INVOICE-LIST-ALL-APPENDS-VOIDS-TO-EVERY-PAGE · 发票列表筛「全部」时,每一页都把全部作废发票接在后面(TABLE-EXPORT-2a 转换时量到;登记,不在本刀修)
+
+**是什么:** `/finance/invoices?status=all` 先按页取在册的 20 张,再把【全部】作废的接在后面(`page.tsx`,TABLE-EXPORT-2a 起读法在 `invoiceRows.ts`)——
+于是每一页都重复同一批作废发票,而「共 N 张」加上了它们、分页却不按它们分。**导出不受影响**:导出路由把在册的与作废的各取全一次、首尾相接(`exportUnionResponse`)。
+**去处:** 未排;改法是把「全部」做成一条按日期排序的联合读取再分页。本刀只把那几次读取从「只看 data」改成了会失败的读取(从前读失败 = 空表)。
+

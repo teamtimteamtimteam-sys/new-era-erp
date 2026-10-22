@@ -9,7 +9,9 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import TransferForm from './TransferForm'
 import TransfersTable, { type TransferRow } from './TransfersTable'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { TRANSFERS_SHOWN, transferCount, transferPage, shapeTransferRows } from './transferRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
@@ -86,43 +88,17 @@ export default async function BankHomePage({ searchParams }: { searchParams: Pro
         : { data: [] as { statement_id: string; match_status: string }[] }
 
     // ★ PAY-REQ-1 · Batch B:最近的行内转账 + 它们未了结的冲销申请(每行一个「申请冲销」)。
-    const transfers = mustRows(
-        await supabase
-            .from('bank_transfers')
-            .select('id, transfer_date, from_account, to_account, amount_out, amount_in, bank_reference, reversed_at')
-            .order('transfer_date', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(50),
-        'bank transfers'
-    )
-    const openReversals = mustRows(
-        await supabase
-            .from('payment_requests')
-            .select('id, code, transfer_id')
-            .eq('kind', 'bank_transfer_reversal')
-            .in('status', ['submitted', 'approved']),
-        'open transfer reversal requests'
-    )
-    const openByTransfer = new Map(openReversals.map((r) => [r.transfer_id, r]))
-    const ccyOf = (acct: string) => rows.find((r) => r.account_code === acct)?.currency ?? ''
+    // ★ TABLE-EXPORT-2a(Tim Q2):读取与「库里的行 → 表的行」搬进 transferRows.ts,与导出路由共用一份;
+    //   只画最近 TRANSFERS_SHOWN 笔,而且【说出来】(RowCapNotice)—— 从前是一句不说的 .limit(50)。
+    const [transfers, transferTotal] = await Promise.all([
+        transferPage(supabase, 0, TRANSFERS_SHOWN - 1).then((r) => mustRows(r, 'bank transfers')),
+        transferCount(supabase).then((r) => mustCount(r, 'bank transfers count')),
+    ])
     // AUDIT-TRAIL-1c-3:清单块里转账的名字 —— 两头按科目表的英文名说
     const accountName = new Map((mustRows(await supabase.from('accounts').select('code, name_en')
         .in('code', [...new Set(transfers.flatMap((x) => [x.from_account, x.to_account]))]), 'accounts for transfers') as
         { code: string; name_en: string }[]).map((a) => [a.code, a.name_en]))
-    const transferRows: TransferRow[] = transfers.map((x) => ({
-        id: x.id,
-        dateText: formatDate(x.transfer_date, locale),
-        fromAccount: x.from_account,
-        toAccount: x.to_account,
-        fromCurrency: ccyOf(x.from_account),
-        toCurrency: ccyOf(x.to_account),
-        amountOut: x.amount_out,
-        amountIn: x.amount_in,
-        reference: x.bank_reference,
-        reversed: x.reversed_at !== null,
-        openRequestId: openByTransfer.get(x.id)?.id ?? null,
-        openRequestCode: openByTransfer.get(x.id)?.code ?? null,
-    }))
+    const transferRows: TransferRow[] = await shapeTransferRows(supabase, transfers)
 
     const outstandingById = new Map<string, number>()
     for (const l of openLines ?? []) {
@@ -258,6 +234,7 @@ export default async function BankHomePage({ searchParams }: { searchParams: Pro
             <h2 className="mb-2">{t('finance.transfer.listTitle')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('finance.transfer.listHint')}</p>
             <div className="mb-6">
+                <RowCapNotice shown={transferRows.length} total={transferTotal} />
                 <TransfersTable rows={transferRows} canEdit={canEditGate} />
             </div>
 

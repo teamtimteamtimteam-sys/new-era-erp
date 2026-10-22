@@ -5,7 +5,6 @@
   "app/finance/expenses/[id]/page.tsx :: purchase_orders :: embed": 1,
   "app/finance/freight/[id]/page.tsx :: inbound_batches :: embed": 1,
   "app/finance/invoices/new/page.tsx :: invoice_lines": 1,
-  "app/finance/invoices/page.tsx :: invoices": 1,
   "app/finance/month-end/page.tsx :: payroll_lines": 1,
   "app/finance/payments/[id]/page.tsx :: inbound_batches": 1,
   "app/finance/payments/[id]/page.tsx :: purchase_orders": 1,

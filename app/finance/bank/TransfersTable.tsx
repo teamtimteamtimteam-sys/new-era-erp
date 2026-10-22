@@ -9,7 +9,8 @@ import Link from 'next/link'
 import { useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate } from '@/lib/export/cells'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -18,6 +19,8 @@ import { requestTransferReversal } from './transferActions'
 export type TransferRow = {
     id: string
     dateText: string
+    /** TABLE-EXPORT-2a:转账日的原始日历日 */
+    dateRaw: string
     fromAccount: string
     toAccount: string
     fromCurrency: string
@@ -65,23 +68,30 @@ function ReverseTransferButton({ row, canEdit }: { row: TransferRow; canEdit: bo
 
 export default function TransfersTable({ rows, canEdit }: { rows: TransferRow[]; canEdit: boolean }) {
     const t = useTranslations()
-    const columns: Column<TransferRow>[] = [
-        { key: 'date', header: t('finance.transfer.colDate'), priority: true, render: (r) => r.dateText },
+    const columns: ExportableColumn<TransferRow>[] = [
+        { key: 'date', header: t('finance.transfer.colDate'), priority: true, render: (r) => r.dateText, exportAs: (r) => xDate(r.dateRaw) },
         {
             key: 'accounts', header: t('finance.transfer.colAccounts'),
+            exportAs: (r) => xText(`${t('finance.bank.' + r.fromAccount)} → ${t('finance.bank.' + r.toAccount)}`),
             render: (r) => <>{t('finance.bank.' + r.fromAccount)} → {t('finance.bank.' + r.toAccount)}</>,
         },
         {
             key: 'out', header: t('finance.transfer.amountOut'), align: 'right', priority: true,
+            exportAs: (r) => xMoney(r.amountOut, r.fromCurrency || null),
             render: (r) => <>{r.fromCurrency} {formatMoneyBare(r.amountOut, '同格内紧邻的 r.fromCurrency 前缀')}</>,
         },
         {
             key: 'in', header: t('finance.transfer.amountIn'), align: 'right',
+            exportAs: (r) => xMoney(r.amountIn, r.toCurrency || null),
             render: (r) => <>{r.toCurrency} {formatMoneyBare(r.amountIn, '同格内紧邻的 r.toCurrency 前缀')}</>,
         },
-        { key: 'ref', header: t('finance.transfer.reference'), render: (r) => r.reference ?? '—' },
+        { key: 'ref', header: t('finance.transfer.reference'), render: (r) => r.reference ?? '—', exportAs: (r) => xText(r.reference) },
         {
             key: 'action', header: t('finance.colStatus'),
+            // 已冲销 / 冲销申请在等(带单号);否则屏幕上是一颗钮 —— 那不是数据,导出空着
+            exportAs: (r) => xText(r.reversed ? t('finance.transfer.reversed')
+                : r.openRequestId ? t('finance.transfer.reversalRequested', { code: r.openRequestCode ?? '' })
+                : null),
             render: (r) => r.reversed ? (
                 <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-700">{t('finance.transfer.reversed')}</span>
             ) : r.openRequestId ? (
@@ -100,6 +110,7 @@ export default function TransfersTable({ rows, canEdit }: { rows: TransferRow[];
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('finance.transfer.empty')}
+            exportSpec={{ name: 'bank-transfers', title: t('finance.transfer.listTitle'), serverRows: '/finance/bank/transfers/export' }}
         />
     )
 }

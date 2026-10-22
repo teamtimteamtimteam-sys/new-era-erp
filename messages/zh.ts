@@ -1311,6 +1311,14 @@ const zh = {
             aboutByUnknown: '读不出来(登录校验没有回应)',
             aboutAt: '导出时间(新加坡时间)',
             aboutLanguage: '语言',
+            // TABLE-EXPORT-2a:屏幕上只用整行淡出 / 划线表示的状态,导出时写在那一行的身份格里(一格一个值,而列只有表的列 —— Q11)
+            rowInactive: '已停用',
+            rowReversed: '已冲销',
+            rowSuperseded: '已被取代',
+            rowReopened: '已重开',
+            rowVoid: '已作废',
+            // TABLE-EXPORT-2a(Tim 2026-10-22 Q2):一张只读前 N 行的表,说出来
+            capNotice: '只显示前 {shown} 条,共 {total} 条 —— 收窄筛选,或导出全部。',
         },
         columns: '列 {shown}/{total}',
         partialNotice: '这一屏 {shown} 行,全体 {total} 行 —— 排序在数据库里对【全体】做,所以第一页就是全体的前 {shown} 名。',

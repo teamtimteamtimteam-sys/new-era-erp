@@ -8,11 +8,10 @@ import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { parseDateRange } from '@/lib/dateFilter'
 import JournalToolbar from './JournalToolbar'
 import JournalTable, { type JournalRow } from './JournalTable'
-import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
-import { mustOne, mustRows } from '@/lib/db-helpers'
+import { parseJournalListParams, journalCount, journalPage, shapeJournalRows, journalListExportHref } from './journalRows'
+import { mustOne, mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -47,41 +46,20 @@ export default async function JournalListPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const { dateFrom, dateTo } = parseDateRange(sp)
+    // TABLE-EXPORT-2a:读取与「库里的行 → 表的行」(含每张分录的金额与来源链接)搬进 journalRows.ts,与清单导出路由共用一份。
+    const params = parseJournalListParams(sp)
+    const { dateFrom, dateTo } = params
     const requestedPage = parsePage(sp.page)
 
-    // 过滤链(journal_entries 无软删 —— 不可变表)。
-    // 最小链式子集,避免 supabase 深泛型(同 processingQuery 手法)。
-    interface Chain {
-        gte(c: string, v: string): Chain
-        lte(c: string, v: string): Chain
-    }
-    const applyFilters = <T,>(query: T): T => {
-        let chain = query as unknown as Chain
-        if (dateFrom) chain = chain.gte('entry_date', dateFrom)
-        if (dateTo) chain = chain.lte('entry_date', dateTo)
-        return chain as unknown as T
-    }
-
-    // 1) 匹配总数
-    const { count } = await applyFilters(
-        supabase.from('journal_entries').select('id', { count: 'exact', head: true })
-    )
-
-    const total = count ?? 0
+    // 1) 匹配总数 —— 数不出来就失败(mustCount),不读成 0
+    const total = mustCount(await journalCount(supabase, params), 'journal_entries count')
     const totalPages = Math.max(1, Math.ceil(total / JOURNAL_PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * JOURNAL_PAGE_SIZE
     const to = from + JOURNAL_PAGE_SIZE - 1
 
     // 2) 取当前页(创建序最新在前)
-    const { data: entries, error } = await applyFilters(
-        supabase
-            .from('journal_entries')
-            .select('id, code, entry_date, memo, source_type, source_id, status')
-    )
-        .order('created_at', { ascending: false })
-        .range(from, to)
+    const { data: entries, error } = await journalPage(supabase, params, from, to)
 
     if (error) {
         return (
@@ -98,26 +76,6 @@ export default async function JournalListPage({
         )
     }
 
-    const rows = entries ?? []
-
-    // 3) 每张分录的金额(Σ借方)+ 来源链接,页级小查询
-    const ids = rows.map((r) => r.id)
-    const [linesRes, hrefs] = await Promise.all([
-        ids.length
-            // ★ U1-A(UNBLOCK-1 Q1 · Q2):读 journal_lines_masked —— 工资分录的金额对不持 data.view_pay 的人受限;
-            //   读基表的话,那几行对他们在 API 上不在,这一张分录的金额会悄悄变成 0.00(比「受限」更坏)。
-            ? supabase.from('journal_lines_masked').select('entry_id, debit, amounts_restricted').in('entry_id', ids)
-            : Promise.resolve({ data: [] as { entry_id: string; debit: number | null; amounts_restricted: boolean }[], error: null }),
-        resolveSourceHrefs(supabase, rows),
-    ])
-    const amountByEntry = new Map<string, number>()
-    const restrictedEntries = new Set<string>()
-    // 视图的生成类型把每一列都标成可空;这三列由视图的定义保证(entry_id 来自基表的 NOT NULL 列)
-    for (const l of mustRows(linesRes) as unknown as { entry_id: string; debit: number | null; amounts_restricted: boolean }[]) {
-        if (l.amounts_restricted) restrictedEntries.add(l.entry_id)
-        amountByEntry.set(l.entry_id, (amountByEntry.get(l.entry_id) ?? 0) + (l.debit ?? 0))
-    }
-
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
         if (dateFrom) params.set('date_from', dateFrom)
@@ -126,17 +84,8 @@ export default async function JournalListPage({
         return `/finance/journal?${params.toString()}`
     }
 
-    const tableRows: JournalRow[] = rows.map((r) => ({
-        id: r.id,
-        code: r.code,
-        entryDate: formatDate(r.entry_date, locale),
-        memo: r.memo,
-        sourceType: r.source_type,
-        sourceHref: hrefs.get(sourceHrefKey(r)) ?? null,
-        // 受限的分录给 null —— 表格印「受限」,不印一个由被遮的行拼出来的 0.00
-        amount: restrictedEntries.has(r.id) ? null : amountByEntry.get(r.id) ?? 0,
-        status: r.status,
-    }))
+    // 3) 每张分录的金额(Σ借方,受限的给 null)+ 来源链接 —— 在 journalRows.ts 里
+    const tableRows: JournalRow[] = await shapeJournalRows(supabase, entries ?? [], true)
 
     // ── APR-6:在等 CFO 的手工凭证 / 冲销申请(全部),以及最近了结的十张 ─────────────────────────
     // 申请表的读策略是 module.finance.view —— 进得了这一页的人都读得到,所以"读不到"只会是一次真的失败
@@ -244,7 +193,7 @@ export default async function JournalListPage({
                 )}
             </div>
 
-            <JournalTable rows={tableRows} empty={t('finance.emptyState')} baseCurrency={baseCurrency} />
+            <JournalTable rows={tableRows} empty={t('finance.emptyState')} baseCurrency={baseCurrency} exportHref={journalListExportHref(params)} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

@@ -17,7 +17,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { FROZEN_SHOWN, frozenCount, frozenPage } from './frozenRows'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -54,13 +56,11 @@ export default async function CashForecastPage({ searchParams }: { searchParams:
             .order('start_date')
     ) as unknown as Parameters<typeof RecurringLines>[0]['rows']
 
-    const frozen = mustRows(
-        await supabase
-            .from('cash_forecasts')
-            .select('id, code, week_start, frozen_at, superseded_at')
-            .order('week_start', { ascending: false })
-            .limit(20)
-    ) as unknown as FrozenRow[]
+    // ★ TABLE-EXPORT-2a(Tim Q2):读取搬进 frozenRows.ts,与导出路由共用;只画最近 FROZEN_SHOWN 张,而且说出来。
+    const [frozen, frozenTotal]: [FrozenRow[], number] = await Promise.all([
+        frozenPage(supabase, 0, FROZEN_SHOWN - 1).then((r) => mustRows(r, 'cash forecasts')),
+        frozenCount(supabase).then((r) => mustCount(r, 'cash forecasts count')),
+    ])
 
     return (
         <ListPage
@@ -79,6 +79,7 @@ export default async function CashForecastPage({ searchParams }: { searchParams:
 
             <h2 className="mb-2">{t('cashForecast.frozenTitle')}</h2>
             <div className="max-w-3xl">
+                <RowCapNotice shown={frozen.length} total={frozenTotal} />
                 <FrozenForecastsTable rows={frozen} />
             </div>
 

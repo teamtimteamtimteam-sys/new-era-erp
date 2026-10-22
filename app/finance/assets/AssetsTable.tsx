@@ -9,7 +9,8 @@
 //   金额、日期、以及"投用日那句话"都在服务端算好格好再过界,屏幕上的字因此不变。
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate, xInt } from '@/lib/export/cells'
 import AssetActions from './AssetActions'
 
 export type AssetsTableRow = {
@@ -38,6 +39,14 @@ export type AssetsTableRow = {
     hasCost: boolean
     /** APR-9:这台资产上那一张在等的处置申请的 label(处置钮因此按不动并指向它);没有就是 null */
     pendingDisposalLabel: string | null
+    // ── TABLE-EXPORT-2a:导出读【原始值】(Excel 里数是数、日期是日期)──
+    acquisitionDateRaw: string | null
+    inServiceDateRaw: string | null
+    currency: string
+    costCcyAmt: number | null
+    costBaseAmt: number | null
+    accumAmt: number
+    nbvAmt: number
 }
 
 export default function AssetsTable({
@@ -62,26 +71,31 @@ export default function AssetsTable({
     //   是同一回事」)。组件里没有"叠在身份格里画出来"这一档:要么 priority,
     //   要么进【点一下才展开】的那一段。折进去就等于把 R1 判过的那件事撤销。
     //   ☞ 所以它 priority:true —— "不点就够得着"这件事没有变。
-    const columns: Column<AssetsTableRow>[] = [
+    const columns: ExportableColumn<AssetsTableRow>[] = [
         {
             key: 'code', header: t('finance.colCode'), priority: true,
+            exportAs: (a) => xText(a.code),
             render: (a) => (
                 <Link href={`/finance/assets/${a.id}`} className="hover:underline app-link">
                     {a.code}
                 </Link>
             ),
         },
-        { key: 'description', header: t('assets.colDescription'), render: (a) => a.description },
-        { key: 'category', header: t('assets.colCategory'), render: (a) => t('assets.category.' + a.category) },
-        { key: 'acquired', header: t('assets.colAcquired'), render: (a) => a.acquisitionDate },
+        { key: 'description', header: t('assets.colDescription'), render: (a) => a.description, exportAs: (a) => xText(a.description) },
+        { key: 'category', header: t('assets.colCategory'), render: (a) => t('assets.category.' + a.category), exportAs: (a) => xText(t('assets.category.' + a.category)) },
+        { key: 'acquired', header: t('assets.colAcquired'), render: (a) => a.acquisitionDate, exportAs: (a) => xDate(a.acquisitionDateRaw) },
         {
             key: 'inService', header: t('assets.colInService'),
+            // 有投用日就是那个真日期;没有就是屏幕上那句话(「计划 … 投用」之类)
+            exportAs: (a) => (a.inServiceDateRaw ? xDate(a.inServiceDateRaw) : xText(a.inServiceText)),
             render: (a) => (a.inServicePending
                 ? <span className="text-amber-700 text-xs">{a.inServiceText}</span>
                 : <>{a.inServiceText}</>),
         },
         {
             key: 'cost', header: t('assets.colCost'), align: 'right',
+            // 原币成本带它自己的币种;「@ 汇率」那条尾巴是另一个数,不塞进这一格(本位币那一列就是它乘出来的)
+            exportAs: (a) => xMoney(a.costCcyAmt, a.currency),
             render: (a) => (
                 <>
                     {a.costCcy}
@@ -91,21 +105,26 @@ export default function AssetsTable({
         },
         {
             key: 'costBase', header: t('finance.colAmount', { ccy: baseCurrency }), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (a) => a.costBase,
+            exportAs: (a) => xMoney(a.costBaseAmt),
         },
         {
             key: 'life', header: t('assets.colLife'), align: 'right',
             render: (a) => a.usefulLifeMonths,
+            exportAs: (a) => xInt(a.usefulLifeMonths),
         },
         {
             key: 'accum', header: t('assets.colAccum'), align: 'right',
             render: (a) => a.accum,
+            exportAs: (a) => xMoney(a.accumAmt, baseCurrency),
         },
         {
             key: 'nbv', header: t('assets.colNbv'), align: 'right', priority: true,
             className: 'font-medium', render: (a) => a.nbv,
+            exportAs: (a) => xMoney(a.nbvAmt, baseCurrency),
         },
         {
             key: 'status', header: t('finance.colStatus'), priority: true,
+            exportAs: (a) => xText(t('assets.status.' + a.status)),
             render: (a) => (
                 <span className={'px-2 py-1 rounded text-xs ' +
                     (a.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600')}>
@@ -114,7 +133,7 @@ export default function AssetsTable({
             ),
         },
         {
-            key: 'actions', header: t('assets.colActions'), priority: true,
+            key: 'actions', header: t('assets.colActions'), priority: true, exportAs: false,
             render: (a) => (
                 <AssetActions
                     assetId={a.id} code={a.code} status={a.status}
@@ -136,6 +155,7 @@ export default function AssetsTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             rowClassName={(a) => (a.status === 'disposed' ? 'text-gray-400' : undefined)}
+            exportSpec={{ name: 'fixed-assets', title: t('assets.title') }}
         />
     )
 }
