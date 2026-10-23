@@ -18,7 +18,9 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare, businessToday } from '@/lib/format'
 import { remitCosts, relieveAccruals } from '../month-end/actions'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { MaskedValue } from '@/app/components/MaskedValue'
+import { xMasked, xMoney, xText, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -30,10 +32,13 @@ type Sup = { id: string; legal_name: string }
 // baseCurrency:'{accrued} {ccy}' 这句文案一直只传了 accrued —— 解析器对认不出的
 // 占位符原样保留(lib/i18n/client.tsx),所以屏幕上真的印着"1,234.00 {ccy}。"。
 // 币种来自数据(currencies.is_base),由页面传入。
+// ★ TABLE-EXPORT-3a(Tim 2026-10-23 Q4;TABLE-EXPORT-2 Q8 把这一块的「受限」排到这里):两张表各一对导出,【不论勾了哪几行】全部导出
+//   (TABLE-EXPORT-1 Q2:勾选不收窄)。金额那一格:processing_cost_entry_lookup 对不持 data.view_prices 的读者给 NULL ——
+//   屏幕此前经 formatAmount 画成「—」;现在与 MaskedValue 同一条判据画「受限」,导出写 "Restricted"。
 export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency ,
-canEdit
+canEdit, canViewPrices
 }: { entries: Entry[]; runs: Run[]; suppliers: Sup[]; baseCurrency: string 
-canEdit: boolean
+canEdit: boolean; canViewPrices: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -103,11 +108,14 @@ canEdit: boolean
         </label>
     )
 
-    const columns: Column<Entry>[] = [
-        { key: 'run', header: t('finance.costSettle.colRun'), priority: true, render: (e) => runBy.get(e.run_id) },
-        { key: 'type', header: t('finance.costSettle.colCostType'), priority: true, render: (e) => t('processing.costTypes.' + e.cost_type) },
-        { key: 'amount', header: t('finance.costSettle.colAmount'), priority: true, align: 'right', render: (e) => formatAmount(e.amount_base, baseCurrency) },
-        { key: 'date', header: t('finance.costSettle.colEntryDate'), className: 'text-xs text-gray-500', render: (e) => e.created_at.slice(0, 10) },
+    const columns: ExportableColumn<Entry>[] = [
+        { key: 'run', header: t('finance.costSettle.colRun'), priority: true, render: (e) => runBy.get(e.run_id), exportAs: (e) => xText(runBy.get(e.run_id)) },
+        { key: 'type', header: t('finance.costSettle.colCostType'), priority: true, render: (e) => t('processing.costTypes.' + e.cost_type), exportAs: (e) => xText(t('processing.costTypes.' + e.cost_type)) },
+        { key: 'amount', header: t('finance.costSettle.colAmount'), priority: true, align: 'right',
+          render: (e) => <MaskedValue value={e.amount_base} canView={canViewPrices} format={(v: number) => formatAmount(v, baseCurrency)} fallback="—" />,
+          exportAs: (e) => xMasked(e.amount_base, canViewPrices, (v) => xMoney(v, baseCurrency)) },
+        // 屏幕上是那一刻的日子部分;导出写那个时刻本身(新加坡时间,Q7)
+        { key: 'date', header: t('finance.costSettle.colEntryDate'), className: 'text-xs text-gray-500', render: (e) => e.created_at.slice(0, 10), exportAs: (e) => xTime(e.created_at) },
     ]
 
     // 【Record<id, boolean> ↔ Set<id>,各自独立】—— selA 与 selE 是两个不同的
@@ -140,6 +148,7 @@ canEdit: boolean
                             rowKey={(e) => e.id}
                             phone={{ mode: 'columns' }}
                             selection={selectionFor(actuals, selA, setSelA)}
+                            exportSpec={{ name: 'finance-processing-costs-actual', title: t('finance.costSettle.actualTitle') }}
                         />
                     </div>
                     <div className="flex gap-4 flex-wrap items-start">
@@ -166,6 +175,7 @@ canEdit: boolean
                             rowKey={(e) => e.id}
                             phone={{ mode: 'columns' }}
                             selection={selectionFor(estimates, selE, setSelE)}
+                            exportSpec={{ name: 'finance-processing-costs-estimate', title: t('finance.costSettle.estimateTitle') }}
                         />
                     </div>
                     <div className="flex gap-4 flex-wrap items-start text-xs text-[color:var(--brand-muted-text)]">

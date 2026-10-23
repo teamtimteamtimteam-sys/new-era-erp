@@ -15,7 +15,10 @@ import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { freezeForecast } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { ReportExportBar } from '@/app/components/ui/report-export'
+import { xDate, xMoney, xNum, xText } from '@/lib/export/cells'
+import type { ReportLine } from '@/lib/export/report'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
@@ -86,8 +89,13 @@ export default function ForecastGrid({
     const lineRows = data.lines.map((l, i) => ({ ...l, _key: String(i) }))
     const undatedRows = data.undated.map((u, i) => ({ ...u, _key: String(i) }))
 
-    const lineColumns: Column<typeof lineRows[number]>[] = [
-        { key: 'due', header: t('cashForecast.weekOf'), priority: true, className: 'text-xs', render: (r) => r.due },
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q5):现金预测照屏幕导出 —— 明细、无日期、OPEX 覆盖三张表各一对导出;
+    //   周表另有一对(下面 gridLines),一种币种一张工作表。
+    //   金额:屏幕上流出写成括号 —— 导出写成负数(仍是一个能加总的数),币种跟着那一格(各行币种不同)。
+    //   叠在一格里的几样东西(来源 + 描述 + 单号;可信度 + 保管人)导出成屏幕上那串字,与 docs/table-export.md「一格放不下」同一条。
+    const signed = (direction: string, amount: number) => (direction === 'out' ? -Number(amount) : Number(amount))
+    const lineColumns: ExportableColumn<typeof lineRows[number]>[] = [
+        { key: 'due', header: t('cashForecast.weekOf'), priority: true, className: 'text-xs', render: (r) => r.due, exportAs: (r) => xDate(r.due) },
         {
             key: 'label', header: t('cashForecast.label'), priority: true, className: 'break-words',
             render: (r) => (
@@ -97,6 +105,7 @@ export default function ForecastGrid({
                     {r.ref && <span className="ml-1 text-xs text-[color:var(--brand-muted-text)]">{r.ref}</span>}
                 </>
             ),
+            exportAs: (r) => xText([t('cashForecast.source_' + r.source), r.label, r.ref].filter(Boolean).join(' ')),
         },
         {
             key: 'confidence', header: t('cashForecast.confidence'),
@@ -110,16 +119,18 @@ export default function ForecastGrid({
                     )}
                 </>
             ),
+            exportAs: (r) => xText(t('cashForecast.conf_' + r.confidence) + (r.owner_name ? ` · ${t('cashForecast.owner')}: ${r.owner_name}` : '')),
         },
         {
             key: 'amount', header: t('cashForecast.amount'), align: 'right',
             render: (r) => `${r.direction === 'out' ? `(${money(r.amount)})` : money(r.amount)} ${r.currency}`,
+            exportAs: (r) => xMoney(signed(r.direction, r.amount), r.currency),
         },
     ]
 
-    const undatedColumns: Column<typeof undatedRows[number]>[] = [
+    const undatedColumns: ExportableColumn<typeof undatedRows[number]>[] = [
         {
-            key: 'source', header: '', priority: true, className: 'bg-amber-50',
+            key: 'source', header: '', exportHeader: t('cashForecast.label'), priority: true, className: 'bg-amber-50',
             render: (r) => (
                 <>
                     {t('cashForecast.source_' + r.source)} × {r.row_count}
@@ -129,22 +140,44 @@ export default function ForecastGrid({
                     </span>
                 </>
             ),
+            exportAs: (r) => xText(`${t('cashForecast.source_' + r.source)} × ${r.row_count} — ${t('cashForecast.undated_' + r.why)}`
+                + (r.owner_name ? ` · ${t('cashForecast.owner')}: ${r.owner_name}` : '')),
         },
         {
             key: 'amount', header: t('cashForecast.amount'), priority: true, align: 'right', className: 'bg-amber-50',
             render: (r) => `${r.direction === 'out' ? `(${money(r.amount)})` : money(r.amount)} ${r.currency}`,
+            exportAs: (r) => xMoney(signed(r.direction, r.amount), r.currency),
         },
     ]
 
-    const bufferColumns: Column<Buffer>[] = [
-        { key: 'currency', header: t('cashForecast.currency'), priority: true, render: (r) => r.currency },
-        { key: 'opex', header: t('cashForecast.monthlyOpex'), align: 'right', render: (r) => money(r.monthly_fixed_opex) },
+    const bufferColumns: ExportableColumn<Buffer>[] = [
+        { key: 'currency', header: t('cashForecast.currency'), priority: true, render: (r) => r.currency, exportAs: (r) => xText(r.currency) },
+        { key: 'opex', header: t('cashForecast.monthlyOpex'), align: 'right', render: (r) => money(r.monthly_fixed_opex), exportAs: (r) => xMoney(r.monthly_fixed_opex, r.currency) },
         {
             key: 'coverToday', header: t('cashForecast.coverToday'), priority: true, align: 'right',
             render: (r) => r.months_cover_today ?? <span className="text-[color:var(--brand-muted-text)]">{t('cashForecast.noOpex')}</span>,
+            // 没有 OPEX 时屏幕写「没有固定开支」—— 一句话,不是一个 0
+            exportAs: (r) => r.months_cover_today === null ? xText(t('cashForecast.noOpex')) : xNum(r.months_cover_today, 'pct'),
         },
-        { key: 'coverMin', header: t('cashForecast.coverMin'), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (r) => r.months_cover_min ?? '—' },
+        { key: 'coverMin', header: t('cashForecast.coverMin'), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (r) => r.months_cover_min ?? '—', exportAs: (r) => xNum(r.months_cover_min, 'pct') },
     ]
+
+    // 周表的导出(Q5):一种币种一张工作表;四行与屏幕同 —— 流入、流出是明细,净额是小计,期末是合计(屏幕上加底色那一行)。
+    //   没有那一周的格子屏幕上写 0.00,导出同样写 0。
+    const weekHeader = (w: number) => {
+        const b = data.buckets.find((x) => x.week_no === w)
+        return b ? formatDate(b.week_start, locale) ?? `W${w}` : `W${w}`
+    }
+    const gridKinds = { inflow: 'line', outflow: 'line', net: 'subtotal', closing: 'total' } as const
+    const gridSheets = data.currencies.map((ccy) => ({
+        title: ccy,
+        // 与屏幕那四行同一组字面键(下面 tbody 里那张表)
+        lines: ([['inflow', 'cashForecast.inflow'], ['outflow', 'cashForecast.outflow'],
+                 ['net', 'cashForecast.net'], ['closing', 'cashForecast.closing']] as const).map(([k, key]): ReportLine => ({
+            kind: gridKinds[k], level: gridKinds[k] === 'line' ? 1 : 0,
+            cells: [xText(t(key)), ...weeks.map((w) => xMoney(Number(bucketOf(ccy, w)?.[k] ?? 0), ccy))],
+        })),
+    }))
 
     return (
         /* ★ POLISH-1 round 3(item x)· `mb-8` —— 这一块的下边距此前是 0,
@@ -170,6 +203,20 @@ export default function ForecastGrid({
                         date: formatDate(data.as_of, locale),
                     })}
                 </p>
+            )}
+
+            {data.currencies.length > 0 && (
+                <div className="mb-4">
+                    <ReportExportBar spec={{
+                        name: 'finance-cash-forecast-weeks',
+                        title: t('cashForecast.weekGridTitle'),
+                        headers: [t('cashForecast.weekOf'), ...weeks.map(weekHeader)],
+                        sheets: gridSheets,
+                        sheetHeader: t('cashForecast.currency'),
+                        lineKind: 'other',
+                        aboutExtra: [[t('table.export.aboutPeriod'), `${data.week_start} → ${data.week_end}`]],
+                    }} />
+                </div>
             )}
 
             {/* ── 每个币种一张表 ─────────────────────────────────────────── */}
@@ -242,6 +289,7 @@ export default function ForecastGrid({
                     columns={lineColumns}
                     rowKey={(r) => r._key}
                     phone={{ mode: 'columns' }}
+                    exportSpec={{ name: 'finance-cash-forecast-lines', title: t('cashForecast.forecastLinesTitle') }}
                 />
             </div>
 
@@ -262,6 +310,7 @@ export default function ForecastGrid({
                         columns={undatedColumns}
                         rowKey={(r) => r._key}
                         phone={{ mode: 'columns' }}
+                        exportSpec={{ name: 'finance-cash-forecast-undated', title: t('cashForecast.undatedTitle') }}
                     />
                 </div>
             )}
@@ -292,6 +341,7 @@ export default function ForecastGrid({
                     columns={bufferColumns}
                     rowKey={(r) => r.currency}
                     phone={{ mode: 'columns' }}
+                    exportSpec={{ name: 'finance-cash-forecast-opex-cover', title: t('cashForecast.bufferTitle') }}
                 />
             </div>
 

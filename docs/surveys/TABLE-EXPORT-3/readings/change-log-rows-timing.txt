@@ -1,0 +1,7 @@
+PROOF|holds=1
+PROOF|byentry200x200 rows=200
+Time: 5570.718 ms (00:05.571)
+PROOF|rowmode200 rows=200
+Time: 3524.664 ms (00:03.525)
+PROOF|rowmode200b rows=200
+Time: 4328.032 ms (00:04.328)

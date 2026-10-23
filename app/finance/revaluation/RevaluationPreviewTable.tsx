@@ -7,7 +7,8 @@
 
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMoney, xNum, xText } from '@/lib/export/cells'
 
 export type RevaluationRow = {
     key: string
@@ -24,23 +25,29 @@ export type RevaluationRow = {
     totalUnknown?: boolean
 }
 
-export default function RevaluationPreviewTable({ rows }: { rows: RevaluationRow[] }) {
+export default function RevaluationPreviewTable({ rows, periodEnd }: { rows: RevaluationRow[]; periodEnd: string }) {
     const t = useTranslations()
 
     // ★ 手机上留【科目】与【调整额】—— 科目是身份,调整额是这张预览表
     //   存在的理由(过账会动哪几笔、动多少)。
-    const columns: Column<RevaluationRow>[] = [
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q5 · Q3):照屏幕导出;末尾「净额进 7110」是预览自己算的行,照导出 ——
+    //   缺牌价时它是「—」(不知道),导出同样写「—」,不写成 0。外币余额那一格带它自己的币种(各行不同)。
+    //   牌价旁那枚「取自 <日期>」的小标不进导出:一格一个值,值是牌价本身。
+    const columns: ExportableColumn<RevaluationRow>[] = [
         {
             key: 'account', header: t('finance.reval.account'), priority: true,
             render: (r) => (r.isTotal ? t('finance.reval.netTo7110') : `${r.account} · ${r.currency}`),
+            exportAs: (r) => xText(r.isTotal ? t('finance.reval.netTo7110') : `${r.account} · ${r.currency}`),
         },
         {
             key: 'native', header: t('finance.reval.native'), align: 'right',
             render: (r) => (r.isTotal || r.native === null ? '' : formatMoneyBare(r.native, '行标签「科目 · 币种」已写明这格的外币')),
+            exportAs: (r) => (r.isTotal ? xText(null) : xMoney(r.native, r.currency)),
         },
         {
             key: 'carry', header: t('finance.reval.carry'), align: 'right',
             render: (r) => (r.isTotal || r.carryBase === null ? '' : formatAmount(r.carryBase, r.baseCurrency)),
+            exportAs: (r) => (r.isTotal ? xText(null) : xMoney(r.carryBase, r.baseCurrency)),
         },
         {
             key: 'mid', header: t('finance.reval.mid'), align: 'right',
@@ -58,6 +65,7 @@ export default function RevaluationPreviewTable({ rows }: { rows: RevaluationRow
                     </>
                 )
             },
+            exportAs: (r) => (r.isTotal ? xText(null) : r.rate === null ? xText('—') : xNum(r.rate, 'rate')),
         },
         {
             key: 'adj', header: t('finance.reval.adj'), priority: true, align: 'right', className: 'font-medium',
@@ -66,6 +74,10 @@ export default function RevaluationPreviewTable({ rows }: { rows: RevaluationRow
                 // 对损益没有影响",而真相是它还算不出来。
                 if (r.isTotal) return r.totalUnknown ? '—' : formatAmount(r.adjustment ?? 0, r.baseCurrency)
                 return r.adjustment === null ? '—' : formatAmount(r.adjustment, r.baseCurrency)
+            },
+            exportAs: (r) => {
+                if (r.isTotal) return r.totalUnknown ? xText('—') : xMoney(r.adjustment ?? 0, r.baseCurrency)
+                return r.adjustment === null ? xText('—') : xMoney(r.adjustment, r.baseCurrency)
             },
         },
     ]
@@ -77,6 +89,11 @@ export default function RevaluationPreviewTable({ rows }: { rows: RevaluationRow
             rowKey={(r) => r.key}
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'bg-gray-50 font-medium' : undefined)}
+            exportSpec={{
+                name: 'finance-revaluation-preview',
+                title: t('finance.reval.title'),
+                aboutExtra: [[t('table.export.aboutPreview'), t('table.export.aboutPreviewValue', { date: periodEnd })]],
+            }}
         />
     )
 }

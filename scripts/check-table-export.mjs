@@ -17,7 +17,10 @@
 //
 // 判据(五条,任何一条不成立就红):
 //   ① 每一处 <DataTable 的属性区里有 `exportSpec=`,或者【那个文件的 DataTable】在清单上;
-//   ② 每一处 <EditableTable / <table,【那个文件的那一种】在清单上(它们没有导出这一说,只能等 TABLE-EXPORT-3);
+//   ② 每一处 <EditableTable / <table,【那个文件的那一种】在清单上;
+//      或者(TABLE-EXPORT-3a,Tim 2026-10-23 Q2)一个手搓 <table> 的【同一个文件】里画着 <ReportExportBar / <FlatExportBar 或 <TableExportBar ——
+//      报表不是 DataTable、没有 exportSpec 可写,它的导出就是那颗钮(lib/export/report.ts · app/components/ui/report-export.tsx)。
+//      判据只认【同一个文件】:钮在别的文件里,这张表就仍然要点名 —— 一颗钮不能替一个它看不见的文件作证。
 //   ③ STALE:清单上的一条,文件不存在,或者那一种在文件里已经【一处都不缺】了 —— 清单只许变短;
 //   ④ Q5 / Q11 的唯一例外 `extension:` 只许出现在供应商与客户两张表里;
 //   ⑤ 覆盖断言(AGENTS.md「覆盖率本身必须是一条断言」):按标签走出来的调用点数 = 剥掉注释后的正则数,且 > 0。
@@ -28,6 +31,7 @@
 // 故障注入(每次运行都跑,不靠人记得):
 //   CHECK_TABLE_EXPORT_FAULT=blind          解析器读不出任何属性区 → 必须红(不许报"干净")
 //   CHECK_TABLE_EXPORT_FAULT=drop:<file>    假装清单上没有那个文件 → 必须点名它
+//   CHECK_TABLE_EXPORT_FAULT=nobar          假装没有一个文件画着导出钮 → 每一张转过来的报表都必须被点名
 // ════════════════════════════════════════════════════════════════════════════
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
@@ -123,6 +127,7 @@ for (const abs of files) {
         problems.push({ rel, line: 0, why: '`extension:` 只许供应商与客户两张表用(Tim Q5 / Q11:导出的列就是表的列)' })
     }
 
+    const hasBar = FAULT !== 'nobar' && /<(ReportExportBar|FlatExportBar|TableExportBar)(?=[\s\n<])/.test(src)
     for (const m of src.matchAll(/<(DataTable|EditableTable)(?=[\s\n<])|<table(?=[\s\n>])/g)) {
         walked++
         const kind = m[1] ?? 'table'
@@ -134,6 +139,7 @@ for (const abs of files) {
             if (block === null) { problems.push({ rel, line, why: '读不出这个 <DataTable 的属性区 —— 解析器可能坏了' }); continue }
             if (/\bexportSpec=/.test(block)) { declared++; continue }
         }
+        if (kind === 'table' && hasBar) { declared++; continue }
         if (exempt.has(key)) { used.add(key); continue }
         problems.push({
             rel, line,

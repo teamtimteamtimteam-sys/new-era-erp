@@ -36,6 +36,9 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
+import { ReportExportBar } from '@/app/components/ui/report-export'
+import { xMoney, xText } from '@/lib/export/cells'
+import type { ReportLine } from '@/lib/export/report'
 
 // ★ CONV-4:不套 DataTable —— 与 balance-sheet 同一条理由(按科目类型
 //   动态分组 + 每组小计 + 底部借贷合计,不是记录列表)。
@@ -130,8 +133,29 @@ export default async function FinancePage({
             .filter((r) => showAll || r.debits !== 0 || r.credits !== 0),
     })).filter((g) => g.rows.length > 0)
 
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q2 · Q3 · Q11):照屏幕原样导出 —— 全部期间(这一页没有期间,Q11)、
+    //   科目类型抬头、科目行(缩一级)、底部借贷合计;零发生额科目随 ?all=1 与屏幕同进同出。
+    //   系统 / 停用两枚标不进导出(一格一个值;科目名就是科目名)。
+    const blank = xText(null)
+    const reportLines: ReportLine[] = groups.flatMap((g) => [
+        { kind: 'heading' as const, cells: [xText(t('finance.accountType.' + g.type)), blank, blank, blank, blank] },
+        ...g.rows.map((r) => ({
+            kind: 'line' as const, level: 1 as const,
+            cells: [xText(r.code), xText(accountName(r)), xMoney(r.debits, baseCurrency), xMoney(r.credits, baseCurrency), xMoney(r.net, baseCurrency)],
+        })),
+    ])
+    reportLines.push({ kind: 'total', cells: [xText(t('finance.totalsLabel')), blank, xMoney(totalDebits, baseCurrency), xMoney(totalCredits, baseCurrency), blank] })
+
     return (
         <ListPage title={t('finance.trialBalance')} state={{ kind: 'ok' }}>
+            <div className="mb-4">
+                <ReportExportBar spec={{
+                    name: 'finance-trial-balance',
+                    title: t('finance.trialBalance'),
+                    headers: [t('finance.colCode'), t('finance.colAccount'), t('finance.colDebits'), t('finance.colCredits'), t('finance.colNet')],
+                    sheets: [{ title: t('finance.trialBalance'), lines: reportLines }],
+                }} />
+            </div>
             <div className="mb-4 text-sm">
                 <Link
                     href={showAll ? '/finance/trial-balance' : '/finance/trial-balance?all=1'}

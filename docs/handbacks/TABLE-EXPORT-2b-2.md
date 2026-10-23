@@ -34,7 +34,7 @@ Step 0 survey: `docs/surveys/TABLE-EXPORT-2b-2/step0.md`. **No migration** — e
 | Split | Not split; everything fitted. No TABLE-EXPORT-2b-3 queued. |
 | Correction (15 s) | Recorded — see §5 item 2. |
 
-**After this cut no `TABLE-EXPORT-2` work remains.** `scripts/table-export-exemptions.mjs`: **117 `TABLE-EXPORT-3` · 1 `PERMANENT` · 0 `TABLE-EXPORT-2`.**
+**After this cut no `TABLE-EXPORT-2` work remains.** `scripts/table-export-exemptions.mjs`: ~~117 `TABLE-EXPORT-3`~~ **116 `TABLE-EXPORT-3` · 1 `PERMANENT` · 0 `TABLE-EXPORT-2`** (117 in total; corrected 2026-10-23, Tim — see §8 item 2).
 
 ## 2 · Verify chain (in order)
 
@@ -91,3 +91,28 @@ Not touched: the portal access-token hook, the `portal-uploads` and `claim-recei
 ## 7 · Measured costs, for the next estimate
 
 offline gate 140 s · full gate 1,043 s (verdicts 810 s) · build ~97 s · smoke 2,637 s (run 2; run 1 42 min) · layout ~190 s per width for 20 pages · live proof ~6 min · no backup (no migration).
+
+## 8 · Close-out (TABLE-EXPORT-3 Part 1, 2026-10-23)
+
+Tim confirmed the deployment of `da33da46f3f7e38d5afcc64733a567c854271547` at 2026-10-23 22:55 CST. No migration, no window.
+
+1. **The full gate did not run on the final code.** It ran (`GATE_EXIT=0`, §2 row 5) on the tree **before** three later app-only changes:
+   the notifications "N unread" label, the `te2b2probe` prefix, and the export-route split (one route per table). The offline gate (run 2)
+   and the build (run 4) were re-run on the final code; **the full gate was not.** None of the three touches the database, but the rule is that
+   the full gate runs on the final code, and here it did not.
+2. **"116 at 2b-1 close → 117 now" did not happen. No entry was added.** Measured three ways at `da33da46`: the build check's own line
+   (`豁免 117 条(TABLE-EXPORT-3 116 · PERMANENT 1)`), the module imported and counted by `cut`, and `grep '^ *{ file:'` on the file at each commit:
+   8373a498 (TABLE-EXPORT-1) 104 · 025776a9 (2a) **116** · 2249696e (2b-1) **116** · da33da46 (2b-2) **116**; `PERMANENT` 1 since 2a; 2b-2 changed no entry.
+   **The "117" is the list's TOTAL (116 + 1 PERMANENT)**, written in §1 above as "117 `TABLE-EXPORT-3`". A plain `grep -c "cut: 'TABLE-EXPORT-3'"` also
+   reads 117, because it also counts the JSDoc `@type` line at `scripts/table-export-exemptions.mjs:14`. The 116 entries cover **115 files**
+   (`app/finance/cash-forecast/ForecastGrid.tsx` has two: one `DataTable`, one hand-built `table`).
+3. **Production check (TABLE-EXPORT-3 Part 1.2), two runs**, script `db/scripts/2026-10-23-table-export-2b2-closeout-prod-check.mjs` against `https://new-era-erp.vercel.app`, read-only:
+   - **Run 1, about 23:00 CST: `TE2B2_CLOSEOUT_EXIT=1`, 2 FAIL** (`docs/surveys/TABLE-EXPORT-3/readings/closeout-prod-check.txt`): inbox without a pager and page 2 = page 1;
+     `/notifications` without "N unread"; bell "2" = database 2. **Cause (Tim 2026-10-23, from his Vercel dashboard):** da33da4's production build started about 22:58 CST
+     and took 8 min 14 s, Ready about 23:06 CST — run 1 ran while the build was still running and saw 2b-1's code. The code was not at fault.
+   - **Run 2, 2026-10-23 23:34:32 → 23:36:00 CST, script unchanged: `TE2B2_CLOSEOUT_EXIT=0`, 5 / 5** (`readings/closeout-prod-check-run2.txt`): page 1 200 rows, pager
+     "Page 1 of 11 · 2,005 messages"; page 2 200 rows, 0 shared with page 1, newest #1805 < page 1's oldest #1806; the throwaway reader has 2 unread (database, rolled back),
+     the page says "2 unread" and the bell shows "2".
+   - Read back as `postgres`, counts only, after each run: 7 users, 7 enabled, **0** throwaway users / roles, 0 orphan grants, no plan file left in `.ephemeral/`.
+4. **Broken window: none — 2b-2 had no migration.** The deployment end time: **about 23:06 CST (deployment Ready), confirmed by Tim at 23:24 CST** (the 22:55 in Part 1 of the
+   TABLE-EXPORT-3 brief was the time the brief was written, not the Ready time).

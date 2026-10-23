@@ -1,0 +1,38 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 8137a305-865b-4ea1-a7ae-76cf505953a6
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/14] 14s  ovf=0 clip=0 /compliance/packs
+  [  2/14] 24s  ovf=0 clip=0 /finance/assets
+  [  3/14] 31s  ovf=0 clip=0 /finance/balance-sheet
+  [  4/14] 43s  ovf=0 clip=0 /finance/cash-forecast
+  [  5/14] 82s  ovf=0 clip=0 /finance/cashflow
+  [  6/14] 109s  ovf=0 clip=0 /finance/cost-variance
+  [  7/14] 115s  ovf=0 clip=0 /finance/list-vs-ledger
+  [  8/14] 130s  ovf=0 clip=0 /finance/month-end
+  [  9/14] 143s  ovf=0 clip=0 /finance/payroll-payments
+  [ 10/14] 149s  ovf=0 clip=0 /finance/pnl
+  [ 11/14] 157s  ovf=0 clip=0 /finance/price-exposure
+  [ 12/14] 172s  ovf=0 clip=0 /finance/processing-costs
+  [ 13/14] 184s  ovf=0 clip=0 /finance/revaluation
+  [ 14/14] 191s  ovf=0 clip=0 /finance/trial-balance
+
+════ 390px SURVEY ════
+measured: 14  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       14 / 14
+U2 no clipped ledger:                 14 / 14
+USABLE (U1 AND U2):                   14 / 14
+
+pages FAILING U1 (page overflows): 0
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 14 / 14  median per page: 19
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/phone-390.json
+· cleaned up ephemeral survey account(s)
+SURVEY390_EXIT=0

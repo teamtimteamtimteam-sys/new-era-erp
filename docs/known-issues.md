@@ -11530,6 +11530,13 @@ TABLE-EXPORT-1 的规矩「表手里是全体就导出它手里那一份」默�
 **是什么:** 它不是一张表(`AuditTrailList`,一张有序列表),不在豁免清单上,也没有导出。`change_log` 今天 **78,441 行**(TABLE-EXPORT-2 Step 0,以 `postgres` 读,基表)。
 **Tim 的裁定:** 本轮不做导出;「查看更早」停在 500 条时说出来(TABLE-EXPORT-2b)。**将来的导出要求一个日期区间** —— 登记在 TABLE-EXPORT-3(`docs/forward-queue.md` 64b)。
 **TABLE-EXPORT-2b-1(2026-10-23)做了那一句:** 还有更早的而列表已到 500 条时,「查看更早」那一行下面说「这份清单最多显示最新的 500 条 —— 要看更早的,请收窄」(`changeHistory.stopsAt`)。导出仍然没有(去处不变)。
+**TABLE-EXPORT-3a(2026-10-23):停在测量上,没有做(Tim 2026-10-23 TABLE-EXPORT-3 Q7:「读得太慢就在报告里停下,不要自己加迁移」)。**
+Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限并说出行数、页面上每一个筛选都生效、一个字段一行、看不见的值写 Restricted)。
+**量到的(`docs/surveys/TABLE-EXPORT-3/readings/change-log-rows-timing.txt`,线上,以 tim@ —— cfo、持 `data.view_change_log` —— 的身份,`SET LOCAL ROLE authenticated`,整笔回滚):**
+`change_log_rows` 读最近 7 天,一次 200 行要 **5.57 s / 3.52 s / 4.33 s**(按事务 200×200 一次、按行 200 两次),即 **约 18–28 ms 一行**(与页面 `page.tsx:44` 记着的 F19「每行 ≈ 17 ms」同一个量级)。
+同一个窗口以 `postgres` 读基表(绕过 RLS):最近 7 天 **31,414 行 / 2,472 笔事务**,全表 81,401 行(多半是冒烟与证明的行 —— 测试数据)。
+☞ **一次 7 天的导出 ≈ 157 次调用 ≈ 10–12 分钟;366 天约 81k 行,光是「说出行数」就要先把它们全读一遍。** 一条网页导出撑不了这么久。
+**去处:等 Tim 裁。** 要做到 Q7 的形状,库里需要一支【成批遮蔽】的导出读法(与 `change_log_rows` 同一套遮蔽 —— `change_log_mask_row` · `trail_row_visible` —— 但不逐行调用)外加一支带同一组筛选的计数,那是一支迁移。
 
 ### DISPLAY-TIMESTAMP-SLICED-AS-UTC · 两处屏幕把时刻的 UTC 表示直接截下来显示(TABLE-EXPORT-2a 转换时量到;登记,不在本刀修)
 

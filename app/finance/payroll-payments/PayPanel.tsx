@@ -15,7 +15,9 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, businessToday } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { MaskedValue } from '@/app/components/MaskedValue'
+import { xDate, xMasked, xMoney, xRestricted, xText, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { formatAuditStamp, formatMonth } from '@/lib/dates'
@@ -43,9 +45,13 @@ type Emp = { id: string; code: string; legal_name: string }
 // ★ PAYROLL-PAY-REVERSAL-1(Tim 2026-10-22,Q1 · Q2 · Q6 · Q7):每一期下面多一张「付款」表 —— 每一次付款(一次付薪调用 · 一次 CPF · 一次扣款)一行,
 //   各带一颗「申请冲销」(整张冲,不能只冲一个人;理由必填;CFO 批,在工资期页上执行并给冲销日)。按不下去的时候【看得见、说出为什么】(DBLOCK-1):
 //   银行行已经配上了对账单行(先取消配对)· 这一期已经挂着一张申请(一期同时只挂一张)· 没有 module.hr.edit。
-export default function PayPanel({ periods, lines, employees, baseCurrency, payments, canRaise }: {
+// ★ TABLE-EXPORT-3a(Tim 2026-10-23 Q4;TABLE-EXPORT-2 Q8 把这一块的「受限」排到这里):每一期的两张表各一对导出,【不论勾了谁】
+//   全部行都导出(TABLE-EXPORT-1 Q2:勾选不收窄)。勾选框与「申请冲销」那两列是控件,不导出。
+//   实发那一格:payroll_lines_masked 对不持 data.view_pay 的读者给 NULL —— 屏幕此前经 formatAmount 画成「—」,读起来像「没有数」;
+//   现在与 MaskedValue 同一条判据画「受限」,导出写 "Restricted"(canViewPay 由页面按 data.view_pay 传进来)。
+export default function PayPanel({ periods, lines, employees, baseCurrency, payments, canRaise, canViewPay }: {
     periods: Period[]; lines: Line[]; employees: Emp[]; baseCurrency: string
-    payments: PayrollPaymentEntry[]; canRaise: boolean
+    payments: PayrollPaymentEntry[]; canRaise: boolean; canViewPay: boolean
 }) {
     const locale = useLocale()
     const t = useTranslations()
@@ -110,23 +116,28 @@ export default function PayPanel({ periods, lines, employees, baseCurrency, paym
                 const cpf = Number(p.employer_cpf_total ?? 0) + Number(p.employee_cpf_total ?? 0)
                 const pays = payments.filter((x) => x.payroll_period_id === p.id && x.status === 'posted')
                 const openReq = pays.find((x) => x.open_request)?.open_request ?? null
-                const payColumns: Column<PayrollPaymentEntry>[] = [
+                const payColumns: ExportableColumn<PayrollPaymentEntry>[] = [
                     {
                         key: 'code', header: t('finance.payrollPay.colEntry'), priority: true,
                         render: (x) => <Link href={`/finance/journal/${x.entry_id}`} className="font-mono underline">{x.code}</Link>,
+                        exportAs: (x) => xText(x.code),
                     },
                     {
                         key: 'kind', header: t('finance.payrollPay.colKind'),
                         render: (x) => <>{t('finance.payrollPay.paymentKind.' + x.kind)}{x.kind === 'salary' && x.lines_paid !== null
                             ? <span className="text-xs text-[color:var(--brand-muted-text)]"> · {t('finance.payrollPay.linesPaid', { n: x.lines_paid })}</span> : null}</>,
+                        exportAs: (x) => xText(t('finance.payrollPay.paymentKind.' + x.kind)
+                            + (x.kind === 'salary' && x.lines_paid !== null ? ` · ${t('finance.payrollPay.linesPaid', { n: x.lines_paid })}` : '')),
                     },
-                    { key: 'date', header: t('finance.payrollPay.colDate'), render: (x) => formatDate(x.entry_date, locale) },
+                    { key: 'date', header: t('finance.payrollPay.colDate'), render: (x) => formatDate(x.entry_date, locale), exportAs: (x) => xDate(x.entry_date) },
                     {
                         key: 'amount', header: t('finance.payrollPay.colAmount'), priority: true, align: 'right',
                         render: (x) => x.amount === null ? <Refusal>{t('common.restricted')}</Refusal> : formatAmount(x.amount, baseCurrency),
+                        // payroll_payment_entries 把看不见的金额给成 NULL,屏幕一律画「受限」—— 导出同一条
+                        exportAs: (x) => (x.amount === null ? xRestricted : xMoney(x.amount, baseCurrency)),
                     },
                     {
-                        key: 'reverse', header: '', priority: true, align: 'right',
+                        key: 'reverse', header: '', priority: true, align: 'right', exportAs: false,
                         render: (x) => {
                             const why = x.bank_statement
                                 ? t('finance.payrollPay.bankMatched', { statement: x.bank_statement })
@@ -164,9 +175,9 @@ export default function PayPanel({ periods, lines, employees, baseCurrency, paym
                     },
                 ]
 
-                const columns: Column<Line>[] = [
+                const columns: ExportableColumn<Line>[] = [
                     {
-                        key: 'select', header: '', priority: true, className: 'w-6',
+                        key: 'select', header: '', priority: true, className: 'w-6', exportAs: false,
                         render: (l) => !l.paid_at && (
                             <input type="checkbox" className={CONTROL_CHECKBOX} checked={!!sel[l.id]}
                                 onChange={(ev) => setSel({ ...sel, [l.id]: ev.target.checked })}
@@ -179,13 +190,19 @@ export default function PayPanel({ periods, lines, employees, baseCurrency, paym
                             const e = empBy.get(l.employee_id)
                             return <>{e?.code} · {e?.legal_name}</>
                         },
+                        exportAs: (l) => {
+                            const e = empBy.get(l.employee_id)
+                            return xText(`${e?.code ?? ''} · ${e?.legal_name ?? ''}`)
+                        },
                     },
                     {
                         key: 'amount', header: t('finance.payrollPay.colAmount'), priority: true, align: 'right',
-                        render: (l) => formatAmount(l.net_pay, baseCurrency),
+                        render: (l) => <MaskedValue value={l.net_pay} canView={canViewPay} format={(v: number) => formatAmount(v, baseCurrency)} fallback="—" />,
+                        exportAs: (l) => xMasked(l.net_pay, canViewPay, (v) => xMoney(v, baseCurrency)),
                     },
                     {
-                        key: 'status', header: '',
+                        key: 'status', header: '', exportHeader: t('finance.payrollPay.colStatus'),
+                        exportAs: (l) => (l.paid_at ? xTime(l.paid_at) : xText(t('finance.payrollPay.outstanding'))),
                         render: (l) => l.paid_at
                             ? <span className="text-green-700 text-xs">{t('finance.payrollPay.paidOn', { 0: formatAuditStamp(l.paid_at) })}</span>
                             : <span className="text-amber-700 text-xs">{t('finance.payrollPay.outstanding')}</span>,
@@ -203,12 +220,14 @@ export default function PayPanel({ periods, lines, employees, baseCurrency, paym
                                 columns={columns}
                                 rowKey={(l) => l.id}
                                 phone={{ mode: 'columns' }}
+                                exportSpec={{ name: 'finance-payroll-payment-lines', title: `${p.code} — ${t('finance.payrollPay.title')}`, aboutExtra: [[t('table.export.aboutPeriod'), p.period_month.slice(0, 7)]] }}
                             />
                         </div>
                         {pays.length > 0 && (
                             <div className="mb-3">
                                 <h4 className="mb-1 text-sm">{t('finance.payrollPay.paymentsTitle')}</h4>
-                                <DataTable rows={pays} columns={payColumns} rowKey={(x) => x.entry_id} phone={{ mode: 'columns' }} />
+                                <DataTable rows={pays} columns={payColumns} rowKey={(x) => x.entry_id} phone={{ mode: 'columns' }}
+                                    exportSpec={{ name: 'finance-payroll-payments-made', title: `${p.code} — ${t('finance.payrollPay.paymentsTitle')}`, aboutExtra: [[t('table.export.aboutPeriod'), p.period_month.slice(0, 7)]] }} />
                             </div>
                         )}
                         <div className="flex gap-2 flex-wrap items-center text-sm">

@@ -12,7 +12,8 @@
 
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMoney, xText } from '@/lib/export/cells'
 
 export type DepreciationPreviewRow = {
     assetId: string
@@ -23,19 +24,23 @@ export type DepreciationPreviewRow = {
 }
 
 export default function DepreciationPreviewTable({
-    rows, empty, baseCurrency,
-}: { rows: DepreciationPreviewRow[]; empty: React.ReactNode; baseCurrency: string }) {
+    rows, empty, baseCurrency, periodEnd,
+}: { rows: DepreciationPreviewRow[]; empty: React.ReactNode; baseCurrency: string; periodEnd: string }) {
     const t = useTranslations()
 
-    const columns: Column<DepreciationPreviewRow>[] = [
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q5 · Q3):照屏幕导出,合计那一行是预览自己算的(preview_depreciate_fixed_assets 的 total_delta),照导出;
+    //   About 表写明「截至 <日期> 的预览,尚未过账」。
+    const columns: ExportableColumn<DepreciationPreviewRow>[] = [
         {
             key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
             render: (r) => (r.isTotal ? t('finance.totalsLabel') : r.code),
+            exportAs: (r) => xText(r.isTotal ? t('finance.totalsLabel') : r.code),
         },
-        { key: 'account', header: t('assets.colAccount'), className: 'text-sm', render: (r) => r.isTotal ? '' : r.account },
+        { key: 'account', header: t('assets.colAccount'), className: 'text-sm', render: (r) => r.isTotal ? '' : r.account, exportAs: (r) => xText(r.isTotal ? null : r.account) },
         {
             key: 'delta', header: t('assets.colDelta', { ccy: baseCurrency }), priority: true, align: 'right', className: 'text-sm',
             render: (r) => formatMoneyBare(r.deltaBase, '列头 应提(ccy)'),
+            exportAs: (r) => xMoney(r.deltaBase),
         },
     ]
 
@@ -47,6 +52,11 @@ export default function DepreciationPreviewTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             rowClassName={(r) => (r.isTotal ? 'bg-gray-50 font-medium' : undefined)}
+            exportSpec={{
+                name: 'finance-depreciation-preview',
+                title: t('assets.depTitle'),
+                aboutExtra: [[t('table.export.aboutPreview'), t('table.export.aboutPreviewValue', { date: periodEnd })]],
+            }}
         />
     )
 }

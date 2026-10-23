@@ -25,6 +25,9 @@ import CashflowEntriesTable, { type CashflowEntryRow } from './CashflowEntriesTa
 import { tableC } from '@/app/components/ui/table-style'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { ReportExportBar } from '@/app/components/ui/report-export'
+import { xMoney, xText } from '@/lib/export/cells'
+import type { ReportLine } from '@/lib/export/report'
 
 type Cf = {
     period_from: string
@@ -116,10 +119,24 @@ export default async function CashflowPage({
     const entryRows: CashflowEntryRow[] = cf.entries.map((e) => ({
         code: e.code,
         entryDate: formatDate(e.entry_date, locale),
+        entryYmd: e.entry_date,
         memo: e.memo,
         section: e.section,
         net: e.net,
     }))
+
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q2 · Q3):汇总那张表照屏幕导出 —— 期初与期末现金是报表自己算的行(加粗那两行),
+    //   三段活动、未归类(只在非零时画,与屏幕同)与汇率影响是明细。说明文字(hint)不导出:一格一个值。
+    const period = `${from} → ${to}`
+    const summaryLines: ReportLine[] = [
+        { kind: 'subtotal', cells: [xText(t('finance.cashflowOpening')), xMoney(cf.opening_cash)] },
+        { kind: 'line', level: 1, cells: [xText(t('finance.cashflowOperating')), xMoney(cf.operating)] },
+        { kind: 'line', level: 1, cells: [xText(t('finance.cashflowInvesting')), xMoney(cf.investing)] },
+        { kind: 'line', level: 1, cells: [xText(t('finance.cashflowFinancing')), xMoney(cf.financing)] },
+        ...(cf.unclassified !== 0 ? [{ kind: 'line', level: 1, cells: [xText(t('finance.cashflowUnclassified')), xMoney(cf.unclassified)] } as ReportLine] : []),
+        { kind: 'line', level: 1, cells: [xText(t('finance.cashflowFxEffect')), xMoney(cf.fx_effect)] },
+        { kind: 'total', cells: [xText(t('finance.cashflowClosing')), xMoney(cf.closing_cash)] },
+    ]
 
     return (
         <ListPage
@@ -147,6 +164,16 @@ export default async function CashflowPage({
                 </div>
             )}
 
+            <div className="mb-4">
+                <ReportExportBar spec={{
+                    name: 'finance-cash-flow',
+                    title: t('finance.cashflowTitle'),
+                    headers: [t('table.export.colItem'), t('finance.colAmount', { ccy: baseCurrency })],
+                    sheets: [{ title: t('finance.cashflowTitle'), lines: summaryLines }],
+                    aboutExtra: [[t('table.export.aboutPeriod'), period]],
+                }} />
+            </div>
+
             <table className={`${tableC.root} w-full mb-4`}>
                 <tbody>
                     <Row label={t('finance.cashflowOpening')} value={cf.opening_cash} bold />
@@ -171,7 +198,7 @@ export default async function CashflowPage({
             </table>
 
             <h2 className="mb-2">{t('finance.cashflowDetail')}</h2>
-            <CashflowEntriesTable rows={entryRows} empty={t('finance.cashflowNoMovement')} baseCurrency={baseCurrency} />
+            <CashflowEntriesTable rows={entryRows} empty={t('finance.cashflowNoMovement')} baseCurrency={baseCurrency} period={period} />
         </ListPage>
     )
 }

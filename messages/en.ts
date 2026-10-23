@@ -1390,6 +1390,25 @@ const en = {
             aboutByUnknown: 'Could not be read (the sign-in check did not answer)',
             aboutAt: 'Exported at (Singapore time)',
             aboutLanguage: 'Language',
+            // TABLE-EXPORT-3a(Tim 2026-10-23 Q2):报表的 CSV 多一列,说出每一行是什么
+            colItem: 'Item',
+            colMonth: 'Month',
+            colEstimated: 'Estimated',
+            colActual: 'Actual',
+            colVariance: 'Variance',
+            colStep: 'Step',
+            colState: 'State',
+            colDetail: 'Detail',
+            lineKind: 'Line type',
+            lineKindHeading: 'Heading',
+            lineKindLine: 'Account',
+            lineKindLineOther: 'Line',
+            lineKindSubtotal: 'Subtotal',
+            lineKindTotal: 'Total',
+            // Q5:过账预览的 About 表
+            aboutPreview: 'Preview',
+            aboutPreviewValue: 'Preview as at {date}, not posted',
+            aboutPeriod: 'Period',
             // TABLE-EXPORT-2a:屏幕上只用整行淡出 / 划线表示的状态,导出时写在那一行的身份格里(一格一个值,而列只有表的列 —— Q11)
             rowInactive: 'inactive',
             rowReversed: 'reversed',
@@ -5916,6 +5935,8 @@ const en = {
         },
     },
     cashForecast: {
+        weekGridTitle: 'Cash forecast \u2014 13 weeks',
+        forecastLinesTitle: 'Cash forecast \u2014 lines',
         title: '13-week cash forecast',
         subtitle: 'What we expect to receive and pay, week by week, in the currency it actually moves in.',
         weekOf: 'Week of',
@@ -9665,6 +9686,7 @@ const en = {
             unclosedBalanceDetail: '{n} run(s) with the material balance still open: {codes} (this does not block the lock)',
         },
         payrollPay: {
+            colStatus: 'Paid',
             dateHint: 'The value date the money left the bank. It sets the period these journals post to — and it is NOT defaulted to today, because a blank one would post a July payroll into August.',
             title: 'Salary & statutory payments',
             date: 'Payment date',

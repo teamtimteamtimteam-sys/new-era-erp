@@ -25,6 +25,8 @@ export default async function ProcessingCostsPage({ searchParams }: { searchPara
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const canEditGate = await can('module.finance.edit')
+    // TABLE-EXPORT-3a:金额被 processing_cost_entry_lookup 遮成 NULL 时,屏幕与导出说「受限」(与 MaskedValue 同一条判据)
+    const canViewPrices = await can('data.view_prices')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -70,7 +72,7 @@ export default async function ProcessingCostsPage({ searchParams }: { searchPara
     return (
         <ListPage title={t('finance.costSettle.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             <CostSettlePanel canEdit={canEditGate} entries={entries as never} runs={runs as never}
-                             suppliers={suppliers as never} baseCurrency={baseCurrency} />
+                             suppliers={suppliers as never} baseCurrency={baseCurrency} canViewPrices={canViewPrices} />
             <ListTrail intro="listTrail.intro.costSettlement" show={trailCount((await searchParams).trail)} records={settled} refused={!canSeeEntries} />
         </ListPage>
     )

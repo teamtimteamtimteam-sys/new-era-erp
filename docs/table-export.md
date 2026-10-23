@@ -96,6 +96,43 @@ each capped page has a `<page>Rows.ts` read module shared with an export route (
 because an export can carry tens of thousands of ids into a URL) and `exportUnionResponse` (a table whose rows come from two reads:
 the invoice list's "all" filter).
 
+## The rulings — Tim 2026-10-23 (TABLE-EXPORT-3 Step 0)
+
+TABLE-EXPORT-1's Q2–Q13 still apply to every table TABLE-EXPORT-3 converts, except where Q3 below narrows Q12. The survey behind them is `docs/surveys/TABLE-EXPORT-3/step0.md`.
+
+| # | Ruling |
+|---|---|
+| Q1 | Detail pages with several tables: one export pair per table, as on list pages. No multi-sheet document export. |
+| Q2 | Finance reports: Excel in the report's own layout (section headings, subtotals, totals, one level of indent), which needs the writer extension; CSV as a flat table with a column stating whether each line is a heading, an account or a subtotal. |
+| Q3 | Lines a report itself computes (subtotals, gross and net profit, totals, the preview totals) are exported. The TABLE-EXPORT-1 Q12 "no totals row" rule still applies to ordinary lists. |
+| Q4 | Export the payroll-payments panel and the processing-cost settle panel, every row regardless of selection. The bank import preview and the electricity allocation preview become PERMANENT exemptions with the two reasons from the Step 0 report. |
+| Q5 | Export the depreciation preview, the revaluation preview and the cash-forecast grid as shown. For the two posting previews, the About sheet states "preview as at <date>, not posted". The cash forecast exports its lines and its weekly grid, one sheet per currency. |
+| Q6 | The 12 history trails on detail pages are exported. |
+| Q7 | Change-history export: both dates required; longest range 366 days; the 50,000-row cap still refuses anything larger and states the count; every filter on the page applies, including "key events only"; one row per field changed (When, Who, Record, What happened, Field, Old value, New value), hidden values written as "Restricted". If reading through change_log_rows proves too slow, stop at that point in the report rather than adding a migration. |
+| Q8 | Export the 8 editable tables that are the only screen of a saved record (attendance grid, a quote's lines, review goals, permission matrix, leave types, rating scale, KPI scores, /me self-assessment). The 17 entry forms become PERMANENT: "entry form; the saved record exports from its own page". |
+| Q9 | Payables, receivables and the management-pack tables become PERMANENT: "covered by the special exports (AP ageing, AR ageing, management pack)". |
+| Q10 | Delete the unused BatchAuditTrailTable and its exemption entry. The /hr/reviews/cycles layout table becomes PERMANENT: "a layout inside a warning box, not a register". |
+| Q11 | Trial balance exported as shown, all-time (adding a period is a separate item, registered in `docs/forward-queue.md`). Cost variance exported flat (month, cost type, estimated, actual, variance). Month-end checklist exported (step, state, detail). |
+| Q12 | SPLIT into three cuts (about 43.6 h estimated, about 20 h at the measured ratio, does not fit one session). **TABLE-EXPORT-3a** (v1.4.71): B (finance reports, with the writer extension), C (previews and panels per Q4/Q5), D (change-history per Q7), plus the Q9, Q10 and Q11 edits. **TABLE-EXPORT-3b** (v1.4.72): A for finance, purchasing, sales, inbound, inventory and hr (all 7 「受限」 tables are here, and their exports must show "Restricted" wherever the screen shows 「受限」), plus the 8 editable tables (Q8) and the 17 PERMANENT entry forms. **TABLE-EXPORT-3c** (v1.4.73): A for operation, output, quality, logistics, safety, stocktakes, suppliers, materials, contracts and the shared components. |
+| Correction | The TABLE-EXPORT-3 count is 116 (plus 1 PERMANENT), not 117; the 2b-2 hand-back's "117 TABLE-EXPORT-3" is corrected. |
+
+**Where 3a lives in code (TABLE-EXPORT-3a, v1.4.71):**
+- Report writer: `lib/export/report.ts` — a report is sheets of lines, each `heading` / `line` / `subtotal` / `total` with one indent level (Q2, Q3);
+  Excel bolds headings, subtotals and totals, shades headings, rules a line above totals and indents detail lines; CSV is one flat table whose first column
+  is the line type (and a sheet column when there are several sheets — the cash forecast's currencies, Q5). Cell writing is shared with the list writer
+  (`csvValue` · `xlsxValue` · `xlsxFormat` in `lib/export/write.ts`). Q12 still governs `ExportTable` (lists): a report is a different type, not a flag on a list.
+- Buttons: `app/components/ui/report-export.tsx` — `ReportExportBar` (reports) and `FlatExportBar` (a flat table whose typed cells a server page wrote:
+  cost variance unpivoted, the month-end checklist); the About sheet is the list exporter's own `aboutRows` (`table-export.tsx`), plus `aboutExtra`
+  (period; for the two posting previews "Preview as at <date>, not posted", Q5). `TableExportSpec.aboutExtra` gives DataTables the same.
+- Build check: `scripts/check-table-export.mjs` accepts a hand-built `<table>` when **its own file** renders `<ReportExportBar` / `<FlatExportBar` / `<TableExportBar`
+  (fault injection `CHECK_TABLE_EXPORT_FAULT=nobar` names every such table).
+- Reports: trial balance (all-time, Q11), P&L, balance sheet, cash-flow summary + its detail table, cost variance (flat, Q11), month-end (Q11),
+  cash-forecast weekly grid (sheet per currency) + its lines / undated / OPEX-cover tables, depreciation and revaluation previews, list-vs-ledger (one pair per side),
+  inventory metal exposure, the compliance pack's eight tables, the payroll-payments panel and the processing-cost settle panel (every row, Q4;
+  both now draw 「受限」 for a masked amount, screen and export, under TABLE-EXPORT-2 Q8).
+- **D (change-history, Q7) was not built:** reading through `change_log_rows` measured about 18–28 ms a row (7 days = 31,414 rows ≈ 10–12 min);
+  stopped as Q7 directs — `docs/known-issues.md` § CHANGE-HISTORY-NO-EXPORT.
+
 ## How it works (where each ruling lives in code)
 
 | Piece | File | Rulings |

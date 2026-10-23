@@ -55,13 +55,15 @@ export default async function PayrollPaymentsPage({ searchParams }: { searchPara
         ? ((mustOne(await supabase.rpc('payroll_payment_entries', { p_period_ids: ids }), 'payroll_payment_entries') ?? []) as unknown as PayrollPaymentEntry[])
         : []
     const canRaise = await can('module.hr.edit')
+    // TABLE-EXPORT-3a:实发那一格被 payroll_lines_masked 遮成 NULL 时,屏幕与导出说「受限」(与 MaskedValue 同一条判据)
+    const canViewPay = await can('data.view_pay')
     const payJournals = mustRows(await supabase.from('journal_entries').select('id, code, entry_date, status')
         .eq('source_type', 'payroll').order('created_at', { ascending: false }).limit(24), 'journal_entries payroll') as
         { id: string; code: string; entry_date: string; status: string }[]
     return (
         <ListPage title={t('finance.payrollPay.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             <PayPanel periods={(periods ?? []) as never} lines={(lines ?? []) as never} employees={(emps ?? []) as never} baseCurrency={baseCurrency}
-                      payments={payments} canRaise={canRaise} />
+                      payments={payments} canRaise={canRaise} canViewPay={canViewPay} />
             <ListTrail intro="listTrail.intro.payroll" show={trailCount((await searchParams).trail)}
                 records={payJournals.map((j) => ({ subject: 'journal_entry' as const, id: j.id, href: `/finance/journal/${j.id}`,
                     label: `${j.code} · ${formatDate(j.entry_date, 'en')}${j.status === 'reversed' ? ' (reversed)' : ''}` }))} />

@@ -1,0 +1,46 @@
+FAIL|F1 /finance/pnl?date_from=2026-01-01&date_to=2027-12-31 → HTTP 200; screen gross undefined · net -44,718.53
+PASS|F1 P&L Excel downloaded: finance-profit-and-loss_2026-10-24_0119.xlsx
+PASS|F1 Excel net profit -44718.53 (a number) = screen -44,718.53
+FAIL|F1 Excel gross profit -23365.59 = screen undefined
+PASS|F1 Excel layout: heading "Revenue" bold · net profit bold · account line "4000 Sales – Metal Products" indented one level, not bold
+PASS|F1 About sheet period "2026-01-01 → 2027-12-31"
+PASS|F1 P&L CSV downloaded: finance-profit-and-loss_2026-10-24_0119.csv
+PASS|F1 CSV first column "Line type"; net profit line type "Total", amount -44718.53 = screen; line types ["Account","Heading","Subtotal","Total"]
+PASS|F2 /finance/balance-sheet?as_of=2027-12-31 → HTTP 200; screen total assets 347,979.75 SGD · total liabilities + equity 347,979.75 SGD
+PASS|F2 balance sheet Excel downloaded: finance-balance-sheet_2026-10-24_0120.xlsx
+PASS|F2 Excel total assets 347979.75 = screen 347,979.75 SGD (number format "#,##0.00 \"SGD\"" carries the currency)
+PASS|F2 Excel total liabilities + equity 347979.75 = screen 347,979.75 SGD
+PASS|F2 both totals bold
+PASS|F2 balance sheet CSV downloaded: finance-balance-sheet_2026-10-24_0120.csv
+PASS|F2 CSV total assets line type "Total", 347979.75 SGD = screen
+FAIL|V /finance/assets?date=2027-12-31 → HTTP 200; depreciation preview total on screen null
+PASS|V depreciation preview Excel downloaded: finance-depreciation-preview_2026-10-24_0120.xlsx
+PASS|V About sheet: Preview = "Preview as at 2027-12-31, not posted"
+FAIL|V total row 3259.86 = screen null (a line the preview itself computes, Q3)
+PASS|P sees · /finance/payroll-payments → HTTP 200; first period has 1 lines on screen
+PASS|P sees · screen amounts [null] 
+PASS|P sees · payroll lines xlsx downloaded: finance-payroll-payment-lines_2026-10-24_0121.xlsx
+PASS|P sees · xlsx holds 1 rows = screen 1 (nothing ticked — every row, Q4)
+FAIL|P sees · xlsx amounts [null]
+PASS|P sees · payroll lines csv downloaded: finance-payroll-payment-lines_2026-10-24_0121.csv
+PASS|P sees · csv holds 1 rows = screen 1 (nothing ticked — every row, Q4)
+FAIL|P sees · csv amounts [null]
+PASS|P blind · /finance/payroll-payments → HTTP 200; first period has 1 lines on screen
+FAIL|P blind · screen amounts [null] (were "—")
+PASS|P blind · payroll lines xlsx downloaded: finance-payroll-payment-lines_2026-10-24_0121.xlsx
+FAIL|P blind · xlsx holds 0 rows = screen 1 (nothing ticked — every row, Q4)
+PASS|P blind · xlsx amounts []
+PASS|P blind · payroll lines csv downloaded: finance-payroll-payment-lines_2026-10-24_0121.csv
+FAIL|P blind · csv holds 0 rows = screen 1 (nothing ticked — every row, Q4)
+PASS|P blind · csv amounts []
+PASS|C sees · /finance/processing-costs → HTTP 200; screen amounts ["300.00 SGD","100.00 SGD","300.00 SGD","200.00 SGD","123.45 SGD"] 
+PASS|C sees · settle panel CSV downloaded: finance-processing-costs-actual_2026-10-24_0122.csv
+PASS|C sees · finance-processing-costs-actual amounts ["300 SGD","100 SGD","300 SGD","200 SGD","123.45 SGD"]
+PASS|C blind · /finance/processing-costs → HTTP 200; screen amounts ["Restricted","Restricted","Restricted","Restricted","Restricted"] (were "—")
+PASS|C blind · settle panel CSV downloaded: finance-processing-costs-actual_2026-10-24_0122.csv
+PASS|C blind · finance-processing-costs-actual amounts ["Restricted","Restricted","Restricted","Restricted","Restricted"]
+STEP|as the throwaway finance reader (rolled back): the newest posted payroll period has 1 lines
+STEP|done with 9 FAIL
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan); every database read as a throwaway ran in a transaction that was rolled back
+TE3A_PROOF_EXIT=1
+X_OWN_EXIT=1

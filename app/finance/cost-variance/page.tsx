@@ -8,6 +8,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
+import { FlatExportBar } from '@/app/components/ui/report-export'
+import { xMoney, xText } from '@/lib/export/cells'
 
 // ★ CONV-4:不套 DataTable —— 这是一张【透视表】,行 = 成本类型、
 //   列 = 动态生成的月份,两根轴都不是"记录"。与 §⑧-3 拒绝把
@@ -29,9 +31,24 @@ export default async function CostVariancePage() {
     const months = [...new Set(rows.map((r) => r.month.slice(0, 7)))].sort().slice(-6)
     const types = [...new Set(rows.map((r) => r.cost_type))].sort()
     const by = new Map(rows.map((r) => [r.cost_type + '|' + r.month.slice(0, 7), r]))
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q11):导出摊平成一张平表 —— 月份 · 成本类型 · 估算 · 实际 · 差异,
+    //   与屏幕同一组格子(最近 6 个月里有数的那些);估算与实际此前只在悬停里看得到。
+    const flatRows = months.flatMap((m) => types.flatMap((ty) => {
+        const r = by.get(ty + '|' + m)
+        return r ? [[xText(m), xText(t('processing.costTypes.' + ty)), xMoney(r.estimated_total, baseCurrency), xMoney(r.actual_total, baseCurrency), xMoney(r.variance, baseCurrency)]] : []
+    }))
     return (
         <ListPage title={t('finance.variance.title')} intro={t('finance.variance.intro')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {rows.length === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.variance.empty')}</p> : (
+                <>
+                <div className="mb-4">
+                    <FlatExportBar spec={{
+                        name: 'finance-cost-variance',
+                        title: t('finance.variance.title'),
+                        headers: [t('table.export.colMonth'), t('finance.variance.type'), t('table.export.colEstimated'), t('table.export.colActual'), t('table.export.colVariance')],
+                        rows: flatRows,
+                    }} />
+                </div>
                 <table className={`${tableC.root} w-full`}>
                     <thead><tr className={tableC.headRow}>
                         <th className={`${tableC.headCell} text-left`}>{t('finance.variance.type')}</th>
@@ -58,6 +75,7 @@ export default async function CostVariancePage() {
                         ))}
                     </tbody>
                 </table>
+                </>
             )}
         </ListPage>
     )

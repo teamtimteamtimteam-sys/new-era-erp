@@ -56,7 +56,8 @@ export type ExportTable = {
     restrictedText: string
 }
 
-function csvValue(c: ExportCell, restrictedText: string): string | number | null {
+/** 一格 → CSV 里的值。报表导出(lib/export/report.ts)用同一份。 */
+export function csvValue(c: ExportCell, restrictedText: string): string | number | null {
     switch (c.t) {
         case 'restricted': return restrictedText
         case 'text': return c.v
@@ -101,30 +102,35 @@ export function sheetName(s: string): string {
     return clean.slice(0, 31)
 }
 
+/** 一格 → 写进 Excel 的值(受限写成那串字,日期写成真日期)。报表导出用同一份。 */
+export function xlsxValue(c: ExportCell, restrictedText: string): string | number | Date | null {
+    switch (c.t) {
+        case 'restricted': return restrictedText
+        case 'text': return c.v
+        case 'number': return c.v
+        case 'date':
+        case 'datetime': return excelDate(c)
+    }
+}
+
+/** 一格的数字 / 日期格式。报表导出用同一份。 */
+export function xlsxFormat(cell: { numFmt: string }, c: ExportCell): void {
+    if (c.t === 'number' && c.v !== null) {
+        // 币种 / 单位进数字格式:格子仍是一个能加总的数,显示时带着它自己的那个词
+        cell.numFmt = c.suffix ? `${NUM_FMT[c.kind]} "${c.suffix.replace(/"/g, '')}"` : NUM_FMT[c.kind]
+    }
+    else if (c.t === 'date' && c.v) cell.numFmt = 'yyyy-mm-dd'
+    else if (c.t === 'datetime' && c.v) cell.numFmt = 'yyyy-mm-dd hh:mm'
+}
+
 export async function buildXlsx(t: ExportTable): Promise<ArrayBuffer> {
     const ExcelJS = (await import('exceljs')).default
     const wb = new ExcelJS.Workbook()
     const ws = wb.addWorksheet(sheetName(t.title), { views: [{ state: 'frozen', ySplit: 1 }] })
     ws.addRow(t.headers).font = { bold: true }
     for (const r of t.rows) {
-        const row = ws.addRow(r.map((c) => {
-            switch (c.t) {
-                case 'restricted': return t.restrictedText
-                case 'text': return c.v
-                case 'number': return c.v
-                case 'date':
-                case 'datetime': return excelDate(c)
-            }
-        }))
-        r.forEach((c, i) => {
-            const cell = row.getCell(i + 1)
-            if (c.t === 'number' && c.v !== null) {
-                // 币种 / 单位进数字格式:格子仍是一个能加总的数,显示时带着它自己的那个词
-                cell.numFmt = c.suffix ? `${NUM_FMT[c.kind]} "${c.suffix.replace(/"/g, '')}"` : NUM_FMT[c.kind]
-            }
-            else if (c.t === 'date' && c.v) cell.numFmt = 'yyyy-mm-dd'
-            else if (c.t === 'datetime' && c.v) cell.numFmt = 'yyyy-mm-dd hh:mm'
-        })
+        const row = ws.addRow(r.map((c) => xlsxValue(c, t.restrictedText)))
+        r.forEach((c, i) => xlsxFormat(row.getCell(i + 1), c))
     }
     t.headers.forEach((h, i) => {
         const widest = Math.max(h.length, ...t.rows.slice(0, 200).map((r) => {

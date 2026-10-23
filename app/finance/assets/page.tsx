@@ -249,7 +249,7 @@ export default async function AssetsPage({
             </form>
             {previewRows.length > 0 ? (
                 <div className="mb-3 max-w-[32rem]">
-                    <DepreciationPreviewTable rows={depreciationTableRows} empty={t('assets.nothingToDepreciate', { 0: d })} baseCurrency={baseCurrency} />
+                    <DepreciationPreviewTable rows={depreciationTableRows} empty={t('assets.nothingToDepreciate', { 0: d })} baseCurrency={baseCurrency} periodEnd={d} />
                 </div>
             ) : (
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('assets.nothingToDepreciate', { 0: d })}</p>

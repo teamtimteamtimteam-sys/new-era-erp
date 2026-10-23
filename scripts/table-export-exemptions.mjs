@@ -5,7 +5,7 @@
 // 要么带 exportSpec(只有 DataTable 能带),要么【整个文件的那一种】在这里点名,带去处与理由。
 //   TABLE-EXPORT-2 —— 剩下的列表页:2a(2026-10-22)与 2b-1(2026-10-23)转完,这一类已清零,闸不再收它。
 //   TABLE-EXPORT-3 —— 详情页里的表、手搓的财务报表、录入用的可编辑表;做完时本清单只剩 PERMANENT 那几条。
-//   PERMANENT     —— 永远不导出,理由写在那一条上(Tim 2026-10-22 TABLE-EXPORT-2 Q6:brand-sampler)。新加一条要 Tim 裁定。
+//   PERMANENT     —— 永远不导出,理由写在那一条上(Tim 2026-10-22 TABLE-EXPORT-2 Q6:brand-sampler;Tim 2026-10-23 TABLE-EXPORT-3 Q4 · Q9 · Q10)。新加一条要 Tim 裁定。
 // ★ 一个文件转完了却还留在这里,闸会红(STALE)—— 清单只许变短,不许留着过期的条目。
 // ★ 本文件由 TABLE-EXPORT-1 一次生成(按路径分类:不在 [动态段]、不在 app/components/ 的 DataTable = 列表页),
 //   之后只许手删,不许再整体重生成 —— 重生成会把一个刚漏了 exportSpec 的新表悄悄收进来。
@@ -14,8 +14,6 @@
 /** @type {ReadonlyArray<{ file: string, kind: 'DataTable' | 'EditableTable' | 'table', cut: 'TABLE-EXPORT-3' | 'PERMANENT', why: string }>} */
 export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/brand-sampler/Base1.tsx", kind: 'DataTable', cut: 'PERMANENT', why: "temporary design reference with made-up data, not in navigation — never exported (Tim 2026-10-22 TABLE-EXPORT-2 Q6)" },
-    { file: "app/compliance/packs/PackSections.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "compliance-pack report body (8 sections) — goes with the reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/components/audit/BatchAuditTrailTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/components/batch/ModuleCountPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/components/finance/FinanceAttachmentsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/components/finance/SettlementHistoryTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
@@ -26,17 +24,10 @@ export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/components/related/RelatedTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/contracts/[id]/TermSection.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/finance/assets/[id]/CostEntriesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/finance/assets/DepreciationPreviewTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "preview, not a record list — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/balance-sheet/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
-    { file: "app/finance/bank/import/ImportStatementForm.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "preview inside an import form — with the 「should editable tables export」 question (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
+    { file: "app/finance/bank/import/ImportStatementForm.tsx", kind: 'DataTable', cut: 'PERMANENT', why: "preview of the bank file the user has just chosen, nothing saved yet, first 20 parsed rows only (ImportStatementForm.tsx:419) — an echo of the file they hold (Tim 2026-10-23 TABLE-EXPORT-3 Q4)" },
     { file: "app/finance/bank/statements/[id]/StatementLinesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/finance/cash-forecast/ForecastGrid.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "computed forecast body, not a record list — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/cash-forecast/ForecastGrid.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
-    { file: "app/finance/cashflow/CashflowEntriesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "detail body of the cash-flow statement — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/cashflow/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
-    { file: "app/finance/cost-variance/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
     { file: "app/finance/credit-notes/[id]/CreditNoteLinesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/finance/electricity/new/NewAllocationForm.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "preview inside a new-allocation form — with the 「should editable tables export」 question (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
+    { file: "app/finance/electricity/new/NewAllocationForm.tsx", kind: 'DataTable', cut: 'PERMANENT', why: "preview before posting; the posted allocation's lines are exported on its own page (app/finance/electricity/[id]/page.tsx) (Tim 2026-10-23 TABLE-EXPORT-3 Q4)" },
     { file: "app/finance/expenses/[id]/ExpenseLinesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/finance/freight/[id]/FreightAllocationsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/finance/freight/new/NewFreightForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
@@ -48,21 +39,13 @@ export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/finance/invoices/new/NewInvoiceForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
     { file: "app/finance/journal/[id]/JournalLinesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/finance/ledger/[account]/LedgerRowsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/finance/list-vs-ledger/ListVsLedgerTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "reconciliation statement, not a record list — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/month-end/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
-    { file: "app/finance/packs/PackTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "management-pack report body — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/payables/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
+    { file: "app/finance/packs/PackTables.tsx", kind: 'DataTable', cut: 'PERMANENT', why: "covered by the special exports (AP ageing, AR ageing, management pack) — management pack CSV, app/finance/packs/[id]/export/route.ts (Tim 2026-10-23 TABLE-EXPORT-3 Q9)" },
+    { file: "app/finance/payables/page.tsx", kind: 'table', cut: 'PERMANENT', why: "covered by the special exports (AP ageing, AR ageing, management pack) — AP ageing CSV, app/finance/payables/export/route.ts (Tim 2026-10-23 TABLE-EXPORT-3 Q9)" },
     { file: "app/finance/payment-requests/[id]/RequestAllocationsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/finance/payments/[id]/PaymentAllocationsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/finance/payments/new/NewPaymentForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
-    { file: "app/finance/payroll-payments/PayPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "pay-out decision panel (selection + actions) — with the 「should editable tables export」 question (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/pnl/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
-    { file: "app/finance/price-exposure/ExposureTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "computed per-metal exposure, not a record list — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/processing-costs/CostSettlePanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "remit / relieve decision panel (selection + inputs) — with the 「should editable tables export」 question (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/finance/receivables/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
-    { file: "app/finance/revaluation/RevaluationPreviewTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "preview, not a record list — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
+    { file: "app/finance/receivables/page.tsx", kind: 'table', cut: 'PERMANENT', why: "covered by the special exports (AP ageing, AR ageing, management pack) — AR ageing CSV, app/finance/receivables/export/route.ts (Tim 2026-10-23 TABLE-EXPORT-3 Q9)" },
     { file: "app/finance/supplier-statements/[id]/StatementDetailTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/finance/trial-balance/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
     { file: "app/hr/attendance/[id]/AttendanceGrid.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
     { file: "app/hr/employees/[id]/EmployeeTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/hr/kpi/score/ScoreEditor.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
@@ -71,7 +54,7 @@ export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/hr/overtime/[id]/BatchDetail.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/hr/payroll/[id]/PayrollLinesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/hr/payroll/PayrollGrid.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
-    { file: "app/hr/reviews/cycles/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built table (Tim Q1)" },
+    { file: "app/hr/reviews/cycles/page.tsx", kind: 'table', cut: 'PERMANENT', why: "a layout inside a warning box, not a register (Tim 2026-10-23 TABLE-EXPORT-3 Q10)" },
     { file: "app/hr/reviews/GoalsEditor.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
     { file: "app/hr/reviews/scale/ScaleEditor.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
     { file: "app/inbound/[id]/assays/[assayId]/AssayMetalsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },

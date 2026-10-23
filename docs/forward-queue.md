@@ -1534,7 +1534,7 @@
 >    `/me` 请假 · 医疗报销 · 费用报销各 50 · 导入历史 20,Q1);change-history 停在 500 时说出来;`/hr/reviews` 三条读失败即报错(Q10,69–71 行);配方表的「受限」(Q4);配方编辑不再把被遮的值存成 0(Q5)。
    **已关闭(2026-10-23,TABLE-EXPORT-2b-2 Part 1):** Tim 2026-10-23 18:10 CST 确认部署(2249696e);破窗 2026-10-23 15:55:48 → 18:10 CST(2 h 14 min 12 s;终点是 Tim 的转述,不是本机的查询),记进交回。
    对着生产只读看了一眼(`db/scripts/2026-10-23-table-export-2b1-closeout-prod-check.mjs`,`TE2B1_CLOSEOUT_EXIT=0`,6/6):一个持 `module.pricing.view` + `data.view_prices`、不持 `data.view_purchase_prices` 的一次性账号打开 `/tools/pricing/formulas`,线上唯一一张公式的处理费与折扣两格都读「Restricted」;一个一次性员工打开 `/me`(HTTP 200,8 条导出栏),三条导出路由各答 HTTP 200。读回(以 `postgres`,只数):7 个账号、7 个启用、0 个一次性账号 / 角色 / 员工、0 条孤儿授权。
-> 64a-3. **✅ TABLE-EXPORT-2b-2 —— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」(`v1.4.70`,2026-10-23;部署待 Tim 确认)。** 交回 `docs/handbacks/TABLE-EXPORT-2b-2.md`;没有迁移,没有破窗。Step 0 的三条裁定(Tim 2026-10-23)逐字记在 `docs/table-export.md`「The rulings — Tim 2026-10-23 (TABLE-EXPORT-2b-2 Step 0)」。做完之后 **TABLE-EXPORT-2 不剩任何活**:清单上只有 `TABLE-EXPORT-3` 与 `PERMANENT` 两类条目。原条目: 紧接 2b-1,排在 TABLE-EXPORT-3 之前。Tim 2026-10-23 TABLE-EXPORT-2b Step 0 的裁定,原样照录:
+> 64a-3. **✅ TABLE-EXPORT-2b-2 —— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」(`v1.4.70`,2026-10-23;部署 Ready 约 23:06 CST,Tim 2026-10-23 23:24 CST 确认)。** 交回 `docs/handbacks/TABLE-EXPORT-2b-2.md`;没有迁移,没有破窗。Step 0 的三条裁定(Tim 2026-10-23)逐字记在 `docs/table-export.md`「The rulings — Tim 2026-10-23 (TABLE-EXPORT-2b-2 Step 0)」。做完之后 **TABLE-EXPORT-2 不剩任何活**:清单上只有 `TABLE-EXPORT-3` 与 `PERMANENT` 两类条目。原条目: 紧接 2b-1,排在 TABLE-EXPORT-3 之前。Tim 2026-10-23 TABLE-EXPORT-2b Step 0 的裁定,原样照录:
 >    **Q6 (2b-2 half):** TABLE-EXPORT-2b-2 (next cut, v1.4.70): part B on sales, hr (including Q3), inventory and operation; /operation/capture/inbox real paging; the two filter moves (hr claims status, inventory ledger material and batch); capture "recently confirmed" and contamination "recent checks" (Q1); the contamination "missing" count and the notifications unread count as exact counts; notifications (Q2); the other 17 「受限」 sites (Q4).
 >    **Q1:** The three "recent" tables get the "first N of M" notice and a full export: settings import history (20) in 2b-1; capture "recently confirmed" (50) and contamination "recent checks" (50) in 2b-2.
 >    **Q2:** Notifications: notice only, no export (same treatment as change-history); the unread count becomes an exact count. 2b-2.
@@ -1542,7 +1542,11 @@
 >    **Q4:** All 18 non-finance 「受限」 sites are fixed, screen and export, including the 7 that show a false value (PO payment-term amount 0.00, PO header "@ null", masked price as "Unpriced", inbound "unpriced" badge counting masked batches, inventory output and inbound totals 0.00). Pricing formulas' table in 2b-1; the other 17 in 2b-2.
 >    页面与行号:`docs/surveys/TABLE-EXPORT-2b/step0.md`(part B 表 · 17 处「受限」的清单)。今天线上过上限的只有 `ingest_inbox`(2,005 行,以 postgres 读、基表),所以「过了旧上限」只在收件箱上证得到。
 >    TABLE-EXPORT-1 的 Q2–Q13 与 TABLE-EXPORT-2 的 Q1–Q10 照样适用。
-> 64b. **⬜ TABLE-EXPORT-3 —— 详情页里的表与手搓的财务报表(Tim 2026-10-22 Q1 · Q15)。** 紧接 TABLE-EXPORT-2,排在上线准备组之前。
+   **已关闭(2026-10-23,TABLE-EXPORT-3 Part 1):** 部署 da33da4 约 23:06 CST Ready(构建约 22:58 起、8 分 14 秒),Tim 2026-10-23 23:24 CST 确认;没有迁移,没有破窗。**TABLE-EXPORT-2 这一族(2a · 2b-1 · 2b-2)到此全部完成。**
+   交回 §8:① 整门跑在三处之后的纯应用改动【之前】,离线门与构建在最终代码上重跑过,整门没有;② 「116 → 117」**不成立**:`TABLE-EXPORT-3` 从 2a 起一直是 **116 条**(115 个文件),
+   117 是清单【总数】(116 + 1 条 PERMANENT),2b-2 交回已改正(Tim 2026-10-23);③ 对着生产只读看了两次(`db/scripts/2026-10-23-table-export-2b2-closeout-prod-check.mjs`):
+   约 23:00 那次 `EXIT=1`(构建还在跑,看到的是 2b-1 的代码 —— Tim 从 Vercel 面板读出的原因),23:34 那次脚本不改、**`TE2B2_CLOSEOUT_EXIT=0`,5/5**;每次读回 7 个账号、7 个启用、0 个一次性账号 / 角色、0 条孤儿授权。
+> 64b. **✅ TABLE-EXPORT-3a —— 财务报表照自己的版式导出 · 预览与面板 · Q9/Q10/Q11 的改动(`v1.4.71`,2026-10-24;部署待 Tim 确认;D 变更历史停在测量上,见下)。** 交回 `docs/handbacks/TABLE-EXPORT-3a.md`;没有迁移,没有破窗。收尾时清单:TABLE-EXPORT-3 **93** · PERMANENT **7**。原标题:**TABLE-EXPORT-3 —— 详情页里的表与手搓的财务报表(Tim 2026-10-22 Q1 · Q15)。** 紧接 TABLE-EXPORT-2,排在上线准备组之前。
 >    范围 = 清单里 `cut: 'TABLE-EXPORT-3'` 的条目(TABLE-EXPORT-1 收尾时 104 条:详情页 DataTable、可编辑表、手搓 `<table>` —— 试算表、损益表、资产负债表、现金流量表、月结……);
 > ~~   做完时清单归零、`scripts/table-export-exemptions.mjs` 可以删掉。~~ ★ **Tim 2026-10-22(TABLE-EXPORT-2 Q6):做完时清单只剩一条 `PERMANENT`(brand-sampler,设计参照页、数据是编的、不在导航里)。**
 >    可编辑(录入用)的表要不要导出,是那一刀开工时摆给 Tim 的一个问题。
@@ -1551,6 +1555,20 @@
 >    ★ **TABLE-EXPORT-2 加进来的(Tim 2026-10-22):** Q7 的 12 条非列表 —— 预览与报表体(折旧预览 · 重估预览 · 现金预测明细 · 清单对总账 · 管理包正文 · 价格敞口 · 现金流明细 · 合规包各节)
 >    与财务报表一起;表单与决定面板(银行导入预览 · 电费分摊预览 · 付薪面板 · 加工费结算面板)与「可编辑的表要不要导出」那一问一起。
 >    以及 Q4:`/settings/change-history` 将来的导出【要求一个日期区间】(`change_log` 今天 78,441 行,不筛就过 50,000)。
+   ★ **Tim 2026-10-23(TABLE-EXPORT-3 Step 0,Q1–Q12):拆成三刀。** 十二条裁定逐字记在 `docs/table-export.md`「The rulings — Tim 2026-10-23 (TABLE-EXPORT-3 Step 0)」。本条(64b)= **TABLE-EXPORT-3a**(`v1.4.71`):B(财务报表,带 writer 扩展)· C(Q4/Q5 的预览与面板)· D(Q7 的变更历史)· Q9 · Q10 · Q11 的改动。
+   ⚠ **3a 里的 D(变更历史导出,Q7)停在测量上,没有做:** `change_log_rows` 实测约 18–28 ms 一行,最近 7 天 31,414 行 ⇒ 一次 7 天的导出约 10–12 分钟。Q7 说「读得太慢就停下报告,不要自己加迁移」。量法与去处见 `docs/known-issues.md` § CHANGE-HISTORY-NO-EXPORT;**等 Tim 裁**(一支成批遮蔽的导出读法 + 计数 = 一支迁移)。
+> 64b-2. **⬜ TABLE-EXPORT-3b(`v1.4.72`)—— 紧接 3a,排在 3c 与 TABLE-FEATURES 之前。** Tim 2026-10-23 TABLE-EXPORT-3 Step 0 的裁定,原样照录:
+>    **Q12 (3b):** TABLE-EXPORT-3b (v1.4.72): A for finance, purchasing, sales, inbound, inventory and hr (all 7 「受限」 tables are here, and their exports must show "Restricted" wherever the screen shows 「受限」), plus the 8 editable tables (Q8) and the 17 PERMANENT entry forms.
+>    **Q1:** Detail pages with several tables: one export pair per table, as on list pages. No multi-sheet document export.
+>    **Q6:** The 12 history trails on detail pages are exported.
+>    **Q8:** Export the 8 editable tables that are the only screen of a saved record (attendance grid, a quote's lines, review goals, permission matrix, leave types, rating scale, KPI scores, /me self-assessment). The 17 entry forms become PERMANENT: "entry form; the saved record exports from its own page".
+>    TABLE-EXPORT-1 的 Q2–Q13 照样适用。清单与成本:`docs/surveys/TABLE-EXPORT-3/step0.md` §1 A · E。
+> 64b-3. **⬜ TABLE-EXPORT-3c(`v1.4.73`)—— 紧接 3b,排在 TABLE-FEATURES 之前。** Tim 2026-10-23 TABLE-EXPORT-3 Step 0 的裁定,原样照录:
+>    **Q12 (3c):** TABLE-EXPORT-3c (v1.4.73): A for operation, output, quality, logistics, safety, stocktakes, suppliers, materials, contracts and the shared components.
+>    **Q1:** Detail pages with several tables: one export pair per table, as on list pages. No multi-sheet document export.
+>    **Q6:** The 12 history trails on detail pages are exported.
+>    TABLE-EXPORT-1 的 Q2–Q13 照样适用。清单与成本:`docs/surveys/TABLE-EXPORT-3/step0.md` §1 A(`RelatedTable` 键集分页 20 行一页,要一条服务端导出路由)。做完时清单只剩 PERMANENT 条目,每条带理由。
+> 64b-4. **⬜ TRIAL-BALANCE-PERIOD —— 试算表加一个期间(Tim 2026-10-23 TABLE-EXPORT-3 Step 0 Q11)。** 今天 `/finance/trial-balance` 永远是全部期间(`page.tsx:60,73` 只有 `?all=1`);TABLE-EXPORT-3a 照屏幕原样导出全部期间。Tim 原话:"Trial balance exported as shown, all-time (adding a period is a separate item; register it in docs/forward-queue.md)." 排在 TABLE-EXPORT-3c 之后、TABLE-FEATURES 之前,未排期。
 > 64c. **⬜ TABLE-FEATURES · everyday table features (Tim 2026-10-23)** —— 一个组,排在 TABLE-EXPORT-3 之后、上线准备组之前。Tim 的裁定,原样照录:
 >    - To build: sorting on every list page; a sticky table header; a totals footer on money lists; saved filters / views per user; bulk actions on approval-type lists.
 >    - Candidates for its Step 0 to measure and put to Tim: frozen first column; quick date-range presets (this month, last month, this quarter, this year); printing a list.

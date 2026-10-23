@@ -33,6 +33,9 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
+import { ReportExportBar } from '@/app/components/ui/report-export'
+import { xMoney, xText } from '@/lib/export/cells'
+import type { ReportLine } from '@/lib/export/report'
 
 // ★ CONV-4:这一页【不】套 DataTable —— 它的表不是"记录的列表",是一份
 //   按科目类型分组、每组自己算小计、末尾还有资产合计/负债权益合计两行
@@ -158,12 +161,40 @@ export default async function BalanceSheetPage({
         </Fragment>
     )
 
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q2 · Q3):照屏幕的版式导出 —— 三节各有抬头、科目行(缩一级)与小计;
+    //   权益那一节的「本期损益」合成行没有科目号,与屏幕一样写「—」;两条总计是报表自己算的行,照导出。
+    //   数全部来自 balance_sheet(p_as_of),这里不算。
+    const blank = xText(null)
+    const sectionLines = (titleKey: string, s: BsSection, extraRow?: { label: string; value: number }, subtotalOverride?: number): ReportLine[] => [
+        { kind: 'heading', cells: [xText(t(titleKey)), blank, blank] },
+        ...s.rows.map((r): ReportLine => ({ kind: 'line', level: 1, cells: [xText(r.code), xText(accountName(r)), xMoney(r.net, baseCurrency)] })),
+        ...(extraRow ? [{ kind: 'line', level: 1, cells: [xText('—'), xText(extraRow.label), xMoney(extraRow.value, baseCurrency)] } as ReportLine] : []),
+        { kind: 'subtotal', cells: [xText(`${t(titleKey)} — ${t('finance.totalsLabel')}`), blank, xMoney(subtotalOverride ?? s.subtotal, baseCurrency)] },
+    ]
+    const reportLines: ReportLine[] = [
+        ...sectionLines('finance.accountType.asset', bs.asset),
+        ...sectionLines('finance.accountType.liability', bs.liability),
+        ...sectionLines('finance.accountType.equity', bs.equity, { label: t('finance.currentEarnings'), value: bs.current_earnings }, bs.equity.total),
+        { kind: 'total', cells: [xText(t('finance.totalAssets')), blank, xMoney(bs.total_assets, baseCurrency)] },
+        { kind: 'total', cells: [xText(t('finance.totalLiabEquity')), blank, xMoney(bs.total_liab_equity, baseCurrency)] },
+    ]
+
     return (
         <ListPage title={t('finance.bsTitle')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <BsToolbar asOf={asOf} />
             </Suspense>
+
+            <div className="mb-4">
+                <ReportExportBar spec={{
+                    name: 'finance-balance-sheet',
+                    title: t('finance.bsTitle'),
+                    headers: [t('finance.colCode'), t('finance.colAccount'), t('finance.colNet')],
+                    sheets: [{ title: t('finance.bsTitle'), lines: reportLines }],
+                    aboutExtra: [[t('table.export.aboutPeriod'), asOf]],
+                }} />
+            </div>
 
             {!bs.balanced && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 font-bold">

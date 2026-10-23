@@ -57,6 +57,7 @@ export default async function ListVsLedgerPage() {
     if (!recon) throw new Error('list_ledger_reconciliation returned nothing')
     const ccy = recon.base_currency
     const money = (v: number | null) => (v === null ? '—' : formatAmount(Number(v), ccy))
+    const num = (v: number | null) => (v === null ? null : Number(v))
 
     return (
         <ListPage title={t('finance.listVsLedger.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
@@ -76,24 +77,26 @@ export default async function ListVsLedgerPage() {
                         <ListVsLedgerTable
                             lineHeader={t('finance.listVsLedger.colLine')}
                             amountHeader={t('finance.listVsLedger.colAmount', { ccy })}
+                            exportName={`finance-list-vs-ledger-${s.side}`}
+                            exportTitle={t(s.side === 'ap' ? 'finance.listVsLedger.sideAp' : 'finance.listVsLedger.sideAr', { acct: s.control_account })}
                             rows={[
                                 { id: s.side + '-list', label: t('finance.listVsLedger.lineList', { n: s.list_rows ?? 0 }),
                                   href: s.side === 'ap' ? '/finance/payables' : '/finance/receivables',
-                                  details: [], amountText: money(s.list_base), tone: null },
+                                  details: [], amountText: money(s.list_base), amount: num(s.list_base), tone: null },
                                 { id: s.side + '-ledger', label: t('finance.listVsLedger.lineLedger', { acct: s.control_account }),
-                                  href: `/finance/ledger/${s.control_account}`, details: [], amountText: money(s.ledger_base), tone: null },
+                                  href: `/finance/ledger/${s.control_account}`, details: [], amountText: money(s.ledger_base), amount: num(s.ledger_base), tone: null },
                                 { id: s.side + '-gap', label: t('finance.listVsLedger.lineGap'), href: null,
-                                  details: [], amountText: money(s.gap_base), tone: 'strong' },
+                                  details: [], amountText: money(s.gap_base), amount: num(s.gap_base), tone: 'strong' },
                                 { id: s.side + '-residue', label: t('finance.listVsLedger.lineResidue', { n: s.residue.length }), href: null,
                                   details: s.residue.map((r) => `${r.doc_code} · ${t('finance.listVsLedger.residueClass.' + r.residue_class)} · ${money(r.amount_base)} — ${r.reason} (${t('finance.listVsLedger.knownWrong', { ref: r.known_wrong_ref })})`),
-                                  amountText: money(s.residue_base), tone: null },
+                                  amountText: money(s.residue_base), amount: num(s.residue_base), tone: null },
                                 { id: s.side + '-reval', label: t('finance.listVsLedger.lineRevaluation'), href: '/finance/revaluation',
-                                  details: [], amountText: money(s.revaluation_base), tone: null },
+                                  details: [], amountText: money(s.revaluation_base), amount: num(s.revaluation_base), tone: null },
                                 { id: s.side + '-onaccount', label: t('finance.listVsLedger.lineOnAccount', { n: s.on_account.length }), href: null,
                                   details: s.on_account.map((p) => `${p.code} · ${money(p.amount_base)}`),
-                                  amountText: money(s.on_account_base), tone: null },
+                                  amountText: money(s.on_account_base), amount: num(s.on_account_base), tone: null },
                                 { id: s.side, label: t('finance.listVsLedger.lineUnexplained'), href: null,
-                                  details: [], amountText: money(s.unexplained_base), tone: s.agrees ? 'ok' : 'bad' },
+                                  details: [], amountText: money(s.unexplained_base), amount: num(s.unexplained_base), tone: s.agrees ? 'ok' : 'bad' },
                             ]}
                         />
                     )}

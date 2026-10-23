@@ -1,0 +1,17 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 21c29fb9-343a-4316-a9ff-23e189c6e25f
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+
+!! survey-phone failed: CDP timeout: Page.navigate
+  ✗ 清理 失败(继续往下清,但记账):delete reviews of seeded employee ZZ-SMOKE-SURVEY-1 → fetch failed
+
+✗ 一次性账号/授权没有清理干净 1 处 —
+  其中任何一条 user_roles 都是一条【悬空的管理员授权】:
+   delete reviews of seeded employee ZZ-SMOKE-SURVEY-1: fetch failed
+  计划留在 /Users/timchen/Documents/projects/new-era-erp/.ephemeral/32118.json —— 下一次开跑会照它补删;
+  也可以手工:node scripts/reap-ephemeral.mjs
+· cleaned up ephemeral survey account(s)
+SURVEY390_EXIT=1

@@ -17,6 +17,8 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { Button } from '@/app/components/ui/button'
 import { tableC } from '@/app/components/ui/table-style'
+import { FlatExportBar } from '@/app/components/ui/report-export'
+import { xText } from '@/lib/export/cells'
 
 // ★ CONV-4:不套 DataTable —— 这张表是一份【固定的工作流清单】(10 个
 //   写死的步骤,0 个 <th>),不是从数据库查出来的记录集合。每一行的"这一
@@ -285,6 +287,16 @@ export default async function MonthEndPage({
                 </Button>
             </form>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('finance.monthEnd.cpfNote')}</p>
+            {/* TABLE-EXPORT-3a(Tim 2026-10-23 Q11):清单照导出 —— 步骤 · 状态 · 说明(旁边那条附加链接不是数据,不导出)。 */}
+            <div className="mb-4">
+                <FlatExportBar spec={{
+                    name: 'finance-month-end-checklist',
+                    title: t('finance.monthEnd.title'),
+                    headers: [t('table.export.colStep'), t('table.export.colState'), t('table.export.colDetail')],
+                    rows: steps.map((s) => [xText(t('finance.monthEnd.step_' + s.key)), xText(t('finance.monthEnd.state_' + s.state)), xText(s.detail || null)]),
+                    aboutExtra: [[t('table.export.aboutPeriod'), month]],
+                }} />
+            </div>
             {/* MES-8b-2(并入 MES8B1-390-MONTH-END-DETAIL):390 px 上四列的最小宽度合起来 364 px,内容区只有 326 px(整页溢出 6 px)。
                 包一层横向滚动 —— 一个宽度都不改:390 px 上表与四列逐像素同前、整页不再溢出;1280 px 上表与四列逐像素同前。
                 (量过的另外三个候选:状态列去掉 w-32 不动读数;说明列或步骤列 overflow-wrap:anywhere 能到 0,但把那一列挤成 41–45 px 的逐字断行。) */}

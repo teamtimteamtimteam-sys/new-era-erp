@@ -50,6 +50,10 @@ export type TableExportSpec<T> = {
     extension?: ReadonlyArray<ExportColumnDef<T>>
     /** About 表里「筛选」那一栏;不给就列出当前地址栏里的查询参数(page 除外)。 */
     filters?: ReadonlyArray<[string, string]>
+    /**
+     * TABLE-EXPORT-3a:About 表上多写的几行(界面语言),例如过账预览的「预览,截至 <日期>,尚未过账」(Tim 2026-10-23 Q5)。
+     */
+    aboutExtra?: ReadonlyArray<[string, string]>
 }
 
 type Props<T> = {
@@ -92,26 +96,15 @@ export function TableExportBar<T>({ spec, columns, rows }: Props<T>) {
 
             const all = [...columns, ...(spec.extension ?? [])]
             const now = new Date()
-            // 【error 必须接住】三类见 lib/supabase/middleware.ts 抬头。About 表上「导出人」这一格:
-            //   有 user → 写邮箱;问不到(AuthRetryableFetchError 之类)→ 写「判断不出」,不写成一个空、也不假装是谁。
-            //   导出本身不因此停下 —— 行是页面已经读到的,谁导出只是附注。
-            const { data: auth, error: authErr } = await createClient().auth.getUser()
-            const exportedBy = auth.user?.email ?? (authErr ? t('table.export.aboutByUnknown') : '—')
-            const filters = spec.filters ?? currentQueryFilters()
             const table: ExportTable = {
                 name: spec.name,
                 title: spec.title,
                 headers: all.map((c) => c.header),
                 rows: data.map((r) => all.map((c) => c.exportAs(r))),
                 restrictedText: t('common.restricted'),
-                about: [
-                    [t('table.export.aboutTable'), spec.title],
-                    [t('table.export.aboutFilters'), filters.length ? filters.map(([k, v]) => `${k} = ${v}`).join('; ') : t('table.export.aboutNoFilters')],
-                    [t('table.export.aboutRows'), String(data.length)],
-                    [t('table.export.aboutBy'), exportedBy],
-                    [t('table.export.aboutAt'), sgStamp(now.toISOString())],
-                    [t('table.export.aboutLanguage'), locale],
-                ],
+                about: await aboutRows(t, locale, now, {
+                    title: spec.title, rows: data.length, filters: spec.filters, extra: spec.aboutExtra,
+                }),
             }
             if (fmt === 'csv') downloadBlob(buildCsv(table), CSV_MIME, exportFileName(spec.name, 'csv', now))
             else downloadBlob(await buildXlsx(table), XLSX_MIME, exportFileName(spec.name, 'xlsx', now))
@@ -133,6 +126,32 @@ export function TableExportBar<T>({ spec, columns, rows }: Props<T>) {
             {problem && <p role="alert" className="w-full text-right text-xs"><Refusal>{problem}</Refusal></p>}
         </div>
     )
+}
+
+type Translate = ReturnType<typeof useTranslations>
+
+/**
+ * Q12 About 表的几行 —— 列表导出与报表导出(report-export.tsx)【同一份】。
+ * 【error 必须接住】三类见 lib/supabase/middleware.ts 抬头。「导出人」这一格:
+ *   有 user → 写邮箱;问不到(AuthRetryableFetchError 之类)→ 写「判断不出」,不写成一个空、也不假装是谁。
+ *   导出本身不因此停下 —— 行是页面已经读到的,谁导出只是附注。
+ */
+export async function aboutRows(
+    t: Translate, locale: string, now: Date,
+    o: { title: string; rows: number; filters?: ReadonlyArray<[string, string]>; extra?: ReadonlyArray<[string, string]> },
+): Promise<Array<[string, string]>> {
+    const { data: auth, error: authErr } = await createClient().auth.getUser()
+    const exportedBy = auth.user?.email ?? (authErr ? t('table.export.aboutByUnknown') : '—')
+    const filters = o.filters ?? currentQueryFilters()
+    return [
+        [t('table.export.aboutTable'), o.title],
+        ...(o.extra ?? []),
+        [t('table.export.aboutFilters'), filters.length ? filters.map(([k, v]) => `${k} = ${v}`).join('; ') : t('table.export.aboutNoFilters')],
+        [t('table.export.aboutRows'), String(o.rows)],
+        [t('table.export.aboutBy'), exportedBy],
+        [t('table.export.aboutAt'), sgStamp(now.toISOString())],
+        [t('table.export.aboutLanguage'), locale],
+    ]
 }
 
 /** About 表的默认「筛选」:当前地址栏里的查询参数,翻页那一个除外。 */

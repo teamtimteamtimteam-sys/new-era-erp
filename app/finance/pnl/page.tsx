@@ -31,6 +31,9 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
+import { ReportExportBar } from '@/app/components/ui/report-export'
+import { xMoney, xText } from '@/lib/export/cells'
+import type { ReportLine } from '@/lib/export/report'
 
 // ★ CONV-4:不套 DataTable —— 与 balance-sheet 同一条理由(分组小计 +
 //   毛利/净利派生行,不是记录列表)。见 balance-sheet/page.tsx 顶注。
@@ -142,6 +145,23 @@ export default async function PnlPage({
         </Fragment>
     )
 
+    // TABLE-EXPORT-3a(Tim 2026-10-23 Q2 · Q3):照屏幕的版式导出 —— 三节各有抬头、科目行(缩一级)与小计;
+    //   毛利(连毛利率,写在名称里,与屏幕同)与净利是报表自己算的行,照导出。数全部来自 pnl_statement,这里不算。
+    //   金额列头已带本位币(与屏幕同),格子是光秃秃的数。
+    const blank = xText(null)
+    const sectionLines = (titleKey: string, s: PnlSection): ReportLine[] => [
+        { kind: 'heading', cells: [xText(t(titleKey)), blank, blank] },
+        ...s.rows.map((r): ReportLine => ({ kind: 'line', level: 1, cells: [xText(r.code), xText(accountName(r)), xMoney(r.amount)] })),
+        { kind: 'subtotal', cells: [xText(`${t(titleKey)} — ${t('finance.totalsLabel')}`), blank, xMoney(s.subtotal)] },
+    ]
+    const reportLines: ReportLine[] = [
+        ...sectionLines('finance.accountType.revenue', pnl.revenue),
+        ...sectionLines('finance.accountType.cogs', pnl.cogs),
+        { kind: 'subtotal', cells: [xText(t('finance.grossProfit') + (pnl.margin_pct !== null ? ` (${pnl.margin_pct}%)` : '')), blank, xMoney(pnl.gross_profit)] },
+        ...sectionLines('finance.accountType.expense', pnl.expense),
+        { kind: 'total', cells: [xText(t('finance.netProfit')), blank, xMoney(pnl.net_profit)] },
+    ]
+
     return (
         <ListPage title={t('finance.pnlTitle')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
@@ -156,6 +176,16 @@ export default async function PnlPage({
                     ]}
                 />
             </Suspense>
+
+            <div className="mb-4">
+                <ReportExportBar spec={{
+                    name: 'finance-profit-and-loss',
+                    title: t('finance.pnlTitle'),
+                    headers: [t('finance.colCode'), t('finance.colAccount'), t('finance.colAmount', { ccy: baseCurrency })],
+                    sheets: [{ title: t('finance.pnlTitle'), lines: reportLines }],
+                    aboutExtra: [[t('table.export.aboutPeriod'), `${from} → ${to}`]],
+                }} />
+            </div>
 
             <table className={`${tableC.root} w-full`}>
                 <thead>

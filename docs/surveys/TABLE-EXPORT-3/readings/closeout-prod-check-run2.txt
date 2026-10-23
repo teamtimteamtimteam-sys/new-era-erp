@@ -1,0 +1,11 @@
+STEP|base https://new-era-erp.vercel.app
+PASS|page 1 → HTTP 200, 200 rows; pager "← PreviousPage 1 of 11 · 2,005 messagesNext →"
+PASS|page 2 → HTTP 200, 200 rows, 0 shared with page 1; newest #1805 < page 1's oldest #1806; pager "← PreviousPage 2 of 11 · 2,005 messagesNext →"
+STEP|as the throwaway reader (rolled back): 2 visible notifications, 0 read → 2 unread
+PASS|the throwaway reader holds notifications: 2 unread
+PASS|/notifications → HTTP 200; the page says "2 unread" = database 2
+PASS|the top-bar bell shows "2" = the page's 2 (drawn as 2)
+STEP|done
+TE2B2_CLOSEOUT_EXIT=0
+X_OWN_EXIT=0
+PROOF|users=7|enabled=7|throwaway_users=0|throwaway_roles=0|orphan_grants=0|plans=0

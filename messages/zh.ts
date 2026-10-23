@@ -1311,6 +1311,25 @@ const zh = {
             aboutByUnknown: '读不出来(登录校验没有回应)',
             aboutAt: '导出时间(新加坡时间)',
             aboutLanguage: '语言',
+            // TABLE-EXPORT-3a(Tim 2026-10-23 Q2):报表的 CSV 多一列,说出每一行是什么
+            colItem: '项目',
+            colMonth: '月份',
+            colEstimated: '估算',
+            colActual: '实际',
+            colVariance: '差异',
+            colStep: '步骤',
+            colState: '状态',
+            colDetail: '说明',
+            lineKind: '行的种类',
+            lineKindHeading: '抬头',
+            lineKindLine: '科目',
+            lineKindLineOther: '明细',
+            lineKindSubtotal: '小计',
+            lineKindTotal: '合计',
+            // Q5:过账预览的 About 表
+            aboutPreview: '预览',
+            aboutPreviewValue: '截至 {date} 的预览,尚未过账',
+            aboutPeriod: '期间',
             // TABLE-EXPORT-2a:屏幕上只用整行淡出 / 划线表示的状态,导出时写在那一行的身份格里(一格一个值,而列只有表的列 —— Q11)
             rowInactive: '已停用',
             rowReversed: '已冲销',
@@ -5776,6 +5795,8 @@ const zh = {
         },
     },
     cashForecast: {
+        weekGridTitle: '现金预测 —— 13 周',
+        forecastLinesTitle: '现金预测 —— 明细',
         title: '13 周现金预测',
         subtitle: '我们预计收进和付出的钱,按周排开,并且按它【实际流动的那个币种】。',
         weekOf: '周',
@@ -9450,6 +9471,7 @@ const zh = {
             unclosedBalanceDetail: '{n} 张加工单的物料平衡还没结:{codes}(不挡锁期)',
         },
         payrollPay: {
+            colStatus: '付款',
             dateHint: '钱从银行划出去的那个起息日。它决定这些分录进哪个期间 —— 【不默认成今天】,因为留空会把七月的薪资过进八月。',
             title: '发薪与法定汇缴',
             date: '付款日期',
