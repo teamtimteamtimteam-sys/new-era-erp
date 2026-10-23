@@ -4,7 +4,8 @@
 // CONV-5 · 权限速查那张表(每个类别一张,同一个组件用三次)。
 
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText } from '@/lib/export/cells'
 
 export type PermissionRefRow = {
     code: string
@@ -14,15 +15,18 @@ export type PermissionRefRow = {
     holders: string[]
 }
 
-export default function PermissionReferenceTable({ rows }: { rows: PermissionRefRow[] }) {
+// TABLE-EXPORT-2b-1:每个类别一张,导出名与标题由页面按类别给
+export default function PermissionReferenceTable({ rows, exportName, exportTitle }: { rows: PermissionRefRow[]; exportName: string; exportTitle: string }) {
     const t = useTranslations()
 
     // ★ 3 列表:手机上留【权限】与【谁持有】—— 权限码是身份,而这一页就是
     //   "谁能看见什么"的答案,持有者那一列【就是】那个答案。
     //   "它揭示什么"是解释性文字,进展开区。
-    const columns: Column<PermissionRefRow>[] = [
+    const columns: ExportableColumn<PermissionRefRow>[] = [
         {
             key: 'permission', header: t('permissions.permission'), priority: true, className: 'w-64',
+            // 格里上下两行(名字 + 权限码)—— 照屏幕拼成一串,码不能丢(它才是身份)
+            exportAs: (r) => xText(`${r.name} · ${r.code}`),
             render: (r) => (
                 <>
                     <div>{r.name}</div>
@@ -32,10 +36,11 @@ export default function PermissionReferenceTable({ rows }: { rows: PermissionRef
         },
         {
             key: 'reveals', header: t('permissions.whatItReveals'), className: 'text-gray-700',
-            render: (r) => r.description,
+            render: (r) => r.description, exportAs: (r) => xText(r.description),
         },
         {
             key: 'heldBy', header: t('permissions.heldBy'), priority: true, className: 'w-64',
+            exportAs: (r) => xText(r.holders.length === 0 ? t('permissions.heldByNobody') : r.holders.join(', ')),
             render: (r) =>
                 r.holders.length === 0 ? (
                     <span className="text-gray-400 italic">{t('permissions.heldByNobody')}</span>
@@ -51,5 +56,6 @@ export default function PermissionReferenceTable({ rows }: { rows: PermissionRef
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }} />
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }}
+        exportSpec={{ name: exportName, title: exportTitle }} />
 }

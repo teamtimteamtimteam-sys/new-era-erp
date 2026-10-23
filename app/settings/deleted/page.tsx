@@ -57,6 +57,7 @@ import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import { formatTrailStamp } from '@/lib/dates'
+import { xText, xRestricted, type ExportCell } from '@/lib/export/cells'
 
 type Row = {
     record_kind: string
@@ -153,6 +154,15 @@ export default async function DeletedRecordsPage({
     //   noRestoreNote(「没有恢复,那是一个决定不是一个遗漏」)必须无条件出现,
     //   所以它走 notices。空态那句【同时说两件事】的话(不是"什么都没删过",
     //   是"你看得见的范围里没有")由 DataTable 自己的 empty 说。
+    // TABLE-EXPORT-2b-1:「谁」那一格的导出值 —— 与 ActorName 同一顺序的四态(③ 未记录 · ① 名字 · ④ 受限 · ② 未关联档案);
+    //   元素过不了导出,所以在服务端给一格。改 ActorName 的判据时这里一起改。
+    const whoExportOf = (id: string | null): ExportCell => {
+        if (!id) return xText(`${t('actor.unrecorded')} (${t('deleted.beforeAudel1b')})`)
+        const n = names.names.get(id)
+        if (n) return xText(n)
+        if (names.restricted) return xRestricted
+        return xText(`${t('actor.noEmployeeRecord')} ${id.slice(0, 8)}…`)
+    }
     const tableRows: DeletedRow[] = rows.map((r) => ({
         key: `${r.record_kind}-${r.record_id}`,
         kindLabel: t('deleted.kind.' + r.record_kind),
@@ -169,6 +179,8 @@ export default async function DeletedRecordsPage({
                 unrecordedHint={t('deleted.beforeAudel1b')}
             />
         ),
+        deletedAt: r.deleted_at,
+        whoExport: whoExportOf(r.deleted_by),
         reason: r.delete_reason || null,
         ledgerHref: r.movement_id ? `/inventory/reports/ledger?movement=${r.movement_id}` : null,
         reversalIsTheRun: r.record_kind === 'processing_run',

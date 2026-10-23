@@ -1,0 +1,10 @@
+STEP|base https://new-era-erp.vercel.app
+STEP|throwaway reader holds a copy of the finance role's 43 codes
+PASS|/finance/invoices → HTTP 200, CSV downloaded: invoices_2026-10-23_1446.csv
+PASS|CSV data rows 6 = the list's "Total: 6"
+PASS|/finance/invoices → HTTP 200, Excel downloaded: invoices_2026-10-23_1446.xlsx
+PASS|Excel data rows 6 = the list's "Total: 6"
+PASS|/finance/payroll-payments → HTTP 200, no error boundary on the page
+STEP|done
+TE2A_CLOSEOUT_EXIT=0
+X_OWN_EXIT=0

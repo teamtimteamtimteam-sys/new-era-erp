@@ -11,6 +11,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
+import { MY_LIST_SHOWN, myLeaveCount, myLeavePage, myMedicalCount, myMedicalPage, myExpenseCount, myExpensePage, attachMyExpenseItems } from './meRows'
 import MyClaimsPanel from './MyClaimsPanel'
 import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
@@ -26,7 +27,7 @@ import MyPayslipsTable, { type PayslipRow } from './MyPayslipsTable'
 import MyTrainingTable, { type TrainingRow } from './MyTrainingTable'
 import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
-import { mustOne, mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows, mustCount } from '@/lib/db-helpers'
 import AvatarPanel from './AvatarPanel'
 import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
@@ -154,27 +155,25 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     ])
 
     // 自助的假期与报销:全部靠 cut 4 的行级策略 + HR-2a 的函数,不需要任何模块权限
-    const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes, expenseClaimRes, decisionRes] = await Promise.all([
+    // ★ TABLE-EXPORT-2b-1(Tim Q2 · Q5):请假 · 医疗报销 · 费用报销三张表的读取搬进 meRows.ts,与三条导出路由共用;
+    //   照旧只画最近 MY_LIST_SHOWN 条,而且说出来(各数一次总数)。
+    const [balRes, myLeaveRes, myLeaveTotal, typeRes, claimRes, claimTotal, claimBalRes, expenseClaimRes, expenseTotal, decisionRes] = await Promise.all([
         // ★ PAYROLL-PAY-REVERSAL-1 · B2(Tim 2026-10-22,Q12):每一种有额度的假,一次调用(年假在内;年假那一项照旧画逐笔明细)
         supabase.rpc('leave_balances', { p_employee_id: employeeId }),
-        // U1-A(UNBLOCK-1 Q8):leave_requests 有了遮蔽伴生视图,读它(这几列对本人原样;本人自己的健康数据也照给)
-        supabase.from('leave_requests_masked')
-            // EMP-SELF-1:decision_notes —— 本人行策略本来就放行这一列(EMP-SELF-0 §1.5 记下的那一处)
-            .select('id, code, leave_type_code, start_date, end_date, days, status, created_at, decision_notes')
-            .eq('employee_id', employeeId).is('deleted_at', null)
-            .order('start_date', { ascending: false }).limit(50),
+        myLeavePage(supabase, employeeId, 0, MY_LIST_SHOWN - 1),
+        myLeaveCount(supabase, employeeId).then((r) => mustCount(r, 'leave_requests_masked count (me)')),
         supabase.from('leave_types')
             .select('code, name_en, name_zh, is_accrued, allows_half_day, requires_certificate_after_days, default_days_per_year')
             .eq('is_active', true).order('sort_order'),
-        supabase.from('medical_claim_status').select('*')
-            .eq('employee_id', employeeId).order('claim_date', { ascending: false }).limit(50),
+        myMedicalPage(supabase, employeeId, 0, MY_LIST_SHOWN - 1),
+        myMedicalCount(supabase, employeeId).then((r) => mustCount(r, 'medical_claim_status count (me)')),
         supabase.rpc('medical_claim_balance', {
             p_employee_id: employeeId, p_year: new Date().getFullYear(),
         }),
         // CLAIM-1：一般费用报销。与医疗那一块【并排】而不是合并 ——
         // 医疗唯一属于医疗的东西是年度限额，而这一种要科目、币种、税码。
-        supabase.from('expense_claim_status').select('*')
-            .eq('employee_id', employeeId).order('spend_date', { ascending: false }).limit(50),
+        myExpensePage(supabase, employeeId, 0, MY_LIST_SHOWN - 1),
+        myExpenseCount(supabase, employeeId).then((r) => mustCount(r, 'expense_claim_status count (me)')),
         // EMP-SELF-1(G2):谁决定的、为什么 —— 属主权限的读者,只给调用者自己的单据;决定人已经是【人】的名字。
         //   approval_log 不开给员工(Tim 的 Q4 at EMP-SELF-0),所以读的是单据本身。
         supabase.rpc('my_document_decisions'),
@@ -190,13 +189,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
 
     // ★ EXPENSE-MULTILINE-1(Tim 2026-10-20):每张报销单的明细 —— 明细表的读规则与表头同一条(这张单说的就是你)
     const expenseClaimHeaders = mustRows(expenseClaimRes) as { claim_id: string }[]
-    const expenseClaimItems = expenseClaimHeaders.length
-        ? mustRows(await supabase.from('expense_claim_items')
-            .select('id, claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason')
-            .in('claim_id', expenseClaimHeaders.map((h) => h.claim_id))
-            .order('line_no'), 'expense_claim_items (me)') as { claim_id: string }[]
-        : []
-    const expenseClaimRows = expenseClaimHeaders.map((h) => ({ ...h, items: expenseClaimItems.filter((i) => i.claim_id === h.claim_id) }))
+    //   与导出路由同一个挂法(meRows.ts 的 attachMyExpenseItems:明细 + 每一笔有没有收据)
+    const expenseClaimRows = await attachMyExpenseItems(supabase, expenseClaimHeaders)
     // ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q6):每一笔的收据 —— 读规则:这张单说的就是你(或你替人提的);只列 attached 的
     //   (拿掉的从单上隐去,Q5)。上限从库里来(claim_receipt_limits,与门户同一个数),不在这里另写一份。
     const expenseClaimReceipts = expenseClaimHeaders.length
@@ -219,6 +213,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     const myOvertime = mustRows(myOtRes, 'my_overtime_lines').map((o) => ({
         id: o.line_id,
         workDate: formatDate(o.work_date, dateLocale),
+        workDateRaw: o.work_date,
         hours: Number(o.hours),
         dayKind: o.day_kind,
         note: o.note,
@@ -336,6 +331,14 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             employeeCpf: formatAmount(l.employee_cpf, per?.currency),
             deductions: formatAmount(l.other_deductions, per?.currency),
             net: formatAmount(l.net_pay, per?.currency),
+            // TABLE-EXPORT-2b-1:导出读这些原始值(数 + 这一期的币种),屏幕仍读上面格好的字
+            periodMonthRaw: lab?.period_month ?? null,
+            currency: per.currency ?? null,
+            grossRaw: l.gross_pay,
+            employerCpfRaw: l.employer_cpf,
+            employeeCpfRaw: l.employee_cpf,
+            deductionsRaw: l.other_deductions,
+            netRaw: l.net_pay,
         }
     })
     const trainingRows: TrainingRow[] = (mustRows(trainRes)).map((r) => ({
@@ -345,6 +348,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
         completedLabel: formatDate(r.completed_date, dateLocale),
         expiryLabel: r.expiry_date ? formatDate(r.expiry_date, dateLocale) : '—',
         expiry: expiryState(r.expiry_date),
+        completedDateRaw: r.completed_date,
+        expiryDateRaw: r.expiry_date,
     }))
 
     return (
@@ -484,6 +489,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     employeeId={employeeId}
                     balances={(mustOne(balRes, 'leave_balances') ?? []) as never}
                     requests={(mustRows(myLeaveRes)) as never}
+                    requestsTotal={myLeaveTotal}
                     types={(mustRows(typeRes)) as never}
                     decisions={decisions}
                     trails={Object.fromEntries((mustRows(myLeaveRes) as { id: string }[]).map((r) => [r.id,
@@ -495,6 +501,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                 <MyClaimsPanel
                     employeeId={employeeId}
                     claims={(mustRows(claimRes)) as never}
+                    total={claimTotal}
                     balance={claimBalRes.data as never}
                     decisions={decisions}
                     trails={Object.fromEntries((mustRows(claimRes) as { claim_id: string }[]).map((r) => [r.claim_id,
@@ -506,6 +513,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                         <AuditTrail key={r.claim_id} subject="my_expense_claim" id={r.claim_id} show={trailShow} anchor={`my-claim-trail-${r.claim_id}`} compact />]))}
                     employeeId={employeeId}
                     rows={expenseClaimRows as never}
+                    total={expenseTotal}
                     receipts={expenseClaimReceipts}
                     limits={receiptLimits}
                     baseCurrency={baseCurrency}

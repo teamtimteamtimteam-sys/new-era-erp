@@ -46,6 +46,20 @@ TABLE-EXPORT-1's rulings Q2–Q13 apply unchanged to every table TABLE-EXPORT-2 
 | Q9 | Part C widened, all in 2a: `cpfDue` receives the raw month, so the unpaid CPF buttons on `/finance/payroll-payments` no longer throw (proven by running); Chinese October–December show 月 correctly; `/me` attendance sorts by date, not by month label; the `/hr/payroll/[id]/edit` month picker is checked and fixed. |
 | Q10 | `/hr/reviews` shows a failed read as an error, not an empty list (2b). |
 
+## The rulings — Tim 2026-10-23 (TABLE-EXPORT-2b Step 0)
+
+TABLE-EXPORT-1's Q2–Q13 and TABLE-EXPORT-2's Q1–Q10 still apply. These six are new; the survey behind them is `docs/surveys/TABLE-EXPORT-2b/step0.md`.
+
+| # | Ruling |
+|---|---|
+| Q1 | The three "recent" tables get the "first N of M" notice and a full export: settings import history (20) in 2b-1; capture "recently confirmed" (50) and contamination "recent checks" (50) in 2b-2. |
+| Q2 | Notifications: notice only, no export (same treatment as change-history); the unread count becomes an exact count. 2b-2. |
+| Q3 | `/hr/leave/grants` (200) and `/hr/reviews/cycles` (200) are added to part B. 2b-2. |
+| Q4 | All 18 non-finance 「受限」 sites are fixed, screen and export, including the 7 that show a false value (PO payment-term amount 0.00, PO header "@ null", masked price as "Unpriced", inbound "unpriced" badge counting masked batches, inventory output and inbound totals 0.00). Pricing formulas' table in 2b-1; the other 17 in 2b-2. |
+| Q5 | Edit forms that pre-fill a masked value as blank. Pricing formula edit: fixed in 2b-1 — saving without terms visibility must never turn a masked treatment charge or discount into 0; a masked field is sent as "unchanged"; proven with a rolled-back live test. Employee edit (`identity_no` pre-filled blank, saved as `|| null`): NOT fixed here — measured on a rebuild, recorded, and added to the go-live readiness group and `docs/known-issues.md`. |
+| Q6 | **Split**, because the whole scope (about 17.6 h estimated) does not fit one session. **TABLE-EXPORT-2b-1** (v1.4.69): every `TABLE-EXPORT-2` exemption entry in me, settings, safety, tools, compliance, my-reviews and contracts; the part B limits on those modules (safety inspection runs 200, safety environment 300, compliance packs 300, `/me` leave, medical claims and expense claims 50 each, settings import history 20); the change-history 500 notice; `/hr/reviews` failed reads shown as errors on all three reads (Q10, lines 69–71); the formulas table 「受限」 (Q4); the pricing formula edit fix (Q5). **TABLE-EXPORT-2b-2** (v1.4.70): part B on sales, hr (including Q3), inventory and operation; `/operation/capture/inbox` real paging; the two filter moves; capture "recently confirmed" and contamination "recent checks" (Q1); the contamination "missing" count and the notifications unread count as exact counts; notifications (Q2); the other 17 「受限」 sites (Q4). |
+| Side finding | Contracts settlement amounts come from `sales_settlements` with no column mask, on a page that needs only `module.suppliers.view`. Not changed in 2b; measured (which live roles hold `module.suppliers.view` without `data.view_prices`), recorded, and added to the go-live readiness group and `docs/known-issues.md`. |
+
 **Where Q2 lives in code (2a):** `app/components/ui/row-cap-notice.tsx` (the notice; it draws nothing when the page shows every row);
 each capped page has a `<page>Rows.ts` read module shared with an export route (`freight/export`, `supplier-statements/export`,
 `bank/transfers/export`, `cash-forecast/frozen/export`). `lib/export/serverRows.ts` gained `inChunks` (id look-ups in batches of 100,

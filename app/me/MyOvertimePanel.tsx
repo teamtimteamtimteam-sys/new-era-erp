@@ -8,22 +8,28 @@
 //   那些是还没定下来的数,员工看见它们只会以为这就是要付的小时。
 // 【小时,不是钱】OS 只报小时;乘以多少归薪资服务商(政策 7.1)。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xDate } from '@/lib/export/cells'
 
 type Row = {
     id: string; workDate: string; hours: number; dayKind: string; note: string | null
+    /** TABLE-EXPORT-2b-1:工作日的原始日历日(导出用;屏幕用 workDate) */
+    workDateRaw: string
     batchLabel: string; approvedLabel: string; approver: string | null
 }
 
 export default function MyOvertimePanel({ rows }: { rows: Row[] }) {
     const t = useTranslations()
-    const columns: Column<Row>[] = [
-        { key: 'date', header: t('overtime.colDate'), priority: true, render: (r) => r.workDate },
-        { key: 'dayKind', header: t('overtime.colDayKind'), render: (r) => t('overtime.dayKind_' + r.dayKind) },
-        { key: 'hours', header: t('overtime.colHours'), align: 'right', priority: true, render: (r) => r.hours.toFixed(2) },
-        { key: 'note', header: t('overtime.colNote'), render: (r) => <span className="text-gray-600">{r.note ?? '—'}</span> },
+    const columns: ExportableColumn<Row>[] = [
+        { key: 'date', header: t('overtime.colDate'), priority: true, render: (r) => r.workDate, exportAs: (r) => xDate(r.workDateRaw) },
+        { key: 'dayKind', header: t('overtime.colDayKind'), render: (r) => t('overtime.dayKind_' + r.dayKind), exportAs: (r) => xText(t('overtime.dayKind_' + r.dayKind)) },
+        { key: 'hours', header: t('overtime.colHours'), align: 'right', priority: true, render: (r) => r.hours.toFixed(2), exportAs: (r) => xNum(r.hours) },
+        { key: 'note', header: t('overtime.colNote'), render: (r) => <span className="text-gray-600">{r.note ?? '—'}</span>, exportAs: (r) => xText(r.note) },
         {
             key: 'approved', header: t('overtime.colApproved'),
+            // 组合格(谁批的 · 何时 · 哪一批)—— 照屏幕那几行写成一格文字
+            exportAs: (r) => xText([t('overtime.approvedBy', { name: r.approver ?? t('me.deciderUnknown') }), r.approvedLabel, r.batchLabel]
+                .filter(Boolean).join(' · ')),
             render: (r) => (
                 <>
                     <span className="block">{t('overtime.approvedBy', { name: r.approver ?? t('me.deciderUnknown') })}</span>
@@ -43,6 +49,7 @@ export default function MyOvertimePanel({ rows }: { rows: Row[] }) {
                 rowKey={(r) => r.id}
                 phone={{ mode: 'columns' }}
                 empty={t('overtime.myEmpty')}
+                exportSpec={{ name: 'me-overtime', title: t('overtime.myTitle') }}
             />
         </section>
     )

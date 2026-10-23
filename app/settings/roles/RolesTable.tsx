@@ -8,7 +8,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xInt, xBool } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 
 export type RoleRow = {
@@ -27,9 +28,11 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
 
     // ★ 手机上留【角色码】与【持有人数】—— 角色码是身份;而"这个角色下有几个人"
     //   决定了改它的后果有多大,那是打开这一页的人要先知道的事。
-    const columns: Column<RoleRow>[] = [
+    const columns: ExportableColumn<RoleRow>[] = [
         {
             key: 'code', header: t('permissions.roleCode'), priority: true, className: 'text-xs',
+            // 系统角色的那枚徽章跟着角色码写进同一格
+            exportAs: (r) => xText(r.isSystem ? `${r.code} (${t('permissions.systemRole')})` : r.code),
             render: (r) => (
                 <>
                     {r.code}
@@ -41,19 +44,19 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
                 </>
             ),
         },
-        { key: 'name', header: t('permissions.roleName'), render: (r) => r.name },
-        { key: 'description', header: t('permissions.roleDescription'), className: 'text-gray-600', render: (r) => r.description },
+        { key: 'name', header: t('permissions.roleName'), render: (r) => r.name, exportAs: (r) => xText(r.name) },
+        { key: 'description', header: t('permissions.roleDescription'), className: 'text-gray-600', render: (r) => r.description, exportAs: (r) => xText(r.description) },
         {
             key: 'permCount', header: t('permissions.permissionCount'), align: 'right',
-            render: (r) => r.permissionCount,
+            render: (r) => r.permissionCount, exportAs: (r) => xInt(r.permissionCount),
         },
         {
             key: 'userCount', header: t('permissions.userCount'), priority: true, align: 'right',
-            render: (r) => r.userCount,
+            render: (r) => r.userCount, exportAs: (r) => xInt(r.userCount),
         },
-        { key: 'active', header: t('permissions.active'), render: (r) => (r.isActive ? t('permissions.yes') : t('permissions.no')) },
+        { key: 'active', header: t('permissions.active'), render: (r) => (r.isActive ? t('permissions.yes') : t('permissions.no')), exportAs: (r) => xBool(r.isActive, t('permissions.yes'), t('permissions.no')) },
         {
-            key: 'actions', header: '',
+            key: 'actions', header: '', exportAs: false,
             render: (r) => (
                 <Button asChild variant="link" size="inline">
                     <Link href={`/settings/roles/${r.id}`}>
@@ -64,5 +67,6 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} />
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
+        exportSpec={{ name: 'roles', title: t('permissions.subnav.roles') }} />
 }

@@ -18,8 +18,10 @@ import ClaimForm from '@/app/hr/claims/ClaimForm'
 import { withdrawMedicalClaim } from '@/app/hr/claims/actions'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
-import DecisionCell, { type Decision } from './DecisionCell'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate } from '@/lib/export/cells'
+import DecisionCell, { decisionText, type Decision } from './DecisionCell'
 
 type Claim = {
     claim_id: string; code: string; claim_date: string
@@ -30,31 +32,38 @@ type Bal = { pro_rated_limit_sgd: number; claimed_sgd: number; remaining_sgd: nu
 
 // AUDIT-TRAIL-1d-2(Q14):每一张自己的医疗报销一段审计记录(服务端造好,按报销单 id 交进来;折起来)
 export default function MyClaimsPanel({
-    employeeId, claims, balance, decisions, trails = {},
-}: { employeeId: string; claims: Claim[]; balance: Bal | null; decisions: Record<string, Decision>; trails?: Record<string, ReactNode> }) {
+    employeeId, claims, total, balance, decisions, trails = {},
+}: {
+    employeeId: string; claims: Claim[]; balance: Bal | null; decisions: Record<string, Decision>; trails?: Record<string, ReactNode>
+    /** TABLE-EXPORT-2b-1(Tim Q2 · Q5):自己的医疗报销一共几张 —— 页面只画最近 50 张,多出来就说出来;导出走路由取全 */
+    total: number
+}) {
     const t = useTranslations()
     const [open, setOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [busy, startTransition] = useTransition()
 
     // ★ 原有四列全部 priority —— 见抬头:转换之前手机上就是四列都在。
-    const columns: Column<Claim>[] = [
-        { key: 'code', header: t('claims.code'), priority: true, render: (c) => c.code },
-        { key: 'date', header: t('claims.date'), priority: true, render: (c) => c.claim_date },
+    const columns: ExportableColumn<Claim>[] = [
+        { key: 'code', header: t('claims.code'), priority: true, render: (c) => c.code, exportAs: (c) => xText(c.code) },
+        { key: 'date', header: t('claims.date'), priority: true, render: (c) => c.claim_date, exportAs: (c) => xDate(c.claim_date) },
         {
             key: 'amount', header: t('claims.amount'), align: 'right', priority: true,
             render: (c) => `${Number(c.amount_sgd).toFixed(2)} SGD`,
+            exportAs: (c) => xMoney(c.amount_sgd, 'SGD'),
         },
         {
             key: 'state', header: t('claims.state'), priority: true,
             render: (c) => t(`claims.state_${c.settlement_state}`),
+            exportAs: (c) => xText(t(`claims.state_${c.settlement_state}`)),
         },
         {
             key: 'decision', header: t('me.decisionCol'),
             render: (c) => <DecisionCell decision={decisions[c.claim_id]} cancelled={false} />,
+            exportAs: (c) => xText(decisionText(t, decisions[c.claim_id], false)),
         },
         {
-            key: 'actions', header: '', align: 'right', priority: true,
+            key: 'actions', header: '', align: 'right', priority: true, exportAs: false,
             render: (c) => c.status === 'submitted' ? (
                 <ConfirmButton
                     subject={c.code}
@@ -116,12 +125,14 @@ export default function MyClaimsPanel({
                 </div>
             )}
 
+            <RowCapNotice shown={claims.length} total={total} />
             <DataTable
                 rows={claims}
                 columns={columns}
                 rowKey={(c) => c.claim_id}
                 phone={{ mode: 'columns' }}
                 empty={t('me.noClaims')}
+                exportSpec={{ name: 'me-medical-claims', title: t('me.claims'), serverRows: '/me/medical-claims/export' }}
             />
             {claims.length > 0 && (
                 <div className="mt-4 space-y-2">

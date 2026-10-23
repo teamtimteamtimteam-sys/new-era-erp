@@ -29,8 +29,9 @@ type Parsed = {
     price_basis: string
     price_index: string | null
     average_days: number | null
-    treatment_charge_usd_per_tonne: number
-    flat_discount_pct: number
+    /** null = 看不见条款,不送(库里按原值存) */
+    treatment_charge_usd_per_tonne: number | null
+    flat_discount_pct: number | null
     supplier_id: string | null
     customer_id: string | null
     notes: string | null
@@ -40,7 +41,11 @@ type Parsed = {
     clears: string[]
 }
 
-async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldErrors?: Record<string, string> }> {
+/**
+ * `termsMasked`:这个人看不见这张公式的条款(TABLE-EXPORT-2b-1,Tim 2026-10-23 Q5)。由 updateFormula 在服务端【自己读】出来,不从表单里收 ——
+ * 那时加工费 · 折扣 · 比例三项不解析、不送(表单上画的是「受限」);库里两扇修改门对看不见的人一律按原值存(fixture 292)。
+ */
+async function parseForm(formData: FormData, termsMasked = false): Promise<{ parsed?: Parsed; fieldErrors?: Record<string, string> }> {
     const t = await getTranslations()
     const fieldErrors: Record<string, string> = {}
 
@@ -67,13 +72,14 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
         }
     }
 
+    // 看不见条款时两项是 null:不送一个编出来的 0(库里按原值存)
     const treatRaw = String(formData.get('treatment_charge_usd_per_tonne') ?? '').trim()
-    const treat = treatRaw === '' ? 0 : Number(treatRaw)
-    if (Number.isNaN(treat) || treat < 0) fieldErrors.treatment_charge_usd_per_tonne = t('pricing.errTreatment')
+    const treat = termsMasked ? null : treatRaw === '' ? 0 : Number(treatRaw)
+    if (treat !== null && (Number.isNaN(treat) || treat < 0)) fieldErrors.treatment_charge_usd_per_tonne = t('pricing.errTreatment')
 
     const discRaw = String(formData.get('flat_discount_pct') ?? '').trim()
-    const disc = discRaw === '' ? 0 : Number(discRaw)
-    if (Number.isNaN(disc) || disc < 0 || disc > 100) fieldErrors.flat_discount_pct = t('pricing.errDiscount')
+    const disc = termsMasked ? null : discRaw === '' ? 0 : Number(discRaw)
+    if (disc !== null && (Number.isNaN(disc) || disc < 0 || disc > 100)) fieldErrors.flat_discount_pct = t('pricing.errDiscount')
 
     // 适用对象:generic / supplier / customer —— DB 侧 num_nonnulls <= 1 兜底
     const mode = String(formData.get('counterparty_mode') ?? 'generic')
@@ -99,7 +105,8 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
     //   ⚠ **读不懂的桥不当空集**:那会让「一次说不出话的提交」看起来像
     //     「所有金属都不计价」,而那一支是**删光所有计价行**。按名拒。
     let pLines: { metal: string; pct: string }[]
-    try {
+    if (termsMasked) pLines = []   // 比例那张表画的是「受限」,桥不在表单里 —— 不解析
+    else try {
         const parsed: unknown = JSON.parse(String(formData.get('payables_json') ?? '[]'))
         if (!Array.isArray(parsed)) throw new Error('not an array')
         pLines = parsed.flatMap((el) => {
@@ -205,11 +212,17 @@ export async function updateFormula(
     _prevState: FormulaState,
     formData: FormData
 ): Promise<FormulaState> {
-    const { parsed, fieldErrors } = await parseForm(formData)
+    const supabase = await createClient()
+    // ★ TABLE-EXPORT-2b-1(Q5):这个人看不看得见这张公式的条款 —— 服务端自己读(加工费 NOT NULL,读成 NULL = 被遮)
+    const { data: seen, error: seenErr } = await supabase
+        .from('pricing_formulas_masked').select('treatment_charge_usd_per_tonne').eq('id', formulaId).maybeSingle()
+    if (seenErr) return await refuseFromCoded(seenErr.message, localizeTermsRequestError)
+    const termsMasked = seen !== null && seen.treatment_charge_usd_per_tonne === null
+
+    const { parsed, fieldErrors } = await parseForm(formData, termsMasked)
     if (fieldErrors) return { fieldErrors }
     const p = parsed!
 
-    const supabase = await createClient()
     const args = { p_formula_id: formulaId, p_terms: termsOf(p), p_reason: p.reason }
     const { error } = isActive
         ? await supabase.rpc('submit_formula_change_request', args)

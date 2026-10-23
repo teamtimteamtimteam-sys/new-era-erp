@@ -52,6 +52,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
         code: i.code,
         kindLabel: locale === 'zh' ? i.kind_name_zh : i.kind_name_en,
         occurred: formatAuditStamp(i.occurred_at),
+        occurredAt: i.occurred_at,
         where: [i.location_code, i.equipment_code].filter(Boolean).join(' · ') || '—',
         nea: neaStatusLabel(t, locale, i),
         neaDue: i.nea_reportable && (!i.notified_at || !i.report_submitted_at),

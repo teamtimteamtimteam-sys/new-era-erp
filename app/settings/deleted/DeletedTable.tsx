@@ -11,7 +11,8 @@
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xTime, type ExportCell } from '@/lib/export/cells'
 
 export type DeletedRow = {
     key: string
@@ -22,6 +23,10 @@ export type DeletedRow = {
     whenLabel: string
     /** 服务端渲染好的 <ActorName /> —— 见抬头。 */
     whoCell: React.ReactNode
+    /** TABLE-EXPORT-2b-1:删除时刻的原始 ISO */
+    deletedAt: string
+    /** TABLE-EXPORT-2b-1:「谁」的导出格 —— 服务端按 ActorName 的四态给好(元素过不了导出,判据也不在客户端重写) */
+    whoExport: ExportCell
     /** null = 没有记过理由,由表说那句话。 */
     reason: string | null
     ledgerHref: string | null
@@ -35,10 +40,11 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
     // ★ 手机上留【编号】与【为什么】—— 编号是身份;而这一页存在的全部理由
     //   就是 AUDEL-1b/2 把"为什么删"问了出来(在此之前那些记录一处都不显示)。
     //   把理由挤进展开区,等于把这一页的目的藏起来。
-    const columns: Column<DeletedRow>[] = [
-        { key: 'kind', header: t('deleted.colKind'), render: (r) => r.kindLabel },
+    const columns: ExportableColumn<DeletedRow>[] = [
+        { key: 'kind', header: t('deleted.colKind'), render: (r) => r.kindLabel, exportAs: (r) => xText(r.kindLabel) },
         {
             key: 'code', header: t('deleted.colCode'), priority: true, className: 'text-xs',
+            exportAs: (r) => xText(r.detail ? `${r.code} ${r.detail}` : r.code),
             render: (r) => (
                 <>
                     {r.href ? (
@@ -50,17 +56,20 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
                 </>
             ),
         },
-        { key: 'when', header: t('deleted.colWhen'), className: 'whitespace-nowrap', render: (r) => r.whenLabel },
+        { key: 'when', header: t('deleted.colWhen'), className: 'whitespace-nowrap', render: (r) => r.whenLabel, exportAs: (r) => xTime(r.deletedAt) },
         // 【谁】—— 三种状态三句话,全在 ActorName 一处
-        { key: 'who', header: t('deleted.colWho'), render: (r) => r.whoCell },
+        { key: 'who', header: t('deleted.colWho'), render: (r) => r.whoCell, exportAs: (r) => r.whoExport },
         {
             // 【为什么】—— 空也要说出来,不留白
             key: 'reason', header: t('deleted.colReason'), priority: true,
+            exportAs: (r) => xText(r.reason ?? t('deleted.reasonUnrecorded')),
             render: (r) =>
                 r.reason ?? <span className="text-gray-500">{t('deleted.reasonUnrecorded')}</span>,
         },
         {
             key: 'ledger', header: t('deleted.colLedger'), className: 'text-xs',
+            // 导出屏幕上那句字(有流水 → 链接的字;加工 → 那次加工本身;都没有 → 空)
+            exportAs: (r) => xText(r.ledgerHref ? t('deleted.ledgerLink') : r.reversalIsTheRun ? t('deleted.reversalIsTheRun') : null),
             render: (r) =>
                 r.ledgerHref ? (
                     <Link href={r.ledgerHref} className="hover:underline app-link">
@@ -74,5 +83,6 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} empty={empty} />
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} empty={empty}
+        exportSpec={{ name: 'deleted-records', title: t('deleted.title') }} />
 }

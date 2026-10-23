@@ -22,8 +22,9 @@ type FormulaRow = {
     price_basis: string
     price_index: string | null
     average_days: number | null
-    treatment_charge_usd_per_tonne: number
-    flat_discount_pct: number
+    /** pricing_formulas_masked:看不见这张公式条款的人读到 null */
+    treatment_charge_usd_per_tonne: number | null
+    flat_discount_pct: number | null
     supplier_id: string | null
     customer_id: string | null
     is_active: boolean

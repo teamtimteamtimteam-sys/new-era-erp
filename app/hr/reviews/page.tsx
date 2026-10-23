@@ -10,6 +10,7 @@
 // ★ state 恒为 'ok' —— 筛选表单与右侧两个入口(评估轮/评分档)都是真实出口。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import {
     REVIEW_COLUMNS,
@@ -66,9 +67,11 @@ export default async function ReviewsPage({
             .order('period_start', { ascending: false }),
     ])
 
-    const reviews = (reviewsRes.data as unknown as ReviewRow[] | null) ?? []
-    const employees = (empRes.data as unknown as EmployeeOpt[] | null) ?? []
-    const cycles = (cycleRes.data as unknown as CycleOpt[] | null) ?? []
+    // ★ TABLE-EXPORT-2b-1(Tim 2026-10-22 TABLE-EXPORT-2 Q10):三条读取失败就让这一页失败 —— 从前只取 .data、丢掉 error,
+    //   一次读不到(权限、网络、一个改了名的列)在屏幕上是一张平静的「没有评估」。一次失败不是一个空集。
+    const reviews = mustRows(reviewsRes, 'performance_reviews_masked') as unknown as ReviewRow[]
+    const employees = mustRows(empRes, 'employees') as unknown as EmployeeOpt[]
+    const cycles = mustRows(cycleRes, 'review_cycles') as unknown as CycleOpt[]
     const empById = new Map(employees.map((e) => [e.id, e]))
     const cycleById = new Map(cycles.map((c) => [c.id, c.name]))
 

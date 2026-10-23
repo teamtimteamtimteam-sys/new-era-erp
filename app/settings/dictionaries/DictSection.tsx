@@ -10,7 +10,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { addDictValue, updateDictValue, setDictActive } from './actions'
 import type { DictSpec } from './registry'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xInt, xNum, xRestricted } from '@/lib/export/cells'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Button } from '@/app/components/ui/button'
@@ -82,13 +83,24 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
     // ★【手机上留哪两列】code 是外键指向的稳定标识,name 是人读的名字 ——
     // 两者一起才认得出"这是哪一条"。sort_order / inUse / isActive 是读到
     // 这一条之后才要问的东西,进展开区。
-    const columns: Column<DictRow>[] = [
-        { key: 'code', header: t('dict.f.code'), priority: true, className: 'text-xs', render: (r) => r.code },
-        { key: 'name', header: t('dict.f.name'), priority: true, render: (r) => label(r) },
-        { key: 'sortOrder', header: t('dict.f.sortOrder'), align: 'right', render: (r) => r.sort_order },
+    const columns: ExportableColumn<DictRow>[] = [
+        { key: 'code', header: t('dict.f.code'), priority: true, className: 'text-xs', render: (r) => r.code, exportAs: (r) => xText(r.code) },
+        { key: 'name', header: t('dict.f.name'), priority: true, render: (r) => label(r), exportAs: (r) => xText(label(r)) },
+        { key: 'sortOrder', header: t('dict.f.sortOrder'), align: 'right', render: (r) => r.sort_order, exportAs: (r) => xInt(r.sort_order) },
         // MES-3a:规则列画在清单里 —— 空的写"Not yet set",不画成 0 或"否"
         ...spec.extras.filter((x) => x.showInTable).map((x) => ({
             key: 'x_' + x.column, header: t(x.labelKey),
+            // TABLE-EXPORT-2b-1:与下面画格子同一套分支 —— 空写 Not yet set;读不到的供应商写「受限」;数是数
+            exportAs: (r: DictRow) => {
+                const v = r[x.column]
+                if (v === null || v === undefined) return xText(t('dict.notYetSet'))
+                if (x.kind === 'boolean') return xText(v === true ? t('common.yes') : t('common.no'))
+                if (x.kind === 'choice') { const o = x.options?.find((p) => p.value === v); return xText(o ? t(o.labelKey) : String(v)) }
+                if (x.kind === 'supplier') { const o = supplierOptions.find((p) => p.value === v); return o ? xText(o.label) : xRestricted }
+                if (x.kind === 'time') return xText(String(v).slice(0, 5))
+                if (x.kind === 'number') return xNum(v as number | string, x.decimal ? 'qty' : 'int')
+                return xText(String(v))
+            },
             render: (r: DictRow) => {
                 const v = r[x.column]
                 if (v === null || v === undefined) return <span className="text-amber-700" data-not-set={x.column}>{t('dict.notYetSet')}</span>
@@ -99,13 +111,13 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                 if (x.kind === 'time') return String(v).slice(0, 5)
                 return String(v)
             },
-        } as Column<DictRow>)),
+        } as ExportableColumn<DictRow>)),
         // D4:停用之前先看见有多少行带着它。
-        { key: 'inUse', header: t('dict.inUse'), align: 'right', render: (r) => usage[r.code] ?? 0 },
-        { key: 'isActive', header: t('dict.f.isActive'), render: (r) => (r.is_active ? t('dict.active') : t('dict.inactive')) },
+        { key: 'inUse', header: t('dict.inUse'), align: 'right', render: (r) => usage[r.code] ?? 0, exportAs: (r) => xInt(usage[r.code] ?? 0) },
+        { key: 'isActive', header: t('dict.f.isActive'), render: (r) => (r.is_active ? t('dict.active') : t('dict.inactive')), exportAs: (r) => xText(r.is_active ? t('dict.active') : t('dict.inactive')) },
         // ★ 只读时这一列【整列不存在】—— 不是渲染成灰的按钮。
         ...(readOnly ? [] : [{
-            key: 'actions', header: '',
+            key: 'actions', header: '', exportAs: false,
             render: (r: DictRow) => (
                 <>
                     <Button variant="secondary" size="xs" className="mr-2 text-xs" type="button" onClick={() => openEdit(r)} disabled={pending}>
@@ -137,7 +149,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                     )}
                 </>
             ),
-        } as Column<DictRow>]),
+        } as ExportableColumn<DictRow>]),
     ]
 
     const field = `${CONTROL_INPUT} w-full`
@@ -170,6 +182,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                     columns={columns}
                     rowKey={(r) => r.code}
                     phone={{ mode: 'columns' }}
+                    // Tim 裁定:字典也导出,每一本一个文件名(表名里的下划线换成连字符,Q9 只许 ASCII 小写)
+                    exportSpec={{ name: `dictionary-${spec.table.replace(/_/g, '-')}`, title: t(spec.titleKey) }}
                 />
             </div>
             {/* 表格自己的错误(空态)与表单的错误是两回事 —— 表单错误画在

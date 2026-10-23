@@ -23,7 +23,8 @@ import { acknowledgeReview } from '@/app/hr/reviews/actions'
 import type { GoalRow, ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { Button } from '@/app/components/ui/button'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum } from '@/lib/export/cells'
 import { formatDate } from '@/lib/dates'
 
 export default function MyReviewsPanel({
@@ -52,31 +53,37 @@ export default function MyReviewsPanel({
     }
 
     // ★ 一份列定义给所有周期共用 —— 它只依赖 t,不依赖某一次评估。
-    const columns: Column<GoalRow>[] = [
+    const columns: ExportableColumn<GoalRow>[] = [
         {
             key: 'objective', header: t('reviews.colObjective'), priority: true,
             className: 'align-top whitespace-pre-wrap',
             render: (g) => g.objective_text,
+            exportAs: (g) => xText(g.objective_text),
         },
         {
             key: 'target', header: t('reviews.colTarget'), align: 'right', priority: true,
             className: 'align-top whitespace-nowrap',
             render: (g) => (g.target_value !== null ? `${g.target_value} ${g.unit ?? ''}` : '—'),
+            // 一个数,带屏幕上跟着它的那个单位
+            exportAs: (g) => xNum(g.target_value, 'qty', g.unit),
         },
         {
             key: 'actual', header: t('reviews.colActual'), align: 'right', priority: true,
             className: 'align-top whitespace-nowrap',
             render: (g) => (g.actual_value !== null ? `${g.actual_value} ${g.unit ?? ''}` : '—'),
+            exportAs: (g) => xNum(g.actual_value, 'qty', g.unit),
         },
         {
             key: 'employeeResult', header: t('reviews.colEmployeeResult'),
             className: 'align-top whitespace-pre-wrap',
             render: (g) => g.employee_result_text ?? '—',
+            exportAs: (g) => xText(g.employee_result_text),
         },
         {
             key: 'assessment', header: t('reviews.colAssessment'),
             className: 'align-top whitespace-pre-wrap',
             render: (g) => g.reviewer_assessment_text ?? '—',
+            exportAs: (g) => xText(g.reviewer_assessment_text),
         },
     ]
 
@@ -127,6 +134,11 @@ export default function MyReviewsPanel({
                                         columns={columns}
                                         rowKey={(g) => g.id}
                                         phone={{ mode: 'columns' }}
+                                        // 每一份评估一张目标表 —— 标题带上是哪一份(类型 + 原始起止日),About 表里分得开
+                                        exportSpec={{
+                                            name: 'me-review-goals',
+                                            title: `${t('reviews.mineTitle')} · ${t(`reviews.type_${r.review_type}`)} ${r.period_start} → ${r.period_end}`,
+                                        }}
                                     />
                                 </div>
                             )}

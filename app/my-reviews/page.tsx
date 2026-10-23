@@ -88,6 +88,8 @@ export default async function MyReviewsPage() {
             cycleName: s?.cycle_name ?? '—',
             periodStart: formatDate(r.period_start, locale),
             periodEnd: formatDate(r.period_end, locale),
+            periodStartRaw: r.period_start,
+            periodEndRaw: r.period_end,
             status: r.status,
             statusCls: statusPillClass(r.status),
             daysInState: daysInState(r),
@@ -104,13 +106,13 @@ export default async function MyReviewsPage() {
             {open.length > 0 && (
                 <>
                     <h2 className="mb-2">{t('reviews.myOpen')}</h2>
-                    <MyReviewsTable rows={open.map(toRow)} />
+                    <MyReviewsTable rows={open.map(toRow)} exportName="my-reviews-open" exportTitle={`${t('reviews.myTitle')} · ${t('reviews.myOpen')}`} />
                 </>
             )}
             {closed.length > 0 && (
                 <>
                     <h2 className="mb-2">{t('reviews.myClosed')}</h2>
-                    <MyReviewsTable rows={closed.map(toRow)} />
+                    <MyReviewsTable rows={closed.map(toRow)} exportName="my-reviews-closed" exportTitle={`${t('reviews.myTitle')} · ${t('reviews.myClosed')}`} />
                 </>
             )}
         </ListPage>

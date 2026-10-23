@@ -55,8 +55,11 @@ export default async function EditFormulaPage({
     }
     const deletedAt = formulaRaw.deleted_at
 
-    // cut 2b:改读遮蔽视图(基表原始敏感列已收回)。断言回基表行类型 —— 能进定价模块的
-    // 角色全都持有 data.view_prices,列不会被遮蔽。见 lib/maskedRows.ts。
+    // cut 2b:改读遮蔽视图(基表原始敏感列已收回)。断言回基表行类型 —— 见 lib/maskedRows.ts。
+    // ★ TABLE-EXPORT-2b-1(Tim 2026-10-23 Q5):从前这里写着「能进定价模块的角色全都持有 data.view_prices,列不会被遮蔽」——
+    //   ROLE-1 Batch 4a 之后不对了:条款按【行的方向】遮(pricing_formula_terms_visible),看不见的人读到 NULL。
+    //   加工费是 NOT NULL 的列,所以它读成 NULL 只有一个意思:这个人看不见这张公式的条款。
+    const termsMasked = formulaRaw.treatment_charge_usd_per_tonne === null
     const formula = unmasked<Tables<'pricing_formulas'>>(formulaRaw)
 
     const [metalsRes, supRes, cusRes] = await Promise.all([
@@ -79,7 +82,7 @@ export default async function EditFormulaPage({
         notes: formula.notes ?? '',
         is_active: formula.is_active,
         payables: Object.fromEntries(
-            (mustRows(metalsRes)).map((m) => [m.metal, String(m.payable_pct)])
+            (mustRows(metalsRes)).map((m) => [m.metal, m.payable_pct === null ? '' : String(m.payable_pct)])
         ),
     }
 
@@ -154,6 +157,7 @@ export default async function EditFormulaPage({
                 quoteDates={quoteDates}
                 canEdit={canEdit}
                 blockedReason={openLabel ? t('termsRequest.formBlocked', { label: openLabel }) : null}
+                termsMasked={termsMasked}
             />
             </EndedFieldset>
 

@@ -8,15 +8,15 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { IMPORTS_SHOWN, importsCount, importsPage, shapeImportRows } from './importRows'
 import { RefusalPage } from '@/app/components/ui/refusal'
 import { IMPORT_TABLES, type TemplateColumn } from '@/lib/importTables'
 import ImportForm from './ImportForm'
 import { ListPage } from '@/app/components/ui/list-page'
 import ImportHistoryTable, { type ImportBatchRow } from './ImportHistoryTable'
-import { formatAuditStamp, formatTrailStamp } from '@/lib/dates'
-import { loadActorNames } from '@/app/components/ActorName'
-import { Refusal } from '@/app/components/ui/refusal'
+import { formatTrailStamp } from '@/lib/dates'
 import ListTrail from '@/app/components/trail/ListTrail'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 
@@ -58,34 +58,17 @@ export default async function ImportPage({
     const guide = Object.fromEntries(guideEntries)
 
     // 【失败不是空集】—— mustRows,不是 ?? []。
-    const batches = mustRows(
-        await supabase
-            .from('import_batches')
-            .select('id, target_table, file_name, row_count, code_first, code_last, imported_at, imported_by')
-            .order('imported_at', { ascending: false })
-            .limit(20),
-        'import_batches'
-    )
+    // ★ TABLE-EXPORT-2b-1(Tim 2026-10-23 Q1):读取与映射搬进 importRows.ts,与导出路由共用;只画最近 IMPORTS_SHOWN 次,而且说出来。
+    const [batches, total] = await Promise.all([
+        importsPage(supabase, 0, IMPORTS_SHOWN - 1).then((r) => mustRows(r, 'import_batches')),
+        importsCount(supabase).then((r) => mustCount(r, 'import_batches count')),
+    ])
 
     // CONV-5:套 CONV-1 的两文件模板。ImportForm 是这一页存在的理由,
     // 它与页顶 intro 都画在状态分支之前;历史那一段的空
     // (【第三种空】还没有导入过任何东西)由 DataTable 自己的 empty 说。
     // AUDIT-TRAIL-1d-1(Tim 的 Q24):批次表多一栏"谁"—— 与别的页面同一个取名器(不持 hr.view 的读者只认得出自己)
-    const names = await loadActorNames(supabase, batches.map((b) => b.imported_by as string | null))
-    const whoOf = (id: string | null) => {
-        const n = id ? names.names.get(id) : null
-        if (n) return n
-        return id && names.restricted ? <Refusal>{t('common.restricted')}</Refusal> : '—'
-    }
-    const tableRows: ImportBatchRow[] = batches.map((b) => ({
-        id: b.id as string,
-        whenLabel: formatAuditStamp(b.imported_at),
-        tableLabel: t(`import.table.${b.target_table}`),
-        fileName: b.file_name as string,
-        rowCount: b.row_count as number,
-        codeRange: `${b.code_first as string} … ${b.code_last as string}`,
-        who: whoOf(b.imported_by as string | null),
-    }))
+    const tableRows: ImportBatchRow[] = await shapeImportRows(supabase, batches)
 
     return (
         <ListPage
@@ -97,7 +80,8 @@ export default async function ImportPage({
             <ImportForm tables={[...IMPORT_TABLES]} guide={guide} />
 
             <h2 className="mt-10 mb-2">{t('import.history')}</h2>
-            <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} />
+            <RowCapNotice shown={tableRows.length} total={total} />
+            <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} serverRows="/settings/import/history/export" />
             <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('import.historyIsALog')}</p>
             {/* AUDIT-TRAIL-1d-1(Q24):同样那几次导入的审计记录 —— 被导进去的那几行与批次之间【没有】回指(import_batches 的
                 表注释不许),所以这一块只说批次自己:谁、何时、哪个文件、多少行、编号从哪到哪 */}

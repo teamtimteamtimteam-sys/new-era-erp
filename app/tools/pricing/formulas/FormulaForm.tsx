@@ -17,6 +17,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import type { FormulaState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { Refusal } from '@/app/components/ui/refusal'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
 /** 桥上交出去的一行 —— 与搬家前 `payable_metal[]` / `payable_pct[]` 逐字同构。 */
@@ -73,6 +74,7 @@ export default function FormulaForm({
     locale,
     canEdit,
     blockedReason = null,
+    termsMasked = false,
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
@@ -90,6 +92,9 @@ export default function FormulaForm({
     canEdit: boolean
     /** APR-8:这张公式上挂着一张在等 CFO 的申请 —— 表单看得见、按不动,说出是哪一张(库里同样按名拒 TERMS_REQUEST_OPEN) */
     blockedReason?: string | null
+    /** TABLE-EXPORT-2b-1(Tim 2026-10-23 Q5):这个人看不见这张公式的条款(pricing_formulas_masked 把加工费 · 折扣 · 比例遮成 NULL)。
+     *  三处画成「受限」、不画输入框、不送值 —— 库里那两扇门对看不见的人一律按原值存(fixture 292),这里只是不让人以为自己在改它们。 */
+    termsMasked?: boolean
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(action, initialState)
@@ -309,24 +314,28 @@ export default function FormulaForm({
             <div className="flex flex-wrap gap-4">
                 <div>
                     <label className="block mb-1">{t('pricing.form.treatment')}</label>
+                    {termsMasked ? <Refusal>{t('common.restricted')}</Refusal> : (
                     <DecimalInput
                         name="treatment_charge_usd_per_tonne"
                         value={treatment}
                         onChange={setTreatment}
                         className="w-40"
                     />
+                    )}
                     {err('treatment_charge_usd_per_tonne') && (
                         <p className="text-red-600 text-sm mt-1">{err('treatment_charge_usd_per_tonne')}</p>
                     )}
                 </div>
                 <div>
                     <label className="block mb-1">{t('pricing.form.discount')}</label>
+                    {termsMasked ? <Refusal>{t('common.restricted')}</Refusal> : (
                     <DecimalInput
                         name="flat_discount_pct"
                         value={discount}
                         onChange={setDiscount}
                         className="w-32"
                     />
+                    )}
                     {err('flat_discount_pct') && (
                         <p className="text-red-600 text-sm mt-1">{err('flat_discount_pct')}</p>
                     )}
@@ -432,6 +441,7 @@ export default function FormulaForm({
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('pricing.payableBlankHint')}</p>
                 {/* ★ 桥读不懂时的那一句 —— 它不属于任何一格,所以画在表上面。
                     形状与 `#24` 的 `state.fieldErrors?.lines` 相同。 */}
+                {termsMasked ? <Refusal>{t('common.restricted')}</Refusal> : (<>
                 {err('payables') && <p className="text-red-600 text-sm mb-2">{err('payables')}</p>}
                 {/* ★★ (b) 那座桥 —— 画在表外面,只画一遍。理由见 `#18` 同一处。 */}
                 <input
@@ -450,6 +460,7 @@ export default function FormulaForm({
                     labels={{ expand: t('common.expandRow') }}
                     className="max-w-md"
                 />
+                </>)}
             </div>
 
             {/* ★ APR-8:每一次提交都是一张给 CFO 的申请 —— 理由必填;批准之前什么都不生效。 */}

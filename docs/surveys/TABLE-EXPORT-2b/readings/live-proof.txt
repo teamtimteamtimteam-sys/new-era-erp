@@ -1,0 +1,30 @@
+STEP|formula PF-2026-0001 (direction both): treatment 800 · discount 20 · 3 payable lines (read as postgres, base table)
+PASS|F1 restricted reader (data.view_prices + module.pricing.edit + module.pricing.view) · /tools/pricing/formulas → HTTP 200; the PF-2026-0001 row on screen shows "Restricted"
+PASS|F1 restricted · CSV downloaded: pricing-formulas_2026-10-23_1752.csv
+PASS|F1 restricted · CSV PF-2026-0001: "Treatment (USD/t)" = "Restricted", "Discount %" = "Restricted" (stored 800 / 20)
+PASS|F1 restricted · Excel downloaded: pricing-formulas_2026-10-23_1752.xlsx
+PASS|F1 restricted · Excel "Treatment (USD/t)": ["Restricted"] (want every cell "Restricted")
+PASS|F1 restricted · About sheet "Exported by" = te2b1probe-1792749115348-blind@test.local
+PASS|F1 permitted reader (data.view_prices + data.view_purchase_prices + module.pricing.edit + module.pricing.view) · /tools/pricing/formulas → HTTP 200; the PF-2026-0001 row on screen does not show "Restricted"
+PASS|F1 permitted · CSV downloaded: pricing-formulas_2026-10-23_1752.csv
+PASS|F1 permitted · CSV PF-2026-0001: "Treatment (USD/t)" = "800", "Discount %" = "20" (stored 800 / 20)
+PASS|F1 permitted · Excel downloaded: pricing-formulas_2026-10-23_1752.xlsx
+PASS|F1 permitted · Excel "Treatment (USD/t)": [800] (want a cell typed Number)
+PASS|F1 permitted · About sheet "Exported by" = te2b1probe-1792749115348-sees@test.local
+PASS|F2 blind reader · edit page → HTTP 200; treatment input false, discount input false, payables bridge false, "Restricted" × 7 (want no inputs, ≥ 3 "Restricted")
+STEP|Q5 blind submit → {"kind": "formula_change", "label": "PF-2026-0001 · change #1", "status": "submitted", "request_id": "aaba8fda-c034-4e9a-9d21-37635c08ff55", "subject_code": "PF-2026-0001"} · control submit → {"kind": "formula_change", "label": "PF-2026-0001 · change #1", "status": "submitted", "request_id": "fb404ceb-3ce0-489c-a0db-af7130ca2c81", "subject_code": "PF-2026-0001"}
+PASS|Q5 blind editor (no data.view_purchase_prices) sent 0 / 0 / [] → the request proposes treatment 800, discount 20, 3 payable lines, name "PF-2026-0001 te2b1 blind" (stored 800 / 20 / 3)
+PASS|Q5 control · an editor who sees the terms sent the same 0 / 0 → the request proposes 0 / 0 (the arms separate)
+PASS|Q5 rolled back · terms_requests count and the formula's terms before = after: identical
+STEP|C1 ?show=500 loaded in 114 s
+PASS|C1 /settings/change-history?show=500 → HTTP 200; stop notice "This list stops at the newest 500 entries. To see older ones, narrow it: a date range, an area, a type, a record or a person."; "older" link absent
+STEP|C1 ?show=20 loaded in 8 s
+PASS|C1 /settings/change-history?show=20 → HTTP 200; stop notice absent; "older" link present
+PASS|M1 owner · /me → leave requests CSV downloaded: me-leave-requests_2026-10-23_1756.csv
+PASS|M1 owner · the CSV has 0 data rows (the throwaway employee has none; live holds 6 leave requests of other people — none may appear) · headers ["Ref","Type","Dates","Days","Status","Decision"]
+PASS|M1 owner · /me/leave-requests/export → HTTP 200, 0 rows
+PASS|M1 an account with no employee profile → HTTP 403 {"code":"EXPORT_DENIED"}
+STEP|done
+AFTER|nothing but the throwaway accounts, their grants and one throwaway employee was committed (removed by the plan); the Q5 save was rolled back
+TE2B1_PROOF_EXIT=0
+TE2B1_PROOF_OWN_EXIT=0

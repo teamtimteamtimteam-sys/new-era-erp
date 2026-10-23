@@ -1,0 +1,7 @@
+BEGIN
+{"sub":"634c00f9-c3a9-4444-9eed-b624cb6a2a93","role":"authenticated"}
+SET
+PROOF|ap|agrees=true|unexplained=0.00
+PROOF|ar|agrees=true|unexplained=0.00
+ROLLBACK
+RECON_OWN_EXIT=0

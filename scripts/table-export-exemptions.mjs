@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 // scripts/check-table-export.mjs 读它:app/ 下每一处 <DataTable / <EditableTable / <table,
 // 要么带 exportSpec(只有 DataTable 能带),要么【整个文件的那一种】在这里点名,带去处与理由。
-//   TABLE-EXPORT-2 —— 剩下的列表页(下一刀);这一刀转完之后,它们从这里拿掉。
+//   TABLE-EXPORT-2 —— 剩下的列表页:2a(2026-10-22)与 2b-1(2026-10-23)转完,这一类已清零,闸不再收它。
 //   TABLE-EXPORT-3 —— 详情页里的表、手搓的财务报表、录入用的可编辑表;做完时本清单只剩 PERMANENT 那几条。
 //   PERMANENT     —— 永远不导出,理由写在那一条上(Tim 2026-10-22 TABLE-EXPORT-2 Q6:brand-sampler)。新加一条要 Tim 裁定。
 // ★ 一个文件转完了却还留在这里,闸会红(STALE)—— 清单只许变短,不许留着过期的条目。
@@ -11,11 +11,10 @@
 //   之后只许手删,不许再整体重生成 —— 重生成会把一个刚漏了 exportSpec 的新表悄悄收进来。
 // ════════════════════════════════════════════════════════════════════════════
 
-/** @type {ReadonlyArray<{ file: string, kind: 'DataTable' | 'EditableTable' | 'table', cut: 'TABLE-EXPORT-2' | 'TABLE-EXPORT-3' | 'PERMANENT', why: string }>} */
+/** @type {ReadonlyArray<{ file: string, kind: 'DataTable' | 'EditableTable' | 'table', cut: 'TABLE-EXPORT-3' | 'PERMANENT', why: string }>} */
 export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/brand-sampler/Base1.tsx", kind: 'DataTable', cut: 'PERMANENT', why: "temporary design reference with made-up data, not in navigation — never exported (Tim 2026-10-22 TABLE-EXPORT-2 Q6)" },
     { file: "app/compliance/packs/PackSections.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "compliance-pack report body (8 sections) — goes with the reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
-    { file: "app/compliance/packs/PacksTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/components/audit/BatchAuditTrailTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/components/batch/ModuleCountPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/components/finance/FinanceAttachmentsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
@@ -26,7 +25,6 @@ export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/components/pricing/TermsRequestsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/components/related/RelatedTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "shared component used inside detail pages / trails (Tim Q1)" },
     { file: "app/contracts/[id]/TermSection.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/contracts/ContractsTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/finance/assets/[id]/CostEntriesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/finance/assets/DepreciationPreviewTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "preview, not a record list — goes with the finance reports (Tim 2026-10-22 TABLE-EXPORT-2 Q7)" },
     { file: "app/finance/balance-sheet/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built finance report table (Tim Q1)" },
@@ -88,16 +86,7 @@ export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/logistics/forwarders/[id]/ForwarderPanels.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/logistics/forwarders/[id]/page.tsx", kind: 'table', cut: 'TABLE-EXPORT-3', why: "hand-built table inside a detail page (Tim Q1)" },
     { file: "app/materials/[id]/edit/AttachmentsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/me/MyAttendancePanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/me/MyClaimsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/me/MyExpenseClaimsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/me/MyLeavePanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/me/MyOvertimePanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/me/MyPayslipsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/me/MyReviewsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/me/MySelfAssessmentPanel.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
-    { file: "app/me/MyTrainingTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/my-reviews/MyReviewsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/operation/blending/[id]/BlendingTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/operation/equipment/[id]/DowntimePanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/operation/equipment/[id]/MaintenancePanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
@@ -124,11 +113,8 @@ export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/quality/coa/[id]/CoaContentTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/quality/disputes/[id]/MetalsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/quality/samples/[id]/SampleTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/safety/environment/EnvironmentTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/safety/incidents/[id]/IncidentBatchesPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/safety/incidents/[id]/IncidentUpdatesPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/safety/incidents/IncidentsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/safety/inspections/InspectionTables.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/sales/customers/[id]/edit/AttachmentsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/sales/customers/[id]/OpenItemsTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/sales/orders/[id]/amend/AmendOrderForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
@@ -136,19 +122,12 @@ export const TABLE_EXPORT_EXEMPTIONS = [
     { file: "app/sales/quotes/[id]/QuoteLinesEditor.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
     { file: "app/sales/quotes/new/NewQuoteForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
     { file: "app/sales/shipments/[id]/ShipmentLinesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
-    { file: "app/settings/deleted/DeletedTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/settings/dictionaries/DictSection.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/settings/import/ImportHistoryTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
-    { file: "app/settings/reference/PermissionReferenceTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/settings/roles/PermissionMatrix.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
-    { file: "app/settings/roles/RolesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/stocktakes/[id]/PostedLinesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/stocktakes/[id]/review/ReviewDiffTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/suppliers/[id]/edit/AttachmentsPanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/suppliers/[id]/edit/CompliancePanel.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-3', why: "table inside a detail page (Tim Q1)" },
     { file: "app/tools/pricing/calculator/CalculatorForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
     { file: "app/tools/pricing/formulas/FormulaForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
-    { file: "app/tools/pricing/formulas/FormulasTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
     { file: "app/tools/pricing/metal-prices/bulk/BulkPricesForm.tsx", kind: 'EditableTable', cut: 'TABLE-EXPORT-3', why: "editable (data-entry) table (Tim Q1)" },
-    { file: "app/tools/pricing/metal-prices/MetalPricesTable.tsx", kind: 'DataTable', cut: 'TABLE-EXPORT-2', why: "list page — remaining list pages (Tim Q15)" },
 ]

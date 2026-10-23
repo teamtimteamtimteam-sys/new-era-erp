@@ -1710,6 +1710,9 @@ const en = {
         allLeaveBalances: 'Every leave type',
         allLeaveBalancesHint: 'Used and available this calendar year, for each kind of leave that has a yearly entitlement. New starters get some kinds only after three full months of service (sick and hospitalisation leave step up month by month; childcare is pro-rated in the first year).',
         leaveEligibilityNote: 'Depends on eligibility',
+        // TABLE-EXPORT-2b-1:/me 上两张没有自己标题的表,导出文件要一个名字
+        leaveGrantsTitle: 'Annual leave grants',
+        leaveRequestsTitle: 'Leave requests',
         claims: 'Medical claims', submitClaim: 'Submit a claim', noClaims: 'No claims yet.',
         title: 'My profile',
         subtitle: 'Your own record. Only you and HR can see this.',
@@ -7903,6 +7906,7 @@ const en = {
         title: 'Change history',
         intro: 'Every insert, edit and delete in the system, newest first, one line per operation: when, who, which record, and what happened, in plain words. Values you cannot see on their own screens are shown as Restricted here too.',
         maskNote: 'Restricted means the value exists but your permissions do not show it. (empty) means the value was genuinely empty. A private task you cannot open shows only who, when and what kind of change.',
+        stopsAt: 'This list stops at the newest {n} entries. To see older ones, narrow it: a date range, an area, a type, a record or a person.',
         filterFrom: 'From',
         filterTo: 'To',
         filterArea: 'Area',

@@ -41,12 +41,18 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限按新加坡的今天,与服务端拒「将来」的那一天同一天
-import { DataTable, type Column } from '@/app/components/ui/data-table'
-import DecisionCell, { type Decision } from './DecisionCell'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xMoney, xDate } from '@/lib/export/cells'
+import DecisionCell, { decisionText, type Decision } from './DecisionCell'
 import ClaimReceipts, { PREPARE_FAILURE_KEYS, type ReceiptRow } from './ClaimReceipts'
 import { prepareReceipt, uploadReceipt, RECEIPT_ACCEPT, type ReceiptLimits } from './uploadClaimReceipt'
 
-export type MyClaimItem = { id: string; line_no: number; spend_date: string; amount_ccy: number; description: string; no_receipt_reason: string | null }
+export type MyClaimItem = {
+    id: string; line_no: number; spend_date: string; amount_ccy: number; description: string; no_receipt_reason: string | null
+    /** TABLE-EXPORT-2b-1:这一笔有没有 attached 的收据(meRows.ts 挂上来;导出取到的单可能不在 receipts 那份清单里) */
+    has_receipt: boolean
+}
 type Row = {
     claim_id: string; code: string; spend_date: string; amount_ccy: number
     currency: string; description: string; status: string
@@ -66,9 +72,11 @@ const money = (n: number) =>
 //   没有页面码,报销单自己的读规则就是门)。审批留痕那一支不给本人开口子,所以那几行是 Restricted(Q4);谁决定的、为什么,
 //   本人在表里的「决定」一格已经看得到(EMP-SELF-1)。
 export default function MyExpenseClaimsPanel({
-    employeeId, rows, baseCurrency, decisions, trails = {}, receipts = [], limits = null,
+    employeeId, rows, total, baseCurrency, decisions, trails = {}, receipts = [], limits = null,
 }: {
     employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision>; trails?: Record<string, ReactNode>
+    /** TABLE-EXPORT-2b-1(Tim Q2 · Q5):自己的费用报销一共几张 —— 页面只画最近 50 张,多出来就说出来;导出走路由取全 */
+    total: number
     /** CLAIM-RECEIPTS-1:这几张单上 attached 的收据(页面另读 expense_claim_receipts) */
     receipts?: ReceiptRow[]
     /** CLAIM-RECEIPTS-1:收据的上限(claim_receipt_limits —— 与门户同一个数) */
@@ -124,14 +132,23 @@ export default function MyExpenseClaimsPanel({
             </>
         ) : null
 
-    const columns: Column<Row>[] = [
-        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, render: (r) => r.code },
+    // 一笔的凭据那半句:格子与导出共用
+    const receiptNote = (it: MyClaimItem) =>
+        it.has_receipt ? t('expenseClaims.hasReceipt')
+            : it.no_receipt_reason ? `${t('expenseClaims.noReceipt')}: ${it.no_receipt_reason}`
+                : t('expenseClaims.noReceipt')
+    const columns: ExportableColumn<Row>[] = [
+        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, render: (r) => r.code, exportAs: (r) => xText(r.code) },
         {
             key: 'spent', header: t('expenseClaims.colSpent'),
             render: (r) => r.spend_date,
+            exportAs: (r) => xDate(r.spend_date),
         },
         {
             key: 'description', header: t('expenseClaims.colDescription'),
+            // TABLE-EXPORT-2b-1:组合格 —— 用途,然后逐笔照屏幕那一行写(第 n 笔 · 说明 · 金额 — 有收据 / 无收据理由),一格文字
+            exportAs: (r) => xText([r.description, ...r.items.map((it) =>
+                `${t('expenseClaims.itemNo', { n: it.line_no })} · ${it.description} · ${money(it.amount_ccy)} — ${receiptNote(it)}`)].join('; ')),
             render: (r) => (
                 <>
                     {r.description}
@@ -140,10 +157,7 @@ export default function MyExpenseClaimsPanel({
                         <span key={it.line_no} className="block text-xs text-gray-500">
                             {t('expenseClaims.itemNo', { n: it.line_no })} · {it.description} · {money(it.amount_ccy)}
                             {' — '}
-                            {receipts.some((x) => x.item_id === it.id) ? t('expenseClaims.hasReceipt')
-                                : it.no_receipt_reason
-                                    ? `${t('expenseClaims.noReceipt')}: ${it.no_receipt_reason}`
-                                    : t('expenseClaims.noReceipt')}
+                            {receiptNote(it)}
                             {/* CLAIM-RECEIPTS-1:这一笔的收据;单还在 submitted 时可以再加、可以拿掉(Q5 · Q9) */}
                             <ClaimReceipts itemId={it.id} receipts={receipts.filter((x) => x.item_id === it.id)}
                                 canUpload={r.status === 'submitted'} limits={limits} />
@@ -155,6 +169,8 @@ export default function MyExpenseClaimsPanel({
         {
             key: 'amount', header: t('expenseClaims.colAmount'), align: 'right', priority: true,
             // CLAIM-GST-1:报的是含税总额;批准之后说出它被拆成了什么 —— 读落库的两个数,不在这里再算。
+            // 导出写含税总额这一个数(带币种);下面那行净额 / 税拆分是附注,不进这一格(一格一个值)
+            exportAs: (r) => xMoney(r.amount_ccy, r.currency),
             render: (r) => (
                 <>
                     {money(r.amount_ccy)} {r.currency}
@@ -168,6 +184,11 @@ export default function MyExpenseClaimsPanel({
         },
         {
             key: 'status', header: t('expenseClaims.colStatus'), priority: true,
+            // 状态之下那一行(已冲销 / 欠付 / 已付)是字,不是样式 —— 一起写进这一格
+            exportAs: (r) => xText([t('expenseClaims.status_' + r.status),
+                r.expense_reversed ? t('expenseClaims.reversed') : null,
+                !r.expense_reversed && r.is_owing ? t('expenseClaims.owing') : null,
+                !r.expense_reversed && r.is_paid ? t('expenseClaims.paid') : null].filter(Boolean).join(' · ')),
             render: (r) => (
                 <>
                     {t('expenseClaims.status_' + r.status)}
@@ -186,9 +207,10 @@ export default function MyExpenseClaimsPanel({
         {
             key: 'decision', header: t('me.decisionCol'),
             render: (r) => <DecisionCell decision={decisions[r.claim_id]} cancelled={false} />,
+            exportAs: (r) => xText(decisionText(t, decisions[r.claim_id], false)),
         },
         // ★ 动作列 —— 空列头与转换之前逐字相同,priority 的理由见抬头。
-        { key: 'actions', header: '', align: 'right', priority: true, render: withdrawControl },
+        { key: 'actions', header: '', align: 'right', priority: true, render: withdrawControl, exportAs: false },
     ]
 
     return (
@@ -301,12 +323,14 @@ export default function MyExpenseClaimsPanel({
                     </div>
                 </div>
             )}
+            <RowCapNotice shown={rows.length} total={total} />
             <DataTable
                 rows={rows}
                 columns={columns}
                 rowKey={(r) => r.claim_id}
                 phone={{ mode: 'columns' }}
                 empty={t('expenseClaims.none')}
+                exportSpec={{ name: 'me-expense-claims', title: t('expenseClaims.myTitle'), serverRows: '/me/expense-claims/export' }}
             />
             {rows.length > 0 && (
                 <div className="mt-4 space-y-2">

@@ -18,13 +18,30 @@ export type Decision = {
     selfDecided: boolean
 }
 
+type T = (key: string, params?: Record<string, string | number>) => string
+
+/** 「由谁决定 / 取消」那一句 —— 格子与导出共用一份措辞。 */
+function whoLine(t: T, decision: Decision, cancelled: boolean): string {
+    const name = decision.decider ?? t('me.deciderUnknown')
+    return cancelled
+        ? (decision.selfDecided ? t('me.cancelledByYou') : t('me.cancelledBy', { name }))
+        : (decision.selfDecided ? t('me.decidedByYouFlagged') : t('me.decidedBy', { name }))
+}
+
+/**
+ * TABLE-EXPORT-2b-1:「决定」这一格导出成屏幕上那几行字(谁 · 何时 · 备注),一格文字。
+ * 这一格本来就是组合的(docs/table-export.md「What a cell cannot hold」),所以时刻照屏幕上那串字写;没有决定 → 空格,与屏幕一样。
+ */
+export function decisionText(t: T, decision: Decision | undefined, cancelled: boolean): string | null {
+    if (!decision) return null
+    return [whoLine(t, decision, cancelled), t('me.decidedOn', { date: decision.decidedAtLabel }), decision.notes]
+        .filter(Boolean).join(' · ')
+}
+
 export default function DecisionCell({ decision, cancelled }: { decision: Decision | undefined; cancelled: boolean }) {
     const t = useTranslations()
     if (!decision) return null
-    const name = decision.decider ?? t('me.deciderUnknown')
-    const who = cancelled
-        ? (decision.selfDecided ? t('me.cancelledByYou') : t('me.cancelledBy', { name }))
-        : (decision.selfDecided ? t('me.decidedByYouFlagged') : t('me.decidedBy', { name }))
+    const who = whoLine(t, decision, cancelled)
     return (
         <>
             <span className="block">{who}</span>

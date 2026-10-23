@@ -53,7 +53,7 @@ export default async function TemplatePage({ params, searchParams }: {
     const runs: RunRow[] = (mustRows(runsRes, 'inspection_run_rows') as {
         id: string; code: string; template_code: string; template_name: string; inspected_at: string; inspector_label: string; pass_count: number
         fail_count: number; na_count: number; finding_count: number; open_finding_count: number; corrected_by_run_code: string | null }[]).map((r) => ({
-        id: r.id, code: r.code, checklist: `${r.template_code} · ${r.template_name}`, inspected: formatAuditStamp(r.inspected_at), inspector: r.inspector_label,
+        id: r.id, code: r.code, checklist: `${r.template_code} · ${r.template_name}`, inspected: formatAuditStamp(r.inspected_at), inspectedAt: r.inspected_at, inspector: r.inspector_label,
         counts: t('safety.inspections.counts', { pass: String(r.pass_count), fail: String(r.fail_count), na: String(r.na_count) }),
         findings: r.finding_count === 0 ? '—' : t('safety.inspections.findingsCount', { n: String(r.finding_count), open: String(r.open_finding_count) }),
         openFindings: r.open_finding_count > 0,
@@ -95,7 +95,7 @@ export default async function TemplatePage({ params, searchParams }: {
 
             <section className="mt-8" data-section="runs">
                 <h2 className="mb-1">{t('safety.templates.runsTitle')}</h2>
-                <RunsTable rows={runs} empty={t('safety.templates.noRuns')} />
+                <RunsTable rows={runs} empty={t('safety.templates.noRuns')} exportName="safety-inspection-template-runs" exportTitle={`${t('safety.templates.runsTitle')} · ${tpl.code}`} />
             </section>
 
             <AuditTrail subject="inspection_template" id={id} show={trailCount((await searchParams).trail)} />

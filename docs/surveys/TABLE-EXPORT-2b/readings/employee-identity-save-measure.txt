@@ -1,0 +1,3 @@
+psql:docs/surveys/TABLE-EXPORT-2b/employee-identity-save-measure.sql:45: NOTICE:  MEASURE|A blind editor: employees_masked.identity_no read as NULL ; after save the stored identity_no is NULL
+psql:docs/surveys/TABLE-EXPORT-2b/employee-identity-save-measure.sql:45: NOTICE:  MEASURE|B control (data.view_identity): after save the stored identity_no is S1234567A
+MEASURE_OWN_EXIT=0

@@ -1506,14 +1506,18 @@
    三件收尾:① 两张 COD 逐字节比对(上一刀漏了)—— 两份都与 MES-8a 基线一致,完整摘要从此记在 `AGENTS.md`「两张已签发的 COD」一节;
    ② 总账导出过 1,000 行仍【未证】—— 线上以 `postgres`(bypass RLS,基表)读到 186 行分录行,不到 1,000,登记为 `docs/manual-walk-list.md` §36.2,
    等真数据过 1,000 行再做;没有建一次性账号(读回 0);③ 本条标记关闭。
-> 64a. **✅ TABLE-EXPORT-2a —— 财务那一半的列表页导出 · 财务页上那几张只读前 N 行的表说出来并导出全部 · 「Sep 202」那一族四处(`v1.4.68`,2026-10-22;部署待 Tim 确认)。**
+> 64a. **✅ TABLE-EXPORT-2a —— 财务那一半的列表页导出 · 财务页上那几张只读前 N 行的表说出来并导出全部 · 「Sep 202」那一族四处(`v1.4.68`,2026-10-22;Tim 2026-10-23 14:41 CST 确认部署)。**
 >    TABLE-EXPORT-2 Step 0 的裁定 Q1–Q10(Tim 2026-10-22)逐条记在 `docs/table-export.md`。Q1:整个范围装不下一次会话 → 拆成 2a 与 2b。
 >    2a 做了:财务 23 个文件(34 条里 11 条按 Q7 去 TABLE-EXPORT-3)—— 八张服务端分页表各一条导出路由(发票 · 分录清单 · 付款申请 · 收付款 · 对账单 · 贷项凭证 · 开支 · 汇率);
 >    财务页上四张只读前 N 行的表(运费 200 · 供应商对账单 300 · 行内转账 50 · 冻结的预测 20)上方一句「只显示前 N 条,共 M 条」+ 不带上限的导出路由(Q2);
 >    发票合计与未收被遮时屏幕与导出说「受限」(Q8);「Sep 202」那一族四处(Q9);brand-sampler 永久豁免(Q6);12 条非列表进 TABLE-EXPORT-3(Q7)。
 >    登记:`docs/known-issues.md` § READ-ALL-STOPS-AT-1000(Q3,上线准备组第 10 行)· CHANGE-HISTORY-NO-EXPORT(Q4)· DISPLAY-TIMESTAMP-SLICED-AS-UTC · INVOICE-LIST-ALL-APPENDS-VOIDS-TO-EVERY-PAGE。
 >    交回 `docs/handbacks/TABLE-EXPORT-2a.md`。
-> 64a-2. **⬜ TABLE-EXPORT-2b —— 剩下的列表页(`v1.4.69`)。** 紧接 TABLE-EXPORT-2a,排在 TABLE-EXPORT-3 与上线准备组之前。Tim 2026-10-22 TABLE-EXPORT-2 Step 0 的裁定,原样照录:
+   **已关闭(2026-10-23,TABLE-EXPORT-2b Part 1):** Tim 2026-10-23 14:41 CST 确认部署(025776a9);没有迁移,没有破窗。
+   对着生产只读看了一眼(`db/scripts/2026-10-23-table-export-2a-closeout-prod-check.mjs`,`TE2A_CLOSEOUT_EXIT=0`,5/5):一个克隆 finance 角色的一次性账号
+   把发票列表导出成 CSV 与 Excel,各 6 行 = 列表上的「Total: 6」;`/finance/payroll-payments` HTTP 200、没有错误边界。读回(以 `postgres`,只数):7 个账号、0 个一次性账号、0 条孤儿授权。
+   实测成本记进交回:整门 1,182 s · 冒烟 39 min 34 s。
+> 64a-2. **✅ TABLE-EXPORT-2b(-1)—— 剩下的列表页(`v1.4.69`,2026-10-23;部署待 Tim 确认)。** 交回 `docs/handbacks/TABLE-EXPORT-2b-1.md`;一支迁移(Q5,公式被遮的条款不再存成 0),破窗起点 2026-10-23 15:55:48 CST。原条目: 紧接 TABLE-EXPORT-2a,排在 TABLE-EXPORT-3 与上线准备组之前。Tim 2026-10-22 TABLE-EXPORT-2 Step 0 的裁定,原样照录:
 >    **范围(Q1):** me, settings, safety, tools, compliance, my-reviews, contracts; part B on the modules TABLE-EXPORT-1 converted (sales, hr, inventory, operation, safety, compliance, /me);
 >    Q2's inbox paging and filter moves; Q4; Q8 on non-finance tables; Q10. 清单上 `cut: 'TABLE-EXPORT-2'` 的 **21 条**(2a 收尾时:me 8 · settings 5 · safety 3 · tools 2 · compliance 1 · my-reviews 1 · contracts 1);做完时那一类条目为零。
 >    **Q2:** Hard-limit pages get a notice: "Showing the first N of M — narrow the filters or export"; their export fetches every matching row up to the 50,000 cap through a route that runs the page's own read without the limit.
@@ -1525,6 +1529,17 @@
 >    (Step 0 量到的非财务一处:`/tools/pricing/formulas` 的处理费与折扣被 `pricing_formulas_masked` 遮成 NULL 时屏幕是空白,`formatMoneyBare(null)`。)
 >    **Q10:** /hr/reviews shows a failed read as an error, not an empty list (2b).(`app/hr/reviews/page.tsx:69` 只解构 data。)
 >    TABLE-EXPORT-1 的 Q2–Q13 对 2b 转的每一张表照样适用。
+>    ★ **Tim 2026-10-23(TABLE-EXPORT-2b Step 0 Q6):拆成 2b-1(本条,`v1.4.69`)与 2b-2(下面 64a-3,`v1.4.70`)。** 六条裁定逐字记在 `docs/table-export.md`「The rulings — Tim 2026-10-23」。
+>    2b-1 = me · settings · safety · tools · compliance · my-reviews · contracts 的全部 `TABLE-EXPORT-2` 条目;这几个模块上的 part B(安全巡检 200 · 环境监测 300 · 合规包 300 ·
+>    `/me` 请假 · 医疗报销 · 费用报销各 50 · 导入历史 20,Q1);change-history 停在 500 时说出来;`/hr/reviews` 三条读失败即报错(Q10,69–71 行);配方表的「受限」(Q4);配方编辑不再把被遮的值存成 0(Q5)。
+> 64a-3. **⬜ TABLE-EXPORT-2b-2 —— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」(`v1.4.70`)。** 紧接 2b-1,排在 TABLE-EXPORT-3 之前。Tim 2026-10-23 TABLE-EXPORT-2b Step 0 的裁定,原样照录:
+>    **Q6 (2b-2 half):** TABLE-EXPORT-2b-2 (next cut, v1.4.70): part B on sales, hr (including Q3), inventory and operation; /operation/capture/inbox real paging; the two filter moves (hr claims status, inventory ledger material and batch); capture "recently confirmed" and contamination "recent checks" (Q1); the contamination "missing" count and the notifications unread count as exact counts; notifications (Q2); the other 17 「受限」 sites (Q4).
+>    **Q1:** The three "recent" tables get the "first N of M" notice and a full export: settings import history (20) in 2b-1; capture "recently confirmed" (50) and contamination "recent checks" (50) in 2b-2.
+>    **Q2:** Notifications: notice only, no export (same treatment as change-history); the unread count becomes an exact count. 2b-2.
+>    **Q3:** /hr/leave/grants (200) and /hr/reviews/cycles (200) are added to part B. 2b-2.
+>    **Q4:** All 18 non-finance 「受限」 sites are fixed, screen and export, including the 7 that show a false value (PO payment-term amount 0.00, PO header "@ null", masked price as "Unpriced", inbound "unpriced" badge counting masked batches, inventory output and inbound totals 0.00). Pricing formulas' table in 2b-1; the other 17 in 2b-2.
+>    页面与行号:`docs/surveys/TABLE-EXPORT-2b/step0.md`(part B 表 · 17 处「受限」的清单)。今天线上过上限的只有 `ingest_inbox`(2,005 行,以 postgres 读、基表),所以「过了旧上限」只在收件箱上证得到。
+>    TABLE-EXPORT-1 的 Q2–Q13 与 TABLE-EXPORT-2 的 Q1–Q10 照样适用。
 > 64b. **⬜ TABLE-EXPORT-3 —— 详情页里的表与手搓的财务报表(Tim 2026-10-22 Q1 · Q15)。** 紧接 TABLE-EXPORT-2,排在上线准备组之前。
 >    范围 = 清单里 `cut: 'TABLE-EXPORT-3'` 的条目(TABLE-EXPORT-1 收尾时 104 条:详情页 DataTable、可编辑表、手搓 `<table>` —— 试算表、损益表、资产负债表、现金流量表、月结……);
 > ~~   做完时清单归零、`scripts/table-export-exemptions.mjs` 可以删掉。~~ ★ **Tim 2026-10-22(TABLE-EXPORT-2 Q6):做完时清单只剩一条 `PERMANENT`(brand-sampler,设计参照页、数据是编的、不在导航里)。**
@@ -1532,6 +1547,11 @@
 >    ★ **TABLE-EXPORT-2 加进来的(Tim 2026-10-22):** Q7 的 12 条非列表 —— 预览与报表体(折旧预览 · 重估预览 · 现金预测明细 · 清单对总账 · 管理包正文 · 价格敞口 · 现金流明细 · 合规包各节)
 >    与财务报表一起;表单与决定面板(银行导入预览 · 电费分摊预览 · 付薪面板 · 加工费结算面板)与「可编辑的表要不要导出」那一问一起。
 >    以及 Q4:`/settings/change-history` 将来的导出【要求一个日期区间】(`change_log` 今天 78,441 行,不筛就过 50,000)。
+> 64c. **⬜ TABLE-FEATURES · everyday table features (Tim 2026-10-23)** —— 一个组,排在 TABLE-EXPORT-3 之后、上线准备组之前。Tim 的裁定,原样照录:
+>    - To build: sorting on every list page; a sticky table header; a totals footer on money lists; saved filters / views per user; bulk actions on approval-type lists.
+>    - Candidates for its Step 0 to measure and put to Tim: frozen first column; quick date-range presets (this month, last month, this quarter, this year); printing a list.
+>    - Not to build: drag-to-resize or reorder columns; a row-density toggle.
+>    - Context: app/components/ui/data-table.tsx already has client/server sorting, column show/hide, an in-table search box, paging, row selection and a footer totals row, all off by default; a quick count on 2026-10-23 found them switched on in about 8, 2, 1, 1, 1 and 0 of 183 files. Its Step 0 re-measures that. The typed export columns built by TABLE-EXPORT-1/2/3 should be reused for sorting and totals.
 > * ~~**⬜ TABLE-EXPORT · Excel + CSV export on every table (Tim 2026-10-20)**~~ —— 分成三刀(Tim 2026-10-22 Q15),见上面 64 · 64a · 64b。原文:系统里【每一张】表格之后都有 Excel 与 CSV 导出,做成一个统一的功能(Tim,
 >    EXPENSE-MULTILINE-1 Step 0 Q15)。费用单此前没有任何导出(Step 0 量过),EXPENSE-MULTILINE-1 也不单独做。
 > * **⬜(停放)按行资本化 —— 一张费用单上有资本行与普通行混在一起**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0 Q1)。今天资本单恰好一行、不与普通行混
@@ -5662,7 +5682,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 ## 上线准备组 · go-live readiness group(Tim 2026-10-20,FIN-CHAIN-1 委托书 E · Step 0 Q11)
 
 **这一组是"第一个真实用户之前要做完的事",不是一刀。** Tim 2026-10-20 把下面八件裁定归进来;顺序与切法归 Tim。
-★ **Tim 2026-10-22(TABLE-EXPORT-1 Q15):TABLE-EXPORT-2 与 TABLE-EXPORT-3 排在这一组【之前】**(上面第 64a · 64b 条)。★ TABLE-EXPORT-2 拆成 2a / 2b(Tim 2026-10-22 TABLE-EXPORT-2 Q1),2b 是 64a-2,同样在这一组之前。
+★ **Tim 2026-10-22(TABLE-EXPORT-1 Q15):TABLE-EXPORT-2 与 TABLE-EXPORT-3 排在这一组【之前】**(上面第 64a · 64b 条)。★ TABLE-EXPORT-2 拆成 2a / 2b(Tim 2026-10-22 TABLE-EXPORT-2 Q1),2b 是 64a-2,同样在这一组之前;2b 又拆成 2b-1 / 2b-2(Tim 2026-10-23,64a-2 · 64a-3)。★ **TABLE-FEATURES(64c,Tim 2026-10-23)排在 TABLE-EXPORT-3 之后、这一组之前。**
 每一件在它自己的原条目里也记了这一句裁定。
 
 | # | 要做的事 | 裁定(d2 第几条)| 原条目 |
@@ -5676,6 +5696,8 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | 7 | `/my-reviews` 用与 `/me` 同一个断点 —— 先量 768 px 的顶栏 | #31 | `docs/known-issues.md` § CONV-6-MYREVIEWS-GAP |
 | 9 | ★ **门户上传在生产上收不下 4.3 MB 以上的文件** —— Vercel 在应用之前就拒(HTTP 413 `FUNCTION_PAYLOAD_TOO_LARGE`),而门户页上写着「每份不超过 10 MB」。修法:字节从浏览器直传存储(报销收据 CLAIM-RECEIPTS-1 的形状),路由只做登记与确认。**必须在第一个真实供应商账号之前落地。** ★ **报销收据读的是同一组 V39 列**(`account_settings.portal_upload_max_bytes` / `portal_upload_types`,`claim_receipt_begin` 与 `claim_receipt_limits`;CLAIM-RECEIPTS-1 交回 §5 决定 1)—— **修门户上限的那一刀必须说清它对收据做了什么**(改 V39 两边一起变)。 | Tim 2026-10-21(CLAIM-RECEIPTS-1 Q14) | `docs/known-issues.md` § PORTAL-UPLOAD-CAPPED-BY-VERCEL-4-5-MB |
 | 10 | ★ **一次不翻页的读取在线上第 1,000 行处悄悄停下** —— 不只是导出:固定资产的累计折旧与净值、`/hr/payroll` 每期人数、`/hr/overtime` 每批合计、`/finance/expenses` 的筛选合计这类【屏幕上算出来的数】也会悄悄偏小。届时选一个共用的修法:一律翻页读,或一次读取正好回 1,000 行时出声。今天线上没有一张受影响的表过 1,000 行。 | Tim 2026-10-22(TABLE-EXPORT-2 Q3) | `docs/known-issues.md` § READ-ALL-STOPS-AT-1000 |
+| 11 | ★ **看不见证件号的人保存员工表单,证件号被清空** —— 编辑页把被遮的 `identity_no` 预填成空白,保存写成 NULL(本地重建库实测:`S1234567A` → NULL;对照臂不变)。今天线上持 `module.hr.edit` 而不持 `data.view_identity` 的只有 `cco`(1 人)。改法照定价公式那一刀:被遮的格子画「受限」、不送值,库里那扇门对看不见的人按原值存。 | Tim 2026-10-23(TABLE-EXPORT-2b Q5) | `docs/known-issues.md` § EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY |
+| 12 | ★ **`/contracts` 的结算金额没有列遮蔽** —— 门是 `module.suppliers.view`,金额读 `sales_settlements.amount_usd` 基表,不按 `data.view_prices` 遮;只靠行级策略 `module.customers.view`。今天线上:持供应商码而无价格码的只有 `warehouse`(1 人),它没有客户码,读到 0 行;三码那种组合 0 个角色;表里 0 行。 | Tim 2026-10-23(TABLE-EXPORT-2b 旁支发现) | `docs/known-issues.md` § CONTRACTS-SETTLEMENTS-AMOUNT-UNMASKED |
 | 8 | ~~物料平衡页只在三个数【都】为空时才是空态~~ ✅ **早已做掉** —— MES-7b-1(`v1.4.54`,F14:`lib/balanceEmptyState.ts` + 构建链里的 `check-balance-empty-state.mjs`)落地的判据与这条裁定逐字相同;那一条的标题只是一直没划掉(FIN-CHAIN-1 划掉了)。**这一组实际要做的是前七行。** | #33 | `docs/known-issues.md` § MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS |
 
 ## ★★★ 还开着的条目 · 按【它今天挡不挡得住一个人】分 —— 一份索引(QUEUE-RECONCILE 立案,2026-09-20)★★★

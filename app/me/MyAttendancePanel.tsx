@@ -17,7 +17,8 @@
 //   ★ 「录入」那一列的 text-xs 也拿掉了 —— 列定义不许钉字号(Tim 的验收条件),
 //     字号由 variant C 给。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xBool } from '@/lib/export/cells'
 
 type Row = {
     code: string; periodMonth: string; status: string
@@ -30,26 +31,32 @@ export default function MyAttendancePanel({ rows }: { rows: Row[] }) {
 
     // ★ 手机上留三列:身份(编号)+ 那个要紧的数(平日加班)+ 状态(录入没录入)。
     //   R-Q4 的只读版判断,与转换之前逐列相同。
-    const columns: Column<Row>[] = [
-        { key: 'code', header: t('attendance.colCode'), priority: true, render: (r) => r.code },
+    const columns: ExportableColumn<Row>[] = [
+        { key: 'code', header: t('attendance.colCode'), priority: true, render: (r) => r.code, exportAs: (r) => xText(r.code) },
         {
             key: 'otNormal', header: t('attendance.colOtNormal'), align: 'right', priority: true,
             render: (r) => r.normal,
+            exportAs: (r) => xNum(r.normal),
         },
         {
             key: 'otRestDay', header: t('attendance.colOtRestDay'), align: 'right',
             render: (r) => r.restDay,
+            exportAs: (r) => xNum(r.restDay),
         },
         {
             key: 'otHoliday', header: t('attendance.colOtHoliday'), align: 'right',
             render: (r) => r.holiday,
+            exportAs: (r) => xNum(r.holiday),
         },
         {
             key: 'unpaidDays', header: t('attendance.colUnpaidDays'), align: 'right',
             render: (r) => (r.unpaidDays === null ? '—' : r.unpaidDays),
+            // 没有记无薪天数是 NULL(本人自己的行,不是遮蔽)—— 空格,不编一个 0
+            exportAs: (r) => xNum(r.unpaidDays),
         },
         {
             key: 'recorded', header: t('attendance.colRecorded'), priority: true,
+            exportAs: (r) => xBool(r.recorded, t('attendance.recordedYes'), t('attendance.recordedNo')),
             render: (r) =>
                 r.recorded ? (
                     <span className="text-green-700">{t('attendance.recordedYes')}</span>
@@ -69,6 +76,7 @@ export default function MyAttendancePanel({ rows }: { rows: Row[] }) {
                 rowKey={(r) => r.code}
                 phone={{ mode: 'columns' }}
                 empty={t('attendance.myEmpty')}
+                exportSpec={{ name: 'me-attendance', title: t('attendance.myTitle') }}
             />
         </section>
     )

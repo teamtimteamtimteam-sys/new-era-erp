@@ -78,3 +78,14 @@ The portal-access-token hook, the `portal-uploads` and `claim-receipts` buckets 
 6. **`cpfDue` moved to its own file** (`app/finance/payroll-payments/cpfDue.ts`, body unchanged) so the proof can run it.
 7. Registered, not fixed: § DISPLAY-TIMESTAMP-SLICED-AS-UTC (management-pack "produced" and frozen-forecast "frozen" show the UTC slice; the export is Singapore time per Q7, so the two can differ by a day before 08:00 SGT) and § INVOICE-LIST-ALL-APPENDS-VOIDS-TO-EVERY-PAGE.
 8. Throwaway prefix `te2probe`.
+
+## 6 · Close-out (TABLE-EXPORT-2b Part 1, 2026-10-23)
+
+- **Deployment confirmed by Tim** 2026-10-23 14:41 CST (`025776a9c347cdecbd1ba04cbad08afbd13606be`). No migration, no broken window.
+- **Read-only check on production** (`db/scripts/2026-10-23-table-export-2a-closeout-prod-check.mjs` against `https://new-era-erp.vercel.app`,
+  `TE2A_CLOSEOUT_EXIT=0`, 5 / 5, `docs/surveys/TABLE-EXPORT-2b/readings/closeout-prod-check.txt`): a throwaway reader holding a copy of the
+  `finance` role's 43 codes exported `/finance/invoices` as CSV and Excel — HTTP 200, 6 data rows each = the list's "Total: 6";
+  `/finance/payroll-payments` HTTP 200 with no error boundary. Read back as `postgres` (counts only, `closeout-readback.json`): 7 users,
+  0 throwaway users, 0 orphan grants, 0 throwaway roles; role codes held unchanged.
+- **Measured costs, for the next estimate** (both from this cut's own runs, §2): **full gate 1,182 s** (19 min 42 s, whole run; verdicts 956 s) ·
+  **smoke 39 min 34 s** (2,374 s, 315 routes) · offline gate 125–127 s.

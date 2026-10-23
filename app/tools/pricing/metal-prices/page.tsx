@@ -5,44 +5,23 @@ import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { sourceLabelKey } from './sourceOptions'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import MetalPricesToolbar from './MetalPricesToolbar'
 import { ListPage } from '@/app/components/ui/list-page'
 import MetalPricesTable, { type MetalPriceRow as MetalPricesTableRow } from './MetalPricesTable'
-import { metalLabelKey } from './options'
 import {
     parseMetalPricesListParams,
     parseMetalPricesPage,
-    applyMetalPricesFilters,
     METAL_PRICES_PAGE_SIZE,
-    type MetalPricesSortCol,
 } from './metalPricesQuery'
-import { formatMoneyBare } from '@/lib/format'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
-import { mustOne } from '@/lib/db-helpers'
+import { mustOne, mustCount } from '@/lib/db-helpers'
+import { metalPricesCount, metalPricesPage, shapeMetalPriceRows, metalPricesExportHref } from './metalPricesRows'
 import ThresholdPanel from './ThresholdPanel'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
-import type { AnomalyVerdict } from './anomaly'
 import { loadSubstances, payableOnly, toOptions } from './substanceQuery'
-import { formatDate } from '@/lib/dates'
-
-type MetalPriceRow = {
-    id: string
-    metal: string
-    price_usd_per_tonne: number
-    price_date: string
-    source: string
-    price_index: string | null
-    notes: string | null
-    // METAL-1:录入那一刻的判词(记录,不事后重算 —— 后来的报价会改变"上一条")
-    anomaly_check: AnomalyVerdict | null
-    // METAL-3:这一行是【哪个币种】报的 —— SMM 是 CNY/吨,不是 USD/吨。
-    // FK 嵌入运行时是对象;显式类型 + cast 锁住(与其他页同一惯例)。
-    metal_price_indices: { quote_currency: string | null } | null
-}
 
 export default async function MetalPricesPage({
     searchParams,
@@ -120,28 +99,14 @@ export default async function MetalPricesPage({
     const requestedPage = parseMetalPricesPage(sp.page)
     const filterParams = { metal, sort, dir }
 
-    // 1) 匹配总数(套用同一套过滤,只 select 'id')
-    const { count } = await applyMetalPricesFilters(
-        supabase.from('metal_prices').select('id', { count: 'exact', head: true }),
-        filterParams
-    )
-
-    const total = count ?? 0
+    // 1) 匹配总数(套用同一套过滤)。★ TABLE-EXPORT-2b-1:mustCount —— 数不出来的总数不是 0
+    // 2) 取当前页的行。读取与映射搬进 metalPricesRows.ts,与导出路由共用。
+    const total = mustCount(await metalPricesCount(supabase, filterParams), 'metal_prices count')
     const totalPages = Math.max(1, Math.ceil(total / METAL_PRICES_PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * METAL_PRICES_PAGE_SIZE
     const to = from + METAL_PRICES_PAGE_SIZE - 1
-
-    // 2) 取当前页的行
-    const baseQuery = supabase
-        .from('metal_prices')
-        .select('id, metal, price_usd_per_tonne, price_date, source, price_index, notes, anomaly_check, metal_price_indices ( quote_currency )')
-
-    const { data, error } = await applyMetalPricesFilters(baseQuery, filterParams).range(
-        from,
-        to
-    )
-    const rows = data as unknown as MetalPriceRow[] | null
+    const { data: rows, error } = await metalPricesPage(supabase, filterParams, from, to)
 
     // METAL-1:阈值(人人可读)+ 能不能改(action.metal_prices,与 RLS 同码)。
     // mustOne:引导必须给出这一行,读不到要炸,不能当成"没有配置"悄悄过去。
@@ -158,12 +123,6 @@ export default async function MetalPricesPage({
         throw new Error('pricing_settings 引导行缺失:异常提示的阈值读不到')
     }
     const canEditPrices = await can('action.metal_prices')
-
-    // metal 存储值反查成本地化文案;未知值原样显示
-    const metalLabel = (value: string) => {
-        const key = metalLabelKey(value)
-        return key ? t(key) : value
-    }
 
     // 表头排序链接:保留金属筛选,只改 sort/dir;不带 page —— 改排序回到第 1 页。
     function pageHref(targetPage: number) {
@@ -194,21 +153,7 @@ export default async function MetalPricesPage({
     // ★ Q7:排序仍是服务端的。
     // ★ state 恒为 'ok' —— ThresholdPanel 是一个【设置】(一行行情都没有时
     //   照样要能改阈值),工具栏是筛选出口;两者都画在状态分支之前。
-    const tableRows: MetalPricesTableRow[] = (rows ?? []).map((r) => ({
-        id: r.id,
-        metalLabel: metalLabel(r.metal),
-        pricePerTonne: r.price_usd_per_tonne,
-        quoteCurrency: r.metal_price_indices?.quote_currency ?? null,
-        priceDate: formatDate(r.price_date, locale),
-        priceIndex: r.price_index ?? null,
-        sourceLabel: t(sourceLabelKey(r.source)),
-        notes: r.notes ?? '—',
-        // 判词为空 = 这一行录入时还没有这项检查(见 MetalPricesTable 抬头第三种)
-        anomalyVerdict: (r.anomaly_check?.verdict as 'outside' | 'no_reference' | 'inside' | undefined) ?? null,
-        anomalyChangePct: r.anomaly_check?.change_pct ?? 0,
-        anomalyRefPrice: r.anomaly_check?.reference_price ?? 0,
-        anomalyRefDate: r.anomaly_check?.reference_date ?? '',
-    }))
+    const tableRows: MetalPricesTableRow[] = await shapeMetalPriceRows(rows ?? [])
 
     const filterQuery: Record<string, string> = {}
     if (metal) filterQuery.metal = metal
@@ -263,6 +208,7 @@ export default async function MetalPricesPage({
                 filterQuery={filterQuery}
                 shown={tableRows.length}
                 total={total}
+                exportHref={metalPricesExportHref(filterParams)}
             />
 
             <div className="mt-4 flex items-center justify-between">

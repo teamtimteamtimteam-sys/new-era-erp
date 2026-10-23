@@ -1,0 +1,10 @@
+▲ Next.js 16.2.6
+- Local:         http://localhost:3197
+- Network:       http://192.168.2.107:3197
+✓ Ready in 63ms
+⨯ Error: 查询失败(change_log_rows): P0001 PERMISSION_DENIED|data.view_change_log
+    at b (.next/server/chunks/ssr/lib_0.1_ku_._.js:1:910)
+    at <unknown> (.next/server/chunks/ssr/lib_0.1_ku_._.js:1:1166)
+    at v (.next/server/chunks/ssr/[root-of-the-server]__0n_r8.f._.js:1:11676) {
+  digest: '1295909107'
+}

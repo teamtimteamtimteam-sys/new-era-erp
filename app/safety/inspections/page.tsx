@@ -7,7 +7,9 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { RUNS_SHOWN, runsCount, runsPage, shapeRunRows } from './runRows'
 import { can } from '@/lib/permissions'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
@@ -22,10 +24,6 @@ type T = {
     id: string; code: string; name: string; area: string; frequency_days: number | null; is_active: boolean; item_count: number
     last_inspected_at: string | null; next_due_on: string | null; due_state: string
 }
-type R = {
-    id: string; code: string; template_code: string; template_name: string; inspected_at: string; inspector_label: string
-    pass_count: number; fail_count: number; na_count: number; finding_count: number; open_finding_count: number; corrected_by_run_code: string | null
-}
 
 export default async function InspectionsPage() {
     const denied = await requireFunction(FN.safetyInspections)
@@ -34,17 +32,18 @@ export default async function InspectionsPage() {
     const locale = await getLocale()
     const supabase = await createClient()
 
-    const [tplRes, runRes, canEdit] = await Promise.all([
+    // ★ TABLE-EXPORT-2b-1(Tim Q2):巡检记录的读取与映射搬进 runRows.ts,与导出路由共用;只画最近 RUNS_SHOWN 次,而且说出来。
+    const [tplRes, runRes, runTotalRes, canEdit] = await Promise.all([
         supabase.from('inspection_template_rows')
             .select('id, code, name, area, frequency_days, is_active, item_count, last_inspected_at, next_due_on, due_state')
             .order('is_active', { ascending: false }).order('code'),
-        supabase.from('inspection_run_rows')
-            .select('id, code, template_code, template_name, inspected_at, inspector_label, pass_count, fail_count, na_count, finding_count, open_finding_count, corrected_by_run_code')
-            .order('inspected_at', { ascending: false }).limit(200),
+        runsPage(supabase, 0, RUNS_SHOWN - 1),
+        runsCount(supabase),
         can('module.safety.edit'),
     ])
     const templates = mustRows(tplRes, 'inspection_template_rows') as T[]
-    const runs = mustRows(runRes, 'inspection_run_rows') as R[]
+    const runs = mustRows(runRes, 'inspection_run_rows')
+    const runTotal = mustCount(runTotalRes, 'inspection_run_rows count')
 
     const tplRows: TemplateRow[] = templates.map((x) => ({
         id: x.id, code: x.code, name: x.name, area: x.area,
@@ -56,15 +55,9 @@ export default async function InspectionsPage() {
             : t(dueStateKey(x.due_state)),
         dueFlag: x.is_active && (x.due_state === 'due' || x.due_state === 'never_run'),
         active: x.is_active,
+        lastRunAt: x.last_inspected_at,
     }))
-    const runRows: RunRow[] = runs.map((r) => ({
-        id: r.id, code: r.code, checklist: `${r.template_code} · ${r.template_name}`, inspected: formatAuditStamp(r.inspected_at),
-        inspector: r.inspector_label,
-        counts: t('safety.inspections.counts', { pass: String(r.pass_count), fail: String(r.fail_count), na: String(r.na_count) }),
-        findings: r.finding_count === 0 ? '—' : t('safety.inspections.findingsCount', { n: String(r.finding_count), open: String(r.open_finding_count) }),
-        openFindings: r.open_finding_count > 0,
-        corrected: r.corrected_by_run_code ? t('safety.inspections.correctedBy', { code: r.corrected_by_run_code }) : null,
-    }))
+    const runRows: RunRow[] = await shapeRunRows(runs)
 
     return (
         <ListPage
@@ -89,7 +82,8 @@ export default async function InspectionsPage() {
             <section className="mt-8" data-section="runs">
                 <h2 className="mb-1">{t('safety.inspections.runsTitle')}</h2>
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('safety.inspections.runsHint')}</p>
-                <RunsTable rows={runRows} empty={t('safety.inspections.noRuns')} />
+                <RowCapNotice shown={runRows.length} total={runTotal} />
+                <RunsTable rows={runRows} empty={t('safety.inspections.noRuns')} serverRows="/safety/inspections/runs/export" />
             </section>
         </ListPage>
     )

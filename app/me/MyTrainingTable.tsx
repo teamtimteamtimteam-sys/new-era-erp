@@ -9,7 +9,8 @@
 // 三列在 390px 上【全部看得见】。于是三列【全部】priority:那是把「今天手机上
 // 三列都在」原样说了一遍,不是新加的优先级。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xDate } from '@/lib/export/cells'
 
 export type TrainingRow = {
     id: string
@@ -18,6 +19,9 @@ export type TrainingRow = {
     /** 已按页面的 locale 格式化;读不到日期时页面给的是 '—'。 */
     completedLabel: string
     expiryLabel: string
+    /** TABLE-EXPORT-2b-1:导出用的原始日历日(YYYY-MM-DD);没有到期日是 null */
+    completedDateRaw: string
+    expiryDateRaw: string | null
     /**
      * 到期提示。**判断留在页面那一侧**(page.tsx 的 expiryState —— 工作准证那一处
      * 也用它,同一个"今天"),这里只把它的两半画出来。
@@ -28,9 +32,11 @@ export type TrainingRow = {
 export default function MyTrainingTable({ rows, empty }: { rows: TrainingRow[]; empty: React.ReactNode }) {
     const t = useTranslations()
 
-    const columns: Column<TrainingRow>[] = [
+    const columns: ExportableColumn<TrainingRow>[] = [
         {
             key: 'name', header: t('me.trainingName'), priority: true,
+            // 机构在屏幕上跟在名称旁边 —— 同一格,照写
+            exportAs: (r) => xText(r.provider ? `${r.trainingName} · ${r.provider}` : r.trainingName),
             render: (r) => (
                 <>
                     {r.trainingName}
@@ -38,9 +44,11 @@ export default function MyTrainingTable({ rows, empty }: { rows: TrainingRow[]; 
                 </>
             ),
         },
-        { key: 'completed', header: t('me.completed'), priority: true, render: (r) => r.completedLabel },
+        { key: 'completed', header: t('me.completed'), priority: true, render: (r) => r.completedLabel, exportAs: (r) => xDate(r.completedDateRaw) },
         {
             key: 'expires', header: t('me.expires'), priority: true,
+            // 写到期日本身;旁边「已过期 / 快到期」那枚标签是对这个日期的提示,不另写(docs/table-export.md 同一条)
+            exportAs: (r) => xDate(r.expiryDateRaw),
             render: (r) => (
                 <>
                     {r.expiryLabel}
@@ -61,6 +69,7 @@ export default function MyTrainingTable({ rows, empty }: { rows: TrainingRow[]; 
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'me-training', title: t('me.training') }}
         />
     )
 }

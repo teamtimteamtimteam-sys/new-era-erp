@@ -28,8 +28,10 @@ import LeaveForm, { type LeaveTypeOption } from '@/app/hr/leave/LeaveForm'
 import { cancelLeave } from '@/app/hr/leave/actions'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
-import DecisionCell, { type Decision } from './DecisionCell'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xNum, xInt, xDate } from '@/lib/export/cells'
+import DecisionCell, { decisionText, type Decision } from './DecisionCell'
 
 type Breakdown = {
     // ★ 派生累积那一行的 grant_id 是 NULL —— leave_balance_internal.sql:76 建的就是
@@ -56,11 +58,13 @@ type Req = {
 //   (年假在内,共 12 种),列「已用」与「可用」;产假 / 陪产假对每个人都列出来(员工档案没有性别),标「视资格而定」。
 //   年假那一项照旧在上面画六个数与逐笔明细。按服务期给的额度(B1)就在「可用」里:不满 3 个月的人病假是 0。
 export default function MyLeavePanel({
-    employeeId, balances, requests, types, decisions, trails = {},
+    employeeId, balances, requests, requestsTotal, types, decisions, trails = {},
 }: {
     employeeId: string
     balances: Balance[]
     requests: Req[]
+    /** TABLE-EXPORT-2b-1(Tim Q2 · Q5):自己的请假一共几张 —— 页面只画最近 50 张,多出来就说出来;导出走路由取全 */
+    requestsTotal: number
     types: LeaveTypeOption[]
     decisions: Record<string, Decision>
     trails?: Record<string, ReactNode>
@@ -76,50 +80,60 @@ export default function MyLeavePanel({
         return x ? (locale === 'zh' ? x.name_zh : x.name_en) : c
     }
 
-    const breakdownColumns: Column<Breakdown>[] = [
-        { key: 'grantYear', header: t('leave.grantYear'), priority: true, render: (b) => b.leave_year },
+    const breakdownColumns: ExportableColumn<Breakdown>[] = [
+        { key: 'grantYear', header: t('leave.grantYear'), priority: true, render: (b) => b.leave_year, exportAs: (b) => xInt(b.leave_year) },
         {
             key: 'grantType', header: t('leave.grantType'),
             render: (b) => t(`leave.grantType_${b.grant_type}`),
+            exportAs: (b) => xText(t(`leave.grantType_${b.grant_type}`)),
         },
         {
             key: 'days', header: t('leave.days'), align: 'right',
             render: (b) => b.days,
+            exportAs: (b) => xNum(b.days),
         },
         {
             key: 'remaining', header: t('leave.remaining'), align: 'right', priority: true, render: (b) => b.remaining,
+            exportAs: (b) => xNum(b.remaining),
         },
-        { key: 'expires', header: t('leave.expires'), render: (b) => b.expires_on ?? '—' },
+        { key: 'expires', header: t('leave.expires'), render: (b) => b.expires_on ?? '—', exportAs: (b) => xDate(b.expires_on) },
         {
             key: 'grantStatus', header: t('leave.grantStatus'), priority: true,
             render: (b) => t(`leave.grantStatus_${b.status}`),
+            exportAs: (b) => xText(t(`leave.grantStatus_${b.status}`)),
         },
     ]
 
-    const allColumns: Column<Balance>[] = [
+    const allColumns: ExportableColumn<Balance>[] = [
         {
             key: 'type', header: t('leave.type'), priority: true,
+            // 「视资格而定」在屏幕上是假别下面那一行字 —— 导出接在假别后面
+            exportAs: (b) => xText(b.gender_restriction ? `${typeName(b.leave_type_code)} (${t('me.leaveEligibilityNote')})` : typeName(b.leave_type_code)),
             render: (b) => <>{typeName(b.leave_type_code)}{b.gender_restriction
                 ? <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('me.leaveEligibilityNote')}</span> : null}</>,
         },
-        { key: 'used', header: t('leave.taken'), align: 'right', priority: true, render: (b) => b.consumed },
-        { key: 'available', header: t('leave.available'), align: 'right', priority: true, render: (b) => b.available },
+        { key: 'used', header: t('leave.taken'), align: 'right', priority: true, render: (b) => b.consumed, exportAs: (b) => xNum(b.consumed) },
+        { key: 'available', header: t('leave.available'), align: 'right', priority: true, render: (b) => b.available, exportAs: (b) => xNum(b.available) },
     ]
 
-    const requestColumns: Column<Req>[] = [
-        { key: 'code', header: t('leave.code'), priority: true, render: (r) => r.code },
-        { key: 'type', header: t('leave.type'), render: (r) => typeName(r.leave_type_code) },
+    const requestColumns: ExportableColumn<Req>[] = [
+        { key: 'code', header: t('leave.code'), priority: true, render: (r) => r.code, exportAs: (r) => xText(r.code) },
+        { key: 'type', header: t('leave.type'), render: (r) => typeName(r.leave_type_code), exportAs: (r) => xText(typeName(r.leave_type_code)) },
         {
             key: 'dates', header: t('leave.dates'),
             render: (r) => `${r.start_date} → ${r.end_date}`,
+            // 一格两个日期,写不成一个日期格 —— 原始 YYYY-MM-DD 写成文字(与 /hr/leave 同一个做法)
+            exportAs: (r) => xText(`${r.start_date} → ${r.end_date}`),
         },
         {
             key: 'days', header: t('leave.days'), align: 'right', priority: true,
             render: (r) => r.days,
+            exportAs: (r) => xNum(r.days),
         },
         {
             key: 'status', header: t('leave.status'), priority: true,
             render: (r) => t(`leave.status_${r.status}`),
+            exportAs: (r) => xText(t(`leave.status_${r.status}`)),
         },
         {
             key: 'decision', header: t('me.decisionCol'),
@@ -127,9 +141,10 @@ export default function MyLeavePanel({
             render: (r) => <DecisionCell
                 decision={decisions[r.id] && { ...decisions[r.id], notes: r.decision_notes }}
                 cancelled={r.status === 'cancelled'} />,
+            exportAs: (r) => xText(decisionText(t, decisions[r.id] && { ...decisions[r.id], notes: r.decision_notes }, r.status === 'cancelled')),
         },
         {
-            key: 'actions', header: '', align: 'right', priority: true,
+            key: 'actions', header: '', align: 'right', priority: true, exportAs: false,
             render: (r) => r.status === 'pending' ? (
                 <ConfirmButton
                     subject={r.code}
@@ -194,6 +209,7 @@ export default function MyLeavePanel({
                         columns={breakdownColumns}
                         rowKey={(b) => b.grant_id ?? `accrual-${b.leave_year}`}
                         phone={{ mode: 'columns' }}
+                        exportSpec={{ name: 'me-leave-grants', title: t('me.leaveGrantsTitle') }}
                     />
                 </div>
             )}
@@ -207,6 +223,7 @@ export default function MyLeavePanel({
                         columns={allColumns}
                         rowKey={(b) => b.leave_type_code}
                         phone={{ mode: 'columns' }}
+                        exportSpec={{ name: 'me-leave-balances', title: t('me.allLeaveBalances') }}
                     />
                 </div>
             )}
@@ -221,12 +238,14 @@ export default function MyLeavePanel({
                 </div>
             )}
 
+            <RowCapNotice shown={requests.length} total={requestsTotal} />
             <DataTable
                 rows={requests}
                 columns={requestColumns}
                 rowKey={(r) => r.id}
                 phone={{ mode: 'columns' }}
                 empty={t('me.noLeave')}
+                exportSpec={{ name: 'me-leave-requests', title: t('me.leaveRequestsTitle'), serverRows: '/me/leave-requests/export' }}
             />
             {requests.length > 0 && (
                 <div className="mt-4 space-y-2">

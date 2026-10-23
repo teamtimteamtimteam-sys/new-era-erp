@@ -11503,6 +11503,10 @@ EXPENSE-MULTILINE-1 只给它补了那一行 `expense_lines`(表头合计 = 行�
 `/operation/weighbridge` 200 · `/operation/contamination` 300 · `/compliance/packs` 300 · `/safety/inspections` 200 · `/safety/environment` 300 ·
 `/me` 请假 · 医疗报销 · 费用报销各 50;另有几张写着「最近」的(capture 已确认 50 · contamination 最近检查 50 · `/settings/import` 20)。
 **原登记那一句「两张都不是这些页的源」量下来是错的**:`/operation/capture/inbox` 读的正是 `ingest_inbox`。
+**TABLE-EXPORT-2b-1(`v1.4.69`,2026-10-23)做完了这几页**:`/compliance/packs` 300 · `/safety/inspections` 巡检记录 200 · `/safety/environment` 300 ·
+`/me` 请假 · 医疗报销 · 费用报销各 50 · `/settings/import` 20(Tim 2026-10-23 Q1)—— 同 2a 的机制(`<页>Rows.ts` + `RowCapNotice` + 导出路由)。
+**其余去 TABLE-EXPORT-2b-2(`docs/forward-queue.md` 64a-3)**:销售 · 人事(含 Q3 的 `/hr/leave/grants` 与 `/hr/reviews/cycles` 各 200)· 库存 · 运营 ·
+capture「最近确认」与 contamination「最近检查」(Q1)· 通知(只说、不导出,Q2)。
 
 ## TABLE-EXPORT-2a(`v1.4.68`,2026-10-22)—— 财务那一半的列表页导出
 
@@ -11520,6 +11524,7 @@ TABLE-EXPORT-1 的规矩「表手里是全体就导出它手里那一份」默�
 
 **是什么:** 它不是一张表(`AuditTrailList`,一张有序列表),不在豁免清单上,也没有导出。`change_log` 今天 **78,441 行**(TABLE-EXPORT-2 Step 0,以 `postgres` 读,基表)。
 **Tim 的裁定:** 本轮不做导出;「查看更早」停在 500 条时说出来(TABLE-EXPORT-2b)。**将来的导出要求一个日期区间** —— 登记在 TABLE-EXPORT-3(`docs/forward-queue.md` 64b)。
+**TABLE-EXPORT-2b-1(2026-10-23)做了那一句:** 还有更早的而列表已到 500 条时,「查看更早」那一行下面说「这份清单最多显示最新的 500 条 —— 要看更早的,请收窄」(`changeHistory.stopsAt`)。导出仍然没有(去处不变)。
 
 ### DISPLAY-TIMESTAMP-SLICED-AS-UTC · 两处屏幕把时刻的 UTC 表示直接截下来显示(TABLE-EXPORT-2a 转换时量到;登记,不在本刀修)
 
@@ -11534,3 +11539,29 @@ TABLE-EXPORT-1 的规矩「表手里是全体就导出它手里那一份」默�
 于是每一页都重复同一批作废发票,而「共 N 张」加上了它们、分页却不按它们分。**导出不受影响**:导出路由把在册的与作废的各取全一次、首尾相接(`exportUnionResponse`)。
 **去处:** 未排;改法是把「全部」做成一条按日期排序的联合读取再分页。本刀只把那几次读取从「只看 data」改成了会失败的读取(从前读失败 = 空表)。
 
+
+## TABLE-EXPORT-2b-1(`v1.4.69`,2026-10-23)—— me · settings · safety · tools · compliance · my-reviews · contracts 的列表页导出
+
+### EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY · 看不见证件号的人保存员工表单,证件号被清空(Tim 2026-10-23 TABLE-EXPORT-2b Q5:量,登记,不在本刀修;上线准备组第 11 行)
+
+**是什么(量过的,不是推的):** `/hr/employees/[id]/edit` 读 `employees_masked`,不持 `data.view_identity` 的人读到的 `identity_no` 是 NULL,
+`EmployeeForm` 把它预填成空白(`app/hr/employees/EmployeeForm.tsx:435`);`readForm` 把空白写成 `identity_no: s('identity_no') || null`
+(`app/hr/employees/actions.ts:131`),经 `save_employee`(SECURITY INVOKER,`UPDATE … SET identity_no = f.identity_no`)写回。
+**实测(2026-10-23,本地重建库,整支回滚,`docs/surveys/TABLE-EXPORT-2b/employee-identity-save-measure.sql`,读数 `readings/employee-identity-save-measure.txt`,`MEASURE_OWN_EXIT=0`):**
+持 `module.hr.view` + `module.hr.edit`、不持 `data.view_identity` 的编辑者照表单的样子保存 → 库里的 `S1234567A` 变成 **NULL**;
+对照臂(持 `data.view_identity` 的编辑者送回原值)→ 仍是 `S1234567A`。两臂分得开。
+**今天线上谁会踩到它(以 `postgres` 读 `role_permissions`):** 持 `module.hr.edit` 而不持 `data.view_identity` 的角色只有 **`cco`(1 人)**。
+**同一族的另外几列(没有逐列量):** 同一张表单上被同一个视图遮的列(工作证号码与日期等)走同一条路,改法应当一起做。
+**改法(照定价公式那一刀,TABLE-EXPORT-2b-1 Q5):** 被遮的格子画「受限」、不送值;库里那扇门对看不见的人把被遮的列按原值存。
+**去处:** 上线准备组(`docs/forward-queue.md` 第 11 行)。
+
+### CONTRACTS-SETTLEMENTS-AMOUNT-UNMASKED · `/contracts` 的结算金额读的是没有列遮蔽的 `sales_settlements`(Tim 2026-10-23 TABLE-EXPORT-2b 旁支发现:量,登记,不改;上线准备组第 12 行)
+
+**是什么:** `/contracts` 的门是 `module.suppliers.view`(`app/contracts/page.tsx:64`),结算那一张表读 `sales_settlements` 基表的 `amount_usd`
+(`app/contracts/page.tsx:113`),那张表没有列级 SELECT 授权、也没有 `_masked` 伴生视图 —— 金额不按 `data.view_prices` 遮。
+它的读策略是 `has_permission('module.customers.view')`(行级)。
+**实测(2026-10-23,以 `postgres` 读 `role_permissions` / `pg_policy`,`docs/surveys/TABLE-EXPORT-2b/readings/side-finding-and-q5-roles.json` · `side-finding-exposed-roles.json`):**
+持 `module.suppliers.view` 而不持 `data.view_prices` 的角色只有 **`warehouse`(1 人)** —— 而它**不**持 `module.customers.view`,于是行级策略让它读到 **0 行**;
+同时持 `module.suppliers.view` + `module.customers.view` 而不持 `data.view_prices` 的角色:**0 个**。线上 `sales_settlements` **0 行**。
+**所以今天没有人因此看见一个不该看的价;** 缺口在于这件事靠的是「恰好没有哪个角色那样组合」,而不是一道遮蔽。下一次给哪个角色加 `module.customers.view` 时它就打开。
+**去处:** 上线准备组(`docs/forward-queue.md` 第 12 行)—— 届时决定:加列遮蔽 / 伴生视图,或把那一张表的门改成 `data.view_prices`。

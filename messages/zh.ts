@@ -1638,6 +1638,9 @@ const zh = {
         allLeaveBalances: '每一种假',
         allLeaveBalancesHint: '本公历年里,每一种有年度额度的假已用多少、还能用多少。新入职的人有几种假要满三个完整月才有(病假与住院假逐月往上加;育儿假第一年按月折算)。',
         leaveEligibilityNote: '视资格而定',
+        // TABLE-EXPORT-2b-1:/me 上两张没有自己标题的表,导出文件要一个名字
+        leaveGrantsTitle: '年假逐笔额度',
+        leaveRequestsTitle: '请假申请',
         claims: '医疗报销', submitClaim: '提交报销', noClaims: '还没有报销记录。',
         title: '我的档案',
         subtitle: '你自己的记录。只有你本人与人力资源看得到。',
@@ -7693,6 +7696,7 @@ const zh = {
         title: '变更记录',
         intro: '系统里每一次新增、修改与删除,最新的在前,一次操作一条:什么时候、谁、哪一条记录、做了什么 —— 用平常的话说(记录内容只用英文)。你在原屏幕上看不到的值,这里同样显示为 Restricted(受限)。',
         maskNote: 'Restricted(受限)表示这个值存在,但你的权限看不到它;(empty) 表示这个值本来就是空的。你打不开的个人任务,只显示谁、什么时候、哪一种改动。',
+        stopsAt: '这份清单最多显示最新的 {n} 条。要看更早的,请收窄:日期区间、区域、类型、记录或人。',
         filterFrom: '从',
         filterTo: '到',
         filterArea: '区域',

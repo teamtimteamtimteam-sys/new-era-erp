@@ -1,0 +1,30 @@
+STEP|formula PF-2026-0001 (direction both): treatment 800 · discount 20 · 3 payable lines (read as postgres, base table)
+PASS|F1 restricted reader (data.view_prices + module.pricing.edit + module.pricing.view) · /tools/pricing/formulas → HTTP 200; the PF-2026-0001 row on screen shows "Restricted"
+PASS|F1 restricted · CSV downloaded: pricing-formulas_2026-10-23_1738.csv
+PASS|F1 restricted · CSV PF-2026-0001: "Treatment (USD/t)" = "Restricted", "Discount %" = "Restricted" (stored 800 / 20)
+PASS|F1 restricted · Excel downloaded: pricing-formulas_2026-10-23_1738.xlsx
+PASS|F1 restricted · Excel "Treatment (USD/t)": ["Restricted"] (want every cell "Restricted")
+PASS|F1 restricted · About sheet "Exported by" = te2b1probe-1792748270996-blind@test.local
+PASS|F1 permitted reader (data.view_prices + data.view_purchase_prices + module.pricing.edit + module.pricing.view) · /tools/pricing/formulas → HTTP 200; the PF-2026-0001 row on screen does not show "Restricted"
+PASS|F1 permitted · CSV downloaded: pricing-formulas_2026-10-23_1738.csv
+PASS|F1 permitted · CSV PF-2026-0001: "Treatment (USD/t)" = "800", "Discount %" = "20" (stored 800 / 20)
+PASS|F1 permitted · Excel downloaded: pricing-formulas_2026-10-23_1738.xlsx
+PASS|F1 permitted · Excel "Treatment (USD/t)": [800] (want a cell typed Number)
+PASS|F1 permitted · About sheet "Exported by" = te2b1probe-1792748270996-sees@test.local
+PASS|F2 blind reader · edit page → HTTP 200; treatment input false, discount input false, payables bridge false, "Restricted" × 7 (want no inputs, ≥ 3 "Restricted")
+STEP|Q5 blind submit → {"kind": "formula_change", "label": "PF-2026-0001 · change #1", "status": "submitted", "request_id": "d2a8db9c-d4be-4529-80b0-d765e80c43c0", "subject_code": "PF-2026-0001"} · control submit → {"kind": "formula_change", "label": "PF-2026-0001 · change #1", "status": "submitted", "request_id": "4e86a45d-a552-4c05-b8d6-853ff81851bd", "subject_code": "PF-2026-0001"}
+PASS|Q5 blind editor (no data.view_purchase_prices) sent 0 / 0 / [] → the request proposes treatment 800, discount 20, 3 payable lines, name "PF-2026-0001 te2b1 blind" (stored 800 / 20 / 3)
+PASS|Q5 control · an editor who sees the terms sent the same 0 / 0 → the request proposes 0 / 0 (the arms separate)
+PASS|Q5 rolled back · terms_requests count and the formula's terms before = after: identical
+TimeoutError: Navigation timeout of 120000 ms exceeded
+    at new Deferred (/private/tmp/claude-501/-Users-timchen/a8ed4bf6-5109-4aa1-97c1-9b3a97bd4798/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:60:34)
+    at Deferred.create (/private/tmp/claude-501/-Users-timchen/a8ed4bf6-5109-4aa1-97c1-9b3a97bd4798/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:21:16)
+    at new LifecycleWatcher (/private/tmp/claude-501/-Users-timchen/a8ed4bf6-5109-4aa1-97c1-9b3a97bd4798/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/LifecycleWatcher.js:73:60)
+    at CdpFrame.goto (/private/tmp/claude-501/-Users-timchen/a8ed4bf6-5109-4aa1-97c1-9b3a97bd4798/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Frame.js:154:29)
+    at CdpFrame.<anonymous> (/private/tmp/claude-501/-Users-timchen/a8ed4bf6-5109-4aa1-97c1-9b3a97bd4798/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/util/decorators.js:109:27)
+    at CdpPage.goto (/private/tmp/claude-501/-Users-timchen/a8ed4bf6-5109-4aa1-97c1-9b3a97bd4798/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Page.js:580:43)
+    at openAs (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-23-table-export-2b1-live-proof.mjs:84:28)
+    at async main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-23-table-export-2b1-live-proof.mjs:263:38)
+AFTER|nothing but the throwaway accounts, their grants and one throwaway employee was committed (removed by the plan); the Q5 save was rolled back
+TE2B1_PROOF_EXIT=1
+TE2B1_PROOF_OWN_EXIT=1

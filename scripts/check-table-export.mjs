@@ -100,7 +100,8 @@ for (const e of TABLE_EXPORT_EXEMPTIONS) {
     const k = `${e.file}|${e.kind}`
     if (exempt.has(k)) { console.error(`✗ check-table-export:豁免清单重复一条 ${k}`); process.exit(1) }
     // PERMANENT:Tim 2026-10-22 TABLE-EXPORT-2 Q6 —— 永远不导出的那几条,理由写在条上
-    if (!['TABLE-EXPORT-2', 'TABLE-EXPORT-3', 'PERMANENT'].includes(e.cut) || !e.why?.trim()) {
+    // TABLE-EXPORT-2b-1(2026-10-23):TABLE-EXPORT-2 那一类清零之后不再收 —— 清单只许变短
+    if (!['TABLE-EXPORT-3', 'PERMANENT'].includes(e.cut) || !e.why?.trim()) {
         console.error(`✗ check-table-export:豁免 ${k} 缺去处或理由`); process.exit(1)
     }
     exempt.set(k, e)
@@ -155,12 +156,12 @@ if (walked === 0) {
 }
 assertPinned('check-table-export', '按标签走出的表 ↔ 剥掉注释后的正则数', walked, regexCount, '不等 = 有一处表被走漏了。')
 
-const cuts = { 'TABLE-EXPORT-2': 0, 'TABLE-EXPORT-3': 0, PERMANENT: 0 }
+const cuts = { 'TABLE-EXPORT-3': 0, PERMANENT: 0 }
 for (const k of used) cuts[exempt.get(k).cut]++
 if (problems.length === 0) {
     console.log(
         `✓ 表的导出:${walked} 处表(DataTable ${byKind.DataTable} · EditableTable ${byKind.EditableTable} · 手搓 table ${byKind.table})—— ` +
-        `${declared} 处声明了导出 · 豁免 ${used.size} 条(TABLE-EXPORT-2 ${cuts['TABLE-EXPORT-2']} · TABLE-EXPORT-3 ${cuts['TABLE-EXPORT-3']} · PERMANENT ${cuts.PERMANENT})`
+        `${declared} 处声明了导出 · 豁免 ${used.size} 条(TABLE-EXPORT-3 ${cuts['TABLE-EXPORT-3']} · PERMANENT ${cuts.PERMANENT})`
     )
     process.exit(0)
 }

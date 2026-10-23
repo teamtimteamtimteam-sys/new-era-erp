@@ -7,14 +7,16 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustOne, mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows, mustCount } from '@/lib/db-helpers'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { PACKS_SHOWN, packsCount, packsPage, shapePackRows } from './packsRows'
 import { can } from '@/lib/permissions'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { Button } from '@/app/components/ui/button'
-import { formatAuditStamp, addMonthsIso } from '@/lib/dates'
+import { addMonthsIso } from '@/lib/dates'
 import { businessToday } from '@/lib/format'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import PackSections from './PackSections'
@@ -33,31 +35,23 @@ export default async function CompliancePacksPage({ searchParams }: { searchPara
     // 默认上一个整月(新加坡日期)—— 一个月要过完、关了账,才冻得下来
     const month = sp.month && YM.test(sp.month) ? sp.month : addMonthsIso(businessToday().slice(0, 7) + '-01', -1).slice(0, 7)
     const supabase = await createClient()
-    const [previewRes, listRes, settingsRes, canFreeze] = await Promise.all([
+    // ★ TABLE-EXPORT-2b-1(Tim Q2):清单的读取与映射搬进 packsRows.ts,与导出路由共用;只画最新 PACKS_SHOWN 份,而且说出来。
+    //   「这个月在册的那一份」单独问一次 —— 不从截过的那一批里找(那一份可能在第 300 份之后)。
+    const [previewRes, listRes, totalRes, liveRes, settingsRes, canFreeze] = await Promise.all([
         supabase.rpc('compliance_pack_data', { p_month: `${month}-01` }),
-        supabase.from('compliance_packs').select('id, code, period_month, frozen_at, superseded_at, superseded_by, superseded_reason')
-            .order('period_month', { ascending: false }).order('frozen_at', { ascending: false }).limit(300),
+        packsPage(supabase, 0, PACKS_SHOWN - 1),
+        packsCount(supabase),
+        supabase.from('compliance_packs').select('id, code').eq('period_month', `${month}-01`).is('superseded_at', null).maybeSingle(),
         supabase.from('compliance_settings').select('nea_return_format, nea_return_frequency, eu_efficiency_method, eu_efficiency_targets').maybeSingle(),
         can('action.compliance_pack'),
     ])
     const preview = mustOne(previewRes as never, 'compliance_pack_data') as CompliancePackPayload
-    const list = mustRows(listRes, 'compliance_packs') as { id: string; code: string; period_month: string; frozen_at: string
-        superseded_at: string | null; superseded_by: string | null; superseded_reason: string | null }[]
+    const list = mustRows(listRes, 'compliance_packs')
+    const total = mustCount(totalRes, 'compliance_packs count')
+    const live = mustOne(liveRes, 'compliance_packs live') as { id: string; code: string } | null
     const settings = (mustOne(settingsRes, 'compliance_settings') ?? { nea_return_format: null, nea_return_frequency: null,
         eu_efficiency_method: null, eu_efficiency_targets: null }) as ComplianceSettings
-    const issuesRes = list.length === 0 ? { data: [], error: null }
-        : await supabase.from('compliance_pack_issues').select('pack_id, version').in('pack_id', list.map((r) => r.id))
-    const issues = mustRows(issuesRes as never, 'compliance_pack_issues') as { pack_id: string; version: number }[]
-    const codeById = new Map(list.map((r) => [r.id, r.code]))
-    const live = list.find((r) => r.period_month.slice(0, 7) === month && r.superseded_at === null) ?? null
-    const rows: PackRow[] = list.map((r) => {
-        const v = issues.filter((i) => i.pack_id === r.id).map((i) => i.version)
-        return {
-            id: r.id, code: r.code, month: r.period_month.slice(0, 7), frozen: formatAuditStamp(r.frozen_at),
-            superseded: r.superseded_at ? t('compliancePacks.supersededBy', { code: codeById.get(r.superseded_by ?? '') ?? '', reason: r.superseded_reason ?? '' }) : null,
-            latestVersion: v.length ? `v${Math.max(...v)}` : t('compliancePacks.noPdfYet'),
-        }
-    })
+    const rows: PackRow[] = await shapePackRows(supabase, list)
 
     return (
         <ListPage title={t('compliancePacks.title')} intro={t('compliancePacks.intro')} state={{ kind: 'ok' }}>
@@ -79,6 +73,7 @@ export default async function CompliancePacksPage({ searchParams }: { searchPara
             </section>
             <section className="mb-8" data-section="compliance-packs">
                 <h2 className="mb-2">{t('compliancePacks.listTitle')}</h2>
+                <RowCapNotice shown={rows.length} total={total} />
                 <PacksTable rows={rows} empty={t('compliancePacks.noneFrozen')} />
             </section>
             <section className="mb-8" data-section="compliance-settings">

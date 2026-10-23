@@ -255,6 +255,13 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
                     <span className="text-[color:var(--brand-muted-text)]">{fill(TRAIL_TEXT['summary.pageNote'], { n: shown.length })}</span>
                     {hasOlder && show < MAX_SHOW && <OlderEntriesLink href={`${href({ show: String(show + PAGE) })}#audit-trail`} />}
                 </div>
+                {/* ★ TABLE-EXPORT-2b-1(Tim 2026-10-22 TABLE-EXPORT-2 Q4):「查看更早」到 MAX_SHOW 条就不再出现 —— 从前一句不说,
+                    读起来像「没有更早的了」。还有更早的时候说出来,并指出怎么看到它们(收窄筛选)。本轮不做导出(Q4)。 */}
+                {hasOlder && show >= MAX_SHOW && (
+                    <p role="status" data-change-history-stop="" className="mt-2 text-sm text-amber-800">
+                        {t('changeHistory.stopsAt', { n: String(MAX_SHOW) })}
+                    </p>
+                )}
             </section>
         </ListPage>
     )

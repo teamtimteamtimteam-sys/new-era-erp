@@ -1,0 +1,13 @@
+== 预检 2026-10-23-table-export-2b1-formula-masked-terms-unchanged.sql
+account    未引用任何科目码
+function   2 条 CREATE FUNCTION:2 替换 · 0 新建
+masked     本迁移不加列
+✓ 预检通过
+== 破窗开始(migration applied at): 2026-10-23 15:52:51 CST  ← 切次报告要写的那个起点
+== applying 2026-10-23-table-export-2b1-formula-masked-terms-unchanged.sql over direct psql (single transaction)
+== re-asserting function grants (db/views/zzz_function_grants.sql)
+✓ committed atomically (含函数授权兜底)
+== 库已经是新的了(15:55:48) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)
+== 破窗起点已落盘:/Users/timchen/Documents/projects/new-era-erp/db/migration-windows.tsv
+   2026-10-23T15:55:48+0800  2026-10-23-table-export-2b1-formula-masked-terms-unchanged.sql  025776a9
+APPLY_OWN_EXIT=0

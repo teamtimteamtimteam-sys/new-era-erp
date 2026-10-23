@@ -150,6 +150,7 @@ export default async function ContractsPage() {
         inboundBatchCode: b.inbound_batch_code,
         metal: b.metal,
         contentPct: `${b.content_pct}%`,
+        contentPctRaw: b.content_pct,
         requiredLabel:
             b.breach_side === 'below_min'
                 ? t('contracts.requiredMin', { v: String(b.min_pct) })
@@ -162,6 +163,8 @@ export default async function ContractsPage() {
         sideLabel: t(`contracts.side.${c.side}`),
         title: c.title,
         effectiveFrom: formatDate(c.effective_from, locale),
+        effectiveFromRaw: c.effective_from,
+        effectiveToRaw: c.effective_to,
         // 【无固定期限不是"忘了填"】给 null,由表说那句话
         effectiveTo: c.effective_to ? formatDate(c.effective_to, locale) : null,
         statusLabel: t(`contracts.status.${c.status}`),
@@ -185,6 +188,7 @@ export default async function ContractsPage() {
                     : t('contracts.pricing.qpMonths', { n: String(pt.qp_months) }),
             indexCode: pt.index_code,
             payablePct: `${pt.payable_pct}%`,
+            payablePctRaw: pt.payable_pct,
         }))
     )
 
@@ -206,6 +210,7 @@ export default async function ContractsPage() {
                 basisLabel: t(`contracts.settlement.basis.${st.sale_weight_basis}`),
                 partyLabel: t(`contracts.settlement.party.${st.settling_party}`),
                 splittingLabel: st.splitting_limit_pct == null ? null : `${st.splitting_limit_pct}%`,
+                splittingPct: st.splitting_limit_pct,
                 refiningLabel: settleBasisLabel(st.refining_charge_basis, rcCount.get(c.id) ?? 0),
                 penaltyLabel: settleBasisLabel(st.penalty_basis, penCount.get(c.id) ?? 0),
             }
@@ -227,6 +232,7 @@ export default async function ContractsPage() {
                       })
                     : t('contracts.settlement.partyResultAsNamed'),
             amount: String(s2.amount_usd),
+            amountUsd: s2.amount_usd,
         }
     })
 

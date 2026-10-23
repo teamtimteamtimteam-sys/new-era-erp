@@ -1164,6 +1164,13 @@ const EXPECTED = {
     //   Next 对没有 GET 的路由回 405 —— 那正是它该说的话(一个 200 才是坏了)。POST 那一半(门户会话 · V39 的两种拒绝 · 交上去)由本地重建上的
     //   HTTP 证明证(db/scripts/2026-10-20-mes9c-local-upload-proof.mjs);员工会话 POST 是 403。不写库。
     '/portal/certificates/upload': [405],
+    // ── TABLE-EXPORT-2b-1(2026-10-23):/me 上三张表的导出路由 —— 只回【本人】的行,先问"这个会话是不是一位员工"。冒烟的会话是一个
+    //   没有员工档案的一次性账号,于是它【必须】被拒:403 EXPORT_DENIED 正是这条路由对它该说的话(一个 200 才是坏了 —— 那意味着
+    //   不是员工的人也拿得到一份"我的"清单)。主人那一半(200、只有自己的行、别人的 6 张请假一张都不出现)由线上证明证
+    //   (db/scripts/2026-10-23-table-export-2b1-live-proof.mjs M1)。不写库。
+    '/me/leave-requests/export': [403],
+    '/me/medical-claims/export': [403],
+    '/me/expense-claims/export': [403],
     // ── ★★ /me/avatar —— 与上面那一条【同一个提交带进来的】,而预检把它遮了两天 ★★
     // 【它不是任何一刀弄坏的,这句话是量出来的】
     //   · `git show HEAD:scripts/smoke-routes.mjs | grep -c 'me/avatar'` = **0** —— 在 HEAD 上就没登记过;
