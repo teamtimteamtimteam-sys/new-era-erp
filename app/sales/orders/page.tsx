@@ -8,47 +8,25 @@
 import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { getTranslations } from '@/lib/i18n/server'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { soStatusKey } from './salesOrderTypes'
 import { ListPage } from '@/app/components/ui/list-page'
-import SalesOrdersTable, { type SalesOrderRow } from './SalesOrdersTable'
-import { formatDate } from '@/lib/dates'
-
-type Row = {
-    id: string; code: string; order_date: string; status: string
-    currency: string; customers: { code: string; legal_name: string } | null
-}
+import SalesOrdersTable from './SalesOrdersTable'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { ORDERS_SHOWN, ordersCount, ordersPage, shapeOrderRows } from './ordersRows'
 
 export default async function SalesOrdersPage() {
     const denied = await requireModule(MOD.sales)
     if (denied) return denied
     const t = await getTranslations()
-    const locale = await getLocale()
     const supabase = await createClient()
 
-    const rows = mustRows(
-        await supabase
-            .from('sales_orders')
-            .select('id, code, order_date, status, currency, customers ( code, legal_name )')
-            .is('deleted_at', null)
-            .order('order_date', { ascending: false })
-            .limit(200),
-        'sales_orders'
-    ) as unknown as Row[]
-
-    const tableRows: SalesOrderRow[] = rows.map((r) => ({
-        id: r.id,
-        code: r.code,
-        customerLabel: r.customers ? `${r.customers.code} — ${r.customers.legal_name}` : '—',
-        // 日期按 locale 格式化在服务端做完 —— locale 不过 RSC 边界
-        orderDateLabel: formatDate(r.order_date, locale),
-        orderDate: r.order_date,
-        statusLabel: t(soStatusKey(r.status)),
-        currency: r.currency,
-    }))
+    // ★ TABLE-EXPORT-2b-2(Tim Q2):清单的读取与映射搬进 ordersRows.ts,与导出路由共用;只画最新 ORDERS_SHOWN 张,而且说出来。
+    const [listRes, totalRes] = await Promise.all([ordersPage(supabase, 0, ORDERS_SHOWN - 1), ordersCount(supabase)])
+    const tableRows = await shapeOrderRows(mustRows(listRes, 'sales_orders'))
+    const total = mustCount(totalRes, 'sales_orders count')
 
     return (
         <ListPage
@@ -60,6 +38,7 @@ export default async function SalesOrdersPage() {
             }
             state={{ kind: 'ok' }}
         >
+            <RowCapNotice shown={tableRows.length} total={total} />
             <SalesOrdersTable rows={tableRows} empty={t('sales.empty')} />
         </ListPage>
     )

@@ -1398,6 +1398,8 @@ const en = {
             rowVoid: 'void',
             // TABLE-EXPORT-2a(Tim 2026-10-22 Q2):一张只读前 N 行的表,说出来
             capNotice: 'Showing the first {shown} of {total} — narrow the filters or export.',
+            // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q1):清单页底部那段历史只读最新 N 条记录时,说出来;不导出
+            trailCapNotice: 'History below covers the latest {shown} of {total}.',
         },
         columns: 'Columns {shown}/{total}',
         // 报量,不报警:排序看得见全体 —— 这一句解释的正是【为什么第一页就是全体的前 N 名】。
@@ -3085,6 +3087,8 @@ const en = {
             priceLockedHint: 'Price changes go through the pricing panel below (audited)',
         },
         unpricedBadge: '{n} batches unpriced',
+        // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):看不见单价的人那里,「几批未计价」数不出来 —— 说受限,不说一个数
+        unpricedBadgeRestricted: 'Unpriced batches:',
         pricing: {
             title: 'Pricing',
             current: 'Current unit price (SGD)',
@@ -4394,6 +4398,8 @@ const en = {
         empty: 'Nothing here yet.',
         markRead: 'Mark read',
         markAll: 'Mark all read',
+        // TABLE-EXPORT-2b-2(Tim 2026-10-23 2b Q6 · 2b-2 Q3):精确的未读数,与顶栏徽标同一个数
+        unreadCount: '{n} unread',
         permissionNote: 'This list shows the events your permissions allow you to see. A quiet inbox can mean nothing happened, or that what happened belongs to a module you cannot open.',
         errNotSignedIn: 'You are not signed in.',
         errMarkRead: 'Could not mark as read: {message}',
@@ -10881,6 +10887,8 @@ const en = {
         colPayload: 'Content',
         showPayload: 'Show content',
         manual: 'Entered by hand',
+        // TABLE-EXPORT-2b-2(Tim TABLE-EXPORT-2 Q2):收件箱真的翻页
+        pagination: { prev: '← Previous', next: 'Next →', pageOf: 'Page {current} of {total} · {count} messages' },
         clockAhead: 'clock ahead',
         attempts: '{n} attempts',
         empty: 'The inbox is empty.',

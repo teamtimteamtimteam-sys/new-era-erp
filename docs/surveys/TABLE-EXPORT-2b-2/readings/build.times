@@ -1,0 +1,2 @@
+npm run build > $R/build.txt 2>&1  2.33s user 0.30s system 124% cpu 2.109 total
+npm run build > $R/build.txt 2>&1  155.83s user 26.05s system 186% cpu 1:37.27 total

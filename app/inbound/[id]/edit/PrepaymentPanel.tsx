@@ -14,6 +14,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
 import { Button } from '@/app/components/ui/button'
@@ -25,7 +26,8 @@ const initialState: ApplyPrepaymentState = {}
 
 export type PrepaymentApplicationRow = {
     id: string
-    amount_base: number
+    /** TABLE-EXPORT-2b-2:prepayment_applications_masked 对不持 data.view_purchase_prices 的人把金额遮成 null */
+    amount_base: number | null
     created_at_display: string
     journal_id: string | null
     journal_code: string | null
@@ -37,6 +39,7 @@ export default function PrepaymentPanel({
     history,
     baseCurrency,
     restricted = false,
+    canPrices,
 canEdit
 }: {
     batchId: string
@@ -66,6 +69,8 @@ canEdit
     restricted?: boolean
 
 canEdit: boolean
+    /** TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):金额为 null 时画「受限」(看不见采购价)还是原来的「—」 */
+    canPrices: boolean
 }) {
     const t = useTranslations()
     const boundAction = applyPrepayment.bind(null, batchId, applicable?.purchase_order_id ?? '')
@@ -151,7 +156,8 @@ canEdit: boolean
                             {history.map((h) => (
                                 <tr key={h.id} className={tableC.bodyRow}>
                                     <td className={`${tableC.cell} text-right tabular-nums w-32`}>
-                                        {formatAmount(h.amount_base, baseCurrency)}
+                                        <MaskedValue value={h.amount_base === null ? null : formatAmount(h.amount_base, baseCurrency)}
+                                                     canView={canPrices} fallback={formatAmount(null, baseCurrency)} />
                                     </td>
                                     <td className={`${tableC.cell} text-gray-600`}>
                                         {h.created_at_display}

@@ -7,13 +7,15 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
+import { countUnread } from '@/lib/notifications'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import { subjectHref, eventParams, type NotificationRow } from './notificationTypes'
 import MarkReadButtons from './MarkReadButtons'
 import { formatAuditStamp } from '@/lib/dates'
 import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
 
-// 有界:一页 50 条。更早的属于报表中心那一刀,不属于收件箱。
+// 有界:一页 50 条。更早的属于报表中心那一刀,不属于收件箱。TABLE-EXPORT-2b-2:超过 50 条时 RowCapNotice 说出「前 50 条,共 M 条」。
 const PAGE_LIMIT = 50
 
 export default async function NotificationsPage() {
@@ -48,18 +50,29 @@ export default async function NotificationsPage() {
                   'notification_reads'
               )
     const read = new Set(readRows.map((r) => r.notification_id))
-    const unreadCount = rows.filter((r) => !read.has(r.id)).length
+    // ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 TABLE-EXPORT-2b Q2 · Q6):未读数是精确的 —— 与顶栏徽标同一个函数(lib/notifications.ts),
+    //   不再只数这一页读到的 50 条;一页之外还有多少条,RowCapNotice 说出来(只说,不导出 —— 与 change-history 同一种处置)。
+    const [unreadCount, total] = await Promise.all([
+        user ? countUnread(supabase, user.id) : 0, // 中间件已经把没登录的人挡在外面;没有 user 就没有"我读过的"
+        supabase.from('notifications').select('id', { count: 'exact', head: true }).then((r) => mustCount(r, 'notifications count')),
+    ])
 
     return (
         <div className="p-8 max-w-4xl">
             <div className="flex items-center justify-between mb-2">
-                <h1 className="">{t('notifications.title')}</h1>
+                <h1 className="">
+                    {t('notifications.title')}
+                    <span className="ml-3 text-sm font-normal text-[color:var(--brand-muted-text)]" data-unread-count={unreadCount}>
+                        {t('notifications.unreadCount', { n: unreadCount })}
+                    </span>
+                </h1>
                 {unreadCount > 0 && <MarkReadButtons />}
             </div>
 
             {/* 【缺席不是零】—— 这一页只显示你有权限看见的那些 */}
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-6">{t('notifications.permissionNote')}</p>
 
+            <RowCapNotice shown={rows.length} total={total} />
             {rows.length === 0 ? (
                 <p className="text-[color:var(--brand-muted-text)]">{t('notifications.empty')}</p>
             ) : (

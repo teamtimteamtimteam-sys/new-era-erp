@@ -1,0 +1,3 @@
+
+!! survey-phone failed: fetch failed
+SURVEY1280_OWN_EXIT=1

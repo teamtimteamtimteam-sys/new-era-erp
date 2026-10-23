@@ -1517,7 +1517,7 @@
    对着生产只读看了一眼(`db/scripts/2026-10-23-table-export-2a-closeout-prod-check.mjs`,`TE2A_CLOSEOUT_EXIT=0`,5/5):一个克隆 finance 角色的一次性账号
    把发票列表导出成 CSV 与 Excel,各 6 行 = 列表上的「Total: 6」;`/finance/payroll-payments` HTTP 200、没有错误边界。读回(以 `postgres`,只数):7 个账号、0 个一次性账号、0 条孤儿授权。
    实测成本记进交回:整门 1,182 s · 冒烟 39 min 34 s。
-> 64a-2. **✅ TABLE-EXPORT-2b(-1)—— 剩下的列表页(`v1.4.69`,2026-10-23;部署待 Tim 确认)。** 交回 `docs/handbacks/TABLE-EXPORT-2b-1.md`;一支迁移(Q5,公式被遮的条款不再存成 0),破窗起点 2026-10-23 15:55:48 CST。原条目: 紧接 TABLE-EXPORT-2a,排在 TABLE-EXPORT-3 与上线准备组之前。Tim 2026-10-22 TABLE-EXPORT-2 Step 0 的裁定,原样照录:
+> 64a-2. **✅ TABLE-EXPORT-2b(-1)—— 剩下的列表页(`v1.4.69`,2026-10-23;Tim 2026-10-23 18:10 CST 确认部署)。** 交回 `docs/handbacks/TABLE-EXPORT-2b-1.md`;一支迁移(Q5,公式被遮的条款不再存成 0),破窗起点 2026-10-23 15:55:48 CST。原条目: 紧接 TABLE-EXPORT-2a,排在 TABLE-EXPORT-3 与上线准备组之前。Tim 2026-10-22 TABLE-EXPORT-2 Step 0 的裁定,原样照录:
 >    **范围(Q1):** me, settings, safety, tools, compliance, my-reviews, contracts; part B on the modules TABLE-EXPORT-1 converted (sales, hr, inventory, operation, safety, compliance, /me);
 >    Q2's inbox paging and filter moves; Q4; Q8 on non-finance tables; Q10. 清单上 `cut: 'TABLE-EXPORT-2'` 的 **21 条**(2a 收尾时:me 8 · settings 5 · safety 3 · tools 2 · compliance 1 · my-reviews 1 · contracts 1);做完时那一类条目为零。
 >    **Q2:** Hard-limit pages get a notice: "Showing the first N of M — narrow the filters or export"; their export fetches every matching row up to the 50,000 cap through a route that runs the page's own read without the limit.
@@ -1532,7 +1532,9 @@
 >    ★ **Tim 2026-10-23(TABLE-EXPORT-2b Step 0 Q6):拆成 2b-1(本条,`v1.4.69`)与 2b-2(下面 64a-3,`v1.4.70`)。** 六条裁定逐字记在 `docs/table-export.md`「The rulings — Tim 2026-10-23」。
 >    2b-1 = me · settings · safety · tools · compliance · my-reviews · contracts 的全部 `TABLE-EXPORT-2` 条目;这几个模块上的 part B(安全巡检 200 · 环境监测 300 · 合规包 300 ·
 >    `/me` 请假 · 医疗报销 · 费用报销各 50 · 导入历史 20,Q1);change-history 停在 500 时说出来;`/hr/reviews` 三条读失败即报错(Q10,69–71 行);配方表的「受限」(Q4);配方编辑不再把被遮的值存成 0(Q5)。
-> 64a-3. **⬜ TABLE-EXPORT-2b-2 —— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」(`v1.4.70`)。** 紧接 2b-1,排在 TABLE-EXPORT-3 之前。Tim 2026-10-23 TABLE-EXPORT-2b Step 0 的裁定,原样照录:
+   **已关闭(2026-10-23,TABLE-EXPORT-2b-2 Part 1):** Tim 2026-10-23 18:10 CST 确认部署(2249696e);破窗 2026-10-23 15:55:48 → 18:10 CST(2 h 14 min 12 s;终点是 Tim 的转述,不是本机的查询),记进交回。
+   对着生产只读看了一眼(`db/scripts/2026-10-23-table-export-2b1-closeout-prod-check.mjs`,`TE2B1_CLOSEOUT_EXIT=0`,6/6):一个持 `module.pricing.view` + `data.view_prices`、不持 `data.view_purchase_prices` 的一次性账号打开 `/tools/pricing/formulas`,线上唯一一张公式的处理费与折扣两格都读「Restricted」;一个一次性员工打开 `/me`(HTTP 200,8 条导出栏),三条导出路由各答 HTTP 200。读回(以 `postgres`,只数):7 个账号、7 个启用、0 个一次性账号 / 角色 / 员工、0 条孤儿授权。
+> 64a-3. **✅ TABLE-EXPORT-2b-2 —— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」(`v1.4.70`,2026-10-23;部署待 Tim 确认)。** 交回 `docs/handbacks/TABLE-EXPORT-2b-2.md`;没有迁移,没有破窗。Step 0 的三条裁定(Tim 2026-10-23)逐字记在 `docs/table-export.md`「The rulings — Tim 2026-10-23 (TABLE-EXPORT-2b-2 Step 0)」。做完之后 **TABLE-EXPORT-2 不剩任何活**:清单上只有 `TABLE-EXPORT-3` 与 `PERMANENT` 两类条目。原条目: 紧接 2b-1,排在 TABLE-EXPORT-3 之前。Tim 2026-10-23 TABLE-EXPORT-2b Step 0 的裁定,原样照录:
 >    **Q6 (2b-2 half):** TABLE-EXPORT-2b-2 (next cut, v1.4.70): part B on sales, hr (including Q3), inventory and operation; /operation/capture/inbox real paging; the two filter moves (hr claims status, inventory ledger material and batch); capture "recently confirmed" and contamination "recent checks" (Q1); the contamination "missing" count and the notifications unread count as exact counts; notifications (Q2); the other 17 「受限」 sites (Q4).
 >    **Q1:** The three "recent" tables get the "first N of M" notice and a full export: settings import history (20) in 2b-1; capture "recently confirmed" (50) and contamination "recent checks" (50) in 2b-2.
 >    **Q2:** Notifications: notice only, no export (same treatment as change-history); the unread count becomes an exact count. 2b-2.
@@ -1544,6 +1546,8 @@
 >    范围 = 清单里 `cut: 'TABLE-EXPORT-3'` 的条目(TABLE-EXPORT-1 收尾时 104 条:详情页 DataTable、可编辑表、手搓 `<table>` —— 试算表、损益表、资产负债表、现金流量表、月结……);
 > ~~   做完时清单归零、`scripts/table-export-exemptions.mjs` 可以删掉。~~ ★ **Tim 2026-10-22(TABLE-EXPORT-2 Q6):做完时清单只剩一条 `PERMANENT`(brand-sampler,设计参照页、数据是编的、不在导航里)。**
 >    可编辑(录入用)的表要不要导出,是那一刀开工时摆给 Tim 的一个问题。
+   ★ **Tim 2026-10-23(TABLE-EXPORT-2b-2 Step 0 Q2):** 2b-2 只修了这几张详情页表的【屏幕】上的「受限」;**它们拿到导出的那一天,屏幕上画「受限」的每一格,导出必须写 "Restricted" / 「受限」**(`xMasked` / `xRestricted`,与 MaskedValue 同一条判据 —— 不是空格、不是 0)。清单上对应的 **7 条**(按文件;Tim 的裁定写的是「15 条」,那个数来自 2b-2 Step 0 报告的一处错数 —— 实为 10 处「受限」落在这 7 张表上,另 6 处是页头 / 汇总行、本来就不导出,1 处是已经导出的付款条件模板表,2b-2 一并修了):
+   `app/purchasing/orders/[id]/PoLinesTable.tsx`(单价 · 行金额 · 三行合计)· `app/purchasing/orders/[id]/PoPaymentTermsTable.tsx`(固定额 · 每一期金额)· `app/purchasing/orders/[id]/PoReceiptsTable.tsx`(收货单价)· `app/inbound/[id]/edit/PrepaymentPanel.tsx`(已抵扣金额)· `app/hr/employees/[id]/EmployeeTables.tsx`(薪资五个金额)· `app/inventory/output/[materialId]/OutputBatchesTable.tsx`(单位成本 · 成本价值)· `app/inventory/inbound/[materialId]/InboundBatchesTable.tsx`(批次价值)。
 >    ★ **TABLE-EXPORT-2 加进来的(Tim 2026-10-22):** Q7 的 12 条非列表 —— 预览与报表体(折旧预览 · 重估预览 · 现金预测明细 · 清单对总账 · 管理包正文 · 价格敞口 · 现金流明细 · 合规包各节)
 >    与财务报表一起;表单与决定面板(银行导入预览 · 电费分摊预览 · 付薪面板 · 加工费结算面板)与「可编辑的表要不要导出」那一问一起。
 >    以及 Q4:`/settings/change-history` 将来的导出【要求一个日期区间】(`change_log` 今天 78,441 行,不筛就过 50,000)。
@@ -1552,6 +1556,10 @@
 >    - Candidates for its Step 0 to measure and put to Tim: frozen first column; quick date-range presets (this month, last month, this quarter, this year); printing a list.
 >    - Not to build: drag-to-resize or reorder columns; a row-density toggle.
 >    - Context: app/components/ui/data-table.tsx already has client/server sorting, column show/hide, an in-table search box, paging, row selection and a footer totals row, all off by default; a quick count on 2026-10-23 found them switched on in about 8, 2, 1, 1, 1 and 0 of 183 files. Its Step 0 re-measures that. The typed export columns built by TABLE-EXPORT-1/2/3 should be reused for sorting and totals.
+> 64d. **⬜ SYSTEM-MAP-0 · whole-system structure map (Tim 2026-10-23)** —— 排在 TABLE-FEATURES(64c)之后、上线准备组之前(Tim:after all table work is done)。不写代码。Tim 的裁定,原样照录:
+>    - Why: Tim's judgement that functions are scattered across the system rather than forming one systematic whole (for example claims split across /hr/claims, /finance/claims and /me; machines in operation and fixed assets in finance; pricing under tools; contracts under purchasing though sales uses them; commissions under a sales path but the purchasing module; freight under a finance path but the logistics module; quality under operation; compliance packs under safety and licences under purchasing; five separate "what to do" surfaces: notifications, tools/reminders, tools/tasks, my-reviews, approvals).
+>    - What it produces, with no code: (a) every page assigned to one of seven business processes (procure-to-pay; receive-process-output; order-to-cash; record-to-report; hire-to-pay; safety and compliance; equipment and maintenance); (b) every place one business object appears in several modules; (c) for each process, whether each document links to the next and back; (d) per role, where its to-do items are spread; (e) a target structure for Tim to rule: a process-based menu, which pages merge, one unified to-do, and which document-chain links are missing.
+>    - How: Claude (in chat) drafts (a), (b), (d) and (e) by reading the repository; the terminal measures only (c) and per-role reach on a rebuild.
 > * ~~**⬜ TABLE-EXPORT · Excel + CSV export on every table (Tim 2026-10-20)**~~ —— 分成三刀(Tim 2026-10-22 Q15),见上面 64 · 64a · 64b。原文:系统里【每一张】表格之后都有 Excel 与 CSV 导出,做成一个统一的功能(Tim,
 >    EXPENSE-MULTILINE-1 Step 0 Q15)。费用单此前没有任何导出(Step 0 量过),EXPENSE-MULTILINE-1 也不单独做。
 > * **⬜(停放)按行资本化 —— 一张费用单上有资本行与普通行混在一起**(Tim 2026-10-20,EXPENSE-MULTILINE-1 Step 0 Q1)。今天资本单恰好一行、不与普通行混
@@ -5682,7 +5690,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 ## 上线准备组 · go-live readiness group(Tim 2026-10-20,FIN-CHAIN-1 委托书 E · Step 0 Q11)
 
 **这一组是"第一个真实用户之前要做完的事",不是一刀。** Tim 2026-10-20 把下面八件裁定归进来;顺序与切法归 Tim。
-★ **Tim 2026-10-22(TABLE-EXPORT-1 Q15):TABLE-EXPORT-2 与 TABLE-EXPORT-3 排在这一组【之前】**(上面第 64a · 64b 条)。★ TABLE-EXPORT-2 拆成 2a / 2b(Tim 2026-10-22 TABLE-EXPORT-2 Q1),2b 是 64a-2,同样在这一组之前;2b 又拆成 2b-1 / 2b-2(Tim 2026-10-23,64a-2 · 64a-3)。★ **TABLE-FEATURES(64c,Tim 2026-10-23)排在 TABLE-EXPORT-3 之后、这一组之前。**
+★ **Tim 2026-10-22(TABLE-EXPORT-1 Q15):TABLE-EXPORT-2 与 TABLE-EXPORT-3 排在这一组【之前】**(上面第 64a · 64b 条)。★ TABLE-EXPORT-2 拆成 2a / 2b(Tim 2026-10-22 TABLE-EXPORT-2 Q1),2b 是 64a-2,同样在这一组之前;2b 又拆成 2b-1 / 2b-2(Tim 2026-10-23,64a-2 · 64a-3)。★ **TABLE-FEATURES(64c,Tim 2026-10-23)排在 TABLE-EXPORT-3 之后、这一组之前。** ★ **SYSTEM-MAP-0(64d,Tim 2026-10-23)排在 TABLE-FEATURES 之后、这一组之前(after all table work is done)。**
 每一件在它自己的原条目里也记了这一句裁定。
 
 | # | 要做的事 | 裁定(d2 第几条)| 原条目 |
@@ -5698,6 +5706,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | 10 | ★ **一次不翻页的读取在线上第 1,000 行处悄悄停下** —— 不只是导出:固定资产的累计折旧与净值、`/hr/payroll` 每期人数、`/hr/overtime` 每批合计、`/finance/expenses` 的筛选合计这类【屏幕上算出来的数】也会悄悄偏小。届时选一个共用的修法:一律翻页读,或一次读取正好回 1,000 行时出声。今天线上没有一张受影响的表过 1,000 行。 | Tim 2026-10-22(TABLE-EXPORT-2 Q3) | `docs/known-issues.md` § READ-ALL-STOPS-AT-1000 |
 | 11 | ★ **看不见证件号的人保存员工表单,证件号被清空** —— 编辑页把被遮的 `identity_no` 预填成空白,保存写成 NULL(本地重建库实测:`S1234567A` → NULL;对照臂不变)。今天线上持 `module.hr.edit` 而不持 `data.view_identity` 的只有 `cco`(1 人)。改法照定价公式那一刀:被遮的格子画「受限」、不送值,库里那扇门对看不见的人按原值存。 | Tim 2026-10-23(TABLE-EXPORT-2b Q5) | `docs/known-issues.md` § EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY |
 | 12 | ★ **`/contracts` 的结算金额没有列遮蔽** —— 门是 `module.suppliers.view`,金额读 `sales_settlements.amount_usd` 基表,不按 `data.view_prices` 遮;只靠行级策略 `module.customers.view`。今天线上:持供应商码而无价格码的只有 `warehouse`(1 人),它没有客户码,读到 0 行;三码那种组合 0 个角色;表里 0 行。 | Tim 2026-10-23(TABLE-EXPORT-2b 旁支发现) | `docs/known-issues.md` § CONTRACTS-SETTLEMENTS-AMOUNT-UNMASKED |
+| 13 | ★ **Pages too slow to use(页面慢到没法用)** —— `/settings/change-history?show=500` 在 2b-1 的线上证明里加载 **107 s**(`docs/surveys/TABLE-EXPORT-2b/readings/live-proof.txt` C1);`/settings/dictionaries` Tim 写的是 15–45 s,仓库里量到的是 **28.4 s · 34.6 s**(2b-1 两次冒烟)与 **30.2 s · 45.6 s · 39.1 s**(CLAIM-RECEIPTS-1),~~没有找到 15 s 那一次读数~~ 15 s 那一端是 **15.4 s**:`docs/surveys/CLAIM-RECEIPTS-1/readings/closeout-production-check-2.txt:3`(CLAIM-RECEIPTS-1 的收尾生产检查,PAYROLL-PAY-REVERSAL-1 会话 Part 1 跑的;Tim 2026-10-23 更正)(SETTINGS-DICTIONARIES-30-SECOND-LOAD)。不在 2b-2 修。 | Tim 2026-10-23(TABLE-EXPORT-2b-2 委托书 Part 1.6) | `docs/known-issues.md` § PAGES-TOO-SLOW-TO-USE |
 | 8 | ~~物料平衡页只在三个数【都】为空时才是空态~~ ✅ **早已做掉** —— MES-7b-1(`v1.4.54`,F14:`lib/balanceEmptyState.ts` + 构建链里的 `check-balance-empty-state.mjs`)落地的判据与这条裁定逐字相同;那一条的标题只是一直没划掉(FIN-CHAIN-1 划掉了)。**这一组实际要做的是前七行。** | #33 | `docs/known-issues.md` § MES7A2CO-ROLLFORWARD-HIDDEN-WITHOUT-RUNS |
 
 ## ★★★ 还开着的条目 · 按【它今天挡不挡得住一个人】分 —— 一份索引(QUEUE-RECONCILE 立案,2026-09-20)★★★

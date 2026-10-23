@@ -8,20 +8,19 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import ClaimsTable, { type ClaimRow } from './ClaimsTable'
+import ClaimsTable from './ClaimsTable'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { CLAIMS_SHOWN, claimsCount, claimsFilterFrom, claimsPage, claimsQuery, shapeClaimRows } from './claimsRows'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 export default async function ClaimsPage({
     searchParams,
 }: { searchParams: Promise<{ status?: string; employee?: string; year?: string }> }) {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -31,31 +30,19 @@ export default async function ClaimsPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    let qb = supabase.from('medical_claim_status').select('*')
-    if (sp.employee) qb = qb.eq('employee_id', sp.employee)
-    if (sp.year) qb = qb.eq('claim_year', Number(sp.year))
-    const [rowsRes, empRes] = await Promise.all([
-        qb.order('claim_date', { ascending: false }).limit(300),
+    // ★ TABLE-EXPORT-2b-2(Tim Q2):读取、三条筛选与映射搬进 claimsRows.ts,与导出路由共用。状态筛选从前在截断之后跑,
+    //   现在与员工、年份一起在查询里;只画最新 CLAIMS_SHOWN 条,而且说出来。
+    const f = claimsFilterFrom(sp)
+    const [rowsRes, totalRes, empRes] = await Promise.all([
+        claimsPage(supabase, f, 0, CLAIMS_SHOWN - 1),
+        claimsCount(supabase, f),
         supabase.from('employees').select('id, code, legal_name').is('deleted_at', null).order('code'),
     ])
-    let rows = mustRows(rowsRes)
-    if (sp.status) rows = rows.filter((r) => r.settlement_state === sp.status)
+    const tableRows = await shapeClaimRows(mustRows(rowsRes, 'medical_claim_status'))
+    const total = mustCount(totalRes, 'medical_claim_status count')
 
     const sel = CONTROL_SELECT
     const inp = CONTROL_INPUT
-
-    const tableRows: ClaimRow[] = rows.map((r) => ({
-        claimId: r.claim_id as string,
-        code: r.code as string,
-        employeeLabel: `${r.employee_code} — ${r.legal_name}`,
-        claimDate: r.claim_date ? formatDate(r.claim_date, locale) : '—',
-        claimDateRaw: r.claim_date ?? null,
-        // U1-A(UNBLOCK-1 Q8):金额对不持 data.view_health 的人(本人的除外)是 null —— 表格印「受限」,不印 0.00
-        amountSgd: r.amount_sgd === null ? null : Number(r.amount_sgd).toFixed(2),
-        amountSgdRaw: r.amount_sgd,
-        settlementState: (r.settlement_state ?? '') as string,
-        expenseCode: (r.expense_code ?? '—') as string,
-    }))
 
     return (
         <ListPage
@@ -90,7 +77,8 @@ export default async function ClaimsPage({
                 <Button variant="secondary" type="submit">{t('leave.filter')}</Button>
             </form>
 
-            <ClaimsTable rows={tableRows} empty={t('claims.none')} />
+            <RowCapNotice shown={tableRows.length} total={total} />
+            <ClaimsTable rows={tableRows} empty={t('claims.none')} exportUrl={`/hr/claims/export${claimsQuery(f)}`} />
         </ListPage>
     )
 }

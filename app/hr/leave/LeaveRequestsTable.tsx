@@ -32,7 +32,7 @@ const STATUS_CLS: Record<string, string> = {
     cancelled: 'bg-gray-100 text-gray-600',
 }
 
-export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequestRow[]; empty: React.ReactNode }) {
+export default function LeaveRequestsTable({ rows, empty, exportUrl }: { rows: LeaveRequestRow[]; empty: React.ReactNode; exportUrl: string }) {
     const t = useTranslations()
 
     // ★ 手机上留【单号】与【状态】—— 单号是身份,而这是一张待办清单:
@@ -79,7 +79,7 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
-            exportSpec={{ name: 'hr-leave-requests', title: t('leave.subnav.requests') }}
+            exportSpec={{ name: 'hr-leave-requests', title: t('leave.subnav.requests'), serverRows: exportUrl }}
         />
     )
 }

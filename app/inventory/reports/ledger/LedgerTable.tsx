@@ -23,8 +23,10 @@ export type LedgerTableRow = {
     qtyDelta: number
 }
 
-export default function LedgerTable({ rows, empty, filters }: {
+export default function LedgerTable({ rows, empty, filters, exportUrl }: {
     rows: LedgerTableRow[]
+    /** TABLE-EXPORT-2b-2:导出向这条路由要全部匹配行(页面只有前 1,000 条) */
+    exportUrl: string
     empty: React.ReactNode
     /**
      * TABLE-EXPORT-1:About 表的「筛选」那一栏。【默认 90 天】不在地址栏里(parseLedgerParams 补上的),
@@ -59,7 +61,7 @@ export default function LedgerTable({ rows, empty, filters }: {
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
-            exportSpec={{ name: 'stock-ledger', title: t('reports.ledger.title'), filters }}
+            exportSpec={{ name: 'stock-ledger', title: t('reports.ledger.title'), filters, serverRows: exportUrl }}
         />
     )
 }

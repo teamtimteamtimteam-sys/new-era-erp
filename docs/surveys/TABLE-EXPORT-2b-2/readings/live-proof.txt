@@ -1,0 +1,30 @@
+STEP|ingest_inbox 2005 rows (read as postgres, base table) → 11 pages of 200
+PASS|I0 live holds more than the old 200-row limit: 2005
+PASS|I1 page 1 → HTTP 200, 200 rows
+PASS|I1 pager says "← PreviousPage 1 of 11 · 2,005 messagesNext →"
+PASS|I2 page 2 → HTTP 200, 200 other rows, newest #1805 < page 1's oldest #1806
+PASS|I3 last page 11 → 5 rows (= 2005 − 200 × 10)
+PASS|I4 inbox export from page 2 · csv downloaded: operation-capture-inbox_2026-10-23_2246.csv
+PASS|I4 csv holds 2005 rows — every matching row, past the old 200 (inbox 2005 before, 2005 after)
+PASS|I4 inbox export from page 2 · xlsx downloaded: operation-capture-inbox_2026-10-23_2247.xlsx
+PASS|I4 xlsx holds 2005 rows — every matching row, past the old 200 (inbox 2005 before, 2005 after)
+STEP|PO-2026-0001: fx 1, percentage terms and a priced receipt (read as postgres, base tables)
+PASS|R blind · /purchasing/orders/PO-2026-0001 → HTTP 200
+PASS|R1 blind · header currency reads "USD @ Restricted" (was "USD @ null")
+PASS|R2 blind · payment-term amounts ["Restricted","Restricted","Restricted"] (were 0.00)
+PASS|R3 blind · receipt unit prices ["Restricted"] (were "Unpriced")
+PASS|R sees · /purchasing/orders/PO-2026-0001 → HTTP 200
+PASS|R1 sees · header currency reads "USD @ 1" (stored 1)
+PASS|R2 sees · payment-term amounts ["84,000.00","24,000.00","12,000.00"] 
+PASS|R3 sees · receipt unit prices ["12.0000"] 
+PASS|R4 blind · /inbound → HTTP 200; restricted unpriced line "Unpriced batches: Restricted"
+PASS|R4 sees · /inbound → HTTP 200; restricted unpriced line null
+PASS|R5 blind · /inventory/output/<material> → HTTP 200; cost value total "Restricted" (was 0.00)
+PASS|R5 sees · /inventory/output/<material> → HTTP 200; cost value total "253.34" 
+STEP|as the throwaway reader (rolled back): 2 visible notifications, 0 read → 2 unread
+PASS|N1 /notifications → HTTP 200; the page says "2 unread" = database 2
+PASS|N2 the top-bar bell shows "2" = database 2 (drawn as 2)
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan); every database read as a throwaway ran in a transaction that was rolled back
+TE2B2_PROOF_EXIT=0
+X_OWN_EXIT=0

@@ -12,21 +12,17 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
-import { xText, xNum, xTime } from '@/lib/export/cells'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { TICKETS_SHOWN, ticketExports, ticketsCount, ticketsPage } from './ticketsRows'
 import { ManualWeighingForm } from '@/app/operation/capture/CaptureControls'
 import { INSTRUMENT_KINDS, type Option } from '@/app/operation/capture/captureFields'
-
-type Ticket = {
-    ticket_id: string; code: string; direction: string; vehicle_reg: string; status: string; created_at: string
-    gross_kg: number | null; tare_kg: number | null; net_kg: number | null; shared_kg: number; difference_kg: number | null
-}
 
 export default async function WeighbridgePage() {
     const denied = await requireFunction(FN.weighbridge)
@@ -35,13 +31,14 @@ export default async function WeighbridgePage() {
     const t = await getTranslations()
     const supabase = await createClient()
     const canConfirm = await can('action.confirm_capture')
-    const [tRes, devRes] = await Promise.all([
-        supabase.from('weighbridge_ticket_weights')
-            .select('ticket_id, code, direction, vehicle_reg, status, created_at, gross_kg, tare_kg, net_kg, shared_kg, difference_kg')
-            .order('created_at', { ascending: false }).limit(200),
+    // ★ TABLE-EXPORT-2b-2(Tim Q2):读取与导出格搬进 ticketsRows.ts,与导出路由共用;只画最新 TICKETS_SHOWN 张,而且说出来。
+    const [tRes, totalRes, devRes] = await Promise.all([
+        ticketsPage(supabase, 0, TICKETS_SHOWN - 1),
+        ticketsCount(supabase),
         supabase.from('devices').select('id, code, name, kind, retired_at').order('code'),
     ])
-    const tickets = mustRows(tRes, 'weighbridge_ticket_weights') as Ticket[]
+    const tickets = mustRows(tRes, 'weighbridge_ticket_weights')
+    const total = mustCount(totalRes, 'weighbridge_ticket_weights count')
     // 仪器的标签:读设备要 module.processing.view;只持收货 / 物流码的人读到零行 —— 那时表单只剩"不选仪器"
     const instruments: Option[] = (mustRows(devRes, 'devices') as { id: string; code: string; name: string; kind: string; retired_at: string | null }[])
         .filter((d) => !d.retired_at && (INSTRUMENT_KINDS as readonly string[]).includes(d.kind))
@@ -66,25 +63,13 @@ export default async function WeighbridgePage() {
             ),
             created: formatAuditStamp(x.created_at),
         },
-        // TABLE-EXPORT-1:四个重量是公斤数(原始值,没有就空 —— 屏幕上是「—」,不是 0);建单时刻是真时刻。
-        //   「已分」那一格屏幕上挂着的差额那一句不进数字格(它是一个提示,不是这一格的值)
-        // TABLE-EXPORT-1:屏幕上四个重量都是「12 kg」(capture.kg),单位用同一个本地化标签 units.kg 一起写
-        exports: {
-            code: xText(x.code),
-            vehicle: xText(x.vehicle_reg),
-            direction: xText(t('weighbridge.direction.' + x.direction)),
-            status: xText(t('weighbridge.status.' + x.status)),
-            gross: xNum(x.gross_kg, 'qty', kgUnit),
-            tare: xNum(x.tare_kg, 'qty', kgUnit),
-            net: xNum(x.net_kg, 'qty', kgUnit),
-            shared: xNum(x.net_kg == null ? null : x.shared_kg, 'qty', kgUnit),
-            created: xTime(x.created_at),
-        },
+        exports: ticketExports(x, t, kgUnit),
     }))
 
     return (
         <ListPage title={t('weighbridge.title')} intro={t('weighbridge.intro')} maxWidth="max-w-6xl" state={{ kind: 'ok' }}>
             <section className="mb-8">
+                <RowCapNotice shown={rows.length} total={total} />
                 <CellsTable
                     columns={[
                         { key: 'code', header: t('weighbridge.colCode'), priority: true },
@@ -99,7 +84,7 @@ export default async function WeighbridgePage() {
                     ]}
                     rows={rows}
                     empty={t('weighbridge.empty')}
-                    exportSpec={{ name: 'operation-weighbridge-tickets', title: t('weighbridge.title') }}
+                    exportSpec={{ name: 'operation-weighbridge-tickets', title: t('weighbridge.title'), serverRows: '/operation/weighbridge/export' }}
                 />
             </section>
             <section className="mb-8">

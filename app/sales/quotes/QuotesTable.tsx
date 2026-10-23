@@ -90,5 +90,5 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.quote_id} phone={{ mode: 'columns' }}
-        exportSpec={{ name: 'sales-quotes', title: t('quotes.listTitle') }} />
+        exportSpec={{ name: 'sales-quotes', title: t('quotes.listTitle'), serverRows: '/sales/quotes/export' }} />
 }

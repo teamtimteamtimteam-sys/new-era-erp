@@ -28,7 +28,7 @@ export type ReviewsTableRow = {
     daysInState: number
 }
 
-export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[]; empty: React.ReactNode }) {
+export default function ReviewsTable({ rows, empty, exportUrl }: { rows: ReviewsTableRow[]; empty: React.ReactNode; exportUrl: string }) {
     const t = useTranslations()
 
     // ★ 手机上留【员工】与【状态】—— 员工是身份,状态是这张登记簿存在的理由
@@ -89,7 +89,7 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
-            exportSpec={{ name: 'hr-reviews', title: t('hr.subnav.reviews') }}
+            exportSpec={{ name: 'hr-reviews', title: t('hr.subnav.reviews'), serverRows: exportUrl }}
         />
     )
 }

@@ -19,6 +19,7 @@
 //   手机上编辑发生在展开区里,不在格子里。这里正好一致,不是巧合。
 import * as React from 'react'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import { useTranslations } from '@/lib/i18n/client'
 import ExpectedDateControl from './ExpectedDateControl'
 
@@ -27,8 +28,9 @@ export type PoTermRow = {
     seqText: string
     label: string
     /** 「几成」或一个固定金额 —— 服务端已经选好印哪一个。 */
-    shareText: string
-    amountText: string
+    /** TABLE-EXPORT-2b-2:null = 受限(固定额 / 估算总额被遮)—— 画「受限」,不画「—」也不画「0.00」 */
+    shareText: string | null
+    amountText: string | null
     triggerText: string
     dueDateText: string
     /** 下面几项是 ExpectedDateControl 要的纯数据。 */
@@ -67,7 +69,7 @@ export default function PoPaymentTermsTable({
             header: t('purchasing.colShare'),
             align: 'right',
             className: 'text-sm',
-            render: (r) => r.shareText,
+            render: (r) => r.shareText ?? <MaskedValue value={null} canView={false} />,
         },
         {
             key: 'amount',
@@ -76,7 +78,7 @@ export default function PoPaymentTermsTable({
             // 这张计划表存在的理由:这一期要付多少。
             priority: true,
             className: 'text-sm',
-            render: (r) => r.amountText,
+            render: (r) => r.amountText ?? <MaskedValue value={null} canView={false} />,
         },
         {
             key: 'trigger',

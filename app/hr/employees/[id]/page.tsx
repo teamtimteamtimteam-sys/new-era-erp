@@ -191,7 +191,8 @@ export default async function EmployeeDetailPage({
         net_pay: number
         payroll_periods: { id: string; code: string; period_month: string; currency: string; status: string } | null
     }
-    const payroll = ((payRes.data as unknown as PayRow[] | null) ?? []).sort((a, b) =>
+    // TABLE-EXPORT-2b-2:读失败就让这一页失败,不画成一张空的薪资历史(一次失败不是一个空集)
+    const payroll = (mustRows(payRes, 'payroll_lines_masked') as unknown as PayRow[]).sort((a, b) =>
         (b.payroll_periods?.period_month ?? '').localeCompare(a.payroll_periods?.period_month ?? '')
     )
 
@@ -233,16 +234,20 @@ export default async function EmployeeDetailPage({
         ratingText: r.rating_code ? ratingNameByCode.get(r.rating_code) ?? r.rating_code : '—',
     }))
 
+    const payText = (v: number | null, ccy: string | undefined) => (v === null && !canPay ? null : formatAmount(v, ccy))
     const payRows: EmployeePayRow[] = payroll.map((p) => ({
         id: p.id,
         periodLabel: formatMonth(p.payroll_periods?.period_month, locale) ?? '—',
         periodHref: p.payroll_periods ? `/hr/payroll/${p.payroll_periods.id}` : null,
         currency: p.payroll_periods?.currency ?? '',
-        grossText: formatAmount(p.gross_pay, p.payroll_periods?.currency),
-        employerCpfText: formatAmount(p.employer_cpf, p.payroll_periods?.currency),
-        employeeCpfText: formatAmount(p.employee_cpf, p.payroll_periods?.currency),
-        deductionsText: formatAmount(p.other_deductions, p.payroll_periods?.currency),
-        netText: formatAmount(p.net_pay, p.payroll_periods?.currency),
+        // ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):payroll_lines_masked 对不持 data.view_pay 的人(本人除外)把五个金额置空 ——
+        //   从前 formatAmount(null) 画成「—」,读起来像"没有"。现在 null = 受限,由表格交给 MaskedValue 画「受限」
+        //   (MaskedValue 同一条判据:无权限且为空 → 受限;有权限而为空 → 原来的「—」)。
+        grossText: payText(p.gross_pay, p.payroll_periods?.currency),
+        employerCpfText: payText(p.employer_cpf, p.payroll_periods?.currency),
+        employeeCpfText: payText(p.employee_cpf, p.payroll_periods?.currency),
+        deductionsText: payText(p.other_deductions, p.payroll_periods?.currency),
+        netText: payText(p.net_pay, p.payroll_periods?.currency),
         posted: p.payroll_periods?.status === 'posted',
         statusText: t('hr.payrollStatus.' + (p.payroll_periods?.status ?? 'draft')),
     }))

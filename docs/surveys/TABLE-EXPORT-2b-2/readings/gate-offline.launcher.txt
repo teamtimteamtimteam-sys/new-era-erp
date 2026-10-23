@@ -1,0 +1,5 @@
+▶ offline gate —— 后台起,判词只认日志里那一行 ^GATE_EXIT=
+   …仍在等 offline gate:脚本自报退出码(^GATE_EXIT=)(60s / 900s)
+   …仍在等 offline gate:脚本自报退出码(^GATE_EXIT=)(120s / 900s)
+✓ 等到了:offline gate:脚本自报退出码(^GATE_EXIT=)(140s)
+✓ offline gate:脚本自报 GATE_EXIT=0

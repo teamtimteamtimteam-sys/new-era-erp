@@ -1,0 +1,9 @@
+STEP|base https://new-era-erp.vercel.app
+PASS|/tools/pricing/formulas → HTTP 200; headers ["","Code","Name","Direction","Price basis","Treatment (USD/t)","Discount %","Counterparty","Active","Actions"]; 1 formula rows
+PASS|reader without data.view_purchase_prices · ›: treatment "Restricted" · discount "Restricted"
+PASS|/me → HTTP 200; 8 export bars on the page
+PASS|throwaway employee · /me/leave-requests/export → HTTP 200, 0 rows
+PASS|throwaway employee · /me/medical-claims/export → HTTP 200, 0 rows
+PASS|throwaway employee · /me/expense-claims/export → HTTP 200, 0 rows
+STEP|done
+TE2B1_CLOSEOUT_EXIT=0

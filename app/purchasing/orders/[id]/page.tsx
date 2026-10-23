@@ -471,7 +471,9 @@ export default async function PurchaseOrderDetailPage({
         commitmentTone: l.pricing_formula_id
             ? ((commitmentByLine.has(l.id) ? 'green' : 'amber') satisfies Tone)
             : null,
-        unitPriceText: l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : '—',
+        // ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):价与金额被 purchase_order_lines_masked 遮成 NULL 时,null = 受限
+        //   (表格交给 MaskedValue 画「受限」);看得见价的人那里 NULL 仍是原来的「—」/空白。
+        unitPriceText: l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : showPrices ? '—' : null,
         // FIN-26:价的出处。NULL(存量行)画「未知」,不猜。
         priceSourceText:
             l.estimated_unit_price === null
@@ -492,7 +494,7 @@ export default async function PurchaseOrderDetailPage({
                       : l.price_source === 'manual'
                         ? 'amber'
                         : 'gray') satisfies Tone),
-        amountText: formatMoneyBare(l.estimated_amount_ccy, '头卡「币种」—— 明细行是单据币种'),
+        amountText: l.estimated_amount_ccy === null && !showPrices ? null : formatMoneyBare(l.estimated_amount_ccy, '头卡「币种」—— 明细行是单据币种'),
     }))
 
     // ★★【PO-GST-1 的三行合计,搬成三行【数据】】★★
@@ -519,7 +521,8 @@ export default async function PurchaseOrderDetailPage({
         unitPriceText: '',
         priceSourceText: null,
         priceSourceTone: null,
-        amountText: formatMoneyBare(amount, '头卡「币种」—— 明细行是单据币种'),
+        // TABLE-EXPORT-2b-2:三行合计在 purchase_orders_masked 里同样被遮 —— 看不见价的人那里是「受限」,不是空白
+        amountText: amount === null && !showPrices ? null : formatMoneyBare(amount, '头卡「币种」—— 明细行是单据币种'),
         totalKind: kind,
     })
 
@@ -541,12 +544,20 @@ export default async function PurchaseOrderDetailPage({
         id: l.id,
         seqText: String(l.seq),
         label: l.label,
+        // ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):固定额被 purchase_order_payment_terms_masked 遮、按比例的那一档靠的
+        //   估算总额被 purchase_orders_masked 遮 —— 从前 termAmount 把 NULL 的总额乘成「0.00」(一句假话)。
+        //   看不见价的人那里,这两格是 null = 受限。
         shareText:
-            l.percentage !== null ? `${l.percentage}%` : formatAmount(l.fixed_amount_ccy, po.currency),
-        amountText: formatMoneyBare(
-            termAmount(l),
-            '头卡「币种」—— 付款计划按估算总额折算,同为单据币种',
-        ),
+            l.percentage !== null
+                ? `${l.percentage}%`
+                : l.fixed_amount_ccy === null && !showPrices ? null : formatAmount(l.fixed_amount_ccy, po.currency),
+        amountText:
+            (l.percentage !== null ? po.estimated_total_ccy : l.fixed_amount_ccy) === null && !showPrices
+                ? null
+                : formatMoneyBare(
+                      termAmount(l),
+                      '头卡「币种」—— 付款计划按估算总额折算,同为单据币种',
+                  ),
         triggerText: triggerNames.get(l.trigger_event) ?? l.trigger_event,
         dueDateText: formatDate(l.due_date, locale) ?? '—',
         triggerEvent: l.trigger_event,
@@ -773,7 +784,10 @@ export default async function PurchaseOrderDetailPage({
                         value: (
                             <>
                                 {po.currency}
-                                {po.currency !== baseCurrency && ` @ ${po.fx_rate}`}
+                                {/* TABLE-EXPORT-2b-2(Tim Q4):汇率被 purchase_orders_masked 遮成 NULL 时,从前印「@ null」 */}
+                                {po.currency !== baseCurrency && (po.fx_rate === null && !showPrices
+                                    ? <> @ <MaskedValue value={null} canView={false} /></>
+                                    : ` @ ${po.fx_rate}`)}
                             </>
                         ),
                         mono: true,
@@ -1140,7 +1154,7 @@ export default async function PurchaseOrderDetailPage({
                             <span className="ml-2">({poStatus.receipt_pct}%)</span>
                         )}
                     </p>
-                    <PoReceiptsTable rows={receiptRows} canFinance={canFinance} />
+                    <PoReceiptsTable rows={receiptRows} canFinance={canFinance} canPrices={showPrices} />
                 </>
             ) : (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.noReceipts')}</p>

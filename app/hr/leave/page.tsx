@@ -8,29 +8,16 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import LeaveSubnav from './LeaveSubnav'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import LeaveRequestsTable, { type LeaveRequestRow } from './LeaveRequestsTable'
+import LeaveRequestsTable from './LeaveRequestsTable'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { LEAVE_SHOWN, leaveCount, leaveFilterFrom, leavePage, leaveQuery, shapeLeaveRows } from './leaveRows'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
-import { formatDate } from '@/lib/dates'
-
-type Row = {
-    request_id: string
-    code: string
-    employee_code: string
-    legal_name: string
-    leave_type_code: string
-    leave_type_en: string
-    leave_type_zh: string
-    start_date: string
-    end_date: string
-    days: number
-    status: string
-}
 
 export default async function LeaveRequestsPage({
     searchParams,
@@ -47,54 +34,19 @@ export default async function LeaveRequestsPage({
     const t = await getTranslations()
     const locale = await getLocale()
 
-    let qb = supabase
-        .from('leave_requests_masked')
-        .select('id, code, employee_id, leave_type_code, start_date, end_date, days, status, is_exception, created_at')
-        .is('deleted_at', null)
-    if (sp.status) qb = qb.eq('status', sp.status)
-    if (sp.type) qb = qb.eq('leave_type_code', sp.type)
-    if (sp.employee) qb = qb.eq('employee_id', sp.employee)
-    if (sp.from) qb = qb.gte('start_date', sp.from)
-    if (sp.to) qb = qb.lte('end_date', sp.to)
-
-    const [reqRes, empRes, typeRes] = await Promise.all([
-        qb.order('start_date', { ascending: false }).limit(300),
+    // ★ TABLE-EXPORT-2b-2(Tim Q2):读取、筛选与映射(含「待审在最前」)搬进 leaveRows.ts,与导出路由共用;
+    //   只画按开始日最新的 LEAVE_SHOWN 条,而且说出来。
+    const f = leaveFilterFrom(sp)
+    const [reqRes, totalRes, empRes, typeRes] = await Promise.all([
+        leavePage(supabase, f, 0, LEAVE_SHOWN - 1),
+        leaveCount(supabase, f),
         supabase.from('employees').select('id, code, legal_name').is('deleted_at', null).order('code'),
         supabase.from('leave_types').select('code, name_en, name_zh').eq('is_active', true).order('sort_order'),
     ])
-
-    const empById = new Map((mustRows(empRes)).map((e) => [e.id, e]))
-    const typeByCode = new Map((mustRows(typeRes)).map((x) => [x.code, x]))
-    // 待审在最前 —— 这是一张待办清单,不是一份档案
-    // U1-A:读 leave_requests_masked(这一页不选被遮的三列);视图的生成类型把每一列都标成可空 —— 这几列由基表的 NOT NULL 保证
-    type ReqRow = { id: string; code: string; employee_id: string; leave_type_code: string; start_date: string; end_date: string
-                    days: number; status: string; is_exception: boolean; created_at: string }
-    const rows = (mustRows(reqRes) as unknown as ReqRow[]).sort((a, b) => {
-        if (a.status === 'pending' && b.status !== 'pending') return -1
-        if (b.status === 'pending' && a.status !== 'pending') return 1
-        return (b.start_date ?? '').localeCompare(a.start_date ?? '')
-    })
+    const tableRows = await shapeLeaveRows(supabase, mustRows(reqRes, 'leave_requests_masked'))
+    const total = mustCount(totalRes, 'leave_requests_masked count')
 
     const sel = CONTROL_SELECT
-
-    const tableRows: LeaveRequestRow[] = rows.map((r) => {
-        const e = empById.get(r.employee_id)
-        const ty = typeByCode.get(r.leave_type_code)
-        return {
-            id: r.id,
-            code: r.code,
-            isException: Boolean(r.is_exception),
-            employeeLabel: e ? `${e.code} — ${e.legal_name}` : '—',
-            // 假期类型名的语言在服务端选好 —— locale 不过 RSC 边界
-            typeLabel: ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : r.leave_type_code,
-            startDate: formatDate(r.start_date, locale),
-            endDate: formatDate(r.end_date, locale),
-            startDateRaw: r.start_date,
-            endDateRaw: r.end_date,
-            days: r.days,
-            status: r.status,
-        }
-    })
 
     return (
         <ListPage
@@ -152,7 +104,8 @@ export default async function LeaveRequestsPage({
                 </Button>
             </form>
 
-            <LeaveRequestsTable rows={tableRows} empty={t('leave.noRequests')} />
+            <RowCapNotice shown={tableRows.length} total={total} />
+            <LeaveRequestsTable rows={tableRows} empty={t('leave.noRequests')} exportUrl={`/hr/leave/export${leaveQuery(f)}`} />
         </ListPage>
     )
 }

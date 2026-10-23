@@ -1,0 +1,28 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review fee9cd65-475e-423b-a631-6028d098d56c
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+
+!! survey-phone failed: self-test FAILED: injected a 1790px div, probe read overflow=0
+  diag: {
+  "injRect": [
+    378,
+    1264,
+    886
+  ],
+  "deSW": 1280,
+  "deCW": 1280,
+  "bodySW": 1280,
+  "bodyCW": 1280,
+  "innerW": 1280,
+  "docElOvx": "visible",
+  "bodyOvx": "visible",
+  "chain": [
+    "BODY. ovx=visible w=1280 sw=1280",
+    "HTML. ovx=visible w=1280 sw=1280"
+  ]
+}
+· cleaned up ephemeral survey account(s)
+SURVEY1280_OWN_EXIT=1

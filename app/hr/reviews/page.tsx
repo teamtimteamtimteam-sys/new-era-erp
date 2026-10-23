@@ -10,24 +10,17 @@
 // ★ state 恒为 'ok' —— 筛选表单与右侧两个入口(评估轮/评分档)都是真实出口。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
-import {
-    REVIEW_COLUMNS,
-    REVIEW_STATUSES,
-    REVIEW_TYPES,
-    type ReviewRow,
-    daysInState,
-    statusPillClass,
-} from './reviewShared'
+import { REVIEW_STATUSES, REVIEW_TYPES } from './reviewShared'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import ReviewsTable, { type ReviewsTableRow } from './ReviewsTable'
+import ReviewsTable from './ReviewsTable'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { REVIEWS_SHOWN, reviewsCount, reviewsFilterFrom, reviewsPage, reviewsQuery, shapeReviewRows } from './reviewsRows'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_SELECT } from '@/app/components/ui/control-style'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 type EmployeeOpt = { id: string; code: string; legal_name: string }
 type CycleOpt = { id: string; name: string }
@@ -37,7 +30,6 @@ export default async function ReviewsPage({
 }: {
     searchParams: Promise<{ cycle?: string; type?: string; status?: string; employee?: string }>
 }) {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -47,14 +39,11 @@ export default async function ReviewsPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    let qb = supabase.from('performance_reviews_masked').select(REVIEW_COLUMNS)
-    if (sp.cycle) qb = qb.eq('cycle_id', sp.cycle)
-    if (sp.type) qb = qb.eq('review_type', sp.type)
-    if (sp.status) qb = qb.eq('status', sp.status)
-    if (sp.employee) qb = qb.eq('employee_id', sp.employee)
-
-    const [reviewsRes, empRes, cycleRes] = await Promise.all([
-        qb.order('created_at', { ascending: false }).limit(200),
+    // ★ TABLE-EXPORT-2b-2(Tim Q2):读取、筛选与映射搬进 reviewsRows.ts,与导出路由共用;只画最新 REVIEWS_SHOWN 份,而且说出来。
+    const f = reviewsFilterFrom(sp)
+    const [reviewsRes, totalRes, empRes, cycleRes] = await Promise.all([
+        reviewsPage(supabase, f, 0, REVIEWS_SHOWN - 1),
+        reviewsCount(supabase, f),
         supabase
             .from('employees')
             .select('id, code, legal_name')
@@ -67,36 +56,14 @@ export default async function ReviewsPage({
             .order('period_start', { ascending: false }),
     ])
 
-    // ★ TABLE-EXPORT-2b-1(Tim 2026-10-22 TABLE-EXPORT-2 Q10):三条读取失败就让这一页失败 —— 从前只取 .data、丢掉 error,
+    // ★ TABLE-EXPORT-2b-1(Tim 2026-10-22 TABLE-EXPORT-2 Q10):读取失败就让这一页失败 —— 从前只取 .data、丢掉 error,
     //   一次读不到(权限、网络、一个改了名的列)在屏幕上是一张平静的「没有评估」。一次失败不是一个空集。
-    const reviews = mustRows(reviewsRes, 'performance_reviews_masked') as unknown as ReviewRow[]
+    const tableRows = await shapeReviewRows(supabase, mustRows(reviewsRes, 'performance_reviews_masked'))
+    const total = mustCount(totalRes, 'performance_reviews_masked count')
     const employees = mustRows(empRes, 'employees') as unknown as EmployeeOpt[]
     const cycles = mustRows(cycleRes, 'review_cycles') as unknown as CycleOpt[]
-    const empById = new Map(employees.map((e) => [e.id, e]))
-    const cycleById = new Map(cycles.map((c) => [c.id, c.name]))
 
     const sel = CONTROL_SELECT
-
-    const tableRows: ReviewsTableRow[] = reviews.map((r) => {
-        const emp = empById.get(r.employee_id)
-        const rev = r.reviewer_employee_id ? empById.get(r.reviewer_employee_id) : null
-        return {
-            id: r.id,
-            employeeCode: emp?.code ?? '—',
-            employeeLabel: emp?.legal_name ?? '',
-            typeLabel: t(`reviews.type_${r.review_type}`),
-            cycleName: r.cycle_id ? (cycleById.get(r.cycle_id) ?? '—') : '—',
-            periodStart: formatDate(r.period_start, locale),
-            periodEnd: formatDate(r.period_end, locale),
-            periodStartRaw: r.period_start,
-            periodEndRaw: r.period_end,
-            reviewerCode: rev?.code ?? null,
-            reviewerName: rev?.legal_name ?? null,
-            status: r.status,
-            statusCls: statusPillClass(r.status),
-            daysInState: daysInState(r),
-        }
-    })
 
     return (
         <ListPage
@@ -162,7 +129,8 @@ export default async function ReviewsPage({
                 </Button>
             </form>
 
-            <ReviewsTable rows={tableRows} empty={t('reviews.empty')} />
+            <RowCapNotice shown={tableRows.length} total={total} />
+            <ReviewsTable rows={tableRows} empty={t('reviews.empty')} exportUrl={`/hr/reviews/export${reviewsQuery(f)}`} />
         </ListPage>
     )
 }

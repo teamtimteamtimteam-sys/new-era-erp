@@ -22,6 +22,7 @@
 // 三条都是把【列表页已经拍过板的那一列】搬到这一个人身上,不是重新拍板。
 import * as React from 'react'
 import Link from 'next/link'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
 import { statusPillClass } from '../../reviews/reviewShared'
@@ -145,17 +146,19 @@ export type EmployeePayRow = {
     periodLabel: string
     periodHref: string | null
     currency: string
-    grossText: string
-    employerCpfText: string
-    employeeCpfText: string
-    deductionsText: string
-    netText: string
+    /** TABLE-EXPORT-2b-2:null = 受限(读者不持 data.view_pay、又不是本人)—— 画「受限」,不画「—」 */
+    grossText: string | null
+    employerCpfText: string | null
+    employeeCpfText: string | null
+    deductionsText: string | null
+    netText: string | null
     posted: boolean
     statusText: string
 }
 
 export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[] }) {
     const t = useTranslations()
+    const paid = (text: string | null) => (text === null ? <MaskedValue value={null} canView={false} /> : text)
     const columns: Column<EmployeePayRow>[] = [
         {
             key: 'period',
@@ -174,10 +177,10 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
                 </>
             ),
         },
-        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => r.grossText },
-        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => r.employerCpfText },
-        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => r.employeeCpfText },
-        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => r.deductionsText },
+        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => paid(r.grossText) },
+        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => paid(r.employerCpfText) },
+        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => paid(r.employeeCpfText) },
+        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => paid(r.deductionsText) },
         {
             key: 'net',
             header: t('hr.colNet'),
@@ -185,7 +188,7 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
             // ★ 见抬头:那个月实际拿到多少。
             priority: true,
             className: 'font-medium',
-            render: (r) => r.netText,
+            render: (r) => paid(r.netText),
         },
         {
             key: 'status',

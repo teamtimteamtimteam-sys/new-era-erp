@@ -1319,6 +1319,8 @@ const zh = {
             rowVoid: '已作废',
             // TABLE-EXPORT-2a(Tim 2026-10-22 Q2):一张只读前 N 行的表,说出来
             capNotice: '只显示前 {shown} 条,共 {total} 条 —— 收窄筛选,或导出全部。',
+            // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q1):清单页底部那段历史只读最新 N 条记录时,说出来;不导出
+            trailCapNotice: '下面的历史只涵盖最新的 {shown} 条,共 {total} 条。',
         },
         columns: '列 {shown}/{total}',
         partialNotice: '这一屏 {shown} 行,全体 {total} 行 —— 排序在数据库里对【全体】做,所以第一页就是全体的前 {shown} 名。',
@@ -2974,6 +2976,8 @@ const zh = {
             priceLockedHint: '单价变更走下方计价面板(留痕)',
         },
         unpricedBadge: '{n} 批未计价',
+        // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):看不见单价的人那里,「几批未计价」数不出来 —— 说受限,不说一个数
+        unpricedBadgeRestricted: '未计价批数:',
         pricing: {
             title: '计价',
             current: '当前单价 (SGD)',
@@ -4279,6 +4283,8 @@ const zh = {
         empty: '还没有任何通知。',
         markRead: '标记已读',
         markAll: '全部标记已读',
+        // TABLE-EXPORT-2b-2(Tim 2026-10-23 2b Q6 · 2b-2 Q3):精确的未读数,与顶栏徽标同一个数
+        unreadCount: '{n} 条未读',
         permissionNote: '这里只显示【你有权限看见】的事件。一个安静的收件箱可能是没有事发生,也可能是发生的事属于你打不开的模块 —— 两者在屏幕上长得一样,所以这句话必须写出来。',
         errNotSignedIn: '尚未登录。',
         errMarkRead: '标记已读失败:{message}',
@@ -10645,6 +10651,8 @@ const zh = {
         colPayload: '内容',
         showPayload: '看内容',
         manual: '手工录入',
+        // TABLE-EXPORT-2b-2(Tim TABLE-EXPORT-2 Q2):收件箱真的翻页
+        pagination: { prev: '← 上一页', next: '下一页 →', pageOf: '第 {current} 页,共 {total} 页 · {count} 条消息' },
         clockAhead: '时钟超前',
         attempts: '试了 {n} 次',
         empty: '收件箱是空的。',

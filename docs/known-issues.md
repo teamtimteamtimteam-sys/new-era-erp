@@ -11431,7 +11431,7 @@ HTTP 413 `FUNCTION_PAYLOAD_TOO_LARGE`,由 Vercel 回、在应用之前。** 二�
 **HTTP 200 · 200 · 200,分别 30.2 s · 45.6 s · 39.1 s**(`readings/smoke-dictionaries-recheck.txt`)。页面本身是好的;慢在它为每一条字典值各发一条
 `count(*)` 用量查询(`pMap` 并发)—— 条数一多、链路一慢,就有一条会掉。
 **为什么记:** 判词"查不到不是零"在这里是对的(它宁可 500 也不把用量说成 0),所以这不是吞错误;但一张 40 秒的页面迟早在 Vercel 的函数时限上撞墙。
-**去处:** 未排。修法的方向是把逐值的用量查询换成一支按表聚合的函数(一次往返)。
+**去处:** ~~未排。~~ ★ 上线准备组第 13 行(Tim 2026-10-23,与 change-history 一起登记为 PAGES-TOO-SLOW-TO-USE)。修法的方向是把逐值的用量查询换成一支按表聚合的函数(一次往返)。
 
 ### RELIEVE-PAID-AT-CREATION · 加工费结算(`relieve_processing_accruals`)仍然能把一张费用单【生下来就是已付】—— PAY-REQ-1 关掉的那扇侧门的另一半(EXPENSE-MULTILINE-1 Step 0 量到;Tim 2026-10-20 Q14:只登记,不在本刀修)
 
@@ -11507,6 +11507,11 @@ EXPENSE-MULTILINE-1 只给它补了那一行 `expense_lines`(表头合计 = 行�
 `/me` 请假 · 医疗报销 · 费用报销各 50 · `/settings/import` 20(Tim 2026-10-23 Q1)—— 同 2a 的机制(`<页>Rows.ts` + `RowCapNotice` + 导出路由)。
 **其余去 TABLE-EXPORT-2b-2(`docs/forward-queue.md` 64a-3)**:销售 · 人事(含 Q3 的 `/hr/leave/grants` 与 `/hr/reviews/cycles` 各 200)· 库存 · 运营 ·
 capture「最近确认」与 contamination「最近检查」(Q1)· 通知(只说、不导出,Q2)。
+**✅ TABLE-EXPORT-2b-2(`v1.4.70`,2026-10-23)做完了其余全部**:`/sales/orders` · `/sales/quotes` 200 · `/hr/claims` 300(状态筛选挪到截断之前)· `/hr/leave` 300 · `/hr/reviews` 200 ·
+`/inventory/reports/ledger`(写成真生效的 1,000;物料 / 批次筛选改成两条在库里筛过的读取,合并后截一次)· `/operation/capture` 待确认 200 与最近确认 50 · `/operation/weighbridge` 200 ·
+`/operation/contamination` 网格 300 与最近检查 50(「缺几格」改成精确数)—— 各一句「前 N 条,共 M 条」+ 一条导出路由;`/operation/capture/inbox` 真的翻页(一页 200),导出取全;
+`/hr/leave/grants` 与 `/hr/reviews/cycles` 的 200 条历史只说「History below covers the latest N of M」、不导出(Tim 2026-10-23 Q1);通知只说、不导出,未读数精确(顶栏徽标同一个数,Q3)。
+**本条在 TABLE-EXPORT-2 的范围里到此为止。** 第一段里点到的 `/inventory/storage-safety` · `/hr/payroll` · `/hr/training`(不翻页、在 1,000 处停)归 READ-ALL-STOPS-AT-1000(Tim 2026-10-22 TABLE-EXPORT-2 Q3,上线准备组第 10 行),不归这一条。
 
 ## TABLE-EXPORT-2a(`v1.4.68`,2026-10-22)—— 财务那一半的列表页导出
 
@@ -11565,3 +11570,43 @@ TABLE-EXPORT-1 的规矩「表手里是全体就导出它手里那一份」默�
 同时持 `module.suppliers.view` + `module.customers.view` 而不持 `data.view_prices` 的角色:**0 个**。线上 `sales_settlements` **0 行**。
 **所以今天没有人因此看见一个不该看的价;** 缺口在于这件事靠的是「恰好没有哪个角色那样组合」,而不是一道遮蔽。下一次给哪个角色加 `module.customers.view` 时它就打开。
 **去处:** 上线准备组(`docs/forward-queue.md` 第 12 行)—— 届时决定:加列遮蔽 / 伴生视图,或把那一张表的门改成 `data.view_prices`。
+
+
+## TABLE-EXPORT-2b-2(`v1.4.70`)—— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」
+
+### PAGES-TOO-SLOW-TO-USE · 两张设置页慢到没法用(Tim 2026-10-23 TABLE-EXPORT-2b-2 委托书 Part 1.6:登记,不在本刀修;上线准备组第 13 行)
+
+**量过的:**
+* `/settings/change-history?show=500` —— TABLE-EXPORT-2b-1 的线上证明(`next start` 对着线上,`change_log` 79,000+ 行)里加载 **107 s**
+  (`docs/surveys/TABLE-EXPORT-2b/readings/live-proof.txt`,C1;第一跑在 120 s 的导航上限处超时,`live-proof-run1-change-history-timeout.txt`)。
+* `/settings/dictionaries` —— Tim 写的是 15–45 s。仓库里的读数:2b-1 两次冒烟 **28.4 s · 34.6 s**(`readings/smoke-run1-me-export-403.txt:60` · `readings/smoke.txt:55`);
+  CLAIM-RECEIPTS-1 三次 **30.2 s · 45.6 s · 39.1 s**。~~**15 s 那一端没有找到读数。**~~ ★ **15 s 那一端的出处(Tim 2026-10-23 更正,TABLE-EXPORT-2b-2 裁定)**:Tim 写的是「来自 PAYROLL-PAY-REVERSAL-1 的收尾生产检查(HTTP 200,15.4 s),记在 TABLE-EXPORT-1 那一次会话的 Part 1 读数里」。**量下来的出处**:`docs/surveys/CLAIM-RECEIPTS-1/readings/closeout-production-check-2.txt:3` —— 「`/settings/dictionaries` HTTP 200 in 15421 ms (15.4 s)」,那是 **CLAIM-RECEIPTS-1 的收尾生产检查,在 PAYROLL-PAY-REVERSAL-1 那一次会话的 Part 1 里跑的**(2026-10-22 09:51 CST,`docs/handbacks/CLAIM-RECEIPTS-1.md` §6);TABLE-EXPORT-1 那份收尾读数(`docs/surveys/TABLE-EXPORT-1/readings/ppr1-closeout-production-check.txt`)里没有这一页。
+  成因与修法方向见上面 SETTINGS-DICTIONARIES-30-SECOND-LOAD。
+**为什么记:** 两张都是 HTTP 200、没有报错,于是没有一道闸会红;而一张一分多钟的页面对人来说就是打不开,并且迟早撞上 Vercel 的函数时限。
+**去处:** 上线准备组(`docs/forward-queue.md` 第 13 行)。
+
+### LEDGER-EMBED-OUT-OF-MASKED-READS-SIGHT · 流水台账的 select 串改成拼出来的之后,`check-masked-reads` 看不见它那一处内嵌了(TABLE-EXPORT-2b-2 自己造成的;登记,不改检查)
+
+**是什么:** `app/inventory/reports/ledger/ledgerQuery.ts` 原来是一句字面的 `.select(\`… inbound_batches ( code, materials ( code, name ) ) …\`)`,
+`check-masked-reads` 把它记作在册一处(`ledgerQuery.ts :: inbound_batches :: embed`,基线 1)。2b-2 把物料 / 批次筛选改成两侧读取之后,
+select 串由常量 `COLS` + `EMBED[side]` 拼成,**那支检查只认 `.select(` 里的字面串,于是这一处在它眼里变成 0**(构建输出「少了几处 —— 基线可以收紧」那一栏,1 → 0)。
+**内嵌本身没有变**:读的仍是 `inbound_batches` / `output_batches` 基表,只取 `code` 与物料的 `code, name`,与 2b-2 之前一字不差(只多了 `!inner`)。
+**为什么记:** 一处「看不见」不是一处「改好了」—— **这一刀没有收紧那条基线**(收紧会把一次失明记成一次修复)。
+**去处:** 与 CHECK-1-EMBED 那十处一起(cleanup A):改读 `*_batches_masked` 时把 select 写回字面串,或者让检查认常量。
+
+### INBOUND-TOOLBAR-390-OVERFLOW · `/inbound` 在 390 px 上整页横向溢出 +59 px,元凶是筛选栏里的一颗下拉(TABLE-EXPORT-2b-2 版式勘察量到;不是本刀造成的,登记,不在本刀修)
+
+**量过的:** `node scripts/survey-phone.mjs --routes=/inbound --width=390`(以一次性全码会话,对着线上)—— **本刀的树 +59 px**(`docs/surveys/TABLE-EXPORT-2b-2/readings/layout-390.txt`),
+**把 `app/inbound/page.tsx` 换回 `HEAD`(2249696e)的那一份再量:同样 +59 px、同一个元凶**(`readings/layout-390-inbound-before.txt`)。元凶:`select.h-8 rounded-lg border border-input …`(筛选栏)。
+TABLE-EXPORT-1(2026-10-22)量 `/inbound` 是 **0**(`docs/surveys/TABLE-EXPORT-1/readings/layout-390.txt:9`)—— 中间那段时间里这页的代码只有本刀那一处「受限」改动,
+所以最像的读法是**活数据把一颗下拉撑宽了**(AGENTS.md「一份基线文档是一张快照」:多一个名字长的供应商,页面就宽一点)。**没有逐个选项去量,是推断。**
+**去处:** 未排。最便宜的解药是那一排筛选的容器加 `flex-wrap`(AGENTS.md INPUT-2b 那一条);要先量那颗下拉的 min-content。
+
+### SURVEY-SELFTEST-CLASSLESS-BODY · `survey-phone.mjs` 在 1280 px 上的自检有一次读到了一个没有 class 的 `<body>`,注入的 1,790 px 被压成 886 px,自检报失败(TABLE-EXPORT-2b-2 量到;一次,没有复现)
+
+**量过的:** 同一条命令同一棵树跑了三次:① `fetch failed`(网络,开跑即停,`readings/layout-1280-run1-fetch-failed.txt`);② **自检失败**:
+注入的 div 落在 `injRect [378, 1264]`、宽 886,父链是 `BODY.`(**class 为空** —— 根布局的 body 是 `min-h-full flex flex-col`)→ `HTML.`(`readings/layout-1280-run2-selftest.txt`);
+③ 自检通过、20/20 干净(`readings/layout-1280.txt`)。②量到的那一页不是应用的根布局,最像是 `next dev` 冷编译时的一页过渡 / 错误文档 —— **没有查证,是推断**。
+**为什么记:** 自检做的正是它该做的事 —— 它【拒绝】在一页它看不懂的文档上给出读数,而不是报一个假绿。但它说不出「我量到的是哪一页」:
+诊断里没有 URL 与 `document.title`。**去处:** 未排;改法是诊断那一段多印 `location.href` 与 `document.title`,下一次就知道是哪一页。
+

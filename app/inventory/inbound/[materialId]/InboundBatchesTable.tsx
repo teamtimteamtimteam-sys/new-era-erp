@@ -24,6 +24,7 @@
 //
 // 【行数据在服务端压平】阶段的 i18n 标签、到岸成本的可见性判断(unpriced vs
 // priceRestricted 是【两句不同的话】)、库龄档的色调 —— 全部在服务端算完。
+import { MaskedValue } from '@/app/components/MaskedValue'
 import * as React from 'react'
 import Link from 'next/link'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
@@ -41,7 +42,8 @@ export type InboundBatchRow = {
     /** 到岸单位成本;拿不到时 unitPriceAbsence 说出【为什么】拿不到。 */
     unitPriceText: string | null
     unitPriceAbsence: string
-    batchValueText: string
+    /** TABLE-EXPORT-2b-2:null = 受限(不持 data.view_prices)—— 画「受限」,不画「—」 */
+    batchValueText: string | null
     /** 库龄天数 + 它那一档的色调类名;拿不到就是 null。 */
     ageDays: string | null
     ageToneClass: string
@@ -88,7 +90,7 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
             render: (r) =>
                 r.unitPriceText !== null ? r.unitPriceText : <span className="text-gray-400">{r.unitPriceAbsence}</span>,
         },
-        { key: 'batchValue', header: t('valuation.colBatchValue'), render: (r) => r.batchValueText },
+        { key: 'batchValue', header: t('valuation.colBatchValue'), render: (r) => r.batchValueText ?? <MaskedValue value={null} canView={false} /> },
         {
             key: 'age',
             header: t('valuation.colAge'),

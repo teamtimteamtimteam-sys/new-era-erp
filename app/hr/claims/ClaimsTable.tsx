@@ -36,7 +36,7 @@ const CLS: Record<string, string> = {
     paid: 'bg-green-100 text-green-800',
 }
 
-export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: React.ReactNode }) {
+export default function ClaimsTable({ rows, empty, exportUrl }: { rows: ClaimRow[]; empty: React.ReactNode; exportUrl: string }) {
     const t = useTranslations()
 
     // ★ 手机上留【单号】与【状态】—— 单号是身份,而状态是这张登记簿存在的理由:
@@ -79,7 +79,7 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
             rowKey={(r) => r.claimId}
             phone={{ mode: 'columns' }}
             empty={empty}
-            exportSpec={{ name: 'hr-medical-claims', title: t('hr.subnav.claims') }}
+            exportSpec={{ name: 'hr-medical-claims', title: t('hr.subnav.claims'), serverRows: exportUrl }}
         />
     )
 }

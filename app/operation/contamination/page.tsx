@@ -11,13 +11,14 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { can } from '@/lib/permissions'
-import { formatDate } from '@/lib/dates'
 import { ListPage } from '@/app/components/ui/list-page'
-import ContaminationGrid, { type GridRow } from './ContaminationGrid'
+import ContaminationGrid from './ContaminationGrid'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { GRID_SHOWN, RECENT_CHECKS_SHOWN, checksCount, checksPage, gridCount, gridPage, missingCount, shapeGridRows } from './contaminationRows'
 import ContaminationChecksList from './ContaminationChecksList'
 import { CHECK_ROW_COLUMNS, labelsFor, toCheckListRows } from './checkRows'
 
@@ -29,30 +30,24 @@ export default async function ContaminationPage() {
     const locale = await getLocale()
     const supabase = await createClient()
 
-    const [gridRes, checkRes, streamRes, labels, canOpenRuns] = await Promise.all([
-        supabase.from('contamination_shift_status')
-            .select('process_date, shift_code, stream_code, first_run_id, first_run_code, run_codes, max_rate_pct, any_above_warning, check_state')
-            .order('process_date', { ascending: false }).order('shift_code').order('stream_code').limit(300),
-        supabase.from('contamination_check_rows').select(CHECK_ROW_COLUMNS).eq('is_current', true).order('id', { ascending: false }).limit(50),
+    // ★ TABLE-EXPORT-2b-2(Tim TABLE-EXPORT-2 Q2 · 2b Q1 · 2b Q6):两张表的读取与映射搬进 contaminationRows.ts,与导出路由共用;
+    //   各画前 N 行(网格 300 格 · 抽检 50 次),而且说出来;「缺几格」是一次 count(exact),不再数截下来的那 300 格。
+    const [gridRes, gridTotalRes, missingRes, checkRes, checkTotalRes, streamRes, labels, canOpenRuns] = await Promise.all([
+        gridPage(supabase, 0, GRID_SHOWN - 1),
+        gridCount(supabase),
+        missingCount(supabase),
+        checksPage(supabase, CHECK_ROW_COLUMNS, 0, RECENT_CHECKS_SHOWN - 1),
+        checksCount(supabase),
         supabase.from('contamination_streams').select('code, name_en, name_zh, warning_pct').eq('is_active', true).order('sort_order'),
         labelsFor(supabase, locale),
         can('module.processing.view'),
     ])
-    const grid = mustRows(gridRes, 'contamination_shift_status') as unknown as {
-        process_date: string; shift_code: string; stream_code: string; first_run_id: string; first_run_code: string; run_codes: string[]
-        max_rate_pct: number | null; any_above_warning: boolean | null; check_state: string
-    }[]
-    const rows: GridRow[] = grid.map((g) => ({
-        key: `${g.process_date}|${g.shift_code}|${g.stream_code}`,
-        date: formatDate(g.process_date, locale), processDate: g.process_date, shift: labels.shift(g.shift_code), stream: labels.stream(g.stream_code),
-        state: g.check_state === 'checked' ? 'checked' : g.check_state === 'not_sampled' ? 'not_sampled' : 'missing',
-        maxRate: g.max_rate_pct === null ? null : Number(g.max_rate_pct), anyAbove: g.any_above_warning,
-        runCode: g.first_run_code, runHref: canOpenRuns ? `/operation/processing/${g.first_run_id}` : null,
-        runCount: (g.run_codes ?? []).length,
-    }))
+    const rows = shapeGridRows(mustRows(gridRes, 'contamination_shift_status'), labels, locale, canOpenRuns)
+    const gridTotal = mustCount(gridTotalRes, 'contamination_shift_status count')
+    const missing = mustCount(missingRes, 'contamination_shift_status missing')
     const checks = toCheckListRows(mustRows(checkRes, 'contamination_check_rows'), labels, locale, canOpenRuns)
+    const checkTotal = mustCount(checkTotalRes, 'contamination_check_rows count')
     const streams = mustRows(streamRes, 'contamination_streams')
-    const missing = rows.filter((r) => r.state === 'missing').length
 
     return (
         <ListPage
@@ -72,10 +67,13 @@ export default async function ContaminationPage() {
                 <Link href="/settings/dictionaries" className="hover:underline app-link">{t('contamination.setWarning')}</Link>
             </p>
             <p className="text-sm mb-4">{missing === 0 ? t('contamination.noneMissing') : t('contamination.missingCount', { n: missing })}</p>
-            <ContaminationGrid rows={rows} />
+            <RowCapNotice shown={rows.length} total={gridTotal} />
+            <ContaminationGrid rows={rows} exportUrl="/operation/contamination/grid/export" />
             <h2 className="mt-8 mb-2">{t('contamination.recentTitle')}</h2>
+            <RowCapNotice shown={checks.length} total={checkTotal} />
             <ContaminationChecksList rows={checks} emptyKey="contamination.emptyRecent"
-                exportSpec={{ name: 'operation-contamination-checks-recent', title: t('contamination.recentTitle') }} />
+                exportSpec={{ name: 'operation-contamination-checks-recent', title: t('contamination.recentTitle'),
+                              serverRows: '/operation/contamination/checks/export' }} />
         </ListPage>
     )
 }

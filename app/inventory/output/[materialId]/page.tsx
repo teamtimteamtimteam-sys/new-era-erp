@@ -8,6 +8,8 @@ import { STATE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import { mustOne, mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import {
     toneForBucket,
     AGING_TONE_CLASSES,
@@ -208,6 +210,10 @@ export default async function OutputDrillPage({
         }
     })
 
+    // ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):成本两列来自 processing_outputs_masked,不持 data.view_prices 的人读到的是 NULL ——
+    //   从前合计把 NULL 当 0 加成「0.00」,「无成本」那一句又把每一批都算进去。两句都是假的:那是【受限】,不是零、不是没有成本。
+    //   判据与视图同一个码(data.view_prices);有权限而为空仍是原来的「—」与「无成本 N 批」。
+    const canPrices = await can('data.view_prices')
     const total = valued.reduce((s, r) => s + r.remaining_qty, 0)
     const totalCostValue = valued.reduce((s, r) => s + (r.costValue ?? 0), 0)
     const totalMarketValue = valued.reduce((s, r) => s + (r.marketValue ?? 0), 0)
@@ -234,8 +240,8 @@ export default async function OutputDrillPage({
             remainingText: `${r.remaining_qty} ${r.unit}`,
             stateLabel: stateLabel(r.state),
             outputDate: formatDate(r.output_date, locale) ?? '—',
-            unitCostText: r.unitCost !== null ? `${formatUnitCost(r.unitCost)} /kg` : '—',
-            costValueText: r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—',
+            unitCostText: r.unitCost !== null ? `${formatUnitCost(r.unitCost)} /kg` : canPrices ? '—' : null,
+            costValueText: r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : canPrices ? '—' : null,
             // FX-DISPLAY-1:这个数从来就是 USD,列头那个键现在也写着 (USD)。
             marketValueText: r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—',
             ageDays: r.ageDays !== null && tone !== null ? String(r.ageDays) : null,
@@ -262,13 +268,13 @@ export default async function OutputDrillPage({
                     <span>{total}</span>
                     <span className="mx-2 text-gray-300">·</span>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('valuation.colCostValue')}:</span>
-                    <span>{formatMoneyBare(totalCostValue, '紧挨着的行标签「成本价值 (SGD)」')}</span>
+                    <span>{canPrices ? formatMoneyBare(totalCostValue, '紧挨着的行标签「成本价值 (SGD)」') : <MaskedValue value={null} canView={false} />}</span>
                     <span className="mx-2 text-gray-300">·</span>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('valuation.colMarketValue')}:</span>
                     {/* FX-DISPLAY-1:同一个缺陷的第二个消费方 —— 列头与这条合计行共用
                         valuation.colMarketValue,那个键现在写 (USD)。这个数从来就是 USD。 */}
                     <span>{formatMoneyBare(totalMarketValue, '紧挨着的行标签「市价价值 (USD)」')}</span>
-                    {noCostCount > 0 && (
+                    {canPrices && noCostCount > 0 && (
                         <span className="ml-2 text-gray-400">
                             {t('valuation.noCostCount', { n: noCostCount })}
                         </span>

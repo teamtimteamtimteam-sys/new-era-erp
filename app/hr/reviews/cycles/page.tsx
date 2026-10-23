@@ -26,7 +26,7 @@
 // 不该让操作员去待办看板里找。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import CycleForm from './CycleForm'
 import CycleActions from './CycleActions'
@@ -39,6 +39,7 @@ import { tableC } from '@/app/components/ui/table-style'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import ListTrail from '@/app/components/trail/ListTrail'
+import TrailCapNotice, { TRAIL_RECORDS } from '@/app/components/trail/TrailCapNotice'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 
 type CycleRow = {
@@ -92,10 +93,13 @@ export default async function ReviewCyclesPage({ searchParams }: { searchParams:
     const cycles = mustRows(cycleRes, 'review_cycles') as unknown as CycleRow[]
     // AUDIT-TRAIL-1d-3(Q6):每一轮一条记录(删掉的也读 —— "被删"是那一轮的一部分),清单块按操作合起来。轮次那一块只说
     //   建 · 开 · 关;开轮时铺下的那几份评审不挂进来(每一份评审自己的那一段以"Annual review opened (cycle …)"开头)
-    const trailCycles = mustRows(
-        await supabase.from('review_cycles').select('id, name').order('period_start', { ascending: false }).limit(200),
-        'review_cycles (trail)',
-    )
+    // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q1):只读最新 TRAIL_RECORDS 轮 —— 超过时 TrailCapNotice 说出「前 N 条,共 M 条」,不导出
+    const [trailCyclesRes, trailCyclesTotalRes] = await Promise.all([
+        supabase.from('review_cycles').select('id, name').order('period_start', { ascending: false }).limit(TRAIL_RECORDS),
+        supabase.from('review_cycles').select('id', { count: 'exact', head: true }),
+    ])
+    const trailCycles = mustRows(trailCyclesRes, 'review_cycles (trail)')
+    const trailCyclesTotal = mustCount(trailCyclesTotalRes, 'review_cycles (trail) count')
     const reviews = (reviewRes.data as unknown as CycleReview[] | null) ?? []
     const employees = (empRes.data as unknown as (EmployeeOption & { employment_status: string })[] | null) ?? []
     const empById = new Map(employees.map((e) => [e.id, e]))
@@ -202,6 +206,7 @@ export default async function ReviewCyclesPage({ searchParams }: { searchParams:
                 </div>
             )}
 
+            <TrailCapNotice shown={trailCycles.length} total={trailCyclesTotal} />
             <ListTrail intro="listTrail.intro.reviewCycles" show={trailCount((await searchParams).trail)}
                 records={trailCycles.map((c) => ({ subject: 'review_cycle' as const, id: c.id, label: c.name }))} />
         </ListPage>

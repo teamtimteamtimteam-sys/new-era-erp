@@ -60,6 +60,36 @@ TABLE-EXPORT-1's Q2–Q13 and TABLE-EXPORT-2's Q1–Q10 still apply. These six a
 | Q6 | **Split**, because the whole scope (about 17.6 h estimated) does not fit one session. **TABLE-EXPORT-2b-1** (v1.4.69): every `TABLE-EXPORT-2` exemption entry in me, settings, safety, tools, compliance, my-reviews and contracts; the part B limits on those modules (safety inspection runs 200, safety environment 300, compliance packs 300, `/me` leave, medical claims and expense claims 50 each, settings import history 20); the change-history 500 notice; `/hr/reviews` failed reads shown as errors on all three reads (Q10, lines 69–71); the formulas table 「受限」 (Q4); the pricing formula edit fix (Q5). **TABLE-EXPORT-2b-2** (v1.4.70): part B on sales, hr (including Q3), inventory and operation; `/operation/capture/inbox` real paging; the two filter moves; capture "recently confirmed" and contamination "recent checks" (Q1); the contamination "missing" count and the notifications unread count as exact counts; notifications (Q2); the other 17 「受限」 sites (Q4). |
 | Side finding | Contracts settlement amounts come from `sales_settlements` with no column mask, on a page that needs only `module.suppliers.view`. Not changed in 2b; measured (which live roles hold `module.suppliers.view` without `data.view_prices`), recorded, and added to the go-live readiness group and `docs/known-issues.md`. |
 
+## The rulings — Tim 2026-10-23 (TABLE-EXPORT-2b-2 Step 0)
+
+TABLE-EXPORT-1's Q2–Q13, TABLE-EXPORT-2's Q1–Q10 and TABLE-EXPORT-2b's Q1–Q6 still apply. These are new; the survey behind them is `docs/surveys/TABLE-EXPORT-2b-2/step0.md`.
+
+| # | Ruling |
+|---|---|
+| Q1 | `/hr/leave/grants` and `/hr/reviews/cycles`: option (a). A notice only, "History below covers the latest 200 of M", no export; the same treatment as change-history and notifications. |
+| Q2 | Option (a). Fix the screens of all 17 「受限」 sites in this cut. In the TABLE-EXPORT-3 queue entry, record that when those detail-page tables get their exports, the export must show "Restricted" wherever the screen shows 「受限」 (list the 15 exemption entries by file). The payment-term templates table (TemplatesTable.tsx:67), which already exports, gets both screen and export fixed now. |
+| Q3 | Option (a). The top-bar bell uses the same exact unread count as /notifications, shown as "9+" above 9. |
+| Split | Not split (Tim). One cut, v1.4.70. Safeguard: if midway it will not fit the session, finish the module in hand, queue the rest as TABLE-EXPORT-2b-3 with the rulings copied verbatim, run the full verify chain on what is done, push, and say so. |
+| Correction | The "15 s" reading for `/settings/dictionaries` comes from the PAYROLL-PAY-REVERSAL-1 close-out production check (HTTP 200 in 15.4 s, recorded in the TABLE-EXPORT-1 session's Part 1 reading of that close-out). |
+
+**Two notes on the rulings, measured (not re-asked):**
+- **Q2's "15 exemption entries" is 7.** The number came from an error in the 2b-2 Step 0 report: the 17 sites are 10 on 7 exempt detail-page tables,
+  6 in page headers or summary lines (never exported), and 1 on the already-exported templates table. The 7 files are listed in the TABLE-EXPORT-3 entry (`docs/forward-queue.md` 64b).
+- **The correction's source, re-read:** the 15.4 s line is `docs/surveys/CLAIM-RECEIPTS-1/readings/closeout-production-check-2.txt:3` —
+  CLAIM-RECEIPTS-1's close-out production check, run in the PAYROLL-PAY-REVERSAL-1 session's Part 1 (2026-10-22 09:51 CST). Recorded beside the other readings in
+  `docs/known-issues.md` § PAGES-TOO-SLOW-TO-USE and go-live readiness row 13.
+
+**Where 2b-2 lives in code:**
+- Capped list pages, each a `<page>Rows.ts` + `export/route.ts` + `RowCapNotice` (the 2a mechanism): `app/sales/orders/ordersRows.ts` · `app/sales/quotes/quotesRows.ts` ·
+  `app/hr/claims/claimsRows.ts` (the status filter is now part of the query, before the cut) · `app/hr/leave/leaveRows.ts` · `app/hr/reviews/reviewsRows.ts` ·
+  `app/operation/capture/captureRows.ts` (two tables, `pending/export` · `recent/export`) · `app/operation/weighbridge/ticketsRows.ts` ·
+  `app/operation/contamination/contaminationRows.ts` (two tables, `grid/export` · `checks/export`, and the exact "missing" count).
+- `app/operation/equipment/CellsTable.tsx` takes `exportSpec.serverRows`; a route answers rows that carry only `exports` (built by the same server code as the page).
+- Ledger: `app/inventory/reports/ledger/ledgerQuery.ts` — `LEDGER_SHOWN = 1000` (what PostgREST's `max_rows` actually returned for the old `.limit(2000)`);
+  material and batch narrow two reads (inbound side, output side — `inventory_movements_one_batch` says exactly one is set), merged in one order, cut once.
+- Inbox: `app/operation/capture/inbox/inboxRows.ts` — `?page=`, 200 a page, export takes every matching row.
+- Q1: `app/components/trail/TrailCapNotice.tsx`. Q3 and the unread count: `lib/notifications.ts` `countUnread` (one function for the page and the bell).
+
 **Where Q2 lives in code (2a):** `app/components/ui/row-cap-notice.tsx` (the notice; it draws nothing when the page shows every row);
 each capped page has a `<page>Rows.ts` read module shared with an export route (`freight/export`, `supplier-statements/export`,
 `bank/transfers/export`, `cash-forecast/frozen/export`). `lib/export/serverRows.ts` gained `inChunks` (id look-ups in batches of 100,

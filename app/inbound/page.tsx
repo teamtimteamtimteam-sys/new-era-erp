@@ -20,6 +20,7 @@ import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { MOD } from '@/lib/modules'
 
@@ -116,7 +117,11 @@ export default async function InboundPage({
     const { data: batches, error } = await inboundPage(supabase, filterParams, searchOr, from, to)
 
     // ROLE-1 Batch 3b:收货与注销各有自己的码(库里 create_inbound_batch / soft_delete_inbound_batch 照样按码拒)
-    const [canReceive, canWriteOff] = await Promise.all([can('action.receive_goods'), can('action.batch_write_off')])
+    const [canReceive, canWriteOff, canPrices] = await Promise.all([
+        can('action.receive_goods'), can('action.batch_write_off'),
+        // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):inbound_batches_masked 遮单价用的同一个码 —— 见下面「未计价」那一句
+        can('data.view_purchase_prices'),
+    ])
 
     // 下拉选项:供应商按 legal_name、物料按 name 作为显示标签
     // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)。
@@ -243,7 +248,14 @@ export default async function InboundPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('inbound.recordCount', { count: total })}
-                {(mustCount(unpricedRes)) > 0 && (
+                {/* ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):这个数数的是 inbound_batches_masked 上 unit_price 为空的批次,而对不持
+                    data.view_purchase_prices 的人每一批的单价都被遮成空 —— 从前它对那个人说"每一批都未计价",一句假话。
+                    那个人这里说「受限」;旁边按 pricing_status 数的「等化验 / 暂定价」(不遮)照旧。 */}
+                {!canPrices ? (
+                    <span className="ml-2 text-gray-400" data-unpriced-badge="restricted">
+                        {t('inbound.unpricedBadgeRestricted')} <MaskedValue value={null} canView={false} />
+                    </span>
+                ) : (mustCount(unpricedRes)) > 0 && (
                     <span className="ml-2 text-gray-400">
                         {t('inbound.unpricedBadge', { n: mustCount(unpricedRes) })}
                     </span>

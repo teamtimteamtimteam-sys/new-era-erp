@@ -22,25 +22,16 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
-import { xText, xNum, xInt, xTime } from '@/lib/export/cells'
 import { ProcessReceivedButton } from './inbox/InboxControls'
 import { DraftActions, ManualWeighingForm, CorrectWeighing } from './CaptureControls'
 import { INSTRUMENT_KINDS, type OpenTicket, type Option } from './captureFields'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import {
+    PENDING_SHOWN, RECENT_SHOWN, ageInDays, draftExports, pendingCount, pendingPage, recentCount, recentPage,
+    weighingExports, weighingLookups,
+} from './captureRows'
 
-type Draft = {
-    id: string; inbox_id: number; device_id: string | null; station: string | null; proposed: { weight_kg?: number }
-    source: string; created_at: string
-}
-type Weighing = {
-    weighing_id: string; ticket_id: string | null; role: string; weight_kg: number; source: string; device_code: string | null
-    captured_at: string; is_current: boolean; status: string
-}
 type Device = { id: string; code: string; name: string; kind: string; retired_at: string | null }
-
-// 一张草稿等了几整天(永不过期,MES-0 Q13)。放在组件外:渲染里直接读时钟是 react-hooks/purity 拦的那一类。
-function ageInDays(createdAt: string): number {
-    return Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 86_400_000))
-}
 
 export default async function CapturePage() {
     const denied = await requireFunction(FN.capture)
@@ -50,41 +41,29 @@ export default async function CapturePage() {
     const supabase = await createClient()
     const canConfirm = await can('action.confirm_capture')
 
-    const [draftRes, devRes, openRes, wRes, receivedRes] = await Promise.all([
-        supabase.from('capture_drafts').select('id, inbox_id, device_id, station, proposed, source, created_at')
-            .eq('status', 'pending').order('created_at').limit(200),
+    // ★ TABLE-EXPORT-2b-2(Tim TABLE-EXPORT-2 Q2 · 2b Q1):两张表的读取与导出格搬进 captureRows.ts,与导出路由共用;
+    //   各画前 N 行(草稿 200 张最老的在前 · 称重 50 次最新的在前),而且说出来。
+    const [draftRes, draftTotalRes, devRes, openRes, wRes, wTotalRes, receivedRes] = await Promise.all([
+        pendingPage(supabase, 0, PENDING_SHOWN - 1),
+        pendingCount(supabase),
         supabase.from('devices').select('id, code, name, kind, retired_at').order('code'),
         supabase.from('weighbridge_ticket_weights').select('ticket_id, code, direction, vehicle_reg, status').eq('status', 'open').order('code'),
-        supabase.from('weighing_calibration').select('weighing_id, ticket_id, role, weight_kg, source, device_code, captured_at, is_current, status')
-            .order('captured_at', { ascending: false }).limit(50),
+        recentPage(supabase, 0, RECENT_SHOWN - 1),
+        recentCount(supabase),
         supabase.from('ingest_inbox').select('id', { count: 'exact', head: true }).eq('status', 'received'),
     ])
-    const drafts = mustRows(draftRes, 'capture_drafts') as Draft[]
+    const drafts = mustRows(draftRes, 'capture_drafts')
+    const draftTotal = mustCount(draftTotalRes, 'capture_drafts count')
     const devices = mustRows(devRes, 'devices') as Device[]
     const openTickets: OpenTicket[] = (mustRows(openRes, 'weighbridge_ticket_weights') as { ticket_id: string; code: string; direction: string; vehicle_reg: string }[])
         .map((o) => ({ id: o.ticket_id, code: o.code, direction: o.direction, vehicle_reg: o.vehicle_reg }))
-    const weighings = mustRows(wRes, 'weighing_calibration') as Weighing[]
+    const weighings = mustRows(wRes, 'weighing_calibration')
+    const weighingTotal = mustCount(wTotalRes, 'weighing_calibration count')
     const received = mustCount(receivedRes, 'ingest_inbox received')
 
-    // 改过的值:最近这几次称重的草稿上有没有 capture_draft_changes
-    const wIds = weighings.map((w) => w.weighing_id)
-    const changesByWeighing = new Map<string, { original_value: unknown; confirmed_value: unknown; reason: string }>()
-    const correctionReason = new Map<string, string>()
-    if (wIds.length > 0) {
-        const wr = mustRows(await supabase.from('weighings').select('id, draft_id, correction_reason, corrects_id').in('id', wIds), 'weighings') as
-            { id: string; draft_id: string; correction_reason: string | null; corrects_id: string | null }[]
-        const draftOf = new Map(wr.map((w) => [w.draft_id, w.id]))
-        wr.forEach((w) => { if (w.correction_reason) correctionReason.set(w.id, w.correction_reason) })
-        const ch = mustRows(await supabase.from('capture_draft_changes').select('draft_id, original_value, confirmed_value, reason')
-            .in('draft_id', [...draftOf.keys()]), 'capture_draft_changes') as { draft_id: string; original_value: unknown; confirmed_value: unknown; reason: string }[]
-        ch.forEach((c) => { const w = draftOf.get(c.draft_id); if (w) changesByWeighing.set(w, c) })
-    }
-    const tickets = new Map<string, string>()
-    const tIds = [...new Set(weighings.map((w) => w.ticket_id).filter((x): x is string => !!x))]
-    if (tIds.length > 0) {
-        const tr = mustRows(await supabase.from('weighbridge_tickets').select('id, code').in('id', tIds), 'weighbridge_tickets') as { id: string; code: string }[]
-        tr.forEach((x) => tickets.set(x.id, x.code))
-    }
+    // 改过的值:最近这几次称重的草稿上有没有 capture_draft_changes;更正理由;地磅单号
+    const lookups = await weighingLookups(supabase, weighings)
+    const { changesByWeighing, correctionReason, tickets } = lookups
 
     const byId = new Map(devices.map((d) => [d.id, d]))
     const instruments: Option[] = devices
@@ -107,14 +86,7 @@ export default async function CapturePage() {
                 actions: <DraftActions draftId={d.id} label={`${dev?.code ?? '#' + d.inbox_id} · ${kg} kg`} proposedKg={kg}
                                        openTickets={openTickets} canConfirm={canConfirm} />,
             },
-            // TABLE-EXPORT-1:导出读原始值 —— 读数是一个数(kg),收到是真时刻,等了几天是整数
-            exports: {
-                weight: xNum(kg, 'qty', kgUnit), // TABLE-EXPORT-1:屏幕上是「12 kg」(capture.kg),单位一起写
-                device: xText(dev ? dev.code : '—'),
-                station: xText(d.station ?? '—'),
-                received: xTime(d.created_at),
-                age: xInt(age),
-            },
+            exports: draftExports(d, dev, kgUnit),
         }
     })
 
@@ -147,14 +119,7 @@ export default async function CapturePage() {
                 source: t('capture.source.' + w.source),
                 actions: w.is_current ? <CorrectWeighing weighingId={w.weighing_id} currentKg={Number(w.weight_kg)} canConfirm={canConfirm} /> : null,
             },
-            // TABLE-EXPORT-1:重量是一个数;屏幕上挂在它下面的「改过 / 更正」两句与仪器下面的校准状态,导出同样写出来(读者不必回屏幕看)
-            exports: {
-                at: xTime(w.captured_at),
-                weight: xNum(w.weight_kg, 'qty', kgUnit),
-                role: xText(w.ticket_id ? `${t('weighing.role.' + w.role)} · ${tickets.get(w.ticket_id) ?? '—'}` : t('weighing.role.' + w.role)),
-                instrument: xText(`${w.device_code ?? '—'} · ${t('calibration.status.' + w.status)}`),
-                source: xText(t('capture.source.' + w.source)),
-            },
+            exports: weighingExports(w, lookups, t, kgUnit),
         }
     })
 
@@ -168,6 +133,7 @@ export default async function CapturePage() {
         >
             <section className="mb-8">
                 <h2 className="mb-2">{t('capture.pendingTitle')}</h2>
+                <RowCapNotice shown={draftRows.length} total={draftTotal} />
                 <CellsTable
                     columns={[
                         { key: 'weight', header: t('capture.colReading'), priority: true },
@@ -179,7 +145,7 @@ export default async function CapturePage() {
                     ]}
                     rows={draftRows}
                     empty={t('capture.noPending')}
-                    exportSpec={{ name: 'operation-capture-pending', title: t('capture.pendingTitle') }}
+                    exportSpec={{ name: 'operation-capture-pending', title: t('capture.pendingTitle'), serverRows: '/operation/capture/pending/export' }}
                 />
             </section>
 
@@ -191,6 +157,7 @@ export default async function CapturePage() {
 
             <section className="mb-8">
                 <h2 className="mb-2">{t('capture.recentTitle')}</h2>
+                <RowCapNotice shown={weighingRows.length} total={weighingTotal} />
                 <CellsTable
                     columns={[
                         { key: 'at', header: t('capture.colWeighedAt') },
@@ -202,7 +169,7 @@ export default async function CapturePage() {
                     ]}
                     rows={weighingRows}
                     empty={t('capture.noWeighings')}
-                    exportSpec={{ name: 'operation-capture-recent', title: t('capture.recentTitle') }}
+                    exportSpec={{ name: 'operation-capture-recent', title: t('capture.recentTitle'), serverRows: '/operation/capture/recent/export' }}
                 />
                 <p className="mt-2 text-sm">
                     <Link href="/operation/calibration" className="app-link hover:underline">{t('calibration.title')}</Link>

@@ -26,7 +26,11 @@ export type PoReceiptRow = {
     code: string
     arrivalDateText: string
     qtyText: string
-    /** null = 这一批还没有定价(画成琥珀色的「未计价」,不是空白)。 */
+    /**
+     * null = 这一批还没有定价(画成琥珀色的「未计价」,不是空白)—— 【只对看得见价的人】。
+     * ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):inbound_batches_masked 对不持 data.view_purchase_prices 的人把单价遮成 NULL,
+     *   从前这里照样印「未计价」—— 一句假话。看不见价的人那里 null 画「受限」(canPrices,与 canFinance 同一个办法)。
+     */
     unitPriceText: string | null
     /**
      * ★ FIX-2b:null = 【看不到】(prepayment_applications_masked 在财务那道门
@@ -42,9 +46,12 @@ export type PoReceiptRow = {
 export default function PoReceiptsTable({
     rows,
     canFinance,
+    canPrices,
 }: {
     rows: readonly PoReceiptRow[]
     canFinance: boolean
+    /** TABLE-EXPORT-2b-2:读者持不持 data.view_purchase_prices —— 单价那一格的 null 是「未计价」还是「受限」 */
+    canPrices: boolean
 }) {
     const t = useTranslations()
 
@@ -83,6 +90,8 @@ export default function PoReceiptsTable({
             render: (r) =>
                 r.unitPriceText !== null ? (
                     r.unitPriceText
+                ) : !canPrices ? (
+                    <MaskedValue value={null} canView={false} />
                 ) : (
                     <span className="text-amber-700">{t('purchasing.unpriced')}</span>
                 ),

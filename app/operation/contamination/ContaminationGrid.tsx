@@ -15,7 +15,7 @@ export type GridRow = {
     processDate: string
 }
 
-export default function ContaminationGrid({ rows }: { rows: GridRow[] }) {
+export default function ContaminationGrid({ rows, exportUrl }: { rows: GridRow[]; exportUrl: string }) {
     const t = useTranslations()
     const columns: ExportableColumn<GridRow>[] = [
         { key: 'date', header: t('contamination.colDate'), priority: true, render: (r) => r.date, exportAs: (r) => xDate(r.processDate) },
@@ -50,5 +50,5 @@ export default function ContaminationGrid({ rows }: { rows: GridRow[] }) {
         },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} empty={t('contamination.emptyGrid')}
-                      exportSpec={{ name: 'operation-contamination-shifts', title: t('contamination.title') }} />
+                      exportSpec={{ name: 'operation-contamination-shifts', title: t('contamination.title'), serverRows: exportUrl }} />
 }

@@ -9,10 +9,12 @@ import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { fetchLedger, parseLedgerParams, flatten } from './ledgerQuery'
-import { statusKey } from '../snapshot/snapshotQuery'
+import { createClient } from '@/lib/supabase/server'
+import { fetchLedger, ledgerCount, parseLedgerParams } from './ledgerQuery'
+import { shapeLedgerRows } from './ledgerRows'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import { ListPage } from '@/app/components/ui/list-page'
-import LedgerTable, { type LedgerTableRow } from './LedgerTable'
+import LedgerTable from './LedgerTable'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 
@@ -26,7 +28,8 @@ export default async function LedgerPage({
     const t = await getTranslations()
     const sp = await searchParams
     const params = parseLedgerParams(sp)
-    const rows = await fetchLedger(params)
+    // ★ TABLE-EXPORT-2b-2(Tim Q2):只画最新 LEDGER_SHOWN(1,000)条,而且说出来;物料 / 批次筛选在库里、截断之前跑(见 ledgerQuery.ts)
+    const [rows, total] = await Promise.all([fetchLedger(params), ledgerCount(await createClient(), params)])
     // 【PDF 必须与屏幕上看到的是同一份】—— movement 也要带上,
     //  否则导出的是一整张流水,而人以为导的是他正在看的那一条。
     //  (TABLE-EXPORT-1:CSV 那条路由删了 —— Excel / CSV 由表上的统一导出从表手里那一份写,天然是同一份。)
@@ -46,21 +49,7 @@ export default async function LedgerPage({
             [t('reports.ledger.material'), params.materialId], [t('reports.ledger.batch'), params.batchCode],
         ] as Array<[string, string]>).filter(([, v]) => v)
 
-    const tableRows: LedgerTableRow[] = rows.map((r) => {
-        const f = flatten(r)
-        return {
-            id: r.id,
-            date: f.date,
-            batch: f.batch,
-            material: f.material,
-            location: f.location,
-            hasLocation: Boolean(f.location),
-            type: f.type,
-            status: t(statusKey(f.status)),
-            qty: String(f.qty),
-            qtyDelta: f.qty,
-        }
-    })
+    const tableRows = shapeLedgerRows(rows, t)
 
     return (
         <ListPage
@@ -120,7 +109,9 @@ export default async function LedgerPage({
             </form>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('reports.ledger.windowNote')}</p>
 
-            <LedgerTable rows={tableRows} empty={t('reports.ledger.empty')} filters={exportFilters} />
+            <RowCapNotice shown={tableRows.length} total={total} />
+            <LedgerTable rows={tableRows} empty={t('reports.ledger.empty')} filters={exportFilters}
+                exportUrl={`/inventory/reports/ledger/export${qs ? `?${qs}` : ''}`} />
         </ListPage>
     )
 }

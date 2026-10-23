@@ -23,6 +23,7 @@
 //
 // 【行数据在服务端压平】状态标签、金属市价折算、工单反查、库龄色调 ——
 // 全部在服务端算完;一个 Map、一个判据都不过界(CONV-1 §①)。
+import { MaskedValue } from '@/app/components/MaskedValue'
 import * as React from 'react'
 import Link from 'next/link'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
@@ -37,8 +38,9 @@ export type OutputBatchRow = {
     remainingText: string
     stateLabel: string
     outputDate: string
-    unitCostText: string
-    costValueText: string
+    /** TABLE-EXPORT-2b-2:null = 受限(不持 data.view_prices)—— 画「受限」,不画「—」 */
+    unitCostText: string | null
+    costValueText: string | null
     marketValueText: string
     ageDays: string | null
     ageToneClass: string
@@ -79,8 +81,8 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
             render: (r) => <span className="px-2 py-1 bg-gray-200 rounded text-xs">{r.stateLabel}</span>,
         },
         { key: 'outputDate', header: t('output.colOutputDate'), render: (r) => r.outputDate },
-        { key: 'unitCost', header: t('valuation.colUnitCost'), render: (r) => r.unitCostText },
-        { key: 'costValue', header: t('valuation.colCostValue'), render: (r) => r.costValueText },
+        { key: 'unitCost', header: t('valuation.colUnitCost'), render: (r) => r.unitCostText ?? <MaskedValue value={null} canView={false} /> },
+        { key: 'costValue', header: t('valuation.colCostValue'), render: (r) => r.costValueText ?? <MaskedValue value={null} canView={false} /> },
         { key: 'marketValue', header: t('valuation.colMarketValue'), render: (r) => r.marketValueText },
         {
             key: 'age',

@@ -18,13 +18,31 @@
 //   **一次缺席不许被渲染成一个答案。**
 //   所以这里 catch 之后写的是 null,不是 0,而调用方必须把 null 画成"!"而不是"0"。
 import { createClient } from '@/lib/supabase/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustCount } from '@/lib/db-helpers'
 
-// 【有界】只看最新的 10 条。顶栏出现在【每一页】上,所以它必须有界
-// (同 operations_now 那条"人人都开的页面上不许无界扫描")。
-// 代价说清楚:超过 10 条未读时徽标显示「9+」,它回答的是"有没有、多不多",
-// 不是"精确几条" —— 精确的数字在 /notifications 那一页上。
-export const BELL_LIMIT = 10
+// ★ TABLE-EXPORT-2b-2(Tim 2026-10-23,TABLE-EXPORT-2b Q6 · 2b-2 Step 0 Q3):未读数是一个【精确】的数。
+//   从前顶栏只看最新的 10 条(BELL_LIMIT),/notifications 只看最新的 50 条 —— 两处各数各的截断,
+//   于是最新的 10 条都读过、更早的还有 3 条没读时,徽标说 0、那一页说 3(或者都说少了)。
+//   现在两处读同一个函数、同一个数:未读 = 【看得见的通知】的条数 − 【我读过、而且仍看得见的】那几条。
+//   两次 count(exact, head),不搬任何一行:
+//     · notifications 的读策略按 subject_type 问权限码 —— count 数的就是"这个人看得见的";
+//     · notification_reads 只读得到自己的行(select own),内嵌 `notifications!inner` 把"读过、但已经看不见"的那几条挡在外面
+//       (否则一条看不见了的已读会被减掉,未读数偏小)。外键 notification_reads.notification_id → notifications(id)。
+//   徽标仍然只印到「9+」(unreadBadge)—— 变的是那个数准了,不是印法。
+
+type Client = Awaited<ReturnType<typeof createClient>>
+
+/** 精确的未读数。**读失败就抛** —— 调用方决定失败怎么画(页面:失败;顶栏:null →「!」)。 */
+export async function countUnread(supabase: Client, userId: string): Promise<number> {
+    const [visibleRes, readRes] = await Promise.all([
+        supabase.from('notifications').select('id', { count: 'exact', head: true }),
+        supabase.from('notification_reads').select('notification_id, notifications!inner ( id )', { count: 'exact', head: true })
+            .eq('user_id', userId),
+    ])
+    const visible = mustCount(visibleRes, 'notifications count')
+    const read = mustCount(readRes, 'notification_reads count')
+    return Math.max(0, visible - read)
+}
 
 /**
  * 这个人有多少条未读。
@@ -50,25 +68,7 @@ export async function getUnreadCount(userId: string): Promise<number | null> {
     // 【读失败绝不冒出去】顶栏在每一页上,一次读不到通知不该把整站变成错误页。
     // 但它也【绝不退化成 0】—— 见抬头。
     try {
-        const rows = mustRows(
-            await supabase
-                .from('notifications')
-                .select('id')
-                .order('occurred_at', { ascending: false })
-                .limit(BELL_LIMIT),
-            'notifications'
-        )
-        if (rows.length === 0) return 0
-        const readRows = mustRows(
-            await supabase
-                .from('notification_reads')
-                .select('notification_id')
-                .eq('user_id', userId)
-                .in('notification_id', rows.map((r) => r.id)),
-            'notification_reads'
-        )
-        const read = new Set(readRows.map((r) => r.notification_id))
-        return rows.filter((r) => !read.has(r.id)).length
+        return await countUnread(supabase, userId)
     } catch {
         return null // ← 【不知道】,与 0 是两回事
     }

@@ -9,6 +9,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
 import { toneForBucket, AGING_TONE_CLASSES } from '@/lib/valuation'
 import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -95,7 +97,11 @@ export default async function InboundDrillPage({
         }
     }
     const valById = new Map<string, Val>()
-    for (const v of (valRes.data as unknown as Val[] | null) ?? []) valById.set(v.id, v)
+    // TABLE-EXPORT-2b-2:读失败就让这一页失败,不把估值读成"一批都没有价"(一次失败不是一个空集)
+    for (const v of mustRows(valRes, 'inbound_batch_valuation') as unknown as Val[]) valById.set(v.id, v)
+    // ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):landed_* 对不持 data.view_prices 的人是 NULL(inbound_batch_valuation_rows 里同一个码)——
+    //   从前合计把 NULL 当 0 加成「0.00」、每一批的价值画「—」。那是【受限】,不是零、不是没有。有权限而为空仍是原来的样子。
+    const canPrices = await can('data.view_prices')
     const total = rows.reduce((s, r) => s + r.remaining_qty, 0)
     // 估值汇总:只累计【拿得到到岸成本】的批次;未计价的单独计数提示。
     const totalValue = rows.reduce(
@@ -135,7 +141,7 @@ export default async function InboundDrillPage({
             batchValueText:
                 v?.landed_value_base != null
                     ? formatMoneyBare(v.landed_value_base, '列头「批次价值 (SGD)」')
-                    : '—',
+                    : canPrices ? '—' : null,
             ageDays: days !== null && tone !== null ? String(days) : null,
             ageToneClass: tone !== null ? AGING_TONE_CLASSES[tone] : '',
         }
@@ -158,7 +164,7 @@ export default async function InboundDrillPage({
                     <span>{total}</span>
                     <span className="mx-2 text-gray-300">·</span>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('valuation.colStockValue')}:</span>
-                    <span>{formatMoneyBare(totalValue, '紧挨着的行标签「库存价值 (SGD)」')}</span>
+                    <span>{canPrices ? formatMoneyBare(totalValue, '紧挨着的行标签「库存价值 (SGD)」') : <MaskedValue value={null} canView={false} />}</span>
                     {unpricedCount > 0 && (
                         <span className="ml-2 text-gray-400">
                             {t('valuation.unpricedCount', { n: unpricedCount })}

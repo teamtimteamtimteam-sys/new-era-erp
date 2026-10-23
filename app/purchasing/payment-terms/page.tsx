@@ -30,6 +30,8 @@ export default async function PaymentTermTemplatesPage() {
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
     const canEditGate = await can('module.purchasing.edit')
+    // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):payment_term_template_lines_masked 用的同一个码
+    const canPrices = await can('data.view_purchase_prices')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -48,7 +50,8 @@ export default async function PaymentTermTemplatesPage() {
 
     const templates = mustRows(tplRes)
     const linesByTpl = new Map<string, TemplateLine[]>()
-    for (const l of (lineRes.data as TemplateLine[] | null) ?? []) {
+    // TABLE-EXPORT-2b-2:读失败就让这一页失败,不把每个模板画成「—」(一次失败不是一个空集)
+    for (const l of mustRows(lineRes, 'payment_term_template_lines_masked') as TemplateLine[]) {
         const arr = linesByTpl.get(l.template_id) ?? []
         arr.push(l)
         linesByTpl.set(l.template_id, arr)
@@ -68,8 +71,12 @@ export default async function PaymentTermTemplatesPage() {
     const summary = (tplId: string, tplCurrency: string | null) =>
         (linesByTpl.get(tplId) ?? [])
             .map((l) => {
+                // ★ TABLE-EXPORT-2b-2(Tim 2026-10-23 Q4):固定额被遮成 NULL 时从前印「—」;看不见价的人那里是「受限」。
+                //   这一格是一句话(屏幕与导出同一串),所以「受限」就写进这句话里 —— 两边一起改。
                 const share =
-                    l.percentage !== null ? `${l.percentage}%` : formatAmount(l.fixed_amount_ccy, tplCurrency)
+                    l.percentage !== null
+                        ? `${l.percentage}%`
+                        : l.fixed_amount_ccy === null && !canPrices ? t('common.restricted') : formatAmount(l.fixed_amount_ccy, tplCurrency)
                 const trigger = triggerNames.get(l.trigger_event) ?? l.trigger_event
                 const offset =
                     l.trigger_event === 'fixed_date' && l.days_offset !== null

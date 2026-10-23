@@ -41,5 +41,5 @@ export default function SalesOrdersTable({ rows, empty }: { rows: SalesOrderRow[
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-        exportSpec={{ name: 'sales-orders', title: t('sales.listTitle') }} />
+        exportSpec={{ name: 'sales-orders', title: t('sales.listTitle'), serverRows: '/sales/orders/export' }} />
 }

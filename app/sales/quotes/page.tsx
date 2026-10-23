@@ -9,11 +9,13 @@ import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
-import QuotesTable, { type QuoteRow } from './QuotesTable'
+import QuotesTable from './QuotesTable'
+import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
+import { QUOTES_SHOWN, quotesCount, quotesPage } from './quotesRows'
 
 export default async function QuotesPage() {
     const denied = await requireModule(MOD.sales)
@@ -21,12 +23,10 @@ export default async function QuotesPage() {
     const t = await getTranslations()
     const supabase = await createClient()
 
-    const rows = mustRows(
-        await supabase.from('quote_status')
-            .select('quote_id, code, customer_code, customer_name, quote_date, valid_until, currency, status, expired, converted_order_id, converted_order_code, issue_version')
-            .order('quote_date', { ascending: false })
-            .limit(200),
-        'quote_status') as unknown as QuoteRow[]
+    // ★ TABLE-EXPORT-2b-2(Tim Q2):读取搬进 quotesRows.ts,与导出路由共用;只画最新 QUOTES_SHOWN 张,而且说出来。
+    const [listRes, totalRes] = await Promise.all([quotesPage(supabase, 0, QUOTES_SHOWN - 1), quotesCount(supabase)])
+    const rows = mustRows(listRes, 'quote_status')
+    const total = mustCount(totalRes, 'quote_status count')
 
     return (
         <ListPage
@@ -41,6 +41,7 @@ export default async function QuotesPage() {
             // 【不分两种空】—— 一张报价没有"太少所以说明不了问题":一份报价就是一份报价。
             state={rows.length === 0 ? { kind: 'empty', noRows: t('quotes.empty') } : { kind: 'ok' }}
         >
+            <RowCapNotice shown={rows.length} total={total} />
             <QuotesTable rows={rows} />
         </ListPage>
     )

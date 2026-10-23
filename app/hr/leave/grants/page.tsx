@@ -7,11 +7,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import LeaveSubnav from '../LeaveSubnav'
 import GrantRunner from './GrantRunner'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import ListTrail from '@/app/components/trail/ListTrail'
+import TrailCapNotice, { TRAIL_RECORDS } from '@/app/components/trail/TrailCapNotice'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function GrantsPage({
@@ -35,11 +36,14 @@ export default async function GrantsPage({
     const grants = mustRows(grantRes)
     // AUDIT-TRAIL-1d-2:这一个假期年的每一笔发放(删掉的也读 —— "被删"是那一笔的一部分)一条记录,清单块按操作合起来:
     //   一次结转是一条 "Unused leave carried forward · N people"(Q16 的 op_key)。员工按工号认(读 employees_masked —— 只要工号)
-    const yearGrants = mustRows(
-        await supabase.from('leave_grants').select('id, employee_id, leave_year').eq('leave_year', year)
-            .order('created_at', { ascending: false }).limit(200),
-        'leave_grants (trail)',
-    )
+    // TABLE-EXPORT-2b-2(Tim 2026-10-23 Q1):只读最新 TRAIL_RECORDS 条 —— 超过时 TrailCapNotice 说出「前 N 条,共 M 条」,不导出
+    const [yearGrantsRes, yearGrantsTotalRes] = await Promise.all([
+        supabase.from('leave_grants').select('id, employee_id, leave_year').eq('leave_year', year)
+            .order('created_at', { ascending: false }).limit(TRAIL_RECORDS),
+        supabase.from('leave_grants').select('id', { count: 'exact', head: true }).eq('leave_year', year),
+    ])
+    const yearGrants = mustRows(yearGrantsRes, 'leave_grants (trail)')
+    const yearGrantsTotal = mustCount(yearGrantsTotalRes, 'leave_grants (trail) count')
     const grantEmpIds = [...new Set(yearGrants.map((g) => g.employee_id))]
     const grantEmps = grantEmpIds.length
         ? mustRows(await supabase.from('employees_masked').select('id, code').in('id', grantEmpIds), 'employees_masked (trail)')
@@ -66,6 +70,7 @@ export default async function GrantsPage({
 
             <GrantRunner year={year} alreadyCarried={hasCarry.size} />
 
+            <TrailCapNotice shown={yearGrants.length} total={yearGrantsTotal} />
             <ListTrail intro="listTrail.intro.leaveGrants" show={trailCount(sp.trail)}
                 records={yearGrants.map((g) => ({ subject: 'leave_grant' as const, id: g.id,
                     label: `${codeOf.get(g.employee_id) ?? '—'} · ${g.leave_year}` }))} />

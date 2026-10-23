@@ -19,7 +19,14 @@ export type CellColumn = {
     control?: boolean
 }
 /** 统一导出的名字与标题(RSC 边界上只能是纯数据,所以不收 TableExportSpec 的函数字段)。 */
-export type CellsExport = { name: string; title: string }
+export type CellsExport = {
+    name: string; title: string
+    /**
+     * TABLE-EXPORT-2b-2:页面只画前 N 行时,导出向这条 JSON 路由要全部匹配行。路由交回的行只带 `exports`
+     * (`cells` 是空的 —— 导出从来只读 exports),而 exports 由页面与路由【同一份】服务端代码造。
+     */
+    serverRows?: string
+}
 
 export default function CellsTable({ columns, rows, empty, exportSpec }: {
     columns: CellColumn[]; rows: CellRow[]; empty: ReactNode; exportSpec: CellsExport
@@ -35,5 +42,5 @@ export default function CellsTable({ columns, rows, empty, exportSpec }: {
         ? { key: c.key, header: c.header, priority: true, align: c.align, render: (r: CellRow) => r.cells[c.key], exportAs: exportAs(c) }
         : { key: c.key, header: c.header, priority: c.priority, align: c.align, render: (r: CellRow) => r.cells[c.key], exportAs: exportAs(c) })
     return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-                      exportSpec={{ name: exportSpec.name, title: exportSpec.title }} />
+                      exportSpec={{ name: exportSpec.name, title: exportSpec.title, serverRows: exportSpec.serverRows }} />
 }

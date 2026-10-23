@@ -433,7 +433,7 @@ export default async function EditInboundPage({
         // 正是照着这句话决定要不要再抵一次。
         prepaymentHistory = (mustRows(historyRes) as unknown as {
             id: string
-            amount_base: number
+            amount_base: number | null
             created_at: string
             journal_entries: { id: string; code: string } | null
         }[]).map((h) => ({
@@ -916,7 +916,7 @@ export default async function EditInboundPage({
 
             {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
             <PrepaymentPanel canEdit={canEditGate} batchId={batch.id} applicable={applicable} history={prepaymentHistory}
-                baseCurrency={baseCurrency}
+                baseCurrency={baseCurrency} canPrices={showPurchasePrices}
                 /* 挂着单、却看不到采购侧 —— 那时这一块要【说出来】,不是消失。 */
                 restricted={!!batch.purchase_order_id && !(canViewPurchasing && canSeeFinance)} />
 

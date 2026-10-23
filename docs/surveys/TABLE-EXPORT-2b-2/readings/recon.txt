@@ -1,0 +1,99 @@
+BEGIN
+SET
+{"sub":"634c00f9-c3a9-4444-9eed-b624cb6a2a93","role":"authenticated"}
+PROOF|{
+    "sides": [
+        {
+            "side": "ap",
+            "agrees": true,
+            "refusal": null,
+            "residue": [
+                {
+                    "reason": "FIN-2 回填 allocated_ccy 时写入的是本位币数(USD 3.70 读成 SGD 3.70),清单算出 0.96 的残额;它那条 USD 付款行的 0.94 重估由重估那一行解释,不在这里。",
+                    "doc_code": "EXP-2026-0001",
+                    "amount_base": 0.96,
+                    "residue_class": "fin2_backfill_units",
+                    "known_wrong_ref": "docs/known-wrong-until-cutover.md: EXP-2026-0001"
+                },
+                {
+                    "reason": "2026-07-05 首次定价(应付过账之前,从未过账);07-06 改价时 cut 2a 只过了价差且一分钟后被冲销 —— 整批从来没有进过 2000。",
+                    "doc_code": "IN-2026-0001",
+                    "amount_base": 7104.00,
+                    "residue_class": "priced_before_payable_posting",
+                    "known_wrong_ref": "docs/known-wrong-until-cutover.md: IN-2026-0001"
+                },
+                {
+                    "reason": "同 IN-2026-0001 的形状:首价未过账,改价只过价差且被冲销 —— 整批从来没有进过 2000。",
+                    "doc_code": "IN-2026-0003",
+                    "amount_base": 30000.00,
+                    "residue_class": "priced_before_payable_posting",
+                    "known_wrong_ref": "docs/known-wrong-until-cutover.md: IN-2026-0003"
+                },
+                {
+                    "reason": "2026-07-05 定价,早于 07-06 cut 2a 开始过应付 —— 从来没有 purchase 分录。",
+                    "doc_code": "IN-2026-0011",
+                    "amount_base": 2100.00,
+                    "residue_class": "priced_before_payable_posting",
+                    "known_wrong_ref": "docs/known-wrong-until-cutover.md: IN-2026-0011"
+                },
+                {
+                    "reason": "2026-07-05 定价,早于 07-06 cut 2a 开始过应付 —— 从来没有 purchase 分录。",
+                    "doc_code": "IN-2026-0012",
+                    "amount_base": 10000.00,
+                    "residue_class": "priced_before_payable_posting",
+                    "known_wrong_ref": "docs/known-wrong-until-cutover.md: IN-2026-0012"
+                },
+                {
+                    "reason": "已计价、还欠着钱就被注销(2026-08-06):注销只写了 writeoff,计价分录记下的应付留在 2000 上,而每个应付读者都过滤已注销的批次。这条路 AP-RECON-1 Batch A 已经堵上(INBOUND_HAS_OPEN_PAYABLE)。",
+                    "doc_code": "IN-2026-0154",
+                    "amount_base": -4032.00,
+                    "residue_class": "deleted_while_owing",
+                    "known_wrong_ref": "docs/known-wrong-until-cutover.md: IN-2026-0154"
+                }
+            ],
+            "gap_base": 40583.90,
+            "list_base": 436414.84,
+            "list_rows": 20,
+            "on_account": [
+            ],
+            "ledger_base": 395830.94,
+            "residue_base": 45172.96,
+            "control_account": "2000",
+            "on_account_base": 0.00,
+            "revaluation_base": -4589.06,
+            "unexplained_base": 0.00
+        },
+        {
+            "side": "ar",
+            "agrees": true,
+            "refusal": null,
+            "residue": [
+                {
+                    "reason": "2026-07-05 卖出(SGD 27,500 × 0.74),早于 07-06 开始过销售分录 —— 1100 上一张分录都没有。",
+                    "doc_code": "OUT-2026-0007",
+                    "amount_base": 20350.00,
+                    "residue_class": "sold_before_sales_posting",
+                    "known_wrong_ref": "docs/known-wrong-until-cutover.md: PROC-2026-0003 / OUT-2026-0007(第 13 行)"
+                }
+            ],
+            "gap_base": 14543.75,
+            "list_base": 57545.87,
+            "list_rows": 10,
+            "on_account": [
+                {
+                    "code": "RCPT-2026-0001",
+                    "amount_base": 250.00
+                }
+            ],
+            "ledger_base": 43002.12,
+            "residue_base": 20350.00,
+            "control_account": "1100",
+            "on_account_base": 250.00,
+            "revaluation_base": -6056.25,
+            "unexplained_base": 0.00
+        }
+    ],
+    "base_currency": "SGD"
+}
+ROLLBACK
+RECON_OWN_EXIT=0

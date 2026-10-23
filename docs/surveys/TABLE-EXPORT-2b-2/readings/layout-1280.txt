@@ -1,0 +1,44 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 669facbb-abc3-4c53-9589-9d14e2ae7bff
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/20] 19s  ovf=0 clip=0 /hr/claims
+  [  2/20] 44s  ovf=0 clip=0 /hr/employees/[id]
+  [  3/20] 61s  ovf=0 clip=0 /hr/leave
+  [  4/20] 74s  ovf=0 clip=0 /hr/leave/grants
+  [  5/20] 91s  ovf=0 clip=0 /hr/reviews
+  [  6/20] 98s  ovf=0 clip=0 /hr/reviews/cycles
+  [  7/20] 108s  ovf=0 clip=0 /inbound
+  [  8/20] 135s  ovf=0 clip=0 /inbound/[id]/edit
+  [  9/20] 144s  ovf=0 clip=0 /inventory/inbound/[materialId]
+  [ 10/20] 151s  ovf=0 clip=0 /inventory/output/[materialId]
+  [ 11/20] 182s  ovf=0 clip=0 /inventory/reports/ledger
+  [ 12/20] 190s  ovf=0 clip=0 /notifications
+  [ 13/20] 198s  ovf=0 clip=0 /operation/capture
+  [ 14/20] 209s  ovf=0 clip=0 /operation/capture/inbox
+  [ 15/20] 215s  ovf=0 clip=0 /operation/contamination
+  [ 16/20] 223s  ovf=0 clip=0 /operation/weighbridge
+  [ 17/20] 242s  ovf=0 clip=0 /purchasing/orders/[id]
+  [ 18/20] 249s  ovf=0 clip=0 /purchasing/payment-terms
+  [ 19/20] 256s  ovf=0 clip=0 /sales/orders
+  [ 20/20] 262s  ovf=0 clip=0 /sales/quotes
+
+════ 1280px SURVEY ════
+measured: 20  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       20 / 20
+U2 no clipped ledger:                 20 / 20
+USABLE (U1 AND U2):                   20 / 20
+
+pages FAILING U1 (page overflows): 0
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 20 / 20  median per page: 22
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/viewport-1280.json
+· cleaned up ephemeral survey account(s)
+SURVEY1280_OWN_EXIT=0

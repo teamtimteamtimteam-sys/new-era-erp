@@ -17,7 +17,11 @@ export type CheckListRow = {
 }
 
 // TABLE-EXPORT-1:同一张清单在两处出现(/operation/contamination 的"最近"与产出批页),各自给一个名字与标题。
-export type ChecksExport = { name: string; title: string }
+export type ChecksExport = {
+    name: string; title: string
+    /** TABLE-EXPORT-2b-2:页面只画最新 N 次时,导出向这条路由要全部(产出批页那一处不给 —— 它手里就是全体) */
+    serverRows?: string
+}
 
 /** 警戒那一格屏幕上说的话 —— render 与导出共用,于是两边不可能各说各话。 */
 function flagText(r: CheckListRow, t: (k: string) => string): string {
@@ -63,5 +67,5 @@ export default function ContaminationChecksList({ rows, emptyKey, exportSpec }: 
         },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t(emptyKey)}
-                      exportSpec={{ name: exportSpec.name, title: exportSpec.title }} />
+                      exportSpec={{ name: exportSpec.name, title: exportSpec.title, serverRows: exportSpec.serverRows }} />
 }

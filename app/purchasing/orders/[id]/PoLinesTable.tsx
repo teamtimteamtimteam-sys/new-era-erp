@@ -34,6 +34,7 @@
 //    一个字都不用改契约。颜色由服务端算成 tone,不把判据搬到客户端。
 import * as React from 'react'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import { useTranslations } from '@/lib/i18n/client'
 import DeepDischargeJudgementControl from './DeepDischargeJudgementControl'
 
@@ -59,10 +60,12 @@ export type PoLineRow = {
     formulaText: string
     commitmentText: string | null
     commitmentTone: Tone | null
-    unitPriceText: string
+    /** TABLE-EXPORT-2b-2:null = 受限(不持 data.view_purchase_prices)—— 画「受限」 */
+    unitPriceText: string | null
     priceSourceText: string | null
     priceSourceTone: Tone | null
-    amountText: string
+    /** TABLE-EXPORT-2b-2:null = 受限 */
+    amountText: string | null
     /** 合计行 —— 见抬头 ②。'grand' 比 'sub' 重。 */
     totalKind?: 'sub' | 'grand'
 }
@@ -161,7 +164,7 @@ export default function PoLinesTable({
             className: 'text-sm',
             render: (r) => (
                 <>
-                    {r.unitPriceText}
+                    {r.unitPriceText ?? <MaskedValue value={null} canView={false} />}
                     {r.priceSourceText && (
                         <span
                             className={
@@ -184,7 +187,7 @@ export default function PoLinesTable({
             //   —— 与 CONV-5 给 /purchasing/orders 列表页挑「应付总额」同一条理由。
             priority: true,
             className: 'text-sm',
-            render: (r) => r.amountText,
+            render: (r) => r.amountText ?? <MaskedValue value={null} canView={false} />,
         },
     ]
 
