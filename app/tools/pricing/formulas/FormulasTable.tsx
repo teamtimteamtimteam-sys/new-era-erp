@@ -98,6 +98,9 @@ export default function FormulasTable({ rows, empty }: { rows: FormulaRow[]; emp
 
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-            exportSpec={{ name: 'pricing-formulas', title: t('pricing.listTitle') }} />
+            exportSpec={{ name: 'pricing-formulas', title: t('pricing.listTitle') }}
+            // TABLE-FEATURES-1(Tim 2026-10-25 Q9):公式一次读完 —— 在浏览器里排。加工费与折扣读自 pricing_formulas_masked,
+            //   看不见的那一格是「受限」(比较值 null,排最后),排序不泄露它的大小
+            sorting={{ mode: 'client', coverage: 'complete' }} />
     )
 }

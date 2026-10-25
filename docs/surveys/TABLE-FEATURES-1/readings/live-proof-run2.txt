@@ -1,0 +1,16 @@
+STEP|database as postgres (base tables): journal_entries 92 · OUT-2026-0248 movements 5, deleted true · payments order PMT-2026-0009,RCPT-2026-0004,PMT-2026-0008,PMT-2026-0007,PMT-2026-0006,PMT-2026-0005,PMT-2026-0004,PMT-2026-0003,PMT-2026-0002,PMT-2026-0001,RCPT-2026-0002,RCPT-2026-0001,RCPT-2026-0003
+PASS|J /finance/journal ascending by code over 5 pages: 92 rows (journal_entries 92), in order; first JE-2026-0001 … last JE-2027-0003
+PASS|J descending over 5 pages is the ascending list reversed (first JE-2027-0003 … last JE-2026-0001)
+PASS|J export CSV of the descending list: journal-entries_2026-10-25_2156.csv — 92 rows in the screen's descending order
+PASS|B /inventory/locations sorted in the browser by "code" (sortable headers ["code","name","zone","quarantine","allowed","status"]): before ["SG2026081201","ZZ-1BCONF","ZZ-IODCONF-A","ZZ-SMOKE-NTFLOC"] → asc ["SG2026081201","ZZ-1BCONF","ZZ-IODCONF-A","ZZ-SMOKE-NTFLOC"] → desc ["ZZ-SMOKE-NTFLOC","ZZ-IODCONF-A","ZZ-1BCONF","SG2026081201"]
+PASS|E /output/51f935b6-7aca-4395-b357-ac1fb58bed95/edit (OUT-2026-0248, deleted): ended block disabled; the movements table's sort header is a <span role=button> (fieldset cannot disable it); export bar ["SPAN[button]","SPAN[button]"]; write controls in the block 38, enabled 0
+PASS|E sorting inside the ended block by "time": 5 rows (= 5 movements); before ["2026-08-13 00:33","2026-08-13 00:33","2026-08-13 00:30","2026-08-13 00:30","2026-08-13 00:21"] → asc ["2026-08-13 00:21","2026-08-13 00:30","2026-08-13 00:30","2026-08-13 00:33","2026-08-13 00:33"] → desc ["2026-08-13 00:33","2026-08-13 00:33","2026-08-13 00:30","2026-08-13 00:30","2026-08-13 00:21"]
+PASS|E export xlsx on the ended record: batch-movements_2026-10-25_2157.xlsx — 5 rows (= 5 movements)
+PASS|E export csv on the ended record: batch-movements_2026-10-25_2157.csv — 5 rows (= 5 movements)
+PASS|S desktop 1280×800 /finance/journal: header position sticky, box max-height 704px, table taller than its box true; box scrolled 188px and the header sits 0px from the box top
+PASS|S phone 390×844 /finance/journal: header position static (not sticky), box max-height none
+PASS|P /finance/payments default order = payment_date desc, created_at desc, id: screen ["PMT-2026-0009","RCPT-2026-0004","PMT-2026-0008","PMT-2026-0007","PMT-2026-0006","PMT-2026-0005","PMT-2026-0004","PMT-2026-0003","PMT-2026-0002","PMT-2026-0001","RCPT-2026-0002","RCPT-2026-0001","RCPT-2026-0003"] · database ["PMT-2026-0009","RCPT-2026-0004","PMT-2026-0008","PMT-2026-0007","PMT-2026-0006","PMT-2026-0005","PMT-2026-0004","PMT-2026-0003","PMT-2026-0002","PMT-2026-0001","RCPT-2026-0002","RCPT-2026-0001","RCPT-2026-0003"]
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan); the only database reads were row counts and orders as postgres (base tables)
+TF1_PROOF_EXIT=0
+X_OWN_EXIT=0

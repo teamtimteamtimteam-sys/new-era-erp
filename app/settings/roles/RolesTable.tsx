@@ -68,5 +68,7 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-        exportSpec={{ name: 'roles', title: t('permissions.subnav.roles') }} />
+        exportSpec={{ name: 'roles', title: t('permissions.subnav.roles') }}
+        // TABLE-FEATURES-1(Tim 2026-10-25 Q9):角色一次读完 —— 在浏览器里排
+        sorting={{ mode: 'client', coverage: 'complete' }} />
 }

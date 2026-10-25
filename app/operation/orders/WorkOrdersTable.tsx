@@ -18,6 +18,8 @@ export type WorkOrderRow = {
     scheduledLabel: string | null
     /** null = 没有可算的完成度(没有计划投入) */
     progressLabel: string | null
+    /** TABLE-FEATURES-1 Q9:排序用的完成度(投了 ÷ 计划);没有可算的完成度时是 null(排在最后)。 */
+    progressRatio: number | null
     unplannedMaterials: number
     notes: string
     /** TABLE-EXPORT-1:导出用的原始值 —— 排期 `YYYY-MM-DD`(没排期是 null)、备注(没写是 null,屏幕上那个「—」不是一个词)。 */
@@ -52,7 +54,7 @@ export default function WorkOrdersTable({ rows, empty }: { rows: WorkOrderRow[];
         },
         {
             key: 'progress', header: t('processing.wo.colProgress'), priority: true, align: 'right',
-            className: 'text-sm',
+            className: 'text-sm', sortValue: (r) => r.progressRatio,
             // 一格两样(投了 / 计划 · 计划外物料几种)—— 导出同一句,一格文字
             exportAs: (r) => xText([r.progressLabel,
                 r.unplannedMaterials > 0 ? t('processing.wo.unplannedMaterials', { n: String(r.unplannedMaterials) }) : null]
@@ -73,6 +75,8 @@ export default function WorkOrdersTable({ rows, empty }: { rows: WorkOrderRow[];
 
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-                   exportSpec={{ name: 'operation-work-orders', title: t('processing.wo.listTitle') }} />
+                   exportSpec={{ name: 'operation-work-orders', title: t('processing.wo.listTitle') }}
+                   // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                   sorting={{ mode: 'client', coverage: 'complete' }} />
     )
 }

@@ -30,16 +30,21 @@ export default function DepreciationPreviewTable({
 
     // TABLE-EXPORT-3a(Tim 2026-10-23 Q5 · Q3):照屏幕导出,合计那一行是预览自己算的(preview_depreciate_fixed_assets 的 total_delta),照导出;
     //   About 表写明「截至 <日期> 的预览,尚未过账」。
+    // ★ TABLE-FEATURES-1 Q9:在浏览器里排(预览一次算全)。合计那一行的比较值一律是 null ——
+    //   空值永远排在最后,所以不论升序降序,合计都留在表底,不会被排到中间去。
     const columns: ExportableColumn<DepreciationPreviewRow>[] = [
         {
             key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
             render: (r) => (r.isTotal ? t('finance.totalsLabel') : r.code),
+            sortValue: (r) => (r.isTotal ? null : r.code),
             exportAs: (r) => xText(r.isTotal ? t('finance.totalsLabel') : r.code),
         },
-        { key: 'account', header: t('assets.colAccount'), className: 'text-sm', render: (r) => r.isTotal ? '' : r.account, exportAs: (r) => xText(r.isTotal ? null : r.account) },
+        { key: 'account', header: t('assets.colAccount'), className: 'text-sm', render: (r) => r.isTotal ? '' : r.account,
+            sortValue: (r) => (r.isTotal ? null : r.account), exportAs: (r) => xText(r.isTotal ? null : r.account) },
         {
             key: 'delta', header: t('assets.colDelta', { ccy: baseCurrency }), priority: true, align: 'right', className: 'text-sm',
             render: (r) => formatMoneyBare(r.deltaBase, '列头 应提(ccy)'),
+            sortValue: (r) => (r.isTotal ? null : r.deltaBase),
             exportAs: (r) => xMoney(r.deltaBase),
         },
     ]
@@ -52,6 +57,7 @@ export default function DepreciationPreviewTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             rowClassName={(r) => (r.isTotal ? 'bg-gray-50 font-medium' : undefined)}
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{
                 name: 'finance-depreciation-preview',
                 title: t('assets.depTitle'),

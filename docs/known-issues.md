@@ -11662,7 +11662,13 @@ TABLE-EXPORT-1(2026-10-22)量 `/inbound` 是 **0**(`docs/surveys/TABLE-EXPORT-1/
 (AGENTS.md「屏幕上的判据若是数据库判据的代名词」)。
 **去处:** 未排期。
 
-### EXPORT-DISABLED-ON-ENDED-RECORDS · 已删除 / 已核销的记录上,附件与合规两张表的导出钮是灰的(TABLE-EXPORT-3c 转换时量到;登记,不在本刀修)
+### ~~EXPORT-DISABLED-ON-ENDED-RECORDS~~ · 已删除 / 已核销的记录上,附件与合规两张表的导出钮是灰的(TABLE-EXPORT-3c 转换时量到;登记,不在本刀修)—— ✅ 已修(TABLE-FEATURES-1,v1.4.74,Tim 2026-10-25 Q10)
+
+**已修(TABLE-FEATURES-1):** 范围比这一条写的宽 —— Step 0 量到 **12 个结束块**(约 38 处导出,不是 3 页)、**5 处缺权限**的区域、**1 份活着的记录**(`MetalContentPanel`)。
+修法不是挪钮:仓库里每一个 `<fieldset disabled>` 都改经 `app/components/ui/disabled-block.tsx` 的 `<DisabledBlock>`(`scripts/check-disabled-block.mjs` 进构建,手写一处即红),
+它告诉里面的表格「你在一块禁用区里」,于是导出、排序、翻页、手机上的展开钮画成 fieldset 管不到的 `<span role="button">`;写入控件照旧灰着。
+表格自带的文字筛选框做不到,另记 TABLE-SEARCH-IN-DISABLED-BLOCK。下面是原文。
+
 
 **是什么:** `EndedFieldset`(`app/components/trail/EndedBanner.tsx:93`)在记录结束之后把整块包进 `<fieldset disabled>` ——
 那正是它要做的(结束了的记录不该再上传、删除)。而导出那两颗钮是原生 `<button>`,于是**也跟着灰掉**:
@@ -11670,3 +11676,42 @@ TABLE-EXPORT-1(2026-10-22)量 `/inbound` 是 **0**(`docs/surveys/TABLE-EXPORT-1/
 (`app/suppliers/[id]/edit/page.tsx`)、已删除的物料上的附件(`app/materials/[id]/edit/page.tsx`)。
 **为什么记:** 导出不是一次写入 —— 一份结束了的记录恰恰是最常被拿去存档的那一种。今天没有坏数据,只是那一份文件拿不到。
 **去处:** 未排期。修法方向:导出钮挪到 fieldset 外面,或 `EndedFieldset` 让带 `data-slot="table-export"` 的那一块不受 disabled。
+
+## TABLE-FEATURES-1(`v1.4.74`,2026-10-25)—— 排序 · 粘性表头 · 禁用块里的只读控件
+
+### TABLE-SEARCH-IN-DISABLED-BLOCK · 表格自带的文字筛选框在禁用块里仍然是灰的(TABLE-FEATURES-1 Q10:做不到的那一半,登记)
+
+**是什么:** Tim 2026-10-25 Q10 要求表格的只读控件(导出 · 排序 · 筛选 · 翻页)在结束了的记录与缺权限的区域里照样能用。导出、排序、翻页做到了
+(`app/components/ui/disabled-block.tsx`:它们在禁用块里画成 `<span role="button">`,`<fieldset disabled>` 管不到)。
+**筛选框是一个 `<input>`,它没有「不是表单控件」的替身** —— HTML 唯一的豁免是那个 fieldset 的第一个 `<legend>`,一块里只有一个。
+**今天谁会踩到它:** 0 张生产表开着 DataTable 的 `filter`(TABLE-FEATURES Step 0:只有 `brand-sampler`)。
+**去处:** 有一张生产表开筛选框、而它坐在禁用块里的那一天,把那张表挪出禁用块,或者把禁用块拆成两半。未排期。
+
+### PO-LIST-NO-APPROVAL-STATUS · 采购单列表看不出、也筛不出审批状态,系统里没有一处列出「待审批的采购单」(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+
+**是什么(TABLE-FEATURES Step 0 量到,`docs/surveys/TABLE-FEATURES-1/survey-approvals.md`):** `/purchasing/orders` 的列与筛选里没有审批状态;`/tools/reminders` 没有待审批采购单那一臂。
+审批人只能逐张打开采购单才知道哪一张在等他。**去处:** `docs/forward-queue.md` 64d(SYSTEM-MAP-0)的统一待办发现。
+
+### EXPENSE-CLAIMS-MISSING-FROM-REMINDERS · 费用报销不在 `/tools/reminders` 里(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+
+**是什么(同上 survey):** `/tools/reminders` 列出各条审批链等着谁,费用报销那一条链不在其中;待审的报销只在 `/finance/claims` 的队列里看得见。
+**去处:** `docs/forward-queue.md` 64d(SYSTEM-MAP-0)的统一待办发现。
+
+### PAYMENT-REQUESTS-FILTER-MIXES-QUEUES · 付款申请的默认筛选把「等审批」与「已批准、等付款」混在一起(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+
+**是什么(同上 survey):** `/finance/payment-requests` 默认显示的那一组同时含两种状态 —— 一种等审批人(批准 / 驳回),一种等出纳(付款)。
+两种动作、两种输入、两类人,在一张默认清单里分不开。**去处:** `docs/forward-queue.md` 64d(SYSTEM-MAP-0)的统一待办发现。
+
+### LEAVE-MEDICAL-REJECT-NO-REASON · 驳回请假与医疗报销不要求理由(对话框、动作、库三处都没有)(Tim 2026-10-25 TABLE-FEATURES Q11:要求理由,在 TF-3 修)
+
+**是什么(Step 0 实测):** `db/functions/decide_leave_request.sql` 与 `decide_medical_claim.sql` 里 `REASON` 出现 **0** 次;别的每一条审批链驳回都要理由。
+**去处:** TF-3(`v1.4.76`,`docs/forward-queue.md` 64c-3):库里以具名错误拒绝没有理由的驳回,随 TF-3 的迁移一起上。
+
+
+### PURCHASING-ORDERS-390-SUPPLIER-SELECT · `/purchasing/orders` 在 390px 上整页横向溢出 59px,元凶是筛选栏的供应商下拉(TABLE-FEATURES-1 版式勘察量到;早于本刀,登记)
+
+**是什么:** `scripts/survey-phone.mjs --width=390`:`+59px /purchasing/orders culprit: select.h-8 …`(`docs/surveys/TABLE-FEATURES-1/readings/layout-390.txt`)。
+**不是本刀造成的 —— 量过,不是推的:** 同一支量具在【未改动的 f156ee1】上量同一页,读数同样是 +59px、同一个元凶
+(`readings/layout-390-baseline-f156ee1-purchasing-orders.txt`);本刀没有碰那一页的筛选栏(`OrdersToolbar.tsx` 不在差异里)。
+TABLE-EXPORT-1 那天这一页读 0 —— 下拉的宽度由最长那个选项(供应商名)决定,活数据变了它就变(AGENTS.md「一份基线文档是一张快照」那一条)。
+**改法方向:** INPUT-2b 的解药 —— 给那个不换行的容器 `flex-wrap`,或给下拉一个 `max-w-full`。**去处:** 未排期。

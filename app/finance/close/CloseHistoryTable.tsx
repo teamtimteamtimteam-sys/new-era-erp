@@ -99,6 +99,8 @@ export default function CloseHistoryTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'month-closes', title: t('finance.closeHistory') }}
+            // TABLE-FEATURES-1 Q9:月结记录一次读全(period_closes 不翻页)—— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

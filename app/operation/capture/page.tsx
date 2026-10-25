@@ -29,13 +29,23 @@ import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import {
     PENDING_SHOWN, RECENT_SHOWN, ageInDays, draftExports, pendingCount, pendingPage, recentCount, recentPage,
     weighingExports, weighingLookups,
+    PENDING_SORT, RECENT_SORT, RECENT_SORT_PREFIX, parsePendingSort, parseRecentSort, pendingExportHref, recentExportHref,
 } from './captureRows'
 
 type Device = { id: string; code: string; name: string; kind: string; retired_at: string | null }
 
-export default async function CapturePage() {
+export default async function CapturePage({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
     const denied = await requireFunction(FN.capture)
     if (denied) return denied
+
+    // TABLE-FEATURES-1 Q9:两张表各自在数据库里排;第二张带前缀 recent_(captureRows.ts)
+    const sp = await searchParams
+    const pendingSort = parsePendingSort(sp)
+    const recentSort = parseRecentSort(sp)
 
     const t = await getTranslations()
     const supabase = await createClient()
@@ -44,11 +54,11 @@ export default async function CapturePage() {
     // ★ TABLE-EXPORT-2b-2(Tim TABLE-EXPORT-2 Q2 · 2b Q1):两张表的读取与导出格搬进 captureRows.ts,与导出路由共用;
     //   各画前 N 行(草稿 200 张最老的在前 · 称重 50 次最新的在前),而且说出来。
     const [draftRes, draftTotalRes, devRes, openRes, wRes, wTotalRes, receivedRes] = await Promise.all([
-        pendingPage(supabase, 0, PENDING_SHOWN - 1),
+        pendingPage(supabase, pendingSort, 0, PENDING_SHOWN - 1),
         pendingCount(supabase),
         supabase.from('devices').select('id, code, name, kind, retired_at').order('code'),
         supabase.from('weighbridge_ticket_weights').select('ticket_id, code, direction, vehicle_reg, status').eq('status', 'open').order('code'),
-        recentPage(supabase, 0, RECENT_SHOWN - 1),
+        recentPage(supabase, recentSort, 0, RECENT_SHOWN - 1),
         recentCount(supabase),
         supabase.from('ingest_inbox').select('id', { count: 'exact', head: true }).eq('status', 'received'),
     ])
@@ -145,7 +155,8 @@ export default async function CapturePage() {
                     ]}
                     rows={draftRows}
                     empty={t('capture.noPending')}
-                    exportSpec={{ name: 'operation-capture-pending', title: t('capture.pendingTitle'), serverRows: '/operation/capture/pending/export' }}
+                    exportSpec={{ name: 'operation-capture-pending', title: t('capture.pendingTitle'), serverRows: pendingExportHref(pendingSort) }}
+                    sorting={{ mode: 'server', active: pendingSort, shown: draftRows.length, total: draftTotal, sortable: Object.keys(PENDING_SORT) }}
                 />
             </section>
 
@@ -169,7 +180,8 @@ export default async function CapturePage() {
                     ]}
                     rows={weighingRows}
                     empty={t('capture.noWeighings')}
-                    exportSpec={{ name: 'operation-capture-recent', title: t('capture.recentTitle'), serverRows: '/operation/capture/recent/export' }}
+                    exportSpec={{ name: 'operation-capture-recent', title: t('capture.recentTitle'), serverRows: recentExportHref(recentSort) }}
+                    sorting={{ mode: 'server', active: recentSort, shown: weighingRows.length, total: weighingTotal, sortable: Object.keys(RECENT_SORT), prefix: RECENT_SORT_PREFIX }}
                 />
                 <p className="mt-2 text-sm">
                     <Link href="/operation/calibration" className="app-link hover:underline">{t('calibration.title')}</Link>

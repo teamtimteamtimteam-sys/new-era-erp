@@ -11,6 +11,17 @@
 import type { ReactNode } from 'react'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import type { ExportCell } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q8 · Q9):CellsTable 的 8 页也排序。RSC 边界上只能是纯数据,所以这里收一个描述,不收函数:
+ *   'client' —— 页面手里是全体(一次读取):在浏览器里排,比较值取自每一格的导出值(exports);
+ *   { mode: 'server', … } —— 页面分页或只画前 N 行:表头是链接,由页面的 `?sort=&dir=` 去数据库排(lib/listSort.ts);
+ *     `sortable` 列出可排的列键(白名单的键);`prefix` 给一页上两张在数据库里排的表用。
+ */
+export type CellsSorting =
+    | 'client'
+    | { mode: 'server'; active: { key: string; dir: 'asc' | 'desc' } | null; shown: number; total: number; sortable: readonly string[]; prefix?: string; pageParam?: string }
 
 export type CellRow = { id: string; cells: Record<string, ReactNode>; exports: Record<string, ExportCell> }
 export type CellColumn = {
@@ -28,9 +39,11 @@ export type CellsExport = {
     serverRows?: string
 }
 
-export default function CellsTable({ columns, rows, empty, exportSpec }: {
-    columns: CellColumn[]; rows: CellRow[]; empty: ReactNode; exportSpec: CellsExport
+export default function CellsTable({ columns, rows, empty, exportSpec, sorting }: {
+    columns: CellColumn[]; rows: CellRow[]; empty: ReactNode; exportSpec: CellsExport; sorting?: CellsSorting
 }) {
+    const server = sorting && sorting !== 'client' ? sorting : null
+    const href = useSortHref(server?.prefix ?? '', server?.pageParam ?? 'page')
     // 第一列是这一行的身份(日期、机器、单号)—— 手机上它【永远】留下(check-datatable-phone:至少一列 priority);
     // 其余几列照调用方说的留或收
     const exportAs = (c: CellColumn) => c.control ? false as const : (r: CellRow): ExportCell => {
@@ -39,8 +52,16 @@ export default function CellsTable({ columns, rows, empty, exportSpec }: {
         return x
     }
     const cols: ExportableColumn<CellRow>[] = columns.map((c, i) => i === 0
-        ? { key: c.key, header: c.header, priority: true, align: c.align, render: (r: CellRow) => r.cells[c.key], exportAs: exportAs(c) }
-        : { key: c.key, header: c.header, priority: c.priority, align: c.align, render: (r: CellRow) => r.cells[c.key], exportAs: exportAs(c) })
-    return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-                      exportSpec={{ name: exportSpec.name, title: exportSpec.title, serverRows: exportSpec.serverRows }} />
+        ? { key: c.key, header: c.header, priority: true, align: c.align, render: (r: CellRow) => r.cells[c.key], exportAs: exportAs(c), sortable: server ? server.sortable.includes(c.key) : undefined }
+        : { key: c.key, header: c.header, priority: c.priority, align: c.align, render: (r: CellRow) => r.cells[c.key], exportAs: exportAs(c), sortable: server ? server.sortable.includes(c.key) : undefined })
+    const spec = { name: exportSpec.name, title: exportSpec.title, serverRows: exportSpec.serverRows }
+    if (server) {
+        return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec}
+                          sorting={{ mode: 'server', coverage: { shown: server.shown, total: server.total }, active: server.active, href }} />
+    }
+    if (sorting === 'client') {
+        return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec}
+                          sorting={{ mode: 'client', coverage: 'complete' }} />
+    }
+    return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec} />
 }

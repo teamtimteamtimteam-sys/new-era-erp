@@ -8,18 +8,20 @@ import { canEnter } from '@/lib/moduleAccess'
 import { FN } from '@/lib/modules'
 import { mustCount } from '@/lib/db-helpers'
 import { exportRowsResponse, exportDenied } from '@/lib/export/serverRows'
-import { inboxCount, inboxExports, inboxLabels, inboxPage, inboxStatus } from '../inboxRows'
+import { inboxCount, inboxExports, inboxLabels, inboxPage, inboxStatus, parseInboxSort } from '../inboxRows'
 
 export async function GET(req: NextRequest) {
     if (!(await canEnter(FN.captureInbox.permission))) return exportDenied()
     const supabase = await createClient()
     const status = inboxStatus(req.nextUrl.searchParams.get('status'))
+    // TABLE-FEATURES-1 Q9:与页面同一份排序参数
+    const sort = parseInboxSort(Object.fromEntries(req.nextUrl.searchParams))
     const t = await getTranslations()
     const locale = await getLocale()
     return exportRowsResponse({
         label: 'ingest_inbox',
         count: async () => mustCount(await inboxCount(supabase, status), 'ingest_inbox'),
-        page: (from, to) => inboxPage(supabase, status, from, to),
+        page: (from, to) => inboxPage(supabase, status, sort, from, to),
         shape: async (rows) => {
             const lb = await inboxLabels(supabase, locale)
             return rows.map((r) => ({ id: String(r.id), cells: {}, exports: inboxExports(r, lb, t) }))

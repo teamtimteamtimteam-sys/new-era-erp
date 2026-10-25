@@ -52,6 +52,8 @@ export default function YearCloseHistoryTable({ rows }: { rows: YearCloseRow[] }
             //   —— rowClassName 的又一处调用点。
             rowClassName={(r) => (r.reopened ? 'text-gray-400' : undefined)}
             exportSpec={{ name: 'year-closes', title: t('finance.yearClose.title') }}
+            // TABLE-FEATURES-1 Q9:年结记录一次读全(year_closes 不翻页)—— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

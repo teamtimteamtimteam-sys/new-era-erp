@@ -6,16 +6,18 @@ import { canEnter } from '@/lib/moduleAccess'
 import { MOD } from '@/lib/modules'
 import { mustCount } from '@/lib/db-helpers'
 import { exportRowsResponse, exportDenied } from '@/lib/export/serverRows'
-import { parseRequestFilter, requestCount, requestPage, shapeRequestRows } from '../requestRows'
+import { parseRequestFilter, parseRequestSort, requestCount, requestPage, shapeRequestRows } from '../requestRows'
 
 export async function GET(request: NextRequest) {
     if (!(await canEnter(MOD.finance.permission))) return exportDenied()
     const filter = parseRequestFilter(request.nextUrl.searchParams.get('status') ?? undefined)
+    // TABLE-FEATURES-1 Q9:与页面同一份排序参数
+    const sort = parseRequestSort(Object.fromEntries(request.nextUrl.searchParams))
     const supabase = await createClient()
     return exportRowsResponse({
         label: 'payment_requests',
         count: async () => mustCount(await requestCount(supabase, filter), 'payment_requests'),
-        page: (from, to) => requestPage(supabase, filter, from, to),
+        page: (from, to) => requestPage(supabase, filter, sort, from, to),
         shape: (rows) => shapeRequestRows(supabase, rows),
     })
 }

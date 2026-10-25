@@ -12,12 +12,31 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { xText, xInt, xTime, type ExportCell } from '@/lib/export/cells'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 type T = (key: string, values?: Record<string, string | number>) => string
 
 /** 一页多少行 —— 与转换之前首屏同一个数。 */
 export const INBOX_PAGE_SIZE = 200
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):翻页的列表在数据库里排 —— 列键 → `ingest_inbox` 上的列(lib/listSort.ts 的规矩)。
+ *   仪器与数据类别的名字是查出来的、流 · 序号是拼出来的,不可排;状态按库里的码排。默认不变:id 降序(最新的在前)。
+ */
+export const INBOX_SORT = { id: 'id', at: 'received_at', status: 'status' } as const
+export type InboxSortKey = keyof typeof INBOX_SORT
+const INBOX_SORT_DEFAULT: ListSort<InboxSortKey> = { key: 'id', dir: 'desc' }
+export function parseInboxSort(sp: Record<string, string | string[] | undefined>): ListSort<InboxSortKey> {
+    return parseListSort(sp, Object.keys(INBOX_SORT) as InboxSortKey[], INBOX_SORT_DEFAULT)
+}
+/** 导出路由的地址:同一条筛选与排序,不带 page。 */
+export function inboxExportHref(status: string | null, sort: ListSort<InboxSortKey>): string {
+    const q = new URLSearchParams()
+    if (status) q.set('status', status)
+    setSortParams(q, sort)
+    return `/operation/capture/inbox/export?${q.toString()}`
+}
 
 export const INBOX_STATUSES = ['received', 'failed', 'awaiting_transform', 'transformed', 'discarded'] as const
 
@@ -38,11 +57,12 @@ export function inboxCount(supabase: Client, status: string | null) {
     return q
 }
 
-export function inboxPage(supabase: Client, status: string | null, from: number, to: number) {
+export function inboxPage(supabase: Client, status: string | null, sort: ListSort<InboxSortKey>, from: number, to: number) {
     let q = supabase.from('ingest_inbox')
         .select('id, received_at, source, device_id, data_class, stream, seq, status, error_code, attempts, payload, transform_result, discard_reason, clock_ahead')
     if (status) q = q.eq('status', status)
-    return q.order('id', { ascending: false }).range(from, to)
+    // TABLE-FEATURES-1 Q9:选中的列,再按 id 降序平局(id 唯一)
+    return applyListSort(q, sort, INBOX_SORT, [['id', 'desc']]).range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as InboxRow[] | null }))
 }
 

@@ -57,6 +57,8 @@ export default function NcrTable({ rows, empty }: { rows: NcrRow[]; empty: React
         <DataTable
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'quality-ncr', title: t('quality.ncr.title') }}
+            // TABLE-FEATURES-1 Q9:全部 NCR 一次读完,在浏览器里排。没点表头时照旧是页面给的次序(开着的在前,Q7 默认不变)
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

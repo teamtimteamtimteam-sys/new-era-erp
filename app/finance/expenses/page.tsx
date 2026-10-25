@@ -19,6 +19,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
 import ExpensesToolbar from './ExpensesToolbar'
 import ExpensesTable from './ExpensesTable'
+import { setSortParams } from '@/lib/listSort'
 import {
     parseExpenseListParams, resolveExpenseFilter, applyExpenseFilters, expenseCount, expensePage,
     expenseAccountOptions, shapeExpenseRows, expenseExportHref,
@@ -38,7 +39,7 @@ function parsePage(value: string | undefined): number {
 export default async function ExpensesListPage({
     searchParams,
 }: {
-    searchParams: Promise<{ date_from?: string; date_to?: string; status?: string; account?: string; page?: string }>
+    searchParams: Promise<{ date_from?: string; date_to?: string; status?: string; account?: string; page?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -53,6 +54,7 @@ export default async function ExpensesListPage({
 
     // TABLE-EXPORT-2a:读取、筛选与「库里的行 → 表的行」搬进 expenseRows.ts,与导出路由共用一份。
     const params = parseExpenseListParams(sp)
+    const listParams = params
     const { dateFrom, dateTo, status, account } = params
     const requestedPage = parsePage(sp.page)
 
@@ -110,6 +112,7 @@ export default async function ExpensesListPage({
         if (dateTo) params.set('date_to', dateTo)
         if (status) params.set('status', status)
         if (account) params.set('account', account)
+        setSortParams(params, listParams.sort)  // TABLE-FEATURES-1 Q9:翻页保留排序
         params.set('page', String(targetPage))
         return `/finance/expenses?${params.toString()}`
     }
@@ -136,7 +139,8 @@ export default async function ExpensesListPage({
                     : t('expense.filteredTotal', { count: total, amount: formatMoneyBare(totalUsd, '同句 filteredTotal 文案「{count} 笔 · {amount} {ccy}」里的 {ccy}'), ccy: baseCurrency })}
             </p>
 
-            <ExpensesTable rows={tableRows} empty={t('expense.empty')} exportHref={expenseExportHref(params)} />
+            <ExpensesTable rows={tableRows} empty={t('expense.empty')} exportHref={expenseExportHref(params)}
+                           sort={params.sort} shown={tableRows.length} total={total} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

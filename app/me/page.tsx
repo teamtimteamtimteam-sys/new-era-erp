@@ -11,7 +11,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
-import { MY_LIST_SHOWN, myLeaveCount, myLeavePage, myMedicalCount, myMedicalPage, myExpenseCount, myExpensePage, attachMyExpenseItems } from './meRows'
+import { MY_LIST_SHOWN, myLeaveCount, myLeavePage, myMedicalCount, myMedicalPage, myExpenseCount, myExpensePage, attachMyExpenseItems,
+    parseMyLeaveSort, parseMyMedicalSort, parseMyExpenseSort, myExportHref, MY_SORT_PREFIX } from './meRows'
 import MyClaimsPanel from './MyClaimsPanel'
 import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
@@ -46,11 +47,16 @@ type MyKpiRow = {
     override_cap: number | null; override_reason: string | null
 }
 
-export default async function MePage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
+export default async function MePage({ searchParams }: { searchParams: Promise<{ trail?: string; [k: string]: string | string[] | undefined }> }) {
     // MES-8b-2:这一页不要任何码,所以一块车间大屏的会话(软导航不重画根布局)要在这里被拒、指回 /display。
     const floorRefusal = await requireNotFloorDisplay()
     if (floorRefusal) return floorRefusal
-    const trailShow = trailCount((await searchParams).trail)
+    const sp = await searchParams
+    const trailShow = trailCount(typeof sp.trail === 'string' ? sp.trail : undefined)
+    // TABLE-FEATURES-1(Tim 2026-10-25 Q9):请假 · 医疗报销 · 费用报销三张表在数据库里排,各用一个参数前缀(meRows.ts)
+    const myLeaveSort = parseMyLeaveSort(sp)
+    const myMedicalSort = parseMyMedicalSort(sp)
+    const myExpenseSort = parseMyExpenseSort(sp)
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
@@ -160,19 +166,19 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     const [balRes, myLeaveRes, myLeaveTotal, typeRes, claimRes, claimTotal, claimBalRes, expenseClaimRes, expenseTotal, decisionRes] = await Promise.all([
         // ★ PAYROLL-PAY-REVERSAL-1 · B2(Tim 2026-10-22,Q12):每一种有额度的假,一次调用(年假在内;年假那一项照旧画逐笔明细)
         supabase.rpc('leave_balances', { p_employee_id: employeeId }),
-        myLeavePage(supabase, employeeId, 0, MY_LIST_SHOWN - 1),
+        myLeavePage(supabase, employeeId, myLeaveSort, 0, MY_LIST_SHOWN - 1),
         myLeaveCount(supabase, employeeId).then((r) => mustCount(r, 'leave_requests_masked count (me)')),
         supabase.from('leave_types')
             .select('code, name_en, name_zh, is_accrued, allows_half_day, requires_certificate_after_days, default_days_per_year')
             .eq('is_active', true).order('sort_order'),
-        myMedicalPage(supabase, employeeId, 0, MY_LIST_SHOWN - 1),
+        myMedicalPage(supabase, employeeId, myMedicalSort, 0, MY_LIST_SHOWN - 1),
         myMedicalCount(supabase, employeeId).then((r) => mustCount(r, 'medical_claim_status count (me)')),
         supabase.rpc('medical_claim_balance', {
             p_employee_id: employeeId, p_year: new Date().getFullYear(),
         }),
         // CLAIM-1：一般费用报销。与医疗那一块【并排】而不是合并 ——
         // 医疗唯一属于医疗的东西是年度限额，而这一种要科目、币种、税码。
-        myExpensePage(supabase, employeeId, 0, MY_LIST_SHOWN - 1),
+        myExpensePage(supabase, employeeId, myExpenseSort, 0, MY_LIST_SHOWN - 1),
         myExpenseCount(supabase, employeeId).then((r) => mustCount(r, 'expense_claim_status count (me)')),
         // EMP-SELF-1(G2):谁决定的、为什么 —— 属主权限的读者,只给调用者自己的单据;决定人已经是【人】的名字。
         //   approval_log 不开给员工(Tim 的 Q4 at EMP-SELF-0),所以读的是单据本身。
@@ -490,6 +496,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     balances={(mustOne(balRes, 'leave_balances') ?? []) as never}
                     requests={(mustRows(myLeaveRes)) as never}
                     requestsTotal={myLeaveTotal}
+                    requestsSort={myLeaveSort}
+                    requestsExportHref={myExportHref('/me/leave-requests/export', myLeaveSort, MY_SORT_PREFIX.leave)}
                     types={(mustRows(typeRes)) as never}
                     decisions={decisions}
                     trails={Object.fromEntries((mustRows(myLeaveRes) as { id: string }[]).map((r) => [r.id,
@@ -502,6 +510,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     employeeId={employeeId}
                     claims={(mustRows(claimRes)) as never}
                     total={claimTotal}
+                    sort={myMedicalSort}
+                    exportHref={myExportHref('/me/medical-claims/export', myMedicalSort, MY_SORT_PREFIX.medical)}
                     balance={claimBalRes.data as never}
                     decisions={decisions}
                     trails={Object.fromEntries((mustRows(claimRes) as { claim_id: string }[]).map((r) => [r.claim_id,
@@ -514,6 +524,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     employeeId={employeeId}
                     rows={expenseClaimRows as never}
                     total={expenseTotal}
+                    sort={myExpenseSort}
+                    exportHref={myExportHref('/me/expense-claims/export', myExpenseSort, MY_SORT_PREFIX.expense)}
                     receipts={expenseClaimReceipts}
                     limits={receiptLimits}
                     baseCurrency={baseCurrency}

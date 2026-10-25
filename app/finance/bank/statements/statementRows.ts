@@ -11,15 +11,27 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { fetchAllPages, IN_CHUNK } from '@/lib/export/serverRows'
 import type { StatementRow } from './StatementsTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
-export type StatementListParams = { account: '' | '1000' | '1010'; status: '' | 'open' | 'reconciled' }
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `bank_statements` 上的列(lib/listSort.ts 的规矩)。
+ *   期间那一格是两头拼成的文字,按【期末日】排(它就是今天的默认次序那一列)。
+ *   期初 / 期末余额是各张报表自己币种的数,没有本位币那一列 —— 不可排;行数与匹配计数是另外数出来的 —— 不可排。
+ * ★ 默认不变(Q7):期末日新的在前,平局按建立时刻、再按 id。
+ */
+export const STATEMENT_SORT = { code: 'code', account: 'bank_account_code', period: 'period_end', status: 'status' } as const
+export type StatementSortKey = keyof typeof STATEMENT_SORT
+const STATEMENT_SORT_DEFAULT: ListSort<StatementSortKey> = { key: 'period', dir: 'desc' }
 
-export function parseStatementListParams(sp: { account?: string; status?: string }): StatementListParams {
+export type StatementListParams = { account: '' | '1000' | '1010'; status: '' | 'open' | 'reconciled'; sort: ListSort<StatementSortKey> }
+
+export function parseStatementListParams(sp: { account?: string; status?: string; sort?: string; dir?: string }): StatementListParams {
     return {
         account: sp.account === '1000' || sp.account === '1010' ? sp.account : '',
         status: sp.status === 'open' || sp.status === 'reconciled' ? sp.status : '',
+        sort: parseListSort(sp, Object.keys(STATEMENT_SORT) as StatementSortKey[], STATEMENT_SORT_DEFAULT),
     }
 }
 
@@ -45,15 +57,15 @@ export function statementCount(supabase: Client, p: StatementListParams) {
 }
 
 export function statementPage(supabase: Client, p: StatementListParams, from: number, to: number) {
-    return applyFilters(
-        supabase
-            .from('bank_statements')
-            .select('id, code, bank_account_code, currency, period_start, period_end, opening_balance, closing_balance, status'),
-        p,
+    return applyListSort(
+        applyFilters(
+            supabase
+                .from('bank_statements')
+                .select('id, code, bank_account_code, currency, period_start, period_end, opening_balance, closing_balance, status'),
+            p,
+        ),
+        p.sort, STATEMENT_SORT, [['period_end', 'desc'], ['created_at', 'desc'], ['id', 'asc']],
     )
-        .order('period_end', { ascending: false })
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as StatementDbRow[] | null }))
 }
@@ -63,6 +75,7 @@ export function statementExportHref(p: StatementListParams): string {
     const params = new URLSearchParams()
     if (p.account) params.set('account', p.account)
     if (p.status) params.set('status', p.status)
+    setSortParams(params, p.sort)
     const qs = params.toString()
     return qs ? `/finance/bank/statements/export?${qs}` : '/finance/bank/statements/export'
 }

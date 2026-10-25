@@ -203,6 +203,8 @@ export default function MySelfAssessmentPanel({
                             mode="all-rows"
                             canEdit={!locked}
                             // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):每一份评估一对钮,About 表写明是哪一份(类型 · 周期 · 起止)
+                            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+                            sorting={{ mode: 'client', coverage: 'complete' }}
                             exportSpec={{
                                 name: 'me-self-assessment-goals',
                                 title: t('reviews.selfPanelTitle'),

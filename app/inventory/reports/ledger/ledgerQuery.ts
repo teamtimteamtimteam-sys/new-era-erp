@@ -8,6 +8,23 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { fetchAllPages, EXPORT_CAP } from '@/lib/export/serverRows'
 import { defaultLedgerFrom } from '../reportShared'
+import { parseListSort, applyListSort, type ListSort, type SortDir } from '@/lib/listSort'
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):在数据库里排(页面只画前 LEDGER_SHOWN 条)。
+ *   列键 → `inventory_movements` 上的列。两侧读的是同一张关系、同一组列,于是两侧按【同一个次序】排、
+ *   合并时用【同一个比较】(ledgerComparator),截一次 —— 合并的前 N 条仍只能来自各侧的前 N 条。
+ *   ☞ 只收日期与数量:日期与数在库里与 JS 里比出来一模一样;movement_type / stock_status 是文字,
+ *     库里的字序(collation)与 JS 的比较不保证一致,合并就可能截错 —— 所以不可排。
+ *     批次 / 物料 / 库位是嵌入查出来的,不可排(lib/listSort.ts 规矩 ③)。
+ * ★ Q7:默认不变 —— 业务日 ↓(空的最后)· 发生时刻 ↓ · id ↑。
+ */
+export const LEDGER_SORT = { date: 'business_date', qty: 'qty_delta' } as const
+export type LedgerSortKey = keyof typeof LEDGER_SORT
+const LEDGER_SORT_DEFAULT: ListSort<LedgerSortKey> = { key: 'date', dir: 'desc' }
+const LEDGER_TIEBREAK: ReadonlyArray<readonly [keyof LedgerRow & string, SortDir]> = [
+    ['business_date', 'desc'], ['occurred_at', 'desc'], ['id', 'asc'],
+]
 
 export type LedgerParams = {
     from: string; to: string; materialId: string; batchCode: string
@@ -22,6 +39,8 @@ export type LedgerParams = {
      * 扫出来的【第二处】,而它不是搬家造成的 —— 这个参数【一次都没有实现过】。
      */
     movementId: string
+    /** TABLE-FEATURES-1 Q9:`?sort=&dir=`(LEDGER_SORT 白名单) */
+    sort: ListSort<LedgerSortKey>
 }
 
 export type LedgerRow = {
@@ -40,6 +59,7 @@ export function parseLedgerParams(sp: Record<string, string | undefined>): Ledge
         materialId: (sp.material_id ?? '').trim(),
         batchCode: (sp.batch ?? '').trim(),
         movementId: (sp.movement ?? '').trim(),
+        sort: parseListSort(sp, Object.keys(LEDGER_SORT) as LedgerSortKey[], LEDGER_SORT_DEFAULT),
     }
 }
 
@@ -61,6 +81,7 @@ export function describeFilters(p: LedgerParams): string {
  *     所以拆成【两条各自在库里筛过的读取】(进料那一侧 `inbound_batches!inner`、产出那一侧 `output_batches!inner`),
  *     两侧不可能重叠;合并、按同一个次序排,再截一次。总数 M = 两侧 count(exact) 之和。
  *   · 次序:业务日(空的排最后)↓ · 发生时刻 ↓ · id ↑ —— 翻页要一个【唯一】的次序,合并也按这同一个比较。
+ *     (TABLE-FEATURES-1 Q9 起这是默认;选了别的列时,那一列在前,这三个作平局键 —— 见 LEDGER_SORT。)
  */
 export const LEDGER_SHOWN = 1000
 
@@ -109,21 +130,31 @@ function sideQuery(supabase: Client, side: Side, p: LedgerParams, head: boolean)
     return q
 }
 
-function ordered<Q extends { order: (c: string, o: { ascending: boolean; nullsFirst?: boolean }) => Q }>(q: Q): Q {
-    return q.order('business_date', { ascending: false, nullsFirst: false })
-        .order('occurred_at', { ascending: false })
-        .order('id', { ascending: true })
+function ordered<Q>(q: Q, sort: ListSort<LedgerSortKey>): Q {
+    // TABLE-FEATURES-1 Q9:选中的列,再按默认那三个(与选中列相同的那一项跳过)
+    return applyListSort(q, sort, LEDGER_SORT, LEDGER_TIEBREAK)
 }
 
-/** 与上面三个 order 同一个比较 —— 两侧合并时用。 */
-export function ledgerOrder(a: LedgerRow, b: LedgerRow): number {
-    if (a.business_date !== b.business_date) {
-        if (a.business_date === null) return 1
-        if (b.business_date === null) return -1
-        return a.business_date < b.business_date ? 1 : -1
+/** 与上面 ordered 同一个比较 —— 两侧合并时用。空值一律排在最后(与 applyListSort 的 nullsFirst: false 同一条)。 */
+export function ledgerComparator(sort: ListSort<LedgerSortKey>): (a: LedgerRow, b: LedgerRow) => number {
+    const col = LEDGER_SORT[sort.key]
+    const keys: ReadonlyArray<readonly [keyof LedgerRow & string, SortDir]> = [
+        [col, sort.dir], ...LEDGER_TIEBREAK.filter(([c]) => c !== col),
+    ]
+    return (a, b) => {
+        for (const [c, d] of keys) {
+            const x = a[c] as string | number | null
+            const y = b[c] as string | number | null
+            if (x === y) continue
+            if (x === null) return 1
+            if (y === null) return -1
+            let cmp: number
+            if (c === 'occurred_at') cmp = Date.parse(x as string) - Date.parse(y as string)
+            else cmp = x < y ? -1 : x > y ? 1 : 0
+            if (cmp !== 0) return d === 'asc' ? cmp : -cmp
+        }
+        return 0
     }
-    if (a.occurred_at !== b.occurred_at) return Date.parse(b.occurred_at) - Date.parse(a.occurred_at)
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
 }
 
 /** 与页面同一套筛选的总行数(两侧之和)。 */
@@ -135,7 +166,7 @@ export async function ledgerCount(supabase: Client, p: LedgerParams): Promise<nu
 
 /** 一侧的第 from..to 行(那一侧自己的次序)。 */
 export function ledgerSidePage(supabase: Client, side: Side, p: LedgerParams, from: number, to: number) {
-    return ordered(sideQuery(supabase, side, p, false)).range(from, to)
+    return ordered(sideQuery(supabase, side, p, false), p.sort).range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as LedgerRow[] | null }))
 }
 
@@ -144,14 +175,14 @@ export async function fetchLedger(p: LedgerParams): Promise<LedgerRow[]> {
     const supabase = await createClient()
     const sides = await Promise.all(sidesOf(p).map(async (side) =>
         mustRows(await ledgerSidePage(supabase, side, p, 0, LEDGER_SHOWN - 1), `inventory_movements (${side})`)))
-    return sides.flat().sort(ledgerOrder).slice(0, LEDGER_SHOWN)
+    return sides.flat().sort(ledgerComparator(p.sort)).slice(0, LEDGER_SHOWN)
 }
 
 /** 导出:每一侧翻页取全(上限 50,000),合并,同一个次序。 */
 export async function fetchLedgerAll(supabase: Client, p: LedgerParams): Promise<LedgerRow[]> {
     const sides = await Promise.all(sidesOf(p).map((side) =>
         fetchAllPages((from, to) => ledgerSidePage(supabase, side, p, from, to), `inventory_movements (${side})`, EXPORT_CAP)))
-    return sides.flat().sort(ledgerOrder)
+    return sides.flat().sort(ledgerComparator(p.sort))
 }
 
 export const flatten = (r: LedgerRow) => {

@@ -135,6 +135,8 @@ export default function MyReviewsPanel({
                                         rowKey={(g) => g.id}
                                         phone={{ mode: 'columns' }}
                                         // 每一份评估一张目标表 —— 标题带上是哪一份(类型 + 原始起止日),About 表里分得开
+                                        // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+                                        sorting={{ mode: 'client', coverage: 'complete' }}
                                         exportSpec={{
                                             name: 'me-review-goals',
                                             title: `${t('reviews.mineTitle')} · ${t(`reviews.type_${r.review_type}`)} ${r.period_start} → ${r.period_end}`,

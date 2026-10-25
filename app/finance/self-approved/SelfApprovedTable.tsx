@@ -49,7 +49,8 @@ export default function SelfApprovedTable({ rows, empty }: { rows: SelfApprovedR
         { key: 'decision', header: t('finance.selfApproved.colDecision'), render: (r) => r.decision, exportAs: (r) => xText(r.decision) },
         { key: 'decider', header: t('finance.selfApproved.colDecider'), priority: true, render: (r) => r.decider, exportAs: (r) => xText(r.decider) },
         { key: 'subject', header: t('finance.selfApproved.colSubject'), render: (r) => r.subject, exportAs: (r) => xText(r.subject) },
-        { key: 'amount', header: t('finance.selfApproved.colAmount'), align: 'right', render: (r) => (r.amountRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.amount),
+        // TABLE-FEATURES-1 Q9(规矩 5):各行币种不同,又没有本位币那一列 —— 不可排
+        { key: 'amount', header: t('finance.selfApproved.colAmount'), align: 'right', sortable: false, render: (r) => (r.amountRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.amount),
             // 与屏幕同一个判据(amountRestricted,健康那一族):受限写「受限」,否则是带币种的数
             exportAs: (r) => (r.amountRestricted ? xRestricted : xMoney(r.amountCcy, r.currency)) },
         { key: 'note', header: t('finance.selfApproved.colNote'), render: (r) => (r.noteRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.note),
@@ -63,6 +64,8 @@ export default function SelfApprovedTable({ rows, empty }: { rows: SelfApprovedR
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'self-approved-decisions', title: t('finance.selfApproved.title') }}
+            // TABLE-FEATURES-1 Q9:self_approved_decisions 一次读全 —— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

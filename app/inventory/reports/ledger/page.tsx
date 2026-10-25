@@ -17,6 +17,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import LedgerTable from './LedgerTable'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
+import { setSortParams } from '@/lib/listSort'
 
 export default async function LedgerPage({
     searchParams,
@@ -33,12 +34,13 @@ export default async function LedgerPage({
     // 【PDF 必须与屏幕上看到的是同一份】—— movement 也要带上,
     //  否则导出的是一整张流水,而人以为导的是他正在看的那一条。
     //  (TABLE-EXPORT-1:CSV 那条路由删了 —— Excel / CSV 由表上的统一导出从表手里那一份写,天然是同一份。)
-    const qs = new URLSearchParams(
+    //  TABLE-FEATURES-1 Q9:排序也带上 —— PDF 与导出按屏幕上的同一个次序。
+    const qs = setSortParams(new URLSearchParams(
         Object.entries({
             from: params.from, to: params.to, material_id: params.materialId,
             batch: params.batchCode, movement: params.movementId,
         }).filter(([, v]) => v) as [string, string][]
-    ).toString()
+    ), params.sort).toString()
 
     // TABLE-EXPORT-1:导出的 About 表写【生效的】筛选(含默认 90 天那个起点);指名一条流水时日期窗不生效,
     //   与 describeFilters 同一条判据。
@@ -85,6 +87,9 @@ export default async function LedgerPage({
             {/* 【默认 90 天,而且说出来】—— 一个默认过滤了却不说的报表,
                 会让人以为"就这么多流水"。 */}
             <form method="get" className="flex flex-wrap items-end gap-3 my-4">
+                {/* TABLE-FEATURES-1 Q9:换筛选不丢掉选中的排序 */}
+                <input type="hidden" name="sort" value={params.sort.key} />
+                <input type="hidden" name="dir" value={params.sort.dir} />
                 <div>
                     <label className="block mb-1">{t('reports.ledger.from')}</label>
                     <DatePicker name="from" defaultValue={params.from} />
@@ -111,6 +116,7 @@ export default async function LedgerPage({
 
             <RowCapNotice shown={tableRows.length} total={total} />
             <LedgerTable rows={tableRows} empty={t('reports.ledger.empty')} filters={exportFilters}
+                sort={params.sort} shown={tableRows.length} total={total}
                 exportUrl={`/inventory/reports/ledger/export${qs ? `?${qs}` : ''}`} />
         </ListPage>
     )

@@ -132,6 +132,8 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             rowKey={(r) => r.code}
             phone={{ mode: 'columns' }}
             // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的假别
+            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'hr-leave-types', title: t('leave.subnav.types') }}
             toDraft={(r) => ({ ...r })}
             labels={{

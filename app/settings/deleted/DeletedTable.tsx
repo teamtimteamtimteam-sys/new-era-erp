@@ -61,7 +61,7 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
         { key: 'who', header: t('deleted.colWho'), render: (r) => r.whoCell, exportAs: (r) => r.whoExport },
         {
             // 【为什么】—— 空也要说出来,不留白
-            key: 'reason', header: t('deleted.colReason'), priority: true,
+            key: 'reason', header: t('deleted.colReason'), priority: true, sortValue: (r) => r.reason,
             exportAs: (r) => xText(r.reason ?? t('deleted.reasonUnrecorded')),
             render: (r) =>
                 r.reason ?? <span className="text-gray-500">{t('deleted.reasonUnrecorded')}</span>,
@@ -84,5 +84,7 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} empty={empty}
-        exportSpec={{ name: 'deleted-records', title: t('deleted.title') }} />
+        exportSpec={{ name: 'deleted-records', title: t('deleted.title') }}
+        // TABLE-FEATURES-1(Tim 2026-10-25 Q9):一次读完(筛选之后的全体)—— 在浏览器里排;没记理由的排最后
+        sorting={{ mode: 'client', coverage: 'complete' }} />
 }

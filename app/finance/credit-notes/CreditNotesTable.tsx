@@ -8,6 +8,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xDate, xRestricted } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type CreditNoteRow = {
     id: string
@@ -28,16 +30,23 @@ export type CreditNoteRow = {
     reason: string
 }
 
-export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
+export default function CreditNotesTable({ rows, exportHref, sort, shown, total }: {
+    rows: CreditNoteRow[]
+    /** TABLE-FEATURES-1 Q9:导出地址带上当前排序(creditNoteRows.ts 的 creditNoteExportHref) */
+    exportHref: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(creditNoteRows.ts 的 CREDIT_NOTE_SORT) */
+    sort: ListSort; shown: number; total: number
+}) {
     // ★ TABLE-EXPORT-2a:服务端分页,导出向 /finance/credit-notes/export 要全部行(这一页没有筛选)
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     // ★ 手机上留【单号】与【合计】—— 单号是身份,合计是这张登记簿存在的理由
     //   (人来这一页最常问的是"这张凭证冲了多少")。客户、对冲发票、签发状态、
     //   理由都是认出这一行之后才要问的,进展开区。
     const columns: ExportableColumn<CreditNoteRow>[] = [
         {
-            key: 'code', header: t('cn.colCode'), priority: true, className: 'text-sm',
+            key: 'code', sortable: true, header: t('cn.colCode'), priority: true, className: 'text-sm',
             exportAs: (r) => xText(r.code),
             render: (r) => (
                 <Link href={`/finance/credit-notes/${r.id}`} className="hover:underline app-link">
@@ -45,7 +54,7 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
                 </Link>
             ),
         },
-        { key: 'noteDate', header: t('cn.noteDate'), render: (r) => r.noteDate, exportAs: (r) => xDate(r.noteDateRaw) },
+        { key: 'noteDate', sortable: true, header: t('cn.noteDate'), render: (r) => r.noteDate, exportAs: (r) => xDate(r.noteDateRaw) },
         {
             key: 'customer', header: t('cn.colCustomer'),
             exportAs: (r) => (r.customerRestricted ? xRestricted
@@ -89,7 +98,7 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
                     </span>
                 ),
         },
-        { key: 'reason', header: t('cn.reason'), render: (r) => <span className="text-gray-700">{r.reason}</span>, exportAs: (r) => xText(r.reason) },
+        { key: 'reason', sortable: true, header: t('cn.reason'), render: (r) => <span className="text-gray-700">{r.reason}</span>, exportAs: (r) => xText(r.reason) },
     ]
 
     return (
@@ -99,7 +108,8 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('cn.empty')}
-            exportSpec={{ name: 'credit-notes', title: t('cn.title'), serverRows: '/finance/credit-notes/export' }}
+            exportSpec={{ name: 'credit-notes', title: t('cn.title'), serverRows: exportHref }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

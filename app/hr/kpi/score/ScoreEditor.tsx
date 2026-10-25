@@ -247,6 +247,8 @@ export default function ScoreEditor({ rows, canEdit, title }: { rows: ScoreRow[]
             phone={{ mode: 'columns' }}
             canEdit={canEdit}
             // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的分
+            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'hr-kpi-scores', title }}
             toDraft={(r) => ({
                 score: r.score,

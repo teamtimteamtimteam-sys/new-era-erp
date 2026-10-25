@@ -15,6 +15,7 @@ import {
     type MetalOption,
 } from './metalContentTypes'
 import { Button } from '@/app/components/ui/button'
+import { DisabledBlock } from '@/app/components/ui/disabled-block'
 import { contentText } from '@/lib/substances'
 
 /**
@@ -240,7 +241,7 @@ export default function MetalContentPanel({
             {lockedReason && (
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-3" data-state-note="metals-locked">{lockedReason}</p>
             )}
-            <fieldset disabled={!!lockedReason} className="contents">
+            <DisabledBlock disabled={!!lockedReason} className="contents">
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
@@ -306,7 +307,7 @@ export default function MetalContentPanel({
                     {t('metalContent.save')}
                 </Button>
             </div>
-            </fieldset>
+            </DisabledBlock>
         </section>
     )
 }

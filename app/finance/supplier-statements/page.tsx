@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { STATEMENTS_SHOWN, statementCount, statementPage, shapeStatementRows } from './statementRows'
+import { STATEMENTS_SHOWN, statementCount, statementPage, shapeStatementRows, parseSupplierStatementListParams, supplierStatementExportHref } from './statementRows'
 import { can } from '@/lib/permissions'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
@@ -14,14 +14,16 @@ import { ListPage } from '@/app/components/ui/list-page'
 import IssuePanel from './IssuePanel'
 import StatementsTable, { type StatementRow } from './StatementsTable'
 
-export default async function SupplierStatementsPage() {
+export default async function SupplierStatementsPage({ searchParams }: { searchParams: Promise<{ sort?: string; dir?: string }> }) {
     const denied = await requireFunction(FN.financeSupplierStatements)
     if (denied) return denied
     const t = await getTranslations()
     const supabase = await createClient()
+    // ★ TABLE-FEATURES-1 Q9:前 STATEMENTS_SHOWN 份按表头选中的次序取(在数据库里排)
+    const params = parseSupplierStatementListParams(await searchParams)
     const [listRes, supRes, canIssue] = await Promise.all([
         // ★ TABLE-EXPORT-2a(Tim Q2):读取与映射搬进 statementRows.ts,与导出路由共用;只画最近 STATEMENTS_SHOWN 份,而且说出来。
-        statementPage(supabase, 0, STATEMENTS_SHOWN - 1),
+        statementPage(supabase, params, 0, STATEMENTS_SHOWN - 1),
         supabase.from('supplier_lookup').select('id, code, legal_name').order('code'),
         can('module.finance.edit'),
     ])
@@ -36,7 +38,8 @@ export default async function SupplierStatementsPage() {
             <section data-section="supplier-statements">
                 <h2 className="mb-2">{t('supplierStatements.listTitle')}</h2>
                 <RowCapNotice shown={rows.length} total={total} />
-                <StatementsTable rows={rows} empty={t('supplierStatements.noneIssued')} />
+                <StatementsTable rows={rows} empty={t('supplierStatements.noneIssued')} exportHref={supplierStatementExportHref(params)}
+                                 sort={params.sort} shown={rows.length} total={total} />
             </section>
         </ListPage>
     )

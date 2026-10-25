@@ -50,6 +50,8 @@ export default function DisputesTable({ rows, empty }: { rows: DisputeRow[]; emp
         <DataTable
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'quality-disputes', title: t('quality.disputes.title') }}
+            // TABLE-FEATURES-1 Q9:全部争议一次读完,在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

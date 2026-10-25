@@ -11,8 +11,24 @@ import { formatAuditStamp } from '@/lib/dates'
 import type { createClient } from '@/lib/supabase/server'
 import { stocktakeStatusLabelKey } from './status'
 import type { StocktakeRow } from './StocktakesTable'
+import { parseListSort, applyListSort, type ListSort } from '@/lib/listSort'
 
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `stocktakes` 上的列(lib/listSort.ts 的规矩)。
+ *   状态按库里的状态码排(与 payments 同)。默认 = 今天的 ORDER BY:created_at DESC,平局按 id ——
+ *   created_at 不是表上的一列,所以默认键 `created` 不对应任何表头(没有列显示「已按它排」)。
+ */
+export const STOCKTAKE_SORT = {
+    created: 'created_at', code: 'code', status: 'status', started: 'started_at', posted: 'posted_at', notes: 'notes',
+} as const
+export type StocktakeSortKey = keyof typeof STOCKTAKE_SORT
+const STOCKTAKE_SORT_DEFAULT: ListSort<StocktakeSortKey> = { key: 'created', dir: 'desc' }
+
+export function parseStocktakeSort(sp: Record<string, string | string[] | undefined>): ListSort<StocktakeSortKey> {
+    return parseListSort(sp, Object.keys(STOCKTAKE_SORT) as StocktakeSortKey[], STOCKTAKE_SORT_DEFAULT)
+}
 
 // 匹配总数
 export function stocktakeCount(supabase: ServerSupabase) {
@@ -22,13 +38,14 @@ export function stocktakeCount(supabase: ServerSupabase) {
         .is('deleted_at', null)
 }
 
-export function stocktakePage(supabase: ServerSupabase, from: number, to: number) {
-    return supabase
-        .from('stocktakes')
-        .select('id, code, status, started_at, posted_at, notes')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
+export function stocktakePage(supabase: ServerSupabase, from: number, to: number, sort: ListSort<StocktakeSortKey> = STOCKTAKE_SORT_DEFAULT) {
+    return applyListSort(
+        supabase
+            .from('stocktakes')
+            .select('id, code, status, started_at, posted_at, notes')
+            .is('deleted_at', null),
+        sort, STOCKTAKE_SORT, [['created_at', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
 }
 

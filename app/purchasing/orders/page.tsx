@@ -22,6 +22,7 @@ import OrdersTable, { type PurchaseOrderRow } from './OrdersTable'
 import { parsePoListParams, poCount, poPage, shapePoRows, poExportHref } from './orderRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { setSortParams } from '@/lib/listSort'
 
 const PAGE_SIZE = 20
 
@@ -33,7 +34,7 @@ function parsePage(value: string | undefined): number {
 export default async function PurchaseOrdersPage({
     searchParams,
 }: {
-    searchParams: Promise<{ date_from?: string; date_to?: string; supplier?: string; status?: string; page?: string }>
+    searchParams: Promise<{ date_from?: string; date_to?: string; supplier?: string; status?: string; page?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -46,6 +47,7 @@ export default async function PurchaseOrdersPage({
 
     // TABLE-EXPORT-1:读取与「库里的行 → 表的行」搬进 orderRows.ts,与导出路由共用一份。
     const params = parsePoListParams(sp)
+    const listParams = params
     const { dateFrom, dateTo, supplier, status } = params
     const requestedPage = parsePage(sp.page)
 
@@ -62,6 +64,8 @@ export default async function PurchaseOrdersPage({
         if (dateTo) params.set('date_to', dateTo)
         if (supplier) params.set('supplier', supplier)
         if (status) params.set('status', status)
+        // TABLE-FEATURES-1 Q9:翻页保留排序
+        setSortParams(params, listParams.sort)
         params.set('page', String(targetPage))
         return `/purchasing/orders?${params.toString()}`
     }
@@ -111,7 +115,8 @@ export default async function PurchaseOrdersPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <OrdersTable rows={tableRows} empty={t('purchasing.empty')} exportHref={poExportHref(params)} />
+            <OrdersTable rows={tableRows} empty={t('purchasing.empty')} exportHref={poExportHref(params)}
+                         sort={params.sort} shown={tableRows.length} total={total} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

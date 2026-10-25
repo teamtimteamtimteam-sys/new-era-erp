@@ -159,6 +159,8 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                     rows={gatewayRows}
                     empty={t('devices.noGateways')}
                     exportSpec={{ name: 'operation-devices-gateways', title: t('devices.gatewaysTitle') }}
+                    // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                    sorting="client"
                 />
             </section>
 
@@ -177,6 +179,8 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                     rows={deviceRows}
                     empty={t('devices.noDevices')}
                     exportSpec={{ name: 'operation-devices', title: t('devices.devicesTitle') }}
+                    // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                    sorting="client"
                 />
             </section>
 

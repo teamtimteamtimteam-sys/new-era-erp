@@ -7,6 +7,7 @@
 // CONV-5:三个类别各一张表,共用同一个客户端表组件(它们是同一种东西,
 // 不是三张不同的表)。state 恒为 'ok' —— 类别标题与那句 referenceIntro
 // 在任何行数下都要画。
+import { READ_ROW_LIMIT } from '@/lib/listSort'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireManagePermissions } from '../guard'
@@ -60,6 +61,8 @@ export default async function ReferencePage() {
         holders.set(g.permission_code, arr)
     }
 
+    // TABLE-FEATURES-1(Tim 2026-10-25 Q9):一次读取切成三张表,每张都到不了 1,000 行 —— DataTable 自己那道
+    //   「读满 1,000 行就关掉排序」的闸看不见整次读取,所以由页面按 perms 的行数来关(READ_ROW_LIMIT,lib/listSort.ts)。
     const categories = ['module', 'data', 'action'].filter((c) =>
         perms.some((p) => p.category === c)
     )
@@ -85,7 +88,7 @@ export default async function ReferencePage() {
             {categories.map((cat) => (
                 <section key={cat} className="mb-8">
                     <h2 className="mb-3">{t(CATEGORY_KEY[cat] ?? cat)}</h2>
-                    <PermissionReferenceTable rows={rowsFor(cat)} exportName={`permission-reference-${cat}`} exportTitle={t(CATEGORY_KEY[cat] ?? cat)} />
+                    <PermissionReferenceTable rows={rowsFor(cat)} sortable={perms.length < READ_ROW_LIMIT} exportName={`permission-reference-${cat}`} exportTitle={t(CATEGORY_KEY[cat] ?? cat)} />
                 </section>
             ))}
         </ListPage>

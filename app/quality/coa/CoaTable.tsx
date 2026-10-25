@@ -25,11 +25,13 @@ export type CoaListRow = {
     openRequestLabel: string | null
 }
 
-export default function CoaTable({ rows, empty, canIssue, hideBatch = false }: {
+export default function CoaTable({ rows, empty, canIssue, hideBatch = false, clientSort = false }: {
     rows: CoaListRow[]
     empty: React.ReactNode
     canIssue: boolean
     hideBatch?: boolean
+    /** TABLE-FEATURES-1 Q9:/quality/coa 一次读完全部证书,在浏览器里排。批次页那一处不给(不改它)。 */
+    clientSort?: boolean
 }) {
     const t = useTranslations()
     // TABLE-EXPORT-1:状态一格写「已签发 / 已作废」加上「被 … 取代」那一句(与屏幕同两段);
@@ -86,6 +88,7 @@ export default function CoaTable({ rows, empty, canIssue, hideBatch = false }: {
         <DataTable
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'quality-coa', title: t('coa.list.title') }}
+            {...(clientSort ? { sorting: { mode: 'client' as const, coverage: 'complete' as const } } : {})}
         />
     )
 }

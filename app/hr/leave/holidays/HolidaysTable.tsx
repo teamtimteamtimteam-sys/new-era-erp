@@ -106,6 +106,8 @@ export default function HolidaysTable({
             //   不画 children —— 用它会把这张表单一起藏起来。
             //   CONV-2 §⑥ 第 3 条撞过同一个缺陷,这里照那条判据走。
             empty={t('leave.noHolidays', { 0: String(year) })}
+            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'hr-public-holidays', title: t('leave.subnav.holidays') }}
         />
     )

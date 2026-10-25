@@ -33,7 +33,7 @@ function parsePage(value: string | undefined): number {
 export default async function EmployeesPage({
     searchParams,
 }: {
-    searchParams: Promise<{ q?: string; department?: string; status?: string; category?: string; page?: string }>
+    searchParams: Promise<{ q?: string; department?: string; status?: string; category?: string; page?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -96,7 +96,8 @@ export default async function EmployeesPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <EmployeesTable rows={tableRows} empty={t('hr.employeesEmpty')} exportHref={exportHref} />
+            <EmployeesTable rows={tableRows} empty={t('hr.employeesEmpty')} exportHref={exportHref}
+                            sort={params.sort} shown={tableRows.length} total={total} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

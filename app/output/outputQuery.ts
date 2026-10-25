@@ -30,6 +30,10 @@ export const OUTPUT_SORTABLE = [
 ] as const
 export type OutputSortCol = (typeof OUTPUT_SORTABLE)[number]
 
+// ★ TABLE-FEATURES-1(Tim 2026-10-25 Q7):默认按出料日(单据日期)新的在前,平局按建立时刻、再按 id
+//   (原来默认按 created_at)。日期筛选打在 output_date 上,排序也跟它走。
+export const OUTPUT_SORT_DEFAULT: OutputSortCol = 'output_date'
+
 export interface OutputListParams {
     q: string
     state: string // '' 表示不按状态过滤
@@ -73,7 +77,7 @@ export function parseOutputListParams(sp: {
         sp.sort ?? ''
     )
         ? (sp.sort as OutputSortCol)
-        : 'created_at'
+        : OUTPUT_SORT_DEFAULT
     const dir: 'asc' | 'desc' = sp.dir === 'asc' ? 'asc' : 'desc'
     return { q, state, customerId, materialId, dateFrom, dateTo, sort, dir }
 }
@@ -133,7 +137,7 @@ interface OutputQueryChain {
     eq(column: string, value: string): OutputQueryChain
     gte(column: string, value: string): OutputQueryChain
     lte(column: string, value: string): OutputQueryChain
-    order(column: string, options: { ascending: boolean }): OutputQueryChain
+    order(column: string, options: { ascending: boolean; nullsFirst?: boolean }): OutputQueryChain
 }
 
 // 在调用方已 .select(...) 好的查询上,套用 软删除过滤 / 搜索 / 状态 / 客户 / 物料 / 排序。
@@ -177,7 +181,12 @@ export function applyOutputFilters<T>(
         chain = chain.eq('material_id', materialId)
     }
 
-    chain = chain.order(sort, { ascending: dir === 'asc' })
+    // TABLE-FEATURES-1 Q7:空值排在最后(lib/listSort.ts 同一条);平局键 created_at desc —— 选中的就是它时不重复。
+    //   最后的 id 平局键由调用方在 .range() 之前加(outputRows.ts 的 outputPage)。
+    chain = chain.order(sort, { ascending: dir === 'asc', nullsFirst: false })
+    if (sort !== 'created_at') {
+        chain = chain.order('created_at', { ascending: false, nullsFirst: false })
+    }
 
     return chain as unknown as T
 }

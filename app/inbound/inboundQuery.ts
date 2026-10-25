@@ -31,6 +31,10 @@ export const INBOUND_SORTABLE = [
 ] as const
 export type InboundSortCol = (typeof INBOUND_SORTABLE)[number]
 
+// ★ TABLE-FEATURES-1(Tim 2026-10-25 Q7):默认按到货日(单据日期)新的在前,平局按建立时刻、再按 id
+//   (原来默认按 created_at)。日期筛选打在 arrival_date 上,排序也跟它走。
+export const INBOUND_SORT_DEFAULT: InboundSortCol = 'arrival_date'
+
 // 定价状态(cut 5a 起的本表列):'' 表示不筛选
 export const PRICING_STATUS_VALUES = ['unpriced', 'provisional', 'final'] as const
 
@@ -79,7 +83,7 @@ export function parseInboundListParams(sp: {
         sp.sort ?? ''
     )
         ? (sp.sort as InboundSortCol)
-        : 'created_at'
+        : INBOUND_SORT_DEFAULT
     const dir: 'asc' | 'desc' = sp.dir === 'asc' ? 'asc' : 'desc'
     // 只接受三个规范值;其它按"不筛选"处理
     const pricingStatus = (PRICING_STATUS_VALUES as readonly string[]).includes(sp.pricing_status ?? '')
@@ -149,7 +153,7 @@ interface InboundQueryChain {
     eq(column: string, value: string): InboundQueryChain
     gte(column: string, value: string): InboundQueryChain
     lte(column: string, value: string): InboundQueryChain
-    order(column: string, options: { ascending: boolean }): InboundQueryChain
+    order(column: string, options: { ascending: boolean; nullsFirst?: boolean }): InboundQueryChain
 }
 
 // 在调用方已 .select(...) 好的查询上,套用 软删除过滤 / 搜索 / 阶段 / 供应商 / 物料 / 排序。
@@ -197,7 +201,12 @@ export function applyInboundFilters<T>(
         chain = chain.eq('pricing_status', pricingStatus)
     }
 
-    chain = chain.order(sort, { ascending: dir === 'asc' })
+    // TABLE-FEATURES-1 Q7:空值排在最后(lib/listSort.ts 同一条);平局键 created_at desc —— 选中的就是它时不重复。
+    //   最后的 id 平局键由调用方在 .range() 之前加(inboundRows.ts 的 inboundPage)。
+    chain = chain.order(sort, { ascending: dir === 'asc', nullsFirst: false })
+    if (sort !== 'created_at') {
+        chain = chain.order('created_at', { ascending: false, nullsFirst: false })
+    }
 
     return chain as unknown as T
 }

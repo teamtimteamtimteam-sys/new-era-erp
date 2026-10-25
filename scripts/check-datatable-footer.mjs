@@ -75,6 +75,13 @@ const REAL = {
     '@/app/components/ui/table-style': 'app/components/ui/table-style.ts',
     '@/app/components/ui/control-style': 'app/components/ui/control-style.ts',
     '@/app/components/ui/button': 'app/components/ui/button.tsx',
+    // ★ TABLE-FEATURES-1(2026-10-25):展开箭头与翻页从这一刀起经 `<ReadOnlyButton>`(它在禁用块外画的就是共享 <Button>)——
+    //   与 button.tsx 同一个理由【不桩】:桩掉它就是自己编一份按钮再拿它证明标记是对的。它只 import react 与 button。
+    '@/app/components/ui/disabled-block': 'app/components/ui/disabled-block.tsx',
+    // ★ TABLE-FEATURES-1:editable-table 从这一刀起借 data-table 的 READ_ROW_LIMIT 与 sortKeyFromCell(两边排序同一把尺)。
+    '@/app/components/ui/data-table': 'app/components/ui/data-table.tsx',
+    // ★ TABLE-FEATURES-1:READ_ROW_LIMIT 的唯一出处(纯常量与纯函数,零 import)。
+    '@/lib/listSort': 'lib/listSort.ts',
 }
 
 function transpile(file) {

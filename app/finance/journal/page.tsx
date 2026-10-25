@@ -22,6 +22,7 @@ import { getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import { can, canViewPrices } from '@/lib/permissions'
 import JournalRequestsPanel, { type JournalRequestView } from './JournalRequestsPanel'
+import { setSortParams } from '@/lib/listSort'
 
 const JOURNAL_PAGE_SIZE = 20
 
@@ -33,7 +34,7 @@ function parsePage(value: string | undefined): number {
 export default async function JournalListPage({
     searchParams,
 }: {
-    searchParams: Promise<{ date_from?: string; date_to?: string; page?: string; trail?: string }>
+    searchParams: Promise<{ date_from?: string; date_to?: string; page?: string; trail?: string; sort?: string; dir?: string }>
 }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -48,6 +49,7 @@ export default async function JournalListPage({
 
     // TABLE-EXPORT-2a:读取与「库里的行 → 表的行」(含每张分录的金额与来源链接)搬进 journalRows.ts,与清单导出路由共用一份。
     const params = parseJournalListParams(sp)
+    const listParams = params
     const { dateFrom, dateTo } = params
     const requestedPage = parsePage(sp.page)
 
@@ -59,6 +61,7 @@ export default async function JournalListPage({
     const to = from + JOURNAL_PAGE_SIZE - 1
 
     // 2) 取当前页(创建序最新在前)
+    //    ★ TABLE-FEATURES-1 Q7:默认改为分录日最新在前(平局按建立时刻、再按 id);可按表头换序 —— 见 journalRows.ts
     const { data: entries, error } = await journalPage(supabase, params, from, to)
 
     if (error) {
@@ -80,6 +83,7 @@ export default async function JournalListPage({
         const params = new URLSearchParams()
         if (dateFrom) params.set('date_from', dateFrom)
         if (dateTo) params.set('date_to', dateTo)
+        setSortParams(params, listParams.sort)  // TABLE-FEATURES-1 Q9:翻页保留排序
         params.set('page', String(targetPage))
         return `/finance/journal?${params.toString()}`
     }
@@ -193,7 +197,8 @@ export default async function JournalListPage({
                 )}
             </div>
 
-            <JournalTable rows={tableRows} empty={t('finance.emptyState')} baseCurrency={baseCurrency} exportHref={journalListExportHref(params)} />
+            <JournalTable rows={tableRows} empty={t('finance.emptyState')} baseCurrency={baseCurrency} exportHref={journalListExportHref(params)}
+                          sort={params.sort} shown={tableRows.length} total={total} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

@@ -2,20 +2,23 @@
 // 页面只画最近 50 笔并说出来;这里按页面【自己的】读取(../../transferRows.ts)翻页取全,以 JSON 交给表,
 // 由表按它自己的列定义写成 xlsx / csv。守卫与页面同一个判据(MOD.finance);超过 50,000 行按名拒绝。
 // ★ 路由不放在 /finance/bank/export:那一页还有别的表(对账状态卡片),这一条只属于转账那一张。
+import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { canEnter } from '@/lib/moduleAccess'
 import { MOD } from '@/lib/modules'
 import { mustCount } from '@/lib/db-helpers'
 import { exportRowsResponse, exportDenied } from '@/lib/export/serverRows'
-import { transferCount, transferPage, shapeTransferRows } from '../../transferRows'
+import { transferCount, transferPage, shapeTransferRows, parseTransferListParams } from '../../transferRows'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     if (!(await canEnter(MOD.finance.permission))) return exportDenied()
+    // TABLE-FEATURES-1 Q9:与页面同一份排序参数
+    const params = parseTransferListParams(Object.fromEntries(request.nextUrl.searchParams))
     const supabase = await createClient()
     return exportRowsResponse({
         label: 'bank_transfers',
         count: async () => mustCount(await transferCount(supabase), 'bank_transfers'),
-        page: (from, to) => transferPage(supabase, from, to),
+        page: (from, to) => transferPage(supabase, params, from, to),
         shape: (rows) => shapeTransferRows(supabase, rows),
     })
 }

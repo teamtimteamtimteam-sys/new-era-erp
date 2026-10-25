@@ -58,6 +58,9 @@ export function InventoryTable({ rows, pricesRestricted }: {
         </>
     )
 
+    // ★ TABLE-FEATURES-1 Q9:库存数量逐行带着各自物料的单位 —— 这一屏的行都是同一个单位时才可排
+    //   (线上今天 5 种物料全是 kg,以 postgres 读基表,2026-10-25),否则不同单位的数排在一起没有意义。
+    const oneUnit = new Set(rows.map((r) => r.unit)).size <= 1
     const columns: ExportableColumn<InventoryTableRow>[] = [
         {
             // 身份列:一行台账的主语是那一种物料。
@@ -76,6 +79,7 @@ export function InventoryTable({ rows, pricesRestricted }: {
         {
             // ★ 进料库存留在手机上 —— 转换前它就没有 hidden sm:table-cell。
             key: 'inboundStock',
+            sortable: oneUnit ? undefined : false,
             header: t('inventory.colInboundStock'),
             priority: true,
             render: (r) => qtyNode(r.inboundStock, r.unit, `/inventory/inbound/${r.materialId}`),
@@ -98,6 +102,7 @@ export function InventoryTable({ rows, pricesRestricted }: {
             //   而展开区里那条链接点得到。够不着的钻取入口等于没有这个入口,
             //   所以它必须是展开区里【带着链接】的那一份,不是一个光秃秃的数。
             key: 'outputStock',
+            sortable: oneUnit ? undefined : false,
             header: t('inventory.colOutputStock'),
             render: (r) => qtyNode(r.outputStock, r.unit, `/inventory/output/${r.materialId}`),
             exportAs: (r) => xNum(r.outputStock, 'qty', r.unit),
@@ -129,6 +134,9 @@ export function InventoryTable({ rows, pricesRestricted }: {
             //   断点变;组件自己按看得见的列数算 colSpan,所以这里只需要一份。
             empty={t('inventory.emptyState')}
             exportSpec={{ name: 'inventory', title: t('inventory.listTitle') }}
+            // TABLE-FEATURES-1 Q9:整张台账一次拿全,在浏览器里排。三列钱被 data.view_prices 遮住时导出值是「受限」(null),
+            //   永远排在最后 —— 排序不泄露看不见的数。钱都是本位币,可比。
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

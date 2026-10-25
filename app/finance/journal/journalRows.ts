@@ -3,6 +3,7 @@ import 'server-only'
 // TABLE-EXPORT-2a(Tim 2026-10-22 Q2):分录列表的【一份】读取 —— 页面与导出路由共用。
 // 页面取一页(.range),导出路由翻页取全(lib/export/serverRows.ts,上限 50,000);两者同一套筛选(entry_date 区间)、
 // 同一个 select、同一个映射。排序 created_at DESC 之后补 id —— 翻页取全要一个【唯一】的次序。
+// ★ TABLE-FEATURES-1 Q7(2026-10-25):默认改为 entry_date DESC → created_at DESC → id(见 JOURNAL_SORT)。
 // ★ 这【不是】总账导出(./export/route.ts,一行一条分录行、必须给起止日 —— GLEXPORT-1,五条专用导出之一):
 //   这一条导出的是这张清单本身,一行一张分录,列就是表上的列(TABLE-EXPORT-1 Q11)。
 // ★ 金额:每张分录 Σ借方,读 journal_lines_masked —— 工资分录的金额对不持 data.view_pay 的人受限(U1-A);
@@ -17,14 +18,24 @@ import { getLocale } from '@/lib/i18n/server'
 import { fetchAllPages, IN_CHUNK } from '@/lib/export/serverRows'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
 import type { JournalRow } from './JournalTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
-export type JournalListParams = { dateFrom: string; dateTo: string }
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `journal_entries` 上的列(lib/listSort.ts 的规矩)。
+ *   金额是各行借方之和(另读 journal_lines_masked 算出来的),不可排。来源按 source_type 那个码排。
+ * ★ Q7:默认按分录日(新的在前),平局按建立时刻、再按 id —— 筛选按分录日,排序原来却按建立时刻。
+ */
+export const JOURNAL_SORT = { code: 'code', date: 'entry_date', memo: 'memo', source: 'source_type', status: 'status' } as const
+export type JournalSortKey = keyof typeof JOURNAL_SORT
+const JOURNAL_SORT_DEFAULT: ListSort<JournalSortKey> = { key: 'date', dir: 'desc' }
 
-export function parseJournalListParams(sp: { date_from?: string; date_to?: string }): JournalListParams {
+export type JournalListParams = { dateFrom: string; dateTo: string; sort: ListSort<JournalSortKey> }
+
+export function parseJournalListParams(sp: { date_from?: string; date_to?: string; sort?: string; dir?: string }): JournalListParams {
     const { dateFrom, dateTo } = parseDateRange(sp)
-    return { dateFrom, dateTo }
+    return { dateFrom, dateTo, sort: parseListSort(sp, Object.keys(JOURNAL_SORT) as JournalSortKey[], JOURNAL_SORT_DEFAULT) }
 }
 
 // 过滤链(journal_entries 无软删 —— 不可变表)。最小链式子集,避免 supabase 深泛型。
@@ -48,12 +59,13 @@ export function journalCount(supabase: Client, p: JournalListParams) {
 }
 
 export function journalPage(supabase: Client, p: JournalListParams, from: number, to: number) {
-    return applyFilters(
-        supabase.from('journal_entries').select('id, code, entry_date, memo, source_type, source_id, status'),
-        p,
+    return applyListSort(
+        applyFilters(
+            supabase.from('journal_entries').select('id, code, entry_date, memo, source_type, source_id, status'),
+            p,
+        ),
+        p.sort, JOURNAL_SORT, [['entry_date', 'desc'], ['created_at', 'desc'], ['id', 'asc']],
     )
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as JournalDbRow[] | null }))
 }
@@ -63,6 +75,7 @@ export function journalListExportHref(p: JournalListParams): string {
     const params = new URLSearchParams()
     if (p.dateFrom) params.set('date_from', p.dateFrom)
     if (p.dateTo) params.set('date_to', p.dateTo)
+    setSortParams(params, p.sort)
     const qs = params.toString()
     return qs ? `/finance/journal/entries/export?${qs}` : '/finance/journal/entries/export'
 }

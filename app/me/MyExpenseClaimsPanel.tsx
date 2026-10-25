@@ -45,6 +45,8 @@ import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xDate } from '@/lib/export/cells'
 import DecisionCell, { decisionText, type Decision } from './DecisionCell'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 import ClaimReceipts, { PREPARE_FAILURE_KEYS, type ReceiptRow } from './ClaimReceipts'
 import { prepareReceipt, uploadReceipt, RECEIPT_ACCEPT, type ReceiptLimits } from './uploadClaimReceipt'
 
@@ -72,11 +74,14 @@ const money = (n: number) =>
 //   没有页面码,报销单自己的读规则就是门)。审批留痕那一支不给本人开口子,所以那几行是 Restricted(Q4);谁决定的、为什么,
 //   本人在表里的「决定」一格已经看得到(EMP-SELF-1)。
 export default function MyExpenseClaimsPanel({
-    employeeId, rows, total, baseCurrency, decisions, trails = {}, receipts = [], limits = null,
+    employeeId, rows, total, sort, exportHref, baseCurrency, decisions, trails = {}, receipts = [], limits = null,
 }: {
     employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision>; trails?: Record<string, ReactNode>
     /** TABLE-EXPORT-2b-1(Tim Q2 · Q5):自己的费用报销一共几张 —— 页面只画最近 50 张,多出来就说出来;导出走路由取全 */
     total: number
+    /** TABLE-FEATURES-1 Q9:在数据库里排(meRows.ts 的 MY_EXPENSE_SORT,参数前缀 `exp_`);导出地址带同一个顺序 */
+    sort: ListSort
+    exportHref: string
     /** CLAIM-RECEIPTS-1:这几张单上 attached 的收据(页面另读 expense_claim_receipts) */
     receipts?: ReceiptRow[]
     /** CLAIM-RECEIPTS-1:收据的上限(claim_receipt_limits —— 与门户同一个数) */
@@ -84,6 +89,9 @@ export default function MyExpenseClaimsPanel({
 }) {
     const t = useTranslations()
     const router = useRouter()
+    // TABLE-FEATURES-1 Q9:换顺序之后落回这一块(#claims),不跳回页顶
+    const expSortHref = useSortHref('exp_')
+    const sortHref = (key: string, dir: 'asc' | 'desc') => `${expSortHref(key, dir)}#claims`
     const [open, setOpen] = useState(false)
     // 【花钱那天不预填】—— 一个决定成本落在哪个期间的日期,预填就是奖励留空;
     // 服务端也独立地拒空(合取,不是二选一)。逐笔。
@@ -138,9 +146,9 @@ export default function MyExpenseClaimsPanel({
             : it.no_receipt_reason ? `${t('expenseClaims.noReceipt')}: ${it.no_receipt_reason}`
                 : t('expenseClaims.noReceipt')
     const columns: ExportableColumn<Row>[] = [
-        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, render: (r) => r.code, exportAs: (r) => xText(r.code) },
+        { key: 'ref', sortable: true, header: t('expenseClaims.colRef'), priority: true, render: (r) => r.code, exportAs: (r) => xText(r.code) },
         {
-            key: 'spent', header: t('expenseClaims.colSpent'),
+            key: 'spent', sortable: true, header: t('expenseClaims.colSpent'),
             render: (r) => r.spend_date,
             exportAs: (r) => xDate(r.spend_date),
         },
@@ -183,7 +191,7 @@ export default function MyExpenseClaimsPanel({
             ),
         },
         {
-            key: 'status', header: t('expenseClaims.colStatus'), priority: true,
+            key: 'status', sortable: true, header: t('expenseClaims.colStatus'), priority: true,
             // 状态之下那一行(已冲销 / 欠付 / 已付)是字,不是样式 —— 一起写进这一格
             exportAs: (r) => xText([t('expenseClaims.status_' + r.status),
                 r.expense_reversed ? t('expenseClaims.reversed') : null,
@@ -330,7 +338,8 @@ export default function MyExpenseClaimsPanel({
                 rowKey={(r) => r.claim_id}
                 phone={{ mode: 'columns' }}
                 empty={t('expenseClaims.none')}
-                exportSpec={{ name: 'me-expense-claims', title: t('expenseClaims.myTitle'), serverRows: '/me/expense-claims/export' }}
+                exportSpec={{ name: 'me-expense-claims', title: t('expenseClaims.myTitle'), serverRows: exportHref }}
+                sorting={{ mode: 'server', coverage: { shown: rows.length, total }, active: sort, href: sortHref }}
             />
             {rows.length > 0 && (
                 <div className="mt-4 space-y-2">

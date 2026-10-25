@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows, mustOne, mustCount } from '@/lib/db-helpers'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { ENV_SHOWN, envCount, envPage, envNum, shapeEnvRows } from './envRows'
+import { ENV_SHOWN, envCount, envPage, envNum, shapeEnvRows, parseEnvSort, envExportHref } from './envRows'
 import { can } from '@/lib/permissions'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
@@ -23,17 +23,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const num = envNum
 
 
-export default async function EnvironmentPage({ searchParams }: { searchParams: Promise<{ trail?: string | string[]; corrects?: string | string[] }> }) {
+export default async function EnvironmentPage({ searchParams }: { searchParams: Promise<{ trail?: string | string[]; corrects?: string | string[]; sort?: string | string[]; dir?: string | string[] }> }) {
     const denied = await requireFunction(FN.safetyEnvironment)
     if (denied) return denied
     const t = await getTranslations()
     const locale = await getLocale()
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-1 Q9:结果表在数据库里排(envRows.ts 的 envSortColumns)
+    const sort = parseEnvSort(sp)
 
     // ★ TABLE-EXPORT-2b-1(Tim Q2):结果的读取与映射搬进 envRows.ts,与导出路由共用;只画最近 ENV_SHOWN 条,而且说出来。
     const [resRes, totalRes, parRes, labRes, canEdit] = await Promise.all([
-        envPage(supabase, 0, ENV_SHOWN - 1),
+        envPage(supabase, sort, locale, 0, ENV_SHOWN - 1),
         envCount(supabase),
         supabase.from('environmental_parameters').select('code, name_en, name_zh, unit, limit_value, limit_basis, is_active').order('sort_order').order('code'),
         supabase.from('laboratories').select('code, name_en, name_zh, is_active').eq('is_active', true).order('sort_order'),
@@ -90,7 +92,8 @@ export default async function EnvironmentPage({ searchParams }: { searchParams: 
                 <h2 className="mb-1">{t('safety.environment.resultsTitle')}</h2>
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('safety.environment.resultsHint')}</p>
                 <RowCapNotice shown={rows.length} total={total} />
-                <EnvironmentTable rows={rows} empty={t('safety.environment.noResults')} correctLabel={canEdit ? t('safety.environment.correct') : null} />
+                <EnvironmentTable rows={rows} empty={t('safety.environment.noResults')} correctLabel={canEdit ? t('safety.environment.correct') : null}
+                    sort={sort} shown={rows.length} total={total} exportHref={envExportHref(sort)} />
             </section>
             <AuditTrail subject="safety_environment" id="all" show={trailCount(sp.trail)} />
         </ListPage>

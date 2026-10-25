@@ -12,26 +12,42 @@ import { formatDate } from '@/lib/dates'
 import { mustRows } from '@/lib/db-helpers'
 import { REVIEW_COLUMNS, type ReviewRow, daysInState, statusPillClass } from './reviewShared'
 import type { ReviewsTableRow } from './ReviewsTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `performance_reviews_masked` 上的列(lib/listSort.ts 的规矩)。
+ *   员工、评估人、评估轮的名字是查出来的,停留天数是算出来的 —— 都不可排。期间那一格按起始日排;类型、状态按库里的代码排。
+ *   默认与今天一样:建立时刻新的在前(`created` 不是屏幕上的一列,所以默认时没有表头亮着),平局按 id。
+ */
+export const REVIEWS_SORT = { created: 'created_at', type: 'review_type', period: 'period_start', status: 'status' } as const
+export type ReviewsSortKey = keyof typeof REVIEWS_SORT
+const REVIEWS_SORT_DEFAULT: ListSort<ReviewsSortKey> = { key: 'created', dir: 'desc' }
 
 /** 页面画多少份 —— 与转换之前同一个数。 */
 export const REVIEWS_SHOWN = 200
 
-export type ReviewsFilter = { cycle?: string; type?: string; status?: string; employee?: string }
+export type ReviewsFilter = { cycle?: string; type?: string; status?: string; employee?: string; sort: ListSort<ReviewsSortKey> }
 const KEYS = ['cycle', 'type', 'status', 'employee'] as const
+type ReviewsSearch = { cycle?: string; type?: string; status?: string; employee?: string; sort?: string; dir?: string }
 
-export function reviewsFilterFrom(sp: URLSearchParams | ReviewsFilter): ReviewsFilter {
-    const out: ReviewsFilter = {}
-    for (const k of KEYS) { const v = sp instanceof URLSearchParams ? sp.get(k) : sp[k]; if (v) out[k] = v }
+export function reviewsFilterFrom(sp: URLSearchParams | ReviewsSearch): ReviewsFilter {
+    const get = (k: keyof ReviewsSearch) => (sp instanceof URLSearchParams ? sp.get(k) : sp[k]) || undefined
+    // TABLE-FEATURES-1 Q9:排序与筛选读同一份参数
+    const out: ReviewsFilter = {
+        sort: parseListSort({ sort: get('sort'), dir: get('dir') }, Object.keys(REVIEWS_SORT) as ReviewsSortKey[], REVIEWS_SORT_DEFAULT),
+    }
+    for (const k of KEYS) { const v = get(k); if (v) out[k] = v }
     return out
 }
 
 export function reviewsQuery(f: ReviewsFilter): string {
     const q = new URLSearchParams()
     for (const k of KEYS) if (f[k]) q.set(k, f[k]!)
-    const s = q.toString()
-    return s ? `?${s}` : ''
+    // TABLE-FEATURES-1 Q9:导出按当前顺序取全
+    setSortParams(q, f.sort)
+    return `?${q.toString()}`
 }
 
 type Q = { eq: (c: string, v: string) => Q }
@@ -48,9 +64,11 @@ export function reviewsCount(supabase: Client, f: ReviewsFilter) {
 }
 
 export function reviewsPage(supabase: Client, f: ReviewsFilter, from: number, to: number) {
-    return filtered(supabase.from('performance_reviews_masked').select(REVIEW_COLUMNS), f)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
+    // TABLE-FEATURES-1 Q9:ORDER BY 在 .range(截断)之前
+    return applyListSort(
+        filtered(supabase.from('performance_reviews_masked').select(REVIEW_COLUMNS), f),
+        f.sort, REVIEWS_SORT, [['created_at', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as ReviewRow[] | null }))
 }

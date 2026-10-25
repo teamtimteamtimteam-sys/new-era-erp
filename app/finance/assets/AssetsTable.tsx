@@ -86,6 +86,8 @@ export default function AssetsTable({
         { key: 'acquired', header: t('assets.colAcquired'), render: (a) => a.acquisitionDate, exportAs: (a) => xDate(a.acquisitionDateRaw) },
         {
             key: 'inService', header: t('assets.colInService'),
+            // TABLE-FEATURES-1 Q9:导出值一时是日期、一时是一句话 —— 排序只按真日期,还没投用的(空)排在最后
+            sortValue: (a) => a.inServiceDateRaw,
             // 有投用日就是那个真日期;没有就是屏幕上那句话(「计划 … 投用」之类)
             exportAs: (a) => (a.inServiceDateRaw ? xDate(a.inServiceDateRaw) : xText(a.inServiceText)),
             render: (a) => (a.inServicePending
@@ -94,6 +96,8 @@ export default function AssetsTable({
         },
         {
             key: 'cost', header: t('assets.colCost'), align: 'right',
+            // TABLE-FEATURES-1 Q9(规矩 5):原币成本各带各的币种 —— 按本位币成本排
+            sortValue: (a) => a.costBaseAmt,
             // 原币成本带它自己的币种;「@ 汇率」那条尾巴是另一个数,不塞进这一格(本位币那一列就是它乘出来的)
             exportAs: (a) => xMoney(a.costCcyAmt, a.currency),
             render: (a) => (
@@ -156,6 +160,8 @@ export default function AssetsTable({
             empty={empty}
             rowClassName={(a) => (a.status === 'disposed' ? 'text-gray-400' : undefined)}
             exportSpec={{ name: 'fixed-assets', title: t('assets.title') }}
+            // TABLE-FEATURES-1 Q9:台账一次读全(fixed_assets 不翻页)—— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

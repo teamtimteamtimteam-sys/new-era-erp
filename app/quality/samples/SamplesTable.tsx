@@ -49,11 +49,15 @@ export default function SamplesTable({ rows, empty }: { rows: SampleRow[]; empty
         },
         {
             key: 'where', header: t('quality.samples.colWhere'), render: (r) => r.where,
+            // TABLE-FEATURES-1 Q9:导出值一些是处置时刻、一些是一句话 —— 混着比会排乱;按屏幕上那句话排
+            sortValue: (r) => r.where || null,
             exportAs: (r) => (r.disposedAt ? xTime(r.disposedAt) : xText(r.where)),
         },
         { key: 'taken', header: t('quality.samples.colTaken'), render: (r) => r.takenLabel, exportAs: (r) => xDate(r.takenOn) },
         {
             key: 'keep', header: t('quality.samples.colKeepUntil'),
+            // TABLE-FEATURES-1 Q9:按留存到期日排;「尚未设定」是空,排在最后
+            sortValue: (r) => r.retainUntil ?? null,
             exportAs: (r) => (r.retainUntil ? xDate(r.retainUntil) : xText(t('quality.notYetSet'))),
             render: (r) => (
                 <span>
@@ -68,6 +72,8 @@ export default function SamplesTable({ rows, empty }: { rows: SampleRow[]; empty
         <DataTable
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'quality-samples', title: t('quality.samples.title') }}
+            // TABLE-FEATURES-1 Q9:全部样品一次读完,在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

@@ -15,12 +15,41 @@ import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { inChunks } from '@/lib/export/serverRows'
 import { xText, xNum, xInt, xTime, type ExportCell } from '@/lib/export/cells'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 type T = (key: string, values?: Record<string, string | number>) => string
 
 export const PENDING_SHOWN = 200
 export const RECENT_SHOWN = 50
+
+type SP = Record<string, string | string[] | undefined>
+
+// ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):两张表都只画前 N 行,所以都在数据库里排(先排、再取前 N 行)。
+//   列键 → 读取那一张关系上的列(lib/listSort.ts 的规矩)。一页两张 → 第二张(最近确认的称重)带前缀 `recent_`。
+//   草稿:读数在 jsonb(proposed)里、仪器是查出来的、「等了几天」是算出来的 —— 都不可排。
+//   ★ 草稿是一个待确认的队列:默认【不变】,最老的在前(Q7「审批面板保持最老的待办在前」)。
+export const PENDING_SORT = { station: 'station', received: 'created_at' } as const
+export type PendingSortKey = keyof typeof PENDING_SORT
+const PENDING_SORT_DEFAULT: ListSort<PendingSortKey> = { key: 'received', dir: 'asc' }
+export function parsePendingSort(sp: SP): ListSort<PendingSortKey> {
+    return parseListSort(sp, Object.keys(PENDING_SORT) as PendingSortKey[], PENDING_SORT_DEFAULT)
+}
+//   称重:对象(角色 · 单号)与仪器(编号 · 校准状态)是拼出来的,不可排;来源按库里的码排。默认不变:最新的在前。
+export const RECENT_SORT_PREFIX = 'recent_'
+export const RECENT_SORT = { at: 'captured_at', weight: 'weight_kg', source: 'source' } as const
+export type RecentSortKey = keyof typeof RECENT_SORT
+const RECENT_SORT_DEFAULT: ListSort<RecentSortKey> = { key: 'at', dir: 'desc' }
+export function parseRecentSort(sp: SP): ListSort<RecentSortKey> {
+    return parseListSort(sp, Object.keys(RECENT_SORT) as RecentSortKey[], RECENT_SORT_DEFAULT, RECENT_SORT_PREFIX)
+}
+/** 导出路由的地址带上两张表各自的排序(TABLE-EXPORT-1 Q2:导出按当前的排序取全体)。 */
+export function pendingExportHref(sort: ListSort<PendingSortKey>): string {
+    return `/operation/capture/pending/export?${setSortParams(new URLSearchParams(), sort).toString()}`
+}
+export function recentExportHref(sort: ListSort<RecentSortKey>): string {
+    return `/operation/capture/recent/export?${setSortParams(new URLSearchParams(), sort, RECENT_SORT_PREFIX).toString()}`
+}
 
 export type Draft = {
     id: string; inbox_id: number; device_id: string | null; station: string | null; proposed: { weight_kg?: number }
@@ -41,9 +70,12 @@ export function ageInDays(createdAt: string): number {
 export function pendingCount(supabase: Client) {
     return supabase.from('capture_drafts').select('id', { count: 'exact', head: true }).eq('status', 'pending')
 }
-export function pendingPage(supabase: Client, from: number, to: number) {
-    return supabase.from('capture_drafts').select('id, inbox_id, device_id, station, proposed, source, created_at')
-        .eq('status', 'pending').order('created_at').order('id').range(from, to)
+export function pendingPage(supabase: Client, sort: ListSort<PendingSortKey>, from: number, to: number) {
+    // TABLE-FEATURES-1 Q9:平局键照旧 created_at → id(默认就是原来的 .order('created_at').order('id'))
+    return applyListSort(
+        supabase.from('capture_drafts').select('id, inbox_id, device_id, station, proposed, source, created_at').eq('status', 'pending'),
+        sort, PENDING_SORT, [['created_at', 'asc'], ['id', 'asc']],
+    ).range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as Draft[] | null }))
 }
 /** TABLE-EXPORT-1:导出读原始值 —— 读数是一个数(kg),收到是真时刻,等了几天是整数 */
@@ -62,9 +94,12 @@ export function draftExports(d: Draft, dev: DeviceRef | null | undefined, kgUnit
 export function recentCount(supabase: Client) {
     return supabase.from('weighing_calibration').select('weighing_id', { count: 'exact', head: true })
 }
-export function recentPage(supabase: Client, from: number, to: number) {
-    return supabase.from('weighing_calibration').select('weighing_id, ticket_id, role, weight_kg, source, device_code, captured_at, is_current, status')
-        .order('captured_at', { ascending: false }).order('weighing_id').range(from, to)
+export function recentPage(supabase: Client, sort: ListSort<RecentSortKey>, from: number, to: number) {
+    // TABLE-FEATURES-1 Q9:平局键照旧 captured_at desc → weighing_id
+    return applyListSort(
+        supabase.from('weighing_calibration').select('weighing_id, ticket_id, role, weight_kg, source, device_code, captured_at, is_current, status'),
+        sort, RECENT_SORT, [['captured_at', 'desc'], ['weighing_id', 'asc']],
+    ).range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as Weighing[] | null }))
 }
 

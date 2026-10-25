@@ -90,6 +90,8 @@ export default async function EquipmentListPage() {
                 rows={tableRows}
                 empty={t('equipment.page.empty')}
                 exportSpec={{ name: 'operation-equipment', title: t('equipment.page.listTitle') }}
+                // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                sorting="client"
             />
         </ListPage>
     )

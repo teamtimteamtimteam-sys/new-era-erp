@@ -10,6 +10,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xDate, xMoney, xMasked } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type ClaimRow = {
     claimId: string
@@ -36,14 +38,19 @@ const CLS: Record<string, string> = {
     paid: 'bg-green-100 text-green-800',
 }
 
-export default function ClaimsTable({ rows, empty, exportUrl }: { rows: ClaimRow[]; empty: React.ReactNode; exportUrl: string }) {
+export default function ClaimsTable({ rows, empty, exportUrl, sort, shown, total }: {
+    rows: ClaimRow[]; empty: React.ReactNode; exportUrl: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(claimsRows.ts 的 CLAIMS_SORT) */
+    sort: ListSort; shown: number; total: number
+}) {
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     // ★ 手机上留【单号】与【状态】—— 单号是身份,而状态是这张登记簿存在的理由:
     //   它回答"这笔钱到底付了没有",那是读者打开这一页要问的那一件事。
     const columns: ExportableColumn<ClaimRow>[] = [
         {
-            key: 'code', header: t('claims.code'), priority: true, className: 'text-xs',
+            key: 'code', sortable: true, header: t('claims.code'), priority: true, className: 'text-xs',
             exportAs: (r) => xText(r.code),
             render: (r) => (
                 <Link href={`/hr/claims/${r.claimId}`} className="hover:underline app-link">
@@ -52,16 +59,16 @@ export default function ClaimsTable({ rows, empty, exportUrl }: { rows: ClaimRow
             ),
         },
         { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel, exportAs: (r) => xText(r.employeeLabel) },
-        { key: 'date', header: t('claims.date'), render: (r) => r.claimDate, exportAs: (r) => xDate(r.claimDateRaw) },
+        { key: 'date', sortable: true, header: t('claims.date'), render: (r) => r.claimDate, exportAs: (r) => xDate(r.claimDateRaw) },
         {
-            key: 'amount', header: t('claims.amount'), align: 'right',
+            key: 'amount', sortable: true, header: t('claims.amount'), align: 'right',
             // TABLE-EXPORT-1 Q3(健康一族,data.view_health):与屏幕同一条判据 —— amountSgd 为 null 就是「受限」
             //   币种:屏幕上这一格写着「… SGD」(列本身就叫 amount_sgd),导出跟着写同一个。
             exportAs: (r) => xMasked(r.amountSgdRaw, r.amountSgd !== null, (v) => xMoney(v, 'SGD')),
             render: (r) => (r.amountSgd === null ? <Refusal>{t('common.restricted')}</Refusal> : `${r.amountSgd} SGD`),
         },
         {
-            key: 'state', header: t('claims.state'), priority: true,
+            key: 'state', sortable: true, header: t('claims.state'), priority: true,
             exportAs: (r) => xText(t(`claims.state_${r.settlementState}`)),
             render: (r) => (
                 <span className={`rounded px-2 py-0.5 text-xs ${CLS[r.settlementState ?? ''] ?? ''}`}>
@@ -69,7 +76,7 @@ export default function ClaimsTable({ rows, empty, exportUrl }: { rows: ClaimRow
                 </span>
             ),
         },
-        { key: 'expense', header: t('claims.expense'), className: 'text-xs', render: (r) => r.expenseCode, exportAs: (r) => xText(r.expenseCode) },
+        { key: 'expense', sortable: true, header: t('claims.expense'), className: 'text-xs', render: (r) => r.expenseCode, exportAs: (r) => xText(r.expenseCode) },
     ]
 
     return (
@@ -80,6 +87,7 @@ export default function ClaimsTable({ rows, empty, exportUrl }: { rows: ClaimRow
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'hr-medical-claims', title: t('hr.subnav.claims'), serverRows: exportUrl }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

@@ -18,13 +18,25 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import ContaminationGrid from './ContaminationGrid'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { GRID_SHOWN, RECENT_CHECKS_SHOWN, checksCount, checksPage, gridCount, gridPage, missingCount, shapeGridRows } from './contaminationRows'
+import {
+    GRID_SHOWN, RECENT_CHECKS_SHOWN, checksCount, checksPage, gridCount, gridPage, missingCount, shapeGridRows,
+    GRID_SORT, CHECKS_SORT, CHECKS_SORT_PREFIX, parseGridSort, parseChecksSort, gridExportHref, checksExportHref,
+} from './contaminationRows'
 import ContaminationChecksList from './ContaminationChecksList'
 import { CHECK_ROW_COLUMNS, labelsFor, toCheckListRows } from './checkRows'
 
-export default async function ContaminationPage() {
+export default async function ContaminationPage({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
     const denied = await requireFunction(FN.contamination)
     if (denied) return denied
+
+    // TABLE-FEATURES-1 Q9:两张表各自在数据库里排;第二张带前缀 checks_(contaminationRows.ts)
+    const sp = await searchParams
+    const gridSort = parseGridSort(sp)
+    const checksSort = parseChecksSort(sp)
 
     const t = await getTranslations()
     const locale = await getLocale()
@@ -33,10 +45,10 @@ export default async function ContaminationPage() {
     // ★ TABLE-EXPORT-2b-2(Tim TABLE-EXPORT-2 Q2 · 2b Q1 · 2b Q6):两张表的读取与映射搬进 contaminationRows.ts,与导出路由共用;
     //   各画前 N 行(网格 300 格 · 抽检 50 次),而且说出来;「缺几格」是一次 count(exact),不再数截下来的那 300 格。
     const [gridRes, gridTotalRes, missingRes, checkRes, checkTotalRes, streamRes, labels, canOpenRuns] = await Promise.all([
-        gridPage(supabase, 0, GRID_SHOWN - 1),
+        gridPage(supabase, gridSort, 0, GRID_SHOWN - 1),
         gridCount(supabase),
         missingCount(supabase),
-        checksPage(supabase, CHECK_ROW_COLUMNS, 0, RECENT_CHECKS_SHOWN - 1),
+        checksPage(supabase, CHECK_ROW_COLUMNS, checksSort, 0, RECENT_CHECKS_SHOWN - 1),
         checksCount(supabase),
         supabase.from('contamination_streams').select('code, name_en, name_zh, warning_pct').eq('is_active', true).order('sort_order'),
         labelsFor(supabase, locale),
@@ -68,12 +80,15 @@ export default async function ContaminationPage() {
             </p>
             <p className="text-sm mb-4">{missing === 0 ? t('contamination.noneMissing') : t('contamination.missingCount', { n: missing })}</p>
             <RowCapNotice shown={rows.length} total={gridTotal} />
-            <ContaminationGrid rows={rows} exportUrl="/operation/contamination/grid/export" />
+            <ContaminationGrid rows={rows} exportUrl={gridExportHref(gridSort)}
+                sorting={{ mode: 'server', active: gridSort, shown: rows.length, total: gridTotal, sortable: Object.keys(GRID_SORT) }} />
             <h2 className="mt-8 mb-2">{t('contamination.recentTitle')}</h2>
             <RowCapNotice shown={checks.length} total={checkTotal} />
             <ContaminationChecksList rows={checks} emptyKey="contamination.emptyRecent"
                 exportSpec={{ name: 'operation-contamination-checks-recent', title: t('contamination.recentTitle'),
-                              serverRows: '/operation/contamination/checks/export' }} />
+                              serverRows: checksExportHref(checksSort) }}
+                sorting={{ mode: 'server', active: checksSort, shown: checks.length, total: checkTotal,
+                           sortable: Object.keys(CHECKS_SORT), prefix: CHECKS_SORT_PREFIX }} />
         </ListPage>
     )
 }

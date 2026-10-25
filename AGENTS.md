@@ -1828,6 +1828,13 @@ paragraph used to list and closed two of them:**
 ☞ **任何一刀读出来与这两行有一个字节不同:停下来报告,不要「顺手」改这张表。** 只有一次有意的重新签发(Tim 裁定过的)才改它,
 并在同一个提交里写明为什么。
 
+## 表格:排序与禁用块(TABLE-FEATURES-1,Tim 2026-10-25)
+
+* **84 张列表页每一张表都开着排序**(`scripts/check-list-sorting.mjs` 进构建):一次读全体的在浏览器里排(比较值取自那一列的导出值,「受限」排最后、读满 1,000 行就关);
+  分页或「只画前 N 行」的在数据库里排(`lib/listSort.ts`:白名单 → 读者读的那一张关系上的列,不许按看不见的基表列排)。新开一张列表页:把它加进那支检查的名单。
+* **仓库里每一个 `<fieldset disabled>` 都经 `<DisabledBlock>`**(`app/components/ui/disabled-block.tsx`,`scripts/check-disabled-block.mjs` 进构建)——
+  它让里面表格的导出 / 排序 / 翻页照样按得下去;手写一处 fieldset,结束了的记录上的导出就又灰了。全文与裁定:`docs/table-features.md`。
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and

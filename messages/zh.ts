@@ -1349,6 +1349,8 @@ const zh = {
             trailCapNotice: '下面的历史只涵盖最新的 {shown} 条,共 {total} 条。',
         },
         columns: '列 {shown}/{total}',
+        sortOffAtLimit: '这张清单的排序关着:它读到了 {n} 行,手里可能不是全部匹配的行。收窄筛选再排序。',
+        sortHeldWhileEditing: '正在编辑的那一行保存或取消之后才能排序。',
         partialNotice: '这一屏 {shown} 行,全体 {total} 行 —— 排序在数据库里对【全体】做,所以第一页就是全体的前 {shown} 名。',
         selectAll: '全选',
         selectRow: '选中这一行',

@@ -96,6 +96,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n/client'
 import { Refusal } from '@/app/components/ui/refusal'
+import { DisabledBlock } from '@/app/components/ui/disabled-block'
 
 export function PermissionGate({
     code,
@@ -164,9 +165,9 @@ export function PermissionGate({
             )}
         >
             {/* display:contents —— 不产生盒子,所以不动任何一处既有版式。 */}
-            <fieldset disabled className="contents">
+            <DisabledBlock disabled className="contents">
                 {children}
-            </fieldset>
+            </DisabledBlock>
             {/* ★ `Refusal` 自己是 `whitespace-nowrap`(一枚药丸本该是一行)。
                    带上「或者……」之后它装的是两句话,一行放不下 —— 在手机上
                    会横着溢出去。所以这一支【明确】把它放开。

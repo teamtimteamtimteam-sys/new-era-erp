@@ -59,13 +59,15 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
         { key: 'paymentDate', header: t('hr.colPaymentDate'), render: (r) => r.paymentDate, exportAs: (r) => xDate(r.paymentDateRaw) },
         { key: 'currency', header: t('hr.colCurrency'), render: (r) => r.currency, exportAs: (r) => xText(r.currency) },
         {
-            key: 'gross', header: t('hr.colGrossTotal'), align: 'right', className: 'text-sm',
+            // TABLE-FEATURES-1 Q9 规矩 ⑤:每一期有自己的币种,这一行没有本位币合计 —— 不同币种的数放在一起排没有意义
+            key: 'gross', sortable: false, header: t('hr.colGrossTotal'), align: 'right', className: 'text-sm',
             // TABLE-EXPORT-1 Q3(薪酬一族,data.view_pay):与 MaskedValue 同一个 canView
             exportAs: (r) => xMasked(r.grossTotal, r.grossTotal !== null, xMoney),
             render: (r) => <MaskedValue value={r.grossTotal} canView={r.grossTotal !== null} format={(v: number) => formatMoneyBare(v, '同行「币种」列(hr.colCurrency)')} />,
         },
         {
-            key: 'net', header: t('hr.colNetTotal'), priority: true, align: 'right',
+            // TABLE-FEATURES-1 Q9 规矩 ⑤:同上(各期自己的币种,没有本位币合计)
+            key: 'net', sortable: false, header: t('hr.colNetTotal'), priority: true, align: 'right',
             className: 'text-sm font-medium',
             exportAs: (r) => xMasked(r.netPayTotal, r.netPayTotal !== null, xMoney),
             render: (r) => <MaskedValue value={r.netPayTotal} canView={r.netPayTotal !== null} format={(v: number) => formatMoneyBare(v, '同行「币种」列(hr.colCurrency)')} />,
@@ -125,6 +127,8 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'hr-payroll-periods', title: t('hr.payrollTitle') }}
         />
     )

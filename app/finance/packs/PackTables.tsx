@@ -27,6 +27,8 @@ export type ReconRow = {
     revaluation: string
     unexplained: string
     reconciled: boolean
+    /** TABLE-FEATURES-1 Q9:七个金额的原始数 —— 只拿来排序(屏幕上的字照旧是上面那几个格好的字符串)。 */
+    sortAmt: { ledger: number; subledger: number; difference: number; origination: number; settlement: number; revaluation: number; unexplained: number }
 }
 
 export function ReconTable({ rows }: { rows: ReconRow[] }) {
@@ -35,22 +37,26 @@ export function ReconTable({ rows }: { rows: ReconRow[] }) {
     // ★ 手机上留三列 —— TABLE-PHONE-2 的判断,一个字没改:侧别 · 差额 · 未解释。
     //   勾稽这一张存在的理由就是【差额有多少、其中多少解释不掉】,而「未解释」
     //   那一格自己带着红色 —— 状态不在另一列里,就在那个数上。
+    // ★ TABLE-FEATURES-1 Q9:这两张表的列没有导出值,所以每一列自己给 sortValue(金额按原始的数)。
     const reconColumns: Column<ReconRow>[] = [
         {
             key: 'side', header: t('pack.colSide'), priority: true,
             render: (s) => t(s.side === 'ar' ? 'pack.sideAr' : 'pack.sideAp'),
+            sortValue: (s) => t(s.side === 'ar' ? 'pack.sideAr' : 'pack.sideAp'),
         },
-        { key: 'control', header: t('pack.colControl'), render: (s) => s.controlAccount },
-        { key: 'ledger', header: t('pack.colLedger'), align: 'right', render: (s) => s.ledger },
-        { key: 'subledger', header: t('pack.colSubledger'), align: 'right', render: (s) => s.subledger },
+        { key: 'control', header: t('pack.colControl'), render: (s) => s.controlAccount, sortValue: (s) => s.controlAccount },
+        { key: 'ledger', header: t('pack.colLedger'), align: 'right', render: (s) => s.ledger, sortValue: (s) => s.sortAmt.ledger },
+        { key: 'subledger', header: t('pack.colSubledger'), align: 'right', render: (s) => s.subledger, sortValue: (s) => s.sortAmt.subledger },
         {
             key: 'difference', header: t('pack.colDifference'), align: 'right', priority: true, render: (s) => s.difference,
+            sortValue: (s) => s.sortAmt.difference,
         },
-        { key: 'origination', header: t('pack.colOrigination'), align: 'right', render: (s) => s.origination },
-        { key: 'settlement', header: t('pack.colSettlement'), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (s) => s.settlement },
-        { key: 'revaluation', header: t('pack.colRevaluation'), align: 'right', render: (s) => s.revaluation },
+        { key: 'origination', header: t('pack.colOrigination'), align: 'right', render: (s) => s.origination, sortValue: (s) => s.sortAmt.origination },
+        { key: 'settlement', header: t('pack.colSettlement'), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (s) => s.settlement, sortValue: (s) => s.sortAmt.settlement },
+        { key: 'revaluation', header: t('pack.colRevaluation'), align: 'right', render: (s) => s.revaluation, sortValue: (s) => s.sortAmt.revaluation },
         {
             key: 'unexplained', header: t('pack.colUnexplained'), align: 'right', priority: true,
+            sortValue: (s) => s.sortAmt.unexplained,
             // ★★【那一格的红【是整格的】,而 Column.className 是每列一份静态字符串】★★
             //   转换之前那是 <td className={… + (reconciled ? '' : 'bg-red-50 …')}> ——
             //   **一个【按行】变的格子底色**,而组件今天没有这个口子
@@ -76,6 +82,8 @@ export function ReconTable({ rows }: { rows: ReconRow[] }) {
             columns={reconColumns}
             rowKey={(s) => s.side}
             phone={{ mode: 'columns' }}
+            // TABLE-FEATURES-1 Q9:勾稽的几行一次算全(management_pack_data)—— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }
@@ -87,6 +95,9 @@ export type SplitRow = {
     counterpartCode: string
     counterpartDate: string
     amount: string
+    /** TABLE-FEATURES-1 Q9:只拿来排序的原始值(分录日 YYYY-MM-DD、本位币金额) */
+    entryDateRaw: string
+    amountBase: number
 }
 
 export function SplitPairsTable({ rows }: { rows: SplitRow[] }) {
@@ -96,16 +107,17 @@ export function SplitPairsTable({ rows }: { rows: SplitRow[] }) {
     //   这张表的一行【就是一对】,所以两个单号一起构成身份:只留一半的话,
     //   剩下的那半没有对手,这张表也就没有意义了。两个日期进展开区。
     const splitColumns: Column<SplitRow>[] = [
-        { key: 'entry', header: t('pack.colEntry'), priority: true, render: (s) => s.entryCode },
-        { key: 'date', header: t('pack.colDate'), render: (s) => s.entryDate },
+        { key: 'entry', header: t('pack.colEntry'), priority: true, render: (s) => s.entryCode, sortValue: (s) => s.entryCode },
+        { key: 'date', header: t('pack.colDate'), render: (s) => s.entryDate, sortValue: (s) => s.entryDateRaw },
         {
             key: 'counterpart', header: t('pack.colCounterpart'), priority: true,
-            render: (s) => s.counterpartCode,
+            render: (s) => s.counterpartCode, sortValue: (s) => s.counterpartCode,
         },
-        { key: 'counterpartDate', header: t('pack.colCounterpartDate'), render: (s) => s.counterpartDate },
+        // 对手件的日子过界时本来就是原始的 YYYY-MM-DD
+        { key: 'counterpartDate', header: t('pack.colCounterpartDate'), render: (s) => s.counterpartDate, sortValue: (s) => s.counterpartDate },
         {
             key: 'amount', header: t('pack.colAmount'), align: 'right', priority: true,
-            render: (s) => s.amount,
+            render: (s) => s.amount, sortValue: (s) => s.amountBase,
         },
     ]
 
@@ -115,6 +127,8 @@ export function SplitPairsTable({ rows }: { rows: SplitRow[] }) {
             columns={splitColumns}
             rowKey={(s) => s.entryCode}
             phone={{ mode: 'columns' }}
+            // TABLE-FEATURES-1 Q9:拆开的冲销对一次算全(management_pack_data)—— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

@@ -8,6 +8,7 @@
 //   之后每一刀加它自己的支,并在同一个提交里往 docs/mes-pending-values.md 加行(Q2)。
 // 【门】requireFunction(FN.pendingValues)。
 // ════════════════════════════════════════════════════════════════════════════
+import { READ_ROW_LIMIT } from '@/lib/listSort'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -29,6 +30,11 @@ export default async function PendingValuesPage() {
     const rows = mustRows(
         await supabase.from('pending_values').select('value_code, item_id, item_code, item_label, href').order('value_code').order('item_code'),
         'pending_values') as Pending[]
+
+    // TABLE-FEATURES-1(Tim 2026-10-25 Q9):每一节在浏览器里排。一次读取被切成好几节,每一节都到不了 1,000 行,
+    //   于是 DataTable 自己那道「读满 1,000 行就关掉排序」的闸在这里看不见 —— 由页面按【整次读取】的行数来关。
+    //   READ_ROW_LIMIT 住在 lib/listSort.ts(与 data-table.tsx 同一个数)。
+    const sortable = rows.length < READ_ROW_LIMIT
 
     const groups = new Map<string, Pending[]>()
     for (const r of rows) groups.set(r.value_code, [...(groups.get(r.value_code) ?? []), r])
@@ -59,6 +65,7 @@ export default async function PendingValuesPage() {
                                       { key: 'label', header: t('pendingValues.colName'), priority: true }]}
                             rows={tableRows}
                             empty="—"
+                            sorting={sortable ? 'client' : undefined}
                             exportSpec={{
                                 // 一支值一张表 —— 文件名按值码分开(小写、连字符)
                                 name: `settings-pending-values-${code.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,

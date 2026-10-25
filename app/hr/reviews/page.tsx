@@ -28,7 +28,7 @@ type CycleOpt = { id: string; name: string }
 export default async function ReviewsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ cycle?: string; type?: string; status?: string; employee?: string }>
+    searchParams: Promise<{ cycle?: string; type?: string; status?: string; employee?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -130,7 +130,8 @@ export default async function ReviewsPage({
             </form>
 
             <RowCapNotice shown={tableRows.length} total={total} />
-            <ReviewsTable rows={tableRows} empty={t('reviews.empty')} exportUrl={`/hr/reviews/export${reviewsQuery(f)}`} />
+            <ReviewsTable rows={tableRows} empty={t('reviews.empty')} exportUrl={`/hr/reviews/export${reviewsQuery(f)}`}
+                          sort={f.sort} shown={tableRows.length} total={total} />
         </ListPage>
     )
 }

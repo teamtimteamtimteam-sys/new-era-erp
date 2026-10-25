@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xNum, xDate } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { CellsSorting } from '@/app/operation/equipment/CellsTable'
 
 export type GridRow = {
     key: string; date: string; shift: string; stream: string; state: 'checked' | 'not_sampled' | 'missing'
@@ -15,8 +17,13 @@ export type GridRow = {
     processDate: string
 }
 
-export default function ContaminationGrid({ rows, exportUrl }: { rows: GridRow[]; exportUrl: string }) {
+export default function ContaminationGrid({ rows, exportUrl, sorting }: {
+    rows: GridRow[]; exportUrl: string
+    /** TABLE-FEATURES-1 Q9:页面只画前 300 格 —— 在数据库里排(contaminationRows.ts 的 GRID_SORT);与 CellsTable 同一种纯数据描述 */
+    sorting: Extract<CellsSorting, { mode: 'server' }>
+}) {
     const t = useTranslations()
+    const sortHref = useSortHref(sorting.prefix ?? '', sorting.pageParam ?? 'page')
     const columns: ExportableColumn<GridRow>[] = [
         { key: 'date', header: t('contamination.colDate'), priority: true, render: (r) => r.date, exportAs: (r) => xDate(r.processDate) },
         { key: 'shift', header: t('contamination.colShift'), render: (r) => r.shift, exportAs: (r) => xText(r.shift) },
@@ -49,6 +56,10 @@ export default function ContaminationGrid({ rows, exportUrl }: { rows: GridRow[]
             ),
         },
     ]
+    // TABLE-FEATURES-1 Q9:白名单里的列才可排(名字查出来的、拼出来的不可排)。就地标在那份字面量上 ——
+    //   check-datatable-phone 读的是 `columns={…}` 指向的那份字面量(它要看得见 priority),换成一个 .map 的产物它就瞎了。
+    for (const c of columns) c.sortable = sorting.sortable.includes(c.key)
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} empty={t('contamination.emptyGrid')}
-                      exportSpec={{ name: 'operation-contamination-shifts', title: t('contamination.title'), serverRows: exportUrl }} />
+                      exportSpec={{ name: 'operation-contamination-shifts', title: t('contamination.title'), serverRows: exportUrl }}
+                      sorting={{ mode: 'server', coverage: { shown: sorting.shown, total: sorting.total }, active: sorting.active, href: sortHref }} />
 }

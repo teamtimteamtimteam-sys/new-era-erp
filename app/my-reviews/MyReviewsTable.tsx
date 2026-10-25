@@ -74,6 +74,8 @@ export default function MyReviewsTable({ rows, exportName, exportTitle }: { rows
 
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} className="mb-6"
+            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: exportName, title: exportTitle }} />
     )
 }

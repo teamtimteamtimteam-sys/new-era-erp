@@ -1429,6 +1429,8 @@ const en = {
         },
         columns: 'Columns {shown}/{total}',
         // 报量,不报警:排序看得见全体 —— 这一句解释的正是【为什么第一页就是全体的前 N 名】。
+        sortOffAtLimit: 'Sorting is off for this list: it reached {n} rows, so it may not hold every matching row. Narrow the filters to sort.',
+        sortHeldWhileEditing: 'Sorting waits until the row being edited is saved or cancelled.',
         partialNotice: 'This screen shows {shown} of {total} rows — the sorting is done in the database over ALL rows, so page one is the top {shown} of the whole set, not just of this screen.',
         selectAll: 'Select all',
         selectRow: 'Select this row',

@@ -15,16 +15,18 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import SalesOrdersTable from './SalesOrdersTable'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { ORDERS_SHOWN, ordersCount, ordersPage, shapeOrderRows } from './ordersRows'
+import { ORDERS_SHOWN, ordersCount, ordersPage, shapeOrderRows, parseOrderSort, ordersExportHref } from './ordersRows'
 
-export default async function SalesOrdersPage() {
+export default async function SalesOrdersPage({ searchParams }: { searchParams: Promise<{ sort?: string; dir?: string }> }) {
     const denied = await requireModule(MOD.sales)
     if (denied) return denied
+    // TABLE-FEATURES-1 Q9:在数据库里排(排在截取前 ORDERS_SHOWN 张之前)
+    const sort = parseOrderSort(await searchParams)
     const t = await getTranslations()
     const supabase = await createClient()
 
     // ★ TABLE-EXPORT-2b-2(Tim Q2):清单的读取与映射搬进 ordersRows.ts,与导出路由共用;只画最新 ORDERS_SHOWN 张,而且说出来。
-    const [listRes, totalRes] = await Promise.all([ordersPage(supabase, 0, ORDERS_SHOWN - 1), ordersCount(supabase)])
+    const [listRes, totalRes] = await Promise.all([ordersPage(supabase, 0, ORDERS_SHOWN - 1, sort), ordersCount(supabase)])
     const tableRows = await shapeOrderRows(mustRows(listRes, 'sales_orders'))
     const total = mustCount(totalRes, 'sales_orders count')
 
@@ -39,7 +41,7 @@ export default async function SalesOrdersPage() {
             state={{ kind: 'ok' }}
         >
             <RowCapNotice shown={tableRows.length} total={total} />
-            <SalesOrdersTable rows={tableRows} empty={t('sales.empty')} />
+            <SalesOrdersTable rows={tableRows} empty={t('sales.empty')} sort={sort} total={total} exportHref={ordersExportHref(sort)} />
         </ListPage>
     )
 }

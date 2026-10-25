@@ -42,7 +42,7 @@ export default async function CoaListPage() {
     }))
     return (
         <ListPage title={t('coa.list.title')} intro={t('coa.list.intro')} state={{ kind: 'ok' }}>
-            <CoaTable rows={rows} empty={t('coa.list.empty')} canIssue={canIssue} />
+            <CoaTable rows={rows} empty={t('coa.list.empty')} canIssue={canIssue} clientSort />
         </ListPage>
     )
 }

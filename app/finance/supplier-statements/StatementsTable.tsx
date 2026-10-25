@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xTime } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type StatementRow = {
     id: string; code: string; supplier: string; period: string; closing: string; issued: string; superseded: string | null; latestVersion: string
@@ -12,19 +14,27 @@ export type StatementRow = {
     periodRaw: string; closingAmt: number; baseCurrency: string; issuedRaw: string
 }
 
-export default function StatementsTable({ rows, empty }: { rows: StatementRow[]; empty: React.ReactNode }) {
+export default function StatementsTable({ rows, empty, exportHref, sort, shown, total }: {
+    rows: StatementRow[]; empty: React.ReactNode
+    /** TABLE-FEATURES-1 Q9:导出地址带上当前排序(statementRows.ts 的 supplierStatementExportHref) */
+    exportHref: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(statementRows.ts 的 SUPPLIER_STATEMENT_SORT);只画前 N 份 */
+    sort: ListSort; shown: number; total: number
+}) {
     const t = useTranslations()
+    const sortHref = useSortHref()
     const columns: ExportableColumn<StatementRow>[] = [
-        { key: 'code', header: t('supplierStatements.colCode'), priority: true, exportAs: (r) => xText(r.code),
+        { key: 'code', sortable: true, header: t('supplierStatements.colCode'), priority: true, exportAs: (r) => xText(r.code),
           render: (r) => <Link href={`/finance/supplier-statements/${r.id}`} className="hover:underline app-link">{r.code}</Link> },
-        { key: 'supplier', header: t('supplierStatements.colSupplier'), priority: true, render: (r) => r.supplier, exportAs: (r) => xText(r.supplier) },
-        { key: 'period', header: t('supplierStatements.colPeriod'), render: (r) => r.period, exportAs: (r) => xText(r.periodRaw) },
-        { key: 'closing', header: t('supplierStatements.doc.closing'), align: 'right', priority: true, render: (r) => r.closing, exportAs: (r) => xMoney(r.closingAmt, r.baseCurrency) },
-        { key: 'issued', header: t('supplierStatements.colIssued'), render: (r) => r.issued, exportAs: (r) => xTime(r.issuedRaw) },
-        { key: 'pdf', header: t('supplierStatements.colPdf'), render: (r) => r.latestVersion, exportAs: (r) => xText(r.latestVersion) },
+        { key: 'supplier', sortable: true, header: t('supplierStatements.colSupplier'), priority: true, render: (r) => r.supplier, exportAs: (r) => xText(r.supplier) },
+        { key: 'period', sortable: true, header: t('supplierStatements.colPeriod'), render: (r) => r.period, exportAs: (r) => xText(r.periodRaw) },
+        { key: 'closing', sortable: true, header: t('supplierStatements.doc.closing'), align: 'right', priority: true, render: (r) => r.closing, exportAs: (r) => xMoney(r.closingAmt, r.baseCurrency) },
+        { key: 'issued', sortable: true, header: t('supplierStatements.colIssued'), render: (r) => r.issued, exportAs: (r) => xTime(r.issuedRaw) },
+        { key: 'pdf', sortable: true, header: t('supplierStatements.colPdf'), render: (r) => r.latestVersion, exportAs: (r) => xText(r.latestVersion) },
         { key: 'superseded', header: t('supplierStatements.colSuperseded'), render: (r) => r.superseded ?? '—', exportAs: (r) => xText(r.superseded) },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
         rowClassName={(r) => (r.superseded ? 'text-gray-400' : undefined)}
-        exportSpec={{ name: 'supplier-statements', title: t('supplierStatements.listTitle'), serverRows: '/finance/supplier-statements/export' }} />
+        exportSpec={{ name: 'supplier-statements', title: t('supplierStatements.listTitle'), serverRows: exportHref }}
+        sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }} />
 }

@@ -159,6 +159,8 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
                 rowKey={(r) => r.code}
                 phone={{ mode: 'columns' }}
                 // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的档位
+                // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+                sorting={{ mode: 'client', coverage: 'complete' }}
                 exportSpec={{ name: 'hr-review-scale', title: t('reviews.scaleTitle') }}
                 toDraft={(r) => ({ ...r })}
                 // ★ 空态归【表】说,不归外壳 —— 因为把空态变成非空的那张卡

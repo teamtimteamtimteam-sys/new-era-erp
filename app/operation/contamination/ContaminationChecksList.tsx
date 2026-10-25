@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xTime } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { CellsSorting } from '@/app/operation/equipment/CellsTable'
 
 export type CheckListRow = {
     id: number; runCode: string; runHref: string | null; date: string; shift: string; stream: string
@@ -31,8 +33,17 @@ function flagText(r: CheckListRow, t: (k: string) => string): string {
     return t('contamination.notJudged')
 }
 
-export default function ContaminationChecksList({ rows, emptyKey, exportSpec }: { rows: CheckListRow[]; emptyKey: string; exportSpec: ChecksExport }) {
+export default function ContaminationChecksList({ rows, emptyKey, exportSpec, sorting }: {
+    rows: CheckListRow[]; emptyKey: string; exportSpec: ChecksExport
+    /**
+     * TABLE-FEATURES-1 Q9:与 CellsTable 同一种纯数据描述。/operation/contamination 只画最新 50 次 → server
+     * (contaminationRows.ts 的 CHECKS_SORT,前缀 checks_);产出批页手里是全体 → 'client'。不给 = 不排(原样)。
+     */
+    sorting?: CellsSorting
+}) {
     const t = useTranslations()
+    const server = sorting && sorting !== 'client' ? sorting : null
+    const sortHref = useSortHref(server?.prefix ?? '', server?.pageParam ?? 'page')
     const checkText = (r: CheckListRow) => (r.kind === 'sampled'
         ? t('contamination.rate', { rate: r.ratePct === null ? '—' : String(Number(r.ratePct.toFixed(4))), batch: r.batchCode ?? '' })
         : t('contamination.notSampledBecause', { reason: r.notSampledReason ?? '' }))
@@ -66,6 +77,19 @@ export default function ContaminationChecksList({ rows, emptyKey, exportSpec }: 
             render: (r) => (r.corrected ? t('contamination.correctedBecause', { reason: r.correctionReason ?? '' }) : ''),
         },
     ]
+    const spec = { name: exportSpec.name, title: exportSpec.title, serverRows: exportSpec.serverRows }
+    if (server) {
+        // 白名单里的列才可排(名字查出来的、拼出来的不可排)。就地标在那份字面量上 ——
+        //   check-datatable-phone 读的是 `columns={…}` 指向的那份字面量(它要看得见 priority),换成一个 .map 的产物它就瞎了。
+        for (const c of columns) c.sortable = server.sortable.includes(c.key)
+        return <DataTable rows={rows} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t(emptyKey)}
+                          exportSpec={spec}
+                          sorting={{ mode: 'server', coverage: { shown: server.shown, total: server.total }, active: server.active, href: sortHref }} />
+    }
+    if (sorting === 'client') {
+        return <DataTable rows={rows} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t(emptyKey)}
+                          exportSpec={spec} sorting={{ mode: 'client', coverage: 'complete' }} />
+    }
     return <DataTable rows={rows} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t(emptyKey)}
-                      exportSpec={{ name: exportSpec.name, title: exportSpec.title, serverRows: exportSpec.serverRows }} />
+                      exportSpec={spec} />
 }

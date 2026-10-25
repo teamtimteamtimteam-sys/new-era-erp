@@ -10,11 +10,32 @@ import { getBaseCurrency } from '@/lib/currency'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import type { FreightRow } from './FreightTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
 /** 页面画多少张 —— 与转换之前同一个数。 */
 export const FREIGHT_SHOWN = 200
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `freight_documents` 上的列(lib/listSort.ts 的规矩)。
+ *   只画前 FREIGHT_SHOWN 张,所以在数据库里排:那 200 张是【按选中的次序】取的前 200 张。货代名是嵌出来的,不可排。
+ * ★ 默认不变(Q7):单据日新的在前,平局按 id。
+ */
+export const FREIGHT_SORT = { code: 'code', date: 'doc_date', amount: 'amount_base', basis: 'allocation_basis', payment: 'payment_status' } as const
+export type FreightSortKey = keyof typeof FREIGHT_SORT
+const FREIGHT_SORT_DEFAULT: ListSort<FreightSortKey> = { key: 'date', dir: 'desc' }
+
+export type FreightListParams = { sort: ListSort<FreightSortKey> }
+
+export function parseFreightListParams(sp: { sort?: string; dir?: string }): FreightListParams {
+    return { sort: parseListSort(sp, Object.keys(FREIGHT_SORT) as FreightSortKey[], FREIGHT_SORT_DEFAULT) }
+}
+
+/** 导出路由的地址:这一页没有筛选,只带排序。 */
+export function freightExportHref(p: FreightListParams): string {
+    return `/finance/freight/export?${setSortParams(new URLSearchParams(), p.sort).toString()}`
+}
 
 export type FreightDbRow = {
     id: string
@@ -31,13 +52,15 @@ export function freightCount(supabase: Client) {
     return supabase.from('freight_documents').select('id', { count: 'exact', head: true }).is('deleted_at', null)
 }
 
-export function freightPage(supabase: Client, from: number, to: number) {
-    return supabase
-        .from('freight_documents')
-        .select('id, code, doc_date, amount_base, allocation_basis, payment_status, status, suppliers ( legal_name )')
-        .is('deleted_at', null)
-        .order('doc_date', { ascending: false })
-        .order('id', { ascending: true })
+export function freightPage(supabase: Client, p: FreightListParams, from: number, to: number) {
+    // TABLE-FEATURES-1 Q9:ORDER BY 在 .range 之前 —— 上限按选中的次序取
+    return applyListSort(
+        supabase
+            .from('freight_documents')
+            .select('id, code, doc_date, amount_base, allocation_basis, payment_status, status, suppliers ( legal_name )')
+            .is('deleted_at', null),
+        p.sort, FREIGHT_SORT, [['doc_date', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as FreightDbRow[] | null }))
 }

@@ -140,6 +140,8 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
                     rows={allocRows}
                     empty={t('energy.noAllocations')}
                     exportSpec={{ name: 'finance-electricity-allocations', title: t('energy.allocationsTitle') }}
+                    // TABLE-FEATURES-1 Q9:分摊一次读全 —— 在浏览器里排
+                    sorting="client"
                 />
                 {!canEdit && <p className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{t('energy.postNeedsEdit')}</p>}
             </section>
@@ -158,6 +160,8 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
                         rows={meterRows}
                         empty={t('energy.noMeters')}
                         exportSpec={{ name: 'finance-electricity-meters', title: t('energy.metersTitle') }}
+                        // TABLE-FEATURES-1 Q9:电表一次读全 —— 在浏览器里排
+                        sorting="client"
                     />
                     : <p className="text-sm" data-meters="restricted">{t('energy.metersRestricted')}</p>}
             </section>

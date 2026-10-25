@@ -9,6 +9,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xInt } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type ReviewsTableRow = {
     id: string
@@ -28,8 +30,13 @@ export type ReviewsTableRow = {
     daysInState: number
 }
 
-export default function ReviewsTable({ rows, empty, exportUrl }: { rows: ReviewsTableRow[]; empty: React.ReactNode; exportUrl: string }) {
+export default function ReviewsTable({ rows, empty, exportUrl, sort, shown, total }: {
+    rows: ReviewsTableRow[]; empty: React.ReactNode; exportUrl: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(reviewsRows.ts 的 REVIEWS_SORT) */
+    sort: ListSort; shown: number; total: number
+}) {
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     // ★ 手机上留【员工】与【状态】—— 员工是身份,状态是这张登记簿存在的理由
     //   (一份在 submitted 里躺了三周的评估就是一件待办)。停留天数紧跟状态,
@@ -44,10 +51,10 @@ export default function ReviewsTable({ rows, empty, exportUrl }: { rows: Reviews
                 </Link>
             ),
         },
-        { key: 'type', header: t('reviews.type'), render: (r) => r.typeLabel, exportAs: (r) => xText(r.typeLabel) },
+        { key: 'type', sortable: true, header: t('reviews.type'), render: (r) => r.typeLabel, exportAs: (r) => xText(r.typeLabel) },
         { key: 'cycle', header: t('reviews.cycle'), render: (r) => r.cycleName, exportAs: (r) => xText(r.cycleName) },
         {
-            key: 'period', header: t('reviews.period'), className: 'whitespace-nowrap text-xs',
+            key: 'period', sortable: true, header: t('reviews.period'), className: 'whitespace-nowrap text-xs',
             render: (r) => `${r.periodStart} → ${r.periodEnd}`,
             // 一格装着两个日期,写不成一个 Excel 日期格 —— 用原始 YYYY-MM-DD 写成文字(可排序、可复制),不用屏幕上的格式
             exportAs: (r) => xText(`${r.periodStartRaw} → ${r.periodEndRaw}`),
@@ -66,7 +73,7 @@ export default function ReviewsTable({ rows, empty, exportUrl }: { rows: Reviews
                 ),
         },
         {
-            key: 'status', header: t('reviews.status'), priority: true,
+            key: 'status', sortable: true, header: t('reviews.status'), priority: true,
             exportAs: (r) => xText(t(`reviews.status_${r.status}`)),
             render: (r) => (
                 <span className={'inline-block rounded px-2 py-0.5 text-xs ' + r.statusCls}>
@@ -90,6 +97,7 @@ export default function ReviewsTable({ rows, empty, exportUrl }: { rows: Reviews
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'hr-reviews', title: t('hr.subnav.reviews'), serverRows: exportUrl }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

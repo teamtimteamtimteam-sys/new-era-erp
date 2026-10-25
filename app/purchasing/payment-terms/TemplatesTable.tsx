@@ -65,6 +65,8 @@ export default function TemplatesTable({ rows, empty, canEdit }: { rows: Templat
         <DataTable
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'payment-term-templates', title: t('purchasing.templatesTitle') }}
+            // TABLE-FEATURES-1(Tim 2026-10-25 Q9):模板一次读完 —— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

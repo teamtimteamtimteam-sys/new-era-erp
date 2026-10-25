@@ -80,6 +80,8 @@ export default function AttendanceTable({ rows, empty }: { rows: AttendanceRow[]
             rowKey={(r) => r.periodId}
             phone={{ mode: 'columns' }}
             empty={empty}
+            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'hr-attendance', title: t('attendance.title') }}
         />
     )

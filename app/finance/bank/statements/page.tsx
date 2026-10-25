@@ -19,6 +19,7 @@ import { parseStatementListParams, statementCount, statementPage, shapeStatement
 import { can } from '@/lib/permissions'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { setSortParams } from '@/lib/listSort'
 
 const PAGE_SIZE = 20
 
@@ -30,7 +31,7 @@ function parsePage(value: string | undefined): number {
 export default async function BankStatementsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ account?: string; status?: string; page?: string; trail?: string }>
+    searchParams: Promise<{ account?: string; status?: string; page?: string; trail?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -43,6 +44,7 @@ export default async function BankStatementsPage({
 
     // TABLE-EXPORT-2a:读取、筛选与「库里的行 → 表的行」(含逐张的行状态计数)搬进 statementRows.ts,与导出路由共用一份。
     const params = parseStatementListParams(sp)
+    const listParams = params
     const { account, status } = params
     const requestedPage = parsePage(sp.page)
 
@@ -73,6 +75,7 @@ export default async function BankStatementsPage({
         const params = new URLSearchParams()
         if (account) params.set('account', account)
         if (status) params.set('status', status)
+        setSortParams(params, listParams.sort)  // TABLE-FEATURES-1 Q9:翻页保留排序
         params.set('page', String(targetPage))
         return `/finance/bank/statements?${params.toString()}`
     }
@@ -103,7 +106,8 @@ export default async function BankStatementsPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <StatementsTable rows={tableRows} empty={t('bank.empty')} exportHref={statementExportHref(params)} />
+            <StatementsTable rows={tableRows} empty={t('bank.empty')} exportHref={statementExportHref(params)}
+                             sort={params.sort} shown={tableRows.length} total={total} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

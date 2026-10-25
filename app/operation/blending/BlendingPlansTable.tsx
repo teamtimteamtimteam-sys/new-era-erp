@@ -44,5 +44,7 @@ export default function BlendingPlansTable({ rows, empty }: { rows: BlendingPlan
         { key: 'notes', header: t('blending.colNotes'), className: 'text-gray-600', render: (r) => r.notes, exportAs: (r) => xText(r.notesText) },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-                      exportSpec={{ name: 'operation-blending-plans', title: t('blending.listTitle') }} />
+                      exportSpec={{ name: 'operation-blending-plans', title: t('blending.listTitle') }}
+                      // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                      sorting={{ mode: 'client', coverage: 'complete' }} />
 }

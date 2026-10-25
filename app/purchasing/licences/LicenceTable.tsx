@@ -29,6 +29,8 @@ export default function LicenceTable({
         return ct ? ct.name_en : r.cert_type_code
     }
     const notRecorded = t('company.licence.notRecorded')
+    // TABLE-FEATURES-1(Tim 2026-10-25 Q9):整张登记簿一次读完 —— 在浏览器里排。导出成「未录入 / 上限未设」那句话的三列
+    //   另给 sortValue:空值排最后,不当成一个字去和日期、数比。
     const columns: ExportableColumn<LicenceRow>[] = [
         {
             key: 'kind', header: t('company.licence.colKind'), priority: true,
@@ -36,7 +38,7 @@ export default function LicenceTable({
             exportAs: (r) => xText(kindName(r)),
         },
         {
-            key: 'no', header: t('company.licence.colNo'),
+            key: 'no', header: t('company.licence.colNo'), sortValue: (r) => r.cert_no,
             exportAs: (r) => xText(r.cert_no ?? notRecorded),
             render: (r) => r.cert_no ?? <span className="text-amber-800">{t('company.licence.notRecorded')}</span>,
         },
@@ -48,13 +50,13 @@ export default function LicenceTable({
                 : <span className="text-amber-800">{t('company.licence.notRecorded')}</span>),
         },
         {
-            key: 'validity', header: t('company.licence.colValidity'), priority: true,
+            key: 'validity', header: t('company.licence.colValidity'), priority: true, sortValue: (r) => r.valid_until,
             exportAs: (r) => (r.valid_until ? xDate(r.valid_until) : xText(notRecorded)),
             render: (r) => r.valid_until ?? <span className="text-amber-800">{t('company.licence.notRecorded')}</span>,
         },
         {
             // ★ 上限那一格:空 = 【没有人录过】,不是【没有上限】★
-            key: 'limit', header: t('company.licence.colStorageLimit'), align: 'right',
+            key: 'limit', header: t('company.licence.colStorageLimit'), align: 'right', sortValue: (r) => r.approved_storage_limit_tonnes,
             exportAs: (r) => (r.approved_storage_limit_tonnes !== null
                 ? xNum(r.approved_storage_limit_tonnes, 'qty')
                 : xText(t('company.licence.limitNotSet'))),
@@ -91,6 +93,7 @@ export default function LicenceTable({
             //   否则 ListPage 的 empty 分支会把那个按钮也一起藏掉。
             empty={t('company.licence.none')}
             exportSpec={{ name: 'company-licences', title: t('company.licence.title') }}
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

@@ -75,6 +75,8 @@ export default function HandoversTable({
             empty={empty}
             rowClassName={(r) => (r.acknowledged ? undefined : 'bg-amber-50')}
             exportSpec={{ name: 'operation-handovers', title: t('processing.handover.title') }}
+            // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

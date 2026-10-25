@@ -11,25 +11,44 @@ import type { Database } from '@/lib/database.types'
 import { getLocale } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/dates'
 import type { ClaimRow } from './ClaimsTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `medical_claim_status` 上的列(lib/listSort.ts 的规矩)。
+ *   金额按视图上那一列排:不持 data.view_health 的读者在那里是 NULL,排在最后,不泄露大小(规矩 ②)。
+ *   员工那一格是「工号 — 姓名」拼出来的,不可排。默认与今天一样:报销日新的在前,平局按 claim_id。
+ */
+export const CLAIMS_SORT = { code: 'code', date: 'claim_date', amount: 'amount_sgd', state: 'settlement_state', expense: 'expense_code' } as const
+export type ClaimsSortKey = keyof typeof CLAIMS_SORT
+const CLAIMS_SORT_DEFAULT: ListSort<ClaimsSortKey> = { key: 'date', dir: 'desc' }
 
 /** 页面画多少条 —— 与转换之前同一个数。 */
 export const CLAIMS_SHOWN = 300
 
-export type ClaimsFilter = { status?: string; employee?: string; year?: string }
+export type ClaimsFilter = { status?: string; employee?: string; year?: string; sort: ListSort<ClaimsSortKey> }
+
+type ClaimsSearch = { status?: string; employee?: string; year?: string; sort?: string; dir?: string }
 
 /** 页面与路由读同一份地址栏参数;路由由页面把它们原样拼进 serverRows。 */
-export function claimsFilterFrom(sp: URLSearchParams | ClaimsFilter): ClaimsFilter {
-    const get = (k: keyof ClaimsFilter) => (sp instanceof URLSearchParams ? sp.get(k) : sp[k]) || undefined
-    return { status: get('status'), employee: get('employee'), year: get('year') }
+export function claimsFilterFrom(sp: URLSearchParams | ClaimsSearch): ClaimsFilter {
+    const get = (k: keyof ClaimsSearch) => (sp instanceof URLSearchParams ? sp.get(k) : sp[k]) || undefined
+    return {
+        status: get('status'), employee: get('employee'), year: get('year'),
+        // TABLE-FEATURES-1 Q9:排序与筛选读同一份参数
+        sort: parseListSort({ sort: get('sort'), dir: get('dir') }, Object.keys(CLAIMS_SORT) as ClaimsSortKey[], CLAIMS_SORT_DEFAULT),
+    }
 }
 
 export function claimsQuery(f: ClaimsFilter): string {
     const q = new URLSearchParams()
-    for (const [k, v] of Object.entries(f)) if (v) q.set(k, v)
-    const s = q.toString()
-    return s ? `?${s}` : ''
+    if (f.status) q.set('status', f.status)
+    if (f.employee) q.set('employee', f.employee)
+    if (f.year) q.set('year', f.year)
+    // TABLE-FEATURES-1 Q9:导出按当前顺序取全
+    setSortParams(q, f.sort)
+    return `?${q.toString()}`
 }
 
 type ClaimDbRow = {
@@ -50,9 +69,8 @@ export function claimsCount(supabase: Client, f: ClaimsFilter) {
 }
 
 export function claimsPage(supabase: Client, f: ClaimsFilter, from: number, to: number) {
-    return filtered(supabase.from('medical_claim_status').select('*'), f)
-        .order('claim_date', { ascending: false })
-        .order('claim_id', { ascending: true })
+    // TABLE-FEATURES-1 Q9:ORDER BY 在 .range(截断)之前 —— 「前 300 条」是按读者选的顺序取的前 300 条
+    return applyListSort(filtered(supabase.from('medical_claim_status').select('*'), f), f.sort, CLAIMS_SORT, [['claim_date', 'desc'], ['claim_id', 'asc']])
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as ClaimDbRow[] | null }))
 }

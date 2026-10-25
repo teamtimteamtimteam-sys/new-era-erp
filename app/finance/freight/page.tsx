@@ -9,13 +9,13 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { FREIGHT_SHOWN, freightCount, freightPage, shapeFreightRows } from './freightRows'
+import { FREIGHT_SHOWN, freightCount, freightPage, shapeFreightRows, parseFreightListParams, freightExportHref } from './freightRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import FreightTable, { type FreightRow } from './FreightTable'
 
-export default async function FreightListPage() {
+export default async function FreightListPage({ searchParams }: { searchParams: Promise<{ sort?: string; dir?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -24,8 +24,10 @@ export default async function FreightListPage() {
     const t = await getTranslations()
 
     // ★ TABLE-EXPORT-2a(Tim Q2):读取与映射搬进 freightRows.ts,与导出路由共用;只画最近 FREIGHT_SHOWN 张,而且说出来。
+    // ★ TABLE-FEATURES-1 Q9:前 FREIGHT_SHOWN 张按表头选中的次序取(在数据库里排)
+    const params = parseFreightListParams(await searchParams)
     const [dbRows, total] = await Promise.all([
-        freightPage(supabase, 0, FREIGHT_SHOWN - 1).then((r) => mustRows(r, 'freight_documents')),
+        freightPage(supabase, params, 0, FREIGHT_SHOWN - 1).then((r) => mustRows(r, 'freight_documents')),
         freightCount(supabase).then((r) => mustCount(r, 'freight_documents count')),
     ])
     const tableRows: FreightRow[] = await shapeFreightRows(dbRows)
@@ -45,7 +47,8 @@ export default async function FreightListPage() {
                 : { kind: 'ok' }}
         >
             <RowCapNotice shown={tableRows.length} total={total} />
-            <FreightTable rows={tableRows} empty={t('finance.freight.empty')} />
+            <FreightTable rows={tableRows} empty={t('finance.freight.empty')} exportHref={freightExportHref(params)}
+                          sort={params.sort} shown={tableRows.length} total={total} />
         </ListPage>
     )
 }

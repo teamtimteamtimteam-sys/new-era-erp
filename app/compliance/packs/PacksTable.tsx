@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xTime } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type PackRow = {
     id: string; code: string; month: string; frozen: string
@@ -13,19 +15,25 @@ export type PackRow = {
     superseded: string | null; latestVersion: string
 }
 
-export default function PacksTable({ rows, empty }: { rows: PackRow[]; empty: React.ReactNode }) {
+export default function PacksTable({ rows, empty, sort, total, exportHref }: {
+    rows: PackRow[]; empty: React.ReactNode
+    /** TABLE-FEATURES-1 Q9:在数据库里排(packsRows.ts 的 PACK_SORT);total = 全部份数(只画前 PACKS_SHOWN 份) */
+    sort: ListSort; total: number; exportHref: string
+}) {
     const t = useTranslations()
+    const sortHref = useSortHref()
     const columns: ExportableColumn<PackRow>[] = [
-        { key: 'code', header: t('compliancePacks.colCode'), priority: true,
+        { key: 'code', sortable: true, header: t('compliancePacks.colCode'), priority: true,
           // 被取代的那一份屏幕上整行灰掉 —— 导出把这个状态写进号格
           exportAs: (r) => xText(r.superseded ? `${r.code} (${t('table.export.rowSuperseded')})` : r.code),
           render: (r) => <Link href={`/compliance/packs/${r.id}`} className="hover:underline app-link">{r.code}</Link> },
-        { key: 'month', header: t('compliancePacks.colMonth'), priority: true, render: (r) => r.month, exportAs: (r) => xText(r.month) },
-        { key: 'frozen', header: t('compliancePacks.colFrozen'), render: (r) => r.frozen, exportAs: (r) => xTime(r.frozenAt) },
+        { key: 'month', sortable: true, header: t('compliancePacks.colMonth'), priority: true, render: (r) => r.month, exportAs: (r) => xText(r.month) },
+        { key: 'frozen', sortable: true, header: t('compliancePacks.colFrozen'), render: (r) => r.frozen, exportAs: (r) => xTime(r.frozenAt) },
         { key: 'pdf', header: t('compliancePacks.colPdf'), priority: true, render: (r) => r.latestVersion, exportAs: (r) => xText(r.latestVersion) },
         { key: 'superseded', header: t('compliancePacks.colSuperseded'), render: (r) => r.superseded ?? '—', exportAs: (r) => xText(r.superseded) },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
         rowClassName={(r) => (r.superseded ? 'text-gray-400' : undefined)}
-        exportSpec={{ name: 'compliance-packs', title: t('compliancePacks.listTitle'), serverRows: '/compliance/packs/export' }} />
+        exportSpec={{ name: 'compliance-packs', title: t('compliancePacks.listTitle'), serverRows: exportHref }}
+        sorting={{ mode: 'server', coverage: { shown: rows.length, total }, active: sort, href: sortHref }} />
 }

@@ -53,6 +53,7 @@ export default function MyPayslipsTable({ rows, empty }: { rows: PayslipRow[]; e
     //   自己的工资条,问的是「这个月应发多少、真正到手多少」—— 两头都要,
     //   少一头就没法自己对。中间那三列(雇主公积金 / 个人公积金 / 其他扣除)
     //   正是两头之间的明细,它们进展开区。
+    // TABLE-FEATURES-1 Q9 规矩 ⑤:五个金额都是那一期自己的币种,行上没有本位币金额 —— 不同币种的数放在一起排没有意义,所以不可排。
     const columns: ExportableColumn<PayslipRow>[] = [
         {
             key: 'period', header: t('me.period'), priority: true,
@@ -68,23 +69,23 @@ export default function MyPayslipsTable({ rows, empty }: { rows: PayslipRow[]; e
             ),
         },
         {
-            key: 'gross', header: t('me.gross'), align: 'right', priority: true, render: (l) => l.gross,
+            key: 'gross', sortable: false, header: t('me.gross'), align: 'right', priority: true, render: (l) => l.gross,
             exportAs: (l) => xMoney(l.grossRaw, l.currency),
         },
         {
-            key: 'employerCpf', header: t('me.employerCpf'), align: 'right', render: (l) => l.employerCpf,
+            key: 'employerCpf', sortable: false, header: t('me.employerCpf'), align: 'right', render: (l) => l.employerCpf,
             exportAs: (l) => xMoney(l.employerCpfRaw, l.currency),
         },
         {
-            key: 'employeeCpf', header: t('me.employeeCpf'), align: 'right', render: (l) => l.employeeCpf,
+            key: 'employeeCpf', sortable: false, header: t('me.employeeCpf'), align: 'right', render: (l) => l.employeeCpf,
             exportAs: (l) => xMoney(l.employeeCpfRaw, l.currency),
         },
         {
-            key: 'deductions', header: t('me.deductions'), align: 'right', render: (l) => l.deductions,
+            key: 'deductions', sortable: false, header: t('me.deductions'), align: 'right', render: (l) => l.deductions,
             exportAs: (l) => xMoney(l.deductionsRaw, l.currency),
         },
         {
-            key: 'net', header: t('me.net'), align: 'right', priority: true,
+            key: 'net', sortable: false, header: t('me.net'), align: 'right', priority: true,
             className: 'font-medium', render: (l) => l.net,
             exportAs: (l) => xMoney(l.netRaw, l.currency),
         },
@@ -97,6 +98,8 @@ export default function MyPayslipsTable({ rows, empty }: { rows: PayslipRow[]; e
             rowKey={(l) => l.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'me-payslips', title: t('me.payslips') }}
         />
     )

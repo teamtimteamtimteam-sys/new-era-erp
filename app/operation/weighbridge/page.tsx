@@ -20,20 +20,27 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { TICKETS_SHOWN, ticketExports, ticketsCount, ticketsPage } from './ticketsRows'
+import { TICKETS_SHOWN, TICKET_SORT, ticketExports, ticketsCount, ticketsPage, parseTicketSort, ticketsExportHref } from './ticketsRows'
 import { ManualWeighingForm } from '@/app/operation/capture/CaptureControls'
 import { INSTRUMENT_KINDS, type Option } from '@/app/operation/capture/captureFields'
 
-export default async function WeighbridgePage() {
+export default async function WeighbridgePage({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
     const denied = await requireFunction(FN.weighbridge)
     if (denied) return denied
+
+    // TABLE-FEATURES-1 Q9:在数据库里排(ticketsRows.ts 的 TICKET_SORT)
+    const sort = parseTicketSort(await searchParams)
 
     const t = await getTranslations()
     const supabase = await createClient()
     const canConfirm = await can('action.confirm_capture')
     // ★ TABLE-EXPORT-2b-2(Tim Q2):读取与导出格搬进 ticketsRows.ts,与导出路由共用;只画最新 TICKETS_SHOWN 张,而且说出来。
     const [tRes, totalRes, devRes] = await Promise.all([
-        ticketsPage(supabase, 0, TICKETS_SHOWN - 1),
+        ticketsPage(supabase, sort, 0, TICKETS_SHOWN - 1),
         ticketsCount(supabase),
         supabase.from('devices').select('id, code, name, kind, retired_at').order('code'),
     ])
@@ -84,7 +91,8 @@ export default async function WeighbridgePage() {
                     ]}
                     rows={rows}
                     empty={t('weighbridge.empty')}
-                    exportSpec={{ name: 'operation-weighbridge-tickets', title: t('weighbridge.title'), serverRows: '/operation/weighbridge/export' }}
+                    exportSpec={{ name: 'operation-weighbridge-tickets', title: t('weighbridge.title'), serverRows: ticketsExportHref(sort) }}
+                    sorting={{ mode: 'server', active: sort, shown: rows.length, total, sortable: Object.keys(TICKET_SORT) }}
                 />
             </section>
             <section className="mb-8">

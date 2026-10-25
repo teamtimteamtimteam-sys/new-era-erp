@@ -90,6 +90,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
         // MES-3a:规则列画在清单里 —— 空的写"Not yet set",不画成 0 或"否"
         ...spec.extras.filter((x) => x.showInTable).map((x) => ({
             key: 'x_' + x.column, header: t(x.labelKey),
+            // TABLE-FEATURES-1(Tim 2026-10-25 Q9):数那一类按数排,「Not yet set」排最后(不当成一个字去和数比)
+            ...(x.kind === 'number' ? { sortValue: (r: DictRow) => { const v = r[x.column]; return v === null || v === undefined ? null : Number(v) } } : {}),
             // TABLE-EXPORT-2b-1:与下面画格子同一套分支 —— 空写 Not yet set;读不到的供应商写「受限」;数是数
             exportAs: (r: DictRow) => {
                 const v = r[x.column]
@@ -184,6 +186,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                     phone={{ mode: 'columns' }}
                     // Tim 裁定:字典也导出,每一本一个文件名(表名里的下划线换成连字符,Q9 只许 ASCII 小写)
                     exportSpec={{ name: `dictionary-${spec.table.replace(/_/g, '-')}`, title: t(spec.titleKey) }}
+                    // TABLE-FEATURES-1 Q9:一本字典一次读完 —— 在浏览器里排(不点表头时仍是 sort_order)
+                    sorting={{ mode: 'client', coverage: 'complete' }}
                 />
             </div>
             {/* 表格自己的错误(空态)与表单的错误是两回事 —— 表单错误画在

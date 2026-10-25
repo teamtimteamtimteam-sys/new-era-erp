@@ -56,12 +56,12 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
     const catCols: ExportableColumn<PackCategory & { k: string }>[] = [
         { key: 'cat', header: t('compliancePacks.lic.colCategory'), priority: true, render: (r) => `${r.category_code} · ${r.name_en}`, exportAs: (r) => xText(`${r.category_code} · ${r.name_en}`) },
         { key: 't', header: t('compliancePacks.lic.colTonnes'), align: 'right', priority: true, render: (r) => qty(r.tonnes), exportAs: (r) => xNum(r.tonnes) },
-        { key: 'lim', header: t('compliancePacks.lic.colLimit'), align: 'right', render: (r) => qty(r.limit_tonnes), exportAs: (r) => (r.limit_tonnes === null ? xText('—') : xNum(r.limit_tonnes)) },
+        { key: 'lim', header: t('compliancePacks.lic.colLimit'), align: 'right', sortValue: (r) => r.limit_tonnes, render: (r) => qty(r.limit_tonnes), exportAs: (r) => (r.limit_tonnes === null ? xText('—') : xNum(r.limit_tonnes)) },
         { key: 'state', header: t('compliancePacks.lic.colState'), render: (r) => <span data-value={`category-${r.state}`}>{catState[r.state]}</span>, exportAs: (r) => xText(catState[r.state]) },
     ]
     const checkCols: ExportableColumn<PackCeilingCheck & { k: string }>[] = [
         { key: 'o', header: t('compliancePacks.lic.colOutcome'), priority: true, render: (r) => r.outcome, exportAs: (r) => xText(r.outcome) },
-        { key: 'c', header: t('compliancePacks.lic.colCategory'), render: (r) => r.category_code ?? '—', exportAs: (r) => xText(r.category_code ?? '—') },
+        { key: 'c', header: t('compliancePacks.lic.colCategory'), sortValue: (r) => r.category_code, render: (r) => r.category_code ?? '—', exportAs: (r) => xText(r.category_code ?? '—') },
         { key: 'n', header: t('compliancePacks.lic.colChecks'), align: 'right', priority: true, render: (r) => String(r.checks), exportAs: (r) => xInt(r.checks) },
     ]
     const incCols: ExportableColumn<PackIncident & { k: string }>[] = [
@@ -69,11 +69,12 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
         { key: 'kind', header: t('compliancePacks.inc.colKind'), render: (r) => r.kind_name_en ?? r.kind_code, exportAs: (r) => xText(r.kind_name_en ?? r.kind_code) },
         { key: 'on', header: t('compliancePacks.inc.colOccurred'), render: (r) => r.occurred_on, exportAs: (r) => xDate(r.occurred_on) },
         { key: 'nea', header: t('compliancePacks.inc.colNea'), priority: true, render: (r) => (r.nea_reportable ? yes : no), exportAs: (r) => xText(r.nea_reportable ? yes : no) },
-        { key: 'notified', header: t('compliancePacks.inc.colNotified'), render: (r) => r.notified_on ?? '—', exportAs: (r) => (r.notified_on ? xDate(r.notified_on) : xText('—')) },
-        { key: 'report', header: t('compliancePacks.inc.colReport'), render: (r) => r.report_submitted_on ?? '—', exportAs: (r) => (r.report_submitted_on ? xDate(r.report_submitted_on) : xText('—')) },
-        { key: 'deadline', header: t('compliancePacks.inc.colDeadline'), render: (r) => (r.deadline_state === 'computed' ? (r.report_deadline ?? '—') : deadline[r.deadline_state]),
+        { key: 'notified', header: t('compliancePacks.inc.colNotified'), sortValue: (r) => r.notified_on, render: (r) => r.notified_on ?? '—', exportAs: (r) => (r.notified_on ? xDate(r.notified_on) : xText('—')) },
+        { key: 'report', header: t('compliancePacks.inc.colReport'), sortValue: (r) => r.report_submitted_on, render: (r) => r.report_submitted_on ?? '—', exportAs: (r) => (r.report_submitted_on ? xDate(r.report_submitted_on) : xText('—')) },
+        // TABLE-FEATURES-1 Q9:期限一格可能是日期,也可能是一句状态 —— 按日期排,说状态的那几行排最后
+        { key: 'deadline', header: t('compliancePacks.inc.colDeadline'), sortValue: (r) => (r.deadline_state === 'computed' ? r.report_deadline : null), render: (r) => (r.deadline_state === 'computed' ? (r.report_deadline ?? '—') : deadline[r.deadline_state]),
           exportAs: (r) => (r.deadline_state === 'computed' ? (r.report_deadline ? xDate(r.report_deadline) : xText('—')) : xText(deadline[r.deadline_state])) },
-        { key: 'closed', header: t('compliancePacks.inc.colClosed'), render: (r) => r.closed_on ?? '—', exportAs: (r) => (r.closed_on ? xDate(r.closed_on) : xText('—')) },
+        { key: 'closed', header: t('compliancePacks.inc.colClosed'), sortValue: (r) => r.closed_on, render: (r) => r.closed_on ?? '—', exportAs: (r) => (r.closed_on ? xDate(r.closed_on) : xText('—')) },
     ]
     const envCols: ExportableColumn<PackEnvResult & { k: string }>[] = [
         { key: 'par', header: t('compliancePacks.env.colParameter'), priority: true, render: (r) => r.parameter_name_en ?? r.parameter_code, exportAs: (r) => xText(r.parameter_name_en ?? r.parameter_code) },
@@ -82,12 +83,14 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
         { key: 'v', header: t('compliancePacks.env.colValue'), align: 'right', priority: true, render: (r) => `${qty(r.value)} ${r.unit}`, exportAs: (r) => xNum(r.value, 'qty', r.unit) },
         { key: 'lim', header: t('compliancePacks.env.colLimit'), align: 'right',
           render: (r) => (r.limit_value === null ? t('compliancePacks.env.noLimit') : `${r.limit_basis === 'min' ? '≥' : '≤'} ${qty(r.limit_value)}`),
+          // TABLE-FEATURES-1 Q9:按限值那个数排(没有限值的排最后);方向符号不参与比较
+          sortValue: (r) => r.limit_value,
           // 限值前面那个 ≥ / ≤ 是限值的一部分 —— 一格写不下「方向 + 数」,照屏幕那串字导出
           exportAs: (r) => xText(r.limit_value === null ? t('compliancePacks.env.noLimit') : `${r.limit_basis === 'min' ? '≥' : '≤'} ${qty(r.limit_value)}`) },
         { key: 'j', header: t('compliancePacks.env.colJudgement'), priority: true,
           render: (r) => <span data-value={`judgement-${r.judgement}`}>{judgement[r.judgement]}{r.superseded ? ` · ${t('compliancePacks.env.superseded')}` : ''}</span>,
           exportAs: (r) => xText(judgement[r.judgement] + (r.superseded ? ` · ${t('compliancePacks.env.superseded')}` : '')) },
-        { key: 'inc', header: t('compliancePacks.env.colIncident'), render: (r) => r.incident_code ?? '—', exportAs: (r) => xText(r.incident_code ?? '—') },
+        { key: 'inc', header: t('compliancePacks.env.colIncident'), sortValue: (r) => r.incident_code, render: (r) => r.incident_code ?? '—', exportAs: (r) => xText(r.incident_code ?? '—') },
     ]
     const insCols: ExportableColumn<PackInspection & { k: string }>[] = [
         { key: 'code', header: t('compliancePacks.ins.colCode'), priority: true, render: (r) => r.code, exportAs: (r) => xText(r.code) },
@@ -102,10 +105,12 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
         { key: 'run', header: t('compliancePacks.ins.colCode'), priority: true, render: (r) => r.run_code, exportAs: (r) => xText(r.run_code) },
         { key: 'item', header: t('compliancePacks.ins.colItem'), render: (r) => r.item ?? '—', exportAs: (r) => xText(r.item ?? '—') },
         { key: 'act', header: t('compliancePacks.ins.colAction'), priority: true, render: (r) => r.corrective_action, exportAs: (r) => xText(r.corrective_action) },
-        { key: 'due', header: t('compliancePacks.ins.colDue'), render: (r) => r.due_date ?? '—', exportAs: (r) => (r.due_date ? xDate(r.due_date) : xText('—')) },
+        { key: 'due', header: t('compliancePacks.ins.colDue'), sortValue: (r) => r.due_date, render: (r) => r.due_date ?? '—', exportAs: (r) => (r.due_date ? xDate(r.due_date) : xText('—')) },
         { key: 'days', header: t('compliancePacks.ins.colDaysOpen'), align: 'right', render: (r) => String(r.days_open_at_month_end), exportAs: (r) => xInt(r.days_open_at_month_end) },
     ]
     const k = <T,>(rows: T[]) => rows.map((r, i) => ({ ...r, k: String(i) }))
+    // TABLE-FEATURES-1(Tim 2026-10-25 Q9):每一节都是合规包 payload 里那一节的【全部】行 —— 在浏览器里排。
+    //   比较值默认取导出值;导出成「—」文字的那几列另给 sortValue(空值排最后,不当成一个字)。
     // TABLE-EXPORT-3a(Tim 2026-10-23 Q1,C 的报表体之一):八节里的每一张表各一对导出,About 表写明是哪一个月的合规包。
     //   格子照 payload 原样(这里一个数都不算);限值、检查结果这类「几样东西拼成的一句话」照屏幕那串字导出。
     const about: Array<[string, string]> = [[t('table.export.aboutPeriod'), p.month]]
@@ -115,12 +120,12 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
         <div data-section="compliance-pack">
             <section className="mb-6" data-section="pack-balance">
                 <h2 className="mb-2">{t('compliancePacks.s1')}</h2>
-                <DataTable rows={k(p.processing_balance)} columns={balCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.bal.none')}
+                <DataTable rows={k(p.processing_balance)} columns={balCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.bal.none')}
                     exportSpec={{ name: 'compliance-pack-balance', title: t('compliancePacks.s1'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-rollforward">
                 <h2 className="mb-2">{t('compliancePacks.s2')}</h2>
-                <DataTable rows={k(p.stock_rollforward)} columns={rollCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.roll.none')}
+                <DataTable rows={k(p.stock_rollforward)} columns={rollCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.roll.none')}
                     exportSpec={{ name: 'compliance-pack-rollforward', title: t('compliancePacks.s2'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-licence">
@@ -129,33 +134,33 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
                     {lic ? t('compliancePacks.lic.inForce', { no: lic.cert_no, from: lic.valid_from, until: lic.valid_until, limit: qty(lic.approved_storage_limit_tonnes) })
                          : t('compliancePacks.lic.noneInForce')}
                 </p>
-                <DataTable rows={k(p.licence.on_hand_by_category)} columns={catCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.lic.noCategories')}
+                <DataTable rows={k(p.licence.on_hand_by_category)} columns={catCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.lic.noCategories')}
                     exportSpec={{ name: 'compliance-pack-licence-categories', title: t('compliancePacks.s3'), aboutExtra: about }} />
                 <p className="text-xs text-[color:var(--brand-muted-text)] mt-2 mb-3">
                     {t('compliancePacks.lic.uncategorised', { t: qty(p.licence.uncategorised_tonnes) })}
                     {p.licence.movements_without_business_date > 0 && <>{' '}{t('compliancePacks.lic.undated', { n: String(p.licence.movements_without_business_date) })}</>}
                 </p>
                 <h3 className="mb-2 text-sm font-medium">{t('compliancePacks.lic.checksTitle')}</h3>
-                <DataTable rows={k(p.licence.ceiling_checks)} columns={checkCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.lic.noChecks')}
+                <DataTable rows={k(p.licence.ceiling_checks)} columns={checkCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.lic.noChecks')}
                     exportSpec={{ name: 'compliance-pack-ceiling-checks', title: t('compliancePacks.lic.checksTitle'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-incidents">
                 <h2 className="mb-1">{t('compliancePacks.s4')}</h2>
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('compliancePacks.inc.noInjuryNote')}</p>
-                <DataTable rows={k(p.incidents)} columns={incCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.inc.none')}
+                <DataTable rows={k(p.incidents)} columns={incCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.inc.none')}
                     exportSpec={{ name: 'compliance-pack-incidents', title: t('compliancePacks.s4'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-environmental">
                 <h2 className="mb-2">{t('compliancePacks.s5')}</h2>
-                <DataTable rows={k(p.environmental)} columns={envCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.env.none')}
+                <DataTable rows={k(p.environmental)} columns={envCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.env.none')}
                     exportSpec={{ name: 'compliance-pack-environmental', title: t('compliancePacks.s5'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-inspections">
                 <h2 className="mb-2">{t('compliancePacks.s6')}</h2>
-                <DataTable rows={k(p.inspections.done)} columns={insCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.ins.none')}
+                <DataTable rows={k(p.inspections.done)} columns={insCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.ins.none')}
                     exportSpec={{ name: 'compliance-pack-inspections', title: t('compliancePacks.s6'), aboutExtra: about }} />
                 <h3 className="mt-4 mb-2 text-sm font-medium">{t('compliancePacks.ins.openTitle')}</h3>
-                <DataTable rows={k(p.inspections.findings_open_at_month_end)} columns={findCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} empty={t('compliancePacks.ins.noneOpen')}
+                <DataTable rows={k(p.inspections.findings_open_at_month_end)} columns={findCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.ins.noneOpen')}
                     exportSpec={{ name: 'compliance-pack-open-findings', title: t('compliancePacks.ins.openTitle'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-nea-return">

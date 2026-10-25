@@ -19,20 +19,40 @@ import { can, canViewPurchasePrices } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import type { PurchaseOrderRow } from './OrdersTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
 export const PO_STATUSES = ['draft', 'confirmed', 'receiving', 'closed', 'cancelled']
 
-export type PoListParams = { dateFrom: string; dateTo: string; supplier: string; status: string }
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → 页面读的那张关系上的列(lib/listSort.ts 的规矩)。
+ *   两条路读的都是遮蔽过的关系(purchase_order_status 建在 purchase_orders_masked 上;已取消那一支直接读
+ *   purchase_orders_masked),所以读者看不见的预付在那里就是 NULL,排序不泄露它的大小(规矩 ④)。
+ *   不可排:供应商(已取消那一支是嵌入查出来的名字)· 净额 / GST / 应付总额(各行自己的币种,没有本位币那一列,规矩 ⑤)。
+ *   预付按 prepaid_base(本位币)排;它与收货进度只在 purchase_order_status 上有 —— 已取消那一支这两列全是空,
+ *   按它们排时退回默认顺序(一列全空,任何顺序都是它的顺序)。
+ * 默认 = 今天的 ORDER BY:order_date DESC,平局按 id。
+ */
+export const PO_SORT = {
+    code: 'code', orderDate: 'order_date', expected: 'expected_delivery_date',
+    prepaid: 'prepaid_base', receipt: 'receipt_pct', status: 'status',
+} as const
+export type PoSortKey = keyof typeof PO_SORT
+const PO_SORT_DEFAULT: ListSort<PoSortKey> = { key: 'orderDate', dir: 'desc' }
+/** 已取消那一支(purchase_orders_masked)上的列:没有 prepaid_base / receipt_pct,主键叫 id。 */
+const PO_SORT_CANCELLED: Record<PoSortKey, string> = { ...PO_SORT, prepaid: 'order_date', receipt: 'order_date' }
 
-export function parsePoListParams(sp: { date_from?: string; date_to?: string; supplier?: string; status?: string }): PoListParams {
+export type PoListParams = { dateFrom: string; dateTo: string; supplier: string; status: string; sort: ListSort<PoSortKey> }
+
+export function parsePoListParams(sp: { date_from?: string; date_to?: string; supplier?: string; status?: string; sort?: string; dir?: string }): PoListParams {
     const { dateFrom, dateTo } = parseDateRange(sp)
     return {
         dateFrom,
         dateTo,
         supplier: (sp.supplier ?? '').trim(),
         status: PO_STATUSES.includes(sp.status ?? '') ? sp.status! : '',
+        sort: parseListSort(sp, Object.keys(PO_SORT) as PoSortKey[], PO_SORT_DEFAULT),
     }
 }
 
@@ -95,16 +115,19 @@ export function poPage(
     supabase: Client, p: PoListParams, from: number, to: number,
 ): PromiseLike<{ data: PoDbRow[] | null; error: { message: string } | null }> {
     if (p.status === 'cancelled') {
-        return applyFilters(
-            supabase
-                .from('purchase_orders_masked')
-                .select('id, code, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, suppliers(legal_name)')
-                .eq('status', 'cancelled')
-                .is('deleted_at', null),
-            p,
+        // TABLE-FEATURES-1 Q9:预付 / 收货进度在这一支全是空 —— 按它们排时退回默认(见 PO_SORT)
+        const sort = p.sort.key === 'prepaid' || p.sort.key === 'receipt' ? PO_SORT_DEFAULT : p.sort
+        return applyListSort(
+            applyFilters(
+                supabase
+                    .from('purchase_orders_masked')
+                    .select('id, code, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, suppliers(legal_name)')
+                    .eq('status', 'cancelled')
+                    .is('deleted_at', null),
+                p,
+            ),
+            sort, PO_SORT_CANCELLED, [['order_date', 'desc'], ['id', 'asc']],
         )
-            .order('order_date', { ascending: false })
-            .order('id', { ascending: true })
             .range(from, to)
             .then(({ data, error }) => ({
                 error,
@@ -126,14 +149,15 @@ export function poPage(
                 })),
             }))
     }
-    return applyStatus(
-        supabase
-            .from('purchase_order_status')
-            .select('po_id, code, supplier_name, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, prepaid_base, prepaid_remaining_base, receipt_pct, status'),
-        p,
+    return applyListSort(
+        applyStatus(
+            supabase
+                .from('purchase_order_status')
+                .select('po_id, code, supplier_name, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, prepaid_base, prepaid_remaining_base, receipt_pct, status'),
+            p,
+        ),
+        p.sort, PO_SORT, [['order_date', 'desc'], ['po_id', 'asc']],
     )
-        .order('order_date', { ascending: false })
-        .order('po_id', { ascending: true })
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as PoDbRow[] | null }))
 }
@@ -145,6 +169,7 @@ export function poExportHref(p: PoListParams): string {
     if (p.dateTo) params.set('date_to', p.dateTo)
     if (p.supplier) params.set('supplier', p.supplier)
     if (p.status) params.set('status', p.status)
+    setSortParams(params, p.sort)
     const qs = params.toString()
     return qs ? `/purchasing/orders/export?${qs}` : '/purchasing/orders/export'
 }

@@ -20,17 +20,38 @@ import { canViewPrices } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import type { InvoiceRow } from './InvoicesTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
-export type InvoiceListParams = { dateFrom: string; dateTo: string; state: string; status: 'issued' | 'void' | 'all' }
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `invoice_status` 上的列(lib/listSort.ts 的规矩)。
+ *   合计 / 未收按视图上那一列排:invoice_status 读的是 invoices_masked,看不见价格的人那里是 NULL(规矩 ②),排在最后。
+ *   客户【不可排】:作废那一支读 invoices_masked,客户名是嵌出来的,那张关系上没有这一列 ——
+ *   只看作废时它会悄悄退回默认次序,表头却画着箭头。
+ * ★ 默认不变(Q7):开票日新的在前,平局按 id。
+ */
+export const INVOICE_SORT = {
+    code: 'code', issueDate: 'issue_date', dueDate: 'due_date', total: 'total_base',
+    settled: 'settled_base', open: 'open_base', state: 'payment_state',
+} as const
+export type InvoiceSortKey = keyof typeof INVOICE_SORT
+const INVOICE_SORT_DEFAULT: ListSort<InvoiceSortKey> = { key: 'issueDate', dir: 'desc' }
+/**
+ * 作废那一支(invoices_masked)上的同名列。已收 / 未收 / 状态在作废的单上一律是空 / 「作废」——
+ * 全体相等,按哪一列排都是对的;那几个键在这一支上走默认次序。
+ */
+const VOID_SORT = { code: 'code', issueDate: 'issue_date', dueDate: 'due_date', total: 'total_base' } as const
 
-export function parseInvoiceListParams(sp: { date_from?: string; date_to?: string; state?: string; status?: string }): InvoiceListParams {
+export type InvoiceListParams = { dateFrom: string; dateTo: string; state: string; status: 'issued' | 'void' | 'all'; sort: ListSort<InvoiceSortKey> }
+
+export function parseInvoiceListParams(sp: { date_from?: string; date_to?: string; state?: string; status?: string; sort?: string; dir?: string }): InvoiceListParams {
     const { dateFrom, dateTo } = parseDateRange(sp)
     return {
         dateFrom, dateTo,
         state: ['unpaid', 'partial', 'paid', 'overdue'].includes(sp.state ?? '') ? sp.state! : '',
         status: sp.status === 'void' || sp.status === 'all' ? sp.status : 'issued',
+        sort: parseListSort(sp, Object.keys(INVOICE_SORT) as InvoiceSortKey[], INVOICE_SORT_DEFAULT),
     }
 }
 
@@ -65,9 +86,10 @@ export function issuedCount(supabase: Client, p: InvoiceListParams) {
     return applyState(supabase.from('invoice_status').select('invoice_id', { count: 'exact', head: true }), p)
 }
 export function issuedPage(supabase: Client, p: InvoiceListParams, from: number, to: number) {
-    return applyState(supabase.from('invoice_status').select('*'), p)
-        .order('issue_date', { ascending: false })
-        .order('invoice_id', { ascending: true })
+    return applyListSort(
+        applyState(supabase.from('invoice_status').select('*'), p),
+        p.sort, INVOICE_SORT, [['issue_date', 'desc'], ['invoice_id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({
             error,
@@ -82,14 +104,19 @@ export function voidCount(supabase: Client, p: InvoiceListParams) {
     return applyDates(supabase.from('invoices_masked').select('id', { count: 'exact', head: true }).eq('status', 'void'), p)
 }
 export function voidPage(supabase: Client, p: InvoiceListParams, from: number, to: number) {
-    return applyDates(
-        supabase.from('invoices_masked')
-            .select('id, code, kind, issue_date, due_date, total_base, customers(legal_name)')
-            .eq('status', 'void'),
-        p,
+    // TABLE-FEATURES-1 Q9:这一支上没有的键(全体相等的那几列)走默认次序 —— 见 VOID_SORT
+    const vsort: ListSort<keyof typeof VOID_SORT> = p.sort.key in VOID_SORT
+        ? { key: p.sort.key as keyof typeof VOID_SORT, dir: p.sort.dir }
+        : { key: 'issueDate', dir: 'desc' }
+    return applyListSort(
+        applyDates(
+            supabase.from('invoices_masked')
+                .select('id, code, kind, issue_date, due_date, total_base, customers(legal_name)')
+                .eq('status', 'void'),
+            p,
+        ),
+        vsort, VOID_SORT, [['issue_date', 'desc'], ['id', 'asc']],
     )
-        .order('issue_date', { ascending: false })
-        .order('id', { ascending: true })
         .range(from, to)
         .then(({ data, error }) => ({
             error,
@@ -118,6 +145,7 @@ export function invoiceExportHref(p: InvoiceListParams): string {
     if (p.dateTo) params.set('date_to', p.dateTo)
     if (p.state) params.set('state', p.state)
     if (p.status !== 'issued') params.set('status', p.status)
+    setSortParams(params, p.sort)
     const qs = params.toString()
     return qs ? `/finance/invoices/export?${qs}` : '/finance/invoices/export'
 }

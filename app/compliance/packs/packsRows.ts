@@ -11,11 +11,30 @@ import { formatAuditStamp } from '@/lib/dates'
 import { getTranslations } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { PackRow } from './PacksTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
 /** 页面画多少份 —— 与转换之前同一个数。 */
 export const PACKS_SHOWN = 300
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):只画前 PACKS_SHOWN 份 → 在数据库里排(排在截取之前)。
+ *   列键 → `compliance_packs` 上的列。「最新 PDF」是另查出来的、「被谁取代」是拼出来的一句话:不可排(规矩 ③)。
+ *   默认 = 今天的 ORDER BY:period_month DESC,平局 frozen_at DESC、id。
+ */
+export const PACK_SORT = { code: 'code', month: 'period_month', frozen: 'frozen_at' } as const
+export type PackSortKey = keyof typeof PACK_SORT
+const PACK_SORT_DEFAULT: ListSort<PackSortKey> = { key: 'month', dir: 'desc' }
+
+export function parsePackSort(sp: Record<string, string | string[] | undefined>): ListSort<PackSortKey> {
+    return parseListSort(sp, Object.keys(PACK_SORT) as PackSortKey[], PACK_SORT_DEFAULT)
+}
+
+/** 导出路由的地址:带上当前排序(TABLE-EXPORT-1 Q2:导出按当前的排序取全体)。 */
+export function packsExportHref(sort: ListSort<PackSortKey>): string {
+    return `/compliance/packs/export?${setSortParams(new URLSearchParams(), sort).toString()}`
+}
 
 export type PackDbRow = {
     id: string; code: string; period_month: string; frozen_at: string
@@ -26,13 +45,13 @@ export function packsCount(supabase: Client) {
     return supabase.from('compliance_packs').select('id', { count: 'exact', head: true })
 }
 
-export function packsPage(supabase: Client, from: number, to: number) {
-    return supabase
-        .from('compliance_packs')
-        .select('id, code, period_month, frozen_at, superseded_at, superseded_by, superseded_reason')
-        .order('period_month', { ascending: false })
-        .order('frozen_at', { ascending: false })
-        .order('id', { ascending: true })
+export function packsPage(supabase: Client, from: number, to: number, sort: ListSort<PackSortKey> = PACK_SORT_DEFAULT) {
+    return applyListSort(
+        supabase
+            .from('compliance_packs')
+            .select('id, code, period_month, frozen_at, superseded_at, superseded_by, superseded_reason'),
+        sort, PACK_SORT, [['period_month', 'desc'], ['frozen_at', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as PackDbRow[] | null }))
 }

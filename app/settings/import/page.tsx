@@ -10,7 +10,7 @@ import { can } from '@/lib/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { IMPORTS_SHOWN, importsCount, importsPage, shapeImportRows } from './importRows'
+import { IMPORTS_SHOWN, importsCount, importsPage, shapeImportRows, parseImportSort, importsExportHref } from './importRows'
 import { RefusalPage } from '@/app/components/ui/refusal'
 import { IMPORT_TABLES, type TemplateColumn } from '@/lib/importTables'
 import ImportForm from './ImportForm'
@@ -23,7 +23,7 @@ import { trailCount } from '@/app/components/trail/AuditTrail'
 export default async function ImportPage({
     searchParams,
 }: {
-    searchParams: Promise<{ trail?: string | string[] }>
+    searchParams: Promise<{ trail?: string | string[]; sort?: string; dir?: string }>
 }) {
     const t = await getTranslations()
     const allowed = await can('action.bulk_import')
@@ -59,8 +59,10 @@ export default async function ImportPage({
 
     // 【失败不是空集】—— mustRows,不是 ?? []。
     // ★ TABLE-EXPORT-2b-1(Tim 2026-10-23 Q1):读取与映射搬进 importRows.ts,与导出路由共用;只画最近 IMPORTS_SHOWN 次,而且说出来。
+    // TABLE-FEATURES-1 Q9:历史在数据库里排(排在截取最近 IMPORTS_SHOWN 次之前)
+    const sort = parseImportSort(await searchParams)
     const [batches, total] = await Promise.all([
-        importsPage(supabase, 0, IMPORTS_SHOWN - 1).then((r) => mustRows(r, 'import_batches')),
+        importsPage(supabase, 0, IMPORTS_SHOWN - 1, sort).then((r) => mustRows(r, 'import_batches')),
         importsCount(supabase).then((r) => mustCount(r, 'import_batches count')),
     ])
 
@@ -81,7 +83,8 @@ export default async function ImportPage({
 
             <h2 className="mt-10 mb-2">{t('import.history')}</h2>
             <RowCapNotice shown={tableRows.length} total={total} />
-            <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} serverRows="/settings/import/history/export" />
+            <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} serverRows={importsExportHref(sort)}
+                                sort={sort} total={total} />
             <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('import.historyIsALog')}</p>
             {/* AUDIT-TRAIL-1d-1(Q24):同样那几次导入的审计记录 —— 被导进去的那几行与批次之间【没有】回指(import_batches 的
                 表注释不许),所以这一块只说批次自己:谁、何时、哪个文件、多少行、编号从哪到哪 */}

@@ -13,14 +13,27 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { PaymentRow } from './PaymentsTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
-export type PaymentListParams = { dateFrom: string; dateTo: string; direction: '' | 'in' | 'out' }
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `payments` 上的列(lib/listSort.ts 的规矩)。
+ *   金额按【本位币】那一列排:各行币种不同,原币金额放在一起比没有意义。对方名称是查出来的,不可排。
+ * ★ Q7:默认按收付日(新的在前),平局按建立时刻、再按 id —— 筛选按收付日,排序原来却按建立时刻。
+ */
+export const PAYMENT_SORT = { code: 'code', date: 'payment_date', direction: 'direction', amount: 'amount_base', bank: 'bank_account_code', status: 'status' } as const
+export type PaymentSortKey = keyof typeof PAYMENT_SORT
+const PAYMENT_SORT_DEFAULT: ListSort<PaymentSortKey> = { key: 'date', dir: 'desc' }
 
-export function parsePaymentListParams(sp: { date_from?: string; date_to?: string; direction?: string }): PaymentListParams {
+export type PaymentListParams = { dateFrom: string; dateTo: string; direction: '' | 'in' | 'out'; sort: ListSort<PaymentSortKey> }
+
+export function parsePaymentListParams(sp: { date_from?: string; date_to?: string; direction?: string; sort?: string; dir?: string }): PaymentListParams {
     const { dateFrom, dateTo } = parseDateRange(sp)
-    return { dateFrom, dateTo, direction: sp.direction === 'in' || sp.direction === 'out' ? sp.direction : '' }
+    return {
+        dateFrom, dateTo, direction: sp.direction === 'in' || sp.direction === 'out' ? sp.direction : '',
+        sort: parseListSort(sp, Object.keys(PAYMENT_SORT) as PaymentSortKey[], PAYMENT_SORT_DEFAULT),
+    }
 }
 
 export type PaymentDbRow = {
@@ -47,14 +60,15 @@ export function paymentCount(supabase: Client, p: PaymentListParams) {
 }
 
 export function paymentPage(supabase: Client, p: PaymentListParams, from: number, to: number) {
-    return applyFilters(
-        supabase
-            .from('payments')
-            .select('id, code, direction, customer_id, supplier_id, amount_ccy, currency, amount_base, bank_account_code, payment_date, status'),
-        p,
+    return applyListSort(
+        applyFilters(
+            supabase
+                .from('payments')
+                .select('id, code, direction, customer_id, supplier_id, amount_ccy, currency, amount_base, bank_account_code, payment_date, status'),
+            p,
+        ),
+        p.sort, PAYMENT_SORT, [['created_at', 'desc'], ['id', 'asc']],
     )
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as PaymentDbRow[] | null }))
 }
@@ -65,6 +79,7 @@ export function paymentExportHref(p: PaymentListParams): string {
     if (p.dateFrom) params.set('date_from', p.dateFrom)
     if (p.dateTo) params.set('date_to', p.dateTo)
     if (p.direction) params.set('direction', p.direction)
+    setSortParams(params, p.sort)
     const qs = params.toString()
     return qs ? `/finance/payments/export?${qs}` : '/finance/payments/export'
 }

@@ -65,9 +65,54 @@ import { compareForSort } from '@/lib/sortCollation'
 import { tableC, TABLE_TEXT } from '@/app/components/ui/table-style'
 import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 // ★ POLISH-1 round 3(继承的第 ① 件):本文件那几个裸 <button> 走共享档位。
-import { Button } from '@/app/components/ui/button'
 import { TableExportBar, type TableExportSpec, type ExportColumnDef } from '@/app/components/ui/table-export'
 import type { ExportCell, NoExport } from '@/lib/export/cells'
+import { ReadOnlyButton, useInDisabledBlock } from '@/app/components/ui/disabled-block'
+import { READ_ROW_LIMIT } from '@/lib/listSort'
+
+// ════════════════════════════════════════════════════════════════════════════
+// TABLE-FEATURES-1(Tim 2026-10-25)· 排序 · 粘性表头 · 禁用块里的只读控件
+// ════════════════════════════════════════════════════════════════════════════
+// ★ Q9 · 客户端排序的比较值【默认取自这一列的导出值】(TABLE-EXPORT 造的那份带类型的值):
+//   数按数比、日期按日比、文字按 lib/sortCollation.ts 的英文字序比;「受限」那一格是 null,永远排在最后 ——
+//   ☞ 于是一个看不见的数【不会】因为排序泄露它的大小(它不参与比较)。
+//   一列写了 sortValue 就用它;写 `sortable: false` 就不可排;画控件的列(exportAs: false)不可排。
+// ★ Q9 · 一次读取拿到 READ_ROW_LIMIT(线上 PostgREST 的 max_rows = 1000)行时,客户端排序【关掉】并说出来:
+//   那时手里多半不是全体(READ-ALL-STOPS-AT-1000),而「排了它没拿到的东西」正是 A1 那条裁定要拦的谎。
+//   裁定原话是「正好 1,000 行」;这里用 ≥ —— 一张把两次读取拼起来的表可以超过 1,000,而它同样可能被截过。
+// ★ Q4 · 桌面上表头粘住:外壳在 sm 以上有一个【有界的高度】(视口减去顶栏与一点余量),于是只有比屏幕高的表
+//   才会在自己的盒子里滚、表头才会真的粘住;矮的表一个像素都不变。手机上没有界、不粘(Q4:390px 关)。
+//   为什么要一个有界的盒子:外壳是 overflow-x-auto,而 CSS 规定那会让它在纵向也成为滚动容器 ——
+//   表头的 sticky 认的是它,不是页面;它从不纵向滚,表头就永远不会粘(Step 0 量到的)。
+//   表头下面那条 2px 的线原来画在 <tr> 上,粘住的是 <th>,所以每一格自己再画一条(inset 阴影)。
+// ★ Q10 · 导出、客户端排序、翻页在禁用块(结束了的记录、缺权限的区域)里照样按得下去 —— 见 disabled-block.tsx。
+// ════════════════════════════════════════════════════════════════════════════
+
+// 线上 PostgREST 的 `max_rows` —— 唯一一份在 lib/listSort.ts(服务端页面也要读它),这里转出去给可编辑表用。
+export { READ_ROW_LIMIT }
+
+/** 一列在客户端模式下的比较值:sortValue 优先;否则取导出值;`sortable: false` 或画控件的列(exportAs: false)不可排。 */
+export function sortGetterFor<T>(c: Column<T>): ((row: T) => string | number | null | undefined) | undefined {
+    if (c.sortValue) return c.sortValue
+    if (c.sortable === false) return undefined
+    const ex = (c as Partial<ExportableColumn<T>>).exportAs
+    return typeof ex === 'function' ? (row: T) => sortKeyFromCell(ex(row)) : undefined
+}
+
+/** 一格导出值 → 排序用的比较值。受限与空值都是 null(排在最后)。 */
+export function sortKeyFromCell(cell: ExportCell): string | number | null {
+    switch (cell.t) {
+        case 'number': return cell.v
+        case 'date': return cell.v
+        case 'datetime': {
+            if (!cell.v) return null
+            const ms = Date.parse(cell.v)
+            return Number.isFinite(ms) ? ms : null
+        }
+        case 'text': return cell.v === null || cell.v === '' ? null : cell.v
+        case 'restricted': return null
+    }
+}
 
 export type Column<T> = {
     /** 稳定的列键 —— 排序状态与列显隐都按它记。 */
@@ -370,7 +415,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const phoneScroll = phone.mode === 'scroll'
     const isPhoneCol = (c: Column<T>) => phoneScroll || !!c.priority
     const sorting = props.sorting
-    const clientSort = sorting?.mode === 'client'
+    // ★ Q9:拿到 READ_ROW_LIMIT 行时客户端排序关掉(见文件上方那一段)
+    const sortOffAtLimit = sorting?.mode === 'client' && rows.length >= READ_ROW_LIMIT
+    const clientSort = sorting?.mode === 'client' && !sortOffAtLimit
+    const inDisabledBlock = useInDisabledBlock()
     const serverSort = sorting?.mode === 'server' ? sorting : null
 
     // ★ 按名拒绝 —— 见抬头。没有声明手机列,就不要把这张表放到手机上。
@@ -417,7 +465,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     // ★ 又一条按名拒绝:客户端模式下声称可排、却没给比较器,是一个【按下去没反应】的表头。
     //   静默忽略它,人会以为自己排过了 —— 与"排了它没拿到的东西"是同一种谎。
     if (props.sorting?.mode === 'client') {
-        const liar = columns.find((c) => c.sortable === true && !c.sortValue)
+        const liar = columns.find((c) => c.sortable === true && !sortGetterFor(c))
         if (liar) {
             throw new Error(
                 `DATATABLE_SORTABLE_WITHOUT_COMPARATOR:列「${liar.key}」声明了 sortable,` +
@@ -445,8 +493,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
         // 服务端模式下【本组件一行都不重排】—— 顺序是数据库给的,重排会把它毁掉。
         if (!clientSort || sort.dir === 'none') return filtered
         const col = columns.find((c) => c.key === sort.key)
-        if (!col?.sortValue) return filtered
-        const get = col.sortValue
+        const get = col ? sortGetterFor(col) : undefined
+        if (!get) return filtered
         const sign = sort.dir === 'asc' ? 1 : -1
         return [...filtered].sort((a, b) => {
             const va = get(a), vb = get(b)
@@ -525,7 +573,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     // 【客户端模式永远不会走到这里】类型不允许它拿部分数据,所以没有"排了一半"这回事。
     // 服务端模式下这一行只是【报量】,不是警告:排序看得见全体。
     const cov = sorting?.coverage
-    const partial = cov && cov !== 'complete' ? cov : null
+    // ★ TABLE-FEATURES-1:一屏装下了全体(shown ≥ total)时不报量 —— 那时这一屏就是全体,没有什么要说的。
+    const partial = cov && cov !== 'complete' && cov.shown < cov.total ? cov : null
     const noticeId = React.useId()
 
     const toggleSort = (key: string) => {
@@ -538,7 +587,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return (
         <div className={cn('w-full', className)}>
             {/* ── 表上方的控件区 ──────────────────────────────────────────── */}
-            {(filter || columnToggle || partial || exportSpec) && (
+            {(filter || columnToggle || partial || exportSpec || sortOffAtLimit) && (
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                     {filter && (
                         <input
@@ -581,6 +630,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
                         <TableExportBar spec={exportSpec} columns={exportCols} rows={() => sorted} />
                     )}
                     {/* ★ 只在服务端模式下出现,而且它【报量,不报警】—— 排序看得见全体。 */}
+                    {/* ★ Q9:拿到 READ_ROW_LIMIT 行时,排序关掉并说出来 —— 不画一个排不全的表头。 */}
+                    {sortOffAtLimit && (
+                        <p data-sort-off-at-limit="" className="w-full text-xs text-[color:var(--brand-muted-text)]">
+                            {t('table.sortOffAtLimit', { n: READ_ROW_LIMIT })}
+                        </p>
+                    )}
                     {partial && (
                         <p id={noticeId} className="w-full text-xs text-[color:var(--brand-muted-text)]">
                             {t('table.partialNotice', { shown: partial.shown, total: partial.total })}
@@ -589,7 +644,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 </div>
             )}
 
-            <div className="w-full overflow-x-auto">
+            {/* ★ Q4:sm 以上一个有界的盒子 —— 只有比屏幕高的表才在里面滚、表头才粘住;手机上不设界、不粘。 */}
+            <div className="w-full overflow-x-auto sm:max-h-[calc(100dvh-6rem)] sm:overflow-y-auto" data-table-box="">
                 <table
                     data-slot="data-table"
                     // ★【手机上用 table-fixed,桌面上恢复 auto】390px 实测逼出来的一条 ★
@@ -600,6 +656,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     //   fixed 之下列宽由表宽平分(或由列自己声明),没有哪个格子说了算。
                     //   桌面上列多、内容短,auto 排得更好,所以 sm 以上换回去。
                     className="w-full caption-bottom border-collapse text-sm table-fixed sm:table-auto"
+                    data-sticky-head="desktop"
                     aria-describedby={partial ? noticeId : undefined}
                 >
                     {caption && <caption className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{caption}</caption>}
@@ -629,7 +686,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                 const dir = activeServer ? serverSort!.active!.dir
                                     : activeClient ? (sort.dir as 'asc' | 'desc') : null
                                 // 客户端模式要比较器;服务端模式只要一句"这一列可以排"。
-                                const canSort = clientSort ? !!c.sortValue
+                                const canSort = clientSort ? !!sortGetterFor(c)
                                     : !!serverSort && (c.sortable === true || !!c.sortValue)
                                 return (
                                     <th
@@ -662,6 +719,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             //   ★ 只搬【字号】:`font-medium` 留在这一段里,所以一个调用点写的
                                             //     `font-semibold` 照旧赢 —— 这一刀不裁字重。
                                             'px-3 py-2.5 align-middle font-medium text-[color:var(--brand-text)]',
+                                            // ★ Q4:桌面上粘在有界盒子的顶上;不透明的底色,自己画那条 2px 的线(<tr> 上那条不跟着走)
+                                            'sm:sticky sm:top-0 sm:z-10 sm:bg-[color:var(--brand-bg)] sm:shadow-[inset_0_-2px_0_var(--brand-ocean)]',
                                             // 表头【桌面上不折行】—— 实测 1280px 下「库存状态」被折成
                                             // 每行一个字。手机上不加这一条:那里是 table-fixed,
                                             // 列宽是平分的,nowrap 会让表头顶出格子。
@@ -682,6 +741,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             // 服务端模式:表头是一条【链接】—— 与那 8 页今天的做法逐字同形,
                                             // 于是转换刀换掉的只是外观,不是那条已经正确的排序。
                                             <a
+                                                data-sort-key={c.key}
                                                 href={serverSort.href(c.key, activeServer && dir === 'asc' ? 'desc' : 'asc')}
                                                 className="base-pressable inline-flex items-center gap-1 rounded px-1 -mx-1 hover:bg-[color:var(--brand-muted)]"
                                             >
@@ -712,8 +772,31 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             //     的对象 —— 它的读数必须逐字不变。
                                             //   ☞ 去处:`docs/known-issues.md` 的 POLISH1R3-DATATABLE-PAGER-NO-STEP
                                             //     (分页那一对是同一次裁定)· `docs/base-components.md` §10.6。
+                                            //   ★ TABLE-FEATURES-1(2026-10-25):客户端排序从此在 48 张列表上开着,那句「只有一个调用点」
+                                            //     不再成立;这一颗仍然留着裸 <button>,理由(那 2px)照旧成立。
+                                            //     在禁用块里(结束了的记录、缺权限的区域)它画成同一个几何的 <span role="button">,
+                                            //     fieldset 禁不掉它(Q10,见 disabled-block.tsx)。
+                                            inDisabledBlock ? (
+                                                <span
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    data-sort-key={c.key}
+                                                    data-readonly-control=""
+                                                    onClick={() => toggleSort(c.key)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(c.key) }
+                                                    }}
+                                                    className="base-pressable inline-flex cursor-pointer items-center gap-1 rounded px-1 -mx-1 hover:bg-[color:var(--brand-muted)]"
+                                                >
+                                                    {c.header}
+                                                    <span aria-hidden className="text-[color:var(--brand-muted-text)]">
+                                                        {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
+                                                    </span>
+                                                </span>
+                                            ) : (
                                             <button
                                                 type="button"
+                                                data-sort-key={c.key}
                                                 onClick={() => toggleSort(c.key)}
                                                 className="base-pressable inline-flex items-center gap-1 rounded px-1 -mx-1 hover:bg-[color:var(--brand-muted)]"
                                             >
@@ -722,6 +805,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
                                                 </span>
                                             </button>
+                                            )
                                         ) : c.header}
                                     </th>
                                 )
@@ -765,8 +849,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                 //     而一个【行内级】的盒子坐在行盒上,底下会多出
                                                 //     一截 leading —— 那会把它所在的 <td> 顶高,
                                                 //     而行高是停止条件 (c) 的触发器。按回 `flex`。
-                                                <Button
-                                                    type="button"
+                                                // ★ TABLE-FEATURES-1 Q10:展开一行是只读的 —— 在禁用块里照样按得下去。
+                                                <ReadOnlyButton
                                                     variant="ghost"
                                                     size="icon-sm"
                                                     onClick={() => toggleRow(k)}
@@ -775,7 +859,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     className={`base-pressable flex rounded font-normal text-[color:var(--brand-muted-text)] hover:bg-[color:var(--brand-muted)] hover:text-[color:var(--brand-muted-text)] ${TABLE_TEXT}`}
                                                 >
                                                     <span aria-hidden className={cn('transition-transform', isOpen && 'rotate-90')}>›</span>
-                                                </Button>
+                                                </ReadOnlyButton>
                                             )}
                                         </td>}
                                         {shownCols.map((c) => (
@@ -896,15 +980,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
                           ★ **共享 <Button> 不设默认 type**,丢掉它在 <form> 里是一次功能回归。
                         ★ 而它**确实会动** `/brand-sampler` 的读数(那是它唯一的消费者),
                           动的是哪几个字段、动了多少,逐字段记在 docs/handbacks/BTN-SIZE-1.md。 */}
+                    {/* ★ TABLE-FEATURES-1 Q10:翻页不写库 —— 在禁用块里照样按得下去(disabled-block.tsx)。 */}
                     <span className="flex gap-1">
-                        <Button
+                        <ReadOnlyButton
                             variant="secondary"
-                            type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}
-                        >{t('table.prevPage')}</Button>
-                        <Button
+                            disabled={safePage === 0} onClick={() => setPage(safePage - 1)}
+                        >{t('table.prevPage')}</ReadOnlyButton>
+                        <ReadOnlyButton
                             variant="secondary"
-                            type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
-                        >{t('table.nextPage')}</Button>
+                            disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
+                        >{t('table.nextPage')}</ReadOnlyButton>
                     </span>
                 </div>
             )}

@@ -24,11 +24,14 @@ export default function ScorecardsTable({ rows, empty }: { rows: ScorecardRow[];
           render: (r) => <span className={r.graded ? 'font-medium' : 'text-[color:var(--brand-muted-text)]'} data-grade={r.graded ? r.grade : undefined}>{r.grade}</span> },
         // TABLE-EXPORT-1:一格装着两个日子,导出成一格就只能是文字 —— 用原始的 `YYYY-MM-DD` 拼,不用屏幕上格式化过的那串
         //   (那样 Excel 里至少按字面排得出先后)。
-        { key: 'window', header: t('scorecards.colWindow'), render: (r) => r.window,
+        // TABLE-FEATURES-1 Q9:窗口按起始日排(没评过的排最后)
+        { key: 'window', header: t('scorecards.colWindow'), sortValue: (r) => r.windowFrom, render: (r) => r.window,
           exportAs: (r) => xText(r.windowFrom && r.windowTo ? `${r.windowFrom} – ${r.windowTo}` : null) },
         { key: 'recorded', header: t('scorecards.colRecorded'), render: (r) => r.recorded, exportAs: (r) => xTime(r.recordedAt) },
         { key: 'reviews', header: t('scorecards.colReviews'), render: (r) => String(r.reviews), exportAs: (r) => xInt(r.reviews) },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-        exportSpec={{ name: 'supplier-scorecards', title: t('scorecards.title') }} />
+        exportSpec={{ name: 'supplier-scorecards', title: t('scorecards.title') }}
+        // TABLE-FEATURES-1(Tim 2026-10-25 Q9):一家一行,一次读完 —— 在浏览器里排
+        sorting={{ mode: 'client', coverage: 'complete' }} />
 }

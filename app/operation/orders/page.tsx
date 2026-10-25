@@ -85,6 +85,8 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
             // 日期按 locale 格式化在服务端做完 —— dl 不过 RSC 边界
             scheduledLabel: o.scheduled_date ? formatDate(o.scheduled_date, locale) : null,
             progressLabel: !p || p.planned === 0 ? null : `${p.consumed} / ${p.planned}`,
+            // TABLE-FEATURES-1 Q9:完成度那一格是拼出来的「投了 / 计划」—— 按字排是错的,按比值排
+            progressRatio: !p || p.planned === 0 ? null : p.consumed / p.planned,
             unplannedMaterials: p?.unplannedMaterials ?? 0,
             notes: o.notes ?? '—',
             // TABLE-EXPORT-1:导出读原始值

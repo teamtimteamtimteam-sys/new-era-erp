@@ -15,6 +15,8 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { requestTransferReversal } from './transferActions'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type TransferRow = {
     id: string
@@ -66,10 +68,17 @@ function ReverseTransferButton({ row, canEdit }: { row: TransferRow; canEdit: bo
     )
 }
 
-export default function TransfersTable({ rows, canEdit }: { rows: TransferRow[]; canEdit: boolean }) {
+export default function TransfersTable({ rows, canEdit, exportHref, sort, shown, total }: {
+    rows: TransferRow[]; canEdit: boolean
+    /** TABLE-FEATURES-1 Q9:导出地址带上当前排序(transferRows.ts 的 transferExportHref) */
+    exportHref: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(transferRows.ts 的 TRANSFER_SORT);只画前 N 笔 */
+    sort: ListSort; shown: number; total: number
+}) {
     const t = useTranslations()
+    const sortHref = useSortHref()
     const columns: ExportableColumn<TransferRow>[] = [
-        { key: 'date', header: t('finance.transfer.colDate'), priority: true, render: (r) => r.dateText, exportAs: (r) => xDate(r.dateRaw) },
+        { key: 'date', sortable: true, header: t('finance.transfer.colDate'), priority: true, render: (r) => r.dateText, exportAs: (r) => xDate(r.dateRaw) },
         {
             key: 'accounts', header: t('finance.transfer.colAccounts'),
             exportAs: (r) => xText(`${t('finance.bank.' + r.fromAccount)} → ${t('finance.bank.' + r.toAccount)}`),
@@ -85,7 +94,7 @@ export default function TransfersTable({ rows, canEdit }: { rows: TransferRow[];
             exportAs: (r) => xMoney(r.amountIn, r.toCurrency || null),
             render: (r) => <>{r.toCurrency} {formatMoneyBare(r.amountIn, '同格内紧邻的 r.toCurrency 前缀')}</>,
         },
-        { key: 'ref', header: t('finance.transfer.reference'), render: (r) => r.reference ?? '—', exportAs: (r) => xText(r.reference) },
+        { key: 'ref', sortable: true, header: t('finance.transfer.reference'), render: (r) => r.reference ?? '—', exportAs: (r) => xText(r.reference) },
         {
             key: 'action', header: t('finance.colStatus'),
             // 已冲销 / 冲销申请在等(带单号);否则屏幕上是一颗钮 —— 那不是数据,导出空着
@@ -110,7 +119,8 @@ export default function TransfersTable({ rows, canEdit }: { rows: TransferRow[];
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('finance.transfer.empty')}
-            exportSpec={{ name: 'bank-transfers', title: t('finance.transfer.listTitle'), serverRows: '/finance/bank/transfers/export' }}
+            exportSpec={{ name: 'bank-transfers', title: t('finance.transfer.listTitle'), serverRows: exportHref }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

@@ -45,5 +45,7 @@ export default function OperationTypesTable({ rows }: { rows: OpTypeRow[] }) {
         { key: 'recipes', header: t('processing.opType.colRecipes'), align: 'right', render: (r) => r.recipes, exportAs: (r) => xInt(r.recipes) },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }} empty={t('processing.opType.empty')}
-                      exportSpec={{ name: 'operation-operation-types', title: t('processing.opType.title') }} />
+                      exportSpec={{ name: 'operation-operation-types', title: t('processing.opType.title') }}
+                      // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                      sorting={{ mode: 'client', coverage: 'complete' }} />
 }

@@ -2,6 +2,7 @@
 // 请假申请列表 —— 这是一张【待办清单】,所以默认待审在最前。
 //
 // CONV-5:套 CONV-1 的两文件模板。排序(待审优先)留在服务端,DataTable 不接管。
+// TABLE-FEATURES-1 Q9/Q12:列排序也在数据库里排(?sort=&dir=);默认的待审优先在截断之前做(leaveRows.ts 的 leavePage)。
 // ★ state 恒为 'ok' —— 筛选表单与 LeaveSubnav 都是真实出口,筛空了不能一起藏。
 //   见 docs/list-page-template.md §⑩-3。
 import Link from 'next/link'
@@ -22,7 +23,7 @@ import { DatePicker } from '@/app/components/ui/date-picker'
 export default async function LeaveRequestsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ status?: string; type?: string; employee?: string; from?: string; to?: string }>
+    searchParams: Promise<{ status?: string; type?: string; employee?: string; from?: string; to?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -105,7 +106,8 @@ export default async function LeaveRequestsPage({
             </form>
 
             <RowCapNotice shown={tableRows.length} total={total} />
-            <LeaveRequestsTable rows={tableRows} empty={t('leave.noRequests')} exportUrl={`/hr/leave/export${leaveQuery(f)}`} />
+            <LeaveRequestsTable rows={tableRows} empty={t('leave.noRequests')} exportUrl={`/hr/leave/export${leaveQuery(f)}`}
+                                sort={f.sort} shown={tableRows.length} total={total} />
         </ListPage>
     )
 }

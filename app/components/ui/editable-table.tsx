@@ -300,6 +300,9 @@ import type { PhoneTreatment, FooterRow } from '@/app/components/ui/data-table'
 import { TABLE_TEXT, tableC } from '@/app/components/ui/table-style'
 import { TableExportBar, type TableExportSpec, type ExportColumnDef } from '@/app/components/ui/table-export'
 import type { ExportCell, NoExport } from '@/lib/export/cells'
+import { READ_ROW_LIMIT, sortKeyFromCell } from '@/app/components/ui/data-table'
+import { compareForSort } from '@/lib/sortCollation'
+import { useInDisabledBlock } from '@/app/components/ui/disabled-block'
 
 /**
  * 一列。`render` 是只读时怎么画;`edit` 是编辑时怎么画。
@@ -441,9 +444,18 @@ type EditableTableCommon<T, D> = {
      */
     exportRows?: readonly T[]
 
-    // ── ★ Q4:排序与分页在这里【不存在】,而且是编译期不存在 ★ ──────────────
-    /** 可编辑的表不排序 —— 见抬头 Q4。写上去编译不过。 */
-    sorting?: never
+    // ── ★ Q4:分页在这里【不存在】,而且是编译期不存在 ★ ──────────────
+    /**
+     * ★★ TABLE-FEATURES-1(Tim 2026-10-25 Q8)改写了 CONV-2 的 Q4 的【排序那一半】:
+     *   「每一张列表页都能排序,包括那 3 张可编辑的表」(/hr/kpi/score · /hr/leave/types · /hr/reviews/scale)。
+     *   Q4 当初的理由 ——「正在编辑第 3 行时点了排序会怎样」是没有人设计过的交互 —— 【照旧成立】,所以这里的设计是:
+     *   ① 只在浏览器里排(这三张都是一次读全体,类型上只收 coverage: 'complete');
+     *   ② **有一行正在编辑(一次一行模式)或有改了没存的草稿(另两种模式)时,排序按不下去**,并说出来
+     *      (`table.sortHeldWhileEditing`)—— 于是「排序把打了一半的字挪走」仍然【构造上不可能发生】;
+     *   ③ 排序后每一行仍以它【原来的下标】交给 rowKey —— 草稿按键存,不会挂到别的行上。
+     *   比较值取自这一列的导出值(与 DataTable 同一个 sortKeyFromCell);没有导出值的列不可排。
+     */
+    sorting?: { mode: 'client'; coverage: 'complete' }
     /** 可编辑的表不分页 —— 见抬头 Q4。写上去编译不过。 */
     pageSize?: never
 }
@@ -517,6 +529,10 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
         footer, canEdit = true, isDirty, caption, empty, className,
         rowActions, rowClassName, canSave, totals, exportSpec, exportRows,
     } = props
+    const inDisabledBlock = useInDisabledBlock()
+    const [sort, setSort] = React.useState<{ key: string; dir: 'asc' | 'desc' } | null>(null)
+    // ★ 与 DataTable 同一条(Q9):拿到 READ_ROW_LIMIT 行时不排
+    const sortOn = props.sorting?.mode === 'client' && rows.length < READ_ROW_LIMIT
 
     // ★ TABLE-EXPORT-3b:与 DataTable 同一条 —— 声明了导出,就每一列都要说自己导出成什么。
     const exportCols: ReadonlyArray<ExportColumnDef<T>> | null = React.useMemo(() => {
@@ -637,6 +653,34 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
 
     // ★ DRAFT-1:`'page-owned'` 算不出脏 —— 它【由页面说】,见那一支的 `dirty`。
     const anyDirty = pageOwned ? pageDirty : rows.some((r, i) => rowIsDirty(r, i))
+
+    // ★ TABLE-FEATURES-1 Q8:排序 —— 有一行在编辑、或有没存的改动时按不下去(见 sorting 那个 prop 的注释)
+    const sortHeld = sortOn && (mode === 'one-row' && !pageOwned ? Object.keys(drafts).length > 0 : anyDirty)
+    const sortGetter = (key: string): ((row: T) => string | number | null) | undefined => {
+        const c = columns.find((x) => x.key === key)
+        const ex = c?.exportAs
+        return typeof ex === 'function' ? (row: T) => sortKeyFromCell(ex(row)) : undefined
+    }
+    /** 排过的行,每一行带着它【原来的下标】—— rowKey(row, index) 收的仍是那个下标。 */
+    const ordered: ReadonlyArray<{ row: T; index: number }> = (() => {
+        const base = rows.map((row, index) => ({ row, index }))
+        if (!sortOn || !sort) return base
+        const get = sortGetter(sort.key)
+        if (!get) return base
+        const sign = sort.dir === 'asc' ? 1 : -1
+        return [...base].sort((a, b) => {
+            const va = get(a.row), vb = get(b.row)
+            if (va == null && vb == null) return 0
+            if (va == null) return 1
+            if (vb == null) return -1
+            if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * sign
+            return compareForSort(String(va), String(vb), { numeric: true }) * sign
+        })
+    })()
+    const toggleSort = (key: string) => {
+        if (sortHeld) return
+        setSort((s) => (s?.key === key ? (s.dir === 'asc' ? { key, dir: 'desc' } : null) : { key, dir: 'asc' }))
+    }
 
     // ★ Q7:脏着关标签页 / 刷新 —— 浏览器自己的那个提示。**它的措辞我们拥有不了。**
     //   见抬头「记录在案的例外」。站内 <Link> 跳走【盖不住】,那是声明过的限制。
@@ -775,14 +819,26 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
 
     return (
         <div className={cn('w-full', className)}>
-            {exportSpec && exportCols && (
+            {((exportSpec && exportCols) || (sortOn && sortHeld) || (props.sorting && !sortOn)) && (
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <TableExportBar spec={exportSpec} columns={exportCols} rows={() => savedRows} />
+                    {exportSpec && exportCols && <TableExportBar spec={exportSpec} columns={exportCols} rows={() => savedRows} />}
+                    {props.sorting && !sortOn && (
+                        <p data-sort-off-at-limit="" className="w-full text-xs text-[color:var(--brand-muted-text)]">
+                            {t('table.sortOffAtLimit', { n: READ_ROW_LIMIT })}
+                        </p>
+                    )}
+                    {sortOn && sortHeld && (
+                        <p data-sort-held="" className="w-full text-xs text-[color:var(--brand-muted-text)]">
+                            {t('table.sortHeldWhileEditing')}
+                        </p>
+                    )}
                 </div>
             )}
-            <div className="w-full overflow-x-auto">
+            {/* ★ TABLE-FEATURES-1 Q4:与 DataTable 同一个有界盒子 —— 桌面上比屏幕高的表表头粘住,手机上不粘。 */}
+            <div className="w-full overflow-x-auto sm:max-h-[calc(100dvh-6rem)] sm:overflow-y-auto" data-table-box="">
                 <table
                     data-slot="editable-table"
+                    data-sticky-head="desktop"
                     // 与 DataTable 同一条:手机 table-fixed,桌面恢复 auto。
                     className="w-full caption-bottom border-collapse text-sm table-fixed sm:table-auto"
                 >
@@ -797,6 +853,8 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                     className={cn(
                                         'px-3 py-2.5 align-middle font-medium text-[color:var(--brand-text)]',
                                         'sm:whitespace-nowrap',
+                                        // ★ Q4:与 DataTable 同一条 —— 桌面上粘住、不透明、自己画那条 2px 的线
+                                        'sm:sticky sm:top-0 sm:z-10 sm:bg-[color:var(--brand-bg)] sm:shadow-[inset_0_-2px_0_var(--brand-ocean)]',
                                         c.align === 'right' ? 'text-right' : 'text-left',
                                         !isPhoneCol(c) && 'hidden sm:table-cell',
                                         c.className,
@@ -806,8 +864,25 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                         //   四条路由整整比站上每一张表小一档。字号排在最后:调用点压不过它。
                                         TABLE_TEXT,
                                     )}
+                                    aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
                                 >
-                                    {c.header}
+                                    {sortOn && sortGetter(c.key) ? (
+                                        // 与 DataTable 客户端排序那一颗同一个几何;编辑中(sortHeld)按不下去
+                                        React.createElement(inDisabledBlock ? 'span' : 'button', {
+                                            ...(inDisabledBlock ? { role: 'button', tabIndex: sortHeld ? -1 : 0, 'data-readonly-control': '' } : { type: 'button', disabled: sortHeld }),
+                                            'aria-disabled': sortHeld || undefined,
+                                            'data-sort-key': c.key,
+                                            onClick: () => toggleSort(c.key),
+                                            onKeyDown: inDisabledBlock ? (e: React.KeyboardEvent) => {
+                                                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(c.key) }
+                                            } : undefined,
+                                            className: cn('base-pressable inline-flex items-center gap-1 rounded px-1 -mx-1 hover:bg-[color:var(--brand-muted)]', sortHeld && 'cursor-not-allowed opacity-60'),
+                                        }, c.header, (
+                                            <span key="dir" aria-hidden className="text-[color:var(--brand-muted-text)]">
+                                                {sort?.key === c.key ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}
+                                            </span>
+                                        ))
+                                    ) : c.header}
                                 </th>
                             ))}
                             {/* 动作列在手机上不存在 —— 它正是转换前三页溢出的直接原因。 */}
@@ -822,7 +897,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                 </td>
                             </tr>
                         )}
-                        {rows.map((row, index) => {
+                        {ordered.map(({ row, index }) => {
                             const k = rowKey(row, index)
                             // ★ `'page-owned'`:草稿【就是那一行】,而且每一行恒在编辑态。
                             const draft = pageOwned ? toDraft(row) : drafts[k]

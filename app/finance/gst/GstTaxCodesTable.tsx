@@ -33,6 +33,8 @@ export default function GstTaxCodesTable({ rows }: { rows: TaxCodeRow[] }) {
         },
         {
             key: 'rates', header: t('gst.rates'), priority: true,
+            // TABLE-FEATURES-1 Q9:一格是几段税率的文字 —— 按它排没有意义,不可排
+            sortable: false,
             // 一个税码可以有几段税率(各自的生效区间)—— 一格装不下几个数,写成屏幕上那几行文字,以「; 」分开,日期取原始的
             exportAs: (r) => xText(r.rates.length === 0 ? t('gst.noRate')
                 : r.rates.map((rt) => `${Number(rt.rate_pct)}% · ${rt.effective_from} → ${rt.effective_to ?? t('gst.current')}`).join('; ')),
@@ -56,6 +58,8 @@ export default function GstTaxCodesTable({ rows }: { rows: TaxCodeRow[] }) {
             rowKey={(r) => r.code}
             phone={{ mode: 'columns' }}
             exportSpec={{ name: 'gst-tax-codes', title: t('gst.taxCodes') }}
+            // TABLE-FEATURES-1 Q9:税码字典一次读全 —— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

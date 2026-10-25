@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { RUNS_SHOWN, runsCount, runsPage, shapeRunRows } from './runRows'
+import { RUNS_SHOWN, runsCount, runsPage, shapeRunRows, parseRunSort, runsExportHref } from './runRows'
 import { can } from '@/lib/permissions'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
@@ -25,9 +25,11 @@ type T = {
     last_inspected_at: string | null; next_due_on: string | null; due_state: string
 }
 
-export default async function InspectionsPage() {
+export default async function InspectionsPage({ searchParams }: { searchParams: Promise<{ sort?: string | string[]; dir?: string | string[] }> }) {
     const denied = await requireFunction(FN.safetyInspections)
     if (denied) return denied
+    // TABLE-FEATURES-1 Q9:巡检表在数据库里排(runRows.ts 的 RUN_SORT);清单表全量,在浏览器里排
+    const runSort = parseRunSort(await searchParams)
     const t = await getTranslations()
     const locale = await getLocale()
     const supabase = await createClient()
@@ -37,7 +39,7 @@ export default async function InspectionsPage() {
         supabase.from('inspection_template_rows')
             .select('id, code, name, area, frequency_days, is_active, item_count, last_inspected_at, next_due_on, due_state')
             .order('is_active', { ascending: false }).order('code'),
-        runsPage(supabase, 0, RUNS_SHOWN - 1),
+        runsPage(supabase, runSort, 0, RUNS_SHOWN - 1),
         runsCount(supabase),
         can('module.safety.edit'),
     ])
@@ -56,6 +58,7 @@ export default async function InspectionsPage() {
         dueFlag: x.is_active && (x.due_state === 'due' || x.due_state === 'never_run'),
         active: x.is_active,
         lastRunAt: x.last_inspected_at,
+        frequencyDays: x.frequency_days,
     }))
     const runRows: RunRow[] = await shapeRunRows(runs)
 
@@ -83,7 +86,8 @@ export default async function InspectionsPage() {
                 <h2 className="mb-1">{t('safety.inspections.runsTitle')}</h2>
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('safety.inspections.runsHint')}</p>
                 <RowCapNotice shown={runRows.length} total={runTotal} />
-                <RunsTable rows={runRows} empty={t('safety.inspections.noRuns')} serverRows="/safety/inspections/runs/export" />
+                <RunsTable rows={runRows} empty={t('safety.inspections.noRuns')} serverRows={runsExportHref(runSort)}
+                    sort={{ active: runSort, shown: runRows.length, total: runTotal }} />
             </section>
         </ListPage>
     )

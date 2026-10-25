@@ -10,6 +10,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xDate } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type EmployeeRow = {
     employeeId: string
@@ -29,14 +31,17 @@ export type EmployeeRow = {
 }
 
 export default function EmployeesTable({
-    rows, empty, exportHref,
+    rows, empty, exportHref, sort, shown, total,
 }: {
     rows: EmployeeRow[]
     empty: React.ReactNode
     /** TABLE-EXPORT-1:服务端翻页取全的那条路由(带当前筛选,不带 page)。 */
     exportHref: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(employeeRows.ts 的 EMPLOYEE_SORT) */
+    sort: ListSort; shown: number; total: number
 }) {
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     const statusCls = (s: string) =>
         s === 'active'
@@ -52,7 +57,7 @@ export default function EmployeesTable({
     //   那是一条"名单上就能看见、不用逐个点开"的警示,藏起来等于取消它。
     const columns: ExportableColumn<EmployeeRow>[] = [
         {
-            key: 'code', header: t('hr.colCode'), priority: true, className: 'text-sm',
+            key: 'code', sortable: true, header: t('hr.colCode'), priority: true, className: 'text-sm',
             // 准证到期提醒挂在这一格里 —— 导出照屏幕把它带上(⚠ Nd),不让它在文件里消失
             exportAs: (r) => xText(r.workPassAlert ? `${r.code} ⚠ ${r.daysToWorkPassExpiry}d` : r.code),
             render: (r) => (
@@ -79,7 +84,7 @@ export default function EmployeesTable({
             ),
         },
         {
-            key: 'legalName', header: t('hr.colLegalName'), priority: true,
+            key: 'legalName', sortable: true, header: t('hr.colLegalName'), priority: true,
             exportAs: (r) => xText(r.preferredName ? `${r.legalName} (${r.preferredName})` : r.legalName),
             render: (r) => (
                 <>
@@ -88,12 +93,12 @@ export default function EmployeesTable({
                 </>
             ),
         },
-        { key: 'department', header: t('hr.colDepartment'), className: 'text-sm', render: (r) => r.departmentLabel, exportAs: (r) => xText(r.departmentLabel) },
-        { key: 'jobTitle', header: t('hr.colJobTitle'), className: 'text-sm', render: (r) => r.jobTitle, exportAs: (r) => xText(r.jobTitle) },
-        { key: 'employmentType', header: t('hr.colEmploymentType'), className: 'text-sm', render: (r) => r.employmentTypeLabel, exportAs: (r) => xText(r.employmentTypeLabel) },
-        { key: 'workCategory', header: t('hr.colWorkCategory'), className: 'text-sm', render: (r) => r.workCategoryLabel, exportAs: (r) => xText(r.workCategoryLabel) },
+        { key: 'department', sortable: true, header: t('hr.colDepartment'), className: 'text-sm', render: (r) => r.departmentLabel, exportAs: (r) => xText(r.departmentLabel) },
+        { key: 'jobTitle', sortable: true, header: t('hr.colJobTitle'), className: 'text-sm', render: (r) => r.jobTitle, exportAs: (r) => xText(r.jobTitle) },
+        { key: 'employmentType', sortable: true, header: t('hr.colEmploymentType'), className: 'text-sm', render: (r) => r.employmentTypeLabel, exportAs: (r) => xText(r.employmentTypeLabel) },
+        { key: 'workCategory', sortable: true, header: t('hr.colWorkCategory'), className: 'text-sm', render: (r) => r.workCategoryLabel, exportAs: (r) => xText(r.workCategoryLabel) },
         {
-            key: 'status', header: t('hr.colStatus'),
+            key: 'status', sortable: true, header: t('hr.colStatus'),
             exportAs: (r) => xText(t('hr.employmentStatus.' + r.employmentStatus)),
             render: (r) => (
                 <span className={'px-2 py-1 rounded text-xs ' + statusCls(r.employmentStatus)}>
@@ -101,7 +106,7 @@ export default function EmployeesTable({
                 </span>
             ),
         },
-        { key: 'hireDate', header: t('hr.colHireDate'), className: 'text-sm', render: (r) => r.hireDate, exportAs: (r) => xDate(r.hireDateRaw) },
+        { key: 'hireDate', sortable: true, header: t('hr.colHireDate'), className: 'text-sm', render: (r) => r.hireDate, exportAs: (r) => xDate(r.hireDateRaw) },
     ]
 
     return (
@@ -112,6 +117,7 @@ export default function EmployeesTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'hr-employees', title: t('hr.employeesTitle'), serverRows: exportHref }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

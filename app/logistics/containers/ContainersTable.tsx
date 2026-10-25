@@ -73,6 +73,8 @@ export default function ContainersTable({ rows, empty }: { rows: ContainerRow[];
         <DataTable
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'logistics-containers', title: t('logistics.containersTitle') }}
+            // TABLE-FEATURES-1 Q9:container_overview 一次读完,在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

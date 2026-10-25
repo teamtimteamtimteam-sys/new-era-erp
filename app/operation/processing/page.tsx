@@ -4,6 +4,8 @@
 // CONV-5:套 CONV-1 的两文件模板。
 // ★ Q7:sort/dir 仍然由 ProcessingToolbar 写 URL、由服务端执行,DataTable 不接管
 //   排序。转换前后的行序用 fetch 对拍验过(不是断言)。
+// ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9 · Q7):上面那条被取代 —— ProcessingToolbar 从来没写过 sort/dir,
+//   这一页有参数没有控件。现在表头是链接(DataTable 的 server 模式),仍由服务端执行;默认改为加工日新的在前。
 // ★ state 恒为 'ok' —— 筛选/排序工具栏是真实出口,见 §⑩-3。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
@@ -23,6 +25,7 @@ import { can } from '@/lib/permissions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { ListPage } from '@/app/components/ui/list-page'
 import ProcessingTable, { type ProcessingRunRow } from './ProcessingTable'
+import { setSortParams } from '@/lib/listSort'
 
 export default async function ProcessingPage({
     searchParams,
@@ -44,9 +47,9 @@ export default async function ProcessingPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { dateFrom, dateTo, sort, dir } = parseProcessingListParams(sp)
+    const filterParams = parseProcessingListParams(sp)
+    const { dateFrom, dateTo, sort } = filterParams
     const requestedPage = parseProcessingPage(sp.page)
-    const filterParams = { dateFrom, dateTo, sort, dir }
 
     // 1) 匹配总数(TABLE-EXPORT-1:读取挪进 processingRows.ts,与导出路由共用一份)
     const { count } = await processingCount(supabase, filterParams)
@@ -65,8 +68,7 @@ export default async function ProcessingPage({
         const params = new URLSearchParams()
         if (dateFrom) params.set('date_from', dateFrom)
         if (dateTo) params.set('date_to', dateTo)
-        params.set('sort', sort)
-        params.set('dir', dir)
+        setSortParams(params, sort)
         params.set('page', String(targetPage))
         return `/operation/processing?${params.toString()}`
     }
@@ -91,8 +93,7 @@ export default async function ProcessingPage({
     const exportParams = new URLSearchParams()
     if (dateFrom) exportParams.set('date_from', dateFrom)
     if (dateTo) exportParams.set('date_to', dateTo)
-    exportParams.set('sort', sort)
-    exportParams.set('dir', dir)
+    setSortParams(exportParams, sort)
     const exportHref = `/operation/processing/export?${exportParams.toString()}`
 
     const canCommit = await can('action.processing_commit')
@@ -124,7 +125,8 @@ export default async function ProcessingPage({
                 {t('processing.recordCount', { count: total })}
             </p>
 
-            <ProcessingTable rows={tableRows} empty={t('processing.emptyState')} exportHref={exportHref} />
+            <ProcessingTable rows={tableRows} empty={t('processing.emptyState')} exportHref={exportHref}
+                             sort={sort} shown={tableRows.length} total={total} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

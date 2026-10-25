@@ -10,7 +10,8 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import StocktakesTable, { type StocktakeRow } from './StocktakesTable'
 import { Button } from '@/app/components/ui/button'
-import { stocktakeCount, stocktakePage, shapeStocktakeRows } from './stocktakeRows'
+import { stocktakeCount, stocktakePage, shapeStocktakeRows, parseStocktakeSort } from './stocktakeRows'
+import { setSortParams } from '@/lib/listSort'
 import { can } from '@/lib/permissions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -24,7 +25,7 @@ function parsePage(value: string | undefined): number {
 export default async function StocktakesPage({
     searchParams,
 }: {
-    searchParams: Promise<{ page?: string }>
+    searchParams: Promise<{ page?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -36,6 +37,8 @@ export default async function StocktakesPage({
     const t = await getTranslations()
 
     const requestedPage = parsePage(sp.page)
+    // TABLE-FEATURES-1 Q9:在数据库里排
+    const sort = parseStocktakeSort(sp)
     // ROLE-1 Batch 3a:开单是录数的第一步,归 action.stocktake_count(仓库)。按不动时点名那个码。
     const canCount = await can('action.stocktake_count')
 
@@ -49,10 +52,11 @@ export default async function StocktakesPage({
     const to = from + STOCKTAKE_PAGE_SIZE - 1
 
     // 2) 取当前页(TABLE-EXPORT-1:select / 排序 / 映射住在 stocktakeRows.ts,导出路由走同一份)
-    const { data: rows, error } = await stocktakePage(supabase, from, to)
+    const { data: rows, error } = await stocktakePage(supabase, from, to, sort)
 
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
+        setSortParams(params, sort)
         params.set('page', String(targetPage))
         return `/stocktakes?${params.toString()}`
     }
@@ -97,7 +101,10 @@ export default async function StocktakesPage({
             </p>
 
             {/* TABLE-EXPORT-1 Q2:导出取【全部】盘点单 —— 这一页没有筛选,排序固定,不带 page。 */}
-            <StocktakesTable rows={tableRows} empty={t('stocktakes.emptyState')} exportHref="/stocktakes/export" />
+            {/* TABLE-FEATURES-1 Q9:导出带上当前排序 */}
+            <StocktakesTable rows={tableRows} empty={t('stocktakes.emptyState')}
+                             exportHref={`/stocktakes/export?${setSortParams(new URLSearchParams(), sort).toString()}`}
+                             sort={sort} shown={tableRows.length} total={total} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

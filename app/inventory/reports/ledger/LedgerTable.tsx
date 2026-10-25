@@ -8,6 +8,8 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xNum, xDate } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type LedgerTableRow = {
     id: string
@@ -23,8 +25,10 @@ export type LedgerTableRow = {
     qtyDelta: number
 }
 
-export default function LedgerTable({ rows, empty, filters, exportUrl }: {
+export default function LedgerTable({ rows, empty, filters, exportUrl, sort, shown, total }: {
     rows: LedgerTableRow[]
+    /** TABLE-FEATURES-1 Q9:在数据库里排(ledgerQuery.ts 的 LEDGER_SORT);页面只有前 1,000 条 */
+    sort: ListSort; shown: number; total: number
     /** TABLE-EXPORT-2b-2:导出向这条路由要全部匹配行(页面只有前 1,000 条) */
     exportUrl: string
     empty: React.ReactNode
@@ -35,11 +39,13 @@ export default function LedgerTable({ rows, empty, filters, exportUrl }: {
     filters: ReadonlyArray<[string, string]>
 }) {
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     // ★ 手机上留【批次】与【数量】—— 批次是这条流水的身份,数量是台账存在的
     //   理由(动了多少)。日期与库位是读到这一行之后才要问的,进展开区。
     const columns: ExportableColumn<LedgerTableRow>[] = [
-        { key: 'date', header: t('reports.colDate'), render: (r) => r.date || '—', exportAs: (r) => xDate(r.date || null) },
+        // TABLE-FEATURES-1 Q9:只有日期与数量可排(见 ledgerQuery.ts LEDGER_SORT 上的理由)
+        { key: 'date', sortable: true, header: t('reports.colDate'), render: (r) => r.date || '—', exportAs: (r) => xDate(r.date || null) },
         { key: 'batch', header: t('reports.colBatch'), priority: true, className: 'text-xs', render: (r) => r.batch, exportAs: (r) => xText(r.batch) },
         { key: 'material', header: t('reports.colMaterial'), render: (r) => r.material, exportAs: (r) => xText(r.material) },
         {
@@ -51,7 +57,7 @@ export default function LedgerTable({ rows, empty, filters, exportUrl }: {
         },
         { key: 'type', header: t('reports.colType'), render: (r) => r.type, exportAs: (r) => xText(r.type) },
         { key: 'status', header: t('reports.colStatus'), render: (r) => r.status, exportAs: (r) => xText(r.status) },
-        { key: 'qty', header: t('reports.colQty'), priority: true, align: 'right', render: (r) => r.qty, exportAs: (r) => xNum(r.qtyDelta, 'qty') },
+        { key: 'qty', sortable: true, header: t('reports.colQty'), priority: true, align: 'right', render: (r) => r.qty, exportAs: (r) => xNum(r.qtyDelta, 'qty') },
     ]
 
     return (
@@ -62,6 +68,7 @@ export default function LedgerTable({ rows, empty, filters, exportUrl }: {
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'stock-ledger', title: t('reports.ledger.title'), filters, serverRows: exportUrl }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

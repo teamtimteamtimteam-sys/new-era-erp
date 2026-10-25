@@ -15,16 +15,18 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import QuotesTable from './QuotesTable'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { QUOTES_SHOWN, quotesCount, quotesPage } from './quotesRows'
+import { QUOTES_SHOWN, quotesCount, quotesPage, parseQuoteSort, quotesExportHref } from './quotesRows'
 
-export default async function QuotesPage() {
+export default async function QuotesPage({ searchParams }: { searchParams: Promise<{ sort?: string; dir?: string }> }) {
     const denied = await requireModule(MOD.sales)
     if (denied) return denied
+    // TABLE-FEATURES-1 Q9:在数据库里排(排在截取前 QUOTES_SHOWN 张之前)
+    const sort = parseQuoteSort(await searchParams)
     const t = await getTranslations()
     const supabase = await createClient()
 
     // ★ TABLE-EXPORT-2b-2(Tim Q2):读取搬进 quotesRows.ts,与导出路由共用;只画最新 QUOTES_SHOWN 张,而且说出来。
-    const [listRes, totalRes] = await Promise.all([quotesPage(supabase, 0, QUOTES_SHOWN - 1), quotesCount(supabase)])
+    const [listRes, totalRes] = await Promise.all([quotesPage(supabase, 0, QUOTES_SHOWN - 1, sort), quotesCount(supabase)])
     const rows = mustRows(listRes, 'quote_status')
     const total = mustCount(totalRes, 'quote_status count')
 
@@ -42,7 +44,7 @@ export default async function QuotesPage() {
             state={rows.length === 0 ? { kind: 'empty', noRows: t('quotes.empty') } : { kind: 'ok' }}
         >
             <RowCapNotice shown={rows.length} total={total} />
-            <QuotesTable rows={rows} />
+            <QuotesTable rows={rows} sort={sort} total={total} exportHref={quotesExportHref(sort)} />
         </ListPage>
     )
 }

@@ -7,16 +7,21 @@ import { FN } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { mustCount } from '@/lib/db-helpers'
 import { exportRowsResponse, exportDenied } from '@/lib/export/serverRows'
-import { envCount, envPage, shapeEnvRows } from '../envRows'
+import { getLocale } from '@/lib/i18n/server'
+import type { NextRequest } from 'next/server'
+import { envCount, envPage, shapeEnvRows, parseEnvSort } from '../envRows'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     if (!(await canEnter(FN.safetyEnvironment.permission))) return exportDenied()
     const supabase = await createClient()
     const canEdit = await can('module.safety.edit')
+    // TABLE-FEATURES-1 Q9:与页面同一个排序
+    const sort = parseEnvSort(Object.fromEntries(request.nextUrl.searchParams))
+    const locale = await getLocale()
     return exportRowsResponse({
         label: 'environmental_result_rows',
         count: async () => mustCount(await envCount(supabase), 'environmental_result_rows'),
-        page: (from, to) => envPage(supabase, from, to),
+        page: (from, to) => envPage(supabase, sort, locale, from, to),
         shape: (rows) => shapeEnvRows(rows, canEdit),
     })
 }

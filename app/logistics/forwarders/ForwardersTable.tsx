@@ -71,6 +71,9 @@ export default function ForwardersTable({
         },
         {
             key: 'owed', header: t('logistics.colBalanceOwed'), priority: true, align: 'right',
+            // TABLE-FEATURES-1 Q9:按本位币的数排 —— 导出值里「没有欠款」是一句话,和数混在一起比会排错;它就是 0。
+            //   受限时每一格都是 null,排序什么也不透露。
+            sortValue: (r) => (moneyRestricted ? null : r.owedAmt ?? 0),
             exportAs: (r) => (moneyRestricted
                 ? xRestricted
                 : r.owedAmt === null ? xText(t('logistics.noBalance')) : xMoney(r.owedAmt, r.owedCcy)),
@@ -85,6 +88,7 @@ export default function ForwardersTable({
         <DataTable
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'logistics-forwarders', title: t('logistics.forwardersTitle') }}
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

@@ -11,7 +11,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/dates'
 import { processingStatusLabelKey } from '../status'
-import { applyProcessingFilters, type ProcessingListParams } from '../processingQuery'
+import { applyProcessingFilters, applyProcessingSort, type ProcessingListParams } from '../processingQuery'
 import type { ProcessingRunRow } from './ProcessingTable'
 
 type Client = SupabaseClient<Database>
@@ -24,8 +24,8 @@ export function processingCount(supabase: Client, params: ProcessingListParams) 
 }
 
 export function processingPage(supabase: Client, params: ProcessingListParams, from: number, to: number) {
-    return applyProcessingFilters(supabase.from('processing_runs').select(PROCESSING_LIST_SELECT), params)
-        .order('id', { ascending: true })
+    // TABLE-FEATURES-1 Q9:排序(含 created_at · id 平局)在 applyProcessingSort 里
+    return applyProcessingSort(applyProcessingFilters(supabase.from('processing_runs').select(PROCESSING_LIST_SELECT), params), params)
         .range(from, to)
 }
 

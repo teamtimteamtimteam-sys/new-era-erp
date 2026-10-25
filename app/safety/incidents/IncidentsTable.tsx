@@ -40,5 +40,7 @@ export default function IncidentsTable({ rows, empty }: { rows: IncidentRow[]; e
         { key: 'what', header: t('safety.incidents.colWhat'), exportAs: (r) => xText(r.whatHappened), render: (r) => <span className="line-clamp-2">{r.whatHappened}</span> },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-        exportSpec={{ name: 'safety-incidents', title: t('safety.incidents.title') }} />
+        exportSpec={{ name: 'safety-incidents', title: t('safety.incidents.title') }}
+        // TABLE-FEATURES-1 Q9:全部事故一次读完,在浏览器里排
+        sorting={{ mode: 'client', coverage: 'complete' }} />
 }

@@ -18,7 +18,7 @@
 
 import * as React from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
-import { Button } from '@/app/components/ui/button'
+import { ReadOnlyButton } from '@/app/components/ui/disabled-block'
 import { Refusal } from '@/app/components/ui/refusal'
 import { aboutRows } from '@/app/components/ui/table-export'
 import { buildCsv, buildXlsx, downloadBlob, exportFileName, CSV_MIME, XLSX_MIME } from '@/lib/export/write'
@@ -83,12 +83,12 @@ export function ReportExportBar({ spec }: { spec: ReportExportSpec }) {
 
     return (
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2" data-slot="table-export" data-report-export={spec.name}>
-            <Button type="button" variant="outline" size="sm" disabled={busy !== null} onClick={() => run('xlsx')}>
+            <ReadOnlyButton variant="outline" size="sm" disabled={busy !== null} onClick={() => run('xlsx')}>
                 {busy === 'xlsx' ? t('table.export.busy') : t('table.export.excel')}
-            </Button>
-            <Button type="button" variant="outline" size="sm" disabled={busy !== null} onClick={() => run('csv')}>
+            </ReadOnlyButton>
+            <ReadOnlyButton variant="outline" size="sm" disabled={busy !== null} onClick={() => run('csv')}>
                 {busy === 'csv' ? t('table.export.busy') : t('table.export.csv')}
-            </Button>
+            </ReadOnlyButton>
             {problem && <p role="alert" className="w-full text-right text-xs"><Refusal>{problem}</Refusal></p>}
         </div>
     )
@@ -137,12 +137,12 @@ export function FlatExportBar({ spec }: { spec: FlatExportSpec }) {
 
     return (
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2" data-slot="table-export" data-flat-export={spec.name}>
-            <Button type="button" variant="outline" size="sm" disabled={busy !== null} onClick={() => run('xlsx')}>
+            <ReadOnlyButton variant="outline" size="sm" disabled={busy !== null} onClick={() => run('xlsx')}>
                 {busy === 'xlsx' ? t('table.export.busy') : t('table.export.excel')}
-            </Button>
-            <Button type="button" variant="outline" size="sm" disabled={busy !== null} onClick={() => run('csv')}>
+            </ReadOnlyButton>
+            <ReadOnlyButton variant="outline" size="sm" disabled={busy !== null} onClick={() => run('csv')}>
                 {busy === 'csv' ? t('table.export.busy') : t('table.export.csv')}
-            </Button>
+            </ReadOnlyButton>
             {problem && <p role="alert" className="w-full text-right text-xs"><Refusal>{problem}</Refusal></p>}
         </div>
     )

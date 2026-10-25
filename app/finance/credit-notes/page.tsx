@@ -13,7 +13,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
-import { creditNoteCount, creditNotePage, shapeCreditNoteRows } from './creditNoteRows'
+import { creditNoteCount, creditNotePage, shapeCreditNoteRows, parseCreditNoteListParams, creditNoteExportHref } from './creditNoteRows'
+import { setSortParams } from '@/lib/listSort'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -30,7 +31,7 @@ function parsePage(value: string | undefined): number {
 export default async function CreditNotesPage({
     searchParams,
 }: {
-    searchParams: Promise<{ page?: string }>
+    searchParams: Promise<{ page?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
@@ -39,6 +40,7 @@ export default async function CreditNotesPage({
     const sp = await searchParams
     const t = await getTranslations()
     const supabase = await createClient()
+    const params = parseCreditNoteListParams(sp)  // TABLE-FEATURES-1 Q9
 
     // TABLE-EXPORT-2a:读取与「库里的行 → 表的行」(含客户那一格的权限判断)搬进 creditNoteRows.ts,与导出路由共用一份。
     // 总数数不出来就失败(mustCount)—— 从前是 `count ?? 0`,一次失败会读成「没有贷项凭证」。
@@ -47,13 +49,16 @@ export default async function CreditNotesPage({
     const page = Math.min(parsePage(sp.page), totalPages)
 
     const notes = mustRows(
-        await creditNotePage(supabase, (page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1),
+        await creditNotePage(supabase, params, (page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1),
         'credit_notes'
     )
     const tableRows: CreditNoteRow[] = await shapeCreditNoteRows(supabase, notes)
 
     function pageHref(targetPage: number) {
-        return `/finance/credit-notes?page=${targetPage}`
+        // TABLE-FEATURES-1 Q9:翻页保留排序
+        const q = setSortParams(new URLSearchParams(), params.sort)
+        q.set('page', String(targetPage))
+        return `/finance/credit-notes?${q.toString()}`
     }
 
     return (
@@ -69,7 +74,8 @@ export default async function CreditNotesPage({
         >
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <CreditNotesTable rows={tableRows} />
+            <CreditNotesTable rows={tableRows} exportHref={creditNoteExportHref(params)}
+                              sort={params.sort} shown={tableRows.length} total={total} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

@@ -6,15 +6,18 @@ import { canEnter } from '@/lib/moduleAccess'
 import { FN } from '@/lib/modules'
 import { mustCount } from '@/lib/db-helpers'
 import { exportRowsResponse, exportDenied } from '@/lib/export/serverRows'
-import { runsCount, runsPage, shapeRunRows } from '../../runRows'
+import type { NextRequest } from 'next/server'
+import { runsCount, runsPage, shapeRunRows, parseRunSort } from '../../runRows'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     if (!(await canEnter(FN.safetyInspections.permission))) return exportDenied()
     const supabase = await createClient()
+    // TABLE-FEATURES-1 Q9:与页面同一个排序
+    const sort = parseRunSort(Object.fromEntries(request.nextUrl.searchParams))
     return exportRowsResponse({
         label: 'inspection_run_rows',
         count: async () => mustCount(await runsCount(supabase), 'inspection_run_rows'),
-        page: (from, to) => runsPage(supabase, from, to),
+        page: (from, to) => runsPage(supabase, sort, from, to),
         shape: (rows) => shapeRunRows(rows),
     })
 }

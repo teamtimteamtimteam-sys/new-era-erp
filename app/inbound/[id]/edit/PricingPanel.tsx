@@ -11,6 +11,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatUnitCost } from '@/lib/format'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { Button } from '@/app/components/ui/button'
+import { DisabledBlock } from '@/app/components/ui/disabled-block'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xMasked, xMoney, xText, xTime } from '@/lib/export/cells'
 import { formatDate } from '@/lib/dates'
@@ -203,7 +204,7 @@ export default function PricingPanel({
                     {t('inbound.priceRequest.lockedHint', { label: openRequestLabel })}
                 </p>
             )}
-            <fieldset disabled={!!openRequestLabel} className="contents">
+            <DisabledBlock disabled={!!openRequestLabel} className="contents">
             {extraAction}
 
             {st.error && (
@@ -260,7 +261,7 @@ export default function PricingPanel({
                 </Button>
             </form>
             </PermissionGate>
-            </fieldset>
+            </DisabledBlock>
 
             <h3 className="mb-2">{t('inbound.pricing.historyTitle')}</h3>
             {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个

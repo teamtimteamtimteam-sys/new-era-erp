@@ -10,11 +10,30 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/dates'
 import { soStatusKey } from './salesOrderTypes'
 import type { SalesOrderRow } from './SalesOrdersTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
 /** 页面画多少张 —— 与转换之前同一个数。 */
 export const ORDERS_SHOWN = 200
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):只画前 ORDERS_SHOWN 张 → 在数据库里排(排在截取之前)。
+ *   列键 → `sales_orders` 上的列;状态按库里的状态码排。客户是嵌入查出来的名字:不可排(规矩 ③)。
+ *   默认 = 今天的 ORDER BY:order_date DESC,平局按 id。
+ */
+export const ORDER_SORT = { code: 'code', date: 'order_date', status: 'status', currency: 'currency' } as const
+export type OrderSortKey = keyof typeof ORDER_SORT
+const ORDER_SORT_DEFAULT: ListSort<OrderSortKey> = { key: 'date', dir: 'desc' }
+
+export function parseOrderSort(sp: Record<string, string | string[] | undefined>): ListSort<OrderSortKey> {
+    return parseListSort(sp, Object.keys(ORDER_SORT) as OrderSortKey[], ORDER_SORT_DEFAULT)
+}
+
+/** 导出路由的地址:带上当前排序(TABLE-EXPORT-1 Q2:导出按当前的排序取全体)。 */
+export function ordersExportHref(sort: ListSort<OrderSortKey>): string {
+    return `/sales/orders/export?${setSortParams(new URLSearchParams(), sort).toString()}`
+}
 
 export type OrderDbRow = {
     id: string; code: string; order_date: string; status: string
@@ -25,13 +44,14 @@ export function ordersCount(supabase: Client) {
     return supabase.from('sales_orders').select('id', { count: 'exact', head: true }).is('deleted_at', null)
 }
 
-export function ordersPage(supabase: Client, from: number, to: number) {
-    return supabase
-        .from('sales_orders')
-        .select('id, code, order_date, status, currency, customers ( code, legal_name )')
-        .is('deleted_at', null)
-        .order('order_date', { ascending: false })
-        .order('id', { ascending: true })
+export function ordersPage(supabase: Client, from: number, to: number, sort: ListSort<OrderSortKey> = ORDER_SORT_DEFAULT) {
+    return applyListSort(
+        supabase
+            .from('sales_orders')
+            .select('id, code, order_date, status, currency, customers ( code, legal_name )')
+            .is('deleted_at', null),
+        sort, ORDER_SORT, [['order_date', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as OrderDbRow[] | null }))
 }

@@ -12,6 +12,7 @@ import { getLocale, getTranslations } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import { requestSubjectLabel } from './requestSubject'
 import type { PaymentRequestRow } from './PaymentRequestsTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
@@ -25,6 +26,19 @@ export function parseRequestFilter(status: string | undefined): string {
 }
 function statusSet(filter: string): string[] | null {
     return filter === 'open' ? OPEN : filter === 'all' ? null : [filter]
+}
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `payment_requests` 上的列(lib/listSort.ts 的规矩)。
+ *   金额按【本位币】那一列排:各行币种不同,原币金额放在一起比没有意义。收款人是查出来的,不可排。
+ * ★ 默认不变(Q7):提出时刻新的在前,平局按 id。
+ */
+export const REQUEST_SORT = { code: 'code', kind: 'kind', amount: 'amount_base', status: 'status', created: 'created_at' } as const
+export type RequestSortKey = keyof typeof REQUEST_SORT
+const REQUEST_SORT_DEFAULT: ListSort<RequestSortKey> = { key: 'created', dir: 'desc' }
+
+export function parseRequestSort(sp: { sort?: string; dir?: string }): ListSort<RequestSortKey> {
+    return parseListSort(sp, Object.keys(REQUEST_SORT) as RequestSortKey[], REQUEST_SORT_DEFAULT)
 }
 
 interface Chain { in(c: string, v: string[]): Chain }
@@ -46,22 +60,26 @@ export function requestCount(supabase: Client, filter: string) {
     return applyFilters(supabase.from('payment_requests').select('id', { count: 'exact', head: true }), filter)
 }
 
-export function requestPage(supabase: Client, filter: string, from: number, to: number) {
-    return applyFilters(
-        supabase
-            .from('payment_requests')
-            .select('id, code, kind, status, counterparty_type, supplier_id, employee_id, customer_id, amount_ccy, currency, created_at, bank_account_code, to_account_code, period_month'),
-        filter,
+export function requestPage(supabase: Client, filter: string, sort: ListSort<RequestSortKey>, from: number, to: number) {
+    return applyListSort(
+        applyFilters(
+            supabase
+                .from('payment_requests')
+                .select('id, code, kind, status, counterparty_type, supplier_id, employee_id, customer_id, amount_ccy, currency, created_at, bank_account_code, to_account_code, period_month'),
+            filter,
+        ),
+        sort, REQUEST_SORT, [['created_at', 'desc'], ['id', 'asc']],
     )
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as RequestDbRow[] | null }))
 }
 
-/** 导出路由的地址:同一个筛选,不带 page。 */
-export function requestExportHref(filter: string): string {
-    return filter === 'open' ? '/finance/payment-requests/export' : `/finance/payment-requests/export?status=${encodeURIComponent(filter)}`
+/** 导出路由的地址:同一个筛选,不带 page。TABLE-FEATURES-1 Q9:带上同一份排序。 */
+export function requestExportHref(filter: string, sort: ListSort<RequestSortKey>): string {
+    const params = new URLSearchParams()
+    if (filter !== 'open') params.set('status', filter)
+    setSortParams(params, sort)
+    return `/finance/payment-requests/export?${params.toString()}`
 }
 
 export async function shapeRequestRows(supabase: Client, rows: RequestDbRow[]): Promise<PaymentRequestRow[]> {

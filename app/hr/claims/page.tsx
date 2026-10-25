@@ -20,7 +20,7 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 
 export default async function ClaimsPage({
     searchParams,
-}: { searchParams: Promise<{ status?: string; employee?: string; year?: string }> }) {
+}: { searchParams: Promise<{ status?: string; employee?: string; year?: string; sort?: string; dir?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -78,7 +78,8 @@ export default async function ClaimsPage({
             </form>
 
             <RowCapNotice shown={tableRows.length} total={total} />
-            <ClaimsTable rows={tableRows} empty={t('claims.none')} exportUrl={`/hr/claims/export${claimsQuery(f)}`} />
+            <ClaimsTable rows={tableRows} empty={t('claims.none')} exportUrl={`/hr/claims/export${claimsQuery(f)}`}
+                         sort={f.sort} shown={tableRows.length} total={total} />
         </ListPage>
     )
 }

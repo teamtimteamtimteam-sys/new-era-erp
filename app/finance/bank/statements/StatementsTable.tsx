@@ -8,6 +8,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xInt } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type StatementRow = {
     id: string
@@ -24,18 +26,21 @@ export type StatementRow = {
     status: string
 }
 
-export default function StatementsTable({ rows, empty, exportHref }: {
+export default function StatementsTable({ rows, empty, exportHref, sort, shown, total }: {
     rows: StatementRow[]; empty: React.ReactNode
     /** TABLE-EXPORT-2a:服务端分页 —— 导出向这条路由要全部匹配行(同一套筛选) */
     exportHref: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(statementRows.ts 的 STATEMENT_SORT) */
+    sort: ListSort; shown: number; total: number
 }) {
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     // ★ 手机上留【单号】与【未匹配】—— 单号是身份,未匹配是这张登记簿存在的
     //   理由(人来这一页最常问的是"哪几张还没对完")。其余进展开区。
     const columns: ExportableColumn<StatementRow>[] = [
         {
-            key: 'code', header: t('bank.colCode'), priority: true, className: 'text-sm',
+            key: 'code', sortable: true, header: t('bank.colCode'), priority: true, className: 'text-sm',
             exportAs: (r) => xText(r.code),
             render: (r) => (
                 <Link href={`/finance/bank/statements/${r.id}`} className="hover:underline app-link">
@@ -44,7 +49,7 @@ export default function StatementsTable({ rows, empty, exportHref }: {
             ),
         },
         {
-            key: 'account', header: t('bank.colAccount'), className: 'text-sm',
+            key: 'account', sortable: true, header: t('bank.colAccount'), className: 'text-sm',
             exportAs: (r) => xText(`${r.bankAccountCode} ${t('finance.bank.' + r.bankAccountCode)}`),
             render: (r) => (
                 <>
@@ -52,7 +57,7 @@ export default function StatementsTable({ rows, empty, exportHref }: {
                 </>
             ),
         },
-        { key: 'period', header: t('bank.colPeriod'), className: 'text-sm', render: (r) => r.period,
+        { key: 'period', sortable: true, header: t('bank.colPeriod'), className: 'text-sm', render: (r) => r.period,
             // 一段日期(原始的 YYYY-MM-DD 拼成)—— 写成文字,不是一个日子
             exportAs: (r) => xText(r.period) },
         {
@@ -74,7 +79,7 @@ export default function StatementsTable({ rows, empty, exportHref }: {
         },
         { key: 'ignored', header: t('bank.colIgnored'), align: 'right', className: 'text-sm', render: (r) => r.ignored, exportAs: (r) => xInt(r.ignored) },
         {
-            key: 'status', header: t('finance.colStatus'),
+            key: 'status', sortable: true, header: t('finance.colStatus'),
             exportAs: (r) => xText(t('bank.status.' + r.status)),
             render: (r) => (
                 <span className={'px-2 py-1 rounded text-xs ' + (r.status === 'reconciled' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800')}>
@@ -92,6 +97,7 @@ export default function StatementsTable({ rows, empty, exportHref }: {
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'bank-statements', title: t('bank.listTitle'), serverRows: exportHref }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

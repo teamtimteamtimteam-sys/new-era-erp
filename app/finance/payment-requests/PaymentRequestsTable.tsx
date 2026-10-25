@@ -8,6 +8,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xTime } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type PaymentRequestRow = {
     id: string
@@ -30,17 +32,20 @@ function statusClass(s: string): string {
     return 'bg-gray-200 text-gray-700'
 }
 
-export default function PaymentRequestsTable({ rows, empty, exportHref }: {
+export default function PaymentRequestsTable({ rows, empty, exportHref, sort, shown, total }: {
     rows: PaymentRequestRow[]; empty: React.ReactNode
     /** TABLE-EXPORT-2a:服务端分页 —— 导出向这条路由要全部匹配行(同一个状态筛选) */
     exportHref: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(requestRows.ts 的 REQUEST_SORT) */
+    sort: ListSort; shown: number; total: number
 }) {
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     // ★ 手机上留【申请号】与【金额】—— 申请号是身份,金额是审批人批的那个数。
     const columns: ExportableColumn<PaymentRequestRow>[] = [
         {
-            key: 'code', header: t('finance.colCode'), priority: true,
+            key: 'code', sortable: true, header: t('finance.colCode'), priority: true,
             exportAs: (r) => xText(r.code),
             render: (r) => (
                 <Link href={`/finance/payment-requests/${r.id}`} className="hover:underline app-link">
@@ -48,17 +53,17 @@ export default function PaymentRequestsTable({ rows, empty, exportHref }: {
                 </Link>
             ),
         },
-        { key: 'kind', header: t('finance.paymentRequests.colKind'), render: (r) => t('finance.paymentRequests.kind.' + r.kind), exportAs: (r) => xText(t('finance.paymentRequests.kind.' + r.kind)) },
+        { key: 'kind', sortable: true, header: t('finance.paymentRequests.colKind'), render: (r) => t('finance.paymentRequests.kind.' + r.kind), exportAs: (r) => xText(t('finance.paymentRequests.kind.' + r.kind)) },
         { key: 'payee', header: t('finance.paymentRequests.colPayee'), render: (r) => r.payee, exportAs: (r) => xText(r.payee) },
         {
-            key: 'amount', header: t('finance.amount'), priority: true, align: 'right',
+            key: 'amount', sortable: true, header: t('finance.amount'), priority: true, align: 'right',
             exportAs: (r) => xMoney(r.amountCcy, r.currency),
             render: (r) => (
                 <>{r.currency} {formatMoneyBare(r.amountCcy, '同格内紧邻的 r.currency 前缀')}</>
             ),
         },
         {
-            key: 'status', header: t('finance.colStatus'),
+            key: 'status', sortable: true, header: t('finance.colStatus'),
             exportAs: (r) => xText(t('finance.paymentRequests.status.' + r.status)),
             render: (r) => (
                 <span className={'px-2 py-1 rounded text-xs ' + statusClass(r.status)}>
@@ -66,7 +71,7 @@ export default function PaymentRequestsTable({ rows, empty, exportHref }: {
                 </span>
             ),
         },
-        { key: 'created', header: t('finance.paymentRequests.colRaised'), render: (r) => r.createdDate, exportAs: (r) => xTime(r.createdAtRaw) },
+        { key: 'created', sortable: true, header: t('finance.paymentRequests.colRaised'), render: (r) => r.createdDate, exportAs: (r) => xTime(r.createdAtRaw) },
     ]
 
     return (
@@ -77,6 +82,7 @@ export default function PaymentRequestsTable({ rows, empty, exportHref }: {
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'payment-requests', title: t('finance.paymentRequests.title'), serverRows: exportHref }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

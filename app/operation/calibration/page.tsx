@@ -97,6 +97,8 @@ export default async function CalibrationPage() {
                     rows={tableRows}
                     empty={t('calibration.empty')}
                     exportSpec={{ name: 'operation-calibration', title: t('calibration.title') }}
+                    // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                    sorting="client"
                 />
             </section>
             <section className="mb-8">

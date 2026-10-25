@@ -25,6 +25,7 @@ export type WipRow = {
 }
 
 export default function WipTable({ rows, empty }: { rows: WipRow[]; empty: React.ReactNode }) {
+    const oneUnit = new Set(rows.map((r) => r.unit)).size <= 1
     const t = useTranslations()
 
     // ★ 手机上留【批次】与【等哪一道工序】—— 批次是身份;而这一页回答的是
@@ -39,7 +40,10 @@ export default function WipTable({ rows, empty }: { rows: WipRow[]; empty: React
             ),
         },
         { key: 'material', header: t('processing.wip.colMaterial'), className: 'text-sm', render: (r) => r.material, exportAs: (r) => xText(r.material) },
-        { key: 'qty', header: t('processing.wip.colQty'), align: 'right', className: 'text-sm', render: (r) => r.qty, exportAs: (r) => xNum(r.remainingQty, 'qty', r.unit) },
+        { key: 'qty', header: t('processing.wip.colQty'), align: 'right', className: 'text-sm', render: (r) => r.qty, exportAs: (r) => xNum(r.remainingQty, 'qty', r.unit),
+            // TABLE-FEATURES-1 Q9:单位可以逐行不同(kg、件……)—— 这一屏的行【都是同一个单位】时才可排,
+            //   否则把不同单位的数放在一起排没有意义(与「各行币种不同的金额」同一条)。
+            sortable: oneUnit ? undefined : false },
         {
             key: 'awaiting', header: t('processing.wip.colAwaiting'), priority: true, className: 'text-sm',
             exportAs: (r) => xText(r.awaitingLabel ?? t('processing.wip.notScheduled')),
@@ -70,6 +74,8 @@ export default function WipTable({ rows, empty }: { rows: WipRow[]; empty: React
 
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.outputBatchId} phone={{ mode: 'columns' }} empty={empty}
-                   exportSpec={{ name: 'operation-wip', title: t('processing.wip.title') }} />
+                   exportSpec={{ name: 'operation-wip', title: t('processing.wip.title') }}
+                   // TABLE-FEATURES-1 Q9:一次读取拿到全体 —— 在浏览器里排
+                   sorting={{ mode: 'client', coverage: 'complete' }} />
     )
 }

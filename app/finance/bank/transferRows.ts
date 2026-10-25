@@ -11,11 +11,33 @@ import { mustRows } from '@/lib/db-helpers'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import type { TransferRow } from './TransfersTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
 /** 页面画多少笔 —— 与转换之前同一个数。 */
 export const TRANSFERS_SHOWN = 50
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `bank_transfers` 上的列(lib/listSort.ts 的规矩)。
+ *   只画前 TRANSFERS_SHOWN 笔,所以在数据库里排:那 50 笔是【按选中的次序】取的前 50 笔。
+ *   两头账户是拼出来的文字;转出 / 转入金额各带各的账户币种,没有本位币那一列 —— 不可排;状态是另查的冲销申请 —— 不可排。
+ * ★ 默认不变(Q7):转账日新的在前,平局按建立时刻、再按 id。
+ */
+export const TRANSFER_SORT = { date: 'transfer_date', ref: 'bank_reference' } as const
+export type TransferSortKey = keyof typeof TRANSFER_SORT
+const TRANSFER_SORT_DEFAULT: ListSort<TransferSortKey> = { key: 'date', dir: 'desc' }
+
+export type TransferListParams = { sort: ListSort<TransferSortKey> }
+
+export function parseTransferListParams(sp: { sort?: string; dir?: string }): TransferListParams {
+    return { sort: parseListSort(sp, Object.keys(TRANSFER_SORT) as TransferSortKey[], TRANSFER_SORT_DEFAULT) }
+}
+
+/** 导出路由的地址:这张表没有筛选,只带排序。 */
+export function transferExportHref(p: TransferListParams): string {
+    return `/finance/bank/transfers/export?${setSortParams(new URLSearchParams(), p.sort).toString()}`
+}
 
 export type TransferDbRow = {
     id: string
@@ -32,13 +54,14 @@ export function transferCount(supabase: Client) {
     return supabase.from('bank_transfers').select('id', { count: 'exact', head: true })
 }
 
-export function transferPage(supabase: Client, from: number, to: number) {
-    return supabase
-        .from('bank_transfers')
-        .select('id, transfer_date, from_account, to_account, amount_out, amount_in, bank_reference, reversed_at')
-        .order('transfer_date', { ascending: false })
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
+export function transferPage(supabase: Client, p: TransferListParams, from: number, to: number) {
+    // TABLE-FEATURES-1 Q9:ORDER BY 在 .range 之前 —— 上限按选中的次序取
+    return applyListSort(
+        supabase
+            .from('bank_transfers')
+            .select('id, transfer_date, from_account, to_account, amount_out, amount_in, bank_reference, reversed_at'),
+        p.sort, TRANSFER_SORT, [['transfer_date', 'desc'], ['created_at', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as TransferDbRow[] | null }))
 }

@@ -67,7 +67,9 @@ export function WhtLiabilityTable({ rows, empty }: { rows: LiabilityRow[]; empty
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.periodMonth} phone={{ mode: 'columns' }} empty={empty}
-        exportSpec={{ name: 'wht-liability', title: t('wht.liabilityHeading') }} />
+        exportSpec={{ name: 'wht-liability', title: t('wht.liabilityHeading') }}
+        // TABLE-FEATURES-1 Q9:欠缴月度一次读全(wht_liability_by_month 不翻页)—— 在浏览器里排
+        sorting={{ mode: 'client', coverage: 'complete' }} />
 }
 
 export type RemittanceRow = {
@@ -119,7 +121,9 @@ export function WhtRemittancesTable({ rows, empty, canEdit }: { rows: Remittance
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
-        exportSpec={{ name: 'wht-remittances', title: t('wht.remittancesHeading') }} />
+        exportSpec={{ name: 'wht-remittances', title: t('wht.remittancesHeading') }}
+        // TABLE-FEATURES-1 Q9:汇缴登记簿一次读全(wht_remittances 不翻页)—— 在浏览器里排
+        sorting={{ mode: 'client', coverage: 'complete' }} />
 }
 
 export type WhtRateRow = {
@@ -138,6 +142,8 @@ export function WhtRatesTable({ rows }: { rows: WhtRateRow[] }) {
         { key: 'nature', header: t('wht.colNature'), priority: true, render: (r) => r.name, exportAs: (r) => xText(r.name) },
         {
             key: 'rate', header: t('wht.colRate'), priority: true, className: 'text-xs',
+            // TABLE-FEATURES-1 Q9:一格是几段税率的文字 —— 按它排没有意义,不可排
+            sortable: false,
             // 几段税率各有生效区间 —— 写成屏幕上那几行文字,以「; 」分开,日期取原始的
             exportAs: (r) => xText(r.rates.map((rt) => `${Number(rt.rate_pct)}% · ${rt.effective_from} → ${rt.effective_to ?? '—'}`).join('; ')),
             render: (r) => r.rates.map((rt) => (
@@ -150,5 +156,7 @@ export function WhtRatesTable({ rows }: { rows: WhtRateRow[] }) {
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }}
-        exportSpec={{ name: 'wht-rates', title: t('wht.ratesHeading') }} />
+        exportSpec={{ name: 'wht-rates', title: t('wht.ratesHeading') }}
+        // TABLE-FEATURES-1 Q9:法定税率参照一次读全 —— 在浏览器里排
+        sorting={{ mode: 'client', coverage: 'complete' }} />
 }

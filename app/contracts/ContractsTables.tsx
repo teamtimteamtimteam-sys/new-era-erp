@@ -9,6 +9,9 @@
 //   保持原样的 —— 覆盖率块、两个"建了什么/还不能做什么"的琥珀块、开市日历那份
 //   项目符号清单、以及每一段前后那些具名的缺席句。后者【不是表】,
 //   把它们压成表会毁掉它们正在做的那件事。
+//
+// TABLE-FEATURES-1(Tim 2026-10-25 Q9):五张表的行各来自一次不分页的读取 —— 在浏览器里排(coverage: complete)。
+//   比较值默认取导出值;期间一格按生效日排,拆分上限按那个数排(「未写明」排最后)。
 
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -91,7 +94,7 @@ export function BreachesTable({ rows }: { rows: BreachRow[] }) {
         { key: 'measured', header: t('contracts.colMeasured'), priority: true, align: 'right', className: 'text-sm', render: (r) => r.contentPct, exportAs: (r) => xNum(r.contentPctRaw, 'pct', '%') },
         { key: 'required', header: t('contracts.colRequired'), className: 'text-sm', render: (r) => r.requiredLabel, exportAs: (r) => xText(r.requiredLabel) },
     ]
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} className="mb-6"
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} className="mb-6"
         exportSpec={{ name: 'contract-breaches', title: t('contracts.breachTitle') }} />
 }
 
@@ -109,6 +112,7 @@ export function ContractListTable({ rows }: { rows: ContractListRow[] }) {
         { key: 'title', header: t('contracts.colTitle'), priority: true, className: 'text-sm', render: (r) => r.title, exportAs: (r) => xText(r.title) },
         {
             key: 'period', header: t('contracts.colPeriod'), className: 'text-sm',
+            sortValue: (r) => r.effectiveFromRaw,
             // 一段日期装不进一个日期格 —— 用原始日历日拼成文字(docs/table-export.md「What a cell cannot hold」)
             exportAs: (r) => xText(`${r.effectiveFromRaw} → ${r.effectiveToRaw ?? t('contracts.openEnded')}`),
             render: (r) => (
@@ -126,7 +130,7 @@ export function ContractListTable({ rows }: { rows: ContractListRow[] }) {
             render: (r) => r.termsLabel ?? <span className="text-xs text-gray-500">{t('contracts.noHeadlineTerms')}</span>,
         },
     ]
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }}
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }}
         exportSpec={{ name: 'contracts', title: t('contracts.listTitle') }} />
 }
 
@@ -141,7 +145,7 @@ export function PricingTermsTable({ rows }: { rows: PricingTermRow[] }) {
         { key: 'index', header: t('contracts.pricing.colIndex'), priority: true, className: 'text-sm', render: (r) => r.indexCode, exportAs: (r) => xText(r.indexCode) },
         { key: 'payable', header: t('contracts.pricing.colPayable'), className: 'text-sm', render: (r) => r.payablePct, exportAs: (r) => xNum(r.payablePctRaw, 'pct', '%') },
     ]
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} className="mb-4 max-w-4xl"
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} className="mb-4 max-w-4xl"
         exportSpec={{ name: 'contract-pricing-terms', title: t('contracts.pricing.termsTitle') }} />
 }
 
@@ -154,6 +158,7 @@ export function SettlementTermsTable({ rows }: { rows: SettleTermRow[] }) {
         { key: 'party', header: t('contracts.settlement.colSettlingParty'), className: 'text-sm', render: (r) => r.partyLabel, exportAs: (r) => xText(r.partyLabel) },
         {
             key: 'splitting', header: t('contracts.settlement.colSplitting'), className: 'text-sm',
+            sortValue: (r) => r.splittingPct,
             exportAs: (r) => (r.splittingPct == null ? xText(t('contracts.settlement.splittingNotStated')) : xNum(r.splittingPct, 'pct', '%')),
             render: (r) =>
                 r.splittingLabel ?? <span className="text-gray-500">{t('contracts.settlement.splittingNotStated')}</span>,
@@ -161,7 +166,7 @@ export function SettlementTermsTable({ rows }: { rows: SettleTermRow[] }) {
         { key: 'refining', header: t('contracts.settlement.colRefining'), className: 'text-sm', render: (r) => r.refiningLabel, exportAs: (r) => xText(r.refiningLabel) },
         { key: 'penalty', header: t('contracts.settlement.colPenalty'), className: 'text-sm', render: (r) => r.penaltyLabel, exportAs: (r) => xText(r.penaltyLabel) },
     ]
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} className="mb-2 max-w-5xl"
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} className="mb-2 max-w-5xl"
         exportSpec={{ name: 'contract-settlement-terms', title: t('contracts.settlement.termsTitle') }} />
 }
 
@@ -186,6 +191,6 @@ export function SettlementsTable({ rows }: { rows: SettlementRow[] }) {
         },
         { key: 'amount', header: t('contracts.settlement.colAmount'), priority: true, className: 'text-sm', render: (r) => r.amount, exportAs: (r) => xMoney(r.amountUsd) },
     ]
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} className="mb-2 max-w-5xl"
+    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} className="mb-2 max-w-5xl"
         exportSpec={{ name: 'contract-settlements', title: t('contracts.settlement.settlementsTitle') }} />
 }

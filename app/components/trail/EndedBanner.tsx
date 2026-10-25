@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { loadActorNames } from '@/app/components/ActorName'
 import { Refusal } from '@/app/components/ui/refusal'
+import { DisabledBlock } from '@/app/components/ui/disabled-block'
 import { TRAIL_TEXT } from '@/lib/trail/text'
 import { fill } from '@/lib/trail/render'
 import { formatTrailStamp } from '@/lib/dates'
@@ -93,9 +94,10 @@ export function ReversalOfBanner({ code, href }: { code: string; href: string })
 export function EndedFieldset({ ended, children }: { ended: boolean; children: ReactNode }) {
     if (!ended) return <>{children}</>
     return (
-        <fieldset disabled aria-describedby={ENDED_BANNER_ID} data-ended-readonly="" className="m-0 min-w-0 border-0 p-0">
+        // TABLE-FEATURES-1 Q10:经 DisabledBlock —— 写入照旧按不下去,表格的导出 / 排序 / 翻页照样能用
+        <DisabledBlock disabled aria-describedby={ENDED_BANNER_ID} data-ended-readonly="" className="m-0 min-w-0 border-0 p-0">
             {children}
-        </fieldset>
+        </DisabledBlock>
     )
 }
 

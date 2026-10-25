@@ -59,6 +59,8 @@ export default function PacksHistoryTable({ rows, empty }: { rows: PackRow[]; em
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'management-packs', title: t('pack.storedHeading') }}
+            // TABLE-FEATURES-1 Q9:存档的包一次读全(management_packs 不翻页)—— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

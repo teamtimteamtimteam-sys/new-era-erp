@@ -16,7 +16,11 @@ export type PermissionRefRow = {
 }
 
 // TABLE-EXPORT-2b-1:每个类别一张,导出名与标题由页面按类别给
-export default function PermissionReferenceTable({ rows, exportName, exportTitle }: { rows: PermissionRefRow[]; exportName: string; exportTitle: string }) {
+export default function PermissionReferenceTable({ rows, exportName, exportTitle, sortable }: {
+    rows: PermissionRefRow[]; exportName: string; exportTitle: string
+    /** TABLE-FEATURES-1 Q9:页面的那一次读取是否完整(未读满 1,000 行)—— 是才在浏览器里排 */
+    sortable: boolean
+}) {
     const t = useTranslations()
 
     // ★ 3 列表:手机上留【权限】与【谁持有】—— 权限码是身份,而这一页就是
@@ -40,6 +44,8 @@ export default function PermissionReferenceTable({ rows, exportName, exportTitle
         },
         {
             key: 'heldBy', header: t('permissions.heldBy'), priority: true, className: 'w-64',
+            // TABLE-FEATURES-1 Q9:没有任何角色持有的排最后(不当成那句「无人持有」去比)
+            sortValue: (r) => (r.holders.length === 0 ? null : r.holders.join(', ')),
             exportAs: (r) => xText(r.holders.length === 0 ? t('permissions.heldByNobody') : r.holders.join(', ')),
             render: (r) =>
                 r.holders.length === 0 ? (
@@ -56,6 +62,10 @@ export default function PermissionReferenceTable({ rows, exportName, exportTitle
         },
     ]
 
-    return <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }}
-        exportSpec={{ name: exportName, title: exportTitle }} />
+    // phone 写成字面量,check-datatable-phone 才读得出这张表在 390px 上留哪几列
+    return (
+        <DataTable rows={rows} columns={columns} rowKey={(r) => r.code} phone={{ mode: 'columns' }}
+                   exportSpec={{ name: exportName, title: exportTitle }}
+                   {...(sortable ? { sorting: { mode: 'client' as const, coverage: 'complete' as const } } : {})} />
+    )
 }

@@ -1,0 +1,2 @@
+TSC_OWN_EXIT=0
+seconds=3

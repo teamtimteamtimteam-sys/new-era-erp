@@ -142,6 +142,9 @@ export default function MovementTimelineTable({
             empty={t('movements.empty')}
             // 进料与产出两页共用这一张,所以 About 那一行的标签用一个不分两侧的「批次」(stocktakes.colBatch,现成的字)。
             exportSpec={{ name: 'batch-movements', title: t('movements.title'), aboutExtra: [[t('stocktakes.colBatch'), batchCode]] }}
+            // ★ TABLE-FEATURES-1(Tim 2026-10-25 Q10):这张流水坐在两张批次编辑页的结束块里(删掉的批次)——
+            //   它是一次读全一批的流水(两个调用点都不截断),所以在浏览器里排;排序与导出在结束的记录上照样按得下去。
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

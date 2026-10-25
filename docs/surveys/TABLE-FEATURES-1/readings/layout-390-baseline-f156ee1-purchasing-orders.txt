@@ -1,0 +1,26 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review d9c59635-ee94-4078-a490-b6bd57aae93c
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/1] 13s  ovf=59 clip=0 /purchasing/orders
+
+════ 390px SURVEY ════
+measured: 1  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       0 / 1
+U2 no clipped ledger:                 1 / 1
+USABLE (U1 AND U2):                   0 / 1
+
+pages FAILING U1 (page overflows): 1
+   +   59px  /purchasing/orders   culprit: select.h-8 rounded-lg border border-input bg-transparent pl-2.5 pr-
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 1 / 1  median per page: 28
+
+wrote /private/tmp/claude-501/-Users-timchen/3b21713d-1138-45e4-89e7-2ed5bf86eb45/scratchpad/wt-head/.survey-out/phone-390.json
+· cleaned up ephemeral survey account(s)
+X_OWN_EXIT=0

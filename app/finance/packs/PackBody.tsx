@@ -80,6 +80,12 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
         revaluation: formatAmount(s.revaluation_base, ccy),
         unexplained: formatAmount(s.unexplained_base, ccy),
         reconciled: s.reconciled,
+        // TABLE-FEATURES-1 Q9:排序要原始的数(格好的字过界之后排不了)
+        sortAmt: {
+            ledger: Number(s.ledger_base), subledger: Number(s.subledger_base), difference: Number(s.difference_base),
+            origination: Number(s.origination_variance_base), settlement: Number(s.settlement_variance_base),
+            revaluation: Number(s.revaluation_base), unexplained: Number(s.unexplained_base),
+        },
     }))
     const splitRows: SplitRow[] = (payload.split_reversal_pairs ?? []).map((s) => ({
         entryCode: s.entry_code,
@@ -87,6 +93,9 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
         counterpartCode: s.counterpart_code,
         counterpartDate: s.counterpart_date,
         amount: formatAmount(s.amount_base, ccy),
+        // TABLE-FEATURES-1 Q9:排序要原始的日子与数
+        entryDateRaw: s.entry_date,
+        amountBase: Number(s.amount_base),
     }))
 
     return (

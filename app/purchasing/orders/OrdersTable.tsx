@@ -10,6 +10,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xNum, xMoney, xDate, xMasked } from '@/lib/export/cells'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type PurchaseOrderRow = {
     poId: string
@@ -43,13 +45,16 @@ export type PurchaseOrderRow = {
     receiptPct: number | null
 }
 
-export default function OrdersTable({ rows, empty, exportHref }: {
+export default function OrdersTable({ rows, empty, exportHref, sort, shown, total }: {
     rows: PurchaseOrderRow[]
     empty: React.ReactNode
     /** TABLE-EXPORT-1:服务端翻页取全的那条路由(带当前筛选)。 */
     exportHref: string
+    /** TABLE-FEATURES-1 Q9:在数据库里排(orderRows.ts 的 PO_SORT) */
+    sort: ListSort; shown: number; total: number
 }) {
     const t = useTranslations()
+    const sortHref = useSortHref()
 
     const statusPill = (s: string) => {
         const cls =
@@ -70,7 +75,7 @@ export default function OrdersTable({ rows, empty, exportHref }: {
     //   同一个 canView 写「受限」(xMasked ↔ <MaskedValue>)。「没有算过税」的「—」导出为空格 —— 它不是 0。
     const columns: ExportableColumn<PurchaseOrderRow>[] = [
         {
-            key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
+            key: 'code', sortable: true, header: t('finance.colCode'), priority: true, className: 'text-sm',
             exportAs: (r) => xText(r.code),
             render: (r) => (
                 <Link
@@ -82,8 +87,8 @@ export default function OrdersTable({ rows, empty, exportHref }: {
             ),
         },
         { key: 'supplier', header: t('purchasing.colSupplier'), render: (r) => r.supplierName, exportAs: (r) => xText(r.supplierName) },
-        { key: 'orderDate', header: t('purchasing.colOrderDate'), render: (r) => r.orderDate, exportAs: (r) => xDate(r.orderDateRaw) },
-        { key: 'expected', header: t('purchasing.colExpectedDelivery'), render: (r) => r.expectedDelivery, exportAs: (r) => xDate(r.expectedDeliveryRaw) },
+        { key: 'orderDate', sortable: true, header: t('purchasing.colOrderDate'), render: (r) => r.orderDate, exportAs: (r) => xDate(r.orderDateRaw) },
+        { key: 'expected', sortable: true, header: t('purchasing.colExpectedDelivery'), render: (r) => r.expectedDelivery, exportAs: (r) => xDate(r.expectedDeliveryRaw) },
         // PO-GST-1:净额 / GST / 应付总额。
         {
             key: 'net', header: t('purchasing.colNetTotal'), align: 'right', className: 'text-sm',
@@ -104,7 +109,7 @@ export default function OrdersTable({ rows, empty, exportHref }: {
             exportAs: (r) => xMasked(r.grossTotalAmt, r.canPurchasePrices, (v) => xMoney(v, r.currency)),
         },
         {
-            key: 'prepaid', header: t('purchasing.colPrepaid'), align: 'right', className: 'text-sm',
+            key: 'prepaid', sortable: true, header: t('purchasing.colPrepaid'), align: 'right', className: 'text-sm',
             // 未抵扣角标(⚠)是同一格里的第二个数,一格放不下两个数 —— 导出只写已预付本身。
             exportAs: (r) => xMasked(r.prepaidAmt, r.canFinance, (v) => xMoney(v, r.baseCurrency)),
             render: (r) => (
@@ -123,7 +128,7 @@ export default function OrdersTable({ rows, empty, exportHref }: {
             ),
         },
         {
-            key: 'receipt', header: t('purchasing.colReceipt'),
+            key: 'receipt', sortable: true, header: t('purchasing.colReceipt'),
             exportAs: (r) => xNum(r.receiptPct, 'pct'),
             render: (r) =>
                 r.receiptPct === null ? (
@@ -141,7 +146,7 @@ export default function OrdersTable({ rows, empty, exportHref }: {
                     </div>
                 ),
         },
-        { key: 'status', header: t('purchasing.colStatus'), render: (r) => statusPill(r.status), exportAs: (r) => xText(t('purchasing.status.' + r.status)) },
+        { key: 'status', sortable: true, header: t('purchasing.colStatus'), render: (r) => statusPill(r.status), exportAs: (r) => xText(t('purchasing.status.' + r.status)) },
     ]
 
     return (
@@ -153,6 +158,7 @@ export default function OrdersTable({ rows, empty, exportHref }: {
             empty={empty}
             rowClassName={(r) => (r.status === 'cancelled' ? 'text-gray-400' : undefined)}
             exportSpec={{ name: 'purchase-orders', title: t('purchasing.ordersTitle'), serverRows: exportHref }}
+            sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
         />
     )
 }

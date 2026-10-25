@@ -9,6 +9,7 @@ import type { Database } from '@/lib/database.types'
 import { formatAuditStamp } from '@/lib/dates'
 import { getTranslations } from '@/lib/i18n/server'
 import type { RunRow } from './InspectionTables'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
@@ -20,16 +21,36 @@ export type RunDbRow = {
     pass_count: number; fail_count: number; na_count: number; finding_count: number; open_finding_count: number; corrected_by_run_code: string | null
 }
 
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):在数据库里排(页面只画前 RUNS_SHOWN 次)。列键 → `inspection_run_rows` 上的列。
+ *   不可排:清单(代号 · 名称拼出来的)、结果与发现(由几个计数拼出来的文字)。
+ * ★ Q7:默认不变 —— 巡检时刻 ↓ · id ↑。
+ */
+export const RUN_SORT = { code: 'code', inspected: 'inspected_at', inspector: 'inspector_label', corrected: 'corrected_by_run_code' } as const
+export type RunSortKey = keyof typeof RUN_SORT
+const RUN_SORT_DEFAULT: ListSort<RunSortKey> = { key: 'inspected', dir: 'desc' }
+
+export function parseRunSort(sp: Record<string, string | string[] | undefined>): ListSort<RunSortKey> {
+    return parseListSort(sp, Object.keys(RUN_SORT) as RunSortKey[], RUN_SORT_DEFAULT)
+}
+
+/** 导出路由的地址 —— 与页面同一个排序(TABLE-EXPORT-1 Q2)。 */
+export function runsExportHref(sort: ListSort<RunSortKey>): string {
+    return `/safety/inspections/runs/export?${setSortParams(new URLSearchParams(), sort).toString()}`
+}
+
 export function runsCount(supabase: Client) {
     return supabase.from('inspection_run_rows').select('id', { count: 'exact', head: true })
 }
 
-export function runsPage(supabase: Client, from: number, to: number) {
-    return supabase
-        .from('inspection_run_rows')
-        .select('id, code, template_code, template_name, inspected_at, inspector_label, pass_count, fail_count, na_count, finding_count, open_finding_count, corrected_by_run_code')
-        .order('inspected_at', { ascending: false })
-        .order('id', { ascending: true })
+export function runsPage(supabase: Client, sort: ListSort<RunSortKey>, from: number, to: number) {
+    // TABLE-FEATURES-1 Q9:选中的列在前,原来那两个作平局键(与选中列相同的跳过)
+    return applyListSort(
+        supabase
+            .from('inspection_run_rows')
+            .select('id, code, template_code, template_name, inspected_at, inspector_label, pass_count, fail_count, na_count, finding_count, open_finding_count, corrected_by_run_code'),
+        sort, RUN_SORT, [['inspected_at', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as RunDbRow[] | null }))
 }

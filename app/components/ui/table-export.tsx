@@ -18,7 +18,7 @@
 
 import * as React from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
-import { Button } from '@/app/components/ui/button'
+import { ReadOnlyButton } from '@/app/components/ui/disabled-block'
 import { Refusal } from '@/app/components/ui/refusal'
 import { createClient } from '@/lib/supabase/client'
 import type { ExportCell } from '@/lib/export/cells'
@@ -117,12 +117,13 @@ export function TableExportBar<T>({ spec, columns, rows }: Props<T>) {
 
     return (
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2" data-slot="table-export">
-            <Button type="button" variant="outline" size="sm" disabled={busy !== null} onClick={() => run('xlsx')}>
+            {/* ★ TABLE-FEATURES-1 Q10:导出不写库 —— 在结束了的记录、缺权限的区域里照样按得下去(disabled-block.tsx) */}
+            <ReadOnlyButton variant="outline" size="sm" disabled={busy !== null} onClick={() => run('xlsx')}>
                 {busy === 'xlsx' ? t('table.export.busy') : t('table.export.excel')}
-            </Button>
-            <Button type="button" variant="outline" size="sm" disabled={busy !== null} onClick={() => run('csv')}>
+            </ReadOnlyButton>
+            <ReadOnlyButton variant="outline" size="sm" disabled={busy !== null} onClick={() => run('csv')}>
                 {busy === 'csv' ? t('table.export.busy') : t('table.export.csv')}
-            </Button>
+            </ReadOnlyButton>
             {problem && <p role="alert" className="w-full text-right text-xs"><Refusal>{problem}</Refusal></p>}
         </div>
     )

@@ -46,6 +46,8 @@ export default function GstPeriodsTable({ rows }: { rows: GstPeriodRow[] }) {
         },
         {
             key: 'filing', header: t('gst.filing'), className: 'text-xs',
+            // TABLE-FEATURES-1 Q9:导出值一时是「日期 · 申报号」、一时是一句「未申报」—— 排序只按申报日,未申报的(空)排在最后
+            sortValue: (r) => (r.filed ? r.filedOnRaw : null),
             // 一格里是「申报日 · 申报号」两样 —— 照屏幕写成文字,日期取原始的 YYYY-MM-DD
             exportAs: (r) => xText(r.filed
                 ? `${r.filedOnRaw ?? ''}${r.filedReference ? ` · ${r.filedReference}` : ''}`.trim()
@@ -67,6 +69,8 @@ export default function GstPeriodsTable({ rows }: { rows: GstPeriodRow[] }) {
             phone={{ mode: 'columns' }}
             empty={t('gst.noPeriods')}
             exportSpec={{ name: 'gst-periods', title: t('gst.periods') }}
+            // TABLE-FEATURES-1 Q9:期间一次读全(gst_periods 不翻页)—— 在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

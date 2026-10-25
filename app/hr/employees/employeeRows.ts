@@ -11,10 +11,23 @@ import type { Database } from '@/lib/database.types'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/dates'
 import type { EmployeeRow } from './EmployeesTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
-export type EmployeeListParams = { q: string; dept: string; status: string; category: string }
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `employee_directory` 上的列(lib/listSort.ts 的规矩)。
+ *   部门名在视图上按语言分两列,排哪一列跟着读者的语言走(employeePage 里换)。
+ *   雇佣类型 / 工种 / 状态按库里的代码排(屏幕上是译名)。默认与今天一样:按工号,平局按 employee_id。
+ */
+export const EMPLOYEE_SORT = {
+    code: 'code', legalName: 'legal_name', department: 'department_name_en', jobTitle: 'job_title',
+    employmentType: 'employment_type', workCategory: 'work_category', status: 'employment_status', hireDate: 'hire_date',
+} as const
+export type EmployeeSortKey = keyof typeof EMPLOYEE_SORT
+const EMPLOYEE_SORT_DEFAULT: ListSort<EmployeeSortKey> = { key: 'code', dir: 'asc' }
+
+export type EmployeeListParams = { q: string; dept: string; status: string; category: string; sort: ListSort<EmployeeSortKey> }
 
 export function parseEmployeeListParams(sp: Record<string, string | undefined>): EmployeeListParams {
     return {
@@ -22,6 +35,7 @@ export function parseEmployeeListParams(sp: Record<string, string | undefined>):
         dept: (sp.department ?? '').trim(),
         status: (sp.status ?? '').trim(),
         category: (sp.category ?? '').trim(),
+        sort: parseListSort(sp, Object.keys(EMPLOYEE_SORT) as EmployeeSortKey[], EMPLOYEE_SORT_DEFAULT),
     }
 }
 
@@ -32,6 +46,8 @@ export function employeeFilterQuery(p: EmployeeListParams): URLSearchParams {
     if (p.dept) params.set('department', p.dept)
     if (p.status) params.set('status', p.status)
     if (p.category) params.set('category', p.category)
+    // TABLE-FEATURES-1 Q9:翻页链接与导出链接带上同一个顺序
+    setSortParams(params, p.sort)
     return params
 }
 
@@ -79,9 +95,12 @@ export function employeeCount(supabase: Client, p: EmployeeListParams) {
 }
 
 export async function employeePage(supabase: Client, p: EmployeeListParams, from: number, to: number) {
-    const res = await applyEmployeeFilters(supabase.from('employee_directory').select(EMPLOYEE_LIST_SELECT), p)
-        .order('code')
-        .order('employee_id')
+    // TABLE-FEATURES-1 Q9:部门按读者语言的那一列排(与屏幕上那一格同一个名字)
+    const columns = (await getLocale()) === 'zh' ? { ...EMPLOYEE_SORT, department: 'department_name_zh' } : EMPLOYEE_SORT
+    const res = await applyListSort(
+        applyEmployeeFilters(supabase.from('employee_directory').select(EMPLOYEE_LIST_SELECT), p),
+        p.sort, columns, [['code', 'asc'], ['employee_id', 'asc']],
+    )
         .range(from, to)
     return { data: res.data as unknown as EmployeeDbRow[] | null, error: res.error }
 }

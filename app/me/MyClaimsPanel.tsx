@@ -22,6 +22,8 @@ import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xDate } from '@/lib/export/cells'
 import DecisionCell, { decisionText, type Decision } from './DecisionCell'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 type Claim = {
     claim_id: string; code: string; claim_date: string
@@ -32,28 +34,34 @@ type Bal = { pro_rated_limit_sgd: number; claimed_sgd: number; remaining_sgd: nu
 
 // AUDIT-TRAIL-1d-2(Q14):每一张自己的医疗报销一段审计记录(服务端造好,按报销单 id 交进来;折起来)
 export default function MyClaimsPanel({
-    employeeId, claims, total, balance, decisions, trails = {},
+    employeeId, claims, total, sort, exportHref, balance, decisions, trails = {},
 }: {
     employeeId: string; claims: Claim[]; balance: Bal | null; decisions: Record<string, Decision>; trails?: Record<string, ReactNode>
     /** TABLE-EXPORT-2b-1(Tim Q2 · Q5):自己的医疗报销一共几张 —— 页面只画最近 50 张,多出来就说出来;导出走路由取全 */
     total: number
+    /** TABLE-FEATURES-1 Q9:在数据库里排(meRows.ts 的 MY_MEDICAL_SORT,参数前缀 `mc_`);导出地址带同一个顺序 */
+    sort: ListSort
+    exportHref: string
 }) {
     const t = useTranslations()
+    // TABLE-FEATURES-1 Q9:换顺序之后落回这一块(#claims),不跳回页顶
+    const mcSortHref = useSortHref('mc_')
+    const sortHref = (key: string, dir: 'asc' | 'desc') => `${mcSortHref(key, dir)}#claims`
     const [open, setOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [busy, startTransition] = useTransition()
 
     // ★ 原有四列全部 priority —— 见抬头:转换之前手机上就是四列都在。
     const columns: ExportableColumn<Claim>[] = [
-        { key: 'code', header: t('claims.code'), priority: true, render: (c) => c.code, exportAs: (c) => xText(c.code) },
-        { key: 'date', header: t('claims.date'), priority: true, render: (c) => c.claim_date, exportAs: (c) => xDate(c.claim_date) },
+        { key: 'code', sortable: true, header: t('claims.code'), priority: true, render: (c) => c.code, exportAs: (c) => xText(c.code) },
+        { key: 'date', sortable: true, header: t('claims.date'), priority: true, render: (c) => c.claim_date, exportAs: (c) => xDate(c.claim_date) },
         {
-            key: 'amount', header: t('claims.amount'), align: 'right', priority: true,
+            key: 'amount', sortable: true, header: t('claims.amount'), align: 'right', priority: true,
             render: (c) => `${Number(c.amount_sgd).toFixed(2)} SGD`,
             exportAs: (c) => xMoney(c.amount_sgd, 'SGD'),
         },
         {
-            key: 'state', header: t('claims.state'), priority: true,
+            key: 'state', sortable: true, header: t('claims.state'), priority: true,
             render: (c) => t(`claims.state_${c.settlement_state}`),
             exportAs: (c) => xText(t(`claims.state_${c.settlement_state}`)),
         },
@@ -132,7 +140,8 @@ export default function MyClaimsPanel({
                 rowKey={(c) => c.claim_id}
                 phone={{ mode: 'columns' }}
                 empty={t('me.noClaims')}
-                exportSpec={{ name: 'me-medical-claims', title: t('me.claims'), serverRows: '/me/medical-claims/export' }}
+                exportSpec={{ name: 'me-medical-claims', title: t('me.claims'), serverRows: exportHref }}
+                sorting={{ mode: 'server', coverage: { shown: claims.length, total }, active: sort, href: sortHref }}
             />
             {claims.length > 0 && (
                 <div className="mt-4 space-y-2">

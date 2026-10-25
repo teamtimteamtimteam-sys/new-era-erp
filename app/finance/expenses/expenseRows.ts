@@ -18,17 +18,29 @@ import { formatDate } from '@/lib/dates'
 import { getLocale, getTranslations } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { ExpenseRow } from './ExpensesTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
-export type ExpenseListParams = { dateFrom: string; dateTo: string; status: '' | 'paid' | 'unpaid'; account: string }
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `expenses` 上的列(lib/listSort.ts 的规矩)。
+ *   金额按【本位币】那一列排:各行币种不同,原币金额放在一起比没有意义。
+ *   科目住在行上、对方名称是查出来的 —— 都不可排。
+ * ★ 默认不变(Q7):开支日新的在前,平局按建立时刻、再按 id。
+ */
+export const EXPENSE_SORT = { code: 'code', date: 'expense_date', amount: 'amount_base', paymentStatus: 'payment_status', postedStatus: 'status' } as const
+export type ExpenseSortKey = keyof typeof EXPENSE_SORT
+const EXPENSE_SORT_DEFAULT: ListSort<ExpenseSortKey> = { key: 'date', dir: 'desc' }
 
-export function parseExpenseListParams(sp: { date_from?: string; date_to?: string; status?: string; account?: string }): ExpenseListParams {
+export type ExpenseListParams = { dateFrom: string; dateTo: string; status: '' | 'paid' | 'unpaid'; account: string; sort: ListSort<ExpenseSortKey> }
+
+export function parseExpenseListParams(sp: { date_from?: string; date_to?: string; status?: string; account?: string; sort?: string; dir?: string }): ExpenseListParams {
     const { dateFrom, dateTo } = parseDateRange(sp)
     return {
         dateFrom, dateTo,
         status: sp.status === 'paid' || sp.status === 'unpaid' ? sp.status : '',
         account: (sp.account ?? '').trim(),
+        sort: parseListSort(sp, Object.keys(EXPENSE_SORT) as ExpenseSortKey[], EXPENSE_SORT_DEFAULT),
     }
 }
 
@@ -79,15 +91,15 @@ export function expenseCount(supabase: Client, f: ExpenseFilter) {
 }
 
 export function expensePage(supabase: Client, f: ExpenseFilter, from: number, to: number) {
-    return applyExpenseFilters(
-        supabase
-            .from('expenses')
-            .select('id, code, expense_date, amount_ccy, currency, amount_base, payment_status, supplier_id, payee_name, status'),
-        f,
+    return applyListSort(
+        applyExpenseFilters(
+            supabase
+                .from('expenses')
+                .select('id, code, expense_date, amount_ccy, currency, amount_base, payment_status, supplier_id, payee_name, status'),
+            f,
+        ),
+        f.sort, EXPENSE_SORT, [['expense_date', 'desc'], ['created_at', 'desc'], ['id', 'asc']],
     )
-        .order('expense_date', { ascending: false })
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true })
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as ExpenseDbRow[] | null }))
 }
@@ -99,6 +111,7 @@ export function expenseExportHref(p: ExpenseListParams): string {
     if (p.dateTo) params.set('date_to', p.dateTo)
     if (p.status) params.set('status', p.status)
     if (p.account) params.set('account', p.account)
+    setSortParams(params, p.sort)
     const qs = params.toString()
     return qs ? `/finance/expenses/export?${qs}` : '/finance/expenses/export'
 }

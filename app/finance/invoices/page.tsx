@@ -18,6 +18,7 @@ import {
 } from './invoiceRows'
 import InvoicesToolbar from './InvoicesToolbar'
 import InvoicesTable, { type InvoiceRow } from './InvoicesTable'
+import { setSortParams } from '@/lib/listSort'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -32,7 +33,7 @@ function parsePage(value: string | undefined): number {
 export default async function InvoicesPage({
     searchParams,
 }: {
-    searchParams: Promise<{ date_from?: string; date_to?: string; state?: string; status?: string; page?: string }>
+    searchParams: Promise<{ date_from?: string; date_to?: string; state?: string; status?: string; page?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -45,6 +46,7 @@ export default async function InvoicesPage({
 
     // TABLE-EXPORT-2a:读取与「库里的行 → 表的行」搬进 invoiceRows.ts,与导出路由共用一份。
     const params = parseInvoiceListParams(sp)
+    const listParams = params
     const { dateFrom, dateTo, state, status } = params
     const requestedPage = parsePage(sp.page)
 
@@ -79,6 +81,7 @@ export default async function InvoicesPage({
         if (dateTo) params.set('date_to', dateTo)
         if (state) params.set('state', state)
         if (sp.status) params.set('status', sp.status)
+        setSortParams(params, listParams.sort)  // TABLE-FEATURES-1 Q9:翻页保留排序
         params.set('page', String(targetPage))
         return `/finance/invoices?${params.toString()}`
     }
@@ -101,7 +104,8 @@ export default async function InvoicesPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <InvoicesTable rows={tableRows} empty={t('invoice.empty')} exportHref={invoiceExportHref(params)} />
+            <InvoicesTable rows={tableRows} empty={t('invoice.empty')} exportHref={invoiceExportHref(params)}
+                           sort={params.sort} shown={tableRows.length} total={total} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

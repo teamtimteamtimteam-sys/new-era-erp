@@ -76,6 +76,8 @@ export default function MyAttendancePanel({ rows }: { rows: Row[] }) {
                 rowKey={(r) => r.code}
                 phone={{ mode: 'columns' }}
                 empty={t('attendance.myEmpty')}
+                // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
+                sorting={{ mode: 'client', coverage: 'complete' }}
                 exportSpec={{ name: 'me-attendance', title: t('attendance.myTitle') }}
             />
         </section>

@@ -68,6 +68,8 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
           exportAs: (r) => xText(t('commissions.basis.' + r.basis)) },
         {
             key: 'rate', header: t('commissions.colRate'), priority: true, align: 'right',
+            // TABLE-FEATURES-1(Tim 2026-10-25 Q9):一格是费率(%)【或】一笔各自币种的金额 —— 放在一起比没有意义,不可排
+            sortable: false,
             // TABLE-EXPORT-1:这一格是「费率 或 金额」二选一,与屏幕同一个判断 —— 费率写成百分数(屏幕上的那个数),
             //   金额写成钱,币种跟着金额走(Excel 里进数字格式,CSV 里跟在数后面)—— 与屏幕同。
             exportAs: (r) =>
@@ -86,7 +88,7 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
         { key: 'trigger', header: t('commissions.colTrigger'), render: (r) => t('commissions.trigger.' + r.recognition_trigger),
           exportAs: (r) => xText(t('commissions.trigger.' + r.recognition_trigger)) },
         // TABLE-EXPORT-1:一格装着两个日子,导出成一格就只能是文字 —— 用原始的 `YYYY-MM-DD` 拼,不用屏幕上格式化过的那串。
-        { key: 'validity', header: t('commissions.colValidity'), render: (r) => `${r.valid_from} → ${r.valid_to}`,
+        { key: 'validity', header: t('commissions.colValidity'), sortValue: (r) => r.validFromRaw, render: (r) => `${r.valid_from} → ${r.valid_to}`,
           exportAs: (r) => xText(`${r.validFromRaw} → ${r.validToRaw}`) },
         { key: 'remarks', header: t('commissions.colRemarks'), render: (r) => r.remarks, exportAs: (r) => xText(r.remarks) },
     ]
@@ -98,6 +100,8 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             exportSpec={{ name: 'sales-commissions', title: t('commissions.title') }}
+            // TABLE-FEATURES-1 Q9:登记簿一次读完 —— 在浏览器里排;有效期按起始日排
+            sorting={{ mode: 'client', coverage: 'complete' }}
         />
     )
 }

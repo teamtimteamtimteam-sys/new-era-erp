@@ -13,8 +13,9 @@ import PaymentRequestsTable, { type PaymentRequestRow } from './PaymentRequestsT
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { REQUEST_STATUSES, parseRequestFilter, requestCount, requestPage, shapeRequestRows, requestExportHref } from './requestRows'
+import { REQUEST_STATUSES, parseRequestFilter, parseRequestSort, requestCount, requestPage, shapeRequestRows, requestExportHref } from './requestRows'
 import { ListPage } from '@/app/components/ui/list-page'
+import { setSortParams } from '@/lib/listSort'
 
 const PAGE_SIZE = 20
 
@@ -26,7 +27,7 @@ function parsePage(value: string | undefined): number {
 export default async function PaymentRequestsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ status?: string; page?: string }>
+    searchParams: Promise<{ status?: string; page?: string; sort?: string; dir?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,放在任何查询之前。
     const denied = await requireModule(MOD.finance)
@@ -38,6 +39,7 @@ export default async function PaymentRequestsPage({
 
     // TABLE-EXPORT-2a:读取与映射搬进 requestRows.ts,与导出路由共用一份。
     const filter = parseRequestFilter(sp.status)
+    const sort = parseRequestSort(sp)  // TABLE-FEATURES-1 Q9
     const requestedPage = parsePage(sp.page)
 
     const total = mustCount(await requestCount(supabase, filter), 'payment requests count')
@@ -45,12 +47,14 @@ export default async function PaymentRequestsPage({
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * PAGE_SIZE
 
-    const rows = mustRows(await requestPage(supabase, filter, from, from + PAGE_SIZE - 1), 'payment requests')
+    const rows = mustRows(await requestPage(supabase, filter, sort, from, from + PAGE_SIZE - 1), 'payment requests')
     const tableRows: PaymentRequestRow[] = await shapeRequestRows(supabase, rows)
 
-    const href = (status: string, p = 1) => {
+    // TABLE-FEATURES-1 Q9:翻页链接保留排序(keepSort);换筛选的链接回到默认次序
+    const href = (status: string, p = 1, keepSort = false) => {
         const params = new URLSearchParams()
         if (status !== 'open') params.set('status', status)
+        if (keepSort) setSortParams(params, sort)
         if (p > 1) params.set('page', String(p))
         const q = params.toString()
         return q ? `/finance/payment-requests?${q}` : '/finance/payment-requests'
@@ -84,12 +88,13 @@ export default async function PaymentRequestsPage({
                 {t('finance.recordCount', { count: total })}
             </p>
 
-            <PaymentRequestsTable rows={tableRows} empty={t('finance.paymentRequests.empty')} exportHref={requestExportHref(filter)} />
+            <PaymentRequestsTable rows={tableRows} empty={t('finance.paymentRequests.empty')} exportHref={requestExportHref(filter, sort)}
+                                  sort={sort} shown={tableRows.length} total={total} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
                     <Button asChild variant="outline">
-                        <Link href={href(filter, page - 1)}>{t('finance.pagination.prev')}</Link>
+                        <Link href={href(filter, page - 1, true)}>{t('finance.pagination.prev')}</Link>
                     </Button>
                 ) : (
                     <Button variant="outline" disabled>{t('finance.pagination.prev')}</Button>
@@ -99,7 +104,7 @@ export default async function PaymentRequestsPage({
                 </span>
                 {page < totalPages ? (
                     <Button asChild variant="outline">
-                        <Link href={href(filter, page + 1)}>{t('finance.pagination.next')}</Link>
+                        <Link href={href(filter, page + 1, true)}>{t('finance.pagination.next')}</Link>
                     </Button>
                 ) : (
                     <Button variant="outline" disabled>{t('finance.pagination.next')}</Button>

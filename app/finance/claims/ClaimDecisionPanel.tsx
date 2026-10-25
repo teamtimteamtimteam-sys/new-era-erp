@@ -91,6 +91,8 @@ export default function ClaimDecisionPanel({
         { key: 'spent', header: t('expenseClaims.colSpent'), className: 'text-xs', render: (c) => c.spend_date, exportAs: (c) => xDate(c.spend_date) },
         {
             key: 'amount', header: t('expenseClaims.colAmount'), priority: true, align: 'right',
+            // TABLE-FEATURES-1 Q9(规矩 5):各张单币种不同,又没有本位币那一列 —— 不可排
+            sortable: false,
             // CLAIM-GST-1:报的是含税总额;批准之后说出它被拆成了什么 —— 读落库的两个数,不在这里再算。
             // 导出:一格一个数 —— 报的含税总额(带币种);净额 / GST 那一行小字是它拆出来的,不另占格
             exportAs: (c) => xMoney(c.amount_ccy, c.currency),
@@ -108,6 +110,8 @@ export default function ClaimDecisionPanel({
         {
             // CLAIM-RECEIPTS-1(Q6):决定之后收据留作记录 —— 逐笔列出,点开就是那一份
             key: 'receipts', header: t('expenseClaims.receipts.col'),
+            // TABLE-FEATURES-1 Q9:一格装的是几份文件的名字,按它排没有意义 —— 不可排
+            sortable: false,
             // 收据是文件,一格装不下 —— 写成屏幕上那几样:第几笔 + 文件名,以「; 」分开
             exportAs: (c) => xText(c.items.flatMap((it) => receipts.filter((x) => x.item_id === it.id)
                 .map((x) => `${t('expenseClaims.itemNo', { n: it.line_no })} ${x.file_name}`)).join('; ') || null),
@@ -286,6 +290,8 @@ export default function ClaimDecisionPanel({
                         rowKey={(c) => c.claim_id}
                         phone={{ mode: 'columns' }}
                         exportSpec={{ name: 'expense-claims-decided', title: t('expenseClaims.decidedTitle') }}
+                        // TABLE-FEATURES-1 Q9:页面一次读全(expense_claim_status 不翻页)—— 在浏览器里排;默认次序照旧(花费日新的在前)
+                        sorting={{ mode: 'client', coverage: 'complete' }}
                     />
                     {/* AUDIT-TRAIL-1c-3(Q20):已决的每一张一行,点开是它的审计记录 —— 登记簿的格子装不下一段记录 */}
                     <div className="mt-4 space-y-2">

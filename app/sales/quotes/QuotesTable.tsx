@@ -9,6 +9,8 @@ import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table
 import { xText, xDate } from '@/lib/export/cells'
 import { quoteStatusKey } from './quoteTypes'
 import { formatDate } from '@/lib/dates'
+import { useSortHref } from '@/app/components/ui/use-sort-href'
+import type { ListSort } from '@/lib/listSort'
 
 export type QuoteRow = {
     quote_id: string; code: string; customer_code: string; customer_name: string
@@ -17,8 +19,13 @@ export type QuoteRow = {
     issue_version: number | null
 }
 
-export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
+export default function QuotesTable({ rows, sort, total, exportHref }: {
+    rows: QuoteRow[]
+    /** TABLE-FEATURES-1 Q9:在数据库里排(quotesRows.ts 的 QUOTE_SORT);total = 全部张数(只画前 QUOTES_SHOWN 张) */
+    sort: ListSort; total: number; exportHref: string
+}) {
     const t = useTranslations()
+    const sortHref = useSortHref()
     const locale = useLocale()
 
     // ★【手机上留哪两列】★ 7 列里留【报价号】与【有效期至】:
@@ -30,7 +37,7 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
     //   取舍的理由是"过期"必须一眼看见 —— 一张过了期而看起来正常的报价会被拿去报价。
     const columns: ExportableColumn<QuoteRow>[] = [
         {
-            key: 'code', header: t('quotes.colCode'), priority: true,
+            key: 'code', sortable: true, header: t('quotes.colCode'), priority: true,
             exportAs: (r) => xText(r.code + (r.issue_version !== null ? ` v${r.issue_version}` : '')),
             render: (r) => (
                 <>
@@ -40,17 +47,17 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
             ),
         },
         {
-            key: 'customer', header: t('sales.colCustomer'),
+            key: 'customer', sortable: true, header: t('sales.colCustomer'),
             render: (r) => `${r.customer_code} — ${r.customer_name}`,
             exportAs: (r) => xText(`${r.customer_code} — ${r.customer_name}`),
         },
         {
-            key: 'quoteDate', header: t('quotes.colQuoteDate'),
+            key: 'quoteDate', sortable: true, header: t('quotes.colQuoteDate'),
             render: (r) => formatDate(r.quote_date, locale),
             exportAs: (r) => xDate(r.quote_date),
         },
         {
-            key: 'validUntil', header: t('quotes.colValidUntil'), priority: true,
+            key: 'validUntil', sortable: true, header: t('quotes.colValidUntil'), priority: true,
             // TABLE-EXPORT-1:这一格导出成真日期(Q 硬规矩);旁边那枚「过期」片是派生的,
             //   导出里一格装不下第二种类型 —— Excel 里拿这一格与今天比就是同一个判断。
             exportAs: (r) => xDate(r.valid_until),
@@ -69,14 +76,14 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
             ),
         },
         {
-            key: 'status', header: t('sales.colStatus'),
+            key: 'status', sortable: true, header: t('sales.colStatus'),
             // 【静态映射,不拼动态键】quoteStatusKey 是那一份唯一的表
             render: (r) => t(quoteStatusKey(r.status)),
             exportAs: (r) => xText(t(quoteStatusKey(r.status))),
         },
-        { key: 'currency', header: t('sales.colCurrency'), render: (r) => r.currency, exportAs: (r) => xText(r.currency) },
+        { key: 'currency', sortable: true, header: t('sales.colCurrency'), render: (r) => r.currency, exportAs: (r) => xText(r.currency) },
         {
-            key: 'order', header: t('quotes.colOrder'),
+            key: 'order', sortable: true, header: t('quotes.colOrder'),
             exportAs: (r) => xText(r.converted_order_id ? r.converted_order_code : null),
             render: (r) =>
                 r.converted_order_id ? (
@@ -90,5 +97,6 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.quote_id} phone={{ mode: 'columns' }}
-        exportSpec={{ name: 'sales-quotes', title: t('quotes.listTitle'), serverRows: '/sales/quotes/export' }} />
+        exportSpec={{ name: 'sales-quotes', title: t('quotes.listTitle'), serverRows: exportHref }}
+        sorting={{ mode: 'server', coverage: { shown: rows.length, total }, active: sort, href: sortHref }} />
 }

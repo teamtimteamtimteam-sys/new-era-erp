@@ -19,13 +19,14 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import { Button } from '@/app/components/ui/button'
-import { INBOX_PAGE_SIZE, INBOX_STATUSES, inboxCount, inboxExports, inboxLabels, inboxPage, inboxStatus } from './inboxRows'
+import { INBOX_PAGE_SIZE, INBOX_STATUSES, INBOX_SORT, inboxCount, inboxExports, inboxExportHref, inboxLabels, inboxPage, inboxStatus, parseInboxSort } from './inboxRows'
+import { setSortParams } from '@/lib/listSort'
 import { ProcessReceivedButton, RowActions } from './InboxControls'
 
 // 固定 en-US 的千分位,与 RowCapNotice 同一个写法(2,005 而不是 2005)
 const COUNT = new Intl.NumberFormat('en-US')
 
-export default async function InboxPage({ searchParams }: { searchParams: Promise<{ status?: string; page?: string }> }) {
+export default async function InboxPage({ searchParams }: { searchParams: Promise<{ status?: string; page?: string; sort?: string; dir?: string }> }) {
     const denied = await requireFunction(FN.captureInbox)
     if (denied) return denied
 
@@ -35,6 +36,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     const canManage = await can('action.manage_devices')
     const sp = await searchParams
     const status = inboxStatus(sp.status)
+    // TABLE-FEATURES-1 Q9:在数据库里排(inboxRows.ts 的 INBOX_SORT)
+    const sort = parseInboxSort(sp)
 
     // 1) 匹配总数(同一条筛选)—— 数不出来的总数不是 0;2) 只取这一页的行
     const total = mustCount(await inboxCount(supabase, status), 'ingest_inbox count')
@@ -42,7 +45,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     const page = Math.min(Math.max(1, Math.floor(Number(sp.page) || 1)), totalPages)
     const from = (page - 1) * INBOX_PAGE_SIZE
     const [rowsRes, labels, receivedRes] = await Promise.all([
-        inboxPage(supabase, status, from, from + INBOX_PAGE_SIZE - 1),
+        inboxPage(supabase, status, sort, from, from + INBOX_PAGE_SIZE - 1),
         inboxLabels(supabase, locale),
         supabase.from('ingest_inbox').select('id', { count: 'exact', head: true }).eq('status', 'received'),
     ])
@@ -52,6 +55,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     const pageHref = (p: number) => {
         const q = new URLSearchParams()
         if (status) q.set('status', status)
+        setSortParams(q, sort) // TABLE-FEATURES-1 Q9:翻页保留排序
         if (p > 1) q.set('page', String(p))
         const qs = q.toString()
         return qs ? `/operation/capture/inbox?${qs}` : '/operation/capture/inbox'
@@ -128,7 +132,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                 rows={tableRows}
                 empty={t('inbox.empty')}
                 exportSpec={{ name: 'operation-capture-inbox', title: t('inbox.title'),
-                              serverRows: `/operation/capture/inbox/export${status ? `?status=${status}` : ''}` }}
+                              serverRows: inboxExportHref(status, sort) }}
+                sorting={{ mode: 'server', active: sort, shown: tableRows.length, total, sortable: Object.keys(INBOX_SORT) }}
             />
             <div className="mt-4 flex items-center justify-between gap-2" data-inbox-pager="">
                 {page > 1 ? (

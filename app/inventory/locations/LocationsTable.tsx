@@ -93,6 +93,8 @@ export default function LocationsTable({ rows, empty }: { rows: LocationRow[]; e
             phone={{ mode: 'columns' }}
             empty={empty}
             exportSpec={{ name: 'storage-locations', title: t('locations.listTitle') }}
+            // TABLE-FEATURES-1 Q9:全部库位一次读完,在浏览器里排
+            sorting={{ mode: 'client', coverage: 'complete' }}
             rowClassName={(r) => (r.isActive ? undefined : 'bg-gray-50 text-gray-500')}
         />
     )

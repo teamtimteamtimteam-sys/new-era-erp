@@ -14,8 +14,29 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { CreditNoteRow } from './CreditNotesTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
+
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):可排的列 —— 列键 → `credit_notes` 上的列(lib/listSort.ts 的规矩)。
+ *   客户、对冲发票是查出来的,合计是各行之和,签发是另一张表的版本号 —— 都不可排。
+ * ★ 默认不变(Q7):凭证日新的在前,平局按单号倒序、再按 id。
+ */
+export const CREDIT_NOTE_SORT = { code: 'code', noteDate: 'note_date', reason: 'reason' } as const
+export type CreditNoteSortKey = keyof typeof CREDIT_NOTE_SORT
+const CREDIT_NOTE_SORT_DEFAULT: ListSort<CreditNoteSortKey> = { key: 'noteDate', dir: 'desc' }
+
+export type CreditNoteListParams = { sort: ListSort<CreditNoteSortKey> }
+
+export function parseCreditNoteListParams(sp: { sort?: string; dir?: string }): CreditNoteListParams {
+    return { sort: parseListSort(sp, Object.keys(CREDIT_NOTE_SORT) as CreditNoteSortKey[], CREDIT_NOTE_SORT_DEFAULT) }
+}
+
+/** 导出路由的地址:这一页没有筛选,只带排序。 */
+export function creditNoteExportHref(p: CreditNoteListParams): string {
+    return `/finance/credit-notes/export?${setSortParams(new URLSearchParams(), p.sort).toString()}`
+}
 
 export type CreditNoteDbRow = { id: string; code: string; note_date: string; currency: string; invoice_id: string; reason: string }
 
@@ -23,13 +44,13 @@ export function creditNoteCount(supabase: Client) {
     return supabase.from('credit_notes').select('id', { count: 'exact', head: true })
 }
 
-export function creditNotePage(supabase: Client, from: number, to: number) {
-    return supabase
-        .from('credit_notes')
-        .select('id, code, note_date, currency, invoice_id, reason')
-        .order('note_date', { ascending: false })
-        .order('code', { ascending: false })
-        .order('id', { ascending: true })
+export function creditNotePage(supabase: Client, p: CreditNoteListParams, from: number, to: number) {
+    return applyListSort(
+        supabase
+            .from('credit_notes')
+            .select('id, code, note_date, currency, invoice_id, reason'),
+        p.sort, CREDIT_NOTE_SORT, [['note_date', 'desc'], ['code', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as CreditNoteDbRow[] | null }))
 }

@@ -8,8 +8,35 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { inChunks } from '@/lib/export/serverRows'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
+
+// ── TABLE-FEATURES-1(Tim 2026-10-25 Q9):三张表都只画最近 50 条,所以在数据库里排 ────────────────────────────
+// 一页上三张在数据库里排的表 → 各用一个参数前缀(lib/listSort.ts 规矩 ⑥):请假 `leave_`、医疗 `mc_`、费用 `exp_`。
+// 白名单 = 列键 → 那张表读的关系上的列。假别名是从 leave_types 查出来的、「决定」来自 my_document_decisions()、
+// 费用报销的「说明」是用途与逐笔拼出来的 —— 都不可排。费用报销的金额是各单自己的币种、视图上没有本位币金额 → 不可排(规矩 ⑤)。
+// 默认与今天一样(各自的日期新的在前),平局键照旧。
+export const MY_LEAVE_SORT = { code: 'code', dates: 'start_date', days: 'days', status: 'status' } as const
+export const MY_MEDICAL_SORT = { code: 'code', date: 'claim_date', amount: 'amount_sgd', state: 'settlement_state' } as const
+export const MY_EXPENSE_SORT = { ref: 'code', spent: 'spend_date', status: 'status' } as const
+export type MyLeaveSortKey = keyof typeof MY_LEAVE_SORT
+export type MyMedicalSortKey = keyof typeof MY_MEDICAL_SORT
+export type MyExpenseSortKey = keyof typeof MY_EXPENSE_SORT
+export const MY_SORT_PREFIX = { leave: 'leave_', medical: 'mc_', expense: 'exp_' } as const
+
+type Search = Record<string, string | string[] | undefined>
+export const parseMyLeaveSort = (sp: Search) =>
+    parseListSort(sp, Object.keys(MY_LEAVE_SORT) as MyLeaveSortKey[], { key: 'dates', dir: 'desc' }, MY_SORT_PREFIX.leave)
+export const parseMyMedicalSort = (sp: Search) =>
+    parseListSort(sp, Object.keys(MY_MEDICAL_SORT) as MyMedicalSortKey[], { key: 'date', dir: 'desc' }, MY_SORT_PREFIX.medical)
+export const parseMyExpenseSort = (sp: Search) =>
+    parseListSort(sp, Object.keys(MY_EXPENSE_SORT) as MyExpenseSortKey[], { key: 'spent', dir: 'desc' }, MY_SORT_PREFIX.expense)
+
+/** 三条导出路由的地址:带上那张表自己的顺序(同一个前缀),导出按当前顺序取全。 */
+export function myExportHref(path: string, sort: ListSort, prefix: string): string {
+    return `${path}?${setSortParams(new URLSearchParams(), sort, prefix).toString()}`
+}
 
 /** 页面画多少条 —— 与转换之前同一个数。 */
 export const MY_LIST_SHOWN = 50
@@ -27,12 +54,13 @@ export function myLeaveCount(supabase: Client, employeeId: string) {
     return supabase.from('leave_requests_masked').select('id', { count: 'exact', head: true })
         .eq('employee_id', employeeId).is('deleted_at', null)
 }
-export function myLeavePage(supabase: Client, employeeId: string, from: number, to: number) {
-    return supabase.from('leave_requests_masked')
+export function myLeavePage(supabase: Client, employeeId: string, sort: ListSort<MyLeaveSortKey>, from: number, to: number) {
+    return applyListSort(supabase.from('leave_requests_masked')
         // EMP-SELF-1:decision_notes —— 本人行策略本来就放行这一列(EMP-SELF-0 §1.5 记下的那一处)
         .select('id, code, leave_type_code, start_date, end_date, days, status, created_at, decision_notes')
-        .eq('employee_id', employeeId).is('deleted_at', null)
-        .order('start_date', { ascending: false }).order('id', { ascending: true })
+        .eq('employee_id', employeeId).is('deleted_at', null),
+        // TABLE-FEATURES-1 Q9:ORDER BY 在 .range(截断)之前
+        sort, MY_LEAVE_SORT, [['start_date', 'desc'], ['id', 'asc']])
         .range(from, to)
 }
 
@@ -40,10 +68,11 @@ export function myLeavePage(supabase: Client, employeeId: string, from: number, 
 export function myMedicalCount(supabase: Client, employeeId: string) {
     return supabase.from('medical_claim_status').select('claim_id', { count: 'exact', head: true }).eq('employee_id', employeeId)
 }
-export function myMedicalPage(supabase: Client, employeeId: string, from: number, to: number) {
-    return supabase.from('medical_claim_status').select('*')
-        .eq('employee_id', employeeId)
-        .order('claim_date', { ascending: false }).order('claim_id', { ascending: true })
+export function myMedicalPage(supabase: Client, employeeId: string, sort: ListSort<MyMedicalSortKey>, from: number, to: number) {
+    return applyListSort(supabase.from('medical_claim_status').select('*')
+        .eq('employee_id', employeeId),
+        // TABLE-FEATURES-1 Q9:ORDER BY 在 .range(截断)之前
+        sort, MY_MEDICAL_SORT, [['claim_date', 'desc'], ['claim_id', 'asc']])
         .range(from, to)
 }
 
@@ -51,10 +80,11 @@ export function myMedicalPage(supabase: Client, employeeId: string, from: number
 export function myExpenseCount(supabase: Client, employeeId: string) {
     return supabase.from('expense_claim_status').select('claim_id', { count: 'exact', head: true }).eq('employee_id', employeeId)
 }
-export function myExpensePage(supabase: Client, employeeId: string, from: number, to: number) {
-    return supabase.from('expense_claim_status').select('*')
-        .eq('employee_id', employeeId)
-        .order('spend_date', { ascending: false }).order('claim_id', { ascending: true })
+export function myExpensePage(supabase: Client, employeeId: string, sort: ListSort<MyExpenseSortKey>, from: number, to: number) {
+    return applyListSort(supabase.from('expense_claim_status').select('*')
+        .eq('employee_id', employeeId),
+        // TABLE-FEATURES-1 Q9:ORDER BY 在 .range(截断)之前
+        sort, MY_EXPENSE_SORT, [['spend_date', 'desc'], ['claim_id', 'asc']])
         .range(from, to)
 }
 

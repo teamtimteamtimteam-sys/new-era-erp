@@ -10,6 +10,7 @@ import { formatDate } from '@/lib/dates'
 import { getLocale, getTranslations } from '@/lib/i18n/server'
 import { judgementKey, limitBasisKey } from '../safetyTypes'
 import type { EnvRow } from './EnvironmentTable'
+import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 
 type Client = SupabaseClient<Database>
 
@@ -23,19 +24,43 @@ export type EnvDbRow = {
     corrects_result_id: string | null; correction_reason: string | null; corrected_by_result_id: string | null
 }
 
+/**
+ * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q9):在数据库里排(页面只画前 ENV_SHOWN 条)。列键 → `environmental_result_rows` 上的列。
+ *   参数名按读者的语言排那一列(视图上中英两列都有,屏幕上画的就是那一列)。
+ *   不可排:实验室 · 报告(拼出来的文字)、限值(拼出来的文字)、备注(算出来的);测得值各行单位不同,放在一起比没有意义(规矩 ⑤ 同理)。
+ * ★ Q7:默认不变 —— 采样日 ↓ · 记录时刻 ↓ · id ↑。
+ */
+export const envSortColumns = (locale: string) => ({
+    parameter: locale === 'zh' ? 'parameter_name_zh' : 'parameter_name_en',
+    point: 'sample_point', sampled: 'sampled_on', judgement: 'judgement', incident: 'incident_code',
+}) as const
+export type EnvSortKey = keyof ReturnType<typeof envSortColumns>
+const ENV_SORT_KEYS: EnvSortKey[] = ['parameter', 'point', 'sampled', 'judgement', 'incident']
+const ENV_SORT_DEFAULT: ListSort<EnvSortKey> = { key: 'sampled', dir: 'desc' }
+
+export function parseEnvSort(sp: Record<string, string | string[] | undefined>): ListSort<EnvSortKey> {
+    return parseListSort(sp, ENV_SORT_KEYS, ENV_SORT_DEFAULT)
+}
+
+/** 导出路由的地址 —— 与页面同一个排序(TABLE-EXPORT-1 Q2)。 */
+export function envExportHref(sort: ListSort<EnvSortKey>): string {
+    return `/safety/environment/export?${setSortParams(new URLSearchParams(), sort).toString()}`
+}
+
 export const envNum = (v: number | string | null) => (v == null ? '' : String(Number(v)))
 
 export function envCount(supabase: Client) {
     return supabase.from('environmental_result_rows').select('id', { count: 'exact', head: true })
 }
 
-export function envPage(supabase: Client, from: number, to: number) {
-    return supabase
-        .from('environmental_result_rows')
-        .select('id, parameter_code, parameter_name_en, parameter_name_zh, sample_point, sampled_on, laboratory_code, laboratory_name_en, laboratory_name_zh, report_reference, value, unit, limit_value, limit_basis, judgement, incident_id, incident_code, corrects_result_id, correction_reason, corrected_by_result_id')
-        .order('sampled_on', { ascending: false })
-        .order('recorded_at', { ascending: false })
-        .order('id', { ascending: true })
+export function envPage(supabase: Client, sort: ListSort<EnvSortKey>, locale: string, from: number, to: number) {
+    // TABLE-FEATURES-1 Q9:选中的列在前,原来那三个作平局键(与选中列相同的跳过)
+    return applyListSort(
+        supabase
+            .from('environmental_result_rows')
+            .select('id, parameter_code, parameter_name_en, parameter_name_zh, sample_point, sampled_on, laboratory_code, laboratory_name_en, laboratory_name_zh, report_reference, value, unit, limit_value, limit_basis, judgement, incident_id, incident_code, corrects_result_id, correction_reason, corrected_by_result_id'),
+        sort, envSortColumns(locale), [['sampled_on', 'desc'], ['recorded_at', 'desc'], ['id', 'asc']],
+    )
         .range(from, to)
         .then(({ data, error }) => ({ error, data: data as unknown as EnvDbRow[] | null }))
 }

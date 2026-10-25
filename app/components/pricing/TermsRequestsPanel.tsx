@@ -109,6 +109,9 @@ export default function TermsRequestsPanel({
                             rowKey={(d) => d.key}
                             phone={{ mode: 'columns' }}
                             rowClassName={(d) => (d.changed ? 'bg-amber-100 font-medium' : undefined)}
+                            // TABLE-FEATURES-1(Tim 2026-10-25 Q9):差别表是这张申请的全部条款行 —— 在浏览器里排;
+                            //   不点表头时仍是条款原来的次序(申请本身仍按最早在等的在前,Q7)
+                            sorting={{ mode: 'client', coverage: 'complete' }}
                             exportSpec={{
                                 name: 'pricing-terms-request',
                                 title: t('termsRequest.openTitle.' + r.kind),

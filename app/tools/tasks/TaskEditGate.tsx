@@ -14,6 +14,7 @@ import * as React from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Refusal } from '@/app/components/ui/refusal'
+import { DisabledBlock } from '@/app/components/ui/disabled-block'
 import type { TaskEditState } from '@/lib/taskAccess'
 
 const TASKS_EDIT = 'module.tasks.edit'
@@ -58,9 +59,9 @@ export function TaskEditGate({
             data-task-gate="not-on-task"
             className={inline ? 'inline-flex flex-row items-center gap-1.5' : 'inline-flex flex-col items-start gap-1.5'}
         >
-            <fieldset disabled className="contents">
+            <DisabledBlock disabled className="contents">
                 {children}
-            </fieldset>
+            </DisabledBlock>
             <Refusal why={t('tasks.access.notYoursWhy')} className="whitespace-normal text-left font-normal">
                 {t('tasks.access.notYours')}
             </Refusal>
