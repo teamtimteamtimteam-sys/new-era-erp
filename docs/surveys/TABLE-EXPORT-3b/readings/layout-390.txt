@@ -1,0 +1,41 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 71ce29c6-fd29-46d1-a630-f8e0ed548422
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/16] 11s  ovf=0 clip=0 /finance/journal/[id]
+  [  2/16] 23s  ovf=0 clip=0 /hr/employees/[id]
+  [  3/16] 28s  ovf=0 clip=0 /hr/kpi/score
+  [  4/16] 38s  ovf=0 clip=0 /hr/leave/types
+  [  5/16] 47s  ovf=0 clip=0 /hr/reviews/[id]
+  [  6/16] 55s  ovf=0 clip=0 /hr/reviews/scale
+  [  7/16] 81s  ovf=0 clip=0 /inbound/[id]/edit
+  [  8/16] 88s  ovf=0 clip=0 /inventory/output/[materialId]
+  [  9/16] 94s  ovf=0 clip=0 /me
+  [ 10/16] 103s  ovf=0 clip=0 /my-reviews/[id]
+  [ 11/16] 120s  ovf=0 clip=0 /purchasing/orders/[id]
+  [ 12/16] 129s  ovf=0 clip=0 /purchasing/payment-terms/[id]/edit
+  [ 13/16] 138s  ovf=0 clip=0 /sales/orders/[id]
+  [ 14/16] 148s  ovf=8 clip=0 /sales/quotes/[id]
+  [ 15/16] 159s  ovf=0 clip=0 /settings/roles/[id]
+  [ 16/16] 173s  ovf=0 clip=0 /tools/pricing/formulas/[id]/edit
+
+════ 390px SURVEY ════
+measured: 16  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       15 / 16
+U2 no clipped ledger:                 16 / 16
+USABLE (U1 AND U2):                   15 / 16
+
+pages FAILING U1 (page overflows): 1
+   +    8px  /sales/quotes/[id]   culprit: select.h-8 rounded-lg border border-input bg-transparent pl-2.5 pr-
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 16 / 16  median per page: 15
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/phone-390.json
+· cleaned up ephemeral survey account(s)
+LAYOUT390_OWN_EXIT=0

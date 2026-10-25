@@ -33,9 +33,10 @@
 //    各自在格子里挂一行小字并且【带颜色】。`render: (row) => ReactNode` 原样容得下,
 //    一个字都不用改契约。颜色由服务端算成 tone,不把判据搬到客户端。
 import * as React from 'react'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { useTranslations } from '@/lib/i18n/client'
+import { xInt, xMoney, xNum, xRestricted, xText, type ExportCell } from '@/lib/export/cells'
 import DeepDischargeJudgementControl from './DeepDischargeJudgementControl'
 
 /** 副标签的颜色:判据在服务端算完,客户端只认三个字。 */
@@ -68,6 +69,18 @@ export type PoLineRow = {
     amountText: string | null
     /** 合计行 —— 见抬头 ②。'grand' 比 'sub' 重。 */
     totalKind?: 'sub' | 'grand'
+    // ── TABLE-EXPORT-3b:导出读的原始值(屏幕只读上面的 *Text)──
+    /** 行号;合计行为 null */
+    lineNo: number | null
+    /** 数量与单位;合计行为 null */
+    quantity: number | null
+    unit: string | null
+    /** 屏幕把公式名画成「受限」(读者看不到 pricing_formulas)—— 导出写 "Restricted" */
+    formulaRestricted: boolean
+    /** 估价(单据币种);遮蔽时为 null —— 是否「受限」看 unitPriceText === null,与屏幕同一条判据 */
+    unitPrice: number | null
+    /** 行金额 / 合计额(单据币种);是否「受限」看 amountText === null */
+    amount: number | null
 }
 
 export default function PoLinesTable({
@@ -77,6 +90,8 @@ export default function PoLinesTable({
     canEditPurchasing,
     poCancelled,
     isEquipmentOrder,
+    poCode,
+    currency,
 }: {
     rows: readonly PoLineRow[]
     poId: string
@@ -85,15 +100,24 @@ export default function PoLinesTable({
     /** 作废的单 —— 记录状态,与 canEditPurchasing(权限)分开传,不合成一个布尔。 */
     poCancelled: boolean
     isEquipmentOrder: boolean
+    /** TABLE-EXPORT-3b:导出的 About 表说明这份文件出自哪张单 */
+    poCode: string
+    /** TABLE-EXPORT-3b:单据币种 —— 屏幕写在头卡上;导出的金额格自己带着它(文件里没有头卡) */
+    currency: string
 }) {
     const t = useTranslations()
 
-    const columns: Column<PoLineRow>[] = [
+    // TABLE-EXPORT-3b(Tim 2026-10-25 Q1):合计行照屏幕导出为最后几行 —— 标签在名称列、金额在金额列,其余格留空。
+    const line = (fn: (r: PoLineRow) => ExportCell) => (r: PoLineRow): ExportCell =>
+        r.totalKind ? xText(null) : fn(r)
+
+    const columns: ExportableColumn<PoLineRow>[] = [
         {
             key: 'no',
             header: '#',
             className: 'text-sm text-gray-500',
             render: (r) => r.lineNoText,
+            exportAs: line((r) => xInt(r.lineNo)),
         },
         {
             key: 'name',
@@ -125,6 +149,8 @@ export default function PoLinesTable({
                         )}
                     </>
                 ),
+            // 格子里叠着三样:名字、预计品位(小字)、深度放电判断(控件)。导出名字本身 —— 合计行就是合计标签。
+            exportAs: (r) => xText(r.name),
         },
         {
             key: 'qty',
@@ -132,6 +158,7 @@ export default function PoLinesTable({
             align: 'right',
             className: 'text-sm',
             render: (r) => r.qtyText,
+            exportAs: line((r) => xNum(r.quantity, 'qty', r.unit)),
         },
         // ① 条件列:设备单上这一轴不存在 —— 整列拿掉,不是留着画横杠。
         ...(isEquipmentOrder
@@ -155,7 +182,9 @@ export default function PoLinesTable({
                               )}
                           </>
                       ),
-                  } satisfies Column<PoLineRow>,
+                      // 格子里是公式名 + 条款是否已抄副本(小字)。导出公式名(没有公式的「—」→ 空格);屏幕画「受限」的那一格写 "Restricted"。
+                      exportAs: line((r: PoLineRow) => (r.formulaRestricted ? xRestricted : xText(r.formulaText === '—' ? null : r.formulaText))),
+                  } satisfies ExportableColumn<PoLineRow>,
               ]),
         {
             key: 'unitPrice',
@@ -177,6 +206,8 @@ export default function PoLinesTable({
                     )}
                 </>
             ),
+            // 格子里是单价 + 价的出处(小字)。导出单价;unitPriceText 为 null(遮蔽)= 屏幕的「受限」→ "Restricted"。
+            exportAs: line((r) => (r.unitPriceText === null ? xRestricted : xMoney(r.unitPrice, currency))),
         },
         {
             key: 'amount',
@@ -188,6 +219,8 @@ export default function PoLinesTable({
             priority: true,
             className: 'text-sm',
             render: (r) => r.amountText ?? <MaskedValue value={null} canView={false} />,
+            // 合计行也走这一格:被遮的合计同样是 "Restricted"
+            exportAs: (r) => (r.amountText === null ? xRestricted : xMoney(r.amount, currency)),
         },
     ]
 
@@ -206,6 +239,8 @@ export default function PoLinesTable({
                       : undefined
             }
             empty={t('purchasing.noLines')}
+            exportSpec={{ name: 'purchasing-order-lines', title: t('purchasing.form.lines'),
+                          aboutExtra: [[t('purchasing.orderDetailTitle'), poCode]] }}
         />
     )
 }

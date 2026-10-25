@@ -161,6 +161,10 @@ export default async function BankStatementDetailPage({
         id: r.id,
         lineNo: String(r.line_no),
         lineDate: formatDate(r.line_date, dateLocale),
+        // TABLE-EXPORT-3b:导出读原始值
+        lineNoRaw: r.line_no,
+        lineYmd: r.line_date,
+        amount: r.amount,
         description: r.description ?? '—',
         reference: r.reference ?? '—',
         amountText: formatAmount(r.amount, null),
@@ -177,6 +181,9 @@ export default async function BankStatementDetailPage({
             id: '__total__',
             lineNo: '',
             lineDate: '',
+            lineNoRaw: null,
+            lineYmd: null,
+            amount: sum,
             description: `${t('bank.colLines')}: ${rows.length}`,
             reference: '',
             amountText: formatAmount(sum, null),
@@ -405,7 +412,7 @@ export default async function BankStatementDetailPage({
                 </p>
             )}
 
-            <StatementLinesTable rows={tableRows} />
+            <StatementLinesTable rows={tableRows} statementCode={stmt.code} currency={stmt.currency} />
 
             {/* 期初 + Σ = 期末 校验行 */}
             <p className={'text-sm mt-3 ' + (balanced ? 'text-green-700' : 'text-red-600')}>

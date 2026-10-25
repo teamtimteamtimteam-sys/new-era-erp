@@ -16,8 +16,8 @@
 //   有没有哪一处既没有 exportSpec、也不在 scripts/table-export-exemptions.mjs 上?**
 //
 // 判据(五条,任何一条不成立就红):
-//   ① 每一处 <DataTable 的属性区里有 `exportSpec=`,或者【那个文件的 DataTable】在清单上;
-//   ② 每一处 <EditableTable / <table,【那个文件的那一种】在清单上;
+//   ① 每一处 <DataTable / <EditableTable 的属性区里有 `exportSpec=`(EditableTable 自 TABLE-EXPORT-3b,Tim 2026-10-25),或者【那个文件的那一种】在清单上;
+//   ② 每一处 <table,【那个文件的 table】在清单上;
 //      或者(TABLE-EXPORT-3a,Tim 2026-10-23 Q2)一个手搓 <table> 的【同一个文件】里画着 <ReportExportBar / <FlatExportBar 或 <TableExportBar ——
 //      报表不是 DataTable、没有 exportSpec 可写,它的导出就是那颗钮(lib/export/report.ts · app/components/ui/report-export.tsx)。
 //      判据只认【同一个文件】:钮在别的文件里,这张表就仍然要点名 —— 一颗钮不能替一个它看不见的文件作证。
@@ -134,9 +134,10 @@ for (const abs of files) {
         byKind[kind]++
         const line = lineOf(src, m.index)
         const key = `${rel}|${kind}`
-        if (kind === 'DataTable') {
+        // TABLE-EXPORT-3b(Tim 2026-10-25):EditableTable 也收 exportSpec —— 判据与 DataTable 同一条(它自己的属性区里写着 exportSpec=)。
+        if (kind === 'DataTable' || kind === 'EditableTable') {
             const block = propsBlockAt(src, m.index)
-            if (block === null) { problems.push({ rel, line, why: '读不出这个 <DataTable 的属性区 —— 解析器可能坏了' }); continue }
+            if (block === null) { problems.push({ rel, line, why: `读不出这个 <${kind} 的属性区 —— 解析器可能坏了` }); continue }
             if (/\bexportSpec=/.test(block)) { declared++; continue }
         }
         if (kind === 'table' && hasBar) { declared++; continue }

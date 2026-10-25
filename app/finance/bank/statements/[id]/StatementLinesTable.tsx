@@ -18,8 +18,9 @@
 // journal_lines → journal_entries),那是服务端的活;过界的是 code + href。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xDate, xInt, xMoney, xText } from '@/lib/export/cells'
 
 export type StatementLineRow = {
     id: string
@@ -32,25 +33,36 @@ export type StatementLineRow = {
     matchStatus: string
     matches: readonly { entryId: string; entryCode: string }[]
     ignoreReason: string
+    /** TABLE-EXPORT-3b:导出写原始值(整数行号、真日期、数),不写格式化过的字。合计行这三样:null / null / Σ。 */
+    lineNoRaw: number | null
+    lineYmd: string | null
+    amount: number
     /** 合计行。见 CONV-4 §⑨-3 / CONV-8 §⑧。 */
     isTotal?: boolean
 }
 
-export default function StatementLinesTable({ rows }: { rows: readonly StatementLineRow[] }) {
+// ★ TABLE-EXPORT-3b:一对导出。合计行(Tim 2026-10-25 Q1)照屏幕作为最后一行导出:标签在【摘要】列,金额是 Σ,其余空。
+//   金额:屏幕上格子里不写币种(formatAmount(v, null)),整张单子一个币种,写在表头上方的「银行账户」那一格里 ——
+//   导出把这个币种带进格子(xMoney(v, ccy)),一个光秃秃的数离开这一页就丢了它。
+export default function StatementLinesTable({ rows, statementCode, currency }: {
+    rows: readonly StatementLineRow[]; statementCode: string; currency: string
+}) {
     const t = useTranslations()
 
-    const columns: Column<StatementLineRow>[] = [
+    const columns: ExportableColumn<StatementLineRow>[] = [
         {
             key: 'lineNo',
             header: t('bank.colLineNo'),
             className: 'text-sm text-gray-500',
             render: (r) => r.lineNo,
+            exportAs: (r) => xInt(r.lineNoRaw),
         },
         {
             key: 'date',
             header: t('bank.colDate'),
             className: 'text-sm',
             render: (r) => r.lineDate,
+            exportAs: (r) => xDate(r.lineYmd),
         },
         {
             key: 'description',
@@ -59,12 +71,14 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
             priority: true,
             className: 'text-sm',
             render: (r) => r.description,
+            exportAs: (r) => xText(r.description),
         },
         {
             key: 'reference',
             header: t('bank.colReference'),
             className: 'text-sm',
             render: (r) => r.reference,
+            exportAs: (r) => xText(r.reference),
         },
         {
             key: 'amount',
@@ -74,6 +88,7 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
             priority: true,
             className: 'text-sm',
             render: (r) => (r.negative ? <span className="text-red-600">{r.amountText}</span> : r.amountText),
+            exportAs: (r) => xMoney(r.amount, currency),
         },
         {
             key: 'status',
@@ -95,6 +110,7 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
                         {t('bank.lineStatus.' + r.matchStatus)}
                     </span>
                 ),
+            exportAs: (r) => xText(r.isTotal ? null : t('bank.lineStatus.' + r.matchStatus)),
         },
         {
             key: 'matchedTo',
@@ -116,12 +132,15 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
                         ))}
                     </span>
                 ),
+            // 一行可以配到几张分录 —— 单号以「; 」连成一格
+            exportAs: (r) => xText(r.matches.length === 0 ? (r.isTotal ? null : '—') : r.matches.map((m) => m.entryCode).join('; ')),
         },
         {
             key: 'ignoreReason',
             header: t('bank.ignoreReason'),
             className: 'text-sm text-gray-600',
             render: (r) => r.ignoreReason,
+            exportAs: (r) => xText(r.ignoreReason),
         },
     ]
 
@@ -133,6 +152,11 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'font-bold bg-[color:var(--brand-muted)]' : undefined)}
             empty={t('bank.empty')}
+            exportSpec={{
+                name: 'finance-bank-statement-lines',
+                title: t('bank.detailTitle'),
+                aboutExtra: [[t('bank.colCode'), statementCode]],
+            }}
         />
     )
 }

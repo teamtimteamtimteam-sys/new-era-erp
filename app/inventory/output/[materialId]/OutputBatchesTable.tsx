@@ -26,8 +26,9 @@
 import { MaskedValue } from '@/app/components/MaskedValue'
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xDate, xInt, xMoney, xNum, xRestricted, xText } from '@/lib/export/cells'
 
 export type OutputBatchRow = {
     id: string
@@ -47,12 +48,25 @@ export type OutputBatchRow = {
     /** WO-1c:有工单就点得进去。 */
     workOrderCode: string | null
     workOrderHref: string | null
+    // ── TABLE-EXPORT-3b:导出读的原始值 ──
+    quantity: number
+    remaining: number
+    unit: string
+    outputDateRaw: string | null
+    /** 单位成本(本位币/kg);是否「受限」看 unitCostText === null */
+    unitCost: number | null
+    /** 成本价值(本位币);是否「受限」看 costValueText === null */
+    costValue: number | null
+    /** 市价价值(USD,列头写着);没有市价 → null(屏幕「—」) */
+    marketValue: number | null
+    ageDaysRaw: number | null
 }
 
-export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatchRow[] }) {
+export default function OutputBatchesTable({ rows, materialName }: { rows: readonly OutputBatchRow[]; materialName: string }) {
     const t = useTranslations()
 
-    const columns: Column<OutputBatchRow>[] = [
+    // 三列钱的币种都写在列头上(成本 = 本位币,市价 = USD,FX-DISPLAY-1)→ 光秃秃的数;单位成本格子里写着「/kg」,导出带着它。
+    const columns: ExportableColumn<OutputBatchRow>[] = [
         {
             key: 'code',
             header: t('output.colCode'),
@@ -64,26 +78,36 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
                     {r.code}
                 </Link>
             ),
+            exportAs: (r) => xText(r.code),
         },
-        { key: 'customer', header: t('output.colCustomer'), render: (r) => r.customer },
-        { key: 'quantity', header: t('output.colQuantity'), render: (r) => r.quantityText },
+        { key: 'customer', header: t('output.colCustomer'), render: (r) => r.customer,
+          exportAs: (r) => xText(r.customer === '—' ? null : r.customer) },
+        { key: 'quantity', header: t('output.colQuantity'), render: (r) => r.quantityText,
+          exportAs: (r) => xNum(r.quantity, 'qty', r.unit) },
         {
             key: 'remaining',
             header: t('output.colRemaining'),
             // ★ 这张表存在的理由:这一批还剩多少可卖 / 可投。
             priority: true,
             render: (r) => r.remainingText,
+            exportAs: (r) => xNum(r.remaining, 'qty', r.unit),
         },
         {
             // ★ 这一列就是 CONV-8 的探针点名的那枚徽章所在处 —— 见文件抬头。
             key: 'state',
             header: t('output.colState'),
             render: (r) => <span className="px-2 py-1 bg-gray-200 rounded text-xs">{r.stateLabel}</span>,
+            exportAs: (r) => xText(r.stateLabel),
         },
-        { key: 'outputDate', header: t('output.colOutputDate'), render: (r) => r.outputDate },
-        { key: 'unitCost', header: t('valuation.colUnitCost'), render: (r) => r.unitCostText ?? <MaskedValue value={null} canView={false} /> },
-        { key: 'costValue', header: t('valuation.colCostValue'), render: (r) => r.costValueText ?? <MaskedValue value={null} canView={false} /> },
-        { key: 'marketValue', header: t('valuation.colMarketValue'), render: (r) => r.marketValueText },
+        { key: 'outputDate', header: t('output.colOutputDate'), render: (r) => r.outputDate,
+          exportAs: (r) => xDate(r.outputDateRaw) },
+        // unitCostText / costValueText 为 null = 屏幕的「受限」(不持 data.view_prices)→ "Restricted";有权限而为空(屏幕「—」)→ 空格
+        { key: 'unitCost', header: t('valuation.colUnitCost'), render: (r) => r.unitCostText ?? <MaskedValue value={null} canView={false} />,
+          exportAs: (r) => (r.unitCostText === null ? xRestricted : xMoney(r.unitCost, r.unitCost === null ? null : '/kg')) },
+        { key: 'costValue', header: t('valuation.colCostValue'), render: (r) => r.costValueText ?? <MaskedValue value={null} canView={false} />,
+          exportAs: (r) => (r.costValueText === null ? xRestricted : xMoney(r.costValue)) },
+        { key: 'marketValue', header: t('valuation.colMarketValue'), render: (r) => r.marketValueText,
+          exportAs: (r) => xMoney(r.marketValue) },
         {
             key: 'age',
             header: t('valuation.colAge'),
@@ -93,6 +117,8 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
                 ) : (
                     '—'
                 ),
+            // 格子是天数 + 库龄档的色调;导出天数
+            exportAs: (r) => xInt(r.ageDays !== null ? r.ageDaysRaw : null),
         },
         {
             // WO-1c:这批货是照哪张计划做出来的 —— 出处是这套系统存在的理由,
@@ -108,6 +134,9 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
                 ) : (
                     <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>
                 ),
+            // 「没有计划」是一个有名字的答案(屏幕那句字),不是空格
+            exportAs: (r) =>
+                r.workOrderHref ? xText(r.workOrderCode === '—' ? null : r.workOrderCode) : xText(t('processing.noWorkOrder')),
         },
     ]
 
@@ -118,6 +147,8 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('inventory.emptyState')}
+            exportSpec={{ name: 'inventory-output-material-batches', title: t('inventory.drill.title'),
+                          aboutExtra: [[t('inventory.colMaterial'), materialName]] }}
         />
     )
 }

@@ -15,6 +15,7 @@ import { saveTemplate, type TemplateFormState, type TemplateLineInput } from './
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { xText, xNum, xInt, xMoney, xMasked } from '@/lib/export/cells'
 
 const initialState: TemplateFormState = {}
 
@@ -59,7 +60,8 @@ export default function TemplateForm({
     template,
     currencies,
     triggerEvents,
-canEdit
+canEdit,
+    canViewPrices = true,
 }: {
     template?: {
         id: string
@@ -74,6 +76,11 @@ canEdit
     triggerEvents: PaymentTriggerEvent[]
 
 canEdit: boolean
+    /**
+     * TABLE-EXPORT-3b:读者有没有 data.view_prices —— `payment_term_template_lines_masked` 按它遮定额。
+     * 只喂导出那一格的「受限」判据(编辑页给;新建页没有已保存的行,不导出)。
+     */
+    canViewPrices?: boolean
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -137,6 +144,11 @@ canEdit: boolean
        ⚠ **代价照直记:** 删除钮从【零次点按】变成【一次点按】(先展开那一行)。 */
 
     const rows: TermRow[] = lines.map((x, i) => ({ ...x.line, uid: x.uid, i }))
+    // ★ TABLE-EXPORT-3b(Tim 2026-10-25 Q3):只在编辑页导出,导出的是【打开页面时读到的已保存期次】,
+    //   不是正在改的这一份(page-owned 下 `rows` 就是正在改的那一份)。新建页没有已保存的记录,不给。
+    const savedRows: TermRow[] | null = template
+        ? template.lines.map((l, i) => ({ ...l, uid: `s${i}`, i }))
+        : null
 
     const shareText = (l: TemplateLineInput) =>
         l.mode === 'percentage'
@@ -160,12 +172,14 @@ canEdit: boolean
             priority: true,
             className: 'w-10',
             render: (r) => <span className="text-[color:var(--brand-muted-text)]">{r.i + 1}</span>,
+            exportAs: (r) => xInt(r.i + 1),
         },
         {
             key: 'label',
             header: t('purchasing.colLabel'),
             priority: true,
             render: (r) => (r.label.trim() === '' ? '—' : r.label),
+            exportAs: (r) => xText(r.label.trim() === '' ? null : r.label),
             edit: (r) => (
                 <input
                     type="text"
@@ -180,6 +194,13 @@ canEdit: boolean
             key: 'share',
             header: t('purchasing.colShare'),
             render: (r) => shareText(r),
+            // 一列装两种数:比例带「%」,定额带模板的币种(币种字段在表上方,不在列头)—— 后缀让两者在文件里分得开。
+            // 定额被 `_masked` 视图遮掉(没有 data.view_prices)时是 NULL → 「受限」(MaskedValue 同一条判据)。
+            exportAs: (r) =>
+                r.mode === 'percentage'
+                    ? xNum(r.percentage.trim() === '' ? null : r.percentage, 'pct', '%')
+                    : xMasked(r.fixed_amount.trim() === '' ? null : r.fixed_amount, canViewPrices,
+                              (v) => xMoney(v, template?.currency ?? null)),
             edit: (r) => (
                 <div className="flex flex-wrap items-center gap-2">
                     <label className="flex items-center gap-1">
@@ -222,6 +243,7 @@ canEdit: boolean
             key: 'trigger',
             header: t('purchasing.colTrigger'),
             render: (r) => triggerText(r),
+            exportAs: (r) => xText(triggerText(r)),
             edit: (r) => (
                 <>
                     <select
@@ -329,6 +351,12 @@ canEdit: boolean
                 phone={{ mode: 'columns' }}
                 mode="page-owned"
                 dirty={linesDirty}
+                exportSpec={template && savedRows ? {
+                    name: 'purchasing-payment-term-template-lines',
+                    title: t('purchasing.form.paymentTerms'),
+                    aboutExtra: [[t('purchasing.colName'), template.name]],
+                } : undefined}
+                exportRows={savedRows ?? undefined}
                 rowActions={(r) => (
                     <Button
                         variant="secondary"

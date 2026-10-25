@@ -44,6 +44,7 @@ import { recordAttendance, completeAttendancePeriod, reopenAttendancePeriod, syn
 import { Button } from '@/app/components/ui/button'
 import { Alert } from '@/app/components/ui/alert'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { xText, xNum } from '@/lib/export/cells'
 
 type Row = {
     lineId: string; employeeCode: string; legalName: string
@@ -54,8 +55,8 @@ type Row = {
 type Draft = { note: string }
 
 export default function AttendanceGrid({
-    periodId, status, rows,
-}: { periodId: string; status: string; rows: Row[] }) {
+    periodId, periodCode, status, rows,
+}: { periodId: string; periodCode: string; status: string; rows: Row[] }) {
     const t = useTranslations()
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
@@ -91,6 +92,8 @@ export default function AttendanceGrid({
                     <div className="text-xs text-gray-500">{r.employeeCode}</div>
                 </>
             ),
+            // TABLE-EXPORT-3b:这一格画两行(姓名 / 工号)—— 导出成一段文字「工号 姓名」(与 TrainingTable 同一个写法)。
+            exportAs: (r) => xText(`${r.employeeCode} ${r.legalName}`.trim()),
         },
         {
             key: 'normal',
@@ -98,6 +101,7 @@ export default function AttendanceGrid({
             priority: true,
             align: 'right',
             render: (r) => r.normal,
+            exportAs: (r) => xNum(r.normal, 'qty'),
         },
         {
             key: 'restDay',
@@ -105,17 +109,21 @@ export default function AttendanceGrid({
             priority: true,
             align: 'right',
             render: (r) => r.restDay,
+            exportAs: (r) => xNum(r.restDay, 'qty'),
         },
         {
             key: 'holiday',
             header: t('attendance.colOtHoliday'),
             align: 'right',
             render: (r) => r.holiday,
+            exportAs: (r) => xNum(r.holiday, 'qty'),
         },
         {
             key: 'note',
             header: t('attendance.colNote'),
             render: (r) => <span className="text-gray-600">{r.note || '—'}</span>,
+            // 已保存的备注(all-rows:rows 是存过的值,草稿另存)
+            exportAs: (r) => xText(r.note || null),
             edit: (d, set) => (
                 <input className={`${CONTROL_INPUT} w-full`} value={d.note} aria-label={t('attendance.colNote')}
                        onChange={(e) => set({ note: e.target.value })} />
@@ -128,6 +136,7 @@ export default function AttendanceGrid({
             align: 'right',
             className: 'text-gray-600',
             render: (r) => (r.unpaidDays === null ? '—' : r.unpaidDays),
+            exportAs: (r) => xNum(r.unpaidDays, 'qty'),
         },
         {
             // ★ 空白与三个 0 必须看起来不一样 ★
@@ -142,6 +151,7 @@ export default function AttendanceGrid({
                 ) : (
                     <span className="text-xs text-amber-700 font-medium">{t('attendance.recordedNo')}</span>
                 ),
+            exportAs: (r) => xText(r.recorded ? t('attendance.recordedYes') : t('attendance.recordedNo')),
         },
     ]
 
@@ -168,6 +178,9 @@ export default function AttendanceGrid({
                 phone={{ mode: 'columns' }}
                 mode="all-rows"
                 canEdit={open}
+                // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):导出已保存的值(all-rows 下 rows 就是存过的那一份)
+                exportSpec={{ name: 'hr-attendance-lines', title: t('attendance.title'),
+                              aboutExtra: [[t('attendance.colCode'), periodCode]] }}
                 className="mb-4"
                 empty={t('attendance.noLines')}
                 // ★ 能力 B:没录入的行整行涂琥珀 —— 搬家前是 LineRow 里的一句三元。

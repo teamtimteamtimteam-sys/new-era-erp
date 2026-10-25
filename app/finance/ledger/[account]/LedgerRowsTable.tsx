@@ -20,13 +20,16 @@
 // (resolveSourceHrefs)、本位币金额格式 —— 全部只有服务端知道(CONV-1 §①)。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xMoney, xRestricted, xText } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
 import { useTranslations } from '@/lib/i18n/client'
 
 export type LedgerTableRow = {
     id: string
     entryDate: string
+    /** TABLE-EXPORT-3b:原始 YYYY-MM-DD(合计行 null),导出写真日期。 */
+    entryYmd: string | null
     entryCode: string
     entryHref: string | null
     reversed: boolean
@@ -36,6 +39,8 @@ export type LedgerTableRow = {
     counterparts: readonly { code: string; name: string }[]
     memo: string
     amountText: string
+    /** TABLE-EXPORT-3b:原始金额(受限时 null),导出用。 */
+    amount: number | null
     negative: boolean
     /** 合计行。见 CONV-4 §⑨-3 / CONV-8 §⑧。 */
     isTotal?: boolean
@@ -47,20 +52,27 @@ export default function LedgerRowsTable({
     rows,
     amountHeader,
     empty,
+    title,
+    aboutExtra,
 }: {
     rows: readonly LedgerTableRow[]
+    /** TABLE-EXPORT-3b:导出的表名(页面标题)与 About 上多写的几行(科目、区间)。 */
+    title: string
+    aboutExtra: ReadonlyArray<[string, string]>
     /** 金额({ccy}) —— 本位币由服务端插好。 */
     amountHeader: string
     empty: string
 }) {
     const t = useTranslations()
 
-    const columns: Column<LedgerTableRow>[] = [
+    // ★ TABLE-EXPORT-3b:一对导出。合计行(标签在【分录号】一列)排最后照屏幕导出;它不受限(account_ledger「合计不遮」)。
+    const columns: ExportableColumn<LedgerTableRow>[] = [
         {
             key: 'date',
             header: t('finance.colDate'),
             className: 'whitespace-nowrap',
             render: (r) => r.entryDate,
+            exportAs: (r) => xDate(r.entryYmd),
         },
         {
             key: 'entry',
@@ -87,6 +99,8 @@ export default function LedgerRowsTable({
                         )}
                     </>
                 ),
+            // 链接导出它的字;「已冲销」小标改变这一行的意思 → 接在分录号后面(FormulasTable 的 rowInactive 同形)
+            exportAs: (r) => xText(r.reversed ? `${r.entryCode} (${t('table.export.rowReversed')})` : r.entryCode),
         },
         {
             key: 'source',
@@ -100,6 +114,7 @@ export default function LedgerRowsTable({
                 ) : (
                     r.sourceLabel
                 ),
+            exportAs: (r) => xText(r.isTotal ? null : r.sourceLabel),
         },
         {
             key: 'counterpart',
@@ -115,12 +130,17 @@ export default function LedgerRowsTable({
                               <span>{c.code}</span> {c.name}
                           </span>
                       )),
+            // 一格里可能有几个对方科目 → 「代码 名称」以 "; " 连起来
+            exportAs: (r) => xText(r.counterparts.length === 0
+                ? (r.isTotal ? null : '—')
+                : r.counterparts.map((c) => `${c.code} ${c.name}`).join('; ')),
         },
         {
             key: 'memo',
             header: t('finance.colMemo'),
             className: 'text-sm text-gray-600',
             render: (r) => r.memo,
+            exportAs: (r) => xText(r.isTotal ? null : r.memo),
         },
         {
             key: 'amount',
@@ -132,6 +152,8 @@ export default function LedgerRowsTable({
             render: (r) =>
                 r.restricted ? <Refusal>{t('common.restricted')}</Refusal>
                     : r.negative ? <span className="text-red-600">{r.amountText}</span> : r.amountText,
+            // 表头带着本位币 → 光数字;受限与屏幕同一条判据(restricted)
+            exportAs: (r) => (r.restricted ? xRestricted : xMoney(r.amount)),
         },
     ]
 
@@ -143,6 +165,7 @@ export default function LedgerRowsTable({
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'font-bold bg-[color:var(--brand-muted)]' : undefined)}
             empty={empty}
+            exportSpec={{ name: 'finance-account-ledger-lines', title, aboutExtra }}
         />
     )
 }

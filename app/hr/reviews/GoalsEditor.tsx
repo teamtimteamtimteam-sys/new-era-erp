@@ -42,6 +42,7 @@ import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { xText, xNum, xInt } from '@/lib/export/cells'
 
 // ════════════════════════════════════════════════════════════════════════════
 // ★★【ALERT-2d(2026-09-09):这三个 prop 现在【只装记录状态】,不装权限】★★
@@ -72,6 +73,10 @@ type Props = {
      * 由页面给整句(它才知道状态名怎么念),组件不拼字符串。
      */
     stateNote?: string | null
+    /**
+     * TABLE-EXPORT-3b:About 表上说明【是哪一份考核】的几行(员工 · 周期 · 期间),由页面给 —— 它才读得到这些。
+     */
+    exportAbout?: ReadonlyArray<[string, string]>
 }
 
 type Draft = {
@@ -85,7 +90,7 @@ type Draft = {
 const inp = `${CONTROL_INPUT} w-full`
 const ta = `${CONTROL_TEXTAREA} w-full`
 
-export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, canSetActual, stateNote }: Props) {
+export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, canSetActual, stateNote, exportAbout }: Props) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, startTransition] = useTransition()
@@ -134,12 +139,14 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
             priority: true,
             className: 'w-8 text-[color:var(--brand-muted-text)]',
             render: (g) => g.sequence,
+            exportAs: (g) => xInt(g.sequence),
         },
         {
             key: 'objective',
             header: t('reviews.colObjective'),
             priority: true,
             render: (g) => <span className="whitespace-pre-wrap">{g.objective_text}</span>,
+            exportAs: (g) => xText(g.objective_text),
             ...(canEditGoals && {
                 edit: (d, set) => (
                     <textarea
@@ -157,6 +164,8 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
             priority: true,
             align: 'right',
             render: (g) => g.target_value ?? '—',
+            // 单位是独立的一列,所以这里是光秃秃的数
+            exportAs: (g) => xNum(g.target_value, 'qty'),
             ...(canEditGoals && {
                 edit: (d, set) => (
                     <input
@@ -173,6 +182,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
             key: 'unit',
             header: t('reviews.colUnit'),
             render: (g) => g.unit ?? '—',
+            exportAs: (g) => xText(g.unit),
             ...(canEditGoals && {
                 edit: (d, set) => (
                     <input
@@ -191,6 +201,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
             priority: true,
             align: 'right',
             render: (g) => g.actual_value ?? '—',
+            exportAs: (g) => xNum(g.actual_value, 'qty'),
             ...(canSetActual && {
                 edit: (d, set) => (
                     <input
@@ -208,11 +219,13 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
             key: 'employeeResult',
             header: t('reviews.colEmployeeResult'),
             render: (g) => <span className="whitespace-pre-wrap">{g.employee_result_text ?? '—'}</span>,
+            exportAs: (g) => xText(g.employee_result_text),
         },
         {
             key: 'assessment',
             header: t('reviews.colAssessment'),
             render: (g) => <span className="whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</span>,
+            exportAs: (g) => xText(g.reviewer_assessment_text),
             ...(canAssess && {
                 edit: (d, set) => (
                     <textarea
@@ -239,6 +252,8 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                 phone={{ mode: 'columns' }}
                 canEdit={editable}
                 className="mb-3"
+                // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的目标行
+                exportSpec={{ name: 'hr-review-goals', title: t('reviews.goalsTitle'), aboutExtra: exportAbout }}
                 empty={t('reviews.noGoals')}
                 toDraft={(g) => ({
                     objective: g.objective_text,

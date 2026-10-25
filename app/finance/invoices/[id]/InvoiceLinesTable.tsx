@@ -22,8 +22,9 @@
 //   不是这一行的身份;而它正是那个把整页顶宽的元素。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xInt, xMoney, xNum, xText } from '@/lib/export/cells'
 
 export type InvoiceLineRow = {
     id: string
@@ -33,13 +34,20 @@ export type InvoiceLineRow = {
     unitPriceText: string
     amountText: string
     arHref: string
+    /** TABLE-EXPORT-3b:导出写原始值,不写上面那几串格式化过的字。 */
+    quantity: number
+    unit: string | null
+    unitPrice: number
+    amountCcy: number
+    currency: string
 }
 
-export default function InvoiceLinesTable({ rows }: { rows: readonly InvoiceLineRow[] }) {
+// ★ TABLE-EXPORT-3b:一对导出。最后那一列「AR 单据」是每行一个的跳转链接(表头是空的),不是数据 —— exportAs: false。
+export default function InvoiceLinesTable({ rows, invoiceCode }: { rows: readonly InvoiceLineRow[]; invoiceCode: string }) {
     const t = useTranslations()
 
-    const columns: Column<InvoiceLineRow>[] = [
-        { key: 'lineNo', header: t('invoice.colLineNo'), className: 'text-sm text-gray-500', render: (r) => r.lineNo },
+    const columns: ExportableColumn<InvoiceLineRow>[] = [
+        { key: 'lineNo', header: t('invoice.colLineNo'), className: 'text-sm text-gray-500', render: (r) => r.lineNo, exportAs: (r) => xInt(r.lineNo) },
         {
             key: 'description',
             header: t('invoice.colDescription'),
@@ -47,9 +55,10 @@ export default function InvoiceLinesTable({ rows }: { rows: readonly InvoiceLine
             priority: true,
             className: 'text-sm',
             render: (r) => r.description,
+            exportAs: (r) => xText(r.description),
         },
-        { key: 'qty', header: t('invoice.colQuantity'), align: 'right', className: 'text-sm', render: (r) => r.qtyText },
-        { key: 'unitPrice', header: t('invoice.colUnitPrice'), align: 'right', className: 'text-sm', render: (r) => r.unitPriceText },
+        { key: 'qty', header: t('invoice.colQuantity'), align: 'right', className: 'text-sm', render: (r) => r.qtyText, exportAs: (r) => xNum(r.quantity, 'qty', r.unit) },
+        { key: 'unitPrice', header: t('invoice.colUnitPrice'), align: 'right', className: 'text-sm', render: (r) => r.unitPriceText, exportAs: (r) => xMoney(r.unitPrice, r.currency) },
         {
             key: 'amount',
             header: t('invoice.colAmount'),
@@ -58,6 +67,7 @@ export default function InvoiceLinesTable({ rows }: { rows: readonly InvoiceLine
             priority: true,
             className: 'text-sm',
             render: (r) => r.amountText,
+            exportAs: (r) => xMoney(r.amountCcy, r.currency),
         },
         {
             // 转换前这一列的表头是一个空的 <th />(它给了,所以 th/td 数是对的 ——
@@ -71,11 +81,13 @@ export default function InvoiceLinesTable({ rows }: { rows: readonly InvoiceLine
                     {t('finance.arDocTitle')}
                 </Link>
             ),
+            exportAs: false,
         },
     ]
 
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.id}
-                   phone={{ mode: 'columns' }} empty={t('invoice.noLines')} />
+                   phone={{ mode: 'columns' }} empty={t('invoice.noLines')}
+                   exportSpec={{ name: 'finance-invoice-lines', title: t('invoice.detailTitle'), aboutExtra: [[t('invoice.colCode'), invoiceCode]] }} />
     )
 }

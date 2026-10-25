@@ -158,6 +158,7 @@ export default async function EditFormulaPage({
                 canEdit={canEdit}
                 blockedReason={openLabel ? t('termsRequest.formBlocked', { label: openLabel }) : null}
                 termsMasked={termsMasked}
+                formulaCode={formula.code}
             />
             </EndedFieldset>
 

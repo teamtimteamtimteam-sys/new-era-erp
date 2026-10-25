@@ -25,7 +25,8 @@
 // (check-bilingual-concat 守的是"两个插值拼一起";这里连拼的机会都没有。)
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xMoney, xText } from '@/lib/export/cells'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 
@@ -37,21 +38,26 @@ export type F5BoxRow = {
     /** 结构性为零 —— 要说出来,不能只显示 0。 */
     notDerived: boolean
     amountText: string
+    /** TABLE-EXPORT-3b:导出写这个数本身,不写 toFixed 过的那串字。 */
+    amount: number
     /** 可钻取的格才给 href。 */
     drillHref: string | null
     highlighted: boolean
 }
 
-export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
+// ★ TABLE-EXPORT-3b:两张表各一对导出(title = 表上方那个 <h2>,About 里写期间编号)。
+//   金额列表头不带币种、格里是光数字(本位币)→ xMoney(v) 不带后缀。
+export function F5BoxesTable({ rows, title, periodCode }: { rows: readonly F5BoxRow[]; title: string; periodCode: string }) {
     const t = useTranslations()
 
-    const columns: Column<F5BoxRow>[] = [
+    const columns: ExportableColumn<F5BoxRow>[] = [
         {
             key: 'box',
             header: t('gst.box'),
             // ★ 身份列 —— 见抬头:格号才是标识,这是页面自己写下的判据。
             priority: true,
             render: (r) => r.boxNo,
+            exportAs: (r) => xText(r.boxNo),
         },
         {
             key: 'label',
@@ -63,6 +69,8 @@ export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
                     {r.notDerived && <span className="block text-xs text-gray-600">{t('gst.notDerived')}</span>}
                 </>
             ),
+            // 「结构性为零」那句改变这一格 0 的意思(不是算出来的 0)—— 照屏幕上这一格的字导出:格名 + 那句说明。
+            exportAs: (r) => xText(r.notDerived ? `${r.label} — ${t('gst.notDerived')}` : r.label),
         },
         {
             key: 'amount',
@@ -71,6 +79,7 @@ export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
             // ★ 这张表存在的理由:每一格是多少钱。
             priority: true,
             render: (r) => r.amountText,
+            exportAs: (r) => xMoney(r.amount),
         },
         {
             key: 'openBox',
@@ -88,6 +97,8 @@ export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
                 ) : (
                     <span className="text-xs text-gray-500">{t('gst.notDrillable')}</span>
                 ),
+            // 控件列(钻取的链接),不是数据
+            exportAs: false,
         },
     ]
 
@@ -100,6 +111,7 @@ export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
             // 被打开的那一格整行淡蓝 —— CONV-4 §⑨-3 的 rowClassName,与转换前同形。
             rowClassName={(r) => (r.highlighted ? 'bg-blue-50' : undefined)}
             empty={t('gst.noBoxes')}
+            exportSpec={{ name: 'finance-gst-f5-boxes', title, aboutExtra: [[t('table.export.aboutPeriod'), periodCode]] }}
         />
     )
 }
@@ -108,18 +120,22 @@ export type F5DetailRow = {
     id: string
     docCode: string
     docDate: string
+    /** TABLE-EXPORT-3b:原始 YYYY-MM-DD,导出写真日期。 */
+    docYmd: string
     memo: string
     /** 单据种类 · 税码 —— 已在服务端拼好。 */
     sourceText: string
     amountText: string
+    /** TABLE-EXPORT-3b:原始数,导出用。 */
+    amount: number
 }
 
-export function F5BoxDetailTable({ rows, empty }: { rows: readonly F5DetailRow[]; empty: string }) {
+export function F5BoxDetailTable({ rows, empty, title, periodCode }: { rows: readonly F5DetailRow[]; empty: string; title: string; periodCode: string }) {
     const t = useTranslations()
 
     // 【GST-2:列是【单据中性】的】销项侧钻回的是发票与贷项凭证,它们不是分录 ——
     // 把一个发票编号印在"分录"那一列下面,正是"机器文字到了人面前"那一类的错。
-    const columns: Column<F5DetailRow>[] = [
+    const columns: ExportableColumn<F5DetailRow>[] = [
         {
             key: 'document',
             header: t('gst.document'),
@@ -127,10 +143,11 @@ export function F5BoxDetailTable({ rows, empty }: { rows: readonly F5DetailRow[]
             priority: true,
             className: 'text-xs',
             render: (r) => r.docCode,
+            exportAs: (r) => xText(r.docCode),
         },
-        { key: 'date', header: t('gst.date'), className: 'text-xs', render: (r) => r.docDate },
-        { key: 'memo', header: t('gst.memo'), render: (r) => r.memo },
-        { key: 'source', header: t('gst.source'), className: 'text-xs', render: (r) => r.sourceText },
+        { key: 'date', header: t('gst.date'), className: 'text-xs', render: (r) => r.docDate, exportAs: (r) => xDate(r.docYmd) },
+        { key: 'memo', header: t('gst.memo'), render: (r) => r.memo, exportAs: (r) => xText(r.memo) },
+        { key: 'source', header: t('gst.source'), className: 'text-xs', render: (r) => r.sourceText, exportAs: (r) => xText(r.sourceText) },
         {
             key: 'amount',
             header: t('gst.amount'),
@@ -139,6 +156,7 @@ export function F5BoxDetailTable({ rows, empty }: { rows: readonly F5DetailRow[]
             priority: true,
             // 贷项凭证是负数 —— 它是一笔【负的供应】,照直印
             render: (r) => r.amountText,
+            exportAs: (r) => xMoney(r.amount),
         },
     ]
 
@@ -149,6 +167,7 @@ export function F5BoxDetailTable({ rows, empty }: { rows: readonly F5DetailRow[]
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'finance-gst-box-detail', title, aboutExtra: [[t('table.export.aboutPeriod'), periodCode]] }}
         />
     )
 }

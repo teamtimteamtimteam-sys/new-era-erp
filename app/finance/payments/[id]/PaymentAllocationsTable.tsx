@@ -17,7 +17,9 @@
 // 那是一段只有服务端做得了的判断;过界的是 code 与 href 两个字符串。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useTranslations } from '@/lib/i18n/client'
+import { xMoney, xText } from '@/lib/export/cells'
 
 export type PaymentAllocRow = {
     id: string
@@ -25,6 +27,9 @@ export type PaymentAllocRow = {
     docHref: string | null
     allocatedBaseText: string
     allocatedPayText: string
+    /** TABLE-EXPORT-3b:导出写这两个数(合计行是两个 Σ),不写上面那两串字。 */
+    allocatedBase: number
+    allocatedPay: number
     /** 合计行。见 CONV-4 §⑨-3 / CONV-8 §⑧。 */
     isTotal?: boolean
 }
@@ -35,6 +40,7 @@ export default function PaymentAllocationsTable({
     baseHeader,
     payHeader,
     empty,
+    paymentCode,
 }: {
     rows: readonly PaymentAllocRow[]
     docHeader: string
@@ -43,8 +49,12 @@ export default function PaymentAllocationsTable({
     /** 消耗款额 ({payment.currency}) —— 同上。 */
     payHeader: string
     empty: string
+    paymentCode: string
 }) {
-    const columns: Column<PaymentAllocRow>[] = [
+    const t = useTranslations()
+    // ★ TABLE-EXPORT-3b:一对导出。两个金额列各自的币种都写在表头里(本位币 / 付款币种,服务端插好),格子是光秃秃的数 —— 导出照样。
+    //   合计行(Tim 2026-10-25 Q1)照屏幕作为最后一行导出,标签在【单据】那一列。
+    const columns: ExportableColumn<PaymentAllocRow>[] = [
         {
             key: 'doc',
             header: docHeader,
@@ -59,6 +69,7 @@ export default function PaymentAllocationsTable({
                 ) : (
                     r.docCode
                 ),
+            exportAs: (r) => xText(r.docCode),
         },
         {
             key: 'base',
@@ -67,6 +78,7 @@ export default function PaymentAllocationsTable({
             priority: true, // ★ 见抬头:两个金额列一起才解释得清那笔汇兑差。
             className: 'text-sm',
             render: (r) => r.allocatedBaseText,
+            exportAs: (r) => xMoney(r.allocatedBase),
         },
         {
             key: 'pay',
@@ -75,6 +87,7 @@ export default function PaymentAllocationsTable({
             priority: true, // ★ 同上。
             className: 'text-sm',
             render: (r) => r.allocatedPayText,
+            exportAs: (r) => xMoney(r.allocatedPay),
         },
     ]
 
@@ -86,6 +99,11 @@ export default function PaymentAllocationsTable({
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'font-bold bg-[color:var(--brand-muted)]' : undefined)}
             empty={empty}
+            exportSpec={{
+                name: 'finance-payment-allocations',
+                title: t('finance.paymentRequests.allocTitle'),
+                aboutExtra: [[t('finance.colCode'), paymentCode]],
+            }}
         />
     )
 }

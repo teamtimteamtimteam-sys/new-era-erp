@@ -298,6 +298,8 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/app/components/ui/button'
 import type { PhoneTreatment, FooterRow } from '@/app/components/ui/data-table'
 import { TABLE_TEXT, tableC } from '@/app/components/ui/table-style'
+import { TableExportBar, type TableExportSpec, type ExportColumnDef } from '@/app/components/ui/table-export'
+import type { ExportCell, NoExport } from '@/lib/export/cells'
 
 /**
  * 一列。`render` 是只读时怎么画;`edit` 是编辑时怎么画。
@@ -321,6 +323,13 @@ export type EditableColumn<T, D> = {
     /** 手机展开区里的标签。不给就用 header。 */
     phoneLabel?: React.ReactNode
     className?: string
+    /**
+     * ★ TABLE-EXPORT-3b(Tim 2026-10-25 Q8 · Q3):这一列导出成什么 —— 读【已保存的那一行】的原始值,返回带类型的一格
+     * (lib/export/cells.ts);画控件的列写 `false`。给了 `exportSpec` 的表,每一列都必须声明(漏一列 = 下面那条按名拒绝)。
+     */
+    exportAs?: ((row: T) => ExportCell) | NoExport
+    /** 表头不是一段文字时,导出用的列名(界面语言)。与 DataTable 的 `exportHeader` 同一个意思。 */
+    exportHeader?: string
 }
 
 /** 保存的结果。**`{ error }` 表示失败 —— 失败时草稿【不清】。** */
@@ -419,6 +428,19 @@ type EditableTableCommon<T, D> = {
      */
     canSave?: (draft: D, row: T) => { ok: boolean; why?: React.ReactNode }
 
+    /**
+     * ★ TABLE-EXPORT-3b(Tim 2026-10-25,Q8 的 8 张与 Q3 的两张编辑页):Excel / CSV 一对钮,画在表上方。
+     * **导出的是【已保存】的值,不是正在敲的草稿** —— 草稿只活在这个组件里,写进文件就是一份没人存过的记录。
+     * 给 `exportSpec` 的表,每一列都要有 `exportAs`(运行期按名拒绝,理由同 DataTable 的表头那条)。
+     * 新建页(还没有保存的记录)不给它 —— 那是录入表单(Q8 的 PERMANENT)。
+     */
+    exportSpec?: TableExportSpec<T>
+    /**
+     * `'page-owned'` 模式下 `rows` 就是页面手里【正在改】的那一份;那里要导出的是打开页面时读到的已保存的行,
+     * 由页面递进来。不给 = `rows`(另外两种模式下行本来就是已保存的值,草稿另存)。
+     */
+    exportRows?: readonly T[]
+
     // ── ★ Q4:排序与分页在这里【不存在】,而且是编译期不存在 ★ ──────────────
     /** 可编辑的表不排序 —— 见抬头 Q4。写上去编译不过。 */
     sorting?: never
@@ -493,8 +515,27 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     const {
         rows, columns, rowKey, phone,
         footer, canEdit = true, isDirty, caption, empty, className,
-        rowActions, rowClassName, canSave, totals,
+        rowActions, rowClassName, canSave, totals, exportSpec, exportRows,
     } = props
+
+    // ★ TABLE-EXPORT-3b:与 DataTable 同一条 —— 声明了导出,就每一列都要说自己导出成什么。
+    const exportCols: ReadonlyArray<ExportColumnDef<T>> | null = React.useMemo(() => {
+        if (!exportSpec) return null
+        const out: ExportColumnDef<T>[] = []
+        for (const c of columns) {
+            if (c.exportAs === false) continue
+            if (c.exportAs === undefined) {
+                throw new Error(`TABLE_EXPORT_COLUMN_UNDECLARED|${exportSpec.name}|${c.key}:这张可编辑的表声明了导出,这一列却没有 exportAs(写一个,或写 false)。`)
+            }
+            const header = c.exportHeader ?? (typeof c.header === 'string' ? c.header : null)
+            if (header === null) {
+                throw new Error(`TABLE_EXPORT_HEADER_NOT_TEXT|${exportSpec.name}|${c.key}:这一列的表头不是一段文字,给它一个 exportHeader(界面语言的那串字)。`)
+            }
+            out.push({ key: c.key, header, exportAs: c.exportAs })
+        }
+        return out
+    }, [exportSpec, columns])
+    const savedRows = exportRows ?? rows
 
     // ★ DRAFT-2 / Q6:`'page-owned'` 只交一个 `expand` 上来。那五个在那一模式下
     //   【渲染不到】(见抬头 Q6),所以这里补的空串**进不了 DOM** —— 补它们是为了
@@ -734,6 +775,11 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
 
     return (
         <div className={cn('w-full', className)}>
+            {exportSpec && exportCols && (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <TableExportBar spec={exportSpec} columns={exportCols} rows={() => savedRows} />
+                </div>
+            )}
             <div className="w-full overflow-x-auto">
                 <table
                     data-slot="editable-table"

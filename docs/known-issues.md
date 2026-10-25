@@ -11536,7 +11536,14 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 `change_log_rows` 读最近 7 天,一次 200 行要 **5.57 s / 3.52 s / 4.33 s**(按事务 200×200 一次、按行 200 两次),即 **约 18–28 ms 一行**(与页面 `page.tsx:44` 记着的 F19「每行 ≈ 17 ms」同一个量级)。
 同一个窗口以 `postgres` 读基表(绕过 RLS):最近 7 天 **31,414 行 / 2,472 笔事务**,全表 81,401 行(多半是冒烟与证明的行 —— 测试数据)。
 ☞ **一次 7 天的导出 ≈ 157 次调用 ≈ 10–12 分钟;366 天约 81k 行,光是「说出行数」就要先把它们全读一遍。** 一条网页导出撑不了这么久。
-**去处:等 Tim 裁。** 要做到 Q7 的形状,库里需要一支【成批遮蔽】的导出读法(与 `change_log_rows` 同一套遮蔽 —— `change_log_mask_row` · `trail_row_visible` —— 但不逐行调用)外加一支带同一组筛选的计数,那是一支迁移。
+~~**去处:等 Tim 裁。**~~ 要做到 Q7 的形状,库里需要一支【成批遮蔽】的导出读法(与 `change_log_rows` 同一套遮蔽 —— `change_log_mask_row` · `trail_row_visible` —— 但不逐行调用)外加一支带同一组筛选的计数,那是一支迁移。
+★ **Tim 2026-10-24(TABLE-EXPORT-3b 委托书 Part 1.3)裁定:变更历史的导出【搬进】上线准备组第 13 行(「Pages too slow to use」)。** 原话:
+"One bulk masking-and-counting database function fixes both the page's speed (107 s at show=500) and the export Tim ruled on 2026-10-23."
+它要满足的形状 —— **Q7 原文照录**(Tim 2026-10-23,TABLE-EXPORT-3 Step 0,`docs/table-export.md:111`):
+> "Change-history export: both dates required; longest range 366 days; the 50,000-row cap still refuses anything larger and states the count; every filter on the page applies, including "key events only"; one row per field changed (When, Who, Record, What happened, Field, Old value, New value), hidden values written as "Restricted". If reading through change_log_rows proves too slow, stop at that point in the report rather than adding a migration."
+
+3a 的量数(上面那一段,照抄):`change_log_rows` 约 **18–28 ms 一行**(以 tim@ 的身份,`SET LOCAL ROLE authenticated`,回滚);最近 7 天 **31,414 行**(以 `postgres` 读基表)。
+**去处:** 上线准备组第 13 行(`docs/forward-queue.md`),与 `/settings/change-history` 本身的慢(下面 PAGES-TOO-SLOW-TO-USE)由同一支函数一起修。TABLE-EXPORT-3 这一族不再拥有它。
 
 ### DISPLAY-TIMESTAMP-SLICED-AS-UTC · 两处屏幕把时刻的 UTC 表示直接截下来显示(TABLE-EXPORT-2a 转换时量到;登记,不在本刀修)
 
@@ -11590,7 +11597,7 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
   CLAIM-RECEIPTS-1 三次 **30.2 s · 45.6 s · 39.1 s**。~~**15 s 那一端没有找到读数。**~~ ★ **15 s 那一端的出处(Tim 2026-10-23 更正,TABLE-EXPORT-2b-2 裁定)**:Tim 写的是「来自 PAYROLL-PAY-REVERSAL-1 的收尾生产检查(HTTP 200,15.4 s),记在 TABLE-EXPORT-1 那一次会话的 Part 1 读数里」。**量下来的出处**:`docs/surveys/CLAIM-RECEIPTS-1/readings/closeout-production-check-2.txt:3` —— 「`/settings/dictionaries` HTTP 200 in 15421 ms (15.4 s)」,那是 **CLAIM-RECEIPTS-1 的收尾生产检查,在 PAYROLL-PAY-REVERSAL-1 那一次会话的 Part 1 里跑的**(2026-10-22 09:51 CST,`docs/handbacks/CLAIM-RECEIPTS-1.md` §6);TABLE-EXPORT-1 那份收尾读数(`docs/surveys/TABLE-EXPORT-1/readings/ppr1-closeout-production-check.txt`)里没有这一页。
   成因与修法方向见上面 SETTINGS-DICTIONARIES-30-SECOND-LOAD。
 **为什么记:** 两张都是 HTTP 200、没有报错,于是没有一道闸会红;而一张一分多钟的页面对人来说就是打不开,并且迟早撞上 Vercel 的函数时限。
-**去处:** 上线准备组(`docs/forward-queue.md` 第 13 行)。
+**去处:** 上线准备组(`docs/forward-queue.md` 第 13 行)。★ **Tim 2026-10-24:变更历史的导出(Q7)也搬进这一行** —— 一支成批遮蔽并计数的库函数同时修页面的慢与那条导出;Q7 原文与 3a 的量数见上面 CHANGE-HISTORY-NO-EXPORT。
 
 ### LEDGER-EMBED-OUT-OF-MASKED-READS-SIGHT · 流水台账的 select 串改成拼出来的之后,`check-masked-reads` 看不见它那一处内嵌了(TABLE-EXPORT-2b-2 自己造成的;登记,不改检查)
 
@@ -11617,3 +11624,14 @@ TABLE-EXPORT-1(2026-10-22)量 `/inbound` 是 **0**(`docs/surveys/TABLE-EXPORT-1/
 **为什么记:** 自检做的正是它该做的事 —— 它【拒绝】在一页它看不懂的文档上给出读数,而不是报一个假绿。但它说不出「我量到的是哪一页」:
 诊断里没有 URL 与 `document.title`。**去处:** 未排;改法是诊断那一段多印 `location.href` 与 `document.title`,下一次就知道是哪一页。
 
+
+
+## TABLE-EXPORT-3b(`v1.4.72`,2026-10-25)—— 详情页的表(财务 · 采购 · 销售 · 入库 · 库存 · 人事)与可编辑的表
+
+### PAYMENT-TERM-TEMPLATE-EDIT-MASKED-AMOUNT-BLANK · 看不见价格的人打开付款条件模板的编辑页,被遮的固定额是一个空输入框(TABLE-EXPORT-3b 转换时量到;登记,不在本刀修)
+
+**是什么:** `/purchasing/payment-terms/[id]/edit` 读 `payment_term_template_lines_masked`,它对不持 `data.view_prices` 的人把 `fixed_amount_ccy` 遮成 NULL;
+`TemplateForm` 是一张 page-owned 的可编辑表,那一格画成**空的输入框**,不是「受限」(TABLE-EXPORT-2 Q8 的那一族)。**导出不受影响**:本刀给编辑页加的导出按 `xMasked` 写 "Restricted"。
+**同族的风险(推断,没有量):** 照屏幕的样子保存,一个被遮的固定额会被当成「空」送回 —— 与 EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY、定价公式那一刀(TABLE-EXPORT-2b Q5)同一个形状。
+**今天线上谁会踩到它(以 `postgres` 读 `role_permissions`,2026-10-25):** 持 `module.purchasing.edit` 而不持 `data.view_prices` 的角色 **0 个**;`payment_term_template_lines` 里带固定额的行 **0 行**。
+**改法:** 照定价公式那一刀 —— 被遮的格子画「受限」、不送值,库里那扇门对看不见的人按原值存。**去处:** 未排,等 Tim。

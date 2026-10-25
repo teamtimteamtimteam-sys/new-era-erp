@@ -87,7 +87,13 @@ export default async function SupplierStatementPage({ params, searchParams }: {
             </section>
 
             <StatementDetailTables lines={st.lines} openItems={st.open_items} onAccount={st.on_account} unpriced={st.unpriced}
-                baseCurrency={st.base_currency} />
+                baseCurrency={st.base_currency}
+                about={[
+                    [t('supplierStatements.colCode'), st.code],
+                    [t('supplierStatements.colSupplier'), `${st.supplier_code} · ${st.supplier_name}`],
+                    [t('supplierStatements.colPeriod'), `${st.period_start} → ${st.period_end}`],
+                    ...(st.superseded_at ? [[t('supplierStatements.colSuperseded'), by?.code ?? '—'] as [string, string]] : []),
+                ]} />
 
             <section className="mt-8" data-section="pdf">
                 <h2 className="mb-2">{t('supplierStatements.pdfTitle')}</h2>

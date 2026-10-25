@@ -201,6 +201,7 @@ export default async function AccountLedgerPage({
     const tableRows: LedgerTableRow[] = led.rows.map((r) => ({
         id: r.line_id,
         entryDate: formatDate(r.entry_date, locale),
+        entryYmd: r.entry_date,
         entryCode: r.entry_code,
         entryHref: `/finance/journal/${r.entry_id}`,
         reversed: r.entry_status === 'reversed',
@@ -209,6 +210,7 @@ export default async function AccountLedgerPage({
         counterparts: r.counterparts.map((c) => ({ code: c.code, name: cpName(c) })),
         memo: r.line_memo || r.entry_memo || '—',
         amountText: r.amount === null ? '' : formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币'),
+        amount: r.amount,
         negative: r.amount !== null && r.amount < 0,
         restricted: r.amounts_restricted === true,
     }))
@@ -221,6 +223,7 @@ export default async function AccountLedgerPage({
         tableRows.push({
             id: '__total__',
             entryDate: '',
+            entryYmd: null,
             entryCode: t('finance.ledgerOwnTotal'),
             entryHref: null,
             reversed: false,
@@ -229,6 +232,7 @@ export default async function AccountLedgerPage({
             counterparts: [],
             memo: '',
             amountText: formatMoneyBare(led.total, '列头 金额 ({ccy}) —— 已带本位币'),
+            amount: led.total,
             negative: false,
             isTotal: true,
         })
@@ -304,6 +308,8 @@ export default async function AccountLedgerPage({
                 rows={tableRows}
                 amountHeader={t('finance.colAmount', { ccy: baseCurrency })}
                 empty={t('finance.ledgerEmpty')}
+                title={title}
+                aboutExtra={[[t('finance.colAccount'), `${led.account.code} ${accountName}`], [t('table.export.aboutPeriod'), rangeLabel]]}
             />
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mt-4">{t('finance.ledgerNote')}</p>

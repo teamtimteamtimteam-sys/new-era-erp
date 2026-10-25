@@ -1,0 +1,34 @@
+PASS|R1 /purchasing/orders/14956797-c2ef-49a2-acbd-8b3eae2d79e0 (PO-2026-0009) as a reader without data.view_purchase_prices → HTTP 200; screen shows "Restricted": true
+PASS|R1 blind · PO lines xlsx downloaded: purchasing-order-lines_2026-10-25_1521.xlsx
+PASS|R1 blind · xlsx: 4 rows (1 line + 3 totals ["Subtotal (excl. GST)","GST","Total payable (incl. GST)"]); total amounts ["Restricted","Restricted","Restricted"]; line row [1,"Mobile Discharging Solution",1,"Restricted","Restricted"]
+PASS|R1 blind · PO lines csv downloaded: purchasing-order-lines_2026-10-25_1521.csv
+PASS|R1 blind · csv: 4 rows (1 line + 3 totals ["Subtotal (excl. GST)","GST","Total payable (incl. GST)"]); total amounts ["Restricted","Restricted","Restricted"]; line row ["1","Mobile Discharging Solution","1 unit","Restricted","Restricted"]
+PASS|R1 sees · PO lines xlsx downloaded: purchasing-order-lines_2026-10-25_1521.xlsx
+PASS|R1 sees · xlsx: total amounts [333049.5,29974.46,363023.96] (numbers, no "Restricted" anywhere)
+PASS|R1 sees · PO lines csv downloaded: purchasing-order-lines_2026-10-25_1521.csv
+PASS|R1 sees · csv: total amounts ["333049.5 SGD","29974.46 SGD","363023.96 SGD"] (numbers, no "Restricted" anywhere)
+PASS|R2 /inventory/output/5d4c059f-ff78-4e0d-b117-6be775a05f7e as a reader without data.view_prices → HTTP 200; screen shows "Restricted": true
+PASS|R2 output batches xlsx downloaded: inventory-output-material-batches_2026-10-25_1522.xlsx
+PASS|R2 xlsx: 6 batch rows, "Restricted" cells per row [2,2,2,2,2,2] (unit cost + cost value)
+PASS|R2 output batches csv downloaded: inventory-output-material-batches_2026-10-25_1522.csv
+PASS|R2 csv: 6 batch rows, "Restricted" cells per row [2,2,2,2,2,2] (unit cost + cost value)
+PASS|R3 /hr/employees/81cf6510-7ee0-4017-bc85-273c900f2e13 as a reader without data.view_pay → HTTP 200; screen shows "Restricted": true
+PASS|R3 pay history xlsx downloaded: hr-employee-pay-history_2026-10-25_1523.xlsx
+PASS|R3 xlsx: 1 pay row ["2026-07","Restricted","Restricted","Restricted","Restricted","Restricted","Posted"]
+PASS|R3 pay history csv downloaded: hr-employee-pay-history_2026-10-25_1523.csv
+PASS|R3 csv: 1 pay row ["2026-07","Restricted","Restricted","Restricted","Restricted","Restricted","Posted"]
+PASS|T IN-2026-0001 price history Excel downloaded: inbound-price-history_2026-10-25_1524.xlsx
+PASS|T 2 rows in the file = 2 price_history rows in the database (as postgres, base table); number cells per row [3,2]; sheets ["Price history","About"]
+PASS|E /hr/leave/types → HTTP 200; 13 rows on screen; Excel hr-leave-types_2026-10-25_1524.xlsx
+PASS|E file has 13 rows = screen 13; header ["Code","Name","Standard days","Certificate after","Paid","Accrues","Half days","Active"]
+PASS|E CSV hr-leave-types_2026-10-25_1524.csv: 13 rows
+PASS|M /settings/roles/f1478269-8587-459e-a50b-a2c7419770cf (finance) module matrix Excel downloaded: settings-role-modules_2026-10-25_1524.xlsx
+PASS|M matrix: 18 module rows; header ["Module","View","Edit"]
+PASS|M card codes xlsx downloaded: settings-role-data-actions_2026-10-25_1525.xlsx
+PASS|M xlsx: 51 card codes (all data.* / action.*); data.view_pay row ["View pay","data.view_pay","Yes"]
+PASS|M card codes csv downloaded: settings-role-data-actions_2026-10-25_1525.csv
+PASS|M csv: 51 card codes (all data.* / action.*); data.view_pay row ["View pay","data.view_pay","Yes"]
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan); every database read as a throwaway ran in a transaction that was rolled back
+TE3B_PROOF_EXIT=0
+X_OWN_EXIT=0

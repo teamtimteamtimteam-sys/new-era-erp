@@ -1774,6 +1774,8 @@ const en = {
     },
     permissions: {
         title: 'Permissions',
+        // TABLE-EXPORT-3b(Tim 2026-10-25 Q2):角色的码清单导出里「已授予」那一列
+        grantedCol: 'Granted',
         // ★ MANUAL-FIX-1 F:角色那两屏编辑的是【一个角色】—— 它的码、双语名、
         //   描述与启用位 —— 而它们此前都顶着 `title`(「Permissions」)。
         //   那是【设置区】的名字,四张列表/速查屏用它是对的;这两张不是。
@@ -6792,6 +6794,8 @@ const en = {
             'This batch is against a purchase order, and prepayments sit behind the purchasing and finance modules, which you do not have. Whether any prepayment has been applied to this batch is not shown here. That is a permission answer, not a batch with no prepayments against it.',
         applicableAmount: 'Applicable',
         appliedHistory: 'Prepayments applied',
+        // TABLE-EXPORT-3b:PrepaymentPanel 改成 DataTable 后的三列表头
+        appliedHistoryCol: { amount: 'Amount', at: 'Applied at', journal: 'Journal entry' },
         daysOffsetHint: 'Days after the order date',
         pctUnder: 'Instalments total {total}% — the remainder is not scheduled.',
         approvalOn: 'Approval status:',

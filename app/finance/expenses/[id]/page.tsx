@@ -345,7 +345,7 @@ export default async function ExpenseDetailPage({
             {/* EXPENSE-MULTILINE-1:这张单的行 */}
             <h2 className="mb-3">{t('expense.detailLines')}</h2>
             <div className="mb-6">
-                <ExpenseLinesTable rows={lineRows} currency={String(expense.currency)} />
+                <ExpenseLinesTable rows={lineRows} currency={String(expense.currency)} expenseCode={String(expense.code)} />
             </div>
 
             {/* EQP-1c-b(P5):设备侧的冲抵门。只在【这张费用单确实挂在一条采购单行上】

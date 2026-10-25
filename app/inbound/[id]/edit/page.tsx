@@ -440,6 +440,7 @@ export default async function EditInboundPage({
             id: h.id,
             amount_base: h.amount_base,
             created_at_display: formatAuditStamp(h.created_at),
+            created_at: h.created_at,
             journal_id: h.journal_entries?.id ?? null,
             journal_code: h.journal_entries?.code ?? null,
         }))
@@ -583,6 +584,7 @@ export default async function EditInboundPage({
         priced_date: formatAuditStamp(h.created_at) ?? null,
         notes: h.notes,
         created_at_display: formatAuditStamp(h.created_at),
+        created_at: h.created_at,
     }))
 
     // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致。
@@ -844,6 +846,7 @@ export default async function EditInboundPage({
             {/* 化验(cut 5b):含量从哪来 → 化验 → 价格往哪去,顺序读下来是一条线 */}
             <AssaySection
                 batchId={batch.id}
+                batchCode={batch.code}
                 rows={assayRows}
                 missingMetals={assayGap?.missing_metals ?? []}
                 hasRequirement={hasAssayRequirement}
@@ -868,6 +871,7 @@ export default async function EditInboundPage({
             />
 
             <PricingPanel
+                batchCode={batch.code}
                 openRequestLabel={openRequestLabel}
                 requestPanel={
                     <ReceiptPriceRequestPanel
@@ -915,7 +919,7 @@ export default async function EditInboundPage({
             <LabelPrintHistory kind="inbound_batch" id={batch.id} locale={locale} />
 
             {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
-            <PrepaymentPanel canEdit={canEditGate} batchId={batch.id} applicable={applicable} history={prepaymentHistory}
+            <PrepaymentPanel canEdit={canEditGate} batchId={batch.id} batchCode={batch.code} applicable={applicable} history={prepaymentHistory}
                 baseCurrency={baseCurrency} canPrices={showPurchasePrices}
                 /* 挂着单、却看不到采购侧 —— 那时这一块要【说出来】,不是消失。 */
                 restricted={!!batch.purchase_order_id && !(canViewPurchasing && canSeeFinance)} />

@@ -1,0 +1,2 @@
+npx tsc --noEmit --incremental false -p .  25.41s user 0.79s system 152% cpu 17.209 total
+TSC_OWN_EXIT=0

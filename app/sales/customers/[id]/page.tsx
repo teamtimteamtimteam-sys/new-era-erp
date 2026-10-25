@@ -156,6 +156,9 @@ export default async function CustomerStatusPage({
         saleDate: formatDate(it.sale_date, locale),
         openBase: formatAmount(it.open_base, baseCurrency),
         daysOutstanding: it.days_outstanding,
+        // TABLE-EXPORT-3b:导出读的原始值
+        saleDateRaw: it.sale_date,
+        openBaseRaw: Number(it.open_base),
     }))
 
     // STATEMENT-1:这个客户【已经出过】的对账单。与明细同一道门(module.finance.view)——
@@ -317,6 +320,7 @@ export default async function CustomerStatusPage({
                         rows={openItemRows}
                         baseCurrency={baseCurrency}
                         empty={t('customers.status.noOpenItems')}
+                        customerCode={cust.code}
                     />
                 )}
             </section>

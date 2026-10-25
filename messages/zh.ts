@@ -1702,6 +1702,8 @@ const zh = {
     },
     permissions: {
         title: '权限管理',
+        // TABLE-EXPORT-3b(Tim 2026-10-25 Q2):角色的码清单导出里「已授予」那一列
+        grantedCol: '已授予',
         // ★ MANUAL-FIX-1 F:见 en.ts 同处。角色那两屏编辑的是一个【角色】。
         roleTitle: '角色',
         denied: '你没有管理权限的权限。',
@@ -6611,6 +6613,8 @@ const zh = {
             '这批货挂着一张采购单,而预付抵扣在采购与财务两个模块那道门后面,你没有那个权限 —— 这里不显示这批货有没有抵扣过预付。这是一句【权限答复】,不是「这批货没有抵扣过预付」。',
         applicableAmount: '可抵扣',
         appliedHistory: '已抵扣记录',
+        // TABLE-EXPORT-3b:PrepaymentPanel 改成 DataTable 后的三列表头
+        appliedHistoryCol: { amount: '金额', at: '抵扣时间', journal: '分录' },
         daysOffsetHint: '自下单日起的天数',
         pctUnder: '各期合计 {total}%,余下部分未列入计划。',
         approvalOn: '审批状态:',

@@ -144,6 +144,15 @@ export default async function InboundDrillPage({
                     : canPrices ? '—' : null,
             ageDays: days !== null && tone !== null ? String(days) : null,
             ageToneClass: tone !== null ? AGING_TONE_CLASSES[tone] : '',
+            // TABLE-EXPORT-3b:导出读的原始值
+            quantity: Number(r.quantity),
+            remaining: Number(r.remaining_qty),
+            unit: r.unit,
+            arrivalDateRaw: r.arrival_date,
+            unitPrice: v?.landed_unit_cost ?? null,
+            unitPriceAbsenceKind: v?.unpriced ? 'unpriced' : 'priceRestricted',
+            batchValue: v?.landed_value_base ?? null,
+            ageDaysRaw: days,
         }
     })
 
@@ -173,7 +182,7 @@ export default async function InboundDrillPage({
                 </p>
             }
         >
-            <InboundBatchesTable rows={tableRows} />
+            <InboundBatchesTable rows={tableRows} materialName={matRes.data.name ?? ''} />
         </ListPage>
     )
 }

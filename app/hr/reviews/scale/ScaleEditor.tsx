@@ -17,6 +17,7 @@ import { useLocale, useTranslations } from '@/lib/i18n/client'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { saveRatingScale } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { xText, xInt } from '@/lib/export/cells'
 
 export type ScaleRow = {
     code: string
@@ -78,12 +79,14 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             priority: true,
             className: 'text-gray-500',
             render: (r) => r.code,
+            exportAs: (r) => xText(r.code),
         },
         {
             key: 'name',
             header: t('reviews.scaleName'),
             priority: true,
             render: (r) => (locale === 'zh' ? r.name_zh : r.name_en),
+            exportAs: (r) => xText(locale === 'zh' ? r.name_zh : r.name_en),
             edit: (d, set) => (
                 <>
                     <input value={d.name_en} className={inp + ' mb-1'} aria-label={t('permissions.nameEn')}
@@ -98,6 +101,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             header: t('reviews.scaleDescription'),
             className: 'text-xs text-gray-600',
             render: (r) => (locale === 'zh' ? r.description_zh : r.description_en) ?? '—',
+            exportAs: (r) => xText(locale === 'zh' ? r.description_zh : r.description_en),
             edit: (d, set) => (
                 <>
                     <input value={d.description_en ?? ''} className={inp + ' mb-1'} aria-label={t('reviews.scaleDescription') + ' (EN)'}
@@ -112,6 +116,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             header: t('reviews.scaleSort'),
             align: 'right',
             render: (r) => r.sort_order,
+            exportAs: (r) => xInt(r.sort_order),
             edit: (d, set) => (
                 <input type="number" value={d.sort_order} className={inp + ' text-right tabular-nums'} aria-label={t('reviews.scaleSort')}
                        onChange={(e) => set({ sort_order: Number(e.target.value) })} />
@@ -121,6 +126,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             key: 'active',
             header: t('reviews.scaleActive'),
             render: (r) => yesNo(r.is_active),
+            exportAs: (r) => xText(yesNo(r.is_active)),
             edit: (d, set) => (
                 <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.is_active} aria-label={t('reviews.scaleActive')}
                        onChange={(e) => set({ is_active: e.target.checked })} />
@@ -130,6 +136,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             key: 'probationPass',
             header: t('reviews.scaleProbationPass'),
             render: (r) => yesNo(r.is_probation_pass),
+            exportAs: (r) => xText(yesNo(r.is_probation_pass)),
             edit: (d, set) => (
                 <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.is_probation_pass} aria-label={t('reviews.scaleProbationPass')}
                        onChange={(e) => set({ is_probation_pass: e.target.checked })} />
@@ -151,6 +158,8 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
                 columns={columns}
                 rowKey={(r) => r.code}
                 phone={{ mode: 'columns' }}
+                // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的档位
+                exportSpec={{ name: 'hr-review-scale', title: t('reviews.scaleTitle') }}
                 toDraft={(r) => ({ ...r })}
                 // ★ 空态归【表】说,不归外壳 —— 因为把空态变成非空的那张卡
                 //   就在这张表下面,而外壳的 empty 分支会把它一起藏掉。

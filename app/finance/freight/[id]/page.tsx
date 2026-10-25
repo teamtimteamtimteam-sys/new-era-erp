@@ -97,6 +97,10 @@ export default async function FreightDetailPage({ params, searchParams }: {
         basisQtyText: a.basis_qty === null ? t('finance.freight.basisQtyStated') : String(a.basis_qty),
         amountText: formatAmount(a.amount_base, baseCurrency),
         inStockText: `${(Number(a.in_stock_ratio) * 100).toFixed(1)}%`,
+        // TABLE-EXPORT-3b:导出读原始值
+        basisQty: a.basis_qty === null ? null : Number(a.basis_qty),
+        amountBase: Number(a.amount_base),
+        inStockPct: Number(a.in_stock_ratio) * 100,
     }))
 
     // 抬头字段逐页不同 —— RecordHeader 只管盒子,不认识它们(见组件抬头)。
@@ -189,7 +193,7 @@ export default async function FreightDetailPage({ params, searchParams }: {
                 <>
                     <h2 className="mb-2">{t('finance.freight.allocTitle')}</h2>
                     <p className="text-sm text-[color:var(--brand-muted-text)] mb-3 max-w-3xl">{t('finance.freight.allocHint')}</p>
-                    <FreightAllocationsTable rows={tableRows} />
+                    <FreightAllocationsTable rows={tableRows} docCode={d.code} baseCurrency={baseCurrency} />
                 </>
             )}
 

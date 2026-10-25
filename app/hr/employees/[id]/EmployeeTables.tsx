@@ -20,10 +20,14 @@
 //                          「在 submitted 里躺三周的评估就是一件待办」。
 //   薪资   期间 · 实发   —— 与 /hr/payroll/[id] 的明细行同一条:那个月实际拿到多少。
 // 三条都是把【列表页已经拍过板的那一列】搬到这一个人身上,不是重新拍板。
+//
+// ★ TABLE-EXPORT-3b:三张表各一对导出(About 表上写明是哪一名员工)。链接格导出它的字;日期写真日期(加了原始字段);
+//   到期日旁那枚「已过期」徽章不进导出(docs/table-export.md「一格放不下」:徽章不随它所概括的那个值导出 —— 到期日本身就在)。
 import * as React from 'react'
 import Link from 'next/link'
 import { MaskedValue } from '@/app/components/MaskedValue'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xMoney, xRestricted, xText } from '@/lib/export/cells'
 import { useTranslations } from '@/lib/i18n/client'
 import { statusPillClass } from '../../reviews/reviewShared'
 
@@ -38,11 +42,16 @@ export type TrainingRow = {
     /** 已过期 —— 徽章挂在【到期日】那一格里,也就是手机上留下的那一列。 */
     expired: boolean
     provider: string
+    /** TABLE-EXPORT-3b:导出用的原始值 —— 日期 YYYY-MM-DD,缺就是 null(不是屏幕上的「—」)。 */
+    completedYmd: string | null
+    expiryYmd: string | null
+    categoryRaw: string | null
+    providerRaw: string | null
 }
 
-export function EmployeeTrainingTable({ rows }: { rows: readonly TrainingRow[] }) {
+export function EmployeeTrainingTable({ rows, employee }: { rows: readonly TrainingRow[]; employee: string }) {
     const t = useTranslations()
-    const columns: Column<TrainingRow>[] = [
+    const columns: ExportableColumn<TrainingRow>[] = [
         {
             key: 'name',
             header: t('hr.colTrainingName'),
@@ -52,9 +61,10 @@ export function EmployeeTrainingTable({ rows }: { rows: readonly TrainingRow[] }
                     {r.name}
                 </Link>
             ),
+            exportAs: (r) => xText(r.name),
         },
-        { key: 'category', header: t('hr.colCategory'), render: (r) => r.categoryText },
-        { key: 'completed', header: t('hr.colCompletedDate'), render: (r) => r.completedDate },
+        { key: 'category', header: t('hr.colCategory'), render: (r) => r.categoryText, exportAs: (r) => xText(r.categoryRaw === null ? null : r.categoryText) },
+        { key: 'completed', header: t('hr.colCompletedDate'), render: (r) => r.completedDate, exportAs: (r) => xDate(r.completedYmd) },
         {
             key: 'expiry',
             header: t('hr.colExpiryDate'),
@@ -70,8 +80,9 @@ export function EmployeeTrainingTable({ rows }: { rows: readonly TrainingRow[] }
                     )}
                 </>
             ),
+            exportAs: (r) => xDate(r.expiryYmd),
         },
-        { key: 'provider', header: t('hr.colProvider'), render: (r) => r.provider },
+        { key: 'provider', header: t('hr.colProvider'), render: (r) => r.provider, exportAs: (r) => xText(r.providerRaw) },
     ]
     return (
         <DataTable
@@ -80,6 +91,7 @@ export function EmployeeTrainingTable({ rows }: { rows: readonly TrainingRow[] }
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('hr.trainingEmpty')}
+            exportSpec={{ name: 'hr-employee-training', title: t('hr.trainingTitle'), aboutExtra: [[t('hr.colEmployee'), employee]] }}
         />
     )
 }
@@ -96,9 +108,10 @@ export type EmployeeReviewRow = {
     ratingText: string
 }
 
-export function EmployeeReviewsTable({ rows }: { rows: readonly EmployeeReviewRow[] }) {
+export function EmployeeReviewsTable({ rows, employee }: { rows: readonly EmployeeReviewRow[]; employee: string }) {
     const t = useTranslations()
-    const columns: Column<EmployeeReviewRow>[] = [
+    // 期间那一格本来就是由两个原始日期拼成的「起 → 止」—— 导出照写这串字(docs/table-export.md:日期区间写成文字)。
+    const columns: ExportableColumn<EmployeeReviewRow>[] = [
         {
             key: 'type',
             header: t('reviews.type'),
@@ -108,13 +121,15 @@ export function EmployeeReviewsTable({ rows }: { rows: readonly EmployeeReviewRo
                     {r.typeText}
                 </Link>
             ),
+            exportAs: (r) => xText(r.typeText),
         },
-        { key: 'cycle', header: t('reviews.cycle'), render: (r) => r.cycleName },
+        { key: 'cycle', header: t('reviews.cycle'), render: (r) => r.cycleName, exportAs: (r) => xText(r.cycleName) },
         {
             key: 'period',
             header: t('reviews.period'),
             className: 'whitespace-nowrap text-xs',
             render: (r) => r.periodText,
+            exportAs: (r) => xText(r.periodText),
         },
         {
             key: 'status',
@@ -126,8 +141,9 @@ export function EmployeeReviewsTable({ rows }: { rows: readonly EmployeeReviewRo
                     {r.statusText}
                 </span>
             ),
+            exportAs: (r) => xText(r.statusText),
         },
-        { key: 'rating', header: t('reviews.rating'), render: (r) => r.ratingText },
+        { key: 'rating', header: t('reviews.rating'), render: (r) => r.ratingText, exportAs: (r) => xText(r.ratingText) },
     ]
     return (
         <DataTable
@@ -136,6 +152,7 @@ export function EmployeeReviewsTable({ rows }: { rows: readonly EmployeeReviewRo
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('reviews.noneForEmployee')}
+            exportSpec={{ name: 'hr-employee-reviews', title: t('reviews.sectionTitle'), aboutExtra: [[t('hr.colEmployee'), employee]] }}
         />
     )
 }
@@ -154,12 +171,22 @@ export type EmployeePayRow = {
     netText: string | null
     posted: boolean
     statusText: string
+    /** TABLE-EXPORT-3b:导出用的原始值。期间写 YYYY-MM(屏幕上是格式化过的月份);五个金额写原数(*Text 为 null 时导出 "Restricted")。 */
+    periodMonth: string | null
+    gross: number | null
+    employerCpf: number | null
+    employeeCpf: number | null
+    deductions: number | null
+    net: number | null
 }
 
-export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[] }) {
+export function EmployeePayrollTable({ rows, employee }: { rows: readonly EmployeePayRow[]; employee: string }) {
     const t = useTranslations()
     const paid = (text: string | null) => (text === null ? <MaskedValue value={null} canView={false} /> : text)
-    const columns: Column<EmployeePayRow>[] = [
+    // ★ TABLE-EXPORT-3b:「受限」与屏幕同一条判据 —— *Text 为 null(页面 payText:无 data.view_pay、值为空,本人除外)→ "Restricted"。
+    //   币种写在期间那一格里(每行各按各的期间币种)→ 金额 xMoney(v, 该行币种)。期间那一格装着 月份 + 币种:导出写月份(主值)。
+    const paidX = (text: string | null, v: number | null, ccy: string) => (text === null ? xRestricted : xMoney(v, ccy || null))
+    const columns: ExportableColumn<EmployeePayRow>[] = [
         {
             key: 'period',
             header: t('hr.colPeriod'),
@@ -176,11 +203,12 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
                     <span className="text-gray-400 ml-2">{r.currency}</span>
                 </>
             ),
+            exportAs: (r) => xText(r.periodMonth ? r.periodMonth.slice(0, 7) : null),
         },
-        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => paid(r.grossText) },
-        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => paid(r.employerCpfText) },
-        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => paid(r.employeeCpfText) },
-        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => paid(r.deductionsText) },
+        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => paid(r.grossText), exportAs: (r) => paidX(r.grossText, r.gross, r.currency) },
+        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => paid(r.employerCpfText), exportAs: (r) => paidX(r.employerCpfText, r.employerCpf, r.currency) },
+        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => paid(r.employeeCpfText), exportAs: (r) => paidX(r.employeeCpfText, r.employeeCpf, r.currency) },
+        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => paid(r.deductionsText), exportAs: (r) => paidX(r.deductionsText, r.deductions, r.currency) },
         {
             key: 'net',
             header: t('hr.colNet'),
@@ -189,6 +217,7 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
             priority: true,
             className: 'font-medium',
             render: (r) => paid(r.netText),
+            exportAs: (r) => paidX(r.netText, r.net, r.currency),
         },
         {
             key: 'status',
@@ -203,6 +232,7 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
                     {r.statusText}
                 </span>
             ),
+            exportAs: (r) => xText(r.statusText),
         },
     ]
     return (
@@ -212,6 +242,7 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('hr.payrollEmpty')}
+            exportSpec={{ name: 'hr-employee-pay-history', title: t('hr.payrollTitle'), aboutExtra: [[t('hr.colEmployee'), employee]] }}
         />
     )
 }

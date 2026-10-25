@@ -15,7 +15,8 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xNum, xText } from '@/lib/export/cells'
 import {
     addOvertimeLine, deleteOvertimeLine, submitOvertimeBatch, withdrawOvertimeBatch,
     discardOvertimeBatch, reverseOvertimeBatch, decideOvertimeBatch,
@@ -72,8 +73,12 @@ export default function BatchDetail({
         { all: 0 } as Record<string, number>,
     )
 
-    const columns: Column<LineRow>[] = [
-        { key: 'date', header: t('overtime.colDate'), priority: true, render: (r) => r.workDateLabel },
+    // ★ TABLE-EXPORT-3b:一对导出,导出这一批的【全部】行(含作废行),与屏幕一致。
+    //   作废行在屏幕上是小时被划掉 + 动作列里一枚「作废」—— 动作列不导出(控件列),所以那个记号挂到员工那一格上:
+    //   「姓名 (作废)」(与 FormulasTable 的 rowInactive 同一个做法),作废行在文件里分得出来。
+    //   员工那一格叠着姓名与工号 —— 导出写姓名(主值)。日期写 workDate(YYYY-MM-DD),小时写原数。
+    const columns: ExportableColumn<LineRow>[] = [
+        { key: 'date', header: t('overtime.colDate'), priority: true, render: (r) => r.workDateLabel, exportAs: (r) => xDate(r.workDate) },
         {
             key: 'employee', header: t('overtime.colEmployee'), priority: true,
             render: (r) => (
@@ -82,15 +87,17 @@ export default function BatchDetail({
                     <div className="text-xs text-gray-500">{r.employeeCode}</div>
                 </>
             ),
+            exportAs: (r) => xText(r.voided ? `${r.employeeName} (${t('overtime.lineVoided')})` : r.employeeName),
         },
-        { key: 'dayKind', header: t('overtime.colDayKind'), render: (r) => t('overtime.dayKind_' + r.dayKind) },
+        { key: 'dayKind', header: t('overtime.colDayKind'), render: (r) => t('overtime.dayKind_' + r.dayKind), exportAs: (r) => xText(t('overtime.dayKind_' + r.dayKind)) },
         {
             key: 'hours', header: t('overtime.colHours'), align: 'right', priority: true,
             render: (r) => <span className={r.voided ? 'line-through text-gray-400' : ''}>{r.hours.toFixed(2)}</span>,
+            exportAs: (r) => xNum(r.hours, 'qty'),
         },
-        { key: 'note', header: t('overtime.colNote'), render: (r) => <span className="text-gray-600">{r.note ?? '—'}</span> },
+        { key: 'note', header: t('overtime.colNote'), render: (r) => <span className="text-gray-600">{r.note ?? '—'}</span>, exportAs: (r) => xText(r.note) },
         {
-            key: 'actions', header: '', align: 'right',
+            key: 'actions', header: '', align: 'right', exportAs: false,
             render: (r) => editable ? (
                 <PermissionGate code="action.overtime_enter" allowed={canEnter} inline>
                     <Button variant="reversal" size="xs" type="button" disabled={pending}
@@ -121,6 +128,7 @@ export default function BatchDetail({
                 phone={{ mode: 'columns' }}
                 className="mb-2"
                 empty={t('overtime.noLines')}
+                exportSpec={{ name: 'hr-overtime-batch-lines', title: t('overtime.title'), aboutExtra: [[t('overtime.colBatch'), label]] }}
             />
             <p className="mb-5 text-sm text-[color:var(--brand-muted-text)]">
                 {t('overtime.totals', {

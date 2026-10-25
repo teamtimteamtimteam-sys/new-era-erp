@@ -144,6 +144,8 @@ export default async function PaymentRequestDetailPage({
             docCode: codeOf.get(docId) ?? (docId || '—'),
             docHref: href,
             amountText: formatMoneyBare(Number(a.amount_doc ?? 0), '列头 核销额(单据币种)'),
+            // TABLE-EXPORT-3b:导出读原始值 —— 与屏幕上那个数同一个来源
+            amountDoc: Number(a.amount_doc ?? 0),
         }
     })
 
@@ -300,7 +302,7 @@ export default async function PaymentRequestDetailPage({
             {r.kind === 'payment_out' && (
                 <>
                     <h2 className="mb-2">{t('finance.paymentRequests.allocTitle')}</h2>
-                    <RequestAllocationsTable rows={allocRows} empty={t('finance.paymentRequests.allocEmpty')} />
+                    <RequestAllocationsTable rows={allocRows} empty={t('finance.paymentRequests.allocEmpty')} requestCode={r.code} />
                 </>
             )}
 

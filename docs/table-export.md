@@ -133,6 +133,21 @@ TABLE-EXPORT-1's Q2–Q13 still apply to every table TABLE-EXPORT-3 converts, ex
 - **D (change-history, Q7) was not built:** reading through `change_log_rows` measured about 18–28 ms a row (7 days = 31,414 rows ≈ 10–12 min);
   stopped as Q7 directs — `docs/known-issues.md` § CHANGE-HISTORY-NO-EXPORT.
 
+## The rulings — Tim 2026-10-25 (TABLE-EXPORT-3b Step 0)
+
+TABLE-EXPORT-1's Q2–Q13 and TABLE-EXPORT-3's Q1, Q6 and Q8 still apply. These four are new; the survey behind them is `docs/surveys/TABLE-EXPORT-3b/step0.md`.
+
+| # | Ruling |
+|---|---|
+| Q1 | Total rows inside detail tables (credit note, journal, ledger, payment allocations, PO lines net / tax / gross, payroll lines) are exported as the last rows, exactly as on screen. They are the document's own figures. A masked total writes "Restricted". TABLE-EXPORT-1 Q12 ("no totals row") still governs ordinary lists. |
+| Q2 | The permission matrix exports the matrix plus a second export pair listing every card code (data.* and action.*) with "Granted yes/no". |
+| Q3 | CalculatorForm becomes PERMANENT with the reason "calculator; nothing is saved". TemplateForm (purchasing payment-term templates) and FormulaForm get exports on their EDIT pages only, writing the saved values, like the 8 editable tables in Q8; their "new" pages stay entry forms with no export. FormulaForm's masked terms write "Restricted". The remaining 14 entry forms become PERMANENT as ruled. |
+| Q4 | Not split. Safeguard: if midway it will not fit this session, finish the module in hand, queue the rest as TABLE-EXPORT-3b-2 with the rulings copied verbatim, run the full verify chain on what is done, push, and say so plainly in the report. |
+| Accepted | Tim accepted four decisions from the Step 0 report: the export path is built into `EditableTable` and the build check; `SettlementHistoryTable` and `MovementTimelineTable` stay in 3c as shared components; `PrepaymentPanel` is rebuilt as a standard table; an employee's pay history is sorted by period, newest first. |
+
+**A note on Q1, measured, not re-asked:** Q1's list names six tables. The Step 0 survey found seven: the bank statement lines table also pushes a total row
+(`app/finance/bank/statements/[id]/page.tsx:182`). It follows Q1's general rule, "total rows inside detail tables", and is exported the same way.
+
 ## How it works (where each ruling lives in code)
 
 | Piece | File | Rulings |

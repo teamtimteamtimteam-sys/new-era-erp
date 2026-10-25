@@ -16,8 +16,9 @@
 // 【行数据在服务端压平】三层嵌套(output_batches → materials / storage_locations
 // / sales_order_lines)在服务端摊平成字符串,一个 Map 都不过界(CONV-1 §①)。
 import * as React from 'react'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xInt, xNum, xText } from '@/lib/export/cells'
 
 export type ShipmentLineRow = {
     id: string
@@ -33,16 +34,26 @@ export type ShipmentLineRow = {
     dgMissing: boolean
     hsCode: string
     quarantineText: string
+    // ── TABLE-EXPORT-3b:导出读的原始值 ──
+    lineNoRaw: number | null
+    qty: number | null
+    unit: string | null
 }
 
-export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLineRow[] }) {
+export default function ShipmentLinesTable({ rows, shipmentCode }: { rows: readonly ShipmentLineRow[]
+    /** TABLE-EXPORT-3b:导出的 About 表说明这份文件出自哪张发货单 */
+    shipmentCode: string }) {
     const t = useTranslations()
 
-    const columns: Column<ShipmentLineRow>[] = [
+    // 编码 + 名称那两格:屏幕是「CODE 名称」并排 —— 导出同一串字
+    const codeName = (code: string, name: string) => xText(code ? `${code} ${name}`.trim() : null)
+
+    const columns: ExportableColumn<ShipmentLineRow>[] = [
         {
             key: 'lineNo',
             header: t('sales.shipDetail.colLineNo'),
             render: (r) => r.lineNo,
+            exportAs: (r) => xInt(r.lineNoRaw),
         },
         {
             key: 'material',
@@ -57,11 +68,13 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
                 ) : (
                     '—'
                 ),
+            exportAs: (r) => codeName(r.materialCode, r.materialName),
         },
         {
             key: 'batch',
             header: t('sales.shipDetail.colBatch'),
             render: (r) => r.batchCode,
+            exportAs: (r) => xText(r.batchCode === '—' ? null : r.batchCode),
         },
         {
             key: 'location',
@@ -74,6 +87,7 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
                 ) : (
                     '—'
                 ),
+            exportAs: (r) => codeName(r.locationCode, r.locationName),
         },
         {
             key: 'dg',
@@ -87,6 +101,15 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
                     {!r.dgText && !r.dgMissing && !r.hsCode && !r.quarantineText && '—'}
                 </span>
             ),
+            // 这一格最多叠三行(UN 编号与类别 / 没选编号的提示 · HS 编码 · 隔离状态)—— 导出屏幕上那几行字,以「 · 」相连
+            exportAs: (r) => {
+                const parts = [
+                    r.dgText || (r.dgMissing ? t('sales.shipDetail.dgMissing') : ''),
+                    r.hsCode ? t('sales.shipDetail.hs', { code: r.hsCode }) : '',
+                    r.quarantineText,
+                ].filter(Boolean)
+                return xText(parts.length ? parts.join(' · ') : null)
+            },
         },
         {
             key: 'qty',
@@ -95,6 +118,7 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
             // ★ 这张表存在的理由:发了多少。
             priority: true,
             render: (r) => r.qtyText,
+            exportAs: (r) => xNum(r.qty, 'qty', r.unit),
         },
     ]
 
@@ -107,6 +131,8 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
             // 具名的空状态 —— 一张没有行的发货单在结构上不该存在,所以这句话
             // 本身就是一个信号,不是"暂无数据"。
             empty={t('sales.shipDetail.noLines')}
+            exportSpec={{ name: 'sales-shipment-lines', title: t('sales.shipDetail.linesTitle'),
+                          aboutExtra: [[t('sales.shipDetail.title'), shipmentCode]] }}
         />
     )
 }

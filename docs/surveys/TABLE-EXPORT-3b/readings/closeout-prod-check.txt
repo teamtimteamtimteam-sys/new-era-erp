@@ -1,0 +1,9 @@
+STEP|base https://new-era-erp.vercel.app
+PASS|/finance/pnl?date_from=2026-01-01&date_to=2027-12-31 → HTTP 200; screen net profit -44,718.53
+PASS|the P&L export bar is on the production page (= 3a is deployed)
+PASS|P&L Excel downloaded: finance-profit-and-loss_2026-10-24_1628.xlsx
+PASS|Excel net profit -44718.53 (number) = screen -44,718.53
+PASS|/finance/payroll-payments as a reader without data.view_pay → HTTP 200; 1 lines, net pay ["Restricted"]
+STEP|done
+TE3A_CLOSEOUT_EXIT=0
+X_OWN_EXIT=0

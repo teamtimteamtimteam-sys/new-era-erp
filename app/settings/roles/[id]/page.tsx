@@ -94,6 +94,7 @@ export default async function RoleDetailPage({
                 roleId={role.id}
                 permissions={(mustRows(permRes)) as PermissionRow[]}
                 initial={(mustRows(grantRes)).map((g) => g.permission_code)}
+                roleLabel={`${role.code} · ${role.name_en}`}
             />
             </EndedFieldset>
 

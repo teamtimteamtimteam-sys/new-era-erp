@@ -24,6 +24,8 @@ export default async function EditTemplatePage({
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
     const canEditGate = await can('module.purchasing.edit')
+    // TABLE-EXPORT-3b:导出那一格的「受限」判据 —— 与 payment_term_template_lines_masked 遮定额的同一个码
+    const canViewPrices = await can('data.view_prices')
 
     const { id } = await params
     const supabase = await createClient()
@@ -72,7 +74,7 @@ export default async function EditTemplatePage({
                 {t('purchasing.templatesTitle')}
                 <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{tplRes.data.name}</span>
             </h1>
-            <TemplateForm canEdit={canEditGate} template={{ ...tplRes.data, lines }} currencies={currencies} triggerEvents={triggerEvents} />
+            <TemplateForm canEdit={canEditGate} canViewPrices={canViewPrices} template={{ ...tplRes.data, lines }} currencies={currencies} triggerEvents={triggerEvents} />
         </div>
     )
 }

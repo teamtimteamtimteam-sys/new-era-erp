@@ -20,7 +20,8 @@
 // 员工链接过界的是 code / name / href 三个字符串。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMoney, xNum, xRestricted, xText, type ExportCell } from '@/lib/export/cells'
 import { useTranslations } from '@/lib/i18n/client'
 import { Refusal } from '@/app/components/ui/refusal'
 
@@ -45,14 +46,28 @@ export type PayrollLineRow = {
     restricted?: boolean
     /** 合计行右边那句「共 N 行」。 */
     totalNote?: string
+    /** TABLE-EXPORT-3b:导出用的原始值(屏幕仍读上面那几串 *Text)。受限时为 null,导出按 restricted 写 "Restricted"。 */
+    gross: number | null
+    employeeCpf: number | null
+    employerCpf: number | null
+    deductions: number | null
+    net: number | null
+    /** null = 屏幕上的「—」(这一行没有挂员工) */
+    otHours: number | null
 }
 
-export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLineRow[] }) {
+export default function PayrollLinesTable({ rows, about }: { rows: readonly PayrollLineRow[]; about: ReadonlyArray<[string, string]> }) {
     const t = useTranslations()
     const money = (r: PayrollLineRow, text: string): React.ReactNode =>
         r.restricted ? <Refusal>{t('common.restricted')}</Refusal> : text
+    // ★ TABLE-EXPORT-3b:一对导出。「受限」与屏幕同一条判据(r.restricted:payroll_lines_masked / payroll_periods_masked
+    //   对不持 data.view_pay 的读者把金额置空,本人那一行除外)→ "Restricted"。币种写在页头(期间币种),
+    //   格子与列头都是裸数 → xMoney(v);币种与汇率写进 About 表。
+    //   合计行(Tim 2026-10-25 Q1)照屏幕导出在最后一行:员工那一格写「合计 共 N 行」(屏幕上那两段字),受限时金额写 "Restricted"。
+    //   员工那一格是链接(工号 + 姓名)→ 导出写那段链接文字。
+    const moneyX = (r: PayrollLineRow, v: number | null): ExportCell => (r.restricted ? xRestricted : xMoney(v))
 
-    const columns: Column<PayrollLineRow>[] = [
+    const columns: ExportableColumn<PayrollLineRow>[] = [
         {
             key: 'employee',
             header: t('hr.colEmployee'),
@@ -72,13 +87,17 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
                 ) : (
                     '—'
                 ),
+            exportAs: (r) => xText(
+                r.isTotal ? (r.totalNote ? `${r.employeeName} ${r.totalNote}` : r.employeeName)
+                    : r.employeeHref ? `${r.employeeCode} ${r.employeeName}`.trim() : null,
+            ),
         },
-        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => money(r, r.grossText) },
-        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => money(r, r.employeeCpfText) },
-        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => money(r, r.employerCpfText) },
-        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => money(r, r.deductionsText) },
+        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => money(r, r.grossText), exportAs: (r) => moneyX(r, r.gross) },
+        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => money(r, r.employeeCpfText), exportAs: (r) => moneyX(r, r.employeeCpf) },
+        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => money(r, r.employerCpfText), exportAs: (r) => moneyX(r, r.employerCpf) },
+        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => money(r, r.deductionsText), exportAs: (r) => moneyX(r, r.deductions) },
         // ★ OVERTIME-1(Tim Q1):批过的加班小时,只读 —— 服务商拿它乘自己的费率;这里不乘。
-        { key: 'otHours', header: t('hr.colOtHours'), align: 'right', render: (r) => r.otHoursText },
+        { key: 'otHours', header: t('hr.colOtHours'), align: 'right', render: (r) => r.otHoursText, exportAs: (r) => xNum(r.otHours, 'qty') },
         {
             key: 'net',
             header: t('hr.colNet'),
@@ -87,6 +106,7 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
             priority: true,
             className: 'font-medium',
             render: (r) => money(r, r.netText),
+            exportAs: (r) => moneyX(r, r.net),
         },
     ]
 
@@ -98,6 +118,7 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'font-bold bg-[color:var(--brand-muted)]' : undefined)}
             empty={t('hr.errors.NO_LINES')}
+            exportSpec={{ name: 'hr-payroll-period-lines', title: t('hr.payrollDetailTitle'), aboutExtra: about }}
         />
     )
 }

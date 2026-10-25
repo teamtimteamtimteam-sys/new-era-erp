@@ -219,6 +219,9 @@ export default async function PaymentDetailPage({
             docHref: doc.href,
             allocatedBaseText: formatMoneyBare(a.allocated_base, '列头 已解除应付/应收 ({baseCurrency})'),
             allocatedPayText: formatMoneyBare(a.allocated_pay, '列头 消耗款额 ({payment.currency})'),
+            // TABLE-EXPORT-3b:导出读原始值
+            allocatedBase: a.allocated_base,
+            allocatedPay: a.allocated_pay,
         }
     })
 
@@ -230,6 +233,8 @@ export default async function PaymentDetailPage({
             docHref: null,
             allocatedBaseText: formatMoneyBare(allocTotal, '列头 已解除应付/应收 ({baseCurrency})'),
             allocatedPayText: formatMoneyBare(consumedPay, '列头 消耗款额 ({payment.currency})'),
+            allocatedBase: allocTotal,
+            allocatedPay: consumedPay,
             isTotal: true,
         })
     }
@@ -355,6 +360,7 @@ export default async function PaymentDetailPage({
                 baseHeader={`${t('finance.totalAllocated')} (${baseCurrency})`}
                 payHeader={`${t('finance.consumedPay')} (${payment.currency})`}
                 empty={t('finance.unallocated')}
+                paymentCode={payment.code}
             />
 
             {/* 未冲销余额(挂账)*/}

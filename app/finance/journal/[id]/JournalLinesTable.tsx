@@ -22,7 +22,8 @@
 // 合计已经有一个能用的表达方式,再加一个只会让两种写法同时活着。
 // (这一条是 Tim 在本刀的裁定,连数字一起记在 docs/detail-page-template.md。)
 import * as React from 'react'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMoney, xRestricted, xText } from '@/lib/export/cells'
 import { useTranslations } from '@/lib/i18n/client'
 import { Refusal } from '@/app/components/ui/refusal'
 
@@ -34,6 +35,15 @@ export type JournalLineRow = {
     creditText: string
     /** 原币那一格:与借/贷【不是同一个币种】,所以它自带前缀,见服务端注释。 */
     ccyText: string
+    /**
+     * TABLE-EXPORT-3b:导出读的原始值(屏幕仍画上面那几串 *Text)。
+     * debit / credit:屏幕画了数的那一格才有(与 debitText / creditText 同一条判据),否则 null。
+     * fxCurrency:原币不是本位币时的那个币种,否则 null;fxAmount:原币金额(受限时 null)。
+     */
+    debit: number | null
+    credit: number | null
+    fxCurrency: string | null
+    fxAmount: number | null
     memo: string
     /** 合计行。见抬头。 */
     isTotal?: boolean
@@ -46,10 +56,11 @@ export type JournalLineRow = {
     creditRestricted?: boolean
 }
 
-export default function JournalLinesTable({ rows }: { rows: readonly JournalLineRow[] }) {
+// ★ TABLE-EXPORT-3b:一对导出。合计行在 rows 里排最后,照屏幕导出(Tim 2026-10-25 Q1);受限的格(行与合计)写 "Restricted"。
+export default function JournalLinesTable({ rows, baseCurrency, entryCode }: { rows: readonly JournalLineRow[]; baseCurrency: string; entryCode: string }) {
     const t = useTranslations()
 
-    const columns: Column<JournalLineRow>[] = [
+    const columns: ExportableColumn<JournalLineRow>[] = [
         {
             key: 'account',
             header: t('finance.colAccount'),
@@ -64,6 +75,8 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
                         {r.accountName}
                     </>
                 ),
+            // 科目号与科目名同在一格 —— 导出写屏幕上的那串字;合计行只有「合计」那个标签
+            exportAs: (r) => xText(r.isTotal ? r.accountName : `${r.accountCode} ${r.accountName}`),
         },
         {
             key: 'debit',
@@ -77,6 +90,7 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
             priority: true,
             className: 'text-sm',
             render: (r) => (r.debitRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.debitText),
+            exportAs: (r) => (r.debitRestricted ? xRestricted : xMoney(r.debit, baseCurrency)),
         },
         {
             key: 'credit',
@@ -85,16 +99,21 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
             priority: true,
             className: 'text-sm',
             render: (r) => (r.creditRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.creditText),
+            exportAs: (r) => (r.creditRestricted ? xRestricted : xMoney(r.credit, baseCurrency)),
         },
         {
             key: 'ccy',
             header: t('finance.colOriginalCcy'),
             render: (r) => r.ccyText,
+            // 屏幕这一格是「USD 1,234.00 @ 1.35」—— 一格一个值:导出原币金额(带币种后缀),【汇率不进文件】。
+            //   原币金额受限(fxAmount 为 NULL,屏幕画「USD · 受限」)→ "Restricted";本位币行(屏幕「—」)与合计行 → 空格。
+            exportAs: (r) => (r.fxCurrency === null ? xMoney(null) : r.fxAmount === null ? xRestricted : xMoney(r.fxAmount, r.fxCurrency)),
         },
         {
             key: 'memo',
             header: t('finance.lineMemo'),
             render: (r) => r.memo,
+            exportAs: (r) => xText(r.memo),
         },
     ]
 
@@ -106,6 +125,7 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'font-bold bg-[color:var(--brand-muted)]' : undefined)}
             empty={t('finance.noJournalLines')}
+            exportSpec={{ name: 'finance-journal-entry-lines', title: `${entryCode} — ${t('finance.detailTitle')}`, aboutExtra: [[t('finance.colCode'), entryCode]] }}
         />
     )
 }

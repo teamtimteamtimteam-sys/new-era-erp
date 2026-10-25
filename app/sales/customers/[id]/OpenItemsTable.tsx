@@ -13,7 +13,8 @@
 //   原样说了一遍,不是新做了一次判断。
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xInt, xMoney, xText } from '@/lib/export/cells'
 
 export type OpenItemRow = {
     salesRecordId: string
@@ -22,14 +23,19 @@ export type OpenItemRow = {
     /** 已在服务端按本位币格式化。 */
     openBase: string
     daysOutstanding: number
+    // ── TABLE-EXPORT-3b:导出读的原始值 ──
+    saleDateRaw: string | null
+    openBaseRaw: number
 }
 
 export default function OpenItemsTable({
-    rows, baseCurrency, empty,
-}: { rows: OpenItemRow[]; baseCurrency: string; empty: React.ReactNode }) {
+    rows, baseCurrency, empty, customerCode,
+}: { rows: OpenItemRow[]; baseCurrency: string; empty: React.ReactNode
+     /** TABLE-EXPORT-3b:导出的 About 表说明这份文件出自哪个客户 */
+     customerCode: string }) {
     const t = useTranslations()
 
-    const columns: Column<OpenItemRow>[] = [
+    const columns: ExportableColumn<OpenItemRow>[] = [
         {
             key: 'doc', header: t('customers.status.colDoc'), priority: true,
             render: (it) => (
@@ -40,14 +46,19 @@ export default function OpenItemsTable({
                     {it.docCode}
                 </Link>
             ),
+            exportAs: (it) => xText(it.docCode),
         },
-        { key: 'date', header: t('customers.status.colDate'), priority: true, render: (it) => it.saleDate },
+        { key: 'date', header: t('customers.status.colDate'), priority: true, render: (it) => it.saleDate,
+          exportAs: (it) => xDate(it.saleDateRaw) },
         {
             key: 'open', header: t('customers.status.colOpen', { ccy: baseCurrency }), align: 'right',
             priority: true, render: (it) => it.openBase,
+            // 屏幕在格子里写着本位币(formatAmount)→ 金额带币种
+            exportAs: (it) => xMoney(it.openBaseRaw, baseCurrency),
         },
         {
             key: 'days', header: t('customers.status.colDays'), align: 'right', priority: true, render: (it) => it.daysOutstanding,
+            exportAs: (it) => xInt(it.daysOutstanding),
         },
     ]
 
@@ -58,6 +69,8 @@ export default function OpenItemsTable({
             rowKey={(it) => it.salesRecordId}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: 'sales-customer-open-items', title: t('customers.status.openTitle'),
+                          aboutExtra: [[t('customers.col.code'), customerCode]] }}
         />
     )
 }

@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { saveLeaveType } from './actions'
+import { xText, xNum } from '@/lib/export/cells'
 
 export type LeaveTypeRow = {
     code: string
@@ -51,11 +52,14 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             priority: true,
             className: 'text-gray-500',
             render: (r) => r.code,
+            exportAs: (r) => xText(r.code),
         },
         {
             key: 'name',
             header: t('leave.typeName'),
             priority: true,
+            // 这一格画「名称 + 备注」两行 —— 导出名称(界面语言那一个);备注不是这一列的值
+            exportAs: (r) => xText(locale === 'zh' ? r.name_zh : r.name_en),
             render: (r) => (
                 <>
                     <div>{locale === 'zh' ? r.name_zh : r.name_en}</div>
@@ -76,6 +80,7 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             header: t('leave.standardDaysCol'),
             align: 'right',
             render: (r) => r.default_days_per_year ?? '—',
+            exportAs: (r) => xNum(r.default_days_per_year, 'qty'),
             edit: (d, set) => (
                 <input type="number" step="0.5" className={inp} value={d.default_days_per_year ?? ''}
                        aria-label={t('leave.standardDaysCol')}
@@ -87,6 +92,7 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             header: t('leave.certAfter'),
             align: 'right',
             render: (r) => r.requires_certificate_after_days ?? '—',
+            exportAs: (r) => xNum(r.requires_certificate_after_days, 'qty'),
             edit: (d, set) => (
                 <input type="number" step="0.5" className={inp} value={d.requires_certificate_after_days ?? ''}
                        aria-label={t('leave.certAfter')}
@@ -95,12 +101,13 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
         },
         // ★ is_paid / is_accrued 没有 edit —— 它们今天就不可改(saveLeaveType 的
         //   patch 里没有这两个字段)。**不给 edit 就是"这一列不可编辑"的说法。**
-        { key: 'paid', header: t('leave.paid'), render: (r) => yesNo(r.is_paid) },
-        { key: 'accrued', header: t('leave.accrued'), render: (r) => yesNo(r.is_accrued) },
+        { key: 'paid', header: t('leave.paid'), render: (r) => yesNo(r.is_paid), exportAs: (r) => xText(yesNo(r.is_paid)) },
+        { key: 'accrued', header: t('leave.accrued'), render: (r) => yesNo(r.is_accrued), exportAs: (r) => xText(yesNo(r.is_accrued)) },
         {
             key: 'halfDay',
             header: t('leave.halfDay'),
             render: (r) => yesNo(r.allows_half_day),
+            exportAs: (r) => xText(yesNo(r.allows_half_day)),
             edit: (d, set) => (
                 <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.allows_half_day} aria-label={t('leave.halfDay')}
                        onChange={(e) => set({ allows_half_day: e.target.checked })} />
@@ -110,6 +117,7 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             key: 'active',
             header: t('permissions.active'),
             render: (r) => yesNo(r.is_active),
+            exportAs: (r) => xText(yesNo(r.is_active)),
             edit: (d, set) => (
                 <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.is_active} aria-label={t('permissions.active')}
                        onChange={(e) => set({ is_active: e.target.checked })} />
@@ -123,6 +131,8 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             columns={columns}
             rowKey={(r) => r.code}
             phone={{ mode: 'columns' }}
+            // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的假别
+            exportSpec={{ name: 'hr-leave-types', title: t('leave.subnav.types') }}
             toDraft={(r) => ({ ...r })}
             labels={{
                 edit: t('common.edit'), save: t('common.save'), saving: t('common.saving'),

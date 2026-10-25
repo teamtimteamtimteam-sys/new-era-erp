@@ -119,6 +119,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
         label: locale === 'zh' ? b.label_zh : b.label_en,
         notDerived: 'derived' in b && !b.derived,
         amountText: Number(b.value).toFixed(2),
+        amount: Number(b.value),
         drillHref: DRILLABLE.includes(b.box) ? `/finance/gst/${periodId}?box=${b.box}#box-detail` : null,
         highlighted: box === b.box,
     }))
@@ -129,9 +130,11 @@ export default async function GstPeriodPage({ params, searchParams }: {
         id: d.doc_id + d.doc_code + i,
         docCode: d.doc_code,
         docDate: formatDate(d.doc_date, locale),
+        docYmd: d.doc_date,
         memo: d.memo,
         sourceText: t('gst.docKind.' + d.doc_kind) + (d.tax_code ? ` · ${d.tax_code}` : ''),
         amountText: Number(d.amount_base).toFixed(2),
+        amount: Number(d.amount_base),
     }))
 
     return (
@@ -175,7 +178,8 @@ export default async function GstPeriodPage({ params, searchParams }: {
                 </Button>
             </div>
             <div className="mb-2">
-                <F5BoxesTable rows={boxRows} />
+                <F5BoxesTable rows={boxRows} periodCode={period.code}
+                              title={filed ? t('gst.asFiled') : snapshotted ? t('gstFiling.asApproved') : t('gst.asComputed')} />
             </div>
 
             {/* 【GST-2:勾稽是【三处说法、两条比较】,而两条都要看得见】
@@ -249,6 +253,8 @@ export default async function GstPeriodPage({ params, searchParams }: {
                              算好了传进去,区分一个字都没有被压平。 */
                         <F5BoxDetailTable
                             rows={detailRows}
+                            periodCode={period.code}
+                            title={t('gst.boxDetail', { box: box.replace('box', '') })}
                             empty={
                                 (openBoxValue ?? 0) === 0
                                     ? t('gst.boxEmptyBecauseZero')

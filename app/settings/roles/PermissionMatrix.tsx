@@ -14,6 +14,8 @@ import { saveRolePermissions } from '../accountsActions'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { TableExportBar, type ExportColumnDef } from '@/app/components/ui/table-export'
+import { xText } from '@/lib/export/cells'
 
 export type PermissionRow = {
     code: string
@@ -38,11 +40,14 @@ export default function PermissionMatrix({
     roleId,
     permissions,
     initial,
+    roleLabel,
     disabled = false,
 }: {
     roleId: string
     permissions: PermissionRow[]
     initial: string[]
+    /** TABLE-EXPORT-3b:About 表上写【是哪个角色】(代码 · 名称),由页面给。 */
+    roleLabel: string
     disabled?: boolean
 }) {
     const t = useTranslations()
@@ -77,9 +82,21 @@ export default function PermissionMatrix({
     const catalogue = new Set(permissions.map((p) => p.code))
     const hasEditCode = (m: string) => catalogue.has(`module.${m}.edit`)
 
+    // ★ TABLE-EXPORT-3b(Tim 2026-10-25 Q8 · Q2):两份导出读的都是【打开页面时存着的】授权(`initial`),
+    //   不是正在勾的那一份 —— 没存的勾选写进文件,就是一份没人授过的权限表。
+    const savedSet = new Set(initial)
+    const savedYesNo = (c: string) => xText(savedSet.has(c) ? t('permissions.yes') : t('permissions.no'))
+    const exportAbout: ReadonlyArray<[string, string]> = [[t('permissions.roleTitle'), roleLabel]]
+
     const others = permissions
         .filter((p) => p.category !== 'module')
         .sort((a, b) => a.sort_order - b.sort_order)
+    const otherExportColumns: ReadonlyArray<ExportColumnDef<PermissionRow>> = [
+        { key: 'permission', header: t('permissions.permission'),
+          exportAs: (p) => xText(locale === 'zh' ? p.name_zh : p.name_en) },
+        { key: 'code', header: t('permissions.roleCode'), exportAs: (p) => xText(p.code) },
+        { key: 'granted', header: t('permissions.grantedCol'), exportAs: (p) => savedYesNo(p.code) },
+    ]
 
     const has = (c: string) => codes.includes(c)
 
@@ -147,6 +164,8 @@ export default function PermissionMatrix({
             key: 'module',
             header: t('permissions.module'),
             priority: true,
+            // 这一格画「显示名 + 模块串」(手机上还叠着两行答案)—— 导出显示名;答案各有自己的列
+            exportAs: (r) => xText(r.label),
             render: (r) => (
                 <>
                     {r.label}
@@ -176,6 +195,7 @@ export default function PermissionMatrix({
             className: 'w-24 text-center',
             // ★ 见上面那段最后一条:这个投影今天渲染不到,而它说的是真话。
             render: (r) => answer(`module.${r.module}.view`),
+            exportAs: (r) => savedYesNo(`module.${r.module}.view`),
             edit: (r) => (
                 <input
                     type="checkbox"
@@ -191,6 +211,8 @@ export default function PermissionMatrix({
             key: 'edit',
             header: t('permissions.edit'),
             className: 'w-24 text-center',
+            // 没有 edit 码的模块:屏幕(桌面那一列)画「—」= 「没有这样东西」(Tim 的 Q6),导出同一个字,不写「否」
+            exportAs: (r) => (r.hasEdit ? savedYesNo(`module.${r.module}.edit`) : xText('—')),
             render: (r) =>
                 r.hasEdit ? (
                     answer(`module.${r.module}.edit`)
@@ -306,11 +328,22 @@ export default function PermissionMatrix({
                 dirty={matrixDirty}
                 labels={{ expand: t('common.expandRow') }}
                 className="mb-6"
+                exportSpec={{ name: 'settings-role-modules', title: t('permissions.matrixTitle'), aboutExtra: exportAbout }}
+                exportRows={moduleRows}
             />
 
             <h3 className="mb-1">{t('permissions.dataAndActions')}</h3>
             {/* 描述【就是重点】—— 要授出 data.view_pay 的人,应当先读到它到底泄露什么。 */}
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('permissions.dataAndActionsHint')}</p>
+            {/* TABLE-EXPORT-3b(Tim 2026-10-25 Q2):卡片不是表,但它们是这个角色的另一半授权 ——
+                第二对钮,一张卡一行(名称 · 代码 · 是否授予),读的是已保存的授权。 */}
+            <div className="mb-3 flex">
+                <TableExportBar<PermissionRow>
+                    spec={{ name: 'settings-role-data-actions', title: t('permissions.dataAndActions'), aboutExtra: exportAbout }}
+                    columns={otherExportColumns}
+                    rows={() => others}
+                />
+            </div>
             <div className="space-y-2 mb-6">
                 {others.map((p) => (
                     <label

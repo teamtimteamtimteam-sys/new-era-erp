@@ -28,6 +28,7 @@ import { saveSelfAssessment } from '@/app/hr/reviews/actions'
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
+import { xText, xNum, xInt } from '@/lib/export/cells'
 
 export type SelfAssessment = {
     review_id: string
@@ -97,6 +98,7 @@ export default function MySelfAssessmentPanel({
                 priority: true,
                 className: 'text-gray-500 w-8',
                 render: (g) => g.sequence,
+                exportAs: (g) => xInt(g.sequence),
             },
             {
                 key: 'objective',
@@ -104,6 +106,7 @@ export default function MySelfAssessmentPanel({
                 priority: true,
                 className: 'whitespace-pre-wrap',
                 render: (g) => g.objective_text,
+                exportAs: (g) => xText(g.objective_text),
             },
             {
                 key: 'target',
@@ -111,11 +114,15 @@ export default function MySelfAssessmentPanel({
                 align: 'right',
                 className: 'whitespace-nowrap',
                 render: (g) => (g.target_value !== null ? `${g.target_value} ${g.unit ?? ''}` : '—'),
+                // 屏幕上数旁边写着单位 —— 单位跟着数走
+                exportAs: (g) => xNum(g.target_value, 'qty', g.unit),
             },
             {
                 key: 'actual',
                 header: t('reviews.colActual'),
                 align: 'right',
+                // 已保存的实际值(all-rows 下 rows 是存过的那一份,草稿另存)
+                exportAs: (g) => xNum(g.actual_value, 'qty', g.unit),
                 render: (g) =>
                     g.actual_value !== null ? (
                         <span>{`${g.actual_value} ${g.unit ?? ''}`}</span>
@@ -140,6 +147,7 @@ export default function MySelfAssessmentPanel({
             {
                 key: 'result',
                 header: t('reviews.colEmployeeResult'),
+                exportAs: (g) => xText(g.employee_result_text),
                 render: (g) => (
                     <span className="whitespace-pre-wrap">{g.employee_result_text ?? '—'}</span>
                 ),
@@ -194,6 +202,16 @@ export default function MySelfAssessmentPanel({
                             //   约束到一个键。
                             mode="all-rows"
                             canEdit={!locked}
+                            // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):每一份评估一对钮,About 表写明是哪一份(类型 · 周期 · 起止)
+                            exportSpec={{
+                                name: 'me-self-assessment-goals',
+                                title: t('reviews.selfPanelTitle'),
+                                aboutExtra: [
+                                    [t('reviews.type'), t(`reviews.type_${a.review_type}`)],
+                                    [t('reviews.cycle'), a.cycle_name ?? '—'],
+                                    [t('reviews.period'), `${a.period_start} → ${a.period_end}`],
+                                ],
+                            }}
                             toDraft={(g) => ({
                                 result: g.employee_result_text ?? '',
                                 actual: g.actual_value === null ? '' : String(g.actual_value),

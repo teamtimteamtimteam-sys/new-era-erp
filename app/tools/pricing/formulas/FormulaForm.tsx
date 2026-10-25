@@ -19,6 +19,7 @@ import type { FormulaState } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { Refusal } from '@/app/components/ui/refusal'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { xText, xNum, xRestricted } from '@/lib/export/cells'
 
 /** 桥上交出去的一行 —— 与搬家前 `payable_metal[]` / `payable_pct[]` 逐字同构。 */
 type PayableLine = { metal: string; pct: string }
@@ -75,6 +76,7 @@ export default function FormulaForm({
     canEdit,
     blockedReason = null,
     termsMasked = false,
+    formulaCode,
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
@@ -95,6 +97,11 @@ export default function FormulaForm({
     /** TABLE-EXPORT-2b-1(Tim 2026-10-23 Q5):这个人看不见这张公式的条款(pricing_formulas_masked 把加工费 · 折扣 · 比例遮成 NULL)。
      *  三处画成「受限」、不画输入框、不送值 —— 库里那两扇门对看不见的人一律按原值存(fixture 292),这里只是不让人以为自己在改它们。 */
     termsMasked?: boolean
+    /**
+     * TABLE-EXPORT-3b(Tim 2026-10-25 Q3):只有编辑页给 —— 计价比例表因此有 Excel / CSV(导出已保存的比例)。
+     * 新建页不给:还没有保存的记录,那是录入表单。
+     */
+    formulaCode?: string
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(action, initialState)
@@ -142,6 +149,14 @@ export default function FormulaForm({
         pct: payables[opt.value] ?? '',
     }))
 
+    // ★ TABLE-EXPORT-3b:导出的是【打开页面时读到的已保存比例】(defaults.payables),不是正在改的这一份
+    //   (page-owned 下 `rows` 就是正在改的那一份)。与屏幕同一份名单、同一个次序。
+    const savedPayableRows: PayableRow[] = activeOptions.map((opt) => ({
+        metal: opt.value,
+        label: opt.label,
+        pct: defaults.payables[opt.value] ?? '',
+    }))
+
     /* ★ Q5 的必填 `dirty` —— 与进门时那一份比。这张表单同时服务
        `/new` 与 `/[id]/edit`;按「有没有字」算,编辑一个既有公式会一进门就脏。
        ☞ 站内 `<Link>`(取消钮)不拦 —— 声明过的限制。
@@ -159,6 +174,8 @@ export default function FormulaForm({
             key: 'metal',
             header: t('pricing.form.colMetal'),
             priority: true,
+            // 这一格画「字典名 + 金属码」—— 导出字典名(主值)
+            exportAs: (r) => xText(r.label),
             render: (r) => (
                 <>
                     {r.label}
@@ -174,6 +191,12 @@ export default function FormulaForm({
                理由:这一格的空**不是一个没用上的槽**,它是一次**决定** ——
                「这个金属不计价」,而服务端读到它会**删掉那个金属既有的计价行**。
                ☞ 一个 `—` 读起来像「这一栏不重要」;而这一栏说的是一件会落库的事。 */
+            // 空 = 「不计价」,写那句话本身(与屏幕同一条,Tim 的 Q4);
+            // 受限与屏幕同一个判据(termsMasked —— 屏幕在那时画「受限」)。
+            exportAs: (r) =>
+                termsMasked ? xRestricted
+                    : r.pct.trim() === '' ? xText(t('pricing.form.notPayable'))
+                    : xNum(r.pct, 'pct'),
             render: (r) => (
                 r.pct.trim() === ''
                     ? <span className="text-[color:var(--brand-muted-text)]">{t('pricing.form.notPayable')}</span>
@@ -457,6 +480,12 @@ export default function FormulaForm({
                     phone={{ mode: 'columns' }}
                     mode="page-owned"
                     dirty={payablesDirty}
+                    exportSpec={formulaCode ? {
+                        name: 'pricing-formula-payables',
+                        title: t('pricing.form.payableTitle'),
+                        aboutExtra: [[t('pricing.colCode'), formulaCode]],
+                    } : undefined}
+                    exportRows={savedPayableRows}
                     labels={{ expand: t('common.expandRow') }}
                     className="max-w-md"
                 />

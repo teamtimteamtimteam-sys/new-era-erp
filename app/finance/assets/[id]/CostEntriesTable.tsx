@@ -17,8 +17,9 @@
 // 而"这一行是不是已冲销"要读嵌套的 expenses.status —— 都只有服务端知道。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xDate, xMoney, xText } from '@/lib/export/cells'
 
 export type CostEntryRow = {
     id: string
@@ -28,12 +29,21 @@ export type CostEntryRow = {
     amountCcyText: string
     amountBaseText: string
     reversed: boolean
+    /** TABLE-EXPORT-3b:导出写原始值(真日期、带类型的金额),不写上面那几串格式化过的字。 */
+    expenseYmd: string | null
+    amountCcy: number | null
+    currency: string | null
+    amountBase: number
 }
 
-export default function CostEntriesTable({ rows }: { rows: readonly CostEntryRow[] }) {
+// ★ TABLE-EXPORT-3b:一对导出。已冲销的行照屏幕留在文件里 —— 「状态」那一列写出它(与屏幕同一串字),
+//   金额两列都是按行带币种的(formatAmount 把币种写在格子里),所以 xMoney 带上币种。
+export default function CostEntriesTable({ rows, assetCode, baseCurrency }: {
+    rows: readonly CostEntryRow[]; assetCode: string; baseCurrency: string
+}) {
     const t = useTranslations()
 
-    const columns: Column<CostEntryRow>[] = [
+    const columns: ExportableColumn<CostEntryRow>[] = [
         {
             key: 'expense',
             header: t('assets.detail.colExpense'),
@@ -45,12 +55,14 @@ export default function CostEntriesTable({ rows }: { rows: readonly CostEntryRow
                     {r.expenseCode}
                 </Link>
             ),
+            exportAs: (r) => xText(r.expenseCode),
         },
         {
             key: 'date',
             header: t('assets.detail.colDate'),
             className: 'text-sm',
             render: (r) => r.expenseDate,
+            exportAs: (r) => xDate(r.expenseYmd),
         },
         {
             key: 'amountCcy',
@@ -58,6 +70,7 @@ export default function CostEntriesTable({ rows }: { rows: readonly CostEntryRow
             align: 'right',
             className: 'text-sm',
             render: (r) => r.amountCcyText,
+            exportAs: (r) => xMoney(r.amountCcy, r.currency),
         },
         {
             key: 'amountBase',
@@ -67,12 +80,14 @@ export default function CostEntriesTable({ rows }: { rows: readonly CostEntryRow
             priority: true,
             className: 'text-sm',
             render: (r) => r.amountBaseText,
+            exportAs: (r) => xMoney(r.amountBase, baseCurrency),
         },
         {
             key: 'state',
             header: t('assets.detail.colState'),
             className: 'text-sm',
             render: (r) => (r.reversed ? t('assets.detail.entryReversed') : t('assets.detail.entryLive')),
+            exportAs: (r) => xText(r.reversed ? t('assets.detail.entryReversed') : t('assets.detail.entryLive')),
         },
     ]
 
@@ -84,6 +99,11 @@ export default function CostEntriesTable({ rows }: { rows: readonly CostEntryRow
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.reversed ? 'text-gray-400 line-through' : undefined)}
             empty={t('assets.detail.noCostEntries')}
+            exportSpec={{
+                name: 'finance-asset-cost-entries',
+                title: t('assets.detail.costEntries'),
+                aboutExtra: [[t('finance.colCode'), assetCode]],
+            }}
         />
     )
 }

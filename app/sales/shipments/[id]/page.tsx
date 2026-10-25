@@ -119,6 +119,10 @@ export default async function ShipmentDetailPage({
         hsCode: l.hs_code ?? '',
         quarantineText: l.quarantine_states
             ? t('sales.shipDetail.quarantineFlag', { states: l.quarantine_states.split(',').map((c) => stateNames.get(c) ?? c).join(', ') }) : '',
+        // TABLE-EXPORT-3b:导出读的原始值
+        lineNoRaw: l.line_no ?? null,
+        qty: l.qty ?? null,
+        unit: l.unit ?? null,
     }))
 
     return (
@@ -192,7 +196,7 @@ export default async function ShipmentDetailPage({
             {/* ── 行 ───────────────────────────────────────────────────────── */}
             <h2 className="mb-2">{t('sales.shipDetail.linesTitle')}</h2>
             <div className="mb-6">
-                <ShipmentLinesTable rows={tableRows} />
+                <ShipmentLinesTable rows={tableRows} shipmentCode={head.code} />
             </div>
 
             {/* ── 送货单:签发 ─────────────────────────────────────────────── */}

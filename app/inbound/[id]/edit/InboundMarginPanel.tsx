@@ -64,7 +64,7 @@ export default async function InboundMarginPanel({ batchId }: { batchId: string 
                     {m.reasons.map((r, i) => <li key={i}>{reason(r.code)} — {r.batch_code}</li>)}
                 </ul>
             )}
-            <InboundMarginTable lines={m.lines} baseCurrency={m.base_currency} />
+            <InboundMarginTable lines={m.lines} baseCurrency={m.base_currency} batchCode={m.code} />
         </section>
     )
 }

@@ -193,7 +193,7 @@ export default async function SalesOrderPage({ params, searchParams }: {
                 )}
 
                 <h2 className="mt-8 mb-2">{t('sales.form.lines')}</h2>
-                <OrderLinesTable rows={orderLineRows} />
+                <OrderLinesTable rows={orderLineRows} orderCode={o.code} />
 
                 {/* SO-3a:开票 —— 订单流【先开票后发货】(选项 C),开票即过账 */}
                 <OrderInvoiceSection

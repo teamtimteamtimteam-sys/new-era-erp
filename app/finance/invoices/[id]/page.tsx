@@ -277,6 +277,12 @@ export default async function InvoiceDetailPage({
         unitPriceText: formatAmount(l.unit_price, inv.currency),
         amountText: formatAmount(l.amount_ccy, inv.currency),
         arHref: `/finance/receivables/${l.sales_record_id}`,
+        // TABLE-EXPORT-3b:导出读原始值(单价与金额的币种照屏幕写在格子里)
+        quantity: Number(l.quantity),
+        unit: l.unit || null,
+        unitPrice: Number(l.unit_price),
+        amountCcy: Number(l.amount_ccy),
+        currency: inv.currency,
     }))
     // 【第四个调用点】—— 形状与 CONV-9 收敛的那三页逐字相同,见下面的注释。
     const settlementRows: SettlementRow[] = allocRows.map((a) => ({
@@ -493,7 +499,7 @@ export default async function InvoiceDetailPage({
             {/* 明细行 —— CONV-10:转换前是一张 6 列的手写表,最后一列是一个
                 不折行的「AR 单据」链接,正是探针点名的 a.text-blue-600。
                 空态由表自己说(转换前它连空态都没有:0 行就是一张空表体)。 */}
-            <InvoiceLinesTable rows={lineRows} />
+            <InvoiceLinesTable rows={lineRows} invoiceCode={inv.code} />
 
             {/* 合计 */}
             <div className="mt-4 max-w-sm ml-auto text-sm space-y-1">

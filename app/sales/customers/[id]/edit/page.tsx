@@ -58,6 +58,7 @@ export default async function EditCustomerPage({
         doc_category: a.doc_category,
         storage_path: a.storage_path,
         created_at_display: formatAuditStamp(a.created_at),
+        created_at: a.created_at,
     }))
 
     return (
@@ -86,7 +87,7 @@ export default async function EditCustomerPage({
                     { code: string; name_en: string; name_zh: string }[]).map((c) => ({
                     code: c.code, name_en: c.name_en, name_zh: c.name_zh,
                 }))} />
-            <AttachmentsPanel customerId={customer.id} rows={attachments} />
+            <AttachmentsPanel customerId={customer.id} customerCode={customer.code} rows={attachments} />
         </div>
     )
 }

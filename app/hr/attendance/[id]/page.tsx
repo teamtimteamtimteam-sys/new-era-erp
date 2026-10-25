@@ -89,6 +89,7 @@ export default async function AttendancePeriodPage({
 
             <AttendanceGrid
                 periodId={id}
+                periodCode={period.code as string}
                 status={period.status ?? 'open'}
                 rows={rows}
             />

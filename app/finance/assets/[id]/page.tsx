@@ -314,6 +314,11 @@ export default async function AssetPage({ params, searchParams }: {
             expenseCode: exp?.code ?? '—',
             expenseHref: `/finance/expenses/${e.expense_id}`,
             expenseDate: formatDate(exp?.expense_date, locale) ?? '—',
+            // TABLE-EXPORT-3b:导出读原始值,不读上面格式化过的那几串字
+            expenseYmd: exp?.expense_date ?? null,
+            amountCcy: e.amount_ccy !== null ? Number(e.amount_ccy) : null,
+            currency: e.currency !== null ? String(e.currency) : null,
+            amountBase: Number(e.amount_base),
             amountCcyText: e.amount_ccy !== null ? formatAmount(Number(e.amount_ccy), String(e.currency)) : '—',
             amountBaseText: formatAmount(Number(e.amount_base), baseCurrency),
             reversed: exp?.status === 'reversed',
@@ -379,7 +384,7 @@ export default async function AssetPage({ params, searchParams }: {
             <h2 className="mb-2">{t('assets.detail.costEntries')}</h2>
             {/* ★ 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
             <div className="mb-6">
-                <CostEntriesTable rows={costRows} />
+                <CostEntriesTable rows={costRows} assetCode={asset.code} baseCurrency={baseCurrency} />
             </div>
             {entries.length > 0 && (
                 <p className="text-xs text-[color:var(--brand-muted-text)] -mt-4 mb-6">

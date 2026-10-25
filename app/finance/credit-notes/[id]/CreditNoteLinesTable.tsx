@@ -18,8 +18,9 @@
 // 复核过并保留了那条裁定 —— **一种东西一个写法**。代价照 CONV-8 记的写:
 // 合计标签不再顶到右边,而是落在【发票行】那一列。
 import * as React from 'react'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xInt, xMoney, xNum, xText } from '@/lib/export/cells'
 
 export type CreditNoteLineRow = {
     id: string
@@ -28,6 +29,16 @@ export type CreditNoteLineRow = {
     kindText: string
     qtyText: string
     amountText: string
+    /**
+     * TABLE-EXPORT-3b:导出读原始值,不读上面那几串字。
+     * signedAmount:屏幕上「−1,234.00」的意思 —— 冲减,所以是负数。
+     * amountCcy:格子里写了币种的那一行(合计行,formatAmount)给币种;普通行的币种在表头里,null。
+     */
+    lineNoRaw: number | null
+    qty: number | null
+    unit: string | null
+    signedAmount: number
+    amountCcy: string | null
     /** 合计行。见抬头。 */
     isTotal?: boolean
 }
@@ -35,19 +46,23 @@ export type CreditNoteLineRow = {
 export default function CreditNoteLinesTable({
     rows,
     amountHeader,
+    noteCode,
 }: {
     rows: readonly CreditNoteLineRow[]
     /** 冲减({ccy}) —— 币种由服务端插好,所以这个表头整句过界。 */
     amountHeader: string
+    noteCode: string
 }) {
     const t = useTranslations()
 
-    const columns: Column<CreditNoteLineRow>[] = [
+    // ★ TABLE-EXPORT-3b:一对导出;合计行(Tim 2026-10-25 Q1)照屏幕作为最后一行导出,标签在【发票行】那一列。
+    const columns: ExportableColumn<CreditNoteLineRow>[] = [
         {
             key: 'lineNo',
             header: '#',
             className: 'text-sm',
             render: (r) => r.lineNo,
+            exportAs: (r) => xInt(r.lineNoRaw),
         },
         {
             key: 'line',
@@ -56,11 +71,13 @@ export default function CreditNoteLinesTable({
             // 【为什么不是 #】发票行号在这张凭证之外没有意义;人认得出的是那行货。
             priority: true,
             render: (r) => r.description,
+            exportAs: (r) => xText(r.description),
         },
         {
             key: 'kind',
             header: t('cn.colKind'),
             render: (r) => r.kindText,
+            exportAs: (r) => xText(r.kindText || null),
         },
         {
             key: 'qty',
@@ -68,6 +85,8 @@ export default function CreditNoteLinesTable({
             align: 'right',
             className: 'text-sm',
             render: (r) => r.qtyText,
+            // 屏幕上「12 kg」—— 数与单位;导出是一个数,单位进数字格式
+            exportAs: (r) => xNum(r.qty, 'qty', r.unit),
         },
         {
             key: 'amount',
@@ -77,6 +96,7 @@ export default function CreditNoteLinesTable({
             priority: true,
             className: 'text-sm',
             render: (r) => r.amountText,
+            exportAs: (r) => xMoney(r.signedAmount, r.amountCcy),
         },
     ]
 
@@ -88,6 +108,11 @@ export default function CreditNoteLinesTable({
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'font-bold bg-[color:var(--brand-muted)]' : undefined)}
             empty={t('cn.noLines')}
+            exportSpec={{
+                name: 'finance-credit-note-lines',
+                title: t('cn.linesTitle'),
+                aboutExtra: [[t('related.colCode'), noteCode]],
+            }}
         />
     )
 }

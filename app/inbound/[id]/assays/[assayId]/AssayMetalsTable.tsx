@@ -12,7 +12,8 @@
 //   两处用同一个形状改,免得日后各自漂 —— 与 TABLE-CONVERT-3 的三份
 //   AttachmentsPanel 是同一条做法。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText } from '@/lib/export/cells'
 
 export type AssayMetalRow = {
     metal: string
@@ -20,11 +21,15 @@ export type AssayMetalRow = {
     metalLabel: string
     /** 服务端格式化好的含量文本;渲染出来的字与转换前逐字相同。 */
     contentPct: string
+    /** TABLE-EXPORT-3b:导出写原始含量(%),不写屏幕上格式化过的那串字(还可能带着「(123 ppm)」)。 */
+    contentRaw: number | string
 }
 
-export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
+export function AssayMetalsTable({ rows, assayCode }: { rows: readonly AssayMetalRow[]; assayCode: string }) {
     const t = useTranslations()
-    const columns: Column<AssayMetalRow>[] = [
+    // ★ TABLE-EXPORT-3b:一对导出。金属那一格屏幕上叠着名字与代码 —— 导出写名字(主值)。
+    //   含量那一格惩罚元素还带「(N ppm)」—— 导出写那个百分数本身(主值,一个数);ppm 是同一个数换个单位。
+    const columns: ExportableColumn<AssayMetalRow>[] = [
         {
             key: 'metal',
             header: t('assay.colMetal'),
@@ -37,6 +42,7 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
                     <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
+            exportAs: (r) => xText(r.metalLabel),
         },
         {
             key: 'content',
@@ -50,6 +56,7 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
             //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
             render: (r) => r.contentPct,
+            exportAs: (r) => xNum(r.contentRaw, 'pct'),
         },
     ]
     // ★ 没有给 empty:转换前 metals 为空时画的是【一张只有表头的表】,
@@ -62,6 +69,7 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             rowKey={(r) => r.metal}
             phone={{ mode: 'columns' }}
             className="max-w-md mb-6"
+            exportSpec={{ name: 'inbound-assay-metals', title: t('assay.detailTitle'), aboutExtra: [[t('assay.colCode'), assayCode]] }}
         />
     )
 }

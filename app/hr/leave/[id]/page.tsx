@@ -95,6 +95,11 @@ export default async function LeaveRequestDetail({
         remaining: String(b.remaining),
         expiresOn: formatDate(b.expires_on, locale) ?? '—',
         statusText: t(`leave.grantStatus_${b.status}`),
+        // TABLE-EXPORT-3b:导出用的原始值(屏幕仍读上面那几串字)
+        daysRaw: b.days,
+        consumedRaw: b.consumed,
+        remainingRaw: b.remaining,
+        expiresYmd: b.expires_on,
     }))
 
     const consumptionRows: ConsumptionRow[] = (mustRows(consRes)).map((c) => ({
@@ -103,7 +108,13 @@ export default async function LeaveRequestDetail({
         days: String(c.days),
         grantIdShort: c.leave_grant_id?.slice(0, 8) ?? '—',
         notes: c.notes ?? '—',
+        // TABLE-EXPORT-3b:导出用的原始值
+        daysRaw: c.days,
+        grantIdShortRaw: c.leave_grant_id?.slice(0, 8) ?? null,
+        notesRaw: c.notes ?? null,
     }))
+    // TABLE-EXPORT-3b:两张表的导出在 About 表上写明出自哪一张请假单、哪一名员工
+    const exportAbout: [string, string][] = [[t('leave.code'), req.code], ...(emp ? [[t('leave.employee'), `${emp.code} — ${emp.legal_name}`] as [string, string]] : [])]
 
     return (
         <ListPage
@@ -178,7 +189,7 @@ export default async function LeaveRequestDetail({
                             { label: t('leave.pending'), value: String(bal.pending), mono: true },
                         ]}
                     />
-                    <GrantBreakdownTable rows={grantRows} />
+                    <GrantBreakdownTable rows={grantRows} about={exportAbout} />
                 </section>
             )}
 
@@ -187,7 +198,7 @@ export default async function LeaveRequestDetail({
                 <section className={card + ' mb-6'}>
                     <h3 className="mb-1">{t('leave.consumption')}</h3>
                     <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('leave.consumptionHint')}</p>
-                    <ConsumptionTable rows={consumptionRows} />
+                    <ConsumptionTable rows={consumptionRows} about={exportAbout} />
                 </section>
             )}
 

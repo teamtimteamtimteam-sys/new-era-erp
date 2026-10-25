@@ -20,7 +20,8 @@ import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { tableC } from '@/app/components/ui/table-style'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMasked, xMoney, xText, xTime } from '@/lib/export/cells'
 
 const initialState: ApplyPrepaymentState = {}
 
@@ -29,12 +30,15 @@ export type PrepaymentApplicationRow = {
     /** TABLE-EXPORT-2b-2:prepayment_applications_masked 对不持 data.view_purchase_prices 的人把金额遮成 null */
     amount_base: number | null
     created_at_display: string
+    /** TABLE-EXPORT-3b:导出写那个时刻本身(xTime),不写上面那串格式化过的字。 */
+    created_at: string
     journal_id: string | null
     journal_code: string | null
 }
 
 export default function PrepaymentPanel({
     batchId,
+    batchCode,
     applicable,
     history,
     baseCurrency,
@@ -43,6 +47,8 @@ export default function PrepaymentPanel({
 canEdit
 }: {
     batchId: string
+    /** TABLE-EXPORT-3b:已抵扣记录导出的 About 表上写明批次号。 */
+    batchCode: string
     applicable: {
         purchase_order_id: string
         po_code: string
@@ -87,6 +93,35 @@ canEdit: boolean
     }
 
     if (!applicable && history.length === 0) return null
+
+    // ★ TABLE-EXPORT-3b(Tim 批准):已抵扣记录从一张手搓、没有表头的原生表格换成 DataTable,带表头与一对导出。
+    //   【手机】留【金额】与【抵扣时间】—— 金额是这一行存在的理由,时间认出是哪一次;分录号进展开区。
+    //   【受限】金额与 MaskedValue 同一条判据(canPrices = data.view_purchase_prices):屏幕「受限」处导出 "Restricted"。
+    //   金额格里写着币种(formatAmount(v, 本位币))→ xMoney(v, baseCurrency)。分录那一格是链接 → 导出写分录号。
+    const historyColumns: ExportableColumn<PrepaymentApplicationRow>[] = [
+        {
+            key: 'amount', header: t('purchasing.appliedHistoryCol.amount'), priority: true, align: 'right',
+            render: (h) => (
+                <MaskedValue value={h.amount_base === null ? null : formatAmount(h.amount_base, baseCurrency)}
+                             canView={canPrices} fallback={formatAmount(null, baseCurrency)} />
+            ),
+            exportAs: (h) => xMasked(h.amount_base, canPrices, (v) => xMoney(v, baseCurrency)),
+        },
+        {
+            key: 'at', header: t('purchasing.appliedHistoryCol.at'), priority: true, className: 'text-gray-600',
+            render: (h) => h.created_at_display,
+            exportAs: (h) => xTime(h.created_at),
+        },
+        {
+            key: 'journal', header: t('purchasing.appliedHistoryCol.journal'),
+            render: (h) => h.journal_id ? (
+                <Link href={`/finance/journal/${h.journal_id}`} className="hover:underline app-link">
+                    {h.journal_code}
+                </Link>
+            ) : '—',
+            exportAs: (h) => xText(h.journal_code),
+        },
+    ]
 
     return (
         <section className="mt-8 border border-gray-300 rounded p-4">
@@ -151,33 +186,13 @@ canEdit: boolean
             {history.length > 0 && (
                 <div className="mt-4">
                     <h3 className="mb-2">{t('purchasing.appliedHistory')}</h3>
-                    <table className={`${tableC.root} w-full`}>
-                        <tbody>
-                            {history.map((h) => (
-                                <tr key={h.id} className={tableC.bodyRow}>
-                                    <td className={`${tableC.cell} text-right tabular-nums w-32`}>
-                                        <MaskedValue value={h.amount_base === null ? null : formatAmount(h.amount_base, baseCurrency)}
-                                                     canView={canPrices} fallback={formatAmount(null, baseCurrency)} />
-                                    </td>
-                                    <td className={`${tableC.cell} text-gray-600`}>
-                                        {h.created_at_display}
-                                    </td>
-                                    <td className={tableC.cell}>
-                                        {h.journal_id ? (
-                                            <Link
-                                                href={`/finance/journal/${h.journal_id}`}
-                                                className="hover:underline app-link"
-                                            >
-                                                {h.journal_code}
-                                            </Link>
-                                        ) : (
-                                            '—'
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <DataTable
+                        rows={history}
+                        columns={historyColumns}
+                        rowKey={(h) => h.id}
+                        phone={{ mode: 'columns' }}
+                        exportSpec={{ name: 'inbound-prepayment-applications', title: t('purchasing.appliedHistory'), aboutExtra: [[t('inbound.colCode'), batchCode]] }}
+                    />
                 </div>
             )}
         </section>

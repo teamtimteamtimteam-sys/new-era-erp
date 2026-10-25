@@ -146,6 +146,11 @@ export default async function MyReviewDetailPage({ params, searchParams }: {
                 canAssess={r.status === 'draft' || r.status === 'self_review'}
                 canSetActual={r.status === 'draft' || r.status === 'submitted'}
                 stateNote={t('reviews.stateGoalsLocked', { 0: t(`reviews.status_${r.status}`) })}
+                exportAbout={[
+                    [t('reviews.employee'), subject ? `${subject.employee_code} ${subject.employee_name}` : '—'],
+                    [t('reviews.cycle'), subject?.cycle_name ?? '—'],
+                    [t('reviews.period'), `${r.period_start} → ${r.period_end}`],
+                ]}
             />
 
             <h2 className="mb-3">{t('reviews.conclusionTitle')}</h2>

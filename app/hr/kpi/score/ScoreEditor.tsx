@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { scoreKpiEntry } from './actions'
+import { xText, xNum, xInt } from '@/lib/export/cells'
 
 /** 一条 KPI 在这一屏上的样子。org 目标是【读出来贴上的】,不是回查模板。 */
 export type ScoreRow = {
@@ -70,7 +71,7 @@ function weightedOf(score: number | null, cap: number | null, weight: number): n
 const numOrNull = (v: string): number | null => (v.trim() === '' ? null : Number(v))
 const textOrNull = (v: string): string | null => (v.trim() === '' ? null : v)
 
-export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEdit: boolean }) {
+export default function ScoreEditor({ rows, canEdit, title }: { rows: ScoreRow[]; canEdit: boolean; title: string }) {
     const t = useTranslations()
     const router = useRouter()
     const [, startTransition] = useTransition()
@@ -82,6 +83,8 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             header: t('kpi.colWho'),
             priority: true,
             className: 'text-sm align-top',
+            // 两行(姓名 / 岗位 · KPI 编号)—— 导出成一段文字,照屏幕的次序
+            exportAs: (r) => xText(`${r.employeeName} · ${r.positionCode} · ${r.kpiRef}`),
             render: (r) => (
                 <>
                     <div className="font-medium">{r.employeeName}</div>
@@ -97,6 +100,15 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             header: t('kpi.colKpiAndTarget'),
             priority: true,
             className: 'text-sm align-top max-w-md',
+            // ★ TABLE-EXPORT-3b:这一格画 KPI 名、权重、「临时目标」标签,以及收在 <details> 里的
+            //   目标原文 / 证据来源 / 组织 KPI 的 M3·M6 目标。导出主值 = 「KPI 名 · 权重 · 本人目标」;
+            //   「临时」改变这一行的意思,照 FormulasTable:41 的先例附在名字后面;
+            //   证据来源与组织目标是参考原文,不进这一格。
+            exportAs: (r) => xText([
+                r.isProvisional ? `${r.title} (${t('kpi.provisionalTag')})` : r.title,
+                t('kpi.weightIs', { 0: String(r.weightPct) }),
+                r.targetText,
+            ].filter(Boolean).join(' · ')),
             render: (r) => (
                 <>
                     <div className="font-medium">{r.title}</div>
@@ -145,6 +157,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             align: 'right',
             className: 'align-top',
             render: (r) => (r.score ?? '—'),
+            exportAs: (r) => xInt(r.score),
             edit: (d, set) => (
                 <input
                     type="number" min="0" max="5" step="1" className={inp} value={d.score ?? ''}
@@ -160,6 +173,8 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             align: 'right',
             className: 'align-top text-xs',
             render: (r) => weightedOf(r.score, r.overrideCap, r.weightPct) ?? '—',
+            // 算出来的数 —— 从【已保存】的分与封顶算(与只读那一格同一个式子)
+            exportAs: (r) => xNum(weightedOf(r.score, r.overrideCap, r.weightPct), 'qty'),
             // 没有 edit —— 「不给 edit 就是这一列不可编辑」。
         },
         {
@@ -167,6 +182,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             header: t('kpi.colEvidenceNote'),
             className: 'align-top text-xs',
             render: (r) => r.evidenceNote ?? '—',
+            exportAs: (r) => xText(r.evidenceNote),
             edit: (d, set) => (
                 <textarea
                     className={ta} value={d.evidenceNote ?? ''}
@@ -180,6 +196,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             header: t('kpi.colFeedback'),
             className: 'align-top text-xs',
             render: (r) => r.feedbackNote ?? '—',
+            exportAs: (r) => xText(r.feedbackNote),
             edit: (d, set) => (
                 <textarea
                     className={ta} value={d.feedbackNote ?? ''}
@@ -193,6 +210,8 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             key: 'cap',
             header: t('kpi.colCap'),
             className: 'align-top text-xs',
+            // 这一格画「封顶分 + 理由」两行 —— 导出封顶分(数);理由不是这一列的值
+            exportAs: (r) => xInt(r.overrideCap),
             render: (r) =>
                 r.overrideCap === null ? '—' : (
                     <>
@@ -227,6 +246,8 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             canEdit={canEdit}
+            // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的分
+            exportSpec={{ name: 'hr-kpi-scores', title }}
             toDraft={(r) => ({
                 score: r.score,
                 evidenceNote: r.evidenceNote,

@@ -31,6 +31,8 @@ type Row = {
     unit: string
     state: string
     output_date: string | null
+    /** TABLE-EXPORT-3b:output_date 上面那一格已经是 formatDate 的输出;导出要 YYYY-MM-DD 原值 */
+    output_date_raw: string | null
     customers: { legal_name: string } | null
     // 反向 FK 嵌入是数组:一个批次至多一条产出腿;金属含量 0..n 条
     // WO-1c:一条产出腿指向它的加工单,加工单可能挂着一张工单 —— 出处那一行读的就是它
@@ -170,6 +172,7 @@ export default async function OutputDrillPage({
         unit: b.unit,
         state: b.state,
         output_date: b.output_date ? formatDate(b.output_date, locale) : null,
+        output_date_raw: b.output_date ?? null,
         customers: b.customer_id ? { legal_name: custName.get(b.customer_id) ?? '' } : null,
         processing_outputs_masked: legsByBatch.get(b.id) ?? [],
         output_batch_metals: metalsByBatch.get(b.id) ?? [],
@@ -248,6 +251,15 @@ export default async function OutputDrillPage({
             ageToneClass: tone !== null ? AGING_TONE_CLASSES[tone] : '',
             workOrderCode: woId ? (woCode.get(woId) ?? '—') : null,
             workOrderHref: woId ? `/operation/orders/${woId}` : null,
+            // TABLE-EXPORT-3b:导出读的原始值
+            quantity: Number(r.quantity),
+            remaining: Number(r.remaining_qty),
+            unit: r.unit,
+            outputDateRaw: r.output_date_raw,
+            unitCost: r.unitCost,
+            costValue: r.costValue,
+            marketValue: r.marketValue,
+            ageDaysRaw: r.ageDays,
         }
     })
 
@@ -287,7 +299,7 @@ export default async function OutputDrillPage({
                 </p>
             }
         >
-            <OutputBatchesTable rows={tableRows} />
+            <OutputBatchesTable rows={tableRows} materialName={matRes.data.name ?? ''} />
         </ListPage>
     )
 }

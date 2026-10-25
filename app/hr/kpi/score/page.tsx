@@ -279,7 +279,7 @@ export default async function KpiScorePage({
                            就在这层 fieldset 里 —— 没有权限的人翻不开编辑态,
                            不会被关在一个既存不了也关不掉的行里(DBLOCK-1 第一条边界)。 */}
                     <PermissionGate code="action.hr_reviews" allowed={mayScore} className="flex w-full items-stretch">
-                        <ScoreEditor rows={rows} canEdit={stateAllowsScoring} />
+                        <ScoreEditor rows={rows} canEdit={stateAllowsScoring} title={t('kpi.scoreGridTitle', { 0: chosen.name })} />
                     </PermissionGate>
 
                     {/* AUDIT-TRAIL-1d-3:这一个月的 KPI 条目一块 —— 只在【看得见分数】那一支画(不持 data.view_reviews 的读者在上面

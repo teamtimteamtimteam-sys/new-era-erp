@@ -221,6 +221,10 @@ export default async function EmployeeDetailPage({
         expiryDate: formatDate(tr.expiry_date, locale) ?? '—',
         expired: !!tr.expiry_date && tr.expiry_date < today,
         provider: tr.provider ?? '—',
+        completedYmd: tr.completed_date ?? null,
+        expiryYmd: tr.expiry_date ?? null,
+        categoryRaw: tr.category ?? null,
+        providerRaw: tr.provider ?? null,
     }))
 
     const reviewRows: EmployeeReviewRow[] = empReviews.map((r) => ({
@@ -250,6 +254,13 @@ export default async function EmployeeDetailPage({
         netText: payText(p.net_pay, p.payroll_periods?.currency),
         posted: p.payroll_periods?.status === 'posted',
         statusText: t('hr.payrollStatus.' + (p.payroll_periods?.status ?? 'draft')),
+        // TABLE-EXPORT-3b:导出用的原始值(屏幕仍读上面那几串 *Text)
+        periodMonth: p.payroll_periods?.period_month ?? null,
+        gross: p.gross_pay,
+        employerCpf: p.employer_cpf,
+        employeeCpf: p.employee_cpf,
+        deductions: p.other_deductions,
+        net: p.net_pay,
     }))
 
     return (
@@ -424,7 +435,7 @@ export default async function EmployeeDetailPage({
             {/* 培训 */}
             <h2 className="mb-3">{t('hr.trainingTitle')}</h2>
             <div className="mb-6">
-                <EmployeeTrainingTable rows={trainingRows} />
+                <EmployeeTrainingTable rows={trainingRows} employee={`${emp.code} — ${emp.legal_name}`} />
             </div>
 
             {/* ── 绩效评估 ─────────────────────────────────────────────────────
@@ -479,13 +490,13 @@ export default async function EmployeeDetailPage({
                 />
             )}
             <div className="mb-6">
-                <EmployeeReviewsTable rows={reviewRows} />
+                <EmployeeReviewsTable rows={reviewRows} employee={`${emp.code} — ${emp.legal_name}`} />
             </div>
 
             {/* 薪资历史(受限) */}
             <h2 className="mb-1">{t('hr.payrollTitle')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('hr.payRestricted')}</p>
-            <EmployeePayrollTable rows={payRows} />
+            <EmployeePayrollTable rows={payRows} employee={`${emp.code} — ${emp.legal_name}`} />
             </EndedFieldset>
 
             {/* AUDIT-TRAIL-1d-1(Q28):这名员工、任职履历、调薪申请与它的审批、培训、附加账号,以及账号的镜像(Q24 · Q21)——

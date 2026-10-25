@@ -19,7 +19,8 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMoney, xText } from '@/lib/export/cells'
 import { decideGstFiling, withdrawGstFiling, submitGstFiling, recordGstFiling } from '../actions'
 
 export type GstBoxLine = {
@@ -48,26 +49,47 @@ export type GstFilingView = {
 
 const n2 = (v: number | null) => (v === null ? '—' : v.toFixed(2))
 
-function BoxesTable({ lines, showOriginal }: { lines: GstBoxLine[]; showOriginal: boolean }) {
+// ★ TABLE-EXPORT-3b:每一张在等的申请卡片里这张表各有一对导出。导出的列 = 这一张卡片上【画出来的】列
+//   (「此刻」只在有格变了时画、「原件 / 差」只在更正件上画 —— 列跟着屏幕走)。
+//   数是光数字(表头不带币种,屏幕 toFixed(2))→ xMoney(v) 不带后缀;「—」(没有值)导出为空格,不是 0。
+//   这些数不受限:gst_filing_requests_visible 只看 module.finance.view,没有遮挡的那一格。
+function BoxesTable({ request, periodCode }: { request: GstFilingView; periodCode: string }) {
     const t = useTranslations()
+    const lines = request.lines
+    const showOriginal = request.originalCode !== null
     const showNow = lines.some((l) => l.now !== null && l.now !== l.frozen)
-    const columns: Column<GstBoxLine>[] = [
+    const diff = (l: GstBoxLine) => (l.original === null ? null : Math.round((l.frozen - l.original) * 100) / 100)
+    const columns: ExportableColumn<GstBoxLine>[] = [
         { key: 'box', header: t('gstFiling.colBox'), priority: true,
-          render: (l) => <>{l.box.replace('box', '')} · {l.label}</> },
+          render: (l) => <>{l.box.replace('box', '')} · {l.label}</>,
+          exportAs: (l) => xText(`${l.box.replace('box', '')} · ${l.label}`) },
         { key: 'frozen', header: t('gstFiling.colFrozen'), priority: true, align: 'right',
-          render: (l) => n2(l.frozen) },
+          render: (l) => n2(l.frozen), exportAs: (l) => xMoney(l.frozen) },
         ...(showNow ? [{ key: 'now', header: t('gstFiling.colNow'), align: 'right' as const,
           render: (l: GstBoxLine) => (
               <span className={l.now !== l.frozen ? 'text-red-700 font-medium' : undefined}>{n2(l.now)}</span>
-          ) }] : []),
+          ),
+          exportAs: (l: GstBoxLine) => xMoney(l.now) }] : []),
         ...(showOriginal ? [
             { key: 'original', header: t('gstFiling.colOriginal'), align: 'right' as const,
-              render: (l: GstBoxLine) => n2(l.original) },
+              render: (l: GstBoxLine) => n2(l.original), exportAs: (l: GstBoxLine) => xMoney(l.original) },
             { key: 'difference', header: t('gstFiling.colDifference'), align: 'right' as const,
-              render: (l: GstBoxLine) => (l.original === null ? '—' : (l.frozen - l.original).toFixed(2)) },
+              render: (l: GstBoxLine) => (l.original === null ? '—' : (l.frozen - l.original).toFixed(2)),
+              exportAs: (l: GstBoxLine) => xMoney(diff(l)) },
         ] : []),
     ]
-    return <DataTable rows={lines} columns={columns} rowKey={(l) => l.box} phone={{ mode: 'columns' }} />
+    return (
+        <DataTable rows={lines} columns={columns} rowKey={(l) => l.box} phone={{ mode: 'columns' }}
+            exportSpec={{
+                name: 'finance-gst-filing-request-boxes',
+                title: `${request.label} — ${t('gstFiling.openTitle')}`,
+                // 哪一张申请:编号 · 提交日 · 状态(与卡片顶上那一行同一份)
+                aboutExtra: [
+                    [t('table.export.aboutPeriod'), periodCode],
+                    [t('gstFiling.openTitle'), `${request.label} · ${request.createdText} · ${t('gstFiling.status.' + request.status)}`],
+                ],
+            }} />
+    )
 }
 
 export default function GstFilingPanel({
@@ -128,7 +150,7 @@ export default function GstFilingPanel({
                     {r.originalCode && (
                         <p className="text-sm">{t('gstFiling.correctsOriginal', { code: r.originalCode })}</p>
                     )}
-                    <BoxesTable lines={r.lines} showOriginal={r.originalCode !== null} />
+                    <BoxesTable request={r} periodCode={periodCode} />
                     {r.currentMatches === false && (
                         <p className="text-sm font-medium text-red-700">{t('gstFiling.changedSince')}</p>
                     )}

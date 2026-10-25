@@ -17,9 +17,10 @@
 //   而不留价值是同一条理由:这一页的读者里有看不到价的人。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { useTranslations } from '@/lib/i18n/client'
+import { xDate, xMasked, xMoney, xNum, xRestricted, xText } from '@/lib/export/cells'
 
 export type PoReceiptRow = {
     id: string
@@ -41,21 +42,36 @@ export type PoReceiptRow = {
     openText: string | null
     /** unit_price 为空时,敞口这一格印破折号 —— 没有价就没有敞口可言。 */
     openApplicable: boolean
+    // ── TABLE-EXPORT-3b:导出读的原始值 ──
+    arrivalDate: string | null
+    quantity: number
+    unit: string
+    unitPrice: number | null
+    /** 已抵扣额(本位币);看不到(!canFinance)或这一批没有抵扣过 → null */
+    applied: number | null
+    /** 敞口(本位币);看不到 → null */
+    open: number | null
 }
 
 export default function PoReceiptsTable({
     rows,
     canFinance,
     canPrices,
+    poCode,
+    baseCurrency,
 }: {
     rows: readonly PoReceiptRow[]
     canFinance: boolean
     /** TABLE-EXPORT-2b-2:读者持不持 data.view_purchase_prices —— 单价那一格的 null 是「未计价」还是「受限」 */
     canPrices: boolean
+    /** TABLE-EXPORT-3b:导出的 About 表说明这份文件出自哪张单 */
+    poCode: string
+    /** 抵扣额与敞口是本位币(屏幕在格子里写着它) */
+    baseCurrency: string
 }) {
     const t = useTranslations()
 
-    const columns: Column<PoReceiptRow>[] = [
+    const columns: ExportableColumn<PoReceiptRow>[] = [
         {
             key: 'code',
             header: t('finance.colCode'),
@@ -67,11 +83,13 @@ export default function PoReceiptsTable({
                     {r.code}
                 </Link>
             ),
+            exportAs: (r) => xText(r.code),
         },
         {
             key: 'arrival',
             header: t('inbound.form.arrivalDate'),
             render: (r) => r.arrivalDateText,
+            exportAs: (r) => xDate(r.arrivalDate),
         },
         {
             key: 'qty',
@@ -81,6 +99,7 @@ export default function PoReceiptsTable({
             priority: true,
             className: 'text-sm',
             render: (r) => r.qtyText,
+            exportAs: (r) => xNum(r.quantity, 'qty', r.unit),
         },
         {
             key: 'unitPrice',
@@ -95,6 +114,12 @@ export default function PoReceiptsTable({
                 ) : (
                     <span className="text-amber-700">{t('purchasing.unpriced')}</span>
                 ),
+            // 与屏幕同一条三分:有价 → 数;看不见价 → "Restricted";看得见而没价 → 屏幕那句「未计价」。
+            // 屏幕是光秃秃的 4 位小数、列头不写币种,导出同样不加币种(不替屏幕编一个它没说的币种)。
+            exportAs: (r) =>
+                r.unitPrice !== null ? xMoney(r.unitPrice)
+                : !canPrices ? xRestricted
+                : xText(t('purchasing.unpriced')),
         },
         {
             key: 'applied',
@@ -104,6 +129,8 @@ export default function PoReceiptsTable({
             // 与右邻那一格同一种画法(MaskedValue),所以「受限」在这张表里
             // 只有一个样子 —— CONV-0 收敛出来的那一个。
             render: (r) => <MaskedValue value={r.appliedText} canView={canFinance} />,
+            // 与 MaskedValue 同一条判据:!canFinance → "Restricted";这一批没有抵扣过(屏幕「—」)→ 空格
+            exportAs: (r) => xMasked(r.applied, canFinance, (v) => xMoney(v, baseCurrency)),
         },
         {
             key: 'open',
@@ -112,6 +139,9 @@ export default function PoReceiptsTable({
             className: 'text-sm',
             render: (r) =>
                 !r.openApplicable ? '—' : <MaskedValue value={r.openText} canView={canFinance} />,
+            // 没有价就没有敞口(屏幕「—」)→ 空格;否则与 MaskedValue 同一条判据
+            exportAs: (r) =>
+                !r.openApplicable ? xText(null) : xMasked(r.open, canFinance, (v) => xMoney(v, baseCurrency)),
         },
     ]
 
@@ -122,6 +152,8 @@ export default function PoReceiptsTable({
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('purchasing.noReceipts')}
+            exportSpec={{ name: 'purchasing-order-receipts', title: t('purchasing.receipts'),
+                          aboutExtra: [[t('purchasing.orderDetailTitle'), poCode]] }}
         />
     )
 }

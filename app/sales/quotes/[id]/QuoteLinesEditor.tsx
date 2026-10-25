@@ -46,6 +46,7 @@ import { updateQuoteLine, removeQuoteLine, addQuoteLine } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { xText, xNum, xInt, xMoney } from '@/lib/export/cells'
 
 type Line = {
     id: string; line_no: number; material: string; unit: string
@@ -55,9 +56,9 @@ type Line = {
 type Draft = { qty: string; price: string }
 
 export default function QuoteLinesEditor({
-    quoteId, currency, editable, reason, lines, materials,
+    quoteId, quoteCode, currency, editable, reason, lines, materials,
 }: {
-    quoteId: string; currency: string; editable: boolean; reason: string
+    quoteId: string; quoteCode: string; currency: string; editable: boolean; reason: string
     lines: Line[]; materials: { id: string; code: string; name: string }[]
 }) {
     const t = useTranslations()
@@ -92,12 +93,14 @@ export default function QuoteLinesEditor({
             priority: true,
             className: 'w-8',
             render: (l) => l.line_no,
+            exportAs: (l) => xInt(l.line_no),
         },
         {
             key: 'material',
             header: t('sales.colMaterial'),
             priority: true,
             render: (l) => l.material,
+            exportAs: (l) => xText(l.material),
         },
         {
             key: 'qty',
@@ -105,6 +108,8 @@ export default function QuoteLinesEditor({
             priority: true,
             align: 'right',
             render: (l) => <span>{l.quantity} {l.unit}</span>,
+            // 屏幕上数旁边写着单位 —— 单位跟着数走(xNum 的第三个参数)
+            exportAs: (l) => xNum(l.quantity, 'qty', l.unit || null),
             edit: (d, set) => (
                 <input type="number" step="any" min="0" value={d.qty}
                        aria-label={t('sales.form.qty')}
@@ -118,6 +123,8 @@ export default function QuoteLinesEditor({
             priority: true,
             align: 'right',
             render: (l) => <span>{formatMoneyBare(l.unit_price, '同表列头 单价({ccy})')}</span>,
+            // 币种在列头上(单价({ccy}))—— 格子是光秃秃的数
+            exportAs: (l) => xMoney(l.unit_price),
             edit: (d, set) => (
                 <input type="number" step="any" min="0" value={d.price}
                        aria-label={t('quotes.colUnitPrice', { ccy: currency })}
@@ -138,6 +145,8 @@ export default function QuoteLinesEditor({
             align: 'right',
             render: (l) => lineTotalOf(String(l.quantity), String(l.unit_price)),
             edit: (d) => lineTotalOf(d.qty, d.price),
+            // TABLE-EXPORT-3b:导出【已保存】的数量 × 单价(与只读那一格同一个算法),不是草稿的投影
+            exportAs: (l) => xMoney(Math.round(l.quantity * l.unit_price * 100) / 100),
         },
     ]
 
@@ -162,6 +171,9 @@ export default function QuoteLinesEditor({
                 phone={{ mode: 'columns' }}
                 mode="all-rows"
                 canEdit={editable}
+                // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):已保存的明细(all-rows 下 rows 是存过的值)
+                exportSpec={{ name: 'sales-quote-lines', title: t('sales.form.lines'),
+                              aboutExtra: [[t('quotes.colCode'), quoteCode]] }}
                 empty={t('quotes.noLines')}
                 toDraft={(l) => ({ qty: String(l.quantity), price: String(l.unit_price) })}
                 labels={{

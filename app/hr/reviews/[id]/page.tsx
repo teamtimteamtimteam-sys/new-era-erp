@@ -241,6 +241,11 @@ export default async function ReviewDetailPage({ params, searchParams }: {
                         canAssess={stateAssess}
                         canSetActual={stateActual}
                         stateNote={t('reviews.stateGoalsLocked', { 0: statusName })}
+                        exportAbout={[
+                            [t('reviews.employee'), subject ? `${subject.code} ${subject.legal_name}` : '—'],
+                            [t('reviews.cycle'), cycleName ?? '—'],
+                            [t('reviews.period'), `${r.period_start} → ${r.period_end}`],
+                        ]}
                     />
                 )
                 // 状态已经把所有人挡在外面时,不再叠一句权限的话(见上面的理由)。

@@ -124,7 +124,7 @@ export default async function PurchaseOrderDetailPage({
             .order('line_no'),
         supabase
             .from('purchase_order_payment_terms_masked')
-            .select('seq, label, percentage, fixed_amount_ccy, trigger_event, due_date')
+            .select('id, seq, label, percentage, fixed_amount_ccy, trigger_event, due_date, expected_date')
             .eq('purchase_order_id', id)
             .order('seq'),
         // 已取消的单不在视图里 → 预付/进度区不展示
@@ -447,6 +447,12 @@ export default async function PurchaseOrderDetailPage({
     const lineRows: PoLineRow[] = lines.map((l) => ({
         id: l.id,
         lineNoText: String(l.line_no),
+        lineNo: l.line_no,
+        quantity: Number(l.quantity),
+        unit: l.unit,
+        unitPrice: l.estimated_unit_price,
+        amount: l.estimated_amount_ccy,
+        formulaRestricted: !!l.pricing_formula_id && !formulaById.has(l.pricing_formula_id) && !canSeePricingFormulas,
         name: lineName(l),
         expectedAssayText: assayInline(l.expected_assay) || null,
         materialId: l.material_id ?? null,
@@ -510,6 +516,12 @@ export default async function PurchaseOrderDetailPage({
     ): PoLineRow => ({
         id: key,
         lineNoText: '',
+        lineNo: null,
+        quantity: null,
+        unit: null,
+        unitPrice: null,
+        amount,
+        formulaRestricted: false,
         name: label,
         expectedAssayText: null,
         materialId: null,
@@ -561,7 +573,17 @@ export default async function PurchaseOrderDetailPage({
         triggerText: triggerNames.get(l.trigger_event) ?? l.trigger_event,
         dueDateText: formatDate(l.due_date, locale) ?? '—',
         triggerEvent: l.trigger_event,
-        expectedDate: formatDate(l.expected_date, locale) ?? null,
+        // ★ TABLE-EXPORT-3b:这里从前递的是 formatDate 的输出(显示用的日期被当成数据,lib/dates.ts:210-216)——
+        //   而上面那条 select 当时根本没取 id 与 expected_date,于是这一格恒为「—」、控件拿不到 termId。
+        //   select 补上两列;控件(DatePicker)与导出都要 YYYY-MM-DD 原值。
+        expectedDate: l.expected_date ?? null,
+        // ── 导出读的原始值 ──
+        seq: l.seq,
+        percentage: l.percentage,
+        fixedAmount: l.fixed_amount_ccy,
+        amount: termAmount(l),
+        currency: po.currency,
+        dueDate: l.due_date ?? null,
         ownerName: eventOwners[l.trigger_event] ?? null,
     }))
 
@@ -570,6 +592,13 @@ export default async function PurchaseOrderDetailPage({
         code: r.code,
         arrivalDateText: formatDate(r.arrival_date, locale) ?? '—',
         qtyText: `${Number(r.quantity)} ${r.unit}`,
+        // TABLE-EXPORT-3b:导出读的原始值
+        arrivalDate: r.arrival_date ?? null,
+        quantity: Number(r.quantity),
+        unit: r.unit,
+        unitPrice: r.unit_price,
+        applied: canFinance && appliedByBatch.has(r.id) ? Number(appliedByBatch.get(r.id)) : null,
+        open: canFinance ? Number(openByBatch.get(r.id) ?? 0) : null,
         unitPriceText: r.unit_price !== null ? formatUnitCost(r.unit_price) : null,
         // CCY-1:抵扣额与敞口是本位币 —— 上方头卡说的是单据币种,不能借它。
         // ★ FIX-2b:【'—' 说的是"这一批没有抵扣过"】。对一个读不到
@@ -948,6 +977,8 @@ export default async function PurchaseOrderDetailPage({
                 canEditPurchasing={canEditPurchasing}
                 poCancelled={isCancelled}
                 isEquipmentOrder={isEquipmentOrder}
+                poCode={po.code}
+                currency={po.currency}
             />
 
             {/* ★★【FA-PO-1(2026-09-03):一句话,而它是为了拦住一次【已经发生过的】误读】★★
@@ -983,6 +1014,7 @@ export default async function PurchaseOrderDetailPage({
                             rows={termRows}
                             poId={po.id}
                             canEditPurchasing={canEditPurchasing}
+                            poCode={po.code}
                         />
                     ) : (
                         <p className="text-sm text-[color:var(--brand-muted-text)]">—</p>
@@ -1154,7 +1186,8 @@ export default async function PurchaseOrderDetailPage({
                             <span className="ml-2">({poStatus.receipt_pct}%)</span>
                         )}
                     </p>
-                    <PoReceiptsTable rows={receiptRows} canFinance={canFinance} canPrices={showPrices} />
+                    <PoReceiptsTable rows={receiptRows} canFinance={canFinance} canPrices={showPrices}
+                                     poCode={po.code} baseCurrency={baseCurrency} />
                 </>
             ) : (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.noReceipts')}</p>

@@ -99,6 +99,12 @@ export default async function CreditNotePage({ params, searchParams }: { params:
             kindText: t('cn.kind.' + l.kind),
             qtyText: l.qty === null ? '—' : `${l.qty} ${src?.unit ?? ''}`.trim(),
             amountText: `−${formatMoneyBare(Number(l.amount), '同表列头 冲减({ccy})')}`,
+            // TABLE-EXPORT-3b:导出读原始值。冲减额照屏幕的意思写成【负数】(屏幕上那个「−」)。
+            lineNoRaw: src?.line_no ?? null,
+            qty: l.qty,
+            unit: src?.unit || null,
+            signedAmount: -Number(l.amount),
+            amountCcy: null,
         }
     })
 
@@ -111,6 +117,12 @@ export default async function CreditNotePage({ params, searchParams }: { params:
             kindText: '',
             qtyText: '',
             amountText: `−${formatAmount(total, cn.currency)}`,
+            lineNoRaw: null,
+            qty: null,
+            unit: null,
+            signedAmount: -total,
+            // 合计那一格屏幕上用 formatAmount 写了币种 —— 导出照带
+            amountCcy: cn.currency,
             isTotal: true,
         })
     }
@@ -162,7 +174,7 @@ export default async function CreditNotePage({ params, searchParams }: { params:
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-6">{t('cn.rateNote', { code: inv?.code ?? '—' })}</p>
 
             <h2 className="mb-2">{t('cn.linesTitle')}</h2>
-            <CreditNoteLinesTable rows={tableRows} amountHeader={amountHeader} />
+            <CreditNoteLinesTable rows={tableRows} amountHeader={amountHeader} noteCode={cn.code} />
 
             <h2 className="mt-8 mb-2">{t('cn.issues')}</h2>
             {/* EXT-1:凭证一出生就已经过账了,不存在"还不是承诺"的中间态 ——

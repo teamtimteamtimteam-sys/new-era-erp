@@ -322,7 +322,9 @@ export default async function AssayDetailPage({
                     metal: m.metal,
                     metalLabel: metalLabel(m.metal),
                     contentPct: contentCell(m.content_pct, roleOf.get(m.metal)),
+                    contentRaw: m.content_pct,
                 }))}
+                assayCode={assay.code}
             />
 
             {/* MES-6a-2(Q3 · Q4):这份化验上的指标 —— 残粉、箔纯度、粒径(没有限、没有判定) */}

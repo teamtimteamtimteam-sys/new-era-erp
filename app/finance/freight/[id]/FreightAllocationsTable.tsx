@@ -14,8 +14,9 @@
 // 批次链接过界的是 href 这个【字符串】,不是一个函数(CONV-5 §⑩-6 办法①)。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xMoney, xNum, xText } from '@/lib/export/cells'
 
 export type FreightAllocRow = {
     id: string
@@ -27,12 +28,19 @@ export type FreightAllocRow = {
     basisQtyStated: boolean
     amountText: string
     inStockText: string
+    /** TABLE-EXPORT-3b:导出写原始值。basisQty:stated 口径为 null;inStockPct:屏幕上那个百分数(0–100)。 */
+    basisQty: number | null
+    amountBase: number
+    inStockPct: number
 }
 
-export default function FreightAllocationsTable({ rows }: { rows: readonly FreightAllocRow[] }) {
+// ★ TABLE-EXPORT-3b:一对导出 —— 这张表本来就是为了让分摊能被重新算一遍,导出正是那件事。
+export default function FreightAllocationsTable({ rows, docCode, baseCurrency }: {
+    rows: readonly FreightAllocRow[]; docCode: string; baseCurrency: string
+}) {
     const t = useTranslations()
 
-    const columns: Column<FreightAllocRow>[] = [
+    const columns: ExportableColumn<FreightAllocRow>[] = [
         {
             key: 'batch',
             header: t('finance.freight.colBatch'),
@@ -47,6 +55,7 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
                 ) : (
                     '—'
                 ),
+            exportAs: (r) => xText(r.batchHref ? r.batchCode : '—'),
         },
         {
             key: 'basisQty',
@@ -61,6 +70,8 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
                 ) : (
                     r.basisQtyText
                 ),
+            // stated 口径:照屏幕写那句具名的缺席(不是空格);否则是一个数
+            exportAs: (r) => (r.basisQtyStated ? xText(r.basisQtyText) : xNum(r.basisQty, 'qty')),
         },
         {
             key: 'share',
@@ -70,6 +81,8 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
             priority: true,
             className: 'text-sm',
             render: (r) => r.amountText,
+            // 屏幕上 formatAmount 把本位币写在格子里 —— 导出照带
+            exportAs: (r) => xMoney(r.amountBase, baseCurrency),
         },
         {
             key: 'inStock',
@@ -77,6 +90,7 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
             align: 'right',
             className: 'text-sm',
             render: (r) => r.inStockText,
+            exportAs: (r) => xNum(r.inStockPct, 'pct'),
         },
     ]
 
@@ -87,6 +101,11 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('finance.freight.noAllocs')}
+            exportSpec={{
+                name: 'finance-freight-allocations',
+                title: t('finance.freight.allocTitle'),
+                aboutExtra: [[t('related.colCode'), docCode]],
+            }}
         />
     )
 }

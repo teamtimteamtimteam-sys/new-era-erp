@@ -13,6 +13,7 @@ export type { AssayRow } from './AssayRowsTable'
 
 export default async function AssaySection({
     batchId,
+    batchCode,
     rows,
     // ASY-P2:这个批次的物料【声明了】要验哪些金属、其中哪几种还没被覆盖。
     // null = 这个物料没有声明任何化验要求(那不是"缺 0 种",是根本没有这条政策);
@@ -22,6 +23,8 @@ export default async function AssaySection({
     sampleable,
 }: {
     batchId: string
+    /** TABLE-EXPORT-3b:化验列表导出的 About 表上写明批次号。 */
+    batchCode: string
     rows: AssayRow[]
     missingMetals: string[]
     hasRequirement: boolean
@@ -78,7 +81,7 @@ export default async function AssaySection({
 
             {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个 assay.empty),
                 所以这里【没有】三元 —— 旧那一支不留,不然 prop 永远到不了。 */}
-            <AssayRowsTable batchId={batchId} rows={rows} />
+            <AssayRowsTable batchId={batchId} batchCode={batchCode} rows={rows} />
         </section>
     )
 }

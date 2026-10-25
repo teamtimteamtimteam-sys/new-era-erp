@@ -11,7 +11,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatUnitCost } from '@/lib/format'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { Button } from '@/app/components/ui/button'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMasked, xMoney, xText, xTime } from '@/lib/export/cells'
 import { formatDate } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { useLocale } from '@/lib/i18n/client'
@@ -33,10 +34,13 @@ export type PriceHistoryRow = {
     priced_date: string | null   // 定价日(SG 日历),as-of 与它不同才标出来
     notes: string | null
     created_at_display: string // 服务端预格式化,避免水合不一致
+    /** TABLE-EXPORT-3b:导出写那个时刻本身(xTime),不写上面那串格式化过的字。 */
+    created_at: string
 }
 
 export default function PricingPanel({
     batchId,
+    batchCode,
     unitPrice,
     history,
     canViewPrices,
@@ -47,6 +51,8 @@ export default function PricingPanel({
     openRequestLabel,
 }: {
     batchId: string
+    /** TABLE-EXPORT-3b:价格历史导出的 About 表上写明批次号。 */
+    batchCode: string
     unitPrice: number | null
     history: PriceHistoryRow[]
     /** 当前登录者看不看得见【采购价】(ROLE-1 Batch 4a 起是 data.view_purchase_prices)。为 false 时显示「受限」。 */
@@ -94,13 +100,20 @@ export default function PricingPanel({
     //   「录入原值」是出处(原币 + 牌价 + 取自哪一天),FIN-21 要求它跟着数字走 ——
     //   它【跟着走进了展开区】,带着自己的列头,一点就到。
     //   「备注」本来就是补充说明,而读数说 390px 上露一半的正好就是它(TM-1 §6:⑤)。
-    const columns: Column<PriceHistoryRow>[] = [
+    //
+    // ★ TABLE-EXPORT-3b(审计留痕的一对导出):旧价 / 新价 / 录入原值三格与 MaskedValue 同一条判据(canViewPrices,
+    //   即 data.view_purchase_prices)—— 屏幕「受限」处导出 "Restricted"。旧价有权限而为 null(首次定价)是空格,不是 0。
+    //   新旧价的币种写在列头上(本位币)→ 裸数 xMoney(v)。
+    //   「录入原值」一格装着 原价 + 币种 + @汇率 + 牌价侧 + 取自哪一天 —— 一格一个值,导出写主值 xMoney(原价, 原币);
+    //   汇率与取自哪一天不进这一格(docs/table-export.md「一格放不下」)。
+    const columns: ExportableColumn<PriceHistoryRow>[] = [
         {
             key: 'when',
             header: t('inbound.pricing.colWhen'),
             // ★ 身份 —— 手机上留下。
             priority: true,
             render: (h) => h.created_at_display,
+            exportAs: (h) => xTime(h.created_at),
         },
         {
             key: 'old',
@@ -115,6 +128,7 @@ export default function PricingPanel({
                     fallback="—"
                 />
             ),
+            exportAs: (h) => xMasked(h.old_unit_price, canViewPrices, (v) => xMoney(v)),
         },
         {
             key: 'new',
@@ -124,6 +138,7 @@ export default function PricingPanel({
             render: (h) => (
                 <MaskedValue value={h.new_unit_price} canView={canViewPrices} format={formatUnitCost} />
             ),
+            exportAs: (h) => xMasked(h.new_unit_price, canViewPrices, (v) => xMoney(v)),
         },
         {
             key: 'original',
@@ -146,11 +161,13 @@ export default function PricingPanel({
                     )}
                 </>
             ),
+            exportAs: (h) => xMasked(h.original_price, canViewPrices, (v) => xMoney(v, h.currency)),
         },
         {
             key: 'notes',
             header: t('inbound.pricing.colNotes'),
             render: (h) => h.notes ?? '—',
+            exportAs: (h) => xText(h.notes),
         },
     ]
 
@@ -254,6 +271,7 @@ export default function PricingPanel({
                 rowKey={(h) => h.id}
                 phone={{ mode: 'columns' }}
                 empty={t('inbound.pricing.historyEmpty')}
+                exportSpec={{ name: 'inbound-price-history', title: t('inbound.pricing.historyTitle'), aboutExtra: [[t('inbound.colCode'), batchCode]] }}
             />
         </section>
     )

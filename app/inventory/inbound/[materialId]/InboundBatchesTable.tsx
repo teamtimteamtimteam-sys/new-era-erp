@@ -27,8 +27,9 @@
 import { MaskedValue } from '@/app/components/MaskedValue'
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xDate, xInt, xMoney, xNum, xRestricted, xText } from '@/lib/export/cells'
 
 export type InboundBatchRow = {
     id: string
@@ -47,12 +48,22 @@ export type InboundBatchRow = {
     /** 库龄天数 + 它那一档的色调类名;拿不到就是 null。 */
     ageDays: string | null
     ageToneClass: string
+    // ── TABLE-EXPORT-3b:导出读的原始值 ──
+    quantity: number
+    remaining: number
+    unit: string
+    arrivalDateRaw: string | null
+    unitPrice: number | null
+    /** unitPriceText 为 null 时,屏幕那句缺席说明是哪一种 —— 'priceRestricted' 导出 "Restricted" */
+    unitPriceAbsenceKind: 'unpriced' | 'priceRestricted'
+    batchValue: number | null
+    ageDaysRaw: number | null
 }
 
-export default function InboundBatchesTable({ rows }: { rows: readonly InboundBatchRow[] }) {
+export default function InboundBatchesTable({ rows, materialName }: { rows: readonly InboundBatchRow[]; materialName: string }) {
     const t = useTranslations()
 
-    const columns: Column<InboundBatchRow>[] = [
+    const columns: ExportableColumn<InboundBatchRow>[] = [
         {
             key: 'code',
             header: t('inbound.colCode'),
@@ -64,15 +75,19 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
                     {r.code}
                 </Link>
             ),
+            exportAs: (r) => xText(r.code),
         },
-        { key: 'supplier', header: t('inbound.colSupplier'), render: (r) => r.supplier },
-        { key: 'quantity', header: t('inbound.colQuantity'), render: (r) => r.quantityText },
+        { key: 'supplier', header: t('inbound.colSupplier'), render: (r) => r.supplier,
+          exportAs: (r) => xText(r.supplier === '—' ? null : r.supplier) },
+        { key: 'quantity', header: t('inbound.colQuantity'), render: (r) => r.quantityText,
+          exportAs: (r) => xNum(r.quantity, 'qty', r.unit) },
         {
             key: 'remaining',
             header: t('inbound.colRemaining'),
             // ★ 这张表存在的理由:这一批还剩多少可用。
             priority: true,
             render: (r) => r.remainingText,
+            exportAs: (r) => xNum(r.remaining, 'qty', r.unit),
         },
         {
             // ★ 这一列就是 CONV-8 的探针点名的那枚徽章所在处 —— 见文件抬头。
@@ -80,8 +95,10 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
             key: 'stage',
             header: t('inbound.colStage'),
             render: (r) => <span className="px-2 py-1 bg-gray-200 rounded text-xs">{r.stageLabel}</span>,
+            exportAs: (r) => xText(r.stageLabel),
         },
-        { key: 'arrival', header: t('inbound.colArrivalDate'), render: (r) => r.arrivalDate },
+        { key: 'arrival', header: t('inbound.colArrivalDate'), render: (r) => r.arrivalDate,
+          exportAs: (r) => xDate(r.arrivalDateRaw) },
         {
             key: 'unitPrice',
             header: t('valuation.colUnitPrice'),
@@ -89,8 +106,15 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
             // 这里只负责把它画成灰字,而不是画成一个 0。
             render: (r) =>
                 r.unitPriceText !== null ? r.unitPriceText : <span className="text-gray-400">{r.unitPriceAbsence}</span>,
+            // 币种在列头上 → 光秃秃的数。缺席时照屏幕的两句话:「受限」→ "Restricted";「未计价」→ 屏幕那句字。
+            exportAs: (r) =>
+                r.unitPriceText !== null ? xMoney(r.unitPrice)
+                : r.unitPriceAbsenceKind === 'priceRestricted' ? xRestricted
+                : xText(r.unitPriceAbsence),
         },
-        { key: 'batchValue', header: t('valuation.colBatchValue'), render: (r) => r.batchValueText ?? <MaskedValue value={null} canView={false} /> },
+        { key: 'batchValue', header: t('valuation.colBatchValue'), render: (r) => r.batchValueText ?? <MaskedValue value={null} canView={false} />,
+          // batchValueText 为 null = 屏幕的「受限」(不持 data.view_prices);有权限而为空(屏幕「—」)→ 空格
+          exportAs: (r) => (r.batchValueText === null ? xRestricted : xMoney(r.batchValue)) },
         {
             key: 'age',
             header: t('valuation.colAge'),
@@ -100,6 +124,8 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
                 ) : (
                     '—'
                 ),
+            // 格子是天数 + 库龄档的色调;导出天数
+            exportAs: (r) => xInt(r.ageDays !== null ? r.ageDaysRaw : null),
         },
     ]
 
@@ -110,6 +136,8 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={t('inventory.emptyState')}
+            exportSpec={{ name: 'inventory-inbound-material-batches', title: t('inventory.drill.title'),
+                          aboutExtra: [[t('inventory.colMaterial'), materialName]] }}
         />
     )
 }

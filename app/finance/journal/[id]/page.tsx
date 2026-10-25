@@ -130,6 +130,11 @@ export default async function JournalDetailPage({
         creditText: l.credit !== null && l.credit > 0 ? formatAmount(l.credit, baseCurrency) : '',
         debitRestricted: l.amounts_restricted && l.side === 'debit',
         creditRestricted: l.amounts_restricted && l.side === 'credit',
+        // TABLE-EXPORT-3b:导出读的原始值,与上面两串字同一条判据
+        debit: l.debit !== null && l.debit > 0 ? l.debit : null,
+        credit: l.credit !== null && l.credit > 0 ? l.credit : null,
+        fxCurrency: l.currency !== baseCurrency ? l.currency : null,
+        fxAmount: l.currency !== baseCurrency ? l.amount_ccy : null,
         // 借/贷是本位币,自己带币种;同表「原币」列写的是【另一个】币种,
         // 不能拿它当"这屏已经写了币种"的凭据(CCY-1 RULE 3)。
         ccyText:
@@ -150,6 +155,10 @@ export default async function JournalDetailPage({
             debitText: formatAmount(sumDebit, baseCurrency),
             creditText: formatAmount(sumCredit, baseCurrency),
             ccyText: '',
+            debit: sumDebit,
+            credit: sumCredit,
+            fxCurrency: null,
+            fxAmount: null,
             memo: '',
             isTotal: true,
             // 一行受限,合计就是那几行的和 —— 两格一起受限,不印一个"少了几行"的数
@@ -239,7 +248,7 @@ export default async function JournalDetailPage({
                 </p>
             )}
 
-            <JournalLinesTable rows={tableRows} />
+            <JournalLinesTable rows={tableRows} baseCurrency={baseCurrency} entryCode={entry.code} />
 
             <AuditTrail subject="journal_entry" id={entry.id} show={trailCount((await searchParams).trail)} />
         </ListPage>

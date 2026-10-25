@@ -151,6 +151,10 @@ export default async function PayrollDetailPage({
         netText: formatMoneyBare(l.net_pay, CCY_NOTE),
         otHoursText: l.employees ? (otByEmployee.get(l.employees.id) ?? 0).toFixed(2) : '—',
         restricted: l.gross_pay === null,
+        // TABLE-EXPORT-3b:导出用的原始值
+        gross: l.gross_pay, employeeCpf: l.employee_cpf, employerCpf: l.employer_cpf,
+        deductions: l.other_deductions, net: l.net_pay,
+        otHours: l.employees ? (otByEmployee.get(l.employees.id) ?? 0) : null,
     }))
 
     // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。
@@ -170,6 +174,10 @@ export default async function PayrollDetailPage({
         isTotal: true,
         totalNote: t('hr.lineCount', { n: lines.length }),
         restricted: period.gross_total === null,
+        // TABLE-EXPORT-3b:导出用的原始值
+        gross: period.gross_total, employeeCpf: period.employee_cpf_total, employerCpf: period.employer_cpf_total,
+        deductions: period.other_deductions_total, net: period.net_pay_total,
+        otHours: lines.reduce((acc, l) => acc + (l.employees ? (otByEmployee.get(l.employees.id) ?? 0) : 0), 0),
     })
 
     return (
@@ -272,7 +280,8 @@ export default async function PayrollDetailPage({
 
             {/* 明细 */}
             <div className="mb-6">
-                <PayrollLinesTable rows={tableRows} />
+                <PayrollLinesTable rows={tableRows}
+                    about={[[t('hr.colPeriod'), subjectLabel], [t('hr.colCurrency'), `${period.currency} @ ${period.fx_rate}`]]} />
                 <p className="mt-2 text-xs text-[color:var(--brand-muted-text)]">
                     {otFixed ? t('hr.otHoursFixedNote') : t('hr.otHoursLiveNote')}
                 </p>

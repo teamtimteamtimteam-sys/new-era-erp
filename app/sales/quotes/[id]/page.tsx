@@ -186,6 +186,7 @@ export default async function QuotePage({ params, searchParams }: {
                 {(() => {
                     const lineProps = {
                         quoteId: q.quote_id,
+                        quoteCode: q.code,
                         currency: q.currency,
                         lines: lines.map((l) => ({
                             id: l.id, line_no: l.line_no,
