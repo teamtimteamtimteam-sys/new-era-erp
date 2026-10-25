@@ -19,7 +19,8 @@ import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { recordRunLoss, correctRunLoss, deriveElectrolyteLoss, rederiveElectrolyteLoss } from './lossActions'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -40,9 +41,11 @@ export type LossRow = {
 }
 
 export default function LossPanel({
-    runId, categories, rows, lossQty, canEdit, canDerive, electrolyte, locale,
+    runId, runCode, categories, rows, lossQty, canEdit, canDerive, electrolyte, locale,
 }: {
     runId: string
+    /** TABLE-EXPORT-3c:导出的 About 表写这一炉的单号 */
+    runCode: string
     categories: LossCategory[]
     rows: LossRow[]
     lossQty: number | null
@@ -70,7 +73,20 @@ export default function LossPanel({
     // 显示 0 会把它读成"全部解释完了"。视图那一侧也是这么判的。
     const unexplained = lossQty == null ? null : lossQty - categorised
 
-    const lossColumns: Column<LossRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。
+    //   类别一格旁边那句「(不是损耗:……)」改变这一行的意思 —— 照 BatchDetail 的先例附在类别名后面。
+    //   数量是数(屏幕上这一列没有单位,导出也不编一个)。「来历」一格照屏幕那句话(量的 / 按 X% 算的)。
+    //   更正那一列表头是空的 —— 导出给它「更正理由」作列名(processing.loss.correctReason,表单上同一个键)。
+    //   「更正」按钮是控件,不导出。
+    const categoryText = (r: LossRow) => {
+        const c = byCode(r.loss_category_code)
+        if (!c) return r.loss_category_code
+        return c.is_true_loss ? label(c) : `${label(c)} ${t('processing.loss.notTrueLoss')}`
+    }
+    const basisText = (r: LossRow) => (r.basis === 'derived'
+        ? t('processing.loss.basisDerived', { share: r.derived_share_pct ?? '' })
+        : t('processing.loss.basisMeasured'))
+    const lossColumns: ExportableColumn<LossRow>[] = [
         {
             key: 'category',
             header: t('processing.loss.colCategory'),
@@ -89,10 +105,12 @@ export default function LossPanel({
                     </>
                 )
             },
+            exportAs: (r) => xText(categoryText(r)),
         },
         {
             key: 'metalFate', header: t('processing.loss.colMetalFate'), className: 'text-gray-700',
             render: (r) => { const c = byCode(r.loss_category_code); return c ? t('processing.loss.metalFate.' + c.metal_fate) : '—' },
+            exportAs: (r) => { const c = byCode(r.loss_category_code); return xText(c ? t('processing.loss.metalFate.' + c.metal_fate) : null) },
         },
         {
             key: 'qty',
@@ -101,23 +119,25 @@ export default function LossPanel({
             // ★ 这张表存在的理由:那一类去向【占了多少】。
             priority: true,
             render: (r) => r.quantity,
+            exportAs: (r) => xNum(r.quantity, 'qty'),
         },
         // MES-4b(Q16):每一行说出它是量出来的还是算出来的(算出来的带当时用的份额)
         {
             key: 'basis', header: t('processing.loss.colBasis'),
-            render: (r) => (r.basis === 'derived'
-                ? t('processing.loss.basisDerived', { share: r.derived_share_pct ?? '' })
-                : t('processing.loss.basisMeasured')),
+            render: (r) => basisText(r),
+            exportAs: (r) => xText(basisText(r)),
         },
-        { key: 'notes', header: t('processing.loss.colNotes'), className: 'text-gray-600', render: (r) => r.notes ?? '—' },
+        { key: 'notes', header: t('processing.loss.colNotes'), className: 'text-gray-600', render: (r) => r.notes ?? '—', exportAs: (r) => xText(r.notes) },
         // MES-4a(Q28):每一行一个「更正」—— 没有删除。更正过的那一行把理由印在行上(旧的数在审计记录里)。
         {
-            key: 'correction', header: '', className: 'text-[color:var(--brand-muted-text)]',
+            key: 'correction', header: '', exportHeader: t('processing.loss.correctReason'), className: 'text-[color:var(--brand-muted-text)]',
             render: (r: LossRow) => (r.corrected ? t('processing.loss.correctedBecause', { reason: r.correction_reason ?? '' }) : ''),
+            exportAs: (r) => xText(r.corrected ? t('processing.loss.correctedBecause', { reason: r.correction_reason ?? '' }) : null),
         },
         ...(canEdit ? [{
             key: 'actions',
             header: '',
+            exportAs: false as const,
             align: 'right' as const,
             render: (r: LossRow) => (
                 <Button variant="secondary" size="inline" type="button" className="text-sm" disabled={isPending}
@@ -197,6 +217,11 @@ export default function LossPanel({
                 rowKey={(r) => String(r.id)}
                 phone={{ mode: 'columns' }}
                 empty={t('processing.loss.empty')}
+                exportSpec={{
+                    name: 'processing-run-losses',
+                    title: t('processing.loss.title'),
+                    aboutExtra: [[t('processing.colCode'), runCode]],
+                }}
             />
 
             {error && <p className="mt-2 text-sm text-red-700">{error}</p>}

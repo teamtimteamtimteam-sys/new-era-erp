@@ -83,6 +83,11 @@ export default async function TraceabilitySection({
               supplierCode: c.supplier_code,
               supplierName: c.supplier_name,
               arrivalDate: formatDate(c.arrival_date, locale) ?? '—',
+              // TABLE-EXPORT-3c(Tim 2026-10-25):原始值一并递过去给导出 —— 上面那几串成品字不动(它们与 PDF 同源)。
+              depthRaw: c.depth,
+              parentCodeRaw: c.parent_code,
+              quantityConsumedRaw: c.quantity_consumed,
+              arrivalDateRaw: c.arrival_date,
           }))
 
     const recoveryRows: RecoveryTableRow[] = failed
@@ -98,6 +103,12 @@ export default async function TraceabilitySection({
               conservationFlag: r.conservation_warning ? t('traceability.conservationFlag') : null,
               inputSource: sourceText(r.input_source, t),
               outputSource: sourceText(r.output_source, t),
+              // TABLE-EXPORT-3c(Tim 2026-10-25):原始值,给导出
+              inputKgRaw: r.input_metal_kg ?? null,
+              outputKgRaw: r.output_metal_kg ?? null,
+              recoveryPctRaw: r.recovery_pct ?? null,
+              hasInputSource: !!r.input_source,
+              hasOutputSource: !!r.output_source,
           }))
 
     return (
@@ -114,11 +125,11 @@ export default async function TraceabilitySection({
                 <>
                     {/* ── 血缘链:供应商 → 收货 → 每一支加工单 → 这一批 ─────────── */}
                     <h3 className="mb-2">{t('traceability.chainHeading')}</h3>
-                    <ChainTable rows={chainRows} />
+                    <ChainTable rows={chainRows} batchCode={report.output_batch.code} />
 
                     {/* ── 回收率:每支加工单 × 金属,出处跟着数字走 ───────────────── */}
                     <h3 className="mb-2">{t('traceability.recoveryHeading')}</h3>
-                    <RecoveryTable rows={recoveryRows} />
+                    <RecoveryTable rows={recoveryRows} batchCode={report.output_batch.code} />
 
                     {/* 【一句人话,而它也进 PDF】客户只拿到那张纸时,同样读得到这句。 */}
                     <p className="text-sm text-[color:var(--brand-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4">

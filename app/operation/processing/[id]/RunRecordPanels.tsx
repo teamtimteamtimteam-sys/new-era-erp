@@ -11,7 +11,8 @@
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -67,7 +68,7 @@ function ValueInput({ valueType, value, onChange }: { valueType: string; value: 
     )
 }
 
-export function ValuesPanel({ runId, rows, canEdit }: { runId: string; rows: ValueRow[]; canEdit: boolean }) {
+export function ValuesPanel({ runId, runCode, rows, canEdit }: { runId: string; runCode: string; rows: ValueRow[]; canEdit: boolean }) {
     const t = useTranslations()
     const [pending, start] = useTransition()
     const [error, setError] = useState<string | null>(null)
@@ -89,9 +90,15 @@ export function ValuesPanel({ runId, rows, canEdit }: { runId: string; rows: Val
         })
     }
 
-    const columns: Column<ValueRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出,About 表写这一炉的单号。
+    //   字段一格叠着名字(单位)、必填星号、参数 / 指标与范围 —— 导出写主值:名字(单位)。
+    //   值一格:数(number / count)导出是数(单位在同一行的字段名里,与屏幕一样),是 / 否与文字照屏幕的字;没记的屏幕说「没记」→ 空格。
+    //   值旁边那两行标记(越界 / 与配方不同)是对这个值的判断 —— 照 docs/table-export.md「一格装不下的」那一条,不进这一格。
+    //   「记 / 更正」按钮是控件,不导出。
+    const columns: ExportableColumn<ValueRow>[] = [
         {
             key: 'field', header: t('processing.rec.colField'), priority: true,
+            exportAs: (r) => xText(`${r.name}${r.unit ? ` (${r.unit})` : ''}`),
             render: (r) => (
                 <>
                     {r.name}{r.unit ? ` (${r.unit})` : ''}
@@ -105,6 +112,9 @@ export function ValuesPanel({ runId, rows, canEdit }: { runId: string; rows: Val
         },
         {
             key: 'value', header: t('processing.rec.colValue'), priority: true,
+            exportAs: (r) => (r.display === null ? xText(null)
+                : r.value_type === 'number' || r.value_type === 'count' ? xNum(r.raw, r.value_type === 'count' ? 'int' : 'qty')
+                    : xText(r.display)),
             render: (r) => (
                 <>
                     {r.display ?? <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.rec.notRecorded')}</span>}
@@ -120,13 +130,15 @@ export function ValuesPanel({ runId, rows, canEdit }: { runId: string; rows: Val
         {
             key: 'source', header: t('processing.rec.colSource'),
             render: (r) => (r.source ? t('processing.rec.source.' + r.source) : '—'),
+            exportAs: (r) => xText(r.source ? t('processing.rec.source.' + r.source) : null),
         },
         {
             key: 'correction', header: t('processing.rec.colCorrection'), className: 'text-[color:var(--brand-muted-text)]',
             render: (r) => (r.corrected ? t('processing.rec.correctedBecause', { reason: r.correction_reason ?? '' }) : ''),
+            exportAs: (r) => xText(r.corrected ? t('processing.rec.correctedBecause', { reason: r.correction_reason ?? '' }) : null),
         },
         ...(canEdit ? [{
-            key: 'actions', header: '', align: 'right' as const,
+            key: 'actions', header: '', align: 'right' as const, exportAs: false as const,
             render: (r: ValueRow) => (
                 <Button variant="secondary" size="inline" type="button" className="text-sm" disabled={pending} onClick={() => open(r)}>
                     {r.value_id === null ? t('processing.rec.record') : t('processing.rec.correct')}
@@ -140,7 +152,12 @@ export function ValuesPanel({ runId, rows, canEdit }: { runId: string; rows: Val
             <h2 className="mb-1">{t('processing.rec.valuesTitle')}</h2>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('processing.rec.valuesRunIntro')}</p>
             <DataTable rows={rows} columns={columns} rowKey={(r) => r.field_code} phone={{ mode: 'columns' }}
-                       empty={t('processing.rec.valuesEmpty')} />
+                       empty={t('processing.rec.valuesEmpty')}
+                       exportSpec={{
+                           name: 'processing-run-values',
+                           title: t('processing.rec.valuesTitle'),
+                           aboutExtra: [[t('processing.colCode'), runCode]],
+                       }} />
             {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
             {!canEdit && rows.length > 0 && (
                 <PermissionGate code="action.processing_aftercare" allowed={false} inline>
@@ -188,8 +205,8 @@ export type EventTypeOption = { code: string; label: string }
 
 const blankEvent = { event_type: '', occurred: '', duration: '', action: '', responsible: '', notes: '' }
 
-export function EventsPanel({ runId, rows, types, canEdit }: {
-    runId: string; rows: EventRow[]; types: EventTypeOption[]; canEdit: boolean
+export function EventsPanel({ runId, runCode, rows, types, canEdit }: {
+    runId: string; runCode: string; rows: EventRow[]; types: EventTypeOption[]; canEdit: boolean
 }) {
     const t = useTranslations()
     const [pending, start] = useTransition()
@@ -222,9 +239,15 @@ export function EventsPanel({ runId, rows, types, canEdit }: {
         })
     }
 
-    const columns: Column<EventRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出,About 表写这一炉的单号。
+    //   撤回的事件屏幕上只靠种类旁边一枚小字「撤回」认得出 —— 它改变这一行的意思(这件事不该被记下),
+    //   照 BatchDetail 的先例附在种类后面:「种类 (撤回)」。时刻写真的日期格;时长是数(列头已写 min)。
+    //   最后一格屏幕上是「已更正:理由」或者备注 —— 导出照写那句话。「更正 / 撤回」按钮是控件,不导出。
+    const lastCell = (r: EventRow) => (r.corrected ? t('processing.rec.correctedBecause', { reason: r.correction_reason ?? '' }) : (r.notes ?? ''))
+    const columns: ExportableColumn<EventRow>[] = [
         {
             key: 'type', header: t('processing.rec.colEventType'), priority: true,
+            exportAs: (r) => xText(r.withdrawn ? `${r.type_label} (${t('processing.rec.withdrawn')})` : r.type_label),
             render: (r) => (
                 <>
                     {r.type_label}
@@ -232,16 +255,17 @@ export function EventsPanel({ runId, rows, types, canEdit }: {
                 </>
             ),
         },
-        { key: 'when', header: t('processing.rec.colOccurred'), priority: true, render: (r) => r.occurred_display },
-        { key: 'duration', header: t('processing.rec.colDuration'), align: 'right', render: (r) => (r.duration_min ?? '—') },
-        { key: 'action', header: t('processing.rec.colAction'), render: (r) => r.action_taken },
-        { key: 'responsible', header: t('processing.rec.colResponsible'), render: (r) => r.responsible_person },
+        { key: 'when', header: t('processing.rec.colOccurred'), priority: true, render: (r) => r.occurred_display, exportAs: (r) => xTime(r.occurred_at) },
+        { key: 'duration', header: t('processing.rec.colDuration'), align: 'right', render: (r) => (r.duration_min ?? '—'), exportAs: (r) => xNum(r.duration_min) },
+        { key: 'action', header: t('processing.rec.colAction'), render: (r) => r.action_taken, exportAs: (r) => xText(r.action_taken) },
+        { key: 'responsible', header: t('processing.rec.colResponsible'), render: (r) => r.responsible_person, exportAs: (r) => xText(r.responsible_person) },
         {
             key: 'correction', header: t('processing.rec.colCorrection'), className: 'text-[color:var(--brand-muted-text)]',
-            render: (r) => (r.corrected ? t('processing.rec.correctedBecause', { reason: r.correction_reason ?? '' }) : (r.notes ?? '')),
+            render: lastCell,
+            exportAs: (r) => xText(lastCell(r) || null),
         },
         ...(canEdit ? [{
-            key: 'actions', header: '', align: 'right' as const,
+            key: 'actions', header: '', align: 'right' as const, exportAs: false as const,
             render: (r: EventRow) => (r.withdrawn ? null : (
                 <span className="inline-flex gap-2">
                     <Button variant="secondary" size="inline" type="button" className="text-sm" disabled={pending} onClick={() => openFix(r, false)}>
@@ -269,7 +293,12 @@ export function EventsPanel({ runId, rows, types, canEdit }: {
             </div>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('processing.rec.eventsIntro')}</p>
             <DataTable rows={rows} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }}
-                       empty={t('processing.rec.eventsEmpty')} />
+                       empty={t('processing.rec.eventsEmpty')}
+                       exportSpec={{
+                           name: 'processing-run-events',
+                           title: t('processing.rec.eventsTitle'),
+                           aboutExtra: [[t('processing.colCode'), runCode]],
+                       }} />
             {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
             {mode && (
                 <div className="mt-3 border border-gray-200 rounded p-3 grid grid-cols-1 sm:grid-cols-2 gap-3" data-event-form={mode}>
@@ -424,10 +453,16 @@ export function BalancePanel({ runId, b, canClose }: { runId: string; b: Balance
 // ④ 抬头更正
 // ─────────────────────────────────────────────────────────────────────────────
 export type HeaderOption = { value: string; label: string }
-export type CorrectionRow = { id: number; field_label: string; old_value: string; new_value: string; reason: string; when: string }
+export type CorrectionRow = {
+    id: number; field_label: string; old_value: string; new_value: string; reason: string; when: string
+    /** TABLE-EXPORT-3c:原始值 —— 字段码、库里存的旧值 / 新值(时刻是 ISO)、更正时刻 ISO(上面那几串是排好的字) */
+    field: string; old_raw: string | null; new_raw: string | null; when_iso: string
+}
 
-export function HeaderCorrectionPanel({ runId, canCorrect, current, shifts, machines, recipes, history, predates }: {
+export function HeaderCorrectionPanel({ runId, runCode, canCorrect, current, shifts, machines, recipes, history, predates }: {
     runId: string
+    /** TABLE-EXPORT-3c:导出的 About 表写这一炉的单号 */
+    runCode: string
     canCorrect: boolean
     /** 每个字段今天的值(输入框里的原样字符串;时刻是 ISO,选择器按新加坡钟面显示) */
     current: Record<string, string>
@@ -455,12 +490,18 @@ export function HeaderCorrectionPanel({ runId, canCorrect, current, shifts, mach
             else { setField(''); setValue(''); setReason('') }
         })
     }
-    const columns: Column<CorrectionRow>[] = [
-        { key: 'field', header: t('processing.rec.colField'), priority: true, render: (r) => r.field_label },
-        { key: 'old', header: t('processing.rec.colOld'), render: (r) => r.old_value },
-        { key: 'new', header: t('processing.rec.colNew'), priority: true, render: (r) => r.new_value },
-        { key: 'reason', header: t('processing.rec.reason'), render: (r) => r.reason },
-        { key: 'when', header: t('processing.rec.colWhen'), render: (r) => r.when },
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出 —— 一条只追加的留痕,整条导出(TABLE-EXPORT-3 Q6),About 表写这一炉的单号。
+    //   旧值 / 新值:开始、结束两个字段是时刻 → 真的日期格(读原始 ISO,不读排好的字);其余写屏幕上的字
+    //   (班次名、机器号、配方版本 —— 原始值是一个 id,读者认不得)。原来是空的那一格屏幕是「—」→ 空格。
+    const isStamp = (f: string) => f === 'started_at' || f === 'ended_at'
+    const valueCell = (r: CorrectionRow, raw: string | null, shown: string) =>
+        raw === null || raw === '' ? xText(null) : isStamp(r.field) ? xTime(raw) : xText(shown)
+    const columns: ExportableColumn<CorrectionRow>[] = [
+        { key: 'field', header: t('processing.rec.colField'), priority: true, render: (r) => r.field_label, exportAs: (r) => xText(r.field_label) },
+        { key: 'old', header: t('processing.rec.colOld'), render: (r) => r.old_value, exportAs: (r) => valueCell(r, r.old_raw, r.old_value) },
+        { key: 'new', header: t('processing.rec.colNew'), priority: true, render: (r) => r.new_value, exportAs: (r) => valueCell(r, r.new_raw, r.new_value) },
+        { key: 'reason', header: t('processing.rec.reason'), render: (r) => r.reason, exportAs: (r) => xText(r.reason) },
+        { key: 'when', header: t('processing.rec.colWhen'), render: (r) => r.when, exportAs: (r) => xTime(r.when_iso) },
     ]
 
     return (
@@ -470,7 +511,12 @@ export function HeaderCorrectionPanel({ runId, canCorrect, current, shifts, mach
                 {predates ? t('processing.rec.headerPredates') : t('processing.rec.headerIntro')}
             </p>
             <DataTable rows={history} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }}
-                       empty={t('processing.rec.headerEmpty')} />
+                       empty={t('processing.rec.headerEmpty')}
+                       exportSpec={{
+                           name: 'processing-run-header-corrections',
+                           title: t('processing.rec.headerTitle'),
+                           aboutExtra: [[t('processing.colCode'), runCode]],
+                       }} />
             {!predates && (
                 <PermissionGate code="action.processing_commit" allowed={canCorrect}>
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end" data-header-form>

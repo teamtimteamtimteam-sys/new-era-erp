@@ -25,8 +25,13 @@
 //   **所以这一页正是 DataTable 够得着的那一种。**
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xDate, xNum, xText } from '@/lib/export/cells'
+
+// ★ TABLE-EXPORT-3c(Tim 2026-10-25):三张表各一对导出,About 表写明是哪张工单。
+//   计划 / 实际 / 差异写成【数】,读页面另带上的原始值(行上原来只有 String() 出来的字);
+//   「—」与「没估过」是真的没有 —— 没有计划、没有被减数 —— 导出成空格,绝不是 0(上面 varianceCell 那一条)。
 
 /** 计划 vs 实际的一行,投入侧与产出侧共用同一个形状。 */
 export type FulfilmentRow = {
@@ -40,6 +45,10 @@ export type FulfilmentRow = {
     /** 投入侧才有:这个计划数【是谁说的】。产出侧为 null。 */
     basis: { tone: string; label: string; reference: string | null } | null
     basisUnstated: boolean
+    // ── TABLE-EXPORT-3c:导出读的原始值(null = 没有,不是 0)──
+    plannedQty: number | null
+    actualQty: number
+    varianceQty: number | null
 }
 
 export type LinkedRunRow = {
@@ -51,6 +60,10 @@ export type LinkedRunRow = {
     totalOutput: string
     reversed: boolean
     statusLabel: string
+    // ── TABLE-EXPORT-3c:导出读的原始值 ──
+    processDateRaw: string | null
+    totalInputQty: number | null
+    totalOutputQty: number | null
 }
 
 function varianceCell(r: FulfilmentRow) {
@@ -60,9 +73,9 @@ function varianceCell(r: FulfilmentRow) {
         : <span className={r.varianceNegative ? 'text-amber-700' : ''}>{r.varianceText}</span>
 }
 
-export function InputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
+export function InputSideTable({ rows, workOrderCode }: { rows: readonly FulfilmentRow[]; workOrderCode: string }) {
     const t = useTranslations()
-    const columns: Column<FulfilmentRow>[] = [
+    const columns: ExportableColumn<FulfilmentRow>[] = [
         {
             key: 'material',
             header: t('processing.wo.colMaterial'),
@@ -77,10 +90,13 @@ export function InputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
                     )}
                 </>
             ),
+            // 「计划外」那枚小标改变这一行的意思 → 接在料名后面(FormulasTable 的 rowInactive 同形)
+            exportAs: (r) => xText(r.hasPlan ? r.label : `${r.label} (${t('processing.wo.unplannedMaterial')})`),
         },
         {
             key: 'planned', header: t('processing.wo.colPlanned'), align: 'right',
             render: (r) => r.plannedText ?? <span className="text-gray-400">—</span>,
+            exportAs: (r) => xNum(r.plannedQty),
         },
         {
             // ★【这一列转换前【没有表头】—— 补上的是它一直缺的那个名字,不是新列】★
@@ -100,8 +116,15 @@ export function InputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
                             {r.basis.reference && <span className="block text-gray-500 mt-1">{r.basis.reference}</span>}
                         </>
                     ) : null,
+            // 出处的标签 + 它的出处说明(小字)—— 照屏幕写那段字;「还没有人说过」照写(那是一句陈述,不是空);计划外的料没有出处 → 空格
+            exportAs: (r) => xText(
+                !r.hasPlan ? null
+                    : r.basisUnstated ? t('processing.wo.basis.unstated')
+                    : r.basis ? (r.basis.reference ? `${r.basis.label} — ${r.basis.reference}` : r.basis.label)
+                    : null),
         },
-        { key: 'actual', header: t('processing.wo.colConsumed'), align: 'right', render: (r) => r.actualText },
+        { key: 'actual', header: t('processing.wo.colConsumed'), align: 'right', render: (r) => r.actualText,
+          exportAs: (r) => xNum(r.actualQty) },
         {
             key: 'variance',
             header: t('processing.wo.colVariance'),
@@ -109,6 +132,7 @@ export function InputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
             // ★ 计划对实际的表,存在的理由就是这一列。
             priority: true,
             render: varianceCell,
+            exportAs: (r) => xNum(r.varianceQty),
         },
     ]
     return (
@@ -116,45 +140,56 @@ export function InputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
                    phone={{ mode: 'columns' }}
                    // 计划外的料整行琥珀底 —— rowClassName 是 CONV-4 建的槽。
                    rowClassName={(r) => (r.hasPlan ? undefined : 'bg-amber-50')}
-                   empty={t('processing.wo.noLines')} />
+                   empty={t('processing.wo.noLines')}
+                   exportSpec={{ name: 'work-order-input', title: t('processing.wo.inputSide'),
+                                 aboutExtra: [[t('processing.colWorkOrder'), workOrderCode]] }} />
     )
 }
 
-export function OutputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
+export function OutputSideTable({ rows, workOrderCode }: { rows: readonly FulfilmentRow[]; workOrderCode: string }) {
     const t = useTranslations()
     // ★ 产出侧【没有】出处列 —— 转换前它声明了那个表头却没有那一格,
     //   于是整张表右移一格。这里按【表体实际有什么】定列,而不是按旧表头。
-    const columns: Column<FulfilmentRow>[] = [
-        { key: 'material', header: t('processing.wo.colMaterial'), priority: true, render: (r) => r.label },
+    const columns: ExportableColumn<FulfilmentRow>[] = [
+        { key: 'material', header: t('processing.wo.colMaterial'), priority: true, render: (r) => r.label, exportAs: (r) => xText(r.label) },
         {
             key: 'expected', header: t('processing.wo.colExpected'), align: 'right',
             // 【没估过 ≠ 估了零 —— 屏幕上把它说出来】
             render: (r) => r.hasPlan
                 ? r.plannedText
                 : <span className="text-gray-500 italic text-xs">{t('processing.wo.noExpectation')}</span>,
+            // 没估过 = 真的没有 → 空格,绝不是 0
+            exportAs: (r) => xNum(r.hasPlan ? r.plannedQty : null),
         },
-        { key: 'produced', header: t('processing.wo.colProduced'), align: 'right', render: (r) => r.actualText },
-        { key: 'variance', header: t('processing.wo.colVariance'), align: 'right', priority: true, render: varianceCell },
+        { key: 'produced', header: t('processing.wo.colProduced'), align: 'right', render: (r) => r.actualText,
+          exportAs: (r) => xNum(r.actualQty) },
+        { key: 'variance', header: t('processing.wo.colVariance'), align: 'right', priority: true, render: varianceCell,
+          exportAs: (r) => xNum(r.varianceQty) },
     ]
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.id}
-                   phone={{ mode: 'columns' }} empty={t('processing.wo.noOutputsYet')} />
+                   phone={{ mode: 'columns' }} empty={t('processing.wo.noOutputsYet')}
+                   exportSpec={{ name: 'work-order-output', title: t('processing.wo.outputSide'),
+                                 aboutExtra: [[t('processing.colWorkOrder'), workOrderCode]] }} />
     )
 }
 
-export function LinkedRunsTable({ rows }: { rows: readonly LinkedRunRow[] }) {
+export function LinkedRunsTable({ rows, workOrderCode }: { rows: readonly LinkedRunRow[]; workOrderCode: string }) {
     const t = useTranslations()
-    const columns: Column<LinkedRunRow>[] = [
+    const columns: ExportableColumn<LinkedRunRow>[] = [
         {
             key: 'code',
             header: t('processing.colCode'),
             // 身份列。
             priority: true,
             render: (r) => <Link href={r.href} className="hover:underline app-link">{r.code}</Link>,
+            exportAs: (r) => xText(r.code),
         },
-        { key: 'date', header: t('processing.colProcessDate'), render: (r) => r.processDate },
-        { key: 'in', header: t('processing.colTotalInput'), align: 'right', render: (r) => r.totalInput },
-        { key: 'out', header: t('processing.colTotalOutput'), align: 'right', render: (r) => r.totalOutput },
+        { key: 'date', header: t('processing.colProcessDate'), render: (r) => r.processDate, exportAs: (r) => xDate(r.processDateRaw) },
+        { key: 'in', header: t('processing.colTotalInput'), align: 'right', render: (r) => r.totalInput,
+          exportAs: (r) => xNum(r.totalInputQty) },
+        { key: 'out', header: t('processing.colTotalOutput'), align: 'right', render: (r) => r.totalOutput,
+          exportAs: (r) => xNum(r.totalOutputQty) },
         {
             key: 'status',
             header: t('processing.colStatus'),
@@ -164,12 +199,15 @@ export function LinkedRunsTable({ rows }: { rows: readonly LinkedRunRow[] }) {
             //   所以「这一行算不算数」比「这一行有多少」更要紧。
             priority: true,
             render: (r) => <span className="text-xs px-2 py-1 bg-gray-200 rounded">{r.statusLabel}</span>,
+            exportAs: (r) => xText(r.statusLabel),
         },
     ]
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.id}
                    phone={{ mode: 'columns' }}
                    rowClassName={(r) => (r.reversed ? 'text-gray-400' : undefined)}
-                   empty={t('processing.wo.noRuns')} />
+                   empty={t('processing.wo.noRuns')}
+                   exportSpec={{ name: 'work-order-runs', title: t('processing.wo.linkedRuns'),
+                                 aboutExtra: [[t('processing.colWorkOrder'), workOrderCode]] }} />
     )
 }

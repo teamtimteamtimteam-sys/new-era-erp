@@ -5,11 +5,12 @@ import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
+import { xDate, xInt, xMoney, xText } from '@/lib/export/cells'
 
 // LOG-1c:物流属性 + 报价。
 //
@@ -20,13 +21,19 @@ import { useLocale } from '@/lib/i18n/client'
 type Details = { main_routes: string | null; ports_served: string | null; free_time_terms: string | null; dg_classes: string | null; notes: string | null } | null
 // free_days 是【三态】:数字 / null(报价没写)—— 不是 number 就是 null,
 // 绝不用 0 顶替 null(列注释与 addRateQuote 里那段是同一条规矩)。
-type Quote = { id: string; lane_id: string; amount_ccy: string; currency: string; valid_from: string; valid_to: string; free_days: number | null }
+type Quote = {
+    id: string; lane_id: string; amount_ccy: string; currency: string; valid_from: string; valid_to: string; free_days: number | null
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):上面两个日期已按界面语言格式化;导出读这两个原始日历日 */
+    valid_from_raw: string; valid_to_raw: string
+}
 
 export default function ForwarderPanels({
-    supplierId, details, lanes, quotes, currencies, labels,
+    supplierId, forwarderCode, details, lanes, quotes, currencies, labels,
 canEdit
 }: {
     supplierId: string
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):报价导出的 About 表写明是哪一家货代 */
+    forwarderCode: string
     details: Details
     lanes: { id: string; label: string }[]
     quotes: Quote[]
@@ -92,23 +99,32 @@ canEdit: boolean
 
     // UNBLOCK-1 Q16:裸 <table> → 共享 DataTable。手机上留航段(身份)与操作列;
     // 操作列画的是【要按的控件】,按 R1 必须 priority —— 折进展开区就等于够不着。
-    const quoteColumns: Column<Quote>[] = [
-        { key: 'lane', header: labels.lane, priority: true, render: (q) => laneLabel.get(q.lane_id) ?? q.lane_id },
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。金额那一格屏幕上写着「数 币种」→ xMoney(原始金额, 币种);
+    //   两个日期读原始日历日(xDate)。免柜天数 null =「报价没写」→ 导出空格,不是 0(0 是另一件事,三态不塌成两态);
+    //   屏幕上那句斜体的「未写明」是对空的说明,不是一个值。撤回那一列是控件 → exportAs:false。
+    const quoteColumns: ExportableColumn<Quote>[] = [
+        { key: 'lane', header: labels.lane, priority: true, render: (q) => laneLabel.get(q.lane_id) ?? q.lane_id,
+          exportAs: (q) => xText(laneLabel.get(q.lane_id) ?? q.lane_id) },
         {
             key: 'amount', header: labels.amount, align: 'right', singleValue: true, className: 'tabular-nums',
             render: (q) => `${q.amount_ccy} ${q.currency}`,
+            exportAs: (q) => xMoney(q.amount_ccy, q.currency),
         },
-        { key: 'validFrom', header: labels.validFrom, singleValue: true, render: (q) => formatDate(q.valid_from, locale) },
-        { key: 'validTo', header: labels.validTo, singleValue: true, render: (q) => formatDate(q.valid_to, locale) },
+        { key: 'validFrom', header: labels.validFrom, singleValue: true, render: (q) => formatDate(q.valid_from, locale),
+          exportAs: (q) => xDate(q.valid_from_raw) },
+        { key: 'validTo', header: labels.validTo, singleValue: true, render: (q) => formatDate(q.valid_to, locale),
+          exportAs: (q) => xDate(q.valid_to_raw) },
         {
             // 【三态各有各的样子】数字 / "未写明"。空单元格会被读成 0,而 0 是另一件事。
             key: 'freeDays', header: labels.freeDays, align: 'right', singleValue: true, className: 'tabular-nums',
             render: (q) => q.free_days === null
                 ? <span className="text-gray-500 italic">{labels.freeDaysNotStated}</span>
                 : q.free_days,
+            exportAs: (q) => xInt(q.free_days),
         },
         {
             key: 'actions', header: '', priority: true, className: 'whitespace-nowrap',
+            exportAs: false,
             render: (q) => (
                 <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                     {/* 这一列每行都长得一样,所以确认框要说出【哪一份】—— 航段 + 金额 + 有效期 */}
@@ -227,6 +243,8 @@ canEdit: boolean
                         columns={quoteColumns}
                         rowKey={(q) => q.id}
                         phone={{ mode: 'columns' }}
+                        exportSpec={{ name: 'logistics-forwarder-rate-quotes', title: labels.quotesHeading,
+                                      aboutExtra: [[labels.codeLabel, forwarderCode]] }}
                     />
                 )}
             </section>

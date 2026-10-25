@@ -19,7 +19,14 @@
 //   两张的身份列都是 static,横滚到底就离开视野。**这两张是六张里最坏的两张。**
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xInt, xNum, xText, type ExportCell } from '@/lib/export/cells'
+
+// ★ TABLE-EXPORT-3c(Tim 2026-10-25):两张表各一对导出。
+//   屏幕上的格子仍然是 traceabilityShared.ts 出的成品字(PDF 用的同一份,一个字没动);
+//   导出另读服务端一并递过来的【原始值】(*Raw 那几个字段)—— 不把成品字拆回数。
+//   「没测过」「算不出」这两种格子屏幕上印的是具名原因,导出照样写那句原因(文字),
+//   绝不写成空格或 0 —— 与 TraceabilitySection.tsx 抬头那条规矩同一个理由。
 
 // ── ① 血缘链(6 列)────────────────────────────────────────────────────────
 /** 服务端压平好的一行 —— 一个函数都没有。 */
@@ -36,9 +43,15 @@ export type ChainTableRow = {
     supplierCode: string | null
     supplierName: string | null
     arrivalDate: string
+    // ── TABLE-EXPORT-3c:导出读的原始值 ──
+    depthRaw: number
+    parentCodeRaw: string | null
+    quantityConsumedRaw: number | string
+    /** arrival_date,`YYYY-MM-DD`;没有就是 null */
+    arrivalDateRaw: string | null
 }
 
-export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
+export function ChainTable({ rows, batchCode }: { rows: readonly ChainTableRow[]; batchCode: string }) {
     const t = useTranslations()
 
     // ★★【留哪两列 —— 加工单 · 上游批次】★★
@@ -54,12 +67,13 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
     // 【消耗量 / 供应商 / 到货日 为什么折】三样都是【上游那一批】的属性,
     //   不是这一跳本身;而且供应商只在链末的进料父上有值,上游几跳全是 '—'
     //   —— 拿三分之一的屏宽去画一列破折号,是这张表最不划算的一笔。
-    const columns: Column<ChainTableRow>[] = [
+    const columns: ExportableColumn<ChainTableRow>[] = [
         {
             key: 'step',
             header: t('traceability.colStep'),
             align: 'right',
             render: (c) => c.depth,
+            exportAs: (c) => xInt(c.depthRaw),
         },
         {
             key: 'run',
@@ -71,6 +85,7 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
                     {c.runCode}
                 </Link>
             ),
+            exportAs: (c) => xText(c.runCode),
         },
         {
             key: 'parent',
@@ -85,12 +100,16 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
                     </Link>
                 </>
             ),
+            // 复合格:前面那个灰字(进料 / 产出)是给批次号加的限定 —— 导出写主值,上游批次号。
+            exportAs: (c) => xText(c.parentCodeRaw),
         },
         {
             key: 'qty',
             header: t('traceability.colQtyConsumed'),
             align: 'right',
             render: (c) => c.quantityConsumed,
+            // 屏幕上这一格本来就是光秃秃的数(没有单位)—— 导出同样不加。
+            exportAs: (c) => xNum(c.quantityConsumedRaw, 'qty'),
         },
         {
             key: 'supplier',
@@ -104,11 +123,14 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
                 ) : (
                     '—'
                 ),
+            // 复合格:代码与名字是同一个供应商的两种写法 —— 导出照屏幕(与 PDF 的 chainRows 同形)写成一串;没有就空。
+            exportAs: (c) => xText(c.supplierName ? `${c.supplierCode ?? ''} ${c.supplierName}`.trim() : null),
         },
         {
             key: 'arrival',
             header: t('traceability.colArrival'),
             render: (c) => c.arrivalDate,
+            exportAs: (c) => xDate(c.arrivalDateRaw),
         },
     ]
 
@@ -119,6 +141,7 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             rowKey={(c) => c.key}
             phone={{ mode: 'columns' }}
             className="mb-6"
+            exportSpec={{ name: 'output-traceability-chain', title: t('traceability.chainHeading'), aboutExtra: [[t('output.colCode'), batchCode]] }}
         />
     )
 }
@@ -141,9 +164,20 @@ export type RecoveryTableRow = {
     /** sourceText(...) —— unknown 就印 unknown,不抹平成 assay */
     inputSource: string
     outputSource: string
+    // ── TABLE-EXPORT-3c:导出读的原始值(null = 没测过 / 算不出,那一格导出写屏幕上那句原因)──
+    inputKgRaw: number | null
+    outputKgRaw: number | null
+    recoveryPctRaw: number | null
+    /** 这一侧有没有出处 —— 没有时屏幕印 '—',导出留空,不把破折号当成值 */
+    hasInputSource: boolean
+    hasOutputSource: boolean
 }
 
-export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
+/** 有数就写数(带单位);没有就写屏幕上那句具名原因 —— 不写空格,不写 0。 */
+const numOrReason = (v: number | null, reason: string, kind: 'qty' | 'pct', unit?: string): ExportCell =>
+    v === null ? xText(reason) : xNum(v, kind, unit)
+
+export function RecoveryTable({ rows, batchCode }: { rows: readonly RecoveryTableRow[]; batchCode: string }) {
     const t = useTranslations()
 
     // ★★【留哪三列 —— 加工单 · 金属 · 回收率】★★
@@ -164,13 +198,14 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
     //     · 另一条路是 mode:'scroll' 把七列全留下,但那正好把这一刀要治的病留在原地:
     //       196px 的横拖、两列完全看不见。**它治不了,所以不选它。**
     //   ☞ 如果 Tim 认为出处必须与百分比同屏,那是把它们提成 priority 的事,一行改动。
-    const columns: Column<RecoveryTableRow>[] = [
+    const columns: ExportableColumn<RecoveryTableRow>[] = [
         {
             key: 'run',
             header: t('traceability.colRun'),
             // ★ 身份之一 —— 手机上留下。
             priority: true,
             render: (r) => r.runCode,
+            exportAs: (r) => xText(r.runCode),
         },
         {
             key: 'metal',
@@ -178,18 +213,22 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
             // ★ 身份之二 —— 手机上留下。行键是 run × metal,少一个就认不出行。
             priority: true,
             render: (r) => r.metalLabel,
+            exportAs: (r) => xText(r.metalLabel),
         },
         {
             key: 'inputKg',
             header: t('traceability.colInputKg'),
             align: 'right',
             render: (r) => r.inputKg,
+            // 列头已经写着 kg —— 与屏幕一样,格子里是光秃秃的数。
+            exportAs: (r) => numOrReason(r.inputKgRaw, r.inputKg, 'qty'),
         },
         {
             key: 'outputKg',
             header: t('traceability.colOutputKg'),
             align: 'right',
             render: (r) => r.outputKg,
+            exportAs: (r) => numOrReason(r.outputKgRaw, r.outputKg, 'qty'),
         },
         {
             key: 'recovery',
@@ -214,16 +253,21 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
                     )}
                 </>
             ),
+            // 复合格:回收率旁边那枚守恒告警是挂在值旁边的徽章 —— 照 docs/table-export.md「一格放不下两样」
+            //   那一条,导出写主值(回收率本身,一个百分数;算不出时是那句具名原因),告警不进这一格。
+            exportAs: (r) => numOrReason(r.recoveryPctRaw, r.recoveryText, 'pct'),
         },
         {
             key: 'inputSource',
             header: t('traceability.colInputSource'),
             render: (r) => r.inputSource,
+            exportAs: (r) => xText(r.hasInputSource ? r.inputSource : null),
         },
         {
             key: 'outputSource',
             header: t('traceability.colOutputSource'),
             render: (r) => r.outputSource,
+            exportAs: (r) => xText(r.hasOutputSource ? r.outputSource : null),
         },
     ]
 
@@ -234,6 +278,7 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
             rowKey={(r) => r.key}
             phone={{ mode: 'columns' }}
             className="mb-3"
+            exportSpec={{ name: 'output-traceability-recovery', title: t('traceability.recoveryHeading'), aboutExtra: [[t('output.colCode'), batchCode]] }}
         />
     )
 }

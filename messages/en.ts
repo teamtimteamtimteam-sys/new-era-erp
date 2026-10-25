@@ -430,6 +430,9 @@ const en = {
         errTimePaired: 'Give both the start and the end time, or neither — a shift with only one of them does not say which hours it covers.',
     },
     logistics: {
+        // TABLE-EXPORT-3c:集装箱单证清单拆出来的两列
+        colDocSource: 'Source',
+        colDocStatus: 'Status',
         shipping: {
             verifyScan: 'Check by scanning (optional)',
             scanMatches: 'Scanned {code} — matches this reservation.',
@@ -1408,6 +1411,10 @@ const en = {
             // Q5:过账预览的 About 表
             aboutPreview: 'Preview',
             aboutPreviewValue: 'Preview as at {date}, not posted',
+            // TABLE-EXPORT-3c(Tim 2026-10-25 Q2b · Q2c):两种预览的 About 说明;条款申请里改动过的那一行
+            aboutAssayPreviewValue: 'Preview, not applied',
+            aboutPricePreviewValue: 'Price preview as at {at}',
+            rowChanged: 'changed',
             aboutPeriod: 'Period',
             // TABLE-EXPORT-2a:屏幕上只用整行淡出 / 划线表示的状态,导出时写在那一行的身份格里(一格一个值,而列只有表的列 —— Q11)
             rowInactive: 'inactive',
@@ -11331,7 +11338,6 @@ const en = {
             title: 'Spare parts issued to maintenance',
             add: 'Issue spare parts',
             intro: 'Spare parts are received as stock lots and issued against one of this machine\u2019s work records. Issuing moves their cost from stock to Repairs & Maintenance (6800); a return moves it back. A correction is a return with a reason — an issue is never edited.',
-            valueRestricted: 'Amounts are shown only to people who can see prices.',
             stockRestricted: 'Choosing a batch needs view rights in the inventory module.',
             record: 'Work record',
             pickRecord: 'Choose a work record…',

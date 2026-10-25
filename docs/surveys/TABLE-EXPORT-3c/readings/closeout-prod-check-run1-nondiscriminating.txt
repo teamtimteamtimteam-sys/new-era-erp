@@ -1,0 +1,10 @@
+STEP|base https://new-era-erp.vercel.app
+PASS|/purchasing/orders/14956797-c2ef-49a2-acbd-8b3eae2d79e0 (PO-2026-0009) as a reader without price codes → HTTP 200; 2 export pair(s) on the page (= 3b is deployed)
+PASS|PO payment terms · Expected date cells ["This instalment already has a real date, so it needs no estimate.","This instalment already has a real date, so it needs no estimate."] (none is "—")
+PASS|PO lines xlsx downloaded: purchasing-order-lines_2026-10-25_1701.xlsx
+PASS|PO lines xlsx: 4 rows (1 line + 3 totals ["Subtotal (excl. GST)","GST","Total payable (incl. GST)"]); total amounts ["Restricted","Restricted","Restricted"]
+PASS|PO lines csv downloaded: purchasing-order-lines_2026-10-25_1701.csv
+PASS|PO lines csv: 4 rows (1 line + 3 totals ["Subtotal (excl. GST)","GST","Total payable (incl. GST)"]); total amounts ["Restricted","Restricted","Restricted"]
+STEP|done
+TE3B_CLOSEOUT_EXIT=0
+X_OWN_EXIT=0

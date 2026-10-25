@@ -9,17 +9,27 @@ import { formatMoneyBare } from '@/lib/format'
 import { COST_TYPE_OPTIONS, costTypeLabelKey, type CostEntryRow } from './costTypes'
 import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costActions'
 import { MaskedValue } from '@/app/components/MaskedValue'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xMasked, xMoney, xText, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
+/**
+ * TABLE-EXPORT-3c(Tim 2026-10-25):导出要【原始】的创建时刻(屏幕上 created_at_display 是排好的字)。
+ * 只在这张面板上加,不动 costTypes.ts 里共用的 CostEntryRow。
+ */
+export type CostPanelRow = CostEntryRow & { created_at: string }
+
 export default function CostPanel({
     runId,
+    runCode,
     entries,
     canViewPrices,
 }: {
     runId: string
-    entries: CostEntryRow[]
+    /** TABLE-EXPORT-3c:导出的 About 表写这一炉的单号 */
+    runCode: string
+    entries: CostPanelRow[]
     /** cut 2b:当前登录者是否持有 data.view_prices。为 false 时金额显示「受限」。 */
     canViewPrices: boolean
 }) {
@@ -40,7 +50,13 @@ export default function CostPanel({
     const total = anyMasked ? null : entries.reduce((s, e) => s + (e.amount_base ?? 0), 0)
     const editing = editingId ? entries.find((e) => e.id === editingId) ?? null : null
 
-    const costColumns: Column<CostEntryRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。
+    //   种类一格旁边的「(估)」改变这一行的意思(估计数,不是实际)—— 照 BatchDetail 的先例附在种类后面。
+    //   金额:与 <MaskedValue> 同一条判据(xMasked);币种写在列头「金额 (SGD)」里,格子是光秃秃的数 —— 与屏幕一样。
+    //   创建一格叠着创建时刻与「改于 X · 谁」那一行 —— 导出写主值:创建时刻(真的日期格)。
+    //     改动的时刻与人在页底审计记录里;这一行的金额本来就是【现在】的值。
+    //   动作列(改 / 删)是控件,不导出。表下面那一行合计是 <p>,不是表里的行 —— 不进文件(TABLE-EXPORT-1 Q12)。
+    const costColumns: ExportableColumn<CostPanelRow>[] = [
         {
             key: 'type',
             header: t('processing.cost.colType'),
@@ -54,6 +70,7 @@ export default function CostPanel({
                     )}
                 </>
             ),
+            exportAs: (e) => xText(e.is_estimate ? `${typeLabel(e.cost_type)} ${t('processing.cost.estimateTag')}` : typeLabel(e.cost_type)),
         },
         {
             key: 'amount',
@@ -66,8 +83,9 @@ export default function CostPanel({
                 <MaskedValue value={e.amount_base} canView={canViewPrices}
                              format={(v) => formatMoneyBare(v, '列头「金额 (SGD)」')} />
             ),
+            exportAs: (e) => xMasked(e.amount_base, canViewPrices, (v) => xMoney(v)),
         },
-        { key: 'notes', header: t('processing.cost.colNotes'), className: 'text-sm', render: (e) => e.notes ?? '—' },
+        { key: 'notes', header: t('processing.cost.colNotes'), className: 'text-sm', render: (e) => e.notes ?? '—', exportAs: (e) => xText(e.notes) },
         {
             key: 'created', header: t('processing.cost.colCreated'), className: 'text-sm text-gray-600',
             render: (e) => (
@@ -82,11 +100,13 @@ export default function CostPanel({
                     )}
                 </>
             ),
+            exportAs: (e) => xTime(e.created_at),
         },
         {
             key: 'actions',
             header: t('processing.cost.colActions'),
             className: 'whitespace-nowrap',
+            exportAs: false,
             render: (e) => (
                 <>
                     <Button variant="link" size="inline" type="button"
@@ -167,6 +187,11 @@ export default function CostPanel({
                     phone={{ mode: 'columns' }}
                     rowClassName={(e) => (editingId === e.id ? 'bg-blue-50' : undefined)}
                     empty={t('processing.cost.empty')}
+                    exportSpec={{
+                        name: 'processing-run-cost-entries',
+                        title: t('processing.cost.title'),
+                        aboutExtra: [[t('processing.colCode'), runCode]],
+                    }}
                 />
             </div>
 

@@ -141,6 +141,10 @@ export default async function EquipmentPage({ params, searchParams }: {
         return {
             id: m.id, performed_on: formatDate(m.performed_on, locale), kind: m.kind, description: m.description,
             capitalised: m.capitalised, capitalisation_reason: m.capitalisation_reason, capitalised_expense_id: m.capitalised_expense_id,
+            // TABLE-EXPORT-3c:导出读原始日期,与「谁做的」那一格是不是「受限」(与下面 performer 同一个判据)
+            performed_on_raw: m.performed_on,
+            performer_restricted: m.performed_by_employee_id ? !empName.has(m.performed_by_employee_id)
+                : m.performed_by_supplier_id ? !supName.has(m.performed_by_supplier_id) : false,
             performer: m.performed_by_employee_id
                 ? (empName.get(m.performed_by_employee_id) ?? t('common.restricted'))
                 : m.performed_by_supplier_id
@@ -199,6 +203,11 @@ export default async function EquipmentPage({ params, searchParams }: {
             issuedOn: formatDate(p.business_date, locale),
             record: recordLabel.get(p.maintenance_id) ?? '—',
             batch: b ? `${b.code} · ${b.materials?.name ?? ''}` : t('common.restricted'),
+            // TABLE-EXPORT-3c(Tim 2026-10-25):导出读的原始值 —— 受限旗、原始日期、金额的数与币种
+            batchRestricted: !b,
+            issuedOnRaw: p.business_date,
+            valueAmount: canSeeValue && cost !== null && cost !== undefined ? Math.round(outstanding * cost * 100) / 100 : null,
+            valueCurrency: baseCurrency,
             unit: b?.unit ?? '',
             quantity: Number(p.quantity),
             returned,
@@ -310,20 +319,24 @@ export default async function EquipmentPage({ params, searchParams }: {
                     capitaliseFloor={Number(settings?.capitalise_floor_base ?? 0)}
                     equipmentCostBase={costBase}
                     baseCurrency={baseCurrency}
-                    currencies={[]} />
+                    currencies={[]}
+                    canViewFinance={canFinance}
+                    equipmentCode={usage.equipment_code} />
                 <SparePartsPanel
                     assetId={id}
                     records={partRecords}
                     stock={partStock}
                     rows={partRows}
                     canIssue={canIssueParts}
-                    canSeeValue={canSeeValue} />
+                    canSeeValue={canSeeValue}
+                    equipmentCode={usage.equipment_code} />
                 <DowntimePanel
                     assetId={id}
                     rows={downRows}
                     canEdit={canRecord}
                     locale={locale}
-                    causes={causes} />
+                    causes={causes}
+                    equipmentCode={usage.equipment_code} />
                 {!canHr && <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.maint.employeesRestricted')}</p>}
             </div>
 

@@ -54,11 +54,13 @@
 //     没有作废的那几段(库里同一条:MAINTENANCE_DOWNTIME_OTHER_MACHINE · MAINTENANCE_DOWNTIME_VOIDED)。
 //   · 支出单那个下拉要读费用表(module.finance.view):不持的人看见的是一句"要财务查看码",不是一个空下拉(`expenses` 为 null)。
 //   · 资本化的阈值提示要读机器的记录成本(资产卡,财务的表):读不到时那半句换成"成本只在资产卡上",不印一个 0。
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { MaskedValue } from '@/app/components/MaskedValue'
+import { xDate, xRestricted, xText } from '@/lib/export/cells'
 import { recordMaintenance } from './actions'
 import { capitaliseMaintenance } from '@/app/finance/assets/[id]/actions'
 import { Button } from '@/app/components/ui/button'
@@ -85,14 +87,27 @@ export type MaintRow = {
     meets_threshold: boolean | null
     /** MES-7a-1:它点名的那一段停机(开始时刻 · 原因),没有点名 = null */
     downtime_label: string | null
+    // ── TABLE-EXPORT-3c(Tim 2026-10-25):导出读的原始值 ──
+    /** YYYY-MM-DD 原值(performed_on 是格式化好的字) */
+    performed_on_raw: string
+    /** 做活的员工 / 供应商这位读者解析不出 —— performer 那一格屏幕上是「受限」 */
+    performer_restricted: boolean
 }
 
 export default function MaintenancePanel({
     assetId, rows, employees, suppliers, expenses, canEdit, canCapitalise,
     inServiceDate, capitalisePct, capitaliseFloor, equipmentCostBase, baseCurrency, currencies,
-    downtimes, readOnlyHref, showCapitalise,
+    downtimes, readOnlyHref, showCapitalise, canViewFinance, equipmentCode,
 }: {
     assetId: string
+    /**
+     * TABLE-EXPORT-3c(Tim 2026-10-25 接受):module.finance.view。equipment_maintenance_advice 对不持它的读者把
+     * work_cost_base 与 pct_of_equipment_cost 置空(U1-A)—— 建议那句话里这两个数此前印成「—」,现在是「受限」,导出写 Restricted。
+     * ★ 不从 `expenses === null` 推:那是另一个问题的答复(读不读得到费用表),碰巧今天等价 —— 一个代名词(AGENTS.md)。
+     */
+    canViewFinance: boolean
+    /** TABLE-EXPORT-3c:导出的 About 表说明这份文件出自哪台机器 */
+    equipmentCode: string
     rows: MaintRow[]
     employees: { id: string; label: string }[]
     suppliers: { id: string; label: string }[]
@@ -167,19 +182,53 @@ export default function MaintenancePanel({
     // 是【会计后果】,读者要它的时候是逐行读的,所以它进展开区。
     // ☞ 一个必须说出口的代价:**资本化按钮那一列在 390px 上落进展开区。**
     //   它仍然点得到,但不再与判词并排。列进人工走查清单。
-    const maintColumns: Column<MaintRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):阈值建议那句话里的两个数(花了多少 · 占机器记录成本几成)
+    //   对不持 module.finance.view 的读者被视图置空 —— 与 <MaskedValue> 同一条判据:没有码且值为 NULL → 「受限」。
+    //   句子是文案键拼出来的(lib/i18n 没有富文本),所以先填两个占位记号,再把句子按记号切开、在记号处画 <MaskedValue>。
+    //   「{pct}%」后面那个百分号跟着记号一起吞掉 —— 「受限%」不是一句话。
+    const SLOT = '\u2063'
+    const masked = (r: MaintRow) => ({
+        pct: !canViewFinance && r.pct_of_equipment_cost === null,
+        amount: !canViewFinance && r.work_cost_base === null,
+    })
+    const adviceText = (r: MaintRow, restrictedWord: (k: 'pct' | 'amount') => string): string =>
+        r.meets_threshold === null
+            /* 【空不是"不达标"】没挂支出单(没花钱,或钱还没记),
+               或者机器记录成本为 0 —— 视图注释里写着这两种。 */
+            ? t('equipment.maint.adviceUnknown')
+            : t(r.meets_threshold ? 'equipment.maint.adviceMet' : 'equipment.maint.adviceNotMet', {
+                pct: masked(r).pct ? restrictedWord('pct') : String(r.pct_of_equipment_cost ?? '—'),
+                need: String(capitalisePct),
+                amount: masked(r).amount ? restrictedWord('amount') : String(r.work_cost_base ?? '—'),
+                floor: String(capitaliseFloor),
+              })
+    const adviceNode = (r: MaintRow): ReactNode => {
+        const text = adviceText(r, (k) => `${SLOT}${k}${SLOT}`)
+        if (!text.includes(SLOT)) return text
+        return text.split(new RegExp(`(${SLOT}(?:pct${SLOT}%?|amount${SLOT}))`)).map((part, i) =>
+            part.startsWith(SLOT) ? <MaskedValue key={i} value={null} canView={false} /> : part)
+    }
+    // 导出那一格:同一句话,记号处写「受限」这个词(界面语言)—— 百分号同样吞掉
+    const adviceExport = (r: MaintRow): string =>
+        adviceText(r, (k) => `${SLOT}${k}${SLOT}`)
+            .replace(new RegExp(`${SLOT}pct${SLOT}%?`, 'g'), t('common.restricted'))
+            .replace(new RegExp(`${SLOT}amount${SLOT}`, 'g'), t('common.restricted'))
+
+    const maintColumns: ExportableColumn<MaintRow>[] = [
         {
             key: 'date',
             header: t('equipment.maint.colDate'),
             priority: true,
             className: 'text-sm',
             render: (r) => r.performed_on,
+            exportAs: (r) => xDate(r.performed_on_raw),
         },
         {
             key: 'kind',
             header: t('equipment.maint.colKind'),
             className: 'text-sm',
             render: (r) => t('equipment.kind.' + r.kind),
+            exportAs: (r) => xText(t('equipment.kind.' + r.kind)),
         },
         {
             key: 'what',
@@ -196,12 +245,16 @@ export default function MaintenancePanel({
                     )}
                 </>
             ),
+            // 一格两行:做了什么 + 它修好的那一段停机(小字)。导出写主值 —— 做了什么;那一段停机在停机表里
+            exportAs: (r) => xText(r.description),
         },
         {
             key: 'who',
             header: t('equipment.maint.colWho'),
             className: 'text-sm',
             render: (r) => r.performer,
+            // 员工 / 供应商这位读者解析不出 → 屏幕上的「受限」;只写了名字没写人(「—」)→ 空格
+            exportAs: (r) => r.performer_restricted ? xRestricted : xText(r.performer === '—' ? null : r.performer),
         },
         {
             key: 'capital',
@@ -215,20 +268,18 @@ export default function MaintenancePanel({
                     {r.capitalised && r.capitalisation_reason && (
                         <p className="text-xs text-gray-600">{r.capitalisation_reason}</p>
                     )}
-                    <p className="text-xs text-gray-500">
-                        {r.meets_threshold === null
-                            /* 【空不是"不达标"】没挂支出单(没花钱,或钱还没记),
-                               或者机器记录成本为 0 —— 视图注释里写着这两种。 */
-                            ? t('equipment.maint.adviceUnknown')
-                            : t(r.meets_threshold ? 'equipment.maint.adviceMet' : 'equipment.maint.adviceNotMet', {
-                                pct: String(r.pct_of_equipment_cost ?? '—'),
-                                need: String(capitalisePct),
-                                amount: String(r.work_cost_base ?? '—'),
-                                floor: String(capitaliseFloor),
-                              })}
-                    </p>
+                    <p className="text-xs text-gray-500">{adviceNode(r)}</p>
                 </>
             ),
+            // TABLE-EXPORT-3c(Tim 2026-10-25):这一格是三段话 —— 人的判断(是 / 否)· 资本化的理由 · 系统的阈值建议。
+            //   一格一个值时本该只写主值(人的判断),但 Tim 裁定那句建议里被遮的两个数在文件里也要写「受限」——
+            //   所以这一格照屏幕写整段文字(docs/table-export.md「composite cells export as the text the screen shows」),
+            //   三段以「 · 」连起来;被遮的那两个数写「受限」这个词(界面语言,与 restricted 格同一个词)。
+            exportAs: (r) => xText([
+                r.capitalised ? t('equipment.maint.capYes') : t('equipment.maint.capNo'),
+                r.capitalised && r.capitalisation_reason ? r.capitalisation_reason : null,
+                adviceExport(r),
+            ].filter((x): x is string => !!x).join(' · ')),
         },
         {
             // ★ 转换前这一列【没有表头】(5 个 <th> 对 6 个 <td>)。见文件抬头。
@@ -264,6 +315,8 @@ export default function MaintenancePanel({
                          : !r.capitalised ? t('equipment.maint.capNeedsFlag') : ''}
                     </span>
                 ),
+            // 资本化那颗写库的钮(或一句它为什么不在)—— 控件,不是数据
+            exportAs: false,
         },
     ]
 
@@ -297,6 +350,9 @@ export default function MaintenancePanel({
                     rowKey={(r) => r.id}
                     phone={{ mode: 'columns' }}
                     empty={t('equipment.maint.none')}
+                    // TABLE-EXPORT-3c(Tim 2026-10-25):机器页与资产卡各画一次 —— 同一份记录,同一个名字;About 表写明是哪台机器
+                    exportSpec={{ name: 'equipment-maintenance', title: t('equipment.maint.title'),
+                                  aboutExtra: [[t('equipment.page.colCode'), equipmentCode]] }}
                 />
             </div>
 

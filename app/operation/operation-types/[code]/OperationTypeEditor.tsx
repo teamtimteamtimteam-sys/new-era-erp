@@ -7,7 +7,8 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -87,7 +88,12 @@ export default function OperationTypeEditor({ code, transforming, tolerance, ele
     const rangeCell = (f: EditorField) => !f.has_range ? <span className="text-[color:var(--brand-muted-text)]">{t('processing.opType.noRange')}</span>
         : f.range_min === null && f.range_max === null ? <span className="text-amber-700" data-not-set="range">{t('dict.notYetSet')}</span>
             : `${f.range_min ?? '—'} – ${f.range_max ?? '—'}`
-    const fieldColumns: Column<EditorField>[] = [
+    // TABLE-EXPORT-3c(Tim 2026-10-25):参数与指标、机器两张表各一对导出 —— 写的是【存下来的】配置(行来自库,不是表单)。
+    //   范围那一格是「最小 – 最大」一段字(或「不设范围」/「尚未设定」),照屏幕写字;一格一个值,拆不成两个数。
+    const rangeText = (f: EditorField): string => !f.has_range ? t('processing.opType.noRange')
+        : f.range_min === null && f.range_max === null ? t('dict.notYetSet')
+            : `${f.range_min ?? '—'} – ${f.range_max ?? '—'}`
+    const fieldColumns: ExportableColumn<EditorField>[] = [
         {
             key: 'name', header: t('processing.opType.colField'), priority: true,
             render: (f) => (
@@ -97,11 +103,17 @@ export default function OperationTypeEditor({ code, transforming, tolerance, ele
                     {!f.is_active && <span className="text-xs text-amber-700">{t('processing.opType.retired')}</span>}
                 </>
             ),
+            // 一格三样:名字(必填带 *)· 代号(小字)· 已退役。导出写名字(连同那个 *)与代号;已退役改变这一行的意思 →
+            //   接在后面「(已退役)」(FormulasTable 的 rowInactive 同形)
+            exportAs: (f) => xText(`${f.name}${f.is_required ? ' *' : ''} · ${f.field_code}${f.is_active ? '' : ` (${t('processing.opType.retired')})`}`),
         },
-        { key: 'kind', header: t('processing.opType.colFieldKind'), render: (f) => t('processing.opType.kind.' + f.kind) },
-        { key: 'type', header: t('processing.opType.colValueType'), render: (f) => t('processing.opType.valueType.' + f.value_type) },
-        { key: 'unit', header: t('processing.opType.colUnit'), render: (f) => f.unit ?? '—' },
-        { key: 'range', header: t('processing.opType.colRange'), priority: true, render: rangeCell },
+        { key: 'kind', header: t('processing.opType.colFieldKind'), render: (f) => t('processing.opType.kind.' + f.kind),
+          exportAs: (f) => xText(t('processing.opType.kind.' + f.kind)) },
+        { key: 'type', header: t('processing.opType.colValueType'), render: (f) => t('processing.opType.valueType.' + f.value_type),
+          exportAs: (f) => xText(t('processing.opType.valueType.' + f.value_type)) },
+        // 没有单位(「—」)→ 空格
+        { key: 'unit', header: t('processing.opType.colUnit'), render: (f) => f.unit ?? '—', exportAs: (f) => xText(f.unit) },
+        { key: 'range', header: t('processing.opType.colRange'), priority: true, render: rangeCell, exportAs: (f) => xText(rangeText(f)) },
         {
             key: 'actions', header: '', align: 'right',
             render: (f) => (
@@ -124,6 +136,8 @@ export default function OperationTypeEditor({ code, transforming, tolerance, ele
                     </span>
                 </PermissionGate>
             ),
+            // 编辑 / 退役 / 恢复 —— 控件,不是数据
+            exportAs: false,
         },
     ]
 
@@ -131,10 +145,12 @@ export default function OperationTypeEditor({ code, transforming, tolerance, ele
     const [pickMachine, setPickMachine] = useState('')
     const linked = machines.filter((m) => m.linked)
     const linkable = machines.filter((m) => !m.linked && !m.disposed)
-    const machineColumns: Column<EditorMachine>[] = [
+    const machineColumns: ExportableColumn<EditorMachine>[] = [
         {
             key: 'machine', header: t('processing.opType.colMachine'), priority: true,
             render: (m) => <>{m.label}{m.disposed && <span className="ml-2 text-xs text-amber-700">{t('processing.opType.disposedNotCounted')}</span>}</>,
+            // 已处置的那台改变这一行的意思(不计入)→ 接在后面
+            exportAs: (m) => xText(m.disposed ? `${m.label} (${t('processing.opType.disposedNotCounted')})` : m.label),
         },
         {
             key: 'actions', header: '', align: 'right',
@@ -147,6 +163,8 @@ export default function OperationTypeEditor({ code, transforming, tolerance, ele
                     </ConfirmButton>
                 </PermissionGate>
             ),
+            // 解除挂接的钮 —— 控件,不是数据
+            exportAs: false,
         },
     ]
 
@@ -252,7 +270,9 @@ export default function OperationTypeEditor({ code, transforming, tolerance, ele
                 </div>
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('processing.opType.fieldsIntro')}</p>
                 <DataTable rows={fields} columns={fieldColumns} rowKey={(f) => f.field_code} phone={{ mode: 'columns' }}
-                           empty={t('processing.opType.fieldsEmpty')} />
+                           empty={t('processing.opType.fieldsEmpty')}
+                           exportSpec={{ name: 'operation-type-fields', title: t('processing.opType.fieldsTitle'),
+                                         aboutExtra: [[t('processing.opType.colName'), code]] }} />
                 {err('fields')}
                 {editingField && (
                     <div className={`${box} mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3`} data-field-form={editingField}>
@@ -359,7 +379,9 @@ export default function OperationTypeEditor({ code, transforming, tolerance, ele
                 <h2 className="mb-1">{t('processing.opType.machinesTitle')}</h2>
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('processing.opType.machinesIntro')}</p>
                 <DataTable rows={linked} columns={machineColumns} rowKey={(m) => m.id} phone={{ mode: 'columns' }}
-                           empty={t('processing.opType.machinesEmpty')} />
+                           empty={t('processing.opType.machinesEmpty')}
+                           exportSpec={{ name: 'operation-type-machines', title: t('processing.opType.machinesTitle'),
+                                         aboutExtra: [[t('processing.opType.colName'), code]] }} />
                 <PermissionGate code={EDIT} allowed={canEdit}>
                     <div className="mt-3 flex flex-wrap items-end gap-3">
                         <label className="block flex-1 min-w-0">

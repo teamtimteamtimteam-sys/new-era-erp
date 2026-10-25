@@ -9,6 +9,11 @@ import { formatDateTime } from '@/lib/dates'
 export type ModuleSummaryRow = {
     moduleRef: string; verdict: 'pass' | 'fail'; disposition: 're_discharge' | 'quarantine' | null
     outletV: number; verdictAt: string; runId: string; runCode: string; attempts: number; splitOut: boolean; contradicts: boolean | null
+    // TABLE-EXPORT-3c(Tim 2026-10-25):导出读的原始值 —— verdictAt 是格式化好的显示串,不拿它当数据。
+    /** discharge_module_rows.verdict_at,ISO 时刻 */
+    verdictAtIso: string
+    /** outlet_voltage_v 原样(PostgREST 的 numeric 可能是字符串;列 NOT NULL) */
+    outletVRaw: number | string
 }
 export type BatchDischargeData = {
     status: {
@@ -40,7 +45,7 @@ export async function loadBatchDischarge(
         contradictions: number; currently_verified: boolean; latest_run_id: string | null; latest_run_code: string | null
     }[])[0]
     const rows = mustRows(rowsRes, 'discharge_module_rows') as unknown as {
-        module_ref: string; verdict: string; disposition: string | null; outlet_voltage_v: number; verdict_at: string
+        module_ref: string; verdict: string; disposition: string | null; outlet_voltage_v: number | string; verdict_at: string
         run_id: string; run_code: string; is_current: boolean; is_latest: boolean; split_out: boolean; contradicts_pass_voltage: boolean | null
     }[]
     const splits = mustRows(splitRes, 'discharge_module_splits') as unknown as { split_run_id: string; module_ref: string }[]
@@ -60,6 +65,7 @@ export async function loadBatchDischarge(
             moduleRef: r.module_ref, verdict: r.verdict === 'fail' ? 'fail' as const : 'pass' as const,
             disposition: r.disposition === 'quarantine' ? 'quarantine' as const : r.disposition === 're_discharge' ? 're_discharge' as const : null,
             outletV: Number(r.outlet_voltage_v), verdictAt: formatDateTime(r.verdict_at, locale), runId: r.run_id, runCode: r.run_code,
+            verdictAtIso: r.verdict_at, outletVRaw: r.outlet_voltage_v,
             attempts: attempts.get(r.module_ref) ?? 1, splitOut: r.split_out, contradicts: r.contradicts_pass_voltage,
         })).sort((a, b) => a.moduleRef.localeCompare(b.moduleRef)),
         splitFrom: splits.length > 0 ? { splitRunId: splits[0].split_run_id, splitRunCode, modules: splits.map((x) => x.module_ref).sort() } : null,

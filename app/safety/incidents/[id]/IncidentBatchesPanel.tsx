@@ -15,21 +15,26 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type Column, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xTime } from '@/lib/export/cells'
 import { linkIncidentBatch, unlinkIncidentBatch, openIncidentNcr } from '../../actions'
 import { basisKey } from '../../safetyTypes'
 
 export type LinkRow = {
     id: number; batchKind: 'inbound' | 'output'; batchId: string; batchCode: string; material: string; basis: string; linkedAt: string
     unlinkedAt: string | null; unlinkReason: string | null; active: boolean; href: string
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):链上的那个时刻本身(ISO);上面的 linkedAt 是格式化过的字 */
+    linkedAtRaw: string
 }
 export type SuggestionRow = {
     batchKind: 'inbound' | 'output'; batchId: string; batchCode: string; basis: string; evidence: string; qty: string; linked: boolean; href: string
 }
 type Opt = { value: string; label: string }
 
-export default function IncidentBatchesPanel({ incidentId, links, suggestions, canEdit, canQualityEdit, hasLocation, hasMachine, inboundOptions, outputOptions }: {
+export default function IncidentBatchesPanel({ incidentId, incidentCode, links, suggestions, canEdit, canQualityEdit, hasLocation, hasMachine, inboundOptions, outputOptions }: {
     incidentId: string
+    /** TABLE-EXPORT-3c:链接批次导出的 About 表写明是哪一件事故 */
+    incidentCode: string
     links: LinkRow[]
     suggestions: SuggestionRow[]
     canEdit: boolean
@@ -49,6 +54,9 @@ export default function IncidentBatchesPanel({ incidentId, links, suggestions, c
     const [ncrFor, setNcrFor] = useState<number | null>(null)
     const [description, setDescription] = useState('')
 
+    const stateText = (r: LinkRow) =>
+        r.active ? t('safety.batches.active') : t('safety.batches.unlinked', { date: r.unlinkedAt ?? '', reason: r.unlinkReason ?? '' })
+
     function run(fn: () => Promise<{ error?: string }>, reset: () => void) {
         setError('')
         startTransition(async () => {
@@ -59,6 +67,7 @@ export default function IncidentBatchesPanel({ incidentId, links, suggestions, c
         })
     }
 
+    // ★ TABLE-EXPORT-3c · Tim Q2(d) PERMANENT:建议批次这张表不导出 —— suggestions to act on, not a record; the linked batches export on the incident page.
     const sugColumns: Column<SuggestionRow>[] = [
         { key: 'batch', header: t('safety.batches.colBatch'), priority: true,
           render: (r) => <Link href={r.href} className="app-link hover:underline">{r.batchCode}</Link> },
@@ -75,14 +84,22 @@ export default function IncidentBatchesPanel({ incidentId, links, suggestions, c
           ) },
     ]
 
-    const linkColumns: Column<LinkRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):链接批次这张表有一对导出 —— 有效的与【已解开】的都在里面(解开不删行,只记时刻与理由)。
+    //   批次那一格屏幕上叠着「批号 · 物料」→ 导出写批号(主值,物料是那一批自己的属性)。
+    //   链上的时刻读原始值(xTime)。状态那一格在解开的行上是一句「已解开 <时刻> — <理由>」:
+    //     一格只装得下一个值,而 Tim 要这三件(状态 · 时刻 · 理由)都在文件里 → 导出写屏幕上那整句字
+    //     (与 docs/table-export.md「组合格导出屏幕上的那段字」同一条;时刻在那句里是文字,与屏幕同一个格式化)。
+    //   操作那一列是控件 → exportAs:false。
+    const linkColumns: ExportableColumn<LinkRow>[] = [
         { key: 'batch', header: t('safety.batches.colBatch'), priority: true,
-          render: (r) => <span><Link href={r.href} className="app-link hover:underline">{r.batchCode}</Link>{r.material ? ` · ${r.material}` : ''}</span> },
-        { key: 'basis', header: t('safety.batches.colBasis'), render: (r) => t(basisKey(r.basis)) },
-        { key: 'linked', header: t('safety.batches.colLinked'), render: (r) => r.linkedAt },
+          render: (r) => <span><Link href={r.href} className="app-link hover:underline">{r.batchCode}</Link>{r.material ? ` · ${r.material}` : ''}</span>,
+          exportAs: (r) => xText(r.batchCode) },
+        { key: 'basis', header: t('safety.batches.colBasis'), render: (r) => t(basisKey(r.basis)), exportAs: (r) => xText(t(basisKey(r.basis))) },
+        { key: 'linked', header: t('safety.batches.colLinked'), render: (r) => r.linkedAt, exportAs: (r) => xTime(r.linkedAtRaw) },
         { key: 'state', header: t('safety.batches.colState'), priority: true,
-          render: (r) => r.active ? t('safety.batches.active') : t('safety.batches.unlinked', { date: r.unlinkedAt ?? '', reason: r.unlinkReason ?? '' }) },
+          render: (r) => stateText(r), exportAs: (r) => xText(stateText(r)) },
         { key: 'act', header: t('safety.batches.colAction'),
+          exportAs: false,
           render: (r) => !r.active ? null : (
               <span className="inline-flex flex-wrap gap-2">
                   <PermissionGate code="module.safety.edit" allowed={canEdit} inline>
@@ -108,7 +125,9 @@ export default function IncidentBatchesPanel({ incidentId, links, suggestions, c
             <h2 className="mb-1">{t('safety.batches.title')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('safety.batches.hint')}</p>
             {error && <p className="text-sm text-red-600 mb-2" data-error="batches">{error}</p>}
-            <DataTable rows={links} columns={linkColumns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('safety.batches.noLinks')} />
+            <DataTable rows={links} columns={linkColumns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('safety.batches.noLinks')}
+                       exportSpec={{ name: 'safety-incident-batches', title: t('safety.batches.title'),
+                                     aboutExtra: [[t('safety.incidents.colCode'), incidentCode]] }} />
 
             {unlinkRow && (
                 <div className="flex flex-wrap items-end gap-3 mt-3 max-w-3xl" data-form="unlink">

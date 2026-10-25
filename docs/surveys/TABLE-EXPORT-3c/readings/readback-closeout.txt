@@ -1,0 +1,6 @@
+PROOF|{"users" : 7, "enabled" : 7, "throwaway_users" : 0, "throwaway_roles" : 0, "orphan_grants" : 0, "role_codes_held" : "admin,cco,cfo,cto,finance,gm,warehouse", "approvals" : true, "chain" : "finance/cfo/1000", "req_cal" : "NULL", "cods" : 2}
+BEGIN
+SET
+PROOF|recon ap unexplained=0.00 agrees=true · ar unexplained=0.00 agrees=true
+ROLLBACK
+X_OWN_EXIT=0

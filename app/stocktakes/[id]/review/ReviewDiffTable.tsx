@@ -20,6 +20,7 @@ export type ReviewDiffRow = {
     deltaPositive: boolean
 }
 
+// TABLE-EXPORT-3c · Tim Q2(a) PERMANENT:不导出 —— preview before posting; the posted lines export on the stocktake page.
 export default function ReviewDiffTable({ rows }: { rows: ReviewDiffRow[] }) {
     const t = useTranslations()
 

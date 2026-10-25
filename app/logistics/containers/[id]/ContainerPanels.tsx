@@ -8,22 +8,29 @@ import {
     addMilestone, instantiateDocuments, setDocumentStatus, addDocument,
 } from './actions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { tableC } from '@/app/components/ui/table-style'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xText } from '@/lib/export/cells'
 
-type Ship = { id: string; code: string; ship_date: string; order_code: string; customer: string }
+type Ship = {
+    id: string; code: string; ship_date: string; order_code: string; customer: string
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):上面三格是画给人看的(日期已格式化、空值已写成「—」);导出读这三个原始值 */
+    ship_date_raw: string | null; order_code_raw: string | null; customer_raw: string | null
+}
 type Ms = { id: string; milestone: string; event_date: string; note: string | null; label: string }
 type Doc = { id: string; document_type: string; regime: string | null; status: string; na_reason: string | null; from_lane: boolean }
 
 export default function ContainerPanels({
-    containerId, head, forwarders, hasLane, laneChecklistState, attached, attachable, operativeIds,
+    containerId, containerCode, head, forwarders, hasLane, laneChecklistState, attached, attachable, operativeIds,
     milestones, documents, milestoneTypes, labels,
 canEdit
 }: {
     containerId: string
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):两张表导出的 About 表写明是哪只箱子 */
+    containerCode: string
     head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null; expected_arrival_date: string | null
             forwarder_id: string | null; forwarder_name: string | null }
     forwarders: { id: string; name: string }[]
@@ -52,6 +59,107 @@ canEdit: boolean
             if (res && typeof res === 'object' && 'error' in res) setError((res as { error: string }).error)
             else { setError(null); after?.() }
         })
+
+    // ════════════════════════════════════════════════════════════════════════
+    // TABLE-EXPORT-3c(Tim 2026-10-25):两张手搓表换成 DataTable,各带一对导出(Tim 批准重建)。
+    // ════════════════════════════════════════════════════════════════════════
+    // 【装着的发货单】手机上留的列一个没改:单号 · 客户 · 拆离钮;订单号与发货日进展开区
+    //   (转换前就是这两列 hidden sm:table-cell、叠在单号格里)—— 那段手写的叠放拿掉了,组件自己画展开区。
+    //   发货日导出读原始日期(xDate),不读那串格式化过的字。拆离那一列是控件 → exportAs:false。
+    const shipColumns: ExportableColumn<Ship>[] = [
+        {
+            key: 'code', header: labels.colShipmentCode, priority: true,
+            render: (s) => <Link href={`/sales/shipments/${s.id}`} className="text-xs hover:underline app-link">{s.code}</Link>,
+            exportAs: (s) => xText(s.code),
+        },
+        {
+            key: 'order', header: labels.colOrderCode,
+            render: (s) => <span className="text-xs text-[color:var(--brand-muted-text)]">{s.order_code}</span>,
+            exportAs: (s) => xText(s.order_code_raw),
+        },
+        { key: 'customer', header: labels.colCustomer, priority: true, render: (s) => s.customer, exportAs: (s) => xText(s.customer_raw) },
+        {
+            key: 'shipDate', header: labels.colShipDate, singleValue: true,
+            render: (s) => (s.ship_date_raw ? formatDate(s.ship_date_raw, locale) : '—'),
+            exportAs: (s) => xDate(s.ship_date_raw),
+        },
+        {
+            // 第五列是拆离钮,它自己带着字 —— 按 /finance/close 那一条先例不另造表头文案(TABLE-PHONE-5)。
+            // R1:画的是要按的控件 → priority。
+            key: 'detach', header: '', priority: true,
+            exportAs: false,
+            render: (s) => detaching === s.id ? (
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+                <form
+                    className="flex items-center gap-2"
+                    onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
+                        run(() => detachShipment(containerId, s.id, (d.get('reason') as string) ?? ''),
+                            () => setDetaching(null)) }}
+                >
+                    {/* 【理由由服务端说了算】:这里【不加 required】,空白判定与库里的 btrim 一致 ——
+                        两处各判一次,迟早给出两个答案。 */}
+                    <input name="reason" placeholder={labels.detachReason} className={`${field} w-64`} />
+                    <Button variant="destructive" size="inline" disabled={pending} className="text-xs">{labels.detach}</Button>
+                </form>
+                </PermissionGate>
+            ) : (
+                <Button variant="destructive" size="inline" type="button" disabled={pending}
+                    onClick={() => setDetaching(s.id)} className="text-xs">{labels.detach}</Button>
+            ),
+        },
+    ]
+
+    // 【单据清单】转换前没有表头:一格叠着 单据类型 (制度) 来源,一格是改状态的表单。
+    //   ★ 导出要的是【存下来的】状态(与 na_reason),不是下拉框里此刻选着的那个(Tim 2026-10-25)——
+    //     所以状态与不适用理由各成一列,画的是存下来的值;下拉 + 理由框 + 保存留在它自己那一列,是控件(exportAs:false)。
+    //   制度与来源也拆成各自一列(一格只能装一个值;叠在一起导出只能留主值,会丢掉这两件事)。
+    //   【手机】留 单据类型 · 状态 · 改状态的控件(R1);制度 · 来源 · 理由进展开区。
+    const statusLabel = (st: string) =>
+        st === 'pending' ? labels.statusPending
+            : st === 'received' ? labels.statusReceived
+            : st === 'not_applicable' ? labels.statusNa
+            : st
+    const docColumns: ExportableColumn<Doc>[] = [
+        { key: 'type', header: labels.documentType, priority: true, render: (d) => d.document_type, exportAs: (d) => xText(d.document_type) },
+        {
+            key: 'regime', header: labels.regime,
+            render: (d) => d.regime ? <span className="text-xs text-gray-500">{d.regime}</span> : '—',
+            exportAs: (d) => xText(d.regime),
+        },
+        {
+            key: 'source', header: labels.colDocSource, singleValue: true,
+            render: (d) => <span className="text-xs text-gray-400">{d.from_lane ? labels.fromLane : labels.handAdded}</span>,
+            exportAs: (d) => xText(d.from_lane ? labels.fromLane : labels.handAdded),
+        },
+        { key: 'status', header: labels.colDocStatus, priority: true, singleValue: true, render: (d) => statusLabel(d.status), exportAs: (d) => xText(statusLabel(d.status)) },
+        { key: 'naReason', header: labels.naReason, render: (d) => d.na_reason ?? '—', exportAs: (d) => xText(d.na_reason) },
+        {
+            key: 'setStatus', header: '', priority: true,
+            // 改状态的表单 —— 控件,不是数据;存下来的值在上面两列
+            exportAs: false,
+            render: (d) => (
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+                <form
+                    className="flex items-center gap-2"
+                    onSubmit={(e) => { e.preventDefault(); const dd = new FormData(e.currentTarget)
+                        run(() => setDocumentStatus(containerId, d.id,
+                            dd.get('status') as string,
+                            ((dd.get('na_reason') as string) ?? '') || null)) }}
+                >
+                    <select name="status" defaultValue={d.status} className={fieldSelect}>
+                        <option value="pending">{labels.statusPending}</option>
+                        <option value="received">{labels.statusReceived}</option>
+                        <option value="not_applicable">{labels.statusNa}</option>
+                    </select>
+                    {/* 理由框一直在:n/a 要不要理由由服务端判,与库里那条守卫同一个答案 */}
+                    <input name="na_reason" defaultValue={d.na_reason ?? ''}
+                        placeholder={labels.naReason} className={`${field} w-56`} />
+                    <Button variant="link" size="inline" disabled={pending} className="text-xs">{labels.save}</Button>
+                </form>
+                </PermissionGate>
+            ),
+        },
+    ]
 
     return (
         <>
@@ -125,71 +233,15 @@ canEdit: boolean
                 {attached.length === 0 ? (
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.shipmentsEmpty}</p>
                 ) : (
-                    <table className="mb-4 w-full border-collapse border border-gray-300 text-sm">
-                        {/* ★ TABLE-PHONE-5：这张表以前【一个列头都没有】—— 四列数据裸奔，
-                            而那不是手机上才有的毛病，是每一种屏幕上都有的。四个 key 是 Tim 批的，
-                            所以它们【桌面档也上】—— 这一步本身是一次桌面改动，单独报告过。
-                            第五列是拆离钮，它自己带着字，按 /finance/close 那一条先例不另造文案。 */}
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-1 text-left">{labels.colShipmentCode}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-1 text-left">{labels.colOrderCode}</th>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-1 text-left">{labels.colCustomer}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-1 text-left">{labels.colShipDate}</th>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-1"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {attached.map((s) => {
-                                /* 【两档都要出现的东西，提出来写一次】—— 抄成两份就是让两份
-                                   将来各走各的，而漂移在桌面上是看不见的：桌面那一份永远是对的那一份。 */
-                                const orderCodeText = <span className="text-xs text-[color:var(--brand-muted-text)]">{s.order_code}</span>
-                                const shipDateText = formatDate(s.ship_date, locale)
-                                return (
-                                <tr key={s.id}>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-1">
-                                        <Link href={`/sales/shipments/${s.id}`} className="text-xs hover:underline app-link">{s.code}</Link>
-                                        {/* 手机档拿掉的两列，原样叠在这里、各自带着列头——
-                                            「拿掉」指的是【那一列】，不是【那个事实】。 */}
-                                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                            <div>
-                                                <span className="text-gray-500">{labels.colOrderCode}: </span>
-                                                {orderCodeText}
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-500">{labels.colShipDate}: </span>
-                                                {formatDate(shipDateText, locale)}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-1">{orderCodeText}</td>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-1">{s.customer}</td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-1">{formatDate(shipDateText, locale)}</td>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-1">
-                                        {detaching === s.id ? (
-                                            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
-                                            <form
-                                                className="flex items-center gap-2"
-                                                onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
-                                                    run(() => detachShipment(containerId, s.id, (d.get('reason') as string) ?? ''),
-                                                        () => setDetaching(null)) }}
-                                            >
-                                                {/* 【理由由服务端说了算】:这里【不加 required】,空白判定与库里的 btrim 一致 ——
-                                                    两处各判一次,迟早给出两个答案。 */}
-                                                <input name="reason" placeholder={labels.detachReason} className={`${field} w-64`} />
-                                                <Button variant="destructive" size="inline" disabled={pending} className="text-xs">{labels.detach}</Button>
-                                            </form>
-                                            </PermissionGate>
-                                        ) : (
-                                            <Button variant="destructive" size="inline" type="button" disabled={pending}
-                                                onClick={() => setDetaching(s.id)} className="text-xs">{labels.detach}</Button>
-                                        )}
-                                    </td>
-                                </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
+                    <DataTable
+                        rows={attached}
+                        columns={shipColumns}
+                        rowKey={(s) => s.id}
+                        phone={{ mode: 'columns' }}
+                        className="mb-4"
+                        exportSpec={{ name: 'logistics-container-shipments', title: labels.shipmentsHeading,
+                                      aboutExtra: [[labels.colContainerCode, containerCode]] }}
+                    />
                 )}
 
                 {attachable.length === 0 ? (
@@ -311,43 +363,17 @@ canEdit: boolean
                 )}
 
                 {documents.length > 0 && (
-                    <table className={`${tableC.root} mb-4 w-full`}>
-                        <tbody>
-                            {documents.map((d) => (
-                                <tr key={d.id} className={`${tableC.bodyRow} ${d.from_lane ? '' : 'bg-gray-50'}`}>
-                                    <td className={tableC.cell}>
-                                        {d.document_type}
-                                        {d.regime && <span className="ml-2 text-xs text-gray-500">({d.regime})</span>}
-                                        {/* 清单来的 vs 人后加的,看得出来 */}
-                                        <span className="ml-2 text-xs text-gray-400">
-                                            {d.from_lane ? labels.fromLane : labels.handAdded}
-                                        </span>
-                                    </td>
-                                    <td className={tableC.cell}>
-                                        <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
-                                        <form
-                                            className="flex items-center gap-2"
-                                            onSubmit={(e) => { e.preventDefault(); const dd = new FormData(e.currentTarget)
-                                                run(() => setDocumentStatus(containerId, d.id,
-                                                    dd.get('status') as string,
-                                                    ((dd.get('na_reason') as string) ?? '') || null)) }}
-                                        >
-                                            <select name="status" defaultValue={d.status} className={fieldSelect}>
-                                                <option value="pending">{labels.statusPending}</option>
-                                                <option value="received">{labels.statusReceived}</option>
-                                                <option value="not_applicable">{labels.statusNa}</option>
-                                            </select>
-                                            {/* 理由框一直在:n/a 要不要理由由服务端判,与库里那条守卫同一个答案 */}
-                                            <input name="na_reason" defaultValue={d.na_reason ?? ''}
-                                                placeholder={labels.naReason} className={`${field} w-56`} />
-                                            <Button variant="link" size="inline" disabled={pending} className="text-xs">{labels.save}</Button>
-                                        </form>
-                                        </PermissionGate>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <DataTable
+                        rows={documents}
+                        columns={docColumns}
+                        rowKey={(d) => d.id}
+                        phone={{ mode: 'columns' }}
+                        className="mb-4"
+                        // 清单来的 vs 人后加的,看得出来 —— 人后加的那几行仍然发灰,与转换前同
+                        rowClassName={(d) => (d.from_lane ? undefined : 'bg-gray-50')}
+                        exportSpec={{ name: 'logistics-container-documents', title: labels.documentsHeading,
+                                      aboutExtra: [[labels.colContainerCode, containerCode]] }}
+                    />
                 )}
 
                 <PermissionGate code="module.purchasing.edit" allowed={canEdit}>

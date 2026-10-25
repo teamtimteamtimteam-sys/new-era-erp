@@ -124,6 +124,8 @@ export default async function IncidentPage({ params, searchParams }: {
                 : (u.new_value ?? '')}`
             : (u.summary ?? u.reference ?? ''),
         reason: u.reason,
+        // TABLE-EXPORT-3c(Tim 2026-10-25):导出读那个时刻本身
+        whenRaw: u.occurred_at ?? u.recorded_at,
     }))
     const links: LinkRow[] = (mustRows(linkRes, 'incident_batch_rows') as {
         id: number; batch_kind: string; batch_id: string; batch_code: string; material_name: string | null; basis: string; linked_at: string
@@ -131,6 +133,8 @@ export default async function IncidentPage({ params, searchParams }: {
         id: l.id, batchKind: l.batch_kind as 'inbound' | 'output', batchId: l.batch_id, batchCode: l.batch_code, material: l.material_name ?? '',
         basis: l.basis, linkedAt: formatAuditStamp(l.linked_at), unlinkedAt: l.unlinked_at ? formatAuditStamp(l.unlinked_at) : null,
         unlinkReason: l.unlink_reason, active: l.active, href: batchHref(l.batch_kind, l.batch_id),
+        // TABLE-EXPORT-3c(Tim 2026-10-25):导出读链上的那个时刻本身
+        linkedAtRaw: l.linked_at,
     }))
     const sugRes = await supabase.rpc('suggest_incident_batches', { p_incident_id: id })
     const suggestions: SuggestionRow[] = (mustRows(sugRes, 'suggest_incident_batches') as {
@@ -201,12 +205,12 @@ export default async function IncidentPage({ params, searchParams }: {
             </section>
 
             <IncidentUpdatesPanel
-                incidentId={id} updates={updates} canEdit={canEdit} reportable={n.nea_reportable}
+                incidentId={id} incidentCode={n.code} updates={updates} canEdit={canEdit} reportable={n.nea_reportable}
                 notified={!!n.notified_at} reportSubmitted={!!n.report_submitted_at} closed={!!n.closed_at} kinds={activeKinds}
             />
 
             <IncidentBatchesPanel
-                incidentId={id} links={links} suggestions={suggestions} canEdit={canEdit} canQualityEdit={canQualityEdit}
+                incidentId={id} incidentCode={n.code} links={links} suggestions={suggestions} canEdit={canEdit} canQualityEdit={canQualityEdit}
                 hasLocation={!!n.location_code} hasMachine={!!n.equipment_id}
                 inboundOptions={batchOptions.inbound} outputOptions={batchOptions.output}
             />

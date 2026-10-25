@@ -5,11 +5,10 @@ import { canViewPrices, can } from '@/lib/permissions'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditOutputForm from './EditOutputForm'
-import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
+import MetalContentPanel, { type MetalContentPanelRow } from '@/app/components/metals/MetalContentPanel'
 import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
-import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/metalContentActions'
-import MovementTimeline from '@/app/components/inventory/MovementTimeline'
+import MovementTimeline, { type MovementTimelineRow } from '@/app/components/inventory/MovementTimeline'
 import CellConstructionPanel from '@/app/components/batch/CellConstructionPanel'
 import { loadCellConstructionData } from '@/app/inbound/cellConstructionQuery'
 import ModuleCountPanel from '@/app/components/batch/ModuleCountPanel'
@@ -24,7 +23,6 @@ import { CHECK_ROW_COLUMNS, labelsFor, toCheckListRows } from '@/app/operation/c
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import EndedBanner, { EndedFieldset } from '@/app/components/trail/EndedBanner'
 import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
-import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
 import PurposePanel, { type BatchPurpose, type OperationType } from './PurposePanel'
 import SafetyStateHistory from '@/app/components/safety/SafetyStateHistory'
@@ -41,7 +39,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { loadSubstanceLabels, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { Button } from '@/app/components/ui/button'
-import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { formatAuditStamp } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
@@ -100,7 +98,6 @@ export default async function EditOutputPage({
     // PROC-4:物质清单从 substances 那张字典读 —— 【连停用的一起读】,
     // 因为这一页要把历史含量行里的码翻成名字,而停用不该让历史数据变成光秃秃的 code。
     const substanceOptions = toOptions(await loadSubstanceLabels(supabase), await getLocale())
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, customersRes, metalsRes, movementsRes, stocktakeRes] = await Promise.all([
         supabase
@@ -249,10 +246,12 @@ export default async function EditOutputPage({
         content_source: string | null
         source_assay: { id: string; code: string } | null
     }
-    const metalRows: MetalContentRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
+    const metalRows: MetalContentPanelRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
         updated_at_display: formatAuditStamp(m.updated_at),
+        // TABLE-EXPORT-3c(Tim 2026-10-25):原始时刻,给导出
+        updated_at: m.updated_at,
         source_kind: m.content_source === 'assay' ? 'assay' : m.content_source === 'manual' ? 'manual' : 'unknown',
         source_label:
             m.content_source === 'assay'
@@ -304,14 +303,18 @@ export default async function EditOutputPage({
         .order('code', { ascending: false })
 
     // 库存流水行:服务端预格式化 occurred_at
-    const movementRows: MovementRow[] = ((movementsRes.data as unknown as MovementFetchRow[] | null) ?? []).map((m) => ({
+    // TABLE-EXPORT-3c(Tim 2026-10-25):读不出来要失败(mustRows),不是渲染成「没有流水」;
+    //   occurred_at 与 business_date 原样带过去给导出 —— business_date 由时间线自己格式化一次
+    //   (此前这里格式化一次、时间线又格式化一次:显示用的日期被当成数据)。
+    const movementRows: MovementTimelineRow[] = (mustRows(movementsRes, 'inventory_movements') as unknown as MovementFetchRow[]).map((m) => ({
         id: m.id,
         movement_type: m.movement_type,
         qty_delta: m.qty_delta,
         stock_status: m.stock_status,
-        business_date: m.business_date ? formatDate(m.business_date, dateLocale) : null,
+        business_date: m.business_date,
         notes: m.notes,
         occurred_at_display: formatAuditStamp(m.occurred_at),
+        occurred_at: m.occurred_at,
         run: m.processing_runs,
     }))
 
@@ -387,6 +390,7 @@ export default async function EditOutputPage({
             <MetalContentPanel
                 options={substanceOptions}
                 rows={metalRows}
+                batchCode={batch.code}
                 saveAction={saveOutputMetal.bind(null, id)}
                 deleteAction={deleteOutputMetal.bind(null, id)}
                 priceHref={priceBatchHref(batch.quantity, metalRows)}
@@ -394,7 +398,7 @@ export default async function EditOutputPage({
             />
 
             {/* 化验(PROC-1b):含量的出处就摆在含量旁边 */}
-            <OutputAssaySection batchId={batch.id} rows={mustRows(assaysRes)} />
+            <OutputAssaySection batchId={batch.id} batchCode={batch.code} rows={mustRows(assaysRes)} />
             {/* MES-6a-2(Q3):这一批的化验上最近记下的指标(从化验行现读 —— 批次上没有副本) */}
             <AssayIndicators kind="output" batchId={batch.id} />
 
@@ -513,7 +517,7 @@ export default async function EditOutputPage({
             {/* MES-5a-1(Q4 · Q6 · Q13):模组数(放电结果之前必须有;核实之后锁住)与每个模组此刻的放电结论 */}
             {cellConstruction.carries[batch.material_id] !== false && (
                 <div className="mt-6">
-                    <ModuleCountPanel kind="output" batchId={batch.id} current={batch.module_count ?? null} data={batchDischarge}
+                    <ModuleCountPanel kind="output" batchId={batch.id} batchCode={batch.code} current={batch.module_count ?? null} data={batchDischarge}
                         canEdit={canSetCellConstruction} gateCode="module.output.edit" canOpenRuns={canOpenRuns} />
                 </div>
             )}
@@ -574,7 +578,7 @@ export default async function EditOutputPage({
                 因为看批次的人先问「现在有多少可动」,再去看「它是怎么变成这样的」 */}
             <StockStatusPanel outputBatchId={id} unit={batch.unit} />
 
-            <MovementTimeline rows={movementRows} unit={batch.unit} />
+            <MovementTimeline rows={movementRows} unit={batch.unit} batchCode={batch.code} />
 
             </EndedFieldset>
 

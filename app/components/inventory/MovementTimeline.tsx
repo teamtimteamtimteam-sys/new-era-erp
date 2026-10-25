@@ -7,12 +7,23 @@ import MovementTimelineTable, { type MovementTableRow } from './MovementTimeline
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
+/**
+ * TABLE-EXPORT-3c(Tim 2026-10-25):导出要的原始值。MovementRow 只带显示用的时刻串,
+ * 所以这里在它上面加一个原始的 occurred_at(ISO)—— 导出写真的时刻,不去拆那串显示字。
+ * ⚠ business_date 一并约定为【原始的 YYYY-MM-DD】:调用页不再预先格式化
+ *   (此前两页格式化一次、这里又格式化一次 —— 显示用的日期被当成数据)。
+ */
+export type MovementTimelineRow = MovementRow & { occurred_at: string }
+
 export default async function MovementTimeline({
     rows,
     unit,
+    batchCode,
 }: {
-    rows: MovementRow[]
+    rows: MovementTimelineRow[]
     unit: string
+    /** TABLE-EXPORT-3c:About 表上写明这份流水出自哪一批。 */
+    batchCode: string
 }) {
     const locale = await getLocale()
     const t = await getTranslations()
@@ -32,6 +43,12 @@ export default async function MovementTimeline({
         runCode: r.run ? r.run.code : null,
         businessDate: formatDate(r.business_date, locale) ?? '—',
         notes: r.notes ?? '—',
+        // TABLE-EXPORT-3c(Tim 2026-10-25):导出读的原始值 —— 不从上面那几串成品字里抠。
+        occurredAt: r.occurred_at,
+        businessDateRaw: r.business_date,
+        qtyDelta: r.qty_delta,
+        unit,
+        notesRaw: r.notes,
     }))
 
     return (
@@ -40,7 +57,7 @@ export default async function MovementTimeline({
 
             {/* TABLE-CONVERT-6:空态搬进 DataTable 的 empty prop(同一个 movements.empty),
                 旧那一支不留 —— 留着 prop 就永远到不了(TABLE-CONVERT-3 §6.1)。 */}
-            <MovementTimelineTable rows={tableRows} />
+            <MovementTimelineTable rows={tableRows} batchCode={batchCode} />
 
             {/* 结余仍旧只在【有行】的时候画 —— 这一条与空态无关,转换前后一样。 */}
             {rows.length > 0 && (

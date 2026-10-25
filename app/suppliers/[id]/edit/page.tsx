@@ -93,26 +93,28 @@ export default async function EditSupplierPage({
             : false,
     }))
 
-    const { data: complianceRows } = await supabase
+    // TABLE-EXPORT-3c(Tim 2026-10-25):这三条读法喂着两张会导出的表 —— 此前 `{ data }` 不看 error,
+    //   一次读失败会画成「没有证书 / 没有附件」,并且照样导出一份空文件。改走 mustRows:失败即抛。
+    const complianceRows = mustRows(await supabase
         .from('supplier_compliance')
         .select('id, cert_type_code, cert_no, issuing_body, valid_from, valid_until, notes, document_id')
         .eq('supplier_id', id)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }), 'supplier_compliance')
 
     // CMP-1:类型来自 certificate_types 表 —— 加一种证书是编辑一行数据,不是改代码
-    const { data: certTypeRows } = await supabase
+    const certTypeRows = mustRows(await supabase
         .from('certificate_types')
         .select('code, name_en, name_zh, disposition')
         .eq('is_active', true)
-        .order('sort_order')
+        .order('sort_order'), 'certificate_types')
 
-    const { data: attachmentRows } = await supabase
+    const attachmentRows = mustRows(await supabase
         .from('supplier_attachments')
         .select('id, file_name, file_type, file_size, doc_category, storage_path, created_at')
         .eq('supplier_id', id)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }), 'supplier_attachments')
 
     // ── GRN-2:这家供应商的收货模式 ──────────────────────────────────────────
     // 【这一页的门与这份数据的门不是同一道】页面是 module.suppliers.view,
@@ -177,7 +179,7 @@ export default async function EditSupplierPage({
     }
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
-    const attachments = (attachmentRows ?? []).map((a) => ({
+    const attachments = attachmentRows.map((a) => ({
         id: a.id,
         file_name: a.file_name,
         file_type: a.file_type,
@@ -185,6 +187,8 @@ export default async function EditSupplierPage({
         doc_category: a.doc_category,
         storage_path: a.storage_path,
         created_at_display: formatAuditStamp(a.created_at),
+        // TABLE-EXPORT-3c:导出要那个时刻本身(ISO),不是上面那串格式化过的字
+        created_at: a.created_at,
     }))
 
     return (
@@ -238,12 +242,13 @@ export default async function EditSupplierPage({
                 }))} />
             <CompliancePanel
                 supplierId={supplier.id}
-                rows={complianceRows ?? []}
-                certTypes={certTypeRows ?? []}
-                attachments={(attachmentRows ?? []).map((a) => ({ id: a.id, file_name: a.file_name }))}
+                supplierCode={supplier.code}
+                rows={complianceRows}
+                certTypes={certTypeRows}
+                attachments={attachmentRows.map((a) => ({ id: a.id, file_name: a.file_name }))}
                 locale={locale}
             />
-            <AttachmentsPanel supplierId={supplier.id} rows={attachments} />
+            <AttachmentsPanel supplierId={supplier.id} supplierCode={supplier.code} rows={attachments} />
 
             {/* ── PARTY-1:供应商的联系人 ──────────────────────────────────
                 ★【供应商此前【一列联系方式都没有】】★ 客户那三列是 2026-07-31 加的,

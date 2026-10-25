@@ -45,7 +45,8 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xTime } from '@/lib/export/cells'
 import { openDowntime, closeDowntime, correctDowntime, voidDowntime } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -71,10 +72,12 @@ export type DowntimeRow = {
 export type CauseOption = { code: string; label: string; classLabel: string; isActive: boolean }
 
 export default function DowntimePanel({
-    assetId, rows, canEdit, locale, causes, readOnlyHref,
+    assetId, rows, canEdit, locale, causes, readOnlyHref, equipmentCode,
 }: {
     assetId: string; rows: DowntimeRow[]; canEdit: boolean; locale: string
     causes: CauseOption[]
+    /** TABLE-EXPORT-3c:导出的 About 表说明这份文件出自哪台机器 */
+    equipmentCode: string
     /** 给了 = 资产卡上的只读画法:不画任何写的控件,一句话指去机器页(那里才记停机)。 */
     readOnlyHref?: string
 }) {
@@ -119,6 +122,11 @@ export default function DowntimePanel({
     }
     // 下拉里只有启用着的;更正一段已经用着一种停用原因的停机时,那一种也列着(标出来),否则选不回原样
     const causeOptions = (current: string | null) => causes.filter((c) => c.isActive || c.code === current)
+    // TABLE-EXPORT-3c:原因那一句的【字】(导出用)—— 与 causeLine 同一个判据
+    const causeText = (code: string | null) => {
+        const c = code ? causeBy.get(code) : undefined
+        return code === null ? t('equipment.down.notClassified') : c ? `${c.label} · ${c.classLabel}` : code
+    }
 
     function run(fn: () => Promise<{ error?: string }>) {
         setError(null)
@@ -140,13 +148,15 @@ export default function DowntimePanel({
     // 这个面板的抬头写着:一段开着的停机必须看起来是"开着",而不是"结束时间忘了填"。
     // 「停了多久」那一格正是承载这句话的地方(它写「还在停」,不是空格也不是 0),
     // 所以它必须留在小屏上。结束时刻与原因进展开区。
-    const downtimeColumns: Column<DowntimeRow>[] = [
+    // TABLE-EXPORT-3c(Tim 2026-10-25):起止是真时刻(新加坡时间);作废的一行在「停了多久」那一格(屏幕上亮「已作废」的那一格)写出来。
+    const downtimeColumns: ExportableColumn<DowntimeRow>[] = [
         {
             key: 'from',
             header: t('equipment.down.colFrom'),
             priority: true,
             className: 'text-sm',
             render: (r) => (r.voided_at ? <span className="line-through">{fmt(r.started_at)}</span> : fmt(r.started_at)),
+            exportAs: (r) => xTime(r.started_at),
         },
         {
             key: 'to',
@@ -157,6 +167,8 @@ export default function DowntimePanel({
             render: (r) =>
                 r.voided_at ? (r.ended_at ? <span className="line-through">{fmt(r.ended_at)}</span> : '—')
                 : r.ended_at ? fmt(r.ended_at) : <span className="text-amber-800">{t('equipment.down.openLabel')}</span>,
+            // 开着的一段写屏幕上那句话(不是空格);作废而没有结束时刻的那一段是「—」→ 空格
+            exportAs: (r) => r.ended_at ? xTime(r.ended_at) : xText(r.voided_at ? null : t('equipment.down.openLabel')),
         },
         {
             key: 'for',
@@ -174,6 +186,11 @@ export default function DowntimePanel({
                     </span>
                 )
                 : r.ended_at ? (r.duration ?? '—') : <span className="text-amber-800">{t('equipment.down.stillDown')}</span>,
+            // 时长是库里的 interval,屏幕原样印(「02:30:00」),导出照写那段字;作废的一行接「(已作废)」(FormulasTable 的 rowInactive 同形);
+            //   开着的一段写「还在停」—— NULL 不是零
+            exportAs: (r) =>
+                r.voided_at ? xText(r.ended_at && r.duration ? `${r.duration} (${t('equipment.down.voidedBadge')})` : t('equipment.down.voidedBadge'))
+                : r.ended_at ? xText(r.duration) : xText(t('equipment.down.stillDown')),
         },
         {
             key: 'reason',
@@ -194,6 +211,11 @@ export default function DowntimePanel({
                     <span>{r.reason}</span>
                 </span>
             ),
+            // 一格两三行:原因(分类 · 类别)+ 说明 + 作废的理由。照屏幕写那段字,以「 — 」连起来
+            exportAs: (r) => xText([
+                causeText(r.cause_code), r.reason,
+                r.voided_at ? t('equipment.down.voidedBecause', { reason: r.void_reason ?? '—', when: fmt(r.voided_at) }) : null,
+            ].filter((x): x is string => !!x).join(' — ')),
         },
         {
             // ★ 动作列 —— priority: true(TABLE-STYLE-1 / R1:够不着的动作等于不存在)。
@@ -229,6 +251,8 @@ export default function DowntimePanel({
                     </span>
                 </PermissionGate>
             ),
+            // 更正 / 作废两颗钮,不是数据
+            exportAs: false,
         },
     ]
 
@@ -315,6 +339,9 @@ export default function DowntimePanel({
                     // U1-B:作废的那一行发灰(与 CostEntriesTable 冲销行同一个灰),不发琥珀 —— 它不是开着的。
                     rowClassName={(r) => (r.voided_at ? 'text-gray-400' : r.ended_at === null ? 'bg-amber-50' : undefined)}
                     empty={t('equipment.down.none')}
+                    // TABLE-EXPORT-3c:机器页与资产卡各画一次 —— 同一份记录,同一个名字;About 表写明是哪台机器
+                    exportSpec={{ name: 'equipment-downtime', title: t('equipment.down.title'),
+                                  aboutExtra: [[t('equipment.page.colCode'), equipmentCode]] }}
                 />
             </div>
 

@@ -57,6 +57,8 @@ export default async function AssetPage({ params, searchParams }: {
     const t = await getTranslations()
     const baseCurrency = await getBaseCurrency()
     const canEdit = await can('module.finance.edit')
+    // TABLE-EXPORT-3c(Tim 2026-10-25):保养面板的阈值建议按它决定那两个数画不画「受限」(equipment_maintenance_advice 同一个码)
+    const canViewFinance = await can('module.finance.view')
     // ★ APR-9:这台资产上那一张在等的处置申请(有的话)—— 处置钮按不动并指向资产页顶上那一块(#adr-<id>)。
     //   读 asset_disposal_requests_visible(它自己要 module.finance.view;本页的门就是那个码)。
     const pendingDisposal = (mustRows(
@@ -283,6 +285,10 @@ export default async function AssetPage({ params, searchParams }: {
             id: m.id, performed_on: formatDate(m.performed_on, locale), kind: m.kind, description: m.description,
             capitalised: m.capitalised, capitalisation_reason: m.capitalisation_reason,
             capitalised_expense_id: m.capitalised_expense_id,
+            // TABLE-EXPORT-3c(Tim 2026-10-25):导出读原始日期,与「谁做的」那一格是不是「受限」(与下面 performer 同一个判据)
+            performed_on_raw: m.performed_on,
+            performer_restricted: m.performed_by_employee_id ? !empName.has(m.performed_by_employee_id)
+                : m.performed_by_supplier_id ? !supName.has(m.performed_by_supplier_id) : false,
             // 【谁做的:三种来源,认不出的那一种要说出来,不要留白】
             // 员工那一支在没有 HR 权限时解析不到 —— 那是「受限」,不是「没填」。
             performer: m.performed_by_employee_id
@@ -498,14 +504,18 @@ export default async function AssetPage({ params, searchParams }: {
                     capitaliseFloor={Number(settingsRes.data?.capitalise_floor_base ?? 0)}
                     equipmentCostBase={Number(asset.cost_base)}
                     baseCurrency={baseCurrency}
-                    currencies={currencyCodes} />
+                    currencies={currencyCodes}
+                    // TABLE-EXPORT-3c:建议里那两个数的「受限」判据 —— 问码本身,不从本页的门推
+                    canViewFinance={canViewFinance}
+                    equipmentCode={asset.code} />
                 <DowntimePanel
                     assetId={asset.id}
                     rows={downRows as unknown as DowntimeRow[]}
                     canEdit={canRecordEquipment}
                     locale={locale}
                     causes={causes}
-                    readOnlyHref={`/operation/equipment/${asset.id}`} />
+                    readOnlyHref={`/operation/equipment/${asset.id}`}
+                    equipmentCode={asset.code} />
                 {/* 【员工那个选项为什么可能不在】—— 说出来,不要让人以为下拉坏了。 */}
                 {!canSeeEmployees && (
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.maint.employeesRestricted')}</p>

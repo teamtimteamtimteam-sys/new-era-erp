@@ -17,7 +17,8 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Refusal } from '@/app/components/ui/refusal'
 import { showActionMessage } from '@/app/components/ui/action-message'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText, type ExportCell } from '@/lib/export/cells'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import PpmReadout from '@/app/components/metals/PpmReadout'
 import type { SubstanceRole } from '@/lib/substances'
@@ -167,13 +168,22 @@ export default function TermSection({
         )
     }
 
-    const columns: Column<TermRowView>[] = [
-        ...fields.map((f, i): Column<TermRowView> => ({
+    // TABLE-EXPORT-3c(Tim 2026-10-25):八张条款表各一对导出。Q3:费率今天不遮蔽 —— 文件写屏幕上那个值,不另加遮蔽。
+    //   数(number / integer)从 values 里的原值写成数:惩罚条款的阈值与费率屏幕上旁边带着 ppm 等值
+    //   (「0.5 %(5,000 ppm)」),导出只写主值 —— 那个以 % 存、以 % 录的原数;ppm 是从它换算出来的,不写。
+    //   字典、枚举、是 / 否、文字:写屏幕上那串已经翻译好的字(shown)。空 = 没填 → 空格(屏幕上的「—」不写)。
+    const cellOf = (f: TermFieldView, r: TermRowView): ExportCell =>
+        f.type === 'number' || f.type === 'integer'
+            ? xNum(r.values[f.name], f.type === 'integer' ? 'int' : 'qty')
+            : xText(r.shown[f.name] || null)
+    const columns: ExportableColumn<TermRowView>[] = [
+        ...fields.map((f, i): ExportableColumn<TermRowView> => ({
             key: f.name,
             header: f.label,
             priority: i === 0,
             className: f.type === 'textarea' ? 'whitespace-pre-line break-words' : undefined,
             render: (r) => r.shown[f.name] || '—',
+            exportAs: (r) => cellOf(f, r),
         })),
         {
             key: 'actions', header: t('contractDetail.colActions'), priority: true,
@@ -200,6 +210,8 @@ export default function TermSection({
                     </span>
                 </PermissionGate>
             ),
+            // 编辑 / 删除两颗钮,不是数据
+            exportAs: false,
         },
     ]
 
@@ -216,7 +228,11 @@ export default function TermSection({
             {rows.length === 0 ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('contractDetail.noneFiled')}</p>
             ) : (
-                <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} />
+                <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }}
+                           // 名字用 contract-detail- 前缀:合同清单页已有 contract-pricing-terms / contract-settlement-terms 两张(全体合同),
+                           //   这里是【一份合同】的那一段,文件名分得开;About 表写明是哪份合同
+                           exportSpec={{ name: `contract-detail-${table.replace(/_/g, '-')}`, title,
+                                         aboutExtra: [[t('contracts.colCode'), contractCode]] }} />
             )}
             {editingRow && form(editingRow.id, editingRow.values)}
             {canAddAnother

@@ -1,0 +1,11 @@
+STEP|base https://new-era-erp.vercel.app
+PASS|/purchasing/orders/14956797-c2ef-49a2-acbd-8b3eae2d79e0 (PO-2026-0009) as a reader without price codes → HTTP 200; 2 export pair(s) on the page (= 3b is deployed)
+PASS|PO payment terms · Expected date cells ["This instalment already has a real date, so it needs no estimate.","This instalment already has a real date, so it needs no estimate."] (none is "—")
+PASS|PO lines xlsx downloaded: purchasing-order-lines_2026-10-25_1703.xlsx
+PASS|PO lines xlsx: 4 rows (1 line + 3 totals ["Subtotal (excl. GST)","GST","Total payable (incl. GST)"]); total amounts ["Restricted","Restricted","Restricted"]
+PASS|PO lines csv downloaded: purchasing-order-lines_2026-10-25_1703.csv
+PASS|PO lines csv: 4 rows (1 line + 3 totals ["Subtotal (excl. GST)","GST","Total payable (incl. GST)"]); total amounts ["Restricted","Restricted","Restricted"]
+PASS|PO-2026-0002 payment terms (owned events) · Expected date cells ["not estimated yet Kept by Sandra Yap An estimate, not a fact — it is never written into the contractual due date.","not estimated yet Kept by Fu Sheng Wong An estimate, not a fact — it is never written into the contractual due date.","not estimated yet Kept by Fu Sheng Wong An estimate, not a fact — it is never written into the contractual due date."] (each "not estimated yet", none "—")
+STEP|done
+TE3B_CLOSEOUT_EXIT=0
+X_OWN_EXIT=0

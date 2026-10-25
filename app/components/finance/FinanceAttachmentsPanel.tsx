@@ -22,11 +22,16 @@ import {
     type FinanceAttachmentParent,
     type FinanceAttachmentRow,
 } from './financeAttachmentTypes'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const BUCKET = 'finance-attachments'
+
+// TABLE-EXPORT-3c(Tim 2026-10-25):created_at_display 是 formatAuditStamp 的输出;导出要那个时刻本身(ISO)。
+//   共用的行类型住在 financeAttachmentTypes.ts,这里只在面板这一侧多要一列,不动那份共用类型。
+type PanelRow = FinanceAttachmentRow & { created_at: string }
 
 // 客户端大小上限(前置拦一道,给出友好提示)。
 const MAX_FILE_SIZE = 50 * 1024 * 1024
@@ -54,12 +59,15 @@ function formatBytes(bytes: number | null): string {
 export default function FinanceAttachmentsPanel({
     parent,
     rows,
-canEdit
+canEdit,
+    record,
 }: {
     parent: FinanceAttachmentParent
-    rows: FinanceAttachmentRow[]
+    rows: PanelRow[]
 
 canEdit: boolean
+    /** TABLE-EXPORT-3c:导出的 About 表说明这份文件出自哪一张单据 —— [标签, 单据号] */
+    record: [string, string]
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -172,7 +180,11 @@ canEdit: boolean
     // ★【手机上留【文件名】与【单据种类】】★
     // 一份凭据列表被打开的问题是「这张单据的凭据在不在、是哪一种」。
     // 大小 / 上传时间 / 备注 / 删除进展开区 —— 它们是选中某一份之后的第二个问题。
-    const attachmentColumns: Column<FinanceAttachmentRow>[] = [
+    //
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出 —— 附件的【元数据】(与客户/供应商/物料附件 3b 同一个型):
+    //   文件名 · 单据种类 · 字节数(单位 B,不写那串四舍五入过的「1.2 KB」)· 上传时刻(ISO)· 备注。
+    //   删除那一列是控件,不导。文件名那一格屏幕上是下载按钮,导出写文件名本身。
+    const attachmentColumns: ExportableColumn<PanelRow>[] = [
         {
             key: 'file',
             header: t('finAttach.file'),
@@ -193,6 +205,7 @@ canEdit: boolean
                 </Button>
                 </PermissionGate>
             ),
+            exportAs: (row) => xText(row.file_name),
         },
         {
             key: 'docType',
@@ -201,25 +214,31 @@ canEdit: boolean
             priority: true,
             className: 'text-sm',
             render: (row) => docTypeLabel(row.doc_type),
+            exportAs: (row) => xText(row.doc_type ? docTypeLabel(row.doc_type) : null),
         },
-        { key: 'size', header: t('finAttach.size'), className: 'text-sm', render: (row) => formatBytes(row.file_size) },
+        { key: 'size', header: t('finAttach.size'), className: 'text-sm', render: (row) => formatBytes(row.file_size),
+          exportAs: (row) => xNum(row.file_size, 'int', 'B') },
         {
             key: 'uploadedAt',
             header: t('finAttach.uploadedAt'),
             className: 'text-sm text-gray-600',
             render: (row) => row.created_at_display,
+            exportAs: (row) => xTime(row.created_at),
         },
         {
             key: 'notes',
             header: t('finAttach.notes'),
             className: 'text-sm text-gray-600',
             render: (row) => row.notes ?? '—',
+            exportAs: (row) => xText(row.notes),
         },
         {
             // 转换前这一列的表头就是空的(<th … />),保持原样。
             key: 'delete',
             header: '',
             className: 'whitespace-nowrap',
+            // 删除 —— 控件,不是数据
+            exportAs: false,
             render: (row) => (
                 // CONFIRM-1:四张详情页共用这张表,每行一个删除钮 ——
                 // "删除该附件?" 答不上来是哪一个。文件名一直就在 row 上。
@@ -255,6 +274,7 @@ canEdit: boolean
                     rowKey={(r) => r.id}
                     phone={{ mode: 'columns' }}
                     empty={t('finAttach.empty')}
+                    exportSpec={{ name: 'finance-attachments', title: t('finAttach.title'), aboutExtra: [record] }}
                 />
             </div>
 

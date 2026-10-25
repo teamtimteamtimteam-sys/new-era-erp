@@ -19,7 +19,8 @@ import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { decideTermsRequest, withdrawTermsRequest } from './termsRequestActions'
 import type { TermsDiffRow, TermsRequestView } from './termsRequestsData'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText } from '@/lib/export/cells'
 
 export default function TermsRequestsPanel({
     open, history, missingDecideCode, withdrawCode, canWithdrawByCode,
@@ -50,12 +51,18 @@ export default function TermsRequestsPanel({
 
     // 差别表:条款 · 之前(在用 / 上一次批准时)· 之后(拟议 / 合同上此刻的);变了的那几行底色标出来。
     // 手机上留【条款】与【之后】—— CFO 批的是右边那一列。
-    const diffColumns = (r: TermsRequestView): Column<TermsDiffRow>[] => [
-        { key: 'field', header: t('termsRequest.colField'), priority: true, render: (d) => d.label },
+    // TABLE-EXPORT-3c(Tim 2026-10-25):每一张在等的申请各一对导出(名字相同,About 表写明是哪一张申请)。
+    //   差别表的格子本来就是【摊平成句子】的条款(一格里可能是几行、可能是数也可能是名字)—— 原样写文字。
+    //   「—」= 那一边没有(新公式没有「之前」)→ 空格,不写那个横杠。
+    //   变了的那几行屏幕上是底色;文件里没有底色 → 接在条款名后面「(有改动)」(FormulasTable 的 rowInactive 同形)。
+    const dash = (v: string) => xText(v === '—' ? null : v)
+    const diffColumns = (r: TermsRequestView): ExportableColumn<TermsDiffRow>[] => [
+        { key: 'field', header: t('termsRequest.colField'), priority: true, render: (d) => d.label,
+          exportAs: (d) => xText(d.changed ? `${d.label} (${t('table.export.rowChanged')})` : d.label) },
         { key: 'before', header: t('termsRequest.before.' + r.beforeIs), className: 'whitespace-pre-line break-words',
-          render: (d) => d.before },
+          render: (d) => d.before, exportAs: (d) => dash(d.before) },
         { key: 'after', header: t('termsRequest.after.' + r.kind), priority: true, className: 'whitespace-pre-line break-words',
-          render: (d) => d.after },
+          render: (d) => d.after, exportAs: (d) => dash(d.after) },
     ]
 
     if (open.length === 0 && history.length === 0) return null
@@ -102,6 +109,14 @@ export default function TermsRequestsPanel({
                             rowKey={(d) => d.key}
                             phone={{ mode: 'columns' }}
                             rowClassName={(d) => (d.changed ? 'bg-amber-100 font-medium' : undefined)}
+                            exportSpec={{
+                                name: 'pricing-terms-request',
+                                title: t('termsRequest.openTitle.' + r.kind),
+                                aboutExtra: [
+                                    [t('termsRequest.request'), r.label],
+                                    [t('termsRequest.subject.' + r.kind), r.subjectName ? `${r.subjectCode} · ${r.subjectName}` : r.subjectCode],
+                                ],
+                            }}
                         />
                     )}
                     {r.usage.length > 0 && (

@@ -25,7 +25,8 @@
 //   ☞ 如果 Tim 认为桶必须与类型同屏,那是把它提成 priority 的事,一行改动。
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xNum, xText, xTime } from '@/lib/export/cells'
 
 /** 服务端压平好的一行 —— 一个函数都没有。 */
 export type MovementTableRow = {
@@ -41,12 +42,31 @@ export type MovementTableRow = {
     runCode: string | null
     businessDate: string
     notes: string
+    // ── TABLE-EXPORT-3c(Tim 2026-10-25):导出读的【原始值】—— 上面那几串是给屏幕的成品字 ──
+    /** inventory_movements.occurred_at,ISO 时刻 */
+    occurredAt: string
+    /** business_date,`YYYY-MM-DD`;没有就是 null */
+    businessDateRaw: string | null
+    /** 带符号的增减,原样的数 */
+    qtyDelta: number
+    /** 批次的单位 —— 屏幕上跟在数字旁边的那个词 */
+    unit: string
+    notesRaw: string | null
 }
 
-export default function MovementTimelineTable({ rows }: { rows: readonly MovementTableRow[] }) {
+export default function MovementTimelineTable({
+    rows,
+    batchCode,
+}: {
+    rows: readonly MovementTableRow[]
+    /** TABLE-EXPORT-3c:About 表上写明这份流水出自哪一批。 */
+    batchCode: string
+}) {
     const t = useTranslations()
 
-    const columns: Column<MovementTableRow>[] = [
+    // TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。这是一条只增不改的历史流水(inventory_movements),
+    //   Tim 2026-10-23 Q6:详情页上的历史流水都导出。时刻写真的时刻、数量写带符号的数(单位跟着)。
+    const columns: ExportableColumn<MovementTableRow>[] = [
         {
             key: 'time',
             header: t('movements.colTime'),
@@ -54,6 +74,7 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
             priority: true,
             className: 'text-gray-600',
             render: (r) => r.timeText,
+            exportAs: (r) => xTime(r.occurredAt),
         },
         {
             key: 'type',
@@ -61,11 +82,13 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
             // ★ 这一行【是什么事】—— 手机上留下。
             priority: true,
             render: (r) => r.typeText,
+            exportAs: (r) => xText(r.typeText),
         },
         {
             key: 'bucket',
             header: t('movements.colBucket'),
             render: (r) => r.bucketText,
+            exportAs: (r) => xText(r.bucketText),
         },
         {
             key: 'qty',
@@ -78,6 +101,7 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
             render: (r) => (
                 <span className={r.qtyNegative ? 'text-red-600' : 'text-green-700'}>{r.qtyText}</span>
             ),
+            exportAs: (r) => xNum(r.qtyDelta, 'qty', r.unit),
         },
         {
             key: 'run',
@@ -90,16 +114,20 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
                 ) : (
                     '—'
                 ),
+            // 那一格是链接 —— 导出写它的字(加工单号);没有就空,不写 '—'。
+            exportAs: (r) => xText(r.runCode),
         },
         {
             key: 'bizDate',
             header: t('movements.colBizDate'),
             render: (r) => r.businessDate,
+            exportAs: (r) => xDate(r.businessDateRaw),
         },
         {
             key: 'notes',
             header: t('movements.colNotes'),
             render: (r) => r.notes,
+            exportAs: (r) => xText(r.notesRaw),
         },
     ]
 
@@ -112,6 +140,8 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
             // 空态从 MovementTimeline 的 `rows.length === 0 ?` 那一支搬进来,【同一个 key】。
             // 旧那一支已经删掉 —— TABLE-CONVERT-3 §6.1 那处死代码不再犯第二次。
             empty={t('movements.empty')}
+            // 进料与产出两页共用这一张,所以 About 那一行的标签用一个不分两侧的「批次」(stocktakes.colBatch,现成的字)。
+            exportSpec={{ name: 'batch-movements', title: t('movements.title'), aboutExtra: [[t('stocktakes.colBatch'), batchCode]] }}
         />
     )
 }

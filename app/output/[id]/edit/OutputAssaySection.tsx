@@ -12,9 +12,12 @@ export type { OutputAssayRow } from './OutputAssayRowsTable'
 
 export default async function OutputAssaySection({
     batchId,
+    batchCode,
     rows,
 }: {
     batchId: string
+    /** TABLE-EXPORT-3c:只是递给表 —— About 表上写明这份化验列表出自哪一批。 */
+    batchCode: string
     rows: OutputAssayRow[]
 }) {
     const t = await getTranslations()
@@ -40,7 +43,7 @@ export default async function OutputAssaySection({
 
             {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个 assay.empty)。
                 旧那一支不留 —— 留着 prop 就永远到不了(TABLE-CONVERT-3 §6.1)。 */}
-            <OutputAssayRowsTable batchId={batchId} rows={rows} />
+            <OutputAssayRowsTable batchId={batchId} batchCode={batchCode} rows={rows} />
         </section>
     )
 }

@@ -7,9 +7,12 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import type { CalcResult, CalcLine } from '@/app/tools/pricing/calculator/actions'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import * as React from 'react'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
+import { xMoney, xNum, xText } from '@/lib/export/cells'
+import { sgStamp } from '@/lib/export/write'
 
 // 汇总这四行(毛值/加工费/折扣/净值)不各自带币种,因为紧接着的最后一行写着
 // 「单价 (USD/公斤)」,而金属计价【全程 USD 进 USD 出】(市场惯例,见 AGENTS.md
@@ -27,6 +30,13 @@ export default function PriceBreakdown({
 }) {
     const locale = useLocale()
     const t = useTranslations()
+
+    // TABLE-EXPORT-3c(Tim 2026-10-25 Q2(c)):这张预览在它出现的每一页都导出,About 表写明「计价预览,截至 <时刻>」。
+    //   那个时刻是【这份结果到手的那一刻】(客户端),不是点导出的那一刻 —— 结果停在屏幕上十分钟,行情可能已经变了,
+    //   文件要说出它是哪一刻的数。res 换了(重算、实时预览又来一份)就重记;同一份 res 重画不重记。
+    //   (化验详情页的预览是服务端一次算好的,这里记的是它到达浏览器的那一刻 —— 与服务端算的时刻差一个往返。)
+    const [stamp, setStamp] = React.useState(() => ({ res, at: new Date().toISOString() }))
+    if (stamp.res !== res) setStamp({ res, at: new Date().toISOString() })
 
     // ASY-2:【未列明 ≠ 零】。条款没提到这个金属时 DB 给 NULL,这里渲染成"—"
     // 并挂上 title 说明 —— 应付比例列里的 0 会被读成一条谈定的条款("这个金属
@@ -94,7 +104,7 @@ export default function PriceBreakdown({
     //   ⚠ 而「说不出口」的那几种答案跟着数字一起进展开区:
     //     termNotStated / noQuoteNotStated 是 ASY-2 的具名空缺(**不是 0**),
     //     它们由 absent() 画在各自的格子里,折进去之后一个字都没变。
-    const columns: Column<CalcLine>[] = [
+    const columns: ExportableColumn<CalcLine>[] = [
         {
             key: 'metal',
             header: t('pricing.form.colMetal'),
@@ -106,6 +116,8 @@ export default function PriceBreakdown({
                     <span className="text-gray-400 text-xs ml-2">{l.metal}</span>
                 </>
             ),
+            // TABLE-EXPORT-3c(Tim 2026-10-25):一格一个值 —— 写金属的名字(界面语言),旁边那个灰色代码不写
+            exportAs: (l) => xText(t('metals.' + l.metal)),
         },
         {
             key: 'content',
@@ -116,29 +128,39 @@ export default function PriceBreakdown({
             //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
             //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
             render: (l) => l.content_pct,
+            exportAs: (l) => xNum(l.content_pct, 'pct'),
         },
         {
             key: 'payablePct',
             header: t('pricing.form.colPayable'),
             align: 'right',
             render: (l) => absent(l.payable_pct, (n) => String(n), t('pricing.termNotStated')),
+            // TABLE-EXPORT-3c(Tim 2026-10-25):null =「条款未列明」(屏幕上的「—」)→ 空格,绝不写 0(ASY-2)
+            exportAs: (l) => xNum(l.payable_pct, 'pct'),
         },
         {
             key: 'contained',
             header: t('pricing.colContained'),
             align: 'right',
             render: (l) => l.contained_kg,
+            exportAs: (l) => xNum(l.contained_kg, 'qty'),
         },
         {
             key: 'payableKg',
             header: t('pricing.colPayableKg'),
             align: 'right',
             render: (l) => absent(l.payable_kg, (n) => String(n), t('pricing.termNotStated')),
+            // null = 条款未列明 → 空格,不是 0
+            exportAs: (l) => xNum(l.payable_kg, 'qty'),
         },
         {
             key: 'price',
             header: t('pricing.colPrice'),
             render: (l) => priceCell(l),
+            // TABLE-EXPORT-3c(Tim 2026-10-25):这一格屏幕上是「行情 + 行情日(或均价起止)+ 窗口太薄的提示」,
+            //   导出只写主值 —— 行情那个数(USD/吨,币种与单位在列头上,与屏幕一样)。没有行情 → 空格,不是 0。
+            //   日期与「窗口太薄」不写(一列一格;要日期回到屏幕或计价器上看)。
+            exportAs: (l) => xMoney(l.price_usd_per_tonne),
         },
         {
             key: 'value',
@@ -152,6 +174,8 @@ export default function PriceBreakdown({
                     (n) => formatMoneyBare(n, '列头 pricing.colValue「金额 (USD)」'),
                     l.payable_pct === null ? t('pricing.termNotStated') : t('pricing.noQuoteNotStated')
                 ),
+            // null = 算不出(条款未列明 / 没有行情)→ 空格,不是 0;币种在列头「金额 (USD)」上
+            exportAs: (l) => xMoney(l.metal_value_usd),
         },
     ]
 
@@ -190,6 +214,19 @@ export default function PriceBreakdown({
                 columns={columns}
                 rowKey={(l) => l.metal}
                 phone={{ mode: 'columns' }}
+                // TABLE-EXPORT-3c(Tim 2026-10-25 Q2(c)):计价器、化验录入、化验详情、进料编辑的重算面板 —— 同一个名字;
+                //   About 表写明「计价预览,截至 <时刻>」与这份预览是哪条公式、哪天、多少公斤(表上方那一行)。
+                //   下面的汇总(毛值 / 加工费 / 折扣 / 净值 / 单价)不是这张表的行,不写进来。
+                exportSpec={{
+                    name: 'pricing-price-breakdown',
+                    title: t('pricing.calcResult'),
+                    aboutExtra: [
+                        [t('table.export.aboutPreview'), t('table.export.aboutPricePreviewValue', { at: sgStamp(stamp.at) })],
+                        [t('pricing.calcFormula'), `${res.formula_code} ${res.formula_name}`],
+                        [t('pricing.calcDate'), res.reference_date],
+                        [t('pricing.calcQuantity'), String(res.quantity_kg)],
+                    ],
+                }}
             />
 
             <div className="mt-4 max-w-md ml-auto text-sm space-y-1">

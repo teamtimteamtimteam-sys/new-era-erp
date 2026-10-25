@@ -12,14 +12,17 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xInt, xNum, xText, xTime } from '@/lib/export/cells'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import type { BatchDischargeData, ModuleSummaryRow } from './moduleDischargeQuery'
 import { setBatchModuleCount } from './moduleCountActions'
 
-export default function ModuleCountPanel({ kind, batchId, current, data, canEdit, gateCode, canOpenRuns }: {
+export default function ModuleCountPanel({ kind, batchId, batchCode, current, data, canEdit, gateCode, canOpenRuns }: {
     kind: 'inbound' | 'output'
     batchId: string
+    /** TABLE-EXPORT-3c:About 表上写明这份结论出自哪一批。 */
+    batchCode: string
     current: number | null
     data: BatchDischargeData
     canEdit: boolean
@@ -38,19 +41,30 @@ export default function ModuleCountPanel({ kind, batchId, current, data, canEdit
         ? <Link href={`/operation/processing/${id}`} className="hover:underline app-link app-link-inline">{code}</Link>
         : <span>{code}</span>)
 
-    const columns: Column<ModuleSummaryRow>[] = [
-        { key: 'module', header: t('discharge.colModule'), priority: true, render: (m) => <span className="font-mono">{m.moduleRef}</span> },
+    // TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。结论 / V9 两格写屏幕上那句字;电压写原始的数(单位 V 跟着);
+    //   判定时刻写真的时刻(verdictAtIso),不拆格式化过的那串;加工单那一格是链接(或纯字)—— 导出写单号。
+    const verdictText = (m: ModuleSummaryRow) => (m.splitOut ? t('discharge.verdict.splitOut')
+        : m.verdict === 'pass' ? t('discharge.verdict.pass')
+            : m.disposition === 'quarantine' ? t('discharge.verdict.failQuarantine') : t('discharge.verdict.failRedischarge'))
+    const columns: ExportableColumn<ModuleSummaryRow>[] = [
+        { key: 'module', header: t('discharge.colModule'), priority: true, render: (m) => <span className="font-mono">{m.moduleRef}</span>, exportAs: (m) => xText(m.moduleRef) },
         {
             key: 'verdict', header: t('discharge.colLatest'), priority: true,
             render: (m) => (m.splitOut ? <span className="text-[color:var(--brand-muted-text)]">{t('discharge.verdict.splitOut')}</span>
                 : m.verdict === 'pass' ? <span className="text-green-700">{t('discharge.verdict.pass')}</span>
                     : <span className="text-red-700">{m.disposition === 'quarantine' ? t('discharge.verdict.failQuarantine') : t('discharge.verdict.failRedischarge')}</span>),
+            exportAs: (m) => xText(verdictText(m)),
         },
-        { key: 'outlet', header: t('discharge.colOutletV'), render: (m) => `${m.outletV} V` },
-        { key: 'flag', header: t('discharge.colV9'), render: (m) => (m.contradicts === true ? <span className="text-red-700">{t('discharge.contradictsShort')}</span> : m.contradicts === null ? t('discharge.notJudged') : '—') },
-        { key: 'when', header: t('discharge.colVerdictAt'), render: (m) => m.verdictAt },
-        { key: 'run', header: t('discharge.colRun'), render: (m) => runLink(m.runId, m.runCode) },
-        { key: 'attempts', header: t('discharge.colAttempts'), render: (m) => String(m.attempts) },
+        { key: 'outlet', header: t('discharge.colOutletV'), render: (m) => `${m.outletV} V`, exportAs: (m) => xNum(m.outletVRaw, 'qty', 'V') },
+        {
+            key: 'flag', header: t('discharge.colV9'),
+            render: (m) => (m.contradicts === true ? <span className="text-red-700">{t('discharge.contradictsShort')}</span> : m.contradicts === null ? t('discharge.notJudged') : '—'),
+            // 屏幕上的 '—' 是「判过、不矛盾」—— 导出留空,不把一个破折号当成值写进去。
+            exportAs: (m) => xText(m.contradicts === true ? t('discharge.contradictsShort') : m.contradicts === null ? t('discharge.notJudged') : null),
+        },
+        { key: 'when', header: t('discharge.colVerdictAt'), render: (m) => m.verdictAt, exportAs: (m) => xTime(m.verdictAtIso) },
+        { key: 'run', header: t('discharge.colRun'), render: (m) => runLink(m.runId, m.runCode), exportAs: (m) => xText(m.runCode) },
+        { key: 'attempts', header: t('discharge.colAttempts'), render: (m) => String(m.attempts), exportAs: (m) => xInt(m.attempts) },
     ]
 
     return (
@@ -97,7 +111,8 @@ export default function ModuleCountPanel({ kind, batchId, current, data, canEdit
                 </PermissionGate>
                 <p className="text-xs text-[color:var(--brand-muted-text)]">{st?.verified ? t('discharge.countLocked') : t('discharge.countHint')}</p>
                 {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
-                <DataTable rows={data.modules} columns={columns} rowKey={(m) => m.moduleRef} phone={{ mode: 'columns' }} empty={t('discharge.noResultsBatch')} />
+                <DataTable rows={data.modules} columns={columns} rowKey={(m) => m.moduleRef} phone={{ mode: 'columns' }} empty={t('discharge.noResultsBatch')}
+                           exportSpec={{ name: 'batch-module-discharge', title: t('discharge.batchTitle'), aboutExtra: [[t('discharge.colBatch'), batchCode]] }} />
             </div>
         </section>
     )

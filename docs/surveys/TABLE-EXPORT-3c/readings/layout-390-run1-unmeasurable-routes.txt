@@ -1,0 +1,11 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 4ed21fe0-4c21-4638-a65b-10ff754d01b2
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+
+!! survey-phone failed: --routes named routes that are not measurable: /quality/samples/[id], /safety/incidents/[id], /contracts/[id], /documents/[key]
+· cleaned up ephemeral survey account(s)
+X_OWN_EXIT=1

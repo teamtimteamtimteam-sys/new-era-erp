@@ -2,14 +2,13 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DeleteButton from './DeleteButton'
-import CostPanel from './CostPanel'
+import CostPanel, { type CostPanelRow } from './CostPanel'
 import LossPanel, { type LossCategory, type LossRow, type ElectrolyteSetting } from './LossPanel'
 import ContaminationPanel, { type ContaminationStreamView, type ContaminationCheckView } from './ContaminationPanel'
 import DischargePanel from './DischargePanel'
 import EnergyPanel, { type RunEnergyView } from './EnergyPanel'
 import { loadDischargePanel, loadSplitOrigin } from './dischargeData'
 import AllocateButton from './AllocateButton'
-import { type CostEntryRow } from './costTypes'
 import { processingStatusLabelKey } from '../../status'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { formatAmount, formatMoneyBare, formatUnitCost, formatTimestamp } from '@/lib/format'
@@ -194,7 +193,8 @@ export default async function ProcessingDetailPage({
         ...inputs.map((l) => (l.inbound_batches ?? l.output_batches)?.material_id),
         ...outputs.map((o) => o.output_batches?.material_id),
     ])
-    const nameFor = (mid: string | null | undefined) => (mid ? materialName.get(mid) : undefined) ?? '—'
+    // TABLE-EXPORT-3c:取不到名字就是 null(表那一侧画「—」),导出才分得出「没有」与一个叫「—」的名字
+    const materialOrNull = (mid: string | null | undefined) => (mid ? materialName.get(mid) : undefined) ?? null
 
     const isCommitted = run.status === 'committed'
     const ended = run.status === 'reversed' || !!run.deleted_at
@@ -458,6 +458,8 @@ export default async function ProcessingDetailPage({
     const correctionRows: CorrectionRow[] = corrRows.map((c) => ({
         id: c.id, field_label: fieldLabel(c.field), old_value: corrDisplay(c.field, c.old_value),
         new_value: corrDisplay(c.field, c.new_value), reason: c.reason, when: fmtStamp(c.corrected_at),
+        // TABLE-EXPORT-3c:导出读原始值(时刻字段写成真的日期格)
+        field: c.field, old_raw: c.old_value, new_raw: c.new_value, when_iso: c.corrected_at,
     }))
     const headerCurrent: Record<string, string> = {
         started_at: run.started_at ?? '', ended_at: run.ended_at ?? '', shift_code: run.shift_code ?? '',
@@ -487,8 +489,9 @@ export default async function ProcessingDetailPage({
     //   此前这里自己查 employees.user_id,一个人用第二个账号改过的条目会印成空。
     const editorName = (await loadActorNames(supabase, editorIds)).names
 
-    const costRows: CostEntryRow[] = rawCosts.map((c) => ({
+    const costRows: CostPanelRow[] = rawCosts.map((c) => ({
         id: c.id,
+        created_at: c.created_at, // TABLE-EXPORT-3c:导出写真的时刻,不写下面那串排好的字
         cost_type: c.cost_type,
         amount_base: c.amount_base,
         is_estimate: c.is_estimate,
@@ -591,7 +594,7 @@ export default async function ProcessingDetailPage({
     const varianceRows: WoVarianceRow[] = woVariance.map((v, i) => ({
         id: String(i),
         sideLabel: t(v.side === 'input' ? 'processing.wo.inputSide' : 'processing.wo.outputSide'),
-        material: v.material_code ?? '—',
+        material: v.material_code ?? null,
         plannedText: v.has_plan
             ? String(v.planned_or_expected_qty)
             : t(v.side === 'input' ? 'processing.wo.unplannedMaterial' : 'processing.wo.noExpectation'),
@@ -602,18 +605,23 @@ export default async function ProcessingDetailPage({
             ? null
             : (Number(v.variance_qty) > 0 ? '+' : '') + String(v.variance_qty),
         varianceNegative: v.variance_qty != null && Number(v.variance_qty) < 0,
+        // TABLE-EXPORT-3c:导出读原始数
+        plannedQty: v.has_plan && v.planned_or_expected_qty != null ? Number(v.planned_or_expected_qty) : null,
+        actualQty: Number(v.actual_qty),
+        varianceQty: v.variance_qty == null ? null : Number(v.variance_qty),
     }))
 
     const lineageTableRows: LineageTableRow[] = lineage.map((l, i) => ({
         id: `${l.parent_batch_id}-${l.depth}-${i}`,
         depth: l.depth,
         viaRunCode: l.via_run_code,
-        parentCode: l.parent_code ?? '—',
+        parentCode: l.parent_code,
         parentHref: l.parent_kind === 'inbound'
             ? `/inbound/${l.parent_batch_id}/edit`
             : `/output/${l.parent_batch_id}/edit`,
         parentKindLabel: t('processing.lineage.kind_' + l.parent_kind),
         qty: String(l.quantity_consumed),
+        quantity: Number(l.quantity_consumed), // TABLE-EXPORT-3c
     }))
 
     const inputRows: InputLegRow[] = inputs.map((leg) => {
@@ -622,14 +630,19 @@ export default async function ProcessingDetailPage({
         return {
             id: leg.id,
             parentCode: parent?.code ?? null,
+            // ★ TABLE-EXPORT-3c(TABLE-EXPORT-2 Q8,Tim 2026-10-22):表上 CHECK (num_nonnulls(inbound_batch_id, output_batch_id) = 1)
+            //   加外键 ⇒ 每一行【必有】一个双亲;两个内嵌都是 null 只可能是读者的 RLS 挡住了那一批(进料批要 module.inbound.view,
+            //   产出批要 module.output.view)。从前这三格画「—」,读起来是「没有」—— 那是一句关于数据的假话,改画「受限」。
+            parentRestricted: !parent,
             parentHref: leg.inbound_batches
                 ? `/inbound/${leg.inbound_batches.id}/edit`
                 : leg.output_batches ? `/output/${leg.output_batches.id}/edit` : null,
             parentDeleted: !!parent?.deleted_at,
             deletedMarker: t('processing.detail.deletedMarker'),
             reprocessed: !!leg.output_batches,
-            material: nameFor(parent?.material_id),
+            material: materialOrNull(parent?.material_id),
             qtyText: `${leg.quantity_consumed} ${parent?.unit ?? ''}`.trim(),
+            qty: Number(leg.quantity_consumed), unit: parent?.unit ?? null, // TABLE-EXPORT-3c
             construction: parent && formCarriesCells(parent.material_id)
                 ? (parent.cell_construction_code ? (ccName.get(parent.cell_construction_code) ?? parent.cell_construction_code) : t('cellConstruction.notRecorded'))
                 : null,
@@ -642,15 +655,19 @@ export default async function ProcessingDetailPage({
         batchHref: leg.output_batches ? `/output/${leg.output_batches.id}/edit` : null,
         batchDeleted: !!leg.output_batches?.deleted_at,
         deletedMarker: t('processing.detail.deletedMarker'),
-        material: nameFor(leg.output_batches?.material_id),
+        material: materialOrNull(leg.output_batches?.material_id),
         qtyText: `${leg.quantity_produced} ${leg.output_batches?.unit ?? ''}`.trim(),
-        purity: leg.output_batches?.purity != null ? String(leg.output_batches.purity) : '—',
+        qty: Number(leg.quantity_produced), unit: leg.output_batches?.unit ?? null, // TABLE-EXPORT-3c
+        purity: leg.output_batches?.purity != null ? String(leg.output_batches.purity) : null,
         // 遮蔽后是 null,和「尚未分摊」是两回事 —— 前者显示「受限」,后者才是「—」。
         // 两者都画成 — 会让运营以为成本没算。判断留在服务端,MaskedValue 在客户端。
         allocatedCostText: leg.allocated_cost_base === null
             ? null : formatMoneyBare(leg.allocated_cost_base, '列头「分摊成本 (SGD)」'),
         unitCostText: leg.unit_cost_base === null
             ? null : formatUnitCost(leg.unit_cost_base) + ' /kg',
+        // TABLE-EXPORT-3c:同上两格的原始数,导出按 MaskedValue 同一条判据写(xMasked)
+        allocatedCost: leg.allocated_cost_base === null ? null : Number(leg.allocated_cost_base),
+        unitCost: leg.unit_cost_base === null ? null : Number(leg.unit_cost_base),
         costIncomplete: !!leg.cost_incomplete,
     }))
 
@@ -665,6 +682,10 @@ export default async function ProcessingDetailPage({
         outputSource: sourceLabel(r.output_source),
         recoveryPctText: r.recovery_pct != null ? r.recovery_pct.toFixed(2) + '%' : null,
         blockedReason: t('processing.recovery.blocked.' + (r.recovery_blocked_by ?? 'input_not_measured')),
+        // TABLE-EXPORT-3c:原始数(没测 / 算不出是 null —— 导出空格或那句理由,绝不是 0)
+        inputKg: r.input_metal_kg == null ? null : Number(r.input_metal_kg),
+        outputKg: r.output_metal_kg == null ? null : Number(r.output_metal_kg),
+        recoveryPct: r.recovery_pct == null ? null : Number(r.recovery_pct),
     }))
 
     return (
@@ -772,12 +793,12 @@ export default async function ProcessingDetailPage({
                         <h2 className="mb-2">
                             {t('processing.detail.varianceTitle', { code: wo.code })}
                         </h2>
-                        <WoVarianceTable rows={varianceRows} />
+                        <WoVarianceTable rows={varianceRows} runCode={run.code} woCode={wo.code} />
                     </section>
                 )}
 
                 {/* 成本条目(仅已提交单) */}
-                {isCommitted && <CostPanel runId={run.id} entries={costRows} canViewPrices={showPrices} />}
+                {isCommitted && <CostPanel runId={run.id} runCode={run.code} entries={costRows} canViewPrices={showPrices} />}
 
                 {/* MES-4a(Q31):一张已回滚、还没被更正过的单 —— 从这里去记它的更正(新单指着它)。 */}
                 {run.status === 'reversed' && correctedBy.length === 0 && (
@@ -795,14 +816,14 @@ export default async function ProcessingDetailPage({
                 )}
 
                 {/* MES-4a:值、事件、平衡、抬头更正 —— 只在已提交单上能记;回滚了的单是历史。 */}
-                {isCommitted && valueRows.length > 0 && <ValuesPanel runId={run.id} rows={valueRows} canEdit={canAftercare} />}
+                {isCommitted && valueRows.length > 0 && <ValuesPanel runId={run.id} runCode={run.code} rows={valueRows} canEdit={canAftercare} />}
                 {isCommitted && (
-                    <EventsPanel runId={run.id} rows={eventRows} canEdit={canAftercare}
+                    <EventsPanel runId={run.id} runCode={run.code} rows={eventRows} canEdit={canAftercare}
                                  types={eventTypes.filter((e) => e.is_active).map((e) => ({ code: e.code, label: nm(e) }))} />
                 )}
                 {balanceView && <BalancePanel runId={run.id} b={balanceView} canClose={canAftercare} />}
                 {isCommitted && (
-                    <HeaderCorrectionPanel runId={run.id} canCorrect={canCommitRun} current={headerCurrent}
+                    <HeaderCorrectionPanel runId={run.id} runCode={run.code} canCorrect={canCommitRun} current={headerCurrent}
                         shifts={shiftRows.filter((x) => x.is_active).map((x) => ({ value: x.code, label: nm(x) }))}
                         machines={machineOpts} recipes={recipeOpts} history={correctionRows} predates={!run.started_at} />
                 )}
@@ -810,20 +831,20 @@ export default async function ProcessingDetailPage({
                 {/* PROC-BUILD-1:损耗分类 —— 就记在损耗被记下来的这一页。
                     只在【已提交】单上;reversed 单是历史,不可改(与 CostPanel 同一条)。 */}
                 {isCommitted && (
-                    <LossPanel runId={run.id} categories={lossCategories} rows={lossRows}
+                    <LossPanel runId={run.id} runCode={run.code} categories={lossCategories} rows={lossRows}
                                lossQty={run.loss_qty ?? null} canEdit={canEditLosses} canDerive={canAftercare}
                                electrolyte={electrolyte} locale={locale} />
                 )}
 
                 {/* MES-4b(Q21–Q25):交叉污染抽检 —— 每一班、每一条流至少一次;只在已提交单上能记 */}
                 {isCommitted && (
-                    <ContaminationPanel runId={run.id} streams={contaminationStreams} checks={contaminationChecks}
+                    <ContaminationPanel runId={run.id} runCode={run.code} streams={contaminationStreams} checks={contaminationChecks}
                                         canRecord={canAftercare} predates={!run.started_at} />
                 )}
 
                 {/* MES-5a-1(Q5–Q13):放电那一炉 —— 每个模组一条结论;凑满了这一批才算已放电并核实;失败 · 隔离的从这里拆出去 */}
                 {discharge && (
-                    <DischargePanel runId={run.id} editable={isCommitted} batches={discharge.batches} results={discharge.results}
+                    <DischargePanel runId={run.id} runCode={run.code} editable={isCommitted} batches={discharge.batches} results={discharge.results}
                                     channels={discharge.channels} splits={discharge.splits} canRecord={canConfirmCapture} canAftercare={canAftercare}
                                     devices={discharge.devices} locations={discharge.locations} locationsVisible={discharge.locationsVisible}
                                     shifts={discharge.shifts} processDate={run.process_date ?? ''} />
@@ -846,7 +867,7 @@ export default async function ProcessingDetailPage({
                 {lineage.some((l) => l.depth > 1) && (
                     <section>
                         <h2 className="mb-2">{t('processing.lineage.title')}</h2>
-                        <LineageTable rows={lineageTableRows} />
+                        <LineageTable rows={lineageTableRows} runCode={run.code} />
                     </section>
                 )}
 
@@ -884,13 +905,13 @@ export default async function ProcessingDetailPage({
                 {/* 投入 —— 空态由表自己说(CONV-8 §⑤ 的推论),不再自己画一行 colSpan */}
                 <section>
                     <h2 className="mb-2">{t('processing.detail.inputsSectionHeader')}</h2>
-                    <InputsTable rows={inputRows} />
+                    <InputsTable rows={inputRows} runCode={run.code} />
                 </section>
 
                 {/* 产出 */}
                 <section>
                     <h2 className="mb-2">{t('processing.detail.outputsSectionHeader')}</h2>
-                    <OutputsTable rows={outputRows} canViewPrices={showPrices} />
+                    <OutputsTable rows={outputRows} canViewPrices={showPrices} runCode={run.code} />
                 </section>
 
                 {/* 金属回收率(仅已提交单) */}
@@ -922,7 +943,7 @@ export default async function ProcessingDetailPage({
                         ))}
                         {/* 空态由表自己说 —— 转换前这里是一句表外的 <p>,
                             于是「这一单没有可算的金属」和「表画不出来」长得一样。 */}
-                        <RecoveryTable rows={recoveryTableRows} />
+                        <RecoveryTable rows={recoveryTableRows} runCode={run.code} />
                     </section>
                 )}
             </div>

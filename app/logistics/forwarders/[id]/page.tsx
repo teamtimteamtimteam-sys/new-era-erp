@@ -14,6 +14,7 @@ import { can } from '@/lib/permissions'
 import { Refusal } from '@/app/components/ui/refusal'
 import { formatAmount } from '@/lib/format'
 import ForwarderPanels from './ForwarderPanels'
+import { ForwarderFreightTable } from './ForwarderFreightTable'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
@@ -161,6 +162,7 @@ export default async function ForwarderDetailPage({ params, searchParams }: {
 
             <ForwarderPanels canEdit={canEditGate}
                 supplierId={id}
+                forwarderCode={sup.data.code as string}
                 details={details}
                 lanes={laneOptions}
                 quotes={quotes.map((q) => ({
@@ -170,6 +172,9 @@ export default async function ForwarderDetailPage({ params, searchParams }: {
                     currency: q.currency as string,
                     valid_from: formatDate(q.valid_from, locale),
                     valid_to: formatDate(q.valid_to, locale),
+                    // TABLE-EXPORT-3c(Tim 2026-10-25):报价导出读原始日历日
+                    valid_from_raw: q.valid_from as string,
+                    valid_to_raw: q.valid_to as string,
                     // 【null 要原样传到底】—— 用 ?? 0 顶一下,三态就在这里塌成两态
                     free_days: q.free_days === null ? null : Number(q.free_days),
                 }))}
@@ -199,6 +204,8 @@ export default async function ForwarderDetailPage({ params, searchParams }: {
                     freeDaysNotStated: t('logistics.quoteFreeDaysNotStated'),
                     noEditDoor: t('logistics.quotesNoEditDoor'),
                     noLanes: t('logistics.noLanes'),
+                    // TABLE-EXPORT-3c:报价导出的 About 表那一行的标签
+                    codeLabel: t('logistics.colCode'),
                 }}
             />
 
@@ -207,39 +214,22 @@ export default async function ForwarderDetailPage({ params, searchParams }: {
                 {freight.length === 0 ? (
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{t('logistics.freightEmpty')}</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-300 text-sm">
-                            <tbody>
-                                {freight.map((f) => (
-                                    <tr key={f.id as string}>
-                                        {/* LOG-2b:运费凭证【有自己的页面】(app/finance/freight/[id]),
-                                            所以这里从只读文本变成链接。 */}
-                                        <td className="border border-gray-300 px-3 py-1 text-xs">
-                                            <Link href={`/finance/freight/${f.id}`} className="hover:underline app-link">
-                                                {f.code as string}
-                                            </Link>
-                                        </td>
-                                        {/* LOG-4b:方向一个字。进货运费与出口运费在这张表上
-                                            长得一模一样,而它们去的是完全不同的科目。 */}
-                                        <td className="border border-gray-300 px-3 py-1 text-xs text-gray-600">
-                                            {t('finance.freight.directionShort.' + (f.direction as string))}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-1">{formatDate(f.doc_date, locale)}</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">
-                                            {/* ROLE-1 Batch 4a(grilling Q10):运费单据的金额留在 data.view_prices
-                                                (到岸成本的一部分),freight_document_lookup 对没有它的人给 NULL ——
-                                                基表上这一列 NOT NULL,所以这里的 NULL 只可能是「受限」。
-                                                此前 Number(null) 把它画成 0.00:一句关于生意的假话。 */}
-                                            {f.amount_ccy === null
-                                                ? <Refusal>{t('common.restricted')}</Refusal>
-                                                : formatAmount(Number(f.amount_ccy), f.currency as string)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-1">{f.payment_status}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    // TABLE-EXPORT-3c(Tim 2026-10-25):手搓、没有表头的原生表 → DataTable(带表头与一对导出),
+                    // 画在客户端那个小文件里(函数跨不过 server→client)。方向的字在这里译好,日期与金额传原始值。
+                    <ForwarderFreightTable
+                        forwarderCode={sup.data.code as string}
+                        rows={freight.map((f) => ({
+                            id: f.id as string,
+                            code: f.code as string,
+                            directionLabel: t('finance.freight.directionShort.' + (f.direction as string)),
+                            docDate: (f.doc_date as string | null) ?? null,
+                            // ROLE-1 Batch 4a(grilling Q10):金额留在 data.view_prices,freight_document_lookup 对没有它的人给 NULL ——
+                            // 基表上这一列 NOT NULL,所以这里的 NULL 只可能是「受限」。原样传下去,不 Number() 成 0。
+                            amountCcy: (f.amount_ccy as number | string | null) ?? null,
+                            currency: f.currency as string,
+                            paymentStatus: (f.payment_status as string | null) ?? null,
+                        }))}
+                    />
                 )}
             </section>
 

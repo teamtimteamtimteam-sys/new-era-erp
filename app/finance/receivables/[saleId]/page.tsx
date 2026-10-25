@@ -112,7 +112,8 @@ export default async function ReceivableDocPage({
             .maybeSingle(),
     ])
 
-    const allocs = ((allocsRes.data as unknown as AllocRow[] | null) ?? [])
+    // TABLE-EXPORT-3c(Tim 2026-10-25):这一读原先没看 error —— 读失败会渲染(并导出)成一张空的结算历史。改走 mustRows。
+    const allocs = mustRows(allocsRes, 'payment_allocations') as unknown as AllocRow[]
     const invoice = (invoiceRes.data as unknown as { invoices: { id: string; code: string } | null } | null)?.invoices ?? null
 
     // 已结额只计 posted 收款的核销(与 ar_open_items 口径一致);reversed 行仍展示。
@@ -134,6 +135,7 @@ export default async function ReceivableDocPage({
         doc_type: a.doc_type,
         notes: a.notes,
         created_at_display: formatAuditStamp(a.created_at),
+        created_at: a.created_at, // TABLE-EXPORT-3c:导出写那个时刻本身(ISO),不写上面那串格式化过的字
     }))
 
     const journals = [
@@ -169,6 +171,9 @@ export default async function ReceivableDocPage({
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
         paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_base, baseCurrency),
+        paymentDateRaw: a.payments?.payment_date ?? null,
+        allocated: a.allocated_base,
+        currency: baseCurrency,
         reversed: a.payments?.status === 'reversed',
     }))
 
@@ -180,6 +185,9 @@ export default async function ReceivableDocPage({
             paymentHref: null,
             paymentDate: '',
             allocatedText: formatAmount(settled, baseCurrency),
+            paymentDateRaw: null,
+            allocated: settled,
+            currency: baseCurrency,
             reversed: false,
             isTotal: true,
         })
@@ -310,10 +318,12 @@ export default async function ReceivableDocPage({
 
             {/* 结算历史 */}
             <h2 className="mb-3">{t('finance.settlementHistory')}</h2>
-            <SettlementHistoryTable rows={tableRows} />
+            <SettlementHistoryTable rows={tableRows} exportTitle={t('finance.settlementHistory')}
+                record={[t('finance.colDocument'), batch?.code ?? '—']} />
 
             {/* 凭据附件 */}
-            <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'sale', id: sale.id }} rows={attachments} />
+            <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'sale', id: sale.id }} rows={attachments}
+                record={[t('finance.colDocument'), batch?.code ?? '—']} />
 
             {/* AUDIT-TRAIL-1c-2(Q14):这一笔销售的审计记录 —— 出库、归属客户、开票、收款核销、附件、收入 / 成本分录 */}
             <AuditTrail subject="sale" id={sale.id} show={trailCount((await searchParams).trail)} />

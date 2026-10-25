@@ -13,7 +13,8 @@
 //   两处标记逐字相同:同样两列、同样的 assay.colMetal / assay.colContent、
 //   同样一处 hidden sm:table-cell 都没有。两处照同一个形状改。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText } from '@/lib/export/cells'
 
 // ── ① 金属表(2 列)──────────────────────────────────────────────────────
 export type AssayMetalRow = {
@@ -21,11 +22,15 @@ export type AssayMetalRow = {
     /** 服务端译好的金属名 —— t() 不跨边界。 */
     metalLabel: string
     contentPct: string
+    /** TABLE-EXPORT-3c:导出写原始含量(%),不写屏幕上格式化过的那串字(还可能带着「(123 ppm)」)。 */
+    contentRaw: number | string
 }
 
-export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
+export function AssayMetalsTable({ rows, assayCode }: { rows: readonly AssayMetalRow[]; assayCode: string }) {
     const t = useTranslations()
-    const columns: Column<AssayMetalRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出,与 inbound 那张 AssayMetalsTable 同形。
+    //   金属那一格屏幕上叠着名字与代码 —— 导出写名字(主值);含量写那个百分数本身(主值,一个数)。
+    const columns: ExportableColumn<AssayMetalRow>[] = [
         {
             key: 'metal',
             header: t('assay.colMetal'),
@@ -38,6 +43,7 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
                     <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
+            exportAs: (r) => xText(r.metalLabel),
         },
         {
             key: 'content',
@@ -50,12 +56,14 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
             //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
             render: (r) => r.contentPct,
+            exportAs: (r) => xNum(r.contentRaw, 'pct'),
         },
     ]
     // 没有给 empty:转换前空的时候画的是一张只有表头的表,页面没写过空态文案。
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.metal}
-                   phone={{ mode: 'columns' }} className="max-w-md mb-6" />
+                   phone={{ mode: 'columns' }} className="max-w-md mb-6"
+                   exportSpec={{ name: 'output-assay-metals', title: t('assay.detailTitle'), aboutExtra: [[t('assay.colCode'), assayCode]] }} />
     )
 }
 
@@ -70,11 +78,18 @@ export type ApplyPreviewRow = {
     sourceKind: 'assay' | 'manual' | 'other' | null
     /** null = 化验没报这一行 —— 应用是整体替换,这行会消失(画那枚红片)。 */
     afterText: string | null
+    // ── TABLE-EXPORT-3c:导出读的原始含量(%)。null 与上面两个 *Text 的 null / '—' 同义 ──
+    currentRaw: number | string | null
+    afterRaw: number | string | null
 }
 
-export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }) {
+export function ApplyPreviewTable({ rows, assayCode }: { rows: readonly ApplyPreviewRow[]; assayCode: string }) {
     const t = useTranslations()
-    const columns: Column<ApplyPreviewRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25,Q2(b)):这张对照表【照屏幕导出】,而 About 表上写明
+    //   「预览,尚未应用」—— 这些数是 preview_apply_output_assay 问库问出来的、应用之后【会】是什么,
+    //   不是批次今天的含量。没有这一行,一份导出读起来就像一份已经生效的含量表。
+    //   「将移除」那一格:屏幕上那枚红片【就是】这一格的值(化验没报这一行),导出写它的字,不留空。
+    const columns: ExportableColumn<ApplyPreviewRow>[] = [
         {
             key: 'metal',
             header: t('assay.colMetal'),
@@ -85,6 +100,7 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
                     <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
+            exportAs: (r) => xText(r.metalLabel),
         },
         {
             key: 'current',
@@ -92,6 +108,8 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
             align: 'right',
             priority: true,
             render: (r) => r.currentText,
+            // 屏幕上的 '—' 是「今天没有这一行」—— 导出留空。
+            exportAs: (r) => xNum(r.currentRaw, 'pct'),
         },
         {
             key: 'source',
@@ -114,6 +132,7 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
                         {r.sourceLabel}
                     </span>
                 ),
+            exportAs: (r) => xText(r.sourceLabel),
         },
         {
             key: 'after',
@@ -130,6 +149,7 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
                         {t('assay.output.willRemove')}
                     </span>
                 ),
+            exportAs: (r) => (r.afterText !== null ? xNum(r.afterRaw, 'pct') : xText(t('assay.output.willRemove'))),
         },
     ]
     return (
@@ -147,6 +167,14 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
                 why: '四列是一次并排比较(当前 · 来源 · 应用后),折走任何一列都要先点开一行才比得了;转换前这四列在 390px 上也全部看得见,外面本来就是 overflow-x-auto。',
             }}
             className="max-w-2xl mb-4"
+            exportSpec={{
+                name: 'output-assay-apply-preview',
+                title: t('assay.output.applyPreviewTitle'),
+                aboutExtra: [
+                    [t('table.export.aboutPreview'), t('table.export.aboutAssayPreviewValue')],
+                    [t('assay.colCode'), assayCode],
+                ],
+            }}
         />
     )
 }

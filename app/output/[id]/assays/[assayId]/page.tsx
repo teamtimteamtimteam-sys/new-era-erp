@@ -276,7 +276,10 @@ export default async function OutputAssayDetailPage({
                     metal: m.metal,
                     metalLabel: metalLabel(m.metal),
                     contentPct: contentCell(m.content_pct, roleOf.get(m.metal)),
+                    // TABLE-EXPORT-3c(Tim 2026-10-25):原始含量,给导出
+                    contentRaw: m.content_pct,
                 }))}
+                assayCode={assay.code}
             />
 
             {/* MES-6a-2(Q3 · Q4):这份化验上的指标 —— 残粉、箔纯度、粒径(没有限、没有判定) */}
@@ -323,7 +326,12 @@ export default async function OutputAssayDetailPage({
                                     // 补充(F5):它没测的那几种【原样留着】,不是"将移除"
                                     afterText: r.next ? contentText(r.next.content_pct, roleOf.get(r.metal))
                                         : preview.supplement && r.current ? contentText(r.current.content_pct, roleOf.get(r.metal)) : null,
+                                    // TABLE-EXPORT-3c(Tim 2026-10-25):同一条判断,取原始含量给导出
+                                    currentRaw: r.current ? r.current.content_pct : null,
+                                    afterRaw: r.next ? r.next.content_pct
+                                        : preview.supplement && r.current ? r.current.content_pct : null,
                                 }))}
+                                assayCode={assay.code}
                             />
 
                             {/* 过期后果:说在确认之前 */}

@@ -23,10 +23,17 @@
 // 就在隔壁,同样被这两页共用)。**把它抄两份才是要付账的那件事。**
 //
 // 【行数据在服务端压平】金额格式要 baseCurrency,只有服务端知道。
+//
+// ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出,四个调用点共用这一对。
+//   导出读【原始值】:日期 paymentDateRaw(YYYY-MM-DD)、金额 allocated + currency(屏幕上那一格写着币种,导出照样带上)。
+//   发灰与删除线导不出去 ——「这一条被冲销了」只靠【状态】那一列的字说出来,所以状态列导出的是那枚徽章上的字,一个都不省。
+//   合计行(Tim 3b Q1)照屏幕作为最后一行导出:标签在付款单那一列,日期与状态是空格。
+//   标题与 About 那一行(单据号)由调用方给 —— 发票页这一块叫「收款情况」,另外三页叫「结算历史」。
 import * as React from 'react'
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { xDate, xMoney, xText } from '@/lib/export/cells'
 
 export type SettlementRow = {
     id: string
@@ -34,15 +41,29 @@ export type SettlementRow = {
     paymentHref: string | null
     paymentDate: string
     allocatedText: string
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):上面两串是格式化过的字;导出要日期本身(YYYY-MM-DD,合计行 null)与金额本身 + 它的币种。 */
+    paymentDateRaw: string | null
+    allocated: number
+    currency: string
     reversed: boolean
     /** 合计行。见 CONV-4 §⑨-3 / CONV-8 §⑧。 */
     isTotal?: boolean
 }
 
-export default function SettlementHistoryTable({ rows }: { rows: readonly SettlementRow[] }) {
+export default function SettlementHistoryTable({
+    rows,
+    exportTitle,
+    record,
+}: {
+    rows: readonly SettlementRow[]
+    /** TABLE-EXPORT-3c:导出的 About 表与工作表名 = 这一块在页面上的标题(界面语言)。 */
+    exportTitle: string
+    /** TABLE-EXPORT-3c:About 表多写的一行 —— [标签, 单据号],说明这份文件出自哪一张单据。 */
+    record: [string, string]
+}) {
     const t = useTranslations()
 
-    const columns: Column<SettlementRow>[] = [
+    const columns: ExportableColumn<SettlementRow>[] = [
         {
             key: 'payment',
             header: t('finance.colPayment'),
@@ -66,11 +87,13 @@ export default function SettlementHistoryTable({ rows }: { rows: readonly Settle
                 ) : (
                     '—'
                 ),
+            exportAs: (r) => xText(r.paymentCode),
         },
         {
             key: 'date',
             header: t('finance.paymentDate'),
             render: (r) => r.paymentDate,
+            exportAs: (r) => xDate(r.paymentDateRaw),
         },
         {
             key: 'allocated',
@@ -80,6 +103,8 @@ export default function SettlementHistoryTable({ rows }: { rows: readonly Settle
             priority: true,
             className: 'text-sm',
             render: (r) => (r.reversed ? <span className="line-through">{r.allocatedText}</span> : r.allocatedText),
+            // 已冲销的那一行照样导出它的金额(屏幕上是划掉的数,不是空)—— 它不计入合计,由状态列说明为什么
+            exportAs: (r) => xMoney(r.allocated, r.currency),
         },
         {
             key: 'status',
@@ -96,6 +121,9 @@ export default function SettlementHistoryTable({ rows }: { rows: readonly Settle
                         {t('finance.status.posted')}
                     </span>
                 ),
+            // 屏幕只用徽章 + 发灰说「已冲销」;导出把徽章上的字写成一格(合计行这一格屏幕上是空的,导出也空)
+            exportAs: (r) =>
+                xText(r.isTotal ? null : r.reversed ? t('finance.reversedMark') : t('finance.status.posted')),
         },
     ]
 
@@ -113,6 +141,7 @@ export default function SettlementHistoryTable({ rows }: { rows: readonly Settle
                       : undefined
             }
             empty={t('finance.noOpenItems')}
+            exportSpec={{ name: 'finance-settlement-history', title: exportTitle, aboutExtra: [record] }}
         />
     )
 }

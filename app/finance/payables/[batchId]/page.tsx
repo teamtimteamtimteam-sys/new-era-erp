@@ -110,7 +110,8 @@ export default async function PayableDocPage({
             .order('created_at', { ascending: false }),
     ])
 
-    const allocs = ((allocsRes.data as unknown as AllocRow[] | null) ?? [])
+    // TABLE-EXPORT-3c(Tim 2026-10-25):这一读原先没看 error —— 读失败会渲染(并导出)成一张空的结算历史。改走 mustRows。
+    const allocs = mustRows(allocsRes, 'payment_allocations') as unknown as AllocRow[]
 
     // 已结额只计 posted 付款的核销(与 ap_open_items 口径一致);reversed 行仍展示。
     const settled =
@@ -131,6 +132,7 @@ export default async function PayableDocPage({
         doc_type: a.doc_type,
         notes: a.notes,
         created_at_display: formatAuditStamp(a.created_at),
+        created_at: a.created_at, // TABLE-EXPORT-3c:导出写那个时刻本身(ISO),不写上面那串格式化过的字
     }))
 
     const materialName =
@@ -150,6 +152,9 @@ export default async function PayableDocPage({
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
         paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_base, baseCurrency),
+        paymentDateRaw: a.payments?.payment_date ?? null,
+        allocated: a.allocated_base,
+        currency: baseCurrency,
         reversed: a.payments?.status === 'reversed',
     }))
 
@@ -163,6 +168,9 @@ export default async function PayableDocPage({
             paymentHref: null,
             paymentDate: '',
             allocatedText: formatAmount(settled, baseCurrency),
+            paymentDateRaw: null,
+            allocated: settled,
+            currency: baseCurrency,
             reversed: false,
             isTotal: true,
         })
@@ -262,12 +270,14 @@ export default async function PayableDocPage({
 
             {/* 结算历史 */}
             <h2 className="mb-3">{t('finance.settlementHistory')}</h2>
-            <SettlementHistoryTable rows={tableRows} />
+            <SettlementHistoryTable rows={tableRows} exportTitle={t('finance.settlementHistory')}
+                record={[t('finance.colDocument'), batch.code]} />
 
             {/* 凭据附件 —— 这一页唯一的出口(上传凭据)。它住在 children 里,
                 而详情页 state 恒为 'ok',所以它不可能被空分支吃掉。 */}
             <EndedFieldset ended={!!writtenOff}>
-                <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'inbound', id: batch.id }} rows={attachments} />
+                <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'inbound', id: batch.id }} rows={attachments}
+                    record={[t('finance.colDocument'), batch.code]} />
             </EndedFieldset>
 
             <AuditTrail subject="payable" id={batch.id} show={trailCount((await searchParams).trail)} />

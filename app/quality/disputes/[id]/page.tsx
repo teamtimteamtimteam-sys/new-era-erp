@@ -75,6 +75,8 @@ export default async function DisputePage({ params, searchParams }: {
     const metalRows: MetalRow[] = metals.map((m) => ({
         metal: metalName(m.metal), ours: pct(m.ours_pct), counterparty: pct(m.counterparty_pct), umpire: pct(m.umpire_pct),
         diff: m.diff_pct == null ? '—' : String(Number(m.diff_pct)), beyond: m.beyond_limit === true,
+        // TABLE-EXPORT-3c(Tim 2026-10-25):导出读原始数
+        oursRaw: m.ours_pct, counterpartyRaw: m.counterparty_pct, umpireRaw: m.umpire_pct, diffRaw: m.diff_pct,
     }))
 
     const assays = assayRes ? mustRows(assayRes, 'assay_results') as { id: string; code: string; result_party: string; assay_date: string; lab_name: string | null }[] : []
@@ -153,7 +155,8 @@ export default async function DisputePage({ params, searchParams }: {
 
             <h2 className="mt-6 mb-1">{t('quality.dispute.metalsTitle')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('quality.dispute.metalsNote')}</p>
-            <MetalsTable rows={metalRows} />
+            <MetalsTable rows={metalRows} batchCode={d.batch_code}
+                limitText={d.limit_pct_at == null ? t('quality.limitNotSet') : String(Number(d.limit_pct_at))} />
 
             {open && (
                 <>

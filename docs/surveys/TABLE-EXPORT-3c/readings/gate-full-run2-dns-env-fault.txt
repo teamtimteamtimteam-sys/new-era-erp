@@ -1,0 +1,17 @@
+psql: error: could not translate host name "aws-1-ap-southeast-1.pooler.supabase.com" to address: nodename nor servname provided, or not known
+
+够不到线上目录(db/verify_rebuild.py:signature)—— 这是【环境故障】,不是仓库建不出库。上面若已印出 REBUILD OK,那么重建本身是好的;原样重跑即可。
+== platform substrate: absent (bare postgres)
+== prelude: db/platform-prelude.sql
+== database settings: db/database-settings.sql
+== replay db/functions (964 files)
+== replay db/tables (326 files)
+== replay db/views (200 files)
+
+REBUILD OK - db/platform-prelude.sql is SUFFICIENT for the current mirror set.
+
+== comparing the rebuilt database against live
+
+判词【无法作出】:✗ 够不到线上目录 —— 这是【环境故障】,不是仓库的毛病。
+   重建那一半的结论见上(若印着 REBUILD OK,它是好的)。原样重跑。
+GATE_EXIT=5

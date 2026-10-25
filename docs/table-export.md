@@ -148,6 +148,68 @@ TABLE-EXPORT-1's Q2–Q13 and TABLE-EXPORT-3's Q1, Q6 and Q8 still apply. These 
 **A note on Q1, measured, not re-asked:** Q1's list names six tables. The Step 0 survey found seven: the bank statement lines table also pushes a total row
 (`app/finance/bank/statements/[id]/page.tsx:182`). It follows Q1's general rule, "total rows inside detail tables", and is exported the same way.
 
+## The rulings — Tim 2026-10-25 (TABLE-EXPORT-3c Step 0)
+
+TABLE-EXPORT-1's Q2–Q13, TABLE-EXPORT-3's Q1 and Q6, and TABLE-EXPORT-3b's Q1 still apply. These five are new; the survey behind them is `docs/surveys/TABLE-EXPORT-3c/step0.md`.
+
+| # | Ruling |
+|---|---|
+| Q1 | Spare-parts value column: kept for every reader; 「受限」 on screen and "Restricted" in the file for a reader without the price code (TABLE-EXPORT-1 Q3). Remove the "column hidden" sentence above the table. |
+| Q2 | (a) Stocktake review differences: PERMANENT, "preview before posting; the posted lines export on the stocktake page". (b) Output assay "apply" preview: exported as shown; the About sheet states "preview, not applied". (c) Price breakdown: exported on every page it appears on; the About sheet states "price preview as at <timestamp>". The calculator's own input table stays PERMANENT as ruled. (d) Incident suggested batches: PERMANENT, "suggestions to act on, not a record; the linked batches export on the incident page". |
+| Q3 | Contract term rates and minimum amounts are unmasked (protected only by row access). Not fixed in 3c. Registered in `docs/known-issues.md` next to CONTRACTS-SETTLEMENTS-AMOUNT-UNMASKED (§ CONTRACT-TERMS-RATES-UNMASKED) and folded into go-live readiness row 12, so one fix covers settlements and term rates. The 3c export writes what the screen shows. |
+| Q4 | The false sentence on PO payment terms ("This instalment already has a real date" when the due date is empty) is registered in `docs/known-issues.md` (§ PO-TERM-NOT-APPLICABLE-SENTENCE-FALSE), not fixed in 3c. |
+| Q5 | Not split. Safeguard: if midway it will not fit this session, finish the module in hand, queue the rest as TABLE-EXPORT-3c-2 with the rulings copied verbatim, run the full verify chain on what is done, push, and say so plainly in the report. |
+| Accepted | The maintenance capitalisation advice shows 「受限」 / "Restricted"; the 12 reads that turn a failure into an empty table show the error instead; the 3 hand-built tables become standard tables; the related-records table gets a server export route. |
+
+## The family at close — TABLE-EXPORT-3c, v1.4.73 (2026-10-25)
+
+Seven cuts, 2026-10-22 → 10-25: TABLE-EXPORT-1 (v1.4.67) · 2a (v1.4.68) · 2b-1 (v1.4.69) · 2b-2 (v1.4.70) · 3a (v1.4.71) · 3b (v1.4.72) · 3c (v1.4.73).
+Hand-backs: `docs/handbacks/TABLE-EXPORT-*.md`.
+
+**What every table now does.** Measured at close by `node scripts/check-table-export.mjs` (it walks every `.tsx` under `app/`, comments stripped,
+and asserts its own count against a second, independent regex count): **273 tables in `app/` — 244 declare an export, the rest are named on the
+exemption list, and that list holds 24 entries, all PERMANENT.** Every other table has an Excel and a CSV button above it:
+- **List pages** export every matching row as filtered and sorted, not just the page on screen (Q2); server-paged lists ask a JSON route that runs
+  the page's own read and refuses above 50,000 rows, stating the count (Q8). Capped "first N" lists say so and export every row (2 Q2).
+- **Detail pages** have one export pair per table (3 Q1), history trails included (3 Q6); a document's own total rows are the last rows of the file (3b Q1).
+- **Finance reports** export in their own layout (headings, subtotals, totals; 3 Q2–Q3); previews say in the About sheet that they are previews
+  (3 Q5, 3c Q2b · Q2c). Editable tables that are a record's only screen export the saved values, never unsaved edits (3 Q8, 3b Q3).
+- **Cells are typed** (numbers, real dates, Singapore time), a cell the screen draws as 「受限」 writes "Restricted" (1 Q3, 2 Q8, 2b-2 Q2), and the
+  file never holds more than the reader can see — it is built from the rows the page read.
+- **The build check accepts only PERMANENT exemptions** (criterion ⑥, fault injection `CHECK_TABLE_EXPORT_FAULT=cut:<file>`): a new table either
+  declares its export or Tim rules it PERMANENT with a reason.
+
+**The PERMANENT list (24), with reasons** (`scripts/table-export-exemptions.mjs`):
+
+| File | Reason |
+|---|---|
+| `app/brand-sampler/Base1.tsx` | temporary design reference with made-up data, not in navigation (2 Q6) |
+| `app/finance/bank/import/ImportStatementForm.tsx` | preview of the bank file just chosen, nothing saved, first 20 parsed rows — an echo of the file the user holds (3 Q4) |
+| `app/finance/electricity/new/NewAllocationForm.tsx` | preview before posting; the posted allocation's lines export on its own page (3 Q4) |
+| `app/finance/packs/PackTables.tsx` · `app/finance/payables/page.tsx` · `app/finance/receivables/page.tsx` | covered by the special exports — management pack, AP ageing, AR ageing (3 Q9) |
+| `app/hr/reviews/cycles/page.tsx` | a layout inside a warning box, not a register (3 Q10) |
+| 14 entry forms: `finance/freight/new/NewFreightForm` · `finance/fx/bulk/BulkFxGrid` · `finance/invoices/[id]/CreateCreditNoteControl` · `finance/invoices/new/NewInvoiceForm` · `finance/payments/new/NewPaymentForm` · `hr/payroll/PayrollGrid` · `inbound/[id]/assays/new/AssayForm` · `operation/orders/new/NewWorkOrderForm` · `output/[id]/assays/new/OutputAssayForm` · `purchasing/orders/[id]/amend/AmendOrderForm` · `purchasing/orders/new/NewOrderForm` · `sales/orders/[id]/amend/AmendOrderForm` · `sales/quotes/new/NewQuoteForm` · `tools/pricing/metal-prices/bulk/BulkPricesForm` | entry form; the saved record exports from its own page (3 Q8) |
+| `app/tools/pricing/calculator/CalculatorForm.tsx` | calculator; nothing is saved (3b Q3) |
+| `app/stocktakes/[id]/review/ReviewDiffTable.tsx` | preview before posting; the posted lines export on the stocktake page (3c Q2a) |
+| `app/safety/incidents/[id]/IncidentBatchesPanel.tsx` (the suggested-batches table only) | suggestions to act on, not a record; the linked batches export on the incident page (3c Q2d) |
+
+(7 + 14 entry forms + calculator + 2 from 3c = 24.)
+
+**What moved elsewhere** (each lives at its own source, not here):
+- **Change-history export** — go-live readiness row 13 with the page's speed (Tim 2026-10-24; `docs/known-issues.md` § CHANGE-HISTORY-NO-EXPORT · PAGES-TOO-SLOW-TO-USE).
+- **Trial-balance period** — `docs/forward-queue.md` 64b-4 (Tim 2026-10-23, 3 Q11).
+- **Registered masking issues:** EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY (go-live row 11) · CONTRACTS-SETTLEMENTS-AMOUNT-UNMASKED and CONTRACT-TERMS-RATES-UNMASKED
+  (go-live row 12, one fix) · PAYMENT-TERM-TEMPLATE-EDIT-MASKED-AMOUNT-BLANK · SPECIAL-EXPORTS-NO-MODULE-CHECK · LEDGER-EMBED-OUT-OF-MASKED-READS-SIGHT.
+- **Registered row-cap and display issues:** READ-ALL-STOPS-AT-1000 (go-live row 10) · LIST-PAGES-SILENT-ROW-CAPS · DISPLAY-TIMESTAMP-SLICED-AS-UTC ·
+  INVOICE-LIST-ALL-APPENDS-VOIDS-TO-EVERY-PAGE · PO-TERM-NOT-APPLICABLE-SENTENCE-FALSE · EXPORT-DISABLED-ON-ENDED-RECORDS.
+- **Registered layout issues** (pre-existing, measured by the family's layout surveys): AT1B2-QUOTE-PAGE-390-OVERFLOW · INBOUND-TOOLBAR-390-OVERFLOW · SURVEY-SELFTEST-CLASSLESS-BODY.
+
+**Where 3c lives in code:** the 37 entries became 56 tables with exports (8 shared components, 25 operation, 23 in the other modules) plus the two
+PERMANENT ones above. The related-records table (keyset-paged, 20 a page) exports through `app/components/related/relatedRows.ts`, shared with the page,
+and two JSON routes (`/related/[subject]/[id]/[target]/export`, `/documents/[key]/export`) that loop keyset batches of 100. The three hand-built tables
+(container shipments and documents, forwarder freight) are DataTables now. Accepted additions: the maintenance capitalisation advice and a processing
+run's input batch the reader cannot see draw 「受限」 (screen and file, 2 Q8); the reads feeding these tables use `mustRows`.
+
 ## How it works (where each ruling lives in code)
 
 | Piece | File | Rulings |
@@ -157,7 +219,7 @@ TABLE-EXPORT-1's Q2–Q13 and TABLE-EXPORT-3's Q1, Q6 and Q8 still apply. These 
 | Server paging (`fetchAllPages`, `exportRowsResponse` with the 50,000 cap, `exportDenied`) | `lib/export/serverRows.ts` | Q8, Q15 |
 | The two buttons above the table | `app/components/ui/table-export.tsx` | Q2, Q10 |
 | `exportSpec` on `<DataTable>`; columns become `ExportableColumn` (every column declares `exportAs`, or `false` for a control column) — enforced by `tsc` | `app/components/ui/data-table.tsx` | hard rule 1, Q11 |
-| Build check: every table declares its export or is named on the exemption list; the list may only shrink | `scripts/check-table-export.mjs`, `scripts/table-export-exemptions.mjs` | Q15 |
+| Build check: every table declares its export or is named on the exemption list as PERMANENT with a reason (3c); the list may only shrink | `scripts/check-table-export.mjs`, `scripts/table-export-exemptions.mjs` | Q15 · 3c |
 
 **Where the rows come from.** A table that already holds every row (most of them) exports the rows it holds, sorted and filtered
 as displayed, not paged. A server-paginated table (`serverRows`) asks a JSON route next to its page (`<page>/export/route.ts`)

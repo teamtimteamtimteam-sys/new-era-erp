@@ -63,12 +63,14 @@ export default async function EditMaterialPage({
         if (refused) return refused
     }
 
-    const { data: attachmentRows } = await supabase
+    // TABLE-EXPORT-3c(Tim 2026-10-25):这条读法喂着一张会导出的表 —— 此前 `{ data }` 不看 error,
+    //   一次读失败会画成「没有附件」并照样导出一份空文件。改走 mustRows:失败即抛。
+    const attachmentRows = mustRows(await supabase
         .from('material_attachments')
         .select('id, file_name, file_type, file_size, doc_category, storage_path, created_at')
         .eq('material_id', id)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }), 'material_attachments')
 
     // ── ASY-P2:这种物料要化验哪些金属 ──────────────────────────────────────
     // 【失败必须失败】不 `?? []`:读不出来会渲染成"无化验要求",而那正是这一族
@@ -84,7 +86,7 @@ export default async function EditMaterialPage({
     const canEditMaterials = await canEnter('module.materials.edit')
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
-    const attachments = (attachmentRows ?? []).map((a) => ({
+    const attachments = attachmentRows.map((a) => ({
         id: a.id,
         file_name: a.file_name,
         file_type: a.file_type,
@@ -92,6 +94,8 @@ export default async function EditMaterialPage({
         doc_category: a.doc_category,
         storage_path: a.storage_path,
         created_at_display: formatAuditStamp(a.created_at),
+        // TABLE-EXPORT-3c:导出要那个时刻本身(ISO),不是上面那串格式化过的字
+        created_at: a.created_at,
     }))
 
     return (
@@ -127,7 +131,7 @@ export default async function EditMaterialPage({
                     initial={requiredMetals}
                     canEdit={canEditMaterials && !deleted}
                 />
-                <AttachmentsPanel materialId={material.id} rows={attachments} />
+                <AttachmentsPanel materialId={material.id} materialCode={material.code} rows={attachments} />
             </EndedFieldset>
 
             {/* AUDIT-TRAIL-1b-3(Q2):物料只有这一页,审计记录在它的底部 */}

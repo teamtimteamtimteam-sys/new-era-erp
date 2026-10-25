@@ -19,7 +19,8 @@
 //   单独留一个,人得自己拿差异去倒推另一个。所以要么两个都留、要么两个都折。
 //   两个都留就是五列全留(等于没做判断),于是成对折进展开区,各带自己的列头。
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText } from '@/lib/export/cells'
 
 /** 服务端压平好的一行 —— 差额与带符号显示都在那一侧算完(app/stocktakes/delta.ts)。 */
 export type PostedLineRow = {
@@ -33,12 +34,21 @@ export type PostedLineRow = {
     deltaText: string | null
     /** 盘盈绿、盘亏红 —— 与转换前逐字相同的两个 class */
     deltaPositive: boolean
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):导出读的原始值 —— 账面量 / 实点量 / 单位 / 差额(qtyDelta 的结果,账面为 null 时 null) */
+    bookRaw: number | null
+    countedRaw: number | null
+    unit: string
+    deltaRaw: number | null
 }
 
-export default function PostedLinesTable({ rows }: { rows: readonly PostedLineRow[] }) {
+export default function PostedLinesTable({ rows, stocktakeCode }: { rows: readonly PostedLineRow[]; stocktakeCode: string }) {
     const t = useTranslations()
 
-    const columns: Column<PostedLineRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。账面 / 实点的格子屏幕上写着「数 单位」→ xNum(原始量, 'qty', 单位)。
+    //   差额那一格屏幕上是光秃秃的带符号数 —— 导出写原始差额(负数就是负数),【也带上单位】:
+    //   这一列一行是 kg、下一行可能是 pcs,一个光秃秃的数在 Excel 里会被加进别的单位(docs/table-export.md 那条 CCY 理由)。
+    //   差额为 0 时屏幕画「—」(没有差异);导出写 0 —— 那是一个量出来的 0,不是一个缺的值。账面为 null 时两边都是空。
+    const columns: ExportableColumn<PostedLineRow>[] = [
         {
             key: 'batch',
             header: t('stocktakes.colBatch'),
@@ -50,6 +60,7 @@ export default function PostedLinesTable({ rows }: { rows: readonly PostedLineRo
             //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
             //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
             render: (r) => r.code,
+            exportAs: (r) => xText(r.code),
         },
         {
             key: 'material',
@@ -57,16 +68,19 @@ export default function PostedLinesTable({ rows }: { rows: readonly PostedLineRo
             // ★ 身份之二 —— 手机上留下。批次号不透明,物料名才是那句人话。
             priority: true,
             render: (r) => r.material,
+            exportAs: (r) => xText(r.material),
         },
         {
             key: 'book',
             header: t('stocktakes.bookLabel'),
             render: (r) => r.book,
+            exportAs: (r) => xNum(r.bookRaw, 'qty', r.unit || null),
         },
         {
             key: 'counted',
             header: t('stocktakes.countedLabel'),
             render: (r) => r.counted,
+            exportAs: (r) => xNum(r.countedRaw, 'qty', r.unit || null),
         },
         {
             key: 'delta',
@@ -88,6 +102,7 @@ export default function PostedLinesTable({ rows }: { rows: readonly PostedLineRo
                 ) : (
                     '—'
                 ),
+            exportAs: (r) => xNum(r.deltaRaw, 'qty', r.unit || null),
         },
     ]
 
@@ -100,6 +115,8 @@ export default function PostedLinesTable({ rows }: { rows: readonly PostedLineRo
             // 空态从表体里那一行 colSpan={5} 搬进来,【同一个 stocktakes.noLines】。
             // 旧那一支已经删掉 —— 见 TABLE-CONVERT-3 §6.1 那处死代码。
             empty={t('stocktakes.noLines')}
+            exportSpec={{ name: 'stocktake-posted-lines', title: t('stocktakes.countedTitle'),
+                          aboutExtra: [[t('stocktakes.colCode'), stocktakeCode]] }}
         />
     )
 }

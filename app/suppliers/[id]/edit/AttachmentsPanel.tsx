@@ -26,7 +26,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { ATTACHMENT_ACCEPT, isAllowedAttachmentType } from './attachmentTypes'
 import { Button } from '@/app/components/ui/button'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText, xTime } from '@/lib/export/cells'
 
 const BUCKET = 'supplier-attachments'
 
@@ -52,6 +53,8 @@ type AttachmentRow = {
     doc_category: string | null
     storage_path: string
     created_at_display: string
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):上面那一格是 formatAuditStamp 的输出;导出要那个时刻本身(ISO) */
+    created_at: string
 }
 
 // 文件名安全化:只用于 storage key(去掉空格/中文/特殊字符);原始文件名仍存 file_name 列用于展示。
@@ -76,9 +79,12 @@ function formatBytes(bytes: number | null): string {
 
 export default function AttachmentsPanel({
     supplierId,
+    supplierCode,
     rows,
 }: {
     supplierId: string
+    /** TABLE-EXPORT-3c:导出的 About 表说明这份文件出自哪个供应商 */
+    supplierCode: string
     rows: AttachmentRow[]
 }) {
     const t = useTranslations()
@@ -175,14 +181,24 @@ export default function AttachmentsPanel({
     }
 
     // ★ 手机上留三列:名称(身份)· 分类 · 操作。类型 / 大小 / 上传时间进展开区。
-    const columns: Column<AttachmentRow>[] = [
-        { key: 'name', header: t('suppliers.attachments.colName'), priority: true, className: 'break-all', render: (row) => row.file_name },
-        { key: 'category', header: t('suppliers.attachments.colCategory'), priority: true, render: (row) => categoryLabel(row.doc_category) },
-        { key: 'type', header: t('suppliers.attachments.colType'), render: (row) => row.file_type ?? '—' },
-        { key: 'size', header: t('suppliers.attachments.colSize'), render: (row) => formatBytes(row.file_size) },
-        { key: 'created', header: t('suppliers.attachments.colCreated'), className: 'text-gray-600', render: (row) => row.created_at_display },
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出,元数据照客户附件那一份(TABLE-EXPORT-3b)逐列同形 ——
+    //   三份 AttachmentsPanel 是一个单位(TABLE-CONVERT-3),导出也一样。文件本身不进导出,导出的是这张表。
+    const columns: ExportableColumn<AttachmentRow>[] = [
+        { key: 'name', header: t('suppliers.attachments.colName'), priority: true, className: 'break-all', render: (row) => row.file_name,
+          exportAs: (row) => xText(row.file_name) },
+        { key: 'category', header: t('suppliers.attachments.colCategory'), priority: true, render: (row) => categoryLabel(row.doc_category),
+          exportAs: (row) => xText(row.doc_category ? categoryLabel(row.doc_category) : null) },
+        { key: 'type', header: t('suppliers.attachments.colType'), render: (row) => row.file_type ?? '—',
+          exportAs: (row) => xText(row.file_type) },
+        // 屏幕把字节数折成「1.2 KB」;导出写字节数本身(带单位 B),不写那串四舍五入过的字
+        { key: 'size', header: t('suppliers.attachments.colSize'), render: (row) => formatBytes(row.file_size),
+          exportAs: (row) => xNum(row.file_size, 'int', 'B') },
+        { key: 'created', header: t('suppliers.attachments.colCreated'), className: 'text-gray-600', render: (row) => row.created_at_display,
+          exportAs: (row) => xTime(row.created_at) },
         {
             key: 'actions', header: t('suppliers.attachments.colActions'), priority: true, className: 'whitespace-nowrap',
+            // 下载 / 删除 —— 控件,不是数据
+            exportAs: false,
             render: (row) => (
                 <>
                     <Button
@@ -225,6 +241,8 @@ export default function AttachmentsPanel({
                     rowKey={(row) => row.id}
                     phone={{ mode: 'columns' }}
                     empty={t('suppliers.attachments.empty')}
+                    exportSpec={{ name: 'supplier-attachments', title: t('suppliers.attachments.sectionTitle'),
+                                  aboutExtra: [[t('suppliers.col.code'), supplierCode]] }}
                 />
             </div>
 

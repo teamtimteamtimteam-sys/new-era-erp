@@ -1,0 +1,22 @@
+(node:4155) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/trail/machineTokens.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+✗ 预检不通过:4 条动态路由取不到 id —— 【还没起 dev server,现在改还不费什么】
+  ✗ /documents/[key]/export
+      段 [key] 【不在】 ID_SOURCES 里 —— 循环不会触发,字面量会原样进 URL,
+      于是它不中止,而是跑到一半报成一次普通的路由失败(看起来像页面坏了)
+      修:在 ID_SOURCES 里加 '[key]' 这一段,给它前缀 → 表名
+  ✗ /related/[subject]/[id]/[target]/export
+      段 [subject] 【不在】 ID_SOURCES 里 —— 循环不会触发,字面量会原样进 URL,
+      于是它不中止,而是跑到一半报成一次普通的路由失败(看起来像页面坏了)
+      修:在 ID_SOURCES 里加 '[subject]' 这一段,给它前缀 → 表名
+  ✗ /related/[subject]/[id]/[target]/export
+      段 [id] 在 ID_SOURCES 里,但没有任何前缀命中这条路由 → srcs[undefined]
+      修:往 ID_SOURCES['[id]'] 加一条前缀 → 表名;或写进 EXPECTED_SKIPS(并说明为什么没数据)
+  ✗ /related/[subject]/[id]/[target]/export
+      段 [target] 【不在】 ID_SOURCES 里 —— 循环不会触发,字面量会原样进 URL,
+      于是它不中止,而是跑到一半报成一次普通的路由失败(看起来像页面坏了)
+      修:在 ID_SOURCES 里加 '[target]' 这一段,给它前缀 → 表名
+SMOKE_EXIT=1

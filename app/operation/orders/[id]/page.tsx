@@ -147,6 +147,10 @@ export default async function WorkOrderPage({ params, searchParams }: {
                   }
                 : null,
             basisUnstated: withBasis && r.has_plan && !b?.basis,
+            // TABLE-EXPORT-3c:导出读的原始值(null = 没有,不是 0)
+            plannedQty: r.planned_or_expected_qty == null ? null : Number(r.planned_or_expected_qty),
+            actualQty: Number(r.actual_qty),
+            varianceQty: r.variance_qty == null ? null : Number(r.variance_qty),
         }
     }
     const inputTableRows = inputRows.map((r) => toFulfilment(r, true))
@@ -162,6 +166,10 @@ export default async function WorkOrderPage({ params, searchParams }: {
         statusLabel: r.status === 'reversed'
             ? t('processing.wo.runReversed')
             : t('processing.status.committed'),
+        // TABLE-EXPORT-3c:导出读的原始值
+        processDateRaw: r.process_date,
+        totalInputQty: r.total_input == null ? null : Number(r.total_input),
+        totalOutputQty: r.total_output == null ? null : Number(r.total_output),
     }))
 
     return (
@@ -221,7 +229,7 @@ export default async function WorkOrderPage({ params, searchParams }: {
             {/* ── 投入侧 ──────────────────────────────────────────────── */}
             <h2 className="mt-6 mb-1">{t('processing.wo.inputSide')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.wo.inputSideNote')}</p>
-            <InputSideTable rows={inputTableRows} />
+            <InputSideTable rows={inputTableRows} workOrderCode={wo.code} />
             {/* ★ 出口:改计划行。住 children,靠 state 恒为 'ok' 撑着;
                 它自己带 blockedReason,不可改时说【为什么】而不是消失。 */}
             <div className="mt-2">
@@ -252,13 +260,13 @@ export default async function WorkOrderPage({ params, searchParams }: {
             {/* ── 产出侧 ──────────────────────────────────────────────── */}
             <h2 className="mt-8 mb-1">{t('processing.wo.outputSide')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.wo.outputSideNote')}</p>
-            <OutputSideTable rows={outputTableRows} />
+            <OutputSideTable rows={outputTableRows} workOrderCode={wo.code} />
 
             {/* ── 挂上来的加工单 ──────────────────────────────────────── */}
             {/* 转换前是 {runs.length === 0 ? <p>没有</p> : <table>} —— 现在表无条件画,
                 空态由表自己说(与 CONV-9 给 /hr/employees/[id] 的修法同向)。 */}
             <h2 className="mt-8 mb-2">{t('processing.wo.linkedRuns')}</h2>
-            <LinkedRunsTable rows={linkedRunRows} />
+            <LinkedRunsTable rows={linkedRunRows} workOrderCode={wo.code} />
             {runs.some((r) => r.status === 'reversed') && (
                 <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('processing.wo.reversedNote')}</p>
             )}

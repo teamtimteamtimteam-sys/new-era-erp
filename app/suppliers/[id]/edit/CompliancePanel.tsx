@@ -7,7 +7,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xText } from '@/lib/export/cells'
 import { formatDate } from '@/lib/dates'
 
 type ComplianceRow = {
@@ -34,12 +35,15 @@ export type AttachmentOption = { id: string; file_name: string }
 
 export default function CompliancePanel({
     supplierId,
+    supplierCode,
     rows,
     certTypes,
     attachments,
     locale,
 }: {
     supplierId: string
+    /** TABLE-EXPORT-3c:导出的 About 表说明这份文件出自哪个供应商 */
+    supplierCode: string
     rows: ComplianceRow[]
     certTypes: CertTypeOption[]
     attachments: AttachmentOption[]
@@ -104,13 +108,25 @@ export default function CompliancePanel({
         </ConfirmButton>
     )
 
-    const certColumns: Column<ComplianceRow>[] = [
+    const isExpired = (row: ComplianceRow) => row.valid_until !== null && new Date(row.valid_until) < now
+
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。
+    //   【有效期】此前是一格「起 ~ 止 (已过期)」。Tim 要起止两头在文件里是【真日期】—— 一格只装得下一个日期,
+    //     所以拆成「起」「止」两列(屏幕也跟着拆,导出的列就是表的列,Q11);表头用表单上那两个现成的字。
+    //     手机上留【止】(过期看的是它,红字与「(已过期)」也跟着它),【起】折进展开区 —— 这是本刀新做的一次判断。
+    //   【过期】那个标记单独考虑过:它是拿【看页面的这一刻】去比「止」算出来的,不是记录里的一个值 ——
+    //     写进文件就把一个会随日子变的判断冻成一个看起来像事实的字。所以导出不写它;
+    //     「止」是真日期,About 表上有导出时刻,读文件的人拿两者一比就是同一个判断
+    //     (与 docs/table-export.md「值旁边的标记(已过期 …)不导出,导出它所概括的值」同一条)。
+    //   证号 / 发证机构没有就是空格,不写「—」。删除那一列是控件 → exportAs:false。
+    const certColumns: ExportableColumn<ComplianceRow>[] = [
         {
             // 身份列:一行合规记录的主语是【哪一种证书】。
             key: 'type',
             header: t('suppliers.compliance.colType'),
             priority: true,
             render: (row) => typeLabel(row.cert_type_code),
+            exportAs: (row) => xText(typeLabel(row.cert_type_code)),
         },
         {
             key: 'no',
@@ -119,6 +135,7 @@ export default function CompliancePanel({
             //   而组件表体本来就是 14px,不写字号渲染出来是同一个值。
             priority: true,
             render: (row) => row.cert_no ?? '—',
+            exportAs: (row) => xText(row.cert_no),
         },
         {
             // ★ 手机档折起来的就是这一列(转换前它带着 hidden sm:table-cell,
@@ -126,10 +143,18 @@ export default function CompliancePanel({
             key: 'issuer',
             header: t('suppliers.compliance.colIssuer'),
             render: (row) => row.issuing_body ?? '—',
+            exportAs: (row) => xText(row.issuing_body),
         },
         {
-            key: 'validity',
-            header: t('suppliers.compliance.colValidity'),
+            key: 'validFrom',
+            header: t('suppliers.compliance.validFrom'),
+            singleValue: true,
+            render: (row) => formatDate(row.valid_from, locale) || '—',
+            exportAs: (row) => xDate(row.valid_from),
+        },
+        {
+            key: 'validUntil',
+            header: t('suppliers.compliance.validUntil'),
             priority: true,
             // ★ 过期那一抹红是【按行变的】,而组件的 Column.className 是每列一份
             //   静态串、rowClassName 管的是整行 —— 两个都不是"这一行的这一格"。
@@ -138,15 +163,16 @@ export default function CompliancePanel({
             //   (那里要负外边距是因为搬的是【整格底色】;这里搬的只是字色,
             //    一个素 span 就够,不需要把矩形撑回整格。)
             render: (row) => {
-                const expired = row.valid_until !== null && new Date(row.valid_until) < now
+                const expired = isExpired(row)
                 const text = (
                     <>
-                        {formatDate(row.valid_from, locale) || '—'} ~ {formatDate(row.valid_until, locale) || '—'}
+                        {formatDate(row.valid_until, locale) || '—'}
                         {expired && t('suppliers.compliance.expired')}
                     </>
                 )
                 return expired ? <span className="text-red-600">{text}</span> : text
             },
+            exportAs: (row) => xDate(row.valid_until),
         },
         {
             // ★★ R1(Tim 裁定):画【要按的控件】的那一列必须 priority ——
@@ -158,6 +184,7 @@ export default function CompliancePanel({
             priority: true,
             // CONFIRM-1:「确定删除这张证书吗?」答不上来是哪一张。
             // 主语 = 证书类型 + 证号(证号可以为空,那就只报类型)。
+            exportAs: false,
             render: (row) => deleteControl(row),
         },
     ]
@@ -170,7 +197,9 @@ export default function CompliancePanel({
                 五列、列头、每一格的字、删除钮与它的确认框全部原样;手机档留下的
                 仍然是 种类 · 证号 · 有效期 · 操作 四列,折起来的仍然只有【发证机构】。
                 ★ 空态搬进了组件的 empty prop,原来那一支三元【已经拿掉】——
-                  留着它 empty 就永远到不了,是一段死代码(TABLE-CONVERT-3 §6.1 的教训)。 */}
+                  留着它 empty 就永远到不了,是一段死代码(TABLE-CONVERT-3 §6.1 的教训)。
+                ★ TABLE-EXPORT-3c:「有效期」一列拆成了「起」「止」两列(见 certColumns 上方);
+                  手机档现在留 种类 · 证号 · 止 · 操作,折起来的是 发证机构 · 起。 */}
             <DataTable
                 rows={rows}
                 columns={certColumns}
@@ -178,6 +207,8 @@ export default function CompliancePanel({
                 phone={{ mode: 'columns' }}
                 empty={t('suppliers.compliance.empty')}
                 className="mb-6"
+                exportSpec={{ name: 'supplier-compliance-certificates', title: t('suppliers.compliance.sectionTitle'),
+                              aboutExtra: [[t('suppliers.col.code'), supplierCode]] }}
             />
 
             <h3 className="mb-3">{t('suppliers.compliance.addTitle')}</h3>

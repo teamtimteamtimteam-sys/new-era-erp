@@ -19,7 +19,8 @@
 //   折:化验日期 · 实验室 · 类型 —— 都是认出这一行之后才问的。
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xDate, xText } from '@/lib/export/cells'
 
 export type OutputAssayRow = {
     id: string
@@ -32,14 +33,19 @@ export type OutputAssayRow = {
 
 export default function OutputAssayRowsTable({
     batchId,
+    batchCode,
     rows,
 }: {
     batchId: string
+    /** TABLE-EXPORT-3c:About 表上写明这份文件出自哪一批。 */
+    batchCode: string
     rows: readonly OutputAssayRow[]
 }) {
     const t = useTranslations()
 
-    const columns: Column<OutputAssayRow>[] = [
+    // TABLE-EXPORT-3c(Tim 2026-10-25):一对导出,与 inbound/[id]/edit/AssayRowsTable.tsx 逐列同一份。
+    //   化验号那一格是链接 —— 导出写它的字;类型 / 已应用两格写屏幕上那个徽章的字。
+    const columns: ExportableColumn<OutputAssayRow>[] = [
         {
             key: 'code',
             header: t('assay.colCode'),
@@ -53,16 +59,19 @@ export default function OutputAssayRowsTable({
                     {r.code}
                 </Link>
             ),
+            exportAs: (r) => xText(r.code),
         },
         {
             key: 'date',
             header: t('assay.colDate'),
             render: (r) => r.assay_date,
+            exportAs: (r) => xDate(r.assay_date),
         },
         {
             key: 'lab',
             header: t('assay.colLab'),
             render: (r) => r.lab_name ?? '—',
+            exportAs: (r) => xText(r.lab_name),
         },
         {
             key: 'kind',
@@ -77,6 +86,7 @@ export default function OutputAssayRowsTable({
                     {r.is_final ? t('assay.kindFinal') : t('assay.kindPreliminary')}
                 </span>
             ),
+            exportAs: (r) => xText(r.is_final ? t('assay.kindFinal') : t('assay.kindPreliminary')),
         },
         {
             key: 'applied',
@@ -93,6 +103,7 @@ export default function OutputAssayRowsTable({
                     {r.applied_at ? t('assay.applied') : t('assay.notApplied')}
                 </span>
             ),
+            exportAs: (r) => xText(r.applied_at ? t('assay.applied') : t('assay.notApplied')),
         },
     ]
 
@@ -105,6 +116,7 @@ export default function OutputAssayRowsTable({
             // 空态从 OutputAssaySection 的 `rows.length === 0 ?` 那一支搬进来,【同一个 key】。
             // ★ 而线上今天【每一次】走的都是这一支 —— 它不是边角情形,它是现状。
             empty={t('assay.empty')}
+            exportSpec={{ name: 'output-assays', title: t('assay.title'), aboutExtra: [[t('output.colCode'), batchCode]] }}
         />
     )
 }

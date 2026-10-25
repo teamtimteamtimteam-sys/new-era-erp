@@ -11,15 +11,13 @@ import PrepaymentPanel, { type PrepaymentApplicationRow } from './PrepaymentPane
 import AssaySection, { type AssayRow } from './AssaySection'
 import RepriceFromContentPanel from './RepriceFromContentPanel'
 import ReceiptPriceRequestPanel, { type ReceiptPriceRequestView } from './ReceiptPriceRequestPanel'
-import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
+import MetalContentPanel, { type MetalContentPanelRow } from '@/app/components/metals/MetalContentPanel'
 import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
-import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveInboundMetal, deleteInboundMetal } from '@/app/components/metals/metalContentActions'
-import MovementTimeline from '@/app/components/inventory/MovementTimeline'
+import MovementTimeline, { type MovementTimelineRow } from '@/app/components/inventory/MovementTimeline'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import EndedBanner, { EndedFieldset } from '@/app/components/trail/EndedBanner'
 import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
-import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import IntakeConditionPanel from './IntakeConditionPanel'
@@ -598,10 +596,12 @@ export default async function EditInboundPage({
         content_source: string | null
         source_assay: { id: string; code: string } | null
     }
-    const metalRows: MetalContentRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
+    const metalRows: MetalContentPanelRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
         updated_at_display: formatAuditStamp(m.updated_at),
+        // TABLE-EXPORT-3c(Tim 2026-10-25):原始时刻,给导出
+        updated_at: m.updated_at,
         source_kind: m.content_source === 'assay' ? 'assay' : m.content_source === 'manual' ? 'manual' : 'unknown',
         source_label:
             m.content_source === 'assay'
@@ -616,14 +616,18 @@ export default async function EditInboundPage({
     }))
 
     // 库存流水行:服务端预格式化 occurred_at
-    const movementRows: MovementRow[] = ((movementsRes.data as unknown as MovementFetchRow[] | null) ?? []).map((m) => ({
+    // TABLE-EXPORT-3c(Tim 2026-10-25):读不出来要失败(mustRows),不是渲染成「没有流水」;
+    //   occurred_at 与 business_date 原样带过去给导出 —— business_date 由时间线自己格式化一次
+    //   (此前这里格式化一次、时间线又格式化一次:显示用的日期被当成数据)。
+    const movementRows: MovementTimelineRow[] = (mustRows(movementsRes, 'inventory_movements') as unknown as MovementFetchRow[]).map((m) => ({
         id: m.id,
         movement_type: m.movement_type,
         qty_delta: m.qty_delta,
         stock_status: m.stock_status,
-        business_date: m.business_date ? formatDate(m.business_date, dateLocale) : null,
+        business_date: m.business_date,
         notes: m.notes,
         occurred_at_display: formatAuditStamp(m.occurred_at),
+        occurred_at: m.occurred_at,
         run: m.processing_runs,
     }))
 
@@ -836,6 +840,7 @@ export default async function EditInboundPage({
             <MetalContentPanel
                 options={substanceOptions}
                 rows={metalRows}
+                batchCode={batch.code}
                 saveAction={saveInboundMetal.bind(null, id)}
                 deleteAction={deleteInboundMetal.bind(null, id)}
                 priceHref={priceBatchHref(batch.quantity, metalRows)}
@@ -960,7 +965,7 @@ export default async function EditInboundPage({
             )}
             {/* MES-5a-1(Q4 · Q6 · Q13):模组数(放电结果之前必须有;核实之后锁住)与每个模组此刻的放电结论 */}
             {cellConstruction.carries[batch.material_id] !== false && (
-                <ModuleCountPanel kind="inbound" batchId={id} current={batch.module_count ?? null} data={batchDischarge}
+                <ModuleCountPanel kind="inbound" batchId={id} batchCode={batch.code} current={batch.module_count ?? null} data={batchDischarge}
                     canEdit={canSetCellConstruction} gateCode="module.inbound.edit" canOpenRuns={canOpenRunsFromBatch} />
             )}
             {/* MES-5b-1(Step 0 Q4 · Q5):这一批的质量去了哪里 —— 收进来的 = 各去向,消耗展开成它喂进的每一张单(按喂进的质量分) */}
@@ -1020,7 +1025,7 @@ export default async function EditInboundPage({
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 
-            <MovementTimeline rows={movementRows} unit={batch.unit} />
+            <MovementTimeline rows={movementRows} unit={batch.unit} batchCode={batch.code} />
 
             </EndedFieldset>
 

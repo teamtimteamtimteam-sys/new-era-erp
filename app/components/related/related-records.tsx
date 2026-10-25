@@ -97,79 +97,17 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows, mustOne } from '@/lib/db-helpers'
+import { mustRows } from '@/lib/db-helpers'
 import { getMyPermissions } from '@/lib/permissions'
 import { allows } from '@/lib/modules'
-import { documentHref, type DocumentLinkMode } from '@/lib/search/documentHref'
+import { documentHref } from '@/lib/search/documentHref'
 import { ListPage } from '@/app/components/ui/list-page'
-import RelatedTable, { type RelatedRow } from './RelatedTable'
+import RelatedTable from './RelatedTable'
+// TABLE-EXPORT-3c:docType / subjectRow / 行的映射搬进了 relatedRows.ts,页面与导出路由 import 同一份
+import { docType, subjectRow, shapeRelatedRows, type DocType, type RowsRow } from './relatedRows'
 
 /** 房子的分页常量。★ 树里 17 处 `PAGE_SIZE` 全是 20 —— 照抄,不新造一个数。 */
 export const PAGE_SIZE = 20
-
-type DocType = {
-    key: string
-    table_name: string
-    route: string
-    link_mode: string
-    label_column: string | null
-    view_permission: string[]
-}
-
-type RowsRow = { id: string; code: string; label: string | null; total: number }
-
-async function docType(
-    supabase: Awaited<ReturnType<typeof createClient>>, key: string,
-): Promise<DocType | null> {
-    return mustOne(
-        await supabase.from('document_types')
-            .select('key, table_name, route, link_mode, label_column, view_permission')
-            .eq('key', key).maybeSingle() as { data: DocType | null; error: { message: string; code?: string } | null },
-        'document_types')
-}
-
-/**
- * 主语那一行 —— **用会话身份读,所以 RLS 就是判据**(权限层 ②)。
- *
- * ★★【为什么这里有一个 cast,以及它【关掉的不是】一条会抓住错误的检查】★★
- *   表名与列名来自 `document_types`,**在运行时才知道** —— 生成的
- *   `Database` 类型按构造管不到一个运行时的表名。这不是"为了让类型过关"
- *   (AGENTS.md 点名的那一种 cast),它是类型系统本来就够不到的一格。
- *   ☞ 而真正盯着这一格的东西**存在,而且有三个**:
- *     · `check-search-registry.mjs` —— 每一条 route / link_mode 都落在真页面上;
- *     · `db/fixtures/101` —— 每个 view_permission 码都真的在该表策略的谓词里;
- *     · `db/fixtures/199` F 臂 —— 每个种类的 `code` 与 `label_column`
- *       对 authenticated **真的读得到**(6 张单据表只有列级授权)。
- */
-type LooseFrom = {
-    from: (table: string) => {
-        select: (cols: string) => {
-            eq: (col: string, val: string) => {
-                maybeSingle: () => Promise<{
-                    data: Record<string, unknown> | null
-                    error: { message: string; code?: string } | null
-                }>
-            }
-        }
-    }
-}
-
-async function subjectRow(
-    supabase: Awaited<ReturnType<typeof createClient>>, type: DocType, id: string,
-): Promise<{ code: string; label: string | null } | null> {
-    const cols = type.label_column ? `code, ${type.label_column}` : 'code'
-    const res = await (supabase as unknown as LooseFrom)
-        .from(type.table_name).select(cols).eq('id', id).maybeSingle()
-    // ★ 失败即抛。一次失败若被读成"主语看不见",屏幕上会画一块整页拒绝 ——
-    //   而那是一句【关于权限的断言】,不是一句关于查询的断言。两者必须分开。
-    const row = mustOne(res, `subject ${type.table_name}`)
-    if (!row) return null
-    return {
-        code: String(row.code ?? ''),
-        label: type.label_column && row[type.label_column] != null
-            ? String(row[type.label_column]) : null,
-    }
-}
 
 export default async function RelatedRecords({
     subjectKey, subjectId, targetKey, after,
@@ -296,20 +234,7 @@ export default async function RelatedRecords({
     }
 
     // ── 行 ──────────────────────────────────────────────────────────────────
-    const rows: RelatedRow[] = page.map((r) => ({
-        id: r.id,
-        code: r.code,
-        label: r.label ?? '',
-        // ★ type_list 的那 5 种没有逐张单据的落点 —— 它们是文字,不是链接。
-        //   与搜索面板走**同一支** documentHref(),不是第二份实现。
-        href: target.link_mode === 'type_list'
-            ? null
-            : documentHref({
-                key: target.key, route: target.route,
-                linkMode: target.link_mode as DocumentLinkMode,
-                id: r.id, code: r.code,
-            }),
-    }))
+    const rows = shapeRelatedRows(target, page)
 
     const base = subject
         ? `/related/${subject.type.key}/${subjectId}/${targetKey}`
@@ -327,6 +252,10 @@ export default async function RelatedRecords({
                 showLabel={target.label_column !== null}
                 codeHeader={t('related.colCode')}
                 labelHeader={t('related.colLabel')}
+                // TABLE-EXPORT-3c(Tim 2026-10-25):这一页手里只有一屏(keyset 20 条),导出走服务端路由取全(relatedRows.ts)
+                exportUrl={`${base}/export`}
+                exportName={`related-${targetKey.replace(/_/g, '-')}`}
+                exportTitle={titleOf(t, targetName, subject)}
             />
             <p
                 className="mt-3 text-sm text-[color:var(--brand-muted-text)]"

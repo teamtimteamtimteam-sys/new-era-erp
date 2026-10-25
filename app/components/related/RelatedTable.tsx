@@ -18,7 +18,7 @@
 //   `<DataTable>` 按构造【当场按名拒绝】一张没有声明 priority 列的表
 //   (DATATABLE_NO_PHONE_COLUMNS),所以这句声明是必须的,不是可选的。
 //
-// ★★【排序 / 筛选 / 导出:一样都不给(第一刀)】★★
+// ★★【排序 / 筛选:一样都不给(第一刀)】★★ —— 导出见下面 TABLE-EXPORT-3c 那一段
 //   `<DataTable>` 的四个开关默认全关,而打开任何一个都要这一页先回答
 //   「排的是不是全体」—— 这一页是 keyset 分页的,它手上只有这一屏。
 //   给一个只排得了这一屏的排序控件,正是 `data-table.tsx` 抬头点名的
@@ -26,6 +26,8 @@
 //   ☞ 失去的东西**照直报**:/inbound 有 8 个筛子 + 两种排序 + 分页 + 导出,
 //     /output 有 7 + 两种 + 分页 + 导出,而它们恰好是关联最密的两张表。
 //     从关联页跳过去的人拿到的是一张没有这些的表。**这是 Tim 接受过的代价。**
+//   ★ TABLE-EXPORT-3c(Tim 2026-10-25):导出【给了】,而它回答得了「是不是全体」—— 文件不取这一屏,
+//     取的是服务端路由按 keyset 翻完的全体(relatedRows.ts · relatedExportResponse),与 /inbound 的分页导出同一个形状。
 //
 // ★★【任务也画成表,而 /tools/tasks 是一块看板】★★(Tim 的 W3)
 //   裁定的理由:这一页答的是「这个人手上有哪几件事」,不是「哪一件在哪一列」,
@@ -33,7 +35,8 @@
 //   ⚠ **代价:任务是唯一一种「共享页的画法与它自己那一页不是同一种画法」的单据。**
 
 import Link from 'next/link'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText } from '@/lib/export/cells'
 
 export type RelatedRow = {
     id: string
@@ -48,15 +51,19 @@ export type RelatedRow = {
 }
 
 export default function RelatedTable({
-    rows, showLabel, codeHeader, labelHeader, empty,
+    rows, showLabel, codeHeader, labelHeader, empty, exportUrl, exportName, exportTitle,
 }: {
     rows: RelatedRow[]
     showLabel: boolean
     codeHeader: string
     labelHeader: string
     empty?: React.ReactNode
+    /** TABLE-EXPORT-3c:服务端导出路由(取全体,不是这一屏)· 文件名里的表名 · About 表的标题 */
+    exportUrl: string
+    exportName: string
+    exportTitle: string
 }) {
-    const columns: Column<RelatedRow>[] = [
+    const columns: ExportableColumn<RelatedRow>[] = [
         {
             key: 'code',
             header: codeHeader,
@@ -70,6 +77,7 @@ export default function RelatedTable({
                 ) : (
                     <span data-related-row={r.code}>{r.code}</span>
                 ),
+            exportAs: (r) => xText(r.code),
         },
     ]
     if (showLabel) {
@@ -77,6 +85,7 @@ export default function RelatedTable({
             key: 'label',
             header: labelHeader,
             render: (r) => r.label,
+            exportAs: (r) => xText(r.label === '' ? null : r.label),
         })
     }
 
@@ -87,6 +96,7 @@ export default function RelatedTable({
             rowKey={(r) => r.id}
             phone={{ mode: 'columns' }}
             empty={empty}
+            exportSpec={{ name: exportName, title: exportTitle, serverRows: exportUrl }}
         />
     )
 }

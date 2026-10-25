@@ -8,7 +8,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import DecimalInput from '../forms/DecimalInput'
 import PpmReadout from './PpmReadout'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xNum, xText, xTime } from '@/lib/export/cells'
 import {
     type MetalContentRow,
     type MetalOption,
@@ -16,8 +17,15 @@ import {
 import { Button } from '@/app/components/ui/button'
 import { contentText } from '@/lib/substances'
 
+/**
+ * TABLE-EXPORT-3c(Tim 2026-10-25):导出要的原始值。MetalContentRow 只带显示用的更新时刻串,
+ * 所以这里在它上面加原始的 updated_at(ISO)—— 导出写真的时刻,不去拆那串显示字。
+ */
+export type MetalContentPanelRow = MetalContentRow & { updated_at: string }
+
 export default function MetalContentPanel({
     rows,
+    batchCode,
     options,
     saveAction,
     deleteAction,
@@ -25,7 +33,9 @@ export default function MetalContentPanel({
     note,
     lockedReason,
 }: {
-    rows: MetalContentRow[]
+    rows: MetalContentPanelRow[]
+    /** TABLE-EXPORT-3c:About 表上写明这份含量出自哪一批。 */
+    batchCode: string
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来(值 + 已翻好的名字)。
     // 面板【不再】自己拿着一份清单 —— 那份清单曾经是第五个副本。
     options: MetalOption[]
@@ -117,12 +127,16 @@ export default function MetalContentPanel({
     // ★【出处 · 更新时间 为什么折】两样都是认出这一行之后才问的。
     //   ⚠ 出处那一列分得出「化验 / 手工 / 未知」三种(PROC-1:未知 ≠ 手工),
     //     它带着自己的列头进了展开区,一点就到 —— 三种仍然分得开。
-    const columns: Column<MetalContentRow>[] = [
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出。含量写原始的那个百分数(content_pct,一个数)——
+    //   惩罚元素屏幕上旁边还带「(N ppm)」,那是同一个数换个单位,导出写主值(%)。
+    //   出处那一格写徽章上的字(化验单号 / 手工 / 未知);更新时刻写真的时刻;动作列是控件,不导出。
+    const columns: ExportableColumn<MetalContentPanelRow>[] = [
         {
             key: 'metal',
             header: t('metalContent.colMetal'),
             priority: true,
             render: (r) => metalLabel(r.metal),
+            exportAs: (r) => xText(metalLabel(r.metal)),
         },
         {
             key: 'pct',
@@ -137,13 +151,14 @@ export default function MetalContentPanel({
             // ★ MES-6a-2(MES-6a Step 0 Q29):【不再舍到两位】—— toFixed(2) 会把 0.0050 % 的氟印成 0.01 %(或 0.00 %),
             //   而 50 ppm 正是惩罚条款要比的那个数。存的是什么就印什么;惩罚元素在 % 旁边带 ppm(1 % = 10,000 ppm)。
             render: (r) => contentText(r.content_pct, optOf.get(r.metal)?.role),
+            exportAs: (r) => xNum(r.content_pct, 'pct'),
         },
         ...(showSource
             ? [
                   {
                       key: 'source',
                       header: t('metalContent.colSource'),
-                      render: (r: MetalContentRow) =>
+                      render: (r: MetalContentPanelRow) =>
                           r.source_kind === 'assay' && r.source_href ? (
                               // 化验来源:标签就是单据号,点过去是那份化验
                               <a
@@ -162,7 +177,8 @@ export default function MetalContentPanel({
                                   {r.source_label}
                               </span>
                           ),
-                  } as Column<MetalContentRow>,
+                      exportAs: (r: MetalContentPanelRow) => xText(r.source_label ?? null),
+                  } as ExportableColumn<MetalContentPanelRow>,
               ]
             : []),
         {
@@ -170,6 +186,7 @@ export default function MetalContentPanel({
             header: t('metalContent.colUpdated'),
             className: 'text-gray-600',
             render: (r) => r.updated_at_display,
+            exportAs: (r) => xTime(r.updated_at),
         },
         {
             key: 'actions',
@@ -198,6 +215,7 @@ export default function MetalContentPanel({
                     {t('common.delete')}
                 </ConfirmButton>
             ),
+            exportAs: false,
         },
     ]
 
@@ -236,6 +254,8 @@ export default function MetalContentPanel({
                         columns={columns}
                         rowKey={(r) => r.metal}
                         phone={{ mode: 'columns' }}
+                        // 进料与产出两页共用这一张,About 那一行的标签用不分两侧的「批次」(stocktakes.colBatch,现成的字)。
+                        exportSpec={{ name: 'batch-metal-content', title: t('metalContent.title'), aboutExtra: [[t('stocktakes.colBatch'), batchCode]] }}
                     />
                 </div>
             )}

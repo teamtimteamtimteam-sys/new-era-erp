@@ -8,12 +8,17 @@
 //   【按不动的要说为什么】(DBLOCK-1):不持码 → PermissionGate 按不动并说出码;一条资本化了的记录、一批没定价 / 在暂扣里 / 没有可用的备件,
 //   在下拉里看得见、选不了,并说出原因(issue_spare_parts 会按名拒的,这里不给一颗按得下去的钮)。
 //   【金额只给持 data.view_prices 的人】而且是照【今天】的落地单价现算的(批次改过价,出给保养那一份的价差已经进了 6800 —— 所以与账一致);
-//   不持的人看见的是一句"金额只给看得见价格的人",不是一个空格子、也不是 0(lib/permissions.ts 那一条)。
+//   不持的人在那一格看见「受限」,不是一个空格子、也不是 0(lib/permissions.ts 那一条)。
+//   ★ TABLE-EXPORT-3c(Tim 2026-10-25 Q1):金额这一列【对每一位读者都留着】—— 不持价格码的人在格子里看见「受限」
+//     (<MaskedValue>),导出写 Restricted。此前是整列拿掉 + 表上方一句"金额只给看得见价格的人":
+//     一列消失,读者分不出"这张表没有金额"与"金额你看不到"(lib/permissions.ts 存在的理由),那一句与那个筛子都已拿掉。
 // ════════════════════════════════════════════════════════════════════════════
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { MaskedValue } from '@/app/components/MaskedValue'
+import { xDate, xMoney, xNum, xRestricted, xText } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
@@ -36,12 +41,20 @@ export type PartIssueRow = {
     returns: string[]
     /** 持 data.view_prices 时是 还挂着的数量 × 今天的落地单价;不持 = null(一个权限答复,不是 0) */
     value: string | null
+    // ── TABLE-EXPORT-3c(Tim 2026-10-25):导出读的原始值 ──
+    /** YYYY-MM-DD 原值(issuedOn 是格式化好的字) */
+    issuedOnRaw: string
+    /** 批次表这位读者读不到 —— batch 那一格屏幕上是「受限」 */
+    batchRestricted: boolean
+    /** 金额(本位币)的数;null = 受限(value 也是 null)或这一批没有落地单价(value 是那句「没有成本」) */
+    valueAmount: number | null
+    valueCurrency: string
 }
 
 const QTY = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 })
 
 export default function SparePartsPanel({
-    assetId, records, stock, rows, canIssue, canSeeValue,
+    assetId, records, stock, rows, canIssue, canSeeValue, equipmentCode,
 }: {
     assetId: string
     records: PartRecord[]
@@ -50,6 +63,8 @@ export default function SparePartsPanel({
     rows: PartIssueRow[]
     canIssue: boolean
     canSeeValue: boolean
+    /** TABLE-EXPORT-3c:导出的 About 表说明这份文件出自哪台机器 */
+    equipmentCode: string
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -109,18 +124,27 @@ export default function SparePartsPanel({
         })
     }
 
-    const columns: Column<PartIssueRow>[] = [
-        { key: 'date', header: t('equipment.parts.colDate'), priority: true, render: (r) => r.issuedOn },
-        { key: 'record', header: t('equipment.parts.colRecord'), render: (r) => r.record },
-        { key: 'batch', header: t('equipment.parts.colBatch'), priority: true, render: (r) => r.batch },
-        { key: 'qty', header: t('equipment.parts.colQty'), align: 'right', render: (r) => `${QTY.format(r.quantity)} ${r.unit}` },
+    const columns: ExportableColumn<PartIssueRow>[] = [
+        { key: 'date', header: t('equipment.parts.colDate'), priority: true, render: (r) => r.issuedOn, exportAs: (r) => xDate(r.issuedOnRaw) },
+        { key: 'record', header: t('equipment.parts.colRecord'), render: (r) => r.record,
+          exportAs: (r) => xText(r.record === '—' ? null : r.record) },
+        { key: 'batch', header: t('equipment.parts.colBatch'), priority: true, render: (r) => r.batch,
+          exportAs: (r) => r.batchRestricted ? xRestricted : xText(r.batch) },
+        // 屏幕上数旁边带着单位(「12 pcs」)—— 一列里各批单位可以不同,单位跟着数走
+        { key: 'qty', header: t('equipment.parts.colQty'), align: 'right', render: (r) => `${QTY.format(r.quantity)} ${r.unit}`,
+          exportAs: (r) => xNum(r.quantity, 'qty', r.unit) },
+        // 退回的那几次(日期 · 数量 · 理由)只在悬停提示里 —— 导出写主值:退回的合计;一次没退过屏幕是「—」→ 空格
         { key: 'returned', header: t('equipment.parts.colReturned'), align: 'right',
           render: (r) => (
               <span title={r.returns.join('\n') || undefined}>{r.returned ? `${QTY.format(r.returned)} ${r.unit}` : '—'}</span>
-          ) },
+          ),
+          exportAs: (r) => r.returned ? xNum(r.returned, 'qty', r.unit) : xText(null) },
+        // Q1:不持价格码 → 「受限」(MaskedValue 同一条判据:没有码且值为 NULL);这一批没有落地单价 → 屏幕上那句话(不是 0)
         { key: 'value', header: t('equipment.parts.colValue'), align: 'right',
-          render: (r) => r.value ?? <span className="text-[color:var(--brand-muted-text)]">{t('common.restricted')}</span> },
-        { key: 'action', header: '', priority: true,
+          render: (r) => !canSeeValue ? <MaskedValue value={null} canView={false} /> : r.value,
+          exportAs: (r) => !canSeeValue ? xRestricted
+              : r.valueAmount === null ? xText(r.value) : xMoney(r.valueAmount, r.valueCurrency) },
+        { key: 'action', header: '', priority: true, exportAs: false,
           render: (r) => r.outstanding > 0 ? (
               <PermissionGate code="module.inventory.edit" allowed={canIssue} inline className="flex-wrap">
                   <Button variant="secondary" size="xs" type="button" disabled={pending}
@@ -142,7 +166,6 @@ export default function SparePartsPanel({
                 </PermissionGate>
             </div>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.parts.intro')}</p>
-            {!canSeeValue && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.parts.valueRestricted')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             {open && (
@@ -222,10 +245,12 @@ export default function SparePartsPanel({
 
             <DataTable
                 rows={rows}
-                columns={canSeeValue ? columns : columns.filter((c) => c.key !== 'value')}
+                columns={columns}
                 rowKey={(r) => r.id}
                 phone={{ mode: 'columns' }}
                 empty={t('equipment.parts.none')}
+                exportSpec={{ name: 'equipment-spare-parts', title: t('equipment.parts.title'),
+                              aboutExtra: [[t('equipment.page.colCode'), equipmentCode]] }}
             />
         </div>
     )

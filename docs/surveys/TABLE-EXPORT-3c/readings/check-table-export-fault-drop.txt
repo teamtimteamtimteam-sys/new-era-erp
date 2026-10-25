@@ -1,0 +1,7 @@
+
+✗ 表的导出:1 处
+
+   app/stocktakes/[id]/review/ReviewDiffTable.tsx:51
+     这张表没有 exportSpec,也不在 scripts/table-export-exemptions.mjs 上。给它 exportSpec 与每一列的 exportAs(Tim 2026-10-22 TABLE-EXPORT-1)。
+
+CHK_OWN_EXIT=1

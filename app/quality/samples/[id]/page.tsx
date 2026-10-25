@@ -69,19 +69,30 @@ export default async function SamplePage({ params, searchParams }: {
     const labName = (c: string | null) => { if (!c) return '—'; const l = labs.find((x) => x.code === c); return l ? (locale === 'zh' ? l.name_zh : l.name_en) : c }
     const locName = (lid: string | null) => { if (!lid) return null; const l = locs.find((x) => x.id === lid); return l ? `${l.code} — ${l.name}` : null }
 
-    const eventRows: EventRow[] = events.map((e) => ({
-        id: String(e.id),
-        when: formatDateTime(e.occurred_at, locale),
-        what: t(sampleEventKey(e.event_kind)),
-        detail: e.event_kind === 'sent_to_lab'
+    const eventRows: EventRow[] = events.map((e) => {
+        const detail = e.event_kind === 'sent_to_lab'
             ? `${labName(e.laboratory_code)}${e.lab_reference ? ` · ${e.lab_reference}` : ''}`
-            : locName(e.storage_location_id) ?? (e.event_kind === 'disposed' ? '—' : t('quality.noLocation')),
-        reason: e.reason ?? '—',
-        notes: e.notes ?? '—',
-    }))
+            : locName(e.storage_location_id) ?? (e.event_kind === 'disposed' ? '—' : t('quality.noLocation'))
+        return {
+            id: String(e.id),
+            when: formatDateTime(e.occurred_at, locale),
+            what: t(sampleEventKey(e.event_kind)),
+            detail,
+            reason: e.reason ?? '—',
+            notes: e.notes ?? '—',
+            // TABLE-EXPORT-3c(Tim 2026-10-25):导出读原始时刻;「—」是屏幕上的占位,导出为空
+            //   (「没有存放位置」那一句是一个陈述,照写)
+            whenRaw: e.occurred_at,
+            detailRaw: detail === '—' ? null : detail,
+            reasonRaw: e.reason ?? null,
+            notesRaw: e.notes ?? null,
+        }
+    })
     const assayRows: AssayRow[] = assays.map((a) => ({
         id: a.id, code: a.code, href: assayHref(s.batch_kind, batchId, a.id),
         party: t(resultPartyKey(a.result_party)), date: formatDate(a.assay_date, locale), lab: labName(a.lab_name),
+        // TABLE-EXPORT-3c(Tim 2026-10-25):导出读原始日历日;没写实验室 → 空,不是「—」
+        dateRaw: a.assay_date ?? null, labRaw: a.lab_name ? labName(a.lab_name) : null,
     }))
     const where = s.state === 'at_lab'
         ? `${labName(s.laboratory_code)}${s.lab_reference ? ` · ${s.lab_reference}` : ''}`
@@ -133,7 +144,7 @@ export default async function SamplePage({ params, searchParams }: {
 
             <h2 className="mt-6 mb-1">{t('quality.sample.custodyTitle')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('quality.sample.custodyNote')}</p>
-            <EventsTable rows={eventRows} />
+            <EventsTable rows={eventRows} sampleCode={s.code} />
 
             <h2 className="mt-8 mb-2">{t('quality.sample.recordEventTitle')}</h2>
             <SampleEventForm sampleId={id} state={s.state} labs={labOptions} locations={locationOptions}
@@ -144,7 +155,7 @@ export default async function SamplePage({ params, searchParams }: {
                 {t('quality.sample.assaysNote')}{' '}
                 <Link href={newAssayHref} className="app-link hover:underline">{t('quality.sample.recordAssay')}</Link>
             </p>
-            <AssaysTable rows={assayRows} empty={t('quality.sample.noAssays')} />
+            <AssaysTable rows={assayRows} empty={t('quality.sample.noAssays')} sampleCode={s.code} />
 
             <AuditTrail subject="sample" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>

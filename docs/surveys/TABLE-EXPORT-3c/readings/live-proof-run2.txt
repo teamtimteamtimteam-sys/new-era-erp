@@ -1,0 +1,32 @@
+STEP|database counts as postgres (base tables): {"in":10,"out":8,"inputs":1,"outputs":2,"parts":0}
+PASS|T inbound · /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit batch movements xlsx downloaded: batch-movements_2026-10-25_1819.xlsx
+PASS|T inbound · xlsx: 10 rows = 10 inventory_movements of IN-2026-0001; About {"Table":"Inventory Movements","Batch":"IN-2026-0001","Filters":"None","Rows":"10","Exported by":"te3cprobe-1792923489296-batches@test.local","Exported at (Singapore time)":"2026-10-25 18:19:09","Language":"en"}; first row ["2026-08-10T17:36:39.000Z","Processing consume","Available",-300,null,"2026-08-10T00:00:00.000Z"]
+PASS|T inbound · /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit batch movements csv downloaded: batch-movements_2026-10-25_1819.csv
+PASS|T inbound · csv: 10 rows = 10 inventory_movements of IN-2026-0001; first row ["2026-08-10 17:36:39","Processing consume","Available","-300 kg","","2026-08-10",""]
+PASS|T output · /output/12dd44fb-7400-4122-81bf-3fd1f9c9e2a7/edit batch movements xlsx downloaded: batch-movements_2026-10-25_1820.xlsx
+PASS|T output · xlsx: 8 rows = 8 inventory_movements of OUT-2026-0118; About {"Table":"Inventory Movements","Batch":"OUT-2026-0118","Filters":"None","Rows":"8","Exported by":"te3cprobe-1792923489296-batches@test.local","Exported at (Singapore time)":"2026-10-25 18:20:47","Language":"en"}; first row ["2026-08-14T23:13:36.000Z","Sale","Committed",-12,null,"2026-08-14T00:00:00.000Z","shipped SHP-2026-0001"]
+PASS|T output · /output/12dd44fb-7400-4122-81bf-3fd1f9c9e2a7/edit batch movements csv downloaded: batch-movements_2026-10-25_1821.csv
+PASS|T output · csv: 8 rows = 8 inventory_movements of OUT-2026-0118; first row ["2026-08-14 23:13:36","Sale","Committed","-12 kg","","2026-08-14","shipped SHP-2026-0001"]
+PASS|P PROC-2026-0001 inputs xlsx downloaded: processing-run-inputs_2026-10-25_1822.xlsx
+PASS|P inputs · xlsx: 1 rows = 1 processing_inputs; row ["Restricted","Restricted","Restricted",1000] (batch / material / construction Restricted for a reader who cannot see the batch)
+PASS|P PROC-2026-0001 outputs xlsx downloaded: processing-run-outputs_2026-10-25_1823.xlsx
+PASS|P outputs · xlsx as a reader without data.view_prices: 2 rows = 2 processing_outputs; allocated cost ["Restricted","Restricted"] · unit cost ["Restricted","Restricted"]
+PASS|P PROC-2026-0001 inputs csv downloaded: processing-run-inputs_2026-10-25_1823.csv
+PASS|P inputs · csv: 1 rows = 1 processing_inputs; row ["Restricted","Restricted","Restricted","1000"] (batch / material / construction Restricted for a reader who cannot see the batch)
+PASS|P PROC-2026-0001 outputs csv downloaded: processing-run-outputs_2026-10-25_1824.csv
+PASS|P outputs · csv as a reader without data.view_prices: 2 rows = 2 processing_outputs; allocated cost ["Restricted","Restricted"] · unit cost ["Restricted","Restricted"]
+PASS|S /operation/equipment/a1560d88-de19-40fe-b78b-3bfa4079762b (FA-2026-0001) as a reader without data.view_prices → HTTP 200; value column header on screen: true; "amounts only for people who can see prices" sentence gone: true
+PASS|S spare parts xlsx downloaded: equipment-spare-parts_2026-10-25_1825.xlsx
+PASS|S spare parts · xlsx: header ["Issued on","Work record","Batch · part","Issued","Returned","Still out, at landed cost"]; 0 rows = 0 issues on live
+PASS|S spare parts csv downloaded: equipment-spare-parts_2026-10-25_1825.csv
+PASS|S spare parts · csv: header ["Issued on","Work record","Batch · part","Issued","Returned","Still out, at landed cost"]; 0 rows = 0 issues on live
+NOT-MEASURED|S the "Restricted" value cell itself: maintenance_part_issues has 0 issue rows for FA-2026-0001 (as postgres, base table) — issuing a part is a real transaction, so it is not recorded for a proof
+PASS|V /tools/pricing/calculator?formula=b92ff252-c1e6-428d-8454-8bbb489f257a&quantity=1000&date=2026-07-30&ni=10&co=5 → HTTP 200; price breakdown drawn with an export pair
+PASS|V price breakdown xlsx downloaded: pricing-price-breakdown_2026-10-25_1825.xlsx
+PASS|V xlsx: sheets ["Breakdown","About"]; About "Preview" = "Price preview as at 2026-10-25 18:25:50"; 2 metal rows; first ["Nickel",10,70,100,70,15500,1085]
+PASS|V price breakdown csv downloaded: pricing-price-breakdown_2026-10-25_1825.csv
+PASS|V csv: 2 metal rows (CSV is pure data, Q12)
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan); every database read as a throwaway ran in a transaction that was rolled back
+TE3C_PROOF_EXIT=0
+X_OWN_EXIT=0

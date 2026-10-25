@@ -92,6 +92,10 @@ export default async function ContainerDetailPage({ params, searchParams }: {
         id: r.id as string, code: r.code as string, ship_date: formatDate(r.ship_date as string, locale),
         order_code: (r.sales_order_code as string | null) ?? '—',
         customer: (r.customer_legal_name as string | null) ?? '—',
+        // TABLE-EXPORT-3c(Tim 2026-10-25):装着的发货单那张表的导出读原始值 —— 日历日本身,与没有被写成「—」的空
+        ship_date_raw: (r.ship_date as string | null) ?? null,
+        order_code_raw: (r.sales_order_code as string | null) ?? null,
+        customer_raw: (r.customer_legal_name as string | null) ?? null,
     })
 
     return (
@@ -106,6 +110,7 @@ export default async function ContainerDetailPage({ params, searchParams }: {
 
             <ContainerPanels canEdit={canEditGate}
                 containerId={id}
+                containerCode={head.data.code as string}
                 head={{
                     container_number: head.data.container_number,
                     vessel: head.data.vessel,
@@ -171,6 +176,10 @@ export default async function ContainerDetailPage({ params, searchParams }: {
                     forwarderLabel: t('logistics.containerForwarder'),
                     forwarderNone: t('logistics.containerForwarderNone'),
                     forwarderHint: t('logistics.containerForwarderHint'),
+                    // TABLE-EXPORT-3c(Tim 2026-10-25):单据清单换成带表头的 DataTable —— 两个新表头;
+                    // 箱号那一格给两张表导出的 About 表用
+                    colDocSource: t('logistics.colDocSource'), colDocStatus: t('logistics.colDocStatus'),
+                    colContainerCode: t('logistics.colContainerCode'),
                 }}
             />
 

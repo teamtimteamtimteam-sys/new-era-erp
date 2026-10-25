@@ -166,6 +166,8 @@ export default async function StocktakeDetailPage({
             counted: `${item.counted ?? ''} ${item.unit}`,
             deltaText: bookDelta !== null && bookDelta !== 0 ? formatSigned(bookDelta) : null,
             deltaPositive: (bookDelta ?? 0) > 0,
+            // TABLE-EXPORT-3c(Tim 2026-10-25):导出读原始量与单位,差额是同一个 qtyDelta 的结果
+            bookRaw: item.book, countedRaw: item.counted, unit: item.unit, deltaRaw: bookDelta,
         }
     })
     const isOpen = st.status === 'open'
@@ -253,7 +255,7 @@ export default async function StocktakeDetailPage({
                 /* posted / cancelled:只读行表(差异按账面快照算 —— 过账后剩余已被改成实点) */
                 /* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个
                    stocktakes.noLines);表体里那一行 colSpan={5} 已经删掉。 */
-                <PostedLinesTable rows={postedRows} />
+                <PostedLinesTable rows={postedRows} stocktakeCode={st.code} />
             )}
 
             {/* AUDIT-TRAIL-1b-1:审计记录 —— 开单、每一次清点、过账(22/09/2026 之前过账的只有那一戳,之后的与审批并成一句,Q11)、

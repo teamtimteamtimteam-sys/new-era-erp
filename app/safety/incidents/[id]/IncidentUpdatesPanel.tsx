@@ -12,14 +12,21 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DatePicker } from '@/app/components/ui/date-picker'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xTime } from '@/lib/export/cells'
 import { recordIncidentUpdate } from '../../actions'
 import { CORRECTABLE_FIELDS, fieldKey } from '../../safetyTypes'
 
-export type UpdateRow = { id: number; kindLabel: string; when: string; detail: string; reason: string | null }
+export type UpdateRow = {
+    id: number; kindLabel: string; when: string; detail: string; reason: string | null
+    /** TABLE-EXPORT-3c(Tim 2026-10-25):那件事发生的时刻本身(occurred_at,没有就 recorded_at —— 与屏幕同一个取法) */
+    whenRaw: string
+}
 
-export default function IncidentUpdatesPanel({ incidentId, updates, canEdit, reportable, notified, reportSubmitted, closed, kinds }: {
+export default function IncidentUpdatesPanel({ incidentId, incidentCode, updates, canEdit, reportable, notified, reportSubmitted, closed, kinds }: {
     incidentId: string
+    /** TABLE-EXPORT-3c:导出的 About 表写明是哪一件事故 */
+    incidentCode: string
     updates: UpdateRow[]
     canEdit: boolean
     reportable: boolean
@@ -48,18 +55,24 @@ export default function IncidentUpdatesPanel({ incidentId, updates, canEdit, rep
         })
     }
 
-    const columns: Column<UpdateRow>[] = [
-        { key: 'kind', header: t('safety.updates.colKind'), priority: true, render: (r) => r.kindLabel },
-        { key: 'when', header: t('safety.updates.colWhen'), render: (r) => r.when },
-        { key: 'detail', header: t('safety.updates.colDetail'), priority: true, render: (r) => <span className="whitespace-pre-wrap">{r.detail}</span> },
-        { key: 'reason', header: t('safety.updates.colReason'), render: (r) => r.reason ?? '—' },
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):只可追加的日志(事故那一行不改,每件事各记一行)—— 导出【全部】行。
+    //   时刻读原始值(xTime);细节那一格是服务端拼好的一句话(更正的「字段: 新值」/ 总结 / 通报编号)→ 导出那句字本身;
+    //   没有理由的行屏幕上画「—」,导出为空。
+    const columns: ExportableColumn<UpdateRow>[] = [
+        { key: 'kind', header: t('safety.updates.colKind'), priority: true, render: (r) => r.kindLabel, exportAs: (r) => xText(r.kindLabel) },
+        { key: 'when', header: t('safety.updates.colWhen'), render: (r) => r.when, exportAs: (r) => xTime(r.whenRaw) },
+        { key: 'detail', header: t('safety.updates.colDetail'), priority: true, render: (r) => <span className="whitespace-pre-wrap">{r.detail}</span>,
+          exportAs: (r) => xText(r.detail) },
+        { key: 'reason', header: t('safety.updates.colReason'), render: (r) => r.reason ?? '—', exportAs: (r) => xText(r.reason) },
     ]
 
     return (
         <section className="mt-8" data-section="updates">
             <h2 className="mb-1">{t('safety.updates.title')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('safety.updates.hint')}</p>
-            <DataTable rows={updates} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('safety.updates.empty')} />
+            <DataTable rows={updates} columns={columns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('safety.updates.empty')}
+                       exportSpec={{ name: 'safety-incident-updates', title: t('safety.updates.title'),
+                                     aboutExtra: [[t('safety.incidents.colCode'), incidentCode]] }} />
             {error && <p className="text-sm text-red-600 mt-2" data-error="update">{error}</p>}
             <PermissionGate code="module.safety.edit" allowed={canEdit}>
                 <div className="space-y-4 mt-4 max-w-3xl">

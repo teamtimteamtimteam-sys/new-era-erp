@@ -11585,6 +11585,18 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 **所以今天没有人因此看见一个不该看的价;** 缺口在于这件事靠的是「恰好没有哪个角色那样组合」,而不是一道遮蔽。下一次给哪个角色加 `module.customers.view` 时它就打开。
 **去处:** 上线准备组(`docs/forward-queue.md` 第 12 行)—— 届时决定:加列遮蔽 / 伴生视图,或把那一张表的门改成 `data.view_prices`。
 
+### CONTRACT-TERMS-RATES-UNMASKED · `/contracts/[id]` 的条款费率与最低金额没有列遮蔽,只靠行级策略(Tim 2026-10-25 TABLE-EXPORT-3c Q3:登记,不在 3c 修;并进上线准备组第 12 行)
+
+**是什么:** 合同详情页的条款表(`app/contracts/[id]/TermSection.tsx`,一页画 8 张,`termSpecs.ts`)读的是条款基表 ——
+精炼费 `contract_refining_charges.usd_per_tonne_of_metal`(`termSpecs.ts:130`)、罚则 `contract_penalty_elements.usd_per_tonne_per_pct_over`(:139)、
+保险最低金额 `contract_insurance_obligations.min_amount`(:71)。这几张表**没有 `REVOKE`、没有 `_masked` 伴生视图**(`grep -c REVOKE db/tables/contract_*.sql` 全是 0),
+只有行级读策略「客户合同 → `module.customers.view` / 供应商合同 → `module.suppliers.view`」(`db/tables/contract_refining_charges.sql:45-49`)。
+`contract_pricing_terms.payable_pct` 同样不遮(顺带记下,不在 Tim 这条裁定的字面里)。
+**实测(2026-10-25,以 `postgres` 读 `role_permissions`、读基表):** 持 `module.suppliers.view` 的 9 个角色,每一个都至少持 `data.view_purchase_prices`;
+`warehouse` 持 `module.suppliers.view` + `data.view_purchase_prices`,不持 `data.view_prices`,也不持 `module.customers.view`(读不到客户合同那一边)。
+线上 `contracts` **0 行**,条款表 0 行。**所以今天没有人因此看见一个不该看的价** —— 与上一条同一个形状:靠的是「恰好没有哪个角色那样组合」,不是一道遮蔽。
+**3c 的导出照屏幕写**(Tim Q3:不在 3c 加遮蔽)。
+**去处:** 与上一条 **合成一次修**(上线准备组第 12 行,Tim 2026-10-25):结算金额与条款费率走同一个遮蔽决定。
 
 ## TABLE-EXPORT-2b-2(`v1.4.70`)—— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」
 
@@ -11635,3 +11647,26 @@ TABLE-EXPORT-1(2026-10-22)量 `/inbound` 是 **0**(`docs/surveys/TABLE-EXPORT-1/
 **同族的风险(推断,没有量):** 照屏幕的样子保存,一个被遮的固定额会被当成「空」送回 —— 与 EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY、定价公式那一刀(TABLE-EXPORT-2b Q5)同一个形状。
 **今天线上谁会踩到它(以 `postgres` 读 `role_permissions`,2026-10-25):** 持 `module.purchasing.edit` 而不持 `data.view_prices` 的角色 **0 个**;`payment_term_template_lines` 里带固定额的行 **0 行**。
 **改法:** 照定价公式那一刀 —— 被遮的格子画「受限」、不送值,库里那扇门对看不见的人按原值存。**去处:** 未排,等 Tim。
+
+## TABLE-EXPORT-3c(`v1.4.73`,2026-10-25)—— 运营 · 产出 · 质量 · 物流 · 安全 · 盘点 · 供应商 · 物料 · 合同的详情页表与共享组件;这一族收尾
+
+### PO-TERM-NOT-APPLICABLE-SENTENCE-FALSE · 付款条件的预计日期格对【没有保管人的事件】说「这一期已经有真日期」,哪怕到期日是空的(Tim 2026-10-25 TABLE-EXPORT-3c Q4:登记,不在 3c 修)
+
+**是什么:** `app/purchasing/orders/[id]/ExpectedDateControl.tsx:34-36` 在 `ownerName` 为空时一律画 `cashForecast.expectedDateNotApplicable`
+(「This instalment already has a real date, so it needs no estimate.」)。`ownerName` 来自 `payment_event_owners`(`page.tsx:263-268`),
+线上只给 `on_shipment` · `on_arrival` · `post_assay` 三种事件配了保管人;于是 `on_order` 与 `acceptance_complete` 的每一期都画这句话 ——
+而 `acceptance_complete` 那一期**没有到期日**。
+**实测(2026-10-25,生产,TABLE-EXPORT-3c Part 1.2,`docs/surveys/TABLE-EXPORT-3c/readings/closeout-prod-check.txt`):** PO-2026-0009 两期(`on_order` · `acceptance_complete`)
+`due_date` 都是空(以 `postgres` 读基表),屏幕两格都是那句话。
+**为什么记:** 这句话是一句关于数据的断言(「有真日期」),而它是从「没有保管人」推出来的 —— 屏幕上的判据在【代指】一条它并不复述的事实
+(AGENTS.md「屏幕上的判据若是数据库判据的代名词」)。
+**去处:** 未排期。
+
+### EXPORT-DISABLED-ON-ENDED-RECORDS · 已删除 / 已核销的记录上,附件与合规两张表的导出钮是灰的(TABLE-EXPORT-3c 转换时量到;登记,不在本刀修)
+
+**是什么:** `EndedFieldset`(`app/components/trail/EndedBanner.tsx:93`)在记录结束之后把整块包进 `<fieldset disabled>` ——
+那正是它要做的(结束了的记录不该再上传、删除)。而导出那两颗钮是原生 `<button>`,于是**也跟着灰掉**:
+已核销的应付批次上的财务附件(`app/finance/payables/[batchId]/page.tsx`)、已删除的供应商上的附件与合规证书
+(`app/suppliers/[id]/edit/page.tsx`)、已删除的物料上的附件(`app/materials/[id]/edit/page.tsx`)。
+**为什么记:** 导出不是一次写入 —— 一份结束了的记录恰恰是最常被拿去存档的那一种。今天没有坏数据,只是那一份文件拿不到。
+**去处:** 未排期。修法方向:导出钮挪到 fieldset 外面,或 `EndedFieldset` 让带 `data-slot="table-export"` 的那一块不受 disabled。

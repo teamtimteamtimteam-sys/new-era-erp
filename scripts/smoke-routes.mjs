@@ -1238,6 +1238,10 @@ const SPECIAL_ID_ROUTES = new Set([
     //     主循环里因此**现读**一组真的有行的三元组,取不到就【中止】,不算跳过。
     '/documents/[key]',
     '/related/[subject]/[id]/[target]',
+    // TABLE-EXPORT-3c(Tim 2026-10-25):上面两页的导出路由(JSON,取全)—— 段与页面相同,取值走同一段现读,
+    //   落在同一个【保证非空】的 key / 三元组上,于是这一跑也真的取过一次全体。
+    '/documents/[key]/export',
+    '/related/[subject]/[id]/[target]/export',
     // MES-4a:一道工序的页面 —— 段里放的是【工序代号】(operation_types.code,文本),不是 id。主循环里现读一个在用的代号。
     '/operation/operation-types/[code]',
 ])
@@ -2443,7 +2447,7 @@ async function main() {
             //   取值【现读】:在 `link_mode='type_list'` 的那几种里挑第一个
             //   **表里真的有行**的。写死一个 key 会在那种单据清零的那天
             //   为了【错的理由】变红(SEARCH-3 的 R3 教训)。
-            if (route === '/documents/[key]') {
+            if (route === '/documents/[key]' || route === '/documents/[key]/export') {
                 const types = await restRows(
                     '/rest/v1/document_types?select=key,table_name&link_mode=eq.type_list&order=key',
                     `${route} ← document_types`)
@@ -2462,7 +2466,7 @@ async function main() {
             //   ☞ 取法:拿 `search_related()` 自己去问 —— 它只返回 n>0 的分组,
             //     所以第一个回得出分组的主语,就是一个保证非空的三元组。
             //     **上限 8 个候选**:一个没有上界的搜索会把冒烟拖成一次普查。
-            if (route === '/related/[subject]/[id]/[target]') {
+            if (route === '/related/[subject]/[id]/[target]' || route === '/related/[subject]/[id]/[target]/export') {
                 const types = await restRows(
                     '/rest/v1/document_types?select=key,table_name&order=key', `${route} ← document_types`)
                 let triple = null

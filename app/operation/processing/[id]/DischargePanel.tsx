@@ -16,7 +16,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createClient } from '@/lib/supabase/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xInt, xNum, xText, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -67,9 +68,11 @@ function storageSafe(name: string): string {
 }
 
 export default function DischargePanel({
-    runId, editable, batches, results, channels, splits, canRecord, canAftercare, devices, locations, locationsVisible, shifts, processDate,
+    runId, runCode, editable, batches, results, channels, splits, canRecord, canAftercare, devices, locations, locationsVisible, shifts, processDate,
 }: {
     runId: string
+    /** TABLE-EXPORT-3c:三张表导出的 About 表写这一炉的单号 */
+    runCode: string
     /** 已提交、没回滚的一炉才能记;回滚了的是历史 */
     editable: boolean
     batches: DischargeBatchView[]
@@ -102,24 +105,38 @@ export default function DischargePanel({
             : r.disposition === 'quarantine' ? t('discharge.verdict.failQuarantine') : t('discharge.verdict.failRedischarge')
 
     // ── 每一批的进度 ────────────────────────────────────────────────────
-    const batchColumns: Column<DischargeBatchView>[] = [
-        { key: 'batch', header: t('discharge.colBatch'), priority: true, render: (b) => <Link href={b.href} className="hover:underline app-link app-link-inline">{b.code}</Link> },
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):这一块三张表,各一对导出(TABLE-EXPORT-3 Q1),About 表都写这一炉的单号。
+    //   【每一批的进度】「模组」一格画的是一行进度「已完成 X / 共 N」—— 导出写主值:模组数 N(一个整数);
+    //     已完成那个 X 就是右边「通过」与「已拆出」两列之和,不另写。模组数没记时屏幕说「没记」,导出照写那句话。
+    //   「已核实」:没有进度可读时屏幕是「—」→ 空格;其余写屏幕那个词。
+    const batchColumns: ExportableColumn<DischargeBatchView>[] = [
+        {
+            key: 'batch', header: t('discharge.colBatch'), priority: true,
+            render: (b) => <Link href={b.href} className="hover:underline app-link app-link-inline">{b.code}</Link>,
+            exportAs: (b) => xText(b.code),
+        },
         {
             key: 'count', header: t('discharge.colModuleCount'), priority: true,
             render: (b) => (b.moduleCount === null
                 ? <span className="text-amber-700" data-not-set="module-count">{t('discharge.countNotSet')}</span>
                 : t('discharge.progress', { done: b.passed + b.splitOut, count: b.moduleCount })),
+            exportAs: (b) => (b.moduleCount === null ? xText(t('discharge.countNotSet')) : xInt(b.moduleCount)),
         },
-        { key: 'passed', header: t('discharge.colPassed'), render: (b) => String(b.passed) },
-        { key: 'redis', header: t('discharge.colRedischarge'), render: (b) => String(b.failedRedischarge) },
-        { key: 'quar', header: t('discharge.colQuarantine'), render: (b) => String(b.failedQuarantine) },
-        { key: 'split', header: t('discharge.colSplitOut'), render: (b) => String(b.splitOut) },
-        { key: 'contra', header: t('discharge.colContradictions'), render: (b) => (b.contradictions > 0 ? <span className="text-red-700">{b.contradictions}</span> : '0') },
+        { key: 'passed', header: t('discharge.colPassed'), render: (b) => String(b.passed), exportAs: (b) => xInt(b.passed) },
+        { key: 'redis', header: t('discharge.colRedischarge'), render: (b) => String(b.failedRedischarge), exportAs: (b) => xInt(b.failedRedischarge) },
+        { key: 'quar', header: t('discharge.colQuarantine'), render: (b) => String(b.failedQuarantine), exportAs: (b) => xInt(b.failedQuarantine) },
+        { key: 'split', header: t('discharge.colSplitOut'), render: (b) => String(b.splitOut), exportAs: (b) => xInt(b.splitOut) },
+        {
+            key: 'contra', header: t('discharge.colContradictions'),
+            render: (b) => (b.contradictions > 0 ? <span className="text-red-700">{b.contradictions}</span> : '0'),
+            exportAs: (b) => xInt(b.contradictions),
+        },
         {
             key: 'verified', header: t('discharge.colVerified'), priority: true,
             render: (b) => (b.verified === null ? '—' : b.verified
                 ? <span className="text-green-700 font-medium" data-verified="yes">{t('discharge.verified')}</span>
                 : <span className="text-amber-700" data-verified="no">{t('discharge.notVerified')}</span>),
+            exportAs: (b) => xText(b.verified === null ? null : b.verified ? t('discharge.verified') : t('discharge.notVerified')),
         },
     ]
 
@@ -131,9 +148,24 @@ export default function DischargePanel({
             window.open(r.url, '_blank', 'noopener')
         })
     }
-    const resultColumns: Column<DischargeResultView>[] = [
-        { key: 'module', header: t('discharge.colModule'), priority: true, render: (r) => <span className="font-mono">{r.moduleRef}</span> },
-        { key: 'batch', header: t('discharge.colBatch'), render: (r) => r.batchCode },
+    // 【这一炉的结果】结论一格叠着结论与几枚标记 —— 「已拆去隔离」「后来的结果取代了这一条」改变这一行的意思
+    //     (这一条已经不是这个模组的现状),「与合格电压矛盾」「判不了」是这条结论自己的标记:四样都照屏幕的字附在结论后面。
+    //   出口电压一格是「X V(起始 Y V)」—— 导出写主值:出口电压(一个数,带单位 V);起始电压不进这一格。
+    //   时长、回收能量是数,带屏幕上的单位;没记的屏幕是「—」→ 空格。
+    //   照片一格是一颗打开签名链接的按钮 —— 不是数据,不导出(导出不签链接)。
+    //   备注那一列表头是空的,格里是备注与「已更正:理由」—— 导出给它「备注」作列名(表单上同一个键)。
+    const verdictCell = (r: DischargeResultView) => [
+        verdictText(r),
+        r.contradicts === true ? t('discharge.contradicts', { v: r.passVAt ?? '' }) : null,
+        r.contradicts === null ? t('discharge.notJudged') : null,
+        r.splitOut ? t('discharge.splitOutMark') : null,
+        !r.isLatest && !r.splitOut ? t('discharge.supersededByLater') : null,
+    ].filter(Boolean).join(' ')
+    const notesCell = (r: DischargeResultView) =>
+        [r.notes, r.corrected ? t('discharge.correctedBecause', { reason: r.correctionReason ?? '' }) : null].filter(Boolean).join(' · ')
+    const resultColumns: ExportableColumn<DischargeResultView>[] = [
+        { key: 'module', header: t('discharge.colModule'), priority: true, render: (r) => <span className="font-mono">{r.moduleRef}</span>, exportAs: (r) => xText(r.moduleRef) },
+        { key: 'batch', header: t('discharge.colBatch'), render: (r) => r.batchCode, exportAs: (r) => xText(r.batchCode) },
         {
             key: 'verdict', header: t('discharge.colVerdict'), priority: true,
             render: (r) => (
@@ -145,25 +177,31 @@ export default function DischargePanel({
                     {!r.isLatest && !r.splitOut && <span className="ml-2 text-[color:var(--brand-muted-text)]">{t('discharge.supersededByLater')}</span>}
                 </>
             ),
+            exportAs: (r) => xText(verdictCell(r)),
         },
-        { key: 'outlet', header: t('discharge.colOutletV'), render: (r) => `${r.outletV} V${r.startV !== null ? ` (${t('discharge.from', { v: r.startV })})` : ''}` },
-        { key: 'channel', header: t('discharge.colChannel'), render: (r) => (r.channelNo === null ? '—' : String(r.channelNo)) },
-        { key: 'when', header: t('discharge.colVerdictAt'), render: (r) => r.verdictAt },
-        { key: 'duration', header: t('discharge.colDuration'), render: (r) => (r.durationMin === null ? '—' : `${r.durationMin} min`) },
-        { key: 'energy', header: t('discharge.colEnergy'), render: (r) => (r.energyWh === null ? '—' : `${r.energyWh} Wh`) },
-        { key: 'device', header: t('discharge.colDevice'), render: (r) => r.deviceLabel ?? '—' },
         {
-            key: 'photo', header: t('discharge.colPhoto'),
+            key: 'outlet', header: t('discharge.colOutletV'),
+            render: (r) => `${r.outletV} V${r.startV !== null ? ` (${t('discharge.from', { v: r.startV })})` : ''}`,
+            exportAs: (r) => xNum(r.outletV, 'qty', 'V'),
+        },
+        { key: 'channel', header: t('discharge.colChannel'), render: (r) => (r.channelNo === null ? '—' : String(r.channelNo)), exportAs: (r) => xInt(r.channelNo) },
+        { key: 'when', header: t('discharge.colVerdictAt'), render: (r) => r.verdictAt, exportAs: (r) => xTime(r.verdictAtIso) },
+        { key: 'duration', header: t('discharge.colDuration'), render: (r) => (r.durationMin === null ? '—' : `${r.durationMin} min`), exportAs: (r) => xNum(r.durationMin, 'qty', 'min') },
+        { key: 'energy', header: t('discharge.colEnergy'), render: (r) => (r.energyWh === null ? '—' : `${r.energyWh} Wh`), exportAs: (r) => xNum(r.energyWh, 'qty', 'Wh') },
+        { key: 'device', header: t('discharge.colDevice'), render: (r) => r.deviceLabel ?? '—', exportAs: (r) => xText(r.deviceLabel) },
+        {
+            key: 'photo', header: t('discharge.colPhoto'), exportAs: false,
             render: (r) => (r.photoPath
                 ? <Button type="button" size="xs" variant="ghost" disabled={pending} onClick={() => openPhoto(r.photoPath as string)}>{t('discharge.openPhoto')}</Button>
                 : '—'),
         },
         {
-            key: 'notes', header: '', className: 'text-[color:var(--brand-muted-text)]',
-            render: (r) => [r.notes, r.corrected ? t('discharge.correctedBecause', { reason: r.correctionReason ?? '' }) : null].filter(Boolean).join(' · '),
+            key: 'notes', header: '', exportHeader: t('discharge.notes'), className: 'text-[color:var(--brand-muted-text)]',
+            render: notesCell,
+            exportAs: (r) => xText(notesCell(r) || null),
         },
         ...(editable && canRecord ? [{
-            key: 'actions', header: '', align: 'right' as const,
+            key: 'actions', header: '', align: 'right' as const, exportAs: false as const,
             render: (r: DischargeResultView) => (
                 <Button variant="secondary" size="inline" type="button" className="text-sm" disabled={pending}
                         onClick={() => {
@@ -214,13 +252,15 @@ export default function DischargePanel({
             <h2 className="mb-1">{t('discharge.panelTitle')}</h2>
             <p className={`${muted} mb-3`}>{t('discharge.panelIntro')}</p>
 
-            <DataTable rows={batches} columns={batchColumns} rowKey={(b) => b.id} phone={{ mode: 'columns' }} empty={t('discharge.noInputs')} />
+            <DataTable rows={batches} columns={batchColumns} rowKey={(b) => b.id} phone={{ mode: 'columns' }} empty={t('discharge.noInputs')}
+                       exportSpec={{ name: 'processing-run-discharge-batches', title: t('discharge.panelTitle'), aboutExtra: [[t('processing.colCode'), runCode]] }} />
             {batches.some((b) => b.moduleCount === null) && (
                 <p className="mt-2 text-sm text-amber-700">{t('discharge.countNeeded')}</p>
             )}
 
             <h3 className="mt-5 mb-2 text-sm font-medium">{t('discharge.resultsTitle')}</h3>
-            <DataTable rows={results} columns={resultColumns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('discharge.noResults')} />
+            <DataTable rows={results} columns={resultColumns} rowKey={(r) => String(r.id)} phone={{ mode: 'columns' }} empty={t('discharge.noResults')}
+                       exportSpec={{ name: 'processing-run-discharge-results', title: t('discharge.resultsTitle'), aboutExtra: [[t('processing.colCode'), runCode]] }} />
             {notice && <p className="mt-2 text-sm text-green-700" role="status">{notice}</p>}
             {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
 
@@ -330,7 +370,7 @@ export default function DischargePanel({
                 </PermissionGate>
             )}
 
-            <ChannelSection runId={runId} editable={editable} batches={batches} channels={channels} canEdit={canAftercare} />
+            <ChannelSection runId={runId} runCode={runCode} editable={editable} batches={batches} channels={channels} canEdit={canAftercare} />
 
             {editable && batches.filter((b) => b.quarantineCandidates.length > 0).map((b) => (
                 <SplitForm key={b.id} runId={runId} batch={b} canSplit={canAftercare} locations={locations} locationsVisible={locationsVisible} shifts={shifts} processDate={processDate} />
@@ -354,8 +394,8 @@ export default function DischargePanel({
     )
 }
 
-function ChannelSection({ runId, editable, batches, channels, canEdit }: {
-    runId: string; editable: boolean; batches: DischargeBatchView[]; channels: DischargeChannelView[]; canEdit: boolean
+function ChannelSection({ runId, runCode, editable, batches, channels, canEdit }: {
+    runId: string; runCode: string; editable: boolean; batches: DischargeBatchView[]; channels: DischargeChannelView[]; canEdit: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -369,16 +409,19 @@ function ChannelSection({ runId, editable, batches, channels, canEdit }: {
     const [why, setWhy] = useState('')
     const lbl = 'block text-xs font-medium text-[color:var(--brand-muted-text)] mb-1'
 
-    const columns: Column<DischargeChannelView>[] = [
-        { key: 'channel', header: t('discharge.colChannel'), priority: true, render: (c) => String(c.channelNo) },
-        { key: 'module', header: t('discharge.colModule'), priority: true, render: (c) => <span className="font-mono">{c.moduleRef}</span> },
-        { key: 'batch', header: t('discharge.colBatch'), render: (c) => c.batchCode },
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):【通道分配】一对导出。撤下的分配本来就不画(dischargeData 只给链末端、未撤下的),导出同一份。
+    //   更正那一列表头是空的 —— 导出给它「更正理由」作列名(表单上同一个键)。「更正」按钮是控件,不导出。
+    const columns: ExportableColumn<DischargeChannelView>[] = [
+        { key: 'channel', header: t('discharge.colChannel'), priority: true, render: (c) => String(c.channelNo), exportAs: (c) => xInt(c.channelNo) },
+        { key: 'module', header: t('discharge.colModule'), priority: true, render: (c) => <span className="font-mono">{c.moduleRef}</span>, exportAs: (c) => xText(c.moduleRef) },
+        { key: 'batch', header: t('discharge.colBatch'), render: (c) => c.batchCode, exportAs: (c) => xText(c.batchCode) },
         {
-            key: 'correction', header: '', className: 'text-[color:var(--brand-muted-text)]',
+            key: 'correction', header: '', exportHeader: t('discharge.correctReason'), className: 'text-[color:var(--brand-muted-text)]',
             render: (c) => (c.corrected ? t('discharge.correctedBecause', { reason: c.correctionReason ?? '' }) : ''),
+            exportAs: (c) => xText(c.corrected ? t('discharge.correctedBecause', { reason: c.correctionReason ?? '' }) : null),
         },
         ...(editable && canEdit ? [{
-            key: 'actions', header: '', align: 'right' as const,
+            key: 'actions', header: '', align: 'right' as const, exportAs: false as const,
             render: (c: DischargeChannelView) => (
                 <Button variant="secondary" size="inline" type="button" className="text-sm" disabled={pending}
                         onClick={() => { setFixing(c); setChannel(String(c.channelNo)); setModuleRef(c.moduleRef); setWithdraw(false); setWhy(''); setError(null) }}>
@@ -402,7 +445,8 @@ function ChannelSection({ runId, editable, batches, channels, canEdit }: {
         <div className="mt-5" data-section="discharge-channels">
             <h3 className="mb-1 text-sm font-medium">{t('discharge.channelsTitle')}</h3>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">{t('discharge.channelsIntro')}</p>
-            <DataTable rows={channels} columns={columns} rowKey={(c) => String(c.id)} phone={{ mode: 'columns' }} empty={t('discharge.noChannels')} />
+            <DataTable rows={channels} columns={columns} rowKey={(c) => String(c.id)} phone={{ mode: 'columns' }} empty={t('discharge.noChannels')}
+                       exportSpec={{ name: 'processing-run-discharge-channels', title: t('discharge.channelsTitle'), aboutExtra: [[t('processing.colCode'), runCode]] }} />
             {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
             {editable && batches.length > 0 && (
                 <PermissionGate code="action.processing_aftercare" allowed={canEdit}>

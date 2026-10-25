@@ -9,7 +9,8 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { xText, xTime } from '@/lib/export/cells'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -29,8 +30,10 @@ export type ContaminationCheckView = {
 
 const blank: CheckInput = { kind: 'sampled', outputBatchId: '', sampleG: '', foreignG: '', sampledAt: '', method: '', reason: '' }
 
-export default function ContaminationPanel({ runId, streams, checks, canRecord, predates }: {
+export default function ContaminationPanel({ runId, runCode, streams, checks, canRecord, predates }: {
     runId: string
+    /** TABLE-EXPORT-3c:导出的 About 表写这一炉的单号 */
+    runCode: string
     streams: ContaminationStreamView[]
     checks: ContaminationCheckView[]
     canRecord: boolean
@@ -51,24 +54,39 @@ export default function ContaminationPanel({ runId, streams, checks, canRecord, 
             : c.above === false ? t('contamination.within')
                 : <span className="text-amber-700">{t('contamination.notJudged')}</span>
 
-    const columns: Column<ContaminationCheckView>[] = [
-        { key: 'stream', header: t('contamination.colStream'), priority: true, render: (c) => c.streamLabel },
+    // ★ TABLE-EXPORT-3c(Tim 2026-10-25):一对导出,与 /operation/contamination 的逐次清单(ContaminationChecksList)同一套写法。
+    //   「抽检」一格是一句话(污染率 + 极片批,或没抽的理由)—— 导出照屏幕那句话;污染率本身作为数在那张清单的网格里另有一列。
+    //   「外来物 / 样品」一格并排两个质量 —— 一格装不下两个数,导出写屏幕那串「外来 / 样品 g」(由原始数拼,不从 render 抠)。
+    //   警戒一格:没抽的那一行屏幕是「—」(无从谈起)→ 空格;其余写标记与当时的警戒线。
+    //   更正那一列表头是空的 —— 导出给它「更正理由」作列名(与清单同一个键)。「更正」按钮是控件,不导出。
+    const flagText = (c: ContaminationCheckView): string | null => c.kind !== 'sampled' ? null
+        : (c.above === true ? t('contamination.above') : c.above === false ? t('contamination.within') : t('contamination.notJudged'))
+            + (c.warningPctAt !== null ? ` (${c.warningPctAt}%)` : '')
+    const checkText = (c: ContaminationCheckView) => (c.kind === 'sampled'
+        ? t('contamination.rate', { rate: c.ratePct === null ? '—' : String(Number(c.ratePct.toFixed(4))), batch: c.batchCode ?? '' })
+        : t('contamination.notSampledBecause', { reason: c.notSampledReason ?? '' }))
+
+    const columns: ExportableColumn<ContaminationCheckView>[] = [
+        { key: 'stream', header: t('contamination.colStream'), priority: true, render: (c) => c.streamLabel, exportAs: (c) => xText(c.streamLabel) },
+        { key: 'kind', header: t('contamination.colCheck'), priority: true, render: checkText, exportAs: (c) => xText(checkText(c)) },
         {
-            key: 'kind', header: t('contamination.colCheck'), priority: true,
-            render: (c) => (c.kind === 'sampled'
-                ? t('contamination.rate', { rate: c.ratePct === null ? '—' : String(Number(c.ratePct.toFixed(4))), batch: c.batchCode ?? '' })
-                : t('contamination.notSampledBecause', { reason: c.notSampledReason ?? '' })),
+            key: 'masses', header: t('contamination.colMasses'), render: (c) => (c.kind === 'sampled' ? `${c.foreignG} / ${c.sampleG} g` : '—'),
+            exportAs: (c) => xText(c.kind === 'sampled' ? `${c.foreignG} / ${c.sampleG} g` : null),
         },
-        { key: 'masses', header: t('contamination.colMasses'), render: (c) => (c.kind === 'sampled' ? `${c.foreignG} / ${c.sampleG} g` : '—') },
-        { key: 'flag', header: t('contamination.colWarning'), render: (c) => <>{flag(c)}{c.warningPctAt !== null && c.kind === 'sampled' ? ` (${c.warningPctAt}%)` : ''}</> },
-        { key: 'when', header: t('contamination.colSampledAt'), render: (c) => c.sampledAt ?? '—' },
-        { key: 'method', header: t('contamination.colMethod'), render: (c) => c.method ?? '—' },
         {
-            key: 'correction', header: '', className: 'text-[color:var(--brand-muted-text)]',
+            key: 'flag', header: t('contamination.colWarning'),
+            render: (c) => <>{flag(c)}{c.warningPctAt !== null && c.kind === 'sampled' ? ` (${c.warningPctAt}%)` : ''}</>,
+            exportAs: (c) => xText(flagText(c)),
+        },
+        { key: 'when', header: t('contamination.colSampledAt'), render: (c) => c.sampledAt ?? '—', exportAs: (c) => xTime(c.sampledAtIso) },
+        { key: 'method', header: t('contamination.colMethod'), render: (c) => c.method ?? '—', exportAs: (c) => xText(c.method) },
+        {
+            key: 'correction', header: '', exportHeader: t('contamination.correctReason'), className: 'text-[color:var(--brand-muted-text)]',
             render: (c) => (c.corrected ? t('contamination.correctedBecause', { reason: c.correctionReason ?? '' }) : ''),
+            exportAs: (c) => xText(c.corrected ? t('contamination.correctedBecause', { reason: c.correctionReason ?? '' }) : null),
         },
         ...(canRecord ? [{
-            key: 'actions', header: '', align: 'right' as const,
+            key: 'actions', header: '', align: 'right' as const, exportAs: false as const,
             render: (c: ContaminationCheckView) => (
                 <Button variant="secondary" size="inline" type="button" className="text-sm" disabled={pending}
                         onClick={() => {
@@ -116,7 +134,12 @@ export default function ContaminationPanel({ runId, streams, checks, canRecord, 
                         ))}
                     </p>
                     <DataTable rows={checks} columns={columns} rowKey={(c) => String(c.id)} phone={{ mode: 'columns' }}
-                               empty={t('contamination.emptyRun')} />
+                               empty={t('contamination.emptyRun')}
+                               exportSpec={{
+                                   name: 'processing-run-contamination-checks',
+                                   title: t('contamination.panelTitle'),
+                                   aboutExtra: [[t('processing.colCode'), runCode]],
+                               }} />
                     {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
                     <PermissionGate code="action.processing_aftercare" allowed={canRecord}>
                         <div className="mt-3 border border-gray-200 rounded p-3 space-y-3" data-contamination-form={fixing ? fixing.id : 'new'}>

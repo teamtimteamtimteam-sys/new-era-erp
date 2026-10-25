@@ -23,7 +23,9 @@ import { CoaCompositionTable, CoaLimitsTable } from './CoaContentTables'
 import SavePdfButton from './SavePdfButton'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const ppm = (v: number | string) => `${Math.round(Number(v) * 10000 * 1000) / 1000} ppm`
+// TABLE-EXPORT-3c:数与字分开 —— 导出要那个数(同一个换算、同一个取整),屏幕要那串字
+const ppmValue = (v: number | string) => Math.round(Number(v) * 10000 * 1000) / 1000
+const ppm = (v: number | string) => `${ppmValue(v)} ppm`
 
 export default async function CoaPage({ params, searchParams }: {
     params: Promise<{ id: string }>
@@ -89,9 +91,12 @@ export default async function CoaPage({ params, searchParams }: {
 
             <h2 className="mt-8 mb-1">{t('coa.detail.content')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('coa.detail.contentNote')}</p>
-            <CoaCompositionTable rows={s.composition.map((m) => ({
+            <CoaCompositionTable coaCode={c.code} rows={s.composition.map((m) => ({
                 substance: m.substance, label: m.symbol ? `${m.name} (${m.symbol})` : m.name,
                 content: `${String(m.content_pct)}%`, ppm: m.role === 'penalty_element' ? ppm(m.content_pct) : '',
+                // TABLE-EXPORT-3c(Tim 2026-10-25):导出读快照里的数本身;ppm 与上面那串字同一个换算、同一个取整
+                contentRaw: m.content_pct,
+                ppmRaw: m.role === 'penalty_element' ? ppmValue(m.content_pct) : null,
             }))} />
             {s.indicators.length > 0 && (
                 <RecordHeader fields={s.indicators.map((i) => ({ label: i.name, value: `${String(i.value)}${i.unit ? ' ' + i.unit : ''}` }))} />
@@ -99,13 +104,17 @@ export default async function CoaPage({ params, searchParams }: {
             {so && so.quality_limit_basis === 'per_parameter' && (
                 <>
                     <h2 className="mt-6 mb-1">{t('coa.detail.limits')}</h2>
-                    <CoaLimitsTable rows={so.limits.map((l) => {
+                    <CoaLimitsTable coaCode={c.code} rows={so.limits.map((l) => {
                         const j = so.judgements.find((x) => x.parameter === l.parameter)
                         return {
                             parameter: l.parameter, label: `${l.name}${l.unit ? ` (${l.unit})` : ''}`,
                             min: l.min_value == null ? '—' : String(l.min_value), max: l.max_value == null ? '—' : String(l.max_value),
                             measured: j && j.value != null ? String(j.value) : '—',
                             judgement: j ? `${t('quality.judgementResult.' + j.result)} · ${j.assay_code}` : t('coa.detail.notJudged'),
+                            // TABLE-EXPORT-3c(Tim 2026-10-25):导出读快照里的原始数;判定写主值(结果),不带化验单号
+                            minRaw: l.min_value ?? null, maxRaw: l.max_value ?? null,
+                            measuredRaw: j && j.value != null ? j.value : null,
+                            judgementResult: j ? t('quality.judgementResult.' + j.result) : t('coa.detail.notJudged'),
                         }
                     })} />
                 </>

@@ -1,0 +1,2 @@
+✗ check-table-export:豁免 app/brand-sampler/Base1.tsx|DataTable 的去处是「TABLE-EXPORT-3」或缺理由 —— TABLE-EXPORT 这一族已经收尾,清单只收 PERMANENT(带理由,Tim 裁定)。一张新表:给它 exportSpec;真的永远不该导出,请 Tim 裁定后写进 PERMANENT。
+CHK_OWN_EXIT=1

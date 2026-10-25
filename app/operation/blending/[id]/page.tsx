@@ -110,6 +110,9 @@ export default async function BlendingPlanPage({ params, searchParams }: {
         sources: p.content_restricted ? t('common.restricted')
             : t('blending.sourcesCount', { assay: String(p.lines_from_assay ?? 0), manual: String(p.lines_manual ?? 0), unknown: String(p.lines_source_unknown ?? 0) }),
         flag: p.content_restricted ? t('common.restricted') : p.flag ? t(blendingFlagKey(p.flag)) : '—',
+        // TABLE-EXPORT-3c(Tim 2026-10-25):导出读原始值与受限旗,不读上面烤好的字
+        restricted: p.content_restricted,
+        predictedPct: p.predicted_pct == null ? null : Number(p.predicted_pct),
     }))
 
     // ── 候选批次:一行一批,含量逐种金属连起来 ──
@@ -133,6 +136,11 @@ export default async function BlendingPlanPage({ params, searchParams }: {
             actual: ex?.actual_kg == null ? '—' : kg(ex.actual_kg),
             difference: diff == null ? '—' : (Number(diff) > 0 ? '+' : '') + kg(diff),
             differenceNegative: diff != null && Number(diff) < 0,
+            // TABLE-EXPORT-3c:导出读的原始值
+            contentRestricted: restricted,
+            plannedKg: Number(first.planned_kg),
+            actualKg: ex?.actual_kg == null ? null : Number(ex.actual_kg),
+            differenceKg: diff == null ? null : Number(diff),
         }
     })
 
@@ -145,6 +153,9 @@ export default async function BlendingPlanPage({ params, searchParams }: {
         content: o.content_restricted ? t('common.restricted') : o.content_pct == null ? '—' : pct(o.content_pct),
         verdict: o.content_restricted ? t('common.restricted') : o.verdict ? t(blendingVerdictKey(o.verdict)) : '—',
         verdictTone: o.content_restricted || !o.verdict || o.verdict === 'not_assayed' ? 'muted' : o.verdict === 'within' ? 'ok' : 'flag',
+        // TABLE-EXPORT-3c:导出读的原始值
+        restricted: o.content_restricted,
+        contentPct: o.content_pct == null ? null : Number(o.content_pct),
     }))
     const blended = outRows[0] ?? null
 
@@ -187,11 +198,11 @@ export default async function BlendingPlanPage({ params, searchParams }: {
 
             <h2 className="mt-6 mb-1">{t('blending.targetsTitle')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('blending.targetsNote')}</p>
-            <TargetsTable rows={targetRows} />
+            <TargetsTable rows={targetRows} planCode={plan.code} />
 
             <h2 className="mt-8 mb-1">{t('blending.linesTitle')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('blending.linesNote')}</p>
-            <LinesTable rows={lineRows} />
+            <LinesTable rows={lineRows} planCode={plan.code} />
 
             {plan.status === 'executed' && blended && (
                 <>
@@ -210,7 +221,7 @@ export default async function BlendingPlanPage({ params, searchParams }: {
                         )}
                     </p>
                     <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('blending.outcomeNote')}</p>
-                    <OutcomeTable rows={outcomeRows} />
+                    <OutcomeTable rows={outcomeRows} planCode={plan.code} />
                 </>
             )}
 

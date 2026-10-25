@@ -162,7 +162,8 @@ export default async function ExpenseDetailPage({
     }))
     const distinctAccounts = new Set(lineRows.map((l) => l.accountCode))
 
-    const allocs = ((allocsRes.data as unknown as AllocRow[] | null) ?? [])
+    // TABLE-EXPORT-3c(Tim 2026-10-25):这一读原先没看 error —— 读失败会渲染(并导出)成一张空的结算历史。改走 mustRows。
+    const allocs = mustRows(allocsRes, 'payment_allocations') as unknown as AllocRow[]
 
     // 已结额只计 posted 收付款的核销(与 ap_open_items 口径一致);reversed 行仍展示。
     const settled =
@@ -218,6 +219,7 @@ export default async function ExpenseDetailPage({
         doc_type: a.doc_type,
         notes: a.notes,
         created_at_display: formatAuditStamp(a.created_at),
+        created_at: a.created_at, // TABLE-EXPORT-3c:导出写那个时刻本身(ISO),不写上面那串格式化过的字
     }))
 
 
@@ -229,6 +231,9 @@ export default async function ExpenseDetailPage({
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
         paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_base, baseCurrency),
+        paymentDateRaw: a.payments?.payment_date ?? null,
+        allocated: a.allocated_base,
+        currency: baseCurrency,
         reversed: a.payments?.status === 'reversed',
     }))
     if (tableRows.length > 0) {
@@ -238,6 +243,9 @@ export default async function ExpenseDetailPage({
             paymentHref: null,
             paymentDate: '',
             allocatedText: formatAmount(settled, baseCurrency),
+            paymentDateRaw: null,
+            allocated: settled,
+            currency: baseCurrency,
             reversed: false,
             isTotal: true,
         })
@@ -399,12 +407,14 @@ export default async function ExpenseDetailPage({
                     />
 
                     <h2 className="mb-3">{t('finance.settlementHistory')}</h2>
-                    <SettlementHistoryTable rows={tableRows} />
+                    <SettlementHistoryTable rows={tableRows} exportTitle={t('finance.settlementHistory')}
+                        record={[t('expense.colCode'), String(expense.code)]} />
                 </>
             )}
 
             {/* 凭据附件(发票/收据)*/}
-            <FinanceAttachmentsPanel canEdit={canEdit} parent={{ kind: 'expense', id: expense.id }} rows={attachments} />
+            <FinanceAttachmentsPanel canEdit={canEdit} parent={{ kind: 'expense', id: expense.id }} rows={attachments}
+                record={[t('expense.colCode'), String(expense.code)]} />
 
             {/* ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q8):从一张批准的报销单生出来的费用单 —— 那张单每一笔的收据【原地】读出来,不抄一份 */}
             {claimReceipts && (

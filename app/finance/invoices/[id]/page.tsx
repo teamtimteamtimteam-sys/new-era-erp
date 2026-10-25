@@ -116,19 +116,20 @@ export default async function InvoiceDetailPage({
 
     // 收款:sale 头走行背后的销售(老路);order 头【发票自己就是核销对象】——
     // 核销行直指 invoice_id(SO-3a),与 invoice_status 的第二条腿同口径。
-    const { data: allocs } = isOrderKind
-        ? await supabase
+    // TABLE-EXPORT-3c(Tim 2026-10-25):这一读原先只取 data、不看 error —— 读失败会把收款情况渲染(并导出)成空的。改走 mustRows。
+    const allocs = isOrderKind
+        ? mustRows(await supabase
               .from('payment_allocations')
               .select('id, allocated_ccy, sales_record_id, payments(id, code, payment_date, status)')
               .eq('invoice_id', inv.id)
-              .order('created_at', { ascending: true })
+              .order('created_at', { ascending: true }), 'payment_allocations (invoice)')
         : saleIds.length
-        ? await supabase
+        ? mustRows(await supabase
               .from('payment_allocations')
               .select('id, allocated_ccy, sales_record_id, payments(id, code, payment_date, status)')
               .in('sales_record_id', saleIds)
-              .order('created_at', { ascending: true })
-        : { data: [] as AllocRow[] }
+              .order('created_at', { ascending: true }), 'payment_allocations (sales)')
+        : []
 
     // order 头:分录与订单的门牌。分录 code 从 journal_entries 取;订单行受
     // module.sales.view 把门 —— 财务读者没有那个码时【显示受限】,不显示空白。
@@ -147,7 +148,7 @@ export default async function InvoiceDetailPage({
         }
     }
 
-    const allocRows = ((allocs as unknown as AllocRow[] | null) ?? [])
+    const allocRows = allocs as unknown as AllocRow[]
     const settled =
         Math.round(
             allocRows
@@ -291,6 +292,9 @@ export default async function InvoiceDetailPage({
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
         paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_ccy, inv.currency),
+        paymentDateRaw: a.payments?.payment_date ?? null,
+        allocated: a.allocated_ccy,
+        currency: inv.currency,
         reversed: a.payments?.status === 'reversed',
     }))
 
@@ -577,7 +581,8 @@ export default async function InvoiceDetailPage({
                     **所以这里一个字都不新写,直接用那一个组件。**
                     CONV-9 收它的时候是 3 页;这一页是第 4 页,而它是在
                     【不知道有这一页】的情况下被收敛的 —— 那正是收敛对了的证据。 */}
-                <SettlementHistoryTable rows={settlementRows} />
+                <SettlementHistoryTable rows={settlementRows} exportTitle={t('invoice.settlementTitle')}
+                    record={[t('invoice.colCode'), inv.code]} />
             </section>
 
             {/* ── INV-2b:签发档 ────────────────────────────────────────────

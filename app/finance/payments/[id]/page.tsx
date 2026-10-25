@@ -98,7 +98,8 @@ export default async function PaymentDetailPage({
     const reversalOf = mustOne(await supabase.from('payments').select('id, code').eq('reversed_by_payment', id).maybeSingle(),
         'payment this one reverses') as { id: string; code: string } | null
 
-    const allocs = ((allocsRes.data as AllocRow[] | null) ?? [])
+    // TABLE-EXPORT-3c(Tim 2026-10-25 认可):一次失败的读取必须报错,不画成「没有核销」、更不导出一份空文件
+    const allocs = mustRows(allocsRes, 'payment_allocations') as unknown as AllocRow[]
 
     // 核销单据:AR 经 sales_record → output_batch 反查编号/链接,AP 直查进料批次/开支单;
     // 预付行(cut 4b)查采购单编号
@@ -191,13 +192,14 @@ export default async function PaymentDetailPage({
     const partyName = partyRes.data?.legal_name ?? '—'
 
     // 凭据附件(在服务端按当前语言格式化时间,避免客户端水合不一致)
-    const { data: attachmentRows } = await supabase
+    // TABLE-EXPORT-3c(Tim 2026-10-25):这一读原先不看 error —— 读失败会把附件表渲染(并导出)成空的。改走 mustRows。
+    const attachmentRows = mustRows(await supabase
         .from('finance_attachments')
         .select('id, file_name, file_path, file_size, mime_type, doc_type, notes, created_at')
         .eq('payment_id', id)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-    const attachments = (attachmentRows ?? []).map((a) => ({
+        .order('created_at', { ascending: false }), 'finance_attachments (payment)')
+    const attachments = attachmentRows.map((a) => ({
         id: a.id,
         file_name: a.file_name,
         file_path: a.file_path,
@@ -206,6 +208,7 @@ export default async function PaymentDetailPage({
         doc_type: a.doc_type,
         notes: a.notes,
         created_at_display: formatAuditStamp(a.created_at),
+        created_at: a.created_at, // TABLE-EXPORT-3c:导出写那个时刻本身(ISO),不写上面那串格式化过的字
     }))
 
 
@@ -372,7 +375,8 @@ export default async function PaymentDetailPage({
 
             {/* 凭据附件 —— 这一页的第二个出口(上传凭据)。它住在 children 里,
                 而详情页 state 恒为 'ok',所以它不可能被空分支吃掉。 */}
-            <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'payment', id: payment.id }} rows={attachments} />
+            <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'payment', id: payment.id }} rows={attachments}
+                record={[t('finance.colCode'), payment.code]} />
 
             <AuditTrail subject="payment" id={payment.id} show={trailCount((await searchParams).trail)} />
         </ListPage>

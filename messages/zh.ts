@@ -418,6 +418,9 @@ const zh = {
         errTimePaired: '开始与结束要么都给、要么都空 —— 只有一头的班次说不出它覆盖哪一段。',
     },
     logistics: {
+        // TABLE-EXPORT-3c:集装箱单证清单拆出来的两列
+        colDocSource: '来源',
+        colDocStatus: '状态',
         shipping: {
             verifyScan: '扫码核对(可不扫)',
             scanMatches: '扫到 {code} —— 与这一条预留对得上。',
@@ -1329,6 +1332,10 @@ const zh = {
             // Q5:过账预览的 About 表
             aboutPreview: '预览',
             aboutPreviewValue: '截至 {date} 的预览,尚未过账',
+            // TABLE-EXPORT-3c(Tim 2026-10-25 Q2b · Q2c):两种预览的 About 说明;条款申请里改动过的那一行
+            aboutAssayPreviewValue: '预览,尚未应用',
+            aboutPricePreviewValue: '计价预览,截至 {at}',
+            rowChanged: '有改动',
             aboutPeriod: '期间',
             // TABLE-EXPORT-2a:屏幕上只用整行淡出 / 划线表示的状态,导出时写在那一行的身份格里(一格一个值,而列只有表的列 —— Q11)
             rowInactive: '已停用',
@@ -11095,7 +11102,6 @@ const zh = {
             title: '出给保养的备件',
             add: '出备件',
             intro: '备件按进料批收进库里,出库时挂在这台机器的一条保养记录上。出库把它们的成本从存货移到维修保养费(6800),退回再移回来。更正就是带理由的一次退回 —— 一次出库从不改。',
-            valueRestricted: '金额只给看得见价格的人。',
             stockRestricted: '选批次要库存模块的查看权。',
             record: '保养记录',
             pickRecord: '选一条保养记录…',

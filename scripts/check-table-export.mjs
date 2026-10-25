@@ -9,13 +9,13 @@
 //                   以及 scripts/table-export-exemptions.mjs 那张清单
 //   我声称管的是   :「每一张表都能导出,或者在清单上被点名」
 //   两者不同之处   :我只看【属性区里有没有 exportSpec=】,不看它导出得对不对 —— 列的类型与完整性归 tsc(ExportableColumn),
-//                   内容对不对归 TABLE-EXPORT-1 的线上证明;一个包了 DataTable 的组件(CellsTable · MassTable)在它的调用点上
+//                   内容对不对归各刀的线上证明;一个包了 DataTable 的组件(CellsTable · MassTable)在它的调用点上
 //                   【不是】一个 <DataTable,我数不到那些调用点 —— 那两个组件把 exportSpec 写成必填,由 tsc 管每一个调用点。
 //
 // 它回答一个问题:**app/ 下每一处表(<DataTable / <EditableTable / 手搓 <table),
 //   有没有哪一处既没有 exportSpec、也不在 scripts/table-export-exemptions.mjs 上?**
 //
-// 判据(五条,任何一条不成立就红):
+// 判据(六条,任何一条不成立就红):
 //   ① 每一处 <DataTable / <EditableTable 的属性区里有 `exportSpec=`(EditableTable 自 TABLE-EXPORT-3b,Tim 2026-10-25),或者【那个文件的那一种】在清单上;
 //   ② 每一处 <table,【那个文件的 table】在清单上;
 //      或者(TABLE-EXPORT-3a,Tim 2026-10-23 Q2)一个手搓 <table> 的【同一个文件】里画着 <ReportExportBar / <FlatExportBar 或 <TableExportBar ——
@@ -24,6 +24,7 @@
 //   ③ STALE:清单上的一条,文件不存在,或者那一种在文件里已经【一处都不缺】了 —— 清单只许变短;
 //   ④ Q5 / Q11 的唯一例外 `extension:` 只许出现在供应商与客户两张表里;
 //   ⑤ 覆盖断言(AGENTS.md「覆盖率本身必须是一条断言」):按标签走出来的调用点数 = 剥掉注释后的正则数,且 > 0。
+//   ⑥ 清单上的每一条都是 PERMANENT、带理由(TABLE-EXPORT-3c,Tim 2026-10-25:这一族收尾,不再有别的去处)。
 //
 // 列的那一半(开了 exportSpec 的表每一列都有 exportAs)不在这里查 —— 那是 `tsc` 的事
 // (DataTable 的 ExportOn<T> 把 columns 收窄成 ExportableColumn<T>),写成类型就不需要第二道文本闸。
@@ -32,6 +33,10 @@
 //   CHECK_TABLE_EXPORT_FAULT=blind          解析器读不出任何属性区 → 必须红(不许报"干净")
 //   CHECK_TABLE_EXPORT_FAULT=drop:<file>    假装清单上没有那个文件 → 必须点名它
 //   CHECK_TABLE_EXPORT_FAULT=nobar          假装没有一个文件画着导出钮 → 每一张转过来的报表都必须被点名
+//   CHECK_TABLE_EXPORT_FAULT=cut:<file>     把清单上那一条的去处改成 'TABLE-EXPORT-3' → 必须按名拒绝(3c 之后只收 PERMANENT)
+//
+// ★ TABLE-EXPORT-3c(Tim 2026-10-25,v1.4.73):TABLE-EXPORT 这一族收尾。清单上只剩 PERMANENT,每条带理由;
+//   闸【不再收任何别的去处】—— 一张新表要么声明导出,要么由 Tim 裁定进 PERMANENT 并写上理由。
 // ════════════════════════════════════════════════════════════════════════════
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
@@ -99,14 +104,18 @@ function propsBlockAt(src, start) {
 const lineOf = (src, idx) => src.slice(0, idx).split('\n').length
 
 const exempt = new Map()   // `${file}|${kind}` → entry
-for (const e of TABLE_EXPORT_EXEMPTIONS) {
-    if (FAULT.startsWith('drop:') && e.file === FAULT.slice(5)) continue
+for (const entry of TABLE_EXPORT_EXEMPTIONS) {
+    if (FAULT.startsWith('drop:') && entry.file === FAULT.slice(5)) continue
+    const e = FAULT.startsWith('cut:') && entry.file === FAULT.slice(4) ? { ...entry, cut: 'TABLE-EXPORT-3' } : entry
     const k = `${e.file}|${e.kind}`
     if (exempt.has(k)) { console.error(`✗ check-table-export:豁免清单重复一条 ${k}`); process.exit(1) }
     // PERMANENT:Tim 2026-10-22 TABLE-EXPORT-2 Q6 —— 永远不导出的那几条,理由写在条上
     // TABLE-EXPORT-2b-1(2026-10-23):TABLE-EXPORT-2 那一类清零之后不再收 —— 清单只许变短
-    if (!['TABLE-EXPORT-3', 'PERMANENT'].includes(e.cut) || !e.why?.trim()) {
-        console.error(`✗ check-table-export:豁免 ${k} 缺去处或理由`); process.exit(1)
+    // TABLE-EXPORT-3c(Tim 2026-10-25):TABLE-EXPORT-3 那一类也清零了 —— 只剩 PERMANENT 一种去处,而且必须写理由
+    if (e.cut !== 'PERMANENT' || !e.why?.trim()) {
+        console.error(`✗ check-table-export:豁免 ${k} 的去处是「${e.cut}」或缺理由 —— TABLE-EXPORT 这一族已经收尾,清单只收 PERMANENT(带理由,Tim 裁定)。` +
+            '一张新表:给它 exportSpec;真的永远不该导出,请 Tim 裁定后写进 PERMANENT。')
+        process.exit(1)
     }
     exempt.set(k, e)
 }
@@ -163,12 +172,10 @@ if (walked === 0) {
 }
 assertPinned('check-table-export', '按标签走出的表 ↔ 剥掉注释后的正则数', walked, regexCount, '不等 = 有一处表被走漏了。')
 
-const cuts = { 'TABLE-EXPORT-3': 0, PERMANENT: 0 }
-for (const k of used) cuts[exempt.get(k).cut]++
 if (problems.length === 0) {
     console.log(
         `✓ 表的导出:${walked} 处表(DataTable ${byKind.DataTable} · EditableTable ${byKind.EditableTable} · 手搓 table ${byKind.table})—— ` +
-        `${declared} 处声明了导出 · 豁免 ${used.size} 条(TABLE-EXPORT-3 ${cuts['TABLE-EXPORT-3']} · PERMANENT ${cuts.PERMANENT})`
+        `${declared} 处声明了导出 · 豁免 ${used.size} 条(全部 PERMANENT)`
     )
     process.exit(0)
 }
