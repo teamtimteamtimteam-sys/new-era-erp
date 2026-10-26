@@ -17,6 +17,12 @@ BEGIN
     PERFORM forbid_self_approval(v_claim.created_by, v_claim.employee_id, 'medical_claim');
 
     IF NOT p_approve THEN
+        -- ★ TABLE-FEATURES-3(Tim 2026-10-25 Q11):驳回要一句理由,由库按名拒 —— 与十二条审批链的
+        --   <链>_REJECT_REASON_REQUIRED 同一个形状、同一条空白判据(decide_journal_request.sql)。
+        --   规矩在函数里,不在表上:线上已有一张理由为空的旧驳回,表约束会拒它(TF-3 Step 0)。
+        IF p_notes IS NULL OR btrim(p_notes) = '' THEN
+            RAISE EXCEPTION 'MEDICAL_CLAIM_REJECT_REASON_REQUIRED|%', v_claim.code;
+        END IF;
         UPDATE medical_claims SET status='rejected', decided_at=now(), decided_by=auth.uid(),
                decision_notes=p_notes, updated_by=auth.uid() WHERE id = p_claim_id;
 

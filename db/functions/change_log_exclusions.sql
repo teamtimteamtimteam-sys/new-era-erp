@@ -12,6 +12,8 @@
 --   状态的变化记在行上(收件箱的 attempts · last_attempt_* · discarded_*)。
 -- ★ MES-9b(2026-10-19,MES-9 Step 0 Q22,Tim):第九张 —— 门户下载记录(portal_document_downloads)。同一类:它本身就是一份只追加的日志
 --   (守卫按名拒改、删、清空),每一行就是一个事实;再记一遍是把量翻一倍而不多一个事实。豁免 8 → 9。
+-- ★ TABLE-FEATURES-3(2026-10-26,Tim Q3):第十张 —— 保存的视图(saved_views)。与 notification_reads 同一类:每个读者自己的屏幕偏好,
+--   没有业务含义。豁免 9 → 10。
 CREATE OR REPLACE FUNCTION public.change_log_exclusions()
  RETURNS TABLE(table_name text, reason text)
  LANGUAGE sql
@@ -26,6 +28,7 @@ AS $function$
         ('ingest_inbox', 'Ingestion log (MES-1): itself an append-only landing table; its status changes are recorded on the row (attempts, last attempt, discard).'),
         ('ingest_transmissions', 'Ingestion log (MES-1): itself an append-only log of every gateway call; logging it again doubles the volume and adds no fact.'),
         ('notification_reads', 'Per-viewer "seen" marks on notifications; screen state with no business meaning.'),
+        ('saved_views', 'Per-user saved list views (TABLE-FEATURES-3, Tim Q3): a reader''s own screen preference with no business meaning.'),
         ('portal_document_downloads', 'Supplier portal download log (MES-9b, MES-9 Step 0 Q22): itself an append-only record of every issued document a portal user took; logging it again doubles the volume and adds no fact.'),
         ('scan_events', 'Scan log (MES-3b): itself an append-only record of every scan resolved on a page; logging it again doubles the volume and adds no fact.');
 $function$;

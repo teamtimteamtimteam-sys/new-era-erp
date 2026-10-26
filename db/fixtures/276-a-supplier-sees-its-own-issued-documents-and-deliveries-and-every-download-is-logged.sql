@@ -14,7 +14,7 @@
 --            B 的 → 看不见;写 / 改 / 删 storage.objects 一律 42501;员工会话不受这条策略影响
 --   LOG      下载记录:只经那支函数写(员工与门户会话直接写 → 42501);改 / 删 / 清空 → PORTAL_DOWNLOAD_LOG_APPEND_ONLY;
 --            员工 module.suppliers.view 读得到、没有码的读 0 行、门户会话直接读 → 42501
---   EXCL     变更记录的豁免是 9(第九张是 portal_document_downloads,理由写着 Q22),零缺口;它一行变更记录都不写
+--   EXCL     变更记录的豁免是 10(第九张是 portal_document_downloads,理由写着 Q22;第十张 saved_views 是 TABLE-FEATURES-3),零缺口;它一行变更记录都不写
 --   EVERY    supplier_portal 能执行的【每一支】public 函数(从目录里枚举):MES-9b 的四支在这里各有两家供应商的用例,MES-9a 的两支在 fixture 275,
 --            MES-9c 的五支在 fixture 277(按名交过去,名单与目录对不上也红);
 --            两支 fixture 合起来必须正好覆盖目录,多一支没有用例就红。每一支:A 只见 A、B 只见 B;员工会话 42501;令牌声明不对 / 会话结束 /
@@ -313,7 +313,7 @@ BEGIN
 
     -- ── EXCL ───────────────────────────────────────────────────────────────
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
         RAISE EXCEPTION 'FIXTURE 276 EXCL: change-log coverage %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log_exclusions() x WHERE x.table_name = 'portal_document_downloads' AND x.reason LIKE '%Q22%append-only%') THEN
         RAISE EXCEPTION 'FIXTURE 276 EXCL: portal_document_downloads is not the ninth exclusion with its reason'; END IF;

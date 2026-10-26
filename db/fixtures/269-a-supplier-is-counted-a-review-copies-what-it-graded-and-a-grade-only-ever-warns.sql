@@ -144,7 +144,7 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM trail_subject_members() m WHERE m.subject = 'supplier' AND m.table_name = 'supplier_scorecard_reviews' AND NOT m.home)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 269 REG: trail subjects supplier_scorecard_review / supplier_score_settings / supplier_statement and their members'; END IF;
     v_j := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 269 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
     IF (EXISTS (SELECT 1 FROM unnest(ARRAY['supplier_score_settings', 'supplier_scorecard_reviews', 'supplier_statements', 'supplier_statement_issues']) t
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass))) IS NOT FALSE THEN

@@ -17,6 +17,9 @@ import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import { CLAIMS_SHOWN, claimsCount, claimsFilterFrom, claimsPage, claimsQuery, shapeClaimRows, claimsTotals } from './claimsRows'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 export default async function ClaimsPage({
     searchParams,
@@ -28,6 +31,8 @@ export default async function ClaimsPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/hr/claims', sp })
     const t = await getTranslations()
 
     // ★ TABLE-EXPORT-2b-2(Tim Q2):读取、三条筛选与映射搬进 claimsRows.ts,与导出路由共用。状态筛选从前在截断之后跑,
@@ -57,6 +62,7 @@ export default async function ClaimsPage({
             }
             state={{ kind: 'ok' }}
         >
+            <Suspense fallback={null}><SavedViewsBar listKey="/hr/claims" views={savedViews} /></Suspense>
             <form method="get" className="flex gap-2 flex-wrap items-end mb-4">
                 <label className="">{t('claims.state')}
                     <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>

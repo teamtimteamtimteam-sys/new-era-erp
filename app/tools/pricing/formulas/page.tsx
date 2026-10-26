@@ -118,6 +118,7 @@ export default async function FormulasPage() {
         >
             <div className="mb-6">
                 <TermsRequestsPanel
+                    bulk
                     open={requests.open}
                     history={requests.history}
                     missingDecideCode={missingDecideCode}

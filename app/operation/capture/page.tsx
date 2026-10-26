@@ -24,6 +24,9 @@ import { formatAuditStamp } from '@/lib/dates'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import { ProcessReceivedButton } from './inbox/InboxControls'
 import { DraftActions, ManualWeighingForm, CorrectWeighing } from './CaptureControls'
+import { rejectDraft } from './actions'
+import { BulkScope, BulkScopeCheck, BulkScopeBar } from '@/app/components/ui/bulk-decision-bar'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { INSTRUMENT_KINDS, type OpenTicket, type Option } from './captureFields'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import {
@@ -81,24 +84,32 @@ export default async function CapturePage({
         .map((d) => ({ id: d.id, label: `${d.code} — ${d.name}` }))
 
     const kgUnit = t('units.kg')
+    // 一张草稿在确认框与批量结果名单里叫什么:仪器码(没有就收件编号)· 读数 —— 单项钮与批量条同一个名字
+    const draftLabel = (d: (typeof drafts)[number]) =>
+        `${(d.device_id ? byId.get(d.device_id)?.code : null) ?? '#' + d.inbox_id} · ${Number(d.proposed?.weight_kg ?? 0)} kg`
     const draftRows: CellRow[] = drafts.map((d) => {
         const dev = d.device_id ? byId.get(d.device_id) : null
         const kg = Number(d.proposed?.weight_kg ?? 0)
         const age = ageInDays(d.created_at)
+        const label = draftLabel(d)
         return {
             id: d.id,
             cells: {
+                // TABLE-FEATURES-3(Tim 2026-10-25 Q2):过磅草稿只能批量【驳回】—— 确认要逐张给重量与主体
+                pick: <BulkScopeCheck id={d.id} label={label} disabled={!canConfirm} />,
                 weight: <span className="font-medium" data-draft-weight={kg}>{t('capture.kg', { n: String(kg) })}</span>,
                 device: dev ? <Link href={`/operation/devices/${dev.id}`} className="app-link hover:underline">{dev.code}</Link> : '—',
                 station: d.station ?? '—',
                 received: formatAuditStamp(d.created_at),
                 age: t('capture.days', { n: String(age) }),
-                actions: <DraftActions draftId={d.id} label={`${dev?.code ?? '#' + d.inbox_id} · ${kg} kg`} proposedKg={kg}
+                actions: <DraftActions draftId={d.id} label={label} proposedKg={kg}
                                        openTickets={openTickets} canConfirm={canConfirm} />,
             },
             exports: draftExports(d, dev, kgUnit),
         }
     })
+
+    const draftLabels = drafts.map((d) => ({ id: d.id, label: draftLabel(d) }))
 
     const weighingRows: CellRow[] = weighings.map((w) => {
         const change = changesByWeighing.get(w.weighing_id)
@@ -144,8 +155,17 @@ export default async function CapturePage({
             <section className="mb-8">
                 <h2 className="mb-2">{t('capture.pendingTitle')}</h2>
                 <RowCapNotice shown={draftRows.length} total={draftTotal} />
+                {/* TABLE-FEATURES-3(Tim 2026-10-25 Q2):批量驳回 —— 一句理由写到每一张选中的草稿上,一次一张走单项驳回 */}
+                <BulkScope>
+                <PermissionGate code="action.confirm_capture" allowed={canConfirm}>
+                    <BulkScopeBar
+                        items={draftLabels}
+                        reject={{ title: t('bulk.titles.captureReject'), placeholder: t('capture.rejectPlaceholder'), action: rejectDraft }}
+                    />
+                </PermissionGate>
                 <CellsTable
                     columns={[
+                        { key: 'pick', header: t('bulk.selectColumn'), priority: true, control: true },
                         { key: 'weight', header: t('capture.colReading'), priority: true },
                         { key: 'device', header: t('capture.colInstrument') },
                         { key: 'station', header: t('capture.colStation') },
@@ -158,6 +178,7 @@ export default async function CapturePage({
                     exportSpec={{ name: 'operation-capture-pending', title: t('capture.pendingTitle'), serverRows: pendingExportHref(pendingSort) }}
                     sorting={{ mode: 'server', active: pendingSort, shown: draftRows.length, total: draftTotal, sortable: Object.keys(PENDING_SORT) }}
                 />
+                </BulkScope>
             </section>
 
             <section className="mb-8">

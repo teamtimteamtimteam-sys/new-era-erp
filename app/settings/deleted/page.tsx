@@ -47,6 +47,8 @@
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { Suspense } from 'react'
 import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 import { readDatePresets } from '@/lib/datePresetsServer'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -117,6 +119,11 @@ export default async function DeletedRecordsPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前);
+    //   日期快捷区间也挪到这里:存视图时认区间名、打开时按今天重算,都要它。
+    const presets = await readDatePresets(supabase)
+    const viewDates = { fromKey: 'from', toKey: 'to', presets }
+    const savedViews = await loadSavedViews(supabase, { listKey: '/settings/deleted', sp, dates: viewDates })
     const t = await getTranslations()
 
     const kind = KINDS.includes(sp.kind ?? '') ? (sp.kind as string) : ''
@@ -139,8 +146,6 @@ export default async function DeletedRecordsPage({
 
     // 一次把姓名查回来(逐行查会是 N 次往返)
     const names = await loadActorNames(supabase, rows.map((r) => r.deleted_by))
-    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末),服务端算好
-    const presets = await readDatePresets(supabase)
 
     function filterHref(next: { kind?: string; from?: string; to?: string }) {
         const p = new URLSearchParams()
@@ -205,6 +210,7 @@ export default async function DeletedRecordsPage({
         >
             {/* ── 筛选:种类 + 日期 ─────────────────────────────────────────── */}
             <Suspense fallback={<div className="mb-3 h-8" />}>
+                <SavedViewsBar listKey="/settings/deleted" views={savedViews} dates={viewDates} />
                 <DatePresetLinks presets={presets} fromKey="from" toKey="to" pageKey="page" />
             </Suspense>
             <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">

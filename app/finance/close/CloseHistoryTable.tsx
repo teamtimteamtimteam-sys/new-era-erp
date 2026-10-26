@@ -8,6 +8,8 @@
 //   app/me/page.tsx 上撞到的是同一条,处置也照抄:金额与时间在服务端格好再过界。
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xText, xInt, xMoney, xDate, xTime } from '@/lib/export/cells'
 import ReopenForm from './ReopenForm'
 
@@ -33,6 +35,7 @@ export default function CloseHistoryTable({
     rows, canEdit, empty,
 }: { rows: CloseHistoryRow[]; canEdit: boolean; empty: React.ReactNode }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留【期末日 · 借方 · 状态】—— TABLE-PHONE-2 的判断,一个字没改。
     //   关账历史问的是「哪个月关了、锁了多大一笔、现在还锁着没有」;一次关账
@@ -100,7 +103,7 @@ export default function CloseHistoryTable({
             empty={empty}
             exportSpec={{ name: 'month-closes', title: t('finance.closeHistory') }}
             // TABLE-FEATURES-1 Q9:月结记录一次读全(period_closes 不翻页)—— 在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'close_') }}
         />
     )
 }

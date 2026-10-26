@@ -299,7 +299,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 273 · LOG';
     v_x := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 10) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 273 LOG: change-log coverage (gaps 0, exclusions 9): %', v_x; END IF;
     IF (NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = 'public.floor_board_settings'::regclass)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 273 LOG: floor_board_settings is change-logged'; END IF;

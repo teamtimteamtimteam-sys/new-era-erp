@@ -28,6 +28,9 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Button } from '@/app/components/ui/button'
 import ListTrail from '@/app/components/trail/ListTrail'
 import { trailCount } from '@/app/components/trail/AuditTrail'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 type Cycle = {
     id: string; name: string; period_start: string; period_end: string
@@ -59,7 +62,10 @@ export default async function KpiScorePage({
 
     const supabase = await createClient()
     const t = await getTranslations()
-    const { cycle: chosenId, trail } = await searchParams
+    const sp = await searchParams
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/hr/kpi/score', sp })
+    const { cycle: chosenId, trail } = sp
 
     // ★【读得进来 ≠ 改得动】module.hr.view 的人(auditor)可以看这一屏,
     //   但不该看到一排会被数据库 42501 掉的编辑钮。导航项挂在 edit 上,
@@ -190,6 +196,7 @@ export default async function KpiScorePage({
             state={{ kind: 'ok' }}
         >
             {/* ── 选月份 ★没有默认值★ ────────────────────────────────────── */}
+            <Suspense fallback={null}><SavedViewsBar listKey="/hr/kpi/score" views={savedViews} /></Suspense>
             <form method="get" className="mb-6 flex flex-wrap items-end gap-2">
                 <div>
                     <label htmlFor="cycle" className="block mb-1">

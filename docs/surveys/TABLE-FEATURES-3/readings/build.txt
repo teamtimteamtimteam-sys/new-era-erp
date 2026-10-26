@@ -1,0 +1,1236 @@
+
+> new-era-erp@0.1.0 build
+> node scripts/gen-deep-routes.mjs && node scripts/gen-manual-index.mjs && node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-cjk-rendered.mjs && node scripts/check-bilingual-concat.mjs && node scripts/check-masked-reads.mjs && node scripts/check-masked-columns.mjs && node scripts/check-change-log-coverage.mjs && node scripts/check-auth-error-swallowing.mjs && node scripts/check-near-duplicate.mjs && node scripts/check-permission-predicate.mjs && node scripts/check-action-view-declared.mjs && node scripts/check-pdf-font-stack.mjs && node scripts/check-datatable-phone.mjs && node scripts/check-datatable-footer.mjs && node scripts/check-table-export.mjs && node scripts/check-disabled-block.mjs && node scripts/check-list-sorting.mjs && node scripts/check-editable-name.mjs && node scripts/check-base-isolation.mjs && node scripts/check-component-library.mjs && node scripts/check-nav-routes.mjs && node scripts/check-search-registry.mjs && node scripts/check-document-registry.mjs && node scripts/check-reminder-arms.mjs && node scripts/check-org-tree.mjs && node scripts/check-pmap.mjs && node scripts/check-enum-mirrors.mjs && node scripts/check-anon-grant-decision.mjs && node scripts/check-throwaway-grants.mjs && node scripts/check-confirm-subject.mjs && node scripts/check-instrument-selfproof.mjs && node scripts/check-generated-css.mjs && node scripts/check-select-columns.mjs && node scripts/check-date-format.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-date-data-paths.mjs && node scripts/check-date-null-preserved.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/gen-trail-catalogue.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-trail-wording.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-employee-names.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-balance-empty-state.mjs && node scripts/check-import-inert.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-substance-display.mjs && node scripts/check-lint.mjs && next build
+
+✓ 深路由:271 条路由,深度 ≥3 的 34 条,与生成文件一致 (菜单条目 112 条 + 带 parent 的 21 条;面包屑段名 29 个)
+✓ 手册索引:101 个锚点(小节 31 · 三级 70)· 版本 v1.0.1 · 签发 2026-09-13 · 与生成文件一致
+
+currency literals: 0 unallowed, 131 allowlisted
+messages/:84 处在册(label 36 · prose 18 · unit 26 · account-name 4)
+✓ 没有把币种当常量用的判断,messages/ 也没有【新增】写死的币种
+
+swallowed query errors: 0 unallowed, 0 queued(真缺陷,在册), 6 allowlisted(不是缺陷)
+   按类别:?? 空值 6 · if (error) return 空值 0 · .catch(() => …) 空手接住 0
+✓ 没有【新增】把查询失败读成空集的地方(本检查看得见的那三类)
+-- SQL 具名拒绝:5 支函数,共查 36 条,两个语言都要有句子 --
+== i18n 键体检 ==
+
+-- 扫到的调用形状(漏掉的形状是盲区,不是通过)--
+   12413  t('key') 静态字符串
+    622  t('prefix' + x) / t(`prefix${x}`) 动态前缀(去重后 268 个)
+    235  t(变量) —— 经由键样字面量收网覆盖
+   13105  键样字面量(key:/labelKey:/titleKey= 属性、对象键、其余位置)
+   ⚠ app/finance/freight/new/actions.ts:52 译名为 tt
+   ⚠ app/finance/statements/[id]/pdf/route.ts:48 译名为 tUi
+
+-- 动态前缀 268 个:可枚举 268,点名不可知 0,未归类 0;枚举出的键共查 3186 个 --
+
+-- 定义了但未见引用的键 524 个(报告,不视为失败)--
+   glExport.title
+   glExport.subtitle
+   glExport.includeYearClose
+   pack.previewHeading
+   pack.supersededBy
+   pack.pnlHeading
+   pack.bsHeading
+   pack.cfHeading
+   pack.totalOpen
+   gst.statusOpen
+   gst.statusFiled
+   gst.entry
+   gst.blockedAlreadyFiled
+   logistics.title
+   logistics.colCurrency
+   breadcrumb.amend
+   breadcrumb.balances
+   breadcrumb.bulk
+   breadcrumb.calendar
+   breadcrumb.cycles
+   breadcrumb.done
+   breadcrumb.grants
+   breadcrumb.holidays
+   breadcrumb.import
+   breadcrumb.ledger
+   breadcrumb.metal-prices
+   breadcrumb.new
+   breadcrumb.receive
+   breadcrumb.reconcile
+   breadcrumb.reference
+   breadcrumb.roles
+   breadcrumb.safety
+   breadcrumb.scale
+   breadcrumb.score
+   breadcrumb.snapshot
+   breadcrumb.statements
+   breadcrumb.types
+   breadcrumb.violations
+   nav.aboutYou
+   nav.customerOverlap
+   nav.processing
+   nav.landingHint
+   nav.landingNothingOpen
+   dashboard.monthEndDesc
+   common.done
+   common.switchLang
+   common.editOnPhoneHint
+   table.export.rowReopened
+   leave.willGrant
+   leave.runGrant
+   leave.grantAnnualTitle
+   leave.grantAnnualHint
+   leave.alreadyGranted
+   leave.missingCount
+   claims.counterparty
+   me.annualLeave
+   permissions.noCreateUser
+   suppliers.suppliesGoods
+   suppliers.deleteError
+   suppliers.statusPanel.changeError
+   suppliers.compliance.colValidity
+   suppliers.compliance.otherType
+   contracts.settlement.retentionRequired
+   contracts.settlement.retentionNotRequired
+   overlap.what
+   customers.deleteError
+   materials.deleteError
+   materials.form.chemistryFrozen
+   materials.form.customPlaceholder
+   inbound.emptyState
+   inbound.deleteError
+   inbound.pricing.fxRate
+   inbound.pricing.fxHint
+   inbound.pricing.submit
+   output.deleteError
+   output.safety.errors.writeFailed
+   processing.wo.history
+   processing.wo.changeType.created
+   processing.wo.changeType.released
+   processing.wo.changeType.closed
+   processing.wo.changeType.cancelled
+   processing.wo.changeType.header_update
+   processing.wo.changeType.line_add
+   processing.wo.changeType.line_update
+   processing.wo.changeType.line_remove
+   processing.wo.changeType.expected_add
+   processing.wo.changeType.expected_update
+   processing.wo.changeType.expected_remove
+   processing.colActions
+   processing.delete.confirmButton
+   processing.delete.confirmTitle
+   processing.delete.consequence
+   processing.delete.reasonPlaceholder
+   processing.delete.triggerButton
+   processing.delete.deleting
+   processing.delete.confirmDelete
+   processing.status.reversed
+   processing.recovery.sourcePair
+   sales.history
+   sales.amend.colRemove
+   sales.changeType.created
+   sales.changeType.confirmed
+   sales.changeType.closed
+   sales.changeType.cancelled
+   sales.changeType.line_added
+   sales.changeType.line_changed
+   sales.changeType.line_removed
+   sales.changeType.issued
+   sales.changeType.reserved
+   sales.changeType.released
+   sales.changeType.invoiced
+   sales.changeType.invoice_voided
+   sales.changeType.shipped
+   sales.changeType.header_update
+   sales.changeType.line_update
+   sales.changeType.line_add
+   sales.changeType.line_remove
+   sales.changeType.credit_noted
+   sales.changeType.converted_from_quote
+   sales.reserve.reservedLabel
+   quotes.changeType.created
+   quotes.changeType.issued
+   quotes.changeType.declined
+   quotes.changeType.converted
+   stock.consumeAvailable
+   inventory.colUnit
+   valuation.totalInboundValue
+   valuation.totalCostValue
+   valuation.totalMarketValue
+   valuation.marketValueNote
+   hr.overviewTitle
+   hr.alertsTitle
+   hr.noAlerts
+   hr.headcount
+   hr.headcountTotal
+   hr.deleteDepartmentConfirm
+   hr.postPayroll
+   hr.unpostPayroll
+   hr.unpostConfirm
+   hr.unpostConsequence
+   hr.unpostReason
+   hr.unpostNote
+   hr.deleteTrainingConfirm
+   hr.leaveHint
+   hr.errEmployeeHasAccount
+   hr.errLeaveDays
+   pdf.noSignature.purchaseOrder
+   pdf.noSignature.salesOrder
+   pdf.noSignature.quotation
+   pdf.noSignature.deliveryOrder
+   pdf.noSignature.invoice
+   pdf.noSignature.creditNote
+   pdf.noSignature.statement
+   pdf.noSignature.supplierStatement
+   pdf.noSignature.compliancePack
+   cashForecast.active
+   cashForecast.expectedDateSet
+   expenseClaims.descriptionHint
+   expenseClaims.accountCodeHint
+   chases.lastChased
+   chases.neverChased
+   chases.documentsDiscussed
+   chases.recordOutcome
+   chases.outcomeNote
+   chases.supersedeReason
+   chases.statementSent
+   chases.statementSentHint
+   reviews.title
+   reviews.noUnitNoNumber
+   assay.labFrozen
+   purchasing.reopenNeedsReason
+   purchasing.colTaxCode
+   purchasing.colLineTax
+   purchasing.gstExclusiveNote
+   purchasing.form.fxRate
+   purchasing.amend.colRemove
+   purchasing.amend.termSeq
+   purchasing.amend.historyTitle
+   purchasing.amend.noHistory
+   purchasing.amend.change.cancelled
+   purchasing.amend.change.header_update
+   purchasing.amend.change.payment_term_add
+   purchasing.amend.change.payment_term_update
+   purchasing.amend.change.payment_term_remove
+   purchasing.amend.change.line_update
+   purchasing.amend.change.line_add
+   purchasing.amend.change.line_remove
+   purchasing.approvalNote
+   purchasing.cancelBlocked
+   purchasing.deleteTemplateConfirm
+   tasks.card.openDetail
+   tasks.history.type.promoted_from_personal
+   tasks.history.type.header_update
+   tasks.history.type.node_added
+   tasks.history.type.node_removed
+   tasks.history.type.node_renamed
+   tasks.history.type.node_redated
+   tasks.history.type.node_done
+   tasks.history.type.node_undone
+   tasks.history.type.node_reordered
+   tasks.history.type.participant_added
+   tasks.history.type.participant_removed
+   tasks.history.type.participant_left
+   tasks.history.type.owner_transferred
+   tasks.history.type.task_deleted
+   tasks.editTitle
+   tasks.deleteError
+   tasks.form.saveError
+   coa.certainty.single_known
+   coa.certainty.mixed
+   coa.certainty.unknown_pending
+   cod.statusIssued
+   cod.voidButton
+   cod.voidReasonLabel
+   cod.voidedBecause
+   cod.restricted
+   salaryChange.status.submitted
+   salaryChange.status.approved
+   salaryChange.status.rejected
+   salaryChange.status.withdrawn
+   changeHistory.op.INSERT
+   changeHistory.op.UPDATE
+   changeHistory.op.DELETE
+   changeHistory.op.TRUNCATE
+   changeHistory.op.ACCOUNT_CREATE
+   changeHistory.op.ACCOUNT_DELETE
+   changeHistory.op.ACCOUNT_DISABLE
+   changeHistory.op.ACCOUNT_DISABLE_FAILED
+   changeHistory.op.ACCOUNT_ENABLE
+   changeHistory.op.ACCOUNT_ENABLE_FAILED
+   metalPrices.deleteError
+   auditTrail.title
+   auditTrail.intro
+   auditTrail.spineNote
+   auditTrail.empty
+   auditTrail.colWhen
+   auditTrail.colWhat
+   auditTrail.colDetail
+   auditTrail.colWho
+   auditTrail.colSource
+   auditTrail.bizDate
+   auditTrail.needsModule
+   auditTrail.footerUnreachable
+   auditTrail.kind.receipt
+   auditTrail.kind.output_created
+   auditTrail.kind.movement
+   auditTrail.kind.price_change
+   auditTrail.kind.run_input
+   auditTrail.kind.run_output
+   auditTrail.kind.cost_allocation
+   auditTrail.kind.cost_entry_change
+   auditTrail.kind.sale
+   auditTrail.kind.sale_movement
+   auditTrail.kind.attribution
+   auditTrail.kind.reservation
+   auditTrail.kind.shipment
+   auditTrail.kind.stocktake_line
+   auditTrail.kind.report_issued
+   auditTrail.kind.approval
+   auditTrail.kind.work_order_change
+   auditTrail.kind.po_change
+   auditTrail.kind.so_change
+   auditTrail.kind.journal_entry
+   auditTrail.seam.no_purchase_order
+   auditTrail.seam.actor_unrecorded
+   auditTrail.seam.actor_unresolvable
+   auditTrail.seam.polymorphic_source
+   auditTrail.seam.reversed
+   auditTrail.seam.is_reversal
+   auditTrail.seam.run_voided
+   auditTrail.seam.has_masked_amount
+   auditTrail.seam.amount_restricted
+   auditTrail.seam.no_policy_admits
+   auditTrail.seam.no_cogs_entry
+   stocktakes.status.open
+   stocktakes.status.posted
+   stocktakes.status.cancelled
+   stocktakes.saveError
+   finance.invoiceRequest.status.submitted
+   finance.invoiceRequest.status.approved
+   finance.invoiceRequest.status.rejected
+   finance.invoiceRequest.status.withdrawn
+   finance.title
+   finance.subnav.salesOrders
+   finance.colIndex
+   finance.reverse
+   finance.reverseConfirm
+   finance.reverseConsequence
+   finance.saveError
+   finance.reversePayment
+   finance.reversePaymentConfirm
+   finance.reversePaymentConsequence
+   finance.freight.colBank
+   finance.freight.inboundHint
+   finance.freight.colReversedBy
+   finance.fxPage.colIndex
+   finance.fxPage.deleteConfirm
+   finance.fxPage.deleteError
+   finance.fxPage.form.saveError
+   finance.costSettle.date
+   finance.costSettle.previewVariance
+   finance.reval.noMid
+   pricing.bulkCard
+   pricing.bulkDesc
+   pricing.subnav.formulas
+   pricing.subnav.calculator
+   pricing.subnav.prices
+   assets.detail.inService
+   assets.detail.readyToCommission
+   assets.detail.blockerNoCost
+   assets.detail.blockerAlreadyInService
+   assets.detail.blockerDisposed
+   assets.plannedInServiceDate
+   assets.notInService
+   expense.form.poLineAllBilled
+   expense.form.amount
+   expense.form.fxRate
+   expense.form.selectSupplier
+   expense.filteredTotalAccount
+   expense.filteredTotal
+   equipment.page.serviceTitle
+   equipment.page.kgSince
+   equipment.page.daysSince
+   equipment.intervals.notStated
+   equipment.maint.capitalInServiceBlocked
+   blending.flag.below_min
+   blending.flag.above_max
+   blending.flag.within
+   blending.verdict.not_assayed
+   blending.verdict.metal_not_in_assay
+   blending.verdict.below_min
+   blending.verdict.above_max
+   blending.verdict.within
+   blending.source.manual
+   blending.source.assay
+   blending.source.unknown
+   quality.ncrStatus.open
+   quality.ncrStatus.decided
+   quality.ncrSource.manual
+   quality.ncrSource.customer_complaint
+   quality.ncrSource.quality_limit
+   quality.ncrSource.inspection
+   quality.ncrSource.incident
+   quality.ncrDisposition.accept
+   quality.ncrDisposition.accept_with_penalty
+   quality.ncrDisposition.reject
+   quality.ncrDisposition.rework
+   quality.ncrDisposition.downgrade
+   quality.kind.ours
+   quality.kind.counterparty
+   quality.kind.umpire
+   quality.kind.retained
+   quality.kind.contamination
+   quality.state.held
+   quality.state.at_lab
+   quality.state.disposed
+   quality.event.taken
+   quality.event.sent_to_lab
+   quality.event.received_back
+   quality.event.moved
+   quality.event.disposed
+   quality.retentionSource.contract
+   quality.retentionSource.internal
+   quality.retentionSource.not_set
+   quality.disputeStatus.open
+   quality.disputeStatus.resolved
+   quality.disputeStatus.withdrawn
+   quality.feeRule.loser_pays
+   quality.feeRule.equal
+   quality.feeRule.further_from_umpire_pays
+   quality.feeRule.buyer
+   quality.feeRule.seller
+   safety.deadlineState.not_reportable
+   safety.deadlineState.submitted
+   safety.deadlineState.not_set
+   safety.deadlineState.cannot_compute
+   safety.deadlineState.computed
+   safety.updateKind.nea_notified
+   safety.updateKind.report_submitted
+   safety.updateKind.closed
+   safety.updateKind.correction
+   safety.field.kind_code
+   safety.field.occurred_at
+   safety.field.what_happened
+   safety.field.immediate_action
+   safety.field.responsible_name
+   safety.field.duration_min
+   safety.field.nea_reportable
+   safety.basis.location
+   safety.basis.machine_run
+   safety.basis.picked
+   safety.inspectionResult.pass
+   safety.inspectionResult.fail
+   safety.inspectionResult.na
+   safety.dueState.not_set
+   safety.dueState.never_run
+   safety.dueState.due
+   safety.dueState.not_due
+   safety.judgement.exceeds
+   safety.judgement.within
+   safety.judgement.not_judged
+   compliancePacks.doc.title
+   compliancePacks.doc.month
+   compliancePacks.doc.periodSeparator
+   compliancePacks.doc.frozenNote
+   compliancePacks.doc.s1
+   compliancePacks.doc.s2
+   compliancePacks.doc.s3
+   compliancePacks.doc.s4
+   compliancePacks.doc.s5
+   compliancePacks.doc.s6
+   compliancePacks.doc.s7
+   compliancePacks.doc.s8
+   compliancePacks.doc.colScope
+   compliancePacks.doc.colLine
+   compliancePacks.doc.colKey
+   compliancePacks.doc.colKg
+   compliancePacks.doc.colRuns
+   compliancePacks.doc.plant
+   compliancePacks.doc.noOperation
+   compliancePacks.doc.noBalance
+   compliancePacks.doc.line_input
+   compliancePacks.doc.line_output
+   compliancePacks.doc.line_loss
+   compliancePacks.doc.line_remainder
+   compliancePacks.doc.line_pass_through
+   compliancePacks.doc.line_reversed
+   compliancePacks.doc.line_not_kg
+   compliancePacks.doc.colUnit
+   compliancePacks.doc.opening
+   compliancePacks.doc.received
+   compliancePacks.doc.produced
+   compliancePacks.doc.consumed
+   compliancePacks.doc.sold
+   compliancePacks.doc.writtenOff
+   compliancePacks.doc.other
+   compliancePacks.doc.closing
+   compliancePacks.doc.noRollforward
+   compliancePacks.doc.licenceInForce
+   compliancePacks.doc.approvedLimit
+   compliancePacks.doc.noLicence
+   compliancePacks.doc.colCategory
+   compliancePacks.doc.colTonnes
+   compliancePacks.doc.colLimit
+   compliancePacks.doc.colState
+   compliancePacks.doc.noCategories
+   compliancePacks.doc.cat_licence_not_in_force
+   compliancePacks.doc.cat_ceiling_not_set
+   compliancePacks.doc.cat_above_ceiling
+   compliancePacks.doc.cat_within_ceiling
+   compliancePacks.doc.uncategorised
+   compliancePacks.doc.checksTitle
+   compliancePacks.doc.colOutcome
+   compliancePacks.doc.colChecks
+   compliancePacks.doc.noChecks
+   compliancePacks.doc.noInjuryNote
+   compliancePacks.doc.colCode
+   compliancePacks.doc.colKind
+   compliancePacks.doc.colOccurred
+   compliancePacks.doc.colNea
+   compliancePacks.doc.colNotified
+   compliancePacks.doc.colReport
+   compliancePacks.doc.colDeadline
+   compliancePacks.doc.colClosed
+   compliancePacks.doc.noIncidents
+   compliancePacks.doc.yes
+   compliancePacks.doc.no
+   compliancePacks.doc.deadline_not_reportable
+   compliancePacks.doc.deadline_submitted
+   compliancePacks.doc.deadline_not_set
+   compliancePacks.doc.deadline_cannot_compute
+   compliancePacks.doc.colParameter
+   compliancePacks.doc.colPoint
+   compliancePacks.doc.colSampled
+   compliancePacks.doc.colValue
+   compliancePacks.doc.colJudgement
+   compliancePacks.doc.colIncident
+   compliancePacks.doc.noLimit
+   compliancePacks.doc.judgement_exceeds
+   compliancePacks.doc.judgement_within
+   compliancePacks.doc.judgement_not_judged
+   compliancePacks.doc.superseded
+   compliancePacks.doc.noEnvironmental
+   compliancePacks.doc.colChecklist
+   compliancePacks.doc.colInspected
+   compliancePacks.doc.colResults
+   compliancePacks.doc.colCorrection
+   compliancePacks.doc.pass
+   compliancePacks.doc.fail
+   compliancePacks.doc.na
+   compliancePacks.doc.noInspections
+   compliancePacks.doc.openTitle
+   compliancePacks.doc.colItem
+   compliancePacks.doc.colAction
+   compliancePacks.doc.colDue
+   compliancePacks.doc.colDaysOpen
+   compliancePacks.doc.noneOpen
+   compliancePacks.doc.neaNotSet
+   compliancePacks.doc.neaFormat
+   compliancePacks.doc.neaFrequency
+   compliancePacks.doc.neaNotProduced
+   compliancePacks.doc.euNotSet
+   compliancePacks.doc.euMethod
+   compliancePacks.doc.euTargets
+   compliancePacks.doc.euNotComputed
+   compliancePacks.doc.euMasses
+   compliancePacks.doc.frozenAt
+   compliancePacks.doc.lockedBefore
+   supplierStatements.doc.title
+   supplierStatements.doc.summary
+   supplierStatements.doc.tieNote
+   supplierStatements.doc.periodSeparator
+   supplierStatements.doc.colCcy
+   supplierStatements.doc.colValue
+   supplierStatements.doc.openTotal
+   supplierStatements.doc.residue
+   supplierStatements.doc.frozenNote
+   portal.documents.colDocument
+   portal.documents.colDate
+   portal.documents.colState
+   portal.documents.colFile
+   portal.deliveries.colReceipt
+   portal.deliveries.colTicket
+   portal.deliveries.colState
+
+✓ 代码引用的每一个键(含可枚举的动态键)en 与 zh 都在。
+✓ 少了 1 条(基线可以变短):
+   app/components/pdf/Wordmark.tsx :: 渐变
+  刷新:node scripts/check-cjk-rendered.mjs --update-baseline
+✓ 屏幕上没有【新增】写死的中文(基线 18 条)
+== 双语拼接体检 ==
+   判词:**同一条记录的 _zh 与 _en 被一起印出来,而不是按界面语言选一个。**
+   它【不】断言"翻译对不对" —— 那不是静态看得出来的。
+✓ 没有把双语拼在一起印的地方(基线 0;刻意的那些要写 i18n-both: 加理由)
+   lib/maskedTables.ts 与遮蔽表集合一致(39 张)
+== 读取遮蔽表的地方(.from() 直连 + select 串里的内嵌)==
+   判词:**这条查询读的是遮蔽表,请改读 <表>_masked。**
+   它【不】断言"这条会 42501" —— 它分不开嵌入名与列名(抬头写着为什么)。
+   基线:68 处在册(见 docs/known-issues.md 的 MASKED-READS 条)。
+
+· 少了几处 —— 有人改好了,或者文件动了。基线可以收紧:
+     app/finance/payments/[id]/page.tsx :: inbound_batches   1 → 0
+     app/finance/payroll-payments/page.tsx :: employees   1 → 0
+     app/finance/processing-costs/page.tsx :: processing_runs   1 → 0
+     app/finance/sourceLinks.ts :: inbound_batches   1 → 0
+     app/finance/sourceLinks.ts :: processing_cost_entries   1 → 0
+     app/inbound/[id]/label/route.ts :: inbound_batches   1 → 0
+     app/inventory/output/[materialId]/page.tsx :: processing_runs :: embed   1 → 0
+     app/inventory/page.tsx :: processing_runs   1 → 0
+     app/inventory/reports/ledger/ledgerQuery.ts :: inbound_batches :: embed   1 → 0
+     app/operation/processing/[id]/page.tsx :: employees   1 → 0
+     app/settings/accounts/page.tsx :: employees   1 → 0
+     app/stocktakes/actions.ts :: inbound_batches   1 → 0
+  刷新:node scripts/check-masked-reads.mjs --update-baseline
+
+✓ 没有【新增】的遮蔽表读取(直连与内嵌都算)。
+== 遮蔽表的列:仓库镜像自洽性(db/tables ↔ db/views)==
+   判词:**一张被遮蔽的表,它的每一列都必须【呈现得出来】** ——
+         有 _masked 伴生的,每列都要在视图里;只用列清单的,每列都要在 GRANT 里。
+   它【不】问线上(那是 db/gate.py 的 colgrant),也【不】问某一支迁移
+   (那是 db/preflight_migration.py 的 masked)。三者的分工见本文件抬头。
+   比对了 40 张遮蔽表 / 704 列 —— 38 张有 _masked 伴生(判据:每列都在视图里),2 张只用列清单(判据:每列都在 GRANT 里)
+✓ 仓库镜像里没有【加了列却没让它呈现出来】的遮蔽表。
+check-change-log-coverage: ✓ 329 张表 · 319 张绑定 · 10 张豁免,零缺口(自检 3/3 格变红)
+== auth.getUser() 的 error 有没有被接住 ==
+   判词:**丢掉 error,「认证够不着」与「这个人没登录」就走同一条分支。**
+   它【不】断言"接住之后处理得对" —— 那要读控制流(抬头写着为什么)。
+   66 处调用,其中 41 处没接住(在册,见 docs/known-issues.md 的 AUTH-ERROR-SWALLOWED 条)。
+
+· 少了几处 —— 有人改好了,或者文件动了。基线可以收紧:
+     app/inbound/[id]/label/route.ts   1 → 0
+     app/output/[id]/label/route.ts   1 → 0
+     app/stocktakes/actions.ts   2 → 0
+  刷新:node scripts/check-auth-error-swallowing.mjs --update-baseline
+
+✓ 没有【新增】丢掉 auth error 的地方。
+(node:91870) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/nearDuplicate.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+== 近重复:一个定义,两种处置(GO-4)==
+
+
+对拍 16 条输入,旧实现与抽取后的共享实现答案一致。
+✓ 全部通过。
+✓ 权限谓词:求值一处(allows)· FUNCTIONS 133 条(9 条跨模块,21 条带 parent)· 受限具名 · 守卫 7 支的 271 处调用都接住了返回值
+✓ check-action-view-declared:38 个动作码的声明都是一张用它的页面的门(271 张页面 · 249 张解析出门 · 5084 个文件 · 38 个码找到用处)
+  ℹ action.contract_terms:有用它的页面,其门里没有一个声明了的码(module.pricing.view)—— 持那些码而不持声明码的人用不到那几页的这个动作(按"任一"的读法这是允许的)
+  ℹ action.metal_prices:有用它的页面,其门里没有一个声明了的码(module.pricing.view)—— 持那些码而不持声明码的人用不到那几页的这个动作(按"任一"的读法这是允许的)
+  ℹ action.ship_goods:有用它的页面,其门里没有一个声明了的码(module.inbound.view, module.logistics.view, module.sales.view)—— 持那些码而不持声明码的人用不到那几页的这个动作(按"任一"的读法这是允许的)
+  ℹ action.issue_coa:有用它的页面,其门里没有一个声明了的码(module.inventory.view)—— 持那些码而不持声明码的人用不到那几页的这个动作(按"任一"的读法这是允许的)
+✓ check-pdf-font-stack:33 个 PDF 文档文件,字体栈一致(DOC_FONT_STACK)
+✓ 手机声明:267 个调用点(DataTable 239 · EditableTable 28) —— columns 模式 266(各自至少一列 priority)· scroll 模式 1(各自带 why) · 静态读不出 2(由渲染期那道网兜着)
+   · app/components/pricing/TermsRequestsPanel.tsx:128  columns 不是一个可静态定位的标识符
+   · app/me/MySelfAssessmentPanel.tsx:194  columns 不是一个可静态定位的标识符
+✓ check-datatable-footer:表尾在两个断点上各自跨满整行;折走的合计没有丢;无 footer 的表不长 <tfoot>。
+✓ 表的导出:277 处表(DataTable 239 · EditableTable 28 · 手搓 table 10)—— 248 处声明了导出 · 豁免 24 条(全部 PERMANENT)
+✓ check-disabled-block:859 个 .tsx · 20 个 fieldset 开标签 · 带 disabled 的只有 app/components/ui/disabled-block.tsx 那一处
+✓ check-list-sorting:84 张列表页 · 300 个文件 · 125 个表格开标签,每一个都开着排序
+✓ 可编辑表的格子:28 个 <EditableTable 调用点 —— 查了 28 个 columns 区段,带 name 的控件 0 个
+✓ base 组件仍然是【隔离】的:1385 个文件里,取样页与组件目录之外 0 处 import、0 处 base-* 类名。
+  已登记的既有转换 1 处(全部在 /login,LOGIN-1 做的)——
+  除它之外,没有页面用到【仍在 GUARDED 里的】那些组件。
+  ★ input / label / select(C-1)· button(C-1b)· alert(POLISH-1)已毕业:本闸对这五个【不再守着任何东西】。
+== 手搓 <table>(app/,不含组件库自己)==
+   判词:**请改用 <DataTable> / <EditableTable>。**
+   基线:35 个文件在册。本次扫到 10 处。
+· 少了几处 —— 有人改好了,或者文件动了。基线可以收紧:
+    app/finance/freight/new/NewFreightForm.tsx  1 → 0
+    app/finance/fx/bulk/BulkFxGrid.tsx  1 → 0
+    app/finance/invoices/[id]/CreateCreditNoteControl.tsx  1 → 0
+    app/finance/invoices/new/NewInvoiceForm.tsx  1 → 0
+    app/finance/payments/new/NewPaymentForm.tsx  2 → 0
+    app/hr/attendance/[id]/AttendanceGrid.tsx  1 → 0
+    app/hr/payroll/PayrollGrid.tsx  1 → 0
+    app/hr/reviews/GoalsEditor.tsx  1 → 0
+    app/inbound/[id]/assays/new/AssayForm.tsx  1 → 0
+    app/inbound/[id]/edit/PrepaymentPanel.tsx  1 → 0
+    app/logistics/containers/[id]/ContainerPanels.tsx  2 → 0
+    app/logistics/forwarders/[id]/ForwarderPanels.tsx  1 → 0
+    app/logistics/forwarders/[id]/page.tsx  1 → 0
+    app/operation/orders/new/NewWorkOrderForm.tsx  2 → 0
+    app/output/[id]/assays/new/OutputAssayForm.tsx  1 → 0
+    app/purchasing/orders/[id]/amend/AmendOrderForm.tsx  1 → 0
+    app/purchasing/orders/new/NewOrderForm.tsx  1 → 0
+    app/purchasing/payment-terms/TemplateForm.tsx  1 → 0
+    app/sales/orders/[id]/amend/AmendOrderForm.tsx  2 → 0
+    app/sales/quotes/[id]/QuoteLinesEditor.tsx  1 → 0
+    app/sales/quotes/new/NewQuoteForm.tsx  1 → 0
+    app/settings/roles/PermissionMatrix.tsx  1 → 0
+    app/tools/pricing/calculator/CalculatorForm.tsx  1 → 0
+    app/tools/pricing/formulas/FormulaForm.tsx  1 → 0
+    app/tools/pricing/metal-prices/bulk/BulkPricesForm.tsx  1 → 0
+  收紧:node scripts/check-component-library.mjs --update-baseline
+✓ 没有新增的手搓 <table>。
+
+== 手写 <button>(app/,不含组件库自己)==
+   判词:**请改用 <Button>(档位见 button.tsx 抬头)。**
+   基线:10 个文件在册。本次扫到 17 处。
+   ★ 这 17 处【全部是故意留下的】,逐条理由见 docs/base-components.md §十六。
+     它们不是债:是 expander / 遮罩 / 分段选择组 / 整行可点区 / role="switch"。
+✓ 没有新增的手写 <button>。
+
+== 长得像按钮的 <Link>/<a>(app/,不含组件库自己)==
+   判词:**请改用 <Button asChild>(链接仍然是链接,只借外观)。**
+   基线:11 个文件在册。本次扫到 15 处。
+   ★ 这一维【看不见什么】—— 两个方向都说,别只说让人安心的那一个:
+     ✗ 看不见:className 在运行期拼出来的按钮态链接(变量 / 导入的常量 /
+       三元表达式)。同文件的 const 字符串会被拼回来,跨文件的【不会】。
+     ✗ 会错抓:一个碰巧带了内边距 + 圆角 + 描边的【正文链接】。
+       判据是外观,而外观不是语义 —— 句子里的一个链接不是按钮,别把它转过去。
+     ✓ 它【不】按行切:整标签花括号配平地读,多行 <Link 因此数得到。
+       (行式工具在这里会漏掉行尾的开标签 —— 本族第六次换行陷阱,BTN-5 抬头有实测。)
+   ★ 余量清单与逐条理由见 docs/base-components.md §十七。
+✓ 没有新增的长得像按钮的 <Link>/<a>。
+
+== 格子钉死的字号(<table>/<th>/<td> 标签 + 列描述符的 className)(app/,不含组件库自己)==
+   判词:**把字号从格子上拿掉。** 表格字号由 variant C 的标准给(表头 15px/500,表体 15px/400,docs/variant-c-spec.md §4.3);手搓表用 app/components/ui/table-style.ts 的 tableC。
+   基线:91 个文件在册。本次扫到 294 处。
+   分账:标签上 0 处(<table>/<th>/<td>) · 列描述符里 294 处(className: '…')。
+   ★ 这一维【看不见什么】——
+     ✗ 运行期拼出来的 className(变量 / 三元 / 跨文件常量)。
+     ✗ 它分不出 Column 描述符与任何别的带 className 属性的对象:判据是写法,不是类型。
+     ✗ 它看不见【常量背后】的字号 —— app/components/ui/table-style.ts 的 tableC.root
+       就带着一个 text-sm(那是行高的来源,不是格子钉字号),本闸数不到它。
+     ✗ 它看不见外层元素的字号往下继承 —— 那要真浏览器,见 scripts/survey-variant-c.mjs。
+   ★ 为什么它该【只减不增】:variant C 的表格字号是 15px(variant-c-spec §4.3),
+     而 data-table.tsx 的 cn() 把 c.className 排在最后 —— 调用方钉了字号,调用方赢。
+     一次机械的转换会把 <td> 的字号原样搬进 Column.className,于是转完仍然是 14px:
+     那不是还债,是把债换了个拼法。
+· 少了几处 —— 有人改好了,或者文件动了。基线可以收紧:
+    app/finance/fx/bulk/BulkFxGrid.tsx  1 → 0
+    app/hr/attendance/[id]/AttendanceGrid.tsx  1 → 0
+    app/hr/payroll/PayrollGrid.tsx  2 → 1
+    app/hr/reviews/GoalsEditor.tsx  1 → 0
+    app/logistics/containers/[id]/ContainerPanels.tsx  1 → 0
+    app/logistics/forwarders/[id]/ForwarderPanels.tsx  1 → 0
+    app/logistics/forwarders/[id]/page.tsx  3 → 0
+    app/operation/orders/new/NewWorkOrderForm.tsx  2 → 0
+    app/purchasing/orders/new/NewOrderForm.tsx  2 → 0
+    app/purchasing/payment-terms/TemplateForm.tsx  1 → 0
+    app/sales/quotes/[id]/QuoteLinesEditor.tsx  1 → 0
+  收紧:node scripts/check-component-library.mjs --update-baseline
+✓ 没有新增的格子钉死的字号(<table>/<th>/<td> 标签 + 列描述符的 className)。
+
+规矩的另一半(库里缺能力时先加进库)【本闸不检查】,见 docs/base-components.md §八。
+✓ 导航与路由:注册表 133 条 · 路由 341 条 · 范围 18 个 · 例外 29 条(各带理由)· 退休路径 0 处 · 带参数的站内链接 63 条(目标页都读得懂)· 活动模块解析:规则穷举 + 3 组实跑 · null 两侧各验一遍(无属主 29 条 · 矛盾 133 条) · bare 路径 3 条,软导航到它们的 0 处 · 埋着的屏幕 0 个(静态 239 条路由里)
+(node:91889) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/modules.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+search registry: 覆盖断言 两条路各读到 63/63 行 · detail 35 · list 7 · list_q 16 · type_list 5
+✓ 每一条 route 都落在一个真的页面上;每一个 list_q 的列表页都读 q; 每一个 type_list 都落在 app/documents/[key]/page.tsx 上
+✓ check-document-registry:329 张表,其中带 code 列 99 张 —— 50 张在册、49 张在例外表里【各带一句理由】,没有第三种。
+✓ check-reminder-arms:72 支,视图与提醒清单逐支对齐。
+(node:91893) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/orgTree.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✓ check-org-tree:六种脏数据 + 深链 + 空输入,全部按名成立
+(node:91894) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/pMap.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✓ check-pmap:顺序 / 上限 / 失败外抛 / 边界 / 批数,全部按名成立
+  ✓ MOVEMENT_TYPES ↔ movement_type:14 个值,两个方向都对得上
+✓ check-enum-mirrors:1 处转录,全部与真源逐字相同
+✓ check-anon-grant-decision:329 张表,每一张都对 anon 显式表过态 (146 张带点名的 REVOKE · 215 张在基线里) · 常驻注入 7 格全过
+· 扫描 112 个文件(find 独立数出 112 个)· mintThrowaway 调用点 44 处,分布在 38 个文件
+✓ check-throwaway-grants:没有脚本绕过 mintThrowaway 去授权或按 admin 码找角色;mintThrowaway 带着无条件的 is_system 拒绝。
+check-confirm-subject: 130 处 subject(JSX 130 · useConfirm 0) / 130 个 JSX 开标签,来自 86 个文件,English 词条 11258 条
+EXIT 0 — 每一处确认都点得出它在确认什么。
+✓ check-instrument-selfproof:59 支量具都写了瞄准线;其中 43 支(构建链里的,含本支)都带着覆盖断言。
+✓ check-generated-css:app/globals.css 生成出 1166 条规则 / 1536 条声明,postcss 与 lightningcss 两支解析器都没有一条告警(102ms)。
+· 镜像 lib/database.types.ts:527 个表与视图
+· 源码 1385 个文件里 1453 处 .from('表')
+    · 读得准并查过的站点        1304
+    · select('*')(没有列可查)  47
+    · 链断了,取不到 .select()   0
+    · .select(变量),解析不出   2
+    · 列串里有 ${},读不准      1
+· 查过的表×列对 6054(去重 3082),其中内嵌关系上的 166
+· 写入点 117 处(insert/update/upsert):读得出键的 94(其中 8 处带展开,展开只会多出键,挡不住那几个写出来的)· 读不出的 23 处
+· 查过的写入键 353(去重 268)
+  ⚠ select(变量)(2 处,逐条):
+      · app/inventory/reports/ledger/ledgerQuery.ts:111 .from('inventory_movements').select(side === 'all' ? 'id' : `id, ${EMBED[sid)
+      · app/operation/contamination/contaminationRows.ts:93 .from('contamination_check_rows').select(columns)
+  ⚠ 模板串(1 处,逐条):
+      · app/inventory/reports/ledger/ledgerQuery.ts:112 .from('inventory_movements')
+  ⚠ 写入实参不是对象字面量(23 处,逐条):
+      · app/finance/cash-forecast/actions.ts:45 .from('cash_forecast_lines').update(row…) —— 实参不是对象字面量
+      · app/finance/cash-forecast/actions.ts:46 .from('cash_forecast_lines').insert(row…) —— 实参不是对象字面量
+      · app/hr/departments/actions.ts:41 .from('departments').update(payload…) —— 实参不是对象字面量
+      · app/hr/departments/actions.ts:42 .from('departments').insert(payload…) —— 实参不是对象字面量
+      · app/hr/leave/types/actions.ts:25 .from('leave_types').update(patch…) —— 实参不是对象字面量
+      · app/hr/leave/types/actions.ts:49 .from('public_holidays').update(patch…) —— 实参不是对象字面量
+      · app/hr/leave/types/actions.ts:50 .from('public_holidays').insert(patch…) —— 实参不是对象字面量
+      · app/hr/reviews/actions.ts:211 .from('performance_reviews').update(decision…) —— 实参不是对象字面量
+      · app/hr/reviews/actions.ts:242 .from('review_cycles').insert(cycle…) —— 实参不是对象字面量
+      · app/hr/reviews/scale/actions.ts:29 .from('review_rating_scale').update(patch…) —— 实参不是对象字面量
+      · app/hr/training/actions.ts:48 .from('training_records').update(payload…) —— 实参不是对象字面量
+      · app/hr/training/actions.ts:49 .from('training_records').insert(payload…) —— 实参不是对象字面量
+      · app/inbound/[id]/edit/importDiligenceActions.ts:60 .from('inbound_batches').update(row…) —— 实参不是对象字面量
+      · app/logistics/containers/[id]/actions.ts:27 .from('containers').update(input as never…) —— 实参不是对象字面量
+      · app/notifications/actions.ts:49 .from('notification_reads').upsert(rows.map((r) => ({ notification_id: …) —— 实参不是对象字面量
+      · app/operation/operation-types/actions.ts:140 .from('operation_type_fields').update(r.row…) —— 实参不是对象字面量
+      · app/purchasing/licences/licenceActions.ts:69 .from('company_compliance').update(row…) —— 实参不是对象字面量
+      · app/purchasing/payment-terms/actions.ts:171 .from('payment_term_template_lines').insert(parsed.rows.map((r) => ({ ...r, temp…) —— 实参不是对象字面量
+      · app/sales/commissions/actions.ts:86 .from('commission_agreements').update(row…) —— 实参不是对象字面量
+      · app/sales/quotes/actions.ts:109 .from('quote_lines').insert(lines.map((l, i) => ({ quote_id: q.i…) —— 实参不是对象字面量
+      · app/settings/accountsActions.ts:144 .from('roles').update(form…) —— 实参不是对象字面量
+      · app/settings/approvals/actions.ts:7 .from('finance_settings').update(…) —— 实参不是对象字面量
+      · app/tools/tasks/actions.ts:101 .from('tasks').insert(toRow(input) as InsertRow<'tasks'>…) —— 实参不是对象字面量
+
+✓ check-select-columns:6054 个表×列对(去重 3082)与 353 个写入键全部对得上 lib/database.types.ts;另有 47 处 select('*')、3 处读不准的读站点与 23 处读不准的写站点,已逐条列出。
+check-date-format:解析 1384 份源码 · CallExpression 55214 个
+  维度①② 在册 44 处(36 个〈文件 · 类型〉)
+  维度③  原生日期控件 0 处(判据:零)· 语法树 0 = 字符 0 · 选择器调用点 191 = 191 · type= 属性 1059 / 1059 · 金丝雀 ✓
+  toLocale*String:调用点 14 处 · ★ 另有【注释里提到】2 处
+  原生日期控件   :代码里 0 处 · ★ 另有【注释里提到】1 处
+           (两个数分开报 —— 只报一个总数的勘察,读者无从知道它数的是代码还是散文)
+· 少了几处 —— 有人改好了。基线可以收紧:
+     app/finance/bank/TransferForm.tsx :: hand-rolled-date-formatter   1 → 0
+     app/inbound/export/route.ts :: hand-rolled-date-formatter   1 → 0
+     app/inventory/reports/reportShared.ts :: hand-rolled-date-formatter   2 → 1
+     app/materials/export/route.ts :: hand-rolled-date-formatter   1 → 0
+     app/output/export/route.ts :: hand-rolled-date-formatter   1 → 0
+     app/sales/customers/export/route.ts :: hand-rolled-date-formatter   1 → 0
+     app/suppliers/export/route.ts :: hand-rolled-date-formatter   1 → 0
+✓ 没有【新增】走样的日期格式化;原生日期控件没有变多
+
+⚠ 而这句绿【不】等于「屏幕上的日期是统一的」——
+  一个什么都不写的新页面(`{row.order_date}`)照样把库原值印上屏,
+  它一行都不匹配本闸。治本那条路(BrandedDate)立案在
+  docs/known-issues.md 的 DATE1-BRANDED-DATE-DEBT,连着它为什么不在这一刀里做。
+check-date-data-paths:解析 1384 份源码 · JSX 开标签 17437 个
+  落点:ARM1 191 · ARM2 65 · ARM3 18 · ARM4 38 · ARM5 89 · 日期选择器调用点 语法树 191 = 字符 191
+  ARM4 闭合集合:action 读了 24 个日期键 → 回查到 37 颗 name= 对得上的控件
+  ARM3 闭合集合:month 键读取点 14 处
+  行为断言:38 条全部求值过
+✓ 没有任何显示格式化的输出流到那四条【当数据用】的路上
+check-date-null-preserved:1385 份源码 · 日期格式化调用 604 处 · 其中落在【投影 / prop】上 262 处
+✓ 没有任何【可能是 null 的日期】被无条件格式化成真值
+✓ gen-trail-catalogue:目录与真源一致(319 张表 · 3985 列 · 240 个取值表)
+✓ check-trail-wording ① 尺
+✓ check-trail-wording ② 登记表一致
+✓ check-trail-wording ③ 措辞目录完整
+✓ check-trail-wording ④ 机器字
+✓ check-trail-wording ⑤ 覆盖
+✓ check-trail-wording ⑥ 商务样例
+✓ check-trail-wording ⑦ 主数据样例
+✓ check-trail-wording ⑧ 账上的单据
+✓ check-trail-wording ⑨ 其余的单据与合同
+✓ check-trail-wording ⑩ 期末、设置与清单页
+✓ check-trail-wording ⑪ 账号、设置与员工
+✓ check-trail-wording ⑫ 请假与考勤
+✓ check-trail-wording ⑬ 工资与评审
+✓ check-trail-wording ⑭ U1-B 的工作流与泄漏
+✓ check-trail-wording ⑮ MES-1 的设备与网关钥匙
+✓ check-trail-wording ⑯ MES-2 的校准记录与地磅单
+✓ check-trail-wording ⑰ MES-3a 的安全状态、库存上限与 NEA 类别
+✓ check-trail-wording ⑱ MES-3b 的标签与两本新字典
+✓ check-trail-wording ⑲ MES-4a 的加工记录与工序配置
+✓ check-trail-wording ⑳ MES-4b 的抽检、算出来的损耗与电芯构造
+✓ check-trail-wording ㉑ MES-5a-1 的逐模组放电、通道与拆去隔离
+✓ check-trail-wording ㉒ MES-5a-2 的电表读数、电费分摊与 V25
+✓ check-trail-wording ㉓ MES-5b-1 的 V37、动作码的声明与拆分自己结平
+✓ check-trail-wording ㉔ MES-5b-2 的电费单撤回与工序页上的 V37
+✓ check-trail-wording ㉕ MES-5b-3 的配料计划
+✓ check-trail-wording ㉖ MES-6a-1 的样品、化验争议、V16 与冲销理由
+✓ check-trail-wording ㉗ MES-6a-2 的氟与氯、物质的角色与化验指标
+✓ check-trail-wording ㉘ MES-6b-1 的不合格报告、质量验收限与罚铜
+✓ check-trail-wording ㉙ MES-6b-2 的分析证书、它的字节档案与作废
+✓ check-trail-wording ㉚ MES-7a-1 的停机原因、来源与停机原因字典
+✓ check-trail-wording ㉛ MES-7a-2 的备件出给保养与退回
+✓ check-trail-wording ㉜ MES-7b-1 的事故登记簿:记下、之后的事实、批次链接与交接班的引用
+✓ check-trail-wording ㉝ MES-7b-2 的安全巡检与环境监测:巡检、更正、发现、任务、关闭、清单与监测结果
+✓ check-trail-wording ㉞ MES-8a 的供应商评审、评级设定与供应商对账单:签发、取代与 PDF
+✓ check-trail-wording ㉟ MES-8b-1 的合规包:冻结、取代、PDF 与 V26 / V27
+✓ check-trail-wording ㊱ MES-9a 的供应商门户账号:开、撤销、匿名化,与门户账号做的事
+✓ check-trail-wording ㊲ MES-9c 的门户交上来的证书:开始传、交去审核、没传成、接受、驳回
+   (116 个主语 272 张表 · 3557 列;扫过 319 张表、185861 句;措辞键 879 个)
+✓ check-employee-names:名字必填 / 姓氏可空 / 空白存 NULL 成立;两支动作都在写库之前问过(15 条断言)
+✓ check-balance-empty-state:真值表 8 种组合只有三样都空才是空;页面经同一支判据传了三样
+✓ check-import-inert:111 支对着线上动手的脚本(在 198 支 .mjs 里认出),每一支 import 之后的第一句都是守卫;逐支真的 import 过,111 支都以 NOT_RUN_ON_IMPORT 拒绝、拦下的尝试 0 次。自证 6 格全部咬人。
+✓ check-substance-display:① 26 条断言(% 原样不舍入、惩罚元素旁带 ppm、名字来自字典、分角色)全部成立;② 1306 个文件里 13 处 toOptions 都带着语言、定价页只递可计价金属,合同的两本字典与三条映射对得上,没有一处 content_pct 被 toFixed;四个录惩罚元素含量的框旁边都带 ppm(F7)。自证 7 格全部咬人。
+── eslint 冻结闸 ─────────────────────────────────────────────
+基线  error 41 · warning 81
+现在  error 41 · warning 77
+
+· 3 条变少了 —— 有人还了债。基线可以收紧:
+    app/hr/leave/page.tsx  @typescript-eslint/no-unused-vars  error 0→0 · warning 1→0
+    app/purchasing/orders/[id]/page.tsx  @typescript-eslint/no-unused-vars  error 0→0 · warning 1→0
+    app/tools/pricing/metal-prices/page.tsx  @typescript-eslint/no-unused-vars  error 0→0 · warning 2→0
+  收紧:node scripts/check-lint.mjs --update-baseline
+
+✓ 没有新增的 eslint 问题。
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Turbopack build encountered 1 warnings:
+./
+Failed to find font override values for font `Google Sans`
+Skipping generating a fallback font.
+
+
+✓ Compiled successfully in 23.2s
+  Running TypeScript ...
+  Finished TypeScript in 24.5s ...
+  Collecting page data using 17 workers ...
+  Generating static pages using 17 workers (0/241) ...
+  Generating static pages using 17 workers (60/241) 
+  Generating static pages using 17 workers (120/241) 
+  Generating static pages using 17 workers (180/241) 
+✓ Generating static pages using 17 workers (241/241) in 150ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /b/[code]
+├ ƒ /brand-sampler
+├ ƒ /compliance/packs
+├ ƒ /compliance/packs/[id]
+├ ƒ /compliance/packs/[id]/pdf
+├ ƒ /compliance/packs/export
+├ ƒ /contracts
+├ ƒ /contracts/[id]
+├ ƒ /contracts/new
+├ ƒ /display
+├ ƒ /documents/[key]
+├ ƒ /documents/[key]/export
+├ ƒ /finance
+├ ƒ /finance/assets
+├ ƒ /finance/assets/[id]
+├ ƒ /finance/assets/new
+├ ƒ /finance/balance-sheet
+├ ƒ /finance/bank
+├ ƒ /finance/bank/import
+├ ƒ /finance/bank/statements
+├ ƒ /finance/bank/statements/[id]
+├ ƒ /finance/bank/statements/[id]/reconcile
+├ ƒ /finance/bank/statements/export
+├ ƒ /finance/bank/transfers/export
+├ ƒ /finance/cash-forecast
+├ ƒ /finance/cash-forecast/frozen/export
+├ ƒ /finance/cashflow
+├ ƒ /finance/claims
+├ ƒ /finance/close
+├ ƒ /finance/company
+├ ƒ /finance/cost-variance
+├ ƒ /finance/credit-notes
+├ ƒ /finance/credit-notes/[id]
+├ ƒ /finance/credit-notes/[id]/pdf
+├ ƒ /finance/credit-notes/export
+├ ƒ /finance/electricity
+├ ƒ /finance/electricity/[id]
+├ ƒ /finance/electricity/new
+├ ƒ /finance/expenses
+├ ƒ /finance/expenses/[id]
+├ ƒ /finance/expenses/export
+├ ƒ /finance/expenses/new
+├ ƒ /finance/freight
+├ ƒ /finance/freight/[id]
+├ ƒ /finance/freight/export
+├ ƒ /finance/freight/new
+├ ƒ /finance/fx
+├ ƒ /finance/fx/[id]/edit
+├ ƒ /finance/fx/bulk
+├ ƒ /finance/fx/export
+├ ƒ /finance/fx/new
+├ ƒ /finance/gst
+├ ƒ /finance/gst/[periodId]
+├ ƒ /finance/gst/[periodId]/export
+├ ƒ /finance/invoices
+├ ƒ /finance/invoices/[id]
+├ ƒ /finance/invoices/[id]/pdf
+├ ƒ /finance/invoices/export
+├ ƒ /finance/invoices/new
+├ ƒ /finance/journal
+├ ƒ /finance/journal/[id]
+├ ƒ /finance/journal/entries/export
+├ ƒ /finance/journal/export
+├ ƒ /finance/journal/new
+├ ƒ /finance/ledger/[account]
+├ ƒ /finance/list-vs-ledger
+├ ƒ /finance/month-end
+├ ƒ /finance/packs
+├ ƒ /finance/packs/[id]
+├ ƒ /finance/packs/[id]/export
+├ ƒ /finance/payables
+├ ƒ /finance/payables/[batchId]
+├ ƒ /finance/payables/export
+├ ƒ /finance/payment-requests
+├ ƒ /finance/payment-requests/[id]
+├ ƒ /finance/payment-requests/export
+├ ƒ /finance/payments
+├ ƒ /finance/payments/[id]
+├ ƒ /finance/payments/export
+├ ƒ /finance/payments/new
+├ ƒ /finance/payroll-payments
+├ ƒ /finance/pnl
+├ ƒ /finance/price-exposure
+├ ƒ /finance/processing-costs
+├ ƒ /finance/receivables
+├ ƒ /finance/receivables/[saleId]
+├ ƒ /finance/receivables/export
+├ ƒ /finance/revaluation
+├ ƒ /finance/self-approved
+├ ƒ /finance/settings
+├ ƒ /finance/statements/[id]/pdf
+├ ƒ /finance/supplier-statements
+├ ƒ /finance/supplier-statements/[id]
+├ ƒ /finance/supplier-statements/[id]/pdf
+├ ƒ /finance/supplier-statements/export
+├ ƒ /finance/trial-balance
+├ ƒ /finance/wht
+├ ƒ /hr
+├ ƒ /hr/attendance
+├ ƒ /hr/attendance/[id]
+├ ƒ /hr/claims
+├ ƒ /hr/claims/[id]
+├ ƒ /hr/claims/export
+├ ƒ /hr/claims/new
+├ ƒ /hr/departments
+├ ƒ /hr/departments/[id]/edit
+├ ƒ /hr/departments/new
+├ ƒ /hr/employees
+├ ƒ /hr/employees/[id]
+├ ƒ /hr/employees/[id]/edit
+├ ƒ /hr/employees/export
+├ ƒ /hr/employees/new
+├ ƒ /hr/kpi
+├ ƒ /hr/kpi/score
+├ ƒ /hr/leave
+├ ƒ /hr/leave/[id]
+├ ƒ /hr/leave/balances
+├ ƒ /hr/leave/calendar
+├ ƒ /hr/leave/export
+├ ƒ /hr/leave/grants
+├ ƒ /hr/leave/holidays
+├ ƒ /hr/leave/new
+├ ƒ /hr/leave/types
+├ ƒ /hr/org
+├ ƒ /hr/overtime
+├ ƒ /hr/overtime/[id]
+├ ƒ /hr/payroll
+├ ƒ /hr/payroll/[id]
+├ ƒ /hr/payroll/[id]/edit
+├ ƒ /hr/payroll/new
+├ ƒ /hr/reviews
+├ ƒ /hr/reviews/[id]
+├ ƒ /hr/reviews/cycles
+├ ƒ /hr/reviews/export
+├ ƒ /hr/reviews/scale
+├ ƒ /hr/training
+├ ƒ /hr/training/[id]/edit
+├ ƒ /hr/training/new
+├ ƒ /inbound
+├ ƒ /inbound/[id]/assays/[assayId]
+├ ƒ /inbound/[id]/assays/new
+├ ƒ /inbound/[id]/cod/pdf
+├ ƒ /inbound/[id]/edit
+├ ƒ /inbound/[id]/label
+├ ƒ /inbound/export
+├ ƒ /inbound/new
+├ ƒ /inbound/receive
+├ ƒ /inbound/receive/done/[id]
+├ ƒ /inventory
+├ ƒ /inventory/inbound/[materialId]
+├ ƒ /inventory/locations
+├ ƒ /inventory/locations/[id]/edit
+├ ƒ /inventory/locations/[id]/label
+├ ƒ /inventory/locations/new
+├ ƒ /inventory/output/[materialId]
+├ ƒ /inventory/reports
+├ ƒ /inventory/reports/ledger
+├ ƒ /inventory/reports/ledger/export
+├ ƒ /inventory/reports/ledger/pdf
+├ ƒ /inventory/reports/safety
+├ ƒ /inventory/reports/safety/pdf
+├ ƒ /inventory/reports/snapshot
+├ ƒ /inventory/reports/snapshot/pdf
+├ ƒ /inventory/reports/violations
+├ ƒ /inventory/reports/violations/pdf
+├ ƒ /inventory/scan
+├ ƒ /inventory/storage-safety
+├ ƒ /loc/[code]
+├ ƒ /login
+├ ƒ /logistics
+├ ƒ /logistics/containers
+├ ƒ /logistics/containers/[id]
+├ ƒ /logistics/forwarders
+├ ƒ /logistics/forwarders/[id]
+├ ƒ /logistics/lanes
+├ ƒ /logistics/shipping
+├ ƒ /margin
+├ ƒ /materials
+├ ƒ /materials/[id]/edit
+├ ƒ /materials/export
+├ ƒ /materials/new
+├ ƒ /me
+├ ƒ /me/avatar
+├ ƒ /me/expense-claims/export
+├ ƒ /me/leave-requests/export
+├ ƒ /me/medical-claims/export
+├ ƒ /my-reviews
+├ ƒ /my-reviews/[id]
+├ ƒ /notifications
+├ ƒ /operation
+├ ƒ /operation/balance
+├ ƒ /operation/blending
+├ ƒ /operation/blending/[id]
+├ ƒ /operation/blending/new
+├ ƒ /operation/calibration
+├ ƒ /operation/capture
+├ ƒ /operation/capture/inbox
+├ ƒ /operation/capture/inbox/export
+├ ƒ /operation/capture/pending/export
+├ ƒ /operation/capture/recent/export
+├ ƒ /operation/contamination
+├ ƒ /operation/contamination/checks/export
+├ ƒ /operation/contamination/grid/export
+├ ƒ /operation/devices
+├ ƒ /operation/devices/[id]
+├ ƒ /operation/equipment
+├ ƒ /operation/equipment/[id]
+├ ƒ /operation/equipment/reliability
+├ ƒ /operation/handovers
+├ ƒ /operation/handovers/[id]
+├ ƒ /operation/handovers/new
+├ ƒ /operation/operation-types
+├ ƒ /operation/operation-types/[code]
+├ ƒ /operation/orders
+├ ƒ /operation/orders/[id]
+├ ƒ /operation/orders/new
+├ ƒ /operation/processing
+├ ƒ /operation/processing/[id]
+├ ƒ /operation/processing/export
+├ ƒ /operation/processing/new
+├ ƒ /operation/weighbridge
+├ ƒ /operation/weighbridge/[id]
+├ ƒ /operation/weighbridge/export
+├ ƒ /operation/wip
+├ ƒ /operation/yield
+├ ƒ /output
+├ ƒ /output/[id]/assays/[assayId]
+├ ƒ /output/[id]/assays/new
+├ ƒ /output/[id]/coa/pdf
+├ ƒ /output/[id]/edit
+├ ƒ /output/[id]/label
+├ ƒ /output/[id]/traceability/pdf
+├ ƒ /output/export
+├ ƒ /output/new
+├ ƒ /portal
+├ ƒ /portal/certificates
+├ ƒ /portal/certificates/upload
+├ ƒ /portal/deliveries
+├ ƒ /portal/documents
+├ ƒ /portal/documents/file
+├ ƒ /portal/my-data
+├ ƒ /purchasing
+├ ƒ /purchasing/discrepancies
+├ ƒ /purchasing/licences
+├ ƒ /purchasing/orders
+├ ƒ /purchasing/orders/[id]
+├ ƒ /purchasing/orders/[id]/amend
+├ ƒ /purchasing/orders/[id]/pdf
+├ ƒ /purchasing/orders/export
+├ ƒ /purchasing/orders/new
+├ ƒ /purchasing/payment-terms
+├ ƒ /purchasing/payment-terms/[id]/edit
+├ ƒ /purchasing/payment-terms/new
+├ ƒ /quality/coa
+├ ƒ /quality/coa/[id]
+├ ƒ /quality/disputes
+├ ƒ /quality/disputes/[id]
+├ ƒ /quality/disputes/new
+├ ƒ /quality/ncr
+├ ƒ /quality/ncr/[id]
+├ ƒ /quality/ncr/new
+├ ƒ /quality/samples
+├ ƒ /quality/samples/[id]
+├ ƒ /quality/samples/new
+├ ƒ /related/[subject]/[id]/[target]
+├ ƒ /related/[subject]/[id]/[target]/export
+├ ƒ /safety/environment
+├ ƒ /safety/environment/export
+├ ƒ /safety/incidents
+├ ƒ /safety/incidents/[id]
+├ ƒ /safety/incidents/new
+├ ƒ /safety/inspections
+├ ƒ /safety/inspections/[id]
+├ ƒ /safety/inspections/new
+├ ƒ /safety/inspections/runs/export
+├ ƒ /safety/inspections/templates/[id]
+├ ƒ /safety/inspections/templates/new
+├ ƒ /sales
+├ ƒ /sales/commissions
+├ ƒ /sales/commissions/[id]/edit
+├ ƒ /sales/commissions/new
+├ ƒ /sales/customers
+├ ƒ /sales/customers/[id]
+├ ƒ /sales/customers/[id]/edit
+├ ƒ /sales/customers/export
+├ ƒ /sales/customers/new
+├ ƒ /sales/customers/overlap
+├ ƒ /sales/orders
+├ ƒ /sales/orders/[id]
+├ ƒ /sales/orders/[id]/amend
+├ ƒ /sales/orders/[id]/pdf
+├ ƒ /sales/orders/export
+├ ƒ /sales/orders/new
+├ ƒ /sales/quotes
+├ ƒ /sales/quotes/[id]
+├ ƒ /sales/quotes/[id]/pdf
+├ ƒ /sales/quotes/export
+├ ƒ /sales/quotes/new
+├ ƒ /sales/shipments/[id]
+├ ƒ /sales/shipments/[id]/pdf
+├ ƒ /set-password
+├ ƒ /settings/accounts
+├ ƒ /settings/approvals
+├ ƒ /settings/change-history
+├ ƒ /settings/deleted
+├ ƒ /settings/dictionaries
+├ ƒ /settings/import
+├ ƒ /settings/import/history/export
+├ ƒ /settings/import/template/[table]
+├ ƒ /settings/pending-values
+├ ƒ /settings/reference
+├ ƒ /settings/roles
+├ ƒ /settings/roles/[id]
+├ ƒ /settings/roles/new
+├ ƒ /stocktakes
+├ ƒ /stocktakes/[id]
+├ ƒ /stocktakes/[id]/review
+├ ƒ /stocktakes/export
+├ ƒ /suppliers
+├ ƒ /suppliers/[id]/edit
+├ ƒ /suppliers/export
+├ ƒ /suppliers/new
+├ ƒ /suppliers/scorecards
+├ ƒ /tools/calendar
+├ ƒ /tools/converter
+├ ƒ /tools/pricing
+├ ƒ /tools/pricing/calculator
+├ ƒ /tools/pricing/formulas
+├ ƒ /tools/pricing/formulas/[id]/edit
+├ ƒ /tools/pricing/formulas/new
+├ ƒ /tools/pricing/metal-prices
+├ ƒ /tools/pricing/metal-prices/[id]/edit
+├ ƒ /tools/pricing/metal-prices/bulk
+├ ƒ /tools/pricing/metal-prices/export
+├ ƒ /tools/pricing/metal-prices/new
+├ ƒ /tools/reminders
+├ ƒ /tools/tasks
+├ ƒ /tools/tasks/[id]
+├ ƒ /verify/cod/[token]
+└ ƒ /welcome
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+BUILD_OWN_EXIT=0

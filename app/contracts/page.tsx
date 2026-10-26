@@ -316,6 +316,7 @@ export default async function ContractsPage() {
             {/* ── APR-8:生效要经 CFO ───────────────────────────────────────── */}
             <div className="mt-6 space-y-6">
                 <TermsRequestsPanel
+                    bulk
                     open={requests.open}
                     history={requests.history}
                     missingDecideCode={missingDecideCode}

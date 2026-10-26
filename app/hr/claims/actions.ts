@@ -33,6 +33,8 @@ export async function submitClaim(form: {
 }
 
 export async function decideClaim(claimId: string, approve: boolean, notes: string | null): Promise<ClaimState> {
+    // TABLE-FEATURES-3(Q11):驳回要理由 —— 界面 · 这里 · 库(MEDICAL_CLAIM_REJECT_REASON_REQUIRED)三层
+    if (!approve && (notes ?? '').trim() === '') return { error: await localizeLeaveError('MEDICAL_CLAIM_REJECT_REASON_REQUIRED|') }
     const supabase = await createClient()
     const { error } = await supabase.rpc('decide_medical_claim', {
         p_claim_id: claimId, p_approve: approve, p_notes: notes ?? undefined,

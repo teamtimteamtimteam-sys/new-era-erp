@@ -20,6 +20,8 @@ import {
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 export default async function MaterialsPage({
     searchParams,
@@ -40,6 +42,8 @@ export default async function MaterialsPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/materials', sp })
     const t = await getTranslations()
     const locale = await getLocale()
     const kinds = await getMaterialKinds()
@@ -110,6 +114,7 @@ export default async function MaterialsPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/materials" views={savedViews} />
                 <MaterialToolbar kinds={kinds} locale={locale} />
             </Suspense>
 

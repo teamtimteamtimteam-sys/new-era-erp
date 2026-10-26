@@ -1,0 +1,37 @@
+TABLE-FEATURES-3 Part 1.2 — live-safety audit of the TF-2 breaches (read-only), 2026-10-26
+Identity: every live read as postgres (rolbypassrls = true) on BASE tables, one BEGIN READ ONLY session; nothing written.
+Method: pg_restore --data-only of each backup's public schema (COPY text) vs live COPY of the same column lists under pg_dump's
+session settings (DateStyle ISO, IntervalStyle postgres, extra_float_digits 3); rows compared as multisets, every row, every column.
+Scripts: tf2-audit-pull.py (pull), tf2-audit-diff.py (diff), tf2-audit-transcripts.py (which statements the sub-agents ran).
+
+TIMING (measured from the sub-agent transcripts, session 674e2682): every sub-agent live call lies in
+2026-10-26 14:32:28 .. 14:47:00 CST. The TF-2 backup started 14:53:53 CST — AFTER the breaches. So "live vs that backup" can only show
+change after 14:53; it cannot by itself show what the breaches left. A second comparison against the previous backup
+(2026-10-23 15:20, before the breaches) covers the breach window.
+
+1. backup 2026-10-26 14:53 vs live now — 327 public tables, 326 identical row by row; 1 differs:
+   public.cod_verification_failures: row 201 (2026-10-25 22:59:06) gone, row 202 (2026-10-26 16:30:07) added.
+   This is the COD verification failure budget (written only by cod_verification(), drains itself — db/tables/cod_verification_failures.sql:16).
+   16:30:07 lies inside the TF-2 smoke run (15:49 -> 16:34). Not a table any sub-agent touched.
+   role_permissions: identical (390 rows). Every table the sub-agents wrote to (approval_log, bank_transfers, electricity_allocations,
+   electricity_allocation_reversals, fixed_asset_depreciation, journal_entries, journal_lines, payment_requests, wht_remittances,
+   payments, expenses, period_closes, freight_documents, role_permissions): identical.
+2. backup 2026-10-23 15:20 vs backup 2026-10-26 14:53 — 6 tables differ; EVERY differing row is stamped 2026-10-23 15:22–15:32 CST
+   (expenses EXP-2026-0015..0019 and three reversals by account 476bf8c8, their journal entries/lines and expense lines, supplier
+   SUP-2026-0468) plus cod_verification_failures 193 -> 201. Nothing stamped 2026-10-26. role_permissions identical.
+3. change_log: live rows seq <= 93026 = the backup's 19 chunks, 85,479 rows, byte-identical (0 only-in-backup, 0 only-in-live).
+   change_log rows with occurred_at 2026-10-26 14:30–14:49 CST: 0. All 2026-10-26 rows before the backup are the TF-1 close-out
+   throwaways at 12:xx (roles/user_roles/role_permissions, 6 INSERT + 6 DELETE etc., balanced).
+   (A session_replication_role=replica insert would not fire the change_log trigger either — which is why (2) is the proof, not (3).)
+4. Sequences (53): B0 -> B1 -> live. approval_log_seq_seq 574 -> 582 -> 582 while approval_log gained 0 rows between the backups:
+   8 values consumed by rolled-back inserts (nextval is not transactional). change_log_seq and cod_verification_failures_id advanced
+   as expected. Every document-code sequence unchanged (container/output/shipment *_code_seq never called).
+
+FOUND IN THE TRANSCRIPTS, NOT IN docs/handbacks/TABLE-FEATURES-2.md §6 (all inside BEGIN … ROLLBACK, per the transcripts):
+  - finance group A (ae75b0e5): UPDATE freight_documents SET status='posted' on an existing row (14:38:54 CST);
+  - finance group A (ae75b0e5): DELETE FROM role_permissions WHERE permission_code='data.view_pay' (14:36:53) — §6 names only
+    data.view_prices and data.view_purchase_prices.
+  Their effect on live data is covered by (1)–(3): none remains.
+
+VERDICT: role_permissions and every table the sub-agents wrote to are IDENTICAL to the backup, and identical to the pre-breach backup
+except rows stamped 2026-10-23. The one live difference (cod_verification_failures) is outside that set and explained.

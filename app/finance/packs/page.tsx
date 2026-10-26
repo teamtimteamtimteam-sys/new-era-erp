@@ -22,6 +22,9 @@ import PacksHistoryTable, { type PackRow } from './PacksHistoryTable'
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp } from '@/lib/dates'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 function monthOf(v: string | undefined): string {
     // 【只认 YYYY-MM;认不出就用上个月】上个月是"最可能已经关账"的那一个,
@@ -42,6 +45,8 @@ export default async function PacksPage({
     const sp = await searchParams
     const month = monthOf(sp.month)
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/finance/packs', sp })
     const t = await getTranslations()
 
     const [packsRes, previewRes] = await Promise.all([
@@ -82,6 +87,7 @@ export default async function PacksPage({
 
     return (
         <ListPage title={t('pack.title')} intro={t('pack.subtitle')} maxWidth="max-w-6xl" state={{ kind: 'ok' }}>
+            <Suspense fallback={null}><SavedViewsBar listKey="/finance/packs" views={savedViews} /></Suspense>
             {/* ── 实时预览 ────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-end gap-3 mb-4">
                 <PackMonthPicker month={month} />

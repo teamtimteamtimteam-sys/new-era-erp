@@ -395,7 +395,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 260 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
         RAISE EXCEPTION 'FIXTURE 260 LOG: change-log coverage (no gaps, 8 excluded), got %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'samples' AND op = 'INSERT' AND row_key ->> 'id' = s1::text)
        OR NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'sample_events' AND op = 'INSERT' AND new ->> 'sample_id' = s1::text)

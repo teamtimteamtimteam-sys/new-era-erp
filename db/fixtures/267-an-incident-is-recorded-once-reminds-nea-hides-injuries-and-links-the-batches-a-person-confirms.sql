@@ -198,7 +198,7 @@ BEGIN
     IF v_txt IS NOT NULL OR NOT has_column_privilege('authenticated', 'public.incidents'::regclass, 'what_happened', 'SELECT') THEN
         RAISE EXCEPTION 'FIXTURE 267 REG: the injury columns must be out of the column grant (got %) and the rest in it', v_txt; END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
         RAISE EXCEPTION 'FIXTURE 267 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
     IF EXISTS (SELECT 1 FROM unnest(ARRAY['incident_kinds', 'safety_settings', 'incidents', 'incident_updates', 'incident_batches',
                                           'shift_handover_incident_refs']) t

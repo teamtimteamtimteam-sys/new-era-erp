@@ -1,0 +1,59 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 7128bcb8-9385-43d6-895c-2a96a92abc0e
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/35] 13s  ovf=0 clip=0 /compliance/packs
+  [  2/35] 27s  ovf=0 clip=0 /contracts
+  [  3/35] 41s  ovf=0 clip=0 /finance/assets
+  [  4/35] 54s  ovf=0 clip=0 /finance/bank/statements
+  [  5/35] 70s  ovf=0 clip=0 /finance/claims
+  [  6/35] 82s  ovf=0 clip=0 /finance/close
+  [  7/35] 97s  ovf=0 clip=0 /finance/expenses
+  [  8/35] 120s  ovf=0 clip=0 /finance/fx
+  [  9/35] 130s  ovf=0 clip=0 /finance/invoices
+  [ 10/35] 148s  ovf=0 clip=0 /finance/journal
+  [ 11/35] 156s  ovf=0 clip=0 /finance/packs
+  [ 12/35] 165s  ovf=0 clip=0 /finance/payment-requests
+  [ 13/35] 175s  ovf=0 clip=0 /finance/payments
+  [ 14/35] 183s  ovf=0 clip=0 /hr/claims
+  [ 15/35] 197s  ovf=0 clip=0 /hr/claims/[id]
+  [ 16/35] 203s  ovf=0 clip=0 /hr/employees
+  [ 17/35] 212s  ovf=0 clip=0 /hr/kpi/score
+  [ 18/35] 221s  ovf=0 clip=0 /hr/leave
+  [ 19/35] 233s  ovf=0 clip=0 /hr/leave/[id]
+  [ 20/35] 244s  ovf=0 clip=0 /hr/leave/holidays
+  [ 21/35] 254s  ovf=0 clip=0 /hr/reviews
+  [ 22/35] 263s  ovf=0 clip=0 /hr/training
+  [ 23/35] 275s  ovf=0 clip=0 /inbound
+  [ 24/35] 285s  ovf=0 clip=0 /inventory
+  [ 25/35] 296s  ovf=0 clip=0 /materials
+  [ 26/35] 303s  ovf=0 clip=0 /operation/capture
+  [ 27/35] 314s  ovf=0 clip=0 /operation/capture/inbox
+  [ 28/35] 324s  ovf=0 clip=0 /operation/processing
+  [ 29/35] 332s  ovf=0 clip=0 /output
+  [ 30/35] 345s  ovf=0 clip=0 /purchasing/orders
+  [ 31/35] 354s  ovf=0 clip=0 /sales/customers
+  [ 32/35] 364s  ovf=0 clip=0 /settings/deleted
+  [ 33/35] 372s  ovf=0 clip=0 /suppliers
+  [ 34/35] 379s  ovf=0 clip=0 /tools/pricing/formulas
+  [ 35/35] 390s  ovf=0 clip=0 /tools/pricing/metal-prices
+
+════ 390px SURVEY ════
+measured: 35  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       35 / 35
+U2 no clipped ledger:                 35 / 35
+USABLE (U1 AND U2):                   35 / 35
+
+pages FAILING U1 (page overflows): 0
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 35 / 35  median per page: 27
+
+wrote /Users/timchen/Documents/projects/new-era-erp/docs/surveys/TABLE-FEATURES-3/readings/layout-390/phone-390.json
+· cleaned up ephemeral survey account(s)
+LAYOUT_OWN_EXIT=0

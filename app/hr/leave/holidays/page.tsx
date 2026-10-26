@@ -12,6 +12,9 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 export default async function HolidaysPage({
     searchParams,
@@ -24,6 +27,8 @@ export default async function HolidaysPage({
     const sp = await searchParams
     const year = Number(sp.year ?? new Date().getFullYear())
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/hr/leave/holidays', sp })
     const t = await getTranslations()
     const res = await supabase.from('public_holidays').select('*')
         .gte('holiday_date', `${year}-01-01`).lte('holiday_date', `${year}-12-31`)
@@ -50,6 +55,7 @@ export default async function HolidaysPage({
             notices={
                 <>
                     <LeaveSubnav />
+                    <Suspense fallback={null}><SavedViewsBar listKey="/hr/leave/holidays" views={savedViews} /></Suspense>
                     <form method="get" className="mb-4 flex items-end gap-2">
                         <label className="">
                             {t('leave.leaveYear')}

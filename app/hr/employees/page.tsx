@@ -19,6 +19,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 import {
     parseEmployeeListParams, employeeFilterQuery, employeeCount, employeePage, shapeEmployeeRows,
 } from './employeeRows'
@@ -42,6 +44,8 @@ export default async function EmployeesPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/hr/employees', sp })
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -91,6 +95,7 @@ export default async function EmployeesPage({
             state={{ kind: 'ok' }}
         >
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/hr/employees" views={savedViews} />
                 <EmployeesToolbar departments={departments} />
             </Suspense>
 

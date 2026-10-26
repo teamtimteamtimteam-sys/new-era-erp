@@ -1,0 +1,11 @@
+(node:10422) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/savedViews.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+STEP|database as postgres: {"fym":"12","fyd":"31","approvals":"true","l2":"cfo","locked":"2026-08-01","base":"SGD","lvtype":"annual"} · SG today 2026-10-26 · this month 2026-10-01…2026-10-31
+Error: THROWAWAY_UNKNOWN_PREFIX|tf3probe —— 先把它加进 scripts/ephemeral.mjs 的 THROWAWAY_EMAIL_PREFIXES(清扫才认得它)
+    at mintThrowaway (file:///Users/timchen/Documents/projects/new-era-erp/scripts/ephemeral.mjs:302:15)
+    at main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-26-table-features-3-live-proof.mjs:126:23)
+AFTER|committed on live: only the throwaway accounts and their grants (removed by the plan); everything else ran in one transaction that ended in ROLLBACK
+TF3_PROOF_EXIT=1
+TF3_OWN_EXIT=1

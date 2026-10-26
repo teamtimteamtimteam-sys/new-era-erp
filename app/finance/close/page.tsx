@@ -36,6 +36,9 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 type CloseRow = {
     id: string
@@ -71,6 +74,8 @@ export default async function ClosePage({
     const sp = await searchParams
     const show = trailCount(sp.trail)
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/finance/close', sp })
     const t = await getTranslations()
     // 「借方/贷方/净结果」这些标签都不写币种 —— 金额自己带(CCY-1)
     const baseCurrency = await getBaseCurrency()
@@ -219,6 +224,7 @@ export default async function ClosePage({
 
     return (
         <ListPage title={t('finance.closeTitle')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
+            <Suspense fallback={null}><SavedViewsBar listKey="/finance/close" views={savedViews} /></Suspense>
             {/* 当前锁状态 */}
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.lockedBefore')}:</span>

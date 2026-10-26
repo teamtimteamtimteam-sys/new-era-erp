@@ -146,7 +146,7 @@ BEGIN
        OR NOT EXISTS (SELECT 1 FROM trail_subject_members() m WHERE m.subject = 'inspection_template' AND m.table_name = 'inspection_template_items' AND m.home)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 268 REG: trail subjects inspection_run / inspection_template / dictionary_environmental_parameters / safety_environment and their members'; END IF;
     v_j := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9) IS NOT FALSE THEN
+    IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 268 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
     IF (EXISTS (SELECT 1 FROM unnest(ARRAY['inspection_templates', 'inspection_template_items', 'inspection_runs', 'inspection_results',
                                           'inspection_findings', 'inspection_finding_closures', 'environmental_parameters', 'environmental_results']) t

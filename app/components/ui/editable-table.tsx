@@ -296,7 +296,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/app/components/ui/button'
-import type { PhoneTreatment, FooterRow } from '@/app/components/ui/data-table'
+import type { PhoneTreatment, FooterRow, ClientSortUrl } from '@/app/components/ui/data-table'
 import { TABLE_TEXT, tableC } from '@/app/components/ui/table-style'
 import { TableExportBar, type TableExportSpec, type ExportColumnDef } from '@/app/components/ui/table-export'
 import type { ExportCell, NoExport } from '@/lib/export/cells'
@@ -455,7 +455,7 @@ type EditableTableCommon<T, D> = {
      *   ③ 排序后每一行仍以它【原来的下标】交给 rowKey —— 草稿按键存,不会挂到别的行上。
      *   比较值取自这一列的导出值(与 DataTable 同一个 sortKeyFromCell);没有导出值的列不可排。
      */
-    sorting?: { mode: 'client'; coverage: 'complete' }
+    sorting?: { mode: 'client'; coverage: 'complete'; url?: ClientSortUrl }
     /** 可编辑的表不分页 —— 见抬头 Q4。写上去编译不过。 */
     pageSize?: never
 }
@@ -530,7 +530,13 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
         rowActions, rowClassName, canSave, totals, exportSpec, exportRows,
     } = props
     const inDisabledBlock = useInDisabledBlock()
-    const [sort, setSort] = React.useState<{ key: string; dir: 'asc' | 'desc' } | null>(null)
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1):与 DataTable 同一个 url 选项 —— 排序写进地址,保存的视图存得下它(见 data-table.tsx ClientSortUrl)
+    const sortUrl = props.sorting?.url
+    const [sort, setSort] = React.useState<{ key: string; dir: 'asc' | 'desc' } | null>(() => {
+        const i = sortUrl?.initial
+        const c = i ? columns.find((x) => x.key === i.key) : undefined
+        return i && typeof c?.exportAs === 'function' ? i : null
+    })
     // ★ 与 DataTable 同一条(Q9):拿到 READ_ROW_LIMIT 行时不排
     const sortOn = props.sorting?.mode === 'client' && rows.length < READ_ROW_LIMIT
 
@@ -679,7 +685,15 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     })()
     const toggleSort = (key: string) => {
         if (sortHeld) return
-        setSort((s) => (s?.key === key ? (s.dir === 'asc' ? { key, dir: 'desc' } : null) : { key, dir: 'asc' }))
+        const next: { key: string; dir: 'asc' | 'desc' } | null = sort?.key === key ? (sort.dir === 'asc' ? { key, dir: 'desc' } : null) : { key, dir: 'asc' }
+        setSort(next)
+        if (sortUrl) {
+            const params = new URLSearchParams(window.location.search)
+            if (!next) { params.delete(`${sortUrl.prefix}sort`); params.delete(`${sortUrl.prefix}dir`) }
+            else { params.set(`${sortUrl.prefix}sort`, next.key); params.set(`${sortUrl.prefix}dir`, next.dir) }
+            const qs = params.toString()
+            window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+        }
     }
 
     // ★ Q7:脏着关标签页 / 刷新 —— 浏览器自己的那个提示。**它的措辞我们拥有不了。**

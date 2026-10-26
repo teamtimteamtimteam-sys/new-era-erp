@@ -156,7 +156,7 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // MES-9b(2026-10-19):323 → 324。一张门户下载记录的表(portal_document_downloads,Q22)。它记的是别的单据的号(document_code),
 //   自己没有 code 列,EXPECTED_CODE_TABLES 不动。
 // MES-9c(2026-10-20):324 → 325。一张门户交上来的证书的表(portal_certificate_submissions,MES-9 Step 0 §5)—— 它不是一张有单号的单据(没有 code 列),所以不进 document_types。
-const EXPECTED_TABLES = 328   // CLAIM-RECEIPTS-1(2026-10-21):+ expense_claim_receipts · EXPENSE-MULTILINE-1(2026-10-20):+ expense_lines · expense_claim_items · HISTORY-1(2026-09-28):+ change_log · MES-8b-2(2026-10-17):+ floor_board_settings · MES-9a(2026-10-19):+ supplier_portal_users · account_settings · MES-9b(2026-10-19):+ portal_document_downloads · MES-9c(2026-10-20):+ portal_certificate_submissions
+const EXPECTED_TABLES = 329   // TABLE-FEATURES-3(2026-10-26):+ saved_views · CLAIM-RECEIPTS-1(2026-10-21):+ expense_claim_receipts · EXPENSE-MULTILINE-1(2026-10-20):+ expense_lines · expense_claim_items · HISTORY-1(2026-09-28):+ change_log · MES-8b-2(2026-10-17):+ floor_board_settings · MES-9a(2026-10-19):+ supplier_portal_users · account_settings · MES-9b(2026-10-19):+ portal_document_downloads · MES-9c(2026-10-20):+ portal_certificate_submissions
 const EXPECTED_CODE_TABLES = 99
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

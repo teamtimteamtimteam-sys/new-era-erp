@@ -19,6 +19,7 @@
 import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition, type ReactNode } from 'react'
 import { decideClaim } from './actions'
+import { BulkDecisionBar, BulkCheck } from '@/app/components/ui/bulk-decision-bar'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xDate } from '@/lib/export/cells'
@@ -70,6 +71,9 @@ export default function ClaimDecisionPanel({
     const t = useTranslations()
     type Sel = { post: string; notes: string; items: Record<number, { acct: string; tax: string }> }
     const [sel, setSel] = useState<Record<string, Sel>>({})
+    // TABLE-FEATURES-3(Tim 2026-10-25 Q2):队列只能批量【驳回】—— 批准要逐笔科目与税码,一下点不完
+    const [bulkSel, setBulkSel] = useState<Set<string>>(new Set())
+    const toggleBulk = (id: string) => setBulkSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
     const [error, setError] = useState<string | null>(null)
     const [pendingTx, startTransition] = useTransition()
     const get = (id: string): Sel => sel[id] ?? { post: '', notes: '', items: {} }
@@ -180,9 +184,19 @@ export default function ClaimDecisionPanel({
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-8">{t('expenseClaims.noPending')}</p>
             ) : (
                 <div className="mb-8 space-y-3">
+                    <PermissionGate code="data.view_prices" allowed={canDecide}>
+                        <BulkDecisionBar
+                            items={pending.map((c) => ({ id: c.claim_id, label: c.code }))}
+                            selected={bulkSel}
+                            onSelectedChange={setBulkSel}
+                            reject={{ title: t('bulk.titles.claimsReject'), placeholder: t('bulk.claimsRejectPlaceholder'),
+                                      act: (i, reason) => decideClaim({ claimId: i.id, approve: false, notes: reason }) }}
+                        />
+                    </PermissionGate>
                     {pending.map((c) => (
                         <div key={c.claim_id} className="rounded border border-gray-300 p-3">
                             <div className="flex flex-wrap items-baseline gap-2 mb-1">
+                                {canDecide && <BulkCheck label={c.code} checked={bulkSel.has(c.claim_id)} onChange={() => toggleBulk(c.claim_id)} />}
                                 <span className="text-xs text-[color:var(--brand-muted-text)]">{c.code}</span>
                                 <span className="font-medium">{c.employee_name}</span>
                                 <span className="text-xs text-[color:var(--brand-muted-text)]">{c.employee_code}</span>

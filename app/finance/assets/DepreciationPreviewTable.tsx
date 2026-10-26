@@ -13,6 +13,8 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xMoney, xText } from '@/lib/export/cells'
 
 export type DepreciationPreviewRow = {
@@ -27,6 +29,7 @@ export default function DepreciationPreviewTable({
     rows, empty, baseCurrency, periodEnd,
 }: { rows: DepreciationPreviewRow[]; empty: React.ReactNode; baseCurrency: string; periodEnd: string }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // TABLE-EXPORT-3a(Tim 2026-10-23 Q5 · Q3):照屏幕导出,合计那一行是预览自己算的(preview_depreciate_fixed_assets 的 total_delta),照导出;
     //   About 表写明「截至 <日期> 的预览,尚未过账」。
@@ -57,7 +60,7 @@ export default function DepreciationPreviewTable({
             phone={{ mode: 'columns' }}
             empty={empty}
             rowClassName={(r) => (r.isTotal ? 'bg-gray-50 font-medium' : undefined)}
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'dep_') }}
             exportSpec={{
                 name: 'finance-depreciation-preview',
                 title: t('assets.depTitle'),

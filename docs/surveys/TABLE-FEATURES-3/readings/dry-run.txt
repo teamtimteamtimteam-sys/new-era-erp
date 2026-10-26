@@ -1,0 +1,27 @@
+BEGIN
+CREATE TABLE
+CREATE INDEX
+COMMENT
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+REVOKE
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+NOTIFY
+DRY|saved_views exists=true
+DRY|saved_views policies=4
+DRY|anon select=false insert=false
+DRY|authenticated select/insert/update/delete/truncate=true/true/true/true/false
+DRY|exclusions=10 saved_views_in=true
+DRY|leave fn has reason check=true
+DRY|medical fn has reason check=true
+ROLLBACK
+DRY_OWN_EXIT=0
+after: saved_views exists=false leave check=false

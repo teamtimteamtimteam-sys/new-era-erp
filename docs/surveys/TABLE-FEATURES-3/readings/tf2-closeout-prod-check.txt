@@ -1,0 +1,9 @@
+STEP|base https://new-era-erp.vercel.app
+STEP|database as postgres (base table invoices, non-void): {"all":{"k":"all","total":"36232.87","n":"6"},"month":{"k":"month","total":"12232.87","n":"5"}} · SG today 2026-10-26
+PASS|/finance/invoices → HTTP 200; footer [{"label":"Total · SGD","cells":{"Total":"36,232.87","Settled":"1,400.00","Open":"34,782.87"}}]; Total 36,232.87 = database 36232.87 (6 non-void invoices)
+PASS|/finance/invoices?date_from=2026-08-01&date_to=2026-08-31 → HTTP 200; footer [{"label":"Total · SGD","cells":{"Total":"12,232.87","Settled":"1,400.00","Open":"10,782.87"}}]; Total 12,232.87 = database 12232.87 (5 non-void invoices)
+PASS|/inbound → HTTP 200; "This month" link ["2026-10-01","2026-10-31"] = SG this month ["2026-10-01","2026-10-31"]
+PASS|click "This month" on /inbound → /inbound?date_from=2026-10-01&date_to=2026-10-31; date boxes ["01/10/2026","31/10/2026"]; active preset thisMonth
+STEP|done
+TF2_CLOSEOUT_EXIT=0
+TF2C_OWN_EXIT=0

@@ -22,6 +22,9 @@ import { Button } from '@/app/components/ui/button'
 import { INBOX_PAGE_SIZE, INBOX_STATUSES, INBOX_SORT, inboxCount, inboxExports, inboxExportHref, inboxLabels, inboxPage, inboxStatus, parseInboxSort } from './inboxRows'
 import { setSortParams } from '@/lib/listSort'
 import { ProcessReceivedButton, RowActions } from './InboxControls'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 // 固定 en-US 的千分位,与 RowCapNotice 同一个写法(2,005 而不是 2005)
 const COUNT = new Intl.NumberFormat('en-US')
@@ -35,6 +38,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     const supabase = await createClient()
     const canManage = await can('action.manage_devices')
     const sp = await searchParams
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/operation/capture/inbox', sp })
     const status = inboxStatus(sp.status)
     // TABLE-FEATURES-1 Q9:在数据库里排(inboxRows.ts 的 INBOX_SORT)
     const sort = parseInboxSort(sp)
@@ -114,6 +119,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             actions={<ProcessReceivedButton received={received} />}
             state={{ kind: 'ok' }}
         >
+            <Suspense fallback={null}><SavedViewsBar listKey="/operation/capture/inbox" views={savedViews} /></Suspense>
             <nav className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label={t('inbox.filter')}>
                 {filterLink(null)}
                 {INBOX_STATUSES.map((s) => filterLink(s))}

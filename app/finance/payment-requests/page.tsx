@@ -16,6 +16,9 @@ import { MOD } from '@/lib/modules'
 import { REQUEST_STATUSES, parseRequestFilter, parseRequestSort, requestCount, requestPage, shapeRequestRows, requestExportHref, requestTotals } from './requestRows'
 import { ListPage } from '@/app/components/ui/list-page'
 import { setSortParams } from '@/lib/listSort'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 const PAGE_SIZE = 20
 
@@ -35,6 +38,8 @@ export default async function PaymentRequestsPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/finance/payment-requests', sp })
     const t = await getTranslations()
 
     // TABLE-EXPORT-2a:读取与映射搬进 requestRows.ts,与导出路由共用一份。
@@ -73,6 +78,7 @@ export default async function PaymentRequestsPage({
             }
             state={{ kind: 'ok' }}
         >
+            <Suspense fallback={null}><SavedViewsBar listKey="/finance/payment-requests" views={savedViews} /></Suspense>
             <nav className="flex flex-wrap gap-2 mb-4" aria-label={t('finance.paymentRequests.filterLabel')}>
                 {filters.map((f) => (
                     <Button key={f} asChild size="sm" variant={f === filter ? 'default' : 'outline'}>

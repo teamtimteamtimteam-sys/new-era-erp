@@ -5,7 +5,7 @@ v1.4.75 — Footer totals on the 21 amount lists, computed by the database (ever
 Brief: "TABLE-FEATURES-2" (Step 0, 2026-10-26) and Tim's rulings Q1–Q9 of 2026-10-26, recorded verbatim at `docs/table-features.md` § "The rulings — Tim 2026-10-26" and queue entry 64c-2.
 Started from `a27417a137bb760b13a766ce727c8c5f7f0a99ca` (HEAD = origin/main = ls-remote, tree clean). Step 0: `docs/surveys/TABLE-FEATURES-2/step0.md` and the three survey files;
 build pattern: `build-pattern.md`; readings: `docs/surveys/TABLE-FEATURES-2/readings/`.
-**One migration** (`db/migrations/2026-10-26-table-features-2-totals.sql`, 26 new functions, no table/view/policy/data change). **Broken window opened 2026-10-26 15:24:40 CST** (`apply_migration.sh`); its end is Tim's Vercel reading.
+**One migration** (`db/migrations/2026-10-26-table-features-2-totals.sql`, 26 new functions, no table/view/policy/data change). **Broken window opened 2026-10-26 15:24:40 CST** (`apply_migration.sh`) and **closed 2026-10-26 18:49 CST** — Tim's confirmation of the deployment (a report from Tim, not a reading taken by this machine): **3 h 24 m 20 s**. See §9.
 
 ## 0 · Part 1 — TF-1 close-out
 - Production check (`db/scripts/2026-10-26-table-features-1-closeout-prod-check.mjs`): run 1 `TF1_CLOSEOUT_EXIT=1` was **probe faults** (dates compared as DD/MM/YYYY text; the wrong table picked in the ended block — `closeout-prod-check-run1-probe-faults.txt`);
@@ -104,3 +104,18 @@ FORWARDERS-OWED-DROPS-INBOUND-ROWS · LIST-ROWS-TRUNCATED-AT-1000 · COMMISSIONS
 | smoke | 45 min |
 | live proof | ≈ 2 min |
 | build work | five parallel agents, 344–1,042 s each (their own measured durations, concurrent) |
+
+## 9 · Close-out (TABLE-FEATURES-3 Part 1, 2026-10-26)
+- **Deployment:** Tim confirmed f5a62e7 deployed at **2026-10-26 18:49 CST** → broken window **15:24:40 → 18:49 CST (3 h 24 m 20 s)**. The end is Tim's reading, not a measurement here.
+- **Production check** (`db/scripts/2026-10-26-table-features-2-closeout-prod-check.mjs`, throwaway `tf2probe` via the shared helper): run 1 `TF2_CLOSEOUT_EXIT=1` was a **probe fault**
+  (the filtered month was October, which has 0 invoices — an empty table draws no footer; `docs/surveys/TABLE-FEATURES-3/readings/tf2-closeout-prod-check-run1-probe-fault.txt`);
+  run 2 **`TF2_CLOSEOUT_EXIT=0`, 4/4**: /finance/invoices footer Total 36,232.87 = database (base table, non-void, 6 invoices); filtered 2026-08-01…31 Total 12,232.87 = database (5);
+  /inbound "This month" → `?date_from=2026-10-01&date_to=2026-10-31`, boxes 01/10/2026 · 31/10/2026 (SG time). Read back: 0 throwaway users / roles / orphan grants; 7 users, 7 enabled; approvals ON finance/cfo/1000; require_calibrated_since NULL; 2 CODs; reconciliation AP and AR 0.00 unexplained.
+- **Live-safety audit of §6 (read-only, as postgres on base tables)** — `docs/surveys/TABLE-FEATURES-3/readings/tf2-live-safety-audit.txt`:
+  - every sub-agent live call lies in 14:32:28–14:47:00 CST, **before** this cut's backup (14:53:53) — so the audit compares live against that backup **and** against the previous backup (2026-10-23 15:20), which predates the breaches;
+  - 14:53 backup vs live: 326 of 327 public tables identical row by row; `role_permissions` (390) and every table the sub-agents wrote to identical. The one difference, `cod_verification_failures` (one row in, one row out at 16:30:07, during the smoke), is outside that set;
+  - 2026-10-23 backup vs 2026-10-26 backup: every differing row is stamped 2026-10-23; none 2026-10-26. change_log ≤ seq 93026: 85,479 rows byte-identical to the backup, 0 rows in 14:30–14:49;
+  - `approval_log_seq_seq` advanced 574 → 582 with no new approval_log rows: 8 numbers consumed by rolled-back inserts (an ordering key, not a document number).
+- **§6 was incomplete.** The transcripts also show, inside rolled-back transactions on live: finance group A ran `UPDATE freight_documents SET status='posted'` on an existing row, and `DELETE FROM role_permissions WHERE permission_code='data.view_pay'`. Neither left anything (audit above).
+- The SUB-AGENTS rule (Tim 2026-10-26) is now in AGENTS.md beside the live-safety sections, with this incident as its reason.
+

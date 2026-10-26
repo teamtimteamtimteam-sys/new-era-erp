@@ -46,6 +46,9 @@ import { getLocale } from '@/lib/i18n/server'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
 import { shapeListTotals } from '@/lib/listTotals'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 type AssetRow = {
     id: string
@@ -96,6 +99,8 @@ export default async function AssetsPage({
     const sp = await searchParams
     const d = sp.date ?? endOfMonthIso()
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/finance/assets', sp })
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
@@ -246,6 +251,7 @@ export default async function AssetsPage({
 
             {/* ── 月度折旧 ── */}
             <h2 className="mb-3">{t('assets.depTitle')}</h2>
+            <Suspense fallback={null}><SavedViewsBar listKey="/finance/assets" views={savedViews} /></Suspense>
             <form method="get" className="mb-3">
                 <label className="mr-2">{t('assets.depPeriodEnd')}</label>
                 <DatePicker name="date" defaultValue={d} />

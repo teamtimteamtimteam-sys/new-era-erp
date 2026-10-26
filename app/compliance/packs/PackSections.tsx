@@ -5,6 +5,8 @@
 //   「not yet set (V26 / V27)」,第 8 节旁边放这个月的投入与各形态产出 —— 不算效率(Q28)。
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xDate, xInt, xNum, xText } from '@/lib/export/cells'
 import type { CompliancePackPayload, PackBalanceLine, PackRollforward, PackCategory, PackCeilingCheck, PackIncident,
     PackEnvResult, PackInspection, PackOpenFinding } from './packTypes'
@@ -13,6 +15,7 @@ const qty = (n: number | null | undefined) => (n === null || n === undefined ? '
 
 export default function PackSections({ p }: { p: CompliancePackPayload }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
     const lineLabel: Record<string, string> = {
         input: t('compliancePacks.line.input'), output: t('compliancePacks.line.output'), loss: t('compliancePacks.line.loss'),
         remainder: t('compliancePacks.line.remainder'), pass_through: t('compliancePacks.line.passThrough'),
@@ -120,12 +123,12 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
         <div data-section="compliance-pack">
             <section className="mb-6" data-section="pack-balance">
                 <h2 className="mb-2">{t('compliancePacks.s1')}</h2>
-                <DataTable rows={k(p.processing_balance)} columns={balCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.bal.none')}
+                <DataTable rows={k(p.processing_balance)} columns={balCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'bal_') }} empty={t('compliancePacks.bal.none')}
                     exportSpec={{ name: 'compliance-pack-balance', title: t('compliancePacks.s1'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-rollforward">
                 <h2 className="mb-2">{t('compliancePacks.s2')}</h2>
-                <DataTable rows={k(p.stock_rollforward)} columns={rollCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.roll.none')}
+                <DataTable rows={k(p.stock_rollforward)} columns={rollCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'roll_') }} empty={t('compliancePacks.roll.none')}
                     exportSpec={{ name: 'compliance-pack-rollforward', title: t('compliancePacks.s2'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-licence">
@@ -134,33 +137,33 @@ export default function PackSections({ p }: { p: CompliancePackPayload }) {
                     {lic ? t('compliancePacks.lic.inForce', { no: lic.cert_no, from: lic.valid_from, until: lic.valid_until, limit: qty(lic.approved_storage_limit_tonnes) })
                          : t('compliancePacks.lic.noneInForce')}
                 </p>
-                <DataTable rows={k(p.licence.on_hand_by_category)} columns={catCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.lic.noCategories')}
+                <DataTable rows={k(p.licence.on_hand_by_category)} columns={catCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'cat_') }} empty={t('compliancePacks.lic.noCategories')}
                     exportSpec={{ name: 'compliance-pack-licence-categories', title: t('compliancePacks.s3'), aboutExtra: about }} />
                 <p className="text-xs text-[color:var(--brand-muted-text)] mt-2 mb-3">
                     {t('compliancePacks.lic.uncategorised', { t: qty(p.licence.uncategorised_tonnes) })}
                     {p.licence.movements_without_business_date > 0 && <>{' '}{t('compliancePacks.lic.undated', { n: String(p.licence.movements_without_business_date) })}</>}
                 </p>
                 <h3 className="mb-2 text-sm font-medium">{t('compliancePacks.lic.checksTitle')}</h3>
-                <DataTable rows={k(p.licence.ceiling_checks)} columns={checkCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.lic.noChecks')}
+                <DataTable rows={k(p.licence.ceiling_checks)} columns={checkCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'chk_') }} empty={t('compliancePacks.lic.noChecks')}
                     exportSpec={{ name: 'compliance-pack-ceiling-checks', title: t('compliancePacks.lic.checksTitle'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-incidents">
                 <h2 className="mb-1">{t('compliancePacks.s4')}</h2>
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('compliancePacks.inc.noInjuryNote')}</p>
-                <DataTable rows={k(p.incidents)} columns={incCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.inc.none')}
+                <DataTable rows={k(p.incidents)} columns={incCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'inc_') }} empty={t('compliancePacks.inc.none')}
                     exportSpec={{ name: 'compliance-pack-incidents', title: t('compliancePacks.s4'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-environmental">
                 <h2 className="mb-2">{t('compliancePacks.s5')}</h2>
-                <DataTable rows={k(p.environmental)} columns={envCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.env.none')}
+                <DataTable rows={k(p.environmental)} columns={envCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'env_') }} empty={t('compliancePacks.env.none')}
                     exportSpec={{ name: 'compliance-pack-environmental', title: t('compliancePacks.s5'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-inspections">
                 <h2 className="mb-2">{t('compliancePacks.s6')}</h2>
-                <DataTable rows={k(p.inspections.done)} columns={insCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.ins.none')}
+                <DataTable rows={k(p.inspections.done)} columns={insCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'ins_') }} empty={t('compliancePacks.ins.none')}
                     exportSpec={{ name: 'compliance-pack-inspections', title: t('compliancePacks.s6'), aboutExtra: about }} />
                 <h3 className="mt-4 mb-2 text-sm font-medium">{t('compliancePacks.ins.openTitle')}</h3>
-                <DataTable rows={k(p.inspections.findings_open_at_month_end)} columns={findCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} empty={t('compliancePacks.ins.noneOpen')}
+                <DataTable rows={k(p.inspections.findings_open_at_month_end)} columns={findCols} rowKey={(r) => r.k} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'find_') }} empty={t('compliancePacks.ins.noneOpen')}
                     exportSpec={{ name: 'compliance-pack-open-findings', title: t('compliancePacks.ins.openTitle'), aboutExtra: about }} />
             </section>
             <section className="mb-6" data-section="pack-nea-return">

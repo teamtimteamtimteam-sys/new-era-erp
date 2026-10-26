@@ -22,6 +22,8 @@ import { metalPricesCount, metalPricesPage, shapeMetalPriceRows, metalPricesExpo
 import ThresholdPanel from './ThresholdPanel'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { loadSubstances, payableOnly, toOptions } from './substanceQuery'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 export default async function MetalPricesPage({
     searchParams,
@@ -86,6 +88,8 @@ export default async function MetalPricesPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/tools/pricing/metal-prices', sp })
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
     const substanceOptions = toOptions(payableOnly(await loadSubstances(supabase)), await getLocale())   // MES-6a-2(Q27):定价这一页只给按含量计价的金属
     const t = await getTranslations()
@@ -193,6 +197,7 @@ export default async function MetalPricesPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/tools/pricing/metal-prices" views={savedViews} />
                 <MetalPricesToolbar substanceOptions={substanceOptions} />
             </Suspense>
 

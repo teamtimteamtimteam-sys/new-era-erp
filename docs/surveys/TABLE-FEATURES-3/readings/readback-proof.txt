@@ -1,0 +1,6 @@
+PROOF|{"users" : 7, "enabled" : 7, "throwaway_users" : 0, "throwaway_roles" : 0, "orphan_grants" : 0, "cfo_grants_active_not_real_holder" : 0, "cfo_grants_active_real_holder" : 1, "cfo_grants_all_rows" : 2, "role_codes_held" : "admin,cco,cfo,cto,finance,gm,warehouse", "approvals" : true, "chain" : "finance/cfo/1000", "req_cal" : "NULL", "cods" : 2, "saved_views_rows" : 0, "journal_requests_rows" : 0, "leave_TF3" : 0, "employees_TF3" : 0}
+BEGIN
+SET
+PROOF|recon ap unexplained=0.00 agrees=true · ar unexplained=0.00 agrees=true
+ROLLBACK
+READBACK_OWN_EXIT=0

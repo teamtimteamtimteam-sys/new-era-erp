@@ -12,6 +12,8 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xText, xTime, type ExportCell } from '@/lib/export/cells'
 
 export type DeletedRow = {
@@ -36,6 +38,7 @@ export type DeletedRow = {
 
 export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empty: React.ReactNode }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留【编号】与【为什么】—— 编号是身份;而这一页存在的全部理由
     //   就是 AUDEL-1b/2 把"为什么删"问了出来(在此之前那些记录一处都不显示)。
@@ -86,5 +89,5 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} empty={empty}
         exportSpec={{ name: 'deleted-records', title: t('deleted.title') }}
         // TABLE-FEATURES-1(Tim 2026-10-25 Q9):一次读完(筛选之后的全体)—— 在浏览器里排;没记理由的排最后
-        sorting={{ mode: 'client', coverage: 'complete' }} />
+        sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, '') }} />
 }

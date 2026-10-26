@@ -8,6 +8,8 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xText, xDate } from '@/lib/export/cells'
 import DeleteTrainingButton from './DeleteTrainingButton'
 import { Button } from '@/app/components/ui/button'
@@ -31,6 +33,7 @@ export type TrainingRow = {
 
 export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; empty: React.ReactNode }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留【员工】与【到期日】—— 员工是身份,而到期日是这张登记簿存在的
     //   理由:证书过期意味着这个人暂时不能上那道工序(见 page.tsx 抬头)。
@@ -97,7 +100,7 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
             phone={{ mode: 'columns' }}
             empty={empty}
             // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, '') }}
             exportSpec={{ name: 'hr-training', title: t('hr.trainingTitle') }}
         />
     )

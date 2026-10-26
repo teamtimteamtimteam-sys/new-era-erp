@@ -4,6 +4,8 @@
 // CONV-3 · 公共假期登记簿的那张表。见 docs/list-page-template.md 的 Kind-E 一节。
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xText, xDate } from '@/lib/export/cells'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
@@ -28,6 +30,7 @@ export default function HolidaysTable({
     onDelete: (id: string) => void
 }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
     const locale = useLocale()
 
     // ★【手机上留哪两列】日期与名称是身份 —— 没有它们,下面那一行是哪一天、
@@ -107,7 +110,7 @@ export default function HolidaysTable({
             //   CONV-2 §⑥ 第 3 条撞过同一个缺陷,这里照那条判据走。
             empty={t('leave.noHolidays', { 0: String(year) })}
             // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, '') }}
             exportSpec={{ name: 'hr-public-holidays', title: t('leave.subnav.holidays') }}
         />
     )

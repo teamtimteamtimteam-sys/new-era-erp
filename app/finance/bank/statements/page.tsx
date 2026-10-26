@@ -20,6 +20,8 @@ import { can } from '@/lib/permissions'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
 import { setSortParams } from '@/lib/listSort'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 const PAGE_SIZE = 20
 
@@ -40,6 +42,8 @@ export default async function BankStatementsPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/finance/bank/statements', sp })
     const t = await getTranslations()
 
     // TABLE-EXPORT-2a:读取、筛选与「库里的行 → 表的行」(含逐张的行状态计数)搬进 statementRows.ts,与导出路由共用一份。
@@ -101,6 +105,7 @@ export default async function BankStatementsPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/finance/bank/statements" views={savedViews} />
                 <StatementsToolbar />
             </Suspense>
 

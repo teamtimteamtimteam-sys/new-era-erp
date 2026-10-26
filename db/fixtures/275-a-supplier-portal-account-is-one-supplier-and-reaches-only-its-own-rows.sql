@@ -155,7 +155,7 @@ BEGIN
 
     -- ── LOG (before anything that reads the change log: the trail, the anonymisation) ──
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
         RAISE EXCEPTION 'FIXTURE 275 LOG: change-log coverage %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'supplier_portal_users' AND row_key ->> 'id' = l_a::text AND op = 'INSERT') THEN
         RAISE EXCEPTION 'FIXTURE 275 LOG: the portal link is not change-logged'; END IF;

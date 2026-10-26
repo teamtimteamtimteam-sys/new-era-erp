@@ -326,7 +326,14 @@ type ExportOn<T> = { exportSpec: TableExportSpec<T>; columns: ReadonlyArray<Expo
 /** 不排。 */
 type SortingOff = { sorting?: undefined }
 /** 自己排 —— ★ 类型上只接受"我拿到了全部"。这就是 A1 那条裁定。 */
-type SortingClient = { sorting: { mode: 'client'; coverage: 'complete' } }
+type SortingClient = { sorting: { mode: 'client'; coverage: 'complete'; url?: ClientSortUrl } }
+/**
+ * TABLE-FEATURES-3(Tim 2026-10-26 Q1):浏览器里排的表,把排序也写进地址 —— 于是一个保存的视图存得下它。
+ * 只在有保存视图的列表页上开(那 8 页)。`prefix` 是这张表自己的键(`<prefix>sort` / `<prefix>dir`),一页上每张表各用一个;
+ * `initial` 是页面从地址里读出来的那一对(`lib/listSort.ts` 的 `parseClientSort`),服务端首屏就按它排,不闪。
+ * 点表头用 `window.history.replaceState` 改地址 —— Next 16 让它与 useSearchParams 同步,不回服务端。
+ */
+export type ClientSortUrl = { prefix: string; initial: { key: string; dir: 'asc' | 'desc' } | null }
 /** 交给页面已有的 URL 参数去数据库排 —— 排的是全体,所以 coverage 可以是一部分。 */
 type SortingServer = {
     sorting: {
@@ -382,7 +389,7 @@ type Dir = keyof typeof DIR_NEXT
  * 表头那枚全选框。【原生 checkbox 没有 indeterminate 这个 prop】——
  * 只能通过 DOM 引用直接设它,所以这里绕不开 useEffect/ref。
  */
-function SelectAllCheckbox({
+export function SelectAllCheckbox({
     total, selected, onChange, label,
 }: { total: number; selected: number; onChange: () => void; label: string }) {
     const ref = React.useRef<HTMLInputElement>(null)
@@ -475,7 +482,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
         }
     }
 
-    const [sort, setSort] = React.useState<{ key: string; dir: Dir }>({ key: '', dir: 'none' })
+    const sortUrl = sorting?.mode === 'client' ? sorting.url : undefined
+    const [sort, setSort] = React.useState<{ key: string; dir: Dir }>(() => {
+        const i = sortUrl?.initial
+        // 地址里的键不是这张表一列可排的列 → 不排(一条旧链接或手改的地址,不是一次错误)
+        return i && columns.some((c) => c.key === i.key && sortGetterFor(c)) ? { key: i.key, dir: i.dir } : { key: '', dir: 'none' }
+    })
     const [q, setQ] = React.useState('')
     const [page, setPage] = React.useState(0)
     const [hidden, setHidden] = React.useState<ReadonlySet<string>>(() => new Set())
@@ -578,8 +590,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const noticeId = React.useId()
 
     const toggleSort = (key: string) => {
-        setSort((s) => (s.key === key ? { key, dir: DIR_NEXT[s.dir] } : { key, dir: 'asc' }))
+        const next: { key: string; dir: Dir } = sort.key === key ? { key, dir: DIR_NEXT[sort.dir] } : { key, dir: 'asc' }
+        setSort(next)
         setPage(0)
+        if (sortUrl) {
+            const params = new URLSearchParams(window.location.search)
+            if (next.dir === 'none') { params.delete(`${sortUrl.prefix}sort`); params.delete(`${sortUrl.prefix}dir`) }
+            else { params.set(`${sortUrl.prefix}sort`, next.key); params.set(`${sortUrl.prefix}dir`, next.dir) }
+            const qs = params.toString()
+            window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+        }
     }
     const toggleRow = (k: string) =>
         setOpen((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n })

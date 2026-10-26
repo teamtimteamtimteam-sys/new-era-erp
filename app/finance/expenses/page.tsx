@@ -13,6 +13,8 @@
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 import { readDatePresets } from '@/lib/datePresetsServer'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -48,6 +50,11 @@ export default async function ExpensesListPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前);
+    //   日期快捷区间也挪到这里:存视图时认区间名、打开时按今天重算,都要它。
+    const presets = await readDatePresets(supabase)
+    const viewDates = { fromKey: 'date_from', toKey: 'date_to', presets }
+    const savedViews = await loadSavedViews(supabase, { listKey: '/finance/expenses', sp, dates: viewDates })
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -107,8 +114,6 @@ export default async function ExpensesListPage({
         return `/finance/expenses?${params.toString()}`
     }
 
-    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
-    const presets = await readDatePresets(supabase)
 
     return (
         <ListPage
@@ -122,6 +127,7 @@ export default async function ExpensesListPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/finance/expenses" views={savedViews} dates={viewDates} />
                 <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <ExpensesToolbar accounts={accountOptions} />
             </Suspense>

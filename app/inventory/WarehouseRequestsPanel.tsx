@@ -10,12 +10,13 @@
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1):批 / 驳要 module.finance.view + data.view_prices;
 // 撤回要那一种的码(注销 action.batch_write_off · 回滚 action.processing_rollback · 作废 action.issue_cod),
 // 提单人本人除外。
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { BulkDecisionBar, BulkCheck } from '@/app/components/ui/bulk-decision-bar'
 import { formatAmount } from '@/lib/format'
 import {
     decideWarehouseRequest, withdrawWarehouseRequest, type WarehouseRequestKind,
@@ -70,6 +71,10 @@ export default function WarehouseRequestsPanel({
     const router = useRouter()
     const [pending, start] = useTransition()
     const notDone = t('common.actionMessage.headline.notDecided')
+    // TABLE-FEATURES-3(Tim 2026-10-25 Q2):批量批准 / 驳回 —— 每一项走下面那两颗单项钮调的同一个动作
+    const [selected, setSelected] = useState<Set<string>>(new Set())
+    const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+    const bulkAllowed = canSeeFinance && canViewPrices
 
     function run(subject: string, fn: () => Promise<{ error?: string; detail?: string }>) {
         start(async () => {
@@ -92,6 +97,18 @@ export default function WarehouseRequestsPanel({
             {open.length === 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('warehouseRequest.noneWaiting')}</p>
             )}
+            {open.length > 0 && (
+                <PermissionGate code={canSeeFinance ? 'data.view_prices' : 'module.finance.view'} allowed={bulkAllowed}>
+                    <BulkDecisionBar
+                        items={open.map((r) => ({ id: r.id, label: r.label }))}
+                        selected={selected}
+                        onSelectedChange={setSelected}
+                        approve={{ title: t('bulk.titles.warehouseApprove'), act: (i) => decideWarehouseRequest(i.id, true, '') }}
+                        reject={{ title: t('bulk.titles.warehouseReject'), placeholder: t('warehouseRequest.rejectPlaceholder'),
+                                  act: (i, reason) => decideWarehouseRequest(i.id, false, reason) }}
+                    />
+                </PermissionGate>
+            )}
             {open.map((r) => (
                 <div
                     key={r.id}
@@ -99,7 +116,10 @@ export default function WarehouseRequestsPanel({
                     className="rounded border border-amber-300 bg-amber-50 p-4 space-y-3 scroll-mt-24"
                     data-warehouse-request={r.label}
                 >
-                    <h3>{t('warehouseRequest.openTitle.' + r.kind)}</h3>
+                    <div className="flex items-center gap-2">
+                        {bulkAllowed && <BulkCheck label={r.label} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />}
+                        <h3>{t('warehouseRequest.openTitle.' + r.kind)}</h3>
+                    </div>
                     <dl className="text-sm grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1">
                         <dt className="text-[color:var(--brand-muted-text)]">{t('warehouseRequest.request')}</dt>
                         <dd>

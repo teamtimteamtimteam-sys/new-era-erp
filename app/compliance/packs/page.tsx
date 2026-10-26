@@ -24,6 +24,9 @@ import FreezePanel from './FreezePanel'
 import SettingsPanel, { type ComplianceSettings } from './SettingsPanel'
 import PacksTable, { type PackRow } from './PacksTable'
 import type { CompliancePackPayload } from './packTypes'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 const YM = /^\d{4}-(0[1-9]|1[0-2])$/
 
@@ -35,6 +38,8 @@ export default async function CompliancePacksPage({ searchParams }: { searchPara
     // 默认上一个整月(新加坡日期)—— 一个月要过完、关了账,才冻得下来
     const month = sp.month && YM.test(sp.month) ? sp.month : addMonthsIso(businessToday().slice(0, 7) + '-01', -1).slice(0, 7)
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/compliance/packs', sp })
     // TABLE-FEATURES-1 Q9:清单在数据库里排(排在截取前 PACKS_SHOWN 份之前)
     const sort = parsePackSort(sp)
     // ★ TABLE-EXPORT-2b-1(Tim Q2):清单的读取与映射搬进 packsRows.ts,与导出路由共用;只画最新 PACKS_SHOWN 份,而且说出来。
@@ -57,6 +62,7 @@ export default async function CompliancePacksPage({ searchParams }: { searchPara
 
     return (
         <ListPage title={t('compliancePacks.title')} intro={t('compliancePacks.intro')} state={{ kind: 'ok' }}>
+            <Suspense fallback={null}><SavedViewsBar listKey="/compliance/packs" views={savedViews} /></Suspense>
             <form method="get" className="mb-4 flex flex-wrap items-end gap-2" data-form="pack-month">
                 <label className="text-sm">
                     {t('compliancePacks.month')}

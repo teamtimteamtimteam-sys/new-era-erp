@@ -7,6 +7,8 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xText, xMoney, xDate } from '@/lib/export/cells'
 
 export type YearCloseRow = {
@@ -22,6 +24,7 @@ export type YearCloseRow = {
 
 export default function YearCloseHistoryTable({ rows }: { rows: YearCloseRow[] }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留【年末】与【状态】—— 年末是身份,状态是这张表存在的理由。
     const columns: ExportableColumn<YearCloseRow>[] = [
@@ -53,7 +56,7 @@ export default function YearCloseHistoryTable({ rows }: { rows: YearCloseRow[] }
             rowClassName={(r) => (r.reopened ? 'text-gray-400' : undefined)}
             exportSpec={{ name: 'year-closes', title: t('finance.yearClose.title') }}
             // TABLE-FEATURES-1 Q9:年结记录一次读全(year_closes 不翻页)—— 在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'yclose_') }}
         />
     )
 }

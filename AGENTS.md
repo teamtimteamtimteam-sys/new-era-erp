@@ -1813,6 +1813,18 @@ paragraph used to list and closed two of them:**
 ⚠ **这【不】意味着可以随手改线上** —— 备份闸、破窗、还原,规矩一条不减:
 测试数据也是 Tim 在用的那个系统的状态。变的只是**那些数字读起来是什么意思**。
 
+## ★★★ 子代理只碰本地重建 —— 线上由本会话自己做(SUB-AGENTS,Tim 2026-10-26)
+
+> **SUB-AGENTS (Tim 2026-10-26, after the TF-2 breaches): any sub-agent you start receives the brief's entire LIVE SAFETY section verbatim in its brief.
+> Sub-agents never connect to the live database at all; they test only against a local rebuild. Live dry runs, live proofs and live reads are done by this session itself.**
+
+**Why:** TABLE-FEATURES-2 gave five build agents a brief without the live-safety rules. Three of them validated functions on live inside rolled-back transactions and,
+while doing it, used `session_replication_role=replica`, deleted `role_permissions` rows (`data.view_prices`, `data.view_purchase_prices`, `data.view_pay`) and flipped an
+existing `freight_documents` row — all rolled back, all forbidden (`docs/handbacks/TABLE-FEATURES-2.md` §6 and §9). The TF-3 audit found nothing left behind
+(`docs/surveys/TABLE-FEATURES-3/readings/tf2-live-safety-audit.txt`), and found §6 itself had missed two of the statements — a sub-agent's own account of what it ran on live is a report, not a reading.
+
+**How:** a sub-agent's brief carries the LIVE SAFETY section and a local DSN (an empty local cluster built with `python3 db/verify_rebuild.py --target <dsn> --skip-diff`, as in「Verifying the rebuild path」above); anything that needs live — a dry run, a proof, a read — comes back to this session as a request.
+
 ## ★★ 两张已签发的 COD —— 字节基线【只记在这里】(TABLE-EXPORT-2,2026-10-22)
 
 **每一刀的线上安全规矩里都有一条「两张已签发的 COD 逐字节不变」。比对的对象就是下面这两行,不是别的报告里的缩写。**
@@ -1845,6 +1857,15 @@ paragraph used to list and closed two of them:**
 * **日期快捷区间**:`lib/datePresets.ts`(纯算术)+ `lib/datePresetsServer.ts`(新加坡的今天 `businessToday()` + `fiscal_year_end_setting()`)
   + `<DatePresetLinks>`;到期末为止(Q6)。**新开一张带起止日期的列表:用这三样,不要再写一份 `new Date()` 的预设。**
 * 列表工具栏里的筛选下拉可以 `max-w-full`(Q7,`docs/variant-c-spec.md` §4.1d 的例外);别处的原生下拉禁令照旧。全文:`docs/table-features.md`。
+
+## 表格:保存的视图 · 批量动作 · 驳回理由(TABLE-FEATURES-3,Tim 2026-10-25 Q2 · Q3 · Q11 / 2026-10-26 Q1–Q4)
+
+* **有筛选的列表页带保存的视图**(28 张):`loadSavedViews(supabase, { listKey, sp, dates? })` 在页面里【最先】调(地址为空时跳到本人的默认视图 ——
+  一个带参数的链接从不被顶掉),`<SavedViewsBar listKey views dates? />` 画在工具栏旁边。**一张列表长出筛选:就加这两行**(Q1)。
+  浏览器里排的表要进视图,就给 `sorting` 加 `url: clientSortUrl(useSearchParams(), '<这张表自己的前缀>')`,一页上每张表一个前缀。
+* **批量动作一次一项、走单击那一扇门**(`lib/bulkRun.ts` + `app/components/ui/bulk-decision-bar.tsx`):不要写一支"批量"的库函数或数组 RPC ——
+  四眼、CFO 档位与拒绝要【按项】由库判,结果名单要逐项说出理由。全选只勾屏幕上的。
+* 请假与医疗报销的驳回要理由:库按名拒(`LEAVE_REJECT_REASON_REQUIRED` · `MEDICAL_CLAIM_REJECT_REASON_REQUIRED`),与十二条审批链同一个形状。全文:`docs/table-features.md`。
 
 ## Test data that reads wrong on purpose
 

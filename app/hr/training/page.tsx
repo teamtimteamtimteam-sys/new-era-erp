@@ -19,6 +19,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import TrainingTable, { type TrainingRow } from './TrainingTable'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 type Row = {
     id: string
@@ -44,6 +46,8 @@ export default async function TrainingPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/hr/training', sp })
     const t = await getTranslations()
 
     const category = (sp.category ?? '').trim()
@@ -112,6 +116,7 @@ export default async function TrainingPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/hr/training" views={savedViews} />
                 <TrainingToolbar />
             </Suspense>
 

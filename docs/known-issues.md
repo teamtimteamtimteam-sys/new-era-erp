@@ -11746,3 +11746,11 @@ TF-2 照 Q5 的字面做:「今年」= 今天所在的、按 fy_end 月日算出
 - **FORWARDERS-OWED-DROPS-INBOUND-ROWS** —— `ap_open_items` 只留 `ib.unit_price IS NOT NULL`(`db/views/ap_open_items.sql:119`),而 `unit_price` 对不持 `data.view_purchase_prices` 的读者被遮(`inbound_batches_masked.sql:44`):那位读者的每一笔进料欠款悄悄消失,预付遮成 NULL 再 COALESCE 成 0 又让费用那几行读得偏高。TF-2 的表尾对这位读者读「受限」;每一行的「欠款」照旧。
 - **LIST-ROWS-TRUNCATED-AT-1000** —— 四处的【每一行】的数今天就建在一次不分页、停在 1,000 行的读取上,而 TF-2 的表尾是库算的全体:`/finance/assets` 的累计折旧与净值(`page.tsx:103-109`)· `/logistics/forwarders` 的欠款(`page.tsx:83-94`)· `/finance/self-approved`(RPC ≤ 1,000 而客户端排序声称 complete)· `/inventory`(七次不分页读取)。量大之后表尾会与上面的行对不上 —— 那时错的是行。
 - **COMMISSIONS-PER-TONNE-NO-UNIT** —— 按吨的佣金在表里印成一个普通金额,没有「/t」(`app/sales/commissions/CommissionsTable.tsx:84-85`)。
+
+## TABLE-FEATURES-3 登记(2026-10-26)
+
+### SAVED-VIEW-DEFAULT-RETURNS-WHEN-LAST-FILTER-CLEARED · 设了默认视图之后,把最后一个筛选清掉,列表回到默认视图(TF-3 记;按 Q3 字面建,请 Tim 看一眼)
+Q3:「默认视图只在打开列表时地址里什么都没有才套用」。服务端分不出"从别处打开这张列表"与"在这张列表上把最后一个筛选清掉"——两者到达的都是一个空地址
+(Next 的软导航对两者发同样的请求)。于是:设了默认「未付」的人,在工具栏把状态改回「全部」,若那是地址里最后一个参数,页面回到「未付」。
+出路在视图条上:「原始列表」(`?view=plain`)永远不套默认。要改成"清空也不回默认",做法是让 28 张页的工具栏在清空时写 `view=plain` —— 一处小改,但它是一条
+新裁定,不在本刀里猜。量法:`lib/savedViewsServer.ts` `loadSavedViews` 的 `addressIsEmpty`;28 张页的工具栏都是删键再 `router.replace`。

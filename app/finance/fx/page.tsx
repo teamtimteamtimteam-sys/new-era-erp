@@ -27,6 +27,8 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 export default async function FxRatesPage({
     searchParams,
@@ -47,6 +49,8 @@ export default async function FxRatesPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/finance/fx', sp })
     const t = await getTranslations()
 
     const { currency, sort, dir } = parseFxListParams(sp)
@@ -249,6 +253,7 @@ export default async function FxRatesPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/finance/fx" views={savedViews} />
                 <FxToolbar currencies={currencyOptions} />
             </Suspense>
 

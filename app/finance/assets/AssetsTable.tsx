@@ -10,6 +10,8 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xText, xMoney, xDate, xInt } from '@/lib/export/cells'
 import AssetActions from './AssetActions'
 import type { ListTotal } from '@/lib/listTotals'
@@ -64,6 +66,7 @@ export default function AssetsTable({
     empty: React.ReactNode
 }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留【编号 · 净值 · 状态】—— TABLE-PHONE-1 的判断,一个字没改。
     //   其余九列进展开区。
@@ -165,7 +168,7 @@ export default function AssetsTable({
             rowClassName={(a) => (a.status === 'disposed' ? 'text-gray-400' : undefined)}
             exportSpec={{ name: 'fixed-assets', title: t('assets.title') }}
             // TABLE-FEATURES-1 Q9:台账一次读全(fixed_assets 不翻页)—— 在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'asset_') }}
             footer={() => totalsFooterRows(totals, { cost: 'cost', costBase: 'costBase', accum: 'accum', nbv: 'nbv' }, t)}
         />
     )

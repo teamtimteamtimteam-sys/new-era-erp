@@ -23,9 +23,10 @@
 //   打分输入框不折。
 import { CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { clientSortUrl } from '@/lib/listSort'
 import { scoreKpiEntry } from './actions'
 import { xText, xNum, xInt } from '@/lib/export/cells'
 
@@ -73,6 +74,7 @@ const textOrNull = (v: string): string | null => (v.trim() === '' ? null : v)
 
 export default function ScoreEditor({ rows, canEdit, title }: { rows: ScoreRow[]; canEdit: boolean; title: string }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
     const router = useRouter()
     const [, startTransition] = useTransition()
 
@@ -248,7 +250,7 @@ export default function ScoreEditor({ rows, canEdit, title }: { rows: ScoreRow[]
             canEdit={canEdit}
             // TABLE-EXPORT-3b(Tim 2026-10-25 Q8):one-row 模式下 rows 就是已保存的分
             // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, '') }}
             exportSpec={{ name: 'hr-kpi-scores', title }}
             toDraft={(r) => ({
                 score: r.score,

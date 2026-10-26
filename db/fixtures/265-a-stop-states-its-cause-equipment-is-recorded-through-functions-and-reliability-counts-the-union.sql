@@ -500,7 +500,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 265 TRAIL downtime_causes must be change-logged';
     END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
         RAISE EXCEPTION 'FIXTURE 265 TRAIL change-log coverage %', v_j;
     END IF;
 

@@ -41,6 +41,11 @@ export async function localizeLeaveError(message: string): Promise<string> {
             return t('leave.errCarryExists', { 0: p[0] ?? '', 1: p[1] ?? '' })
         case 'REQUEST_NOT_PENDING':
             return t('leave.errNotPending', { 0: p[0] ?? '' })
+        // ★ TABLE-FEATURES-3(Tim 2026-10-25 Q11):驳回要一句理由 —— 库按名拒(请假与医疗申报共用这一支 localizer)
+        case 'LEAVE_REJECT_REASON_REQUIRED':
+            return t('leave.errRejectReasonRequired')
+        case 'MEDICAL_CLAIM_REJECT_REASON_REQUIRED':
+            return t('claims.errRejectReasonRequired')
         // ★ EMP-SELF-1(Q1):本人只撤还在等的假。状态译成人话,不印原码。
         case 'LEAVE_OWN_CANCEL_PENDING_ONLY':
             return t('leave.errOwnCancelPendingOnly', { 0: p[0] ?? '', 1: t(`leave.status_${p[1] ?? ''}`) })
@@ -158,6 +163,8 @@ export async function decideLeave(
     approve: boolean,
     notes: string | null
 ): Promise<LeaveState> {
+    // TABLE-FEATURES-3(Q11):驳回要理由 —— 界面(ConfirmButton reason)· 这里 · 库(LEAVE_REJECT_REASON_REQUIRED)三层,与十二条审批链同一个形状
+    if (!approve && (notes ?? '').trim() === '') return { error: await localizeLeaveError('LEAVE_REJECT_REASON_REQUIRED|') }
     const supabase = await createClient()
     const { error } = await supabase.rpc('decide_leave_request', {
         p_request_id: requestId,

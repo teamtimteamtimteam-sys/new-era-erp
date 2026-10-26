@@ -21,6 +21,8 @@ import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { Suspense } from 'react'
 import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 import { readDatePresets } from '@/lib/datePresetsServer'
 
 export default async function LeaveRequestsPage({
@@ -35,6 +37,11 @@ export default async function LeaveRequestsPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前);
+    //   日期快捷区间也挪到这里:存视图时认区间名、打开时按今天重算,都要它。
+    const presets = await readDatePresets(supabase)
+    const viewDates = { fromKey: 'from', toKey: 'to', presets }
+    const savedViews = await loadSavedViews(supabase, { listKey: '/hr/leave', sp, dates: viewDates })
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -51,8 +58,6 @@ export default async function LeaveRequestsPage({
     const total = mustCount(totalRes, 'leave_requests_masked count')
 
     const sel = CONTROL_SELECT
-    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末),服务端算好
-    const presets = await readDatePresets(supabase)
 
     return (
         <ListPage
@@ -68,6 +73,7 @@ export default async function LeaveRequestsPage({
             <LeaveSubnav />
 
             <Suspense fallback={<div className="mb-3 h-8" />}>
+                <SavedViewsBar listKey="/hr/leave" views={savedViews} dates={viewDates} />
                 <DatePresetLinks presets={presets} fromKey="from" toKey="to" pageKey="page" />
             </Suspense>
             {/* 日期框是不受控的(defaultValue):按快捷区间换了地址之后,用起止两个参数做 key 让表单重挂,框里才显示新日期 */}

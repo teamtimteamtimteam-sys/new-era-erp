@@ -76,3 +76,25 @@ export function setSortParams(params: URLSearchParams, sort: ListSort, prefix = 
     params.set(`${prefix}dir`, sort.dir)
     return params
 }
+
+/**
+ * TABLE-FEATURES-3(Tim 2026-10-26 Q1):一张【浏览器里排】的表,从地址里读它自己那一对 `<prefix>sort` / `<prefix>dir`。
+ * 交给 DataTable 的 `sorting.url.initial`;键对不对由 DataTable 对着自己的列判(这里不知道有哪些列)。没有、或 dir 不是 asc/desc → null(不排)。
+ */
+export function parseClientSort(
+    sp: Record<string, string | string[] | undefined>,
+    prefix = '',
+): ListSort | null {
+    const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+    const key = one(sp[`${prefix}sort`])
+    const dir = one(sp[`${prefix}dir`])
+    if (!key || (dir !== 'asc' && dir !== 'desc')) return null
+    return { key, dir }
+}
+
+/** 同一件事的浏览器那一侧:表组件用 useSearchParams() 读,交给 DataTable 的 `sorting.url`(服务端首屏读到的也是同一个地址)。 */
+export function clientSortUrl(sp: { get(key: string): string | null }, prefix = ''): { prefix: string; initial: ListSort | null } {
+    const key = sp.get(`${prefix}sort`)
+    const dir = sp.get(`${prefix}dir`)
+    return { prefix, initial: key && (dir === 'asc' || dir === 'desc') ? { key, dir } : null }
+}

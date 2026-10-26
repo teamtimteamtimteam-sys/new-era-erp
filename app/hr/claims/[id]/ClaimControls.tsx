@@ -81,11 +81,13 @@ export default function ClaimControls({
                                 onClick={() => run(() => decideClaim(claimId, true, notes || null))}>
                             {t('leave.approve')}
                         </Button>
-                        <Button type="button" disabled={pending}
-                                onClick={() => run(() => decideClaim(claimId, false, notes || null))}
-                                variant="secondary">
+                        {/* TABLE-FEATURES-3(Tim 2026-10-25 Q11):驳回要一句理由 —— 确认框里的必填框,库按名拒空理由 */}
+                        <ConfirmButton subject={claimCode} title={t('claims.rejectTitle')} confirmLabel={t('leave.reject')}
+                                       tier="destructive" reason={{ placeholder: t('claims.rejectReasonPlaceholder') }}
+                                       triggerVariant="secondary" disabled={pending}
+                                       onConfirm={(reason) => run(() => decideClaim(claimId, false, reason))}>
                             {t('leave.reject')}
-                        </Button>
+                        </ConfirmButton>
                     </div>
                     </PermissionGate>
                 </>

@@ -11,13 +11,14 @@
 // 【谁能批,这里不预判】二级审批角色、而且不是提单人(按人认)—— 两条都只有数据库知道。
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1):批 / 驳要 module.finance.view + data.view_prices;
 // 撤回要 module.finance.edit,提单人本人除外。
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { BulkDecisionBar, BulkCheck } from '@/app/components/ui/bulk-decision-bar'
 import { formatAmount } from '@/lib/format'
 import { decideDisposalRequest, withdrawDisposalRequest } from './disposalRequestActions'
 
@@ -68,6 +69,10 @@ export default function AssetDisposalRequestsPanel({
     const router = useRouter()
     const [pending, start] = useTransition()
     const notDone = t('common.actionMessage.headline.notDecided')
+    // TABLE-FEATURES-3(Tim 2026-10-25 Q2):批量批准 / 驳回 —— 每一项走下面那两颗单项钮调的同一个动作
+    const [selected, setSelected] = useState<Set<string>>(new Set())
+    const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+    const bulkAllowed = canDecide
 
     function run(subject: string, fn: () => Promise<{ error?: string; detail?: string }>) {
         start(async () => {
@@ -114,6 +119,18 @@ export default function AssetDisposalRequestsPanel({
             {open.length === 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('assetDisposal.noneWaiting')}</p>
             )}
+            {open.length > 0 && (
+                <PermissionGate code={holdsDecideView ? 'data.view_prices' : 'module.finance.view'} allowed={bulkAllowed}>
+                    <BulkDecisionBar
+                        items={open.map((r) => ({ id: r.id, label: r.label }))}
+                        selected={selected}
+                        onSelectedChange={setSelected}
+                        approve={{ title: t('bulk.titles.disposalApprove'), act: (i) => decideDisposalRequest(i.id, true, '') }}
+                        reject={{ title: t('bulk.titles.disposalReject'), placeholder: t('assetDisposal.rejectPlaceholder'),
+                                  act: (i, reason) => decideDisposalRequest(i.id, false, reason) }}
+                    />
+                </PermissionGate>
+            )}
             {open.map((r) => (
                 <div
                     key={r.id}
@@ -121,7 +138,10 @@ export default function AssetDisposalRequestsPanel({
                     className="rounded border border-amber-300 bg-amber-50 p-4 space-y-3 scroll-mt-24"
                     data-asset-disposal-request={r.label}
                 >
-                    <h3>{t('assetDisposal.openTitle')}</h3>
+                    <div className="flex items-center gap-2">
+                        {bulkAllowed && <BulkCheck label={r.label} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />}
+                        <h3>{t('assetDisposal.openTitle')}</h3>
+                    </div>
                     <dl className="text-sm grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1">
                         <dt className="text-[color:var(--brand-muted-text)]">{t('assetDisposal.request')}</dt>
                         <dd>

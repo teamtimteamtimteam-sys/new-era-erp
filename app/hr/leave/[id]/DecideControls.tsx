@@ -11,15 +11,19 @@ import { useTranslations } from '@/lib/i18n/client'
 import { decideLeave, cancelLeave } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 export default function DecideControls({
     requestId,
+    code,
     status,
     available,
     requested,
     canDecide,
 }: {
     requestId: string
+    /** 这张单的编号 —— 驳回确认框说的是哪一张(ConfirmButton subject)。 */
+    code: string
     status: string
     available: number | null
     requested: number
@@ -82,14 +86,19 @@ export default function DecideControls({
                         >
                             {pending ? t('common.saving') : t('leave.approve')}
                         </Button>
-                        <Button
-                            type="button"
+                        {/* TABLE-FEATURES-3(Tim 2026-10-25 Q11):驳回要一句理由 —— 确认框里的必填框,库按名拒空理由 */}
+                        <ConfirmButton
+                            subject={code}
+                            title={t('leave.rejectTitle')}
+                            confirmLabel={t('leave.reject')}
+                            tier="destructive"
+                            reason={{ placeholder: t('leave.rejectReasonPlaceholder') }}
+                            triggerVariant="secondary"
                             disabled={pending}
-                            onClick={() => act(() => decideLeave(requestId, false, notes || null))}
-                            variant="secondary"
+                            onConfirm={(reason) => act(() => decideLeave(requestId, false, reason))}
                         >
                             {t('leave.reject')}
-                        </Button>
+                        </ConfirmButton>
                     </PermissionGate>
                 )}
                 {status === 'approved' && (

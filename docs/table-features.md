@@ -93,3 +93,53 @@ SPLIT: not split (Tim). Reason: the last cuts ran at well under their estimates 
   (four presets, Singapore time, "this year" = the financial year from `fiscal_year_end_setting()`). The three GET-form pages key their form on from/to so the uncontrolled date boxes remount.
 - **Overflow:** `${CONTROL_SELECT} max-w-full` on the filter selects of `/purchasing/orders` and `/inbound` (Q7).
 - **Decisions taken while building TF-2** are listed in `docs/handbacks/TABLE-FEATURES-2.md` §4.
+
+## The rulings — Tim 2026-10-26 (TABLE-FEATURES-3 Step 0), verbatim
+
+Step 0: `docs/surveys/TABLE-FEATURES-3/step0.md` (and `survey-lists.mjs` → `survey-lists.tsv`).
+
+| # | Ruling (Tim 2026-10-26) |
+|---|---|
+| Q1 | Saved views on the 29 list pages that have filters in the address. The 55 sort-only lists get no saved views and no queue item; any list that later gains filters gets saved views through the same shared component. Moving browser sort into the address is needed only where those 29 pages sort in the browser (8 pages), each table with its own key. |
+| Q2 | When a view is saved with dates that match a preset, store the preset name and compute the dates each time the view opens; a view with hand-typed dates keeps those dates. |
+| Q3 | A default view applies only when the list is opened with nothing in the address; a link that carries its own parameters (from reminders, audit trails or elsewhere) is never overridden. The views menu always offers "plain list". |
+| Q4 | Bulk-approve proof as you proposed: inside ONE rolled-back transaction, throwaway accounts from the shared helper; the approver is given the real cfo role as a NEW user_roles row that the rollback removes (Tim's explicit one-off exception to the rule that throwaways never hold system roles; no existing row is modified); three journal requests, one raised by the approver; the single-click decide function run on each in turn; expected two approved and one refused with SELF_APPROVAL_FORBIDDEN. Afterwards read back that 0 throwaway accounts exist and 0 user_roles rows grant cfo to anyone but the real cfo holder. The result list is proved in a local test with a mix of done and refused items; on live, only the bulk bar and select-all are shown, with nothing pressed. This exception is done by this session itself, never by a sub-agent. |
+| — | Grilling changes accepted: card lists (journal, warehouse, asset disposal, expense-claim queue) get a checkbox per card; bulk is not added to the terms panel on /contracts/[id] or the formula edit page; the leave reject rule lives in the decide function, not a table constraint. |
+
+**Correction recorded (measured while building, 2026-10-26):** the filter pages are **28**, not 29. Step 0's count used a two-pass regex that can leave one
+non-filter key behind; it left `corrects` on `/safety/environment`, which pre-fills a correction form and filters nothing. Re-counted by splitting the keys:
+28 pages with a real filter, 8 of them browser-sorted (19 tables), 56 sort-only. Q1 is built on the 28 — the ruling's subject ("the list pages that have filters
+in the address"), not its count. Also: the terms panel's requests are **cards** (its DataTable is each request's change table), so 5 of the 7 bulk lists are card
+lists and only the weighbridge drafts are a table.
+
+## How TF-3 is built (v1.4.76)
+
+### Saved views (Q3 · Q1–Q3)
+* **Table** `saved_views` (`db/tables/saved_views.sql`): one row per (person, list, name), `query` = the address after `?`; at most one `is_default` per
+  person per list (partial unique index); RLS own rows only (no write gate — like `notification_reads`); anon nothing; not in the change log (exclusion 10).
+* **Shared parts:** `lib/savedViews.ts` (pure: `encodeViewQuery` drops paging and one-off keys and stores a matching quick range as `date_preset=<name>`;
+  `resolveViewQuery` / `viewHref` turn it back into today's dates) · `lib/savedViewsServer.ts` `loadSavedViews` (reads the person's views; **redirects to the
+  default only when the address is empty**) · `app/components/ui/saved-views.tsx` `<SavedViewsBar>` (views as links, current one bold, default ★,
+  "Plain list" = `?view=plain`, "Save view", "Manage views": make default / remove default / delete) · `app/components/ui/saved-view-actions.ts`.
+* **Each of the 28 pages:** `loadSavedViews` right after the client is made (before any other query — the default is a redirect); the 10 date pages pass
+  `{ fromKey, toKey, presets }` (presets moved up from where TF-2 read them). **A list that gains filters later: the same two lines.**
+* **Browser sort in the address (the 8 pages, 19 tables):** `sorting: { mode: 'client', coverage: 'complete', url: clientSortUrl(useSearchParams(), '<prefix>') }`
+  on DataTable / EditableTable; clicking a header writes `<prefix>sort` / `<prefix>dir` with `history.replaceState` (Next 16 keeps `useSearchParams` in step).
+  Prefixes: compliance pack sections `bal_ roll_ cat_ chk_ inc_ env_ ins_ find_` · assets `asset_ dep_` · close `close_ yclose_` · packs `hist_ recon_ split_` ·
+  the four single-table pages none.
+
+### Bulk actions (Q2 · Q4)
+* `lib/bulkRun.ts` (pure): `runOneAtATime` calls the item's **own single-click action**, one item at a time, in screen order; a refusal or a thrown call is that
+  item's outcome and the batch goes on. `toggleAllOnScreen` = select-all ticks only the rows on screen.
+* `app/components/ui/bulk-decision-bar.tsx`: `<BulkDecisionBar>` (select all on screen · N selected · Approve selected · Reject selected with one reason for the
+  batch · result list `data-slot="bulk-results"`, each item done or refused with its own reason) · `<BulkCheck>` per card · `<BulkScope>`/`<BulkScopeCheck>`/
+  `<BulkScopeBar>` for the server-rendered weighbridge drafts table.
+* Wired: journal · warehouse · asset disposal · terms (prop `bulk`, on `/contracts` and `/tools/pricing/formulas` only) — approve + reject; expense-claim queue ·
+  weighbridge drafts — reject only. The bar sits inside the same `PermissionGate` as the single-item buttons.
+* Proof: `scripts/check-bulk-run.mjs` (local, a done/refused/thrown mix, with a fault injection) · the Q4 rolled-back live arm in
+  `db/scripts/2026-10-26-table-features-3-live-proof.mjs`.
+
+### Reject reasons (Q11)
+`decide_leave_request` / `decide_medical_claim` raise `LEAVE_REJECT_REASON_REQUIRED|<code>` / `MEDICAL_CLAIM_REJECT_REASON_REQUIRED|<code>` on a blank reason
+(`btrim`, the same test as the twelve engine chains); the server actions refuse blank first; the Reject buttons on `/hr/leave/[id]` and `/hr/claims/[id]` are
+ConfirmButtons with a required reason. Fixture 293.

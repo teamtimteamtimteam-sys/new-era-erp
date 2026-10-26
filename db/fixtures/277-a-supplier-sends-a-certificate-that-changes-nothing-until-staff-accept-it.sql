@@ -447,7 +447,7 @@ BEGIN
 
     -- ── EXCL ───────────────────────────────────────────────────────────────
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 9 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
         RAISE EXCEPTION 'FIXTURE 277 EXCL: change-log coverage %', v_j; END IF;
     IF EXISTS (SELECT 1 FROM change_log_exclusions() x WHERE x.table_name = 'portal_certificate_submissions') THEN
         RAISE EXCEPTION 'FIXTURE 277 EXCL: the submissions table is excluded from the change log'; END IF;

@@ -10,7 +10,7 @@
 // 【谁能批,这里不预判】二级审批角色、而且不是提单人(按人认)—— 两条都只有数据库知道。
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1):批 / 驳要五个门码(page 算出缺的第一个);
 // 撤回要那一种的码(公式 module.pricing.edit · 合同 action.contract_terms),提单人本人除外。
-import { useTransition } from 'react'
+import { useTransition, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -20,10 +20,11 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { decideTermsRequest, withdrawTermsRequest } from './termsRequestActions'
 import type { TermsDiffRow, TermsRequestView } from './termsRequestsData'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { BulkDecisionBar, BulkCheck } from '@/app/components/ui/bulk-decision-bar'
 import { xText } from '@/lib/export/cells'
 
 export default function TermsRequestsPanel({
-    open, history, missingDecideCode, withdrawCode, canWithdrawByCode,
+    open, history, missingDecideCode, withdrawCode, canWithdrawByCode, bulk = false,
 }: {
     open: TermsRequestView[]
     history: TermsRequestView[]
@@ -32,11 +33,17 @@ export default function TermsRequestsPanel({
     /** 这一页的申请撤回要的那个码 */
     withdrawCode: string
     canWithdrawByCode: boolean
+    /** TABLE-FEATURES-3(Tim 2026-10-25 Q2):批量批准 / 驳回 —— 只在两张列表页上开(/contracts · /tools/pricing/formulas);
+     *  合同详情页与公式编辑页不开(grilling,Tim 2026-10-26 接受) */
+    bulk?: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
     const notDone = t('common.actionMessage.headline.notDecided')
+    const [selected, setSelected] = useState<Set<string>>(new Set())
+    const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+    const bulkAllowed = bulk && missingDecideCode === null
 
     function run(subject: string, fn: () => Promise<{ error?: string; detail?: string }>) {
         start(async () => {
@@ -73,6 +80,18 @@ export default function TermsRequestsPanel({
             {open.length === 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('termsRequest.noneWaiting')}</p>
             )}
+            {bulk && open.length > 0 && (
+                <PermissionGate code={missingDecideCode ?? 'module.pricing.view'} allowed={missingDecideCode === null}>
+                    <BulkDecisionBar
+                        items={open.map((r) => ({ id: r.id, label: r.label }))}
+                        selected={selected}
+                        onSelectedChange={setSelected}
+                        approve={{ title: t('bulk.titles.termsApprove'), act: (i) => decideTermsRequest(i.id, true, '') }}
+                        reject={{ title: t('bulk.titles.termsReject'), placeholder: t('termsRequest.rejectPlaceholder'),
+                                  act: (i, reason) => decideTermsRequest(i.id, false, reason) }}
+                    />
+                </PermissionGate>
+            )}
             {open.map((r) => (
                 <div
                     key={r.id}
@@ -80,7 +99,10 @@ export default function TermsRequestsPanel({
                     className="rounded border border-amber-300 bg-amber-50 p-4 space-y-3 scroll-mt-24"
                     data-terms-request={r.label}
                 >
-                    <h3>{t('termsRequest.openTitle.' + r.kind)}</h3>
+                    <div className="flex items-center gap-2">
+                        {bulkAllowed && <BulkCheck label={r.label} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />}
+                        <h3>{t('termsRequest.openTitle.' + r.kind)}</h3>
+                    </div>
                     <dl className="text-sm grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1">
                         <dt className="text-[color:var(--brand-muted-text)]">{t('termsRequest.request')}</dt>
                         <dd>

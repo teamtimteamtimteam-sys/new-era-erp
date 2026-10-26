@@ -18,6 +18,8 @@ import { supplierCount, supplierPage, shapeSupplierRows } from './supplierRows'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
 
 export default async function SuppliersPage({
     searchParams,
@@ -38,6 +40,8 @@ export default async function SuppliersPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // TABLE-FEATURES-3(Tim 2026-10-26 Q1–Q3):保存的视图 —— 地址为空时套用本人的默认视图(一次跳转,所以在任何别的查询之前)
+    const savedViews = await loadSavedViews(supabase, { listKey: '/suppliers', sp })
     const t = await getTranslations()
 
     // 解析并校验 URL 参数(都给安全默认值)—— 与导出路由共用同一份逻辑
@@ -136,6 +140,7 @@ export default async function SuppliersPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <SavedViewsBar listKey="/suppliers" views={savedViews} />
                 <SupplierToolbar />
             </Suspense>
 

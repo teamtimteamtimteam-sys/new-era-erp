@@ -6,6 +6,8 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 import { xText, xDate, xTime } from '@/lib/export/cells'
 
 export type PackRow = {
@@ -23,6 +25,7 @@ export type PackRow = {
 
 export default function PacksHistoryTable({ rows, empty }: { rows: PackRow[]; empty: React.ReactNode }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留【单号】与【状态】—— 单号是身份,状态(在用/已被取代)是
     //   这张登记簿存在的理由。
@@ -60,7 +63,7 @@ export default function PacksHistoryTable({ rows, empty }: { rows: PackRow[]; em
             empty={empty}
             exportSpec={{ name: 'management-packs', title: t('pack.storedHeading') }}
             // TABLE-FEATURES-1 Q9:存档的包一次读全(management_packs 不翻页)—— 在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'hist_') }}
         />
     )
 }

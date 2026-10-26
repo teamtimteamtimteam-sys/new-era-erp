@@ -205,6 +205,7 @@ export default async function LeaveRequestDetail({
             {/* ★ 出口:批准 / 驳回。住 children,而 state 恒为 'ok'。 */}
             <DecideControls
                 requestId={req.id}
+                code={req.code}
                 status={req.status}
                 available={bal?.balance_checked ? bal.available : null}
                 requested={req.days}

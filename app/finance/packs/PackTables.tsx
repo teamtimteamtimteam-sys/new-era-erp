@@ -13,6 +13,8 @@
 //   一个不可分的单位(两张表一起转,或者都不转)。
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { useSearchParams } from 'next/navigation'
+import { clientSortUrl } from '@/lib/listSort'
 
 /** 勾稽的一行。金额【已经在服务端 formatAmount 过】,这里一个数都不算。 */
 export type ReconRow = {
@@ -33,6 +35,7 @@ export type ReconRow = {
 
 export function ReconTable({ rows }: { rows: ReconRow[] }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留三列 —— TABLE-PHONE-2 的判断,一个字没改:侧别 · 差额 · 未解释。
     //   勾稽这一张存在的理由就是【差额有多少、其中多少解释不掉】,而「未解释」
@@ -83,7 +86,7 @@ export function ReconTable({ rows }: { rows: ReconRow[] }) {
             rowKey={(s) => s.side}
             phone={{ mode: 'columns' }}
             // TABLE-FEATURES-1 Q9:勾稽的几行一次算全(management_pack_data)—— 在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'recon_') }}
         />
     )
 }
@@ -102,6 +105,7 @@ export type SplitRow = {
 
 export function SplitPairsTable({ rows }: { rows: SplitRow[] }) {
     const t = useTranslations()
+    const searchParams = useSearchParams()   // TABLE-FEATURES-3:浏览器里排的表把排序写进地址(保存的视图)
 
     // ★ 手机上留三列 —— TABLE-PHONE-2 的判断,一个字没改:分录 · 对手件 · 金额。
     //   这张表的一行【就是一对】,所以两个单号一起构成身份:只留一半的话,
@@ -128,7 +132,7 @@ export function SplitPairsTable({ rows }: { rows: SplitRow[] }) {
             rowKey={(s) => s.entryCode}
             phone={{ mode: 'columns' }}
             // TABLE-FEATURES-1 Q9:拆开的冲销对一次算全(management_pack_data)—— 在浏览器里排
-            sorting={{ mode: 'client', coverage: 'complete' }}
+            sorting={{ mode: 'client', coverage: 'complete', url: clientSortUrl(searchParams, 'split_') }}
         />
     )
 }

@@ -178,7 +178,7 @@ BEGIN
 
     -- ════════════════════════════════════════════════════════════════════════
     -- 【覆盖:按表问,而且【瞎掉必须说出来】】
-    -- 带写策略的表一张都不许漏,唯一的例外 notification_reads 必须【点名】豁免 ——
+    -- 带写策略的表一张都不许漏,例外 notification_reads 与 saved_views(TABLE-FEATURES-3)必须【点名】豁免 ——
     -- 一份"恰好没查到"的清单与一份"查过了都装上了"的清单,在绿色上长得一样。
     -- ════════════════════════════════════════════════════════════════════════
     SELECT count(*) INTO v_n FROM (
@@ -195,7 +195,7 @@ BEGIN
         FROM pg_policies p
         WHERE p.schemaname = 'public'
           AND p.cmd IN ('UPDATE','DELETE','ALL')
-          AND p.tablename <> 'notification_reads'   -- 故意豁免:谓词是 user_id = auth.uid()
+          AND p.tablename NOT IN ('notification_reads', 'saved_views')   -- 故意豁免:谓词是 user_id = auth.uid()(saved_views:TABLE-FEATURES-3)
           AND NOT EXISTS (
               SELECT 1 FROM pg_trigger tg
               JOIN pg_class c  ON c.oid = tg.tgrelid
@@ -218,7 +218,7 @@ BEGIN
             '它的谓词是 user_id = auth.uid(),装了就是为"删别人的已读标记"编造一句权限拒绝';
     END IF;
 
-    RAISE NOTICE '  ✓ 覆盖:% 张带写策略的表,除 notification_reads(点名豁免)外全部装上写闸', v_n;
+    RAISE NOTICE '  ✓ 覆盖:% 张带写策略的表,除 notification_reads · saved_views(点名豁免)外全部装上写闸', v_n;
 
     DROP FUNCTION public._silent1_definer();
     DROP TABLE public._silent1_probe;

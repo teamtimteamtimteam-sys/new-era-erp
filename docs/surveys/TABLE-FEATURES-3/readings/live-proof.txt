@@ -1,0 +1,21 @@
+(node:10656) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/savedViews.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+STEP|database as postgres: {"fym":"12","fyd":"31","approvals":"true","l2":"cfo","locked":"2026-08-01","base":"SGD","lvtype":"annual"} · SG today 2026-10-26 · this month 2026-10-01…2026-10-31
+PASS|V encode: "?status=unpaid&date_from=2026-10-01&date_to=2026-10-31&page=2" is stored as "status=unpaid&date_preset=thisMonth" (page dropped, this month stored as its name — Q2)
+PASS|the proof transaction ended in ROLLBACK (psql printed "ROLLBACK")
+PASS|V saved, set as default and read back as its owner: [{"arm":"V","name":"TF3 proof - unpaid this month","query":"status=unpaid&date_preset=thisMonth","default":"true","user_ok":"true"}]
+PASS|V reopened: the default view resolves to /finance/expenses?status=unpaid&date_from=2026-10-01&date_to=2026-10-31 — "This month" computed for SG today 2026-10-26 = 2026-10-01…2026-10-31 (independent arithmetic)
+PASS|V another throwaway reads 0 saved views (own rows only)
+PASS|B0 inside the transaction the approver is a real holder of the level-2 role (cfo): 1
+PASS|B one at a time through decide_journal_request: [["manual journal #1","raised by another","done","approved"],["manual journal #2","raised by another","done","approved"],["manual journal #3","raised by approver","refused:SELF_APPROVAL_FORBIDDEN#raiser","submitted"]]
+PASS|L leave reject without a reason refused by name (NULL / '' / '   '): [["NULL","LEAVE_REJECT_REASON_REQUIRED#TF3PROOF-LV","pending"],["''","LEAVE_REJECT_REASON_REQUIRED#TF3PROOF-LV","pending"],["'   '","LEAVE_REJECT_REASON_REQUIRED#TF3PROOF-LV","pending"]]
+PASS|M medical-claim reject without a reason refused by name: [["NULL","MEDICAL_CLAIM_REJECT_REASON_REQUIRED#TF3PROOF-MC","submitted"],["''","MEDICAL_CLAIM_REJECT_REASON_REQUIRED#TF3PROOF-MC","submitted"],["'   '","MEDICAL_CLAIM_REJECT_REASON_REQUIRED#TF3PROOF-MC","submitted"]]
+PASS|L/M with a reason both reject: {"arm":"LR","leave":"rejected","medical":"rejected"}
+PASS|browser /finance/claims → HTTP 200: bulk bar true, select-all true, card checkboxes 1, buttons ["Reject selected (0)"]; nothing pressed (no result list)
+PASS|browser /finance/expenses → HTTP 200: views bar true, "Plain list" true, "Save view" true; no default for this reader → stays at /finance/expenses; nothing pressed
+STEP|done
+AFTER|committed on live: only the throwaway accounts and their grants (removed by the plan); everything else ran in one transaction that ended in ROLLBACK
+TF3_PROOF_EXIT=0
+TF3_OWN_EXIT=0

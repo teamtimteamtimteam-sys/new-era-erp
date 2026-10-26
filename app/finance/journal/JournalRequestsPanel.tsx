@@ -11,7 +11,7 @@
 // 钮亮着,拒绝由库出,就地说成人话。
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1)—— 批 / 驳要 data.view_prices(能进这一页的人
 // 已经持 module.finance.view,那是门的另一半);撤回要 module.finance.edit,提单人本人除外。
-import { useTransition, type ReactNode } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -21,6 +21,7 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Refusal } from '@/app/components/ui/refusal'
 import { formatAmount } from '@/lib/format'
 import { decideJournalRequest, withdrawJournalRequest } from './requestActions'
+import { BulkDecisionBar, BulkCheck } from '@/app/components/ui/bulk-decision-bar'
 
 export type JournalRequestLineView = {
     key: string
@@ -78,6 +79,10 @@ export default function JournalRequestsPanel({
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
+    // TABLE-FEATURES-3(Tim 2026-10-25 Q2):批量批准 / 驳回 —— 每一项走下面那两颗单项钮调的同一个动作
+    const [selected, setSelected] = useState<Set<string>>(new Set())
+    const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+    const targetOf = (id: string) => open.find((r) => r.id === id)?.targetEntry?.id ?? null
     const notDone = t('common.actionMessage.headline.notDecided')
     // U1-B:金额那一格 —— 受限是一句权限答复(Refusal + 一句为什么),不是 0.00、不是 —。
     const amountCell = (r: JournalRequestView) =>
@@ -104,6 +109,19 @@ export default function JournalRequestsPanel({
             {open.length === 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.journalRequest.noneWaiting')}</p>
             )}
+            {open.length > 0 && (
+                <PermissionGate code="data.view_prices" allowed={canDecide}>
+                    <BulkDecisionBar
+                        items={open.map((r) => ({ id: r.id, label: r.label }))}
+                        selected={selected}
+                        onSelectedChange={setSelected}
+                        approve={{ title: t('bulk.titles.journalApprove'),
+                                   act: (i) => decideJournalRequest(i.id, true, '', targetOf(i.id)) }}
+                        reject={{ title: t('bulk.titles.journalReject'), placeholder: t('finance.journalRequest.rejectPlaceholder'),
+                                  act: (i, reason) => decideJournalRequest(i.id, false, reason, targetOf(i.id)) }}
+                    />
+                </PermissionGate>
+            )}
             {open.map((r) => (
                 <div
                     key={r.id}
@@ -111,7 +129,10 @@ export default function JournalRequestsPanel({
                     className="rounded border border-amber-300 bg-amber-50 p-4 space-y-3 scroll-mt-24"
                     data-journal-request={r.label}
                 >
-                    <h3>{t('finance.journalRequest.openTitle.' + r.kind)}</h3>
+                    <div className="flex items-center gap-2">
+                        {canDecide && <BulkCheck label={r.label} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />}
+                        <h3>{t('finance.journalRequest.openTitle.' + r.kind)}</h3>
+                    </div>
                     <dl className="text-sm grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1">
                         <dt className="text-[color:var(--brand-muted-text)]">{t('finance.journalRequest.request')}</dt>
                         <dd>
