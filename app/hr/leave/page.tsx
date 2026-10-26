@@ -19,6 +19,9 @@ import { LEAVE_SHOWN, leaveCount, leaveFilterFrom, leavePage, leaveQuery, shapeL
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
+import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 
 export default async function LeaveRequestsPage({
     searchParams,
@@ -48,6 +51,8 @@ export default async function LeaveRequestsPage({
     const total = mustCount(totalRes, 'leave_requests_masked count')
 
     const sel = CONTROL_SELECT
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末),服务端算好
+    const presets = await readDatePresets(supabase)
 
     return (
         <ListPage
@@ -62,7 +67,11 @@ export default async function LeaveRequestsPage({
         >
             <LeaveSubnav />
 
-            <form className="flex gap-2 flex-wrap items-end mb-4" method="get">
+            <Suspense fallback={<div className="mb-3 h-8" />}>
+                <DatePresetLinks presets={presets} fromKey="from" toKey="to" pageKey="page" />
+            </Suspense>
+            {/* 日期框是不受控的(defaultValue):按快捷区间换了地址之后,用起止两个参数做 key 让表单重挂,框里才显示新日期 */}
+            <form key={`${sp.from ?? ''}|${sp.to ?? ''}`} className="flex gap-2 flex-wrap items-end mb-4" method="get">
                 <label className="">
                     {t('leave.status')}
                     <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>

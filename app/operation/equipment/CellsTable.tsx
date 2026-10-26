@@ -12,6 +12,9 @@ import type { ReactNode } from 'react'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import type { ExportCell } from '@/lib/export/cells'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
+import { useTranslations } from '@/lib/i18n/client'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 /**
  * ★ TABLE-FEATURES-1(Tim 2026-10-25 Q8 · Q9):CellsTable 的 8 页也排序。RSC 边界上只能是纯数据,所以这里收一个描述,不收函数:
@@ -39,9 +42,18 @@ export type CellsExport = {
     serverRows?: string
 }
 
-export default function CellsTable({ columns, rows, empty, exportSpec, sorting }: {
+/**
+ * ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计。DataTable 的 `footer` 是函数,过不了 RSC 边界 ——
+ *   所以这里收【数据】(lib/listTotals.ts 的行 + measure → 列键),在客户端交给 totalsFooterRows 画。不给就没有表尾。
+ */
+export type CellsFooter = { totals: ListTotal[]; columns: Record<string, string>; fixedCurrency?: string }
+
+export default function CellsTable({ columns, rows, empty, exportSpec, sorting, footer }: {
     columns: CellColumn[]; rows: CellRow[]; empty: ReactNode; exportSpec: CellsExport; sorting?: CellsSorting
+    footer?: CellsFooter
 }) {
+    const t = useTranslations()
+    const footerFn = footer ? () => totalsFooterRows(footer.totals, footer.columns, t, footer.fixedCurrency) : undefined
     const server = sorting && sorting !== 'client' ? sorting : null
     const href = useSortHref(server?.prefix ?? '', server?.pageParam ?? 'page')
     // 第一列是这一行的身份(日期、机器、单号)—— 手机上它【永远】留下(check-datatable-phone:至少一列 priority);
@@ -56,12 +68,12 @@ export default function CellsTable({ columns, rows, empty, exportSpec, sorting }
         : { key: c.key, header: c.header, priority: c.priority, align: c.align, render: (r: CellRow) => r.cells[c.key], exportAs: exportAs(c), sortable: server ? server.sortable.includes(c.key) : undefined })
     const spec = { name: exportSpec.name, title: exportSpec.title, serverRows: exportSpec.serverRows }
     if (server) {
-        return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec}
+        return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec} footer={footerFn}
                           sorting={{ mode: 'server', coverage: { shown: server.shown, total: server.total }, active: server.active, href }} />
     }
     if (sorting === 'client') {
-        return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec}
+        return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec} footer={footerFn}
                           sorting={{ mode: 'client', coverage: 'complete' }} />
     }
-    return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec} />
+    return <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} exportSpec={spec} footer={footerFn} />
 }

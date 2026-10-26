@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { shapeListTotals } from '@/lib/listTotals'
 
 type Agreement = {
     id: string
@@ -51,6 +52,9 @@ export default async function CommissionsPage() {
             .is('deleted_at', null)
             .order('valid_from', { ascending: false }),
         'commission_agreements') as unknown as Agreement[]
+    // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q3):表尾合计 —— 只加 fixed_amount 的金额,每个币种一行,由库算
+    //   (list_totals_commissions)。费率与按吨的单价不进合计:前者没有金额,后者相加是把单价相加。
+    const totals = shapeListTotals(mustRows(await supabase.rpc('list_totals_commissions'), 'commission totals'))
 
     // 【把嵌套的关联压平成纯数据】—— 函数过不了客户端边界,嵌套对象过得了,
     // 但压平之后列描述符不必再知道这个 select 的形状。
@@ -97,7 +101,7 @@ export default async function CommissionsPage() {
                 ? { kind: 'empty', noRows: t('commissions.none') }
                 : { kind: 'ok' }}
         >
-            <CommissionsTable rows={tableRows} />
+            <CommissionsTable rows={tableRows} totals={totals} />
         </ListPage>
     )
 }

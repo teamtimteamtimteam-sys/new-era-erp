@@ -11,7 +11,7 @@ import TransferForm from './TransferForm'
 import TransfersTable, { type TransferRow } from './TransfersTable'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { TRANSFERS_SHOWN, transferCount, transferPage, shapeTransferRows, parseTransferListParams, transferExportHref } from './transferRows'
+import { TRANSFERS_SHOWN, transferCount, transferPage, shapeTransferRows, parseTransferListParams, transferExportHref, transferTotals } from './transferRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
@@ -92,9 +92,10 @@ export default async function BankHomePage({ searchParams }: { searchParams: Pro
     //   只画最近 TRANSFERS_SHOWN 笔,而且【说出来】(RowCapNotice)—— 从前是一句不说的 .limit(50)。
     // ★ TABLE-FEATURES-1 Q9:前 TRANSFERS_SHOWN 笔按表头选中的次序取(在数据库里排)
     const transferParams = parseTransferListParams(await searchParams)
-    const [transfers, transferTotal] = await Promise.all([
+    const [transfers, transferTotal, transferSums] = await Promise.all([
         transferPage(supabase, transferParams, 0, TRANSFERS_SHOWN - 1).then((r) => mustRows(r, 'bank transfers')),
         transferCount(supabase).then((r) => mustCount(r, 'bank transfers count')),
+        transferTotals(supabase),
     ])
     // AUDIT-TRAIL-1c-3:清单块里转账的名字 —— 两头按科目表的英文名说
     const accountName = new Map((mustRows(await supabase.from('accounts').select('code, name_en')
@@ -238,7 +239,7 @@ export default async function BankHomePage({ searchParams }: { searchParams: Pro
             <div className="mb-6">
                 <RowCapNotice shown={transferRows.length} total={transferTotal} />
                 <TransfersTable rows={transferRows} canEdit={canEditGate} exportHref={transferExportHref(transferParams)}
-                                sort={transferParams.sort} shown={transferRows.length} total={transferTotal} />
+                                sort={transferParams.sort} shown={transferRows.length} total={transferTotal} totals={transferSums} />
             </div>
 
             <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('bank.identityNote')}</p>

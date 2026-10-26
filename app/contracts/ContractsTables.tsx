@@ -17,6 +17,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xNum, xMoney } from '@/lib/export/cells'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type BreachRow = {
     key: string
@@ -170,7 +172,11 @@ export function SettlementTermsTable({ rows }: { rows: SettleTermRow[] }) {
         exportSpec={{ name: 'contract-settlement-terms', title: t('contracts.settlement.termsTitle') }} />
 }
 
-export function SettlementsTable({ rows }: { rows: SettlementRow[] }) {
+export function SettlementsTable({ rows, totals }: {
+    rows: SettlementRow[]
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_settlements)。币种固定,写在列头(colAmount)上,库给 NULL。 */
+    totals: ListTotal[]
+}) {
     const t = useTranslations()
     // ★ 手机上留【合同号】与【金额】—— 4 列表;金额是一条已记录结算的要点。
     const columns: ExportableColumn<SettlementRow>[] = [
@@ -192,5 +198,6 @@ export function SettlementsTable({ rows }: { rows: SettlementRow[] }) {
         { key: 'amount', header: t('contracts.settlement.colAmount'), priority: true, className: 'text-sm', render: (r) => r.amount, exportAs: (r) => xMoney(r.amountUsd) },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} className="mb-2 max-w-5xl"
-        exportSpec={{ name: 'contract-settlements', title: t('contracts.settlement.settlementsTitle') }} />
+        exportSpec={{ name: 'contract-settlements', title: t('contracts.settlement.settlementsTitle') }}
+        footer={() => totalsFooterRows(totals, { amount: 'amount' }, t)} />
 }

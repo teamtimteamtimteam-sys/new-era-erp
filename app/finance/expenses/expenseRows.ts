@@ -14,6 +14,7 @@ import type { Database } from '@/lib/database.types'
 import { parseDateRange } from '@/lib/dateFilter'
 import { getBaseCurrency } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 import { formatDate } from '@/lib/dates'
 import { getLocale, getTranslations } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
@@ -47,22 +48,20 @@ export function parseExpenseListParams(sp: { date_from?: string; date_to?: strin
 /** 科目筛选解出来的那组单据。`accountIds` 为 null = 不筛科目。 */
 export type ExpenseFilter = ExpenseListParams & {
     accountIds: string[] | null
-    /** 筛着科目时:单据 id → 这个科目那几行的本位币净额之和(页面的合计只加这几行) */
-    accountLineBase: Map<string, number>
 }
 
+// ★ TABLE-FEATURES-2:这里原先还带一张「单据 id → 这个科目那几行的本位币之和」给页面的 JS 合计用;合计改由库算
+//   (list_totals_expenses,科目筛选在库里是 EXISTS),那张表就没人读了,拿掉。
 export async function resolveExpenseFilter(supabase: Client, p: ExpenseListParams): Promise<ExpenseFilter> {
-    const accountLineBase = new Map<string, number>()
+    const ids = new Set<string>()
     if (p.account) {
-        const linesRes = await supabase.from('expense_lines').select('expense_id, amount_base').eq('account_code', p.account)
-        for (const l of mustRows(linesRes, 'expense_lines (account filter)') as { expense_id: string; amount_base: number }[]) {
-            accountLineBase.set(l.expense_id, (accountLineBase.get(l.expense_id) ?? 0) + Number(l.amount_base))
-        }
+        const linesRes = await supabase.from('expense_lines').select('expense_id').eq('account_code', p.account)
+        for (const l of mustRows(linesRes, 'expense_lines (account filter)') as { expense_id: string }[]) ids.add(l.expense_id)
     }
     // 一个没有任何一行落在这个科目上的筛选,应当是【空】,而不是"不筛";in.() 收一个永远对不上的 id。
     const NO_MATCH = '00000000-0000-0000-0000-000000000000'
-    const accountIds = p.account ? (accountLineBase.size ? [...accountLineBase.keys()] : [NO_MATCH]) : null
-    return { ...p, accountIds, accountLineBase }
+    const accountIds = p.account ? (ids.size ? [...ids] : [NO_MATCH]) : null
+    return { ...p, accountIds }
 }
 
 // 过滤链(expenses 不可变表,无软删)。最小链式子集,避免 supabase 深泛型。
@@ -84,6 +83,18 @@ export function applyExpenseFilters<T>(query: T, f: ExpenseFilter): T {
 export type ExpenseDbRow = {
     id: string; code: string; expense_date: string; amount_ccy: number; currency: string; amount_base: number
     payment_status: string; supplier_id: string | null; payee_name: string | null; status: string
+}
+
+/**
+ * TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q2):表尾合计 —— 所有符合筛选的单据,库算(db/functions/list_totals_expenses.sql),
+ * 每个单据币种一行;冲销镜像单记负数。科目筛选传【原样的科目码】给库(库里是 EXISTS),不传 JS 解出来的那组 id。
+ */
+export async function expenseTotals(supabase: Client, p: ExpenseListParams): Promise<ListTotal[]> {
+    const res = await supabase.rpc('list_totals_expenses', {
+        p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined,
+        p_payment_status: p.status || undefined, p_account: p.account || undefined,
+    })
+    return shapeListTotals(mustRows(res, 'expenses totals'))
 }
 
 export function expenseCount(supabase: Client, f: ExpenseFilter) {

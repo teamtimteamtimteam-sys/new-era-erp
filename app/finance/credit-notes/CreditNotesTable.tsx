@@ -10,6 +10,8 @@ import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table
 import { xText, xMoney, xDate, xRestricted } from '@/lib/export/cells'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type CreditNoteRow = {
     id: string
@@ -30,12 +32,14 @@ export type CreditNoteRow = {
     reason: string
 }
 
-export default function CreditNotesTable({ rows, exportHref, sort, shown, total }: {
+export default function CreditNotesTable({ rows, exportHref, sort, shown, total, totals }: {
     rows: CreditNoteRow[]
     /** TABLE-FEATURES-1 Q9:导出地址带上当前排序(creditNoteRows.ts 的 creditNoteExportHref) */
     exportHref: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(creditNoteRows.ts 的 CREDIT_NOTE_SORT) */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2 Q1:库算的表尾合计(所有凭证的行之和,每个币种一行;creditNoteRows.ts 的 creditNoteTotals) */
+    totals: ListTotal[]
 }) {
     // ★ TABLE-EXPORT-2a:服务端分页,导出向 /finance/credit-notes/export 要全部行(这一页没有筛选)
     const t = useTranslations()
@@ -110,6 +114,7 @@ export default function CreditNotesTable({ rows, exportHref, sort, shown, total 
             empty={t('cn.empty')}
             exportSpec={{ name: 'credit-notes', title: t('cn.title'), serverRows: exportHref }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { total: 'total' }, t)}
         />
     )
 }

@@ -14,7 +14,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ClaimsTable from './ClaimsTable'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { CLAIMS_SHOWN, claimsCount, claimsFilterFrom, claimsPage, claimsQuery, shapeClaimRows } from './claimsRows'
+import { CLAIMS_SHOWN, claimsCount, claimsFilterFrom, claimsPage, claimsQuery, shapeClaimRows, claimsTotals } from './claimsRows'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
@@ -33,10 +33,12 @@ export default async function ClaimsPage({
     // ★ TABLE-EXPORT-2b-2(Tim Q2):读取、三条筛选与映射搬进 claimsRows.ts,与导出路由共用。状态筛选从前在截断之后跑,
     //   现在与员工、年份一起在查询里;只画最新 CLAIMS_SHOWN 条,而且说出来。
     const f = claimsFilterFrom(sp)
-    const [rowsRes, totalRes, empRes] = await Promise.all([
+    const [rowsRes, totalRes, empRes, totals] = await Promise.all([
         claimsPage(supabase, f, 0, CLAIMS_SHOWN - 1),
         claimsCount(supabase, f),
         supabase.from('employees').select('id, code, legal_name').is('deleted_at', null).order('code'),
+        // TABLE-FEATURES-2(Tim Q1):表尾合计 —— 同一套筛选,所有符合的行
+        claimsTotals(supabase, f),
     ])
     const tableRows = await shapeClaimRows(mustRows(rowsRes, 'medical_claim_status'))
     const total = mustCount(totalRes, 'medical_claim_status count')
@@ -79,7 +81,7 @@ export default async function ClaimsPage({
 
             <RowCapNotice shown={tableRows.length} total={total} />
             <ClaimsTable rows={tableRows} empty={t('claims.none')} exportUrl={`/hr/claims/export${claimsQuery(f)}`}
-                         sort={f.sort} shown={tableRows.length} total={total} />
+                         sort={f.sort} shown={tableRows.length} total={total} totals={totals} />
         </ListPage>
     )
 }

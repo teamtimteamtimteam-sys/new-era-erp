@@ -1298,7 +1298,15 @@ const zh = {
     },
     // ── COPY-1(2026-09-06):表格外壳自己的词。见 en.ts 同一处的说明。
     table: {
-        // TABLE-EXPORT-1(Tim 2026-10-22):统一导出。逐条裁定见 docs/table-export.md。
+        // TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q1–Q4):表尾合计 —— 数据库算的、每个币种一行、有一笔看不见就整行「受限」
+        totals: {
+            total: '合计',
+            totalCcy: '合计 · {ccy}',
+            received: '收款 · {ccy}',
+            paid: '付款 · {ccy}',
+            restrictedWhy: '这个合计里至少有一笔金额你看不到,所以不显示合计。',
+            note: '合计覆盖所有符合筛选的行,不只是这一页;一张被冲销的单据与它的冲销件相互抵消。',
+        },
         export: {
             excel: '导出 Excel',
             csv: '导出 CSV',
@@ -5146,6 +5154,8 @@ const zh = {
         totalMarketValue: '成品市价价值 (USD)',
         // ★ 币种分界 + 【它不是同一类数】—— 两句话都要说,只说一句会让人
         // 以为把币种折过来就能和左边两个相加。
+        // TABLE-FEATURES-2:估值条撤了,说明搬到表下 —— 不点名币种(币种在表尾那一行的标签上)
+        marketValueFooterNote: '市价价值是未实现的市价指示,直接取自金属报价本身的币种 ——【没有折算成本位币】,也不是账面金额。表尾市价那一行是它的合计;库存价值与成本价值的合计是本位币的账面数。',
         marketValueNote: '未实现的市价指示,直接取自 USD 金属报价 ——【没有折算成 SGD】。左边两个是账面金额(SGD);这一个既不是同一个币种,也不是同一类数。',
     },
     // ATTEND-1:考勤 —— 【它不算工资】(政策 7.1:计算在服务商那边)。
@@ -8735,11 +8745,6 @@ const zh = {
         pnlTitle: '损益表',
         bsTitle: '资产负债表',
         closeTitle: '月结关账',
-        presets: {
-            thisMonth: '本月',
-            lastMonth: '上月',
-            thisYear: '今年',
-        },
         grossProfit: '毛利',
         netProfit: '净利',
         pnlNote: '数字来自所选期间内已过账的分录。',
@@ -10508,6 +10513,14 @@ const zh = {
     listFilters: {
         dateFrom: '开始日期',
         dateTo: '结束日期',
+        // TABLE-FEATURES-2(Tim 2026-10-25 Q5 · 2026-10-26 Q6):日期快捷区间,新加坡时间,到期末为止
+        presetsLabel: '快捷区间',
+        presets: {
+            thisMonth: '本月',
+            lastMonth: '上月',
+            thisQuarter: '本季度',
+            thisYear: '今年',
+        },
     },
     // ── EQP-2d:设备的一生(保养 / 停机 / 保养间隔),以及三张表的拒绝 ──────────
     // ── MES-1(2026-10-06):设备与网关登记 · 网关钥匙 · 采集上限 ─────────────────────────

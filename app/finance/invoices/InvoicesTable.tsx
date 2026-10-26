@@ -11,6 +11,8 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import { xText, xMoney, xDate, xMasked } from '@/lib/export/cells'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type InvoiceRow = {
     invoiceId: string
@@ -35,12 +37,14 @@ export type InvoiceRow = {
     canViewPrices: boolean
 }
 
-export default function InvoicesTable({ rows, empty, exportHref, sort, shown, total }: {
+export default function InvoicesTable({ rows, empty, exportHref, sort, shown, total, totals }: {
     rows: InvoiceRow[]; empty: React.ReactNode
     /** TABLE-EXPORT-2a:服务端分页 —— 导出向这条路由要全部匹配行(同一套筛选) */
     exportHref: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(invoiceRows.ts 的 INVOICE_SORT) */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2 Q1:库算的表尾合计(所有符合筛选的行);invoiceRows.ts 的 invoiceTotals */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
     const sortHref = useSortHref()
@@ -157,6 +161,7 @@ export default function InvoicesTable({ rows, empty, exportHref, sort, shown, to
             rowClassName={(r) => (r.isVoid ? 'text-gray-400' : undefined)}
             exportSpec={{ name: 'invoices', title: t('invoice.listTitle'), serverRows: exportHref }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { total: 'total', settled: 'settled', open: 'open' }, t)}
         />
     )
 }

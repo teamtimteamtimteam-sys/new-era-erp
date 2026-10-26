@@ -11,6 +11,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xTime, xRestricted } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type SelfApprovedRow = {
     seq: string
@@ -33,7 +35,11 @@ export type SelfApprovedRow = {
     currency: string | null
 }
 
-export default function SelfApprovedTable({ rows, empty }: { rows: SelfApprovedRow[]; empty: React.ReactNode }) {
+export default function SelfApprovedTable({ rows, empty, totals }: {
+    rows: SelfApprovedRow[]; empty: React.ReactNode
+    /** TABLE-FEATURES-2(Tim Q1):库算的合计(list_totals_self_approved)—— 每个币种一行;有一笔看不见就是「受限」 */
+    totals: ListTotal[]
+}) {
     const t = useTranslations()
     const columns: ExportableColumn<SelfApprovedRow>[] = [
         { key: 'decidedAt', header: t('finance.selfApproved.colDecidedAt'), render: (r) => r.decidedAt, exportAs: (r) => xTime(r.decidedAtRaw) },
@@ -66,6 +72,7 @@ export default function SelfApprovedTable({ rows, empty }: { rows: SelfApprovedR
             exportSpec={{ name: 'self-approved-decisions', title: t('finance.selfApproved.title') }}
             // TABLE-FEATURES-1 Q9:self_approved_decisions 一次读全 —— 在浏览器里排
             sorting={{ mode: 'client', coverage: 'complete' }}
+            footer={() => totalsFooterRows(totals, { amount: 'amount' }, t)}
         />
     )
 }

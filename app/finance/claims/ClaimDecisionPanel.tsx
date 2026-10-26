@@ -28,6 +28,8 @@ import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 import ClaimReceipts, { type ReceiptRow } from '@/app/me/ClaimReceipts'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 import type { ReceiptLimits } from '@/app/me/uploadClaimReceipt'
 
 export type ClaimItem = {
@@ -51,9 +53,11 @@ const money = (n: number) =>
     Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export default function ClaimDecisionPanel({
-    pending, decided, accounts, taxCodes, canDecide, trails = {}, receipts = [], raisedByMe = [], receiptLimits = null,
+    pending, decided, decidedTotals, accounts, taxCodes, canDecide, trails = {}, receipts = [], raisedByMe = [], receiptLimits = null,
 }: {
     pending: ClaimRow[]; decided: ClaimRow[]
+    /** TABLE-FEATURES-2(Tim Q1):已决登记簿的表尾合计,库算(list_totals_expense_claims)—— 每个币种一行 */
+    decidedTotals: ListTotal[]
     accounts: { code: string; name_en: string }[]
     taxCodes: { code: string; name_en: string }[]
     canDecide: boolean; baseCurrency: string
@@ -292,6 +296,7 @@ export default function ClaimDecisionPanel({
                         exportSpec={{ name: 'expense-claims-decided', title: t('expenseClaims.decidedTitle') }}
                         // TABLE-FEATURES-1 Q9:页面一次读全(expense_claim_status 不翻页)—— 在浏览器里排;默认次序照旧(花费日新的在前)
                         sorting={{ mode: 'client', coverage: 'complete' }}
+                        footer={() => totalsFooterRows(decidedTotals, { amount: 'amount' }, t)}
                     />
                     {/* AUDIT-TRAIL-1c-3(Q20):已决的每一张一行,点开是它的审计记录 —— 登记簿的格子装不下一段记录 */}
                     <div className="mt-4 space-y-2">

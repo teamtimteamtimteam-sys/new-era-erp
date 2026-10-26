@@ -1377,7 +1377,15 @@ const en = {
     //   check-i18n 看不见这种缺陷:硬写的字面量【一个键都不引用】,
     //   于是它落在那个检查器的宇宙之外(见 scripts/cjk-rendered-baseline.json 抬头)。
     table: {
-        // TABLE-EXPORT-1(Tim 2026-10-22):统一导出。逐条裁定见 docs/table-export.md。
+        // TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q1–Q4):表尾合计 —— 数据库算的、每个币种一行、有一笔看不见就整行「受限」
+        totals: {
+            total: 'Total',
+            totalCcy: 'Total · {ccy}',
+            received: 'Received · {ccy}',
+            paid: 'Paid · {ccy}',
+            restrictedWhy: 'At least one amount in this total is hidden from you, so the total is not shown.',
+            note: 'Totals cover every row matching the filters, not only this page; a reversed document and its reversal cancel out.',
+        },
         export: {
             excel: 'Export Excel',
             csv: 'Export CSV',
@@ -5258,6 +5266,8 @@ const en = {
         totalInboundValue: 'Raw stock value',
         totalCostValue: 'Finished cost value',
         totalMarketValue: 'Finished market value (USD)',
+        // TABLE-FEATURES-2:估值条撤了,说明搬到表下 —— 不点名币种(币种在表尾那一行的标签上)
+        marketValueFooterNote: 'Market value is an unrealised indication taken directly from metal quotes in their own currency — not converted to the base currency, and not a booked amount. Its total is the market-value row of the footer; the stock and cost totals are booked amounts in the base currency.',
         marketValueNote: 'Unrealised market indication, taken directly from USD metal quotes — not converted to SGD. The two figures on the left are booked amounts in SGD; this one is neither the same currency nor the same kind of number.',
     },
     // ATTEND-1:考勤 —— 【它不算工资】(政策 7.1:计算在服务商那边)。
@@ -8950,11 +8960,6 @@ const en = {
         pnlTitle: 'Profit & Loss',
         bsTitle: 'Balance Sheet',
         closeTitle: 'Month-End Close',
-        presets: {
-            thisMonth: 'This month',
-            lastMonth: 'Last month',
-            thisYear: 'This year',
-        },
         grossProfit: 'Gross Profit',
         netProfit: 'Net Profit',
         pnlNote: 'Figures come from posted journal entries in the selected period.',
@@ -10744,6 +10749,14 @@ const en = {
     listFilters: {
         dateFrom: 'From',
         dateTo: 'To',
+        // TABLE-FEATURES-2(Tim 2026-10-25 Q5 · 2026-10-26 Q6):日期快捷区间,新加坡时间,到期末为止
+        presetsLabel: 'Quick range',
+        presets: {
+            thisMonth: 'This month',
+            lastMonth: 'Last month',
+            thisQuarter: 'This quarter',
+            thisYear: 'This year',
+        },
     },
     // ── EQP-2d:设备的一生(保养 / 停机 / 保养间隔),以及三张表的拒绝 ──────────
     // ── MES-1(2026-10-06):设备与网关登记 · 网关钥匙 · 采集上限 ─────────────────────────

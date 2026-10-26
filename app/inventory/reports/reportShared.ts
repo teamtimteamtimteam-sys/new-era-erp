@@ -5,6 +5,8 @@
 // 屏幕上的表与导出的文件迟早不一样,而那种不一样没有任何东西会报错 ——
 // 进料导出那一份(app/inbound/export/route.ts)早就是这么做的:导出复用列表页
 // 自己的过滤模块,所以"当前视图"只有一个定义。这里照抄那条。
+import { addDaysIso } from '@/lib/dates'
+import { businessToday } from '@/lib/format'
 
 
 // ── 导出 ─────────────────────────────────────────────────────────────────────
@@ -29,8 +31,9 @@ export function todayStamp(): string {
 // "有界,或写下为什么不需要界"同一条。
 export const LEDGER_DEFAULT_DAYS = 90
 
+// TABLE-FEATURES-2(Tim 2026-10-26 Q9):起点 = 新加坡的今天往回 90 天。原来是本机钟 setDate 再 toISOString() 取【UTC】日期,
+//   于是在新加坡 00:00–08:00 之间算出的是"UTC 今天 − 90",窗口多出一天。现在只做纯日期算术,不碰时区。
+//   (清空起始日仍然回到这个默认 —— windowNote 说的"清空即放宽"做不到,另案登记,本刀不改。)
 export function defaultLedgerFrom(): string {
-    const d = new Date()
-    d.setDate(d.getDate() - LEDGER_DEFAULT_DAYS)
-    return d.toISOString().slice(0, 10)
+    return addDaysIso(businessToday(), -LEDGER_DEFAULT_DAYS)
 }

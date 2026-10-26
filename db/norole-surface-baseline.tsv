@@ -129,6 +129,7 @@ view	inbound_batch_valuation	a shell over inbound_batch_valuation_rows() (SECURI
 view	document_relations	foreign-key metadata from pg_constraint and document_types — no business rows (Step 0 Q17)
 # ── definer ──
 definer	approvals_enabled()	read-only status helper: one boolean: whether approvals are in force; a no-role session can enumerate no id (Step 0 Q17)
+definer	fiscal_year_end_setting()	read-only setting helper: two integers (fy_end_month, fy_end_day) for the date presets on screens outside finance; a no-role session can enumerate no id (Tim 2026-10-26 TABLE-FEATURES-2 Q5)
 definer	contract_terms_lock_reason(uuid)	read-only status helper: why one contract's terms are locked, for a contract id the caller must already hold; a no-role session can enumerate no id (Step 0 Q17)
 definer	journal_entry_reversal_route(uuid)	read-only status helper: which path reverses one journal entry, for an id the caller must already hold; a no-role session can enumerate no id (Step 0 Q17)
 definer	payroll_period_frozen(uuid)	read-only status helper: whether one payroll period is frozen, for an id the caller must already hold; a no-role session can enumerate no id (Step 0 Q17)

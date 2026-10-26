@@ -45,6 +45,9 @@
 // 回滚的投入已经还回去了。这里放一个按钮等于替所有人默默把那个决定做了。
 // 本页只读,连一个可写入口都没有。
 import { DatePicker } from '@/app/components/ui/date-picker'
+import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -136,6 +139,8 @@ export default async function DeletedRecordsPage({
 
     // 一次把姓名查回来(逐行查会是 N 次往返)
     const names = await loadActorNames(supabase, rows.map((r) => r.deleted_by))
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末),服务端算好
+    const presets = await readDatePresets(supabase)
 
     function filterHref(next: { kind?: string; from?: string; to?: string }) {
         const p = new URLSearchParams()
@@ -199,6 +204,9 @@ export default async function DeletedRecordsPage({
             state={{ kind: 'ok' }}
         >
             {/* ── 筛选:种类 + 日期 ─────────────────────────────────────────── */}
+            <Suspense fallback={<div className="mb-3 h-8" />}>
+                <DatePresetLinks presets={presets} fromKey="from" toKey="to" pageKey="page" />
+            </Suspense>
             <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
                 <Link
                     href={filterHref({ kind: '' })}
@@ -224,7 +232,8 @@ export default async function DeletedRecordsPage({
                 {/* CONV-5:390px 上这一行原本把整页顶宽 27px(两个日期框 + 按钮
                     在 ml-auto 后面排成一条不折行的 385px)。加 flex-wrap ——
                     表格那一半本来就没有溢出,溢出的一直是这条筛选行。 */}
-                <form className="flex flex-wrap items-center gap-2 sm:ml-auto" action="/settings/deleted">
+                {/* 日期框是不受控的(defaultValue):按快捷区间换了地址之后,用起止两个参数做 key 让表单重挂,框里才显示新日期 */}
+                <form key={`${from}|${to}`} className="flex flex-wrap items-center gap-2 sm:ml-auto" action="/settings/deleted">
                     {kind && <input type="hidden" name="kind" value={kind} />}
                     {/* DATE-PICK-1:两个日期框是全站共用的 DatePicker(提交的仍是 ISO 的 from / to) */}
                     <DatePicker name="from" defaultValue={from} aria-label={t('changeHistory.filterFrom')} />

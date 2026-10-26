@@ -27,6 +27,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoneyBare } from '@/lib/format'
 import PnlToolbar from './PnlToolbar'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -52,8 +53,6 @@ type Pnl = {
     margin_pct: number | null
 }
 
-const ymdUtc = (d: Date) => d.toISOString().slice(0, 10)
-
 export default async function PnlPage({
     searchParams,
 }: {
@@ -70,13 +69,11 @@ export default async function PnlPage({
     const t = await getTranslations()
     const locale = await getLocale()
 
-    // 默认区间 = 本月;预设:本月 / 上月 / 今年(UTC 口径,与 DB date 同参照)
-    const now = new Date()
-    const y = now.getUTCFullYear()
-    const m = now.getUTCMonth()
-    const thisMonth = { from: ymdUtc(new Date(Date.UTC(y, m, 1))), to: ymdUtc(new Date(Date.UTC(y, m + 1, 0))) }
-    const lastMonth = { from: ymdUtc(new Date(Date.UTC(y, m - 1, 1))), to: ymdUtc(new Date(Date.UTC(y, m, 0))) }
-    const thisYear = { from: `${y}-01-01`, to: `${y}-12-31` }
+    // 默认区间 = 本月;快捷区间:本月 / 上月 / 本季度 / 今年(财年)—— TABLE-FEATURES-2(Tim 2026-10-25 Q5 · 2026-10-26 Q6):
+    //   按【新加坡时间】的今天、「今年」读配置的财年年末、每一个都到期末为止;与 11 张列表、与现金流量表同一份算术(lib/datePresets.ts)。
+    const presets = await readDatePresets(supabase)
+    const thisMonth = presets.find((p) => p.key === 'thisMonth')
+    if (!thisMonth) throw new Error('DATE_PRESETS_NO_THIS_MONTH')
 
     const { dateFrom, dateTo } = parseDateRange(sp)
     const from = dateFrom || thisMonth.from
@@ -169,11 +166,7 @@ export default async function PnlPage({
                 <PnlToolbar
                     from={from}
                     to={to}
-                    presets={[
-                        { key: 'thisMonth', ...thisMonth },
-                        { key: 'lastMonth', ...lastMonth },
-                        { key: 'thisYear', ...thisYear },
-                    ]}
+                    presets={presets}
                 />
             </Suspense>
 

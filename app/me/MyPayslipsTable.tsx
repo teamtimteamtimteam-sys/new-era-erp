@@ -19,6 +19,8 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney } from '@/lib/export/cells'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type PayslipRow = {
     id: string
@@ -45,7 +47,11 @@ export type PayslipRow = {
     netRaw: number | null
 }
 
-export default function MyPayslipsTable({ rows, empty }: { rows: PayslipRow[]; empty: React.ReactNode }) {
+export default function MyPayslipsTable({ rows, empty, totals }: {
+    rows: PayslipRow[]; empty: React.ReactNode
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_my_payslips),每个期间币种一行 */
+    totals: ListTotal[]
+}) {
     const t = useTranslations()
 
     // ★ 手机上留三列 —— TABLE-PHONE-2 的判断,一个字没改:期间 · 应发 · 实发。
@@ -101,6 +107,9 @@ export default function MyPayslipsTable({ rows, empty }: { rows: PayslipRow[]; e
             // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
             sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'me-payslips', title: t('me.payslips') }}
+            footer={() => totalsFooterRows(totals, {
+                gross: 'gross', employer_cpf: 'employerCpf', employee_cpf: 'employeeCpf', deductions: 'deductions', net: 'net',
+            }, t)}
         />
     )
 }

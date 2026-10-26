@@ -3,6 +3,8 @@
 // 端口自 inbound 列表:supplier→customer、stage→state。customer_id 可空(未售出批次无客户)。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -167,6 +169,9 @@ export default async function OutputPage({
     // TABLE-EXPORT-1 Q2:导出取【全部匹配行】—— 同一套筛选与排序,不带 page。
     const exportHref = `/output/export?${new URLSearchParams({ ...filterQuery, sort, dir }).toString()}`
 
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
+    const presets = await readDatePresets(supabase)
+
     return (
         <ListPage
             title={t('output.listTitle')}
@@ -184,6 +189,7 @@ export default async function OutputPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <OutputToolbar customers={customerOptions} materials={materialOptions} />
             </Suspense>
 

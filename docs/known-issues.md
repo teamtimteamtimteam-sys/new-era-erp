@@ -11620,7 +11620,7 @@ select 串由常量 `COLS` + `EMBED[side]` 拼成,**那支检查只认 `.select(
 **为什么记:** 一处「看不见」不是一处「改好了」—— **这一刀没有收紧那条基线**(收紧会把一次失明记成一次修复)。
 **去处:** 与 CHECK-1-EMBED 那十处一起(cleanup A):改读 `*_batches_masked` 时把 select 写回字面串,或者让检查认常量。
 
-### INBOUND-TOOLBAR-390-OVERFLOW · `/inbound` 在 390 px 上整页横向溢出 +59 px,元凶是筛选栏里的一颗下拉(TABLE-EXPORT-2b-2 版式勘察量到;不是本刀造成的,登记,不在本刀修)
+### ~~INBOUND-TOOLBAR-390-OVERFLOW · `/inbound` 在 390 px 上整页横向溢出 +59 px,元凶是筛选栏里的一颗下拉(TABLE-EXPORT-2b-2 版式勘察量到;不是本刀造成的,登记,不在本刀修)~~ —— ✅ **关闭于 TABLE-FEATURES-2(`v1.4.75`,2026-10-26,Tim Q7)**:筛选下拉加 `max-w-full`,390px 整页溢出 **0**(`docs/surveys/TABLE-FEATURES-2/readings/layout-390.txt`)
 
 **量过的:** `node scripts/survey-phone.mjs --routes=/inbound --width=390`(以一次性全码会话,对着线上)—— **本刀的树 +59 px**(`docs/surveys/TABLE-EXPORT-2b-2/readings/layout-390.txt`),
 **把 `app/inbound/page.tsx` 换回 `HEAD`(2249696e)的那一份再量:同样 +59 px、同一个元凶**(`readings/layout-390-inbound-before.txt`)。元凶:`select.h-8 rounded-lg border border-input …`(筛选栏)。
@@ -11708,10 +11708,41 @@ TABLE-EXPORT-1(2026-10-22)量 `/inbound` 是 **0**(`docs/surveys/TABLE-EXPORT-1/
 **去处:** TF-3(`v1.4.76`,`docs/forward-queue.md` 64c-3):库里以具名错误拒绝没有理由的驳回,随 TF-3 的迁移一起上。
 
 
-### PURCHASING-ORDERS-390-SUPPLIER-SELECT · `/purchasing/orders` 在 390px 上整页横向溢出 59px,元凶是筛选栏的供应商下拉(TABLE-FEATURES-1 版式勘察量到;早于本刀,登记)
+### ~~PURCHASING-ORDERS-390-SUPPLIER-SELECT · `/purchasing/orders` 在 390px 上整页横向溢出 59px,元凶是筛选栏的供应商下拉(TABLE-FEATURES-1 版式勘察量到;早于本刀,登记)~~ —— ✅ **关闭于 TABLE-FEATURES-2(`v1.4.75`,2026-10-26,Tim Q7)**:筛选下拉加 `max-w-full`,390px 整页溢出 **0**(`docs/surveys/TABLE-FEATURES-2/readings/layout-390.txt`)
 
 **是什么:** `scripts/survey-phone.mjs --width=390`:`+59px /purchasing/orders culprit: select.h-8 …`(`docs/surveys/TABLE-FEATURES-1/readings/layout-390.txt`)。
 **不是本刀造成的 —— 量过,不是推的:** 同一支量具在【未改动的 f156ee1】上量同一页,读数同样是 +59px、同一个元凶
 (`readings/layout-390-baseline-f156ee1-purchasing-orders.txt`);本刀没有碰那一页的筛选栏(`OrdersToolbar.tsx` 不在差异里)。
 TABLE-EXPORT-1 那天这一页读 0 —— 下拉的宽度由最长那个选项(供应商名)决定,活数据变了它就变(AGENTS.md「一份基线文档是一张快照」那一条)。
 **改法方向:** INPUT-2b 的解药 —— 给那个不换行的容器 `flex-wrap`,或给下拉一个 `max-w-full`。**去处:** 未排期。
+
+## TABLE-FEATURES-2 登记(2026-10-26)—— Tim 2026-10-26 的 Step 0 裁定 Q8 · Q9 与"副发现登记,不修";读数与 file:line 出自 `docs/surveys/TABLE-FEATURES-2/survey-*.md`
+
+### HR-LEAVE-RANGE-WHOLLY-INSIDE · `/hr/leave` 的起止日期只显示【整段落在区间里】的请假(Tim 2026-10-26 Q8:不改,登记)
+`app/hr/leave/leaveRows.ts:69-70`:`start_date ≥ from AND end_date ≤ to`。于是「本月」这个快捷区间会漏掉跨月底的请假(例如 10-30 到 11-02)。
+改成"有重叠就算"(`start_date ≤ to AND end_date ≥ from`)是一次行为改动,Tim 裁定不在 TF-2 里做。**去处:** 未排期。
+
+### LEDGER-CLEAR-DATES-DOES-NOTHING · 库存流水把日期清空之后仍然是最近 90 天(Tim 2026-10-26 Q9:登记)
+`app/inventory/reports/ledger/ledgerQuery.ts:57`:空的 `from` 一律回落到 90 天默认;屏幕上那句「把日期清掉就能放宽」(`messages/en.ts`「Clear the dates to widen it」)因此是假的。
+(同一页的 90 天默认窗口在 UTC 0–8 点多出一天那一条,TF-2 修了 —— 见 docs/handbacks/TABLE-FEATURES-2.md。)**去处:** 未排期。
+
+### BALANCE-SHEET-AS-OF-UTC · 资产负债表的默认截至日是 UTC 的今天(Tim 2026-10-26 Q9:登记)
+`app/finance/balance-sheet/page.tsx:82`:新加坡 0–8 点之间默认截至日是【昨天】。与 TF-2 修掉的损益表 / 现金流量表预设同一类(UTC 当业务日),改法同一个:`businessToday()`。**去处:** 未排期。
+
+### STATEMENT-PANEL-LOCAL-CLOCK · 对账单面板的日期按浏览器本地钟算(Tim 2026-10-26 Q9:登记)
+`StatementPanel.tsx:43-50`(客户端组件):日期来自 `new Date()` 的本地时区,浏览器不在新加坡时区时区间会错开。**去处:** 未排期。
+
+### PRESETS-FIRST-FY-END-NOT-APPLIED · 快捷区间「今年」不看 `first_fy_end`(TF-2 记;两条裁定之间的出入,照直写)
+Step 0 的决定(Tim 接受)说「first_fy_end is respected as the year-close does」,而 Q5 的裁定是函数【只回 fy_end_month 与 fy_end_day】(`db/functions/fiscal_year_end_setting.sql`)。
+TF-2 照 Q5 的字面做:「今年」= 今天所在的、按 fy_end 月日算出来的财年。**今天没有可见的差别**:线上 `first_fy_end` 为 NULL(2026-10-26 以 postgres 读)。
+要它生效,得让函数多回一个值(或在函数里折算),那是 Q5 之外的改动。**去处:** 问 Tim。
+
+### 副发现(TF-2 Step 0 量到;Tim 2026-10-26:登记,不修)
+- **INVOICES-MASKED-STATE-FILTER-EMPTY** —— 不持 `data.view_prices` 的读者筛「已付清 / 逾期」得到 0 行:`total_base` 被遮成 NULL,于是 `payment_state` 永远到不了 paid、`overdue` 是 NULL(`db/views/invoice_status.sql:36,40`)。
+- **INVOICES-STATUS-ALL-VOIDS-EVERY-PAGE** —— `/finance/invoices?status=all` 在每一页后面都接上【全部】作废发票,`total` 也加上它们的数(`app/finance/invoices/page.tsx:66,70-75`);导出路由是干净的并集。
+- **EXPENSES-ACCOUNT-FILTER-IN-JS** —— 费用按科目筛时,先不分页读 `expense_lines`(停在 1,000 行)、再把 id 塞进地址(`app/finance/expenses/expenseRows.ts:54-64`)。TF-2 的表尾合计在库里做这一筛;列表那一半照旧。
+- **HR-CLAIMS-STATUS-OPTION-MISSING** —— `/hr/claims` 的状态下拉里没有 `awaiting_payment_run`(`db/views/medical_claim_status.sql:51` 对 `app/hr/claims/page.tsx:62`)。
+- **CONTRACTS-SETTLEMENTS-RLS-ROWS-DROPPED** —— `/contracts` 的闸是 `module.suppliers.view`(`page.tsx:64`),结算表的 RLS 要 `module.customers.view`(`db/tables/sales_settlements.sql:90-92`):只持前者的读者看到一张空表和"没有"那一句。TF-2 的表尾对这位读者读「受限」(按读者判)。
+- **FORWARDERS-OWED-DROPS-INBOUND-ROWS** —— `ap_open_items` 只留 `ib.unit_price IS NOT NULL`(`db/views/ap_open_items.sql:119`),而 `unit_price` 对不持 `data.view_purchase_prices` 的读者被遮(`inbound_batches_masked.sql:44`):那位读者的每一笔进料欠款悄悄消失,预付遮成 NULL 再 COALESCE 成 0 又让费用那几行读得偏高。TF-2 的表尾对这位读者读「受限」;每一行的「欠款」照旧。
+- **LIST-ROWS-TRUNCATED-AT-1000** —— 四处的【每一行】的数今天就建在一次不分页、停在 1,000 行的读取上,而 TF-2 的表尾是库算的全体:`/finance/assets` 的累计折旧与净值(`page.tsx:103-109`)· `/logistics/forwarders` 的欠款(`page.tsx:83-94`)· `/finance/self-approved`(RPC ≤ 1,000 而客户端排序声称 complete)· `/inventory`(七次不分页读取)。量大之后表尾会与上面的行对不上 —— 那时错的是行。
+- **COMMISSIONS-PER-TONNE-NO-UNIT** —— 按吨的佣金在表里印成一个普通金额,没有「/t」(`app/sales/commissions/CommissionsTable.tsx:84-85`)。

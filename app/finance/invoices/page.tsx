@@ -7,13 +7,15 @@
 // CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { fetchAllPages } from '@/lib/export/serverRows'
 import {
-    parseInvoiceListParams, issuedCount, issuedPage, voidCount, voidPage, shapeInvoiceRows, invoiceExportHref,
+    parseInvoiceListParams, issuedCount, issuedPage, voidCount, voidPage, shapeInvoiceRows, invoiceExportHref, invoiceTotals,
     type InvoiceDbRow,
 } from './invoiceRows'
 import InvoicesToolbar from './InvoicesToolbar'
@@ -75,6 +77,9 @@ export default async function InvoicesPage({
         }
     }
 
+    // TABLE-FEATURES-2 Q1:表尾合计 = 所有符合筛选的行,库算(不是这一页的和;作废的加 0)
+    const totals = await invoiceTotals(supabase, params)
+
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
         if (dateFrom) params.set('date_from', dateFrom)
@@ -88,6 +93,9 @@ export default async function InvoicesPage({
 
     const tableRows: InvoiceRow[] = await shapeInvoiceRows(rows)
 
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
+    const presets = await readDatePresets(supabase)
+
     return (
         <ListPage
             title={t('invoice.listTitle')}
@@ -99,13 +107,14 @@ export default async function InvoicesPage({
             state={{ kind: 'ok' }}
         >
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <InvoicesToolbar />
             </Suspense>
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
             <InvoicesTable rows={tableRows} empty={t('invoice.empty')} exportHref={invoiceExportHref(params)}
-                           sort={params.sort} shown={tableRows.length} total={total} />
+                           sort={params.sort} shown={tableRows.length} total={total} totals={totals} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

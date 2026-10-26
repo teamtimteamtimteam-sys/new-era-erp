@@ -1,0 +1,13 @@
+STEP|database as postgres (base tables): expenses [{"ccy":"SGD","net":"5650.00"}] · payments [{"dir":"in","ccy":"SGD","net":"1400.00","unpaired":"1400.00","pairs":"0","pairnet":"0.00"},{"dir":"in","ccy":"USD","net":"250.00","unpaired":"250.00","pairs":"1","pairnet":"0.00"},{"dir":"out","ccy":"SGD","net":"120000.00","unpaired":"120000.00","pairs":"0","pairnet":"0.00"},{"dir":"out","ccy":"USD","net":"30003.70","unpaired":"30003.70","pairs":"3","pairnet":"0.00"}] · invoices non-void {"total":"36232.87","n":"6"} · fy_end 12/31
+PASS|T /finance/expenses 2026-10-01…2026-10-31: footer {"SGD":5650} = database (net, mirrors negative) {"SGD":5650}
+PASS|C one total per (direction, currency): footer rows ["Received · SGD","Received · USD","Paid · SGD","Paid · USD"]; database groups ["in|SGD","in|USD","out|SGD","out|USD"]
+PASS|P received and paid shown apart, each = database net of that direction: [["Received · SGD",1400],["Received · USD",250],["Paid · SGD",120000],["Paid · USD",30003.7]]
+PASS|R a reversed pair adds 0: [{"group":"in|USD","pairs":"1","pairNet":"0.00","footer":250,"sumOfUnpairedRows":"250.00"},{"group":"out|USD","pairs":"3","pairNet":"0.00","footer":30003.7,"sumOfUnpairedRows":"30003.70"}]
+PASS|M control (data.view_prices): footer [{"label":"Total · SGD","cells":{"Total":"36,232.87","Settled":"1,400.00","Open":"34,782.87"}}]; total = database non-void total_base 36232.87 (6 invoices)
+PASS|M reader without data.view_prices: footer [{"label":"Total · SGD","cells":{"Total":"Restricted","Settled":"1,400.00","Open":"Restricted"}}] — total and open read Restricted, settled is a number equal to the control's
+PASS|D /finance/journal (SG today 2026-10-26, fy_end 12/31): presets {"thisMonth":["2026-10-01","2026-10-31"],"lastMonth":["2026-09-01","2026-09-30"],"thisQuarter":["2026-10-01","2026-12-31"],"thisYear":["2026-01-01","2026-12-31"]} = expected {"thisMonth":["2026-10-01","2026-10-31"],"lastMonth":["2026-09-01","2026-09-30"],"thisQuarter":["2026-10-01","2026-12-31"],"thisYear":["2026-01-01","2026-12-31"]}
+PASS|D /inbound (SG today 2026-10-26, fy_end 12/31): presets {"thisMonth":["2026-10-01","2026-10-31"],"lastMonth":["2026-09-01","2026-09-30"],"thisQuarter":["2026-10-01","2026-12-31"],"thisYear":["2026-01-01","2026-12-31"]} = expected {"thisMonth":["2026-10-01","2026-10-31"],"lastMonth":["2026-09-01","2026-09-30"],"thisQuarter":["2026-10-01","2026-12-31"],"thisYear":["2026-01-01","2026-12-31"]}
+PASS|D click "This month" on /inbound → /inbound?date_from=2026-10-01&date_to=2026-10-31; date boxes ["01/10/2026","31/10/2026"]; active preset thisMonth
+STEP|done
+AFTER|nothing but the throwaway accounts and their grants was committed (removed by the plan); the database reads were sums as postgres (base tables)
+TF2_PROOF_EXIT=0

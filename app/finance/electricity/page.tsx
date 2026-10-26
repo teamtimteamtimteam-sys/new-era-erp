@@ -25,6 +25,7 @@ import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import SharedPoolRulePanel from './SharedPoolRulePanel'
 import { xText, xMoney, xMasked } from '@/lib/export/cells'
+import { shapeListTotals } from '@/lib/listTotals'
 
 type AllocRow = {
     id: string; period_from: string; period_to: string; bill_date: string; invoice_ref: string; currency: string
@@ -42,13 +43,16 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
         can('module.finance.edit'), canViewPrices(), can('module.processing.view'), getBaseCurrency(),
     ])
 
-    const [allocRes, settingsRes, revRes] = await Promise.all([
+    const [allocRes, settingsRes, revRes, totalsRes] = await Promise.all([
         supabase.from('electricity_allocations_masked')
             .select('id, period_from, period_to, bill_date, invoice_ref, currency, bill_amount, bill_kwh, metered_kwh, allocated_kwh, allocated_amount, overhead_amount, relieved_estimate_count, payment_status, expense_id')
             .order('period_from', { ascending: false }),
         supabase.from('electricity_settings').select('shared_pool_rule').maybeSingle(),
         supabase.from('electricity_allocation_reversals_masked').select('allocation_id'),
+        // TABLE-FEATURES-2(Tim Q1 · Q2):表尾合计,库算 —— 撤回过的分摊排除;没有价格码时三格都读「受限」
+        supabase.rpc('list_totals_electricity'),
     ])
+    const allocTotals = shapeListTotals(mustRows(totalsRes, 'electricity totals'))
     const allocs = mustRows(allocRes, 'electricity_allocations_masked') as AllocRow[]
     const settings = mustOne(settingsRes, 'electricity_settings') as { shared_pool_rule: string | null } | null
     const reversed = new Set((mustRows(revRes, 'electricity_allocation_reversals_masked') as { allocation_id: string }[]).map((r) => r.allocation_id))
@@ -142,6 +146,7 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
                     exportSpec={{ name: 'finance-electricity-allocations', title: t('energy.allocationsTitle') }}
                     // TABLE-FEATURES-1 Q9:分摊一次读全 —— 在浏览器里排
                     sorting="client"
+                    footer={{ totals: allocTotals, columns: { bill: 'amount', runs: 'runs', overhead: 'overhead' } }}
                 />
                 {!canEdit && <p className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{t('energy.postNeedsEdit')}</p>}
             </section>

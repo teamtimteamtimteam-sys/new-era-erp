@@ -12,6 +12,12 @@ import { xText, xDate, xMoney, xMasked } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
+
+// 医疗报销按决策以新元计(列本身就叫 amount_sgd;scripts/check-currency-literals.mjs 的 app/hr/claims/ 那一条)。
+// 格子、导出与表尾合计的标签说的是【同一个】币种,所以写在一处。
+const CLAIM_CURRENCY = 'SGD'
 
 export type ClaimRow = {
     claimId: string
@@ -38,10 +44,12 @@ const CLS: Record<string, string> = {
     paid: 'bg-green-100 text-green-800',
 }
 
-export default function ClaimsTable({ rows, empty, exportUrl, sort, shown, total }: {
+export default function ClaimsTable({ rows, empty, exportUrl, sort, shown, total, totals }: {
     rows: ClaimRow[]; empty: React.ReactNode; exportUrl: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(claimsRows.ts 的 CLAIMS_SORT) */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_medical_claims);币种固定,库给 NULL */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
     const sortHref = useSortHref()
@@ -64,8 +72,8 @@ export default function ClaimsTable({ rows, empty, exportUrl, sort, shown, total
             key: 'amount', sortable: true, header: t('claims.amount'), align: 'right',
             // TABLE-EXPORT-1 Q3(健康一族,data.view_health):与屏幕同一条判据 —— amountSgd 为 null 就是「受限」
             //   币种:屏幕上这一格写着「… SGD」(列本身就叫 amount_sgd),导出跟着写同一个。
-            exportAs: (r) => xMasked(r.amountSgdRaw, r.amountSgd !== null, (v) => xMoney(v, 'SGD')),
-            render: (r) => (r.amountSgd === null ? <Refusal>{t('common.restricted')}</Refusal> : `${r.amountSgd} SGD`),
+            exportAs: (r) => xMasked(r.amountSgdRaw, r.amountSgd !== null, (v) => xMoney(v, CLAIM_CURRENCY)),
+            render: (r) => (r.amountSgd === null ? <Refusal>{t('common.restricted')}</Refusal> : `${r.amountSgd} ${CLAIM_CURRENCY}`),
         },
         {
             key: 'state', sortable: true, header: t('claims.state'), priority: true,
@@ -88,6 +96,7 @@ export default function ClaimsTable({ rows, empty, exportUrl, sort, shown, total
             empty={empty}
             exportSpec={{ name: 'hr-medical-claims', title: t('hr.subnav.claims'), serverRows: exportUrl }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { amount: 'amount' }, t, CLAIM_CURRENCY)}
         />
     )
 }

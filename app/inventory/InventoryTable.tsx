@@ -11,6 +11,8 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xNum, xMoney, xMasked } from '@/lib/export/cells'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
+import type { ListTotal } from '@/lib/listTotals'
 
 export type InventoryTableRow = {
     materialId: string
@@ -32,10 +34,16 @@ export type InventoryTableRow = {
     marketValue: number | null
 }
 
-export function InventoryTable({ rows, pricesRestricted }: {
+export function InventoryTable({ rows, pricesRestricted, totals }: {
     rows: readonly InventoryTableRow[]
     /**
-     * TABLE-EXPORT-1(Q3):页面那个 pricesRestricted(合计条据它画「价格受限」)——
+     * TABLE-FEATURES-2(Tim 2026-10-26):list_totals_inventory() 读回来的表尾合计 —— 取代了页面上那条估值合计条。
+     * 本位币一行(库存价值 · 成本价值,读者没有 data.view_prices 时两格「受限」)、USD 一行(市价价值,不遮蔽)。
+     * 加权均价是价,不合计。
+     */
+    totals: readonly ListTotal[]
+    /**
+     * TABLE-EXPORT-1(Q3):读者没有 data.view_prices(TABLE-FEATURES-2 起按权限判,与表尾「受限」同一个判据)——
      * 均价 · 库存价值 · 成本价值三列被 data.view_prices 管着,读不到时每一行是 null。
      * 导出里那一格写「Restricted」,不是空。市价价值不归这条权限管,照常导出。
      */
@@ -137,6 +145,7 @@ export function InventoryTable({ rows, pricesRestricted }: {
             // TABLE-FEATURES-1 Q9:整张台账一次拿全,在浏览器里排。三列钱被 data.view_prices 遮住时导出值是「受限」(null),
             //   永远排在最后 —— 排序不泄露看不见的数。钱都是本位币,可比。
             sorting={{ mode: 'client', coverage: 'complete' }}
+            footer={() => totalsFooterRows(totals, { stockValue: 'stockValue', costValue: 'costValue', marketValue: 'marketValue' }, t)}
         />
     )
 }

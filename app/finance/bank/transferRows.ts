@@ -12,6 +12,7 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import type { TransferRow } from './TransfersTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -52,6 +53,14 @@ export type TransferDbRow = {
 
 export function transferCount(supabase: Client) {
     return supabase.from('bank_transfers').select('id', { count: 'exact', head: true })
+}
+
+/**
+ * TABLE-FEATURES-2(Tim Q1 · Q2):表尾合计 —— db/functions/list_totals_bank_transfers.sql。
+ *   ★ 覆盖【所有】转账(表只画前 TRANSFERS_SHOWN 笔);已冲销的排除。这张表没有筛选,所以不传参数。
+ */
+export async function transferTotals(supabase: Client): Promise<ListTotal[]> {
+    return shapeListTotals(mustRows(await supabase.rpc('list_totals_bank_transfers'), 'bank transfers totals'))
 }
 
 export function transferPage(supabase: Client, p: TransferListParams, from: number, to: number) {

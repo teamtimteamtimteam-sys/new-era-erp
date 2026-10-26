@@ -12,6 +12,8 @@ import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table
 import { xText, xNum, xMoney, xDate, xMasked } from '@/lib/export/cells'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type PurchaseOrderRow = {
     poId: string
@@ -45,13 +47,15 @@ export type PurchaseOrderRow = {
     receiptPct: number | null
 }
 
-export default function OrdersTable({ rows, empty, exportHref, sort, shown, total }: {
+export default function OrdersTable({ rows, empty, exportHref, sort, shown, total, totals }: {
     rows: PurchaseOrderRow[]
     empty: React.ReactNode
     /** TABLE-EXPORT-1:服务端翻页取全的那条路由(带当前筛选)。 */
     exportHref: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(orderRows.ts 的 PO_SORT) */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_purchase_orders)—— 所有符合筛选的单,每个币种一行 */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
     const sortHref = useSortHref()
@@ -159,6 +163,7 @@ export default function OrdersTable({ rows, empty, exportHref, sort, shown, tota
             rowClassName={(r) => (r.status === 'cancelled' ? 'text-gray-400' : undefined)}
             exportSpec={{ name: 'purchase-orders', title: t('purchasing.ordersTitle'), serverRows: exportHref }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { net: 'net', tax: 'tax', gross: 'gross', prepaid: 'prepaid' }, t)}
         />
     )
 }

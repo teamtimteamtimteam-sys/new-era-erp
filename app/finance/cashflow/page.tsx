@@ -18,6 +18,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoneyBare } from '@/lib/format'
 import CashflowToolbar from './CashflowToolbar'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -44,8 +45,6 @@ type Cf = {
     entries: { code: string; entry_date: string; source_type: string; memo: string | null; section: string; net: number }[]
 }
 
-const ymdUtc = (d: Date) => d.toISOString().slice(0, 10)
-
 export default async function CashflowPage({
     searchParams,
 }: {
@@ -62,13 +61,11 @@ export default async function CashflowPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    // 预设与损益表【逐字一致】—— 三张报表的"本月/上月/今年"必须指同样的区间
-    const now = new Date()
-    const y = now.getUTCFullYear()
-    const m = now.getUTCMonth()
-    const thisMonth = { from: ymdUtc(new Date(Date.UTC(y, m, 1))), to: ymdUtc(new Date(Date.UTC(y, m + 1, 0))) }
-    const lastMonth = { from: ymdUtc(new Date(Date.UTC(y, m - 1, 1))), to: ymdUtc(new Date(Date.UTC(y, m, 0))) }
-    const thisYear = { from: `${y}-01-01`, to: `${y}-12-31` }
+    // 默认区间 = 本月;快捷区间:本月 / 上月 / 本季度 / 今年(财年)—— TABLE-FEATURES-2(Tim 2026-10-25 Q5 · 2026-10-26 Q6):
+    //   按【新加坡时间】的今天、「今年」读配置的财年年末、每一个都到期末为止;与 11 张列表、与损益表同一份算术(lib/datePresets.ts)。
+    const presets = await readDatePresets(supabase)
+    const thisMonth = presets.find((p) => p.key === 'thisMonth')
+    if (!thisMonth) throw new Error('DATE_PRESETS_NO_THIS_MONTH')
 
     const { dateFrom, dateTo } = parseDateRange(sp)
     const from = dateFrom || thisMonth.from
@@ -91,13 +88,6 @@ export default async function CashflowPage({
         )
     }
     const cf = data as unknown as Cf
-
-    // 预设键与损益表【逐字一致】(finance.presets.* 由工具栏自己翻译)
-    const presets = [
-        { key: 'thisMonth', ...thisMonth },
-        { key: 'lastMonth', ...lastMonth },
-        { key: 'thisYear', ...thisYear },
-    ]
 
     // 全页只有一种币:标题下那句 cashflowDesc「……以 {ccy} 计」已经写明,
     // 明细表列头 金额 ({ccy}) 再说一次 —— 所以每个数字不重复带币种。

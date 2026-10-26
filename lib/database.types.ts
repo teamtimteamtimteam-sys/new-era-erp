@@ -50250,6 +50250,13 @@ export type Database = {
         Args: { p_date: string; p_prefix: string }
         Returns: string
       }
+      fiscal_year_end_setting: {
+        Args: never
+        Returns: {
+          fy_end_day: number
+          fy_end_month: number
+        }[]
+      }
       floor_board: { Args: never; Returns: Json }
       floor_board_arms: {
         Args: never
@@ -50427,6 +50434,20 @@ export type Database = {
         Returns: Json
       }
       inventory_metal_exposure: { Args: never; Returns: Json }
+      inventory_stock_by_material: {
+        Args: never
+        Returns: {
+          cost_value: number
+          inbound_stock: number
+          market_value: number
+          material_id: string
+          mixed_unit: boolean
+          output_stock: number
+          priced_qty: number
+          stock_value: number
+          unit: string
+        }[]
+      }
       inventory_valuation_snapshot: {
         Args: { p_as_of?: string }
         Returns: Json
@@ -50652,6 +50673,261 @@ export type Database = {
           p_value: number
         }
         Returns: number
+      }
+      list_totals_bank_transfers: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_commissions: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_credit_notes: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_electricity: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_expense_claims: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_expenses: {
+        Args: {
+          p_account?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_payment_status?: string
+        }
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_fixed_assets: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_forwarders: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_freight: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_inventory: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_invoices: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_state?: string
+          p_status?: string
+        }
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_journal: {
+        Args: { p_date_from?: string; p_date_to?: string }
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_medical_claims: {
+        Args: { p_employee?: string; p_status?: string; p_year?: number }
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_my_expense_claims: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_my_medical_claims: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_my_payslips: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_payment_requests: {
+        Args: { p_status?: string }
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_payments: {
+        Args: { p_date_from?: string; p_date_to?: string; p_direction?: string }
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_payroll: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_purchase_orders: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_status?: string
+          p_supplier?: string
+        }
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_self_approved: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_settlements: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_wht_liability: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
+      }
+      list_totals_wht_remittances: {
+        Args: never
+        Returns: {
+          currency: string
+          grp: string
+          measure: string
+          restricted: boolean
+          total: number
+        }[]
       }
       management_pack_data: { Args: { p_period_month: string }; Returns: Json }
       master_import_apply: {

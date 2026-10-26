@@ -12,7 +12,8 @@ import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import { MY_LIST_SHOWN, myLeaveCount, myLeavePage, myMedicalCount, myMedicalPage, myExpenseCount, myExpensePage, attachMyExpenseItems,
-    parseMyLeaveSort, parseMyMedicalSort, parseMyExpenseSort, myExportHref, MY_SORT_PREFIX } from './meRows'
+    parseMyLeaveSort, parseMyMedicalSort, parseMyExpenseSort, myExportHref, MY_SORT_PREFIX,
+    myPayslipTotals, myMedicalTotals, myExpenseTotals } from './meRows'
 import MyClaimsPanel from './MyClaimsPanel'
 import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
@@ -142,7 +143,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     const employeeId = p.employee_id as string
 
     // 自己的薪资、培训、任职历史 —— 全部由行级策略放行,不需要任何模块权限
-    const [payRes, trainRes, histRes] = await Promise.all([
+    const [payRes, trainRes, histRes, payslipTotals, medicalTotals, expenseTotals] = await Promise.all([
         supabase
             .from('payroll_lines_masked')
             .select('id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay, payroll_period_id')
@@ -158,6 +159,10 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             .select('id, effective_date, change_type, job_title, employment_type, employment_status, notes')
             .eq('employee_id', employeeId)
             .order('effective_date', { ascending: false }),
+        // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):工资单 · 医疗报销 · 费用报销三张表的表尾合计(meRows.ts),全部自己的行
+        myPayslipTotals(supabase),
+        myMedicalTotals(supabase),
+        myExpenseTotals(supabase),
     ])
 
     // 自助的假期与报销:全部靠 cut 4 的行级策略 + HR-2a 的函数,不需要任何模块权限
@@ -435,7 +440,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             {/* ── payslips: own figures in full ── */}
             <section className="mb-6">
                 <h2 className="mb-2">{t('me.payslips')}</h2>
-                <MyPayslipsTable rows={payslipRows} empty={t('me.noPayslips')} />
+                <MyPayslipsTable rows={payslipRows} empty={t('me.noPayslips')} totals={payslipTotals} />
             </section>
 
             {/* ── training ── */}
@@ -510,6 +515,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     employeeId={employeeId}
                     claims={(mustRows(claimRes)) as never}
                     total={claimTotal}
+                    totals={medicalTotals}
                     sort={myMedicalSort}
                     exportHref={myExportHref('/me/medical-claims/export', myMedicalSort, MY_SORT_PREFIX.medical)}
                     balance={claimBalRes.data as never}
@@ -524,6 +530,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     employeeId={employeeId}
                     rows={expenseClaimRows as never}
                     total={expenseTotal}
+                    totals={expenseTotals}
                     sort={myExpenseSort}
                     exportHref={myExportHref('/me/expense-claims/export', myExpenseSort, MY_SORT_PREFIX.expense)}
                     receipts={expenseClaimReceipts}

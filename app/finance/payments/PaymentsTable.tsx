@@ -10,6 +10,8 @@ import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table
 import { xText, xMoney, xDate } from '@/lib/export/cells'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type PaymentRow = {
     id: string
@@ -27,12 +29,14 @@ export type PaymentRow = {
     status: string
 }
 
-export default function PaymentsTable({ rows, empty, exportHref, sort, shown, total }: {
+export default function PaymentsTable({ rows, empty, exportHref, sort, shown, total, totals }: {
     rows: PaymentRow[]; empty: React.ReactNode
     /** TABLE-EXPORT-2a:服务端分页 —— 导出向这条路由要全部匹配行(同一套筛选) */
     exportHref: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(paymentRows.ts 的 PAYMENT_SORT) */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2 Q1 · Q4:库算的合计(收款 / 付款 × 币种),画成表尾 */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
     const sortHref = useSortHref()
@@ -95,6 +99,7 @@ export default function PaymentsTable({ rows, empty, exportHref, sort, shown, to
             empty={empty}
             exportSpec={{ name: 'payments', title: t('finance.paymentsTitle'), serverRows: exportHref }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { amount: 'amount' }, t)}
         />
     )
 }

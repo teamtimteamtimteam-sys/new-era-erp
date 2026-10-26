@@ -16,6 +16,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
+import { shapeListTotals } from '@/lib/listTotals'
 import NewForwarderForm from './NewForwarderForm'
 import { ListPage } from '@/app/components/ui/list-page'
 import ForwardersTable, { type ForwarderRow } from './ForwardersTable'
@@ -97,6 +98,9 @@ export default async function ForwardersPage() {
         'base currency'
     )
     const baseCcy = (baseRow[0]?.code as string) ?? null
+    // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):表尾合计 —— 全部货代的未结应付,本位币,由库算(list_totals_forwarders)。
+    //   不持 finance.view(零行)或不持 data.view_purchase_prices(视图悄悄少了入库应付)的读者读「受限」。每一行的「未结应付」照旧。
+    const totals = shapeListTotals(mustRows(await supabase.rpc('list_totals_forwarders'), 'forwarder totals'))
 
     const tableRows: ForwarderRow[] = rows.map((r) => ({
         id: r.id,
@@ -128,6 +132,7 @@ export default async function ForwardersPage() {
                     empty={t('logistics.emptyForwarders')}
                     moneyRestricted={!canMoney}
                     termsRestricted={!canCommercial}
+                    totals={totals}
                 />
             </div>
         </ListPage>

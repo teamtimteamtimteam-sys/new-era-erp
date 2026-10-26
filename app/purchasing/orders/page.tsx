@@ -13,13 +13,15 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { loadPoCategoryAccess } from '@/lib/poCategoryAccess'
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import OrdersToolbar from './OrdersToolbar'
 import { ListPage } from '@/app/components/ui/list-page'
 import OrdersTable, { type PurchaseOrderRow } from './OrdersTable'
-import { parsePoListParams, poCount, poPage, shapePoRows, poExportHref } from './orderRows'
+import { parsePoListParams, poCount, poPage, shapePoRows, poExportHref, poTotals } from './orderRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { setSortParams } from '@/lib/listSort'
@@ -52,6 +54,8 @@ export default async function PurchaseOrdersPage({
     const requestedPage = parsePage(sp.page)
 
     const { count } = await poCount(supabase, params)
+    // TABLE-FEATURES-2(Tim 2026-10-25 Q1):表尾合计 —— 同一套筛选,所有符合的单,由库算
+    const totals = await poTotals(supabase, params)
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
@@ -92,6 +96,9 @@ export default async function PurchaseOrdersPage({
 
     const poAccess = await loadPoCategoryAccess(supabase)
 
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
+    const presets = await readDatePresets(supabase)
+
     return (
         <ListPage
             title={t('purchasing.ordersTitle')}
@@ -110,13 +117,14 @@ export default async function PurchaseOrdersPage({
             state={{ kind: 'ok' }}
         >
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <OrdersToolbar suppliers={supplierOptions} />
             </Suspense>
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
             <OrdersTable rows={tableRows} empty={t('purchasing.empty')} exportHref={poExportHref(params)}
-                         sort={params.sort} shown={tableRows.length} total={total} />
+                         sort={params.sort} shown={tableRows.length} total={total} totals={totals} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

@@ -20,6 +20,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xNum, xMoney } from '@/lib/export/cells'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 /** 服务端传下来的【纯数据】—— 一个函数都没有,所以过得了边界。 */
 export type CommissionRow = {
@@ -40,7 +42,11 @@ export type CommissionRow = {
     agentName: string | null
 }
 
-export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
+export default function CommissionsTable({ rows, totals }: {
+    rows: CommissionRow[]
+    /** TABLE-FEATURES-2(Tim 2026-10-26 Q3):库算的表尾合计 —— 只有 fixed_amount 的金额,每个币种一行(list_totals_commissions) */
+    totals: ListTotal[]
+}) {
     const t = useTranslations()
 
     // ★【手机上留哪两列 —— 这张表自己的判断,写在这里而不是提交信息里】★
@@ -102,6 +108,7 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
             exportSpec={{ name: 'sales-commissions', title: t('commissions.title') }}
             // TABLE-FEATURES-1 Q9:登记簿一次读完 —— 在浏览器里排;有效期按起始日排
             sorting={{ mode: 'client', coverage: 'complete' }}
+            footer={() => totalsFooterRows(totals, { amount: 'rate' }, t)}
         />
     )
 }

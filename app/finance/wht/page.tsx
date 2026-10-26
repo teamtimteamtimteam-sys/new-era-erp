@@ -30,6 +30,7 @@ import { WhtLiabilityTable, WhtRemittancesTable, WhtRatesTable, type LiabilityRo
 import { formatMonth } from '@/lib/dates'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { shapeListTotals } from '@/lib/listTotals'
 
 export default async function WhtPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const sp = await searchParams
@@ -44,7 +45,7 @@ export default async function WhtPage({ searchParams }: { searchParams: Promise<
     // FIX-2a:先问权限,再决定读不读 —— 拒绝必须是一句权限答复,
     // 不能从一个数出来的 0 倒推。
     const canSuppliers = await can('module.suppliers.view')
-    const [liabRes, remitRes, naturesRes, ratesRes, gapRes] = await Promise.all([
+    const [liabRes, remitRes, naturesRes, ratesRes, gapRes, liabTotalsRes, remitTotalsRes] = await Promise.all([
         supabase.from('wht_liability_by_month')
             .select('period_month, withheld_base, remitted_base, unremitted_base, due_date, is_overdue')
             .order('period_month', { ascending: false }),
@@ -73,7 +74,12 @@ export default async function WhtPage({ searchParams }: { searchParams: Promise<
             ? supabase.from('suppliers').select('id', { count: 'exact', head: true })
                 .is('deleted_at', null).is('tax_residence', null)
             : Promise.resolve({ count: null, data: null, error: null }),
+        // TABLE-FEATURES-2(Tim Q1 · Q2):两张表各自的表尾合计,库算 —— 汇款那一张排除已冲销的(与下面 reversed 同一条判据)
+        supabase.rpc('list_totals_wht_liability'),
+        supabase.rpc('list_totals_wht_remittances'),
     ])
+    const liabilityTotals = shapeListTotals(mustRows(liabTotalsRes, 'wht liability totals'))
+    const remittanceTotals = shapeListTotals(mustRows(remitTotalsRes, 'wht remittances totals'))
     const liability = mustRows(liabRes)
     const remittances = mustRows(remitRes)
     const natures = mustRows(naturesRes)
@@ -174,6 +180,7 @@ export default async function WhtPage({ searchParams }: { searchParams: Promise<
             <div className="mb-6">
                 <WhtLiabilityTable
                     rows={liabilityRows}
+                    totals={liabilityTotals}
                     empty={
                         // 【具名的缺席】"还没有代扣过任何税"是一句关于账本的真话,
                         // 而一张空表读起来像页面坏了。
@@ -219,7 +226,7 @@ export default async function WhtPage({ searchParams }: { searchParams: Promise<
 
             <h2 className="mb-2">{t('wht.remittancesHeading')}</h2>
             <div className="mb-6">
-                <WhtRemittancesTable rows={remittanceRows} empty={t('wht.noRemittances')} canEdit={canEditGate} />
+                <WhtRemittancesTable rows={remittanceRows} totals={remittanceTotals} empty={t('wht.noRemittances')} canEdit={canEditGate} />
             </div>
 
             {/* ── 法定税率:一张【待核对】的表 ─────────────────────────────────── */}

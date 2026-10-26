@@ -12,6 +12,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xDate, xInt } from '@/lib/export/cells'
 import AssetActions from './AssetActions'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type AssetsTableRow = {
     id: string
@@ -50,9 +52,11 @@ export type AssetsTableRow = {
 }
 
 export default function AssetsTable({
-    rows, canEdit, bankAccounts, baseCurrency, empty,
+    rows, totals, canEdit, bankAccounts, baseCurrency, empty,
 }: {
     rows: AssetsTableRow[]
+    /** TABLE-FEATURES-2(Tim Q1):库算的合计(list_totals_fixed_assets)—— 原值每个币种一行;本位币那一行另带本位币原值 · 累计折旧 · 净值 */
+    totals: ListTotal[]
     canEdit: boolean
     bankAccounts: string[]
     /** 只用来拼「金额 ({ccy})」那个列头,与转换之前同一个调用。 */
@@ -162,6 +166,7 @@ export default function AssetsTable({
             exportSpec={{ name: 'fixed-assets', title: t('assets.title') }}
             // TABLE-FEATURES-1 Q9:台账一次读全(fixed_assets 不翻页)—— 在浏览器里排
             sorting={{ mode: 'client', coverage: 'complete' }}
+            footer={() => totalsFooterRows(totals, { cost: 'cost', costBase: 'costBase', accum: 'accum', nbv: 'nbv' }, t)}
         />
     )
 }

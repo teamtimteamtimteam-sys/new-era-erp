@@ -10,6 +10,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xMoney, xRestricted } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type ForwarderRow = {
     id: string
@@ -37,11 +39,14 @@ export default function ForwardersTable({
      */
     moneyRestricted = false,
     termsRestricted = false,
+    totals,
 }: {
     rows: ForwarderRow[]
     empty: React.ReactNode
     moneyRestricted?: boolean
     termsRestricted?: boolean
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_forwarders),本位币一行 */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
 
@@ -89,6 +94,7 @@ export default function ForwardersTable({
             rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
             exportSpec={{ name: 'logistics-forwarders', title: t('logistics.forwardersTitle') }}
             sorting={{ mode: 'client', coverage: 'complete' }}
+            footer={() => totalsFooterRows(totals, { owed: 'owed' }, t)}
         />
     )
 }

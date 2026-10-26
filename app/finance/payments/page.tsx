@@ -5,13 +5,15 @@
 // CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import PaymentsToolbar from './PaymentsToolbar'
 import PaymentsTable, { type PaymentRow } from './PaymentsTable'
 import { mustCount } from '@/lib/db-helpers'
-import { parsePaymentListParams, paymentCount, paymentPage, shapePaymentRows, paymentExportHref } from './paymentRows'
+import { parsePaymentListParams, paymentCount, paymentPage, shapePaymentRows, paymentExportHref, paymentTotals } from './paymentRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -51,6 +53,9 @@ export default async function PaymentsListPage({
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
+    // TABLE-FEATURES-2 Q1:表尾合计 = 所有符合筛选的行,库算(不是这一页的和)
+    const totals = await paymentTotals(supabase, params)
+
     // 2) 取当前页(创建序最新在前)
     const { data: payments, error } = await paymentPage(supabase, params, from, to)
 
@@ -82,6 +87,9 @@ export default async function PaymentsListPage({
     // 3) 往来单位名(按 id 反查)与映射 —— 在 paymentRows.ts 里,与导出同一份
     const tableRows: PaymentRow[] = await shapePaymentRows(supabase, payments ?? [])
 
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
+    const presets = await readDatePresets(supabase)
+
     return (
         <ListPage
             title={t('finance.paymentsTitle')}
@@ -94,6 +102,7 @@ export default async function PaymentsListPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <PaymentsToolbar />
             </Suspense>
 
@@ -102,7 +111,7 @@ export default async function PaymentsListPage({
             </p>
 
             <PaymentsTable rows={tableRows} empty={t('finance.paymentsEmpty')} exportHref={paymentExportHref(params)}
-                           sort={params.sort} shown={tableRows.length} total={total} />
+                           sort={params.sort} shown={tableRows.length} total={total} totals={totals} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

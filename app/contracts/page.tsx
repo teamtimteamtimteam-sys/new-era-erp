@@ -10,6 +10,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
+import { shapeListTotals } from '@/lib/listTotals'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import Link from 'next/link'
@@ -114,6 +115,10 @@ export default async function ContractsPage() {
             .select('id, sales_order_id, settling_party_used, weight_basis_used, amount_usd')
             .is('superseded_by', null),
         'sales_settlements') as Settlement[]
+    // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):结算表的表尾合计,由库算(list_totals_settlements)。这张表的读策略要
+    //   module.customers.view,而本页的门是 suppliers.view —— 不持前者的读者读到零行,合计回一行「受限」。
+    const settlementTotals = shapeListTotals(mustRows(await supabase.rpc('list_totals_settlements'), 'settlement totals'))
+    const settlementsRestricted = settlementTotals.some((x) => x.restricted)
     const rcCount = new Map<string, number>()
     for (const r of rcRows) rcCount.set(r.contract_id, (rcCount.get(r.contract_id) ?? 0) + 1)
     const penCount = new Map<string, number>()
@@ -407,11 +412,13 @@ export default async function ContractsPage() {
 
             {/* ── 已记录的结算 ──────────────────────────────────────────── */}
             <h3 className="mb-1">{t('contracts.settlement.settlementsTitle')}</h3>
-            {settlements.length === 0 ? (
+            {/* TABLE-FEATURES-2:读不到这张表的读者【不】读那句「还没有记录任何结算」—— 零行在他那里不是「没有」;
+                画出这张表,表尾说「受限」。 */}
+            {settlements.length === 0 && !settlementsRestricted ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-4 max-w-4xl">{t('contracts.settlement.settlementsNone')}</p>
             ) : (
                 <>
-                    <SettlementsTable rows={settlementRows} />
+                    <SettlementsTable rows={settlementRows} totals={settlementTotals} />
                     <p className="text-xs text-amber-800 mb-4 max-w-4xl">{t('contracts.settlement.notPostedNote')}</p>
                 </>
             )}

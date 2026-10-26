@@ -1,0 +1,53 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 3595af17-a4cb-45e9-aaa9-e461f3cd4dac
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 245 measurable (59 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/29] 18s  ovf=0 clip=0 /contracts
+  [  2/29] 28s  ovf=0 clip=0 /finance/assets
+  [  3/29] 37s  ovf=0 clip=0 /finance/bank
+  [  4/29] 44s  ovf=0 clip=0 /finance/cashflow
+  [  5/29] 61s  ovf=0 clip=0 /finance/claims
+  [  6/29] 69s  ovf=0 clip=0 /finance/credit-notes
+  [  7/29] 78s  ovf=0 clip=0 /finance/electricity
+  [  8/29] 90s  ovf=0 clip=0 /finance/expenses
+  [  9/29] 99s  ovf=0 clip=0 /finance/freight
+  [ 10/29] 108s  ovf=0 clip=0 /finance/invoices
+  [ 11/29] 123s  ovf=0 clip=0 /finance/journal
+  [ 12/29] 133s  ovf=0 clip=0 /finance/payment-requests
+  [ 13/29] 144s  ovf=0 clip=0 /finance/payments
+  [ 14/29] 150s  ovf=0 clip=0 /finance/pnl
+  [ 15/29] 158s  ovf=0 clip=0 /finance/self-approved
+  [ 16/29] 166s  ovf=0 clip=0 /finance/wht
+  [ 17/29] 173s  ovf=0 clip=0 /hr/claims
+  [ 18/29] 180s  ovf=0 clip=0 /hr/leave
+  [ 19/29] 188s  ovf=0 clip=0 /hr/payroll
+  [ 20/29] 197s  ovf=0 clip=0 /inbound
+  [ 21/29] 205s  ovf=0 clip=0 /inventory
+  [ 22/29] 210s  ovf=0 clip=0 /inventory/reports/ledger
+  [ 23/29] 217s  ovf=0 clip=0 /logistics/forwarders
+  [ 24/29] 222s  ovf=0 clip=0 /me
+  [ 25/29] 229s  ovf=0 clip=0 /operation/processing
+  [ 26/29] 235s  ovf=0 clip=0 /output
+  [ 27/29] 243s  ovf=0 clip=0 /purchasing/orders
+  [ 28/29] 249s  ovf=0 clip=0 /sales/commissions
+  [ 29/29] 256s  ovf=0 clip=0 /settings/deleted
+
+════ 390px SURVEY ════
+measured: 29  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       29 / 29
+U2 no clipped ledger:                 29 / 29
+USABLE (U1 AND U2):                   29 / 29
+
+pages FAILING U1 (page overflows): 0
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 29 / 29  median per page: 17
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/phone-390.json
+· cleaned up ephemeral survey account(s)
+LAYOUT390_OWN_EXIT=0

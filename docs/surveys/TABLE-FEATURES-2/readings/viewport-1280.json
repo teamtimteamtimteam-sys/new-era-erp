@@ -1,0 +1,3215 @@
+{
+  "measuredAt": "2026-10-26T07:56:46.614Z",
+  "viewport": "1280x900",
+  "unresolved": [
+    "/b/[code]",
+    "/compliance/packs/[id]",
+    "/contracts/[id]",
+    "/documents/[key]",
+    "/finance/electricity/[id]",
+    "/finance/packs/[id]",
+    "/finance/payment-requests/[id]",
+    "/finance/supplier-statements/[id]",
+    "/hr/attendance/[id]",
+    "/hr/overtime/[id]",
+    "/loc/[code]",
+    "/operation/blending/[id]",
+    "/operation/handovers/[id]",
+    "/operation/operation-types/[code]",
+    "/operation/weighbridge/[id]",
+    "/output/[id]/assays/[assayId]",
+    "/quality/coa/[id]",
+    "/quality/disputes/[id]",
+    "/quality/ncr/[id]",
+    "/quality/samples/[id]",
+    "/related/[subject]/[id]/[target]",
+    "/safety/incidents/[id]",
+    "/safety/inspections/[id]",
+    "/safety/inspections/templates/[id]",
+    "/sales/commissions/[id]/edit"
+  ],
+  "wedgedVerdict": null,
+  "results": [
+    {
+      "route": "/contracts",
+      "url": "/contracts",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [],
+      "tableCount": 0,
+      "clippedTables": 0,
+      "scrollerTables": 0,
+      "maxCols": 0,
+      "maxRows": 0,
+      "tablesWithRows": 0,
+      "smallTargets": 13,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        }
+      ],
+      "landedOn": "/contracts",
+      "textLen": 5602,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/assets",
+      "url": "/finance/assets",
+      "dynamic": false,
+      "session": "admin",
+      "trail": {
+        "state": "empty",
+        "entries": 0,
+        "sectionW": 1216,
+        "sectionScrollW": 1216,
+        "overflowPx": 0,
+        "maxEntryH": 0,
+        "layouts": [],
+        "divider": false
+      },
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1280,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 13,
+          "rows": 3,
+          "clipped": false
+        },
+        {
+          "w": 512,
+          "hostW": 512,
+          "scrollable": true,
+          "cols": 4,
+          "rows": 2,
+          "clipped": false
+        }
+      ],
+      "tableCount": 2,
+      "clippedTables": 0,
+      "scrollerTables": 2,
+      "maxCols": 13,
+      "maxRows": 3,
+      "tablesWithRows": 2,
+      "smallTargets": 47,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/assets",
+      "textLen": 1401,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/bank",
+      "url": "/finance/bank",
+      "dynamic": false,
+      "session": "admin",
+      "trail": {
+        "state": "empty",
+        "entries": 0,
+        "sectionW": 1216,
+        "sectionScrollW": 1216,
+        "overflowPx": 0,
+        "maxEntryH": 0,
+        "layouts": [],
+        "divider": false
+      },
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 26,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/bank",
+      "textLen": 1727,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/cashflow",
+      "url": "/finance/cashflow",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 832,
+          "hostW": 896,
+          "scrollable": false,
+          "cols": 2,
+          "rows": 6,
+          "clipped": false
+        },
+        {
+          "w": 832,
+          "hostW": 832,
+          "scrollable": true,
+          "cols": 5,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 2,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 5,
+      "maxRows": 6,
+      "tablesWithRows": 2,
+      "smallTargets": 24,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/cashflow",
+      "textLen": 722,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/claims",
+      "url": "/finance/claims",
+      "dynamic": false,
+      "session": "admin",
+      "trail": {
+        "state": "entries",
+        "entries": 2,
+        "sectionW": 1190,
+        "sectionScrollW": 1190,
+        "overflowPx": 0,
+        "maxEntryH": 162,
+        "layouts": [
+          "grid"
+        ],
+        "divider": true
+      },
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 3,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 3,
+      "tablesWithRows": 1,
+      "smallTargets": 26,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "sm:hidden space-y-1",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/claims",
+      "textLen": 2425,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/credit-notes",
+      "url": "/finance/credit-notes",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 8,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 8,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 21,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/credit-notes",
+      "textLen": 540,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/electricity",
+      "url": "/finance/electricity",
+      "dynamic": false,
+      "session": "admin",
+      "trail": {
+        "state": "empty",
+        "entries": 0,
+        "sectionW": 1088,
+        "sectionScrollW": 1088,
+        "overflowPx": 0,
+        "maxEntryH": 0,
+        "layouts": [],
+        "divider": false
+      },
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1088,
+          "hostW": 1088,
+          "scrollable": true,
+          "cols": 8,
+          "rows": 1,
+          "clipped": false
+        },
+        {
+          "w": 1088,
+          "hostW": 1088,
+          "scrollable": true,
+          "cols": 5,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 2,
+      "clippedTables": 0,
+      "scrollerTables": 2,
+      "maxCols": 8,
+      "maxRows": 1,
+      "tablesWithRows": 2,
+      "smallTargets": 30,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/electricity",
+      "textLen": 1291,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/expenses",
+      "url": "/finance/expenses",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 8,
+          "rows": 19,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 8,
+      "maxRows": 19,
+      "tablesWithRows": 1,
+      "smallTargets": 51,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/expenses",
+      "textLen": 2715,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/freight",
+      "url": "/finance/freight",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 4,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 4,
+      "tablesWithRows": 1,
+      "smallTargets": 24,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/freight",
+      "textLen": 772,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/invoices",
+      "url": "/finance/invoices",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 10,
+          "rows": 6,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 10,
+      "maxRows": 6,
+      "tablesWithRows": 1,
+      "smallTargets": 46,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/invoices",
+      "textLen": 1108,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/journal",
+      "url": "/finance/journal",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 20,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 20,
+      "tablesWithRows": 1,
+      "smallTargets": 53,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/journal",
+      "textLen": 2110,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/payment-requests",
+      "url": "/finance/payment-requests",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 29,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/payment-requests",
+      "textLen": 503,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/payments",
+      "url": "/finance/payments",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 8,
+          "rows": 13,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 8,
+      "maxRows": 13,
+      "tablesWithRows": 1,
+      "smallTargets": 45,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/payments",
+      "textLen": 1733,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/pnl",
+      "url": "/finance/pnl",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 832,
+          "hostW": 896,
+          "scrollable": false,
+          "cols": 3,
+          "rows": 10,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 0,
+      "maxCols": 3,
+      "maxRows": 10,
+      "tablesWithRows": 1,
+      "smallTargets": 24,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        }
+      ],
+      "landedOn": "/finance/pnl",
+      "textLen": 469,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/self-approved",
+      "url": "/finance/self-approved",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 8,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 8,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 20,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/self-approved",
+      "textLen": 693,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/wht",
+      "url": "/finance/wht",
+      "dynamic": false,
+      "session": "admin",
+      "trail": {
+        "state": "empty",
+        "entries": 0,
+        "sectionW": 960,
+        "sectionScrollW": 960,
+        "overflowPx": 0,
+        "maxEntryH": 0,
+        "layouts": [],
+        "divider": false
+      },
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 960,
+          "hostW": 960,
+          "scrollable": true,
+          "cols": 6,
+          "rows": 1,
+          "clipped": false
+        },
+        {
+          "w": 960,
+          "hostW": 960,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 1,
+          "clipped": false
+        },
+        {
+          "w": 960,
+          "hostW": 960,
+          "scrollable": true,
+          "cols": 4,
+          "rows": 7,
+          "clipped": false
+        }
+      ],
+      "tableCount": 3,
+      "clippedTables": 0,
+      "scrollerTables": 3,
+      "maxCols": 7,
+      "maxRows": 7,
+      "tablesWithRows": 3,
+      "smallTargets": 31,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/finance/wht",
+      "textLen": 2005,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/hr/claims",
+      "url": "/hr/claims",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1088,
+          "hostW": 1088,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 25,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/hr/claims",
+      "textLen": 652,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/hr/leave",
+      "url": "/hr/leave",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1088,
+          "hostW": 1088,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 6,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 6,
+      "tablesWithRows": 1,
+      "smallTargets": 43,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/hr/leave",
+      "textLen": 1435,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/hr/payroll",
+      "url": "/hr/payroll",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 960,
+          "hostW": 960,
+          "scrollable": true,
+          "cols": 10,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 10,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 24,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/hr/payroll",
+      "textLen": 357,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/inbound",
+      "url": "/inbound",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1307,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 14,
+          "rows": 15,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 14,
+      "maxRows": 15,
+      "tablesWithRows": 1,
+      "smallTargets": 80,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/inbound",
+      "textLen": 3570,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/inventory",
+      "url": "/inventory",
+      "dynamic": false,
+      "session": "admin",
+      "trail": {
+        "state": "empty",
+        "entries": 0,
+        "sectionW": 1216,
+        "sectionScrollW": 1216,
+        "overflowPx": 0,
+        "maxEntryH": 0,
+        "layouts": [],
+        "divider": false
+      },
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 9,
+          "rows": 4,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 9,
+      "maxRows": 4,
+      "tablesWithRows": 1,
+      "smallTargets": 30,
+      "smallestTarget": 15,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/inventory",
+      "textLen": 1526,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/inventory/reports/ledger",
+      "url": "/inventory/reports/ledger",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 8,
+          "rows": 66,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 8,
+      "maxRows": 66,
+      "tablesWithRows": 1,
+      "smallTargets": 29,
+      "smallestTarget": 16,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/inventory/reports/ledger",
+      "textLen": 7444,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/logistics/forwarders",
+      "url": "/logistics/forwarders",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 6,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 6,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 24,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/logistics/forwarders",
+      "textLen": 279,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/me",
+      "url": "/me",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [],
+      "tableCount": 0,
+      "clippedTables": 0,
+      "scrollerTables": 0,
+      "maxCols": 0,
+      "maxRows": 0,
+      "tablesWithRows": 0,
+      "smallTargets": 15,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        }
+      ],
+      "landedOn": "/me",
+      "textLen": 371,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/operation/processing",
+      "url": "/operation/processing",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 9,
+          "rows": 10,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 9,
+      "maxRows": 10,
+      "tablesWithRows": 1,
+      "smallTargets": 42,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/operation/processing",
+      "textLen": 1207,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/output",
+      "url": "/output",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 12,
+          "rows": 14,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 12,
+      "maxRows": 14,
+      "tablesWithRows": 1,
+      "smallTargets": 76,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/output",
+      "textLen": 2197,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/purchasing/orders",
+      "url": "/purchasing/orders",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1240,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 11,
+          "rows": 7,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 11,
+      "maxRows": 7,
+      "tablesWithRows": 1,
+      "smallTargets": 40,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/purchasing/orders",
+      "textLen": 1595,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/sales/commissions",
+      "url": "/sales/commissions",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [],
+      "tableCount": 0,
+      "clippedTables": 0,
+      "scrollerTables": 0,
+      "maxCols": 0,
+      "maxRows": 0,
+      "tablesWithRows": 0,
+      "smallTargets": 13,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        }
+      ],
+      "landedOn": "/sales/commissions",
+      "textLen": 954,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/settings/deleted",
+      "url": "/settings/deleted",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 1280,
+      "innerW": 1280,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 1280,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 1216,
+          "hostW": 1216,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 53,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 53,
+      "tablesWithRows": 1,
+      "smallTargets": 122,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "sm:hidden",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "relative hidden md:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "hidden sm:block",
+          "display": "block",
+          "painted": true
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/settings/deleted",
+      "textLen": 7465,
+      "ready": true,
+      "httpStatus": 200
+    }
+  ]
+}

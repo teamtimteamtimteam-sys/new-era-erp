@@ -45,6 +45,7 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { shapeListTotals } from '@/lib/listTotals'
 
 type AssetRow = {
     id: string
@@ -98,10 +99,14 @@ export default async function AssetsPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const [assetsRes, depRes] = await Promise.all([
+    const [assetsRes, depRes, totalsRes] = await Promise.all([
         supabase.from('fixed_assets').select('*').order('code'),
         supabase.from('fixed_asset_depreciation').select('asset_id, amount_base'),
+        // TABLE-FEATURES-2(Tim Q1):台账的表尾合计,库算(db/functions/list_totals_fixed_assets.sql)——
+        //   原值按币种;本位币原值 · 累计折旧 · 净值与下面每一行同一个算法。
+        supabase.rpc('list_totals_fixed_assets'),
     ])
+    const assetTotals = shapeListTotals(mustRows(totalsRes, 'fixed assets totals'))
     const assets = (mustRows(assetsRes) as unknown as AssetRow[])
     const accumByAsset = new Map<string, number>()
     for (const r of mustRows(depRes) as { asset_id: string; amount_base: number }[]) {
@@ -231,6 +236,7 @@ export default async function AssetsPage({
             <div className="mb-8">
                 <AssetsTable
                     rows={assetRows}
+                    totals={assetTotals}
                     canEdit={canEdit}
                     bankAccounts={bankAccounts}
                     baseCurrency={baseCurrency}

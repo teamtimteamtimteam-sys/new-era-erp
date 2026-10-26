@@ -11,6 +11,8 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import type { FreightRow } from './FreightTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -46,6 +48,15 @@ export type FreightDbRow = {
     payment_status: string
     status: string
     suppliers: { legal_name: string } | null
+}
+
+/**
+ * TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q2):表尾合计 —— 所有在册(deleted_at IS NULL)运费单的本位币金额,库算
+ * (db/functions/list_totals_freight.sql);冲销的只是被标记,加 0。是全体,不是画出来的前 FREIGHT_SHOWN 张。
+ */
+export async function freightTotals(supabase: Client): Promise<ListTotal[]> {
+    const res = await supabase.rpc('list_totals_freight')
+    return shapeListTotals(mustRows(res, 'freight totals'))
 }
 
 export function freightCount(supabase: Client) {

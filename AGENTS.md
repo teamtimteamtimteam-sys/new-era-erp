@@ -1835,6 +1835,17 @@ paragraph used to list and closed two of them:**
 * **仓库里每一个 `<fieldset disabled>` 都经 `<DisabledBlock>`**(`app/components/ui/disabled-block.tsx`,`scripts/check-disabled-block.mjs` 进构建)——
   它让里面表格的导出 / 排序 / 翻页照样按得下去;手写一处 fieldset,结束了的记录上的导出就又灰了。全文与裁定:`docs/table-features.md`。
 
+## 表格:表尾合计与日期快捷区间(TABLE-FEATURES-2,Tim 2026-10-25 Q1 · Q5 / 2026-10-26 Q1–Q9)
+
+* **21 张金额清单的表尾合计由【库】算**:每张一支 `list_totals_<清单>(<与页面同一套筛选>)`,同一个返回形状
+  `(grp, currency, measure, total, restricted)`(`lib/listTotals.ts` 抬头),页面经 `totalsFooterRows`(`app/components/ui/list-totals.tsx`)画成表尾,
+  每个 (grp, 币种) 一行。**页面改了筛选,那支函数要同一个提交里改** —— 合计覆盖的是"所有符合筛选的行",两边一不一样就是一个安静的错数。
+  净额(Q2):镜像行(付款 / 费用 / 分录冲销件)记负数;只被标成冲销的单据(运费 / 转账 / 电费 / 代扣汇缴 / 作废发票)不计。
+  「受限」用一列表示、按读者判,从不用零行表示。余额类的列(对账单期初期末、结账累计、单价)没有合计。
+* **日期快捷区间**:`lib/datePresets.ts`(纯算术)+ `lib/datePresetsServer.ts`(新加坡的今天 `businessToday()` + `fiscal_year_end_setting()`)
+  + `<DatePresetLinks>`;到期末为止(Q6)。**新开一张带起止日期的列表:用这三样,不要再写一份 `new Date()` 的预设。**
+* 列表工具栏里的筛选下拉可以 `max-w-full`(Q7,`docs/variant-c-spec.md` §4.1d 的例外);别处的原生下拉禁令照旧。全文:`docs/table-features.md`。
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and

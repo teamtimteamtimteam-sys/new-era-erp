@@ -9,6 +9,8 @@
 // ★ state 恒为 'ok' —— 筛选/排序工具栏是真实出口,见 §⑩-3。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
@@ -98,6 +100,9 @@ export default async function ProcessingPage({
 
     const canCommit = await can('action.processing_commit')
 
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
+    const presets = await readDatePresets(supabase)
+
     return (
         <ListPage
             title={t('processing.listTitle')}
@@ -118,6 +123,7 @@ export default async function ProcessingPage({
         >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <ProcessingToolbar />
             </Suspense>
 

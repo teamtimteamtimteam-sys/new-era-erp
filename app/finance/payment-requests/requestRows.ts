@@ -13,6 +13,8 @@ import { inChunks } from '@/lib/export/serverRows'
 import { requestSubjectLabel } from './requestSubject'
 import type { PaymentRequestRow } from './PaymentRequestsTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -58,6 +60,14 @@ export type RequestDbRow = {
 
 export function requestCount(supabase: Client, filter: string) {
     return applyFilters(supabase.from('payment_requests').select('id', { count: 'exact', head: true }), filter)
+}
+
+/**
+ * TABLE-FEATURES-2(Tim Q1):表尾合计 —— db/functions/list_totals_payment_requests.sql。
+ *   传同一个解析过的筛选(parseRequestFilter 的结果);库里按 statusSet 同一条规矩展开('open' → 待批 + 已批)。
+ */
+export async function requestTotals(supabase: Client, filter: string): Promise<ListTotal[]> {
+    return shapeListTotals(mustRows(await supabase.rpc('list_totals_payment_requests', { p_status: filter }), 'payment requests totals'))
 }
 
 export function requestPage(supabase: Client, filter: string, sort: ListSort<RequestSortKey>, from: number, to: number) {

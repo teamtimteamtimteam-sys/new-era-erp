@@ -11,6 +11,8 @@ import { xText, xMoney, xDate, xMasked } from '@/lib/export/cells'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type JournalRow = {
     id: string
@@ -26,12 +28,14 @@ export type JournalRow = {
     status: string
 }
 
-export default function JournalTable({ rows, empty, baseCurrency, exportHref, sort, shown, total }: {
+export default function JournalTable({ rows, empty, baseCurrency, exportHref, sort, shown, total, totals }: {
     rows: JournalRow[]; empty: React.ReactNode; baseCurrency: string
     /** TABLE-EXPORT-2a:服务端分页 —— 清单导出向这条路由要全部匹配行(同一套筛选)。不是总账导出。 */
     exportHref: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(journalRows.ts 的 JOURNAL_SORT) */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2 Q1:库算的表尾合计(所有符合筛选的分录 Σ借方,冲销记负;journalRows.ts 的 journalTotals) */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
     const sortHref = useSortHref()
@@ -92,6 +96,7 @@ export default function JournalTable({ rows, empty, baseCurrency, exportHref, so
             empty={empty}
             exportSpec={{ name: 'journal-entries', title: t('finance.journalTitle'), serverRows: exportHref }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { amount: 'amount' }, t)}
         />
     )
 }

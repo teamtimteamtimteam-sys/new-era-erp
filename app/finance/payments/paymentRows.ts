@@ -14,6 +14,8 @@ import { getLocale } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { PaymentRow } from './PaymentsTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -53,6 +55,17 @@ function applyFilters<T>(query: T, p: PaymentListParams): T {
     if (p.dateTo) chain = chain.lte('payment_date', p.dateTo)
     if (p.direction) chain = chain.eq('direction', p.direction)
     return chain as unknown as T
+}
+
+/**
+ * ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q2 · Q4):表尾合计 —— 所有符合筛选的行,由库算(list_totals_payments),
+ *   收款与付款各一个、每个币种一行,冲销件记负数。筛选与 applyFilters 同一套参数。
+ */
+export async function paymentTotals(supabase: Client, p: PaymentListParams): Promise<ListTotal[]> {
+    const res = await supabase.rpc('list_totals_payments', {
+        p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined, p_direction: p.direction || undefined,
+    })
+    return shapeListTotals(mustRows(res, 'payments totals'))
 }
 
 export function paymentCount(supabase: Client, p: PaymentListParams) {

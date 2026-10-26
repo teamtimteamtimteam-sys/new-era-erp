@@ -4,13 +4,15 @@
 //
 // CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
 import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import JournalToolbar from './JournalToolbar'
 import JournalTable, { type JournalRow } from './JournalTable'
-import { parseJournalListParams, journalCount, journalPage, shapeJournalRows, journalListExportHref } from './journalRows'
+import { parseJournalListParams, journalCount, journalPage, shapeJournalRows, journalListExportHref, journalTotals } from './journalRows'
 import { mustOne, mustRows, mustCount } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -59,6 +61,9 @@ export default async function JournalListPage({
     const page = Math.min(requestedPage, totalPages)
     const from = (page - 1) * JOURNAL_PAGE_SIZE
     const to = from + JOURNAL_PAGE_SIZE - 1
+
+    // TABLE-FEATURES-2 Q1:表尾合计 = 所有符合筛选的分录,库算(不是这一页的和;冲销记负)
+    const totals = await journalTotals(supabase, params)
 
     // 2) 取当前页(创建序最新在前)
     //    ★ TABLE-FEATURES-1 Q7:默认改为分录日最新在前(平局按建立时刻、再按 id);可按表头换序 —— 见 journalRows.ts
@@ -158,6 +163,9 @@ export default async function JournalListPage({
     const openRequests = rawRequests.filter((r) => r.status === 'submitted').map(toView)
     const requestHistory = rawRequests.filter((r) => r.status !== 'submitted').map(toView)
 
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
+    const presets = await readDatePresets(supabase)
+
     return (
         <ListPage title={t('finance.journalTitle')} state={{ kind: 'ok' }}>
             <JournalRequestsPanel
@@ -173,6 +181,7 @@ export default async function JournalListPage({
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <JournalToolbar />
             </Suspense>
 
@@ -198,7 +207,7 @@ export default async function JournalListPage({
             </div>
 
             <JournalTable rows={tableRows} empty={t('finance.emptyState')} baseCurrency={baseCurrency} exportHref={journalListExportHref(params)}
-                          sort={params.sort} shown={tableRows.length} total={total} />
+                          sort={params.sort} shown={tableRows.length} total={total} totals={totals} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

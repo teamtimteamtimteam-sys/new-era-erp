@@ -28,6 +28,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import ClaimDecisionPanel, { type ClaimItem, type ClaimRow } from './ClaimDecisionPanel'
 import type { ReceiptRow } from '@/app/me/ClaimReceipts'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { shapeListTotals } from '@/lib/listTotals'
 
 // AUDIT-TRAIL-1c-3(Tim 的 Q20):每一张报销单一段审计记录(提交 · 决定 · 撤回 · 收据 · 批准时记下的费用单);
 //   报销人自己那一半在 /me(my_expense_claim,M8)。
@@ -99,6 +100,9 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
 
     const pending = rows.filter((r) => r.status === 'submitted')
     const decided = rows.filter((r) => r.status !== 'submitted')
+    // TABLE-FEATURES-2(Tim Q1):已决登记簿的表尾合计 —— 库算(db/functions/list_totals_expense_claims.sql),
+    //   在 SQL 里用与上一行同一条 status <> 'submitted'。
+    const decidedTotals = shapeListTotals(mustRows(await supabase.rpc('list_totals_expense_claims'), 'expense claims totals'))
 
     return (
         <ListPage
@@ -116,6 +120,7 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
                     <AuditTrail key={r.claim_id} subject="expense_claim" id={r.claim_id} show={show} anchor={`claim-trail-${r.claim_id}`} compact />]))}
                 pending={pending}
                 decided={decided}
+                decidedTotals={decidedTotals}
                 accounts={accounts}
                 taxCodes={taxCodes.filter((x) => x.is_active && x.side === 'input')}
                 canDecide={canDecide}

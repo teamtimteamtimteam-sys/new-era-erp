@@ -82,10 +82,11 @@ export default function InboundToolbar({
                 placeholder={t('inbound.searchPlaceholder')}
                 className={`${CONTROL_INPUT} w-60 max-w-full`}
             />
+            {/* 下面四颗筛选下拉 max-w-full:Tim 2026-10-26 TABLE-FEATURES-2 Q7 的例外(只限列表工具栏里的筛选下拉),docs/variant-c-spec.md §4.1d */}
             <select
                 value={currentStage}
                 onChange={(e) => onFilterChange('stage', e.target.value)}
-                className={CONTROL_SELECT}
+                className={`${CONTROL_SELECT} max-w-full`}
             >
                 <option value="">{t('inbound.allStages')}</option>
                 {STAGE_OPTIONS.map((o) => (
@@ -97,7 +98,7 @@ export default function InboundToolbar({
             <select
                 value={currentSupplier}
                 onChange={(e) => onFilterChange('supplier_id', e.target.value)}
-                className={CONTROL_SELECT}
+                className={`${CONTROL_SELECT} max-w-full`}
             >
                 <option value="">{t('inbound.allSuppliers')}</option>
                 {suppliers.map((s) => (
@@ -109,7 +110,7 @@ export default function InboundToolbar({
             <select
                 value={currentMaterial}
                 onChange={(e) => onFilterChange('material_id', e.target.value)}
-                className={CONTROL_SELECT}
+                className={`${CONTROL_SELECT} max-w-full`}
             >
                 <option value="">{t('inbound.allMaterials')}</option>
                 {materials.map((m) => (
@@ -122,7 +123,7 @@ export default function InboundToolbar({
             <select
                 value={currentPricingStatus}
                 onChange={(e) => onFilterChange('pricing_status', e.target.value)}
-                className={CONTROL_SELECT}
+                className={`${CONTROL_SELECT} max-w-full`}
             >
                 <option value="">{t('assay.allPricingStatuses')}</option>
                 {PRICING_STATUS_VALUES.map((s) => (

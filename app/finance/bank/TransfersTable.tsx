@@ -17,6 +17,8 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { requestTransferReversal } from './transferActions'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type TransferRow = {
     id: string
@@ -68,12 +70,14 @@ function ReverseTransferButton({ row, canEdit }: { row: TransferRow; canEdit: bo
     )
 }
 
-export default function TransfersTable({ rows, canEdit, exportHref, sort, shown, total }: {
+export default function TransfersTable({ rows, canEdit, exportHref, sort, shown, total, totals }: {
     rows: TransferRow[]; canEdit: boolean
     /** TABLE-FEATURES-1 Q9:导出地址带上当前排序(transferRows.ts 的 transferExportHref) */
     exportHref: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(transferRows.ts 的 TRANSFER_SORT);只画前 N 笔 */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2(Tim Q1):库算的合计(list_totals_bank_transfers)—— 覆盖所有转账,不只画出来的这几笔 */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
     const sortHref = useSortHref()
@@ -121,6 +125,7 @@ export default function TransfersTable({ rows, canEdit, exportHref, sort, shown,
             empty={t('finance.transfer.empty')}
             exportSpec={{ name: 'bank-transfers', title: t('finance.transfer.listTitle'), serverRows: exportHref }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { out: 'out', in: 'in' }, t)}
         />
     )
 }

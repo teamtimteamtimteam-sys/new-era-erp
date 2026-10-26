@@ -21,6 +21,8 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import type { InvoiceRow } from './InvoicesTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -79,6 +81,19 @@ function applyState<T>(query: T, p: InvoiceListParams): T {
     if (p.state === 'overdue') chain = chain.eq('overdue', true)
     else if (p.state) chain = chain.eq('payment_state', p.state)
     return chain as unknown as T
+}
+
+/**
+ * TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q2):表尾合计 —— 所有符合筛选的发票,库算(db/functions/list_totals_invoices.sql)。
+ * 作废的被冲销抵掉、加 0:status='void' 时库返回零行(表尾不画),'all' 与 'issued' 同一个合计。
+ * 合计 / 未收按 data.view_prices 整个读者地遮 → 「受限」;已收不遮。
+ */
+export async function invoiceTotals(supabase: Client, p: InvoiceListParams): Promise<ListTotal[]> {
+    const res = await supabase.rpc('list_totals_invoices', {
+        p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined,
+        p_state: p.state || undefined, p_status: p.status,
+    })
+    return shapeListTotals(mustRows(res, 'invoices totals'))
 }
 
 // ── 在册(invoice_status)──

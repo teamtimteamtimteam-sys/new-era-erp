@@ -15,6 +15,8 @@ import { getLocale } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { CreditNoteRow } from './CreditNotesTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -39,6 +41,15 @@ export function creditNoteExportHref(p: CreditNoteListParams): string {
 }
 
 export type CreditNoteDbRow = { id: string; code: string; note_date: string; currency: string; invoice_id: string; reason: string }
+
+/**
+ * TABLE-FEATURES-2(Tim 2026-10-25 Q1):表尾合计 —— 所有凭证的行之和,按凭证币种各一行,库算
+ * (db/functions/list_totals_credit_notes.sql)。这一页没有筛选。
+ */
+export async function creditNoteTotals(supabase: Client): Promise<ListTotal[]> {
+    const res = await supabase.rpc('list_totals_credit_notes')
+    return shapeListTotals(mustRows(res, 'credit notes totals'))
+}
 
 export function creditNoteCount(supabase: Client) {
     return supabase.from('credit_notes').select('id', { count: 'exact', head: true })

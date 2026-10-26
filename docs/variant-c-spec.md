@@ -478,6 +478,14 @@ STYLE-0 报告说 variant C「只覆盖 A/B/C 之间变化过的那五个轴」,
 | ★ **不许动的** | 字号 · 内边距 · 边框 · 圆角 · 任何**别的**宽度。**表格里面一个字节都不许改。** |
 | **为什么这一招是对的** | 与 `/logistics/lanes` 那次逐字同一条:一个**不换行**的容器是在替浏览器"挑一个装得下的宽度";让它**换行**之后,那个挑选就不必做了 —— **控件回到标准自己算出来的宽度,而页面不再被撑破。标准一个值都没有动。** |
 
+> ★★ **例外(Tim 2026-10-26,TABLE-FEATURES-2 Q7):【列表工具栏里的筛选下拉】可以加 `max-w-full`。只此一类 —— 表单里、表格里、别处的原生下拉,上面的禁令原样有效。**
+> 原话:"Allow max-w-full on filter dropdowns in list toolbars only, and record that exception in docs/variant-c-spec.md §4.1d in the same commit, with its cost (a long name is cut off in the closed box on a phone; the open picker shows the full name)."
+> ☞ **为什么这一类和上面那次不一样:** 那两颗工具栏(`/purchasing/orders` · `/inbound`)的行容器【已经有】`flex-wrap`,下拉自己落到一行仍然比 326px 的内容区宽 ——
+>   元凶是下拉的 min-content(最长那个供应商名),换行治不了它(survey-overflow.md)。在一个 flex 项上,`max-width:100%` 会钳住它的自动最小宽度,于是 `max-w-full` 在这里【有效】
+>   (先例 `settings/change-history/page.tsx:196`、`ApprovalsForm.tsx:130,:167`:+21 → 0)。
+> ☞ **代价,照裁定写下:** 手机上,关着的那颗下拉里一个很长的名字会被截掉;**点开之后的原生选单显示全名。** 桌面上下拉照旧按最长选项取宽。
+> ☞ 读数:TABLE-FEATURES-2 的版式勘察(`docs/surveys/TABLE-FEATURES-2/readings/layout-390.txt`)—— 两页 390px 整页溢出必须读 0。
+
 ### ★★ 实测落地(INPUT-2b Round 3,2026-09-11):两条路由的行【现在会换行了】★★
 
 **元凶按【类串与元素】定位,不认行号**(行号会漂):

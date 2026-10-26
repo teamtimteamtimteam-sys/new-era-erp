@@ -47,6 +47,8 @@ import { xText, xMoney, xDate } from '@/lib/export/cells'
 import DecisionCell, { decisionText, type Decision } from './DecisionCell'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 import ClaimReceipts, { PREPARE_FAILURE_KEYS, type ReceiptRow } from './ClaimReceipts'
 import { prepareReceipt, uploadReceipt, RECEIPT_ACCEPT, type ReceiptLimits } from './uploadClaimReceipt'
 
@@ -74,11 +76,13 @@ const money = (n: number) =>
 //   没有页面码,报销单自己的读规则就是门)。审批留痕那一支不给本人开口子,所以那几行是 Restricted(Q4);谁决定的、为什么,
 //   本人在表里的「决定」一格已经看得到(EMP-SELF-1)。
 export default function MyExpenseClaimsPanel({
-    employeeId, rows, total, sort, exportHref, baseCurrency, decisions, trails = {}, receipts = [], limits = null,
+    employeeId, rows, total, totals, sort, exportHref, baseCurrency, decisions, trails = {}, receipts = [], limits = null,
 }: {
     employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision>; trails?: Record<string, ReactNode>
     /** TABLE-EXPORT-2b-1(Tim Q2 · Q5):自己的费用报销一共几张 —— 页面只画最近 50 张,多出来就说出来;导出走路由取全 */
     total: number
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_my_expense_claims),全部自己的报销,每个币种一行 */
+    totals: ListTotal[]
     /** TABLE-FEATURES-1 Q9:在数据库里排(meRows.ts 的 MY_EXPENSE_SORT,参数前缀 `exp_`);导出地址带同一个顺序 */
     sort: ListSort
     exportHref: string
@@ -340,6 +344,7 @@ export default function MyExpenseClaimsPanel({
                 empty={t('expenseClaims.none')}
                 exportSpec={{ name: 'me-expense-claims', title: t('expenseClaims.myTitle'), serverRows: exportHref }}
                 sorting={{ mode: 'server', coverage: { shown: rows.length, total }, active: sort, href: sortHref }}
+                footer={() => totalsFooterRows(totals, { amount: 'amount' }, t)}
             />
             {rows.length > 0 && (
                 <div className="mt-4 space-y-2">

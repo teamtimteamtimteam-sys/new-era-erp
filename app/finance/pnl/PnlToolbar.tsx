@@ -1,11 +1,12 @@
 'use client'
 
-// 损益表工具栏:日期区间(显示生效值,含默认)+ 快捷预设(本月/上月/今年)。
+// 损益表工具栏:日期区间(显示生效值,含默认)+ 快捷预设(本月/上月/本季度/今年 —— 区间由服务端按新加坡时间与财年年末算好,lib/datePresets.ts;TABLE-FEATURES-2 Q5)。
 // 改动只写进 URL searchParams,聚合在服务端 page.tsx 完成。
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import type { DatePreset } from '@/lib/datePresets'
 
 export default function PnlToolbar({
     from,
@@ -14,12 +15,18 @@ export default function PnlToolbar({
 }: {
     from: string // 生效起始日(缺省时为服务端算好的默认值)
     to: string
-    presets: { key: string; from: string; to: string }[]
+    presets: readonly DatePreset[]
 }) {
     const t = useTranslations()
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
+    // 与列表页那排快捷链接(app/components/ui/date-presets.tsx)同一组文案:listFilters.presets.*,逐个静态写出
+    const presetLabel = (k: DatePreset['key']) =>
+        k === 'thisMonth' ? t('listFilters.presets.thisMonth')
+        : k === 'lastMonth' ? t('listFilters.presets.lastMonth')
+        : k === 'thisQuarter' ? t('listFilters.presets.thisQuarter')
+        : t('listFilters.presets.thisYear')
 
     function push(nextFrom: string, nextTo: string) {
         const params = new URLSearchParams(searchParams.toString())
@@ -54,7 +61,7 @@ export default function PnlToolbar({
                     onClick={() => push(p.from, p.to)}
                     variant="secondary" size="default"
                 >
-                    {t('finance.presets.' + p.key)}
+                    {presetLabel(p.key)}
                 </Button>
             ))}
         </div>

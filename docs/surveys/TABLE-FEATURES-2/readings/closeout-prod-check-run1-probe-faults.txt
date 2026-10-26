@@ -1,0 +1,10 @@
+STEP|base https://new-era-erp.vercel.app
+PASS|/finance/journal → HTTP 200; the date header is a sort link (A) = a27417a is deployed; default aria-sort descending
+FAIL|click date header → /finance/journal?sort=date&dir=asc; aria-sort ascending; 20 rows, dates asc in order; first row JE-2026-0004 06/07/2026
+FAIL|click date header → /finance/journal?sort=date&dir=desc; aria-sort descending; 20 rows, dates desc in order; first row JE-2027-0003 05/09/2027
+PASS|first row changes between ascending (JE-2026-0004 06/07/2026) and descending (JE-2027-0003 05/09/2027)
+PASS|/output/51f935b6-7aca-4395-b357-ac1fb58bed95/edit (OUT-2026-0248, deleted) → HTTP 200; ended block disabled true; export bar ["SPAN[button]","SPAN[button]"]; movements on screen 1
+FAIL|export xlsx on the deleted batch (generated in the browser, no separate HTTP response): no file — null rows (screen 1)
+FAIL|export csv on the deleted batch (generated in the browser, no separate HTTP response): no file — null rows (screen 1)
+STEP|done with 4 FAIL
+TF1_CLOSEOUT_EXIT=1

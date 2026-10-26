@@ -1001,7 +1001,7 @@ const MANIFEST = {
     'finance.freight.direction.': { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'direction') },
     'finance.freight.directionShort.': { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'direction') },
     'finance.freight.errors.':  { kind: 'enum', values: () => tsSet('app/finance/freightErrorCodes.ts', 'FREIGHT_ERROR_CODES') },
-    'finance.presets.':     { kind: 'enum', values: () => tsRegex('app/finance/pnl/page.tsx', /\{ key: '(\w+)'/g) },
+    // TABLE-FEATURES-2:'finance.presets.' 已撤 —— 损益表与现金流量表的快捷区间改用 listFilters.presets.*(静态键,四个都写在 PnlToolbar / CashflowToolbar / date-presets.tsx 里)
     'finance.fxPage.rateType.': { kind: 'enum', values: () => sqlEnum('db/tables/fx_rates.sql', 'rate_type') },
     'processing.costTypes.': { kind: 'enum', values: () => sqlEnum('db/tables/processing_cost_entries.sql', 'cost_type') },
     'finance.monthEnd.step_': { kind: 'enum', values: () => tsRegex('app/finance/month-end/page.tsx', /key: '(\w+)', href/g) },

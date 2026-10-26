@@ -595,6 +595,8 @@ DEFINER_NO_CHECK_ALLOWED = {
     # "审批未生效"说出来(悄悄放行才是缺陷)。吐露的只有一个布尔量,而这个
     # 布尔量本来就该印在屏幕上,所以没有可检查的调用者,也没有要保护的东西。
     "approvals_enabled": "discloses one boolean the UI is required to display",
+    # TABLE-FEATURES-2(Tim 2026-10-26 Q5):日期快捷区间「今年」要的财年年末(月、日两个数),给财务以外的列表;与 verify_rebuild.py 同改
+    "fiscal_year_end_setting": "discloses only fy_end_month/fy_end_day for date presets on screens outside finance (Tim 2026-10-26 Q5)",
     # PDPA-1:当事人查阅。**这一条与上面每一条都不同 —— 它没有可要求的权限,
     # 而不是"有一个但绕过了"。** 它没有参数,唯一的主语是 auth.uid():
     # 一名员工对【自己的】个人数据有法定查阅权,那项权利不由本系统的权限模型授予,

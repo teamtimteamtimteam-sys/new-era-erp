@@ -13,6 +13,8 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
 import { xText, xDate, xInt, xMoney, xMasked, xRestricted } from '@/lib/export/cells'
 import { Refusal } from '@/app/components/ui/refusal'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type PayrollPeriodRow = {
     id: string
@@ -34,7 +36,11 @@ export type PayrollPeriodRow = {
     openRequest: { kind: 'post' | 'reversal' | 'payment_reversal'; status: 'submitted' | 'approved' } | null
 }
 
-export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeriodRow[]; empty: React.ReactNode }) {
+export default function PayrollPeriodsTable({ rows, empty, totals }: {
+    rows: PayrollPeriodRow[]; empty: React.ReactNode
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_payroll),每个币种一行 */
+    totals: ListTotal[]
+}) {
     const t = useTranslations()
 
     // ★ 手机上留【期间】与【实发合计】—— 期间是身份,实发合计是这张登记簿
@@ -130,6 +136,7 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
             // TABLE-FEATURES-1 Q9:一次读全体(没有分页、没有「前 N 条」),在浏览器里排
             sorting={{ mode: 'client', coverage: 'complete' }}
             exportSpec={{ name: 'hr-payroll-periods', title: t('hr.payrollTitle') }}
+            footer={() => totalsFooterRows(totals, { gross: 'gross', net: 'net' }, t)}
         />
     )
 }

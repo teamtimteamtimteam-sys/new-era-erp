@@ -45,10 +45,11 @@ export default function OrdersToolbar({ suppliers }: { suppliers: { id: string; 
                     onChange={(v) => onChange('date_to', v)}
                 />
             </label>
+            {/* 筛选下拉 max-w-full:Tim 2026-10-26 TABLE-FEATURES-2 Q7 的例外(只限列表工具栏里的筛选下拉),docs/variant-c-spec.md §4.1d */}
             <select
                 value={supplier}
                 onChange={(e) => onChange('supplier', e.target.value)}
-                className={CONTROL_SELECT}
+                className={`${CONTROL_SELECT} max-w-full`}
             >
                 <option value="">{t('purchasing.filterAllSuppliers')}</option>
                 {suppliers.map((s) => (

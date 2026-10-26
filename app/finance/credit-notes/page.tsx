@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
-import { creditNoteCount, creditNotePage, shapeCreditNoteRows, parseCreditNoteListParams, creditNoteExportHref } from './creditNoteRows'
+import { creditNoteCount, creditNotePage, shapeCreditNoteRows, parseCreditNoteListParams, creditNoteExportHref, creditNoteTotals } from './creditNoteRows'
 import { setSortParams } from '@/lib/listSort'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -53,6 +53,8 @@ export default async function CreditNotesPage({
         'credit_notes'
     )
     const tableRows: CreditNoteRow[] = await shapeCreditNoteRows(supabase, notes)
+    // TABLE-FEATURES-2 Q1:表尾合计 = 所有凭证,库算(不是这一页的和),每个币种一行
+    const totals = await creditNoteTotals(supabase)
 
     function pageHref(targetPage: number) {
         // TABLE-FEATURES-1 Q9:翻页保留排序
@@ -75,7 +77,7 @@ export default async function CreditNotesPage({
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
             <CreditNotesTable rows={tableRows} exportHref={creditNoteExportHref(params)}
-                              sort={params.sort} shown={tableRows.length} total={total} />
+                              sort={params.sort} shown={tableRows.length} total={total} totals={totals} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

@@ -10,6 +10,8 @@ import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table
 import { xText, xMoney, xDate } from '@/lib/export/cells'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type FreightRow = {
     id: string
@@ -25,12 +27,14 @@ export type FreightRow = {
     reversed: boolean
 }
 
-export default function FreightTable({ rows, empty, exportHref, sort, shown, total }: {
+export default function FreightTable({ rows, empty, exportHref, sort, shown, total, totals }: {
     rows: FreightRow[]; empty: React.ReactNode
     /** TABLE-FEATURES-1 Q9:导出地址带上当前排序(freightRows.ts 的 freightExportHref) */
     exportHref: string
     /** TABLE-FEATURES-1 Q9:在数据库里排(freightRows.ts 的 FREIGHT_SORT);只画前 N 张 */
     sort: ListSort; shown: number; total: number
+    /** TABLE-FEATURES-2 Q1:库算的表尾合计(所有在册运费单,不只画出来的前 200 张;冲销的加 0;freightRows.ts 的 freightTotals) */
+    totals: ListTotal[]
 }) {
     const t = useTranslations()
     const sortHref = useSortHref()
@@ -70,6 +74,7 @@ export default function FreightTable({ rows, empty, exportHref, sort, shown, tot
             rowClassName={(r) => (r.reversed ? 'text-gray-400 line-through' : undefined)}
             exportSpec={{ name: 'freight-documents', title: t('finance.freight.listTitle'), serverRows: exportHref }}
             sorting={{ mode: 'server', coverage: { shown, total }, active: sort, href: sortHref }}
+            footer={() => totalsFooterRows(totals, { amount: 'amount' }, t)}
         />
     )
 }

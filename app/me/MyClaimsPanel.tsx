@@ -24,6 +24,12 @@ import { xText, xMoney, xDate } from '@/lib/export/cells'
 import DecisionCell, { decisionText, type Decision } from './DecisionCell'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
+
+// 医疗报销按决策以新元计(列就叫 amount_sgd;scripts/check-currency-literals.mjs 里本文件那一条)。
+// 格子、导出与表尾合计的标签说的是【同一个】币种,所以写在一处。
+const CLAIM_CURRENCY = 'SGD'
 
 type Claim = {
     claim_id: string; code: string; claim_date: string
@@ -34,11 +40,13 @@ type Bal = { pro_rated_limit_sgd: number; claimed_sgd: number; remaining_sgd: nu
 
 // AUDIT-TRAIL-1d-2(Q14):每一张自己的医疗报销一段审计记录(服务端造好,按报销单 id 交进来;折起来)
 export default function MyClaimsPanel({
-    employeeId, claims, total, sort, exportHref, balance, decisions, trails = {},
+    employeeId, claims, total, totals, sort, exportHref, balance, decisions, trails = {},
 }: {
     employeeId: string; claims: Claim[]; balance: Bal | null; decisions: Record<string, Decision>; trails?: Record<string, ReactNode>
     /** TABLE-EXPORT-2b-1(Tim Q2 · Q5):自己的医疗报销一共几张 —— 页面只画最近 50 张,多出来就说出来;导出走路由取全 */
     total: number
+    /** TABLE-FEATURES-2(Tim 2026-10-25 Q1):库算的表尾合计(list_totals_my_medical_claims),全部自己的报销;币种固定,库给 NULL */
+    totals: ListTotal[]
     /** TABLE-FEATURES-1 Q9:在数据库里排(meRows.ts 的 MY_MEDICAL_SORT,参数前缀 `mc_`);导出地址带同一个顺序 */
     sort: ListSort
     exportHref: string
@@ -57,8 +65,8 @@ export default function MyClaimsPanel({
         { key: 'date', sortable: true, header: t('claims.date'), priority: true, render: (c) => c.claim_date, exportAs: (c) => xDate(c.claim_date) },
         {
             key: 'amount', sortable: true, header: t('claims.amount'), align: 'right', priority: true,
-            render: (c) => `${Number(c.amount_sgd).toFixed(2)} SGD`,
-            exportAs: (c) => xMoney(c.amount_sgd, 'SGD'),
+            render: (c) => `${Number(c.amount_sgd).toFixed(2)} ${CLAIM_CURRENCY}`,
+            exportAs: (c) => xMoney(c.amount_sgd, CLAIM_CURRENCY),
         },
         {
             key: 'state', sortable: true, header: t('claims.state'), priority: true,
@@ -142,6 +150,7 @@ export default function MyClaimsPanel({
                 empty={t('me.noClaims')}
                 exportSpec={{ name: 'me-medical-claims', title: t('me.claims'), serverRows: exportHref }}
                 sorting={{ mode: 'server', coverage: { shown: claims.length, total }, active: sort, href: sortHref }}
+                footer={() => totalsFooterRows(totals, { amount: 'amount' }, t, CLAIM_CURRENCY)}
             />
             {claims.length > 0 && (
                 <div className="mt-4 space-y-2">

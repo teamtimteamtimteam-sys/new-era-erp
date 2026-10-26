@@ -13,7 +13,7 @@ import PaymentRequestsTable, { type PaymentRequestRow } from './PaymentRequestsT
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { REQUEST_STATUSES, parseRequestFilter, parseRequestSort, requestCount, requestPage, shapeRequestRows, requestExportHref } from './requestRows'
+import { REQUEST_STATUSES, parseRequestFilter, parseRequestSort, requestCount, requestPage, shapeRequestRows, requestExportHref, requestTotals } from './requestRows'
 import { ListPage } from '@/app/components/ui/list-page'
 import { setSortParams } from '@/lib/listSort'
 
@@ -49,6 +49,7 @@ export default async function PaymentRequestsPage({
 
     const rows = mustRows(await requestPage(supabase, filter, sort, from, from + PAGE_SIZE - 1), 'payment requests')
     const tableRows: PaymentRequestRow[] = await shapeRequestRows(supabase, rows)
+    const totals = await requestTotals(supabase, filter)  // TABLE-FEATURES-2 Q1:所有符合筛选的行,不只这一页
 
     // TABLE-FEATURES-1 Q9:翻页链接保留排序(keepSort);换筛选的链接回到默认次序
     const href = (status: string, p = 1, keepSort = false) => {
@@ -89,7 +90,7 @@ export default async function PaymentRequestsPage({
             </p>
 
             <PaymentRequestsTable rows={tableRows} empty={t('finance.paymentRequests.empty')} exportHref={requestExportHref(filter, sort)}
-                                  sort={sort} shown={tableRows.length} total={total} />
+                                  sort={sort} shown={tableRows.length} total={total} totals={totals} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (

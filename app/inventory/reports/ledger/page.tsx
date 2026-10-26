@@ -17,6 +17,9 @@ import { ListPage } from '@/app/components/ui/list-page'
 import LedgerTable from './LedgerTable'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
+import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import { setSortParams } from '@/lib/listSort'
 
 export default async function LedgerPage({
@@ -52,6 +55,8 @@ export default async function LedgerPage({
         ] as Array<[string, string]>).filter(([, v]) => v)
 
     const tableRows = shapeLedgerRows(rows, t)
+    // TABLE-FEATURES-2 Q5:日期快捷区间。指名一条流水(?movement=)时日期窗不生效,快捷区间按了也没用 —— 那时不画。
+    const presets = params.movementId ? null : await readDatePresets(await createClient())
 
     return (
         <ListPage
@@ -86,7 +91,13 @@ export default async function LedgerPage({
         >
             {/* 【默认 90 天,而且说出来】—— 一个默认过滤了却不说的报表,
                 会让人以为"就这么多流水"。 */}
-            <form method="get" className="flex flex-wrap items-end gap-3 my-4">
+            {presets && (
+                <Suspense fallback={<div className="mt-4 h-8" />}>
+                    <DatePresetLinks presets={presets} fromKey="from" toKey="to" pageKey="page" className="mt-4 mb-0" />
+                </Suspense>
+            )}
+            {/* 日期框是不受控的(defaultValue):按快捷区间换了地址之后,用起止两个参数做 key 让表单重挂,框里才显示新日期 */}
+            <form key={`${params.from}|${params.to}`} method="get" className="flex flex-wrap items-end gap-3 my-4">
                 {/* TABLE-FEATURES-1 Q9:换筛选不丢掉选中的排序 */}
                 <input type="hidden" name="sort" value={params.sort.key} />
                 <input type="hidden" name="dir" value={params.sort.dir} />

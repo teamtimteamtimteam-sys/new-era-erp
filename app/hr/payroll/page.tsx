@@ -16,6 +16,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import PayrollPeriodsTable, { type PayrollPeriodRow } from './PayrollPeriodsTable'
 import { formatDate, formatMonth } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { shapeListTotals } from '@/lib/listTotals'
 
 export default async function PayrollListPage() {
     const locale = await getLocale()
@@ -27,7 +28,7 @@ export default async function PayrollListPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [periodsRes, linesRes, reqRes] = await Promise.all([
+    const [periodsRes, linesRes, reqRes, totalsRes] = await Promise.all([
         // ★ U1-A(Tim 的 UNBLOCK-1 Q9,2026-10-05):合计要 data.view_pay —— 读 payroll_periods_masked;不持的人读到 null,表格印「受限」。
         //   (一期只有一两个人时,合计就是一个人的工资;基表上这五列已经不对 authenticated 开放。)
         supabase
@@ -38,7 +39,11 @@ export default async function PayrollListPage() {
         supabase.from('payroll_lines').select('payroll_period_id'),
         // PAYROLL-APR-1:每一期挂着的未了结申请(一期同时最多一张,唯一索引保证)
         supabase.from('payroll_requests_masked').select('payroll_period_id, kind, status').in('status', ['submitted', 'approved']),
+        // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):表尾合计 —— 所有未删除的期间,由库算(list_totals_payroll),每个币种一行;
+        //   不持 data.view_pay 读「受限」(与上面那两列同一个码)。
+        supabase.rpc('list_totals_payroll'),
     ])
+    const totals = shapeListTotals(mustRows(totalsRes, 'payroll totals'))
 
     // 视图的生成类型把每一列都标成可空;除了两个合计(受限 = null),这几列由基表的 NOT NULL 保证
     const periods = mustRows(periodsRes) as unknown as {
@@ -108,7 +113,7 @@ export default async function PayrollListPage() {
             state={{ kind: 'ok' }}
         >
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: periods.length })}</p>
-            <PayrollPeriodsTable rows={tableRows} empty={t('hr.payrollEmpty')} />
+            <PayrollPeriodsTable rows={tableRows} empty={t('hr.payrollEmpty')} totals={totals} />
         </ListPage>
     )
 }

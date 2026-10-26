@@ -13,6 +13,8 @@ import { formatDate, formatMonth } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 import Link from 'next/link'
 import { RequestWhtReversalButton } from './WhtControls'
+import type { ListTotal } from '@/lib/listTotals'
+import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
 export type LiabilityRow = {
     periodMonth: string
@@ -25,7 +27,8 @@ export type LiabilityRow = {
     baseCurrency: string
 }
 
-export function WhtLiabilityTable({ rows, empty }: { rows: LiabilityRow[]; empty: React.ReactNode }) {
+/** TABLE-FEATURES-2(Tim Q1):`totals` 是库算的合计(list_totals_wht_liability)—— 本位币,三列各一格。 */
+export function WhtLiabilityTable({ rows, empty, totals }: { rows: LiabilityRow[]; empty: React.ReactNode; totals: ListTotal[] }) {
     const t = useTranslations()
     const locale = useLocale()
 
@@ -69,7 +72,8 @@ export function WhtLiabilityTable({ rows, empty }: { rows: LiabilityRow[]; empty
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.periodMonth} phone={{ mode: 'columns' }} empty={empty}
         exportSpec={{ name: 'wht-liability', title: t('wht.liabilityHeading') }}
         // TABLE-FEATURES-1 Q9:欠缴月度一次读全(wht_liability_by_month 不翻页)—— 在浏览器里排
-        sorting={{ mode: 'client', coverage: 'complete' }} />
+        sorting={{ mode: 'client', coverage: 'complete' }}
+        footer={() => totalsFooterRows(totals, { withheld: 'withheld', remitted: 'remitted', unremitted: 'unremitted' }, t)} />
 }
 
 export type RemittanceRow = {
@@ -87,7 +91,8 @@ export type RemittanceRow = {
     openRequestCode: string | null
 }
 
-export function WhtRemittancesTable({ rows, empty, canEdit }: { rows: RemittanceRow[]; empty: React.ReactNode; canEdit: boolean }) {
+/** TABLE-FEATURES-2(Tim Q1 · Q2):`totals` 是库算的合计(list_totals_wht_remittances)—— 已冲销的汇款不计。 */
+export function WhtRemittancesTable({ rows, empty, canEdit, totals }: { rows: RemittanceRow[]; empty: React.ReactNode; canEdit: boolean; totals: ListTotal[] }) {
     const t = useTranslations()
     const locale = useLocale()
 
@@ -123,7 +128,8 @@ export function WhtRemittancesTable({ rows, empty, canEdit }: { rows: Remittance
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty}
         exportSpec={{ name: 'wht-remittances', title: t('wht.remittancesHeading') }}
         // TABLE-FEATURES-1 Q9:汇缴登记簿一次读全(wht_remittances 不翻页)—— 在浏览器里排
-        sorting={{ mode: 'client', coverage: 'complete' }} />
+        sorting={{ mode: 'client', coverage: 'complete' }}
+        footer={() => totalsFooterRows(totals, { amount: 'amount' }, t)} />
 }
 
 export type WhtRateRow = {

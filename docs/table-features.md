@@ -24,6 +24,26 @@ Split into three cuts by Tim (Q13): **TF-1** (v1.4.74) · **TF-2** (v1.4.75) · 
 **Corrections recorded (Tim 2026-10-25):** list pages are **84** (112 files), not 114; the ended-record issue covers **12 blocks**, not 3 pages;
 the queue's feature counts are as re-measured in Step 0 (DataTable call sites 235 in 182 files: sorting 8 files · column toggle 1 · search 1 · client paging 1 · selection 1 file / 2 sites · footer 0; the three 1s only in brand-sampler).
 
+## The rulings — Tim 2026-10-26 (TABLE-FEATURES-2 Step 0), verbatim
+
+Step 0: `docs/surveys/TABLE-FEATURES-2/step0.md` and its survey files (`survey-totals.md` · `survey-presets.md` · `survey-overflow.md`).
+
+| # | Ruling |
+|---|---|
+| Q1 | No footer on bank statements, close, or supplier statements (their amount columns are balances or running totals). Footers go on the other 21 amount lists. Also no total on any other balance-type column you identified. |
+| Q2 | Totals are net: a reversal cancels its original, so a reversed pair adds 0, agreeing with the ledger. |
+| Q3 | Commissions: total only the fixed_amount rows, one total per currency. |
+| Q4 | Payments list: two totals per currency, "received" and "paid", not netted. |
+| Q5 | Add a small database function returning only fy_end_month and fy_end_day to any logged-in user, in the same migration as the totals functions. |
+| Q6 | Presets end at the period end (month end, quarter end, year end), as the P&L does today. |
+| Q7 | Allow max-w-full on filter dropdowns in list toolbars only, and record that exception in docs/variant-c-spec.md §4.1d in the same commit, with its cost (a long name is cut off in the closed box on a phone; the open picker shows the full name). /purchasing/orders and /inbound must then read 0 whole-page overflow at 390 px. |
+| Q8 | /hr/leave showing only requests wholly inside the range: not changed here; register it in docs/known-issues.md. |
+| Q9 | Fix the inventory ledger's 90-day default window (the UTC off-by-one between midnight and 08:00) in this cut. Register the other three (ledger "clear the dates" does nothing; balance sheet; StatementPanel) in docs/known-issues.md. |
+
+Your own decisions are accepted: any hidden amount makes that currency's total read 「受限」; 「受限」 on lists where the reader cannot see some rows is decided per reader; labels stay "This year / 今年"; first_fy_end is respected as the year-close does; P&L and cash flow use the same four presets from the shared helper; the side findings are registered, not fixed. The existing expenses summary line and inventory valuation bar are replaced by the new database totals.
+
+SPLIT: not split (Tim). Reason: the last cuts ran at well under their estimates (TF-1 estimated about 11 h, done in about 2.5 h). Safeguard: if midway it will not fit this session, finish the part in hand, queue the rest as TF-2b with the rulings copied verbatim, run the full verify chain on what is done, push, and say so plainly in the report.
+
 ## How TF-1 is built
 
 ### Shared parts
@@ -62,3 +82,14 @@ the queue's feature counts are as re-measured in Step 0 (DataTable call sites 23
 - A capped list keeps its "first N of M" notice; the table's own "sorted over all rows" line now also shows when the screen holds fewer rows than the total, and disappears when it holds them all.
 - Detail-page tables were not in scope (Q8 is list pages) with one exception: the batch movement trail (`MovementTimelineTable`) sorts in the browser on both batch edit pages, because it sits inside the ended block of a deleted batch and Q10's "sort stays usable on ended records" needed a sortable table there to mean anything (the live proof runs on it). The CoA, inspection-run and contamination-check tables are shared with detail pages and sort only where the list page passes the prop.
 
+## How TF-2 is built (v1.4.75)
+
+- **Footer totals:** one database function per list (`db/functions/list_totals_*.sql`, 24 functions for the 21 pages: /me has three, /finance/wht two),
+  plus `inventory_stock_by_material()` — /inventory's rows and footer now come from the same SQL (the old JS aggregation and the valuation bar are gone).
+  Every function starts with `require_permission(<the page gate>)`, reads the relation the page reads (masked views; `journal_lines_masked`, never `journal_lines`),
+  applies the page's own filters (including those the page used to apply in JS), and returns `(grp, currency, measure, total, restricted)`.
+  The pattern and the per-page rules: `docs/surveys/TABLE-FEATURES-2/build-pattern.md`; per-page facts: `survey-totals.md`.
+- **Date presets:** `lib/datePresets.ts` · `lib/datePresetsServer.ts` · `app/components/ui/date-presets.tsx` on the 11 from/to pages; P&L and cash flow use the same helper
+  (four presets, Singapore time, "this year" = the financial year from `fiscal_year_end_setting()`). The three GET-form pages key their form on from/to so the uncontrolled date boxes remount.
+- **Overflow:** `${CONTROL_SELECT} max-w-full` on the filter selects of `/purchasing/orders` and `/inbound` (Q7).
+- **Decisions taken while building TF-2** are listed in `docs/handbacks/TABLE-FEATURES-2.md` §4.

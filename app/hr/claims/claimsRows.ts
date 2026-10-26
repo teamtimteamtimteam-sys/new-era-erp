@@ -12,6 +12,8 @@ import { getLocale } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/dates'
 import type { ClaimRow } from './ClaimsTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -62,6 +64,16 @@ function filtered<Q extends { eq: (c: string, v: string | number) => Q }>(qb: Q,
     if (f.year) qb = qb.eq('claim_year', Number(f.year))
     if (f.status) qb = qb.eq('settlement_state', f.status)
     return qb
+}
+
+/**
+ * ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):表尾合计 —— 所有符合筛选的行(不只是画出来的前 CLAIMS_SHOWN 条),由库算
+ *   (list_totals_medical_claims)。筛选与 filtered() 同一套参数;别人的金额对读者遮着时读「受限」。
+ */
+export async function claimsTotals(supabase: Client, f: ClaimsFilter): Promise<ListTotal[]> {
+    const args = { p_employee: f.employee || undefined, p_year: f.year ? Number(f.year) : undefined, p_status: f.status || undefined }
+    const res = await supabase.rpc('list_totals_medical_claims', args)
+    return shapeListTotals(mustRows(res, 'medical claims totals'))
 }
 
 export function claimsCount(supabase: Client, f: ClaimsFilter) {

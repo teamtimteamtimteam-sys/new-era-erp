@@ -3,6 +3,8 @@
 // 端口自 materials 列表,适配事务表:关联方(供应商/物料)用 FK-id 下拉,嵌入仅用于展示。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
+import { DatePresetLinks } from '@/app/components/ui/date-presets'
+import { readDatePresets } from '@/lib/datePresetsServer'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import InboundTable, { type InboundTableRow } from './InboundTable'
@@ -201,6 +203,9 @@ export default async function InboundPage({
         )
     }
 
+    // TABLE-FEATURES-2 Q5:日期快捷区间(新加坡的今天 + 财年年末)在服务端算好,工具栏上方一排链接
+    const presets = await readDatePresets(supabase)
+
     return (
         <div className="p-8">
             {/* IOD-2:刚刚那次收货的落地告警(建批次成功、但有决定没人做过) */}
@@ -243,6 +248,7 @@ export default async function InboundPage({
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
+                <DatePresetLinks presets={presets} fromKey="date_from" toKey="date_to" pageKey="page" />
                 <InboundToolbar suppliers={supplierOptions} materials={materialOptions} />
             </Suspense>
 

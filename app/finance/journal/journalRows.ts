@@ -19,6 +19,8 @@ import { fetchAllPages, IN_CHUNK } from '@/lib/export/serverRows'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
 import type { JournalRow } from './JournalTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { mustRows } from '@/lib/db-helpers'
+import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
@@ -52,6 +54,15 @@ function applyFilters<T>(query: T, p: JournalListParams): T {
 
 export type JournalDbRow = {
     id: string; code: string; entry_date: string; memo: string | null; source_type: string | null; source_id: string | null; status: string
+}
+
+/**
+ * TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q2 · Q6):表尾合计 —— 所有符合筛选的分录 Σ借方,库算
+ * (db/functions/list_totals_journal.sql,读 journal_lines_masked);冲销分录记负数;集合里有一行工资金额受限 → 整个合计「受限」。
+ */
+export async function journalTotals(supabase: Client, p: JournalListParams): Promise<ListTotal[]> {
+    const res = await supabase.rpc('list_totals_journal', { p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined })
+    return shapeListTotals(mustRows(res, 'journal totals'))
 }
 
 export function journalCount(supabase: Client, p: JournalListParams) {

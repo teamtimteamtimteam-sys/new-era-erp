@@ -416,6 +416,9 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     # 说出来,悄悄放行才是缺陷。吐露的只有这一个布尔量,而它本来就该印在屏幕上。
     "approvals_enabled":
         "one boolean the UI is required to display, on screens outside finance",
+    # TABLE-FEATURES-2(Tim 2026-10-26 Q5):财年年末的月与日两个数,给财务以外那 7 张列表的「今年」快捷区间;与 check_mirrors.py 同改
+    "fiscal_year_end_setting":
+        "TABLE-FEATURES-2: only fy_end_month/fy_end_day, for date presets on screens outside finance (Tim 2026-10-26 Q5)",
     # PDPA-1:当事人查阅。**它与上面四个同类而不同源** —— 上面那些是"检查本身",
     # 这一个是【没有可要求的权限】:它没有参数,唯一的主语是 auth.uid(),
     # 而一名员工对自己个人数据的法定查阅权不由本系统的权限模型授予,也不该被它否决。

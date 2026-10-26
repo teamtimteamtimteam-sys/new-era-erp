@@ -1,5 +1,9 @@
 // app/inventory/page.tsx
-// 库存与物料平衡(只读,JS 聚合)
+// 库存与物料平衡(只读)
+// TABLE-FEATURES-2(Tim 2026-10-26):台账的行与表尾合计都由库算 —— 行读 inventory_stock_by_material(),
+//   表尾读 list_totals_inventory()(它加的正是前者的列)。从前的估值合计条(JS reduce 七份无序、无分页的整表读)删掉了:
+//   「The existing ... inventory valuation bar [is] replaced by the new database totals.」
+//   批次集合与每一列的规则写在 db/functions/inventory_stock_by_material.sql 抬头。
 // INV-VAL-1(R1):原料估值口径由 unit_price 改为【到岸成本】
 //   inbound_batch_landed_unit_cost = 采购价 + 运费 + 已资本化加工成本,
 //   经 inbound_batch_valuation 视图读取(那支函数绕过价格遮蔽,不能直接授出去)。
@@ -14,12 +18,10 @@ import { createClient } from '@/lib/supabase/server'
 import { compareForSort } from '@/lib/sortCollation'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
-import { formatAmount, formatMoneyBare } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import { InventoryTable } from './InventoryTable'
-import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
-import { maskedRows } from '@/lib/maskedRows'
-import type { Tables } from '@/lib/database.types'
-import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
+import { mustCount, mustRows } from '@/lib/db-helpers'
+import { shapeListTotals } from '@/lib/listTotals'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
@@ -32,22 +34,18 @@ import RecentTrail from '@/app/components/trail/RecentTrail'
 // PROC-1:种类从 material_kinds 嵌进来,不再是物料上的一列自由文本
 type MaterialEmbed = { name: string; material_kinds: { name_en: string; name_zh: string } | null } | null
 
-// FK 嵌入运行时是对象;显式类型 + cast 锁住。
-type InboundStockRow = {
+// TABLE-FEATURES-2:inventory_stock_by_material() 的一行(一种物料)。钱列 NULL 的意思见那支函数抬头 ——
+//   没有一批计入,或者(stock / cost 两列)读者没有 data.view_prices。
+type StockByMaterialRow = {
     material_id: string
-    remaining_qty: number
-    unit: string
-    // INV-VAL-1:到岸成本。没有 data.view_prices 时视图把它遮蔽成 null,
-    // 而 unpriced 【不】遮蔽 —— "有没有价"是事实,不是价。
-    landed_unit_cost: number | null
-    unpriced: boolean
-}
-
-type OutputStockRow = {
-    id: string
-    material_id: string
-    remaining_qty: number
-    unit: string
+    unit: string | null
+    mixed_unit: boolean
+    inbound_stock: number
+    output_stock: number
+    priced_qty: number
+    stock_value: number | null
+    cost_value: number | null
+    market_value: number | null
 }
 
 type InventoryRow = {
@@ -75,17 +73,14 @@ export default async function InventoryPage() {
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
-    // CCY-1:估值合计条的三个标签(原料库存价值/成品成本价值/成品市价价值)【不带币种】,
-    // 而下面表格的列头带 —— 合计条自己把币种写出来,不去借一个没说过话的抬头。
+    // APR-7 申请面板的金额用本位币标签
     const baseCurrency = await getBaseCurrency()
-
-    const todayYmd = new Date().toISOString().slice(0, 10)
 
     // ── APR-7:等 CFO 批的注销 / 回滚 / 证书作废申请(页顶那一块)──────────────────────────
     //   读 warehouse_requests_visible():在等的全部 + 最近了结的十张;金额按 data.view_prices 给
     //   (NULL = 受限,画「受限」,不画 0.00)。snapshot 是提交时冻下来的那一组 —— CFO 读不到证书表。
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
-    const [canSeeFinance, canPricesForRequests, holdsWriteOff, holdsRollback, holdsCod, holdsCoa] = await Promise.all([
+    const [canSeeFinance, canViewPrices, holdsWriteOff, holdsRollback, holdsCod, holdsCoa] = await Promise.all([
         can('module.finance.view'), can('data.view_prices'),
         can('action.batch_write_off'), can('action.processing_rollback'), can('action.issue_cod'), can('action.issue_coa')])
     type WrSnapshot = {
@@ -131,26 +126,13 @@ export default async function InventoryPage() {
         holdsCoa ? 'action.issue_coa' : null,
     ].filter((c): c is string => c !== null)
 
-    const [inboundRes, outputRes, runsRes, legsRes, metalsRes, settingsRes, pricesRes, unpricedRes, materialsRes] = await Promise.all([
-        // INV-VAL-1:估值读取器。【视图没有外键,所以物料名不能内嵌】——
-        // 单独取一份 materials 再在 JS 里对起来,而不是为了内嵌退回旧口径。
-        supabase
-            .from('inbound_batch_valuation')
-            .select('material_id, remaining_qty, unit, landed_unit_cost, unpriced')
-            .gt('remaining_qty', 0),
-        // ★★【FIX-2a:这一页对 warehouse 的四条腿里有三条是空的】★★
-        //   守卫是 module.inventory.view(warehouse / sales / procurement / finance
-        //   都持有),而这三张分别挂 output.view / processing.view / output.view。
-        //   后果不是"少一栏":物料平衡的投入、产出、损耗全是 0,于是屏幕上
-        //   写着【什么都没有加工过】;成品成本与市值也是 0.00。
-        //   ★ 而这一页【自己已经有】具名受限的渲染(下面 pricesRestricted,
-        //     INV-VAL-1 写的)—— 它此前拿不到行去驱动。
-        //   物料名不再内嵌:下面本来就单独取了一份 materials,用它对起来。
-        supabase
-            .from('output_batch_lookup')
-            .select('id, material_id, remaining_qty, unit')
-            .is('deleted_at', null)
-            .gt('remaining_qty', 0),
+    const [stockRes, totalsRes, runsRes, unpricedRes, materialsRes] = await Promise.all([
+        // TABLE-FEATURES-2:台账的行 —— 一种物料一行,库算(进料按到岸成本、产出按产出腿成本与金属市价)。
+        //   从前这里是六次整表读再在 JS 里合并;FIX-2a / INV-VAL-1 那几条关于读哪张视图的理由
+        //   现在住在那支函数里(它读的就是那几张视图,所以遮蔽与行谓词原样跟着走)。
+        supabase.rpc('inventory_stock_by_material'),
+        // 表尾合计:同一组行的列和(本位币两格、USD 一格),「受限」按 data.view_prices 判
+        supabase.rpc('list_totals_inventory'),
         // MES-5b-1(Step 0 Q3 · Q12):平衡合计改读月度物料平衡的全期之和 —— 只算消耗型加工单(深度放电与拆去隔离是穿过去的质量,
         //   回滚的单与有一条腿单位不是 kg 的单不算)。此前把每一张没删的单的表头加起来,于是把放电穿过去的量也当成了消耗。
         //   "没有日期筛选"的约定不变:全期。外壳的门(加工 / 财务 / 库存查看任一)与 processing_run_lookup 给这几个数时同一组。
@@ -158,22 +140,6 @@ export default async function InventoryPage() {
             .from('processing_balance_monthly')
             .select('line, qty, runs')
             .eq('scope', 'plant'),
-        // 产出腿:批次 → 单位成本(一个批次至多一条产出腿)
-        supabase
-            .from('processing_output_lookup')
-            .select('output_batch_id, unit_cost_base'),
-        // 金属含量(assay):批次 → 各金属含量
-        supabase
-            .from('output_batch_metal_lookup')
-            .select('output_batch_id, metal, content_pct'),
-        // 每金属的最新有效价(只取今天及以前,忽略预登的未来价)
-        // METAL-2:房屋约定的那条序列(没有合同可继承指数时用它)
-        supabase.from('pricing_settings').select('default_metal_index').eq('id', true).maybeSingle(),
-        supabase
-            .from('metal_prices')
-            .select('metal, price_usd_per_tonne, price_date, price_index')
-            .is('deleted_at', null)
-            .lte('price_date', todayYmd),
         // 未计价的在册进料批次数(与进料列表页同口径的提示徽标)
         // INV-VAL-1:未计价的判据跟着口径一起换 —— 一张没有采购价、
         // 却挂着已资本化加工成本的批次【不是】未计价的。
@@ -181,19 +147,16 @@ export default async function InventoryPage() {
             .from('inbound_batch_valuation')
             .select('id', { count: 'exact', head: true })
             .eq('unpriced', true),
-        // INV-VAL-1:物料名与种类 —— 估值视图没有外键,内嵌不了,单独取。
+        // INV-VAL-1:物料名与种类 —— 行里只有 material_id,单独取。
         supabase
-            // FIX-2a:种类名在 material_lookup 上是【摊平的两列】,不是内嵌 ——
-            // 视图没有外键,嵌不了(本页 §INV-VAL-1 那条注释说的就是这件事)。
+            // FIX-2a:种类名在 material_lookup 上是【摊平的两列】,不是内嵌。
             .from('material_lookup')
             .select('id, name, kind_name_en, kind_name_zh')
             .is('deleted_at', null),
     ])
 
-    if (inboundRes.error || outputRes.error || runsRes.error || legsRes.error || metalsRes.error || pricesRes.error || materialsRes.error) {
-        const err =
-            inboundRes.error ?? outputRes.error ?? runsRes.error ??
-            legsRes.error ?? metalsRes.error ?? pricesRes.error ?? materialsRes.error
+    if (stockRes.error || totalsRes.error || runsRes.error || materialsRes.error) {
+        const err = stockRes.error ?? totalsRes.error ?? runsRes.error ?? materialsRes.error
         return (
             <div className="p-8">
                 <h1 className="mb-4">{t('inventory.listTitle')}</h1>
@@ -208,8 +171,9 @@ export default async function InventoryPage() {
         )
     }
 
-    const inbound = (inboundRes.data as unknown as InboundStockRow[] | null) ?? []
-    // 物料 id → 名称/种类。进料侧改读估值视图之后,内嵌没了,这张表补上。
+    // 物料 id → 名称/种类。
+    // ★ 物料被删了的批次在行里【照算】(名为「—」)—— 名称表过滤 deleted_at,估值不过滤;合计跟着行走
+    //   (inventory_stock_by_material 抬头)。
     const materialById = new Map<string, MaterialEmbed>()
     // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死(FIX-1 同一写法)。
     type MatLookupRow = { id: string; name: string; kind_name_en: string | null; kind_name_zh: string | null }
@@ -222,110 +186,34 @@ export default async function InventoryPage() {
                     : null,
         })
     }
-    const output = (outputRes.data as unknown as OutputStockRow[] | null) ?? []
     const runs = mustRows(runsRes)
+    const totals = shapeListTotals(mustRows(totalsRes, 'inventory totals'))
 
-    // 批次 → 单位成本 / 金属含量;金属 → 最新价
-    const legCostByBatch = new Map<string, number>()
-    // unit_cost_base 会被遮蔽(没有 data.view_prices 时为 null);其余列不会。
-    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_base'>(
-        mustRows(legsRes) as unknown as Tables<'processing_outputs'>[]
-    )) {
-        if (leg.unit_cost_base !== null) legCostByBatch.set(leg.output_batch_id, leg.unit_cost_base)
-    }
-    const metalsByBatch = new Map<string, { metal: string; content_pct: number }[]>()
-    for (const m of mustRows(metalsRes) as unknown as
-        { output_batch_id: string; metal: string; content_pct: number }[]) {
-        const list = metalsByBatch.get(m.output_batch_id)
-        if (list) list.push(m)
-        else metalsByBatch.set(m.output_batch_id, [m])
-    }
-    const priceByMetal = latestPriceByMetal(
-        mustRows(pricesRes),
-        mustOne(settingsRes, 'pricing_settings')?.default_metal_index ?? null
-    )
-
-    // 按 material_id 聚合
-    const rowsByMaterial = new Map<string, InventoryRow>()
-
-    function ensureRow(
-        materialId: string,
-        embed: MaterialEmbed,
-        unit: string
-    ): InventoryRow {
-        const existing = rowsByMaterial.get(materialId)
-        if (existing) {
-            if (existing.unit !== MIXED_UNIT && existing.unit !== unit) {
-                existing.unit = MIXED_UNIT
-            }
-            return existing
-        }
-        const fresh: InventoryRow = {
-            material_id: materialId,
+    const rows: InventoryRow[] = (mustRows(stockRes, 'inventory stock') as unknown as StockByMaterialRow[]).map((r) => {
+        const embed = materialById.get(r.material_id) ?? null
+        return {
+            material_id: r.material_id,
             name: embed?.name ?? null,
             kindLabel: embed?.material_kinds
                 ? (locale === 'zh' ? embed.material_kinds.name_zh : embed.material_kinds.name_en)
                 : null,
-            unit,
-            inboundStock: 0,
-            outputStock: 0,
-            pricedQty: 0,
-            stockValue: null,
-            costValue: null,
-            marketValue: null,
+            unit: r.mixed_unit || r.unit === null ? MIXED_UNIT : r.unit,
+            inboundStock: Number(r.inbound_stock),
+            outputStock: Number(r.output_stock),
+            pricedQty: Number(r.priced_qty),
+            stockValue: r.stock_value === null ? null : Number(r.stock_value),
+            costValue: r.cost_value === null ? null : Number(r.cost_value),
+            marketValue: r.market_value === null ? null : Number(r.market_value),
         }
-        rowsByMaterial.set(materialId, fresh)
-        return fresh
-    }
-
-    for (const b of inbound) {
-        const row = ensureRow(b.material_id, materialById.get(b.material_id) ?? null, b.unit)
-        row.inboundStock += b.remaining_qty
-        // 【计价与否用 unpriced,金额用 landed_unit_cost】两者【不是同一个判据】:
-        // 没有 data.view_prices 的读者拿到 landed_unit_cost = null 而 unpriced = false,
-        // 那是"你看不到",不是"这批货没有价"。把它们混成一个判据,
-        // 受限读者会看到一个少算了的合计 —— 本仓库为这个形状付过三次账。
-        if (!b.unpriced) row.pricedQty += b.remaining_qty
-        if (b.landed_unit_cost !== null) {
-            row.stockValue = (row.stockValue ?? 0) + b.remaining_qty * b.landed_unit_cost
-        }
-    }
-    for (const b of output) {
-        const row = ensureRow(b.material_id, materialById.get(b.material_id) ?? null, b.unit)
-        row.outputStock += b.remaining_qty
-
-        const unitCost = legCostByBatch.get(b.id)
-        if (unitCost !== undefined) {
-            row.costValue = (row.costValue ?? 0) + b.remaining_qty * unitCost
-        }
-        const perKg = marketValuePerKg(metalsByBatch.get(b.id) ?? [], priceByMetal)
-        if (perKg !== null) {
-            row.marketValue = (row.marketValue ?? 0) + b.remaining_qty * perKg
-        }
-    }
-
-    const rows = Array.from(rowsByMaterial.values())
-    // ★ 这一页【不走 DataTable】,自己排自己的 —— 所以只改表格组件碰不到它。
-    //   字序走 lib/sortCollation.ts 那条具名规矩(排序永远用英文字序,与界面语言无关)。
+    })
+    // ★ 这一页自己排自己的(初始顺序)—— 字序走 lib/sortCollation.ts 那条具名规矩(排序永远用英文字序,与界面语言无关)。
     rows.sort((a, b) => compareForSort(a.name ?? '', b.name ?? ''))
 
-    // 估值合计(三个口径分开:原料按单价、成品按成本、成品按市价)
-    // ★★【读不到价的人必须拿到【具名受限】,不是一个自信的 SGD 0.00】★★
-    // 【这是本刀顺手修掉的一个【线上正在错】的渲染,不是新功能】
-    //   operations 与 warehouse 有 module.inventory.view、没有 data.view_prices,
-    //   于是每一行的 stockValue 都是 null,而 `?? 0` 把整条合计条变成
-    //   "原料库存价值 SGD 0.00" —— 一个会被抄进决策的数字,而真相是
-    //   "这个数没有对你显示"。INV-VAL-1 在 RPT-1 上按裁定渲染具名受限,
-    //   同一批用户在这张姊妹屏上却看到 0.00,那正是这条裁定要消灭的不一致。
-    // 【判据是【有货、有价、但读不到】,不是"合计为零"】—— 一个真的空仓库
-    //   应当照常显示 0.00,那是一句真话。
-    // 判据:存在一张【有价】的批次(unpriced = false),而它的到岸成本读出来是 null
-    // —— 那只可能是遮蔽。两个字段被同一条权限管着(data.view_prices),
-    // 所以这一个信号同时说明了产成品那两列也读不到。
-    const pricesRestricted = inbound.some((b) => !b.unpriced && b.landed_unit_cost === null)
-    const totalInboundValue = rows.reduce((s, r) => s + (r.stockValue ?? 0), 0)
-    const totalCostValue = rows.reduce((s, r) => s + (r.costValue ?? 0), 0)
-    const totalMarketValue = rows.reduce((s, r) => s + (r.marketValue ?? 0), 0)
+    // TABLE-EXPORT-1(Q3):均价 · 库存价值 · 成本价值三列被 data.view_prices 管着 —— 读不到时导出那一格写「受限」。
+    //   从前由「有一张有价的进料批、而到岸成本读出来是 null」倒推,于是没有有价进料批时受限读者的导出是空格不是受限;
+    //   现在直接读表尾的 restricted —— 库按 data.view_prices 判,受限时即使一行都没有也照样给出受限的那几行,
+    //   所以导出与表尾是同一个判据、同一个答案,不在页面上再判一次。
+    const pricesRestricted = totals.some((x) => x.restricted)
 
     // 物料平衡合计(MES-5b-1:月度平衡全厂那几条线的全期之和;损耗 = 有名字的损耗 + 余数)
     const lineSum = (line: string) => runs.filter((r) => r.line === line).reduce((s, r) => s + Number(r.qty ?? 0), 0)
@@ -372,7 +260,7 @@ export default async function InventoryPage() {
                 open={wrViews.filter((v) => v.status === 'submitted')}
                 history={wrViews.filter((v) => v.status !== 'submitted')}
                 canSeeFinance={canSeeFinance}
-                canViewPrices={canPricesForRequests}
+                canViewPrices={canViewPrices}
                 kindCodesHeld={wrKindCodes}
                 baseCurrency={baseCurrency}
                 lockedBeforeText={wrLockedBefore ? formatDate(wrLockedBefore, dateLocale) : null}
@@ -415,51 +303,13 @@ export default async function InventoryPage() {
             <section>
                 <h2 className="mb-2">{t('inventory.stockSectionHeader')}</h2>
 
-                {/* 估值合计条 */}
-                <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm mb-3">
-                    <div>
-                        <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalInboundValue')}:</span>{' '}
-                        <span className="font-medium">
-                            {pricesRestricted
-                                ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
-                                : formatAmount(totalInboundValue, baseCurrency)}
-                        </span>
-                    </div>
-                    <div>
-                        <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalCostValue')}:</span>{' '}
-                        <span className="font-medium">
-                            {pricesRestricted
-                                ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
-                                : formatAmount(totalCostValue, baseCurrency)}
-                        </span>
-                    </div>
-                    {/* ════════════════════════════════════════════════════════════
-                        ★【币种分界 —— 这一格与左边两格【不是同一个币种,也不是同一类数】】★
-                        FX-DISPLAY-1(2026-08-31)修的就是这里。从前它写的是
-                        `formatAmount(totalMarketValue, baseCurrency)` —— 把一个
-                        **USD** 数字贴上 **SGD**,而且是【运行时从 currencies.is_base
-                        取出来贴上去的】,所以它读起来比一个写死的标签更像是权威结论。
-                        实测:线上这个数是 1,870.00 USD,当时印成 "1,870.00 SGD"。
-                        它就摆在两个【真 SGD】合计旁边,三个数看起来可以相加 —— 不能。
-                        现在:币种写进标签(valuation.totalMarketValue 带 (USD)),
-                        数字用 formatMoneyBare 裸印,并用一条竖线把它与账面数分开。
-                        【不折算】线上唯一的 USD 中间价是 2026-07-31,超出 4 天回溯上限,
-                        fx_rate_asof('USD', 今天, 'mid') 返回零行 —— 折不出来就不折,
-                        而不是拿一个过期的汇率编一个 SGD 数出来。
-                        ════════════════════════════════════════════════════════════ */}
-                    <div className="border-l border-gray-300 pl-8">
-                        <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalMarketValue')}:</span>{' '}
-                        <span className="font-medium">
-                            {formatMoneyBare(totalMarketValue, '同一格的标签「成品市价价值 (USD)」')}
-                        </span>
-                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-md">{t('valuation.marketValueNote')}</p>
-                    </div>
-                    {(mustCount(unpricedRes)) > 0 && (
-                        <div className="text-gray-400">
-                            {t('inbound.unpricedBadge', { n: mustCount(unpricedRes) })}
-                        </div>
-                    )}
-                </div>
+                {/* TABLE-FEATURES-2:估值合计条删掉了 —— 合计在表尾(库算,本位币一行、USD 一行)。
+                    未计价徽标留下(它不是合计,是一句"有几批没有价");市价说明挪到表下。 */}
+                {mustCount(unpricedRes) > 0 && (
+                    <p className="text-sm text-gray-400 mb-2">
+                        {t('inbound.unpricedBadge', { n: mustCount(unpricedRes) })}
+                    </p>
+                )}
 
                 {/* ★ TABLE-CONVERT-4:换成 DataTable。
                     列、列头、每一格的字、以及 R-Q5 那条「数与单位并成一个值」全部原样;
@@ -494,9 +344,14 @@ export default async function InventoryPage() {
                         }
                     })}
                     pricesRestricted={pricesRestricted}
+                    totals={totals}
                 />
                 <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                     {t('inventory.footerNote')}
+                </p>
+                {/* FX-DISPLAY-1:市价是 USD、不折算、不是账面数 —— 那句话从合计条搬到这里(表尾的 USD 一行就是它说的那个数) */}
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">
+                    {t('valuation.marketValueFooterNote')}
                 </p>
             </section>
         </div>

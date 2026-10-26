@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
-import { FREIGHT_SHOWN, freightCount, freightPage, shapeFreightRows, parseFreightListParams, freightExportHref } from './freightRows'
+import { FREIGHT_SHOWN, freightCount, freightPage, shapeFreightRows, parseFreightListParams, freightExportHref, freightTotals } from './freightRows'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -26,9 +26,11 @@ export default async function FreightListPage({ searchParams }: { searchParams: 
     // ★ TABLE-EXPORT-2a(Tim Q2):读取与映射搬进 freightRows.ts,与导出路由共用;只画最近 FREIGHT_SHOWN 张,而且说出来。
     // ★ TABLE-FEATURES-1 Q9:前 FREIGHT_SHOWN 张按表头选中的次序取(在数据库里排)
     const params = parseFreightListParams(await searchParams)
-    const [dbRows, total] = await Promise.all([
+    // ★ TABLE-FEATURES-2 Q1:表尾合计 = 所有在册运费单(不只这 200 张),库算;冲销的加 0
+    const [dbRows, total, totals] = await Promise.all([
         freightPage(supabase, params, 0, FREIGHT_SHOWN - 1).then((r) => mustRows(r, 'freight_documents')),
         freightCount(supabase).then((r) => mustCount(r, 'freight_documents count')),
+        freightTotals(supabase),
     ])
     const tableRows: FreightRow[] = await shapeFreightRows(dbRows)
 
@@ -48,7 +50,7 @@ export default async function FreightListPage({ searchParams }: { searchParams: 
         >
             <RowCapNotice shown={tableRows.length} total={total} />
             <FreightTable rows={tableRows} empty={t('finance.freight.empty')} exportHref={freightExportHref(params)}
-                          sort={params.sort} shown={tableRows.length} total={total} />
+                          sort={params.sort} shown={tableRows.length} total={total} totals={totals} />
         </ListPage>
     )
 }
