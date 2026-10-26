@@ -1,0 +1,59 @@
+# 覆盖:扫了 1364 个文件(app/**/*.ts[x] + lib/*.ts);搬家 / 多属主条目 27 条
+
+ENTRY|/purchasing/licences|purchasing -> safety_compliance|linked from 1 other files
+
+ENTRY|/operation/operation-types|operation -> equipment|linked from 0 other files
+  BACK-TO-OLD|app/operation/operation-types/page.tsx:65|breadcrumb={<Link href="/operation" className="hover:underline text-sm app-link">{t('common.back')}</Link>}
+
+ENTRY|/operation/contamination|operation -> quality|linked from 3 other files
+
+ENTRY|/quality/samples|operation -> quality|linked from 5 other files
+
+ENTRY|/quality/disputes|operation -> quality|linked from 4 other files
+
+ENTRY|/quality/ncr|operation -> quality|linked from 7 other files
+
+ENTRY|/quality/coa|operation -> quality|linked from 4 other files
+
+ENTRY|/operation/equipment|operation -> equipment|linked from 21 other files
+
+ENTRY|/operation/equipment/reliability|operation -> equipment|linked from 5 other files
+
+ENTRY|/operation/devices|operation -> equipment|linked from 8 other files
+
+ENTRY|/operation/weighbridge|operation,inventory,logistics -> production_warehouse|linked from 7 other files
+
+ENTRY|/operation/calibration|operation -> equipment|linked from 3 other files
+
+ENTRY|/inventory/storage-safety|inventory -> safety_compliance|linked from 1 other files
+
+ENTRY|/tools/tasks|tools -> workbench|linked from 3 other files
+
+ENTRY|/tools/reminders|tools -> workbench|linked from 10 other files
+  NAV-CONTEXT|app/hr/page.tsx:249
+
+ENTRY|/tools/pricing|tools -> purchasing|linked from 37 other files
+
+ENTRY|/tools/pricing/formulas|tools -> purchasing|linked from 5 other files
+
+ENTRY|/tools/pricing/calculator|tools -> purchasing|linked from 9 other files
+
+ENTRY|/tools/pricing/metal-prices|tools -> purchasing|linked from 32 other files
+
+ENTRY|/settings/change-history|settings,finance -> settings|linked from 0 other files
+
+ENTRY|/sales/commissions|purchasing,sales -> sales_logistics|linked from 0 other files
+
+ENTRY|/inbound|purchasing,inventory,operation -> production_warehouse|linked from 73 other files
+  NAV-CONTEXT|app/inventory/InventoryTable.tsx:93
+
+ENTRY|/inbound/receive|purchasing,inventory,operation -> production_warehouse|linked from 4 other files
+
+ENTRY|/output|operation,inventory -> production_warehouse|linked from 49 other files
+  NAV-CONTEXT|app/inventory/InventoryTable.tsx:115
+
+ENTRY|/finance/freight|logistics,finance -> sales_logistics|linked from 6 other files
+
+ENTRY|/finance/self-approved|finance,hr -> finance|linked from 0 other files
+
+ENTRY|/hr/overtime|hr,operation -> people|linked from 0 other files

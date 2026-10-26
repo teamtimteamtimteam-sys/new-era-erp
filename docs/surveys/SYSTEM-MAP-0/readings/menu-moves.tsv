@@ -1,0 +1,134 @@
+href	modules_today	target_home	source	parent	group	note
+/purchasing	purchasing	purchasing	unchanged			
+/purchasing/orders	purchasing	purchasing	unchanged			
+/purchasing/discrepancies	purchasing	purchasing	unchanged			
+/purchasing/payment-terms	purchasing	purchasing	unchanged			
+/suppliers	purchasing	purchasing	unchanged			
+/suppliers/scorecards	purchasing	purchasing	unchanged			
+/contracts	purchasing	purchasing	unchanged			
+/purchasing/licences	purchasing	safety_compliance	2.4(7)			
+/logistics	logistics	sales_logistics	module merge			
+/logistics/forwarders	logistics	sales_logistics	module merge			
+/logistics/lanes	logistics	sales_logistics	module merge			
+/logistics/containers	logistics	sales_logistics	module merge			
+/logistics/shipping	logistics	sales_logistics	module merge			
+/operation	operation	production_warehouse	module merge			
+/operation/orders	operation	production_warehouse	module merge			
+/operation/processing	operation	production_warehouse	module merge			
+/operation/wip	operation	production_warehouse	module merge			
+/operation/handovers	operation	production_warehouse	module merge			
+/operation/operation-types	operation	equipment	2.2 Equipment			
+/operation/contamination	operation	quality	2.2 Quality			
+/operation/balance	operation	production_warehouse	module merge			
+/operation/yield	operation	production_warehouse	module merge			
+/operation/blending	operation	production_warehouse	module merge			
+/quality/samples	operation	quality	2.2 Quality			
+/quality/disputes	operation	quality	2.2 Quality			
+/quality/ncr	operation	quality	2.2 Quality			
+/quality/coa	operation	quality	2.2 Quality			
+/safety/incidents	safety	safety_compliance	module merge			
+/safety/inspections	safety	safety_compliance	module merge			
+/safety/environment	safety	safety_compliance	module merge			
+/compliance/packs	safety	safety_compliance	module merge			
+/operation/equipment	operation	equipment	2.2 Equipment			
+/operation/equipment/reliability	operation	equipment	2.2 Equipment	/operation/equipment		today parent=/operation/equipment (not a menu row); 2.2 lists reliability as its own Equipment entry
+/operation/devices	operation	equipment	2.2 Equipment			
+/operation/capture/inbox	operation	production_warehouse	module merge	/operation/devices		parent=/operation/devices (Equipment) while /operation/capture is "data capture" (Production) — parent follows Equipment unless re-parented
+/operation/capture	operation	production_warehouse	module merge			
+/operation/weighbridge	operation,inventory,logistics	production_warehouse	2.3			
+/operation/calibration	operation	equipment	2.2 Equipment	/operation/devices		today parent=/operation/devices (not a menu row); 2.2 lists calibration as its own Equipment entry
+/sales	sales	sales_logistics	module merge			
+/sales/quotes	sales	sales_logistics	module merge			
+/sales/orders	sales	sales_logistics	module merge			
+/sales/customers	sales	sales_logistics	module merge			
+/sales/customers/overlap	sales	sales_logistics	module merge	/sales/customers		
+/finance	finance	finance	unchanged			
+/finance/trial-balance	finance	finance	unchanged		finance.group.reports	
+/finance/pnl	finance	finance	unchanged		finance.group.reports	
+/finance/balance-sheet	finance	finance	unchanged		finance.group.reports	
+/finance/cashflow	finance	finance	unchanged		finance.group.reports	
+/finance/cash-forecast	finance	finance	unchanged		finance.group.reports	
+/finance/price-exposure	finance	finance	unchanged		finance.group.reports	
+/margin	finance	finance	unchanged		finance.group.reports	
+/finance/journal	finance	finance	unchanged		finance.group.entries	
+/finance/journal/new	finance	finance	unchanged		finance.group.entries	
+/finance/receivables	finance	finance	unchanged		finance.group.receivables	
+/finance/invoices	finance	finance	unchanged		finance.group.receivables	
+/finance/credit-notes	finance	finance	unchanged		finance.group.receivables	
+/finance/payables	finance	finance	unchanged		finance.group.payables	
+/finance/supplier-statements	finance	finance	unchanged		finance.group.payables	
+/finance/payment-requests	finance	finance	unchanged		finance.group.payables	
+/finance/payments	finance	finance	unchanged		finance.group.payables	
+/finance/expenses	finance	finance	unchanged		finance.group.payables	
+/finance/claims	finance	finance	unchanged		finance.group.payables	2.2 People: "claims (medical and general in one entry, two kinds)" vs 2.2 Finance "existing six groups" — where the general-claims queue sits is not stated
+/finance/assets	finance	finance	unchanged		finance.group.payables	
+/finance/month-end	finance	finance	unchanged		finance.group.periodEnd	
+/finance/list-vs-ledger	finance	finance	unchanged		finance.group.periodEnd	
+/finance/payroll-payments	finance	finance	unchanged		finance.group.periodEnd	
+/finance/processing-costs	finance	finance	unchanged		finance.group.periodEnd	
+/finance/electricity	finance	finance	unchanged		finance.group.periodEnd	
+/finance/revaluation	finance	finance	unchanged		finance.group.periodEnd	
+/finance/cost-variance	finance	finance	unchanged		finance.group.periodEnd	
+/finance/close	finance	finance	unchanged		finance.group.periodEnd	
+/finance/gst	finance	finance	unchanged		finance.group.periodEnd	
+/finance/wht	finance	finance	unchanged		finance.group.periodEnd	
+/finance/packs	finance	finance	unchanged		finance.group.periodEnd	
+/finance/bank	finance	finance	unchanged		finance.group.periodEnd	
+/finance/bank/statements	finance	finance	unchanged	/finance/bank		
+/finance/settings	finance	finance	unchanged		finance.group.config	
+/finance/company	finance	finance	unchanged		finance.group.config	
+/finance/fx	finance	finance	unchanged		finance.group.config	
+/inventory	inventory	production_warehouse	module merge			
+/inventory/locations	inventory	production_warehouse	module merge			
+/inventory/storage-safety	inventory	safety_compliance	2.4(7)			
+/inventory/scan	inventory	production_warehouse	module merge			
+/stocktakes	inventory	production_warehouse	module merge			
+/materials	inventory	production_warehouse	module merge			
+/inventory/reports	inventory	production_warehouse	module merge			
+/inventory/reports/snapshot	inventory	production_warehouse	module merge	/inventory/reports		
+/inventory/reports/violations	inventory	production_warehouse	module merge	/inventory/reports		
+/inventory/reports/safety	inventory	production_warehouse	module merge	/inventory/reports		
+/inventory/reports/ledger	inventory	production_warehouse	module merge	/inventory/reports		
+/hr	hr	people	module merge			
+/hr/employees	hr	people	module merge			
+/hr/departments	hr	people	module merge			
+/hr/attendance	hr	people	module merge			
+/hr/payroll	hr	people	module merge			
+/hr/leave	hr	people	module merge			
+/hr/leave/balances	hr	people	module merge	/hr/leave		
+/hr/leave/calendar	hr	people	module merge	/hr/leave		
+/hr/leave/grants	hr	people	module merge	/hr/leave		
+/hr/leave/types	hr	people	module merge	/hr/leave		
+/hr/leave/holidays	hr	people	module merge	/hr/leave		
+/hr/claims	hr	people	module merge			2.4(5): one entry, two kinds — today this page lists medical claims only
+/hr/training	hr	people	module merge			
+/hr/reviews	hr	people	module merge			
+/hr/reviews/cycles	hr	people	module merge	/hr/reviews		
+/hr/reviews/scale	hr	people	module merge	/hr/reviews		
+/hr/kpi	hr	people	module merge			
+/hr/kpi/score	hr	people	module merge	/hr/kpi		
+/hr/org	hr	people	module merge			
+/tools/tasks	tools	workbench	2.2 My workbench			
+/tools/calendar	tools	tools	unchanged			
+/tools/converter	tools	tools	unchanged			
+/tools/reminders	tools	workbench	2.4(11)			
+/tools/pricing	tools	purchasing	2.4(3)			
+/tools/pricing/formulas	tools	purchasing	2.4(3)	/tools/pricing		
+/tools/pricing/calculator	tools	purchasing	2.4(3)	/tools/pricing		
+/tools/pricing/metal-prices	tools	purchasing	2.4(3)	/tools/pricing		
+/settings/accounts	settings	settings	unchanged			
+/settings/roles	settings	settings	unchanged			
+/settings/reference	settings	settings	unchanged			
+/settings/dictionaries	settings	settings	unchanged			
+/settings/import	settings	settings	unchanged			
+/settings/approvals	settings	settings	unchanged			
+/settings/deleted	settings	settings	unchanged			
+/settings/change-history	settings,finance	settings	2.3		finance.group.reports	
+/settings/pending-values	settings	settings	unchanged			gate module.processing.view; stays Settings (2.2 Settings unchanged)
+/sales/commissions	purchasing,sales	sales_logistics	2.3			
+/inbound	purchasing,inventory,operation	production_warehouse	2.3			
+/inbound/receive	purchasing,inventory,operation	production_warehouse	2.3	/inbound		
+/output	operation,inventory	production_warehouse	2.3			
+/finance/freight	logistics,finance	sales_logistics	2.3 + 2.4(6)		finance.group.payables	
+/finance/self-approved	finance,hr	finance	2.3		finance.group.reports	
+/hr/overtime	hr,operation	people	2.3			

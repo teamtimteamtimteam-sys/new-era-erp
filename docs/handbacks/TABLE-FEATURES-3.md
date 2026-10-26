@@ -4,6 +4,7 @@ v1.4.76 — Saved views on the 28 list pages that filter (per person, one option
 
 Brief: "TABLE-FEATURES-3" (Step 0, 2026-10-26) and Tim's rulings Q1–Q4 of 2026-10-26, recorded verbatim at `docs/table-features.md` § "The rulings — Tim 2026-10-26 (TABLE-FEATURES-3 Step 0)" and queue entry 64c-3.
 Started from `f5a62e79f60c37ffdb5228df804032d31f824ff3` (HEAD = origin/main = ls-remote, tree clean). Step 0: `docs/surveys/TABLE-FEATURES-3/step0.md`; readings: `docs/surveys/TABLE-FEATURES-3/readings/`.
+**One migration** (`db/migrations/2026-10-26-table-features-3-saved-views-and-reject-reasons.sql`). **Broken window opened 2026-10-26 20:21:50 CST** (`apply_migration.sh`) and **closed 2026-10-26 23:06 CST** — Tim's confirmation of the deployment (a report from Tim, not a reading taken by this machine): **2 h 44 m 10 s**. See §8.
 
 ## 0 · Part 1 — TF-2 close-out
 - **Broken window of TF-2 closed 2026-10-26 18:49 CST** (Tim's confirmation; 15:24:40 → 18:49 = 3 h 24 m 20 s) — recorded in `docs/handbacks/TABLE-FEATURES-2.md` §9.
@@ -90,3 +91,13 @@ SAVED-VIEW-DEFAULT-RETURNS-WHEN-LAST-FILTER-CLEARED (`docs/known-issues.md`, "TA
 | layout | 390 s (390 px, 35 pages) + ≈ 6 min (1280 px) |
 | smoke | 50 min |
 | live proof | ≈ 2 min |
+
+## 8 · Close-out (SYSTEM-MAP-0 Part 1, 2026-10-27)
+- **Deployment:** Tim confirmed 7fe1cd0 deployed at **2026-10-26 23:06 CST** → broken window **20:21:50 → 23:06 CST (2 h 44 m 10 s)**. The end is Tim's reading, not a measurement here. In the window the old app met a blank leave / medical reject refused under a code it had no message for (§2 step 4).
+- **Production check** (`db/scripts/2026-10-27-table-features-3-closeout-prod-check.mjs`, throwaway `tf3probe` via the shared helper, GET only, nothing pressed): **`TF3_CLOSEOUT_EXIT=0`, 3/3** (`docs/surveys/SYSTEM-MAP-0/readings/tf3-closeout-prod-check.txt`):
+  `/finance/journal` HTTP 200 with the saved-views menu ("Plain list" + "Save view"), no redirect (= 7fe1cd0 deployed). **The journal-request bulk bar is not observable on production:** live holds 0 journal requests
+  (postgres, base table), and the panel draws nothing at 0 (`JournalRequestsPanel.tsx:104`); the same `BulkDecisionBar` read on `/finance/claims` (1 submitted claim on live): bulk bar + select-all + "Reject selected (0)", no result list.
+- **Read back** (`docs/surveys/SYSTEM-MAP-0/readings/readback-closeout.txt`): **0 throwaway users** (tf1probe / tf2probe / tf3probe), 0 probe roles, 0 orphan grants; 7 users, 7 enabled; 1 active `cfo` grant; approvals ON finance/cfo/1000;
+  require_calibrated_since NULL; 2 CODs, bytes equal to the AGENTS.md baseline (`cod-bytes.txt`); 0 saved views; reconciliation AP and AR 0.00 unexplained.
+- **Still open:** SAVED-VIEW-DEFAULT-RETURNS-WHEN-LAST-FILTER-CLEARED (§6) — ruling pending; to be asked before SYSTEM-MAP-1 starts (`docs/known-issues.md`, `docs/system-map.md` open question 1).
+- **TF-3 closed 2026-10-27; the TABLE-FEATURES family is complete** (`docs/forward-queue.md` 64c).

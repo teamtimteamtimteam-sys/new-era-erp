@@ -1,0 +1,6234 @@
+{
+ "admin": {
+  "permCount": 86,
+  "perms": [
+   "action.anonymise_employee",
+   "action.apply_assay",
+   "action.approve_review",
+   "action.batch_write_off",
+   "action.bulk_import",
+   "action.compliance_pack",
+   "action.confirm_capture",
+   "action.contract_terms",
+   "action.customer_credit",
+   "action.decide_hr_requests",
+   "action.direct_sale",
+   "action.finance_reopen",
+   "action.finance_settings",
+   "action.hr_reviews",
+   "action.issue_coa",
+   "action.issue_cod",
+   "action.manage_devices",
+   "action.manage_permissions",
+   "action.manage_portal_users",
+   "action.metal_prices",
+   "action.ncr_decide",
+   "action.overtime_approve",
+   "action.overtime_enter",
+   "action.price_receipts",
+   "action.processing_aftercare",
+   "action.processing_commit",
+   "action.processing_rollback",
+   "action.raise_po_consumables",
+   "action.raise_po_equipment",
+   "action.raise_po_office",
+   "action.receive_goods",
+   "action.request_shipping_release",
+   "action.ship_goods",
+   "action.stocktake_count",
+   "action.stocktake_post",
+   "action.supplier_approve",
+   "action.supplier_review",
+   "action.wo_create",
+   "action.wo_release",
+   "data.view_banking",
+   "data.view_change_log",
+   "data.view_deleted",
+   "data.view_floor_board",
+   "data.view_health",
+   "data.view_identity",
+   "data.view_pay",
+   "data.view_prices",
+   "data.view_purchase_prices",
+   "data.view_reviews",
+   "data.view_sales",
+   "data.view_self_approvals",
+   "module.compliance.view",
+   "module.customers.edit",
+   "module.customers.view",
+   "module.finance.edit",
+   "module.finance.view",
+   "module.hr.edit",
+   "module.hr.view",
+   "module.inbound.edit",
+   "module.inbound.view",
+   "module.inventory.edit",
+   "module.inventory.view",
+   "module.logistics.view",
+   "module.materials.edit",
+   "module.materials.view",
+   "module.output.edit",
+   "module.output.view",
+   "module.pricing.edit",
+   "module.pricing.view",
+   "module.processing.edit",
+   "module.processing.view",
+   "module.purchasing.edit",
+   "module.purchasing.view",
+   "module.quality.edit",
+   "module.quality.view",
+   "module.safety.edit",
+   "module.safety.view",
+   "module.sales.edit",
+   "module.sales.view",
+   "module.stocktakes.edit",
+   "module.stocktakes.view",
+   "module.suppliers.edit",
+   "module.suppliers.view",
+   "module.tasks.edit",
+   "module.tasks.view",
+   "module.tasks.view_all"
+  ],
+  "modules": [
+   {
+    "id": "purchasing",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/purchasing",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/orders",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/discrepancies",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/payment-terms",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers/scorecards",
+      "allowed": true
+     },
+     {
+      "href": "/contracts",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/licences",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "logistics",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/logistics",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/forwarders",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/lanes",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/containers",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/shipping",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "operation",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation",
+      "allowed": true
+     },
+     {
+      "href": "/operation/orders",
+      "allowed": true
+     },
+     {
+      "href": "/operation/processing",
+      "allowed": true
+     },
+     {
+      "href": "/operation/wip",
+      "allowed": true
+     },
+     {
+      "href": "/operation/handovers",
+      "allowed": true
+     },
+     {
+      "href": "/operation/operation-types",
+      "allowed": true
+     },
+     {
+      "href": "/operation/contamination",
+      "allowed": true
+     },
+     {
+      "href": "/operation/balance",
+      "allowed": true
+     },
+     {
+      "href": "/operation/yield",
+      "allowed": true
+     },
+     {
+      "href": "/operation/blending",
+      "allowed": true
+     },
+     {
+      "href": "/quality/samples",
+      "allowed": true
+     },
+     {
+      "href": "/quality/disputes",
+      "allowed": true
+     },
+     {
+      "href": "/quality/ncr",
+      "allowed": true
+     },
+     {
+      "href": "/quality/coa",
+      "allowed": true
+     },
+     {
+      "href": "/operation/equipment",
+      "allowed": true
+     },
+     {
+      "href": "/operation/devices",
+      "allowed": true
+     },
+     {
+      "href": "/operation/capture",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "safety",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/safety/incidents",
+      "allowed": true
+     },
+     {
+      "href": "/safety/inspections",
+      "allowed": true
+     },
+     {
+      "href": "/safety/environment",
+      "allowed": true
+     },
+     {
+      "href": "/compliance/packs",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "sales",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/sales",
+      "allowed": true
+     },
+     {
+      "href": "/sales/quotes",
+      "allowed": true
+     },
+     {
+      "href": "/sales/orders",
+      "allowed": true
+     },
+     {
+      "href": "/sales/customers",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "finance",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/finance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/trial-balance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/pnl",
+      "allowed": true
+     },
+     {
+      "href": "/finance/balance-sheet",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cashflow",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cash-forecast",
+      "allowed": true
+     },
+     {
+      "href": "/finance/price-exposure",
+      "allowed": true
+     },
+     {
+      "href": "/margin",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal/new",
+      "allowed": true
+     },
+     {
+      "href": "/finance/receivables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/invoices",
+      "allowed": true
+     },
+     {
+      "href": "/finance/credit-notes",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/supplier-statements",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payment-requests",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/expenses",
+      "allowed": true
+     },
+     {
+      "href": "/finance/claims",
+      "allowed": true
+     },
+     {
+      "href": "/finance/assets",
+      "allowed": true
+     },
+     {
+      "href": "/finance/month-end",
+      "allowed": true
+     },
+     {
+      "href": "/finance/list-vs-ledger",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payroll-payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/processing-costs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/electricity",
+      "allowed": true
+     },
+     {
+      "href": "/finance/revaluation",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cost-variance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/close",
+      "allowed": true
+     },
+     {
+      "href": "/finance/gst",
+      "allowed": true
+     },
+     {
+      "href": "/finance/wht",
+      "allowed": true
+     },
+     {
+      "href": "/finance/packs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/bank",
+      "allowed": true
+     },
+     {
+      "href": "/finance/settings",
+      "allowed": true
+     },
+     {
+      "href": "/finance/company",
+      "allowed": true
+     },
+     {
+      "href": "/finance/fx",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "inventory",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inventory",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/locations",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/storage-safety",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/scan",
+      "allowed": true
+     },
+     {
+      "href": "/stocktakes",
+      "allowed": true
+     },
+     {
+      "href": "/materials",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/reports",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "hr",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/hr",
+      "allowed": true
+     },
+     {
+      "href": "/hr/employees",
+      "allowed": true
+     },
+     {
+      "href": "/hr/departments",
+      "allowed": true
+     },
+     {
+      "href": "/hr/attendance",
+      "allowed": true
+     },
+     {
+      "href": "/hr/payroll",
+      "allowed": true
+     },
+     {
+      "href": "/hr/leave",
+      "allowed": true
+     },
+     {
+      "href": "/hr/claims",
+      "allowed": true
+     },
+     {
+      "href": "/hr/training",
+      "allowed": true
+     },
+     {
+      "href": "/hr/reviews",
+      "allowed": true
+     },
+     {
+      "href": "/hr/kpi",
+      "allowed": true
+     },
+     {
+      "href": "/hr/org",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "tools",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/tools/tasks",
+      "allowed": true
+     },
+     {
+      "href": "/tools/calendar",
+      "allowed": true
+     },
+     {
+      "href": "/tools/converter",
+      "allowed": true
+     },
+     {
+      "href": "/tools/reminders",
+      "allowed": true
+     },
+     {
+      "href": "/tools/pricing",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "settings",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/settings/accounts",
+      "allowed": true
+     },
+     {
+      "href": "/settings/roles",
+      "allowed": true
+     },
+     {
+      "href": "/settings/reference",
+      "allowed": true
+     },
+     {
+      "href": "/settings/dictionaries",
+      "allowed": true
+     },
+     {
+      "href": "/settings/import",
+      "allowed": true
+     },
+     {
+      "href": "/settings/approvals",
+      "allowed": true
+     },
+     {
+      "href": "/settings/deleted",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": true
+     },
+     {
+      "href": "/settings/pending-values",
+      "allowed": true
+     }
+    ]
+   }
+  ],
+  "reminders": [
+   {
+    "itemType": "awaiting_assay",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_unapplied",
+    "allowed": true
+   },
+   {
+    "itemType": "batch_unpriced",
+    "allowed": true
+   },
+   {
+    "itemType": "allocation_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "company_licence_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "import_permit_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "po_awaiting_receipt",
+    "allowed": true
+   },
+   {
+    "itemType": "stocktake_open",
+    "allowed": true
+   },
+   {
+    "itemType": "credit_over_limit",
+    "allowed": true
+   },
+   {
+    "itemType": "margin_cost_not_allocated",
+    "allowed": true
+   },
+   {
+    "itemType": "output_unsold_aging",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_stock_below",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_variance_beyond",
+    "allowed": true
+   },
+   {
+    "itemType": "metal_quote_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "orders_unfulfilled",
+    "allowed": true
+   },
+   {
+    "itemType": "leave_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "claim_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "review_submitted",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "ar_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "ap_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "fx_rate_gap",
+    "allowed": true
+   },
+   {
+    "itemType": "bank_unmatched",
+    "allowed": true
+   },
+   {
+    "itemType": "free_time_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "container_no_arrival",
+    "allowed": true
+   },
+   {
+    "itemType": "container_eta_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "container_documents_late",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_due",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "gateway_silent",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_inbox_failed",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_draft_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_due",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "storage_ceiling_exceeded",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_state_dwell",
+    "allowed": true
+   },
+   {
+    "itemType": "quarantine_required",
+    "allowed": true
+   },
+   {
+    "itemType": "processing_balance_unclosed",
+    "allowed": true
+   },
+   {
+    "itemType": "contamination_check_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_quarantine_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "sample_retention_due",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_dispute_open",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_results_disagree",
+    "allowed": true
+   },
+   {
+    "itemType": "ncr_open",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_hold_reserved",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_prompt_ncr",
+    "allowed": true
+   },
+   {
+    "itemType": "coa_facts_changed",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_nea_notify_due",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_report_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_finding_open",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_review_due",
+    "allowed": true
+   },
+   {
+    "itemType": "compliance_pack_not_frozen",
+    "allowed": true
+   },
+   {
+    "itemType": "promise_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "wht_due",
+    "allowed": true
+   },
+   {
+    "itemType": "payment_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_pending_approval",
+    "allowed": true
+   },
+   {
+    "itemType": "payroll_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "receipt_price_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_ready",
+    "allowed": true
+   },
+   {
+    "itemType": "journal_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "warehouse_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "terms_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "asset_disposal_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "salary_change_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "gst_filing_pending",
+    "allowed": true
+   }
+  ],
+  "hrAlerts": true
+ },
+ "cfo": {
+  "permCount": 36,
+  "perms": [
+   "action.approve_review",
+   "action.customer_credit",
+   "action.decide_hr_requests",
+   "action.finance_reopen",
+   "action.finance_settings",
+   "action.supplier_approve",
+   "data.view_banking",
+   "data.view_change_log",
+   "data.view_deleted",
+   "data.view_floor_board",
+   "data.view_health",
+   "data.view_identity",
+   "data.view_pay",
+   "data.view_prices",
+   "data.view_purchase_prices",
+   "data.view_reviews",
+   "data.view_sales",
+   "data.view_self_approvals",
+   "module.compliance.view",
+   "module.customers.view",
+   "module.finance.view",
+   "module.hr.view",
+   "module.inbound.view",
+   "module.inventory.view",
+   "module.logistics.view",
+   "module.materials.view",
+   "module.output.view",
+   "module.pricing.view",
+   "module.processing.view",
+   "module.purchasing.view",
+   "module.quality.view",
+   "module.safety.view",
+   "module.sales.view",
+   "module.stocktakes.view",
+   "module.suppliers.view",
+   "module.tasks.view"
+  ],
+  "modules": [
+   {
+    "id": "purchasing",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/purchasing",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/orders",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/discrepancies",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/payment-terms",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers/scorecards",
+      "allowed": true
+     },
+     {
+      "href": "/contracts",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/licences",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "logistics",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/logistics",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/forwarders",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/lanes",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/containers",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/shipping",
+      "allowed": false
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "operation",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation",
+      "allowed": true
+     },
+     {
+      "href": "/operation/orders",
+      "allowed": true
+     },
+     {
+      "href": "/operation/processing",
+      "allowed": true
+     },
+     {
+      "href": "/operation/wip",
+      "allowed": true
+     },
+     {
+      "href": "/operation/handovers",
+      "allowed": true
+     },
+     {
+      "href": "/operation/operation-types",
+      "allowed": true
+     },
+     {
+      "href": "/operation/contamination",
+      "allowed": true
+     },
+     {
+      "href": "/operation/balance",
+      "allowed": true
+     },
+     {
+      "href": "/operation/yield",
+      "allowed": true
+     },
+     {
+      "href": "/operation/blending",
+      "allowed": true
+     },
+     {
+      "href": "/quality/samples",
+      "allowed": true
+     },
+     {
+      "href": "/quality/disputes",
+      "allowed": true
+     },
+     {
+      "href": "/quality/ncr",
+      "allowed": true
+     },
+     {
+      "href": "/quality/coa",
+      "allowed": true
+     },
+     {
+      "href": "/operation/equipment",
+      "allowed": true
+     },
+     {
+      "href": "/operation/devices",
+      "allowed": true
+     },
+     {
+      "href": "/operation/capture",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "safety",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/safety/incidents",
+      "allowed": true
+     },
+     {
+      "href": "/safety/inspections",
+      "allowed": true
+     },
+     {
+      "href": "/safety/environment",
+      "allowed": true
+     },
+     {
+      "href": "/compliance/packs",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "sales",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/sales",
+      "allowed": true
+     },
+     {
+      "href": "/sales/quotes",
+      "allowed": true
+     },
+     {
+      "href": "/sales/orders",
+      "allowed": true
+     },
+     {
+      "href": "/sales/customers",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "finance",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/finance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/trial-balance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/pnl",
+      "allowed": true
+     },
+     {
+      "href": "/finance/balance-sheet",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cashflow",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cash-forecast",
+      "allowed": true
+     },
+     {
+      "href": "/finance/price-exposure",
+      "allowed": true
+     },
+     {
+      "href": "/margin",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal/new",
+      "allowed": true
+     },
+     {
+      "href": "/finance/receivables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/invoices",
+      "allowed": true
+     },
+     {
+      "href": "/finance/credit-notes",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/supplier-statements",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payment-requests",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/expenses",
+      "allowed": true
+     },
+     {
+      "href": "/finance/claims",
+      "allowed": true
+     },
+     {
+      "href": "/finance/assets",
+      "allowed": true
+     },
+     {
+      "href": "/finance/month-end",
+      "allowed": true
+     },
+     {
+      "href": "/finance/list-vs-ledger",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payroll-payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/processing-costs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/electricity",
+      "allowed": true
+     },
+     {
+      "href": "/finance/revaluation",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cost-variance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/close",
+      "allowed": true
+     },
+     {
+      "href": "/finance/gst",
+      "allowed": true
+     },
+     {
+      "href": "/finance/wht",
+      "allowed": true
+     },
+     {
+      "href": "/finance/packs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/bank",
+      "allowed": true
+     },
+     {
+      "href": "/finance/settings",
+      "allowed": true
+     },
+     {
+      "href": "/finance/company",
+      "allowed": true
+     },
+     {
+      "href": "/finance/fx",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "inventory",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inventory",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/locations",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/storage-safety",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/scan",
+      "allowed": true
+     },
+     {
+      "href": "/stocktakes",
+      "allowed": true
+     },
+     {
+      "href": "/materials",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/reports",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "hr",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/hr",
+      "allowed": true
+     },
+     {
+      "href": "/hr/employees",
+      "allowed": true
+     },
+     {
+      "href": "/hr/departments",
+      "allowed": true
+     },
+     {
+      "href": "/hr/attendance",
+      "allowed": true
+     },
+     {
+      "href": "/hr/payroll",
+      "allowed": true
+     },
+     {
+      "href": "/hr/leave",
+      "allowed": true
+     },
+     {
+      "href": "/hr/claims",
+      "allowed": true
+     },
+     {
+      "href": "/hr/training",
+      "allowed": true
+     },
+     {
+      "href": "/hr/reviews",
+      "allowed": true
+     },
+     {
+      "href": "/hr/kpi",
+      "allowed": true
+     },
+     {
+      "href": "/hr/org",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "tools",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/tools/tasks",
+      "allowed": true
+     },
+     {
+      "href": "/tools/calendar",
+      "allowed": true
+     },
+     {
+      "href": "/tools/converter",
+      "allowed": true
+     },
+     {
+      "href": "/tools/reminders",
+      "allowed": true
+     },
+     {
+      "href": "/tools/pricing",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "settings",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/settings/accounts",
+      "allowed": false
+     },
+     {
+      "href": "/settings/roles",
+      "allowed": false
+     },
+     {
+      "href": "/settings/reference",
+      "allowed": false
+     },
+     {
+      "href": "/settings/dictionaries",
+      "allowed": true
+     },
+     {
+      "href": "/settings/import",
+      "allowed": false
+     },
+     {
+      "href": "/settings/approvals",
+      "allowed": false
+     },
+     {
+      "href": "/settings/deleted",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": true
+     },
+     {
+      "href": "/settings/pending-values",
+      "allowed": true
+     }
+    ]
+   }
+  ],
+  "reminders": [
+   {
+    "itemType": "awaiting_assay",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_unapplied",
+    "allowed": true
+   },
+   {
+    "itemType": "batch_unpriced",
+    "allowed": true
+   },
+   {
+    "itemType": "allocation_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "company_licence_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "import_permit_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "po_awaiting_receipt",
+    "allowed": true
+   },
+   {
+    "itemType": "stocktake_open",
+    "allowed": true
+   },
+   {
+    "itemType": "credit_over_limit",
+    "allowed": true
+   },
+   {
+    "itemType": "margin_cost_not_allocated",
+    "allowed": true
+   },
+   {
+    "itemType": "output_unsold_aging",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_stock_below",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_variance_beyond",
+    "allowed": true
+   },
+   {
+    "itemType": "metal_quote_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "orders_unfulfilled",
+    "allowed": true
+   },
+   {
+    "itemType": "leave_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "claim_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "review_submitted",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "ar_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "ap_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "fx_rate_gap",
+    "allowed": true
+   },
+   {
+    "itemType": "bank_unmatched",
+    "allowed": true
+   },
+   {
+    "itemType": "free_time_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "container_no_arrival",
+    "allowed": true
+   },
+   {
+    "itemType": "container_eta_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "container_documents_late",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_due",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "gateway_silent",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_inbox_failed",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_draft_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "instrument_calibration_due",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "storage_ceiling_exceeded",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_state_dwell",
+    "allowed": true
+   },
+   {
+    "itemType": "quarantine_required",
+    "allowed": true
+   },
+   {
+    "itemType": "processing_balance_unclosed",
+    "allowed": true
+   },
+   {
+    "itemType": "contamination_check_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_quarantine_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "sample_retention_due",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_dispute_open",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_results_disagree",
+    "allowed": true
+   },
+   {
+    "itemType": "ncr_open",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_hold_reserved",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_prompt_ncr",
+    "allowed": true
+   },
+   {
+    "itemType": "coa_facts_changed",
+    "allowed": false
+   },
+   {
+    "itemType": "incident_nea_notify_due",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_report_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_finding_open",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_review_due",
+    "allowed": false
+   },
+   {
+    "itemType": "compliance_pack_not_frozen",
+    "allowed": false
+   },
+   {
+    "itemType": "promise_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "wht_due",
+    "allowed": true
+   },
+   {
+    "itemType": "payment_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_pending_approval",
+    "allowed": true
+   },
+   {
+    "itemType": "payroll_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "receipt_price_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_ready",
+    "allowed": false
+   },
+   {
+    "itemType": "journal_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "warehouse_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "terms_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "asset_disposal_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "salary_change_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "gst_filing_pending",
+    "allowed": true
+   }
+  ],
+  "hrAlerts": true
+ },
+ "cco": {
+  "permCount": 50,
+  "perms": [
+   "action.contract_terms",
+   "action.decide_hr_requests",
+   "action.direct_sale",
+   "action.hr_reviews",
+   "action.issue_coa",
+   "action.manage_portal_users",
+   "action.ncr_decide",
+   "action.raise_po_equipment",
+   "action.request_shipping_release",
+   "action.supplier_review",
+   "data.view_banking",
+   "data.view_deleted",
+   "data.view_health",
+   "data.view_pay",
+   "data.view_prices",
+   "data.view_purchase_prices",
+   "data.view_reviews",
+   "data.view_sales",
+   "module.compliance.view",
+   "module.customers.edit",
+   "module.customers.view",
+   "module.finance.view",
+   "module.hr.edit",
+   "module.hr.view",
+   "module.inbound.edit",
+   "module.inbound.view",
+   "module.inventory.edit",
+   "module.inventory.view",
+   "module.logistics.view",
+   "module.materials.edit",
+   "module.materials.view",
+   "module.output.edit",
+   "module.output.view",
+   "module.pricing.edit",
+   "module.pricing.view",
+   "module.processing.edit",
+   "module.processing.view",
+   "module.purchasing.edit",
+   "module.purchasing.view",
+   "module.quality.edit",
+   "module.quality.view",
+   "module.safety.view",
+   "module.sales.edit",
+   "module.sales.view",
+   "module.stocktakes.edit",
+   "module.stocktakes.view",
+   "module.suppliers.edit",
+   "module.suppliers.view",
+   "module.tasks.edit",
+   "module.tasks.view"
+  ],
+  "modules": [
+   {
+    "id": "purchasing",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/purchasing",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/orders",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/discrepancies",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/payment-terms",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers/scorecards",
+      "allowed": true
+     },
+     {
+      "href": "/contracts",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/licences",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "logistics",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/logistics",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/forwarders",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/lanes",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/containers",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/shipping",
+      "allowed": false
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "operation",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation",
+      "allowed": true
+     },
+     {
+      "href": "/operation/orders",
+      "allowed": true
+     },
+     {
+      "href": "/operation/processing",
+      "allowed": true
+     },
+     {
+      "href": "/operation/wip",
+      "allowed": true
+     },
+     {
+      "href": "/operation/handovers",
+      "allowed": true
+     },
+     {
+      "href": "/operation/operation-types",
+      "allowed": true
+     },
+     {
+      "href": "/operation/contamination",
+      "allowed": true
+     },
+     {
+      "href": "/operation/balance",
+      "allowed": true
+     },
+     {
+      "href": "/operation/yield",
+      "allowed": true
+     },
+     {
+      "href": "/operation/blending",
+      "allowed": true
+     },
+     {
+      "href": "/quality/samples",
+      "allowed": true
+     },
+     {
+      "href": "/quality/disputes",
+      "allowed": true
+     },
+     {
+      "href": "/quality/ncr",
+      "allowed": true
+     },
+     {
+      "href": "/quality/coa",
+      "allowed": true
+     },
+     {
+      "href": "/operation/equipment",
+      "allowed": true
+     },
+     {
+      "href": "/operation/devices",
+      "allowed": true
+     },
+     {
+      "href": "/operation/capture",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "safety",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/safety/incidents",
+      "allowed": true
+     },
+     {
+      "href": "/safety/inspections",
+      "allowed": true
+     },
+     {
+      "href": "/safety/environment",
+      "allowed": true
+     },
+     {
+      "href": "/compliance/packs",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "sales",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/sales",
+      "allowed": true
+     },
+     {
+      "href": "/sales/quotes",
+      "allowed": true
+     },
+     {
+      "href": "/sales/orders",
+      "allowed": true
+     },
+     {
+      "href": "/sales/customers",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "finance",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/finance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/trial-balance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/pnl",
+      "allowed": true
+     },
+     {
+      "href": "/finance/balance-sheet",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cashflow",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cash-forecast",
+      "allowed": true
+     },
+     {
+      "href": "/finance/price-exposure",
+      "allowed": true
+     },
+     {
+      "href": "/margin",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal/new",
+      "allowed": true
+     },
+     {
+      "href": "/finance/receivables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/invoices",
+      "allowed": true
+     },
+     {
+      "href": "/finance/credit-notes",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/supplier-statements",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payment-requests",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/expenses",
+      "allowed": true
+     },
+     {
+      "href": "/finance/claims",
+      "allowed": true
+     },
+     {
+      "href": "/finance/assets",
+      "allowed": true
+     },
+     {
+      "href": "/finance/month-end",
+      "allowed": true
+     },
+     {
+      "href": "/finance/list-vs-ledger",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payroll-payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/processing-costs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/electricity",
+      "allowed": true
+     },
+     {
+      "href": "/finance/revaluation",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cost-variance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/close",
+      "allowed": true
+     },
+     {
+      "href": "/finance/gst",
+      "allowed": true
+     },
+     {
+      "href": "/finance/wht",
+      "allowed": true
+     },
+     {
+      "href": "/finance/packs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/bank",
+      "allowed": true
+     },
+     {
+      "href": "/finance/settings",
+      "allowed": true
+     },
+     {
+      "href": "/finance/company",
+      "allowed": true
+     },
+     {
+      "href": "/finance/fx",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "inventory",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inventory",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/locations",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/storage-safety",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/scan",
+      "allowed": true
+     },
+     {
+      "href": "/stocktakes",
+      "allowed": true
+     },
+     {
+      "href": "/materials",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/reports",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "hr",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/hr",
+      "allowed": true
+     },
+     {
+      "href": "/hr/employees",
+      "allowed": true
+     },
+     {
+      "href": "/hr/departments",
+      "allowed": true
+     },
+     {
+      "href": "/hr/attendance",
+      "allowed": true
+     },
+     {
+      "href": "/hr/payroll",
+      "allowed": true
+     },
+     {
+      "href": "/hr/leave",
+      "allowed": true
+     },
+     {
+      "href": "/hr/claims",
+      "allowed": true
+     },
+     {
+      "href": "/hr/training",
+      "allowed": true
+     },
+     {
+      "href": "/hr/reviews",
+      "allowed": true
+     },
+     {
+      "href": "/hr/kpi",
+      "allowed": true
+     },
+     {
+      "href": "/hr/org",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "tools",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/tools/tasks",
+      "allowed": true
+     },
+     {
+      "href": "/tools/calendar",
+      "allowed": true
+     },
+     {
+      "href": "/tools/converter",
+      "allowed": true
+     },
+     {
+      "href": "/tools/reminders",
+      "allowed": true
+     },
+     {
+      "href": "/tools/pricing",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "settings",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/settings/accounts",
+      "allowed": false
+     },
+     {
+      "href": "/settings/roles",
+      "allowed": false
+     },
+     {
+      "href": "/settings/reference",
+      "allowed": false
+     },
+     {
+      "href": "/settings/dictionaries",
+      "allowed": true
+     },
+     {
+      "href": "/settings/import",
+      "allowed": false
+     },
+     {
+      "href": "/settings/approvals",
+      "allowed": false
+     },
+     {
+      "href": "/settings/deleted",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/settings/pending-values",
+      "allowed": true
+     }
+    ]
+   }
+  ],
+  "reminders": [
+   {
+    "itemType": "awaiting_assay",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_unapplied",
+    "allowed": true
+   },
+   {
+    "itemType": "batch_unpriced",
+    "allowed": true
+   },
+   {
+    "itemType": "allocation_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "company_licence_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "import_permit_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "po_awaiting_receipt",
+    "allowed": true
+   },
+   {
+    "itemType": "stocktake_open",
+    "allowed": true
+   },
+   {
+    "itemType": "credit_over_limit",
+    "allowed": true
+   },
+   {
+    "itemType": "margin_cost_not_allocated",
+    "allowed": true
+   },
+   {
+    "itemType": "output_unsold_aging",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_stock_below",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_variance_beyond",
+    "allowed": true
+   },
+   {
+    "itemType": "metal_quote_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "orders_unfulfilled",
+    "allowed": true
+   },
+   {
+    "itemType": "leave_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "claim_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "review_submitted",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "ar_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "ap_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "fx_rate_gap",
+    "allowed": true
+   },
+   {
+    "itemType": "bank_unmatched",
+    "allowed": true
+   },
+   {
+    "itemType": "free_time_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "container_no_arrival",
+    "allowed": true
+   },
+   {
+    "itemType": "container_eta_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "container_documents_late",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_due",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "gateway_silent",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_inbox_failed",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_draft_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "instrument_calibration_due",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "storage_ceiling_exceeded",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_state_dwell",
+    "allowed": true
+   },
+   {
+    "itemType": "quarantine_required",
+    "allowed": true
+   },
+   {
+    "itemType": "processing_balance_unclosed",
+    "allowed": true
+   },
+   {
+    "itemType": "contamination_check_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_quarantine_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "sample_retention_due",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_dispute_open",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_results_disagree",
+    "allowed": true
+   },
+   {
+    "itemType": "ncr_open",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_hold_reserved",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_prompt_ncr",
+    "allowed": true
+   },
+   {
+    "itemType": "coa_facts_changed",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_nea_notify_due",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_report_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_finding_open",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_review_due",
+    "allowed": true
+   },
+   {
+    "itemType": "compliance_pack_not_frozen",
+    "allowed": false
+   },
+   {
+    "itemType": "promise_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "wht_due",
+    "allowed": true
+   },
+   {
+    "itemType": "payment_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_pending_approval",
+    "allowed": false
+   },
+   {
+    "itemType": "payroll_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "receipt_price_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_ready",
+    "allowed": false
+   },
+   {
+    "itemType": "journal_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "warehouse_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "terms_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "asset_disposal_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "salary_change_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "gst_filing_pending",
+    "allowed": true
+   }
+  ],
+  "hrAlerts": true
+ },
+ "cto": {
+  "permCount": 41,
+  "perms": [
+   "action.apply_assay",
+   "action.compliance_pack",
+   "action.confirm_capture",
+   "action.manage_devices",
+   "action.ncr_decide",
+   "data.view_banking",
+   "data.view_deleted",
+   "data.view_prices",
+   "data.view_purchase_prices",
+   "data.view_reviews",
+   "data.view_sales",
+   "module.compliance.view",
+   "module.customers.edit",
+   "module.customers.view",
+   "module.finance.view",
+   "module.hr.view",
+   "module.inbound.edit",
+   "module.inbound.view",
+   "module.inventory.edit",
+   "module.inventory.view",
+   "module.logistics.view",
+   "module.materials.edit",
+   "module.materials.view",
+   "module.output.edit",
+   "module.output.view",
+   "module.pricing.view",
+   "module.processing.edit",
+   "module.processing.view",
+   "module.purchasing.edit",
+   "module.purchasing.view",
+   "module.quality.edit",
+   "module.quality.view",
+   "module.safety.edit",
+   "module.safety.view",
+   "module.sales.view",
+   "module.stocktakes.edit",
+   "module.stocktakes.view",
+   "module.suppliers.edit",
+   "module.suppliers.view",
+   "module.tasks.edit",
+   "module.tasks.view"
+  ],
+  "modules": [
+   {
+    "id": "purchasing",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/purchasing",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/orders",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/discrepancies",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/payment-terms",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers/scorecards",
+      "allowed": true
+     },
+     {
+      "href": "/contracts",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/licences",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "logistics",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/logistics",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/forwarders",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/lanes",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/containers",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/shipping",
+      "allowed": false
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "operation",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation",
+      "allowed": true
+     },
+     {
+      "href": "/operation/orders",
+      "allowed": true
+     },
+     {
+      "href": "/operation/processing",
+      "allowed": true
+     },
+     {
+      "href": "/operation/wip",
+      "allowed": true
+     },
+     {
+      "href": "/operation/handovers",
+      "allowed": true
+     },
+     {
+      "href": "/operation/operation-types",
+      "allowed": true
+     },
+     {
+      "href": "/operation/contamination",
+      "allowed": true
+     },
+     {
+      "href": "/operation/balance",
+      "allowed": true
+     },
+     {
+      "href": "/operation/yield",
+      "allowed": true
+     },
+     {
+      "href": "/operation/blending",
+      "allowed": true
+     },
+     {
+      "href": "/quality/samples",
+      "allowed": true
+     },
+     {
+      "href": "/quality/disputes",
+      "allowed": true
+     },
+     {
+      "href": "/quality/ncr",
+      "allowed": true
+     },
+     {
+      "href": "/quality/coa",
+      "allowed": true
+     },
+     {
+      "href": "/operation/equipment",
+      "allowed": true
+     },
+     {
+      "href": "/operation/devices",
+      "allowed": true
+     },
+     {
+      "href": "/operation/capture",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "safety",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/safety/incidents",
+      "allowed": true
+     },
+     {
+      "href": "/safety/inspections",
+      "allowed": true
+     },
+     {
+      "href": "/safety/environment",
+      "allowed": true
+     },
+     {
+      "href": "/compliance/packs",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "sales",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/sales",
+      "allowed": true
+     },
+     {
+      "href": "/sales/quotes",
+      "allowed": true
+     },
+     {
+      "href": "/sales/orders",
+      "allowed": true
+     },
+     {
+      "href": "/sales/customers",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "finance",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/finance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/trial-balance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/pnl",
+      "allowed": true
+     },
+     {
+      "href": "/finance/balance-sheet",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cashflow",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cash-forecast",
+      "allowed": true
+     },
+     {
+      "href": "/finance/price-exposure",
+      "allowed": true
+     },
+     {
+      "href": "/margin",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal/new",
+      "allowed": true
+     },
+     {
+      "href": "/finance/receivables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/invoices",
+      "allowed": true
+     },
+     {
+      "href": "/finance/credit-notes",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/supplier-statements",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payment-requests",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/expenses",
+      "allowed": true
+     },
+     {
+      "href": "/finance/claims",
+      "allowed": true
+     },
+     {
+      "href": "/finance/assets",
+      "allowed": true
+     },
+     {
+      "href": "/finance/month-end",
+      "allowed": true
+     },
+     {
+      "href": "/finance/list-vs-ledger",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payroll-payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/processing-costs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/electricity",
+      "allowed": true
+     },
+     {
+      "href": "/finance/revaluation",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cost-variance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/close",
+      "allowed": true
+     },
+     {
+      "href": "/finance/gst",
+      "allowed": true
+     },
+     {
+      "href": "/finance/wht",
+      "allowed": true
+     },
+     {
+      "href": "/finance/packs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/bank",
+      "allowed": true
+     },
+     {
+      "href": "/finance/settings",
+      "allowed": true
+     },
+     {
+      "href": "/finance/company",
+      "allowed": true
+     },
+     {
+      "href": "/finance/fx",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "inventory",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inventory",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/locations",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/storage-safety",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/scan",
+      "allowed": true
+     },
+     {
+      "href": "/stocktakes",
+      "allowed": true
+     },
+     {
+      "href": "/materials",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/reports",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "hr",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/hr",
+      "allowed": true
+     },
+     {
+      "href": "/hr/employees",
+      "allowed": true
+     },
+     {
+      "href": "/hr/departments",
+      "allowed": true
+     },
+     {
+      "href": "/hr/attendance",
+      "allowed": true
+     },
+     {
+      "href": "/hr/payroll",
+      "allowed": true
+     },
+     {
+      "href": "/hr/leave",
+      "allowed": true
+     },
+     {
+      "href": "/hr/claims",
+      "allowed": true
+     },
+     {
+      "href": "/hr/training",
+      "allowed": true
+     },
+     {
+      "href": "/hr/reviews",
+      "allowed": true
+     },
+     {
+      "href": "/hr/kpi",
+      "allowed": true
+     },
+     {
+      "href": "/hr/org",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "tools",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/tools/tasks",
+      "allowed": true
+     },
+     {
+      "href": "/tools/calendar",
+      "allowed": true
+     },
+     {
+      "href": "/tools/converter",
+      "allowed": true
+     },
+     {
+      "href": "/tools/reminders",
+      "allowed": true
+     },
+     {
+      "href": "/tools/pricing",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "settings",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/settings/accounts",
+      "allowed": false
+     },
+     {
+      "href": "/settings/roles",
+      "allowed": false
+     },
+     {
+      "href": "/settings/reference",
+      "allowed": false
+     },
+     {
+      "href": "/settings/dictionaries",
+      "allowed": true
+     },
+     {
+      "href": "/settings/import",
+      "allowed": false
+     },
+     {
+      "href": "/settings/approvals",
+      "allowed": false
+     },
+     {
+      "href": "/settings/deleted",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/settings/pending-values",
+      "allowed": true
+     }
+    ]
+   }
+  ],
+  "reminders": [
+   {
+    "itemType": "awaiting_assay",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_unapplied",
+    "allowed": true
+   },
+   {
+    "itemType": "batch_unpriced",
+    "allowed": true
+   },
+   {
+    "itemType": "allocation_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "company_licence_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "import_permit_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "po_awaiting_receipt",
+    "allowed": true
+   },
+   {
+    "itemType": "stocktake_open",
+    "allowed": true
+   },
+   {
+    "itemType": "credit_over_limit",
+    "allowed": true
+   },
+   {
+    "itemType": "margin_cost_not_allocated",
+    "allowed": true
+   },
+   {
+    "itemType": "output_unsold_aging",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_stock_below",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_variance_beyond",
+    "allowed": true
+   },
+   {
+    "itemType": "metal_quote_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "orders_unfulfilled",
+    "allowed": true
+   },
+   {
+    "itemType": "leave_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "claim_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "review_submitted",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "ar_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "ap_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "fx_rate_gap",
+    "allowed": true
+   },
+   {
+    "itemType": "bank_unmatched",
+    "allowed": true
+   },
+   {
+    "itemType": "free_time_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "container_no_arrival",
+    "allowed": true
+   },
+   {
+    "itemType": "container_eta_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "container_documents_late",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_due",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "gateway_silent",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_inbox_failed",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_draft_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_due",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "storage_ceiling_exceeded",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_state_dwell",
+    "allowed": true
+   },
+   {
+    "itemType": "quarantine_required",
+    "allowed": true
+   },
+   {
+    "itemType": "processing_balance_unclosed",
+    "allowed": true
+   },
+   {
+    "itemType": "contamination_check_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_quarantine_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "sample_retention_due",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_dispute_open",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_results_disagree",
+    "allowed": true
+   },
+   {
+    "itemType": "ncr_open",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_hold_reserved",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_prompt_ncr",
+    "allowed": true
+   },
+   {
+    "itemType": "coa_facts_changed",
+    "allowed": false
+   },
+   {
+    "itemType": "incident_nea_notify_due",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_report_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_finding_open",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_review_due",
+    "allowed": false
+   },
+   {
+    "itemType": "compliance_pack_not_frozen",
+    "allowed": true
+   },
+   {
+    "itemType": "promise_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "wht_due",
+    "allowed": true
+   },
+   {
+    "itemType": "payment_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_pending_approval",
+    "allowed": false
+   },
+   {
+    "itemType": "payroll_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "receipt_price_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_ready",
+    "allowed": false
+   },
+   {
+    "itemType": "journal_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "warehouse_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "terms_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "asset_disposal_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "salary_change_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "gst_filing_pending",
+    "allowed": true
+   }
+  ],
+  "hrAlerts": true
+ },
+ "finance": {
+  "permCount": 43,
+  "perms": [
+   "action.decide_hr_requests",
+   "action.metal_prices",
+   "action.overtime_enter",
+   "action.price_receipts",
+   "action.raise_po_office",
+   "action.stocktake_post",
+   "action.wo_release",
+   "data.view_banking",
+   "data.view_deleted",
+   "data.view_health",
+   "data.view_identity",
+   "data.view_pay",
+   "data.view_prices",
+   "data.view_purchase_prices",
+   "data.view_sales",
+   "module.customers.edit",
+   "module.customers.view",
+   "module.finance.edit",
+   "module.finance.view",
+   "module.hr.edit",
+   "module.hr.view",
+   "module.inbound.edit",
+   "module.inbound.view",
+   "module.inventory.edit",
+   "module.inventory.view",
+   "module.logistics.view",
+   "module.materials.edit",
+   "module.materials.view",
+   "module.output.edit",
+   "module.output.view",
+   "module.pricing.view",
+   "module.processing.view",
+   "module.purchasing.edit",
+   "module.purchasing.view",
+   "module.quality.view",
+   "module.safety.view",
+   "module.sales.view",
+   "module.stocktakes.edit",
+   "module.stocktakes.view",
+   "module.suppliers.edit",
+   "module.suppliers.view",
+   "module.tasks.edit",
+   "module.tasks.view"
+  ],
+  "modules": [
+   {
+    "id": "purchasing",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/purchasing",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/orders",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/discrepancies",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/payment-terms",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers/scorecards",
+      "allowed": true
+     },
+     {
+      "href": "/contracts",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/licences",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "logistics",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/logistics",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/forwarders",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/lanes",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/containers",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/shipping",
+      "allowed": false
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "operation",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation",
+      "allowed": true
+     },
+     {
+      "href": "/operation/orders",
+      "allowed": true
+     },
+     {
+      "href": "/operation/processing",
+      "allowed": true
+     },
+     {
+      "href": "/operation/wip",
+      "allowed": true
+     },
+     {
+      "href": "/operation/handovers",
+      "allowed": true
+     },
+     {
+      "href": "/operation/operation-types",
+      "allowed": true
+     },
+     {
+      "href": "/operation/contamination",
+      "allowed": true
+     },
+     {
+      "href": "/operation/balance",
+      "allowed": true
+     },
+     {
+      "href": "/operation/yield",
+      "allowed": true
+     },
+     {
+      "href": "/operation/blending",
+      "allowed": true
+     },
+     {
+      "href": "/quality/samples",
+      "allowed": true
+     },
+     {
+      "href": "/quality/disputes",
+      "allowed": true
+     },
+     {
+      "href": "/quality/ncr",
+      "allowed": true
+     },
+     {
+      "href": "/quality/coa",
+      "allowed": true
+     },
+     {
+      "href": "/operation/equipment",
+      "allowed": true
+     },
+     {
+      "href": "/operation/devices",
+      "allowed": true
+     },
+     {
+      "href": "/operation/capture",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "safety",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/safety/incidents",
+      "allowed": true
+     },
+     {
+      "href": "/safety/inspections",
+      "allowed": true
+     },
+     {
+      "href": "/safety/environment",
+      "allowed": true
+     },
+     {
+      "href": "/compliance/packs",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "sales",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/sales",
+      "allowed": true
+     },
+     {
+      "href": "/sales/quotes",
+      "allowed": true
+     },
+     {
+      "href": "/sales/orders",
+      "allowed": true
+     },
+     {
+      "href": "/sales/customers",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "finance",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/finance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/trial-balance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/pnl",
+      "allowed": true
+     },
+     {
+      "href": "/finance/balance-sheet",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cashflow",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cash-forecast",
+      "allowed": true
+     },
+     {
+      "href": "/finance/price-exposure",
+      "allowed": true
+     },
+     {
+      "href": "/margin",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal/new",
+      "allowed": true
+     },
+     {
+      "href": "/finance/receivables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/invoices",
+      "allowed": true
+     },
+     {
+      "href": "/finance/credit-notes",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/supplier-statements",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payment-requests",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/expenses",
+      "allowed": true
+     },
+     {
+      "href": "/finance/claims",
+      "allowed": true
+     },
+     {
+      "href": "/finance/assets",
+      "allowed": true
+     },
+     {
+      "href": "/finance/month-end",
+      "allowed": true
+     },
+     {
+      "href": "/finance/list-vs-ledger",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payroll-payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/processing-costs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/electricity",
+      "allowed": true
+     },
+     {
+      "href": "/finance/revaluation",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cost-variance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/close",
+      "allowed": true
+     },
+     {
+      "href": "/finance/gst",
+      "allowed": true
+     },
+     {
+      "href": "/finance/wht",
+      "allowed": true
+     },
+     {
+      "href": "/finance/packs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/bank",
+      "allowed": true
+     },
+     {
+      "href": "/finance/settings",
+      "allowed": true
+     },
+     {
+      "href": "/finance/company",
+      "allowed": true
+     },
+     {
+      "href": "/finance/fx",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "inventory",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inventory",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/locations",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/storage-safety",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/scan",
+      "allowed": true
+     },
+     {
+      "href": "/stocktakes",
+      "allowed": true
+     },
+     {
+      "href": "/materials",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/reports",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "hr",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/hr",
+      "allowed": true
+     },
+     {
+      "href": "/hr/employees",
+      "allowed": true
+     },
+     {
+      "href": "/hr/departments",
+      "allowed": true
+     },
+     {
+      "href": "/hr/attendance",
+      "allowed": true
+     },
+     {
+      "href": "/hr/payroll",
+      "allowed": true
+     },
+     {
+      "href": "/hr/leave",
+      "allowed": true
+     },
+     {
+      "href": "/hr/claims",
+      "allowed": true
+     },
+     {
+      "href": "/hr/training",
+      "allowed": true
+     },
+     {
+      "href": "/hr/reviews",
+      "allowed": true
+     },
+     {
+      "href": "/hr/kpi",
+      "allowed": true
+     },
+     {
+      "href": "/hr/org",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "tools",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/tools/tasks",
+      "allowed": true
+     },
+     {
+      "href": "/tools/calendar",
+      "allowed": true
+     },
+     {
+      "href": "/tools/converter",
+      "allowed": true
+     },
+     {
+      "href": "/tools/reminders",
+      "allowed": true
+     },
+     {
+      "href": "/tools/pricing",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "settings",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/settings/accounts",
+      "allowed": false
+     },
+     {
+      "href": "/settings/roles",
+      "allowed": false
+     },
+     {
+      "href": "/settings/reference",
+      "allowed": false
+     },
+     {
+      "href": "/settings/dictionaries",
+      "allowed": true
+     },
+     {
+      "href": "/settings/import",
+      "allowed": false
+     },
+     {
+      "href": "/settings/approvals",
+      "allowed": false
+     },
+     {
+      "href": "/settings/deleted",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/settings/pending-values",
+      "allowed": true
+     }
+    ]
+   }
+  ],
+  "reminders": [
+   {
+    "itemType": "awaiting_assay",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_unapplied",
+    "allowed": true
+   },
+   {
+    "itemType": "batch_unpriced",
+    "allowed": true
+   },
+   {
+    "itemType": "allocation_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "company_licence_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "import_permit_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "po_awaiting_receipt",
+    "allowed": true
+   },
+   {
+    "itemType": "stocktake_open",
+    "allowed": true
+   },
+   {
+    "itemType": "credit_over_limit",
+    "allowed": true
+   },
+   {
+    "itemType": "margin_cost_not_allocated",
+    "allowed": true
+   },
+   {
+    "itemType": "output_unsold_aging",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_stock_below",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_variance_beyond",
+    "allowed": true
+   },
+   {
+    "itemType": "metal_quote_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "orders_unfulfilled",
+    "allowed": true
+   },
+   {
+    "itemType": "leave_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "claim_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "review_submitted",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "ar_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "ap_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "fx_rate_gap",
+    "allowed": true
+   },
+   {
+    "itemType": "bank_unmatched",
+    "allowed": true
+   },
+   {
+    "itemType": "free_time_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "container_no_arrival",
+    "allowed": true
+   },
+   {
+    "itemType": "container_eta_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "container_documents_late",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_due",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "gateway_silent",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_inbox_failed",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_draft_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "instrument_calibration_due",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "storage_ceiling_exceeded",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_state_dwell",
+    "allowed": true
+   },
+   {
+    "itemType": "quarantine_required",
+    "allowed": true
+   },
+   {
+    "itemType": "processing_balance_unclosed",
+    "allowed": true
+   },
+   {
+    "itemType": "contamination_check_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_quarantine_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "sample_retention_due",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_dispute_open",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_results_disagree",
+    "allowed": true
+   },
+   {
+    "itemType": "ncr_open",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_hold_reserved",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_prompt_ncr",
+    "allowed": true
+   },
+   {
+    "itemType": "coa_facts_changed",
+    "allowed": false
+   },
+   {
+    "itemType": "incident_nea_notify_due",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_report_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_finding_open",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_review_due",
+    "allowed": false
+   },
+   {
+    "itemType": "compliance_pack_not_frozen",
+    "allowed": false
+   },
+   {
+    "itemType": "promise_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "wht_due",
+    "allowed": true
+   },
+   {
+    "itemType": "payment_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_pending_approval",
+    "allowed": false
+   },
+   {
+    "itemType": "payroll_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "receipt_price_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_ready",
+    "allowed": false
+   },
+   {
+    "itemType": "journal_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "warehouse_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "terms_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "asset_disposal_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "salary_change_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "gst_filing_pending",
+    "allowed": true
+   }
+  ],
+  "hrAlerts": true
+ },
+ "gm": {
+  "permCount": 23,
+  "perms": [
+   "data.view_banking",
+   "data.view_prices",
+   "data.view_purchase_prices",
+   "data.view_reviews",
+   "data.view_sales",
+   "data.view_self_approvals",
+   "module.compliance.view",
+   "module.customers.view",
+   "module.finance.view",
+   "module.hr.view",
+   "module.inbound.view",
+   "module.inventory.view",
+   "module.logistics.view",
+   "module.materials.view",
+   "module.output.view",
+   "module.pricing.view",
+   "module.processing.view",
+   "module.purchasing.view",
+   "module.safety.view",
+   "module.sales.view",
+   "module.stocktakes.view",
+   "module.suppliers.view",
+   "module.tasks.view"
+  ],
+  "modules": [
+   {
+    "id": "purchasing",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/purchasing",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/orders",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/discrepancies",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/payment-terms",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers/scorecards",
+      "allowed": true
+     },
+     {
+      "href": "/contracts",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/licences",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "logistics",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/logistics",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/forwarders",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/lanes",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/containers",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/shipping",
+      "allowed": false
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "operation",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation",
+      "allowed": true
+     },
+     {
+      "href": "/operation/orders",
+      "allowed": true
+     },
+     {
+      "href": "/operation/processing",
+      "allowed": true
+     },
+     {
+      "href": "/operation/wip",
+      "allowed": true
+     },
+     {
+      "href": "/operation/handovers",
+      "allowed": true
+     },
+     {
+      "href": "/operation/operation-types",
+      "allowed": true
+     },
+     {
+      "href": "/operation/contamination",
+      "allowed": true
+     },
+     {
+      "href": "/operation/balance",
+      "allowed": true
+     },
+     {
+      "href": "/operation/yield",
+      "allowed": true
+     },
+     {
+      "href": "/operation/blending",
+      "allowed": true
+     },
+     {
+      "href": "/quality/samples",
+      "allowed": false
+     },
+     {
+      "href": "/quality/disputes",
+      "allowed": false
+     },
+     {
+      "href": "/quality/ncr",
+      "allowed": false
+     },
+     {
+      "href": "/quality/coa",
+      "allowed": false
+     },
+     {
+      "href": "/operation/equipment",
+      "allowed": true
+     },
+     {
+      "href": "/operation/devices",
+      "allowed": true
+     },
+     {
+      "href": "/operation/capture",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "safety",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/safety/incidents",
+      "allowed": true
+     },
+     {
+      "href": "/safety/inspections",
+      "allowed": true
+     },
+     {
+      "href": "/safety/environment",
+      "allowed": true
+     },
+     {
+      "href": "/compliance/packs",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "sales",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/sales",
+      "allowed": true
+     },
+     {
+      "href": "/sales/quotes",
+      "allowed": true
+     },
+     {
+      "href": "/sales/orders",
+      "allowed": true
+     },
+     {
+      "href": "/sales/customers",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "finance",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/finance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/trial-balance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/pnl",
+      "allowed": true
+     },
+     {
+      "href": "/finance/balance-sheet",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cashflow",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cash-forecast",
+      "allowed": true
+     },
+     {
+      "href": "/finance/price-exposure",
+      "allowed": true
+     },
+     {
+      "href": "/margin",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal",
+      "allowed": true
+     },
+     {
+      "href": "/finance/journal/new",
+      "allowed": true
+     },
+     {
+      "href": "/finance/receivables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/invoices",
+      "allowed": true
+     },
+     {
+      "href": "/finance/credit-notes",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payables",
+      "allowed": true
+     },
+     {
+      "href": "/finance/supplier-statements",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payment-requests",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/expenses",
+      "allowed": true
+     },
+     {
+      "href": "/finance/claims",
+      "allowed": true
+     },
+     {
+      "href": "/finance/assets",
+      "allowed": true
+     },
+     {
+      "href": "/finance/month-end",
+      "allowed": true
+     },
+     {
+      "href": "/finance/list-vs-ledger",
+      "allowed": true
+     },
+     {
+      "href": "/finance/payroll-payments",
+      "allowed": true
+     },
+     {
+      "href": "/finance/processing-costs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/electricity",
+      "allowed": true
+     },
+     {
+      "href": "/finance/revaluation",
+      "allowed": true
+     },
+     {
+      "href": "/finance/cost-variance",
+      "allowed": true
+     },
+     {
+      "href": "/finance/close",
+      "allowed": true
+     },
+     {
+      "href": "/finance/gst",
+      "allowed": true
+     },
+     {
+      "href": "/finance/wht",
+      "allowed": true
+     },
+     {
+      "href": "/finance/packs",
+      "allowed": true
+     },
+     {
+      "href": "/finance/bank",
+      "allowed": true
+     },
+     {
+      "href": "/finance/settings",
+      "allowed": true
+     },
+     {
+      "href": "/finance/company",
+      "allowed": true
+     },
+     {
+      "href": "/finance/fx",
+      "allowed": true
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "inventory",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inventory",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/locations",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/storage-safety",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/scan",
+      "allowed": true
+     },
+     {
+      "href": "/stocktakes",
+      "allowed": true
+     },
+     {
+      "href": "/materials",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/reports",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "hr",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/hr",
+      "allowed": true
+     },
+     {
+      "href": "/hr/employees",
+      "allowed": true
+     },
+     {
+      "href": "/hr/departments",
+      "allowed": true
+     },
+     {
+      "href": "/hr/attendance",
+      "allowed": true
+     },
+     {
+      "href": "/hr/payroll",
+      "allowed": true
+     },
+     {
+      "href": "/hr/leave",
+      "allowed": true
+     },
+     {
+      "href": "/hr/claims",
+      "allowed": true
+     },
+     {
+      "href": "/hr/training",
+      "allowed": true
+     },
+     {
+      "href": "/hr/reviews",
+      "allowed": true
+     },
+     {
+      "href": "/hr/kpi",
+      "allowed": true
+     },
+     {
+      "href": "/hr/org",
+      "allowed": true
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "tools",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/tools/tasks",
+      "allowed": true
+     },
+     {
+      "href": "/tools/calendar",
+      "allowed": true
+     },
+     {
+      "href": "/tools/converter",
+      "allowed": true
+     },
+     {
+      "href": "/tools/reminders",
+      "allowed": true
+     },
+     {
+      "href": "/tools/pricing",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "settings",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/settings/accounts",
+      "allowed": false
+     },
+     {
+      "href": "/settings/roles",
+      "allowed": false
+     },
+     {
+      "href": "/settings/reference",
+      "allowed": false
+     },
+     {
+      "href": "/settings/dictionaries",
+      "allowed": true
+     },
+     {
+      "href": "/settings/import",
+      "allowed": false
+     },
+     {
+      "href": "/settings/approvals",
+      "allowed": false
+     },
+     {
+      "href": "/settings/deleted",
+      "allowed": false
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/settings/pending-values",
+      "allowed": true
+     }
+    ]
+   }
+  ],
+  "reminders": [
+   {
+    "itemType": "awaiting_assay",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_unapplied",
+    "allowed": true
+   },
+   {
+    "itemType": "batch_unpriced",
+    "allowed": true
+   },
+   {
+    "itemType": "allocation_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "company_licence_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "import_permit_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "po_awaiting_receipt",
+    "allowed": true
+   },
+   {
+    "itemType": "stocktake_open",
+    "allowed": true
+   },
+   {
+    "itemType": "credit_over_limit",
+    "allowed": true
+   },
+   {
+    "itemType": "margin_cost_not_allocated",
+    "allowed": true
+   },
+   {
+    "itemType": "output_unsold_aging",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_stock_below",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_variance_beyond",
+    "allowed": true
+   },
+   {
+    "itemType": "metal_quote_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "orders_unfulfilled",
+    "allowed": true
+   },
+   {
+    "itemType": "leave_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "claim_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "review_submitted",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "ar_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "ap_over_90",
+    "allowed": true
+   },
+   {
+    "itemType": "fx_rate_gap",
+    "allowed": true
+   },
+   {
+    "itemType": "bank_unmatched",
+    "allowed": true
+   },
+   {
+    "itemType": "free_time_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "container_no_arrival",
+    "allowed": true
+   },
+   {
+    "itemType": "container_eta_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "container_documents_late",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_due",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "gateway_silent",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_inbox_failed",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_draft_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "instrument_calibration_due",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "storage_ceiling_exceeded",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_state_dwell",
+    "allowed": true
+   },
+   {
+    "itemType": "quarantine_required",
+    "allowed": true
+   },
+   {
+    "itemType": "processing_balance_unclosed",
+    "allowed": true
+   },
+   {
+    "itemType": "contamination_check_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_quarantine_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "sample_retention_due",
+    "allowed": false
+   },
+   {
+    "itemType": "assay_dispute_open",
+    "allowed": false
+   },
+   {
+    "itemType": "assay_results_disagree",
+    "allowed": false
+   },
+   {
+    "itemType": "ncr_open",
+    "allowed": false
+   },
+   {
+    "itemType": "quality_hold_reserved",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_prompt_ncr",
+    "allowed": false
+   },
+   {
+    "itemType": "coa_facts_changed",
+    "allowed": false
+   },
+   {
+    "itemType": "incident_nea_notify_due",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_report_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_finding_open",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_review_due",
+    "allowed": false
+   },
+   {
+    "itemType": "compliance_pack_not_frozen",
+    "allowed": false
+   },
+   {
+    "itemType": "promise_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "wht_due",
+    "allowed": true
+   },
+   {
+    "itemType": "payment_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_pending_approval",
+    "allowed": false
+   },
+   {
+    "itemType": "payroll_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "receipt_price_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "shipping_release_ready",
+    "allowed": false
+   },
+   {
+    "itemType": "journal_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "warehouse_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "terms_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "asset_disposal_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "salary_change_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "gst_filing_pending",
+    "allowed": true
+   }
+  ],
+  "hrAlerts": true
+ },
+ "warehouse": {
+  "permCount": 31,
+  "perms": [
+   "action.batch_write_off",
+   "action.confirm_capture",
+   "action.issue_cod",
+   "action.overtime_approve",
+   "action.processing_aftercare",
+   "action.processing_commit",
+   "action.processing_rollback",
+   "action.raise_po_consumables",
+   "action.receive_goods",
+   "action.ship_goods",
+   "action.stocktake_count",
+   "action.wo_create",
+   "data.view_purchase_prices",
+   "module.inbound.edit",
+   "module.inbound.view",
+   "module.inventory.edit",
+   "module.inventory.view",
+   "module.logistics.view",
+   "module.output.edit",
+   "module.output.view",
+   "module.processing.view",
+   "module.purchasing.view",
+   "module.quality.view",
+   "module.safety.edit",
+   "module.safety.view",
+   "module.stocktakes.edit",
+   "module.stocktakes.view",
+   "module.suppliers.edit",
+   "module.suppliers.view",
+   "module.tasks.edit",
+   "module.tasks.view"
+  ],
+  "modules": [
+   {
+    "id": "purchasing",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/purchasing",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/orders",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/discrepancies",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/payment-terms",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers",
+      "allowed": true
+     },
+     {
+      "href": "/suppliers/scorecards",
+      "allowed": true
+     },
+     {
+      "href": "/contracts",
+      "allowed": true
+     },
+     {
+      "href": "/purchasing/licences",
+      "allowed": true
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "logistics",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/logistics",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/forwarders",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/lanes",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/containers",
+      "allowed": true
+     },
+     {
+      "href": "/logistics/shipping",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "operation",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation",
+      "allowed": true
+     },
+     {
+      "href": "/operation/orders",
+      "allowed": true
+     },
+     {
+      "href": "/operation/processing",
+      "allowed": true
+     },
+     {
+      "href": "/operation/wip",
+      "allowed": true
+     },
+     {
+      "href": "/operation/handovers",
+      "allowed": true
+     },
+     {
+      "href": "/operation/operation-types",
+      "allowed": true
+     },
+     {
+      "href": "/operation/contamination",
+      "allowed": true
+     },
+     {
+      "href": "/operation/balance",
+      "allowed": true
+     },
+     {
+      "href": "/operation/yield",
+      "allowed": true
+     },
+     {
+      "href": "/operation/blending",
+      "allowed": true
+     },
+     {
+      "href": "/quality/samples",
+      "allowed": true
+     },
+     {
+      "href": "/quality/disputes",
+      "allowed": true
+     },
+     {
+      "href": "/quality/ncr",
+      "allowed": true
+     },
+     {
+      "href": "/quality/coa",
+      "allowed": true
+     },
+     {
+      "href": "/operation/equipment",
+      "allowed": true
+     },
+     {
+      "href": "/operation/devices",
+      "allowed": true
+     },
+     {
+      "href": "/operation/capture",
+      "allowed": true
+     },
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "safety",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/safety/incidents",
+      "allowed": true
+     },
+     {
+      "href": "/safety/inspections",
+      "allowed": true
+     },
+     {
+      "href": "/safety/environment",
+      "allowed": true
+     },
+     {
+      "href": "/compliance/packs",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "sales",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/sales",
+      "allowed": false
+     },
+     {
+      "href": "/sales/quotes",
+      "allowed": false
+     },
+     {
+      "href": "/sales/orders",
+      "allowed": false
+     },
+     {
+      "href": "/sales/customers",
+      "allowed": false
+     },
+     {
+      "href": "/sales/commissions",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "finance",
+    "allowed": false,
+    "entries": [
+     {
+      "href": "/finance",
+      "allowed": false
+     },
+     {
+      "href": "/finance/trial-balance",
+      "allowed": false
+     },
+     {
+      "href": "/finance/pnl",
+      "allowed": false
+     },
+     {
+      "href": "/finance/balance-sheet",
+      "allowed": false
+     },
+     {
+      "href": "/finance/cashflow",
+      "allowed": false
+     },
+     {
+      "href": "/finance/cash-forecast",
+      "allowed": false
+     },
+     {
+      "href": "/finance/price-exposure",
+      "allowed": false
+     },
+     {
+      "href": "/margin",
+      "allowed": false
+     },
+     {
+      "href": "/finance/journal",
+      "allowed": false
+     },
+     {
+      "href": "/finance/journal/new",
+      "allowed": false
+     },
+     {
+      "href": "/finance/receivables",
+      "allowed": false
+     },
+     {
+      "href": "/finance/invoices",
+      "allowed": false
+     },
+     {
+      "href": "/finance/credit-notes",
+      "allowed": false
+     },
+     {
+      "href": "/finance/payables",
+      "allowed": false
+     },
+     {
+      "href": "/finance/supplier-statements",
+      "allowed": false
+     },
+     {
+      "href": "/finance/payment-requests",
+      "allowed": false
+     },
+     {
+      "href": "/finance/payments",
+      "allowed": false
+     },
+     {
+      "href": "/finance/expenses",
+      "allowed": false
+     },
+     {
+      "href": "/finance/claims",
+      "allowed": false
+     },
+     {
+      "href": "/finance/assets",
+      "allowed": false
+     },
+     {
+      "href": "/finance/month-end",
+      "allowed": false
+     },
+     {
+      "href": "/finance/list-vs-ledger",
+      "allowed": false
+     },
+     {
+      "href": "/finance/payroll-payments",
+      "allowed": false
+     },
+     {
+      "href": "/finance/processing-costs",
+      "allowed": false
+     },
+     {
+      "href": "/finance/electricity",
+      "allowed": false
+     },
+     {
+      "href": "/finance/revaluation",
+      "allowed": false
+     },
+     {
+      "href": "/finance/cost-variance",
+      "allowed": false
+     },
+     {
+      "href": "/finance/close",
+      "allowed": false
+     },
+     {
+      "href": "/finance/gst",
+      "allowed": false
+     },
+     {
+      "href": "/finance/wht",
+      "allowed": false
+     },
+     {
+      "href": "/finance/packs",
+      "allowed": false
+     },
+     {
+      "href": "/finance/bank",
+      "allowed": false
+     },
+     {
+      "href": "/finance/settings",
+      "allowed": false
+     },
+     {
+      "href": "/finance/company",
+      "allowed": false
+     },
+     {
+      "href": "/finance/fx",
+      "allowed": false
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/finance/freight",
+      "allowed": false
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "inventory",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/operation/weighbridge",
+      "allowed": true
+     },
+     {
+      "href": "/inventory",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/locations",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/storage-safety",
+      "allowed": true
+     },
+     {
+      "href": "/inventory/scan",
+      "allowed": true
+     },
+     {
+      "href": "/stocktakes",
+      "allowed": true
+     },
+     {
+      "href": "/materials",
+      "allowed": false
+     },
+     {
+      "href": "/inventory/reports",
+      "allowed": true
+     },
+     {
+      "href": "/inbound",
+      "allowed": true
+     },
+     {
+      "href": "/output",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "hr",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/hr",
+      "allowed": false
+     },
+     {
+      "href": "/hr/employees",
+      "allowed": false
+     },
+     {
+      "href": "/hr/departments",
+      "allowed": false
+     },
+     {
+      "href": "/hr/attendance",
+      "allowed": false
+     },
+     {
+      "href": "/hr/payroll",
+      "allowed": false
+     },
+     {
+      "href": "/hr/leave",
+      "allowed": false
+     },
+     {
+      "href": "/hr/claims",
+      "allowed": false
+     },
+     {
+      "href": "/hr/training",
+      "allowed": false
+     },
+     {
+      "href": "/hr/reviews",
+      "allowed": false
+     },
+     {
+      "href": "/hr/kpi",
+      "allowed": false
+     },
+     {
+      "href": "/hr/org",
+      "allowed": false
+     },
+     {
+      "href": "/finance/self-approved",
+      "allowed": false
+     },
+     {
+      "href": "/hr/overtime",
+      "allowed": true
+     }
+    ]
+   },
+   {
+    "id": "tools",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/tools/tasks",
+      "allowed": true
+     },
+     {
+      "href": "/tools/calendar",
+      "allowed": true
+     },
+     {
+      "href": "/tools/converter",
+      "allowed": true
+     },
+     {
+      "href": "/tools/reminders",
+      "allowed": true
+     },
+     {
+      "href": "/tools/pricing",
+      "allowed": false
+     }
+    ]
+   },
+   {
+    "id": "settings",
+    "allowed": true,
+    "entries": [
+     {
+      "href": "/settings/accounts",
+      "allowed": false
+     },
+     {
+      "href": "/settings/roles",
+      "allowed": false
+     },
+     {
+      "href": "/settings/reference",
+      "allowed": false
+     },
+     {
+      "href": "/settings/dictionaries",
+      "allowed": true
+     },
+     {
+      "href": "/settings/import",
+      "allowed": false
+     },
+     {
+      "href": "/settings/approvals",
+      "allowed": false
+     },
+     {
+      "href": "/settings/deleted",
+      "allowed": false
+     },
+     {
+      "href": "/settings/change-history",
+      "allowed": false
+     },
+     {
+      "href": "/settings/pending-values",
+      "allowed": true
+     }
+    ]
+   }
+  ],
+  "reminders": [
+   {
+    "itemType": "awaiting_assay",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_unapplied",
+    "allowed": true
+   },
+   {
+    "itemType": "batch_unpriced",
+    "allowed": true
+   },
+   {
+    "itemType": "allocation_stale",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "qualification_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "company_licence_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "import_permit_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "po_awaiting_receipt",
+    "allowed": true
+   },
+   {
+    "itemType": "stocktake_open",
+    "allowed": true
+   },
+   {
+    "itemType": "credit_over_limit",
+    "allowed": false
+   },
+   {
+    "itemType": "margin_cost_not_allocated",
+    "allowed": false
+   },
+   {
+    "itemType": "output_unsold_aging",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_stock_below",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "work_order_variance_beyond",
+    "allowed": true
+   },
+   {
+    "itemType": "metal_quote_stale",
+    "allowed": false
+   },
+   {
+    "itemType": "orders_unfulfilled",
+    "allowed": false
+   },
+   {
+    "itemType": "leave_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "claim_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "review_submitted",
+    "allowed": false
+   },
+   {
+    "itemType": "invoice_overdue",
+    "allowed": false
+   },
+   {
+    "itemType": "ar_over_90",
+    "allowed": false
+   },
+   {
+    "itemType": "ap_over_90",
+    "allowed": false
+   },
+   {
+    "itemType": "fx_rate_gap",
+    "allowed": false
+   },
+   {
+    "itemType": "bank_unmatched",
+    "allowed": false
+   },
+   {
+    "itemType": "free_time_expiring",
+    "allowed": true
+   },
+   {
+    "itemType": "container_no_arrival",
+    "allowed": true
+   },
+   {
+    "itemType": "container_eta_overdue",
+    "allowed": true
+   },
+   {
+    "itemType": "container_documents_late",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_due",
+    "allowed": true
+   },
+   {
+    "itemType": "equipment_service_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "gateway_silent",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_inbox_failed",
+    "allowed": true
+   },
+   {
+    "itemType": "capture_draft_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_due",
+    "allowed": true
+   },
+   {
+    "itemType": "instrument_calibration_approaching",
+    "allowed": true
+   },
+   {
+    "itemType": "storage_ceiling_exceeded",
+    "allowed": true
+   },
+   {
+    "itemType": "safety_state_dwell",
+    "allowed": true
+   },
+   {
+    "itemType": "quarantine_required",
+    "allowed": true
+   },
+   {
+    "itemType": "processing_balance_unclosed",
+    "allowed": true
+   },
+   {
+    "itemType": "contamination_check_missing",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_unverified",
+    "allowed": true
+   },
+   {
+    "itemType": "discharge_quarantine_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "sample_retention_due",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_dispute_open",
+    "allowed": true
+   },
+   {
+    "itemType": "assay_results_disagree",
+    "allowed": true
+   },
+   {
+    "itemType": "ncr_open",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_hold_reserved",
+    "allowed": true
+   },
+   {
+    "itemType": "quality_prompt_ncr",
+    "allowed": true
+   },
+   {
+    "itemType": "coa_facts_changed",
+    "allowed": false
+   },
+   {
+    "itemType": "incident_nea_notify_due",
+    "allowed": true
+   },
+   {
+    "itemType": "incident_report_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_due",
+    "allowed": true
+   },
+   {
+    "itemType": "inspection_finding_open",
+    "allowed": true
+   },
+   {
+    "itemType": "supplier_review_due",
+    "allowed": false
+   },
+   {
+    "itemType": "compliance_pack_not_frozen",
+    "allowed": false
+   },
+   {
+    "itemType": "promise_overdue",
+    "allowed": false
+   },
+   {
+    "itemType": "wht_due",
+    "allowed": false
+   },
+   {
+    "itemType": "payment_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "supplier_pending_approval",
+    "allowed": false
+   },
+   {
+    "itemType": "payroll_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "receipt_price_request_pending",
+    "allowed": true
+   },
+   {
+    "itemType": "invoice_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "shipping_release_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "shipping_release_ready",
+    "allowed": true
+   },
+   {
+    "itemType": "journal_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "warehouse_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "terms_request_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "asset_disposal_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "salary_change_pending",
+    "allowed": false
+   },
+   {
+    "itemType": "gst_filing_pending",
+    "allowed": false
+   }
+  ],
+  "hrAlerts": false
+ }
+}

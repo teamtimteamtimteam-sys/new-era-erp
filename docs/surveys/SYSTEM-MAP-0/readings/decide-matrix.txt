@@ -1,0 +1,184 @@
+POLICY|true|finance/cfo/1000
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|payment request (decide_payment_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|credit note / invoice void (decide_invoice_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|GST filing (decide_gst_filing_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|manual journal (decide_journal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|asset disposal (decide_asset_disposal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|warehouse request (decide_warehouse_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|payroll post/reversal (decide_payroll_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|terms (decide_terms_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|receipt price (decide_receipt_price_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|shipping release (decide_shipping_release)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|expense claim < 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|expense claim >= 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|PO < 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|PO >= 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|salary change, normal (pay_decision_code)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|salary change, CFO is party|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|review approval, normal (review_approval_code)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|review approval, CFO is party|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|leave (decide_leave_request)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|medical claim (decide_medical_claim)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|overtime batch (decide_overtime_batch)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|supplier approve (set_supplier_status)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|NCR disposition (decide_ncr)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|capture draft (confirm_capture_draft)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|work-order / blending release (release_*)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|admin|stocktake post (post_stocktake)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|payment request (decide_payment_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|credit note / invoice void (decide_invoice_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|GST filing (decide_gst_filing_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|manual journal (decide_journal_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|asset disposal (decide_asset_disposal_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|warehouse request (decide_warehouse_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|payroll post/reversal (decide_payroll_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|terms (decide_terms_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|receipt price (decide_receipt_price_request)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|shipping release (decide_shipping_release)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|expense claim < 1,000 (decide_expense_claim_items)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|expense claim >= 1,000 (decide_expense_claim_items)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|PO < 1,000 (approve_purchase_order)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|PO >= 1,000 (approve_purchase_order)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|salary change, normal (pay_decision_code)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|salary change, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|review approval, normal (review_approval_code)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|review approval, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|leave (decide_leave_request)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|medical claim (decide_medical_claim)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|overtime batch (decide_overtime_batch)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|supplier approve (set_supplier_status)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|NCR disposition (decide_ncr)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|capture draft (confirm_capture_draft)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|work-order / blending release (release_*)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cfo|stocktake post (post_stocktake)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|payment request (decide_payment_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|credit note / invoice void (decide_invoice_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|GST filing (decide_gst_filing_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|manual journal (decide_journal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|asset disposal (decide_asset_disposal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|warehouse request (decide_warehouse_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|payroll post/reversal (decide_payroll_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|terms (decide_terms_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|receipt price (decide_receipt_price_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|shipping release (decide_shipping_release)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|expense claim < 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|expense claim >= 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|PO < 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|PO >= 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|salary change, normal (pay_decision_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|salary change, CFO is party|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|review approval, normal (review_approval_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|review approval, CFO is party|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|leave (decide_leave_request)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|medical claim (decide_medical_claim)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|overtime batch (decide_overtime_batch)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|supplier approve (set_supplier_status)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|NCR disposition (decide_ncr)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|capture draft (confirm_capture_draft)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|work-order / blending release (release_*)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cco|stocktake post (post_stocktake)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|payment request (decide_payment_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|credit note / invoice void (decide_invoice_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|GST filing (decide_gst_filing_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|manual journal (decide_journal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|asset disposal (decide_asset_disposal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|warehouse request (decide_warehouse_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|payroll post/reversal (decide_payroll_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|terms (decide_terms_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|receipt price (decide_receipt_price_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|shipping release (decide_shipping_release)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|expense claim < 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|expense claim >= 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|PO < 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|PO >= 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|salary change, normal (pay_decision_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|salary change, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|review approval, normal (review_approval_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|review approval, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|leave (decide_leave_request)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|medical claim (decide_medical_claim)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|overtime batch (decide_overtime_batch)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|supplier approve (set_supplier_status)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|NCR disposition (decide_ncr)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|capture draft (confirm_capture_draft)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|work-order / blending release (release_*)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|cto|stocktake post (post_stocktake)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|payment request (decide_payment_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|credit note / invoice void (decide_invoice_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|GST filing (decide_gst_filing_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|manual journal (decide_journal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|asset disposal (decide_asset_disposal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|warehouse request (decide_warehouse_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|payroll post/reversal (decide_payroll_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|terms (decide_terms_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|receipt price (decide_receipt_price_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|shipping release (decide_shipping_release)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|expense claim < 1,000 (decide_expense_claim_items)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|expense claim >= 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|PO < 1,000 (approve_purchase_order)|t|codes=t|level=true
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|PO >= 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|salary change, normal (pay_decision_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|salary change, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|review approval, normal (review_approval_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|review approval, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|leave (decide_leave_request)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|medical claim (decide_medical_claim)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|overtime batch (decide_overtime_batch)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|supplier approve (set_supplier_status)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|NCR disposition (decide_ncr)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|capture draft (confirm_capture_draft)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|work-order / blending release (release_*)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|finance|stocktake post (post_stocktake)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|payment request (decide_payment_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|credit note / invoice void (decide_invoice_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|GST filing (decide_gst_filing_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|manual journal (decide_journal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|asset disposal (decide_asset_disposal_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|warehouse request (decide_warehouse_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|payroll post/reversal (decide_payroll_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|terms (decide_terms_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|receipt price (decide_receipt_price_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|shipping release (decide_shipping_release)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|expense claim < 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|expense claim >= 1,000 (decide_expense_claim_items)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|PO < 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|PO >= 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|salary change, normal (pay_decision_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|salary change, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|review approval, normal (review_approval_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|review approval, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|leave (decide_leave_request)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|medical claim (decide_medical_claim)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|overtime batch (decide_overtime_batch)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|supplier approve (set_supplier_status)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|NCR disposition (decide_ncr)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|capture draft (confirm_capture_draft)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|work-order / blending release (release_*)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|gm|stocktake post (post_stocktake)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|payment request (decide_payment_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|credit note / invoice void (decide_invoice_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|GST filing (decide_gst_filing_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|manual journal (decide_journal_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|asset disposal (decide_asset_disposal_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|warehouse request (decide_warehouse_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|payroll post/reversal (decide_payroll_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|terms (decide_terms_request)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|receipt price (decide_receipt_price_request)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|shipping release (decide_shipping_release)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|expense claim < 1,000 (decide_expense_claim_items)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|expense claim >= 1,000 (decide_expense_claim_items)|f|codes=f|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|PO < 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|PO >= 1,000 (approve_purchase_order)|f|codes=t|level=false
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|salary change, normal (pay_decision_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|salary change, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|review approval, normal (review_approval_code)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|review approval, CFO is party|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|leave (decide_leave_request)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|medical claim (decide_medical_claim)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|overtime batch (decide_overtime_batch)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|supplier approve (set_supplier_status)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|NCR disposition (decide_ncr)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|capture draft (confirm_capture_draft)|t|codes=t|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|work-order / blending release (release_*)|f|codes=f|level=-
+psql:docs/surveys/SYSTEM-MAP-0/decide-matrix.sql:60: NOTICE:  DECIDE|warehouse|stocktake post (post_stocktake)|f|codes=f|level=-
+DECIDE_OWN_EXIT=0

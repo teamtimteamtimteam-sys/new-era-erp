@@ -1,0 +1,8 @@
+STEP|base https://new-era-erp.vercel.app
+STEP|database as postgres (base tables): {"jr":"0","jr_open":"0","claims_submitted":"1"}
+PASS|/finance/journal → HTTP 200: saved-views menu true ("Plain list" true, "Save view" true); no redirect (/finance/journal)
+PASS|/finance/journal journal-request panel: database holds 0 journal requests (0 submitted) → panel drawn false, bulk bar false (0 requests: the panel draws nothing — not observable on production without creating one)
+PASS|/finance/claims → HTTP 200: bulk bar true, select-all true, buttons ["Reject selected (0)"]; nothing pressed (result list false); database submitted claims 1
+STEP|done
+TF3_CLOSEOUT_EXIT=0
+TF3C_OWN_EXIT=0

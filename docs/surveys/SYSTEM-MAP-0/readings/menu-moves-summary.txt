@@ -1,0 +1,4 @@
+# SUMMARY 133 entries: module renamed/merged only 30 · multi->single 9 · relocated 18 · same home 76
+# relocated: /purchasing/licences /operation/operation-types /operation/contamination /quality/samples /quality/disputes /quality/ncr /quality/coa /operation/equipment /operation/equipment/reliability /operation/devices /operation/calibration /inventory/storage-safety /tools/tasks /tools/reminders /tools/pricing /tools/pricing/formulas /tools/pricing/calculator /tools/pricing/metal-prices
+# multi->single: /operation/weighbridge /settings/change-history /sales/commissions /inbound /inbound/receive /output /finance/freight /finance/self-approved /hr/overtime
+# unmapped: 
