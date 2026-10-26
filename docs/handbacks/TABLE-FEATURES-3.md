@@ -46,6 +46,12 @@ Started from `f5a62e79f60c37ffdb5228df804032d31f824ff3` (HEAD = origin/main = ls
 | 13 | COD bytes | **`COD_OWN_EXIT=0`**: both equal the AGENTS.md baseline (34,701 `ba299a4f…f42101` · 34,746 `717661f6…13a4f9`). |
 | 14 | fresh clone, no `.env.local` | §2b. |
 
+### 2b · Full gate re-run and fresh clone on the final tree
+On commit `7fe65ad37a5ecd97850bc6f3f1bb3804e6f9cb71` (everything but this subsection and the three logs it names): **`GATE_EXIT=0`** (854 s, every verdict ✓; `gate-full-final.txt`).
+Fresh clone of that commit, no `.env.local`, `npm ci && npm run build`: run 1 `FRESH_OWN_EXIT=1` — every static check green, `next build` could not fetch Geist / Google Sans from
+Google Fonts (`fresh-clone-build-run1-fonts.txt`; a cold clone has no font cache); fonts.googleapis.com answered 200 a moment later; one immediate retry **`FRESH_OWN_EXIT=0`** (`fresh-clone-build.txt`).
+The only change after that gate is this docs commit (this subsection + the three logs) — no code, mirror or fixture; stated, as TF-2 did.
+
 ## 3 · Live proof (`next start` on this tree against live; one transaction ending in ROLLBACK; throwaways `tf3probe` via the shared helper)
 - **V** saved view: stored `status=unpaid&date_preset=thisMonth` (from `?status=unpaid&date_from=2026-10-01&date_to=2026-10-31&page=2`), set as default, read back as its owner;
   reopened → `/finance/expenses?status=unpaid&date_from=2026-10-01&date_to=2026-10-31` = SG this month by independent arithmetic; another throwaway reads 0 views.
