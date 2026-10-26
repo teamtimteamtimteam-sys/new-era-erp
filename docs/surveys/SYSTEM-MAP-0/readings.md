@@ -120,6 +120,10 @@ Breadcrumbs follow automatically: they are computed from the registry (`lib/navT
 **Measured work:** registry — 3 new top-level modules (Workbench, Quality, Equipment), 2 merges, 57 entries reassigned, `BAR_MODULE_IDS`, `MODULE_GROUPS`, en + zh labels ≈ 1 h 30 · the single-home check (a new `scripts/check-*.mjs` in `npm run build`, with a fault injection) plus the multi-owner branches it retires (`lib/navTrail.ts` `activeModuleForPath`, `check-nav-routes.mjs`) ≈ 1 h · the 2 code contradictions + 25 message lines ≈ 45 min · Workbench rows for `/me` `/my-reviews` `/notifications` (registry + avatar menu / drawer de-duplication) ≈ 45 min · docs (`information-architecture.md`, `nav-registry.md`, `manual-walk-list.md`) ≈ 45 min → **≈ 4 h 45**.
 **Sum ≈ 6 h 45 (range 5–8 h).** Not included: new list pages for COD / spare parts / supplier certificates and a combined claims page (open items 2 and 4) — each is new code, to be sized only if Tim puts it in SYSTEM-MAP-1. For calibration: TF-1 was estimated at ≈ 11 h and took ≈ 2.5 h.
 
+## Verify (docs-only cut; one new script under `db/scripts/`)
+`npm run build` **`BUILD_OWN_EXIT=0`** (`readings/build.txt`). Fresh clone of `6aaacd51ce9b8cbcb76349c861eb6775f9cfc761`, no `.env.local`, `npm ci && npm run build` **`FRESH_OWN_EXIT=0`** (`readings/fresh-clone-build.txt`, last 40 lines).
+The only change after that clone is this subsection and that log (docs only). No gate run: no mirror, fixture or migration changed. Secret scan of the new files (`sbp_|jwt_secret|service_role|eyJhbGci|SUPABASE_SERVICE`): 0 hits.
+
 ## Assertions in the brief measured false, or not measurable
 1. **"the bulk bar with select-all on the journal request panel"** — not observable on production: 0 journal requests on live; read on `/finance/claims` instead (§1).
 2. **2.4(12) "built on the existing related-records pages"** — the related-records pages exist, but **no detail page links to them today** (§3.1); only global search does.
