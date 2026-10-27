@@ -25,6 +25,7 @@ import { ProcessReceivedButton, RowActions } from './InboxControls'
 import { Suspense } from 'react'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
+import { filteredListHref } from '@/lib/savedViews'
 
 // 固定 en-US 的千分位,与 RowCapNotice 同一个写法(2,005 而不是 2005)
 const COUNT = new Intl.NumberFormat('en-US')
@@ -62,8 +63,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         if (status) q.set('status', status)
         setSortParams(q, sort) // TABLE-FEATURES-1 Q9:翻页保留排序
         if (p > 1) q.set('page', String(p))
-        const qs = q.toString()
-        return qs ? `/operation/capture/inbox?${qs}` : '/operation/capture/inbox'
+        return filteredListHref('/operation/capture/inbox', q) // SYSTEM-MAP-1 D1
     }
 
     const tableRows: CellRow[] = rows.map((r) => {
@@ -104,7 +104,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     })
 
     const filterLink = (s: string | null) => (
-        <Link key={s ?? 'all'} href={s ? `/operation/capture/inbox?status=${s}` : '/operation/capture/inbox'}
+        <Link key={s ?? 'all'} href={s ? `/operation/capture/inbox?status=${s}` : filteredListHref('/operation/capture/inbox', new URLSearchParams())}
               className={`app-link hover:underline ${status === s ? 'font-semibold' : ''}`}>
             {s ? t('inbox.status.' + s) : t('inbox.all')}
         </Link>

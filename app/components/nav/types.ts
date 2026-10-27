@@ -11,6 +11,8 @@ export type NavEntry = { href: string; key: string; allowed: boolean }
 export type NavModule = {
     id: string
     key: string
+    /** SYSTEM-MAP-1(Q1):完整流程名 —— 悬停提示 */
+    titleKey: string
     /** 【推导】出来的:名下有没有任何一条二级进得去。见 lib/moduleAccess.ts。 */
     allowed: boolean
     entries: NavEntry[]

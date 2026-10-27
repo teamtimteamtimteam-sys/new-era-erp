@@ -143,3 +143,17 @@ lists and only the weighbridge drafts are a table.
 `decide_leave_request` / `decide_medical_claim` raise `LEAVE_REJECT_REASON_REQUIRED|<code>` / `MEDICAL_CLAIM_REJECT_REASON_REQUIRED|<code>` on a blank reason
 (`btrim`, the same test as the twelve engine chains); the server actions refuse blank first; the Reject buttons on `/hr/leave/[id]` and `/hr/claims/[id]` are
 ConfirmButtons with a required reason. Fixture 293.
+
+## SYSTEM-MAP-1 additions (v1.4.77, Tim 2026-10-27 D1 · D4 · Q2)
+
+* **Clearing the last filter shows the plain list (D1).** `filteredListHref(pathname, params)` in `lib/savedViews.ts`: an emptied address becomes `?view=plain`; a stale
+  `view=plain` is dropped once a filter is added. Used by the 16 client toolbars of saved-view pages, the server-built filter links of `/finance/payment-requests`,
+  `/operation/capture/inbox` and `/settings/deleted`, and the new `/contracts` side filter. Lists filtered by GET forms send empty keys (`?status=`) and never re-applied
+  the default. A link from another page to a bare list address still opens the reader's default view (Q3 unchanged). Live proof D: `docs/surveys/SYSTEM-MAP-1/`.
+* **Saved views: 29 pages** — `/contracts` gained its buy / sell filter (2.2: "list filterable by side") and with it the saved-views bar.
+* **Four new read-only lists (D4), all browser-sorted with Excel/CSV export** — `/claims`, `/compliance/cod`, `/compliance/supplier-certificates`,
+  `/operation/spare-parts`; `scripts/check-list-sorting.mjs` lists 88 routes (84 + 4). Amount on `/claims` is not sortable (two kinds, per-row currencies, no base column —
+  rule 5); quantities on `/operation/spare-parts` sort only while every row shares one unit (rule 7).
+* **Row anchors (Q2).** `DataTable` takes `rowAnchor?: (row) => string` and writes it as the row's `id`. `<HashTarget prefix=…>` (`app/components/ui/hash-target.tsx`)
+  reads `location.hash` on mount, `hashchange` and `popstate`, scrolls the row to the centre and highlights it (`data-hash-target="true"`). A CSS `:target` would not
+  fire: Next's soft navigation uses `history.pushState`. Used on `/finance/claims` (`#claim-<id>`).

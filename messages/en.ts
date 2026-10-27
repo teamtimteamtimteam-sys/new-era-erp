@@ -663,6 +663,23 @@ const en = {
         violations: 'Violations',
     },
     nav: {
+        // SYSTEM-MAP-1(Tim Q1,2026-10-27):顶栏与抽屉的短标签(mod)与完整流程名(modFull:悬停提示、模块概览页页头)
+        mod: {
+            workbench: 'Workbench', purchasing: 'Purchasing', production: 'Production', quality: 'Quality', sales: 'Sales',
+            finance: 'Finance', people: 'People', safety: 'Safety', equipment: 'Equipment',
+        },
+        modFull: {
+            workbench: 'My workbench', purchasing: 'Purchasing', production: 'Production and warehouse', quality: 'Quality',
+            sales: 'Sales and logistics', finance: 'Finance', people: 'People', safety: 'Safety and compliance', equipment: 'Equipment',
+        },
+        equipmentRegister: 'Equipment register',
+        logisticsOverview: 'Logistics overview',
+        stockOverview: 'Stock overview',
+        claims: 'Claims',
+        medicalClaims: 'Medical claims',
+        codList: 'Certificates of destruction',
+        supplierCertificates: 'Supplier certificates',
+        spareParts: 'Spare parts',
         aboutYou: 'About you',
         operation: 'Operation',
         contracts: 'Contracts',
@@ -2214,6 +2231,8 @@ const en = {
         termsDays: '{d} days',
         pricingComesLater: 'Index-linked pricing and forward quotation periods are not built here. When they land they attach as another term of the contract, alongside grade and insurance \u2014 not as columns on the contract row itself.',
         side: { buy: 'Buy', sell: 'Sell' },
+        sideAll: 'All',
+        sideFilterLabel: 'Show contracts by side',
         status: { draft: 'Draft', active: 'Active', suspended: 'Suspended', expired: 'Expired', terminated: 'Terminated' },
         entryLink: 'Contracts',
 
@@ -2593,7 +2612,7 @@ const en = {
         unknownEmployee: 'Employee not visible to you',
         generateWhat: 'These people have no KPI entries in this month. Generating copies the five KPIs from their position and freezes that wording — later edits to the position template will not change what they were measured against.',
         generateAction: 'Generate five',
-        generateNoPosition: 'no position attached — KPIs come from the position, so set one in HR → Employees first',
+        generateNoPosition: 'no position attached — KPIs come from the position, so set one in People → Employees first',
         errEntryNotFound: 'That KPI entry no longer exists.',
         errCycleClosed: '{0} is closed. Changing scores in a closed month is changing history — reopen the month first, and that step leaves a trace.',
         errCycleLocked: '{0} is locked by the {1} gate and its scores can no longer be changed.',
@@ -2604,7 +2623,7 @@ const en = {
         errOverrideNeedsReason: '{0} has a cap with no reason. Say which breach it was — without it, a cap and a low score look identical afterwards.',
         errCycleNotFound: 'That month no longer exists.',
         errEmployeeNotFound: 'That employee record no longer exists.',
-        errNoPosition: '{0} is not attached to a position, so there is no template to copy. Set a position in HR → Employees first.',
+        errNoPosition: '{0} is not attached to a position, so there is no template to copy. Set a position in People → Employees first.',
         errNoTemplates: 'Position {0} has no KPI template yet. Generating zero entries would look like success, so it is refused instead.',
         errAlreadyGenerated: '{0} already has {2} entries in {1}. Decide what happens to those before growing a second set beside them.',
         errWeightsNot100: 'The template weights for position {0} total {1}, not 100. Entries copied from it could never produce a comparable score — and they would still compute a number without erroring.',
@@ -4053,7 +4072,7 @@ const en = {
             DISCHARGE_ASSIGNMENT_SUPERSEDED: 'That channel assignment has already been corrected. Correct the latest version instead.',
             DISCHARGE_SPLIT_MODULES_REQUIRED: 'Pick at least one failed module to split out (each once).',
             DISCHARGE_SPLIT_MODULE_NOT_QUARANTINE: 'Module {0}\'s latest result is not a fail marked for quarantine (or it has already been split out), so it cannot be split to quarantine.',
-            QUARANTINE_LOCATION_REQUIRED: 'Failed modules can only go into an active location marked as quarantine, and the location given ({1}) is not one. Nothing was saved. Choose a quarantine location, or mark one under Inventory → Locations.',
+            QUARANTINE_LOCATION_REQUIRED: 'Failed modules can only go into an active location marked as quarantine, and the location given ({1}) is not one. Nothing was saved. Choose a quarantine location, or mark one under Production → Storage locations.',
         },
         status: {
             committed: 'Committed',
@@ -5169,7 +5188,7 @@ const en = {
         transferConsequence: 'Moves this quantity to another location. The physical total does not change, and the stock stays available.',
         transferConsequenceHeld: 'Moves this HELD quantity to another location. It stays on hold at the destination — transferring moves where stock is, never whether it is available.',
         transferBlockedNoStock: 'Nothing here to move.',
-        transferBlockedNoTargets: 'No other active location exists yet — create one under Inventory → Storage Locations first.',
+        transferBlockedNoTargets: 'No other active location exists yet — create one under Production → Storage locations first.',
         transferBlockedNoTarget: 'Pick a destination location.',
         receiptLocation: 'Storage location',
         receiptLocationUnspecified: 'Unspecified — assign later by transfer',
@@ -5199,7 +5218,7 @@ const en = {
             IOD_RECEIPT_LOCATION_UNKNOWN: 'That storage location no longer exists. Reload the form and pick again, or leave it unspecified and assign one later by transfer.',
             IOD_TRANSFER_EXCEEDS_BUCKET: 'Cannot move {0} — only {1} is in this bucket. A transfer moves stock that is already there; it does not create any.',
             IOD_TRANSFER_SAME_LOCATION: 'Source and destination are the same location — nothing would move. Pick a different destination.',
-            IOD_TRANSFER_TO_INACTIVE: 'That destination location is not active, so stock cannot be moved into it. Reactivate it under Inventory → Storage Locations, or pick another.',
+            IOD_TRANSFER_TO_INACTIVE: 'That destination location is not active, so stock cannot be moved into it. Reactivate it under Production → Storage locations, or pick another.',
             // SO-2: four numbers, not three. Saying only "available 0, on hold 0" while
             // the sale still fails leaves the real answer ("it is promised to an order")
             // off the screen entirely.
@@ -5210,14 +5229,14 @@ const en = {
             ARRIVAL_DATE_REQUIRED: 'The arrival date is required — the stock movement records the day the goods actually arrived, and it is never filled in for you. Nothing was saved. Enter the date and submit again.',
             OUTPUT_DATE_REQUIRED: 'The output date is required — the stock movement records the day the goods were actually produced, and it is never filled in for you. Nothing was saved. Enter the date and submit again.',
             SO_BATCH_HAS_RESERVATIONS: 'Batch {0} cannot be written off: {1} active reservation(s) still promise it to {2}. Release them on that order first — writing off is irreversible, and deciding a promise can be dropped is the order owner\u2019s call, not the system\u2019s.',
-            IOD_CLASS_EXCLUDED: 'Location {0} is configured to hold specific material classes, and {1} is not one of them — so nothing was saved. Pick another location, add {1} to that location under Inventory → Storage Locations, or correct this material\'s classification in the material dictionary.',
-            QUARANTINE_LOCATION_REQUIRED: 'This batch has a safety state that requires quarantine, so it can only be received into or moved into a location marked as quarantine, and the location given ({1}) is not one. Nothing was saved. Choose a quarantine location, or mark one under Inventory → Locations.',
+            IOD_CLASS_EXCLUDED: 'Location {0} is configured to hold specific material classes, and {1} is not one of them — so nothing was saved. Pick another location, add {1} to that location under Production → Storage locations, or correct this material\'s classification in the material dictionary.',
+            QUARANTINE_LOCATION_REQUIRED: 'This batch has a safety state that requires quarantine, so it can only be received into or moved into a location marked as quarantine, and the location given ({1}) is not one. Nothing was saved. Choose a quarantine location, or mark one under Production → Storage locations.',
             STORAGE_CEILING_EXCEEDED: 'Refused: this would take storage over the ceiling of licence {0} for NEA category {1} ("*" is the licence total): {2} t on site, plus {3} t, against a ceiling of {4} t. Nothing was saved.',
             STORAGE_CEILING_UNIT_NOT_CONVERTIBLE: 'Refused: batch {0}, or stock already on site in NEA category {1} ("*" is the licence total), is in a unit that does not convert to tonnes, so its ceiling cannot be checked. Record the quantity in kg or t.',
             MOVEMENTS_THROUGH_FUNCTION_ONLY: 'Stock movements are written only by a receipt, transfer or other stock action, never directly ({0}).',
         },
         warnings: {
-            IOD_CLASS_UNCONFIGURED_LOCATION: 'Saved. Note: nobody has configured which material classes location {0} may hold, so nothing could be checked. Set its allowed classes under Inventory → Storage Locations to make this check mean something.',
+            IOD_CLASS_UNCONFIGURED_LOCATION: 'Saved. Note: nobody has configured which material classes location {0} may hold, so nothing could be checked. Set its allowed classes under Production → Storage locations to make this check mean something.',
             IOD_MATERIAL_UNCLASSIFIED: 'Saved. Note: material {0} has no waste classification, so it could not be checked against this location. Classify it in the material dictionary — unclassified is not the same as unrestricted; it means nobody has decided yet.',
         },
     },
@@ -5293,7 +5312,7 @@ const en = {
         colLines: 'People',
         colUnrecorded: 'Not recorded',
         colOtNormal: 'OT normal',
-        otFromOvertime: 'Overtime columns are read-only: they show the hours approved on HR → Overtime, and are fixed into this sheet when the month is completed.',
+        otFromOvertime: 'Overtime columns are read-only: they show the hours approved on People → Overtime, and are fixed into this sheet when the month is completed.',
         colOtRestDay: 'OT rest day',
         colOtHoliday: 'OT public holiday',
         colUnpaidDays: 'Unpaid days',
@@ -5479,8 +5498,8 @@ const en = {
             org: 'Organisation chart',
         },
         // 假期/报销/评估各子页的 h1 都用它;此前缺失,页面上渲染的是字面量 "hr.title"
-        title: 'HR',
-        overviewTitle: 'HR Overview',
+        title: 'People',
+        overviewTitle: 'People overview',
         alertsTitle: 'Needs attention',
         noAlerts: 'Nothing needs attention',
         headcount: 'Headcount',
@@ -5648,7 +5667,7 @@ const en = {
         colWorkCategory: 'Category',
         colSiteStaff: 'Site staff',
         siteStaffLabel: 'Site staff — overtime is recorded in the system',
-        siteStaffHint: 'Only site staff have overtime, and only they appear on HR → Overtime. This is separate from Category, which sets the annual-leave rate.',
+        siteStaffHint: 'Only site staff have overtime, and only they appear on People → Overtime. This is separate from Category, which sets the annual-leave rate.',
         siteStaffYes: 'Yes — overtime is recorded for this person',
         siteStaffNo: 'No',
         colOtHours: 'Approved OT hours',
@@ -5845,7 +5864,7 @@ const en = {
             OVERTIME_MONTH_BEFORE_START: '{0} is before the date this system starts keeping complete records ({1})',
             OVERTIME_MONTH_COMPLETE: 'The {1} attendance sheet ({0}) is already complete, so its overtime can no longer change. Reopen that sheet first — before payroll is posted — or ask for a payroll reversal if it has been',
             OVERTIME_BATCH_OPEN_EXISTS: '{0} is still open for that month — finish it (submit it, or discard it) before starting another',
-            OVERTIME_NO_SITE_STAFF: 'Nobody employed in {0} is marked as site staff, so there is no one to record overtime for. Mark the person on their employee record first (HR → Employees → Edit → "Site staff")',
+            OVERTIME_NO_SITE_STAFF: 'Nobody employed in {0} is marked as site staff, so there is no one to record overtime for. Mark the person on their employee record first (People → Employees → Edit → "Site staff")',
             OVERTIME_NO_OTHER_APPROVER: 'Nobody other than you and the people in this batch can approve overtime ({0}) — an administrator must give another person "Approve site-staff overtime" first',
             OVERTIME_BATCH_NOT_FOUND: 'That overtime batch no longer exists',
             OVERTIME_BATCH_NOT_EDITABLE: '{0} can no longer be changed — only a draft batch, or one sent back by the approver, can be edited',
@@ -5866,7 +5885,7 @@ const en = {
             OVERTIME_REVERSE_REASON_REQUIRED: 'Say why {0} is being reversed',
             OVERTIME_BATCH_OPEN_FOR_MONTH: 'The {0} attendance sheet cannot be completed while overtime batch {1} is still open — submit and approve it, or discard it, first',
             OVERTIME_HOURS_OFF_ROSTER: 'Some approved overtime for {0} belongs to someone who is not on that month\'s attendance sheet — sync the sheet or check that employee before completing it',
-            ATTENDANCE_OT_THROUGH_OVERTIME: 'Overtime hours for {0} are not typed in here any more — enter them on HR → Overtime; approved hours are filled in when this month is completed',
+            ATTENDANCE_OT_THROUGH_OVERTIME: 'Overtime hours for {0} are not typed in here any more — enter them on People → Overtime; approved hours are filled in when this month is completed',
             APPROVAL_NOT_AUTHORISED: 'Only the level-{0} approver ({1}) can decide this. Ask someone who holds that role.',
             APPROVALS_NOT_ENABLED: 'Approvals are not in force, so there is nothing to decide — this request was approved automatically when it was raised.',
             SALARY_DIRECT_WRITE_REFUSED: 'A monthly salary cannot be written directly. The first salary is recorded once on the employee page; every later change goes through a performance review or a salary-change request, approved by the CFO.',
@@ -6274,7 +6293,7 @@ const en = {
     },
     reviews: {
         blocked: {
-            noCandidates: 'No one can be assigned: a reviewer must be another employee, and no other employee is on file yet. Add the team under HR → Employees first.',
+            noCandidates: 'No one can be assigned: a reviewer must be another employee, and no other employee is on file yet. Add the team under People → Employees first.',
             pickOne: 'Pick a reviewer first.',
             sameAsCurrent: 'That is already the reviewer.',
         },
@@ -7289,6 +7308,50 @@ const en = {
             ASSAY_DISPUTE_OPEN: 'Batch {0} has an open assay dispute. Resolve or withdraw it before issuing a certificate.',
         },
     },
+    // SYSTEM-MAP-1(Tim D2 · D4 · Q2 · Q3 · Q4,2026-10-27):人事底下的合并报销页,以及三张新的只读清单
+    claimsAll: {
+        title: 'Claims',
+        intro: 'Medical and general expense claims in one list. Each claim opens where it is decided: medical claims on their own page, general claims on the expense-claims queue, and approved general claims on the expense they became. Approval rules are unchanged.',
+        colKind: 'Kind',
+        kindMedical: 'Medical',
+        kindGeneral: 'General',
+        noLink: 'Opening this claim needs {code}',
+        capNotice: 'Showing the newest {shown} of {total} {kind} claims.',
+        empty: 'No claims on file.',
+    },
+    codList: {
+        title: 'Certificates of destruction',
+        intro: 'Every certificate of destruction, one row per certificate, newest first. A certificate belongs to one inbound delivery; open the delivery to issue, view or void it.',
+        colBatch: 'Delivery',
+        colStatus: 'Status',
+        colPdf: 'Document',
+        empty: 'No certificates of destruction yet.',
+    },
+    supplierCerts: {
+        title: 'Supplier certificates',
+        intro: 'Every certificate on file for every supplier, soonest expiry first. Dates only — whether a certificate blocks receiving is decided on the supplier and the receiving screens.',
+        colSupplier: 'Supplier',
+        colType: 'Certificate',
+        colNumber: 'Number',
+        colIssuer: 'Issued by',
+        colFrom: 'Valid from',
+        colUntil: 'Valid until',
+        empty: 'No supplier certificates on file.',
+    },
+    spareParts: {
+        title: 'Spare parts',
+        intro: 'Spare-part stock, one row per delivery batch. Parts are issued to a machine from its equipment page; this list shows what is on hand. No prices are shown here.',
+        colBatch: 'Batch',
+        colPart: 'Part',
+        colAvailable: 'Available',
+        colRemaining: 'Remaining',
+        colPriced: 'Priced',
+        colHold: 'Quality hold',
+        colArrival: 'Arrived',
+        yes: 'Yes',
+        no: 'No',
+        empty: 'No spare parts in stock.',
+    },
     cod: {
         title: 'Certificate of destruction',
         intro: 'Proof for the party who delivered this material that Evoltrya processed it. It exists once the whole delivery has been processed.',
@@ -7667,7 +7730,7 @@ const en = {
         month: 'Month',
         newBatch: 'New batch',
         newBatchHint: '{n} person(s) marked as site staff. One open batch per month; after it is approved you can start a supplementary one.',
-        noSiteStaff: 'No employee is currently marked as site staff, so there is no one to record overtime for. Mark an employee on their record: HR → Employees → the employee → Edit → “Site staff”.',
+        noSiteStaff: 'No employee is currently marked as site staff, so there is no one to record overtime for. Mark an employee on their record: People → Employees → the employee → Edit → “Site staff”.',
         empty: 'No overtime batches yet.',
         colBatch: 'Batch',
         colStatus: 'Status',
@@ -8772,7 +8835,7 @@ const en = {
         linkedJournal: 'Journal entry',
         noOpenItems: 'Nothing outstanding',
         counterpartyKind: { supplier: 'Supplier', employee: 'Employee' },
-        employeesEmpty: 'No employees on file — add them in the HR module first',
+        employeesEmpty: 'No employees on file — add them in the People module first',
         selectCounterparty: 'Select counterparty',
         paymentsEmpty: 'No payments yet',
         arDocTitle: 'Receivable Document',
@@ -9178,11 +9241,11 @@ const en = {
             credit_note: 'This entry was posted by a credit note. Credit notes are raised and corrected on the invoice (Finance → Invoices), with the CFO\'s approval.',
             expense: 'This entry was posted by an expense. Reverse the expense itself (Finance → Expenses), so the expense and its entry stay together.',
             freight: 'This entry was posted by a freight document. Reverse the freight document itself, so the document and its entry stay together.',
-            allocation: 'This entry was posted by a processing-cost allocation. Re-run the allocation or roll the processing run back (Operations → Processing); do not reverse its entry here.',
-            processing_cost: 'This entry was posted by a processing cost. It is corrected through the processing run (Operations → Processing); do not reverse its entry here.',
+            allocation: 'This entry was posted by a processing-cost allocation. Re-run the allocation or roll the processing run back (Production → Processing runs); do not reverse its entry here.',
+            processing_cost: 'This entry was posted by a processing cost. It is corrected through the processing run (Production → Processing runs); do not reverse its entry here.',
             year_close: 'This entry is a year-end close. It is undone by reopening the year (Finance → Close), which only the CFO can do.',
-            maintenance_part: 'This entry was posted by issuing spare parts to a maintenance record, or returning them. It is corrected by returning the parts on the machine\u2019s maintenance record (Operations → Equipment), so the stock and the ledger move together; reversing only the entry here would leave the stock count wrong.',
-            payroll: 'This entry is a payroll posting. It is undone with "Request unposting" on the payroll period (HR → Payroll), which the CFO approves.',
+            maintenance_part: 'This entry was posted by issuing spare parts to a maintenance record, or returning them. It is corrected by returning the parts on the machine\u2019s maintenance record (Equipment → Equipment register), so the stock and the ledger move together; reversing only the entry here would leave the stock count wrong.',
+            payroll: 'This entry is a payroll posting. It is undone with "Request unposting" on the payroll period (People → Payroll), which the CFO approves.',
             asset_disposal: 'This entry is a fixed-asset disposal. A disposal has no undo path yet — reversing this entry here would restore the ledger while the asset stays disposed, so it is refused.',
         },
         // ★ APR-6(Tim 2026-09-25):手工凭证与它的冲销要 CFO 批准才过账。
@@ -9454,7 +9517,7 @@ const en = {
                 // U1-B: {2} is the comma-separated list of run codes (not a total) — name them.
                 'Period {0} cannot be closed: {1} submitted processing run(s) up to that date never had '
                 + 'their costs allocated — {2}. The material has moved but work in progress is still sitting in '
-                + '1200. Allocate those runs under Operations → Processing, then close the period.',
+                + '1200. Allocate those runs under Production → Processing runs, then close the period.',
             JOURNAL_IMMUTABLE:
                 'A posted journal entry cannot be edited or deleted — once the books accept it, it '
                 + 'is read-only. To correct it, reverse it and post a correct entry; both stay on '
@@ -9850,7 +9913,7 @@ const en = {
         // CMPL-1:公司自家执照(NEA)。样本只提供【字段】,一个值都没有进来。
         licence: {
             // IA-BUILD-1 / D7:登记簿搬到采购去了(它的码本来就是 module.suppliers.*)。
-            movedToPurchasing: 'The licence register now lives under Purchasing',
+            movedToSafety: 'The licence register now lives under Safety and compliance',
             // ★【TOOLS-1 ①a】标题从「NEA licences held by this company」缩成「Licences」★
             // 这个键【同时】是菜单文案(lib/modules.ts 的 navKey = company.licence.title)
             // 与页面 h1,所以改一处两处都变 —— 这正是它该有的样子。
@@ -11542,7 +11605,7 @@ const en = {
             needDate: 'Enter the date the work was done \u2014 it is never filled in for you.',
             needDescription: 'Say what was done.',
             needPerformer: 'Say who did it.',
-            employeesRestricted: 'The employee option is not offered because you do not have access to the HR module \u2014 that is a permission answer, not an absence of employees. Record the person by typing their name instead.',
+            employeesRestricted: 'The employee option is not offered because you do not have access to the People module \u2014 that is a permission answer, not an absence of employees. Record the person by typing their name instead.',
             // MES-7a-1(Q6):点名它修好的那一段停机
             downtime: 'The downtime this work fixed (optional)',
             downtimeNone: 'Not linked to a downtime period',
@@ -11740,7 +11803,7 @@ const en = {
             dwellIntro: '{n} open safety states on batches with stock on site; {past} past their warning period.',
             dwellNone: 'No open safety state on any batch with stock on site.',
             quarantineTitle: 'Stock that should be in quarantine',
-            noQuarantineLocation: 'No location is marked as quarantine yet, so swollen or leaking deliveries are refused until one is. Mark one under Inventory → Locations.',
+            noQuarantineLocation: 'No location is marked as quarantine yet, so swollen or leaking deliveries are refused until one is. Mark one under Production → Storage locations.',
             quarantineLocations: '{n} active locations are marked as quarantine.',
             quarantineNone: 'No batch with a state that requires quarantine has stock outside it.',
         },
@@ -11891,7 +11954,7 @@ const en = {
         splitLine: 'Modules {modules} of {batch}:',
         splitTitle: 'Split failed modules of {batch} to quarantine',
         splitIntro: 'Records a new run that takes the failed modules\' weighed mass out of this batch into a new batch of the same material, charged and not discharged, in the chosen quarantine location. The batch\'s verification counts them as dealt with.',
-        noQuarantineLocation: 'No location is marked as quarantine yet (V34), so the split will be refused. Mark one under Inventory → Locations.',
+        noQuarantineLocation: 'No location is marked as quarantine yet (V34), so the split will be refused. Mark one under Production → Storage locations.',
         locationsRestricted: 'Locations need inventory view rights to list.',
         quarantineLocation: 'Quarantine location',
         pickLocation: 'Pick a quarantine location',

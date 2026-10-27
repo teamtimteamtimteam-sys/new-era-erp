@@ -188,6 +188,8 @@ export function MenuEntryRow({
         return (
             <span
                 data-menu-row=""
+                // SYSTEM-MAP-1:机器标记 —— 一条受限的行也说出它是哪一条注册表条目(标签会重名:「概览」在五个模块里各有一条)
+                data-menu-href={entry.href}
                 data-module-restricted="1"
                 title={t('dashboard.restrictedHint')}
                 className={`block ${pad} text-sm text-[color:var(--brand-muted-glass)] cursor-default`}
@@ -201,6 +203,7 @@ export function MenuEntryRow({
         <Link
             href={entry.href}
             data-menu-row=""
+            data-menu-href={entry.href}
             onClick={onNavigate}
             className={
                 `block ${pad} text-sm rounded ` +

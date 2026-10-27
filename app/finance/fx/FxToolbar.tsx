@@ -5,6 +5,7 @@
 import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 export default function FxToolbar({ currencies }: { currencies: string[] }) {
     const t = useTranslations()
@@ -19,8 +20,7 @@ export default function FxToolbar({ currencies }: { currencies: string[] }) {
         if (!value) params.delete('currency')
         else params.set('currency', value)
         params.delete('page')
-        const qs = params.toString()
-        router.push(qs ? `${pathname}?${qs}` : pathname)
+        router.push(filteredListHref(pathname, params))
     }
 
     return (

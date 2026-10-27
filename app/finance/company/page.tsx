@@ -77,7 +77,9 @@ export default async function CompanyPage({ searchParams }: { searchParams: Prom
     // 【地址从注册表取,不写死】—— 与 /margin 那条上下文交叉引用同一个做法:
     // 措辞是这一处的话,所以标签不从注册表取;但地址是 FN.licences.href,
     // 于是搬第二次的时候这里不会指向一个 404。
-    const licenceAccess = (await getFunctionAccess('purchasing'))
+    // SYSTEM-MAP-1:模块从【条目自己的家】取,不写死 —— 写死的 'purchasing' 在执照搬去安全与合规之后什么都找不到,
+    //   于是这一行对每一个人都画「受限」(一次假的拒绝,SYSTEM-MAP-0 readings §3.3 ①)。
+    const licenceAccess = (await getFunctionAccess(FN.licences.modules[0]))
         .find((f) => f.fn.href === FN.licences.href)
 
     return (
@@ -90,11 +92,11 @@ export default async function CompanyPage({ searchParams }: { searchParams: Prom
                 <h2 className="mb-1">{t('company.licence.title')}</h2>
                 {licenceAccess?.allowed ? (
                     <Link href={FN.licences.href} className="text-sm hover:underline app-link app-link-inline">
-                        {t('company.licence.movedToPurchasing')}
+                        {t('company.licence.movedToSafety')}
                     </Link>
                 ) : (
                     <p data-module-restricted="1" title={t('dashboard.restrictedHint')} className="text-sm text-[color:var(--brand-muted-text)]">
-                        {t('company.licence.movedToPurchasing')} · {t('common.restricted')}
+                        {t('company.licence.movedToSafety')} · {t('common.restricted')}
                     </p>
                 )}
             </div>

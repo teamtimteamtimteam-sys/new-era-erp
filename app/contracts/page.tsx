@@ -26,6 +26,10 @@ import { can } from '@/lib/permissions'
 import TermsRequestsPanel from '@/app/components/pricing/TermsRequestsPanel'
 import { firstMissingDecideCode, loadTermsRequests } from '@/app/components/pricing/termsRequestsData'
 import ContractActivationPanel, { type ActivationRow } from './ContractActivationPanel'
+import { Suspense } from 'react'
+import { SavedViewsBar } from '@/app/components/ui/saved-views'
+import { loadSavedViews } from '@/lib/savedViewsServer'
+import { filteredListHref } from '@/lib/savedViews'
 
 type Contract = {
     id: string; code: string; side: string; kind: string; title: string
@@ -60,12 +64,18 @@ type Breach = {
     min_pct: number | null; max_pct: number | null; breach_side: string
 }
 
-export default async function ContractsPage() {
+export default async function ContractsPage({ searchParams }: { searchParams: Promise<{ side?: string; view?: string }> }) {
     const locale = await getLocale()
     const denied = await requireModule(MOD.suppliers)
     if (denied) return denied
 
     const supabase = await createClient()
+    // SYSTEM-MAP-1(Tim 2.2:「contracts (purchase and sale, one place, list filterable by side)」):合同清单按买 / 卖筛。
+    //   一张列表长出筛选,就带保存的视图(TF-3 Q1)—— loadSavedViews 在任何别的查询之前(套默认视图是一次跳转)。
+    //   筛的只是下面那张合同清单;覆盖率、违反、计价条款与生效审批照旧是全体(它们回答的是别的问题)。
+    const sp = await searchParams
+    const savedViews = await loadSavedViews(supabase, { listKey: '/contracts', sp })
+    const sideFilter = sp.side === 'buy' || sp.side === 'sell' ? sp.side : null
     const t = await getTranslations()
 
     const contracts = mustRows(
@@ -162,7 +172,7 @@ export default async function ContractsPage() {
                 : t('contracts.requiredMax', { v: String(b.max_pct) }),
     }))
 
-    const contractListRows: ContractListRow[] = contracts.map((c) => ({
+    const contractListRows: ContractListRow[] = contracts.filter((c) => sideFilter === null || c.side === sideFilter).map((c) => ({
         id: c.id,
         code: c.code,
         sideLabel: t(`contracts.side.${c.side}`),
@@ -307,6 +317,17 @@ export default async function ContractsPage() {
 
             {/* ── 合同清单 ─────────────────────────────────────────────────── */}
             <h2 className="mb-2">{t('contracts.listTitle')}</h2>
+            <Suspense fallback={null}><SavedViewsBar listKey="/contracts" views={savedViews} /></Suspense>
+            <nav className="flex flex-wrap gap-2 mb-3" aria-label={t('contracts.sideFilterLabel')} data-filter="contract-side">
+                {([null, 'buy', 'sell'] as const).map((f) => (
+                    <Button key={f ?? 'all'} asChild size="sm" variant={f === sideFilter ? 'default' : 'outline'}>
+                        {/* 「全部」= 清掉这一个筛选 —— D1:清空之后是原始列表,不回到默认视图 */}
+                        <Link href={f ? `/contracts?side=${f}` : filteredListHref('/contracts', new URLSearchParams())} aria-current={f === sideFilter ? 'page' : undefined}>
+                            {f ? t(`contracts.side.${f}`) : t('contracts.sideAll')}
+                        </Link>
+                    </Button>
+                ))}
+            </nav>
             {contracts.length === 0 ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('contracts.listNone')}</p>
             ) : (

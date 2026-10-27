@@ -157,7 +157,7 @@ export const SCOPES: readonly AccessScope[] = [
 ]
 
 // ════════════════════════════════════════════════════════════════════════════
-// 二 · 一级模块 —— Tim 的 D1 那九个,顺序就是他给的顺序;MES-7b-1 加了「安全」(Q17),排在运营之后
+// 二 · 一级模块 —— SYSTEM-MAP-1(2026-10-27)起:工作台 + 2.2 的八个业务模块 + 工具 + 设置(此前是 D1 的九个 + MES-7b-1 的「安全」)
 // ════════════════════════════════════════════════════════════════════════════
 /**
  * 一个一级模块。**注意它没有 permission** —— 见文件抬头 §二:
@@ -172,29 +172,30 @@ export const SCOPES: readonly AccessScope[] = [
 export type ModuleEntry = {
     /** 模块标识。二级条目用它声明属主;活动态也按它。 */
     id: string
-    /** 顶栏标签 */
+    /** 顶栏与抽屉上的【短】标签(SYSTEM-MAP-1 Q1) */
     navKey: string
+    /** 完整的流程名 —— 顶栏按钮的悬停提示,也是这个模块概览页的页头(SYSTEM-MAP-1 Q1) */
+    titleKey: string
 }
 
+// ★★【SYSTEM-MAP-1(Tim 2026-10-26 2.1–2.3 · 2026-10-27 Q1):按业务流程重排】★★
+//   八个业务模块 + 我的工作台 = 顶栏九个按钮;工具(只剩日历与单位换算)与设置是抽屉里的两个具名区。
+//   每一条二级条目【只有一个家】(2.1)—— scripts/check-single-home.mjs 在构建里拦两个以上的属主。
+//   标签用短名(Q1:全名放不进一行 —— 实测 1280 上英文全名的模块条 1020px,可用约 805px),全名进悬停提示与模块概览页的页头。
+//   导航重排,门一个字不动:SCOPES 与每一页的守卫没有改。
 export const MODULES: readonly ModuleEntry[] = [
-    { id: 'purchasing', navKey: 'nav.purchasing' },
-    { id: 'logistics', navKey: 'nav.logistics' },
-    { id: 'operation', navKey: 'nav.operation' },
-    // ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q17,Tim):第十个一级模块「安全」—— 事故(7b-1),巡检与环境监测(7b-2)。
-    //   Tim 的 D1 那九个一个字没动;这一行是 Q17 新加的,不是从别的模块里拆出来的。它的二级条目是 /safety/incidents(7b-1)与 /safety/inspections · /safety/environment(7b-2)。
-    { id: 'safety', navKey: 'nav.safety' },
-    { id: 'sales', navKey: 'nav.sales' },
-    { id: 'finance', navKey: 'nav.finance' },
-    { id: 'inventory', navKey: 'nav.inventory' },
-    { id: 'hr', navKey: 'nav.hr' },
-    // ★ UI-FIX-1 ⑥(2026-09-02):「任务」改名为「工具」。★
-    // Tim 的理由:任务一个人撑不起一个一级模块(2 页,对着财务的 54 页),
-    // 而他【不要】把它折进别的模块,所以这一格改成【小工具的去处】。
-    // 【只动导航的 id 与标签,权限范围一个字没动】SCOPES 里 '/tools/tasks' 仍然是
-    // module.tasks.view —— 那是任务表 RLS 上写着的码,与顶栏叫什么无关
-    // (本文件抬头 §一 那条"导航重排,门一个字不动")。
-    { id: 'tools', navKey: 'nav.tools' },
-    { id: 'settings', navKey: 'nav.settings' },
+    { id: 'workbench', navKey: 'nav.mod.workbench', titleKey: 'nav.modFull.workbench' },
+    { id: 'purchasing', navKey: 'nav.mod.purchasing', titleKey: 'nav.modFull.purchasing' },
+    { id: 'production', navKey: 'nav.mod.production', titleKey: 'nav.modFull.production' },
+    { id: 'quality', navKey: 'nav.mod.quality', titleKey: 'nav.modFull.quality' },
+    { id: 'sales', navKey: 'nav.mod.sales', titleKey: 'nav.modFull.sales' },
+    { id: 'finance', navKey: 'nav.mod.finance', titleKey: 'nav.modFull.finance' },
+    { id: 'people', navKey: 'nav.mod.people', titleKey: 'nav.modFull.people' },
+    { id: 'safety', navKey: 'nav.mod.safety', titleKey: 'nav.modFull.safety' },
+    { id: 'equipment', navKey: 'nav.mod.equipment', titleKey: 'nav.modFull.equipment' },
+    // ★ UI-FIX-1 ⑥(2026-09-02):「任务」改名为「工具」。SYSTEM-MAP-1:任务与提醒搬进工作台,定价搬进采购,这里只剩日历与单位换算。
+    { id: 'tools', navKey: 'nav.tools', titleKey: 'nav.tools' },
+    { id: 'settings', navKey: 'nav.settings', titleKey: 'nav.settings' },
 ]
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -241,8 +242,8 @@ export const MODULES: readonly ModuleEntry[] = [
 //   所以这是【两种画法】,不是【两份清单】。完整论证见
 //   docs/information-architecture.md §23.3 与 §23.7。
 export const BAR_MODULE_IDS: readonly string[] = [
-    // MES-7b-1(Q17):安全排在运营之后 —— 事故发生在车间,读它的人与读运营的人是同一群人(安全查看码 = 加工查看码的持有人)。
-    'purchasing', 'logistics', 'operation', 'safety', 'sales', 'finance', 'inventory', 'hr',
+    // SYSTEM-MAP-1(Q1):工作台第一,然后是 2.2 的八个业务模块,顺序即 2.2 的顺序。
+    'workbench', 'purchasing', 'production', 'quality', 'sales', 'finance', 'people', 'safety', 'equipment',
 ]
 
 /** 退出顶栏那一行、但【仍然在注册表里】的模块。工具进工具下拉,设置进头像下拉。 */
@@ -322,7 +323,11 @@ export const MODULE_GROUPS: Readonly<Record<string, readonly string[]>> = {
 export type FunctionEntry = {
     href: string
     navKey: string
-    /** 属主模块(MODULES 的 id);长度可以大于 1 —— 那正是本清单存在的理由 */
+    /**
+     * 属主模块(MODULES 的 id)。★ SYSTEM-MAP-1(Tim 2.1,2026-10-26):【恰好一个】—— 每一条二级条目在菜单里只有一个位置。
+     * 形状仍是数组(读它的代码一律取 [0] 或 includes),而长度由 scripts/check-single-home.mjs 在 npm run build 里钉成 1。
+     * 下面那段「可以同属几个模块」是 NAV-REG-1 的历史,2.1 取代了它。
+     */
     modules: readonly string[]
     /** 【唯一的一份】判据 */
     permission: PermissionSpec
@@ -389,6 +394,8 @@ const P_TASKS = 'module.tasks.view'
 const P_HR = 'module.hr.view'
 const P_LOGISTICS = 'module.logistics.view'
 const P_PRICING = 'module.pricing.view'
+/** SYSTEM-MAP-1(Tim D2 · Q2):合并的报销页 —— 医疗(人事查看)与一般(财务查看)任一。每一种的行仍由它自己那张视图的谓词裁决(持码,或者那一笔说的就是你)。 */
+const P_CLAIMS = { all: [], any: ['module.hr.view', 'module.finance.view'] } as const
 /** 设置底下那几张字典的码 —— 与 app/settings/dictionaries/registry.ts 的
  *  **DICT_VIEW_PERMISSIONS** 同源(这里是手抄的第二份,改一处必须改两处)。
  *
@@ -426,7 +433,36 @@ const P_VIEW_SELF_APPROVALS = 'data.view_self_approvals'
 const P_VIEW_CHANGE_LOG = 'data.view_change_log'
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
-    // ══ 采购 Purchasing ═════════════════════════════════════════════════════
+    // ══ 我的工作台 My workbench(SYSTEM-MAP-1) ══════════════════════════════════════
+    // 此前叫「任务」,名下只有一条。改名之后它是【小工具的去处】,而 ⑦ 把定价
+    // 整组搬了进来。**条目的标签仍然是「任务」** —— 改名换的是模块,不是那一页。
+    { href: '/tools/tasks', navKey: 'nav.tasks', modules: ['workbench'], permission: P_TASKS },
+    // ★★【CONV-7 ①:提醒 —— 工具的第五条。Tim 的裁定,2026-09-04】★★
+    //
+    // 【它是什么】首页那一整块「当前待办」搬了过来:34 支跨模块的等待信号 +
+    //   HR 提醒。为什么是【搬】而不是【拆回各模块】—— 信号天生跨模块,拆回去就
+    //   丢掉了"一眼看完所有该操心的事"这件事本身;给它一个自己的去处,人就是
+    //   想看的时候去看,而不是一登录就被推一脸。
+    //
+    // ★【判据【刻意】恒真,与 /tools/calendar 逐字同理 —— 不要"顺手"关上】★
+    //   这一页没有自己的权限模型:**每一支按它【自己家】那个模块的可见性
+    //   出现或不出现**(视图末尾那个 WHERE + 页面的 allows(),两道同码)。
+    //   给这一条挂一个模块码,就等于替 34 支【各不相同】的判据挑一个代表 ——
+    //   挑谁都错:挑 finance,一个只做仓库的人就看不见他自己的盘点提醒;
+    //   挑得宽,又会让菜单上出现一条点进去空空如也的条目。
+    //   **本条不挡人,挡人的是每一支。** 一个进得来却一支都看不见的读者,
+    //   在页面上拿到一句【具名的话】(reminders.nothingVisible),不是一张白页。
+    //
+    // 【顺序:任务 · 日历 · 单位换算 · 提醒 · 定价】—— 提醒排在定价【之前】,
+    //   因为定价是这份菜单里唯一一条【自己还带着孩子】的条目(它那一页列出
+    //   公式/计价器/金属行情),把一条平的条目插到它后面会读成它的第四个孩子。
+    { href: '/tools/reminders', navKey: 'reminders.title', modules: ['workbench'], permission: { all: [] } },
+    { href: '/my-reviews', navKey: 'nav.myReviews', modules: ['workbench'], permission: { all: [] } },
+    { href: '/notifications', navKey: 'notifications.title', modules: ['workbench'], permission: { all: [] } },
+    // SYSTEM-MAP-1(Tim 2.2 · Q5):本人的四样东西住进工作台。人人可进 —— 与 /tools/calendar 同一个空判据;头像下拉不再列 /me 与 /my-reviews(Q5),铃铛留着。
+    { href: '/me', navKey: 'nav.me', modules: ['workbench'], permission: { all: [] } },
+
+    // ══ 采购 Purchasing ═════════════════════════════════════════════════════════
     // ★【CHART-0 ②:「采购主页」这一条【删掉了】,因为它是一个别名不是一个去处】★
     //   app/purchasing/page.tsx 全文十四行,主体是 `redirect('/purchasing/orders')` ——
     //   它没有自己的内容,点下去落在【同一个菜单里紧挨着的下一条】上。
@@ -449,98 +485,136 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   与财务/人力那两条一样 —— 它答的是"这个模块此刻是什么状态"。
     { href: '/purchasing', navKey: 'nav.moduleOverview', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/purchasing/orders', navKey: 'purchasing.subnav.orders', modules: ['purchasing'], permission: P_PURCHASING },
-    { href: '/purchasing/discrepancies', navKey: 'purchasing.subnav.discrepancies', modules: ['purchasing'], permission: P_PURCHASING },
-    { href: '/purchasing/payment-terms', navKey: 'purchasing.subnav.templates', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/suppliers', navKey: 'nav.suppliers', modules: ['purchasing'], permission: P_SUPPLIERS },
     // MES-8a(2026-10-16,MES-0 Q77 · Q78 · Q91 · MES-8 Step 0 Q2 · Q6,Tim):供应商评分卡 —— 每一家最近一次评审的等级,与评分的设定(V23 · V24)。
     //   读 module.suppliers.view(Q91);记评审与改设定要 action.supplier_review(cco · admin)—— 页内控件看得见、按不动、说出码。
     { href: '/suppliers/scorecards', navKey: 'purchasing.subnav.scorecards', modules: ['purchasing'], permission: P_SUPPLIERS },
     { href: '/contracts', navKey: 'nav.contracts', modules: ['purchasing'], permission: P_SUPPLIERS },
-    // ★ D7:公司执照登记簿搬到采购。**它的码本来就是 module.suppliers.view** ——
-    //   见 db/tables/company_compliance.sql 与 app/purchasing/licences/page.tsx 的抬头。
-    //   勘察文件的 M2 说它在 module.finance.view 后面,那一句【是错的】:
-    //   finance.view 把的是它此前寄居的那一页(/finance/company),不是这块面板。
-    { href: '/purchasing/licences', navKey: 'company.licence.title', modules: ['purchasing'], permission: P_SUPPLIERS },
+    { href: '/purchasing/payment-terms', navKey: 'purchasing.subnav.templates', modules: ['purchasing'], permission: P_PURCHASING },
+    { href: '/purchasing/discrepancies', navKey: 'purchasing.subnav.discrepancies', modules: ['purchasing'], permission: P_PURCHASING },
+    // ★★【UI-FIX-1 ⑦:定价从采购与销售【搬进】工具,而这【推翻了 D6 as built】】★★
+    //
+    // 【被推翻的是什么】IA-BUILD-1 的 D6 把定价同时挂在采购与销售之下,理由是
+    // "它同时服务两侧,塞进任何一侧都会让另一侧看不见"。那个理由本身没有错,
+    // **Tim 在 2026-09-02 就定价这一件事推翻了它** —— 定价现在【只属于工具】。
+    // 【所以下面那段 D6 的推理不再生效,不许照它读】共有区里 D6 的抬头已经改写。
+    // 【D6 的机制没有被推翻】/sales/commissions、/inbound、/output、/finance/freight
+    // 仍然是多属主的,多属主机制本身一行未动 —— 变的只是定价这一族的属主。
+    //
+    // 【判据一个字没动】仍然是 module.pricing.view;搬的是【它在哪个菜单里】,
+    // 不是【谁进得去】。这与本刀 /margin 那一条是同一条裁定。
+    { href: '/tools/pricing', navKey: 'nav.pricing', modules: ['purchasing'], permission: P_PRICING },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   顺序【就是】app/tools/pricing/page.tsx 里 CARDS 的顺序。
+    //   ⚠ 它们仍然【不带 group】—— `tools.group.pricing` 今天一个住户都没有,
+    //     而给这三条挂上它会让那一组重新出现在工具菜单里(CONV-0 ②a 刚把它清空)。
+    { href: '/tools/pricing/formulas', navKey: 'pricing.formulasCard', modules: ['purchasing'], permission: P_PRICING, parent: '/tools/pricing' },
+    { href: '/tools/pricing/calculator', navKey: 'pricing.calculatorCard', modules: ['purchasing'], permission: P_PRICING, parent: '/tools/pricing' },
+    { href: '/tools/pricing/metal-prices', navKey: 'pricing.pricesCard', modules: ['purchasing'], permission: P_PRICING, parent: '/tools/pricing' },
 
-    // ══ 物流 Logistics ══════════════════════════════════════════════════════
-    // ★【CONV-6 ⑤c:物流【此前根本没有模块根】—— app/logistics/page.tsx 不存在】★
-    //   NAV-REG-1 早就为物流记过那个陷阱(「一个打得开却零行的库存页」),
-    //   而它自己连打得开的那一页都没有。本刀建了,内容是 ⑨ 的 Overview。
-    { href: '/logistics', navKey: 'nav.moduleOverview', modules: ['logistics'], permission: P_LOGISTICS },
-    { href: '/logistics/forwarders', navKey: 'logistics.forwardersTitle', modules: ['logistics'], permission: P_LOGISTICS },
-    { href: '/logistics/lanes', navKey: 'logistics.lanesTitle', modules: ['logistics'], permission: P_LOGISTICS },
-    { href: '/logistics/containers', navKey: 'logistics.containersTitle', modules: ['logistics'], permission: P_LOGISTICS },
-    // ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q7):仓库的发货队列 —— 发货归 action.ship_goods(warehouse · admin)。
-    //   属于物流模块(仓库持 module.logistics.view);没有这个码的人看得见入口、写着「受限」、进不去。
-    { href: '/logistics/shipping', navKey: 'logistics.shipping.title', modules: ['logistics'], permission: 'action.ship_goods' },
-
-    // ══ 运营 Operation ══════════════════════════════════════════════════════
+    // ══ 生产与仓储 Production and warehouse(SYSTEM-MAP-1:运营 + 库存) ══════════════════
     // ★【NAV-CLEANUP-1 ③:运营的落地页】★ Tim 的 Q4:它【只】列本模块自己的条目,
     //   而且那份清单从注册表派生 —— 所以它不可能与二级菜单漂开。不做经营内容。
-    { href: '/operation', navKey: 'processing.subnav.overview', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/operation/orders', navKey: 'processing.subnav.workOrders', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/operation/processing', navKey: 'processing.subnav.runs', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/operation/wip', navKey: 'processing.subnav.wip', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/operation/handovers', navKey: 'processing.subnav.handovers', modules: ['operation'], permission: P_PROCESSING },
-    // MES-4a(2026-10-07,Step 0 Q1 · Q9–Q17,Tim):工序 —— 每道工序的参数与指标、挂着的机器、平衡容差、配方与版本。
-    //   读要 module.processing.view;改要 module.processing.edit(与那几张表的写策略同一个码;页内控件看得见、按不动、说出缺哪个码)。
-    { href: '/operation/operation-types', navKey: 'processing.subnav.operationTypes', modules: ['operation'], permission: P_PROCESSING },
-    // MES-4b(2026-10-07,Step 0 Q21–Q25,Tim):交叉污染抽检 —— 每一个班 × 每一条流抽过没有、污染率对着警戒线(V11)。只读;记在加工单页上。
-    { href: '/operation/contamination', navKey: 'processing.subnav.contamination', modules: ['operation'], permission: P_CONTAMINATION },
-    // MES-5b-1(2026-10-08,Step 0 Q8 · Q13 · Q14,Tim):月度物料平衡(全厂 / 每道工序 / 库存滚动)与质量得率(工序 × 月 × 分组)。
-    //   只读;读 module.processing.view(两张页读的外壳另认财务 / 库存查看码 —— /inventory 的合计与月末那一步靠它)。
-    { href: '/operation/balance', navKey: 'processing.subnav.balance', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/operation/yield', navKey: 'processing.subnav.yield', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation', navKey: 'processing.subnav.overview', modules: ['production'], permission: P_PROCESSING },
+    // 【三】收货 / 进料批次:采购的收货腿,库存的入库腿 —— 勘察 C1/C6。
+    // ★【UI-FIX-1 ⑦:运营成为第三个属主 —— 这是一次纯粹的【增加】】★
+    //   Tim 的理由:车间需要知道什么料到了。
+    //   **没有任何人失去东西**:判据一个字没动(module.inbound.view),
+    //   采购与库存两侧的入口原样留着,只是运营的菜单里多了一条。
+    //   【它是本注册表里第一条【三】属主的条目】—— 机制本来就没有上限,
+    //   modules 是一个数组而不是一对,这一条只是第一次用到第三格。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(生产与仓储)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/inbound', navKey: 'nav.inbound', modules: ['production'], permission: P_INBOUND },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   ★ Tim 自己举的那个例子(「field receiving」)。它的属主【与 /inbound 逐字相同】:
+    //     采购要知道来的是哪张单、库存要知道进了什么、而运营那一个是 Tim 特意加的
+    //     (「车间需要知道什么料到了」)。**现场收货的读者与入库本身的读者是同一批人。**
+    //   ⚠ 它因此是一条【跨模块】条目,而 check-permission-predicate 的判据 ② 禁止
+    //     跨模块条目被手写成 <Link> —— 那条判据为此加了一格例外:**带 parent 的条目,
+    //     它父条目那一页可以手写它的链接**(那正是 parent 的意思)。理由写在那支脚本里。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(生产与仓储)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/inbound/receive', navKey: 'receive.entry', modules: ['production'], permission: P_INBOUND, parent: '/inbound' },
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(生产与仓储)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/operation/weighbridge', navKey: 'processing.subnav.weighbridge', modules: ['production'], permission: P_WEIGHBRIDGE },
+    { href: '/inventory', navKey: 'nav.stockOverview', modules: ['production'], permission: P_INVENTORY },
+    { href: '/inventory/locations', navKey: 'inventory.subnav.locations', modules: ['production'], permission: P_INVENTORY },
+    // MES-3b(Q22):扫码 —— 扫一批、看它在哪、扫目的库位把它搬过去;页面最下面是"你最近的扫码"。门 = module.inventory.view(搬要 edit,函数自己查)。
+    { href: '/inventory/scan', navKey: 'inventory.subnav.scan', modules: ['production'], permission: P_INVENTORY },
+    // ★ M6:盘点降成库存的二级。**它自带 module.stocktakes.view,而模块可进性是
+    //   从二级条目推导的,所以"只有盘点权限的人进得去库存"自动成立。**
+    { href: '/stocktakes', navKey: 'nav.stocktakes', modules: ['production'], permission: P_STOCKTAKES },
+    { href: '/materials', navKey: 'nav.materials', modules: ['production'], permission: P_MATERIALS },
+    { href: '/operation/orders', navKey: 'processing.subnav.workOrders', modules: ['production'], permission: P_PROCESSING },
+    { href: '/operation/processing', navKey: 'processing.subnav.runs', modules: ['production'], permission: P_PROCESSING },
+    { href: '/operation/wip', navKey: 'processing.subnav.wip', modules: ['production'], permission: P_PROCESSING },
+    { href: '/operation/handovers', navKey: 'processing.subnav.handovers', modules: ['production'], permission: P_PROCESSING },
     // MES-5b-3(2026-10-09,Step 0 Q17–Q20,Tim):配料计划(将来那条线)—— 读 module.processing.view;建与改 action.wo_create,
     //   放行 action.wo_release(建单人永远不能放行),执行 action.processing_commit(页内控件看得见、按不动、说出缺哪个码)。
-    { href: '/operation/blending', navKey: 'processing.subnav.blending', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation/blending', navKey: 'processing.subnav.blending', modules: ['production'], permission: P_PROCESSING },
+    // 【双】产出批次:**这是 Tim 自己举的例子** —— 一批产出既是加工结果,也是可售库存。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(生产与仓储)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/output', navKey: 'nav.output', modules: ['production'], permission: P_OUTPUT },
+    // MES-5b-1(2026-10-08,Step 0 Q8 · Q13 · Q14,Tim):月度物料平衡(全厂 / 每道工序 / 库存滚动)与质量得率(工序 × 月 × 分组)。
+    //   只读;读 module.processing.view(两张页读的外壳另认财务 / 库存查看码 —— /inventory 的合计与月末那一步靠它)。
+    { href: '/operation/balance', navKey: 'processing.subnav.balance', modules: ['production'], permission: P_PROCESSING },
+    { href: '/operation/yield', navKey: 'processing.subnav.yield', modules: ['production'], permission: P_PROCESSING },
+    // MES-2(2026-10-06,MES-2 Step 0 Q2 · Q8 · Q22):确认队列(读 module.processing.view;确认 / 驳回 / 录入 / 更正要 action.confirm_capture)·
+    //   地磅单(收货或物流查看码任一 —— 与表与照片桶的读策略逐字同一对)· 校准(加工查看;记录与设定要 action.manage_devices)。
+    { href: '/operation/capture', navKey: 'processing.subnav.capture', modules: ['production'], permission: P_PROCESSING },
+    // MES-1:数据收件箱 —— "Process received" 那一个按钮要的也是加工查看码(Q11)。
+    // ☞ SYSTEM-MAP-1(Tim D3):它从设备页底下的 parent 升成菜单条目,摆在「确认读数」旁边(生产与仓储)。
+    { href: '/operation/capture/inbox', navKey: 'processing.subnav.captureInbox', modules: ['production'], permission: P_PROCESSING },
+    // ★★【UI-FIX-1 ⑦:库存报表从财务【搬回】库存,独占 —— 这是一次纠错,不是一次去重】★★
+    //
+    // 【它此前在哪】NAV-REG-1/R5 把它挂成 inventory + finance 双属主,并且给了
+    // group: 'finance.group.reports' —— 于是它出现在财务菜单的「报表」组里,标签
+    // 就叫「报表」。CHART-0 ② 查过它【不是别名】(它有自己的内容),把措辞问题留给了 Tim。
+    // **2026-09-02 Tim 裁定:它是【库存】报表,摆在财务底下是一个错误。**
+    // 那一页自己印的就是"Inventory reports — read-only views over stock as it stands"。
+    //
+    // ★【判据一个字没动,而这是明令】★ 仍然是 module.inventory.view。
+    //   **一页摆在哪、与谁进得去,是两个问题,这一刀只动第一个。**
+    //   于是改动前进得去的人,改动后一个不少地仍然进得去 —— 只是从库存菜单进。
+    // 【group 一并去掉,因为它只对财务有意义】只有财务有第三级(FINANCE_MODULE_ID);
+    //   留着一个 finance.group.* 而属主里没有 finance,是一个没有读者的字段。
+    { href: '/inventory/reports', navKey: 'inventory.subnav.reports', modules: ['production'], permission: P_INVENTORY },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   顺序【就是】那一页 CARDS 的顺序(app/inventory/reports/page.tsx)——
+    //   两处写着同一份顺序时,至少让它们看起来是同一份。
+    { href: '/inventory/reports/snapshot', navKey: 'reports.snapshot.title', modules: ['production'], permission: P_INVENTORY, parent: '/inventory/reports' },
+    { href: '/inventory/reports/violations', navKey: 'reports.violations.title', modules: ['production'], permission: P_INVENTORY, parent: '/inventory/reports' },
+    { href: '/inventory/reports/safety', navKey: 'reports.safety.title', modules: ['production'], permission: P_INVENTORY, parent: '/inventory/reports' },
+    { href: '/inventory/reports/ledger', navKey: 'reports.ledger.title', modules: ['production'], permission: P_INVENTORY, parent: '/inventory/reports' },
+
+    // ══ 质量 Quality(SYSTEM-MAP-1,2.4(2)) ═══════════════════════════════════════
     // MES-6a-1(2026-10-09,MES-0 Q90 · MES-6a Step 0 Q11 · Q13,Tim):质量 —— 样品(取样、保管、留样日、处置)与化验争议(立、撤回、结案、仲裁费)。
     //   读 module.quality.view(cco · cto · finance · cfo · admin · warehouse);取样、记保管、立 / 撤回争议、V16 要 module.quality.edit
     //   (cco · cto · admin;Q12:仓库不加);结案 action.apply_assay(cto · admin)—— 页内控件看得见、按不动、说出缺哪个码(DBLOCK-1)。
     //   批次与化验页上的样品 / 争议面板另给持那一批查看码的人看(Q11),那不是这两条条目的事。
-    { href: '/quality/samples', navKey: 'quality.subnav.samples', modules: ['operation'], permission: P_QUALITY },
-    { href: '/quality/disputes', navKey: 'quality.subnav.disputes', modules: ['operation'], permission: P_QUALITY },
+    { href: '/quality/samples', navKey: 'quality.subnav.samples', modules: ['quality'], permission: P_QUALITY },
+    // MES-6b-2(2026-10-15,MES-0 Q67 · MES-6b Step 0 Q10 · Q14 · Q30 · Q32,Tim):分析证书 —— 签发在产出批页上(action.issue_coa:cco · admin);
+    //   这一页列出每一张证书、下载存下的那一份、提 CFO 作废申请。门:质量查看码【与】产出查看码(P_COA 的理由)。
+    { href: '/quality/coa', navKey: 'quality.subnav.coa', modules: ['quality'], permission: P_COA },
     // MES-6b-1(2026-10-15,MES-0 Q65 · Q66 · MES-6b Step 0 Q2 · Q7 · Q9,Tim):不合格报告 —— 开着的那一张就是那一批的质量暂扣。
     //   读 module.quality.view;开一张要 module.quality.edit(cco · cto · admin);决定要 action.ncr_decide(cco · cto · admin),
     //   开单人永远不能决定自己那一张 —— 页内控件看得见、按不动、说出缺哪个码或为什么(DBLOCK-1)。
-    { href: '/quality/ncr', navKey: 'quality.subnav.ncr', modules: ['operation'], permission: P_QUALITY },
-    // MES-6b-2(2026-10-15,MES-0 Q67 · MES-6b Step 0 Q10 · Q14 · Q30 · Q32,Tim):分析证书 —— 签发在产出批页上(action.issue_coa:cco · admin);
-    //   这一页列出每一张证书、下载存下的那一份、提 CFO 作废申请。门:质量查看码【与】产出查看码(P_COA 的理由)。
-    { href: '/quality/coa', navKey: 'quality.subnav.coa', modules: ['operation'], permission: P_COA },
-    // MES-7b-1(2026-10-16,MES-0 Q73 · Q74 · Q76 · MES-7b Step 0 Q2 · Q3 · Q17 · Q28,Tim):事故登记簿 —— 安全模块唯一的一条二级条目(7b-2 加巡检与环境)。
-    //   读 module.safety.view(每一个持加工查看码的角色);记一件、记之后的事、链批次要 module.safety.edit(admin · cto · warehouse)—— 页内控件
-    //   看得见、按不动、说出缺哪个码(DBLOCK-1)。受伤的细节另要 data.view_health(或就是受伤的那名员工本人)。
-    { href: '/safety/incidents', navKey: 'safety.subnav.incidents', modules: ['safety'], permission: 'module.safety.view' },
-    // MES-7b-2(2026-10-16,MES-0 Q72 · Q75 · MES-7b Step 0 Q13–Q17,Tim):安全巡检(清单、一次一次的巡检、跟到关闭的发现)与环境监测(结果对着限值,
-    //   超标开一件事故)—— 安全模块的第二、第三条二级条目。读 module.safety.view;存清单、交巡检、记 / 关发现、记结果要 module.safety.edit
-    //   (页内控件看得见、按不动、说出码)。"建一张任务"给按下的人建一张私人任务(任务模块自己的码)。
-    { href: '/safety/inspections', navKey: 'safety.subnav.inspections', modules: ['safety'], permission: 'module.safety.view' },
-    { href: '/safety/environment', navKey: 'safety.subnav.environment', modules: ['safety'], permission: 'module.safety.view' },
-    // MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q14 – Q18,Tim):合规包 —— 一个已关账月份的监管记录(物料平衡 · 库存滚动 · 执照与 NEA 类别 ·
-    //   事故(不带受伤的细节)· 环境监测 · 巡检),冻成 CPK-YYYY-MM,PDF 按 sha256 存档。读 module.compliance.view;冻、重出、存档与设 V26 / V27 要
-    //   action.compliance_pack(cto · admin)—— 页内控件看得见、按不动、说出码。/[id] 在它下面,不必另登记。
-    { href: '/compliance/packs', navKey: 'safety.subnav.compliancePacks', modules: ['safety'], permission: 'module.compliance.view' },
-    // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 加工的人读得到的那一份(资产卡、成本与折旧留在财务)。
-    //   ★ MES-7a-1(Q6):停机、保养维修、保养间隔从此记在设备页上(写 module.processing.edit,页内控件看得见、按不动、说出码)。
-    { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
-    // MES-7a-1(Q5):设备可靠性(MTBF / MTTR)—— 设备清单上一键可达(parent),所以不在二级菜单里另起一条;门同设备页。
-    { href: '/operation/equipment/reliability', navKey: 'processing.subnav.equipmentReliability', modules: ['operation'], permission: P_PROCESSING, parent: '/operation/equipment' },
-    // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
-    //   重试 / 丢弃收件箱的行要 action.manage_devices(页内的控件看得见、按不动、说出缺哪个码 —— DBLOCK-1)。
-    { href: '/operation/devices', navKey: 'processing.subnav.devices', modules: ['operation'], permission: P_PROCESSING },
-    // MES-1:数据收件箱 —— 设备页上一键可达(parent),所以不在二级菜单里另起一条;"Process received" 那一个按钮要的也是加工查看码(Q11)。
-    { href: '/operation/capture/inbox', navKey: 'processing.subnav.captureInbox', modules: ['operation'], permission: P_PROCESSING, parent: '/operation/devices' },
-    // MES-2(2026-10-06,MES-2 Step 0 Q2 · Q8 · Q22):确认队列(读 module.processing.view;确认 / 驳回 / 录入 / 更正要 action.confirm_capture)·
-    //   地磅单(收货或物流查看码任一 —— 与表与照片桶的读策略逐字同一对)· 校准(加工查看;记录与设定要 action.manage_devices)。
-    { href: '/operation/capture', navKey: 'processing.subnav.capture', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/operation/weighbridge', navKey: 'processing.subnav.weighbridge', modules: ['operation', 'inventory', 'logistics'], permission: P_WEIGHBRIDGE },
-    { href: '/operation/calibration', navKey: 'processing.subnav.calibration', modules: ['operation'], permission: P_PROCESSING, parent: '/operation/devices' },
+    { href: '/quality/ncr', navKey: 'quality.subnav.ncr', modules: ['quality'], permission: P_QUALITY },
+    { href: '/quality/disputes', navKey: 'quality.subnav.disputes', modules: ['quality'], permission: P_QUALITY },
+    // MES-4b(2026-10-07,Step 0 Q21–Q25,Tim):交叉污染抽检 —— 每一个班 × 每一条流抽过没有、污染率对着警戒线(V11)。只读;记在加工单页上。
+    { href: '/operation/contamination', navKey: 'processing.subnav.contamination', modules: ['quality'], permission: P_CONTAMINATION },
 
-    // ══ 销售 Sales ══════════════════════════════════════════════════════════
+    // ══ 销售与物流 Sales and logistics(SYSTEM-MAP-1:销售 + 物流) ═══════════════════════
     // ★【CONV-6 ⑤c:销售也【此前没有模块根】,与物流同一处缺席】★
     { href: '/sales', navKey: 'nav.moduleOverview', modules: ['sales'], permission: P_SALES },
     { href: '/sales/quotes', navKey: 'sales.subnav.quotes', modules: ['sales'], permission: P_SALES },
     { href: '/sales/orders', navKey: 'sales.subnav.orders', modules: ['sales'], permission: P_SALES },
+    // ★【CONV-6 ⑤c:物流【此前根本没有模块根】—— app/logistics/page.tsx 不存在】★
+    //   NAV-REG-1 早就为物流记过那个陷阱(「一个打得开却零行的库存页」),
+    //   而它自己连打得开的那一页都没有。本刀建了,内容是 ⑨ 的 Overview。
+    { href: '/logistics', navKey: 'nav.logisticsOverview', modules: ['sales'], permission: P_LOGISTICS },
     // ★★【CONV-6 ⑤b:客户【整族】搬进销售,地址前缀换成 /sales/customers】★★
     //   与「任务→工具」、「加工→运营」那两次逐字同一种拆法:
     //   **导航与路由前缀搬,RLS 上写着的那个码一个字不动。**
@@ -551,6 +625,38 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
     //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
     { href: '/sales/customers/overlap', navKey: 'overlap.entryLink', modules: ['sales'], permission: P_CUSTOMERS, parent: '/sales/customers' },
+    // 【共有区】—— 属主多于一个的条目全部集中在这里
+    // ★【为什么它们不写在各自属主那一段里,而是集中在最后】★
+    // functionsForModule() 按【数组顺序】返回,所以数组顺序【就是】菜单顺序。
+    // 一条跨属主的条目只有一处声明(那正是本机制的全部内容),于是它在两个
+    // 菜单里的位置由它在数组里的【那一个】位置决定 —— 写在采购那一段里,
+    // 它就会插在销售自己的条目【前面】。
+    // 集中放在全部单属主段之后,每个模块的菜单就都是【先自己的,后共有的】,
+    // 而这对每一个属主都成立,不需要第二份排序表。
+    // (第二份排序表正是本刀在财务子导航里刚刚删掉的那种东西。)
+    // 【双】佣金:主语是代理人(一个 service_vendor 供应商),但 free_standing
+    // 与卖方侧的佣金是销售在看 —— 勘察 C1/C4。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(销售与物流)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/sales/commissions', navKey: 'nav.commissions', modules: ['sales'], permission: P_SUPPLIERS },
+    { href: '/logistics/containers', navKey: 'logistics.containersTitle', modules: ['sales'], permission: P_LOGISTICS },
+    { href: '/logistics/forwarders', navKey: 'logistics.forwardersTitle', modules: ['sales'], permission: P_LOGISTICS },
+    { href: '/logistics/lanes', navKey: 'logistics.lanesTitle', modules: ['sales'], permission: P_LOGISTICS },
+    // ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q7):仓库的发货队列 —— 发货归 action.ship_goods(warehouse · admin)。
+    //   属于物流模块(仓库持 module.logistics.view);没有这个码的人看得见入口、写着「受限」、进不去。
+    { href: '/logistics/shipping', navKey: 'logistics.shipping.title', modules: ['sales'], permission: 'action.ship_goods' },
+    // 这里从前写的是:「定价与行情同属采购与销售,一份判据,不设第十个模块 ——
+    // 定价服务采购(payable %、扣杂)与销售(报价)两侧;塞进任何一侧都会让另一侧
+    // 看不见。/margin 是这条的先例。」
+    // ★ 那段推理【不再生效】,不许照它读。★ Tim 裁定定价整族(含金属行情)
+    //   只属于【工具】,采购与销售两侧都不再有这个入口 —— 见上面工具那一段。
+    //   记在这里而不是删掉,是为了让"D6 说定价同属两侧"这句话不至于读起来还作数。
+    // 【被推翻的是这一族的摆放,不是多属主机制】机制仍然在用:上面的 /sales/commissions、
+    //   /inbound(本刀刚变成三属主)、/output、下面的 /finance/freight 都是。
+    // 【双】运费单:既是一笔应付,也是一票货的成本 —— 勘察 C2。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(销售与物流;财务的应付与付款经链接到它)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/finance/freight', navKey: 'finance.subnav.freight', modules: ['sales'], permission: P_FINANCE },
+
+    // ══ 财务 Finance —— 唯一有第三级的模块。六组顺序见 FINANCE_GROUPS ══════════════════════════
     // ★★【CONV-6 ⑤b:「客户重叠检查」这一条【整条从菜单里删掉】】★★
     //   Tim 的裁定:它是【客户页的孩子】,不是客户的同辈 —— 与 ⑧ 删掉
     //   「每日行情录入」那张卡是同一条判断,只是一个在菜单上、一个在卡片墙上。
@@ -566,7 +672,6 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //       这个地址)从 CONV 之前就在跑 —— **也就是说这一条的可达性
     //       不是靠菜单撑着的,它一直有自己的门,而且那扇门有闸看着。**
 
-    // ══ 财务 Finance —— 唯一有第三级的模块。六组顺序见 FINANCE_GROUPS ═══════
     // 【组内顺序与组的划分】条目本身与它们的先后【逐字取自】此前的
     // app/finance/SubnavClient.tsx 的 ordered 数组(勘察 D3:那是 DERIVED 的);
     // **分好的六个组名是 Tim 给的**(D1),哪一条归哪一组是本刀的判断。
@@ -623,7 +728,6 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/payment-requests', navKey: 'finance.subnav.paymentRequests', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/payments', navKey: 'finance.subnav.payments', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/expenses', navKey: 'finance.subnav.expenses', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
-    { href: '/finance/claims', navKey: 'finance.subnav.expenseClaims', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/assets', navKey: 'finance.subnav.assets', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/month-end', navKey: 'finance.subnav.monthEnd', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     // AP-RECON-1 Batch B:清单 ↔ 总账的常设勾稽。月结页那一步链到这里;读的门与月结同一个。
@@ -666,67 +770,15 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/settings', navKey: 'finance.subnav.settings', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
     { href: '/finance/company', navKey: 'finance.subnav.company', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
     { href: '/finance/fx', navKey: 'finance.subnav.fx', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
+    // 【双】自批记录(APR-ROUTE-1,R2):一张报销单属于财务,一张医疗申报属于人力,
+    // 而 Tim 的例外同时覆盖这两类 —— 所以它在两个模块下各出现一次(Q4)。
+    // 判据【只有】data.view_self_approvals 一个码,不借任何模块码。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(财务)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/finance/self-approved', navKey: 'finance.subnav.selfApproved', modules: ['finance'], permission: P_VIEW_SELF_APPROVALS, group: 'finance.group.reports' },
 
-    // ══ 库存 Inventory ══════════════════════════════════════════════════════
-    { href: '/inventory', navKey: 'inventory.subnav.overview', modules: ['inventory'], permission: P_INVENTORY },
-    { href: '/inventory/locations', navKey: 'inventory.subnav.locations', modules: ['inventory'], permission: P_INVENTORY },
-    // MES-3a(Q1 · Q32):库存安全 —— 上限、滞留、隔离一页看全。门 = module.inventory.view;每一段的行带它自己的谓词。
-    { href: '/inventory/storage-safety', navKey: 'inventory.subnav.storageSafety', modules: ['inventory'], permission: P_INVENTORY },
-    // MES-3b(Q22):扫码 —— 扫一批、看它在哪、扫目的库位把它搬过去;页面最下面是"你最近的扫码"。门 = module.inventory.view(搬要 edit,函数自己查)。
-    { href: '/inventory/scan', navKey: 'inventory.subnav.scan', modules: ['inventory'], permission: P_INVENTORY },
-    // ★ M6:盘点降成库存的二级。**它自带 module.stocktakes.view,而模块可进性是
-    //   从二级条目推导的,所以"只有盘点权限的人进得去库存"自动成立。**
-    { href: '/stocktakes', navKey: 'nav.stocktakes', modules: ['inventory'], permission: P_STOCKTAKES },
-    { href: '/materials', navKey: 'nav.materials', modules: ['inventory'], permission: P_MATERIALS },
-    // ★★【UI-FIX-1 ⑦:库存报表从财务【搬回】库存,独占 —— 这是一次纠错,不是一次去重】★★
-    //
-    // 【它此前在哪】NAV-REG-1/R5 把它挂成 inventory + finance 双属主,并且给了
-    // group: 'finance.group.reports' —— 于是它出现在财务菜单的「报表」组里,标签
-    // 就叫「报表」。CHART-0 ② 查过它【不是别名】(它有自己的内容),把措辞问题留给了 Tim。
-    // **2026-09-02 Tim 裁定:它是【库存】报表,摆在财务底下是一个错误。**
-    // 那一页自己印的就是"Inventory reports — read-only views over stock as it stands"。
-    //
-    // ★【判据一个字没动,而这是明令】★ 仍然是 module.inventory.view。
-    //   **一页摆在哪、与谁进得去,是两个问题,这一刀只动第一个。**
-    //   于是改动前进得去的人,改动后一个不少地仍然进得去 —— 只是从库存菜单进。
-    // 【group 一并去掉,因为它只对财务有意义】只有财务有第三级(FINANCE_MODULE_ID);
-    //   留着一个 finance.group.* 而属主里没有 finance,是一个没有读者的字段。
-    { href: '/inventory/reports', navKey: 'inventory.subnav.reports', modules: ['inventory'], permission: P_INVENTORY },
-    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
-    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
-    //   顺序【就是】那一页 CARDS 的顺序(app/inventory/reports/page.tsx)——
-    //   两处写着同一份顺序时,至少让它们看起来是同一份。
-    { href: '/inventory/reports/snapshot', navKey: 'reports.snapshot.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
-    { href: '/inventory/reports/violations', navKey: 'reports.violations.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
-    { href: '/inventory/reports/safety', navKey: 'reports.safety.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
-    { href: '/inventory/reports/ledger', navKey: 'reports.ledger.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
-
-    // ══ 人力 HR —— 勘察 D3 判定为 DERIVED,逐条取自 app/hr/Subnav.tsx ════════
-    { href: '/hr', navKey: 'hr.subnav.overview', modules: ['hr'], permission: P_HR },
-    { href: '/hr/employees', navKey: 'hr.subnav.employees', modules: ['hr'], permission: P_HR },
-    { href: '/hr/departments', navKey: 'hr.subnav.departments', modules: ['hr'], permission: P_HR },
-    { href: '/hr/attendance', navKey: 'hr.subnav.attendance', modules: ['hr'], permission: P_HR },
-    { href: '/hr/payroll', navKey: 'hr.subnav.payroll', modules: ['hr'], permission: P_HR },
-    { href: '/hr/leave', navKey: 'hr.subnav.leave', modules: ['hr'], permission: P_HR },
-    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
-    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
-    //   顺序【就是】LeaveSubnav.tsx 里那一份的顺序。
-    { href: '/hr/leave/balances', navKey: 'leave.subnav.balances', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
-    { href: '/hr/leave/calendar', navKey: 'leave.subnav.calendar', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
-    { href: '/hr/leave/grants', navKey: 'leave.subnav.grants', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
-    { href: '/hr/leave/types', navKey: 'leave.subnav.types', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
-    { href: '/hr/leave/holidays', navKey: 'leave.subnav.holidays', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
-    { href: '/hr/claims', navKey: 'hr.subnav.claims', modules: ['hr'], permission: P_HR },
-    { href: '/hr/training', navKey: 'hr.subnav.training', modules: ['hr'], permission: P_HR },
-    { href: '/hr/reviews', navKey: 'hr.subnav.reviews', modules: ['hr'], permission: P_HR },
-    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
-    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
-    { href: '/hr/reviews/cycles', navKey: 'reviews.cyclesTitle', modules: ['hr'], permission: P_HR, parent: '/hr/reviews' },
-    { href: '/hr/reviews/scale', navKey: 'reviews.scaleTitle', modules: ['hr'], permission: P_HR, parent: '/hr/reviews' },
-    { href: '/hr/kpi', navKey: 'hr.subnav.kpi', modules: ['hr'], permission: P_HR },
-    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
-    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
-    { href: '/hr/kpi/score', navKey: 'hr.subnav.kpiScore', modules: ['hr'], permission: P_HR, parent: '/hr/kpi' },
+    // ══ 人事 People(SYSTEM-MAP-1:原「人力资源」) ═══════════════════════════════════════
+    { href: '/hr', navKey: 'hr.subnav.overview', modules: ['people'], permission: P_HR },
+    { href: '/hr/employees', navKey: 'hr.subnav.employees', modules: ['people'], permission: P_HR },
     // ★★【MANUAL-FIX-1 C:「KPI 打分」从菜单里撤走,改挂在 /hr/kpi 那一页上】★★
     //   它是 /hr/kpi 的【子页】,不是它的同辈:路径上就差一段,而菜单把两者
     //   并排画着,读起来像两件平级的事。全仓库只有两条这样的条目(另一条是
@@ -740,12 +792,87 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // CHART-1 ③:组织架构图。与其它 HR 页同一个判据 —— 它读的两张真源
     // (employees_masked / departments)本来就都由 module.hr.view 把门,
     // 另铸一个码会造出一个"进得去模块、进不去这一页"的洞(/margin 那一课)。
-    { href: '/hr/org', navKey: 'hr.subnav.org', modules: ['hr'], permission: P_HR },
+    { href: '/hr/org', navKey: 'hr.subnav.org', modules: ['people'], permission: P_HR },
+    { href: '/hr/departments', navKey: 'hr.subnav.departments', modules: ['people'], permission: P_HR },
+    { href: '/hr/attendance', navKey: 'hr.subnav.attendance', modules: ['people'], permission: P_HR },
+    // 【双】加班(OVERTIME-1,Tim Q13):财务在人力下按月录,仓库在运营下整批批。
+    // ★ 仓库【不】持 module.hr.view —— 这一条若只挂在人力下,批的人连入口都没有(人力对他是「受限」)。
+    //   判据是三个码任一:读者(module.hr.view)· 录的人(action.overtime_enter)· 批的人
+    //   (action.overtime_approve)—— 与两张加班表的读策略逐字同一组码。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(人事)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/hr/overtime', navKey: 'hr.subnav.overtime', modules: ['people'],
+      permission: { all: [], any: ['module.hr.view', 'action.overtime_enter', 'action.overtime_approve'] } },
+    { href: '/hr/leave', navKey: 'hr.subnav.leave', modules: ['people'], permission: P_HR },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   顺序【就是】LeaveSubnav.tsx 里那一份的顺序。
+    { href: '/hr/leave/balances', navKey: 'leave.subnav.balances', modules: ['people'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/calendar', navKey: 'leave.subnav.calendar', modules: ['people'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/grants', navKey: 'leave.subnav.grants', modules: ['people'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/types', navKey: 'leave.subnav.types', modules: ['people'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/holidays', navKey: 'leave.subnav.holidays', modules: ['people'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/payroll', navKey: 'hr.subnav.payroll', modules: ['people'], permission: P_HR },
+    // SYSTEM-MAP-1(Tim D2 · Q2):报销【一条】条目,两种 —— 医疗与一般。持人事或财务查看码任一即进;每一行指回它自己的去处
+    //   (医疗 → /hr/claims/[id];一般 → /finance/claims#claim-<id>,批准了的 → 那笔开支)。两张原页地址与审批规则不变,只是离开菜单。
+    { href: '/claims', navKey: 'nav.claims', modules: ['people'], permission: P_CLAIMS },
+    { href: '/hr/claims', navKey: 'nav.medicalClaims', modules: ['people'], permission: P_HR, parent: '/claims' },
+    { href: '/finance/claims', navKey: 'finance.subnav.expenseClaims', modules: ['people'], permission: P_FINANCE, parent: '/claims' },
+    { href: '/hr/training', navKey: 'hr.subnav.training', modules: ['people'], permission: P_HR },
+    { href: '/hr/reviews', navKey: 'hr.subnav.reviews', modules: ['people'], permission: P_HR },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    { href: '/hr/reviews/cycles', navKey: 'reviews.cyclesTitle', modules: ['people'], permission: P_HR, parent: '/hr/reviews' },
+    { href: '/hr/reviews/scale', navKey: 'reviews.scaleTitle', modules: ['people'], permission: P_HR, parent: '/hr/reviews' },
+    { href: '/hr/kpi', navKey: 'hr.subnav.kpi', modules: ['people'], permission: P_HR },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    { href: '/hr/kpi/score', navKey: 'hr.subnav.kpiScore', modules: ['people'], permission: P_HR, parent: '/hr/kpi' },
 
-    // ══ 工具 Tools(UI-FIX-1 ⑥/⑦)══════════════════════════════════════════
-    // 此前叫「任务」,名下只有一条。改名之后它是【小工具的去处】,而 ⑦ 把定价
-    // 整组搬了进来。**条目的标签仍然是「任务」** —— 改名换的是模块,不是那一页。
-    { href: '/tools/tasks', navKey: 'nav.tasks', modules: ['tools'], permission: P_TASKS },
+    // ══ 安全与合规 Safety and compliance ═══════════════════════════════════════════
+    // MES-7b-1(2026-10-16,MES-0 Q73 · Q74 · Q76 · MES-7b Step 0 Q2 · Q3 · Q17 · Q28,Tim):事故登记簿 —— 安全模块唯一的一条二级条目(7b-2 加巡检与环境)。
+    //   读 module.safety.view(每一个持加工查看码的角色);记一件、记之后的事、链批次要 module.safety.edit(admin · cto · warehouse)—— 页内控件
+    //   看得见、按不动、说出缺哪个码(DBLOCK-1)。受伤的细节另要 data.view_health(或就是受伤的那名员工本人)。
+    { href: '/safety/incidents', navKey: 'safety.subnav.incidents', modules: ['safety'], permission: 'module.safety.view' },
+    // MES-7b-2(2026-10-16,MES-0 Q72 · Q75 · MES-7b Step 0 Q13–Q17,Tim):安全巡检(清单、一次一次的巡检、跟到关闭的发现)与环境监测(结果对着限值,
+    //   超标开一件事故)—— 安全模块的第二、第三条二级条目。读 module.safety.view;存清单、交巡检、记 / 关发现、记结果要 module.safety.edit
+    //   (页内控件看得见、按不动、说出码)。"建一张任务"给按下的人建一张私人任务(任务模块自己的码)。
+    { href: '/safety/inspections', navKey: 'safety.subnav.inspections', modules: ['safety'], permission: 'module.safety.view' },
+    { href: '/safety/environment', navKey: 'safety.subnav.environment', modules: ['safety'], permission: 'module.safety.view' },
+    // MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q14 – Q18,Tim):合规包 —— 一个已关账月份的监管记录(物料平衡 · 库存滚动 · 执照与 NEA 类别 ·
+    //   事故(不带受伤的细节)· 环境监测 · 巡检),冻成 CPK-YYYY-MM,PDF 按 sha256 存档。读 module.compliance.view;冻、重出、存档与设 V26 / V27 要
+    //   action.compliance_pack(cto · admin)—— 页内控件看得见、按不动、说出码。/[id] 在它下面,不必另登记。
+    { href: '/compliance/packs', navKey: 'safety.subnav.compliancePacks', modules: ['safety'], permission: 'module.compliance.view' },
+    // ★ D7:公司执照登记簿搬到采购。**它的码本来就是 module.suppliers.view** ——
+    //   见 db/tables/company_compliance.sql 与 app/purchasing/licences/page.tsx 的抬头。
+    //   勘察文件的 M2 说它在 module.finance.view 后面,那一句【是错的】:
+    //   finance.view 把的是它此前寄居的那一页(/finance/company),不是这块面板。
+    { href: '/purchasing/licences', navKey: 'company.licence.title', modules: ['safety'], permission: P_SUPPLIERS },
+    // MES-3a(Q1 · Q32):库存安全 —— 上限、滞留、隔离一页看全。门 = module.inventory.view;每一段的行带它自己的谓词。
+    { href: '/inventory/storage-safety', navKey: 'inventory.subnav.storageSafety', modules: ['safety'], permission: P_INVENTORY },
+    // SYSTEM-MAP-1(D4 · Q4):销毁证书清单。门与证书表的读策略同一个码 action.issue_cod(admin · warehouse);别的角色画「受限」。
+    { href: '/compliance/cod', navKey: 'nav.codList', modules: ['safety'], permission: 'action.issue_cod' },
+    // SYSTEM-MAP-1(D4 · Q3):供应商证书总表 —— 只列有效期,按最早到期排;不算状态(状态列排进 SYSTEM-MAP-2,见 docs/forward-queue.md)。
+    { href: '/compliance/supplier-certificates', navKey: 'nav.supplierCertificates', modules: ['safety'], permission: P_SUPPLIERS },
+
+    // ══ 设备 Equipment(SYSTEM-MAP-1,2.4(8);固定资产留在财务) ════════════════════════════
+    // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 加工的人读得到的那一份(资产卡、成本与折旧留在财务)。
+    //   ★ MES-7a-1(Q6):停机、保养维修、保养间隔从此记在设备页上(写 module.processing.edit,页内控件看得见、按不动、说出码)。
+    { href: '/operation/equipment', navKey: 'nav.equipmentRegister', modules: ['equipment'], permission: P_PROCESSING },
+    // MES-7a-1(Q5):设备可靠性(MTBF / MTTR)—— 门同设备页。
+    // ☞ SYSTEM-MAP-1(Tim D3):从 parent 升成设备模块的菜单条目(2.2「设备:设备台账、可靠性、仪表与网关、校准、工序、备件」)。
+    { href: '/operation/equipment/reliability', navKey: 'processing.subnav.equipmentReliability', modules: ['equipment'], permission: P_PROCESSING },
+    // MES-1(2026-10-06,MES-0 §3.10 · MES-1 Step 0 Q1):设备与网关登记 —— 读要 module.processing.view;登记、发 / 撤钥匙、
+    //   重试 / 丢弃收件箱的行要 action.manage_devices(页内的控件看得见、按不动、说出缺哪个码 —— DBLOCK-1)。
+    { href: '/operation/devices', navKey: 'processing.subnav.devices', modules: ['equipment'], permission: P_PROCESSING },
+    // ☞ SYSTEM-MAP-1(Tim D3):校准从设备与网关底下的 parent 升成菜单条目。读 module.processing.view;记录与设定要 action.manage_devices。
+    { href: '/operation/calibration', navKey: 'processing.subnav.calibration', modules: ['equipment'], permission: P_PROCESSING },
+    // MES-4a(2026-10-07,Step 0 Q1 · Q9–Q17,Tim):工序 —— 每道工序的参数与指标、挂着的机器、平衡容差、配方与版本。
+    //   读要 module.processing.view;改要 module.processing.edit(与那几张表的写策略同一个码;页内控件看得见、按不动、说出缺哪个码)。
+    { href: '/operation/operation-types', navKey: 'processing.subnav.operationTypes', modules: ['equipment'], permission: P_PROCESSING },
+    // SYSTEM-MAP-1(D4):备件清单 —— spare_part_stock 一批一行,不带钱;门 = 那张视图体里的 module.inventory.view。
+    { href: '/operation/spare-parts', navKey: 'nav.spareParts', modules: ['equipment'], permission: P_INVENTORY },
+
+    // ══ 工具 Tools —— 只剩日历与单位换算(SYSTEM-MAP-1,2.2) ═══════════════════════════════
     // TOOLS-1 ②:跨模块日历。**只读** —— 它没有自己的权限模型,每一项按它【自己家】
     // 那个模块的可见性出现或不出现(见 app/tools/calendar/sources.ts)。
     // 所以这条注册表判据是"任何登录用户"的下一档:它自己不挡人,挡人的是每一个来源。
@@ -768,46 +895,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   理由刚被删掉,读起来就像一处遗留,而这个仓库对遗留的默认动作是清理。
     //   **它不是遗留;不要"顺手"关上它。**
     { href: '/tools/converter', navKey: 'nav.converter', modules: ['tools'], permission: { all: [] } },
-    // ★★【CONV-7 ①:提醒 —— 工具的第五条。Tim 的裁定,2026-09-04】★★
-    //
-    // 【它是什么】首页那一整块「当前待办」搬了过来:34 支跨模块的等待信号 +
-    //   HR 提醒。为什么是【搬】而不是【拆回各模块】—— 信号天生跨模块,拆回去就
-    //   丢掉了"一眼看完所有该操心的事"这件事本身;给它一个自己的去处,人就是
-    //   想看的时候去看,而不是一登录就被推一脸。
-    //
-    // ★【判据【刻意】恒真,与 /tools/calendar 逐字同理 —— 不要"顺手"关上】★
-    //   这一页没有自己的权限模型:**每一支按它【自己家】那个模块的可见性
-    //   出现或不出现**(视图末尾那个 WHERE + 页面的 allows(),两道同码)。
-    //   给这一条挂一个模块码,就等于替 34 支【各不相同】的判据挑一个代表 ——
-    //   挑谁都错:挑 finance,一个只做仓库的人就看不见他自己的盘点提醒;
-    //   挑得宽,又会让菜单上出现一条点进去空空如也的条目。
-    //   **本条不挡人,挡人的是每一支。** 一个进得来却一支都看不见的读者,
-    //   在页面上拿到一句【具名的话】(reminders.nothingVisible),不是一张白页。
-    //
-    // 【顺序:任务 · 日历 · 单位换算 · 提醒 · 定价】—— 提醒排在定价【之前】,
-    //   因为定价是这份菜单里唯一一条【自己还带着孩子】的条目(它那一页列出
-    //   公式/计价器/金属行情),把一条平的条目插到它后面会读成它的第四个孩子。
-    { href: '/tools/reminders', navKey: 'reminders.title', modules: ['tools'], permission: { all: [] } },
-    // ★★【UI-FIX-1 ⑦:定价从采购与销售【搬进】工具,而这【推翻了 D6 as built】】★★
-    //
-    // 【被推翻的是什么】IA-BUILD-1 的 D6 把定价同时挂在采购与销售之下,理由是
-    // "它同时服务两侧,塞进任何一侧都会让另一侧看不见"。那个理由本身没有错,
-    // **Tim 在 2026-09-02 就定价这一件事推翻了它** —— 定价现在【只属于工具】。
-    // 【所以下面那段 D6 的推理不再生效,不许照它读】共有区里 D6 的抬头已经改写。
-    // 【D6 的机制没有被推翻】/sales/commissions、/inbound、/output、/finance/freight
-    // 仍然是多属主的,多属主机制本身一行未动 —— 变的只是定价这一族的属主。
-    //
-    // 【判据一个字没动】仍然是 module.pricing.view;搬的是【它在哪个菜单里】,
-    // 不是【谁进得去】。这与本刀 /margin 那一条是同一条裁定。
-    { href: '/tools/pricing', navKey: 'nav.pricing', modules: ['tools'], permission: P_PRICING },
-    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
-    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
-    //   顺序【就是】app/tools/pricing/page.tsx 里 CARDS 的顺序。
-    //   ⚠ 它们仍然【不带 group】—— `tools.group.pricing` 今天一个住户都没有,
-    //     而给这三条挂上它会让那一组重新出现在工具菜单里(CONV-0 ②a 刚把它清空)。
-    { href: '/tools/pricing/formulas', navKey: 'pricing.formulasCard', modules: ['tools'], permission: P_PRICING, parent: '/tools/pricing' },
-    { href: '/tools/pricing/calculator', navKey: 'pricing.calculatorCard', modules: ['tools'], permission: P_PRICING, parent: '/tools/pricing' },
-    { href: '/tools/pricing/metal-prices', navKey: 'pricing.pricesCard', modules: ['tools'], permission: P_PRICING, parent: '/tools/pricing' },
+
+    // ══ 设置 Settings —— 不变 ═════════════════════════════════════════════════════
     // ★★【CONV-0 ②a:定价的三个孩子【整批离开菜单】—— Tim 的裁定,2026-09-03】★★
     //
     // 【症状】工具的二级是「任务 · 日历 · 单位换算 · 定价」,而紧贴在「定价」这一条
@@ -841,7 +930,6 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   那个灰链接会成为列表页唯一的门 —— 那不是整理菜单,那是把一页藏起来。
     //   见 app/tools/pricing/page.tsx。
     //
-    // ══ 以下这一整段【不再有条目跟在它后面】—— CONV-0 ②a 删掉了那一行 ══════
     // 它说的那次【收窄】仍然完全有效,只是判据不再由一条 FUNCTIONS 条目携带,
     // 而是由页面自己的 requireModule(MOD.pricing) 表达 —— 求的是同一个字符串。
     // 留着它,因为它记的是【为什么金属行情要受 module.pricing.view 管】,
@@ -871,7 +959,6 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   —— 逐角色的前后对照见本刀报告与 docs/nav-registry.md。
     // 【dock 的兜底不再挂在这一条上】它挪到了 /tools/converter(见下面那一条)。
 
-    // ══ 设置 Settings ═══════════════════════════════════════════════════════
     // ★★【NAV-CLEANUP-1 ④(2026-09-03):设置拍平成【一级】,Tim 的 Q5 裁定】★★
     //
     // 【它此前的四处不连贯,一次全解掉】
@@ -976,70 +1063,15 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // has_permission 裁决,所以进来之后看得见哪几类,与从前完全一样。
     // 本谓词只回答"这一页对你有没有意义"。
     { href: '/settings/deleted', navKey: 'nav.deleted', modules: ['settings'], permission: P_VIEW_DELETED },
-    // ★ HISTORY-1(Tim 的 Q26 · Q13):变更记录 —— 一条条目、一个码、两个属主。
-    //   放在设置(它是审计性质的,与被删记录挨着),也放在财务的「报表」一组 —— cfo 的日常在财务,
-    //   从那里也够得着。判据只有 data.view_change_log 一个码。
-    { href: '/settings/change-history', navKey: 'changeHistory.title', modules: ['settings', 'finance'], permission: P_VIEW_CHANGE_LOG, group: 'finance.group.reports' },
     // ★ MES-1(2026-10-06,MES-0 Q92 · MES-1 Step 0 Q1 · Q2):还没给的标准值 —— 一支一个值,每一支带它自己的码(pending_values 视图)。
     //   MES-1 的两支(V5 网关心跳间隔 · V6 班次时刻)都要 module.processing.view,所以这一页的门今天就是它;
     //   之后哪一刀加了一支别的码的值,这里的判据随之放宽成 { all: [], widen: [...] }(注册表是权威的)。
     { href: '/settings/pending-values', navKey: 'pendingValues.title', modules: ['settings'], permission: P_PROCESSING },
-
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 【共有区】—— 属主多于一个的条目全部集中在这里
-    // ══════════════════════════════════════════════════════════════════════
-    // ★【为什么它们不写在各自属主那一段里,而是集中在最后】★
-    // functionsForModule() 按【数组顺序】返回,所以数组顺序【就是】菜单顺序。
-    // 一条跨属主的条目只有一处声明(那正是本机制的全部内容),于是它在两个
-    // 菜单里的位置由它在数组里的【那一个】位置决定 —— 写在采购那一段里,
-    // 它就会插在销售自己的条目【前面】。
-    // 集中放在全部单属主段之后,每个模块的菜单就都是【先自己的,后共有的】,
-    // 而这对每一个属主都成立,不需要第二份排序表。
-    // (第二份排序表正是本刀在财务子导航里刚刚删掉的那种东西。)
-    // 【双】佣金:主语是代理人(一个 service_vendor 供应商),但 free_standing
-    // 与卖方侧的佣金是销售在看 —— 勘察 C1/C4。
-    { href: '/sales/commissions', navKey: 'nav.commissions', modules: ['purchasing', 'sales'], permission: P_SUPPLIERS },
-    // 【三】收货 / 进料批次:采购的收货腿,库存的入库腿 —— 勘察 C1/C6。
-    // ★【UI-FIX-1 ⑦:运营成为第三个属主 —— 这是一次纯粹的【增加】】★
-    //   Tim 的理由:车间需要知道什么料到了。
-    //   **没有任何人失去东西**:判据一个字没动(module.inbound.view),
-    //   采购与库存两侧的入口原样留着,只是运营的菜单里多了一条。
-    //   【它是本注册表里第一条【三】属主的条目】—— 机制本来就没有上限,
-    //   modules 是一个数组而不是一对,这一条只是第一次用到第三格。
-    { href: '/inbound', navKey: 'nav.inbound', modules: ['purchasing', 'inventory', 'operation'], permission: P_INBOUND },
-    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
-    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
-    //   ★ Tim 自己举的那个例子(「field receiving」)。它的属主【与 /inbound 逐字相同】:
-    //     采购要知道来的是哪张单、库存要知道进了什么、而运营那一个是 Tim 特意加的
-    //     (「车间需要知道什么料到了」)。**现场收货的读者与入库本身的读者是同一批人。**
-    //   ⚠ 它因此是一条【跨模块】条目,而 check-permission-predicate 的判据 ② 禁止
-    //     跨模块条目被手写成 <Link> —— 那条判据为此加了一格例外:**带 parent 的条目,
-    //     它父条目那一页可以手写它的链接**(那正是 parent 的意思)。理由写在那支脚本里。
-    { href: '/inbound/receive', navKey: 'receive.entry', modules: ['purchasing', 'inventory', 'operation'], permission: P_INBOUND, parent: '/inbound' },
-    // 【双】产出批次:**这是 Tim 自己举的例子** —— 一批产出既是加工结果,也是可售库存。
-    { href: '/output', navKey: 'nav.output', modules: ['operation', 'inventory'], permission: P_OUTPUT },
-    // ══ D6 as built【已于 2026-09-02 被 UI-FIX-1 ⑦ 就定价这一件事推翻】═══════
-    // 这里从前写的是:「定价与行情同属采购与销售,一份判据,不设第十个模块 ——
-    // 定价服务采购(payable %、扣杂)与销售(报价)两侧;塞进任何一侧都会让另一侧
-    // 看不见。/margin 是这条的先例。」
-    // ★ 那段推理【不再生效】,不许照它读。★ Tim 裁定定价整族(含金属行情)
-    //   只属于【工具】,采购与销售两侧都不再有这个入口 —— 见上面工具那一段。
-    //   记在这里而不是删掉,是为了让"D6 说定价同属两侧"这句话不至于读起来还作数。
-    // 【被推翻的是这一族的摆放,不是多属主机制】机制仍然在用:上面的 /sales/commissions、
-    //   /inbound(本刀刚变成三属主)、/output、下面的 /finance/freight 都是。
-    // 【双】运费单:既是一笔应付,也是一票货的成本 —— 勘察 C2。
-    { href: '/finance/freight', navKey: 'finance.subnav.freight', modules: ['logistics', 'finance'], permission: P_FINANCE, group: 'finance.group.payables' },
-    // 【双】自批记录(APR-ROUTE-1,R2):一张报销单属于财务,一张医疗申报属于人力,
-    // 而 Tim 的例外同时覆盖这两类 —— 所以它在两个模块下各出现一次(Q4)。
-    // 判据【只有】data.view_self_approvals 一个码,不借任何模块码。
-    { href: '/finance/self-approved', navKey: 'finance.subnav.selfApproved', modules: ['finance', 'hr'], permission: P_VIEW_SELF_APPROVALS, group: 'finance.group.reports' },
-    // 【双】加班(OVERTIME-1,Tim Q13):财务在人力下按月录,仓库在运营下整批批。
-    // ★ 仓库【不】持 module.hr.view —— 这一条若只挂在人力下,批的人连入口都没有(人力对他是「受限」)。
-    //   判据是三个码任一:读者(module.hr.view)· 录的人(action.overtime_enter)· 批的人
-    //   (action.overtime_approve)—— 与两张加班表的读策略逐字同一组码。
-    { href: '/hr/overtime', navKey: 'hr.subnav.overtime', modules: ['hr', 'operation'],
-      permission: { all: [], any: ['module.hr.view', 'action.overtime_enter', 'action.overtime_approve'] } },
+    // ★ HISTORY-1(Tim 的 Q26 · Q13):变更记录 —— 一条条目、一个码、两个属主。
+    //   放在设置(它是审计性质的,与被删记录挨着),也放在财务的「报表」一组 —— cfo 的日常在财务,
+    //   从那里也够得着。判据只有 data.view_change_log 一个码。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(设置)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/settings/change-history', navKey: 'changeHistory.title', modules: ['settings'], permission: P_VIEW_CHANGE_LOG },
 ]
 
 /** 某个模块名下的二级条目(一个条目会在它每个属主模块下各出现一次 —— 那是要点)。 */
@@ -1177,4 +1209,12 @@ export const FN = {
     financeSupplierStatements: fnByHref('/finance/supplier-statements'),
     /** MES-8b-1:合规包。 */
     compliancePacks: fnByHref('/compliance/packs'),
+    // SYSTEM-MAP-1
+    claims: fnByHref('/claims'),
+    medicalClaims: fnByHref('/hr/claims'),
+    expenseClaims: fnByHref('/finance/claims'),
+    codList: fnByHref('/compliance/cod'),
+    supplierCertificates: fnByHref('/compliance/supplier-certificates'),
+    spareParts: fnByHref('/operation/spare-parts'),
+    storageSafety: fnByHref('/inventory/storage-safety'),
 } as const

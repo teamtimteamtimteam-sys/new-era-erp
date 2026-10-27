@@ -63,6 +63,7 @@ import { FN } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import { formatTrailStamp } from '@/lib/dates'
 import { xText, xRestricted, type ExportCell } from '@/lib/export/cells'
+import { filteredListHref } from '@/lib/savedViews'
 
 type Row = {
     record_kind: string
@@ -155,8 +156,7 @@ export default async function DeletedRecordsPage({
         if (k) p.set('kind', k)
         if (f) p.set('from', f)
         if (tt) p.set('to', tt)
-        const s = p.toString()
-        return s ? `/settings/deleted?${s}` : '/settings/deleted'
+        return filteredListHref('/settings/deleted', p) // SYSTEM-MAP-1 D1
     }
 
     // CONV-5:套 CONV-1 的两文件模板。

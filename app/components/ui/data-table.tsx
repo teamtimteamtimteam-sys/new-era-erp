@@ -373,6 +373,12 @@ export type DataTableProps<T> = {
      */
     rowClassName?: (row: T) => string | undefined
     /**
+     * SYSTEM-MAP-1(Tim Q2,2026-10-27):行的锚点 —— 给了就把它写成那一行 `<tr>` 的 id,于是别的页面可以链到
+     * `…#<锚点>`,而 <HashTarget>(app/components/ui/hash-target.tsx)把那一行滚进视野并标亮。
+     * 不给就没有 id,与今天每一个调用点一样。
+     */
+    rowAnchor?: (row: T) => string | undefined
+    /**
      * ★★【TABLE-FOOTER-1:表尾合计行 —— 见 FooterRow 抬头】★★
      * 不给就没有 `<tfoot>`,与今天 160 个调用点一模一样。
      * @param rendered 这一屏【真的画出来的】那些行(筛过、排过、分过页的)。
@@ -412,7 +418,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     // COPY-1:这一层外壳的字从前只有中文,而 97 个页面 import 它。
     const t = useTranslations()
     const {
-        rows, columns, rowKey, caption, empty, filter, pageSize, phone, selection,
+        rows, columns, rowKey, caption, empty, filter, pageSize, phone, selection, rowAnchor,
         columnToggle = false, phoneExpandLabel, className, rowClassName, footer,
     } = props
     // ★【CONV-1:scroll 那一支 —— 手机上【每一列都留着】,靠外层横向滚动】★
@@ -847,7 +853,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             const rowCls = rowClassName?.(row)
                             return (
                                 <React.Fragment key={k}>
-                                    <tr className={cn('border-b border-[color:var(--brand-border)]', rowCls)}>
+                                    <tr id={rowAnchor?.(row)} className={cn('border-b border-[color:var(--brand-border)]', rowCls)}>
                                         {selection && (
                                             <td className={`px-1 align-middle ${TABLE_TEXT}`}>
                                                 <input

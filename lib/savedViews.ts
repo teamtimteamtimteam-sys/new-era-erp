@@ -13,6 +13,20 @@ export const PLAIN_LIST_PARAM = 'view'
 export const PLAIN_LIST_VALUE = 'plain'
 export const DATE_PRESET_PARAM = 'date_preset'
 
+/**
+ * SYSTEM-MAP-1(Tim D1,2026-10-27):一张带保存视图的列表,在【本页】改筛选时去往哪里。
+ * 筛选清空之后地址会变成空的 —— 而空地址对服务端来说是"从别处打开这张列表",于是默认视图会被套回来
+ * (docs/known-issues.md SAVED-VIEW-DEFAULT-RETURNS-WHEN-LAST-FILTER-CLEARED)。Tim 的裁定:清掉最后一个筛选,显示原始列表。
+ * 所以清空时写 `view=plain`;还有别的参数时把残留的 `view=plain` 去掉(否则视图条会把一张有筛选的列表标成"原始列表")。
+ * 从别处进来的链接不经过这里 —— 它们照旧是空地址,照旧套默认视图(Q3 原样)。
+ */
+export function filteredListHref(pathname: string, params: URLSearchParams): string {
+    const p = new URLSearchParams(params.toString())
+    p.delete(PLAIN_LIST_PARAM)
+    const qs = p.toString()
+    return `${pathname}?${qs || `${PLAIN_LIST_PARAM}=${PLAIN_LIST_VALUE}`}`
+}
+
 const NOT_A_VIEW = new Set(['trail', 'warn', 'k', 'set', 'error', 'ok', PLAIN_LIST_PARAM])
 
 /** 一张带起止日期的列表交给视图的那三样:两个键名,与当天的四个区间。 */

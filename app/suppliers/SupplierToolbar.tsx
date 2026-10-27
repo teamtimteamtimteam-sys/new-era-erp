@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { SUPPLIER_STATUSES } from './[id]/edit/statusMachine'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 export default function SupplierToolbar() {
     const t = useTranslations()
@@ -39,8 +40,7 @@ export default function SupplierToolbar() {
             if (!v) params.delete(k)
             else params.set(k, v)
         }
-        const qs = params.toString()
-        return qs ? `${pathname}?${qs}` : pathname
+        return filteredListHref(pathname, params)
     }
 
     function onSearchChange(value: string) {

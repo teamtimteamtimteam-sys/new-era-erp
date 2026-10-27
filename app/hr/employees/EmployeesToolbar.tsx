@@ -6,6 +6,7 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { EMPLOYMENT_STATUS_OPTIONS, WORK_CATEGORY_OPTIONS } from '../options'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 export type DeptOption = { id: string; label: string }
 
@@ -25,8 +26,7 @@ export default function EmployeesToolbar({ departments }: { departments: DeptOpt
         if (!value) params.delete(key)
         else params.set(key, value)
         params.delete('page')
-        const qs = params.toString()
-        router.push(qs ? `${pathname}?${qs}` : pathname)
+        router.push(filteredListHref(pathname, params))
     }
 
     return (

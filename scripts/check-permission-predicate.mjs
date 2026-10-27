@@ -98,10 +98,15 @@ if (entries.length === 0) {
     problems.push({ axis: '② 一个功能几个模块', msg: 'lib/modules.ts:FUNCTIONS 里一条都没有 —— 这个机制不存在了。' })
 }
 const multi = entries.filter((m) => (m[2].match(/'/g) ?? []).length / 2 >= 2)
-if (multi.length === 0) {
+// ★ SYSTEM-MAP-1(Tim 2.1,2026-10-26):这一格【反过来了】。从前它要求至少一条多属主条目(「那正是本机制存在的理由」);
+//   2.1 裁定每一条二级条目在菜单里只有一个位置,别的模块经单据页上的链接够到它。于是多属主条目必须是【零】——
+//   主闸是 scripts/check-single-home.mjs(带覆盖断言与故障注入),这里只是同一句话在这支脚本里的回声,
+//   免得它继续把"没有多属主"读成"机制坏了"。下面那段"跨模块条目不许手写 <Link>"随之对着一个空集跑:
+//   跨模块的入口今天【就是】单据页上手写的链接(2.1 原话),那条禁令的前提已经不在。
+if (multi.length > 0) {
     problems.push({
         axis: '② 一个功能几个模块',
-        msg: 'FUNCTIONS 里没有任何一条声明了【多于一个】属主模块 —— 那正是本机制存在的理由(/margin)。',
+        msg: `FUNCTIONS 里有 ${multi.length} 条声明了多于一个属主模块(${multi.map((m) => m[1]).join(' · ')}) —— 2.1:每一条只有一个家。`,
     })
 }
 // 每条 FUNCTIONS 条目的判据只有一份(条目的边界是【下一条的起点】,不是一个定长窗口 ——

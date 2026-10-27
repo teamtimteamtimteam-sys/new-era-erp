@@ -1,0 +1,123 @@
+STEP|database as postgres (base tables): medical claims 1 · general claims 4 · CODs 3 · supplier certificates 1 · spare-part batches 0 · anchor claim bc021e6c-0b2e-4b8f-a5ff-82c1840ed097,CLM-2026-0004 · most common PO status cancelled
+PASS|M admin: bar = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment
+PASS|M admin: 109 entries rendered across 9 modules, each under exactly one module (0 drawn restricted)
+PASS|M admin: every row matches the registry for this role
+PASS|M admin: Tools menu = /tools/calendar · /tools/converter
+PASS|A admin: avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews, notifications kept
+PASS|P admin /claims: opens, 5 rows (database 5), export bar present, 5 sortable headers
+PASS|P admin /claims masking: data.view_health held → 0/1 medical amounts read "Restricted"; every amount cell is "Restricted" or "<n.nn> <CCY>" (none blank)
+PASS|P admin /compliance/cod: opens, 3 rows (database 3), export bar present, 5 sortable headers
+PASS|P admin /compliance/supplier-certificates: opens, 1 rows (database 1), export bar present, 6 sortable headers
+PASS|P admin /operation/spare-parts: opens, 0 rows (database 0), export bar present, 7 sortable headers
+PASS|G admin 390px drawer: 9 module rows (Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment) + sections TOOLS / SETTINGS; page 390px wide at 390px, panel no sideways overflow
+PASS|M cfo: bar = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment
+PASS|M cfo: 109 entries rendered across 9 modules, each under exactly one module (2 drawn restricted)
+PASS|M cfo: every row matches the registry for this role
+PASS|M cfo: Tools menu = /tools/calendar · /tools/converter
+PASS|A cfo: avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews, notifications kept
+PASS|P cfo /claims: opens, 5 rows (database 5), export bar present, 5 sortable headers
+PASS|P cfo /claims masking: data.view_health held → 0/1 medical amounts read "Restricted"; every amount cell is "Restricted" or "<n.nn> <CCY>" (none blank)
+PASS|P cfo /compliance/cod: refused by name (no table drawn) — the menu shows it restricted
+PASS|P cfo /compliance/supplier-certificates: opens, 1 rows (database 1), export bar present, 6 sortable headers
+PASS|P cfo /operation/spare-parts: opens, 0 rows (database 0), export bar present, 7 sortable headers
+PASS|G cfo 390px drawer: 9 module rows (Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment) + sections TOOLS / SETTINGS; page 390px wide at 390px, panel no sideways overflow
+PASS|M cco: bar = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment
+PASS|M cco: 109 entries rendered across 9 modules, each under exactly one module (3 drawn restricted)
+PASS|M cco: every row matches the registry for this role
+PASS|M cco: Tools menu = /tools/calendar · /tools/converter
+PASS|A cco: avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews, notifications kept
+PASS|P cco /claims: opens, 5 rows (database 5), export bar present, 5 sortable headers
+PASS|P cco /claims masking: data.view_health held → 0/1 medical amounts read "Restricted"; every amount cell is "Restricted" or "<n.nn> <CCY>" (none blank)
+PASS|P cco /compliance/cod: refused by name (no table drawn) — the menu shows it restricted
+PASS|P cco /compliance/supplier-certificates: opens, 1 rows (database 1), export bar present, 6 sortable headers
+PASS|P cco /operation/spare-parts: opens, 0 rows (database 0), export bar present, 7 sortable headers
+PASS|G cco 390px drawer: 9 module rows (Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment) + sections TOOLS / SETTINGS; page 390px wide at 390px, panel no sideways overflow
+PASS|M cto: bar = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment
+PASS|M cto: 109 entries rendered across 9 modules, each under exactly one module (3 drawn restricted)
+PASS|M cto: every row matches the registry for this role
+PASS|M cto: Tools menu = /tools/calendar · /tools/converter
+PASS|A cto: avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews, notifications kept
+PASS|P cto /claims: opens, 5 rows (database 5), export bar present, 5 sortable headers
+PASS|P cto /claims masking: data.view_health not held → 1/1 medical amounts read "Restricted"; every amount cell is "Restricted" or "<n.nn> <CCY>" (none blank)
+PASS|P cto /compliance/cod: refused by name (no table drawn) — the menu shows it restricted
+PASS|P cto /compliance/supplier-certificates: opens, 1 rows (database 1), export bar present, 6 sortable headers
+PASS|P cto /operation/spare-parts: opens, 0 rows (database 0), export bar present, 7 sortable headers
+PASS|G cto 390px drawer: 9 module rows (Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment) + sections TOOLS / SETTINGS; page 390px wide at 390px, panel no sideways overflow
+PASS|M finance: bar = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment
+PASS|M finance: 109 entries rendered across 9 modules, each under exactly one module (4 drawn restricted)
+PASS|M finance: every row matches the registry for this role
+PASS|M finance: Tools menu = /tools/calendar · /tools/converter
+PASS|A finance: avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews, notifications kept
+PASS|P finance /claims: opens, 5 rows (database 5), export bar present, 5 sortable headers
+PASS|P finance /claims masking: data.view_health held → 0/1 medical amounts read "Restricted"; every amount cell is "Restricted" or "<n.nn> <CCY>" (none blank)
+PASS|P finance /compliance/cod: refused by name (no table drawn) — the menu shows it restricted
+PASS|P finance /compliance/supplier-certificates: opens, 1 rows (database 1), export bar present, 6 sortable headers
+PASS|P finance /operation/spare-parts: opens, 0 rows (database 0), export bar present, 7 sortable headers
+PASS|G finance 390px drawer: 9 module rows (Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment) + sections TOOLS / SETTINGS; page 390px wide at 390px, panel no sideways overflow
+PASS|M gm: bar = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment
+PASS|M gm: 109 entries rendered across 9 modules, each under exactly one module (6 drawn restricted)
+PASS|M gm: every row matches the registry for this role
+PASS|M gm: Tools menu = /tools/calendar · /tools/converter
+PASS|A gm: avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews, notifications kept
+PASS|P gm /claims: opens, 5 rows (database 5), export bar present, 5 sortable headers
+PASS|P gm /claims masking: data.view_health not held → 1/1 medical amounts read "Restricted"; every amount cell is "Restricted" or "<n.nn> <CCY>" (none blank)
+PASS|P gm /compliance/cod: refused by name (no table drawn) — the menu shows it restricted
+PASS|P gm /compliance/supplier-certificates: opens, 1 rows (database 1), export bar present, 6 sortable headers
+PASS|P gm /operation/spare-parts: opens, 0 rows (database 0), export bar present, 7 sortable headers
+PASS|G gm 390px drawer: 9 module rows (Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment) + sections TOOLS / SETTINGS; page 390px wide at 390px, panel no sideways overflow
+PASS|M warehouse: bar = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment
+PASS|M warehouse: 109 entries rendered across 9 modules, each under exactly one module (54 drawn restricted)
+PASS|M warehouse: every row matches the registry for this role
+PASS|M warehouse: Tools menu = /tools/calendar · /tools/converter
+PASS|A warehouse: avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews, notifications kept
+PASS|P warehouse /claims: refused by name (no table drawn) — the menu shows it restricted
+PASS|P warehouse /compliance/cod: opens, 3 rows (database 3), export bar present, 5 sortable headers
+PASS|P warehouse /compliance/supplier-certificates: opens, 1 rows (database 1), export bar present, 6 sortable headers
+PASS|P warehouse /operation/spare-parts: opens, 0 rows (database 0), export bar present, 7 sortable headers
+PASS|G warehouse 390px drawer: 9 module rows (Workbench · Purchasing · Production · Quality · Sales · Finance · Restricted · People · Safety · Equipment) + sections TOOLS / SETTINGS; page 390px wide at 390px, panel no sideways overflow
+PASS|H cfo clicks CLM-2026-0004 on /claims → /finance/claims#claim-bc021e6c-0b2e-4b8f-a5ff-82c1840ed097 by soft navigation (true); <DIV> in view true, highlighted true (background lab(95.916 -1.21653 23.111))
+PASS|D finance on /purchasing/orders?status=cancelled: clearing the status filter → ?view=plain ("Plain list" marked current: true)
+PASS|D /contracts?side=buy: the "All" side link is /contracts?view=plain
+PASS|G admin en 390px /: menu drawer; page 390px wide, header 55px
+PASS|G admin en 390px /tools/calendar: menu drawer; page 390px wide, header 55px
+INFO|G counterfactual admin en 1024px /: forcing the module row → last button ends 871px, right group starts 968px, page 1024px — would fit
+PASS|G admin en 1024px /: menu drawer; page 1024px wide, header 55px
+INFO|G counterfactual admin en 1024px /tools/calendar: forcing the module row → last button ends 871px, right group starts 760px, page 1024px — does NOT fit (fallback needed)
+PASS|G admin en 1024px /tools/calendar: menu drawer; page 1024px wide, header 55px
+PASS|G admin en 1280px /: module row (row 719.8px, last button ends 871px, right group starts 1184px); page 1280px wide, header 53px
+PASS|G admin en 1280px /tools/calendar: module row (row 719.8px, last button ends 871px, right group starts 976px); page 1280px wide, header 53px
+PASS|G admin en 1440px /: module row (row 719.8px, last button ends 871px, right group starts 1344px); page 1440px wide, header 53px
+PASS|G admin en 1440px /tools/calendar: module row (row 719.8px, last button ends 871px, right group starts 1136px); page 1440px wide, header 53px
+PASS|G admin zh 390px /: menu drawer; page 390px wide, header 55px
+PASS|G admin zh 390px /tools/calendar: menu drawer; page 390px wide, header 55px
+INFO|G counterfactual admin zh 1024px /: forcing the module row → last button ends 649px, right group starts 968px, page 1024px — would fit
+PASS|G admin zh 1024px /: menu drawer; page 1024px wide, header 55px
+INFO|G counterfactual admin zh 1024px /tools/calendar: forcing the module row → last button ends 649px, right group starts 760px, page 1024px — would fit
+PASS|G admin zh 1024px /tools/calendar: menu drawer; page 1024px wide, header 55px
+PASS|G admin zh 1280px /: module row (row 498px, last button ends 649px, right group starts 1184px); page 1280px wide, header 53px
+PASS|G admin zh 1280px /tools/calendar: module row (row 498px, last button ends 649px, right group starts 976px); page 1280px wide, header 53px
+PASS|G admin zh 1440px /: module row (row 498px, last button ends 649px, right group starts 1344px); page 1440px wide, header 53px
+PASS|G admin zh 1440px /tools/calendar: module row (row 498px, last button ends 649px, right group starts 1136px); page 1440px wide, header 53px
+PASS|G warehouse en 390px /: menu drawer; page 390px wide, header 55px
+PASS|G warehouse en 390px /tools/calendar: menu drawer; page 390px wide, header 55px
+INFO|G counterfactual warehouse en 1024px /: forcing the module row → last button ends 871px, right group starts 968px, page 1024px — would fit
+PASS|G warehouse en 1024px /: menu drawer; page 1024px wide, header 55px
+INFO|G counterfactual warehouse en 1024px /tools/calendar: forcing the module row → last button ends 871px, right group starts 760px, page 1024px — does NOT fit (fallback needed)
+PASS|G warehouse en 1024px /tools/calendar: menu drawer; page 1024px wide, header 55px
+PASS|G warehouse en 1280px /: module row (row 719.8px, last button ends 871px, right group starts 1184px); page 1280px wide, header 53px
+PASS|G warehouse en 1280px /tools/calendar: module row (row 719.8px, last button ends 871px, right group starts 976px); page 1280px wide, header 53px
+PASS|G warehouse en 1440px /: module row (row 719.8px, last button ends 871px, right group starts 1344px); page 1440px wide, header 53px
+PASS|G warehouse en 1440px /tools/calendar: module row (row 719.8px, last button ends 871px, right group starts 1136px); page 1440px wide, header 53px
+PASS|G warehouse zh 390px /: menu drawer; page 390px wide, header 55px
+PASS|G warehouse zh 390px /tools/calendar: menu drawer; page 390px wide, header 55px
+INFO|G counterfactual warehouse zh 1024px /: forcing the module row → last button ends 649px, right group starts 968px, page 1024px — would fit
+PASS|G warehouse zh 1024px /: menu drawer; page 1024px wide, header 55px
+INFO|G counterfactual warehouse zh 1024px /tools/calendar: forcing the module row → last button ends 649px, right group starts 760px, page 1024px — would fit
+PASS|G warehouse zh 1024px /tools/calendar: menu drawer; page 1024px wide, header 55px
+PASS|G warehouse zh 1280px /: module row (row 498px, last button ends 649px, right group starts 1184px); page 1280px wide, header 53px
+PASS|G warehouse zh 1280px /tools/calendar: module row (row 498px, last button ends 649px, right group starts 976px); page 1280px wide, header 53px
+PASS|G warehouse zh 1440px /: module row (row 498px, last button ends 649px, right group starts 1344px); page 1440px wide, header 53px
+PASS|G warehouse zh 1440px /tools/calendar: module row (row 498px, last button ends 649px, right group starts 1136px); page 1440px wide, header 53px
+STEP|all PASS
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); the only database reads were row counts as postgres (base tables)
+SM1_PROOF_EXIT=0

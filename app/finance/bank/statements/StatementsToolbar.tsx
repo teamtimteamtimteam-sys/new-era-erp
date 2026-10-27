@@ -5,6 +5,7 @@
 import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 export default function StatementsToolbar() {
     const t = useTranslations()
@@ -21,8 +22,7 @@ export default function StatementsToolbar() {
         if (!value) params.delete(key)
         else params.set(key, value)
         params.delete('page')
-        const qs = params.toString()
-        router.push(qs ? `${pathname}?${qs}` : pathname)
+        router.push(filteredListHref(pathname, params))
     }
 
     return (

@@ -1043,10 +1043,10 @@ Tim 的 R1 与 D5,落在 `lib/modules.ts`。细节见 `docs/nav-registry.md`;这
 * **谓词的形状不许再造第四种方言**:`(all 全有 OR widen 任一) AND (any 未声明 OR any 任一)`
   —— 与库里的 `arm_permission_any` / `arm_permission_widen` 逐字同形。
   `any` 收窄、`widen` 放宽,两个名字很像而方向相反。
-* **一个功能可以属于好几个模块**:在 `FUNCTIONS` 里声明 `modules: [...]` 与【一份】
-  `permission`,属主模块的界面用 `getFunctionAccess(模块 href)` 画入口,页面用
-  `requireFunction(FN.x)` 把关 —— **注册表是权威的,页面靠不表达来服从**。
-  在每个属主模块的页面里手写一个 `<Link>`,正是本条要排除的东西。
+* **每一条二级条目只有一个家**(Tim 2.1,2026-10-26,`docs/system-map.md`;SYSTEM-MAP-1 取代了 NAV-REG-1 的「一个功能可以属于好几个模块」):
+  `FUNCTIONS` 里每一条的 `modules` 恰好一个 id,`scripts/check-single-home.mjs` 在 `npm run build` 里拦。别的模块要够到它,在相关单据页上放链接。
+  地址不在父条目之下的子条目(`/hr/claims`、`/finance/claims` 是 `/claims` 的孩子)由 `lib/navTrail.ts` 的 `detachedChildFor` 归到父条目的家。
+  页面用 `requireFunction(FN.x)` 把关,入口由注册表派生 —— **注册表是权威的**。
 * **进不去的模块渲染成「受限」,不是消失。** `getModuleAccess()` 返回【全部】模块 +
   `allowed`,不过滤。措辞固定用 `common.restricted` + `dashboard.restrictedHint`。
   下一个读到这里的人:**不要把过滤加回来** —— 返回全部不是遗漏,是这条决定本身。
@@ -1863,6 +1863,7 @@ existing `freight_documents` row — all rolled back, all forbidden (`docs/handb
 * **有筛选的列表页带保存的视图**(28 张):`loadSavedViews(supabase, { listKey, sp, dates? })` 在页面里【最先】调(地址为空时跳到本人的默认视图 ——
   一个带参数的链接从不被顶掉),`<SavedViewsBar listKey views dates? />` 画在工具栏旁边。**一张列表长出筛选:就加这两行**(Q1)。
   浏览器里排的表要进视图,就给 `sorting` 加 `url: clientSortUrl(useSearchParams(), '<这张表自己的前缀>')`,一页上每张表一个前缀。
+  **本页的筛选控件改地址时走 `filteredListHref(pathname, params)`(`lib/savedViews.ts`)**:清掉最后一个筛选得到 `?view=plain`,不回到默认视图(Tim D1,2026-10-27)。
 * **批量动作一次一项、走单击那一扇门**(`lib/bulkRun.ts` + `app/components/ui/bulk-decision-bar.tsx`):不要写一支"批量"的库函数或数组 RPC ——
   四眼、CFO 档位与拒绝要【按项】由库判,结果名单要逐项说出理由。全选只勾屏幕上的。
 * 请假与医疗报销的驳回要理由:库按名拒(`LEAVE_REJECT_REASON_REQUIRED` · `MEDICAL_CLAIM_REJECT_REASON_REQUIRED`),与十二条审批链同一个形状。全文:`docs/table-features.md`。

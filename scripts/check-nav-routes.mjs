@@ -111,9 +111,6 @@ const EXCEPTIONS = new Map([
     ['/welcome', '零权限的人落到的那一页。它不属于任何模块,那正是它存在的理由。'],
     ['/logout', '登出动作。'],
     ['/', '首页看板。它是顶栏的左边那个品牌链接,不是一条二级条目。'],
-    ['/me', '本人档案。app/page.tsx 的 SELF_CARDS 里,不属于九个模块中的任何一个。'],
-    ['/my-reviews', '本人的绩效评估。同 /me:它是"我自己的东西",不是一个模块功能。'],
-    ['/notifications', '通知列表。入口是顶栏的铃铛,不是二级菜单。'],
     ['/brand-sampler', 'BRAND-1 的样式取样页,用完即删的开发页,不进导航。'],
     // ★ MES-8b-2(2026-10-17,MES-0 Q83 · MES-8 Step 0 Q19 · Q20):车间大屏。它的入口是挂在墙上的那块屏自己(管理员在那块屏上
     //   打开这个地址一次),不是菜单 —— 而一块大屏的会话除了它什么都打不开。门 data.view_floor_board(floor_display · admin · cfo)。
@@ -145,14 +142,10 @@ const EXCEPTIONS = new Map([
         '登录之后按批号认、按读者的码分,看得见就跳到那一批的页面,看不见就说要哪个码。它自己不画任何东西可点进去。'],
     ['/loc/[code]',
         '库位标签二维码里的短链接(<域名>/loc/<库位号>)。理由同 /b/[code]:入口是货架上的标签,不是菜单。'],
-    ['/my-reviews/[id]',
-        '本人的一份绩效评估。父路由 /my-reviews 就在这张表里,理由相同 —— ' +
-        '它是「我自己的东西」,不属于九个模块中的任何一个,入口是头像菜单。'],
     // TABLE-EXPORT-2b-1(Tim 2026-10-22 TABLE-EXPORT-2 Q2 · Q5):/me 上三张只画最近 50 条的表,导出走这三条 JSON 路由取全。
     //   它们不是页面,是表上「导出」那两颗钮去要行的地址;父路由 /me 在本表里,理由相同(本人自己的东西)。三条各写一行。
-    ['/me/leave-requests/export', '/me 上「请假」那张表的导出路由(JSON,只回本人的行)。不是页面;入口是那张表上的导出钮。'],
-    ['/me/medical-claims/export', '/me 上「医疗报销」那张表的导出路由(JSON,只回本人的行)。不是页面;入口是那张表上的导出钮。'],
-    ['/me/expense-claims/export', '/me 上「费用报销」那张表的导出路由(JSON,只回本人的行)。不是页面;入口是那张表上的导出钮。'],
+    // SYSTEM-MAP-1:/me、/my-reviews(含 [id])、/notifications 与 /me 底下三条导出路由离开了这张表 —— 它们现在是工作台的注册表条目
+    //   (或盖在 /me 条目之下的动作路由)。/me/avatar 留着:它不是页面也不是动作,只是 <img src> 的字节代理,住在 /me 条目之下。
     ['/me/avatar',
         '头像字节的代理路由(UI-1d 写下的替代方案 (b),COD-2 落地)。它不是一个页面,' +
         '是 <img src> 指向的那个地址:桶转私有之后,头像的字节从这里出去,' +
@@ -550,71 +543,46 @@ try {
     writeFileSync(probePath, navSrc)
     const nav = await import(pathToFileURL(probePath).href)
 
-    // ★★【Tim 点名的那一组,以及它当场暴露的一处【规则与预期不一致】】★★
-    //   他写的规则是:「声明顺序里【这个读者进得去的】第一个属主」。
-    //   他写的预期是:「operations 在 /inbound 上解析成【运营】,不是采购」。
-    //   ★ 实跑之后两者对不上,而对不上的是【预期】,不是实现。★
-    //   /inbound 的声明顺序是 purchasing → inventory → operation,
-    //   而 operations 这个角色**进得去库存**(它持 module.inventory.view)。
-    //   按他自己的规则,答案因此是【库存】—— 采购被正确地跳过了,
-    //   但在采购之后、运营之前还站着一个库存。
-    //   **他关心的那件事成立了(不是采购、不是一个他进不去的模块);
-    //   而"是运营"要成立,得【改声明顺序】,那是一个产品判断,不是一处实现缺陷。**
-    //   所以这里断言的是【规则】,并把今天的答案钉住,好让任何改动都看得见。
-    const opsCanEnter = (id) => ['operation', 'inventory', 'logistics', 'tools', 'settings'].includes(id)
-    const got = nav.activeModuleForPath('/inbound', opsCanEnter)
-    if (got.id === 'purchasing' || got.id === null || !opsCanEnter(got.id)) {
-        problems.push({
-            arm: '⑤ 活动模块解析',
-            msg: `activeModuleForPath('/inbound', <operations>) 得到 ${JSON.stringify(got)} —— `
-               + '它必须是一个【这个读者进得去】的模块,且不能是采购(他进不去采购)。',
-        })
-    }
-    if (got.id !== 'inventory') {
-        problems.push({
-            arm: '⑤ 活动模块解析',
-            msg: `activeModuleForPath('/inbound', <operations>) 得到 ${got.id},而今天钉住的答案是 inventory。`
-               + ' 若这是有意改的(例如把 /inbound 的 modules 顺序调成运营在前),连同这一行一起改。',
-        })
-    }
-
-    // ★【规则本身,穷举验一遍】★ 对每一条多属主条目、每一个属主 i:
-    //   当读者【只】进得去属主 i 时,解析结果必须【就是】属主 i。
-    //   这比一个手挑的案例硬得多 —— 它把"第一个进得去的"这条规则对着注册表全跑一遍。
+    // ★★【SYSTEM-MAP-1(Tim 2.1 · 2.3,2026-10-26):多属主那两格【退休了】】★★
+    //   从前这里钉着「operations 在 /inbound 上解析成库存」(声明顺序里第一个进得去的属主),并且逐条验每一条多属主条目。
+    //   2.1 之后每一条只有一个家,于是"第一个进得去的属主"只剩一种答案:那唯一的家,进得去就是它,进不去就是矛盾。
+    //   多属主条目必须是零,由 scripts/check-single-home.mjs 在构建里拦(带覆盖断言与故障注入);这里改验【单一归属下的解析】:
+    //   ① 每一条条目,读者进得去它的家 → 解析成那个家(脱离父地址的孩子 → 父条目的家,下面 ⑧ 保证两者相同);
+    //   ② /inbound 钉成生产与仓储(2.3 点名的那一条),operations 式的读者(进得去生产)就落在那里。
     const modulesMod = await import(pathToFileURL(join(ROOT, 'lib/modules.ts')).href)
-    let multiOwner = 0
-    for (const fn of modulesMod.FUNCTIONS) {
-        if (fn.modules.length < 2) continue
-        multiOwner++
-        for (const owner of fn.modules) {
-            const r = nav.activeModuleForPath(fn.href, (id) => id === owner)
-            if (r.id !== owner) {
-                problems.push({
-                    arm: '⑤ 活动模块解析',
-                    msg: `${fn.href}:读者只进得去 ${owner},解析却得到 ${JSON.stringify(r)} —— `
-                       + '规则是「声明顺序里第一个【进得去的】属主」。',
-                })
-            }
-        }
+    const pinned = nav.activeModuleForPath('/inbound', (id) => id === 'production')
+    if (pinned.id !== 'production') {
+        problems.push({ arm: '⑤ 活动模块解析', msg: `activeModuleForPath('/inbound', <进得去生产>) 得到 ${JSON.stringify(pinned)} —— 2.3 把 /inbound 钉在生产与仓储。` })
     }
-    if (multiOwner === 0) {
-        problems.push({ arm: '⑤ 活动模块解析', msg: '注册表里一条多属主条目都没有 —— 这条判据于是什么都没验(空集不是通过)。' })
+    let singleHomeResolved = 0
+    for (const fn of modulesMod.FUNCTIONS) {
+        const home = fn.modules[0]
+        const r = nav.activeModuleForPath(fn.href, (id) => id === home)
+        if (r.id !== home) {
+            problems.push({ arm: '⑤ 活动模块解析', msg: `${fn.href}:读者进得去它唯一的家 ${home},解析却得到 ${JSON.stringify(r)}。` })
+        }
+        singleHomeResolved++
+    }
+    if (singleHomeResolved === 0) {
+        problems.push({ arm: '⑤ 活动模块解析', msg: '注册表是空的 —— 单一归属的解析什么都没验(空集不是通过)。' })
     }
 
-    // ★★【UI-1c ④:id 为 null 的【两种】情形必须分得开,而两侧都要验】★★
-    // ────────────────────────────────────────────────────────────────────────
-    // 【为什么这条判据存在】ModuleBar 那条一致性守卫此前对 `active.id === null`
-    //   就喊,而 null 有两个意思:注册表没有条目认领这条路由(**合法**),
-    //   与有属主却一个都进不去(**矛盾**)。它分不出来,于是在 / 、/me 等 7 条
-    //   会渲染顶栏的无属主路由上【永远在喊】。IA §21.1 ②:
-    //   「一条永远在喊的警报,等于没有警报。」
-    // ★【收窄了的守卫必须证明它【还抓得住真的】,否则这一刀只是把闸关小了】★
-    //   所以下面【两侧都验】:该安静的安静,该喊的还喊。
-    //
-    // ① 该安静的一侧:例外表里每一条(它们【就是】那些无属主路由)必须解析成
-    //    'unowned'。★ 判据故意让读者【全都进得去】(() => true)—— 这样任何一条
-    //    返回 'contradiction' 都只可能来自"它其实有属主",而不是权限的巧合。
+    // ⑧ SYSTEM-MAP-1(Tim Q2):带 parent 的条目 —— 父条目必须存在、在菜单里(自己没有 parent),且与孩子【同一个家】。
+    //   这是 lib/navTrail.ts 的 detachedChildFor 敢于"答它的父"的前提:/finance/claims 的家是人事,因为 /claims 的家是人事。
+    let parentChecked = 0
+    for (const fn of modulesMod.FUNCTIONS) {
+        if (!fn.parent) continue
+        parentChecked++
+        const p = modulesMod.FUNCTIONS.find((x) => x.href === fn.parent)
+        if (!p) problems.push({ arm: '⑧ 子条目的父', msg: `${fn.href} 的 parent ${fn.parent} 不是一条注册表条目。` })
+        else if (p.parent) problems.push({ arm: '⑧ 子条目的父', msg: `${fn.href} 的 parent ${fn.parent} 自己也带 parent —— 父必须是一条菜单条目。` })
+        else if (p.modules[0] !== fn.modules[0]) problems.push({ arm: '⑧ 子条目的父', msg: `${fn.href} 的家 ${fn.modules[0]} 与它的父 ${fn.parent} 的家 ${p.modules[0]} 不同 —— 菜单与高亮会各说各话。` })
+    }
+    if (parentChecked === 0) problems.push({ arm: '⑧ 子条目的父', msg: '一条带 parent 的条目都没有 —— 这一格什么都没验(空集不是通过)。' })
+
     for (const route of EXCEPTIONS.keys()) {
+        // SYSTEM-MAP-1:一条盖在注册表条目之下的例外(/me/avatar 在 /me 之下)当然有家 —— 它不是"无属主",跳过这一侧。
+        if (isCoveredByEntry(route)) continue
         const r = nav.activeModuleForPath(route, () => true)
         if (r.id !== null || r.reason !== 'unowned') {
             problems.push({
@@ -749,7 +717,7 @@ if (problems.length) {
 console.log(
     `✓ 导航与路由:注册表 ${entryHrefs.length} 条 · 路由 ${routes.length} 条 · 范围 ${scopeIds.length} 个 · ` +
     `例外 ${EXCEPTIONS.size} 条(各带理由)· 退休路径 0 处 · 带参数的站内链接 ${queryLinks} 条(目标页都读得懂)· ` +
-    `活动模块解析:规则穷举 + 3 组实跑 · null 两侧各验一遍(无属主 ${unownedChecked} 条 · 矛盾 ${contradictionChecked} 条) · ` +
+    `活动模块解析:单一归属逐条实跑 + /inbound 钉在生产 · null 两侧各验一遍(无属主 ${unownedChecked} 条 · 矛盾 ${contradictionChecked} 条) · 子条目的父同一个家 · ` +
     `bare 路径 ${bareArmChecked} 条,软导航到它们的 ${bareArmHits} 处 · ` +
     // ★ 判据 ② 收紧之后,这个数【应当恒为 0】—— 把它印出来,是因为一个
     //   「0 个埋着的屏幕」只有在它旁边写着分母时才读得出它量过没有。

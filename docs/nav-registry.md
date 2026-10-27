@@ -922,3 +922,26 @@ live 最终授权实测:`data.view_deleted` 的持有者 = **`admin auditor`**�
 必须真的读那个参数。** 理由与实测见那个文件的抬头 —— 前五条对这一族
 **结构性地**看不见,因为退休的可以是一个**语义**(`/finance` 不再【是】试算平衡)
 而不是一个字符串。**四条注入全部实测变红,还原后归零。**
+
+---
+
+# SYSTEM-MAP-1(2026-10-27,v1.4.77)—— 每一条二级条目只有一个家
+
+> ★ **本文件标题那句「一个功能可以属于好几个模块」从这一刀起不再成立。** Tim 2.1(2026-10-26,`docs/system-map.md`):
+> 每一条二级条目在菜单里只有一个位置;别的模块经单据页上的链接够到它。`scripts/check-single-home.mjs` 在 `npm run build` 里拦两个以上的属主
+> (两条独立的读法 + 覆盖断言 + 四格故障注入;真注入:给 `/inbound` 加第二个家,构建停在这支闸上 —— `docs/surveys/SYSTEM-MAP-1/readings/single-home-injection.txt`)。
+> 上面各节记的是当时的事实,原样留着。
+
+* **模块**:`workbench · purchasing · production · quality · sales · finance · people · safety · equipment` 在顶栏(`BAR_MODULE_IDS`),`tools · settings` 是抽屉里的两个区。
+  `ModuleEntry` 多了 `titleKey`(完整流程名:悬停提示与模块概览页的页头)。运营 + 库存并成 `production`,物流并进 `sales`,`hr` 改名 `people`。
+* **条目**:140 条 = 120 条菜单条目 + 20 条子条目(`parent`)。逐模块的清单(由注册表生成):`docs/surveys/SYSTEM-MAP-1/readings/module-table.md`。
+  新条目:`/me` · `/my-reviews` · `/notifications`(工作台,人人可进)· `/claims`(人事,人事或财务查看码任一)· `/compliance/cod`(安全,`action.issue_cod`)·
+  `/compliance/supplier-certificates`(安全,`module.suppliers.view`)· `/operation/spare-parts`(设备,`module.inventory.view`)。
+  升成菜单条目:`/operation/equipment/reliability` · `/operation/calibration`(设备)· `/operation/capture/inbox`(生产)。
+  变成 `/claims` 的子条目:`/hr/claims` · `/finance/claims`(地址与审批规则不变)。
+* **脱离父地址的子条目**:`/finance/claims` 的地址在 `/finance` 底下,而它的家是人事。`lib/navTrail.ts` 的 `detachedChildFor` 让 `entryForPath` 答它的父(`/claims`),
+  于是高亮、面包屑与「我在哪个模块」都说人事;`check-nav-routes` 判据 ⑧ 保证孩子与父同一个家。贴着父地址的孩子(`/hr/leave/balances` 之类)不走这一支,面包屑一截不变。
+* **退休的判据**:`check-nav-routes` ⑤ 的「`/inbound` 对 operations 解析成库存」与逐条多属主实跑,换成逐条的单一归属实跑 + `/inbound` 钉在生产;
+  `check-permission-predicate` ② 从「至少一条多属主」反过来成「零条」。
+* **机器标记**:菜单行(`MenuEntryRow`)多了 `data-menu-href` —— 受限的那一行也说出它是哪一条(「概览」这个标签在五个模块里各有一条)。
+* **逐角色的实测**(一次性账号,每个真角色克隆一个,读画出来的菜单):`docs/surveys/SYSTEM-MAP-1/README.md`。

@@ -99,7 +99,7 @@ export type AvatarMenuProps = {
 export default function AvatarMenu({ name, email, unread, settingsEntries, avatarUrl }: AvatarMenuProps) {
     const t = useTranslations()
     const [open, setOpen] = useState(false)
-    // 【设置那一区默认收着】菜单打开时先看到的仍然是那四条属于【你自己】的东西;
+    // 【设置那一区默认收着】菜单打开时先看到的是身份与通知(SYSTEM-MAP-1 之后 /me 与 /my-reviews 住在工作台);
     // 设置是七条系统配置,展开是一次刻意的动作 —— 与手机抽屉里模块行的 +/− 同一个交互。
     const [settingsOpen, setSettingsOpen] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
@@ -209,21 +209,9 @@ export default function AvatarMenu({ name, email, unread, settingsEntries, avata
                         )}
                     </Link>
 
-                    {/* ③ 我的评估。**不需要权限码** —— 这一页靠 performance_reviews 的
-                        "select as reviewer" 策略与 current_user_employee(),一个 module.*
-                        都不看(见 app/my-reviews/page.tsx 抬头)。没有员工档案的人打开它,
-                        拿到的是那一页【自己】渲染的具名拒绝(ListPage 的 restricted 分支),
-                        不是一张白页 —— 所以这里【不】替它判断,也【不】把它藏起来。 */}
-                    <Link href="/my-reviews" data-menu-row="" onClick={closeMenu} className={row}>
-                        <span>{t('nav.myReviews')}</span>
-                    </Link>
-
-                    {/* ④ 我的档案 —— ★ OVERTIME-1 折进来的(Tim 2026-09-27,已关):这一行回到「My profile」/「我的档案」,
-                        仍然去 /me;EMP-SELF-1 加的「我的请假」「我的报销」两行删掉。/me 上的 #leave / #claims 锚点留着
-                        (无害,也还能被直链)。不查任何模块码 —— /me 本来就不查。 */}
-                    <Link href="/me" data-menu-row="" onClick={closeMenu} className={row}>
-                        <span>{t('nav.me')}</span>
-                    </Link>
+                    {/* ③④ 我的评估 · 我的档案 —— ★ SYSTEM-MAP-1(Tim Q5,2026-10-27):这两行【删了】。
+                        它们的家是「工作台」(注册表 /my-reviews · /me,每一条二级条目只有一个位置 —— 2.1)。
+                        通知那一行(②)留着:它带着未读数,是一个状态指示,不是第二扇门。 */}
 
                     {/* ⑤ 设置 —— 【七条】,不是一条跳转。理由整段写在 settingsEntries
                         那个 prop 的抬头(它修的是 UI-1a 留下的一处桌面回归:

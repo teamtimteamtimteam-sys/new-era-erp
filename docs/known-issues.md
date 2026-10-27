@@ -11749,10 +11749,4 @@ TF-2 照 Q5 的字面做:「今年」= 今天所在的、按 fy_end 月日算出
 
 ## TABLE-FEATURES-3 登记(2026-10-26)
 
-### SAVED-VIEW-DEFAULT-RETURNS-WHEN-LAST-FILTER-CLEARED · 设了默认视图之后,把最后一个筛选清掉,列表回到默认视图(TF-3 记;按 Q3 字面建,请 Tim 看一眼)
-Q3:「默认视图只在打开列表时地址里什么都没有才套用」。服务端分不出"从别处打开这张列表"与"在这张列表上把最后一个筛选清掉"——两者到达的都是一个空地址
-(Next 的软导航对两者发同样的请求)。于是:设了默认「未付」的人,在工具栏把状态改回「全部」,若那是地址里最后一个参数,页面回到「未付」。
-出路在视图条上:「原始列表」(`?view=plain`)永远不套默认。要改成"清空也不回默认",做法是让 28 张页的工具栏在清空时写 `view=plain` —— 一处小改,但它是一条
-新裁定,不在本刀里猜。量法:`lib/savedViewsServer.ts` `loadSavedViews` 的 `addressIsEmpty`;28 张页的工具栏都是删键再 `router.replace`。
-**状态(SYSTEM-MAP-0 记,2026-10-27):一个 Tim 还没裁的问题 —— ruling pending; to be asked before SYSTEM-MAP-1 starts.** 问题照直写:设了默认视图的读者把最后一个筛选清掉时,列表回到默认视图;
-**建议的改法**是清掉之后显示原始列表(工具栏在清空时写 `view=plain`),而不是回到默认视图。它随 SYSTEM-MAP-1 走(`docs/forward-queue.md` 64d-1;`docs/system-map.md` 末尾的待问第 1 条)。
+(SAVED-VIEW-DEFAULT-RETURNS-WHEN-LAST-FILTER-CLEARED 已关:Tim 2026-10-27 D1 —— 清掉最后一个筛选显示原始列表;SYSTEM-MAP-1 的 `filteredListHref`,见 `docs/system-map.md` 末尾。)

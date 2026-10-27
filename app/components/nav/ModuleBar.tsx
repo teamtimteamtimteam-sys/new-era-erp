@@ -173,12 +173,18 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
 
     return (
         <>
-            {/* ══ 桌面(≥640px):七个模块横排,点开二级 ══════════════════════ */}
+            {/* ══ 宽屏(≥1280px):九个模块横排,点开二级 ══════════════════════ */}
+            {/* ★★【SYSTEM-MAP-1(Tim Q1 · 2026-10-27):分界从 sm(640)挪到 xl(1280)】★★
+                九个按钮 + 短标签的模块条实测 719.8px(英)/ 498px(中)。在一张带搜索框的页面上(首页不画搜索框),
+                1280 宽时最后一个按钮止于 871px、右边那一组起于 976px —— 余 105px;1024 宽时硬把它画出来,右边那一组起于 760px,
+                英文压上去 111px(中文放得下,但分界不能随语言变)。Tim 的规矩:任何宽度都不许整页横向滚;放不下的地方用【既有的】那一种退路 ——
+                就是手机上这张「菜单」按钮 + 全高抽屉(工具区与设置区一起)。1024 与 640–1279 之间因此走抽屉;
+                每一个宽度上用的是哪一种,读数在 docs/surveys/SYSTEM-MAP-1/。工具下拉同一个分界(TopNav),免得两扇门。 */}
             {/* ★【UI-1a:padding 没了 —— 这一行现在是顶栏那【一行】里的一段】★
                 从前它是顶栏底下【第二行】,所以自带 px-4 pb-1.5。合成一行之后,
                 左右内距由 TopNav 那个 px-4 sm:px-6 的容器统一给,这里再给一次
                 就会把七个模块往右推 16px,并且让它与左边的字标对不齐。 */}
-            <div ref={barRef} className="hidden sm:flex items-center gap-0.5 min-w-0" data-nav="modules">
+            <div ref={barRef} className="hidden xl:flex items-center gap-0.5 min-w-0" data-nav="modules">
                 {barModules.map((m) => {
                     const isOpen = open === m.id
                     // ★★【UI-1a ⑦(b):进不去的模块【照画,不加后缀】】★★
@@ -210,7 +216,9 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                 type="button"
                                 aria-expanded={isOpen}
                                 aria-haspopup="true"
-                                {...(restricted ? { 'data-module-restricted': '1', title: HINT } : {})}
+                                // SYSTEM-MAP-1(Q1):悬停提示是完整流程名(「生产与仓储」);进不去的再接一句为什么。
+                                title={restricted ? `${t(m.titleKey)} — ${HINT}` : t(m.titleKey)}
+                                {...(restricted ? { 'data-module-restricted': '1' } : {})}
                                 onClick={() => setOpen(isOpen ? null : m.id)}
                                 className={
                                     'whitespace-nowrap rounded px-3 py-1.5 text-sm ' +
@@ -244,14 +252,14 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                 })}
             </div>
 
-            {/* ══ 手机(<640px):一个按钮 + 一张全高抽屉 ═════════════════════ */}
+            {/* ══ 窄屏(<1280px,SYSTEM-MAP-1 之前是 <640px):一个按钮 + 一张全高抽屉 ═════════════════════ */}
             {/* ★【UI-1a:它现在是【那一行里】的一格,不再是底下整宽的一条】★
                 从前顶栏是两行,这个按钮独占第二行,所以 w-full + px-4 pb-1.5。
                 合成一行之后它与字标、头像并排 —— 整宽会把头像挤出视口。
                 **形态一个字没改**(按钮 → 全高抽屉),UI-1b 才重做手机顶栏;
                 这里改的只是它在新容器里的尺寸。390px 上的实测见报告。
                 ★【UI-1c:重做的是抽屉【里面】,这个按钮一个字没动】★ */}
-            <div className="sm:hidden">
+            <div className="xl:hidden">
                 <button
                     type="button"
                     aria-expanded={sheet}
@@ -270,7 +278,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                    里面 583px 内容** —— 九个模块挤在一条缝里,而 IA-BUILD-1 的抬头
                    写的是"一张全高的抽屉"。玻璃挪到 .nav-glass-underlay 之后,
                    顶栏不再是包含块,这一行才开始表达它一直在说的意思。 */
-                <div className="sm:hidden fixed inset-0 z-50 flex flex-col" data-nav="sheet">
+                <div className="xl:hidden fixed inset-0 z-50 flex flex-col" data-nav="sheet">
                     {/* 背板:点它就关。它不磨砂 —— 它是遮挡,不是玻璃。 */}
                     <button
                         type="button"
@@ -292,7 +300,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                     <div
                                         key={m.id}
                                         data-module-restricted="1"
-                                        title={HINT}
+                                        title={`${t(m.titleKey)} — ${HINT}`}
                                         className="px-3 py-2.5 text-sm text-[color:var(--brand-muted-glass)]"
                                     >
                                         {t(m.key)} · {RESTRICTED}
@@ -305,6 +313,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                     <button
                                         type="button"
                                         aria-expanded={isOpen}
+                                        title={t(m.titleKey)}
                                         onClick={() => setExpanded(isOpen ? null : m.id)}
                                         className={
                                             'flex w-full items-center justify-between px-3 py-2.5 text-left text-sm ' +

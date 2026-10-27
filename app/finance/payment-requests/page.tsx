@@ -19,6 +19,7 @@ import { setSortParams } from '@/lib/listSort'
 import { Suspense } from 'react'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
+import { filteredListHref } from '@/lib/savedViews'
 
 const PAGE_SIZE = 20
 
@@ -62,8 +63,7 @@ export default async function PaymentRequestsPage({
         if (status !== 'open') params.set('status', status)
         if (keepSort) setSortParams(params, sort)
         if (p > 1) params.set('page', String(p))
-        const q = params.toString()
-        return q ? `/finance/payment-requests?${q}` : '/finance/payment-requests'
+        return filteredListHref('/finance/payment-requests', params) // SYSTEM-MAP-1 D1
     }
     const filters = ['open', ...REQUEST_STATUSES, 'all']
 

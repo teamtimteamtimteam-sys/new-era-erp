@@ -7,6 +7,7 @@ import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import type { MetalOption } from './options'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 export default function MetalPricesToolbar({
     substanceOptions,
@@ -28,8 +29,7 @@ export default function MetalPricesToolbar({
             if (!v) params.delete(k)
             else params.set(k, v)
         }
-        const qs = params.toString()
-        return qs ? `${pathname}?${qs}` : pathname
+        return filteredListHref(pathname, params)
     }
 
     // 筛选切换是离散动作(push),并把 page 清回第 1 页

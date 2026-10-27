@@ -5,7 +5,7 @@
 // 【NAV-REG-1 删掉过一个 moduleForPath,理由是它一个调用者都没有】。本刀重新需要
 // 这件事,于是重新造 —— **并且这一次它有三个调用者**(顶栏活动态、面包屑、dock 的
 // 归属)。那条规矩没变:有读者的东西才留下。
-import { MENU_FUNCTIONS, MODULES, type FunctionEntry } from '@/lib/modules'
+import { FUNCTIONS, MENU_FUNCTIONS, MODULES, type FunctionEntry } from '@/lib/modules'
 import { DEEP_ROUTES } from '@/lib/deepRoutes.generated'
 
 const segsOf = (p: string): string[] => p.split('/').filter(Boolean)
@@ -49,12 +49,35 @@ export function deepRoutePattern(pathname: string): string | null {
  */
 export function entryForPath(pathname: string): FunctionEntry | null {
     const segs = segsOf(pathname)
+    // ★ SYSTEM-MAP-1(Tim Q2):【地址不在父条目之下】的子条目 —— /hr/claims 与 /finance/claims 是 /claims 的孩子,
+    //   而它们的地址各自住在 /hr 与 /finance 底下。照菜单的最长前缀算,/finance/claims 会落到「财务 › 概览」上,
+    //   高亮与面包屑就会说"你在财务"—— 而它的家是人事(2.1:一条条目一个家)。所以先问一句:这条路径最具体的
+    //   那条注册表条目(含子条目)是不是这样一个"脱离父地址的孩子"?是,就答它的父条目。
+    //   贴着父地址的孩子(/hr/leave/balances 之类)不走这一支 —— 它们的父本来就是最长前缀,面包屑一截不变。
+    const detached = detachedChildFor(segs)
+    if (detached) return detached.parent
     let best: FunctionEntry | null = null
     for (const f of MENU_FUNCTIONS) {
         const hs = segsOf(f.href)
         if (isSegmentPrefix(hs, segs) && (!best || hs.length > segsOf(best.href).length)) best = f
     }
     return best
+}
+
+/**
+ * SYSTEM-MAP-1:最具体的注册表条目若是一个【地址不在父条目之下】的子条目,返回它与它的父;否则 null。
+ * 父条目由 check-nav-routes 保证存在且在菜单里、且与孩子同一个家(判据 ⑧)。
+ */
+export function detachedChildFor(segs: string[]): { child: FunctionEntry; parent: FunctionEntry } | null {
+    let best: FunctionEntry | null = null
+    for (const f of FUNCTIONS) {
+        const hs = segsOf(f.href)
+        if (isSegmentPrefix(hs, segs) && (!best || hs.length > segsOf(best.href).length)) best = f
+    }
+    if (!best?.parent) return null
+    if (isSegmentPrefix(segsOf(best.parent), segsOf(best.href))) return null
+    const parent = MENU_FUNCTIONS.find((f) => f.href === best.parent)
+    return parent ? { child: best, parent } : null
 }
 
 /**
@@ -204,7 +227,14 @@ export function breadcrumbTrail(
     const consumed = segsOf(entry.href).length
 
     const crumbs: Crumb[] = [{ key: mod.navKey }, { key: entry.navKey, href: entry.href }]
-    for (let i = consumed; i < pat.length; i++) {
+    // SYSTEM-MAP-1:脱离父地址的孩子(/hr/claims/… 之于 /claims)—— 父一截、孩子一截,然后从【孩子】的地址往后数。
+    const detached = detachedChildFor(here)
+    let from = consumed
+    if (detached) {
+        crumbs.push({ key: detached.child.navKey, href: detached.child.href })
+        from = segsOf(detached.child.href).length
+    }
+    for (let i = from; i < pat.length; i++) {
         if (isDynamic(pat[i])) continue
         crumbs.push({ key: `breadcrumb.${pat[i]}`, href: '/' + here.slice(0, i + 1).join('/') })
     }

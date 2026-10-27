@@ -32,6 +32,7 @@ import ClaimReceipts, { type ReceiptRow } from '@/app/me/ClaimReceipts'
 import type { ListTotal } from '@/lib/listTotals'
 import { totalsFooterRows } from '@/app/components/ui/list-totals'
 import type { ReceiptLimits } from '@/app/me/uploadClaimReceipt'
+import { HashTarget } from '@/app/components/ui/hash-target'
 
 export type ClaimItem = {
     id: string; line_no: number; spend_date: string; amount_ccy: number; description: string
@@ -174,6 +175,7 @@ export default function ClaimDecisionPanel({
 
     return (
         <div>
+            <HashTarget prefix="claim-" />
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
@@ -194,7 +196,8 @@ export default function ClaimDecisionPanel({
                         />
                     </PermissionGate>
                     {pending.map((c) => (
-                        <div key={c.claim_id} className="rounded border border-gray-300 p-3">
+                        // SYSTEM-MAP-1(Tim Q2):/claims 上「待决」的一般报销链到这里 —— #claim-<id>,由 <HashTarget> 滚进视野并标亮
+                        <div key={c.claim_id} id={`claim-${c.claim_id}`} className="rounded border border-gray-300 p-3 scroll-mt-24">
                             <div className="flex flex-wrap items-baseline gap-2 mb-1">
                                 {canDecide && <BulkCheck label={c.code} checked={bulkSel.has(c.claim_id)} onChange={() => toggleBulk(c.claim_id)} />}
                                 <span className="text-xs text-[color:var(--brand-muted-text)]">{c.code}</span>
@@ -306,6 +309,8 @@ export default function ClaimDecisionPanel({
                         rows={decided}
                         columns={decidedColumns}
                         rowKey={(c) => c.claim_id}
+                        // SYSTEM-MAP-1(Tim Q2):驳回 / 撤回的一般报销从 /claims 链到这一行(批准了的链到那笔开支)
+                        rowAnchor={(c) => `claim-${c.claim_id}`}
                         phone={{ mode: 'columns' }}
                         exportSpec={{ name: 'expense-claims-decided', title: t('expenseClaims.decidedTitle') }}
                         // TABLE-FEATURES-1 Q9:页面一次读全(expense_claim_status 不翻页)—— 在浏览器里排;默认次序照旧(花费日新的在前)

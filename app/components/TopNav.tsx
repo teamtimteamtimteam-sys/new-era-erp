@@ -132,6 +132,7 @@ export default async function TopNav() {
     const modules: NavModule[] = access.map(({ module, allowed, entries, groups }) => ({
         id: module.id,
         key: module.navKey,
+        titleKey: module.titleKey,
         allowed,
         entries: entries.map(({ fn, allowed: a }) => ({ href: fn.href, key: fn.navKey, allowed: a })),
         groups: groups.map((g) => ({
@@ -242,7 +243,7 @@ export default async function TopNav() {
                         <SearchShell />
                         {/* 工具下拉是桌面的门;**手机走抽屉里的「工具」区**。
                             在这里给手机再造一个工具下拉,就是造第二扇通向同一处的门。 */}
-                        <div className="hidden sm:block">
+                        <div className="hidden xl:block">
                             <ToolsMenu entries={toolsEntries} />
                         </div>
                         {/* 头像菜单【所有宽度都在】—— 它接住了从前平铺在顶栏上的

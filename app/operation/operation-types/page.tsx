@@ -8,7 +8,6 @@
 //   一串机器 / 一串配方"这种子清单 —— Step 0 §2 的那一句。
 // 【门】requireFunction(FN.operationTypes) = module.processing.view;改在详情页,要 module.processing.edit。
 // ════════════════════════════════════════════════════════════════════════════
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
@@ -62,7 +61,8 @@ export default async function OperationTypesPage() {
         <ListPage
             title={t('processing.opType.title')}
             intro={t('processing.opType.intro')}
-            breadcrumb={<Link href="/operation" className="hover:underline text-sm app-link">{t('common.back')}</Link>}
+            // SYSTEM-MAP-1(Tim 2.2):工序住在「设备」底下,而设备没有概览页 —— 那条「返回 /operation」指的是它从前的家,删掉;
+            //   顶栏(设备 › 工序)就是它的位置。
             maxWidth="max-w-5xl"
             state={{ kind: 'ok' }}
         >

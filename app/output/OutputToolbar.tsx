@@ -10,6 +10,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { STATE_OPTIONS } from '../inbound/options'
 import { DatePicker } from '@/app/components/ui/date-picker'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 export type PartyOption = { id: string; label: string }
 
@@ -52,8 +53,7 @@ export default function OutputToolbar({
             if (!v) params.delete(k)
             else params.set(k, v)
         }
-        const qs = params.toString()
-        return qs ? `${pathname}?${qs}` : pathname
+        return filteredListHref(pathname, params)
     }
 
     function onSearchChange(value: string) {

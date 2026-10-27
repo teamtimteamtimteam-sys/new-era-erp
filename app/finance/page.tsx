@@ -150,7 +150,7 @@ export default async function FinanceOverviewPage() {
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
             <h1 className="mb-1" style={{ color: 'var(--brand-text)' }}>
-                {t('nav.finance')}
+                {t('nav.modFull.finance')}
             </h1>
             {/* 【一页要说出自己是什么】—— 尤其这一页,因为它替掉的那一版
                 看起来像一个目录,而它不是目录。 */}

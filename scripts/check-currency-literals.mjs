@@ -104,6 +104,11 @@ const ALLOWLIST = [
             + '这里的 SGD 不随本位币变;真要改成多币种报销,是先改表再改这里。',
     },
     {
+        path: 'app/claims/page.tsx', match: 'SGD',
+        reason: 'SYSTEM-MAP-1 合并的报销页:医疗那一种读的是同一列 medical_claim_status.amount_sgd(同 app/hr/claims/);'
+            + '一般报销那一种带它自己那一行的 currency,不经过这个字面量。',
+    },
+    {
         path: 'app/me/MyClaimsPanel.tsx', match: 'SGD',
         reason: '同 app/hr/claims/:同一组 *_sgd 列的自助视图。',
     },

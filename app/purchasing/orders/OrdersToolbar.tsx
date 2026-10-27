@@ -6,6 +6,7 @@ import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 const STATUSES = ['draft', 'confirmed', 'receiving', 'closed', 'cancelled'] as const
 
@@ -25,8 +26,7 @@ export default function OrdersToolbar({ suppliers }: { suppliers: { id: string; 
         if (!value) params.delete(key)
         else params.set(key, value)
         params.delete('page')
-        const qs = params.toString()
-        router.push(qs ? `${pathname}?${qs}` : pathname)
+        router.push(filteredListHref(pathname, params))
     }
 
     return (

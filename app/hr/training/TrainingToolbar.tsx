@@ -5,6 +5,7 @@ import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { TRAINING_CATEGORY_OPTIONS } from '../options'
+import { filteredListHref } from '@/lib/savedViews' // SYSTEM-MAP-1 D1:清空筛选 → 原始列表
 
 export default function TrainingToolbar() {
     const t = useTranslations()
@@ -19,8 +20,7 @@ export default function TrainingToolbar() {
         const params = new URLSearchParams(searchParams.toString())
         if (!value) params.delete(key)
         else params.set(key, value)
-        const qs = params.toString()
-        router.push(qs ? `${pathname}?${qs}` : pathname)
+        router.push(filteredListHref(pathname, params))
     }
 
     return (

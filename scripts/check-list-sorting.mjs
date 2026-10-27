@@ -24,8 +24,13 @@ import { assertPopulation, assertPinned } from './lib/selfproof.mjs'
 const SELF = 'check-list-sorting'
 const ROOT = process.cwd()
 
-/** Tim 2026-10-25 Q8 的 84 张(Step 0 量的名单,原样)。 */
+/** Tim 2026-10-25 Q8 的 84 张(Step 0 量的名单,原样)+ SYSTEM-MAP-1 D4 的 4 张(Tim 2026-10-27:每一张都带排序与导出)。 */
 const LIST_ROUTES = [
+    // SYSTEM-MAP-1 D4
+    '/claims',
+    '/compliance/cod',
+    '/compliance/supplier-certificates',
+    '/operation/spare-parts',
     '/compliance/packs',
     '/contracts',
     '/finance/assets',
@@ -171,7 +176,7 @@ for (const e of EXEMPT) {
     }
 }
 
-assertPinned(SELF, '列表页名单(Tim Q8)', LIST_ROUTES.length, 84, '名单不再是 84 条 —— 改它要有一条裁定')
+assertPinned(SELF, '列表页名单(Tim Q8 的 84 + SYSTEM-MAP-1 D4 的 4)', LIST_ROUTES.length, 88, '名单不再是 88 条 —— 改它要有一条裁定')
 let files = 0, tags = 0, rough = 0
 const bad = []
 for (const r of LIST_ROUTES) {
