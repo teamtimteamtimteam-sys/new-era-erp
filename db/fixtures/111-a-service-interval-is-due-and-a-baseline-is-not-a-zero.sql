@@ -111,7 +111,10 @@ DECLARE
         'terms_request_pending',  -- APR-8(2026-09-26):第四十四支
         'warehouse_request_pending',  -- APR-7(2026-09-25):第四十三支
         'wht_due','work_order_overdue',
-        'work_order_variance_beyond'];
+        'work_order_variance_beyond',
+        -- SYSTEM-MAP-2(2026-10-27):六支审批支,第七十三到七十八支
+        'expense_claim_pending','purchase_order_approval_pending','overtime_batch_pending',
+        'work_order_release_pending','blending_plan_release_pending','portal_certificate_pending'];
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
     UPDATE finance_settings SET locked_before = NULL;
@@ -351,8 +354,9 @@ BEGIN
     IF array_length(v_types, 1) IS NULL OR array_length(v_types, 1) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
-    IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这七十二支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+    -- SYSTEM-MAP-2:期望清单按字母序比(新加的六支写在清单末尾,不插进中间)
+    IF v_types <> (SELECT array_agg(x ORDER BY x) FROM unnest(v_expected) x) THEN
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这七十八支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

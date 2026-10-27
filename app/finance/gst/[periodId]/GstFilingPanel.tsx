@@ -10,6 +10,7 @@
 // 【谁能批,这里不预判】二级审批角色、而且不是提单人(按人认)—— 两条都只有数据库知道。
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1):批 / 驳要 module.finance.view + data.view_prices;
 // 撤回要 module.finance.edit,提单人本人除外。
+import { HashTarget } from '@/app/components/ui/hash-target'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -135,6 +136,8 @@ export default function GstFilingPanel({
     return (
         <section id="gst-filing" className="mb-8 space-y-3 scroll-mt-24" aria-label={t('gstFiling.panelTitle')}>
             <h2>{t('gstFiling.panelTitle')}</h2>
+            {/* SYSTEM-MAP-2:工作台 › 待办链到 #gfr-<id> —— 把那一张滚进视野并标亮 */}
+            <HashTarget prefix="gfr-" />
             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('gstFiling.howItWorks')}</p>
 
             {open.map((r) => (

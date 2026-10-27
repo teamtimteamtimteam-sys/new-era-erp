@@ -18,16 +18,19 @@ import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
 
 type Client = SupabaseClient<Database>
 
-// 与 db/tables/payment_requests.sql 的 status CHECK 同一组取值;'open' / 'all' 是本页的两个合集。
+// 与 db/tables/payment_requests.sql 的 status CHECK 同一组取值;'all' 是本页唯一的合集。
+// ★ SYSTEM-MAP-2(Tim 2026-10-27 Q5,PAYMENT-REQUESTS-FILTER-MIXES-QUEUES):默认是「等审批」(submitted)——
+//   从前的默认「未了结」把等 CFO 批的与已批准、等财务付的混在一张清单里:两种动作、两类人。那个合集撤掉了;
+//   「已批准 · 等付款」(approved)是紧挨着的第二个筛选。旧地址 ?status=open 落回默认。
 export const REQUEST_STATUSES = ['submitted', 'approved', 'paid', 'rejected', 'withdrawn'] as const
-const OPEN = ['submitted', 'approved']
+export const REQUEST_FILTER_DEFAULT = 'submitted'
 
-/** 'open'(默认)· 'all' · 一个具体状态 */
+/** 'submitted'(默认)· 'all' · 一个具体状态 */
 export function parseRequestFilter(status: string | undefined): string {
-    return status === 'all' || (REQUEST_STATUSES as readonly string[]).includes(status ?? '') ? (status as string) : 'open'
+    return status === 'all' || (REQUEST_STATUSES as readonly string[]).includes(status ?? '') ? (status as string) : REQUEST_FILTER_DEFAULT
 }
 function statusSet(filter: string): string[] | null {
-    return filter === 'open' ? OPEN : filter === 'all' ? null : [filter]
+    return filter === 'all' ? null : [filter]
 }
 
 /**
@@ -64,7 +67,7 @@ export function requestCount(supabase: Client, filter: string) {
 
 /**
  * TABLE-FEATURES-2(Tim Q1):表尾合计 —— db/functions/list_totals_payment_requests.sql。
- *   传同一个解析过的筛选(parseRequestFilter 的结果);库里按 statusSet 同一条规矩展开('open' → 待批 + 已批)。
+ *   传同一个解析过的筛选(parseRequestFilter 的结果);库里按 statusSet 同一条规矩展开('all' → 不限;其余 → 那一个状态)。
  */
 export async function requestTotals(supabase: Client, filter: string): Promise<ListTotal[]> {
     return shapeListTotals(mustRows(await supabase.rpc('list_totals_payment_requests', { p_status: filter }), 'payment requests totals'))
@@ -87,7 +90,7 @@ export function requestPage(supabase: Client, filter: string, sort: ListSort<Req
 /** 导出路由的地址:同一个筛选,不带 page。TABLE-FEATURES-1 Q9:带上同一份排序。 */
 export function requestExportHref(filter: string, sort: ListSort<RequestSortKey>): string {
     const params = new URLSearchParams()
-    if (filter !== 'open') params.set('status', filter)
+    if (filter !== REQUEST_FILTER_DEFAULT) params.set('status', filter)
     setSortParams(params, sort)
     return `/finance/payment-requests/export?${params.toString()}`
 }

@@ -60,7 +60,10 @@ CREATE OR REPLACE VIEW public.purchase_order_status WITH (security_invoker = off
     --   导出量不存;fixture 断言两处对同一张单逐分相等。
     po.tax_total_ccy,
     po.estimated_total_ccy + COALESCE(po.tax_total_ccy, 0) AS gross_total_ccy,
-    (po.tax_total_ccy IS NOT NULL) AS carries_tax
+    (po.tax_total_ccy IS NOT NULL) AS carries_tax,
+    -- ── SYSTEM-MAP-2(2026-10-27,PO-LIST-NO-APPROVAL-STATUS):清单要看得出审批状态 ──
+    --   加在【末尾】(上面那条规矩);不是金额,不遮蔽。
+    po.approval_status
    FROM purchase_orders_masked po
      JOIN suppliers sup ON sup.id = po.supplier_id
      LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS prepaid

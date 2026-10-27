@@ -1,0 +1,9 @@
+# SYSTEM-MAP-2 · fixture 295 fault injection (Tim Q7), local rebuild copy only (2026-10-27 15:58:24 CST)
+# injection: decision_gate_code('medical_claim') widened from action.decide_hr_requests to module.hr.view — gm and cto hold hr.view but not the decide code
+psql:db/fixtures/295-the-to-do-list-shows-exactly-what-the-reader-can-decide.sql:353: ERROR:  FIXTURE 295M 失败:待办与决定函数对不上 —— 
+  cto · medical_claim:待办 t,决定函数 f(PERMISSION_DENIED|action.decide_hr_requests)
+  gm · medical_claim:待办 t,决定函数 f(PERMISSION_DENIED|action.decide_hr_requests)
+INJECTED_FIXTURE_EXIT=3
+# restored: same fixture on the un-injected copy
+CLEAN_FIXTURE_EXIT=0
+psql:db/fixtures/295-the-to-do-list-shows-exactly-what-the-reader-can-decide.sql:353: NOTICE:  FIXTURE 295 全部通过:189 格(7 个线上角色 × 27 张单据,24 种),待办 ⇔ 决定函数逐格相等

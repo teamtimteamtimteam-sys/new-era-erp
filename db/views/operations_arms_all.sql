@@ -1,4 +1,9 @@
 -- db/views/operations_arms_all.sql
+-- ★ SYSTEM-MAP-2(2026-10-27,Tim 2.4 (11) · Q3 · Q4 b):加六支审批支 —— expense_claim_pending(一般报销)· purchase_order_approval_pending
+--   (采购单审批)· overtime_batch_pending(加班)· work_order_release_pending / blending_plan_release_pending(工单 / 配料计划放行)·
+--   portal_certificate_pending(供应商门户交来、等人接收的证书)。读码是那一种决定的模块门;★ 读者看见哪几行不由读码定:
+--   审批支在 operations_now 里按 waiting_decisions 逐行过滤(decision_arms() 说哪几支是审批)—— 与待办同一份判据。
+--   qualification_expiring 与 company_licence_expiring 两支的判据改读 certificate_expiry_status()(逐行等价;供应商证书总览的状态列读同一支)。
 -- ★ MES-8b-2(2026-10-17,MES-8 Step 0 Q20,Tim):operations_now 的【全部支】,不按读者过滤 —— 基视图,不给人读(REVOKE ALL)。
 --   为什么拆出来:operations_now 在最后一句按【调用者】的码逐支裁决(has_permission 解析 auth.uid()),所以一支 SECURITY DEFINER 函数
 --   读 operations_now 也只拿到【调用者】看得见的那几支 —— 一块只持 data.view_floor_board 的大屏读它是零行。floor_board() 要的是
@@ -335,7 +340,7 @@ CREATE VIEW public.operations_arms_all AS
            FROM supplier_compliance sc
              JOIN certificate_types ct ON ct.code = sc.cert_type_code
              JOIN suppliers s_1 ON s_1.id = sc.supplier_id
-          WHERE sc.deleted_at IS NULL AND s_1.deleted_at IS NULL AND ct.disposition <> 'ignore'::text AND sc.valid_until IS NOT NULL AND sc.valid_until <= (CURRENT_DATE + ct.warn_lead_days)
+          WHERE sc.deleted_at IS NULL AND s_1.deleted_at IS NULL AND (certificate_expiry_status(sc.valid_until, ct.disposition, ct.warn_lead_days) = ANY (ARRAY['expired'::text, 'expiring'::text]))
         UNION ALL
          SELECT 'qualification_missing'::text AS item_type,
             'module.suppliers.view'::text AS permission,
@@ -735,7 +740,7 @@ CREATE VIEW public.operations_arms_all AS
             cc.valid_until AS item_date
            FROM company_compliance cc
              JOIN certificate_types ct ON ct.code = cc.cert_type_code
-          WHERE cc.deleted_at IS NULL AND ct.disposition <> 'ignore'::text AND cc.valid_until IS NOT NULL AND cc.valid_until <= (CURRENT_DATE + ct.warn_lead_days)
+          WHERE cc.deleted_at IS NULL AND (certificate_expiry_status(cc.valid_until, ct.disposition, ct.warn_lead_days) = ANY (ARRAY['expired'::text, 'expiring'::text]))
         UNION ALL
          SELECT 'import_permit_unverified'::text AS item_type,
             'module.inbound.view'::text AS permission,
@@ -1147,6 +1152,71 @@ CREATE VIEW public.operations_arms_all AS
              LEFT JOIN supplier_latest_reviews lr ON lr.supplier_id = s.id
           WHERE s.deleted_at IS NULL AND s.supplies_goods AND (s.status = ANY (ARRAY['approved'::supplier_status, 'active'::supplier_status]))
             AND (lr.recorded_at IS NULL OR ((lr.recorded_at AT TIME ZONE 'Asia/Singapore'::text)::date + ss.review_window_days) <= (now() AT TIME ZONE 'Asia/Singapore'::text)::date)
+        UNION ALL
+         SELECT 'expense_claim_pending'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            c.id AS item_id,
+            NULL::text AS doc_kind,
+            c.code AS item_code,
+            e.legal_name AS subject,
+            COALESCE(c.submitted_at, c.created_at)::date AS item_date
+           FROM expense_claims c
+             LEFT JOIN employees e ON e.id = c.employee_id
+          WHERE c.status = 'submitted'::text
+        UNION ALL
+         SELECT 'purchase_order_approval_pending'::text AS item_type,
+            'module.purchasing.view'::text AS permission,
+            po.id AS item_id,
+            NULL::text AS doc_kind,
+            po.code AS item_code,
+            sp.legal_name AS subject,
+            COALESCE(( SELECT max(l.decided_at) AS max
+                   FROM approval_log l
+                  WHERE l.subject_type = 'purchase_order'::text AND l.subject_id = po.id AND (l.decision = ANY (ARRAY['submitted'::text, 'approval_voided'::text]))), po.created_at)::date AS item_date
+           FROM purchase_orders po
+             LEFT JOIN suppliers sp ON sp.id = po.supplier_id
+          WHERE po.approval_status = 'pending'::text AND po.deleted_at IS NULL
+        UNION ALL
+         SELECT 'overtime_batch_pending'::text AS item_type,
+            'action.overtime_approve'::text AS permission,
+            ob.id AS item_id,
+            NULL::text AS doc_kind,
+            ob.label AS item_code,
+            NULL::text AS subject,
+            COALESCE(ob.submitted_at, ob.created_at)::date AS item_date
+           FROM overtime_batches ob
+          WHERE ob.status = 'submitted'::text
+        UNION ALL
+         SELECT 'work_order_release_pending'::text AS item_type,
+            'action.wo_release'::text AS permission,
+            wo.id AS item_id,
+            NULL::text AS doc_kind,
+            wo.code AS item_code,
+            NULL::text AS subject,
+            wo.created_at::date AS item_date
+           FROM work_orders wo
+          WHERE wo.status = 'draft'::text
+        UNION ALL
+         SELECT 'blending_plan_release_pending'::text AS item_type,
+            'action.wo_release'::text AS permission,
+            bp.id AS item_id,
+            NULL::text AS doc_kind,
+            bp.code AS item_code,
+            NULL::text AS subject,
+            bp.created_at::date AS item_date
+           FROM blending_plans bp
+          WHERE bp.status = 'draft'::text
+        UNION ALL
+         SELECT 'portal_certificate_pending'::text AS item_type,
+            'module.suppliers.edit'::text AS permission,
+            ps.supplier_id AS item_id,
+            NULL::text AS doc_kind,
+            COALESCE(ps.cert_no, ps.cert_type_code) AS item_code,
+            sp.legal_name AS subject,
+            COALESCE(ps.submitted_at, ps.created_at)::date AS item_date
+           FROM portal_certificate_submissions ps
+             JOIN suppliers sp ON sp.id = ps.supplier_id
+          WHERE ps.status = 'submitted'::text
         UNION ALL
          SELECT 'compliance_pack_not_frozen'::text AS item_type,
             'action.compliance_pack'::text AS permission,

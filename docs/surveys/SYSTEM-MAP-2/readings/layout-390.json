@@ -1,0 +1,348 @@
+{
+  "measuredAt": "2026-10-27T09:27:28.319Z",
+  "viewport": "390x844",
+  "unresolved": [
+    "/b/[code]",
+    "/compliance/packs/[id]",
+    "/contracts/[id]",
+    "/documents/[key]",
+    "/finance/electricity/[id]",
+    "/finance/packs/[id]",
+    "/finance/payment-requests/[id]",
+    "/finance/supplier-statements/[id]",
+    "/hr/attendance/[id]",
+    "/hr/overtime/[id]",
+    "/loc/[code]",
+    "/operation/blending/[id]",
+    "/operation/handovers/[id]",
+    "/operation/operation-types/[code]",
+    "/operation/weighbridge/[id]",
+    "/output/[id]/assays/[assayId]",
+    "/quality/coa/[id]",
+    "/quality/disputes/[id]",
+    "/quality/ncr/[id]",
+    "/quality/samples/[id]",
+    "/related/[subject]/[id]/[target]",
+    "/safety/incidents/[id]",
+    "/safety/inspections/[id]",
+    "/safety/inspections/templates/[id]",
+    "/sales/commissions/[id]/edit"
+  ],
+  "wedgedVerdict": null,
+  "results": [
+    {
+      "route": "/",
+      "url": "/",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 390,
+      "innerW": 390,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 390,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [],
+      "tableCount": 0,
+      "clippedTables": 0,
+      "scrollerTables": 0,
+      "maxCols": 0,
+      "maxRows": 0,
+      "tablesWithRows": 0,
+      "smallTargets": 5,
+      "smallestTarget": 20,
+      "denied": false,
+      "twins": [],
+      "landedOn": "/",
+      "textLen": 28,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/compliance/supplier-certificates",
+      "url": "/compliance/supplier-certificates",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 390,
+      "innerW": 390,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 390,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 326,
+          "hostW": 326,
+          "scrollable": true,
+          "cols": 8,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 8,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 10,
+      "smallestTarget": 21,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "relative hidden md:block",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        }
+      ],
+      "landedOn": "/compliance/supplier-certificates",
+      "textLen": 486,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/finance/payment-requests",
+      "url": "/finance/payment-requests",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 390,
+      "innerW": 390,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 390,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 326,
+          "hostW": 326,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 1,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 1,
+      "tablesWithRows": 1,
+      "smallTargets": 18,
+      "smallestTarget": 21,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "relative hidden md:block",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        }
+      ],
+      "landedOn": "/finance/payment-requests",
+      "textLen": 436,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/purchasing/orders",
+      "url": "/purchasing/orders",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 390,
+      "innerW": 390,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 390,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 326,
+          "hostW": 326,
+          "scrollable": true,
+          "cols": 12,
+          "rows": 7,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 12,
+      "maxRows": 7,
+      "tablesWithRows": 1,
+      "smallTargets": 35,
+      "smallestTarget": 18,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "relative hidden md:block",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-3 py-2.5 align-middle text-[15px] sm:hidden",
+          "display": "table-cell",
+          "painted": true
+        }
+      ],
+      "landedOn": "/purchasing/orders",
+      "textLen": 937,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/tools/reminders",
+      "url": "/tools/reminders",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 390,
+      "innerW": 390,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 390,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [],
+      "tableCount": 0,
+      "clippedTables": 0,
+      "scrollerTables": 0,
+      "maxCols": 0,
+      "maxRows": 0,
+      "tablesWithRows": 0,
+      "smallTargets": 135,
+      "smallestTarget": 6,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "relative hidden md:block",
+          "display": "none",
+          "painted": false
+        }
+      ],
+      "landedOn": "/tools/reminders",
+      "textLen": 6174,
+      "ready": true,
+      "httpStatus": 200
+    },
+    {
+      "route": "/workbench",
+      "url": "/workbench",
+      "dynamic": false,
+      "session": "admin",
+      "trail": null,
+      "vw": 390,
+      "innerW": 390,
+      "viewportMeta": "width=device-width, initial-scale=1",
+      "pageScrollW": 390,
+      "overflowPx": 0,
+      "culprits": [],
+      "tables": [
+        {
+          "w": 329,
+          "hostW": 326,
+          "scrollable": true,
+          "cols": 7,
+          "rows": 2,
+          "clipped": false
+        }
+      ],
+      "tableCount": 1,
+      "clippedTables": 0,
+      "scrollerTables": 1,
+      "maxCols": 7,
+      "maxRows": 2,
+      "tablesWithRows": 1,
+      "smallTargets": 11,
+      "smallestTarget": 21,
+      "denied": false,
+      "twins": [
+        {
+          "cls": "relative hidden md:block",
+          "display": "none",
+          "painted": false
+        },
+        {
+          "cls": "w-8 px-1 font-medium sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        },
+        {
+          "cls": "px-1 align-middle sm:hidden text-[15px]",
+          "display": "table-cell",
+          "painted": true
+        }
+      ],
+      "landedOn": "/workbench",
+      "textLen": 441,
+      "ready": true,
+      "httpStatus": 200
+    }
+  ]
+}

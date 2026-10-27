@@ -901,3 +901,9 @@ BEGIN
     END LOOP;
 END
 $f16$;
+
+-- ★ SYSTEM-MAP-2(2026-10-27):self_approval_allows 是 forbid_self_approval 的判据(从它搬出来的),经 self_leg /
+--   self_approval_exception 去问(两者都已收回)—— 与它们同一条理由收回。waiting_decisions / waiting_mine /
+--   waiting_decision_reach 【不收】:它们是 SECURITY DEFINER,只答【调用者自己】(auth.uid() / current_user_employee()),
+--   operations_now(属主视图)调用 waiting_decisions,而视图里的函数按读者判 EXECUTE。
+REVOKE EXECUTE ON FUNCTION public.self_approval_allows(uuid, uuid, text, uuid) FROM authenticated;

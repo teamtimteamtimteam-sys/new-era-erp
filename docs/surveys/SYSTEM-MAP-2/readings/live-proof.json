@@ -1,0 +1,781 @@
+{
+  "admin": {
+    "expected": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "got": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "count": 2,
+    "reach": {
+      "terms_request": false,
+      "journal_request": false,
+      "receipt_price_request": false,
+      "payroll_request": false,
+      "asset_disposal_request": false,
+      "shipping_release": false,
+      "payment_request": false,
+      "warehouse_request": false,
+      "expense_claim": false,
+      "purchase_order": false,
+      "invoice_request": false,
+      "gst_filing_request": false,
+      "salary_change_request": true,
+      "performance_review": true,
+      "overtime_batch": true,
+      "leave_request": true,
+      "medical_claim": true,
+      "ncr": true,
+      "work_order": true,
+      "blending_plan": true,
+      "supplier": true,
+      "capture_draft": true,
+      "portal_certificate": true,
+      "payment_to_pay": true
+    },
+    "workbench": {
+      "types": [
+        "notification",
+        "notification"
+      ],
+      "links": [
+        "/notifications",
+        "/notifications"
+      ],
+      "checks": 0,
+      "bar": false,
+      "barButtons": [],
+      "results": false,
+      "empty": false,
+      "url": "/workbench"
+    },
+    "reminders": {
+      "waiting": [
+        "ap_over_90",
+        "output_unsold_aging",
+        "allocation_stale",
+        "credit_over_limit",
+        "ar_over_90",
+        "metal_quote_stale",
+        "margin_cost_not_allocated",
+        "po_awaiting_receipt",
+        "free_time_expiring",
+        "work_order_overdue",
+        "container_documents_late",
+        "container_no_arrival",
+        "invoice_overdue",
+        "stocktake_open"
+      ],
+      "decidedBy": [
+        {
+          "arm": "payment_request_pending",
+          "text": "Payment requests awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "payroll_request_pending",
+          "text": "Payroll postings awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "receipt_price_request_pending",
+          "text": "Receipt prices awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "invoice_request_pending",
+          "text": "Credit notes and voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "shipping_release_pending",
+          "text": "Shipping releases awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "journal_request_pending",
+          "text": "Manual journals and reversals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "warehouse_request_pending",
+          "text": "Write-offs, rollbacks and certificate voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "terms_request_pending",
+          "text": "Contract and pricing-formula terms awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "asset_disposal_pending",
+          "text": "Fixed-asset disposals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "gst_filing_pending",
+          "text": "GST returns awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "expense_claim_pending",
+          "text": "Expense claims awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        },
+        {
+          "arm": "purchase_order_approval_pending",
+          "text": "Purchase orders awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        }
+      ]
+    }
+  },
+  "cfo": {
+    "expected": [
+      "expense_claim:bc021e6c-0b2e-4b8f-a5ff-82c1840ed097",
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "got": [
+      "expense_claim:bc021e6c-0b2e-4b8f-a5ff-82c1840ed097",
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "count": 3,
+    "reach": {
+      "terms_request": true,
+      "journal_request": true,
+      "receipt_price_request": true,
+      "payroll_request": true,
+      "asset_disposal_request": true,
+      "shipping_release": true,
+      "payment_request": true,
+      "warehouse_request": true,
+      "expense_claim": true,
+      "purchase_order": true,
+      "invoice_request": true,
+      "gst_filing_request": true,
+      "salary_change_request": true,
+      "performance_review": true,
+      "overtime_batch": false,
+      "leave_request": true,
+      "medical_claim": true,
+      "ncr": false,
+      "work_order": false,
+      "blending_plan": false,
+      "supplier": true,
+      "capture_draft": false,
+      "portal_certificate": false,
+      "payment_to_pay": false
+    },
+    "workbench": {
+      "types": [
+        "notification",
+        "notification",
+        "expense_claim"
+      ],
+      "links": [
+        "/notifications",
+        "/notifications",
+        "/finance/claims#claim-bc021e6c-0b2e-4b8f-a5ff-82c1840ed097"
+      ],
+      "checks": 1,
+      "bar": true,
+      "barButtons": [
+        "Reject selected (0)"
+      ],
+      "results": false,
+      "empty": false,
+      "url": "/workbench"
+    },
+    "reminders": {
+      "waiting": [
+        "ap_over_90",
+        "output_unsold_aging",
+        "allocation_stale",
+        "credit_over_limit",
+        "ar_over_90",
+        "metal_quote_stale",
+        "margin_cost_not_allocated",
+        "po_awaiting_receipt",
+        "free_time_expiring",
+        "work_order_overdue",
+        "container_documents_late",
+        "container_no_arrival",
+        "invoice_overdue",
+        "stocktake_open",
+        "expense_claim_pending"
+      ],
+      "decidedBy": []
+    }
+  },
+  "cco": {
+    "expected": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "got": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "count": 2,
+    "reach": {
+      "terms_request": false,
+      "journal_request": false,
+      "receipt_price_request": false,
+      "payroll_request": false,
+      "asset_disposal_request": false,
+      "shipping_release": false,
+      "payment_request": false,
+      "warehouse_request": false,
+      "expense_claim": false,
+      "purchase_order": false,
+      "invoice_request": false,
+      "gst_filing_request": false,
+      "salary_change_request": false,
+      "performance_review": false,
+      "overtime_batch": false,
+      "leave_request": true,
+      "medical_claim": true,
+      "ncr": true,
+      "work_order": false,
+      "blending_plan": false,
+      "supplier": false,
+      "capture_draft": false,
+      "portal_certificate": true,
+      "payment_to_pay": false
+    },
+    "workbench": {
+      "types": [
+        "notification",
+        "notification"
+      ],
+      "links": [
+        "/notifications",
+        "/notifications"
+      ],
+      "checks": 0,
+      "bar": false,
+      "barButtons": [],
+      "results": false,
+      "empty": false,
+      "url": "/workbench"
+    },
+    "reminders": {
+      "waiting": [
+        "ap_over_90",
+        "output_unsold_aging",
+        "allocation_stale",
+        "credit_over_limit",
+        "ar_over_90",
+        "metal_quote_stale",
+        "margin_cost_not_allocated",
+        "po_awaiting_receipt",
+        "free_time_expiring",
+        "work_order_overdue",
+        "container_documents_late",
+        "container_no_arrival",
+        "invoice_overdue",
+        "stocktake_open"
+      ],
+      "decidedBy": [
+        {
+          "arm": "review_submitted",
+          "text": "Reviews awaiting approval\nDecided by the CFO-level approver (the CCO when the CFO is a party)."
+        },
+        {
+          "arm": "payment_request_pending",
+          "text": "Payment requests awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "payroll_request_pending",
+          "text": "Payroll postings awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "receipt_price_request_pending",
+          "text": "Receipt prices awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "invoice_request_pending",
+          "text": "Credit notes and voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "shipping_release_pending",
+          "text": "Shipping releases awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "journal_request_pending",
+          "text": "Manual journals and reversals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "warehouse_request_pending",
+          "text": "Write-offs, rollbacks and certificate voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "terms_request_pending",
+          "text": "Contract and pricing-formula terms awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "asset_disposal_pending",
+          "text": "Fixed-asset disposals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "salary_change_pending",
+          "text": "Salary changes awaiting approval\nDecided by the CFO-level approver (the CCO when the CFO is a party)."
+        },
+        {
+          "arm": "gst_filing_pending",
+          "text": "GST returns awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "expense_claim_pending",
+          "text": "Expense claims awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        },
+        {
+          "arm": "purchase_order_approval_pending",
+          "text": "Purchase orders awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        }
+      ]
+    }
+  },
+  "cto": {
+    "expected": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "got": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "count": 2,
+    "reach": {
+      "terms_request": false,
+      "journal_request": false,
+      "receipt_price_request": false,
+      "payroll_request": false,
+      "asset_disposal_request": false,
+      "shipping_release": false,
+      "payment_request": false,
+      "warehouse_request": false,
+      "expense_claim": false,
+      "purchase_order": false,
+      "invoice_request": false,
+      "gst_filing_request": false,
+      "salary_change_request": false,
+      "performance_review": false,
+      "overtime_batch": false,
+      "leave_request": false,
+      "medical_claim": false,
+      "ncr": true,
+      "work_order": false,
+      "blending_plan": false,
+      "supplier": false,
+      "capture_draft": true,
+      "portal_certificate": true,
+      "payment_to_pay": false
+    },
+    "workbench": {
+      "types": [
+        "notification",
+        "notification"
+      ],
+      "links": [
+        "/notifications",
+        "/notifications"
+      ],
+      "checks": 0,
+      "bar": false,
+      "barButtons": [],
+      "results": false,
+      "empty": false,
+      "url": "/workbench"
+    },
+    "reminders": {
+      "waiting": [
+        "ap_over_90",
+        "output_unsold_aging",
+        "allocation_stale",
+        "credit_over_limit",
+        "ar_over_90",
+        "metal_quote_stale",
+        "margin_cost_not_allocated",
+        "po_awaiting_receipt",
+        "free_time_expiring",
+        "work_order_overdue",
+        "container_documents_late",
+        "container_no_arrival",
+        "invoice_overdue",
+        "stocktake_open"
+      ],
+      "decidedBy": [
+        {
+          "arm": "leave_pending",
+          "text": "Leave requests pending\nDecided by holders of action.decide_hr_requests."
+        },
+        {
+          "arm": "claim_pending",
+          "text": "Medical claims pending\nDecided by holders of action.decide_hr_requests."
+        },
+        {
+          "arm": "review_submitted",
+          "text": "Reviews awaiting approval\nDecided by the CFO-level approver (the CCO when the CFO is a party)."
+        },
+        {
+          "arm": "payment_request_pending",
+          "text": "Payment requests awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "receipt_price_request_pending",
+          "text": "Receipt prices awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "invoice_request_pending",
+          "text": "Credit notes and voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "shipping_release_pending",
+          "text": "Shipping releases awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "journal_request_pending",
+          "text": "Manual journals and reversals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "warehouse_request_pending",
+          "text": "Write-offs, rollbacks and certificate voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "terms_request_pending",
+          "text": "Contract and pricing-formula terms awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "asset_disposal_pending",
+          "text": "Fixed-asset disposals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "gst_filing_pending",
+          "text": "GST returns awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "expense_claim_pending",
+          "text": "Expense claims awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        },
+        {
+          "arm": "purchase_order_approval_pending",
+          "text": "Purchase orders awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        }
+      ]
+    }
+  },
+  "finance": {
+    "expected": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "got": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "count": 2,
+    "reach": {
+      "terms_request": false,
+      "journal_request": false,
+      "receipt_price_request": false,
+      "payroll_request": false,
+      "asset_disposal_request": false,
+      "shipping_release": false,
+      "payment_request": false,
+      "warehouse_request": false,
+      "expense_claim": true,
+      "purchase_order": true,
+      "invoice_request": false,
+      "gst_filing_request": false,
+      "salary_change_request": false,
+      "performance_review": false,
+      "overtime_batch": false,
+      "leave_request": true,
+      "medical_claim": true,
+      "ncr": false,
+      "work_order": true,
+      "blending_plan": true,
+      "supplier": false,
+      "capture_draft": false,
+      "portal_certificate": true,
+      "payment_to_pay": true
+    },
+    "workbench": {
+      "types": [
+        "notification",
+        "notification"
+      ],
+      "links": [
+        "/notifications",
+        "/notifications"
+      ],
+      "checks": 0,
+      "bar": false,
+      "barButtons": [],
+      "results": false,
+      "empty": false,
+      "url": "/workbench"
+    },
+    "reminders": {
+      "waiting": [
+        "ap_over_90",
+        "output_unsold_aging",
+        "allocation_stale",
+        "credit_over_limit",
+        "ar_over_90",
+        "metal_quote_stale",
+        "margin_cost_not_allocated",
+        "po_awaiting_receipt",
+        "free_time_expiring",
+        "work_order_overdue",
+        "container_documents_late",
+        "container_no_arrival",
+        "invoice_overdue",
+        "stocktake_open"
+      ],
+      "decidedBy": [
+        {
+          "arm": "review_submitted",
+          "text": "Reviews awaiting approval\nDecided by the CFO-level approver (the CCO when the CFO is a party)."
+        },
+        {
+          "arm": "payment_request_pending",
+          "text": "Payment requests awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "payroll_request_pending",
+          "text": "Payroll postings awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "receipt_price_request_pending",
+          "text": "Receipt prices awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "invoice_request_pending",
+          "text": "Credit notes and voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "shipping_release_pending",
+          "text": "Shipping releases awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "journal_request_pending",
+          "text": "Manual journals and reversals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "warehouse_request_pending",
+          "text": "Write-offs, rollbacks and certificate voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "terms_request_pending",
+          "text": "Contract and pricing-formula terms awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "asset_disposal_pending",
+          "text": "Fixed-asset disposals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "salary_change_pending",
+          "text": "Salary changes awaiting approval\nDecided by the CFO-level approver (the CCO when the CFO is a party)."
+        },
+        {
+          "arm": "gst_filing_pending",
+          "text": "GST returns awaiting approval\nDecided by the CFO-level approver."
+        }
+      ]
+    }
+  },
+  "gm": {
+    "expected": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "got": [
+      "notification:0036a6e6-16b8-4b21-bf84-76f6f444b17b",
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "count": 2,
+    "reach": {
+      "terms_request": false,
+      "journal_request": false,
+      "receipt_price_request": false,
+      "payroll_request": false,
+      "asset_disposal_request": false,
+      "shipping_release": false,
+      "payment_request": false,
+      "warehouse_request": false,
+      "expense_claim": false,
+      "purchase_order": false,
+      "invoice_request": false,
+      "gst_filing_request": false,
+      "salary_change_request": false,
+      "performance_review": false,
+      "overtime_batch": false,
+      "leave_request": false,
+      "medical_claim": false,
+      "ncr": false,
+      "work_order": false,
+      "blending_plan": false,
+      "supplier": false,
+      "capture_draft": false,
+      "portal_certificate": false,
+      "payment_to_pay": false
+    },
+    "workbench": {
+      "types": [
+        "notification",
+        "notification"
+      ],
+      "links": [
+        "/notifications",
+        "/notifications"
+      ],
+      "checks": 0,
+      "bar": false,
+      "barButtons": [],
+      "results": false,
+      "empty": false,
+      "url": "/workbench"
+    },
+    "reminders": {
+      "waiting": [
+        "ap_over_90",
+        "output_unsold_aging",
+        "allocation_stale",
+        "credit_over_limit",
+        "ar_over_90",
+        "metal_quote_stale",
+        "margin_cost_not_allocated",
+        "po_awaiting_receipt",
+        "free_time_expiring",
+        "work_order_overdue",
+        "container_documents_late",
+        "container_no_arrival",
+        "invoice_overdue",
+        "stocktake_open"
+      ],
+      "decidedBy": [
+        {
+          "arm": "leave_pending",
+          "text": "Leave requests pending\nDecided by holders of action.decide_hr_requests."
+        },
+        {
+          "arm": "claim_pending",
+          "text": "Medical claims pending\nDecided by holders of action.decide_hr_requests."
+        },
+        {
+          "arm": "review_submitted",
+          "text": "Reviews awaiting approval\nDecided by the CFO-level approver (the CCO when the CFO is a party)."
+        },
+        {
+          "arm": "payment_request_pending",
+          "text": "Payment requests awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "receipt_price_request_pending",
+          "text": "Receipt prices awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "invoice_request_pending",
+          "text": "Credit notes and voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "shipping_release_pending",
+          "text": "Shipping releases awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "journal_request_pending",
+          "text": "Manual journals and reversals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "warehouse_request_pending",
+          "text": "Write-offs, rollbacks and certificate voids awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "terms_request_pending",
+          "text": "Contract and pricing-formula terms awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "asset_disposal_pending",
+          "text": "Fixed-asset disposals awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "gst_filing_pending",
+          "text": "GST returns awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "expense_claim_pending",
+          "text": "Expense claims awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        },
+        {
+          "arm": "purchase_order_approval_pending",
+          "text": "Purchase orders awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        }
+      ]
+    }
+  },
+  "warehouse": {
+    "expected": [
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "got": [
+      "notification:1014f2b7-2b49-4397-b795-8132f62ec80d"
+    ],
+    "count": 1,
+    "reach": {
+      "terms_request": false,
+      "journal_request": false,
+      "receipt_price_request": false,
+      "payroll_request": false,
+      "asset_disposal_request": false,
+      "shipping_release": false,
+      "payment_request": false,
+      "warehouse_request": false,
+      "expense_claim": false,
+      "purchase_order": false,
+      "invoice_request": false,
+      "gst_filing_request": false,
+      "salary_change_request": false,
+      "performance_review": false,
+      "overtime_batch": true,
+      "leave_request": false,
+      "medical_claim": false,
+      "ncr": false,
+      "work_order": false,
+      "blending_plan": false,
+      "supplier": false,
+      "capture_draft": true,
+      "portal_certificate": true,
+      "payment_to_pay": false
+    },
+    "workbench": {
+      "types": [
+        "notification"
+      ],
+      "links": [
+        "/notifications"
+      ],
+      "checks": 0,
+      "bar": false,
+      "barButtons": [],
+      "results": false,
+      "empty": false,
+      "url": "/workbench"
+    },
+    "reminders": {
+      "waiting": [
+        "output_unsold_aging",
+        "allocation_stale",
+        "po_awaiting_receipt",
+        "free_time_expiring",
+        "work_order_overdue",
+        "container_documents_late",
+        "container_no_arrival",
+        "stocktake_open"
+      ],
+      "decidedBy": [
+        {
+          "arm": "receipt_price_request_pending",
+          "text": "Receipt prices awaiting approval\nDecided by the CFO-level approver."
+        },
+        {
+          "arm": "purchase_order_approval_pending",
+          "text": "Purchase orders awaiting approval\nDecided by the approver for its amount: level 1 below the threshold, the CFO level at or above it."
+        }
+      ]
+    }
+  }
+}

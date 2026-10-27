@@ -792,6 +792,11 @@ const MANIFEST = {
     'stock.warnings.':      { kind: 'enum', values: () => tsSet('app/components/inventory/stockErrorCodes.ts', 'STOCK_WARNING_CODES') },
     // NTF-1:事件类型的集合就是 notifications 表上的 CHECK —— 加一种事件,
     // 键检查自动跟着变宽,两个 locale 因此是【必须】而不是可选。
+    // SYSTEM-MAP-2:工作台 › 待办每一行【是什么】。后缀集合【就是】lib/workbench.ts 的 TODO_TYPES ——
+    //   前 24 种是 waiting_decisions 的种类(fixture 295 数着),后四种是 waiting_mine 与通知。
+    'workbench.type.': { kind: 'enum', values: () => tsArray('lib/workbench.ts', 'TODO_TYPES') },
+    // SYSTEM-MAP-2:供应商证书总览的状态列。后缀集合【就是】certificate_expiry_status() 那个 CASE 的分支 —— 从函数镜像现读。
+    'supplierCerts.status.': { kind: 'enum', values: () => tsRegex('db/functions/certificate_expiry_status.sql', /(?:THEN|ELSE) '(\w+)'/g) },
     'notifications.event.': { kind: 'enum', values: () => sqlEnum('db/tables/notifications.sql', 'event_type') },
     'sales.errors.':        { kind: 'enum', values: () => tsSet('app/sales/orders/salesOrderErrorCodes.ts', 'SALES_ORDER_ERROR_CODES') },
     // MES-3b(2026-10-07):印标签的具名拒绝(label_print_context · record_label_print)

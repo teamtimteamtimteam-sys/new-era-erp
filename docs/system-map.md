@@ -83,3 +83,32 @@ Readings: `docs/surveys/SYSTEM-MAP-1/` (README + `readings/`). Registry: `lib/mo
 - **D4**: `/compliance/cod` (gate `action.issue_cod`), `/compliance/supplier-certificates` (gate `module.suppliers.view`, dates only, soonest expiry first), `/operation/spare-parts` (gate `module.inventory.view`, `spare_part_stock`, no money). All on the shared table, browser-sorted, Excel/CSV export; added to `scripts/check-list-sorting.mjs` (84 → 88).
 - **Contradictions fixed**: `/finance/company` finds the licence entry through its own home (it had searched Purchasing and would have drawn "Restricted" for everyone); `/operation/operation-types` lost its back link to `/operation`; 25 message lines that named an old home plus 9 more "HR → …" lines and 4 "HR module" / 人力资源 phrases now name the new homes; HR pages' heading `hr.title` reads People / 人事.
 - **Q5**: avatar menu = identity · notifications (with unread count) · settings · language · log out.
+
+---
+
+## SYSTEM-MAP-2 rulings (Tim, 2026-10-27) — verbatim
+
+From Tim's reply to SYSTEM-MAP-2 Step 0:
+
+- Grilling's scope changes are accepted: all 24 approval types, the waiting source built on approval_pending_documents() x approval_deciders() / salary_change_deciders() with no second copy of any approval rule, one source for the to-do page, the home count and the Reminders approval branches, reviews split three ways, tasks filtered to the reader, and the supplier-portal certificate uploads.
+- Q1 - No. A new approval request does not create a notification. The to-do list and the home count are the signal.
+- Q2 - (a). Workbench stays a dropdown like the other eight buttons, with To-do as its first entry.
+- Q3 - Accepted. An approval branch the reader can never decide moves into Reminders' existing "restricted" group with the line "decided by the CFO-level approver" (or the matching decider for that type). It never vanishes and never shows 0. Branches the reader can decide show only the items that reader can act on.
+- Q4 - (a) stocktake post stays out of the to-do list and remains a reminder. (b) supplier-portal certificate uploads awaiting acceptance are in, with a new reminder branch. (c) approved payment requests awaiting payment are in, for finance (whoever pay_payment_request accepts), as a link-out row with no bulk.
+- Q5 - Accepted. Default filter "Awaiting approval"; second chip "Approved - awaiting payment"; the combined "open" chip is removed.
+- Q6 - Accepted: the shared helper's realRole mode for cfo, cco, cto, finance, gm and warehouse; a clone for admin. Conditions: cleanup runs in a finally block whether the proof passes or fails; the read-back must show exactly one cfo holder and 0 throwaway users, roles and grants; nothing is pressed on live. If cleanup fails, stop and report before anything else.
+- Q7 - Accepted. The live proof reports what exists (the one submitted claim, the open tasks) per role. The full 24 types x 7 roles check runs as a gate fixture on a local rebuild with the live role grants loaded: for each type and role, shown on the to-do list <=> the real decide function accepts it, every case rolled back. Fault-inject it once (make one type show to a role that cannot decide it) and prove it goes red.
+- Split - Do NOT split. Build the whole scope in this session.
+
+## What SYSTEM-MAP-2 built (v1.4.78)
+
+Readings: `docs/surveys/SYSTEM-MAP-2/` (README + `readings/`). Migration: `db/migrations/2026-10-27-system-map-2-my-workbench.sql`.
+
+- **One "waiting for whom" source** (`db/functions/waiting_decisions.sql`): the approvals waiting for the caller that the caller can decide now — built on `approval_pending_documents()` × `approval_deciders()` / `salary_change_deciders()` (CFO level, the 1,000 tier, four-eyes and the self-approval exception are not written again); the other kinds use `decision_gate_code()` + `self_approval_allows()` (the four-eyes rule moved out of `forbid_self_approval`, unchanged). Approved payment requests waiting to be paid (Q4 c) also carry the engine's `guard_payment_sod` rule (the person who created the supplier does not pay it). `waiting_mine()` adds my tasks (owner or active participant), reviews I write, my self-assessment; `waiting_for_me()` adds unread notifications (read under the reader's own RLS). `waiting_for_me_count()` is the home count — the same query.
+- **Workbench › To-do** (`/workbench`, first entry of the Workbench dropdown, Q2): one list — what it is, the item, who raised it, how long it has waited; every row links to the page where it is decided (`lib/workbench.ts`). Bulk approve/reject only where it already existed (journal, warehouse, terms, asset-disposal requests; reject-only for expense claims and capture drafts), one item at a time through each item's own action.
+- **Home** shows one line: "N waiting for you →" (or "Nothing waiting for you →") linking to `/workbench` (ruling 10).
+- **Reminders** (ruling 11, Q3): the 22 approval branches (`decision_arms()`) are filtered row by row by `waiting_decisions()` in `operations_now`; a branch the reader cannot decide is listed under "restricted" with a visible "decided by …" line (`waiting_decision_reach()`). Six new branches: general expense claims, purchase-order approval, overtime, work-order release, blending-plan release, supplier-portal certificates (Q4 b). Exception branches stay company-wide.
+- **Gaps closed**: PO list "Approval" column (PO-LIST-NO-APPROVAL-STATUS); expense claims on Reminders (EXPENSE-CLAIMS-MISSING-FROM-REMINDERS); payment requests default "Awaiting approval", second chip "Approved — awaiting payment", "Open" removed (PAYMENT-REQUESTS-FILTER-MIXES-QUEUES, Q5).
+- **Supplier certificates overview** has a Status column (expired · expiring · valid · no expiry date · not tracked) from `certificate_expiry_status()` — the same function the two certificate reminder branches now read (`supplier_certificate_status` view, `module.suppliers.view`).
+- **Proof**: fixture 295 — 24 types × the seven live roles' grants, shown on the to-do list ⇔ the real decide function accepts it, every cell rolled back; fault-injected once (`readings/fixture-295-injection.txt`).
+- Not built (Q1): no notification is written for a new approval request.

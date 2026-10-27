@@ -19,6 +19,8 @@ export type PurchaseOrderRow = {
     poId: string
     code: string
     status: string
+    /** SYSTEM-MAP-2(PO-LIST-NO-APPROVAL-STATUS):审批状态 */
+    approvalStatus: string
     supplierName: string
     orderDate: string
     /** TABLE-EXPORT-1:导出用的原始日历日(YYYY-MM-DD),Excel 里是真日期。 */
@@ -151,6 +153,8 @@ export default function OrdersTable({ rows, empty, exportHref, sort, shown, tota
                 ),
         },
         { key: 'status', sortable: true, header: t('purchasing.colStatus'), render: (r) => statusPill(r.status), exportAs: (r) => xText(t('purchasing.status.' + r.status)) },
+        // SYSTEM-MAP-2(PO-LIST-NO-APPROVAL-STATUS):清单上看得出哪一张在等审批 —— 与详情页同一套字(purchasing.approvalState.*)
+        { key: 'approval', sortable: true, header: t('purchasing.colApproval'), render: (r) => t('purchasing.approvalState.' + r.approvalStatus), exportAs: (r) => xText(t('purchasing.approvalState.' + r.approvalStatus)) },
     ]
 
     return (

@@ -1,0 +1,10 @@
+PROOF|new_functions=9
+PROOF|arms=78
+PROOF|decision_arms=22
+PROOF|po_status_has_approval=true
+PROOF|cert_view_rows=1
+PROOF|grants self_approval_allows auth=false anon_waiting=false auth_waiting=true cert_view_insert=false cert_view_select=true
+PROOF|tim_todo=5 tim_decisions=1 tim_ops_rows=60 cert_status=valid
+ROLLBACK
+PROOF|after_rollback_new_functions=0
+DRY_OWN_EXIT=0

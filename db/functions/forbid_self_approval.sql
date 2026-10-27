@@ -61,23 +61,13 @@ CREATE OR REPLACE FUNCTION public.forbid_self_approval(p_raiser_user uuid, p_sub
  STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE
-    v_leg text;
-    v_l2  text;
 BEGIN
-    -- 两条腿:raiser 先判,"同一个人"按人认(self_leg)。
-    v_leg := self_leg(p_raiser_user, p_subject_employee, auth.uid());
-    IF v_leg = 'none' THEN
+    -- ★ SYSTEM-MAP-2(2026-10-27):判据搬进 self_approval_allows(两条腿 + R2 那个例外,一字未改),
+    --   本函数只负责【拒】;待办(waiting_decisions)问的是同一支,于是"谁不许批自己的"仍只有一份定义。
+    IF self_approval_allows(p_raiser_user, p_subject_employee, p_subject_type, auth.uid()) THEN
         RETURN;
     END IF;
 
-    -- ★ APR-ROUTE-1(R2):唯一的例外。它要求"主角就是我",所以一张我替别人提的单
-    --   不会从这里漏过去 —— 那一张的 raiser 腿照拒。
-    SELECT approval_level2_role_code INTO v_l2 FROM finance_settings LIMIT 1;
-    IF self_approval_exception(p_subject_type, p_subject_employee, auth.uid(), v_l2) THEN
-        RETURN;
-    END IF;
-
-    RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN|%', v_leg;
+    RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN|%', self_leg(p_raiser_user, p_subject_employee, auth.uid());
 END;
 $function$;

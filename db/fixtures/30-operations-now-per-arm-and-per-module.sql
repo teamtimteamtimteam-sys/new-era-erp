@@ -42,14 +42,18 @@ DECLARE
     v_res_wo jsonb; v_detail text; v_runwo uuid;
     v_types text[];
     v_n int;
-    -- EXEC-1a 起十七支;EXEC-3a 起【二十一支】(资质两支 + 工单两支)
+    -- ★ SYSTEM-MAP-2(2026-10-27,Tim Q3):claim_pending · leave_pending · review_submitted 是【审批支】,只给批得了那一张的人看
+    --   (operations_now 按 waiting_decisions 逐行过滤)。本 fixture 的读者持 20 来个查看码、不持决定码(action.decide_hr_requests ·
+    --   考核的批准码),所以这三支对它【不见】—— 这是那条裁定本身,不是条件恒假。三支的条件照样成立、门牌照样指对:
+    --   fixture 295 的 O 臂以七个线上角色逐行比对审批支与待办。
+    -- EXEC-1a 起十七支;EXEC-3a 起【二十一支】(资质两支 + 工单两支);SYSTEM-MAP-2 起这个读者看见十九支
     v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
-        'claim_pending','fx_rate_gap','invoice_overdue','leave_pending','metal_quote_stale',
+        'fx_rate_gap','invoice_overdue','metal_quote_stale',
         'orders_unfulfilled','output_unsold_aging','po_awaiting_receipt',
         -- MES-4a(2026-10-07):本 fixture 的加工单是 MES-4a 之后记的(有开始时刻)、转化型、还没结平 → processing_balance_unclosed 也成立
         'processing_balance_unclosed',
-        'qualification_expiring','qualification_missing','review_submitted',
+        'qualification_expiring','qualification_missing',
         'stocktake_open','work_order_overdue','work_order_variance_beyond'];
     -- 只持 module.inbound.view 的读者应看见的三支(同源 batch_assay_status,互斥)
     v_inbound_only text[] := ARRAY['assay_unapplied','awaiting_assay','batch_unpriced'];
@@ -397,7 +401,7 @@ BEGIN
     RESET ROLE;
 
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:二十二支条件全部成立(MES-4a 起多一支 processing_balance_unclosed),应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
+        RAISE EXCEPTION 'FIXTURE 30A 失败:二十二支条件全部成立(MES-4a 起多一支 processing_balance_unclosed),SYSTEM-MAP-2 起这个读者看见其中十九支(三支审批支只给批得了的人),应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
             v_expected::text, v_types::text;
     END IF;
 
@@ -408,7 +412,7 @@ BEGIN
     SELECT count(*) INTO v_n FROM operations_now;
     RESET ROLE;
     -- MES-4a:processing_balance_unclosed 一件(工单那一张 f30 overrun:MES-4a 之后记的、转化型、没结平),所以 22 支 22 行。
-    IF v_n <> 22 THEN
+    IF v_n <> 19 THEN   -- SYSTEM-MAP-2:三支审批支对这个读者不见(见 v_expected 上面那一段)
         -- 【把【哪一支】多了直接说出来】原来这句只说"某支数了两遍",于是每次
         -- 都要再跑一轮去找是哪一支 —— 而在慢链路上那一轮要八分钟。
         -- 一条说得出主语的失败信息,值它自己那几行代码。
@@ -418,7 +422,7 @@ BEGIN
         SELECT string_agg(item_type || '=' || c, ' ' ORDER BY item_type) INTO v_detail
           FROM (SELECT item_type, count(*) c FROM operations_now GROUP BY 1 HAVING count(*) > 1) q;
         RESET ROLE;
-        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 22 行(每支 1 件),实得 % 行 —— 多出来的是:%(进料三支互斥、AR 与发票同源不同粒度)',
+        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 19 行(每支 1 件;SYSTEM-MAP-2 起三支审批支对这个读者不见),实得 % 行 —— 多出来的是:%(进料三支互斥、AR 与发票同源不同粒度)',
             v_n, COALESCE(v_detail, '(没有任何一支超过一行 —— 那么是支数对不上,看上一条断言)');
     END IF;
 

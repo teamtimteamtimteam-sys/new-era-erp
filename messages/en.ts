@@ -754,6 +754,9 @@ const en = {
         noModulesHint: 'Your account is signed in but no module has been granted to it. Ask an administrator to assign you a role.',
         // ── CONV-6 ③:搜索外壳。三句都刻意不说「出错」。 ──────────────────
         searchPrompt: 'Search for something',
+        // SYSTEM-MAP-2(Tim 2.4 (10)):首页唯一新增的那个数
+        todoCount: '{n} waiting for you →',
+        todoNone: 'Nothing waiting for you →',
         // ── UI-1b ①②:字标与节日画的可访问名 ──────────────────────────────
         // 【为什么 alt 里没有「OS」】图里就没有。顶栏那个锁定组合才带 OS
         // (evoltrya-os-black.svg);这里是纯字标,与登录页 alt 逐字相同。
@@ -976,6 +979,13 @@ const en = {
         item: {
             // MES-6b-2(2026-10-15):一支
             coa_facts_changed: 'Certificates of analysis whose batch changed after issue',
+            // SYSTEM-MAP-2(2026-10-27):六支审批支
+            expense_claim_pending: 'Expense claims awaiting approval',
+            purchase_order_approval_pending: 'Purchase orders awaiting approval',
+            overtime_batch_pending: 'Overtime batches awaiting approval',
+            work_order_release_pending: 'Work orders awaiting release',
+            blending_plan_release_pending: 'Blending plans awaiting release',
+            portal_certificate_pending: 'Supplier-portal certificates awaiting acceptance',
             // MES-6b-1(2026-10-15):三支
             ncr_open: 'Open non-conformance reports',
             incident_nea_notify_due: 'Incidents to notify NEA about',
@@ -1062,6 +1072,11 @@ const en = {
         intro: 'What is waiting for someone, and what is falling due — gathered across every module. Each item appears only if your permissions reach its own module.',
         basis: 'Days waited are counted by the database against its own current date (taken from the date on the item itself), not your device timezone.',
         sectionWaiting: 'Waiting now',
+        // SYSTEM-MAP-2(Tim Q3):批不了的审批支,由谁决定
+        decidedByCfo: 'Decided by the CFO-level approver.',
+        decidedByTier: 'Decided by the approver for its amount: level 1 below the threshold, the CFO level at or above it.',
+        decidedByPayCode: 'Decided by the CFO-level approver (the CCO when the CFO is a party).',
+        decidedByCode: 'Decided by holders of {code}.',
         waitingSummary: '{items} items across {arms} kinds — longest wait first.',
         count: '{n}',
         oldest: 'longest {n}d',
@@ -6730,6 +6745,8 @@ const en = {
         colPrepaid: 'Prepaid',
         colReceipt: 'Receipt',
         colStatus: 'Status',
+        // SYSTEM-MAP-2(PO-LIST-NO-APPROVAL-STATUS)
+        colApproval: 'Approval',
         colMaterial: 'Material',
         colQuantity: 'Quantity',
         colFormula: 'Pricing formula',
@@ -7309,6 +7326,61 @@ const en = {
         },
     },
     // SYSTEM-MAP-1(Tim D2 · D4 · Q2 · Q3 · Q4,2026-10-27):人事底下的合并报销页,以及三张新的只读清单
+    // SYSTEM-MAP-2(Tim 2.4 (9) · Q1–Q7,2026-10-27):工作台 › 待办
+    workbench: {
+        title: 'To-do',
+        intro: 'Everything waiting for you to act on, in one list: approvals you can decide, approved payments to pay, your tasks, reviews due and unread notifications. Each row links to the page where it is decided. Bulk approve or reject appears only where that decision already supports it.',
+        empty: 'Nothing is waiting for you.',
+        colPick: 'Select',
+        pickRow: 'Select {code}',
+        colType: 'What',
+        colItem: 'Item',
+        colRaisedBy: 'Raised by',
+        colWaited: 'Waited',
+        colSince: 'Since',
+        days: '{n} d',
+        due: 'due {date}',
+        bulkApproveTitle: 'Approve the selected items?',
+        bulkRejectTitle: 'Reject the selected items?',
+        bulkRejectPlaceholder: 'Why are these being rejected? (required — written on each item)',
+        bulkRejectOnly: 'This kind can only be rejected in bulk; approve it on its own page.',
+        who: {
+            unknown: 'Not recorded',
+            portal: 'Supplier portal — {name}',
+            system: 'System',
+            removed: 'Account removed',
+        },
+        type: {
+            purchase_order: 'Purchase-order approval',
+            expense_claim: 'Expense claim',
+            payment_request: 'Payment request',
+            payroll_request: 'Payroll posting or reversal',
+            receipt_price_request: 'Receipt price',
+            invoice_request: 'Credit note or void',
+            shipping_release: 'Shipping release',
+            journal_request: 'Manual journal or reversal',
+            warehouse_request: 'Write-off, rollback or certificate void',
+            terms_request: 'Contract or pricing-formula terms',
+            asset_disposal_request: 'Fixed-asset disposal',
+            gst_filing_request: 'GST return',
+            salary_change_request: 'Salary change',
+            overtime_batch: 'Overtime batch',
+            performance_review: 'Performance review to approve',
+            leave_request: 'Leave request',
+            medical_claim: 'Medical claim',
+            ncr: 'Non-conformance report',
+            work_order: 'Work order to release',
+            blending_plan: 'Blending plan to release',
+            supplier: 'Supplier to approve',
+            capture_draft: 'Captured reading to confirm',
+            portal_certificate: 'Certificate sent through the supplier portal',
+            payment_to_pay: 'Approved payment to pay',
+            task: 'My task',
+            review_write: 'Review to write',
+            self_review: 'Self-assessment to complete',
+            notification: 'Unread notification',
+        },
+    },
     claimsAll: {
         title: 'Claims',
         intro: 'Medical and general expense claims in one list. Each claim opens where it is decided: medical claims on their own page, general claims on the expense-claims queue, and approved general claims on the expense they became. Approval rules are unchanged.',
@@ -7329,13 +7401,15 @@ const en = {
     },
     supplierCerts: {
         title: 'Supplier certificates',
-        intro: 'Every certificate on file for every supplier, soonest expiry first. Dates only — whether a certificate blocks receiving is decided on the supplier and the receiving screens.',
+        intro: 'Every certificate on file for every supplier, soonest expiry first. Status follows the same rule as the reminder: expired after its valid-until date, expiring within its type\'s warning days. Whether an expired certificate blocks receiving is decided on the supplier and the receiving screens.',
         colSupplier: 'Supplier',
         colType: 'Certificate',
         colNumber: 'Number',
         colIssuer: 'Issued by',
         colFrom: 'Valid from',
         colUntil: 'Valid until',
+        colStatus: 'Status',
+        status: { expired: 'Expired', expiring: 'Expiring', valid: 'Valid', no_expiry: 'No expiry date', not_tracked: 'Not tracked' },
         empty: 'No supplier certificates on file.',
     },
     spareParts: {
@@ -9317,7 +9391,8 @@ const en = {
             intro: 'Money leaves only after approval. Finance raises a request, the CFO approves it, and Finance then pays it from the request page — the journal posts only at payment.',
             newRequest: 'New payment request',
             filterLabel: 'Filter by status',
-            filterOpen: 'Open',
+            filterAwaitingApproval: 'Awaiting approval',
+            filterApprovedAwaitingPayment: 'Approved — awaiting payment',
             filterAll: 'All',
             empty: 'No payment requests match this filter.',
             colKind: 'Type',

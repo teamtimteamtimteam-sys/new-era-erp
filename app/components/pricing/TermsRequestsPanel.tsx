@@ -10,6 +10,7 @@
 // 【谁能批,这里不预判】二级审批角色、而且不是提单人(按人认)—— 两条都只有数据库知道。
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1):批 / 驳要五个门码(page 算出缺的第一个);
 // 撤回要那一种的码(公式 module.pricing.edit · 合同 action.contract_terms),提单人本人除外。
+import { HashTarget } from '@/app/components/ui/hash-target'
 import { useTransition, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -77,6 +78,8 @@ export default function TermsRequestsPanel({
     return (
         <section className="space-y-3" aria-label={t('termsRequest.panelTitle')}>
             <h2>{t('termsRequest.panelTitle')}</h2>
+            {/* SYSTEM-MAP-2:工作台 › 待办与提醒页链到 #tr-<id> —— 把那一张滚进视野并标亮(SYSTEM-MAP-1 Q2 的 HashTarget) */}
+            <HashTarget prefix="tr-" />
             {open.length === 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('termsRequest.noneWaiting')}</p>
             )}

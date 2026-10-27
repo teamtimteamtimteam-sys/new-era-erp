@@ -11,6 +11,7 @@
 // 钮亮着,拒绝由库出,就地说成人话。
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1)—— 批 / 驳要 data.view_prices(能进这一页的人
 // 已经持 module.finance.view,那是门的另一半);撤回要 module.finance.edit,提单人本人除外。
+import { HashTarget } from '@/app/components/ui/hash-target'
 import { useState, useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -106,6 +107,8 @@ export default function JournalRequestsPanel({
     return (
         <section className="mb-6 space-y-3" aria-label={t('finance.journalRequest.title')}>
             <h2>{t('finance.journalRequest.title')}</h2>
+            {/* SYSTEM-MAP-2:工作台 › 待办与提醒页链到 #jr-<id> —— 把那一张滚进视野并标亮(SYSTEM-MAP-1 Q2 的 HashTarget) */}
+            <HashTarget prefix="jr-" />
             {open.length === 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.journalRequest.noneWaiting')}</p>
             )}

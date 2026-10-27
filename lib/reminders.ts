@@ -399,6 +399,22 @@ export const REMINDERS = [
     //   ★ item_id 是【期间】的 id —— 申请住在那一期的页面上(锚点 gst-filing)。
     { itemType: 'gst_filing_pending', permission: 'module.finance.view', href: '/finance/gst',
       itemHref: (r: OpsRow) => `/finance/gst/${r.item_id}#gst-filing` },
+    // ── SYSTEM-MAP-2(Tim 2.4 (11) · Q4 b,2026-10-27):SYSTEM-MAP-0 §3.2 量到的四种没有支的审批,加上门户证书 ─────────────
+    //   读码是那一种决定的模块门;★ 读者看见哪几行不由读码定 —— 审批支在 operations_now 里按 waiting_decisions 逐行过滤,
+    //   批不了这一类的读者在提醒页上看见它在「受限」组里,带一句由谁决定(app/tools/reminders/page.tsx,waiting_decision_reach)。
+    { itemType: 'expense_claim_pending', permission: 'module.finance.view', href: '/finance/claims',
+      itemHref: (r: OpsRow) => `/finance/claims#claim-${r.item_id}` },
+    { itemType: 'purchase_order_approval_pending', permission: 'module.purchasing.view', href: '/purchasing/orders',
+      itemHref: (r: OpsRow) => `/purchasing/orders/${r.item_id}` },
+    { itemType: 'overtime_batch_pending', permission: 'action.overtime_approve', href: '/hr/overtime',
+      itemHref: (r: OpsRow) => `/hr/overtime/${r.item_id}` },
+    { itemType: 'work_order_release_pending', permission: 'action.wo_release', href: '/operation/orders',
+      itemHref: (r: OpsRow) => `/operation/orders/${r.item_id}` },
+    { itemType: 'blending_plan_release_pending', permission: 'action.wo_release', href: '/operation/blending',
+      itemHref: (r: OpsRow) => `/operation/blending/${r.item_id}` },
+    // 门户交来的证书住在那家供应商的档案页上 —— ★ item_id 是【供应商】的 id(与工资期 · 发票那几支同形)。
+    { itemType: 'portal_certificate_pending', permission: 'module.suppliers.edit', href: '/suppliers',
+      itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
 ] as const satisfies readonly Reminder[]
 
 /**

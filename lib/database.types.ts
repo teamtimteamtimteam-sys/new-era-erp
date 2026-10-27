@@ -21367,6 +21367,13 @@ export type Database = {
             foreignKeyName: "portal_certificate_submissions_compliance_id_fkey"
             columns: ["compliance_id"]
             isOneToOne: false
+            referencedRelation: "supplier_certificate_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_certificate_submissions_compliance_id_fkey"
+            columns: ["compliance_id"]
+            isOneToOne: false
             referencedRelation: "supplier_compliance"
             referencedColumns: ["id"]
           },
@@ -46336,6 +46343,7 @@ export type Database = {
       }
       purchase_order_status: {
         Row: {
+          approval_status: string | null
           carries_tax: boolean | null
           code: string | null
           currency: string | null
@@ -47529,6 +47537,64 @@ export type Database = {
           unconvertible_batches: number | null
         }
         Relationships: []
+      }
+      supplier_certificate_status: {
+        Row: {
+          cert_no: string | null
+          cert_type_code: string | null
+          id: string | null
+          issuing_body: string | null
+          status: string | null
+          supplier_code: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_compliance_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "certificate_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "supplier_receiving_blocked"
+            referencedColumns: ["cert_type_code"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_scorecard_rows"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supplier_latest_reviews: {
         Row: {
@@ -49383,6 +49449,14 @@ export type Database = {
         Returns: Json
       }
       cash_forecast_data: { Args: { p_week_start?: string }; Returns: Json }
+      certificate_expiry_status: {
+        Args: {
+          p_disposition: string
+          p_valid_until: string
+          p_warn_lead_days: number
+        }
+        Returns: string
+      }
       change_log_began_at: { Args: never; Returns: string }
       change_log_coverage_gaps: { Args: never; Returns: Json }
       change_log_exclusions: {
@@ -50077,6 +50151,15 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
+      decision_arms: {
+        Args: never
+        Returns: {
+          arm: string
+          decision_type: string
+          parent_keyed: boolean
+        }[]
+      }
+      decision_gate_code: { Args: { p_item_type: string }; Returns: string }
       decline_quote: {
         Args: { p_quote_id: string; p_reason: string }
         Returns: Json
@@ -52719,6 +52802,15 @@ export type Database = {
           total: number
         }[]
       }
+      self_approval_allows: {
+        Args: {
+          p_raiser: string
+          p_subject_employee: string
+          p_subject_type: string
+          p_user: string
+        }
+        Returns: boolean
+      }
       self_approval_exception: {
         Args: {
           p_level2_role: string
@@ -53566,6 +53658,57 @@ export type Database = {
       void_weighbridge_ticket: {
         Args: { p_reason: string; p_ticket_id: string }
         Returns: undefined
+      }
+      waiting_decision_reach: {
+        Args: never
+        Returns: {
+          can_decide: boolean
+          decided_by: string
+          item_type: string
+        }[]
+      }
+      waiting_decisions: {
+        Args: never
+        Returns: {
+          code: string
+          doc_kind: string
+          item_id: string
+          item_type: string
+          parent_id: string
+          raised_by: Json
+          subject: string
+          waiting_since: string
+        }[]
+      }
+      waiting_for_me: {
+        Args: never
+        Returns: {
+          code: string
+          doc_kind: string
+          due_date: string
+          item_id: string
+          item_type: string
+          kind: string
+          parent_id: string
+          raised_by: Json
+          subject: string
+          waiting_since: string
+        }[]
+      }
+      waiting_for_me_count: { Args: never; Returns: number }
+      waiting_mine: {
+        Args: never
+        Returns: {
+          code: string
+          doc_kind: string
+          due_date: string
+          item_id: string
+          item_type: string
+          parent_id: string
+          raised_by: Json
+          subject: string
+          waiting_since: string
+        }[]
       }
       warehouse_request_conflict: {
         Args: { p_kind: string; p_subject: string }

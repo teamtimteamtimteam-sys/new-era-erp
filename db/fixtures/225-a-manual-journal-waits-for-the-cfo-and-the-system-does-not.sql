@@ -167,8 +167,13 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM approval_pending_documents() p WHERE p.subject_type = 'journal_request'
                     AND p.doc_id = q AND p.blocks_disable AND p.fixed_level = 2 AND p.subject_employee_id IS NULL) THEN
         RAISE EXCEPTION 'FIXTURE 225B3 失败:在途清单那一支应当 blocks_disable、fixed_level = 2、主角 NULL'; END IF;
+    -- ★ SYSTEM-MAP-2(Tim 2026-10-27 Q3):提醒页的审批支只给批得了的人看 —— CFO 看得见这一张,提单的财务看不见。
+    PERFORM pg_temp.f225_as(u_cfo);
     IF NOT EXISTS (SELECT 1 FROM operations_now WHERE item_type = 'journal_request_pending' AND item_id = q) THEN
-        RAISE EXCEPTION 'FIXTURE 225B4 失败:看板上应当有这张在等的申请'; END IF;
+        RAISE EXCEPTION 'FIXTURE 225B4 失败:CFO 的看板上应当有这张在等的申请'; END IF;
+    PERFORM pg_temp.f225_as(u_fin);
+    IF EXISTS (SELECT 1 FROM operations_now WHERE item_type = 'journal_request_pending' AND item_id = q) THEN
+        RAISE EXCEPTION 'FIXTURE 225B4 失败:提单的财务批不了它,看板上却有这一行(SYSTEM-MAP-2 Q3)'; END IF;
 
     -- ══════════════ C · 提交就拒 ══════════════
     SELECT count(*) INTO v_n FROM journal_requests;

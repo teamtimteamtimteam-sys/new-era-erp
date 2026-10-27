@@ -1,0 +1,96 @@
+STEP|database as postgres (base tables): pending {"expense_claim":1} · approvals ON threshold 1000 · notifications 2 · open stocktakes 6
+PASS|no pending document was raised by a throwaway reader (four-eyes cannot hide anything here)
+PASS|T admin: to-do rows from the database = the survey table's expectation (2: notification, notification)
+PASS|C admin: home count waiting_for_me_count() = 2 = to-do rows 2
+PASS|S admin: no open stocktake on the to-do list (Q4 a)
+PASS|F admin: CFO-level request rows on the to-do list = 0 (must be 0)
+PASS|F admin: can decide the CFO-level kinds (waiting_decision_reach) = 0/10
+PASS|O admin: reminder approval-branch rows 0, each one on the reader's to-do list (stray 0)
+PASS|W admin /workbench: HTTP 200, 2 rows drawn (database 2); types notification, notification
+PASS|W admin /workbench: every row links to its decision page (/notifications · /notifications)
+PASS|W admin /workbench bulk: 0 row checkboxes (bulk-capable rows 0), bulk bar false [] — expense claims are reject-only; nothing pressed
+PASS|H admin home: count link "2 waiting for you →" → /workbench (database 2)
+PASS|R admin /tools/reminders: CFO-level branches shown as "decided by the CFO-level approver" 10/10
+PASS|R admin /tools/reminders: expense-claim branch waiting false ⇔ on the to-do list false
+PASS|P admin /workbench at 390 px: page 390 px wide in a 390 px viewport (no sideways scroll)
+PASS|T cfo: to-do rows from the database = the survey table's expectation (3: expense_claim, notification, notification)
+PASS|C cfo: home count waiting_for_me_count() = 3 = to-do rows 3
+PASS|S cfo: no open stocktake on the to-do list (Q4 a)
+PASS|F cfo: CFO-level request rows on the to-do list = 0 (cfo)
+PASS|F cfo: can decide the CFO-level kinds (waiting_decision_reach) = 10/10 — cfo only
+PASS|O cfo: reminder approval-branch rows 1, each one on the reader's to-do list (stray 0)
+PASS|W cfo /workbench: HTTP 200, 3 rows drawn (database 3); types notification, notification, expense_claim
+PASS|W cfo /workbench: every row links to its decision page (/notifications · /notifications · /finance/claims#claim-bc021e6c-0b2e-4b8f-a5ff-82c1840ed097)
+PASS|W cfo /workbench bulk: 1 row checkboxes (bulk-capable rows 1), bulk bar true ["Reject selected (0)"] — expense claims are reject-only; nothing pressed
+PASS|H cfo home: count link "3 waiting for you →" → /workbench (database 3)
+PASS|R cfo /tools/reminders: CFO-level branches shown as "decided by the CFO-level approver" 0/10 (cfo decides them: none restricted)
+PASS|R cfo /tools/reminders: expense-claim branch waiting true ⇔ on the to-do list true
+PASS|P cfo /workbench at 390 px: page 390 px wide in a 390 px viewport (no sideways scroll)
+PASS|T cco: to-do rows from the database = the survey table's expectation (2: notification, notification)
+PASS|C cco: home count waiting_for_me_count() = 2 = to-do rows 2
+PASS|S cco: no open stocktake on the to-do list (Q4 a)
+PASS|F cco: CFO-level request rows on the to-do list = 0 (must be 0)
+PASS|F cco: can decide the CFO-level kinds (waiting_decision_reach) = 0/10
+PASS|O cco: reminder approval-branch rows 0, each one on the reader's to-do list (stray 0)
+PASS|W cco /workbench: HTTP 200, 2 rows drawn (database 2); types notification, notification
+PASS|W cco /workbench: every row links to its decision page (/notifications · /notifications)
+PASS|W cco /workbench bulk: 0 row checkboxes (bulk-capable rows 0), bulk bar false [] — expense claims are reject-only; nothing pressed
+PASS|H cco home: count link "2 waiting for you →" → /workbench (database 2)
+PASS|R cco /tools/reminders: CFO-level branches shown as "decided by the CFO-level approver" 10/10
+PASS|R cco /tools/reminders: expense-claim branch waiting false ⇔ on the to-do list false
+PASS|P cco /workbench at 390 px: page 390 px wide in a 390 px viewport (no sideways scroll)
+PASS|T cto: to-do rows from the database = the survey table's expectation (2: notification, notification)
+PASS|C cto: home count waiting_for_me_count() = 2 = to-do rows 2
+PASS|S cto: no open stocktake on the to-do list (Q4 a)
+PASS|F cto: CFO-level request rows on the to-do list = 0 (must be 0)
+PASS|F cto: can decide the CFO-level kinds (waiting_decision_reach) = 0/10
+PASS|O cto: reminder approval-branch rows 0, each one on the reader's to-do list (stray 0)
+PASS|W cto /workbench: HTTP 200, 2 rows drawn (database 2); types notification, notification
+PASS|W cto /workbench: every row links to its decision page (/notifications · /notifications)
+PASS|W cto /workbench bulk: 0 row checkboxes (bulk-capable rows 0), bulk bar false [] — expense claims are reject-only; nothing pressed
+PASS|H cto home: count link "2 waiting for you →" → /workbench (database 2)
+PASS|R cto /tools/reminders: CFO-level branches shown as "decided by the CFO-level approver" 9/10
+PASS|R cto /tools/reminders: expense-claim branch waiting false ⇔ on the to-do list false
+PASS|P cto /workbench at 390 px: page 390 px wide in a 390 px viewport (no sideways scroll)
+PASS|T finance: to-do rows from the database = the survey table's expectation (2: notification, notification)
+PASS|C finance: home count waiting_for_me_count() = 2 = to-do rows 2
+PASS|S finance: no open stocktake on the to-do list (Q4 a)
+PASS|F finance: CFO-level request rows on the to-do list = 0 (must be 0)
+PASS|F finance: can decide the CFO-level kinds (waiting_decision_reach) = 0/10
+PASS|O finance: reminder approval-branch rows 0, each one on the reader's to-do list (stray 0)
+PASS|W finance /workbench: HTTP 200, 2 rows drawn (database 2); types notification, notification
+PASS|W finance /workbench: every row links to its decision page (/notifications · /notifications)
+PASS|W finance /workbench bulk: 0 row checkboxes (bulk-capable rows 0), bulk bar false [] — expense claims are reject-only; nothing pressed
+PASS|H finance home: count link "2 waiting for you →" → /workbench (database 2)
+PASS|R finance /tools/reminders: CFO-level branches shown as "decided by the CFO-level approver" 10/10
+PASS|R finance /tools/reminders: expense-claim branch waiting false ⇔ on the to-do list false
+PASS|P finance /workbench at 390 px: page 390 px wide in a 390 px viewport (no sideways scroll)
+PASS|T gm: to-do rows from the database = the survey table's expectation (2: notification, notification)
+PASS|C gm: home count waiting_for_me_count() = 2 = to-do rows 2
+PASS|S gm: no open stocktake on the to-do list (Q4 a)
+PASS|F gm: CFO-level request rows on the to-do list = 0 (must be 0)
+PASS|F gm: can decide the CFO-level kinds (waiting_decision_reach) = 0/10
+PASS|O gm: reminder approval-branch rows 0, each one on the reader's to-do list (stray 0)
+PASS|W gm /workbench: HTTP 200, 2 rows drawn (database 2); types notification, notification
+PASS|W gm /workbench: every row links to its decision page (/notifications · /notifications)
+PASS|W gm /workbench bulk: 0 row checkboxes (bulk-capable rows 0), bulk bar false [] — expense claims are reject-only; nothing pressed
+PASS|H gm home: count link "2 waiting for you →" → /workbench (database 2)
+PASS|R gm /tools/reminders: CFO-level branches shown as "decided by the CFO-level approver" 9/10
+PASS|R gm /tools/reminders: expense-claim branch waiting false ⇔ on the to-do list false
+PASS|P gm /workbench at 390 px: page 390 px wide in a 390 px viewport (no sideways scroll)
+PASS|T warehouse: to-do rows from the database = the survey table's expectation (1: notification)
+PASS|C warehouse: home count waiting_for_me_count() = 1 = to-do rows 1
+PASS|S warehouse: no open stocktake on the to-do list (Q4 a)
+PASS|F warehouse: CFO-level request rows on the to-do list = 0 (must be 0)
+PASS|F warehouse: can decide the CFO-level kinds (waiting_decision_reach) = 0/10
+PASS|O warehouse: reminder approval-branch rows 0, each one on the reader's to-do list (stray 0)
+PASS|W warehouse /workbench: HTTP 200, 1 rows drawn (database 1); types notification
+PASS|W warehouse /workbench: every row links to its decision page (/notifications)
+PASS|W warehouse /workbench bulk: 0 row checkboxes (bulk-capable rows 0), bulk bar false [] — expense claims are reject-only; nothing pressed
+PASS|H warehouse home: count link "1 waiting for you →" → /workbench (database 1)
+PASS|R warehouse /tools/reminders: CFO-level branches shown as "decided by the CFO-level approver" 1/10
+PASS|R warehouse /tools/reminders: expense-claim branch waiting false ⇔ on the to-do list false
+PASS|P warehouse /workbench at 390 px: page 390 px wide in a 390 px viewport (no sideways scroll)
+STEP|done
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); every database read ran in a transaction that rolled back
+SM2_PROOF_EXIT=0

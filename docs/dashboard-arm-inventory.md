@@ -120,6 +120,12 @@ module's own page.
 | M7b4 | `inspection_finding_open` | 一条巡检发现还没关(Q14:关闭是自己的一行,写下做了什么)。一条一行,`item_id` = 那条发现,`item_code` = 巡检编号,`subject` = 那一项的字(抄在巡检上的那一份),`doc_kind` = 巡检的 id(链接去那次巡检),`item_date` = 发现记下的那一天。**关掉它生成的任务【不】清掉它** | `module.safety.view` | `inspection_findings` · `inspection_runs` · `inspection_results` · `inspection_finding_closures` | 持 `module.safety.edit` 的人关闭这条发现(写下做了什么)之后消失 |
 | M8a1 | `supplier_review_due` | 一家批准过 / 在用的进货供应商该做评分卡评审了:最近一次【没被取代】的评审的日子 + V23 的评审周期 ≤ 今天(新加坡),或者一次都没评过(MES-8 Step 0 Q27)。一家一行,`item_id` = 那家供应商,`item_code` = 供应商代码,`subject` = 它的名字,`doc_kind` = `due` · `never_reviewed`,`item_date` = 到期日(从没评过的退回建档那一天)。**V23 的周期空着时一行都不出**(不猜一个周期) | `action.supplier_review` | `suppliers` · `supplier_score_settings` · `supplier_scorecard_reviews`(经 `supplier_latest_reviews`)| 记一次评审之后消失(到下一个到期日为止);把周期清空也消失 |
 | M8b1 | `compliance_pack_not_frozen` | 一个【已关账】的月份(月末 < `locked_before`)还没有一份在册的合规包(MES-8 Step 0 Q15)。从 `system_start_date` 那个月起,一月一行,`item_id` 空(一个月不是一行记录),`item_code` = YYYY-MM,`subject` = Compliance pack,`doc_kind` = `not_frozen`,`item_date` = 那个月的月末。**月结页同一件事只是一行警告,从不挡关账**(MES-0 Q48 的形状) | `action.compliance_pack` | `finance_settings` · `compliance_packs` | 冻下那个月的包之后消失;那个月的包被取代时,新的那一份在册,它照样不出现 |
+| SM2a | `expense_claim_pending` | 一张一般报销已提交、等审批(SYSTEM-MAP-2,Tim 2.4 (11);EXPENSE-CLAIMS-MISSING-FROM-REMINDERS)。一张一行,`item_id` = 报销单,`item_code` = 单号,`subject` = 报销的员工,`item_date` = 提交日 | `module.finance.view` —— 与 `decide_expense_claim_items` 的模块门同一个码;★ 行由 `operations_now` 按 `waiting_decisions` 逐行过滤:只给批得了那一张的人(按金额分档 · 四眼 · R2 例外) | `expense_claims` · `employees` | `status = 'submitted'`;决定或撤回之后消失 |
+| SM2b | `purchase_order_approval_pending` | 一张采购单在等审批(PO-LIST-NO-APPROVAL-STATUS)。`item_date` = 最近一次 `approval_log` 的 submitted / approval_voided(金额改到越过门槛会把单退回等审批) | `module.purchasing.view`;行按 `waiting_decisions` 逐行过滤(分档 · 四眼) | `purchase_orders` · `suppliers` · `approval_log` | `approval_status = 'pending'`、没删;批准 / 驳回之后消失 |
+| SM2c | `overtime_batch_pending` | 一个加班批已提交、等仓库的批准人(SYSTEM-MAP-0 §3.2 量到没有支) | `action.overtime_approve` —— 就是决定码;行按 `waiting_decisions` 逐行过滤(四眼:提交人与批里的每一个员工) | `overtime_batches` | `status = 'submitted'` |
+| SM2d | `work_order_release_pending` | 一张工单还在 draft、等放行(决定函数 `release_work_order`) | `action.wo_release`;行按 `waiting_decisions` 逐行过滤(四眼:建单的人) | `work_orders` | `status = 'draft'` |
+| SM2e | `blending_plan_release_pending` | 一份配料计划还在 draft、等放行(`release_blending_plan`) | `action.wo_release`;同上 | `blending_plans` | `status = 'draft'` |
+| SM2f | `portal_certificate_pending` | 供应商门户交来的一张证书,等员工接收或驳回(Tim 2026-10-27 Q4 b)。★ `item_id` 是**供应商**的 id(提交住在供应商档案页上),`item_code` = 证书号(没有就是种类码) | `module.suppliers.edit` —— 与 `portal_submission_accept` / `_reject` 的门同一个码 | `portal_certificate_submissions` · `suppliers` | `status = 'submitted'` |
 
 
 
@@ -237,6 +243,16 @@ be a constant nobody sees — FIN-36's schema-default lesson in dashboard form. 
 boundary is honest; if Tim wants an early warning, the percentage belongs in configuration
 (`certificate_types`-style, visible and editable), and THEN a second arm earns its place. Recorded
 here so the next person extends deliberately rather than hardcoding 80.
+
+## SYSTEM-MAP-2(2026-10-27,Tim 2.4 (11) · Q3):审批支只给批得了的人看
+
+**审批支**(`db/functions/decision_arms.sql` 列着的那 22 支 —— 十种 CFO 级申请、调薪、考核、请假、医疗、供应商批准、采集草稿,
+加上本刀新加的六支 SM2a–SM2f)在 `operations_now` 里【按行】过滤:只留读者此刻批得了的那几张,判据是 `waiting_decisions()` ——
+与 `/workbench`(工作台 › 待办)和首页的待办数读的是同一支。上表里的读码照旧决定"这一支对你存不存在";批得了哪一张由
+`waiting_decisions` 定。读得到这一支、却批不了这一类的读者,在提醒页上看见它在「需要权限」组里,带一句由谁决定
+(`waiting_decision_reach().decided_by`:CFO 级审批人 / 按金额 / 调薪与考核 / 权限码)——不消失、不画 0。
+**例外支照旧给全公司看**(到期、逾期、低库存……,Tim 2.4 (11))。`ncr_open` 不是审批支:它说的是"一批被扣着",
+不合格报告的决定在待办上。`stocktake_open` 留在提醒页(Tim Q4 a:open 是"正在点")。fixture 295 的 O 臂逐行钉住。
 
 ## The fourth property: a destination (LINKS-1, 2026-08-11)
 
@@ -375,6 +391,12 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `inspection_finding_open` | `/safety/inspections/[id]` | the inspection page: the failed item, the finding's corrective action, owner and due date; raise a task, open a non-conformance report, or close it by saying what was done (MES-7b-2) |
 | `supplier_review_due` | `/suppliers/[id]/edit` | the supplier page: its scorecard counts over a window you choose, its latest review and grade, and the form that records a review (MES-8a) |
 | `compliance_pack_not_frozen` | `/compliance/packs?month=<YYYY-MM>` | the compliance pack page with that month chosen: its live preview and the button that freezes it (MES-8b-1) |
+| `expense_claim_pending` | `/finance/claims#claim-<id>` | the expense-claim queue scrolled to that claim and highlighted (SYSTEM-MAP-1 Q2 HashTarget), with its decision card |
+| `purchase_order_approval_pending` | `/purchasing/orders/[id]` | the purchase-order page with its approval badge and Approve / Reject |
+| `overtime_batch_pending` | `/hr/overtime/[id]` | the overtime batch page with Approve / Reject |
+| `work_order_release_pending` | `/operation/orders/[id]` | the work-order page with Release |
+| `blending_plan_release_pending` | `/operation/blending/[id]` | the blending-plan page with Release |
+| `portal_certificate_pending` | `/suppliers/[id]/edit` | the supplier page's portal-submissions panel: the uploaded file, Accept / Reject |
 
 ### One mechanism, not two
 

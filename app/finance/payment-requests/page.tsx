@@ -2,8 +2,8 @@
 // PAY-REQ-1(Tim 2026-09-23):付款申请列表。钱离开之前要先批 —— 出款与冲销先成一张
 // 申请(提 → CFO 批 → 财务付),这一页是它们的登记簿。
 //
-// 【默认只看未了结的】submitted(等 CFO 批)与 approved(等财务付)—— 那是这一页要人
-// 动手的两种;其余状态经筛选链接看得见,不藏。count + range 分页,不静默截断。
+// 【默认只看等审批的】submitted(等 CFO 批)—— SYSTEM-MAP-2(Tim Q5)起不再与 approved(等财务付)混在一张默认清单里;
+// 「已批准 · 等付款」是紧挨着的第二个筛选,其余状态经筛选链接看得见,不藏。count + range 分页,不静默截断。
 // 收款人名按页小批量反查(供应商 / 员工 / 客户三次 .in,走查名视图)。
 import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
@@ -13,7 +13,7 @@ import PaymentRequestsTable, { type PaymentRequestRow } from './PaymentRequestsT
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { REQUEST_STATUSES, parseRequestFilter, parseRequestSort, requestCount, requestPage, shapeRequestRows, requestExportHref, requestTotals } from './requestRows'
+import { REQUEST_STATUSES, REQUEST_FILTER_DEFAULT, parseRequestFilter, parseRequestSort, requestCount, requestPage, shapeRequestRows, requestExportHref, requestTotals } from './requestRows'
 import { ListPage } from '@/app/components/ui/list-page'
 import { setSortParams } from '@/lib/listSort'
 import { Suspense } from 'react'
@@ -60,12 +60,12 @@ export default async function PaymentRequestsPage({
     // TABLE-FEATURES-1 Q9:翻页链接保留排序(keepSort);换筛选的链接回到默认次序
     const href = (status: string, p = 1, keepSort = false) => {
         const params = new URLSearchParams()
-        if (status !== 'open') params.set('status', status)
+        if (status !== REQUEST_FILTER_DEFAULT) params.set('status', status)
         if (keepSort) setSortParams(params, sort)
         if (p > 1) params.set('page', String(p))
         return filteredListHref('/finance/payment-requests', params) // SYSTEM-MAP-1 D1
     }
-    const filters = ['open', ...REQUEST_STATUSES, 'all']
+    const filters = [...REQUEST_STATUSES, 'all']
 
     return (
         <ListPage
@@ -83,7 +83,8 @@ export default async function PaymentRequestsPage({
                 {filters.map((f) => (
                     <Button key={f} asChild size="sm" variant={f === filter ? 'default' : 'outline'}>
                         <Link href={href(f)} aria-current={f === filter ? 'page' : undefined}>
-                            {f === 'open' ? t('finance.paymentRequests.filterOpen')
+                            {f === 'submitted' ? t('finance.paymentRequests.filterAwaitingApproval')
+                                : f === 'approved' ? t('finance.paymentRequests.filterApprovedAwaitingPayment')
                                 : f === 'all' ? t('finance.paymentRequests.filterAll')
                                 : t('finance.paymentRequests.status.' + f)}
                         </Link>

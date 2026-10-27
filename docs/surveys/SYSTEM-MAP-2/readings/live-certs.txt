@@ -1,0 +1,12 @@
+PROOF|cert_types|article_18|block|90
+PROOF|cert_types|basel|block|90
+PROOF|cert_types|gwc|block|90
+PROOF|cert_types|gwdf|block|90
+PROOF|cert_types|insurance|warn|60
+PROOF|cert_types|iso|warn|60
+PROOF|cert_types|nea_import|block|90
+PROOF|cert_types|other|warn|30
+PROOF|cert_types|tfs|block|90
+PROOF|certs|block|2027-03-02|126
+PROOF|disp_check|CHECK ((disposition = ANY (ARRAY['block'::text, 'warn'::text, 'ignore'::text])))
+PROOF|disp_check|CHECK ((warn_lead_days >= 0))

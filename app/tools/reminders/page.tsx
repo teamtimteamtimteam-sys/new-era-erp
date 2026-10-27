@@ -96,7 +96,28 @@ export default async function RemindersPage() {
     // ── 一支支先判权限,再决定要不要查 ────────────────────────────────────
     // 【顺序要紧】判据在查询【之前】。从空结果倒推"你没权限"正是 OPS-14/OPS-15
     // 反复在治的那个病:缺席与零在结果集里长得一模一样。
-    const armAllowed = new Map(REMINDERS.map((r) => [r.itemType, allows(specFor(r), perms)]))
+    // ★ SYSTEM-MAP-2(Tim 2026-10-27 Q3):审批支(decision_arms())多一道 —— 读者批不批得了这一类(waiting_decision_reach)。
+    //   批不了 → 那一支进「受限」,带一句由谁决定(不消失、不画 0);批得了 → 行由 operations_now 按 waiting_decisions 逐行裁。
+    //   两张表都是库里的那一份:哪几支是审批、由谁决定,本页都不另写。
+    const [armsRes, reachRes] = await Promise.all([supabase.rpc('decision_arms'), supabase.rpc('waiting_decision_reach')])
+    const decisionOf = new Map(
+        (mustRows(armsRes, 'decision_arms') as { arm: string; decision_type: string }[]).map((a) => [a.arm, a.decision_type]))
+    const reach = new Map(
+        (mustRows(reachRes, 'waiting_decision_reach') as { item_type: string; can_decide: boolean; decided_by: string }[])
+            .map((r) => [r.item_type, r]))
+    const readable = new Map<string, boolean>(REMINDERS.map((r) => [r.itemType, allows(specFor(r), perms)]))
+    /** 批得了 / 读得到之外的那个原因:审批支批不了这一类 → 由谁决定的那一句;否则 null(就是缺那个读码)。 */
+    const decidedByOf = (itemType: string): string | null => {
+        const d = decisionOf.get(itemType)
+        if (!d || !readable.get(itemType)) return null
+        const rr = reach.get(d)
+        if (!rr || rr.can_decide) return null
+        return rr.decided_by === 'cfo_level' ? t('reminders.decidedByCfo')
+            : rr.decided_by === 'tier' ? t('reminders.decidedByTier')
+            : rr.decided_by === 'pay_code' ? t('reminders.decidedByPayCode')
+            : t('reminders.decidedByCode', { code: rr.decided_by })
+    }
+    const armAllowed = new Map(REMINDERS.map((r) => [r.itemType, (readable.get(r.itemType) ?? false) && decidedByOf(r.itemType) === null]))
     const anyArmAllowed = [...armAllowed.values()].some(Boolean)
     const canHr = allows('module.hr.view', perms)
 
@@ -474,8 +495,20 @@ export default async function RemindersPage() {
                     <p className="text-xs mb-2" style={{ color: 'var(--brand-muted-text)' }}>
                         {t('reminders.restrictedHint')}
                     </p>
+                    {/* ★ SYSTEM-MAP-2(Tim Q3):批不了的审批支一支一行,那一句「由谁决定」【写出来】(不只是一个悬停提示 ——
+                        手机上没有悬停)。它们是"有人在批的事,只是不是你",与缺一个读码的支分开列。 */}
+                    {restricted.some((r) => decidedByOf(r.itemType)) && (
+                        <ul className="mb-2 space-y-1" data-reminders-decided-elsewhere="">
+                            {restricted.filter((r) => decidedByOf(r.itemType)).map((r) => (
+                                <li key={r.itemType} data-reminder-decided-by={r.itemType} className="flex flex-wrap items-center gap-x-2 text-sm">
+                                    <Refusal why={decidedByOf(r.itemType) ?? undefined}>{t('dashboard.item.' + r.itemType)}</Refusal>
+                                    <span className="text-xs" style={{ color: 'var(--brand-muted-text)' }}>{decidedByOf(r.itemType)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                     <div className="flex flex-wrap gap-1.5">
-                        {restricted.map((r) => (
+                        {restricted.filter((r) => !decidedByOf(r.itemType)).map((r) => (
                             // 【药丸里带着【具名的权限码】】—— 「受限」告诉人有东西看不见,
                             // 权限码告诉他【去要什么】。ChartCard 的 restricted 分支同形。
                             <Refusal key={r.itemType} why={`${t('dashboard.restrictedHint')}(${r.permission})`}>

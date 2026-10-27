@@ -39,6 +39,8 @@ export const PO_STATUSES = ['draft', 'confirmed', 'receiving', 'closed', 'cancel
 export const PO_SORT = {
     code: 'code', orderDate: 'order_date', expected: 'expected_delivery_date',
     prepaid: 'prepaid_base', receipt: 'receipt_pct', status: 'status',
+    // SYSTEM-MAP-2(PO-LIST-NO-APPROVAL-STATUS):审批状态 —— 两条路上都有这一列(purchase_order_status 末尾 · purchase_orders_masked)
+    approval: 'approval_status',
 } as const
 export type PoSortKey = keyof typeof PO_SORT
 const PO_SORT_DEFAULT: ListSort<PoSortKey> = { key: 'orderDate', dir: 'desc' }
@@ -61,6 +63,8 @@ export function parsePoListParams(sp: { date_from?: string; date_to?: string; su
 /** 库里的一行(两条路都映射成这个形状)。日期是原始的 YYYY-MM-DD。 */
 export type PoDbRow = {
     po_id: string
+    /** SYSTEM-MAP-2:审批状态(not_required / pending / approved / rejected …)—— 不是金额,不遮蔽 */
+    approval_status: string
     code: string
     supplier_name: string | null
     order_date: string
@@ -122,7 +126,7 @@ export function poCount(supabase: Client, p: PoListParams) {
 type CancelledDbRow = {
     id: string; code: string; order_date: string; expected_delivery_date: string | null; currency: string
     estimated_total_ccy: number | null; tax_total_ccy: number | null; gross_total_ccy: number | null
-    carries_tax: boolean; status: string; suppliers: { legal_name: string } | null
+    carries_tax: boolean; status: string; approval_status: string; suppliers: { legal_name: string } | null
 }
 
 export function poPage(
@@ -135,7 +139,7 @@ export function poPage(
             applyFilters(
                 supabase
                     .from('purchase_orders_masked')
-                    .select('id, code, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, suppliers(legal_name)')
+                    .select('id, code, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, suppliers(legal_name)')
                     .eq('status', 'cancelled')
                     .is('deleted_at', null),
                 p,
@@ -160,6 +164,7 @@ export function poPage(
                     prepaid_remaining_base: null,
                     receipt_pct: null,
                     status: r.status,
+                    approval_status: r.approval_status,
                 })),
             }))
     }
@@ -167,7 +172,7 @@ export function poPage(
         applyStatus(
             supabase
                 .from('purchase_order_status')
-                .select('po_id, code, supplier_name, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, prepaid_base, prepaid_remaining_base, receipt_pct, status'),
+                .select('po_id, code, supplier_name, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, prepaid_base, prepaid_remaining_base, receipt_pct, status, approval_status'),
             p,
         ),
         p.sort, PO_SORT, [['order_date', 'desc'], ['po_id', 'asc']],
@@ -208,6 +213,7 @@ export async function shapePoRows(rows: PoDbRow[]): Promise<PurchaseOrderRow[]> 
             poId: r.po_id,
             code: r.code,
             status: r.status,
+            approvalStatus: r.approval_status,
             supplierName: r.supplier_name ?? '—',
             orderDate: formatDate(r.order_date, locale),
             orderDateRaw: r.order_date,

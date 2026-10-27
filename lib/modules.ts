@@ -434,6 +434,9 @@ const P_VIEW_CHANGE_LOG = 'data.view_change_log'
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
     // ══ 我的工作台 My workbench(SYSTEM-MAP-1) ══════════════════════════════════════
+    // ★ SYSTEM-MAP-2(Tim 2.4 (9) · Q2,2026-10-27):【待办】是工作台的第一条 —— 工作台照旧是一个下拉(与另外八个按钮同一个样子),
+    //   待办排在最上面。门恒真:清单本身按读者裁(waiting_for_me),一个什么都不用批的人进来看到一句"没有在等你的事"。
+    { href: '/workbench', navKey: 'workbench.title', modules: ['workbench'], permission: { all: [] } },
     // 此前叫「任务」,名下只有一条。改名之后它是【小工具的去处】,而 ⑦ 把定价
     // 整组搬了进来。**条目的标签仍然是「任务」** —— 改名换的是模块,不是那一页。
     { href: '/tools/tasks', navKey: 'nav.tasks', modules: ['workbench'], permission: P_TASKS },
@@ -1143,6 +1146,7 @@ export const MOD = {
 } as const
 
 export const FN = {
+    todo: fnByHref('/workbench'),
     margin: fnByHref('/margin'),
     deleted: fnByHref('/settings/deleted'),
     pricing: fnByHref('/tools/pricing'),

@@ -729,6 +729,9 @@ const zh = {
         // 【提示语】它说的是【将来能搜什么】,不是一句命令。Tim 的判据:
         //   首页不要那么像在催你干活 —— 所以这里不写"输入关键词开始搜索"。
         searchPrompt: '搜点什么',
+        // SYSTEM-MAP-2(Tim 2.4 (10)):首页唯一新增的那个数
+        todoCount: '{n} 件在等你 →',
+        todoNone: '没有在等你的事 →',
         // ── UI-1b ①②:字标与节日画的可访问名 ──────────────────────────────
         // 【为什么 alt 里没有「OS」】图里就没有。顶栏那个锁定组合才带 OS。
         // 出处:docs/brand-tokens.md §3.1.2。
@@ -884,6 +887,13 @@ const zh = {
         item: {
             // MES-6b-1(2026-10-15):三支
             coa_facts_changed: '签发之后那一批又有变化的分析证书',
+            // SYSTEM-MAP-2(2026-10-27):六支审批支
+            expense_claim_pending: '等审批的一般报销',
+            purchase_order_approval_pending: '等审批的采购单',
+            overtime_batch_pending: '等审批的加班批',
+            work_order_release_pending: '等放行的工单',
+            blending_plan_release_pending: '等放行的配料计划',
+            portal_certificate_pending: '供应商门户交来、等接收的证书',
             ncr_open: '开着的不合格报告',
             incident_nea_notify_due: '要通报 NEA 的事故',
             incident_report_due: '要交 NEA 的书面报告',
@@ -974,6 +984,11 @@ const zh = {
         intro: '正在等人处理的事,以及快到期的事 —— 跨模块汇在一处。每一项按它自己家那个模块的权限出现或不出现。',
         basis: '「等了几天」由数据库按它的当天算(从这一条自己那个日期起算),不是按你这台设备的时区。',
         sectionWaiting: '正在等',
+        // SYSTEM-MAP-2(Tim Q3):批不了的审批支,由谁决定
+        decidedByCfo: '由 CFO 级审批人决定。',
+        decidedByTier: '按金额由审批人决定:门槛以下一级,门槛及以上 CFO 级。',
+        decidedByPayCode: '由 CFO 级审批人决定(CFO 是当事人时由 CCO)。',
+        decidedByCode: '由持 {code} 的人决定。',
         waitingSummary: '{items} 件事,分布在 {arms} 项 —— 等得最久的排在最上面。',
         count: '{n} 项',
         oldest: '最久 {n} 天',
@@ -6554,6 +6569,8 @@ const zh = {
         colPrepaid: '已预付',
         colReceipt: '收货进度',
         colStatus: '状态',
+        // SYSTEM-MAP-2(PO-LIST-NO-APPROVAL-STATUS)
+        colApproval: '审批',
         colMaterial: '物料',
         colQuantity: '数量',
         colFormula: '计价公式',
@@ -7110,6 +7127,61 @@ const zh = {
         },
     },
     // SYSTEM-MAP-1(Tim D2 · D4 · Q2 · Q3 · Q4,2026-10-27):人事底下的合并报销页,以及三张新的只读清单
+    // SYSTEM-MAP-2(Tim 2.4 (9) · Q1–Q7,2026-10-27):工作台 › 待办
+    workbench: {
+        title: '待办',
+        intro: '在等你动手的每一件事,一张清单:你批得了的审批、已批准等你付的款、你的任务、要写的考核与没读的通知。每一行链到做决定的那一页。只有那一种决定本来就能批量做的地方才出现批量批准 / 驳回。',
+        empty: '没有在等你的事。',
+        colPick: '勾选',
+        pickRow: '勾选 {code}',
+        colType: '是什么',
+        colItem: '单据',
+        colRaisedBy: '谁提的',
+        colWaited: '等了',
+        colSince: '从',
+        days: '{n} 天',
+        due: '到期 {date}',
+        bulkApproveTitle: '批准勾选的这几项?',
+        bulkRejectTitle: '驳回勾选的这几项?',
+        bulkRejectPlaceholder: '为什么驳回?(必填 —— 写到每一项上)',
+        bulkRejectOnly: '这一种只能批量驳回;批准请到它自己的那一页。',
+        who: {
+            unknown: '没有记录',
+            portal: '供应商门户 —— {name}',
+            system: '系统',
+            removed: '账号已删除',
+        },
+        type: {
+            purchase_order: '采购单审批',
+            expense_claim: '一般报销',
+            payment_request: '付款申请',
+            payroll_request: '工资过账或撤销',
+            receipt_price_request: '收货定价',
+            invoice_request: '贷项通知或作废',
+            shipping_release: '发货放行',
+            journal_request: '手工凭证或冲销',
+            warehouse_request: '注销、回滚或证书作废',
+            terms_request: '合同或定价公式条款',
+            asset_disposal_request: '固定资产处置',
+            gst_filing_request: 'GST 申报',
+            salary_change_request: '调薪',
+            overtime_batch: '加班批',
+            performance_review: '待批准的考核',
+            leave_request: '请假',
+            medical_claim: '医疗报销',
+            ncr: '不合格报告',
+            work_order: '待放行的工单',
+            blending_plan: '待放行的配料计划',
+            supplier: '待批准的供应商',
+            capture_draft: '待确认的采集读数',
+            portal_certificate: '供应商门户交来的证书',
+            payment_to_pay: '已批准、待付款',
+            task: '我的任务',
+            review_write: '要写的考核',
+            self_review: '要做的自评',
+            notification: '未读通知',
+        },
+    },
     claimsAll: {
         title: '报销',
         intro: '医疗报销与一般费用报销在一张清单里。每一笔点开就是它被决定的地方:医疗报销在它自己那一页,一般报销在费用报销的审批队列,批准了的一般报销在它变成的那笔开支上。审批规则不变。',
@@ -7130,13 +7202,15 @@ const zh = {
     },
     supplierCerts: {
         title: '供应商证书',
-        intro: '每一家供应商在册的每一张证书,最早到期的在前。只列日期 —— 一张证书挡不挡收货,在供应商页与收货页上判。',
+        intro: '每一家供应商在册的每一张证书,最早到期的在前。状态与提醒同一条判据:过了有效期是已过期,进了那一种的提前天数是快到期。一张过期的证书挡不挡收货,在供应商页与收货页上判。',
         colSupplier: '供应商',
         colType: '证书',
         colNumber: '编号',
         colIssuer: '签发机构',
         colFrom: '生效',
         colUntil: '有效期至',
+        colStatus: '状态',
+        status: { expired: '已过期', expiring: '快到期', valid: '有效', no_expiry: '没有有效期', not_tracked: '不跟踪' },
         empty: '还没有在册的供应商证书。',
     },
     spareParts: {
@@ -9099,7 +9173,8 @@ const zh = {
             intro: '钱离开之前要先批:财务提出申请,CFO 批准,然后财务在申请页上付款 —— 分录只在付款那一刻过账。',
             newRequest: '新建付款申请',
             filterLabel: '按状态筛选',
-            filterOpen: '未了结',
+            filterAwaitingApproval: '等审批',
+            filterApprovedAwaitingPayment: '已批准 · 等付款',
             filterAll: '全部',
             empty: '没有符合这个筛选的付款申请。',
             colKind: '类型',

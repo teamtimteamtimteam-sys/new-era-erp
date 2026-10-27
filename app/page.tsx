@@ -2,6 +2,8 @@
 // ════════════════════════════════════════════════════════════════════════════
 // CONV-6 ②③(2026-09-04)· 首页只剩一件东西:一个【还不能用】的搜索外壳
 // ════════════════════════════════════════════════════════════════════════════
+// ★ SYSTEM-MAP-2(Tim 2026-10-26 裁定 2.4 (10),docs/system-map.md):首页【多了一样】—— 一个待办数,链到工作台 › 待办。
+//   下面那句「首页只剩一件东西:搜索框」是 CONV-6 那一天的裁定;2.4 (10) 在它之后,把这一个数加了回来,别的照旧安静。
 //
 // 【这一页的来历,三刀连起来看才读得懂】
 //   OPS-18(Phase 6)把它从链接目录换成【运营看板】:35 块一样大的牌子。
@@ -112,7 +114,10 @@
 //   判据钉在 `scripts/probe-nav-geometry.mjs` 的 N8/N9/N10 三格上。
 //   **下一次走查读到这里:这是一处有名字的限制,不是一处缺陷。**
 // ════════════════════════════════════════════════════════════════════════════
+import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
+import { createClient } from '@/lib/supabase/server'
+import { mustOne } from '@/lib/db-helpers'
 import { getMyPermissions } from '@/lib/permissions'
 import { getTodaysDoodle } from '@/lib/festivalDoodle'
 import { getHomeGreeting } from '@/lib/homeGreeting'
@@ -136,6 +141,10 @@ export default async function Home() {
     //                        与 UI-1a 的 AvatarMenu.tsx:47-56 是同一条判据。
     const doodle = await getTodaysDoodle()
     const greeting = await getHomeGreeting()
+    // ★ SYSTEM-MAP-2(Tim 2026-10-26 裁定 2.4 (10)):首页保持安静,【只】多一个待办数,链到工作台 › 待办。
+    //   数 = waiting_for_me_count() = 待办页那条查询的行数(同一份判据,不另数)。失败就失败(mustOne),不画成 0。
+    const supabase = await createClient()
+    const todoCount = mustOne(await supabase.rpc('waiting_for_me_count'), 'waiting_for_me_count') ?? 0
 
     // 【判据一个字没动 —— CONV-7 ① 定的那一条】他一个 module.* 权限都没有。
     // 它绕开的是"工具名下三条恒真条目让 tools.allowed 对每个人都为 true"那个陷阱;
@@ -196,6 +205,12 @@ export default async function Home() {
                 //   高度因此也没改(实测 390px 上 358x49.02,与 SEARCH-2b 逐字相同)。
                 inputClassName={styles.prompt}
             />
+
+            {/* ★ SYSTEM-MAP-2(Tim 2.4 (10)):待办数 —— 一行小字、一条链接,搜索框下面。零也照说(「没有在等你的事」),
+                不是隐藏:一个消失的数读起来像"还没加载完"。 */}
+            <Link href="/workbench" className="text-sm hover:underline app-link" data-home-todo-count={todoCount}>
+                {todoCount === 0 ? t('home.todoNone') : t('home.todoCount', { n: todoCount })}
+            </Link>
 
             {/* ★【UI-1b ①:问候语,搜索框【下面】】★
                 Tim 写下的目的是五个字:**给首页增加一些温度。**

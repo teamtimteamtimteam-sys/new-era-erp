@@ -945,3 +945,11 @@ live 最终授权实测:`data.view_deleted` 的持有者 = **`admin auditor`**�
   `check-permission-predicate` ② 从「至少一条多属主」反过来成「零条」。
 * **机器标记**:菜单行(`MenuEntryRow`)多了 `data-menu-href` —— 受限的那一行也说出它是哪一条(「概览」这个标签在五个模块里各有一条)。
 * **逐角色的实测**(一次性账号,每个真角色克隆一个,读画出来的菜单):`docs/surveys/SYSTEM-MAP-1/README.md`。
+
+# SYSTEM-MAP-2(2026-10-27,v1.4.78)—— 工作台的第一条是「待办」
+
+* **新条目**:`{ href: '/workbench', navKey: 'workbench.title', modules: ['workbench'], permission: { all: [] } }`,工作台的【第一条】(Tim Q2 (a):
+  工作台照旧是一个下拉,与另外八个按钮同一个样子,待办排最上面)。`FN.todo`。门恒真 —— 清单本身按读者裁(`waiting_for_me()`),
+  一个什么都不用批的人进来看见「没有在等你的事」,不是一句拒绝。条目 140 → 141(菜单条目 120 → 121)。
+* **提醒页仍在工作台里**(Tim 2.4 (11)),排在待办、任务之后;它的审批支从此按读者逐行裁(`docs/dashboard-arm-inventory.md` 的 SYSTEM-MAP-2 一节)。
+* `scripts/check-list-sorting.mjs` 的名单 88 → 89(`/workbench`,浏览器里排,带导出)。

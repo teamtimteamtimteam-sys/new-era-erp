@@ -205,8 +205,13 @@ BEGIN
     SELECT * INTO v_row FROM approval_pending_documents() WHERE subject_type = 'gst_filing_request' AND doc_id = q;
     IF NOT FOUND OR NOT v_row.blocks_disable OR v_row.fixed_level <> 2 OR v_row.amount_base IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 229G2 失败:在途清单那一行应当 blocks_disable、二级、金额 NULL'; END IF;
+    -- ★ SYSTEM-MAP-2(Tim 2026-10-27 Q3):提醒页的审批支只给批得了的人看 —— CFO 看得见,提单的财务看不见。
+    PERFORM pg_temp.f229_as(u_cfo);
     IF NOT EXISTS (SELECT 1 FROM operations_now WHERE item_type = 'gst_filing_pending' AND item_id = p1) THEN
-        RAISE EXCEPTION 'FIXTURE 229G2 失败:仪表盘应当有 gst_filing_pending,item_id = 期间'; END IF;
+        RAISE EXCEPTION 'FIXTURE 229G2 失败:CFO 的仪表盘应当有 gst_filing_pending,item_id = 期间'; END IF;
+    PERFORM pg_temp.f229_as(u_fin);
+    IF EXISTS (SELECT 1 FROM operations_now WHERE item_type = 'gst_filing_pending' AND item_id = p1) THEN
+        RAISE EXCEPTION 'FIXTURE 229G2 失败:提单的财务批不了它,仪表盘上却有 gst_filing_pending(SYSTEM-MAP-2 Q3)'; END IF;
 
     -- G3 旧门只会按名拒;同一期第二张拒
     v_msg := pg_temp.f229_try(format('SELECT file_gst_return(%L, %L, ''X'')', p1, v_q_end + 20));

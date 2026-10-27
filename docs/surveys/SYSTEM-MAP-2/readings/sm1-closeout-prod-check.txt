@@ -1,0 +1,8 @@
+STEP|base https://new-era-erp.vercel.app
+STEP|database as postgres (base tables): medical claims 1 · general claims 4
+PASS|/ → HTTP 200: bar has 9 buttons = Workbench · Purchasing · Production · Quality · Sales · Finance · People · Safety · Equipment (Workbench first)
+PASS|avatar menu rows = identity · /notifications · settings-toggle · English / 中文中EN · Log out — no /me, no /my-reviews (links: /notifications)
+PASS|/claims → HTTP 200: table true, 5 rows (database 5); no redirect (/claims)
+PASS|People menu has Claims → /claims ("Claims"), not restricted; menu opened, nothing pressed
+STEP|done
+SM1_CLOSEOUT_EXIT=0

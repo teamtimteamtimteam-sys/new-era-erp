@@ -54,13 +54,15 @@ DECLARE
     v_kinds text[];
     v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
-        'claim_pending','credit_over_limit','fx_rate_gap','invoice_overdue',
-        'leave_pending','margin_cost_not_allocated','output_unsold_aging',
+        'credit_over_limit','fx_rate_gap','invoice_overdue',
+        'margin_cost_not_allocated','output_unsold_aging',
         'po_awaiting_receipt',
         -- MES-4a(2026-10-07):本 fixture 的加工单是 MES-4a 之后记的、转化型、还没结平 → processing_balance_unclosed 也在场
         'processing_balance_unclosed',
         'qualification_expiring','qualification_missing',
-        'review_submitted','safety_stock_below','stocktake_open'];
+        'safety_stock_below','stocktake_open'];
+    -- ★ SYSTEM-MAP-2(2026-10-27,Tim Q3):claim_pending · leave_pending · review_submitted 是审批支,只给批得了那一张的人看;
+    --   本读者不持决定码,三支对它不见。它们的 item_id 指向哪张表由 fixture 295 的 O 臂逐行钉住(审批支的行 = 待办的那一张)。
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
     -- README 第 5 条:前提显式设定。成本条目会触发自动应计过账,锁不能挡住 fixture 的日期
@@ -281,7 +283,7 @@ BEGIN
     SELECT COALESCE(array_agg(DISTINCT e->>'t' ORDER BY e->>'t'), '{}')
       INTO v_types FROM jsonb_array_elements(v_rows) e;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 47A 失败:应恰好看见二十一支(MES-4a 起多一支 processing_balance_unclosed) %,实得 % —— 少一支,它那条门牌断言就没跑过(空转的断言与通过的断言长得一模一样);多一支说明支列表变了而本 fixture 没跟上,规格见 docs/dashboard-arm-inventory.md',
+        RAISE EXCEPTION 'FIXTURE 47A 失败:应恰好看见十八支(MES-4a 起多一支 processing_balance_unclosed;SYSTEM-MAP-2 起三支审批支对本读者不见) %,实得 % —— 少一支,它那条门牌断言就没跑过(空转的断言与通过的断言长得一模一样);多一支说明支列表变了而本 fixture 没跟上,规格见 docs/dashboard-arm-inventory.md',
             v_expected::text, v_types::text;
     END IF;
 

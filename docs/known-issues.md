@@ -11687,17 +11687,23 @@ TABLE-EXPORT-1(2026-10-22)量 `/inbound` 是 **0**(`docs/surveys/TABLE-EXPORT-1/
 **今天谁会踩到它:** 0 张生产表开着 DataTable 的 `filter`(TABLE-FEATURES Step 0:只有 `brand-sampler`)。
 **去处:** 有一张生产表开筛选框、而它坐在禁用块里的那一天,把那张表挪出禁用块,或者把禁用块拆成两半。未排期。
 
-### PO-LIST-NO-APPROVAL-STATUS · 采购单列表看不出、也筛不出审批状态,系统里没有一处列出「待审批的采购单」(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+### ✅ PO-LIST-NO-APPROVAL-STATUS · 采购单列表看不出、也筛不出审批状态,系统里没有一处列出「待审批的采购单」(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+
+**✅ 关闭(SYSTEM-MAP-2,v1.4.78,2026-10-27):** `/purchasing/orders` 多一列「审批」(可排、进导出;`purchase_order_status` 末尾加 `approval_status`),提醒页多一支 `purchase_order_approval_pending`,批得了的人在工作台 › 待办上逐张看见它。
 
 **是什么(TABLE-FEATURES Step 0 量到,`docs/surveys/TABLE-FEATURES-1/survey-approvals.md`):** `/purchasing/orders` 的列与筛选里没有审批状态;`/tools/reminders` 没有待审批采购单那一臂。
 审批人只能逐张打开采购单才知道哪一张在等他。**去处:** `docs/forward-queue.md` 64d(SYSTEM-MAP-0)的统一待办发现。
 
-### EXPENSE-CLAIMS-MISSING-FROM-REMINDERS · 费用报销不在 `/tools/reminders` 里(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+### ✅ EXPENSE-CLAIMS-MISSING-FROM-REMINDERS · 费用报销不在 `/tools/reminders` 里(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+
+**✅ 关闭(SYSTEM-MAP-2,v1.4.78,2026-10-27):** 提醒页多一支 `expense_claim_pending`(只给批得了那一张的人,按金额分档 · 四眼 · R2 例外);工作台 › 待办上一般报销逐张列出,可以批量驳回。
 
 **是什么(同上 survey):** `/tools/reminders` 列出各条审批链等着谁,费用报销那一条链不在其中;待审的报销只在 `/finance/claims` 的队列里看得见。
 **去处:** `docs/forward-queue.md` 64d(SYSTEM-MAP-0)的统一待办发现。
 
-### PAYMENT-REQUESTS-FILTER-MIXES-QUEUES · 付款申请的默认筛选把「等审批」与「已批准、等付款」混在一起(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+### ✅ PAYMENT-REQUESTS-FILTER-MIXES-QUEUES · 付款申请的默认筛选把「等审批」与「已批准、等付款」混在一起(Tim 2026-10-25 TABLE-FEATURES Q12:登记,并入 SYSTEM-MAP-0 的统一待办)
+
+**✅ 关闭(SYSTEM-MAP-2,v1.4.78,Tim 2026-10-27 Q5):** 默认筛选是「等审批」(submitted),紧挨着「已批准 · 等付款」(approved);「未了结」那个合集撤掉了。财务等付的那几张在工作台 › 待办上是「已批准、待付款」行。
 
 **是什么(同上 survey):** `/finance/payment-requests` 默认显示的那一组同时含两种状态 —— 一种等审批人(批准 / 驳回),一种等出纳(付款)。
 两种动作、两种输入、两类人,在一张默认清单里分不开。**去处:** `docs/forward-queue.md` 64d(SYSTEM-MAP-0)的统一待办发现。
