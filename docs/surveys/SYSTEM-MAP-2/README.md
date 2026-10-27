@@ -108,3 +108,8 @@ offers **Reject only**; nothing was pressed; `/workbench` at 390 px no sideways 
 1. Step 0's table said salary change and review approval are decided by cfo (cco when cfo is a party); the matrix measured **admin too** (it holds `action.approve_review`) — corrected above.
 2. Bulk approve on the to-do page is not proven with live data: live holds 0 journal / warehouse / terms / disposal requests; fixture 295 B proves the reject path locally; approve goes through the same single-item actions TF-3 proved.
 3. "the open tasks" per role (Q7): the two open tasks on live belong to real employees; throwaway readers have none (shown as 0 task rows), so task rows are proven in fixture 295 T.
+
+## Fresh clone and the final tree
+Fresh clone of `2e0d0477126b5573faa8718606d617f1b6ff4bc8`, no `.env.local`, `npm ci && npm run build`: **`FRESH_OWN_EXIT=0`** (`readings/fresh-clone-build.txt`).
+The full gate (`GATE_EXIT=0`, 766 s) ran on the same code: nothing but readings and this README changed after it (no code, mirror, migration or fixture).
+The only change after that clone is this section and that log (docs only).
