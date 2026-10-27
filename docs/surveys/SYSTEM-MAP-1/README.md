@@ -70,3 +70,8 @@ sideways overflow, for all seven roles.
 ## Not done in this cut (queued)
 `docs/forward-queue.md` 64d-2 (supplier-certificate status column, Q3), 64d-4 (who may read CODs, Q4), 64d-5 (the operations manual, `docs/manual-draft.md`
 v1.0.1, still names old menu paths in 27 lines — re-issuing the manual is its own decision).
+
+## Full gate re-run and fresh clone on the final tree
+On commit `b89219c7dced1b89b7408c69ff38152f3705d32b` (everything except this section and the two logs it names): **`GATE_EXIT=0`** (818 s, every verdict ✓;
+`readings/gate-full-final.txt`). Fresh clone of that commit, no `.env.local`, `npm ci && npm run build`: **`FRESH_OWN_EXIT=0`** (`readings/fresh-clone-build.txt`).
+The only change after that gate is this docs commit (this section and the two logs): no code, mirror or fixture.
