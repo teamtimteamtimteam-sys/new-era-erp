@@ -1,0 +1,7 @@
+# fresh clone of d318f579fb2f32c36ba4e93fc93e6e2a63ef1af8 into the scratchpad, no .env.local: npm ci && npm run build
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+FRESH_OWN_EXIT=0
