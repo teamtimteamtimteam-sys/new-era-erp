@@ -1,0 +1,41 @@
+# fresh clone of 5567a85ba2f4b22587f3e6cd36aad103b5a8fa93, no .env.local, npm ci && npm run build (last 40 lines)
+├ ƒ /settings/import/template/[table]
+├ ƒ /settings/pending-values
+├ ƒ /settings/reference
+├ ƒ /settings/roles
+├ ƒ /settings/roles/[id]
+├ ƒ /settings/roles/new
+├ ƒ /stocktakes
+├ ƒ /stocktakes/[id]
+├ ƒ /stocktakes/[id]/review
+├ ƒ /stocktakes/export
+├ ƒ /suppliers
+├ ƒ /suppliers/[id]/edit
+├ ƒ /suppliers/export
+├ ƒ /suppliers/new
+├ ƒ /suppliers/scorecards
+├ ƒ /tools/calendar
+├ ƒ /tools/converter
+├ ƒ /tools/pricing
+├ ƒ /tools/pricing/calculator
+├ ƒ /tools/pricing/formulas
+├ ƒ /tools/pricing/formulas/[id]/edit
+├ ƒ /tools/pricing/formulas/new
+├ ƒ /tools/pricing/metal-prices
+├ ƒ /tools/pricing/metal-prices/[id]/edit
+├ ƒ /tools/pricing/metal-prices/bulk
+├ ƒ /tools/pricing/metal-prices/export
+├ ƒ /tools/pricing/metal-prices/new
+├ ƒ /tools/reminders
+├ ƒ /tools/tasks
+├ ƒ /tools/tasks/[id]
+├ ƒ /verify/cod/[token]
+├ ƒ /welcome
+└ ƒ /workbench
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+FRESH_OWN_EXIT=0

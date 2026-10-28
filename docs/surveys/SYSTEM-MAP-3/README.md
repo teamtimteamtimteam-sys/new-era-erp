@@ -116,3 +116,5 @@ leave 54.1 · payroll period 169.5 · payroll payment 738.3 ms. Payment request,
   - run 3 (15:59:48): **`SMOKE_EXIT=0` — 344 ok · 25 skipped (no data) · 0 FAILED · `NETRETRY_TOTAL=0`**, 318 routes timed, 1,693.9 s (`readings/smoke.txt`).
   - watchdog: never fired; in-database `select 1` ≤ 1.26 ms, db and rest healthy throughout; **recorded single round trips over 1.5 s:** run 1 1,689 · 1,723 ms; run 2 1,640 ms; run 3 1,693 · 6,169 ms (`readings/smoke-watchdog*.txt`).
 - Read-back after smoke `READBACK_OWN_EXIT=0` (`readings/readback-after-smoke.txt`).
+
+- Fresh clone of `5567a85ba2f4b22587f3e6cd36aad103b5a8fa93`, no `.env.local`, `npm ci && npm run build`: **`FRESH_OWN_EXIT=0`** (`readings/fresh-clone-build.txt`). The only change after that clone is this line and that log (docs only).

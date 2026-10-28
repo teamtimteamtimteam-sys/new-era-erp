@@ -31,3 +31,4 @@
 16:32:52 median=451.644ms max=472.282ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
 16:34:01 median=464.209ms max=575.218ms in-db=0.038ms "name":"db","healthy":true "name":"rest","healthy":true 
 16:35:10 median=453.124ms max=599.280ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:36:11 smoke finished; watchdog done
