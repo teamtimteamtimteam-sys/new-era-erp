@@ -1,0 +1,33 @@
+14:47:04 median=663.625ms max=1174.808ms in-db=0.025ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:48:15 median=451.984ms max=453.688ms in-db=0.699ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:49:26 median=458.657ms max=1089.299ms in-db=0.026ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:50:40 median=724.303ms max=1688.879ms in-db=1.182ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:50:40 WARN single round trip 1688.879 ms (recorded)
+14:51:53 median=463.212ms max=566.361ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:53:04 median=775.723ms max=955.105ms in-db=0.687ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:54:17 median=882.688ms max=1077.393ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:55:27 median=474.009ms max=712.303ms in-db=0.962ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:56:37 median=451.675ms max=518.823ms in-db=0.028ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:57:48 median=454.489ms max=809.107ms in-db=1.154ms "name":"db","healthy":true "name":"rest","healthy":true 
+14:58:59 median=498.709ms max=535.641ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:00:09 median=453.983ms max=565.496ms in-db=1.143ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:01:19 median=632.753ms max=1184.443ms in-db=0.028ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:02:29 median=492.167ms max=821.330ms in-db=1.031ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:03:39 median=487.703ms max=696.614ms in-db=0.029ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:04:50 median=494.855ms max=1247.417ms in-db=0.571ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:06:02 median=454.230ms max=459.282ms in-db=0.028ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:07:11 median=461.036ms max=493.254ms in-db=1.264ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:08:21 median=450.746ms max=482.454ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:09:35 median=477.558ms max=816.542ms in-db=0.668ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:10:46 median=469.773ms max=513.196ms in-db=0.621ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:11:57 median=459.707ms max=952.963ms in-db=0.623ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:13:09 median=467.834ms max=1723.482ms in-db=0.030ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:13:09 WARN single round trip 1723.482 ms (recorded)
+15:14:21 median=512.500ms max=1467.019ms in-db=1.119ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:15:32 median=474.605ms max=987.147ms in-db=0.035ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:16:42 median=456.917ms max=641.559ms in-db=1.180ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:17:55 median=493.371ms max=1176.732ms in-db=0.034ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:19:06 median=505.590ms max=1129.415ms in-db=1.180ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:20:15 median=478.712ms max=746.185ms in-db=0.028ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:21:29 median=517.159ms max=1181.572ms in-db=0.553ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:22:29 smoke finished; watchdog done

@@ -1,0 +1,324 @@
+{
+  "before": {
+    "med": 546.294,
+    "exec": 0.026,
+    "max": 772.332
+  },
+  "after": {
+    "med": 509.765,
+    "exec": 0.023,
+    "max": 515.319
+  },
+  "results": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "pageMs": 16322,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "purchasing",
+          "ms": 804.646,
+          "rows": 4
+        }
+      ],
+      "select1Median": 450.615,
+      "select1Server": 0.022
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "pageMs": 27480,
+      "bars": 2,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "purchasing",
+          "ms": 269.823,
+          "rows": 5
+        },
+        {
+          "chain": "processing",
+          "ms": 365.555,
+          "rows": 3
+        }
+      ],
+      "select1Median": 511.939,
+      "select1Server": 0.029
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "pageMs": 7422,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "purchasing",
+          "ms": 775.481,
+          "rows": 4
+        }
+      ],
+      "select1Median": 457.438,
+      "select1Server": 0.021
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "pageMs": 6124,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "purchasing",
+          "ms": 188.104,
+          "rows": 3
+        }
+      ],
+      "select1Median": 506.882,
+      "select1Server": 0.02
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "pageMs": 8942,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "purchasing",
+          "ms": 128.638,
+          "rows": 1
+        }
+      ],
+      "select1Median": 516.325,
+      "select1Server": 0.035
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "pageMs": 6682,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "purchasing",
+          "ms": 70.93,
+          "rows": 1
+        }
+      ],
+      "select1Median": 436.021,
+      "select1Server": 0.029
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "pageMs": 9130,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "processing",
+          "ms": 404.137,
+          "rows": 5
+        }
+      ],
+      "select1Median": 511.283,
+      "select1Server": 0.047
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "pageMs": 12265,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "processing",
+          "ms": 313.797,
+          "rows": 5
+        }
+      ],
+      "select1Median": 449.652,
+      "select1Server": 0.022
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "pageMs": 17481,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "processing",
+          "ms": 325.833,
+          "rows": 3
+        }
+      ],
+      "select1Median": 431.834,
+      "select1Server": 0.027
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "pageMs": 6964,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "sales",
+          "ms": 112.43,
+          "rows": 2
+        }
+      ],
+      "select1Median": 476.991,
+      "select1Server": 0.021
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "pageMs": 7615,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "sales",
+          "ms": 295.922,
+          "rows": 6
+        }
+      ],
+      "select1Median": 511.284,
+      "select1Server": 0.057
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "pageMs": 7706,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "sales",
+          "ms": 293.593,
+          "rows": 6
+        }
+      ],
+      "select1Median": 465.241,
+      "select1Server": 0.02
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "pageMs": 8423,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "sales",
+          "ms": 29.558,
+          "rows": 1
+        }
+      ],
+      "select1Median": 483.17,
+      "select1Server": 0.027
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "pageMs": 13067,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "sales",
+          "ms": 243.742,
+          "rows": 4
+        }
+      ],
+      "select1Median": 502.815,
+      "select1Server": 0.032
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "pageMs": 7224,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "sales",
+          "ms": 78.847,
+          "rows": 1
+        }
+      ],
+      "select1Median": 453.455,
+      "select1Server": 0.019
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "pageMs": 7618,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "sales",
+          "ms": 183.085,
+          "rows": 5
+        }
+      ],
+      "select1Median": 428.621,
+      "select1Server": 0.021
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "pageMs": 9141,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "people",
+          "ms": 54.098,
+          "rows": 1
+        }
+      ],
+      "select1Median": 473.823,
+      "select1Server": 0.019
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "pageMs": 5618,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "people",
+          "ms": 169.467,
+          "rows": 4
+        }
+      ],
+      "select1Median": 446.787,
+      "select1Server": 0.031
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "pageMs": 7458,
+      "bars": 1,
+      "failed": 0,
+      "walks": [
+        {
+          "chain": "people",
+          "ms": 738.334,
+          "rows": 2
+        }
+      ],
+      "select1Median": 425.792,
+      "select1Server": 0.063
+    }
+  ],
+  "warnings": []
+}

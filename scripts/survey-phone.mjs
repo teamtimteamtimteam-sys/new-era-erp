@@ -713,7 +713,9 @@ async function main() {
             screenWidth: WIDTH, screenHeight: HEIGHT,
         })
         await S('Network.setCookies', { cookies: [{
-            name: cookieName, value: cookieVal, domain: 'localhost', path: '/', httpOnly: false, secure: false }] })
+            name: cookieName, value: cookieVal, domain: 'localhost', path: '/', httpOnly: false, secure: false },
+            // SYSTEM-MAP-3:SURVEY_LOCALE=zh 量中文那一版(不给就是默认语言 en —— 与从前逐字相同)
+            ...(process.env.SURVEY_LOCALE ? [{ name: 'NEXT_LOCALE', value: process.env.SURVEY_LOCALE, domain: 'localhost', path: '/', httpOnly: false, secure: false }] : [])] })
         currentCookie = cookieVal
     }
     let currentTarget = null

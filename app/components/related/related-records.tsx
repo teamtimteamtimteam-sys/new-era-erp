@@ -104,7 +104,7 @@ import { documentHref } from '@/lib/search/documentHref'
 import { ListPage } from '@/app/components/ui/list-page'
 import RelatedTable from './RelatedTable'
 // TABLE-EXPORT-3c:docType / subjectRow / 行的映射搬进了 relatedRows.ts,页面与导出路由 import 同一份
-import { docType, subjectRow, shapeRelatedRows, type DocType, type RowsRow } from './relatedRows'
+import { docType, subjectRow, shapeRelatedRows, detailHrefs, type DocType, type RowsRow } from './relatedRows'
 
 /** 房子的分页常量。★ 树里 17 处 `PAGE_SIZE` 全是 20 —— 照抄,不新造一个数。 */
 export const PAGE_SIZE = 20
@@ -234,7 +234,7 @@ export default async function RelatedRecords({
     }
 
     // ── 行 ──────────────────────────────────────────────────────────────────
-    const rows = shapeRelatedRows(target, page)
+    const rows = shapeRelatedRows(target, page, await detailHrefs(supabase, target.key, page.map((r) => r.id)))
 
     const base = subject
         ? `/related/${subject.type.key}/${subjectId}/${targetKey}`

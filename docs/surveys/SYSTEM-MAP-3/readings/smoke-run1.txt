@@ -1,0 +1,78 @@
+(node:95805) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/trail/machineTokens.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⚠ 滞留的临时行 6 条（超过 2 小时，没有哪一次运行还应当持有它们）:
+  · materials          ZZ-SMOKE-PROBE  (1985.9h)  ← 【仍被引用:inbound_batches.material_id × 1】不要直接删
+  · materials          ZZ-SMOKE-M25  (1985.9h)  ← 【仍被引用:inbound_batches.material_id × 1、output_batches.material_id × 2】不要直接删
+  · materials          ZZ-SMOKE-NTF  (1818.6h)  ← 【仍被引用:inbound_batches.material_id × 2】不要直接删
+  · suppliers          ZZ-SMOKE-S25  (1985.9h)  ← 【仍被引用:inbound_batches.supplier_id × 1】不要直接删
+  · customers          ZZ-SMOKE-CJK  (1343.5h)  (无人引用)
+  · inbound_batches    ZZ-SMOKE-IB25  (1985.9h)  ← 【仍被引用:processing_inputs.inbound_batch_id × 1】不要直接删
+
+【本检查只报告,不删除】归属与年龄正是一次清扫无法安全知道、而报告可以
+照直说出来的东西:同样的不确定,报告说错了人多看一眼,清扫做错了正在跑的活被毁掉。
+怎么处置由人决定 —— 尤其是上面标着【仍被引用】的那些:删掉它们会让一张真单据
+指向一个已删的行,而那比留着残骸坏得多。
+  (临时行体检报了滞留行 —— 见上;冒烟继续,处置由人决定)
+  一次性会话已授权:smoke-1793170036931-all@test.local ← probe-smoke-all-1793170036931(86 码)
+  SKIP /b/[code]  (writes an append-only scan row — proved by fixture 252 LINK and the MES-3b role table)
+  SKIP /compliance/packs/[id]  (no data in compliance_packs)
+  SKIP /compliance/packs/[id]/pdf  (no data in compliance_packs)
+  SKIP /finance/electricity/[id]  (no data in electricity_allocations)
+  SKIP /finance/packs/[id]  (no data in management_packs)
+  SKIP /finance/packs/[id]/export  (no data in management_packs)
+  SKIP /finance/payment-requests/[id]  (no data in payment_requests)
+  SKIP /finance/statements/[id]/pdf  (no data in customer_statements)
+  SKIP /finance/supplier-statements/[id]  (no data in supplier_statements)
+  SKIP /finance/supplier-statements/[id]/pdf  (no data in supplier_statements)
+  SKIP /hr/attendance/[id]  (no data in attendance_periods)
+  SKIP /hr/overtime/[id]  (no data in overtime_batches)
+  SKIP /loc/[code]  (writes an append-only scan row — proved by fixture 252 LINK and the MES-3b role table)
+  SKIP /operation/blending/[id]  (no data in blending_plans)
+  SKIP /operation/handovers/[id]  (no data in shift_handovers)
+  operation-types/[code] → deep_discharge(变更记录 1 行:审计记录必须有内容)
+  SKIP /operation/weighbridge/[id]  (no data in weighbridge_tickets)
+  SKIP /output/[id]/assays/[assayId]  (no data in assay_results)
+  SKIP /quality/coa/[id]  (no data in certificates_of_analysis)
+  SKIP /quality/disputes/[id]  (no data in assay_disputes)
+  SKIP /quality/ncr/[id]  (no data in nonconformance_reports)
+  SKIP /quality/samples/[id]  (no data in samples)
+  SKIP /safety/incidents/[id]  (no data in incidents)
+  SKIP /safety/inspections/[id]  (no data in inspection_runs)
+  SKIP /safety/inspections/templates/[id]  (no data in inspection_templates)
+  SKIP /sales/commissions/[id]/edit  (no data in commission_agreements)
+
+✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):
+fetch failed
+
+── 中止前已完成(阶段:逐条走路由)—— 这些结论是真的,别丢 ──
+   走过 334 条:ok 310 · FAIL 0 · SKIP 24
+   SKIP: /b/[code], /compliance/packs/[id], /compliance/packs/[id]/pdf, /finance/electricity/[id], /finance/packs/[id], /finance/packs/[id]/export, /finance/payment-requests/[id], /finance/statements/[id]/pdf, /finance/supplier-statements/[id], /finance/supplier-statements/[id]/pdf, /hr/attendance/[id], /hr/overtime/[id], /loc/[code], /operation/blending/[id], /operation/handovers/[id], /operation/weighbridge/[id], /quality/coa/[id], /quality/disputes/[id], /quality/ncr/[id], /quality/samples/[id], /safety/incidents/[id], /safety/inspections/[id], /safety/inspections/templates/[id], /sales/commissions/[id]/edit
+   ok  : /, /claims, /compliance/cod, /compliance/packs, /compliance/packs/export, /compliance/supplier-certificates, /contracts, /contracts/[id], /contracts/new, /display, /documents/[key], /documents/[key]/export, /finance, /finance/assets, /finance/assets/[id], /finance/assets/new, /finance/balance-sheet, /finance/bank, /finance/bank/import, /finance/bank/statements, /finance/bank/statements/[id], /finance/bank/statements/[id]/reconcile, /finance/bank/statements/export, /finance/bank/transfers/export, /finance/cash-forecast, /finance/cash-forecast/frozen/export, /finance/cashflow, /finance/claims, /finance/close, /finance/company, /finance/cost-variance, /finance/credit-notes, /finance/credit-notes/[id], /finance/credit-notes/[id]/pdf, /finance/credit-notes/export, /finance/electricity, /finance/electricity/new, /finance/expenses, /finance/expenses/[id], /finance/expenses/export, /finance/expenses/new, /finance/freight, /finance/freight/[id], /finance/freight/export, /finance/freight/new, /finance/fx, /finance/fx/[id]/edit, /finance/fx/bulk, /finance/fx/export, /finance/fx/new, /finance/gst, /finance/gst/[periodId], /finance/gst/[periodId]/export, /finance/invoices, /finance/invoices/[id], /finance/invoices/[id]/pdf, /finance/invoices/export, /finance/invoices/new, /finance/journal, /finance/journal/[id], /finance/journal/entries/export, /finance/journal/export, /finance/journal/new, /finance/ledger/[account], /finance/list-vs-ledger, /finance/month-end, /finance/packs, /finance/payables, /finance/payables/[batchId], /finance/payables/export, /finance/payment-requests, /finance/payment-requests/export, /finance/payments, /finance/payments/[id], /finance/payments/export, /finance/payments/new, /finance/payroll-payments, /finance/pnl, /finance/price-exposure, /finance/processing-costs, /finance/receivables, /finance/receivables/[saleId], /finance/receivables/export, /finance/revaluation, /finance/self-approved, /finance/settings, /finance/supplier-statements, /finance/supplier-statements/export, /finance/trial-balance, /finance/wht, /hr, /hr/attendance, /hr/claims, /hr/claims/[id], /hr/claims/export, /hr/claims/new, /hr/departments, /hr/departments/[id]/edit, /hr/departments/new, /hr/employees, /hr/employees/[id], /hr/employees/[id]/edit, /hr/employees/export, /hr/employees/new, /hr/kpi, /hr/kpi/score, /hr/leave, /hr/leave/[id], /hr/leave/balances, /hr/leave/calendar, /hr/leave/export, /hr/leave/grants, /hr/leave/holidays, /hr/leave/new, /hr/leave/types, /hr/org, /hr/overtime, /hr/payroll, /hr/payroll/[id], /hr/payroll/[id]/edit, /hr/payroll/new, /hr/reviews, /hr/reviews/[id], /hr/reviews/cycles, /hr/reviews/export, /hr/reviews/scale, /hr/training, /hr/training/[id]/edit, /hr/training/new, /inbound, /inbound/[id]/assays/[assayId], /inbound/[id]/assays/new, /inbound/[id]/edit, /inbound/[id]/label, /inbound/export, /inbound/new, /inbound/receive, /inbound/receive/done/[id], /inventory, /inventory/inbound/[materialId], /inventory/locations, /inventory/locations/[id]/edit, /inventory/locations/[id]/label, /inventory/locations/new, /inventory/output/[materialId], /inventory/reports, /inventory/reports/ledger, /inventory/reports/ledger/export, /inventory/reports/ledger/pdf, /inventory/reports/safety, /inventory/reports/safety/pdf, /inventory/reports/snapshot, /inventory/reports/snapshot/pdf, /inventory/reports/violations, /inventory/reports/violations/pdf, /inventory/scan, /inventory/storage-safety, /login, /logistics, /logistics/containers, /logistics/containers/[id], /logistics/forwarders, /logistics/forwarders/[id], /logistics/lanes, /logistics/shipping, /margin, /materials, /materials/[id]/edit, /materials/export, /materials/new, /me, /me/avatar, /me/expense-claims/export, /me/leave-requests/export, /me/medical-claims/export, /my-reviews, /my-reviews/[id], /notifications, /operation, /operation/balance, /operation/blending, /operation/blending/new, /operation/calibration, /operation/capture, /operation/capture/inbox, /operation/capture/inbox/export, /operation/capture/pending/export, /operation/capture/recent/export, /operation/contamination, /operation/contamination/checks/export, /operation/contamination/grid/export, /operation/devices, /operation/devices/[id], /operation/equipment, /operation/equipment/[id], /operation/equipment/reliability, /operation/handovers, /operation/handovers/new, /operation/operation-types, /operation/operation-types/[code], /operation/orders, /operation/orders/[id], /operation/orders/new, /operation/processing, /operation/processing/[id], /operation/processing/export, /operation/processing/new, /operation/spare-parts, /operation/weighbridge, /operation/weighbridge/export, /operation/wip, /operation/yield, /output, /output/[id]/assays/new, /output/[id]/edit, /output/[id]/label, /output/export, /output/new, /portal, /portal/certificates, /portal/certificates/upload, /portal/deliveries, /portal/documents, /portal/documents/file, /portal/my-data, /purchasing, /purchasing/discrepancies, /purchasing/licences, /purchasing/orders, /purchasing/orders/[id], /purchasing/orders/[id]/amend, /purchasing/orders/[id]/pdf, /purchasing/orders/export, /purchasing/orders/new, /purchasing/payment-terms, /purchasing/payment-terms/[id]/edit, /purchasing/payment-terms/new, /quality/coa, /quality/disputes, /quality/disputes/new, /quality/ncr, /quality/ncr/new, /quality/samples, /quality/samples/new, /related/[subject]/[id], /related/[subject]/[id]/[target], /related/[subject]/[id]/[target]/export, /safety/environment, /safety/environment/export, /safety/incidents, /safety/incidents/new, /safety/inspections, /safety/inspections/new, /safety/inspections/runs/export, /safety/inspections/templates/new, /sales, /sales/commissions, /sales/commissions/new, /sales/customers, /sales/customers/[id], /sales/customers/[id]/edit, /sales/customers/export, /sales/customers/new, /sales/customers/overlap, /sales/orders, /sales/orders/[id], /sales/orders/[id]/amend, /sales/orders/[id]/pdf, /sales/orders/export, /sales/orders/new, /sales/quotes, /sales/quotes/[id], /sales/quotes/[id]/pdf, /sales/quotes/export, /sales/quotes/new, /sales/shipments/[id], /sales/shipments/[id]/pdf, /set-password, /settings/accounts, /settings/approvals, /settings/change-history, /settings/deleted, /settings/dictionaries, /settings/import, /settings/import/history/export, /settings/import/template/[table], /settings/pending-values, /settings/reference, /settings/roles, /settings/roles/[id], /settings/roles/new, /stocktakes, /stocktakes/[id], /stocktakes/[id]/review, /stocktakes/export, /suppliers, /suppliers/[id]/edit, /suppliers/export, /suppliers/new, /suppliers/scorecards, /tools/calendar, /tools/converter, /tools/pricing, /tools/pricing/calculator, /tools/pricing/formulas, /tools/pricing/formulas/[id]/edit, /tools/pricing/formulas/new, /tools/pricing/metal-prices, /tools/pricing/metal-prices/[id]/edit, /tools/pricing/metal-prices/bulk
+
+== 最慢的 20 条路由(dev server 单次墙上时间,含按需编译)==
+   【读法】含编译时间,不是生产时延;可比的是彼此的相对大小与改动前后的差。
+    1. /settings/dictionaries            35160 ms  → HTTP 200
+    2. /output/[id]/edit                 27601 ms  → HTTP 200
+    3. /logistics/lanes                  23481 ms  → HTTP 200
+    4. /finance/fx                       17433 ms  → HTTP 200
+    5. /settings/change-history          14645 ms  → HTTP 200
+    6. /contracts/[id]                   14204 ms  → HTTP 200
+    7. /settings/import                  14117 ms  → HTTP 200
+    8. /operation/processing/[id]        13865 ms  → HTTP 200
+    9. /operation/capture/inbox/export   13783 ms  → HTTP 200
+   10. /finance/claims                   13545 ms  → HTTP 200
+   11. /purchasing/orders/[id]           13434 ms  → HTTP 200
+   12. /suppliers/[id]/edit              13288 ms  → HTTP 200
+   13. /settings/accounts                12934 ms  → HTTP 200
+   14. /operation/equipment/[id]         12861 ms  → HTTP 200
+   15. /sales/customers/[id]             12585 ms  → HTTP 200
+   16. /hr/leave/balances                12481 ms  → HTTP 200
+   17. /inbound/export                   12291 ms  → HTTP 200
+   18. /finance/invoices/[id]            12263 ms  → HTTP 200
+   19. /contracts                        12140 ms  → HTTP 200
+   20. /finance/assets/[id]              11755 ms  → HTTP 200
+   ── 计时 310 条 · 合计 1843.7s · 中位数 5133 ms
+SMOKE_EXIT=1

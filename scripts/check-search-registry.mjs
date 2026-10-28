@@ -76,7 +76,8 @@ const MIRROR = join(ROOT, 'db/tables/document_types.sql')
 // MES-7b-2(2026-10-16):60 → 61。新增 'inspection'(/safety/inspections,detail;INS,无洞,按年;搜索的副标题是记下那一刻抄下的清单名字)。
 // MES-8a(2026-10-16):61 → 62。新增 'supplier_statement'(/finance/supplier-statements,detail;SST,无洞,按年;搜索的副标题是被取代的理由)。
 // MES-8b-1(2026-10-17):62 → 63。新增 'compliance_pack'(/compliance/packs,detail;CPK-YYYY-MM,按月一份、重出 -2;搜索的副标题是被取代的理由)。
-const EXPECTED_ROWS = 63
+// SYSTEM-MAP-3(2026-10-27):63 → 64。新增 'overtime_batch'(/hr/overtime,detail;OT-YYYY-MM,按月一批、补充批 -2 …;搜索的副标题是批的显示名 label)。
+const EXPECTED_ROWS = 64
 // ★ SEARCH-5:`type_list` 那 5 种单据的落点。**一张共享页,不是每种一张。**
 const TYPE_LIST_PAGE = join(ROOT, 'app/documents/[key]/page.tsx')
 

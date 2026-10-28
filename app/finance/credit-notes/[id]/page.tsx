@@ -25,6 +25,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import CreditNoteLinesTable, { type CreditNoteLineRow } from './CreditNoteLinesTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function CreditNotePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -143,6 +144,7 @@ export default async function CreditNotePage({ params, searchParams }: { params:
             //    空的只可能是下面那张行表,那句空态归表自己说(DataTable 的 empty)。
             state={{ kind: 'ok' }}
         >
+            <DocumentChains table="credit_notes" id={cn.id} code={cn.code} chains={[{ chain: 'sales', step: 'credit_note' }]} />
             {/* ★ 记录抬头 —— 转换前是一个 <dl class="grid grid-cols-2">,
                 四种抬头写法之一(见 record-header.tsx 抬头的那张表)。 */}
             <RecordHeader

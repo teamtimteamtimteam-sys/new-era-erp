@@ -28,6 +28,7 @@ import QuoteLinesEditor from './QuoteLinesEditor'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function QuotePage({ params, searchParams }: {
     params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
@@ -144,6 +145,7 @@ export default async function QuotePage({ params, searchParams }: {
                     </div>
                 </div>
 
+                <DocumentChains table="quotes" id={q.quote_id} code={q.code} chains={[{ chain: 'sales', step: 'quote' }]} />
                 {deletedAt && <DeletedBanner kind="quote" id={q.quote_id} at={deletedAt} />}
 
                 <EndedFieldset ended={!!deletedAt}>

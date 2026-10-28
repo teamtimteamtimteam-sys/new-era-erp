@@ -70,8 +70,10 @@ BEGIN
     -- ★ MES-7b-2(2026-10-16):52 → 53 —— inspection_runs 登记了一个码(module.safety.view,与它的读策略同一个码)。
     -- ★ MES-8a(2026-10-16):53 → 54 —— supplier_statements 登记了一个码(module.finance.view,与它的读策略同一个码)。
     -- ★ MES-8b-1(2026-10-17):54 → 55 —— compliance_packs 登记了一个码(module.compliance.view,与它的读策略同一个码)。
-    IF v_n <> 55 THEN
-        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 55 —— '
+    -- ★ SYSTEM-MAP-3(2026-10-27):55 → 58 —— overtime_batches 登记了三个码(module.hr.view · action.overtime_enter ·
+    --   action.overtime_approve,与它的读策略逐字同一组 —— 人力、录的人、批的人)。
+    IF v_n <> 58 THEN
+        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 58 —— '
                         '判据瞎了,或者登记表真的变了(那就同时改这个数与切次报告)', v_n;
     END IF;
 

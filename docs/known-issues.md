@@ -11756,3 +11756,33 @@ TF-2 照 Q5 的字面做:「今年」= 今天所在的、按 fy_end 月日算出
 ## TABLE-FEATURES-3 登记(2026-10-26)
 
 (SAVED-VIEW-DEFAULT-RETURNS-WHEN-LAST-FILTER-CLEARED 已关:Tim 2026-10-27 D1 —— 清掉最后一个筛选显示原始列表;SYSTEM-MAP-1 的 `filteredListHref`,见 `docs/system-map.md` 末尾。)
+
+## SYSTEM-MAP-3 登记(2026-10-27/28)
+
+### SM3-LIVE-PROOF-OUTAGE —— 2026-10-27 ~22:38 → 23:07:01 重启(Tim 2026-10-27 23:05 裁定,原话照录)
+
+"SM3-LIVE-PROOF-OUTAGE 2026-10-27 ~22:38-restart: three parallel readers through the chain walk drove the free-plan database to UNHEALTHY; rule from now on: live proofs run one reader at a time with a latency check between readers."
+
+量到的(`docs/surveys/SYSTEM-MAP-3/README.md`):三位读者并行、经本机 `next start` 打开单据页(每一页一到两次 `document_chain_walk()` + 页面自己的几十条查询 + 链接逐个 GET)。
+`select 1` 从这台机器 7–8 s → Supabase 网关回 `upstream request timeout` / HTML 错误页 → 连接池连不上库(`Failed to connect to database: {:error, :timeout}`)→
+Management API health:db = UNHEALTHY、rest = UNHEALTHY(pooler 健康)。停掉之后 20 分钟没有自己恢复;Tim 裁定经 Management API 重启(23:07:01),23:10:38 db 与 rest 回到 ACTIVE_HEALTHY。
+那一跑的清理因库超时没有做完(`SM3_PROOF_EXIT=6`),重启之后 `npm run reap:ephemeral` 照计划补删(1 份 · 21 步 · 0 失败),读回 0 残留。
+**因果是推断,不是证明**:时间上吻合、停下之后库没有更坏;没有别的负载可以指认。
+☞ 规矩写进了 AGENTS.md「线上证明一次一位读者」(SUB-AGENTS 那一节旁边),连同 Tim 2026-10-28 10:40 的中止规则。
+☞ 走链本身的代价:`docs/forward-queue.md` 上线准备组的 CHAIN-WALK-COST。
+
+### SM3-ADMIN-WALK-OVER-BUDGET —— admin 的走链约是 cfo 的 4 倍(Tim 2026-10-28 11:25 裁定 4)
+
+**Until CHAIN-WALK-COST ships, admin may see "could not be drawn" on heavier chain pages; the page itself is unaffected.**
+量到的:2026-10-28 一位一位的线上证明里,admin 在发货单页(SHP-2026-0001)上那一条销售链被 `DOCUMENT_CHAIN_WALK_BUDGET`(2 秒)拒;事后库静止时,
+同一条走链(从那张发货单起,EXPLAIN ANALYZE 的 Execution Time,整笔回滚)**真 admin 账号 1,126.8 ms · tim@(cfo)255.6 ms**。
+原因没有查清(推断:admin 持每一个码,走链经过的关联查询与行级策略更多)—— 查清它是 `docs/forward-queue.md` 64d-4 CHAIN-WALK-COST 的第一步。
+上限由 -fu2 兜着:一条链画不出来时,链条那一格说「这一次没有画出来」,页面其余部分照常。
+
+### SM3-OUTPUT-TRAIL-TIMEOUT —— 产出批页的变更记录偶尔撞上 8 秒语句上限,整页 500(SYSTEM-MAP-3 线上证明量到,不是本刀引入的)
+
+2026-10-28 一位一位的七角色线上证明里,仓库读者打开 `/output/848d954a-…/edit`(OUT-2026-0119)得 HTTP 500;服务端日志:
+`record_trail(output_batch) failed: canceling statement due to statement timeout`(`app/components/trail/AuditTrail.tsx:224` 把失败抛出去 —— 照规矩不吞)。
+2026-10-27 那一跑里 cco 在同一页上撞过同一次。事后库静止时同一支 `record_trail('output_batch', <那一批>, 20)`(EXPLAIN ANALYZE,整笔回滚):
+**仓库 785.2 ms · cfo 265.9 ms**。`record_trail` 自 MES-4a(v1.4.41)起没有改过;同一页上本刀的链条也在取数,于是负载多了一份(链条取数失败只画在链条那一格,不会 500)。
+去处:**Tim 2026-10-28 15:55 裁定 3 —— 本刀不修,并进 `docs/forward-queue.md` 64d-4 CHAIN-WALK-COST**:让 `record_trail` 对受限的读者也便宜(静止时仓库 785 ms · cfo 266 ms),并让变更记录那一块像链条一样【在它自己那一格里】失败,永远不让整页 500。

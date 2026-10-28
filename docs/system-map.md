@@ -112,3 +112,38 @@ Readings: `docs/surveys/SYSTEM-MAP-2/` (README + `readings/`). Migration: `db/mi
 - **Supplier certificates overview** has a Status column (expired · expiring · valid · no expiry date · not tracked) from `certificate_expiry_status()` — the same function the two certificate reminder branches now read (`supplier_certificate_status` view, `module.suppliers.view`).
 - **Proof**: fixture 295 — 24 types × the seven live roles' grants, shown on the to-do list ⇔ the real decide function accepts it, every cell rolled back; fault-injected once (`readings/fixture-295-injection.txt`).
 - Not built (Q1): no notification is written for a new approval request.
+
+---
+
+## SYSTEM-MAP-3 rulings (Tim, 2026-10-27) — verbatim
+
+From Tim's reply to SYSTEM-MAP-3 Step 0:
+
+- Grilling's scope changes 1-8 are accepted as reported: declared arms for the 6 non-FK links in the one relationship definition read by both the bar and the related-records functions; one chain file for step order and labels, also read by the build check; overtime batches registered; detail-page addresses for inbound, output and credit notes; the chain walk under the reader's own access; two bars on pages that sit on two chains; at most 3 links per step then "+N more"; the five host-page anchors; and 「受限」 propagating past a step the reader cannot open, with "reached only through X".
+- Q1 - Accepted. Wrapping chips at >= 640 px. Below 640 px, one collapsed line ("<Chain> · step n of N · Show chain") that opens to the vertical list; every step and every 「受限」 is present once opened. Measure the purchasing chain at 390 px, collapsed and opened.
+- Q2 - Accepted. One new read-only page /related/<type>/<id> with the same groups as the search dropdown (lib/search/records.ts:511), each linking to the existing per-type page. It gets the saved-view-free shared page frame, a back link to the document, and no menu entry (single-home check: register it as a child, not a module entry).
+- Q3 - Accepted. Approved leave links to the payroll period of every month its dates touch; pending and rejected leave show no payroll link.
+- Q4 - Accepted. Overtime batches get a code built from the month and a sequence, following the same format conventions as the system's other document codes (state the final format in the report); the current label stays as the display name. They appear in global search.
+- Q5 - Accepted. A step the reader cannot open always shows 「受限」 with the permission it needs, whether or not a document exists.
+- Added: grilling item 9. Fix the purchase order detail page so it does not overflow at 390 px in either language (today 421 px in English), and prove 0 overflow on it in the layout survey together with the bar.
+- Split - Do NOT split. Build the whole scope in this session.
+
+From Tim's later rulings during Step 1 (2026-10-27 23:05 · 23:45 · 2026-10-28 10:40), in short:
+
+- 23:05 — restart the project via the Management API after the live proof drove the database to UNHEALTHY; reap; one-reader performance budget before any further live proof; record SM3-LIVE-PROOF-OUTAGE in `docs/known-issues.md` and the one-reader rule in AGENTS.md.
+- 23:45 — fixes accepted: (1) `-fu2` caps the walk at 2 s; (2) the bar streams in after the page renders; (3) budget restated: walk under 1 s and `select 1` under 50 ms, both measured inside the database. (4) CHAIN-WALK-COST queued in the go-live readiness group (`docs/forward-queue.md`, row 14), not built now.
+- 10:40 — the `-fu2` deviation is accepted: an in-walk clock check raising `DOCUMENT_CHAIN_WALK_BUDGET`, because a function-level `statement_timeout` does not cap a call, measured. Abort rules for live proofs (now in AGENTS.md "ONE-READER"): abort only on database-side signals; record single round trips over 1.5 s and walks of 1–2 s; never run readers in parallel on live.
+
+## What SYSTEM-MAP-3 built (v1.4.79)
+
+Readings: `docs/surveys/SYSTEM-MAP-3/` (README + `readings/`). Migrations: `db/migrations/2026-10-27-system-map-3-chain-bar.sql` (+ `-fu1`, `2026-10-28-…-fu2`).
+
+- **One chain definition** (`lib/chains.ts`): purchasing 8 steps · processing 5 · sales 8 · people 5, each step = one or more `document_types` keys plus the step pairs that are walked. Read by the bar, by `scripts/check-chain-bar.mjs` and (copied, checked byte-for-byte) by fixture 296.
+- **One relationship definition**: the foreign-key relation map plus five declared links in `document_relation_arms` / `document_relation_arm_ids()` (payment request ↔ inbound batch · payment ↔ bank statement · attendance / overtime / leave ↔ payroll period; approved leave and approved overtime only, Q3). `search_related()` and `search_related_rows()` follow them (`kind = 'arm'`), so the related-records pages and the bar read the same thing. Payroll period ↔ payroll payment was already foreign-key backed (`payroll_lines.paid_journal_entry_id`, the CPF / deductions entry columns) — a step filter, not a sixth arm.
+- **The walk** (`document_chain_walk()`, INVOKER): outward from the reader's step, a step's documents come from its neighbours no further away, repeated until nothing new is found. Sections hosted elsewhere (payable · reservation · cost allocation · payroll payment) are filters on the host document (`document_chain_step_admits()`). `-fu1` asks each (step, source, type) once and skips document kinds with no visible rows; `-fu2` refuses a walk past 2 s (`DOCUMENT_CHAIN_WALK_BUDGET`).
+- **The bar** (`app/components/chain/DocumentChains.tsx`) on 21 detail pages, streamed in after the page renders. Each step shows up to 3 links then "+N more", or "none yet", or 「受限」 with the code it needs (Q5), or "Restricted — reached only through X". Phone (< 640 px): one collapsed line that opens to the vertical list (Q1). A failed walk says so in the bar's place.
+- **Host anchors**: `#pricing` (batch page), `/finance/payables/<batch>`, `#reservations` (sales order), `#cost-allocation` (run), `#line-<statement line>` (bank statement, scrolled into view and highlighted), the payroll payment's journal entry.
+- **Detail-page addresses** (`document_types.detail_route`, `document_detail_href()`): inbound and output batches, credit notes, assays. The related-records tables use them; search results did not change.
+- **`/related/<type>/<id>`** — all related records of one document, the search dropdown's groups (Q2); a `check-nav-routes` exception like its sibling (registry entries are static addresses).
+- **Overtime batches** are document type `overtime_batch`, code **OT-YYYY-MM**, then **OT-YYYY-MM-2** … for supplementary batches (trigger `generate_overtime_batch_code`), label unchanged; they are in global search (Q4).
+- **PO page at 390 px** (item 9): inline permission gates wrap (`PermissionGate wrap`); the shared list skeleton bar no longer overflows.

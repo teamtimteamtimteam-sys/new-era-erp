@@ -1825,6 +1825,20 @@ existing `freight_documents` row — all rolled back, all forbidden (`docs/handb
 
 **How:** a sub-agent's brief carries the LIVE SAFETY section and a local DSN (an empty local cluster built with `python3 db/verify_rebuild.py --target <dsn> --skip-diff`, as in「Verifying the rebuild path」above); anything that needs live — a dry run, a proof, a read — comes back to this session as a request.
 
+## ★★★ 线上证明一次一位读者,读者之间量一次库(ONE-READER,Tim 2026-10-27 23:05 · 2026-10-28 10:40)
+
+> **Live proofs run one reader at a time, with a latency check between readers. Never run readers in parallel on live.**
+
+**Why:** SYSTEM-MAP-3 的线上证明让三位读者并行打开单据页,免费档的库被压到 UNHEALTHY(2026-10-27 ~22:38),要 Tim 经 Management API 重启(23:07:01)。
+`docs/known-issues.md` § SM3-LIVE-PROOF-OUTAGE。
+
+**How(中止规则,Tim 2026-10-28 10:40,原样的意思):**
+- **中止**(停下、finally 里收尾、报告)只认【库那一侧】的信号:库里 `select 1` 的执行 > 50 ms · 线上任何一次走链被 `DOCUMENT_CHAIN_WALK_BUDGET` 拒 ·
+  Management API 的 health 报 db 或 rest 不健康 · 这台机器上【五次往返的中位数】> 1.5 s。
+- **只记下、不停**:任何一次单独的往返 > 1.5 s(这台机器到新加坡的底线约 410 ms,单次的尖刺是这条链路自己的,不是库的)·
+  任何一次 1–2 s 的走链(上线准备组的 CHAIN-WALK-COST 管它)。
+- 先例:`db/scripts/2026-10-27-system-map-3-live-proof.mjs` 与 `…-perf-budget.mjs` 里的 `abortReason()`。
+
 ## ★★ 两张已签发的 COD —— 字节基线【只记在这里】(TABLE-EXPORT-2,2026-10-22)
 
 **每一刀的线上安全规矩里都有一条「两张已签发的 COD 逐字节不变」。比对的对象就是下面这两行,不是别的报告里的缩写。**

@@ -1,0 +1,7 @@
+STEP|base https://new-era-erp.vercel.app
+STEP|database as the clone (authenticated + its claims, rolled back): waiting_for_me() 2 rows, waiting_for_me_count() 2, types notification
+PASS|/workbench → HTTP 200: 2 to-do rows drawn (database 2); types notification
+PASS|home → HTTP 200: count link "2 waiting for you →" → /workbench; count 2 = rows drawn on /workbench 2
+PASS|/tools/reminders → HTTP 200: 10/10 CFO-level branches under "restricted", each "decided by the CFO-level approver" (e.g. payment_request_pending: "Payment requests awaiting approval Decided by the CFO-level approver.")
+STEP|done
+SM2_CLOSEOUT_EXIT=0

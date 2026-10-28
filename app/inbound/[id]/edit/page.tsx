@@ -57,6 +57,7 @@ import QualityPanel from '@/app/components/quality/QualityPanel'
 import LinkedIncidents from '@/app/components/safety/LinkedIncidents'
 import AssayIndicators from '@/app/components/quality/AssayIndicators'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -707,6 +708,7 @@ export default async function EditInboundPage({
             </div>
 
             <h1 className="sm:text-2xl mb-2">{t('inbound.editTitle')}</h1>
+            <DocumentChains table="inbound_batches" id={batch.id} code={batch.code} chains={[{ chain: 'purchasing', step: 'inbound_batch' }, { chain: 'processing', step: 'input_batches' }]} />
             {ended && <EndedBanner kind="writtenOff" at={batch.deleted_at as string} by={batch.deleted_by ?? null} reason={batch.delete_reason ?? null} />}
             <EndedFieldset ended={ended}>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
@@ -875,6 +877,8 @@ export default async function EditInboundPage({
                 canViewPrices={showPrices}
             />
 
+            {/* SYSTEM-MAP-3:单据链条「定价」那一步落在这里(#pricing) */}
+            <div id="pricing" className="scroll-mt-4" />
             <PricingPanel
                 batchCode={batch.code}
                 openRequestLabel={openRequestLabel}

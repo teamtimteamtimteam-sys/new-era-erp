@@ -1,0 +1,59 @@
+(node:3841) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/trail/machineTokens.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⚠ 滞留的临时行 6 条（超过 2 小时，没有哪一次运行还应当持有它们）:
+  · materials          ZZ-SMOKE-PROBE  (1986.5h)  ← 【仍被引用:inbound_batches.material_id × 1】不要直接删
+  · materials          ZZ-SMOKE-M25  (1986.5h)  ← 【仍被引用:inbound_batches.material_id × 1、output_batches.material_id × 2】不要直接删
+  · materials          ZZ-SMOKE-NTF  (1819.2h)  ← 【仍被引用:inbound_batches.material_id × 2】不要直接删
+  · suppliers          ZZ-SMOKE-S25  (1986.5h)  ← 【仍被引用:inbound_batches.supplier_id × 1】不要直接删
+  · customers          ZZ-SMOKE-CJK  (1344.1h)  (无人引用)
+  · inbound_batches    ZZ-SMOKE-IB25  (1986.5h)  ← 【仍被引用:processing_inputs.inbound_batch_id × 1】不要直接删
+
+【本检查只报告,不删除】归属与年龄正是一次清扫无法安全知道、而报告可以
+照直说出来的东西:同样的不确定,报告说错了人多看一眼,清扫做错了正在跑的活被毁掉。
+怎么处置由人决定 —— 尤其是上面标着【仍被引用】的那些:删掉它们会让一张真单据
+指向一个已删的行,而那比留着残骸坏得多。
+  (临时行体检报了滞留行 —— 见上;冒烟继续,处置由人决定)
+  一次性会话已授权:smoke-1793172204981-all@test.local ← probe-smoke-all-1793172204981(86 码)
+  SKIP /b/[code]  (writes an append-only scan row — proved by fixture 252 LINK and the MES-3b role table)
+  SKIP /compliance/packs/[id]  (no data in compliance_packs)
+  SKIP /compliance/packs/[id]/pdf  (no data in compliance_packs)
+  SKIP /finance/electricity/[id]  (no data in electricity_allocations)
+  SKIP /finance/packs/[id]  (no data in management_packs)
+  SKIP /finance/packs/[id]/export  (no data in management_packs)
+  SKIP /finance/payment-requests/[id]  (no data in payment_requests)
+
+✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):
+fetch failed
+
+── 中止前已完成(阶段:逐条走路由)—— 这些结论是真的,别丢 ──
+   走过 78 条:ok 71 · FAIL 0 · SKIP 7
+   SKIP: /b/[code], /compliance/packs/[id], /compliance/packs/[id]/pdf, /finance/electricity/[id], /finance/packs/[id], /finance/packs/[id]/export, /finance/payment-requests/[id]
+   ok  : /, /claims, /compliance/cod, /compliance/packs, /compliance/packs/export, /compliance/supplier-certificates, /contracts, /contracts/[id], /contracts/new, /display, /documents/[key], /documents/[key]/export, /finance, /finance/assets, /finance/assets/[id], /finance/assets/new, /finance/balance-sheet, /finance/bank, /finance/bank/import, /finance/bank/statements, /finance/bank/statements/[id], /finance/bank/statements/[id]/reconcile, /finance/bank/statements/export, /finance/bank/transfers/export, /finance/cash-forecast, /finance/cash-forecast/frozen/export, /finance/cashflow, /finance/claims, /finance/close, /finance/company, /finance/cost-variance, /finance/credit-notes, /finance/credit-notes/[id], /finance/credit-notes/[id]/pdf, /finance/credit-notes/export, /finance/electricity, /finance/electricity/new, /finance/expenses, /finance/expenses/[id], /finance/expenses/export, /finance/expenses/new, /finance/freight, /finance/freight/[id], /finance/freight/export, /finance/freight/new, /finance/fx, /finance/fx/[id]/edit, /finance/fx/bulk, /finance/fx/export, /finance/fx/new, /finance/gst, /finance/gst/[periodId], /finance/gst/[periodId]/export, /finance/invoices, /finance/invoices/[id], /finance/invoices/[id]/pdf, /finance/invoices/export, /finance/invoices/new, /finance/journal, /finance/journal/[id], /finance/journal/entries/export, /finance/journal/export, /finance/journal/new, /finance/ledger/[account], /finance/list-vs-ledger, /finance/month-end, /finance/packs, /finance/payables, /finance/payables/[batchId], /finance/payables/export, /finance/payment-requests
+
+== 最慢的 20 条路由(dev server 单次墙上时间,含按需编译)==
+   【读法】含编译时间,不是生产时延;可比的是彼此的相对大小与改动前后的差。
+    1. /finance/fx                      17746 ms  → HTTP 200
+    2. /                                13523 ms  → HTTP 200
+    3. /finance/claims                  12244 ms  → HTTP 200
+    4. /contracts                       11631 ms  → HTTP 200
+    5. /finance/assets/[id]             11314 ms  → HTTP 200
+    6. /finance/journal                 11074 ms  → HTTP 200
+    7. /contracts/[id]                  10419 ms  → HTTP 200
+    8. /finance/gst/[periodId]/export    9639 ms  → HTTP 200
+    9. /finance/invoices/[id]            8767 ms  → HTTP 200
+   10. /finance/bank                     8679 ms  → HTTP 200
+   11. /finance/journal/[id]             8546 ms  → HTTP 200
+   12. /compliance/packs                 8042 ms  → HTTP 200
+   13. /finance/assets                   8021 ms  → HTTP 200
+   14. /finance/month-end                7330 ms  → HTTP 200
+   15. /finance/close                    7226 ms  → HTTP 200
+   16. /finance/credit-notes/[id]        7026 ms  → HTTP 200
+   17. /finance/bank/statements/[id]     7010 ms  → HTTP 200
+   18. /finance/credit-notes/[id]/pdf    6886 ms  → HTTP 200
+   19. /finance/expenses/[id]            6886 ms  → HTTP 200
+   20. /finance/bank/statements          6610 ms  → HTTP 200
+   ── 计时 71 条 · 合计 395.9s · 中位数 4605 ms
+SMOKE_EXIT=1

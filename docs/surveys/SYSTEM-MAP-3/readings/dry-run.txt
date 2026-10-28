@@ -1,0 +1,12 @@
+PROOF|new_functions=7
+PROOF|arms=10 arm_edges=10 edges_total=518
+PROOF|document_types=64 with_detail_route=16
+PROOF|overtime_rows=0 overtime_coded=0
+PROOF|grants anon_walk=false auth_walk=true anon_arms_select=false auth_arms_insert=true
+PROOF|tim_purchasing_from_PO-2026-0003=0:PO-2026-0003 1:IN-2026-0154 1:IN-2026-0155 1:IN-2026-0156 1:IN-2026-0179 2:ASY-2026-0003 3:IN-2026-0154 3:IN-2026-0155 3:IN-2026-0156 3:IN-2026-0179 4:IN-2026-0154 4:IN-2026-0156
+PROOF|tim_sales_from_SO-2026-0001=1:SO-2026-0001 2:SO-2026-0001 3:SHP-2026-0001 5:INV-2026-0006 5:INV-2026-0007 7:CN-2026-0001
+PROOF|tim_people_from_PAY-2026-0001=3:PAY-2026-0001 4:JE-2026-0018 4:JE-2026-0019 4:JE-2026-0020
+PROOF|tim_related_groups_PO=inbound_batch=4 material=1 pricing_formula=1 supplier=1
+PROOF|after_rollback_new_functions=0
+PROOF|after_rollback_arms_table=false
+DRY_OWN_EXIT=0

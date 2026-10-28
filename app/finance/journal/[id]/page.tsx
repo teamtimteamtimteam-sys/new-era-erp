@@ -24,6 +24,7 @@ import { mustOne, mustRows } from '@/lib/db-helpers'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import EndedBanner, { ReversalOfBanner } from '@/app/components/trail/EndedBanner'
 import { reversalReasonText } from '@/lib/trail/render'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 // ★ U1-A(Tim 的 UNBLOCK-1 Q1–Q3,2026-10-05):行从 journal_lines_masked 读 —— 工资分录的三个金额对不持 data.view_pay 的人是 null,
@@ -199,6 +200,7 @@ export default async function JournalDetailPage({
                 </>
             }
         >
+            <DocumentChains table="journal_entries" id={entry.id} code={entry.code} chains={[{ chain: 'people', step: 'payroll_payment' }]} />
             {/* ★ 记录抬头 —— 动作(冲销)住在它自己的槽里,不混进 fields:
                 一个动作不是一个值。见 record-header.tsx 抬头。 */}
             <RecordHeader

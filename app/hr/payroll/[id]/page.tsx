@@ -23,6 +23,7 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import type { PayrollPaymentEntry } from '@/app/finance/payroll-payments/paymentEntries'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function PayrollDetailPage({
     params,
@@ -219,6 +220,7 @@ export default async function PayrollDetailPage({
             // ★★ 详情页恒为 ok —— 这个期间在不在由上面的 notFound() 回答。
             state={{ kind: 'ok' }}
         >
+            <DocumentChains table="payroll_periods" id={period.id} code={period.code} chains={[{ chain: 'people', step: 'payroll_period' }]} />
             {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 面板。这一页的动作住在
                 标题那一排(见 actions),所以抬头不给 actions 槽。 */}
             <RecordHeader

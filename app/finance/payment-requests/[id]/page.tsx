@@ -24,6 +24,7 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import RequestActions from './RequestActions'
 import { requestSubjectLabel } from '../requestSubject'
 import RequestAllocationsTable, { type RequestAllocRow } from './RequestAllocationsTable'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 // allocations 的形状与 record_payment 收的那一组相同:每行恰好一个单据键 + amount_doc。
 type AllocIn = {
@@ -247,6 +248,7 @@ export default async function PaymentRequestDetailPage({
                 ) : undefined
             }
         >
+            <DocumentChains table="payment_requests" id={id} code={r.code} chains={[{ chain: 'purchasing', step: 'payment_request' }]} />
             <RecordHeader fields={fields} />
 
             {r.notes && (

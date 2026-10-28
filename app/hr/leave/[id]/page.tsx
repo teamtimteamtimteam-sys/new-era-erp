@@ -20,6 +20,7 @@ import { formatDate } from '@/lib/dates'
 import { can } from '@/lib/permissions'
 import { Refusal } from '@/app/components/ui/refusal'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function LeaveRequestDetail({
     params,
@@ -151,6 +152,7 @@ export default async function LeaveRequestDetail({
                 </>
             }
         >
+            <DocumentChains table="leave_requests" id={req.id} code={req.code} chains={[{ chain: 'people', step: 'leave' }]} />
             {/* ★ 记录抬头 —— 转换前是一块 rounded border 的 grid 面板。 */}
             <RecordHeader
                 fields={[

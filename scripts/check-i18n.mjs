@@ -795,6 +795,9 @@ const MANIFEST = {
     // SYSTEM-MAP-2:工作台 › 待办每一行【是什么】。后缀集合【就是】lib/workbench.ts 的 TODO_TYPES ——
     //   前 24 种是 waiting_decisions 的种类(fixture 295 数着),后四种是 waiting_mine 与通知。
     'workbench.type.': { kind: 'enum', values: () => tsArray('lib/workbench.ts', 'TODO_TYPES') },
+    // SYSTEM-MAP-3:单据链条的链名与步骤名。后缀集合【就是】lib/chains.ts 里那一段字面量 —— 链的 id 后面跟着 steps,步骤的 id 后面跟着 keys。
+    'chain.name.': { kind: 'enum', values: () => tsRegex('lib/chains.ts', /id: '([a-z_]+)',\s*steps:/g) },
+    'chain.step.': { kind: 'enum', values: () => tsRegex('lib/chains.ts', /id: '([a-z_]+)',\s*keys:/g) },
     // SYSTEM-MAP-2:供应商证书总览的状态列。后缀集合【就是】certificate_expiry_status() 那个 CASE 的分支 —— 从函数镜像现读。
     'supplierCerts.status.': { kind: 'enum', values: () => tsRegex('db/functions/certificate_expiry_status.sql', /(?:THEN|ELSE) '(\w+)'/g) },
     'notifications.event.': { kind: 'enum', values: () => sqlEnum('db/tables/notifications.sql', 'event_type') },

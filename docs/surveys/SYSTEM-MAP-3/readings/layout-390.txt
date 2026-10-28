@@ -1,0 +1,44 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 4483694f-bd00-4bbf-a176-ebe7218b3c0a
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 250 measurable (59 dynamic) · 26 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/19] 24s  ovf=0 clip=0 /purchasing/orders/6d2ce1ff-728e-4594-bd7b-155002f54de7
+  [  2/19] 59s  ovf=27 clip=0 /inbound/368f3ba5-9cb7-47b0-a818-cec9f9318407/edit
+  [  3/19] 83s  ovf=0 clip=0 /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/assays/38a2653b-8738-4997-a4e6-e1847fbd00f6
+  [  4/19] 93s  ovf=0 clip=0 /finance/payables/a64532e3-b58b-4c2a-9dc2-abc88af8c078
+  [  5/19] 112s  ovf=0 clip=0 /finance/payments/ca9697a1-c9ad-4222-a16b-85e31ada415c
+  [  6/19] 125s  ovf=0 clip=0 /finance/bank/statements/e65a8389-9707-48b2-b39c-a249823cff71
+  [  7/19] 137s  ovf=0 clip=0 /operation/orders/5564bf06-ac59-44be-b372-b2ec92ed3f77
+  [  8/19] 159s  ovf=0 clip=0 /operation/processing/ea0d9479-11d2-4e17-98b3-2140ae880969
+  [  9/19] 191s  ovf=0 clip=0 /output/373a0dc0-f725-444d-a490-b89378cbb2e3/edit
+  [ 10/19] 204s  ovf=0 clip=0 /sales/quotes/896c59df-89fc-486f-b50e-d290803cf0bb
+  [ 11/19] 218s  ovf=0 clip=0 /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4
+  [ 12/19] 228s  ovf=0 clip=0 /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221
+  [ 13/19] 251s  ovf=0 clip=0 /finance/invoices/63951e5b-5681-47f1-803a-4d25a63faa37
+  [ 14/19] 262s  ovf=0 clip=0 /finance/payments/bcc4c794-e6e1-42ac-8b19-7dfffe571284
+  [ 15/19] 275s  ovf=0 clip=0 /finance/credit-notes/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a
+  [ 16/19] 290s  ovf=0 clip=0 /hr/leave/e1cb68da-9299-4d40-9d92-91bba7b4c680
+  [ 17/19] 304s  ovf=0 clip=0 /hr/payroll/b3784931-8c17-4f63-b6f3-7809b52bb1a2
+  [ 18/19] 322s  ovf=0 clip=0 /finance/journal/bc3b3db0-5b34-49d9-a6f9-9cd8923237ed
+  [ 19/19] 334s  ovf=0 clip=0 /related/purchase_order/6d2ce1ff-728e-4594-bd7b-155002f54de7
+
+════ 390px SURVEY ════
+measured: 19  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 26
+U1 pan-free (no page overflow):       18 / 19
+U2 no clipped ledger:                 19 / 19
+USABLE (U1 AND U2):                   18 / 19
+
+pages FAILING U1 (page overflows): 1
+   +   27px  /inbound/368f3ba5-9cb7-47b0-a818-cec9f9318407/edit   culprit: div.mb-6 h-4 w-96 rounded base-skeleton
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 19 / 19  median per page: 17
+
+wrote docs/surveys/SYSTEM-MAP-3/readings/layout-390/phone-390.json
+· cleaned up ephemeral survey account(s)
+SURVEY390_OWN_EXIT=0

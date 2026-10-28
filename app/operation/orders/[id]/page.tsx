@@ -31,6 +31,7 @@ import {
     type FulfilmentRow, type LinkedRunRow,
 } from './WorkOrderTables'
 import { formatAuditStamp, formatDate } from '@/lib/dates' 
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 type FulfilRow = {
     side: string; material_id: string
@@ -213,6 +214,7 @@ export default async function WorkOrderPage({ params, searchParams }: {
                 </>
             }
         >
+            <DocumentChains table="work_orders" id={wo.id} code={wo.code} chains={[{ chain: 'processing', step: 'work_order' }]} />
             {/* ★ 记录抬头 —— 转换前是一个 <dl grid grid-cols-2>(25 张抬头的四种写法之一)。 */}
             <RecordHeader
                 fields={[

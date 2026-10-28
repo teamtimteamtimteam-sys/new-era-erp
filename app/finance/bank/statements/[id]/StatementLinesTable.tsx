@@ -149,6 +149,8 @@ export default function StatementLinesTable({ rows, statementCode, currency }: {
             rows={rows}
             columns={columns}
             rowKey={(r) => r.id}
+            // SYSTEM-MAP-3(grilling 第 7 条):单据链条「银行对账」那一步链到 #line-<行 id>,<HashTarget> 把它滚进视野并标亮
+            rowAnchor={(r) => (r.isTotal ? undefined : `line-${r.id}`)}
             phone={{ mode: 'columns' }}
             rowClassName={(r) => (r.isTotal ? 'font-bold bg-[color:var(--brand-muted)]' : undefined)}
             empty={t('bank.empty')}

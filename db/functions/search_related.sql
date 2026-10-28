@@ -54,7 +54,14 @@ BEGIN
             SELECT * FROM public.document_relations dr
              WHERE dr.from_table = v_table AND dr.to_table = r.table_name
         LOOP
-            IF e.kind = 'bridge' THEN
+            IF e.kind = 'arm' THEN
+                -- SYSTEM-MAP-3:一条【声明的】关系(没有外键可推)—— 走 document_relation_arm_ids(),
+                --   via_table 是那一支的名字。与 search_related_rows() 逐字同一段。
+                parts := parts || format(
+                    'SELECT t.id, t.code FROM public.document_relation_arm_ids(%L, $1) a '
+                    ' JOIN public.%I t ON t.id = a.id',
+                    e.via_table, e.to_table);
+            ELSIF e.kind = 'bridge' THEN
                 parts := parts || format(
                     'SELECT t.id, t.code FROM public.%I v JOIN public.%I t ON t.%I = v.%I '
                     ' WHERE v.%I = (SELECT s.%I FROM public.%I s WHERE s.id = $1)',

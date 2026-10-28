@@ -9,6 +9,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import AttendanceGrid from './AttendanceGrid'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function AttendancePeriodPage({
     params,
@@ -76,6 +77,7 @@ export default async function AttendancePeriodPage({
             </Link>
             <h1 className="mt-2 mb-1">{period.code}</h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-1">{t('attendance.subtitle')}</p>
+            <DocumentChains table="attendance_periods" id={id} code={period.code ?? ''} chains={[{ chain: 'people', step: 'attendance' }]} />
             {period.reopen_reason && (
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-1">
                     {t('attendance.reopenedFor', { reason: period.reopen_reason })}

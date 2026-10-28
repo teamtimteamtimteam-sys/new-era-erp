@@ -1,0 +1,33 @@
+15:59:58 median=456.254ms max=855.727ms in-db=0.034ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:01:08 median=449.315ms max=1333.608ms in-db=0.038ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:02:18 median=546.896ms max=790.995ms in-db=0.029ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:03:28 median=512.352ms max=1071.777ms in-db=1.240ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:04:40 median=489.556ms max=1692.931ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:04:40 WARN single round trip 1692.931 ms (recorded)
+16:05:51 median=452.233ms max=486.281ms in-db=0.040ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:07:02 median=545.260ms max=1092.118ms in-db=0.028ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:08:12 median=480.846ms max=512.059ms in-db=1.200ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:09:23 median=457.671ms max=1435.579ms in-db=0.028ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:10:34 median=696.643ms max=768.387ms in-db=1.201ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:11:43 median=457.762ms max=920.363ms in-db=0.699ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:12:52 median=449.634ms max=449.736ms in-db=1.084ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:14:03 median=450.616ms max=671.785ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:15:12 median=476.429ms max=921.345ms in-db=1.385ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:16:21 median=450.640ms max=543.339ms in-db=0.676ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:17:30 median=455.955ms max=986.811ms in-db=0.036ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:18:41 median=454.461ms max=1034.572ms in-db=0.048ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:19:49 median=449.889ms max=946.203ms in-db=1.241ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:21:06 median=1204.789ms max=6169.481ms in-db=0.031ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:21:06 WARN single round trip 6169.481 ms (recorded)
+16:22:17 median=480.302ms max=731.566ms in-db=1.203ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:23:27 median=453.151ms max=465.477ms in-db=0.035ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:24:37 median=452.043ms max=486.851ms in-db=1.251ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:25:50 median=454.823ms max=752.710ms in-db=0.639ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:26:59 median=455.818ms max=909.031ms in-db=0.678ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:28:09 median=453.041ms max=588.991ms in-db=0.032ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:29:21 median=466.909ms max=1085.943ms in-db=1.132ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:30:34 median=455.202ms max=1380.559ms in-db=0.029ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:31:43 median=452.340ms max=500.797ms in-db=0.558ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:32:52 median=451.644ms max=472.282ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:34:01 median=464.209ms max=575.218ms in-db=0.038ms "name":"db","healthy":true "name":"rest","healthy":true 
+16:35:10 median=453.124ms max=599.280ms in-db=0.027ms "name":"db","healthy":true "name":"rest","healthy":true 

@@ -7227,6 +7227,27 @@ export type Database = {
           },
         ]
       }
+      document_relation_arms: {
+        Row: {
+          arm: string
+          from_table: string
+          reason: string
+          to_table: string
+        }
+        Insert: {
+          arm: string
+          from_table: string
+          reason: string
+          to_table: string
+        }
+        Update: {
+          arm?: string
+          from_table?: string
+          reason?: string
+          to_table?: string
+        }
+        Relationships: []
+      }
       document_relation_exceptions: {
         Row: {
           column_a: string
@@ -7265,6 +7286,7 @@ export type Database = {
       }
       document_types: {
         Row: {
+          detail_route: string | null
           key: string
           label_column: string | null
           link_mode: string
@@ -7277,6 +7299,7 @@ export type Database = {
           view_permission: string[]
         }
         Insert: {
+          detail_route?: string | null
           key: string
           label_column?: string | null
           link_mode: string
@@ -7289,6 +7312,7 @@ export type Database = {
           view_permission: string[]
         }
         Update: {
+          detail_route?: string | null
           key?: string
           label_column?: string | null
           link_mode?: string
@@ -19178,6 +19202,7 @@ export type Database = {
       }
       overtime_batches: {
         Row: {
+          code: string
           created_at: string
           created_by: string | null
           decided_at: string | null
@@ -19197,6 +19222,7 @@ export type Database = {
           submitted_by: string | null
         }
         Insert: {
+          code: string
           created_at?: string
           created_by?: string | null
           decided_at?: string | null
@@ -19216,6 +19242,7 @@ export type Database = {
           submitted_by?: string | null
         }
         Update: {
+          code?: string
           created_at?: string
           created_by?: string | null
           decided_at?: string | null
@@ -49274,6 +49301,14 @@ export type Database = {
         Args: { p_account_code: string; p_as_of: string }
         Returns: number
       }
+      bank_match_lines: {
+        Args: { p_payment_ids: string[] }
+        Returns: {
+          line_id: string
+          payment_id: string
+          statement_id: string
+        }[]
+      }
       bank_native_currency: {
         Args: { p_account_code: string }
         Returns: string
@@ -50252,6 +50287,38 @@ export type Database = {
           p_proceeds?: number
         }
         Returns: Json
+      }
+      document_chain_step_admits: {
+        Args: { p_filter: string; p_id: string }
+        Returns: boolean
+      }
+      document_chain_walk: {
+        Args: { p_chain: Json; p_id: string; p_key: string; p_step: number }
+        Returns: {
+          code: string
+          href: string
+          id: string
+          key: string
+          label: string
+          step: number
+        }[]
+      }
+      document_detail_href: {
+        Args: { p_id: string; p_key: string }
+        Returns: string
+      }
+      document_detail_hrefs: {
+        Args: { p_ids: string[]; p_key: string }
+        Returns: {
+          href: string
+          id: string
+        }[]
+      }
+      document_relation_arm_ids: {
+        Args: { p_arm: string; p_id: string }
+        Returns: {
+          id: string
+        }[]
       }
       document_type_prefix: { Args: { p_key: string }; Returns: string }
       downtime_cause_check: { Args: { p_cause_code: string }; Returns: string }

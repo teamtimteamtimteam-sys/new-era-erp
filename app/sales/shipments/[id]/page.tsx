@@ -28,6 +28,7 @@ import ShipmentLinesTable, { type ShipmentLineRow } from './ShipmentLinesTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { can } from '@/lib/permissions'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function ShipmentDetailPage({
     params,
@@ -153,6 +154,7 @@ export default async function ShipmentDetailPage({
                 ) : undefined
             }
         >
+            <DocumentChains table="shipments" id={head.id} code={head.code} chains={[{ chain: 'sales', step: 'shipment' }]} />
             {/* ★ 记录抬头 —— 转换前是一个 <dl class="grid grid-cols-[10rem_1fr]">,
                 也就是 CONV-8 §② 那张表里的第四种写法(<dl>,全仓 5 处)。 */}
             <RecordHeader

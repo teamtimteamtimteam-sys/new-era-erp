@@ -241,7 +241,9 @@ BEGIN
      WHERE schemaname = 'public' AND qual = 'true' AND 'authenticated' = ANY (roles) AND cmd IN ('SELECT', 'ALL');
     -- ★ NOROLE-SURFACE(2026-10-19):44 → 36 —— user_roles · roles · role_permissions · permissions · metal_prices · metal_price_indices ·
     --   pricing_settings · accounts 那八条从此带码(Step 0 Q1–Q5);剩下的 36 条(35 本字典 + company_profile)由判词七的基线逐条点名带理由。
-    IF v_n IS DISTINCT FROM 36 THEN RAISE EXCEPTION 'FIXTURE 249 POL: % open read policies for authenticated, expected 36', v_n; END IF;
+    -- ★ SYSTEM-MAP-3(2026-10-27):36 → 37 —— document_relation_arms_select(声明的关联,一本字典;与 document_relation_exceptions 同形,
+    --   判词七的基线里带理由点名)。
+    IF v_n IS DISTINCT FROM 37 THEN RAISE EXCEPTION 'FIXTURE 249 POL: % open read policies for authenticated, expected 37', v_n; END IF;
     SELECT count(*) INTO v_n FROM pg_policies
      WHERE schemaname = 'public' AND qual = 'true'
        AND tablename IN ('devices', 'gateway_keys', 'ingest_settings', 'ingest_data_classes', 'ingest_inbox',

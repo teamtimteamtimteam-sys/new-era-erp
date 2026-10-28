@@ -19,6 +19,7 @@ import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function SalesOrderPage({ params, searchParams }: {
     params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
@@ -140,6 +141,7 @@ export default async function SalesOrderPage({ params, searchParams }: {
                     <span className="px-3 py-1 rounded bg-gray-200 text-sm">{t(soStatusKey(o.status))}</span>
                 </div>
 
+                <DocumentChains table="sales_orders" id={o.id} code={o.code} chains={[{ chain: 'sales', step: 'sales_order' }]} />
                 {o.deleted_at && <DeletedBanner kind="sales_order" id={o.id} at={o.deleted_at} />}
 
                 <EndedFieldset ended={deleted}>

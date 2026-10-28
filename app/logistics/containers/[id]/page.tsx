@@ -14,6 +14,7 @@ import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function ContainerDetailPage({ params, searchParams }: {
     params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
@@ -108,6 +109,7 @@ export default async function ContainerDetailPage({ params, searchParams }: {
                 {t('logistics.colDeparture')}: {formatDate(head.data.departure_date, locale)}
             </p>
 
+            <DocumentChains table="containers" id={id} code={head.data.code} chains={[{ chain: 'sales', step: 'container' }]} />
             <ContainerPanels canEdit={canEditGate}
                 containerId={id}
                 containerCode={head.data.code as string}

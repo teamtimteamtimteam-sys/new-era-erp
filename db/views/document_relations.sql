@@ -130,6 +130,22 @@ edges AS (
        AND NOT EXISTS (
              SELECT 1 FROM xor_pair x
               WHERE x.tbl = f1.src AND x.c1 = f1.srccol AND x.c2 = f2.srccol)
+
+    UNION ALL
+
+    -- ★ SYSTEM-MAP-3(Tim 2026-10-27):【声明的】边 —— 外键推不出来、而单据链上必须有的那几条
+    --   (付款申请 ↔ 进料批走 jsonb · 付款 ↔ 对账单隔着三张表 · 考勤 / 加班 / 请假 ↔ 工资只共用一个月份)。
+    --   一条声明 = document_relation_arms 的一行,取数是 document_relation_arm_ids(<arm>, id);
+    --   via_table 装的是那一支的名字(search_related / search_related_rows 的 'arm' 分支读它)。
+    --   键照旧是【边】:owner_table = 'document_relation_arms'、column_a = 那一支的名字 —— 例外表一样够得着它。
+    SELECT a.from_table, 'id'::text,
+           a.arm, NULL::text, NULL::text,
+           a.to_table, 'id'::text,
+           'arm'::text,
+           'document_relation_arms'::text, a.arm, ''::text
+      FROM public.document_relation_arms a
+     WHERE a.from_table IN (SELECT table_name FROM doc)
+       AND a.to_table IN (SELECT table_name FROM doc)
 )
 SELECT e.from_table, e.from_column,
        e.via_table, e.via_from_column, e.via_to_column,

@@ -47,6 +47,7 @@ import { Alert } from '@/app/components/ui/alert'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -660,7 +661,7 @@ export default async function PurchaseOrderDetailPage({
                                 <Link href={`/inbound/new?po=${po.id}`}>{t('purchasing.receiveAgainst')}</Link>
                             </Button>
                         ) : (
-                            <PermissionGate code="action.receive_goods" allowed={false} inline>
+                            <PermissionGate code="action.receive_goods" allowed={false} inline wrap>
                                 <Button disabled>{t('purchasing.receiveAgainst')}</Button>
                             </PermissionGate>
                         )
@@ -690,7 +691,7 @@ export default async function PurchaseOrderDetailPage({
                             </Button>
                         ) : (
                             /* ★ APR-10(Q7):链接禁不掉,挂在 PermissionGate 里点名那一类的码 */
-                            <PermissionGate code={manageCode} allowed={false} inline>
+                            <PermissionGate code={manageCode} allowed={false} inline wrap>
                                 <Button disabled variant="outline">{t('purchasing.amend.link')}</Button>
                             </PermissionGate>
                         )
@@ -790,6 +791,7 @@ export default async function PurchaseOrderDetailPage({
                 </>
             }
         >
+            <DocumentChains table="purchase_orders" id={po.id} code={po.code} chains={[{ chain: 'purchasing', step: 'purchase_order' }]} />
             <EndedFieldset ended={!!deletedAt}>
             {/* ★ 头卡 —— 七个字段(incoterm 只在有的时候出现),动作全在 actions 槽里,
                 所以这里【没有】actions prop:这一页的出口住在标题那一行。 */}

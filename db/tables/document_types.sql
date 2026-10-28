@@ -49,6 +49,8 @@ CREATE TABLE public.document_types (
     --   【不入列】:T4 明写「只数模块扣下的,不数归属扣下的」。
     --   由 db/fixtures/101 核对:每一个码都必须真的出现在该表 SELECT 策略的谓词里。
     view_permission text[] NOT NULL,
+    -- ★ SYSTEM-MAP-3(2026-10-27,ALTER 加的列,所以在最后 —— 见下面那段 ALTER 的注释)
+    detail_route  text,
     -- 有洞的必须指名它那条序列;无洞的不许有 —— 一行自相矛盾的登记会让
     -- (g) 的期望值算在错的分支上,而那正是「suppliers 存着 0095、下一个是 0445」
     -- 那条实测要防的事。
@@ -56,7 +58,9 @@ CREATE TABLE public.document_types (
         CHECK (cardinality(view_permission) > 0),
     CONSTRAINT document_types_sequence_shape CHECK (
         (numbering = 'gapped'  AND sequence_name IS NOT NULL) OR
-        (numbering = 'gapless' AND sequence_name IS NULL))
+        (numbering = 'gapless' AND sequence_name IS NULL)),
+    CONSTRAINT document_types_detail_route_shape CHECK (
+        detail_route IS NULL OR (detail_route LIKE '/%' AND detail_route LIKE '%{id}%'))
 );
 
 COMMENT ON TABLE public.document_types IS
@@ -71,6 +75,11 @@ COMMENT ON COLUMN public.document_types.link_mode IS
     '  type_list → /documents/<key> —— ★ SEARCH-5:登记路由上那张列表【不列这张表】'
     '              的那些种类。它们此前是 list_q,而 ?q= 指着别的表的 code,'
     '              前缀不重叠 ⇒ 结构上永远 0 行。';
+
+COMMENT ON COLUMN public.document_types.detail_route IS
+    'SYSTEM-MAP-3:一张单据【自己那一页】的地址,当它不是 <route>/<id> 时:{id} 是这张单据的 id,{<列>} 是这一行那一列的值'
+    '(化验单 /inbound/{inbound_batch_id}/assays/{id})。由 document_detail_href() 填;NULL = 走 link_mode。'
+    '搜索命中的落点不读它(documentHref 照旧);单据链条与关联页的表格读它。';
 
 COMMENT ON COLUMN public.document_types.view_permission IS
     '这一类单据的【模块闸】:ANY 语义 —— 一个码都不持有就一条都看不见。'
@@ -198,3 +207,18 @@ VALUES
     -- MES-8b-1(2026-10-17,MES-0 Q82 · MES-8 Step 0 Q16):合规包 CPK-YYYY-MM(一个月一份;重出 -2、-3 …,与管理月报 PACK 同一种取号 —— 在
     --   freeze_compliance_pack 里按月数);读码 module.compliance.view;落点是包页 /compliance/packs/[id];搜索的副标题是被取代的理由
     ('compliance_pack', 'CPK', 'compliance_packs', 'gapless', NULL, '/compliance/packs', 'detail', 'superseded_reason', ARRAY['superseded_reason']::text[], ARRAY['module.compliance.view']::text[]);
+
+-- ★ SYSTEM-MAP-3(Tim 2026-10-27 Q4):加班批登记成单据种类 —— 编号 OT-YYYY-MM(当月第一批)/ OT-YYYY-MM-2 …(补充批),
+--   由 generate_overtime_batch_code 触发器铸(与 PACK / CPK / WHT「一个月一份、补充的带序号」同形);显示名仍是 label。
+--   读码与 overtime_batches 的读策略逐字同一组(人力 · 录的人 · 批的人)。
+INSERT INTO public.document_types
+    (key, prefix, table_name, numbering, sequence_name, route, link_mode, label_column, match_columns, view_permission)
+VALUES
+    ('overtime_batch', 'OT', 'overtime_batches', 'gapless', NULL, '/hr/overtime', 'detail', 'label', ARRAY['label']::text[],
+     ARRAY['module.hr.view','action.overtime_enter','action.overtime_approve']::text[]);
+
+-- ★ SYSTEM-MAP-3(grilling 第 3 条):五类单据的【那一页】不是 <route>/<id>。搜索命中的落点不变(link_mode 一个字没动)。
+UPDATE public.document_types SET detail_route = '/inbound/{id}/edit' WHERE key = 'inbound_batch';
+UPDATE public.document_types SET detail_route = '/output/{id}/edit' WHERE table_name = 'output_batches';
+UPDATE public.document_types SET detail_route = '/finance/credit-notes/{id}' WHERE key = 'credit_note';
+UPDATE public.document_types SET detail_route = '/inbound/{inbound_batch_id}/assays/{id}' WHERE key = 'assay_result';

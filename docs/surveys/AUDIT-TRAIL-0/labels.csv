@@ -1715,6 +1715,7 @@ overtime_batches,reversed_by,actor,bare auth-account uuid (no FK) → person nam
 overtime_batches,reverse_reason,text,verbatim,,,Reverse reason,,,text
 overtime_batches,discarded_at,timestamp_audit,"formatAuditStamp (lib/dates.ts:251) → ""2026-09-01 14:33"" today; DD/MM/YYYY HH:MM if Tim confirms",overtime.status_discarded,Discarded,,text-only,,timestamp with time zone
 overtime_batches,discarded_by,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,Discarded by,,,uuid
+overtime_batches,code,text,verbatim,,,Overtime batch number,,,text
 overtime_lines,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 overtime_lines,batch_id,fk_other,overtime_batches: composed description (see target table),overtime.newBatch,New batch,,medium,app/hr/overtime/NewBatchForm.tsx:60,uuid
 overtime_lines,employee_id,fk_person,"employees.id → person name: loadActorNames(…, employeeIds) space=""employee"" (app/components/ActorName.tsx:49,119); employee_lookup view for readers without hr.view",attendance.colEmployee,Employee,,text-only,,uuid

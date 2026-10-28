@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DeleteButton from './DeleteButton'
@@ -709,6 +710,7 @@ export default async function ProcessingDetailPage({
             // ★★ 详情页恒为 ok —— 这一单在不在由上面的 notFound() 回答。CONV-8 §⑤。
             state={{ kind: 'ok' }}
         >
+            <DocumentChains table="processing_runs" id={run.id} code={run.code} chains={[{ chain: 'processing', step: 'processing_run' }]} />
             {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 rounded p-4 的面板(25 张里的一张)。
                 单号与状态徽章转换前住在 <h1> 底下那一行 p;它们是这条记录的字段,
                 所以搬进抬头,而不是留在标题里当装饰。 */}
@@ -872,8 +874,9 @@ export default async function ProcessingDetailPage({
                 )}
 
                 {/* 成本分摊(仅已提交单) */}
+                {/* SYSTEM-MAP-3:单据链条「成本分摊」那一步落在下面这一块(#cost-allocation) */}
                 {isCommitted && (
-                    <div className="mt-8 pt-8 border-t">
+                    <div id="cost-allocation" className="mt-8 pt-8 border-t scroll-mt-4">
                         <h2 className="mb-4">{t('processing.allocation.title')}</h2>
                         {/* 过期标记(FIN-24 起差额法):重跑把差额按处置拆 —— 在库→1220、
                             已售→5000 补 COGS、注销→5200,全记当期。已过账 COGS 不再是

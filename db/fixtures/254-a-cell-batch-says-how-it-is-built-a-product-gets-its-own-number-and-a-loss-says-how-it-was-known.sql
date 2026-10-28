@@ -286,8 +286,9 @@ BEGIN
     -- MES-7b-2(2026-10-16):60 → 61(inspection / INS;在 inspection_runs 上,所以 13 不变)
     -- MES-8a(2026-10-16):61 → 62(supplier_statement / SST;在 supplier_statements 上,所以 13 不变)
     -- MES-8b-1(2026-10-17):62 → 63(compliance_pack / CPK;在 compliance_packs 上,所以 13 不变)
-    IF (SELECT count(*) FROM document_types) <> 63 OR (SELECT count(*) FROM document_types WHERE table_name = 'output_batches') <> 13 THEN
-        RAISE EXCEPTION 'FIXTURE 254 NUM: the registry should have 63 rows, 13 of them on output_batches'; END IF;
+    -- SYSTEM-MAP-3(2026-10-27):63 → 64(overtime_batch / OT;在 overtime_batches 上,所以 13 不变)
+    IF (SELECT count(*) FROM document_types) <> 64 OR (SELECT count(*) FROM document_types WHERE table_name = 'output_batches') <> 13 THEN
+        RAISE EXCEPTION 'FIXTURE 254 NUM: the registry should have 64 rows, 13 of them on output_batches'; END IF;
     -- 每一种映射了的形态:铸它自己的前缀、五位(MAP 是本支的第二份真相 —— Tim 在 MES-0 Q54 定的码,抄在这里)
     FOR v_n IN 1 .. array_length(MAP, 1) LOOP
         EXECUTE format($q$INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)

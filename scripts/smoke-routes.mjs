@@ -100,6 +100,44 @@ import { openPlan, planDelete, mintThrowaway, runPlan, reapStalePlans, installEx
 //   所以按名字扫不会扫到另一次正在跑的冒烟(sweepScratch 抬头那条规矩)。
 onlyWhenRunDirectly(import.meta.url)
 
+// ★★ SYSTEM-MAP-3(Tim 2026-10-28 15:55 裁定 1):【网络层】的失败重试两次,而且每一次都说清楚是哪一个请求、谁、为什么 ★★
+//   那一天两跑冒烟各自中止在一句光秃秃的 "fetch failed" 上(334 条与 78 条之后,0 条路由失败)—— 说不出是哪一个地址、哪一位读者、什么原因。
+//   判据:fetch 【抛】(TypeError / AbortError / TimeoutError —— 一个 HTTP 状态都没拿到)才算网络层失败,重试,退避 1 s、3 s;
+//   拿到了一个 HTTP 状态(不论 2xx / 4xx / 5xx)就原样交回 —— 状态的判断与页面断言一律不重试,照旧是 FAIL。
+//   收尾那一相(isCleanupPhase)不重试:它有自己 120 s 的相位上限与故障注入(cleanup-hang / cleanup-refused),重试会改掉那两格的意思。
+//   每一次重试打一行 NETRETRY|,最后还失败打一行 NETFAIL| 再抛;收尾时打总数(NETRETRY_TOTAL=)。
+let smokeReader = 'none (before the throwaway session)'
+let netRetries = 0
+{
+    const nativeFetch = globalThis.fetch
+    const who = (init) => {
+        const h = init?.headers ?? {}
+        const get = (k) => (typeof h.get === 'function' ? h.get(k) : h[k] ?? h[k.toLowerCase()])
+        if (get('cookie')) return `session ${smokeReader}`
+        const auth = String(get('Authorization') ?? get('authorization') ?? '')
+        return auth ? 'bearer token (service or session)' : 'anonymous'
+    }
+    globalThis.fetch = async (input, init) => {
+        const url = typeof input === 'string' ? input : input?.url ?? String(input)
+        const method = init?.method ?? 'GET'
+        for (let attempt = 0; ; attempt++) {
+            try {
+                return await nativeFetch(input, init)
+            } catch (e) {
+                const cause = e?.cause ? `${e.cause.code ?? ''} ${e.cause.message ?? e.cause}`.trim() : `${e?.name ?? ''} ${e?.message ?? e}`.trim()
+                if (attempt >= 2 || isCleanupPhase()) {
+                    console.log(`NETFAIL|${method} ${url} · reader ${who(init)} · cause ${cause} · after ${attempt} retr${attempt === 1 ? 'y' : 'ies'}${isCleanupPhase() ? ' (cleanup phase: not retried)' : ''}`)
+                    throw e
+                }
+                netRetries++
+                console.log(`NETRETRY|${attempt + 1}/2 · ${method} ${url} · reader ${who(init)} · cause ${cause}`)
+                await new Promise((r) => setTimeout(r, attempt === 0 ? 1000 : 3000))
+            }
+        }
+    }
+    process.on('exit', () => console.log(`NETRETRY_TOTAL=${netRetries}`))
+}
+
 let devProc = null
 let sweepAtExit = false          // 只有开跑清扫之后才按名字扫(之前扫,等于替上一次收尾 —— 开跑那次会做)
 installExitHooks({
@@ -1238,6 +1276,8 @@ const SPECIAL_ID_ROUTES = new Set([
     //     主循环里因此**现读**一组真的有行的三元组,取不到就【中止】,不算跳过。
     '/documents/[key]',
     '/related/[subject]/[id]/[target]',
+    // SYSTEM-MAP-3(Tim Q2):一张单据的全部关联记录 —— 段与上一条的前两段相同,取值走同一段现读(保证有分组的主语)。
+    '/related/[subject]/[id]',
     // TABLE-EXPORT-3c(Tim 2026-10-25):上面两页的导出路由(JSON,取全)—— 段与页面相同,取值走同一段现读,
     //   落在同一个【保证非空】的 key / 三元组上,于是这一跑也真的取过一次全体。
     '/documents/[key]/export',
@@ -2243,6 +2283,7 @@ async function main() {
     const email = mainTw.email
     const cu = { id: mainTw.userId }
     console.log(`  一次性会话已授权:${email} ← ${mainTw.roleCode}(${mainTw.codes.length} 码)`)
+    smokeReader = email
     if (FORCE_FAIL_AT === 'after-grant') throw new ForcedFailure('after-grant')
     if (FORCE_FAIL_AT === 'cleanup-hang' || FORCE_FAIL_AT === 'cleanup-refused') {
         installCleanupNetworkFault(FORCE_FAIL_AT === 'cleanup-hang' ? 'hang' : 'refused')
@@ -2466,7 +2507,7 @@ async function main() {
             //   ☞ 取法:拿 `search_related()` 自己去问 —— 它只返回 n>0 的分组,
             //     所以第一个回得出分组的主语,就是一个保证非空的三元组。
             //     **上限 8 个候选**:一个没有上界的搜索会把冒烟拖成一次普查。
-            if (route === '/related/[subject]/[id]/[target]' || route === '/related/[subject]/[id]/[target]/export') {
+            if (route === '/related/[subject]/[id]/[target]' || route === '/related/[subject]/[id]/[target]/export' || route === '/related/[subject]/[id]') {
                 const types = await restRows(
                     '/rest/v1/document_types?select=key,table_name&order=key', `${route} ← document_types`)
                 let triple = null

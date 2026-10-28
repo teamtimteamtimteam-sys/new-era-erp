@@ -869,6 +869,7 @@ const en = {
             output_cathode_sheet: 'Cathode sheet batches',
             output_anode_sheet: 'Anode sheet batches',
             payroll_period:      'Payroll periods',
+            overtime_batch:      'Overtime batches',
             pricing_formula:     'Pricing formulas',
             processing_run:      'Processing runs',
             purchase_order:      'Purchase orders',
@@ -968,6 +969,61 @@ const en = {
         // ★ 返回路(Q11):回主语的详情页,**不放「回到搜索」** ——
         //   搜索是一个下拉,它没有一个可以返回的地址。
         backToSubject: 'Back to {subject}',
+        // SYSTEM-MAP-3 Q2:/related/<种类>/<id> —— 一张单据的全部关联记录,分组与搜索下拉同一份
+        indexTitle: 'All related records — {subject}',
+        indexNone: 'Nothing is related to this document right now.',
+        colCount: 'How many',
+    },
+    // SYSTEM-MAP-3(Tim 2026-10-26 裁定 2.4 (12) · 2026-10-27 Q1–Q5):单据详情页上那条上下游链条。步骤的顺序与 id 在 lib/chains.ts。
+    chain: {
+        name: {
+            purchasing: 'Purchasing chain',
+            processing: 'Processing chain',
+            sales: 'Sales chain',
+            people: 'People chain',
+        },
+        step: {
+            purchase_order: 'Purchase order',
+            inbound_batch: 'Inbound batch',
+            assay: 'Assay',
+            pricing: 'Pricing',
+            payable: 'Payable',
+            payment_request: 'Payment request',
+            payment: 'Payment',
+            bank_reconciliation: 'Bank reconciliation',
+            work_order: 'Work order',
+            processing_run: 'Processing run',
+            input_batches: 'Input batches',
+            output_batches: 'Output batches',
+            cost_allocation: 'Cost allocation',
+            quote: 'Quote',
+            sales_order: 'Sales order',
+            reservation: 'Reservation',
+            shipment: 'Shipment',
+            container: 'Container',
+            invoice: 'Invoice',
+            receipt: 'Receipt',
+            credit_note: 'Credit note',
+            attendance: 'Attendance',
+            overtime: 'Overtime',
+            leave: 'Leave',
+            payroll_period: 'Payroll period',
+            payroll_payment: 'Payroll payment',
+        },
+        // 手机上那一行收起的链条(Tim Q1):「<链> · 第 n 步,共 N 步 · 展开」
+        stepOf: 'step {n} of {total}',
+        showChain: 'Show chain',
+        thisDocument: 'this document',
+        noneYet: 'none yet',
+        // Tim Q5:打不开的那一步永远是「受限」,带上它要的码 —— 不论那一步有没有单据
+        restricted: 'Restricted — needs {code}',
+        // grilling 第 8 条:只能经过一个打不开的步骤才到得了的那几步
+        reachedOnlyThrough: 'Restricted — reached only through {step}',
+        more: '+{n} more',
+        allRelated: 'All related records',
+        failedAll: 'The document chains could not be drawn right now ({reason}). The rest of this page is unaffected; reload to try again.',
+        // 取数失败时链条那一格的话 —— 说出来,不画成一条空链
+        failed: 'The {chain} could not be drawn right now ({reason}). The rest of this page is unaffected; reload to try again.',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。

@@ -87,13 +87,27 @@ export async function subjectRow(
     }
 }
 
+/** 一屏单据各自那一页的地址(document_detail_hrefs,INVOKER;没有逐张页面的种类得 NULL) */
+export async function detailHrefs(
+    supabase: Awaited<ReturnType<typeof createClient>>, key: string, ids: string[],
+): Promise<Map<string, string | null>> {
+    if (ids.length === 0) return new Map()
+    const got = mustRows(
+        await supabase.rpc('document_detail_hrefs', { p_key: key, p_ids: ids }) as {
+            data: { id: string; href: string | null }[] | null; error: { message: string; code?: string } | null },
+        'document_detail_hrefs')
+    return new Map(got.map((g) => [g.id, g.href]))
+}
+
 /** 库里的一行 → 表的一行。★ type_list 的那 5 种没有逐张单据的落点 —— 它们是文字,不是链接(与搜索面板走同一支 documentHref)。 */
-export function shapeRelatedRows(target: DocType, rows: RowsRow[]): RelatedRow[] {
+export function shapeRelatedRows(target: DocType, rows: RowsRow[], detail?: ReadonlyMap<string, string | null>): RelatedRow[] {
     return rows.map((r) => ({
         id: r.id,
         code: r.code,
         label: r.label ?? '',
-        href: target.link_mode === 'type_list'
+        // SYSTEM-MAP-3(grilling 第 3 条):有【那一张自己的页面】就链到它(document_detail_hrefs —— 进料批 /inbound/<id>/edit、
+        //   化验单 /inbound/<批>/assays/<id> …),与单据链条同一份实现;没有的(列表类)照旧走 documentHref。
+        href: detail?.get(r.id) ? (detail.get(r.id) as string) : target.link_mode === 'type_list'
             ? null
             : documentHref({
                 key: target.key, route: target.route,

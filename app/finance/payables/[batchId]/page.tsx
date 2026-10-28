@@ -22,6 +22,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 type AllocRow = {
     id: string
@@ -194,6 +195,7 @@ export default async function PayableDocPage({
                 <EndedBanner kind="writtenOff" at={writtenOff.deleted_at} by={writtenOff.deleted_by} reason={writtenOff.delete_reason} />
             ) : undefined}
         >
+            <DocumentChains table="inbound_batches" id={batchId} code={batch.code} chains={[{ chain: 'purchasing', step: 'payable' }]} />
             {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 的面板(四种写法之一)。
                 这一页没有记录级动作,所以 actions 槽不给 —— 不给就不画。 */}
             <RecordHeader

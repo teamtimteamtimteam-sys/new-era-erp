@@ -33,6 +33,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function AssayDetailPage({
     params,
@@ -227,6 +228,7 @@ export default async function AssayDetailPage({
                 </span>
             </p>
 
+            <DocumentChains table="assay_results" id={assayId} code={assay.code} chains={[{ chain: 'purchasing', step: 'assay' }]} />
             {/* 记录成功但应用失败:化验单已经留下了,这里说明为什么价格没动 */}
             {applyError && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">

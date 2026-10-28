@@ -1,0 +1,9 @@
+PROOF|PO purchasing rows=4
+PROOF|batch purchasing rows=5
+PROOF|batch processing rows=3
+PROOF|output processing rows=3
+PROOF|WO processing rows=5
+PROOF|SO sales rows=6
+PROOF|payroll people rows=4
+psql:/private/tmp/claude-501/-Users-timchen/db1e1205-9a8c-4de5-895d-dea4d4ae1274/scratchpad/dry-run-fu2.sql:1157: NOTICE:  BUDGET_REFUSED DOCUMENT_CHAIN_WALK_BUDGET|走了 3 毫秒,上限 0 毫秒 —— 这一条链这一次没有画完
+DRYFU2_OWN_EXIT=0

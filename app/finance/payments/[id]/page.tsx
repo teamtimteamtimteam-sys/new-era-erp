@@ -22,6 +22,7 @@ import { RecordHeader, type RecordField } from '@/app/components/ui/record-heade
 import PaymentAllocationsTable, { type PaymentAllocRow } from './PaymentAllocationsTable'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 type AllocRow = {
     id: string
@@ -321,6 +322,7 @@ export default async function PaymentDetailPage({
                 </>
             }
         >
+            <DocumentChains table="payments" id={id} code={payment.code} chains={[{ chain: 'purchasing', step: 'payment' }, { chain: 'sales', step: 'receipt' }]} />
             {/* ★ 记录抬头 —— 冲销钮住 actions 槽:一个动作不是一个值。
                 转换前它就在这一块 div 里(CONV-8 §③ 记的那个实测)。 */}
             <RecordHeader

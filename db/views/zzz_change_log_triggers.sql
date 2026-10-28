@@ -306,6 +306,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.dischar
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.discharge_module_splits
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.document_relation_arms
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('arm');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.document_relation_arms
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.document_relation_exceptions
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('owner_table', 'column_a', 'column_b');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.document_relation_exceptions

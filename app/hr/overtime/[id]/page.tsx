@@ -20,6 +20,7 @@ import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import BatchDetail, { type LineRow, type StaffOption } from './BatchDetail'
 import { OVERTIME_STATUS_CLS } from '../BatchesTable'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 export default async function OvertimeBatchPage({ params, searchParams }: {
     params: Promise<{ id: string }>
@@ -35,7 +36,7 @@ export default async function OvertimeBatchPage({ params, searchParams }: {
 
     const batches = mustRows(
         await supabase.from('overtime_batches')
-            .select('id, label, period_month, status, created_by, submitted_at, submitted_by, decided_at, decided_by, decision_notes, reversed_at, reversed_by, reverse_reason')
+            .select('id, code, label, period_month, status, created_by, submitted_at, submitted_by, decided_at, decided_by, decision_notes, reversed_at, reversed_by, reverse_reason')
             .eq('id', id)
             .limit(1),
         'overtime_batches',
@@ -105,6 +106,7 @@ export default async function OvertimeBatchPage({ params, searchParams }: {
                 </span>
             </h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('overtime.batchSubtitle', { month: monthLabel })}</p>
+            <DocumentChains table="overtime_batches" id={batch.id} code={batch.code} chains={[{ chain: 'people', step: 'overtime' }]} />
 
             <dl className="mb-4 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                 <div className="flex flex-wrap gap-1">

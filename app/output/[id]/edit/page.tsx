@@ -41,6 +41,7 @@ import { loadSubstanceLabels, toOptions } from '@/app/tools/pricing/metal-prices
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -344,6 +345,7 @@ export default async function EditOutputPage({
             </div>
 
             <h1 className="sm:text-2xl mb-2">{t('output.editTitle')}</h1>
+            <DocumentChains table="output_batches" id={batch.id} code={batch.code} chains={[{ chain: 'processing', step: 'output_batches' }]} />
             {ended && <EndedBanner kind="writtenOff" at={batch.deleted_at as string} by={batch.deleted_by ?? null} reason={batch.delete_reason ?? null} />}
             <EndedFieldset ended={ended}>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">

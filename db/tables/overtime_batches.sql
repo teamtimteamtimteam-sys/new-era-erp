@@ -33,6 +33,8 @@ CREATE TABLE public.overtime_batches (
     reverse_reason  text,
     discarded_at    timestamptz,
     discarded_by    uuid,
+    -- ★ SYSTEM-MAP-3(Tim 2026-10-27 Q4,ALTER 加的列,所以在最后):单据号 OT-YYYY-MM / OT-YYYY-MM-2 …,触发器铸
+    code            text NOT NULL UNIQUE,
     UNIQUE (period_month, seq),
     CONSTRAINT overtime_batches_month_shape
         CHECK (period_month = date_trunc('month', period_month)::date),
@@ -57,6 +59,11 @@ COMMENT ON TABLE public.overtime_batches IS
 -- 一个月同一时刻只许一张开着的批 —— 函数先按名拒(OVERTIME_BATCH_OPEN_EXISTS),这里兜底。
 CREATE UNIQUE INDEX overtime_batches_one_open_per_month
     ON public.overtime_batches (period_month) WHERE status IN ('draft', 'submitted', 'rejected');
+
+-- ★ SYSTEM-MAP-3:单据号由触发器铸(每一条插进来的路都拿到同一个号;显示名仍是 label)
+CREATE TRIGGER trg_generate_overtime_batch_code
+    BEFORE INSERT ON public.overtime_batches
+    FOR EACH ROW EXECUTE FUNCTION public.generate_overtime_batch_code();
 
 ALTER TABLE public.overtime_batches ENABLE ROW LEVEL SECURITY;
 

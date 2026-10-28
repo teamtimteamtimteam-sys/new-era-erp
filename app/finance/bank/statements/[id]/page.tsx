@@ -20,6 +20,8 @@ import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import DocumentChains from '@/app/components/chain/DocumentChains'
+import { HashTarget } from '@/app/components/ui/hash-target'
 
 
 export default async function BankStatementDetailPage({
@@ -355,6 +357,7 @@ export default async function BankStatementDetailPage({
                 </>
             }
         >
+            <DocumentChains table="bank_statements" id={id} code={stmt.code} chains={[{ chain: 'purchasing', step: 'bank_reconciliation' }]} />
             {/* ★ 记录抬头 —— 删除钮住 actions 槽(一个动作不是一个值)。 */}
             <RecordHeader
                 fields={[
@@ -412,6 +415,8 @@ export default async function BankStatementDetailPage({
                 </p>
             )}
 
+            {/* SYSTEM-MAP-3:单据链条「银行对账」那一步链到 #line-<行 id> —— 把那一行滚进视野并标亮 */}
+            <HashTarget prefix="line-" />
             <StatementLinesTable rows={tableRows} statementCode={stmt.code} currency={stmt.currency} />
 
             {/* 期初 + Σ = 期末 校验行 */}

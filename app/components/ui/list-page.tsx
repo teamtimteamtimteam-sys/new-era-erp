@@ -215,7 +215,8 @@ export function ListPageSkeleton({ rows = 6, maxWidth }: { rows?: number; maxWid
     return (
         <div className={['p-8', maxWidth].filter(Boolean).join(' ')} aria-busy="true" aria-live="polite">
             <div className="mb-4 h-8 w-56 rounded base-skeleton" />
-            <div className="mb-6 h-4 w-96 rounded base-skeleton" />
+            {/* SYSTEM-MAP-3:max-w-full —— 384px 的这一条在 390px 上(p-8 之后只剩 326px)把整页撑宽 27px(版式勘察量到,骨架还在时) */}
+            <div className="mb-6 h-4 w-96 max-w-full rounded base-skeleton" />
             <div className="space-y-2">
                 {Array.from({ length: rows }, (_, i) => (
                     <div key={i} className="h-9 w-full rounded base-skeleton" />

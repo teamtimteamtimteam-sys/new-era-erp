@@ -30,6 +30,7 @@ import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import { Alert } from '@/app/components/ui/alert'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import DocumentChains from '@/app/components/chain/DocumentChains'
 
 type BillTo = {
     code?: string | null
@@ -395,6 +396,7 @@ export default async function InvoiceDetailPage({
             // ★★ 详情页恒为 ok —— 这张发票在不在由上面的 notFound() 回答。CONV-8 §⑤。
             state={{ kind: 'ok' }}
         >
+            <DocumentChains table="invoices" id={inv.id} code={inv.code} chains={[{ chain: 'sales', step: 'invoice' }]} />
 
             <InvoiceRequestPanel
                 invoiceId={inv.id}

@@ -1,0 +1,5 @@
+READ|en 390px {"status":200,"column":326,"pageBefore":421,"vw":421,"layouts":{"A_one_row":{"needed":1637,"fits":false,"pageAfter":1669},"B_wrapping_chips":{"lines":7,"height":196,"pageAfter":421},"C_vertical":{"height":163,"widest":110,"pageAfter":421}}}
+READ|en 1440px {"status":200,"column":960,"pageBefore":1440,"vw":1440,"layouts":{"A_one_row":{"needed":1637,"fits":false,"pageAfter":1669},"B_wrapping_chips":{"lines":2,"height":53,"pageAfter":1440},"C_vertical":{"height":163,"widest":110,"pageAfter":1440}}}
+READ|zh 390px {"status":200,"column":326,"pageBefore":390,"vw":390,"layouts":{"A_one_row":{"needed":1366,"fits":false,"pageAfter":1398},"B_wrapping_chips":{"lines":6,"height":167,"pageAfter":390},"C_vertical":{"height":163,"widest":101,"pageAfter":390}}}
+READ|zh 1440px {"status":200,"column":960,"pageBefore":1440,"vw":1440,"layouts":{"A_one_row":{"needed":1366,"fits":false,"pageAfter":1440},"B_wrapping_chips":{"lines":2,"height":53,"pageAfter":1440},"C_vertical":{"height":163,"widest":101,"pageAfter":1440}}}
+BAR390_EXIT=0

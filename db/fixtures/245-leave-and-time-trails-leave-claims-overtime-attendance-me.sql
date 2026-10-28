@@ -337,13 +337,14 @@ BEGIN
 
     -- ══════════════ D · 加班,记录开始之前:丢弃 · 冲销 ══════════════
     SET LOCAL session_replication_role = replica;
-    INSERT INTO overtime_batches (id, label, period_month, seq, status, created_at, created_by, discarded_at, discarded_by)
-        VALUES (ob_d, 'FX245 OT D', DATE '2026-08-01', 91, 'discarded', t1, u_ent, t2, u_ent);
+    -- SYSTEM-MAP-3:触发器在 replica 下不跑,所以单据号照 generate_overtime_batch_code 的公式写出来
+    INSERT INTO overtime_batches (id, label, period_month, seq, status, created_at, created_by, discarded_at, discarded_by, code)
+        VALUES (ob_d, 'FX245 OT D', DATE '2026-08-01', 91, 'discarded', t1, u_ent, t2, u_ent, 'OT-2026-08-91');
     INSERT INTO overtime_lines (id, batch_id, employee_id, work_date, hours, day_kind, created_at, created_by, voided_at)
         VALUES (ol_d, ob_d, e_emp, DATE '2026-08-05', 2, 'weekday', t1, u_ent, t2);
     INSERT INTO overtime_batches (id, label, period_month, seq, status, created_at, created_by, submitted_at, submitted_by, decided_at, decided_by,
-                                  reversed_at, reversed_by, reverse_reason)
-        VALUES (ob_r, 'FX245 OT R', DATE '2026-08-01', 92, 'reversed', t1, u_ent, t2, u_ent, t3, u_wh, t4, u_ent, 'Entered against the wrong month');
+                                  reversed_at, reversed_by, reverse_reason, code)
+        VALUES (ob_r, 'FX245 OT R', DATE '2026-08-01', 92, 'reversed', t1, u_ent, t2, u_ent, t3, u_wh, t4, u_ent, 'Entered against the wrong month', 'OT-2026-08-92');
     SET LOCAL session_replication_role = origin;
     v_j := pg_temp.f245_ok('D', pg_temp.f245_trail(u_hr, 'overtime_batch', ob_d::text));
     v_r := pg_temp.f245_need('D (Q12: discarded, before the log)', v_j, 'overtime_batches', 'UPDATE', 'discarded_at', '{"status": "discarded"}', true);
@@ -393,8 +394,11 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 245 R: the withdrawal stamp must not name a person column'; END IF;
     SELECT count(*) INTO v_n FROM document_types WHERE key IN ('medical_claim', 'attendance_period') AND link_mode = 'detail';
     IF v_n <> 2 THEN RAISE EXCEPTION 'FIXTURE 245 R (Q36): medical_claim and attendance_period must link to their detail pages'; END IF;
-    IF EXISTS (SELECT 1 FROM document_types WHERE table_name = 'overtime_batches') THEN
-        RAISE EXCEPTION 'FIXTURE 245 R: overtime_batches has no code column and must stay out of document_types (global search)'; END IF;
+    -- SYSTEM-MAP-3(Tim 2026-10-27 Q4)推翻了这一格原来的断言("加班批没有单据号,不进 document_types"):
+    --   它现在有单据号(OT-YYYY-MM)、登记成 overtime_batch、进全局搜索,落点仍是 /hr/overtime/<id>。
+    IF NOT EXISTS (SELECT 1 FROM document_types WHERE key = 'overtime_batch' AND table_name = 'overtime_batches'
+                    AND route = '/hr/overtime' AND link_mode = 'detail') THEN
+        RAISE EXCEPTION 'FIXTURE 245 R (SYSTEM-MAP-3 Q4): overtime_batches must be registered as overtime_batch at /hr/overtime (detail)'; END IF;
     v_r := trail_row_record('overtime_lines', jsonb_build_object('id', ol), NULL, NULL);
     IF v_r ->> 'route' IS DISTINCT FROM '/hr/overtime' OR v_r ->> 'table' <> 'overtime_batches' THEN
         RAISE EXCEPTION 'FIXTURE 245 R (Q36): an overtime line belongs to its batch, linked at /hr/overtime — got %', v_r; END IF;

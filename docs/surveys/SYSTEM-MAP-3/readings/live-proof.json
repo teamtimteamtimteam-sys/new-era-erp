@@ -1,0 +1,1681 @@
+{
+  "admin": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "budgetRefusal": true,
+      "select1": 0.031
+    }
+  ],
+  "cfo": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "cco": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "budgetRefusal": true,
+      "select1": 0.603
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "cto": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "finance": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "gm": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "budgetRefusal": true,
+      "select1": 0.028
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "warehouse": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=restricted",
+        "purchasing.payment_request=restricted",
+        "purchasing.payment=restricted",
+        "purchasing.bank_reconciliation=restricted"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=restricted",
+        "purchasing.payment_request=restricted",
+        "purchasing.payment=restricted",
+        "purchasing.bank_reconciliation=restricted",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=restricted",
+        "purchasing.payment_request=restricted",
+        "purchasing.payment=restricted",
+        "purchasing.bank_reconciliation=restricted"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=restricted",
+        "sales.sales_order=restricted",
+        "sales.reservation=restricted",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=restricted",
+        "sales.receipt=restricted",
+        "sales.credit_note=restricted"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=restricted",
+        "sales.sales_order=restricted",
+        "sales.reservation=restricted",
+        "sales.shipment=restricted",
+        "sales.container=current",
+        "sales.invoice=restricted",
+        "sales.receipt=restricted",
+        "sales.credit_note=restricted"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "refused": true
+    }
+  ],
+  "phone": {
+    "closed": {
+      "docW": 390,
+      "vw": 390,
+      "open": false,
+      "summary": "Purchasing chain · step 1 of 8 · Show chain"
+    },
+    "opened": {
+      "docW": 390,
+      "vw": 390,
+      "steps": 8,
+      "height": 235
+    }
+  }
+}

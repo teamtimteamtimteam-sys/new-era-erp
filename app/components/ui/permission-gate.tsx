@@ -121,6 +121,8 @@ export function PermissionGate({
      * ★ MES-8b-1(MES8A-390-PO-SUPPLIER-SELECT):这一枚门包着一整张表单、而它的码是好几个码连起来的一长串时,
      *   在手机上那枚药丸一行放不下(三个开单码 ≈ 600 px)。`wrap` 让门不超过它的容器、让理由换行 ——
      *   桌面上一行放得下时【逐像素不变】(量过:药丸 604×22、表单 1088 px 改前改后相同)。默认关:一枚药丸本该是一行。
+     *   ★ SYSTEM-MAP-3:配上 `inline` 时它也让【钮与药丸】换行(flex-wrap)—— 采购单页的「按此单收货 · 需要 action.receive_goods」
+     *   在 390px 上是 389px 宽的一行,把整页撑到 421px(docs/surveys/SYSTEM-MAP-3/readings/po-overflow-390-before.txt)。
      */
     wrap?: boolean
     /**
@@ -160,7 +162,8 @@ export function PermissionGate({
             className={cn(
                 'inline-flex gap-1.5',
                 inline ? 'flex-row items-center' : 'flex-col items-start',
-                wrap && 'max-w-full',
+                // SYSTEM-MAP-3(Tim 加的第 9 条):行内的门(钮 + 药丸并排)在手机上放不下时,药丸换到钮的下面 —— 放得下时逐像素不变
+                wrap && 'max-w-full flex-wrap',
                 className
             )}
         >

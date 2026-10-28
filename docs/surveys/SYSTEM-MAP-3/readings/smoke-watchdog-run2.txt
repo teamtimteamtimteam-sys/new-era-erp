@@ -1,0 +1,9 @@
+15:23:16 median=455.882ms max=915.556ms in-db=0.022ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:24:30 median=919.814ms max=1076.344ms in-db=1.243ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:25:42 median=453.406ms max=1639.651ms in-db=0.704ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:25:42 WARN single round trip 1639.651 ms (recorded)
+15:26:53 median=637.451ms max=917.409ms in-db=0.048ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:28:02 median=451.492ms max=530.166ms in-db=0.028ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:29:12 median=488.289ms max=525.984ms in-db=0.999ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:30:22 median=508.629ms max=819.337ms in-db=0.030ms "name":"db","healthy":true "name":"rest","healthy":true 
+15:31:22 smoke finished; watchdog done

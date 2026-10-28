@@ -171,7 +171,8 @@ export default async function ReservationSection({
     const isReservable = status === 'confirmed' || status === 'partially_shipped'
 
     return (
-        <section className="mt-8">
+        // SYSTEM-MAP-3:单据链条「预留」那一步落在这里(#reservations)
+        <section id="reservations" className="mt-8 scroll-mt-4">
             <h2 className="mb-1">{t('sales.reserve.title')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('sales.reserve.note')}</p>
 

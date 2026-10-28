@@ -1,0 +1,69 @@
+SELECT1|before client round trips 656 / 772 / 434 / 546 / 436 ms (median 546) · server execution 0.026 ms
+STEP|database as postgres (base tables): {"purchase_order":"861fe74b-14d8-45f7-992c-92aa9aaaac90","inbound_batch":"d719cc6e-3b84-45f3-be3e-a2c0594079e1","inbound_batch_any":"5163d599-77e7-4b76-a61b-8f4ff47d7a7c","assay":"38a2653b-8738-4997-a4e6-e1847fbd00f6|662bfff7-6121-454c-b37b-fd69a90c3b99","payable":"a64532e3-b58b-4c2a-9dc2-abc88af8c078","payment_out":"ca9697a1-c9ad-4222-a16b-85e31ada415c","bank_statement":"e65a8389-9707-48b2-b39c-a249823cff71","work_order":"5564bf06-ac59-44be-b372-b2ec92ed3f77","processing_run":"ea0d9479-11d2-4e17-98b3-2140ae880969","output_batch":"12dd44fb-7400-4122-81bf-3fd1f9c9e2a7","quote":"896c59df-89fc-486f-b50e-d290803cf0bb","sales_order":"0564cb00-6890-4dee-b9ba-0f8618540cf4","shipment":"9895abe0-17cc-4a82-afc5-a108f9ae2221","container":"9381f352-115d-4b89-add3-efb3cb8a4965","invoice":"63951e5b-5681-47f1-803a-4d25a63faa37","payment_receipt":"bcc4c794-e6e1-42ac-8b19-7dfffe571284","credit_note":"a4d827ce-d184-4ec0-9b59-8bfa959ffc9a","leave_request":"e1cb68da-9299-4d40-9d92-91bba7b4c680","payroll_period":"b3784931-8c17-4f63-b6f3-7809b52bb1a2","payroll_payment":"bc3b3db0-5b34-49d9-a6f9-9cd8923237ed","none":{"payment_requests":0,"attendance_periods":0,"overtime_batches":0}}
+STEP|output batch prefixes with rows on live: OUT
+HEALTH|before: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|after purchase order client round trips 449 / 573 / 451 / 449 / 611 ms (median 451) · server execution 0.022 ms
+HEALTH|after purchase order: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|purchase order · HTTP 200 · page 16322 ms (local next start → live) · bars 1 · failed 0 · walk db purchasing 804.6 ms (4 rows)
+SELECT1|after inbound batch client round trips 550 / 448 / 454 / 526 / 512 ms (median 512) · server execution 0.029 ms
+HEALTH|after inbound batch: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|inbound batch · HTTP 200 · page 27480 ms (local next start → live) · bars 2 · failed 0 · walk db purchasing 269.8 ms (5 rows) + processing 365.6 ms (3 rows)
+SELECT1|after assay client round trips 452 / 499 / 457 / 500 / 448 ms (median 457) · server execution 0.021 ms
+HEALTH|after assay: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|assay · HTTP 200 · page 7422 ms (local next start → live) · bars 1 · failed 0 · walk db purchasing 775.5 ms (4 rows)
+SELECT1|after payable client round trips 449 / 593 / 452 / 507 / 511 ms (median 507) · server execution 0.02 ms
+HEALTH|after payable: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|payable · HTTP 200 · page 6124 ms (local next start → live) · bars 1 · failed 0 · walk db purchasing 188.1 ms (3 rows)
+SELECT1|after payment client round trips 516 / 942 / 487 / 519 / 455 ms (median 516) · server execution 0.035 ms
+HEALTH|after payment: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|payment · HTTP 200 · page 8942 ms (local next start → live) · bars 1 · failed 0 · walk db purchasing 128.6 ms (1 rows)
+SELECT1|after bank statement client round trips 434 / 436 / 425 / 630 / 437 ms (median 436) · server execution 0.029 ms
+HEALTH|after bank statement: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|bank statement · HTTP 200 · page 6682 ms (local next start → live) · bars 1 · failed 0 · walk db purchasing 70.9 ms (1 rows)
+SELECT1|after work order client round trips 511 / 632 / 1211 / 511 / 445 ms (median 511) · server execution 0.047 ms
+HEALTH|after work order: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|work order · HTTP 200 · page 9130 ms (local next start → live) · bars 1 · failed 0 · walk db processing 404.1 ms (5 rows)
+SELECT1|after processing run client round trips 505 / 513 / 450 / 448 / 447 ms (median 450) · server execution 0.022 ms
+HEALTH|after processing run: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|processing run · HTTP 200 · page 12265 ms (local next start → live) · bars 1 · failed 0 · walk db processing 313.8 ms (5 rows)
+SELECT1|after output batch client round trips 474 / 629 / 425 / 432 / 430 ms (median 432) · server execution 0.027 ms
+HEALTH|after output batch: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|output batch · HTTP 200 · page 17481 ms (local next start → live) · bars 1 · failed 0 · walk db processing 325.8 ms (3 rows)
+SELECT1|after quote client round trips 477 / 767 / 437 / 473 / 508 ms (median 477) · server execution 0.021 ms
+HEALTH|after quote: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|quote · HTTP 200 · page 6964 ms (local next start → live) · bars 1 · failed 0 · walk db sales 112.4 ms (2 rows)
+SELECT1|after sales order client round trips 511 / 517 / 507 / 509 / 517 ms (median 511) · server execution 0.057 ms
+HEALTH|after sales order: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|sales order · HTTP 200 · page 7615 ms (local next start → live) · bars 1 · failed 0 · walk db sales 295.9 ms (6 rows)
+SELECT1|after shipment client round trips 465 / 577 / 463 / 1234 / 444 ms (median 465) · server execution 0.02 ms
+HEALTH|after shipment: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|shipment · HTTP 200 · page 7706 ms (local next start → live) · bars 1 · failed 0 · walk db sales 293.6 ms (6 rows)
+SELECT1|after container client round trips 483 / 424 / 492 / 900 / 463 ms (median 483) · server execution 0.027 ms
+HEALTH|after container: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|container · HTTP 200 · page 8423 ms (local next start → live) · bars 1 · failed 0 · walk db sales 29.6 ms (1 rows)
+SELECT1|after invoice client round trips 503 / 448 / 576 / 452 / 568 ms (median 503) · server execution 0.032 ms
+HEALTH|after invoice: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|invoice · HTTP 200 · page 13067 ms (local next start → live) · bars 1 · failed 0 · walk db sales 243.7 ms (4 rows)
+SELECT1|after receipt client round trips 460 / 418 / 453 / 427 / 1359 ms (median 453) · server execution 0.019 ms
+HEALTH|after receipt: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|receipt · HTTP 200 · page 7224 ms (local next start → live) · bars 1 · failed 0 · walk db sales 78.8 ms (1 rows)
+SELECT1|after credit note client round trips 429 / 431 / 420 / 462 / 420 ms (median 429) · server execution 0.021 ms
+HEALTH|after credit note: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|credit note · HTTP 200 · page 7618 ms (local next start → live) · bars 1 · failed 0 · walk db sales 183.1 ms (5 rows)
+SELECT1|after leave client round trips 506 / 474 / 445 / 476 / 453 ms (median 474) · server execution 0.019 ms
+HEALTH|after leave: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|leave · HTTP 200 · page 9141 ms (local next start → live) · bars 1 · failed 0 · walk db people 54.1 ms (1 rows)
+SELECT1|after payroll period client round trips 947 / 512 / 447 / 445 / 444 ms (median 447) · server execution 0.031 ms
+HEALTH|after payroll period: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|payroll period · HTTP 200 · page 5618 ms (local next start → live) · bars 1 · failed 0 · walk db people 169.5 ms (4 rows)
+SELECT1|after payroll payment client round trips 511 / 422 / 497 / 424 / 426 ms (median 426) · server execution 0.063 ms
+HEALTH|after payroll payment: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PAGE|payroll payment · HTTP 200 · page 7458 ms (local next start → live) · bars 1 · failed 0 · walk db people 738.3 ms (2 rows)
+SELECT1|after all client round trips 510 / 515 / 509 / 512 / 444 ms (median 510) · server execution 0.023 ms
+BUDGET|walk: worst database time 804.6 ms against 1000 ms → HOLDS
+BUDGET|select 1 inside the database: worst execution 0.063 ms against 50 ms → HOLDS
+BUDGET|round trips from this machine: worst single 1359 ms against the 1500 ms abort (medians 546 before · 510 after · worst median 546) → HOLDS
+HEALTH|after all: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+WARNINGS|0
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); the browser only sent GETs
+SM3_PERF_EXIT=0
