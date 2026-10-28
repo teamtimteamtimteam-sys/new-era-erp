@@ -111,7 +111,7 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payments select by permission"
     ON public.payments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ★ PAY-REQ-1(Tim 的 Q2(a),2026-09-23):"payments insert by permission" 已拆除。
 --   它让任何持 module.finance.edit 的人绕开 record_payment 直接往这张表里插一行 ——

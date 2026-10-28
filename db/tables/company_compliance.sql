@@ -50,16 +50,16 @@ ALTER TABLE public.company_compliance ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "company_compliance select by permission"
     ON public.company_compliance
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 CREATE POLICY "company_compliance insert by permission"
     ON public.company_compliance
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.suppliers.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 CREATE POLICY "company_compliance update by permission"
     ON public.company_compliance
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.suppliers.edit'::text))
-    WITH CHECK (has_permission('module.suppliers.edit'::text));
+    USING ((SELECT has_permission('module.suppliers.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 
 COMMENT ON COLUMN public.company_compliance.issue_date IS
     'CMPL-1:执照的【签发日】—— 与 valid_from 是两件事。样本上两者可以不同(签发在前、生效在后),所以分两列;把它们合成一列会让"什么时候发的"不可恢复。NULL = 没录。';

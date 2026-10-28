@@ -1,0 +1,9 @@
+admin done
+cco done
+cfo done
+cto done
+finance done
+gm done
+warehouse done
+POLREAD|cwcseed vs cwcafter: 318 tables with changed policies × 7 roles = 2226 · identical 2226 (1815062 visible rows hashed, 0 identical refusals) · different 0
+EXIT=0

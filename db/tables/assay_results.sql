@@ -105,28 +105,28 @@ ALTER TABLE public.assay_results ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "assay_results select by permission"
     ON public.assay_results
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-        OR (output_batch_id IS NOT NULL AND has_permission('module.output.view'::text)));
+    USING ((inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+        OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text))));
 
 CREATE POLICY "assay_results insert by permission"
     ON public.assay_results
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK ((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-             OR (output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)));
+    WITH CHECK ((inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+             OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))));
 
 CREATE POLICY "assay_results update by permission"
     ON public.assay_results
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING ((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-        OR (output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)))
-    WITH CHECK ((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-             OR (output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)));
+    USING ((inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+        OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))))
+    WITH CHECK ((inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+             OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))));
 
 CREATE POLICY "assay_results delete by permission"
     ON public.assay_results
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING ((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-        OR (output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)));
+    USING ((inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+        OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))));
 
 COMMENT ON COLUMN public.assay_results.lab_name IS
 'PROC-5:指向 laboratories 那张字典(外键 assay_results_lab_name_fkey)。

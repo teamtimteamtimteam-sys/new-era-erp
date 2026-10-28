@@ -26,10 +26,10 @@ INSERT INTO public.processing_event_types (code, name_en, name_zh, sort_order, n
 
 ALTER TABLE public.processing_event_types ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_event_types select by permission" ON public.processing_event_types
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 CREATE POLICY "processing_event_types write by permission" ON public.processing_event_types
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.processing_event_types TO authenticated;
 REVOKE ALL ON public.processing_event_types FROM anon;
 

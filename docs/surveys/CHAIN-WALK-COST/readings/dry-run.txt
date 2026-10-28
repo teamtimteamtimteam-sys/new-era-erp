@@ -1,0 +1,230 @@
+SET
+Timing is on.
+BEGIN
+Time: 410.079 ms
+PROOF|clock before|2026-10-28 23:06:50.438613+08
+Time: 417.416 ms
+SET
+Time: 409.545 ms
+Time: 899.612 ms
+PROOF|B|cfo|walk PO-2026-0003|c098284d9f65231137dde5b21b7674d7|12
+Time: 2393.236 ms (00:02.393)
+PROOF|B|cfo|walk IN-2026-0001|d4d0556890f864c21d0998538be5e1c2|18
+Time: 1369.537 ms (00:01.370)
+PROOF|B|cfo|walk OUT-2026-0119|10b8c819cd0788600e0db6d3e3e45662|3
+Time: 1151.408 ms (00:01.151)
+PROOF|B|cfo|walk SHP-2026-0001|00db97458c6cbd29b48b058f8218a9cd|6
+Time: 1768.661 ms (00:01.769)
+PROOF|B|cfo|walk PAY-2026-0001|209990bcd3c0c6bf5bf9285ec69ab3aa|4
+Time: 1026.548 ms (00:01.027)
+PROOF|B|cfo|walk BS-2026-0001|9e474d3e587ee9fbc2cf6905a7ce7fe6|1
+Time: 597.913 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:18: NOTICE:  PROOF|B|cfo|trail OUT-2026-0119|ee66f5b2c83d4946e78d309747cd4154
+DO
+Time: 943.443 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:23: NOTICE:  PROOF|B|cfo|trail PO-2026-0003|c329102915451f98eb3543f6f91fa788
+DO
+Time: 1000.361 ms (00:01.000)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:29: NOTICE:  PROOF|B|cfo|read inbound_batches|24 5bd4caa53241990506b7b40940d2bdfb
+DO
+Time: 432.785 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:35: NOTICE:  PROOF|B|cfo|read output_batches|20 7f02fb3eac0ed6d62af5a8cf75439c25
+DO
+Time: 831.000 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:41: NOTICE:  PROOF|B|cfo|read journal_entries|92 98f02e3a332f5422c667d2dff97387fa
+DO
+Time: 1247.778 ms (00:01.248)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:47: NOTICE:  PROOF|B|cfo|read payments|13 7fdc1702ff3c4daa0fb4575f002abbb3
+DO
+Time: 1266.397 ms (00:01.266)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:53: NOTICE:  PROOF|B|cfo|read leave_requests|6 c2c97f8d3a0035cbf1d3f5960a9af065
+DO
+Time: 423.274 ms
+RESET
+Time: 829.560 ms
+SET
+Time: 415.065 ms
+Time: 411.969 ms
+PROOF|B|warehouse|walk PO-2026-0003|ea765c3a81313b20991d4b086da769ed|10
+Time: 715.319 ms
+PROOF|B|warehouse|walk IN-2026-0001|d4d0556890f864c21d0998538be5e1c2|18
+Time: 1230.077 ms (00:01.230)
+PROOF|B|warehouse|walk OUT-2026-0119|10b8c819cd0788600e0db6d3e3e45662|3
+Time: 1098.331 ms (00:01.098)
+PROOF|B|warehouse|walk SHP-2026-0001|83d438719b8850a5f2ab6293781b83c0|1
+Time: 470.263 ms
+PROOF|B|warehouse|walk PAY-2026-0001|empty|0
+Time: 411.126 ms
+PROOF|B|warehouse|walk BS-2026-0001|empty|0
+Time: 412.045 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:67: NOTICE:  PROOF|B|warehouse|trail OUT-2026-0119|293674efd7e25e7e4070e01f82c7c0cb
+DO
+Time: 599.281 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:72: NOTICE:  PROOF|B|warehouse|trail PO-2026-0003|1eb67d33779cddccde0d40ca474cedc1
+DO
+Time: 1151.726 ms (00:01.152)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:78: NOTICE:  PROOF|B|warehouse|read inbound_batches|24 5bd4caa53241990506b7b40940d2bdfb
+DO
+Time: 441.125 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:84: NOTICE:  PROOF|B|warehouse|read output_batches|20 7f02fb3eac0ed6d62af5a8cf75439c25
+DO
+Time: 1073.047 ms (00:01.073)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:90: NOTICE:  PROOF|B|warehouse|read journal_entries|0 d41d8cd98f00b204e9800998ecf8427e
+DO
+Time: 1108.751 ms (00:01.109)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:96: NOTICE:  PROOF|B|warehouse|read payments|0 d41d8cd98f00b204e9800998ecf8427e
+DO
+Time: 432.887 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:102: NOTICE:  PROOF|B|warehouse|read leave_requests|1 aa33b9bdda3f617e8b630fe71284418b
+DO
+Time: 442.404 ms
+RESET
+Time: 427.301 ms
+PROOF|clock migration start|2026-10-28 23:07:18.293225+08
+Time: 415.392 ms
+DO
+Time: 1414.218 ms (00:01.414)
+CREATE FUNCTION
+Time: 655.541 ms
+COMMENT
+Time: 426.480 ms
+REVOKE
+Time: 833.676 ms
+GRANT
+Time: 465.721 ms
+CREATE FUNCTION
+Time: 1058.110 ms (00:01.058)
+COMMENT
+Time: 843.546 ms
+CREATE FUNCTION
+Time: 418.968 ms
+COMMENT
+Time: 929.611 ms
+REVOKE
+Time: 936.356 ms
+GRANT
+Time: 418.367 ms
+CREATE FUNCTION
+Time: 416.581 ms
+COMMENT
+Time: 416.011 ms
+CREATE FUNCTION
+Time: 417.077 ms
+CREATE FUNCTION
+Time: 1021.416 ms (00:01.021)
+COMMENT
+Time: 671.622 ms
+CREATE FUNCTION
+Time: 1324.329 ms (00:01.324)
+COMMENT
+Time: 1025.622 ms (00:01.026)
+CREATE FUNCTION
+Time: 418.822 ms
+CREATE FUNCTION
+Time: 1526.462 ms (00:01.526)
+CREATE FUNCTION
+Time: 712.456 ms
+CREATE FUNCTION
+Time: 1102.235 ms (00:01.102)
+CREATE FUNCTION
+Time: 432.420 ms
+CREATE FUNCTION
+Time: 748.578 ms
+DO
+Time: 654.312 ms
+NOTIFY
+Time: 415.818 ms
+PROOF|clock migration end|2026-10-28 23:07:38.423671+08
+Time: 416.649 ms
+SET
+Time: 853.028 ms
+Time: 834.007 ms
+PROOF|A|cfo|walk PO-2026-0003|c098284d9f65231137dde5b21b7674d7|12
+Time: 631.088 ms
+PROOF|A|cfo|walk IN-2026-0001|d4d0556890f864c21d0998538be5e1c2|18
+Time: 516.578 ms
+PROOF|A|cfo|walk OUT-2026-0119|10b8c819cd0788600e0db6d3e3e45662|3
+Time: 505.000 ms
+PROOF|A|cfo|walk SHP-2026-0001|00db97458c6cbd29b48b058f8218a9cd|6
+Time: 488.885 ms
+PROOF|A|cfo|walk PAY-2026-0001|209990bcd3c0c6bf5bf9285ec69ab3aa|4
+Time: 589.725 ms
+PROOF|A|cfo|walk BS-2026-0001|9e474d3e587ee9fbc2cf6905a7ce7fe6|1
+Time: 514.297 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1661: NOTICE:  PROOF|A|cfo|trail OUT-2026-0119|ee66f5b2c83d4946e78d309747cd4154
+DO
+Time: 1802.830 ms (00:01.803)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1666: NOTICE:  PROOF|A|cfo|trail PO-2026-0003|c329102915451f98eb3543f6f91fa788
+DO
+Time: 1679.171 ms (00:01.679)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1672: NOTICE:  PROOF|A|cfo|read inbound_batches|24 5bd4caa53241990506b7b40940d2bdfb
+DO
+Time: 417.288 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1678: NOTICE:  PROOF|A|cfo|read output_batches|20 7f02fb3eac0ed6d62af5a8cf75439c25
+DO
+Time: 420.887 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1684: NOTICE:  PROOF|A|cfo|read journal_entries|92 98f02e3a332f5422c667d2dff97387fa
+DO
+Time: 418.604 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1690: NOTICE:  PROOF|A|cfo|read payments|13 7fdc1702ff3c4daa0fb4575f002abbb3
+DO
+Time: 417.038 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1696: NOTICE:  PROOF|A|cfo|read leave_requests|6 c2c97f8d3a0035cbf1d3f5960a9af065
+DO
+Time: 988.816 ms
+RESET
+Time: 822.754 ms
+SET
+Time: 846.243 ms
+Time: 976.600 ms
+PROOF|A|warehouse|walk PO-2026-0003|ea765c3a81313b20991d4b086da769ed|10
+Time: 527.589 ms
+PROOF|A|warehouse|walk IN-2026-0001|d4d0556890f864c21d0998538be5e1c2|18
+Time: 495.362 ms
+PROOF|A|warehouse|walk OUT-2026-0119|10b8c819cd0788600e0db6d3e3e45662|3
+Time: 492.789 ms
+PROOF|A|warehouse|walk SHP-2026-0001|83d438719b8850a5f2ab6293781b83c0|1
+Time: 547.042 ms
+PROOF|A|warehouse|walk PAY-2026-0001|empty|0
+Time: 1741.073 ms (00:01.741)
+PROOF|A|warehouse|walk BS-2026-0001|empty|0
+Time: 418.479 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1710: NOTICE:  PROOF|A|warehouse|trail OUT-2026-0119|293674efd7e25e7e4070e01f82c7c0cb
+DO
+Time: 592.034 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1715: NOTICE:  PROOF|A|warehouse|trail PO-2026-0003|1eb67d33779cddccde0d40ca474cedc1
+DO
+Time: 505.996 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1721: NOTICE:  PROOF|A|warehouse|read inbound_batches|24 5bd4caa53241990506b7b40940d2bdfb
+DO
+Time: 1350.298 ms (00:01.350)
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1727: NOTICE:  PROOF|A|warehouse|read output_batches|20 7f02fb3eac0ed6d62af5a8cf75439c25
+DO
+Time: 425.267 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1733: NOTICE:  PROOF|A|warehouse|read journal_entries|0 d41d8cd98f00b204e9800998ecf8427e
+DO
+Time: 830.054 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1739: NOTICE:  PROOF|A|warehouse|read payments|0 d41d8cd98f00b204e9800998ecf8427e
+DO
+Time: 422.393 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1745: NOTICE:  PROOF|A|warehouse|read leave_requests|1 aa33b9bdda3f617e8b630fe71284418b
+DO
+Time: 430.838 ms
+RESET
+Time: 416.051 ms
+PROOF|counts|{"policies_wrapped" : 560, "unwrapped_left" : 0, "new_functions" : 2, "anon_can_walk" : false}
+Time: 648.468 ms
+SET
+Time: 921.562 ms
+Time: 819.001 ms
+Time: 803.270 ms
+psql:docs/surveys/CHAIN-WALK-COST/readings/dry-run.sql:1756: NOTICE:  PROOF|budget|DOCUMENT_CHAIN_WALK_BUDGET|走了 49 毫秒,上限 0 毫秒 —— 这一条链这一次没有画完
+DO
+Time: 474.087 ms
+RESET
+Time: 1458.357 ms (00:01.458)
+PROOF|clock rollback|2026-10-28 23:08:06.882764+08
+Time: 408.634 ms
+ROLLBACK
+Time: 440.080 ms
+DRY_OWN_EXIT=0

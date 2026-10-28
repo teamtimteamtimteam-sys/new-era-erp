@@ -99,23 +99,23 @@ ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "accounts select by permission"
     ON public.accounts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ROLE-1 Batch 2a(Q10):写权从「财务(编辑)」换到 action.finance_settings(CFO 一个)。
 CREATE POLICY "accounts insert by permission"
     ON public.accounts
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.finance_settings'::text));
+    WITH CHECK ((SELECT has_permission('action.finance_settings'::text)));
 
 CREATE POLICY "accounts update by permission"
     ON public.accounts
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.finance_settings'::text)) WITH CHECK (has_permission('action.finance_settings'::text));
+    USING ((SELECT has_permission('action.finance_settings'::text))) WITH CHECK ((SELECT has_permission('action.finance_settings'::text)));
 
 CREATE POLICY "accounts delete by permission"
     ON public.accounts
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.finance_settings'::text));
+    USING ((SELECT has_permission('action.finance_settings'::text)));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子:34 个引擎依赖科目】。逐行跟踪线上,check_mirrors 逐行比对。

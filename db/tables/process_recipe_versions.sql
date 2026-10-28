@@ -28,6 +28,6 @@ CREATE TRIGGER trg_process_recipe_versions_append_only
 
 ALTER TABLE public.process_recipe_versions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "process_recipe_versions select by permission" ON public.process_recipe_versions
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 GRANT SELECT ON public.process_recipe_versions TO authenticated;
 REVOKE ALL ON public.process_recipe_versions FROM anon;

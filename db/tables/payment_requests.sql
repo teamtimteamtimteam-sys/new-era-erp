@@ -189,7 +189,7 @@ ALTER TABLE public.payment_requests ENABLE ROW LEVEL SECURITY;
 -- 读:财务模块。写:一条策略都不给 —— 只经 submit / withdraw / decide / pay 五支函数。
 CREATE POLICY "payment_requests select by permission" ON public.payment_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.payment_requests FROM anon;

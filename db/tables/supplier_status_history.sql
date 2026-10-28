@@ -40,7 +40,7 @@ ALTER TABLE public.supplier_status_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "supplier_status_history select by permission"
     ON public.supplier_status_history
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 -- 【没有 INSERT / UPDATE / DELETE 策略】唯一写入口是触发器(属主身份)—— 留痕不该有第二个写法。
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。

@@ -43,8 +43,8 @@ CREATE POLICY "shifts select all" ON public.shifts
     AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "shifts write by permission" ON public.shifts
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.shifts TO authenticated;
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────

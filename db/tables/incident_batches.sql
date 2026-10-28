@@ -47,9 +47,9 @@ COMMENT ON TABLE public.incident_batches IS
 ALTER TABLE public.incident_batches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "incident_batches select by permission" ON public.incident_batches
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text)
-        OR (inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-        OR (output_batch_id IS NOT NULL AND has_permission('module.output.view'::text)));
+    USING ((SELECT has_permission('module.safety.view'::text))
+        OR (inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+        OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text))));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.incident_batches TO authenticated;
 REVOKE ALL ON public.incident_batches FROM anon;
 

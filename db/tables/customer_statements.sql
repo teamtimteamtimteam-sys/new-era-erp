@@ -62,4 +62,4 @@ ALTER TABLE public.customer_statements ENABLE ROW LEVEL SECURITY;
 -- 一份档案不该有第二个写法。
 CREATE POLICY "customer_statements select by permission" ON public.customer_statements
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

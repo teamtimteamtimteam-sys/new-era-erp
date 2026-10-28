@@ -65,22 +65,22 @@ ALTER TABLE public.inbound_batch_metals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inbound_batch_metals select by permission"
     ON public.inbound_batch_metals
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view'::text));
+    USING ((SELECT has_permission('module.inbound.view'::text)));
 
 CREATE POLICY "inbound_batch_metals insert by permission"
     ON public.inbound_batch_metals
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.inbound.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.inbound.edit'::text)));
 
 CREATE POLICY "inbound_batch_metals update by permission"
     ON public.inbound_batch_metals
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.inbound.edit'::text)) WITH CHECK (has_permission('module.inbound.edit'::text));
+    USING ((SELECT has_permission('module.inbound.edit'::text))) WITH CHECK ((SELECT has_permission('module.inbound.edit'::text)));
 
 CREATE POLICY "inbound_batch_metals delete by permission"
     ON public.inbound_batch_metals
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.inbound.edit'::text));
+    USING ((SELECT has_permission('module.inbound.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

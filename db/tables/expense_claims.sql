@@ -78,8 +78,8 @@ ALTER TABLE public.expense_claims ENABLE ROW LEVEL SECURITY;
 -- 【读:财务看得见全部,员工看得见自己的】与 my_profile / medical 同一条思路。
 CREATE POLICY "expense_claims select by permission" ON public.expense_claims
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text)
-        OR employee_id = current_user_employee());
+    USING ((SELECT has_permission('module.finance.view'::text))
+        OR employee_id = (SELECT current_user_employee()));
 
 -- 【没有 INSERT/UPDATE/DELETE 策略】唯一写入口是三支属主权限函数。
 

@@ -56,7 +56,7 @@ ALTER TABLE public.inbound_batch_safety_states ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inbound_batch_safety_states select by permission"
     ON public.inbound_batch_safety_states
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view'::text));
+    USING ((SELECT has_permission('module.inbound.view'::text)));
 -- ★ MES-3a:没有写策略了 —— 写只经 set_inbound_safety_states(SECURITY DEFINER,module.inbound.edit)、两支收货函数、
 --   加工的提交与回滚。直连写由下面的守卫按名拒(SAFETY_STATES_THROUGH_FUNCTION_ONLY),删除一律拒(SAFETY_STATE_NEVER_DELETED)。
 

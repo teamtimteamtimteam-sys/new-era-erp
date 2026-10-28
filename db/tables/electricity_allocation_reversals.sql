@@ -56,7 +56,7 @@ ALTER TABLE public.electricity_allocation_reversals ENABLE ROW LEVEL SECURITY;
 -- 读:与分摊同一句(财务或加工查看码)。金额走遮蔽视图。写只经函数。
 CREATE POLICY "electricity_allocation_reversals select by permission" ON public.electricity_allocation_reversals
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.finance.view'::text, 'module.processing.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.finance.view'::text, 'module.processing.view'::text])));
 
 -- 字段级遮蔽:三列金额只经 electricity_allocation_reversals_masked 读。【加列必改这一行,并且同时改 _masked 视图】
 REVOKE SELECT ON public.electricity_allocation_reversals FROM authenticated, anon;

@@ -42,4 +42,4 @@ ALTER TABLE public.collection_promises ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "collection_promises select by permission" ON public.collection_promises
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

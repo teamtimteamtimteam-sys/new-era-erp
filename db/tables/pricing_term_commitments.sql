@@ -80,8 +80,8 @@ ALTER TABLE public.pricing_term_commitments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "pricing_term_commitments select by permission"
     ON public.pricing_term_commitments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text)
-        OR has_permission('module.inbound.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text))
+        OR (SELECT has_permission('module.inbound.view'::text)));
 
 -- 写入只经函数(commit_pricing_terms,DEFINER),所以没有 INSERT 策略 ——
 -- 承诺不是能手写的东西。

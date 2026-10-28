@@ -54,6 +54,6 @@ ALTER TABLE public.capture_drafts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "capture_drafts select by permission" ON public.capture_drafts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.capture_drafts FROM anon;

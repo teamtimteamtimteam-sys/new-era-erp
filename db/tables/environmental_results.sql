@@ -60,7 +60,7 @@ COMMENT ON COLUMN public.environmental_results.incident_id IS
 ALTER TABLE public.environmental_results ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "environmental_results select by permission" ON public.environmental_results
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.environmental_results TO authenticated;
 REVOKE ALL ON public.environmental_results FROM anon;
 

@@ -51,12 +51,12 @@ CREATE TRIGGER trg_process_recipes_guard
 
 ALTER TABLE public.process_recipes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "process_recipes select by permission" ON public.process_recipes
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 CREATE POLICY "process_recipes insert by permission" ON public.process_recipes
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.processing.edit'::text));
+    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 CREATE POLICY "process_recipes update by permission" ON public.process_recipes
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE ON public.process_recipes TO authenticated;
 REVOKE ALL ON public.process_recipes FROM anon;
 

@@ -124,7 +124,7 @@ ALTER TABLE public.fixed_asset_history ENABLE ROW LEVEL SECURITY;
 --   两道门取同一个权限码,于是"这里零行"在屏幕上就真的只有一个意思。
 CREATE POLICY "fixed_asset_history select by permission" ON public.fixed_asset_history
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
 CREATE TRIGGER trg_fixed_asset_history_no_truncate

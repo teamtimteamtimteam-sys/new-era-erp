@@ -53,22 +53,22 @@ ALTER TABLE public.customer_attachments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "customer_attachments select by permission"
     ON public.customer_attachments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.customers.view'::text));
+    USING ((SELECT has_permission('module.customers.view'::text)));
 
 CREATE POLICY "customer_attachments insert by permission"
     ON public.customer_attachments
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.customers.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.customers.edit'::text)));
 
 CREATE POLICY "customer_attachments update by permission"
     ON public.customer_attachments
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.customers.edit'::text)) WITH CHECK (has_permission('module.customers.edit'::text));
+    USING ((SELECT has_permission('module.customers.edit'::text))) WITH CHECK ((SELECT has_permission('module.customers.edit'::text)));
 
 CREATE POLICY "customer_attachments delete by permission"
     ON public.customer_attachments
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.customers.edit'::text));
+    USING ((SELECT has_permission('module.customers.edit'::text)));
 
 -- 4. Index: we always query attachments by their owning customer.
 CREATE INDEX idx_customer_attachments_customer_id

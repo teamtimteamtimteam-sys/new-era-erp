@@ -38,7 +38,7 @@ COMMENT ON COLUMN public.work_order_history.work_order_line_id IS
 
 ALTER TABLE public.work_order_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "work_order_history select by permission" ON public.work_order_history
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 
 -- ★ HISTORY-1(Tim 的 Q18):只增不改守卫 —— 此前 17 张历史表里只有本表与 task_history 没有。
 CREATE TRIGGER trg_work_order_history_append_only

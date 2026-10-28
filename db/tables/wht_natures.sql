@@ -30,7 +30,7 @@ ALTER TABLE public.wht_natures ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "wht_natures select by permission"
     ON public.wht_natures
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 INSERT INTO public.wht_natures
     (code, name_en, name_zh, description_en, description_zh, statute_ref, is_active, sort_order) VALUES

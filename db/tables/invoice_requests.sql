@@ -99,7 +99,7 @@ ALTER TABLE public.invoice_requests ENABLE ROW LEVEL SECURITY;
 -- withdraw_invoice_request(全是 SECURITY DEFINER)。
 CREATE POLICY "invoice_requests select by permission" ON public.invoice_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.invoice_requests FROM anon;

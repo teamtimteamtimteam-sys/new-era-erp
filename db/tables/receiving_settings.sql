@@ -46,11 +46,11 @@ ALTER TABLE public.receiving_settings ENABLE ROW LEVEL SECURITY;
 -- 收货的设置归收货。procurement 也持 module.inbound.view(实测),所以采购侧一样读得到。
 CREATE POLICY "receiving_settings select by permission" ON public.receiving_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view'::text));
+    USING ((SELECT has_permission('module.inbound.view'::text)));
 CREATE POLICY "receiving_settings update by permission" ON public.receiving_settings
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.inbound.edit'::text))
-    WITH CHECK (has_permission('module.inbound.edit'::text));
+    USING ((SELECT has_permission('module.inbound.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.inbound.edit'::text)));
 
 GRANT SELECT ON public.receiving_settings TO authenticated;
 GRANT UPDATE ON public.receiving_settings TO authenticated;

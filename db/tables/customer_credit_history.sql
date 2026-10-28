@@ -34,7 +34,7 @@ ALTER TABLE public.customer_credit_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "customer_credit_history select by permission"
     ON public.customer_credit_history
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.customers.view'::text));
+    USING ((SELECT has_permission('module.customers.view'::text)));
 -- 【没有 INSERT 策略】唯一写入口是触发器(属主身份)—— 留痕不该有第二个写法
 
 -- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。

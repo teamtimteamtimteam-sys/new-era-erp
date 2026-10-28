@@ -30,4 +30,4 @@ ALTER TABLE public.collection_chase_documents ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "collection_chase_documents select by permission" ON public.collection_chase_documents
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

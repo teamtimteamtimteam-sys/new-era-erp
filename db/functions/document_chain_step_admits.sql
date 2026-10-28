@@ -11,6 +11,8 @@
 -- ★ NULL 的判据 = 这一步没有判据 → true。认不出的判据名【响】。p_id 为 NULL 时只校验名字(document_chain_walk 开头用它)。
 -- ★ INVOKER:读者读不到那张表 → false(那一步对他就是"找不到";单据链条上那一步本来就按权限画「受限」)。
 --
+-- ★ CHAIN-WALK-COST(v1.4.80):四个判据只写在 document_chain_step_admitted(filter, ids[]) 里一份;这一支是它的单张写法。
+--
 -- NOTE: introduced by db/migrations/2026-10-27-system-map-3-chain-bar.sql.
 
 CREATE OR REPLACE FUNCTION public.document_chain_step_admits(p_filter text, p_id uuid)
@@ -22,26 +24,12 @@ BEGIN
     IF p_filter IS NULL THEN
         RETURN true;
     END IF;
-    IF p_filter NOT IN ('payable', 'reservation', 'cost_allocation', 'payroll_payment') THEN
-        RAISE EXCEPTION 'DOCUMENT_CHAIN_UNKNOWN_FILTER|% —— 单据链条认得的判据只有 payable · reservation · '
-                        'cost_allocation · payroll_payment', p_filter;
-    END IF;
     IF p_id IS NULL THEN
+        -- 只校验名字(document_chain_walk 开头用它):认不出的判据名照样响
+        PERFORM * FROM public.document_chain_step_admitted(p_filter, '{}'::uuid[]);
         RETURN true;
     END IF;
-    IF p_filter = 'payable' THEN
-        RETURN EXISTS (SELECT 1 FROM public.journal_entries e
-                        WHERE e.source_type = 'purchase' AND e.source_id = p_id);
-    ELSIF p_filter = 'reservation' THEN
-        RETURN EXISTS (SELECT 1 FROM public.sales_order_reservations r
-                         JOIN public.sales_order_lines l ON l.id = r.sales_order_line_id
-                        WHERE l.sales_order_id = p_id);
-    ELSIF p_filter = 'cost_allocation' THEN
-        RETURN EXISTS (SELECT 1 FROM public.batch_processing_cost_allocations a WHERE a.run_id = p_id);
-    END IF;
-    RETURN EXISTS (SELECT 1 FROM public.payroll_lines pl WHERE pl.paid_journal_entry_id = p_id)
-        OR EXISTS (SELECT 1 FROM public.payroll_periods pp
-                    WHERE pp.cpf_journal_entry_id = p_id OR pp.deductions_journal_entry_id = p_id);
+    RETURN EXISTS (SELECT 1 FROM public.document_chain_step_admitted(p_filter, ARRAY[p_id]));
 END;
 $function$;
 

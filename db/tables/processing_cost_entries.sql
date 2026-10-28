@@ -129,22 +129,22 @@ ALTER TABLE public.processing_cost_entries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_cost_entries select by permission"
     ON public.processing_cost_entries
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 CREATE POLICY "processing_cost_entries insert by permission"
     ON public.processing_cost_entries
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 
 CREATE POLICY "processing_cost_entries update by permission"
     ON public.processing_cost_entries
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 
 CREATE POLICY "processing_cost_entries delete by permission"
     ON public.processing_cost_entries
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text)));
 
 -- 4. Index: we always query cost entries by their owning run.
 CREATE INDEX idx_processing_cost_entries_run

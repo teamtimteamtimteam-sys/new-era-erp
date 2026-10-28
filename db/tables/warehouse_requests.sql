@@ -133,7 +133,7 @@ ALTER TABLE public.warehouse_requests ENABLE ROW LEVEL SECURITY;
 --   (与 warehouse_requests_visible() 同一个判法)。三件事同一个迁移(AGENTS.md「给遮蔽表加列」那一节)。
 CREATE POLICY "warehouse_requests select by permission" ON public.warehouse_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inventory.view'::text) OR has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.inventory.view'::text)) OR (SELECT has_permission('module.finance.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.warehouse_requests FROM anon;

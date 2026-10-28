@@ -50292,6 +50292,12 @@ export type Database = {
         Args: { p_filter: string; p_id: string }
         Returns: boolean
       }
+      document_chain_step_admitted: {
+        Args: { p_filter: string; p_ids: string[] }
+        Returns: {
+          id: string
+        }[]
+      }
       document_chain_walk: {
         Args: { p_chain: Json; p_id: string; p_key: string; p_step: number }
         Returns: {
@@ -50318,6 +50324,13 @@ export type Database = {
         Args: { p_arm: string; p_id: string }
         Returns: {
           id: string
+        }[]
+      }
+      document_relation_arm_pairs: {
+        Args: { p_arm: string; p_ids: string[] }
+        Returns: {
+          id: string
+          src: string
         }[]
       }
       document_type_prefix: { Args: { p_key: string }; Returns: string }

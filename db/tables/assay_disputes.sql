@@ -95,8 +95,8 @@ ALTER TABLE public.assay_disputes ENABLE ROW LEVEL SECURITY;
 --   所以 sale_settlement_compute 的那一道拒绝对一个过得了它第二道闸的读者【不会】因为读不到而放过去)。写:一条策略都不给。
 CREATE POLICY "assay_disputes select by permission" ON public.assay_disputes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.quality.view'::text)
-        OR (inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-        OR (output_batch_id IS NOT NULL AND has_permission('module.output.view'::text)));
+    USING ((SELECT has_permission('module.quality.view'::text))
+        OR (inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+        OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text))));
 GRANT SELECT ON public.assay_disputes TO authenticated;
 REVOKE ALL ON public.assay_disputes FROM anon;

@@ -37,19 +37,19 @@ CREATE TRIGGER trg_leave_grants_updated_at
 ALTER TABLE public.leave_grants ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "leave_grants select by permission"
     ON public.leave_grants AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING ((SELECT has_permission('module.hr.view')));
 CREATE POLICY "leave_grants select own rows"
     ON public.leave_grants AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee());
+    USING (employee_id = (SELECT current_user_employee()));
 CREATE POLICY "leave_grants insert by permission"
     ON public.leave_grants AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "leave_grants update by permission"
     ON public.leave_grants AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit'))) WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "leave_grants delete by permission"
     ON public.leave_grants AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit')));
 
 -- ============================================================================
 

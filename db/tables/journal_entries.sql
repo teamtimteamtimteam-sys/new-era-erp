@@ -115,7 +115,7 @@ ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "journal_entries select by permission"
     ON public.journal_entries
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ★ APR-6(2026-09-25,grilling Q1):INSERT 写策略拿掉 —— 一张分录只经 post_journal_entry 生出来,而它对
 --   authenticated 已收回,调用它的全是 SECURITY DEFINER 的单据函数与 journal_request_post_internal。

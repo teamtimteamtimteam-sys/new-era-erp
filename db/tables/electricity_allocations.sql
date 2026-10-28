@@ -77,7 +77,7 @@ ALTER TABLE public.electricity_allocations ENABLE ROW LEVEL SECURITY;
 -- 读:财务(分摊页)或加工(加工单页上"这一炉分到的电"链回这张账单)。金额走遮蔽视图。写只经函数。
 CREATE POLICY "electricity_allocations select by permission" ON public.electricity_allocations
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.finance.view'::text, 'module.processing.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.finance.view'::text, 'module.processing.view'::text])));
 
 -- 字段级遮蔽:先整表收回,再把不敏感的列逐列授回(五列金额只经 electricity_allocations_masked 读)。
 -- 【加列必改这一行,并且同时改 _masked 视图】(AGENTS.md「Adding a column to a masked table」:三件事一支迁移)。

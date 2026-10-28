@@ -1,0 +1,5 @@
+RELDIFF|cwcseed vs cwcafter · search_related: identical 490 (1162 rows, 0 identical refusals) · different 0
+RELDIFF|cwcseed vs cwcafter · search_related_rows: identical 1162 (8585 rows, 0 identical refusals) · different 0
+RELDIFF|cwcseed vs cwcafter · document_detail_hrefs: identical 161 (490 rows, 0 identical refusals) · different 0
+RELDIFF|cwcseed vs cwcafter · change_log_rows: identical 63 (1200 rows, 45 identical refusals) · different 0
+EXIT=0

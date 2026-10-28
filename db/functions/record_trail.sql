@@ -58,6 +58,10 @@
 --   M12 root_rule = 'gate:<名字>':根行先过它那张表的读规则('table' 那一道),【再】过 trail_root_gate 点名的那一道 ——
 --       比表的规则更窄(/my-reviews 只给审核人,不给被评审的人)。与 M8(没有页面码)同用是允许的:门比 'table' 更窄,
 --       不会更宽。
+-- CHAIN-WALK-COST(v1.4.80,Tim 2026-10-28 scope C):一页的代价跟着【这一页画出来的那几行】走,不跟着【这条记录的全部成员行】走。
+--   ① 成员按外键找时按那一列自己的类型比(以前 `t.col::text = ANY(…)` 用不上索引,一年体量上每个成员一次整表扫);
+--   ② "记录开始之前"那一段只在排得进这一页时才拼;③ 每一行的读规则、今天的样子与名字只为这一页画出来的行算一次。
+--   编号、more、每一行的内容与以前逐字相同 —— 对线上数据的拷贝与一年体量的种子,七个角色逐行比过(docs/surveys/CHAIN-WALK-COST/readings/)。
 CREATE OR REPLACE FUNCTION public.record_trail(p_subject text, p_id text, p_entries integer DEFAULT 20)
  RETURNS TABLE(entry_no integer, prelog boolean, seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor jsonb, changed_columns text[], old jsonb, new jsonb, ctx jsonb, refs jsonb, row_hidden boolean, row_restricted boolean, more boolean, op_key text)
  LANGUAGE plpgsql
@@ -102,6 +106,10 @@ DECLARE
     v_c      text[];
     v_coll   boolean;
     v_gate   text;
+    v_fktype text;
+    v_lcount integer;
+    v_dec    boolean[];
+    v_have   jsonb := '{}';
 BEGIN
     SELECT ts.* INTO s FROM trail_subjects() ts WHERE ts.subject = p_subject;
     IF NOT FOUND THEN
@@ -151,6 +159,7 @@ BEGIN
         v_icols := ARRAY[to_jsonb(v_rcols)];
     END IF;
 
+    SELECT coalesce(jsonb_object_agg(u.t || '|' || u.k::text, true), '{}') INTO v_have FROM unnest(v_tabs, v_keys) AS u(t, k);
     -- ① 这条记录有哪些行(按 ord 展开,孙行在父行之后;hop = 'up' 往上走一跳,shown = false 的只作垫脚石)
     FOR m IN SELECT tm.* FROM trail_subject_members() tm WHERE tm.subject = p_subject ORDER BY tm.ord LOOP
         v_found := NULL;
@@ -186,50 +195,69 @@ BEGIN
              WHERE u.t = m.parent_table AND (u.k ? 'id' OR (SELECT count(*) FROM jsonb_object_keys(u.k)) = 1);
             CONTINUE WHEN v_pids IS NULL;
             v_pk := trail_pk_columns(m.table_name);
-            EXECUTE format('SELECT array_agg(jsonb_build_object(%s)) FROM public.%I t WHERE t.%I::text = ANY ($1) AND to_jsonb(t) @> $2',
+            -- CHAIN-WALK-COST:按那一列【自己的类型】比(把父键数组转成它的类型),不把列转成文字 —— `t.col::text = ANY(…)` 用不上索引,
+            --   一年体量上每个成员一次整表扫(库存移动 6 万行 88 ms);父键与外键同一个类型,所以转换不会失败,答案逐行不变。
+            SELECT format_type(a.atttypid, a.atttypmod) INTO v_fktype
+              FROM pg_attribute a WHERE a.attrelid = format('public.%I', m.table_name)::regclass AND a.attname = m.fk_column AND NOT a.attisdropped;
+            EXECUTE format('SELECT array_agg(jsonb_build_object(%s)) FROM public.%I t WHERE t.%I = ANY ($1::%s[]) AND to_jsonb(t) @> $2',
                            (SELECT string_agg(format('%L, t.%I', c, c), ', ') FROM unnest(v_pk) c),
-                           m.table_name, m.fk_column)
+                           m.table_name, m.fk_column, v_fktype)
                INTO v_found USING v_pids, m.match;
-            SELECT array_agg(DISTINCT c.row_key) INTO v_found2
-              FROM unnest(v_pids) AS pid(v)
-              JOIN change_log c ON c.table_name = m.table_name
-                               AND (COALESCE(c.new, c.old) @> (jsonb_build_object(m.fk_column, pid.v) || m.match)
-                                    OR (c.op = 'UPDATE' AND c.old @> jsonb_build_object(m.fk_column, pid.v)));
+            IF cardinality(v_pids) <= 20 OR m.match ? m.fk_column THEN
+                SELECT array_agg(DISTINCT c.row_key) INTO v_found2
+                  FROM unnest(v_pids) AS pid(v)
+                  JOIN change_log c ON c.table_name = m.table_name
+                                   AND (COALESCE(c.new, c.old) @> (jsonb_build_object(m.fk_column, pid.v) || m.match)
+                                        OR (c.op = 'UPDATE' AND c.old @> jsonb_build_object(m.fk_column, pid.v)));
+            ELSE
+                -- CHAIN-WALK-COST:父行多的时候(一张月结对账单 800 多行)每一个父键一次 GIN 查找要 1 ms 多;改成把这张表的变更记录
+                --   按 (table_name, row_key) 索引扫一遍、一次对着全部父键筛 —— 同一个判据:影像里那一列的值等于某一个父键(JSON 字符串),
+                --   并且影像包含 m.match;或者是一次 UPDATE、它的旧影像里那一列等于某一个父键。(m.match 自己点了那一列的名时
+                --   以前那一句让 match 盖掉父键 —— 那种登记今天 0 条,遇到了就走上面那一支,逐字是以前的判据。)
+                SELECT array_agg(DISTINCT c.row_key) INTO v_found2
+                  FROM change_log c
+                 WHERE c.table_name = m.table_name
+                   AND (((COALESCE(c.new, c.old) -> m.fk_column) IN (SELECT to_jsonb(x.v) FROM unnest(v_pids) AS x(v))
+                         AND COALESCE(c.new, c.old) @> m.match)
+                        OR (c.op = 'UPDATE' AND (c.old -> m.fk_column) IN (SELECT to_jsonb(x.v) FROM unnest(v_pids) AS x(v))));
+            END IF;
         END IF;
         -- M10:这一个成员只取声明的几列(NULL = 整行)
         SELECT to_jsonb(mc.columns) INTO v_mcols FROM trail_member_columns() mc WHERE mc.subject = p_subject AND mc.ord = m.ord;
-        FOR v_k IN SELECT DISTINCT x FROM unnest(COALESCE(v_found, ARRAY[]::jsonb[]) || COALESCE(v_found2, ARRAY[]::jsonb[])) x
-                    WHERE x IS NOT NULL LOOP
-            IF NOT EXISTS (SELECT 1 FROM unnest(v_tabs, v_keys) u(t, k) WHERE u.t = m.table_name AND u.k = v_k) THEN
-                v_tabs := array_append(v_tabs, m.table_name);
-                v_keys := array_append(v_keys, v_k);
-                v_shown := array_append(v_shown, m.shown);
-                v_icols := array_append(v_icols, v_mcols);
-            END IF;
-        END LOOP;
+        -- CHAIN-WALK-COST:整组加进来(一张月结对账单八百多行时,逐行 array_append 每一次都把已收的数组整份复制一遍);
+        --   顺序仍是那一句 SELECT DISTINCT 给出的顺序,已经收过的(键集 v_have)不再收。
+        SELECT coalesce(array_agg(z.x ORDER BY z.o), ARRAY[]::jsonb[]) INTO v_found
+          FROM (SELECT d.x, row_number() OVER () AS o
+                  FROM (SELECT DISTINCT x FROM unnest(COALESCE(v_found, ARRAY[]::jsonb[]) || COALESCE(v_found2, ARRAY[]::jsonb[])) x
+                         WHERE x IS NOT NULL) d) z
+         WHERE NOT v_have ? (m.table_name || '|' || z.x::text);
+        IF cardinality(v_found) > 0 THEN
+            v_have := v_have || (SELECT jsonb_object_agg(m.table_name || '|' || x::text, true) FROM unnest(v_found) x);
+            v_tabs := v_tabs || array_fill(m.table_name, ARRAY[cardinality(v_found)]);
+            v_keys := v_keys || v_found;
+            v_shown := v_shown || array_fill(m.shown, ARRAY[cardinality(v_found)]);
+            v_icols := v_icols || array_fill(v_mcols, ARRAY[cardinality(v_found)]);
+        END IF;
     END LOOP;
 
-    -- ② 每一行:过不过它自己那张表的读规则;今天的样子(遮蔽之后);"记录开始之前"的那一段从哪里拼
+    -- ② "记录开始之前"那一段从哪里拼(Q1)—— CHAIN-WALK-COST:只在它【排得进这一页】时才拼
+    --   编号规则不变(下面 ③):记录开始之后的每一条(按 txid)永远排在所有"之前"那一段前面。所以先数前者:超过 v_limit 条时,
+    --   "之前"那一段一行都排不进这一页,more 也已经为真 —— 拼它只是白算(一年体量上每一行一次当前影像 + 一次登记表查询)。
+    --   ★ 每一行的读规则、今天的样子与名字(v_vis / v_ctx / v_crefs)不在这里算了:挪到 ③ 的输出里,只为【这一页真的画出来的那几行】
+    --     算一次(v_dec 记着算过没有)。同一个读法、同一份结果,只是不再为几百行看不见的成员行算。
+    SELECT count(DISTINCT c.txid) INTO v_lcount
+      FROM unnest(v_tabs, v_keys, v_shown, v_icols) u(t, k, sh, ic)
+      JOIN change_log c ON c.table_name = u.t AND c.row_key = u.k
+     WHERE u.sh AND (u.ic IS NULL OR jsonb_typeof(u.ic) <> 'array' OR c.op <> 'UPDATE'
+                     OR c.changed_columns && ARRAY(SELECT jsonb_array_elements_text(u.ic)));
+    v_vis := array_fill(NULL::boolean, ARRAY[cardinality(v_tabs)]);
+    v_ctx := array_fill(NULL::jsonb, ARRAY[cardinality(v_tabs)]);
+    v_crefs := array_fill(NULL::jsonb, ARRAY[cardinality(v_tabs)]);
+    v_dec := array_fill(false, ARRAY[cardinality(v_tabs)]);
     FOR i IN 1 .. cardinality(v_tabs) LOOP
-        IF NOT v_shown[i] THEN
-            -- 垫脚石:不判、不取上下文、不拼"之前"(它自己不进这条记录)
-            v_vis := array_append(v_vis, false);
-            v_ctx := array_append(v_ctx, NULL::jsonb);
-            v_crefs := array_append(v_crefs, '{}'::jsonb);
-            CONTINUE;
-        END IF;
+        EXIT WHEN v_lcount > v_limit;
+        CONTINUE WHEN NOT v_shown[i];   -- 垫脚石:不拼"之前"(它自己不进这条记录)
         SELECT * INTO v_img FROM trail_current_image(v_tabs[i], v_keys[i]);
-        v_vis := array_append(v_vis, (i = 1 AND NOT v_coll AND (s.root_rule = 'table' OR v_gate IS NOT NULL))
-                                     OR COALESCE(trail_row_visible(v_tabs[i], v_keys[i], v_img.image), false));
-        IF v_vis[i] AND v_img.image IS NOT NULL THEN
-            v_mask := change_log_mask_row(v_tabs[i], v_keys[i], NULL, v_img.image);
-            v_ctx := array_append(v_ctx, COALESCE(NULLIF(v_mask -> 'new', 'null'::jsonb), '{}'::jsonb)
-                                         || jsonb_build_object('$gone', v_img.gone));
-            v_crefs := array_append(v_crefs, trail_refs(v_tabs[i], NULL, NULL, v_ctx[i]));
-        ELSE
-            v_ctx := array_append(v_ctx, NULL::jsonb);
-            v_crefs := array_append(v_crefs, '{}'::jsonb);
-        END IF;
         CONTINUE WHEN v_img.image IS NULL OR v_img.gone;
         FOR p IN SELECT ps.* FROM trail_prelog_sources() ps WHERE ps.table_name = v_tabs[i] LOOP
             v_at := NULLIF(v_img.image ->> p.at_column, '')::timestamptz;
@@ -263,14 +291,8 @@ BEGIN
     END LOOP;
 
     -- ③ 变更记录 + 拼回来的那一段,按记录(事务)编号,从新到旧
-    SELECT count(DISTINCT g) INTO v_total FROM (
-        SELECT 'L' || c.txid AS g
-          FROM unnest(v_tabs, v_keys, v_shown, v_icols) WITH ORDINALITY u(t, k, sh, ic, i)
-          JOIN change_log c ON c.table_name = u.t AND c.row_key = u.k
-         WHERE u.sh AND (u.ic IS NULL OR jsonb_typeof(u.ic) <> 'array' OR c.op <> 'UPDATE'
-                         OR c.changed_columns && ARRAY(SELECT jsonb_array_elements_text(u.ic)))
-        UNION ALL
-        SELECT 'P' || (x ->> 'at') FROM jsonb_array_elements(v_pseudo) x) z;
+    -- 记录总数 = 记录开始之后的那几条 + "之前"那一段的几个时刻(与以前那一句 UNION 计数同一个集合:'L' 与 'P' 两种前缀不会相撞)
+    SELECT v_lcount + count(DISTINCT x ->> 'at') INTO v_total FROM jsonb_array_elements(v_pseudo) x;
 
     FOR r IN
         WITH k AS (
@@ -303,6 +325,22 @@ BEGIN
         occurred_at := r.a_at;
         more := v_total > v_limit;
         op_key := r.a_g;
+        IF NOT v_dec[r.a_i] THEN
+            -- 这一行第一次出现在这一页上:过它自己那张表的读规则、取今天的样子(遮蔽之后)与名字 —— 与以前 ② 里那一段逐字同一个读法
+            i := r.a_i;
+            SELECT * INTO v_img FROM trail_current_image(v_tabs[i], v_keys[i]);
+            v_vis[i] := (i = 1 AND NOT v_coll AND (s.root_rule = 'table' OR v_gate IS NOT NULL))
+                        OR COALESCE(trail_row_visible(v_tabs[i], v_keys[i], v_img.image), false);
+            IF v_vis[i] AND v_img.image IS NOT NULL THEN
+                v_mask := change_log_mask_row(v_tabs[i], v_keys[i], NULL, v_img.image);
+                v_ctx[i] := COALESCE(NULLIF(v_mask -> 'new', 'null'::jsonb), '{}'::jsonb) || jsonb_build_object('$gone', v_img.gone);
+                v_crefs[i] := trail_refs(v_tabs[i], NULL, NULL, v_ctx[i]);
+            ELSE
+                v_ctx[i] := NULL::jsonb;
+                v_crefs[i] := '{}'::jsonb;
+            END IF;
+            v_dec[i] := true;
+        END IF;
         IF NOT v_vis[r.a_i] THEN
             table_name := NULL; row_key := NULL; op := NULL; actor := NULL; changed_columns := NULL;
             old := NULL; new := NULL; ctx := NULL; refs := NULL;

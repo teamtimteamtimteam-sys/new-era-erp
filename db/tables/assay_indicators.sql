@@ -40,14 +40,14 @@ ALTER TABLE public.assay_indicators ENABLE ROW LEVEL SECURITY;
 --   (cell_constructions 的先例:按读它的那几页的码)。
 CREATE POLICY "assay_indicators select by permission"
     ON public.assay_indicators AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.inbound.view'::text, 'module.output.view'::text, 'module.materials.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.inbound.view'::text, 'module.output.view'::text, 'module.materials.view'::text])));
 CREATE POLICY "assay_indicators insert by permission"
     ON public.assay_indicators AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 CREATE POLICY "assay_indicators update by permission"
     ON public.assay_indicators AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text))
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.assay_indicators TO authenticated;
 REVOKE ALL ON public.assay_indicators FROM anon;
 

@@ -100,7 +100,7 @@ CREATE TRIGGER trg_sales_orders_history
 ALTER TABLE public.sales_orders        ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "sales_orders select by permission" ON public.sales_orders
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.sales.view'::text)));
 
 -- 【没有 INSERT 策略,这是刻意的】(SO-2b,2026-08-14)
 -- 建单只有一扇门:create_sales_order —— 它是 SECURITY DEFINER,同一个事务里写
@@ -111,7 +111,7 @@ CREATE POLICY "sales_orders select by permission" ON public.sales_orders
 
 CREATE POLICY "sales_orders update by permission" ON public.sales_orders
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.sales.edit'::text)) WITH CHECK (has_permission('module.sales.edit'::text));
+    USING ((SELECT has_permission('module.sales.edit'::text))) WITH CHECK ((SELECT has_permission('module.sales.edit'::text)));
 
 -- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
 -- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。

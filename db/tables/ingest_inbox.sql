@@ -85,6 +85,6 @@ ALTER TABLE public.ingest_inbox ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "ingest_inbox select by permission" ON public.ingest_inbox
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.ingest_inbox FROM anon;

@@ -1,0 +1,9 @@
+
+> new-era-erp@0.1.0 reap:ephemeral
+> node scripts/reap-ephemeral.mjs
+
+发现 1 份清理计划,逐份检查持有者是否还活着…
+
+收割 0 份 · 补删失败 0 份 · 持有者还活着跳过 1 份
+  跳过的那些是【正在跑的那一次】,不该动 —— 判据与 liveLock 一致:pid 还在【且】进程名一致。
+REAP_OWN_EXIT=0

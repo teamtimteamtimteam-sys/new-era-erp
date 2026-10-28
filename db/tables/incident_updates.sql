@@ -49,7 +49,7 @@ COMMENT ON TABLE public.incident_updates IS
 ALTER TABLE public.incident_updates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "incident_updates select by permission" ON public.incident_updates
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.incident_updates TO authenticated;
 REVOKE ALL ON public.incident_updates FROM anon;
 

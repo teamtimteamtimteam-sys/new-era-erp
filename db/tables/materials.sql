@@ -122,22 +122,22 @@ ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "materials select by permission"
     ON public.materials
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.materials.view'::text));
+    USING ((SELECT has_permission('module.materials.view'::text)));
 
 CREATE POLICY "materials insert by permission"
     ON public.materials
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 CREATE POLICY "materials update by permission"
     ON public.materials
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text)) WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text))) WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 CREATE POLICY "materials delete by permission"
     ON public.materials
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)));
 
 COMMENT ON COLUMN public.materials.nea_waste_category_code IS
     'MES-3a(MES-0 Q32 · V29):这个物料属于 NEA 执照上的哪一类废物。库存上限按执照 × 类别判(licence_storage_limits),存量按这一列的【现值】归类。NULL = 没人分过:收货照收,记 category_not_set。不是 waste_classification_code —— 那一列决定货架收什么。';

@@ -108,7 +108,7 @@ CREATE INDEX fixed_assets_disposal_journal_id_rel ON public.fixed_assets (dispos
 ALTER TABLE public.fixed_assets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fixed_assets select by permission" ON public.fixed_assets
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 COMMENT ON COLUMN public.fixed_assets.planned_in_service_date IS
 'FIX-1:【计划】投用日 —— 打算什么时候把它投产。

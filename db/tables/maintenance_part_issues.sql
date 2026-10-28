@@ -48,7 +48,7 @@ COMMENT ON COLUMN public.maintenance_part_issues.business_date IS
 ALTER TABLE public.maintenance_part_issues ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "maintenance_part_issues select by permission" ON public.maintenance_part_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text) OR has_permission('module.inventory.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)) OR (SELECT has_permission('module.inventory.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.maintenance_part_issues TO authenticated;
 REVOKE ALL ON public.maintenance_part_issues FROM anon;
 

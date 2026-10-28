@@ -56,13 +56,13 @@ CREATE POLICY "home_greetings select all"
 -- 【写入归设置】改一句问候语是一次系统文案调整,不属于任何业务模块。
 CREATE POLICY "home_greetings insert by permission"
     ON public.home_greetings AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.manage_permissions'));
+    WITH CHECK ((SELECT has_permission('action.manage_permissions')));
 CREATE POLICY "home_greetings update by permission"
     ON public.home_greetings AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.manage_permissions')) WITH CHECK (has_permission('action.manage_permissions'));
+    USING ((SELECT has_permission('action.manage_permissions'))) WITH CHECK ((SELECT has_permission('action.manage_permissions')));
 CREATE POLICY "home_greetings delete by permission"
     ON public.home_greetings AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.manage_permissions'));
+    USING ((SELECT has_permission('action.manage_permissions')));
 
 -- ── 种子:Tim 批准的 72 句原文 ──────────────────────────────────────────
 INSERT INTO public.home_greetings (id, slot, line_en) VALUES

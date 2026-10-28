@@ -60,11 +60,11 @@ CREATE POLICY "inbound_chemistry_certainties select all"
     ON public.inbound_chemistry_certainties AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "inbound_chemistry_certainties insert by permission"
     ON public.inbound_chemistry_certainties AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 CREATE POLICY "inbound_chemistry_certainties update by permission"
     ON public.inbound_chemistry_certainties AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text))
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 COMMENT ON COLUMN public.inbound_chemistry_certainties.may_be_fed IS
 'PROC-2 记的规则,PROC-3 起【真的拦人】:guard_processing_input 读它。

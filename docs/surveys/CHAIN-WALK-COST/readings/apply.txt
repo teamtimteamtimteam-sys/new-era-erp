@@ -1,0 +1,14 @@
+== 预检 2026-10-28-chain-walk-cost.sql
+account    未引用任何科目码
+function   13 条 CREATE FUNCTION:10 替换 · 2 新建 · 1 条签名解析不出(public.trail_current_image)
+masked     本迁移不加列
+  ⚠ public.trail_current_image:参数类型解析不出,重载这一条【没查】—— 请自己确认签名与线上一致
+✓ 预检通过(带 1 条警告,已放行)
+== 破窗开始(migration applied at): 2026-10-28 23:08:53 CST  ← 切次报告要写的那个起点
+== applying 2026-10-28-chain-walk-cost.sql over direct psql (single transaction)
+== re-asserting function grants (db/views/zzz_function_grants.sql)
+✓ committed atomically (含函数授权兜底)
+== 库已经是新的了(23:11:30) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)
+== 破窗起点已落盘:/Users/timchen/Documents/projects/new-era-erp/db/migration-windows.tsv
+   2026-10-28T23:11:30+0800  2026-10-28-chain-walk-cost.sql  5e6d58fa
+APPLY_OWN_EXIT=0

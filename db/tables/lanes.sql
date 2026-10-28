@@ -24,11 +24,11 @@ COMMENT ON COLUMN public.lanes.checklist_reviewed_at IS
 
 ALTER TABLE public.lanes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "lanes select" ON public.lanes
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.logistics.view'::text)));
 CREATE POLICY "lanes write" ON public.lanes
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.purchasing.edit'::text))
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

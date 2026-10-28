@@ -33,6 +33,6 @@ COMMENT ON TABLE public.blending_plan_targets IS
 
 ALTER TABLE public.blending_plan_targets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "blending_plan_targets select by permission" ON public.blending_plan_targets
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 GRANT SELECT ON public.blending_plan_targets TO authenticated;
 REVOKE ALL ON public.blending_plan_targets FROM anon;

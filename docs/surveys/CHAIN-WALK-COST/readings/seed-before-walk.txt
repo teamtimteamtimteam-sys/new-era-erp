@@ -1,0 +1,32 @@
+78 walks per role
+admin done
+cco done
+cfo done
+cto done
+finance done
+gm done
+warehouse done
+route                                  admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/purchasing/orders/[id]                 1002       957       956       944       992       929       618   PO-2025-0001 (purchasing)
+/inbound/[id]/edit                      5881      5088      5081      5110      5338      4917      5099   IN-2025-4867 (processing)
+/inbound/[id]/assays/[assayId]           359       323       321       320       334       312       612   ASY-2025-4867 (purchasing)
+/finance/payables/[batchId]              361       324       323       321       334       312         1   IN-2025-2434 (purchasing)
+/finance/payment-requests/[id]           124       116       118       115       124       116         1   PREQ-2025-0001 (purchasing)
+/finance/payments/[id]                   711       625       624       617       641       600         0   PMT-2025-0001 (purchasing)
+/finance/bank/statements/[id]          69779     63275     62536     66994     66298     62137         0   BS-2025-0001 (purchasing)
+/operation/orders/[id]                  5747      5125      5033      5436      5205      4920      5233   WO-2025-0001 (processing)
+/operation/processing/[id]              5555      5142      5066      5469      5150      4914      5189   PROC-2025-1001 (processing)
+/output/[id]/edit                       5291      5070      4925      5377      5013      4818      5132   CPW-2025-10001 (processing)
+/sales/quotes/[id]                       524       494       489       536       498       483         0   QT-2025-1001 (sales)
+/sales/orders/[id]                       661       629       617       668       631       608         0   SO-2025-1999 (sales)
+/sales/shipments/[id]                    615       587       578       626       589       568       556   SHP-2025-1667 (sales)
+/logistics/containers/[id]               835       788       782       876       798       768       570   CTR-2025-1000 (sales)
+/finance/invoices/[id]                   660       628       618       665       634       612         0   INV-2025-1999 (sales)
+/finance/credit-notes/[id]               664       629       622       665       634       609         0   CN-2025-0100 (sales)
+/hr/attendance/[id]                      328       317       314       341       318       320         0   ATT-2025-05 (people)
+/hr/overtime/[id]                        327       320       312       341       316       318         4   OT-2025-01 (people)
+/hr/leave/[id]                            62        62        62        73        62        71         1   LV-2025-1001 (people)
+/hr/payroll/[id]                         326       319       313       340       317       316         0   PAY-2025-0009 (people)
+/finance/journal/[id]                      0         0         0         0         0         0         0   JE-2025-P00001 (people)
+errors: 0
+EXIT=0

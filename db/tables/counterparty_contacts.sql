@@ -97,8 +97,8 @@ ALTER TABLE public.counterparty_contacts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "counterparty contacts select by owner permission"
     ON public.counterparty_contacts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
-        OR (supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)));
+    USING ((customer_id IS NOT NULL AND (SELECT has_permission('module.customers.view'::text)))
+        OR (supplier_id IS NOT NULL AND (SELECT has_permission('module.suppliers.view'::text))));
 -- 【没有 INSERT / UPDATE / DELETE 策略】唯一写入口是 save_counterparty_contact
 -- (SECURITY DEFINER)。理由与 collection_chases、折旧锚点同一条:
 -- "把某一行设成主联系人"要在【一笔事务】里把上一个主联系人撤掉,

@@ -21,6 +21,16 @@
 --   (Tim Q5:读者打不开的那一步永远是「受限」,不论有没有单据)。所以这里的"没找到"永远不会被画成"还没有"。
 -- ★ 每一跳最多 100 行(search_related_rows 的上限);页面一步只画 3 个链接 + "另外 N 个"。
 --
+-- ★★【CHAIN-WALK-COST(v1.4.80,Tim 2026-10-28)—— 一跳是【一条】集合查询,不是"每一张来源单据各问一次"】★★
+--   以前:每一张找到的单据 × 每一种目标单据各调一次 search_related_rows() —— 而那一支每调一次都从 pg_catalog 重新推一遍关联图
+--   (约 3.5 ms、9,325 个缓冲区),再造一句动态 SQL、再规划一次。一年体量上,销售那一条 616–681 ms。
+--   现在:同一个(目标步骤, 来源种类, 目标种类)整次只问一遍 —— 那一圈里这一种的【全部】来源单据一起交进去(= ANY($1)),
+--   边→SQL 的翻译每一对表整次只做一次(v_edge_sql)。翻译与 search_related_rows() 逐字同一份语义:同一张 document_relations、
+--   同一条前缀过滤、同一条自指排除、同一个"每一张来源、每一种目标最多 100 行,按单据号倒序"。
+--   等价是量出来的:以前那一支与这一支对一份线上数据的拷贝、每一张单据 × 七个角色逐行相同(1,939 / 1,939),
+--   对一年体量的种子同样逐行相同(docs/surveys/CHAIN-WALK-COST/readings/)。
+--   ☞ 读者看得见哪几张,照旧由 RLS 回答(INVOKER);策略里的权限判断同一刀包成了 (SELECT has_permission(…)),按语句求一次。
+--
 -- NOTE: introduced by db/migrations/2026-10-27-system-map-3-chain-bar.sql.
 
 CREATE OR REPLACE FUNCTION public.document_chain_walk(p_chain jsonb, p_step integer, p_key text, p_id uuid)
@@ -53,10 +63,24 @@ DECLARE
     v_added  integer;
     v_live   text[];
     v_has    boolean;
-    v_len    integer;
+    sk       text;
+    v_ids    uuid[];
+    v_sql    text;
+    v_edge   jsonb := '{}';
+    v_filter text;
+    ef       text;
+    et       record;
+    er       record;
+    v_parts  text[];
+    v_sel    text;
+    v_where  text;
+    v_ok     uuid[];
+    v_hid    uuid[];
+    v_hcode  text[];
+    v_hlabel text[];
     i        integer;
-    v_sig    text;
-    v_asked  text[] := '{}';
+    v_seen   jsonb := '{}';
+    v_askedj jsonb := '{}';
     v_t0     timestamptz := clock_timestamp();
     v_budget interval;
 BEGIN
@@ -151,16 +175,26 @@ BEGIN
         END IF;
     END LOOP;
 
+    -- ── 关联图:每一对表的边按需读一次、整次记住(v_edge)──────────────────────────────────
+    --   ★ CHAIN-WALK-COST -fu1(2026-10-29):以前这里整次把这条链上所有表之间的边一次读出来(本地 12–19 ms),线上实测那一句是走链最贵的一块 ——
+    --     一张只有一行的柜子页走链 859 ms(以前 29.6 ms),两次 2 秒上限拒绝。document_relations 是一张从 pg_catalog 推出来的视图,
+    --     按【一对】表等值筛的时候规划器把用不到的那几支(桥边、XOR 解析)整个剪掉;用 IN 一次筛全部时它们照算。所以回到按对读(线上一直便宜的那一种),
+    --     每一对整次只读一次。
+    -- 已经在哪一步上的单据(键 = 步骤|id)—— 一个键集,不是每加一行就把整个数组再扫一遍
+    SELECT coalesce(jsonb_object_agg(u.st || '|' || u.i, true), '{}') INTO v_seen FROM unnest(f_step, f_id) AS u(st, i);
+
     -- ── 一圈一圈往外走,直到不再长 ─────────────────────────────────────────────
     --   一步的来源 = 它的相邻步骤里【不比它离读者更远】的那些(同一圈的也算:销售那一条的"预留"与"发货"同在第一圈,
     --   发货要从预留那一侧也找得到)。一圈之内谁先谁后不决定答案:整张图再走一遍,直到这一遍一行都没有加。
     --   上限 n + 1 遍(每一遍至少加一行才会有下一遍,而步骤只有 n 个、行有限)。
-    --   ★ 每一组(目标步骤, 来源单据, 目标种类)整次只问一遍(v_asked)—— 后一遍只问新长出来的那几张(SYSTEM-MAP-3 实测:
-    --     不记的话第二遍把第一遍全部重问一次,七个读者并行时撞上 authenticated 的 8 秒语句上限)。
+    --   ★ CHAIN-WALK-COST:一跳 = 一条集合查询 —— (目标步骤 j, 来源种类 sk, 目标种类 t) 这一组里【还没问过的】全部来源单据一起交进去;
+    --     每一张来源单据对每一组整次只问一遍(v_askedj,与 -fu1 同一条:不记的话后一遍把前一遍全部重问一次);
+    --     "已经问过"与"已经在这一步上"都是键集(jsonb 的 ?),不是每加一行就重扫一遍的数组 —— 一张月结对账单走出一千多行时,那两次重扫是平方级的。
     FOR v_pass IN 1 .. n + 1 LOOP
         v_added := 0;
         FOR j IN SELECT g.i - 1 FROM generate_subscripts(dist, 1) AS g(i)
                   WHERE dist[g.i] > 0 ORDER BY dist[g.i], g.i LOOP
+            v_filter := v_steps->j->>'filter';
             SELECT coalesce(array_agg(DISTINCT x.s), '{}') INTO v_src
               FROM (SELECT CASE WHEN (ed->>0)::integer = j THEN (ed->>1)::integer ELSE (ed->>0)::integer END AS s
                       FROM jsonb_array_elements(v_edges) ed
@@ -169,38 +203,90 @@ BEGIN
 
             FOR t IN SELECT jsonb_array_elements_text(v_steps->j->'keys') LOOP
                 CONTINUE WHEN NOT (t = ANY (v_live));
-                v_len := cardinality(f_step);
-                FOR i IN 1 .. v_len LOOP
-                    CONTINUE WHEN NOT (f_step[i] = ANY (v_src));
+                FOR sk IN SELECT DISTINCT u.k FROM unnest(f_step, f_key) AS u(s, k) WHERE u.s = ANY (v_src) LOOP
+                    SELECT array_agg(DISTINCT u.i) INTO v_ids
+                      FROM unnest(f_step, f_key, f_id) AS u(s, k, i)
+                     WHERE u.s = ANY (v_src) AND u.k = sk
+                       AND NOT v_askedj ? (j::text || '|' || sk || '|' || u.i::text || '|' || t);
+                    CONTINUE WHEN v_ids IS NULL;
                     IF clock_timestamp() - v_t0 > v_budget THEN
                         RAISE EXCEPTION 'DOCUMENT_CHAIN_WALK_BUDGET|走了 % 毫秒,上限 % 毫秒 —— 这一条链这一次没有画完',
                             round(extract(epoch FROM clock_timestamp() - v_t0) * 1000), round(extract(epoch FROM v_budget) * 1000);
                     END IF;
-                    -- 键带上目标步骤:同一种单据在几步上(进料批 → 定价 → 应付),每一步各问一次
-                    v_sig := j::text || '|' || f_key[i] || '|' || f_id[i]::text || '|' || t;
-                    CONTINUE WHEN v_sig = ANY (v_asked);
-                    v_asked := v_asked || v_sig;
-                    -- 同一种单据在两步上 = 它自己(不经关联图);否则经关联图走一跳
-                    FOR r IN
-                        SELECT f_id[i] AS id, f_code[i] AS code, f_label[i] AS label WHERE f_key[i] = t
-                    LOOP
-                        CONTINUE WHEN EXISTS (SELECT 1 FROM unnest(f_step, f_id) AS h(hs, hi) WHERE h.hs = j AND h.hi = r.id);
-                        IF public.document_chain_step_admits(v_steps->j->>'filter', r.id) THEN
-                            f_step := f_step || j; f_key := f_key || t; f_id := f_id || r.id;
+                    v_askedj := v_askedj || (SELECT jsonb_object_agg(j::text || '|' || sk || '|' || x::text || '|' || t, true) FROM unnest(v_ids) x);
+
+                    -- 同一种单据在两步上 = 它自己(不经关联图)
+                    IF sk = t THEN
+                        -- 判据整组问一次(document_chain_step_admitted),不是每一张各问一次
+                        v_ok := ARRAY(SELECT a.id FROM public.document_chain_step_admitted(v_filter, v_ids) a);
+                        FOR r IN SELECT DISTINCT ON (u.i) u.i AS id, u.c AS code, u.l AS label
+                                   FROM unnest(f_key, f_id, f_code, f_label) AS u(k, i, c, l)
+                                  WHERE u.k = sk AND u.i = ANY (v_ids) AND u.i = ANY (v_ok) LOOP
+                            CONTINUE WHEN v_seen ? (j || '|' || r.id);
+                            f_step := f_step || j; f_key := f_key || t; f_id := f_id || r.id; v_seen := v_seen || jsonb_build_object(j || '|' || r.id, true);
                             f_code := f_code || r.code; f_label := f_label || r.label;
                             v_added := v_added + 1;
+                        END LOOP;
+                        CONTINUE;
+                    END IF;
+
+                    -- 否则经关联图走一跳:这一对表的边→SQL 整次只翻译一次(与 search_related_rows() 同一份语义)
+                    IF NOT v_edge ? (sk || '>' || t) THEN
+                        SELECT dt.table_name INTO ef FROM public.document_types dt WHERE dt.key = sk;
+                        SELECT dt.table_name, dt.prefix, dt.label_column,
+                               (SELECT count(*) > 1 FROM public.document_types d2 WHERE d2.table_name = dt.table_name) AS shared
+                          INTO et FROM public.document_types dt WHERE dt.key = t;
+                        v_sel := CASE WHEN et.label_column IS NULL THEN 'NULL::text' ELSE format('t.%I::text', et.label_column) END;
+                        v_parts := '{}';
+                        FOR er IN SELECT * FROM public.document_relations dr WHERE dr.from_table = ef AND dr.to_table = et.table_name LOOP
+                            IF er.kind = 'arm' THEN
+                                v_parts := v_parts || format(
+                                    'SELECT a.src, t.id, t.code, %s AS label'
+                                    ' FROM public.document_relation_arm_pairs(%L, $1) a JOIN public.%I t ON t.id = a.id',
+                                    v_sel, er.via_table, er.to_table);
+                            ELSIF er.kind = 'bridge' THEN
+                                v_parts := v_parts || format(
+                                    'SELECT s.id AS src, t.id, t.code, %s AS label FROM public.%I s JOIN public.%I v ON v.%I = s.%I'
+                                    ' JOIN public.%I t ON t.%I = v.%I WHERE s.id = ANY ($1)',
+                                    v_sel, er.from_table, er.via_table, er.via_from_column, er.from_column,
+                                    er.to_table, er.to_column, er.via_to_column);
+                            ELSE
+                                v_parts := v_parts || format(
+                                    'SELECT s.id AS src, t.id, t.code, %s AS label FROM public.%I s JOIN public.%I t ON t.%I = s.%I'
+                                    ' WHERE s.id = ANY ($1)',
+                                    v_sel, er.from_table, er.to_table, er.to_column, er.from_column);
+                            END IF;
+                        END LOOP;
+                        IF cardinality(v_parts) = 0 THEN
+                            v_sql := NULL;      -- 结构上没有边:这一组永远是空的(与 search_related_rows() 的"返回空集"同一条)
+                        ELSE
+                            v_where := 'TRUE';
+                            IF et.shared THEN v_where := v_where || format(' AND u.code LIKE %L', et.prefix || '-%'); END IF;
+                            IF et.table_name = ef THEN v_where := v_where || ' AND u.id <> u.src'; END IF;
+                            v_sql := format(
+                                'SELECT DISTINCT ON (r.id) r.id, r.code, r.label FROM ('
+                                ' SELECT d.*, row_number() OVER (PARTITION BY d.src ORDER BY d.code DESC) AS rn FROM ('
+                                '  SELECT DISTINCT ON (u.src, u.id) u.src, u.id, u.code, u.label FROM (%s) u WHERE %s ORDER BY u.src, u.id) d) r'
+                                ' WHERE r.rn <= 100 ORDER BY r.id',
+                                array_to_string(v_parts, ' UNION ALL '), v_where);
                         END IF;
-                    END LOOP;
-                    CONTINUE WHEN f_key[i] = t;
-                    FOR r IN
-                        SELECT q.id, q.code, q.label FROM public.search_related_rows(f_key[i], f_id[i], t, 100, NULL) q
-                    LOOP
-                        CONTINUE WHEN EXISTS (SELECT 1 FROM unnest(f_step, f_id) AS h(hs, hi) WHERE h.hs = j AND h.hi = r.id);
-                        IF public.document_chain_step_admits(v_steps->j->>'filter', r.id) THEN
-                            f_step := f_step || j; f_key := f_key || t; f_id := f_id || r.id;
-                            f_code := f_code || r.code; f_label := f_label || r.label;
-                            v_added := v_added + 1;
-                        END IF;
+                        v_edge := v_edge || jsonb_build_object(sk || '>' || t, v_sql);
+                    END IF;
+                    v_sql := v_edge ->> (sk || '>' || t);
+                    CONTINUE WHEN v_sql IS NULL;
+                    -- 这一跳找到的全部候选先收齐,判据整组问一次,再一行一行加
+                    EXECUTE 'SELECT coalesce(array_agg(q.id), ''{}''), coalesce(array_agg(q.code), ''{}''), coalesce(array_agg(q.label), ''{}'') FROM ('
+                            || v_sql || ') q'
+                       INTO v_hid, v_hcode, v_hlabel USING v_ids;
+                    CONTINUE WHEN cardinality(v_hid) = 0;
+                    v_ok := CASE WHEN v_filter IS NULL THEN v_hid
+                                 ELSE ARRAY(SELECT a.id FROM public.document_chain_step_admitted(v_filter, v_hid) a) END;
+                    FOR i IN 1 .. cardinality(v_hid) LOOP
+                        CONTINUE WHEN v_seen ? (j || '|' || v_hid[i]) OR NOT (v_hid[i] = ANY (v_ok));
+                        f_step := f_step || j; f_key := f_key || t; f_id := f_id || v_hid[i];
+                        v_seen := v_seen || jsonb_build_object(j || '|' || v_hid[i], true);
+                        f_code := f_code || v_hcode[i]; f_label := f_label || v_hlabel[i];
+                        v_added := v_added + 1;
                     END LOOP;
                 END LOOP;
             END LOOP;
@@ -208,9 +294,17 @@ BEGIN
         EXIT WHEN v_added = 0;
     END LOOP;
 
+    -- 地址:每一种单据整组问一次 document_detail_hrefs(化验单的地址要读它那一批 —— 一组只读一次表,不是每一张各读一次)
     RETURN QUERY
-    SELECT u.st, u.k, u.i, u.c, u.l, public.document_detail_href(u.k, u.i)
-      FROM unnest(f_step, f_key, f_id, f_code, f_label) AS u(st, k, i, c, l)
+    WITH u AS (
+        SELECT * FROM unnest(f_step, f_key, f_id, f_code, f_label) AS u(st, k, i, c, l)
+    ), h AS (
+        SELECT DISTINCT kk.k, x.id, x.href
+          FROM (SELECT DISTINCT u.k FROM u) kk
+          CROSS JOIN LATERAL public.document_detail_hrefs(kk.k, ARRAY(SELECT DISTINCT u2.i FROM u u2 WHERE u2.k = kk.k)) x
+    )
+    SELECT u.st, u.k, u.i, u.c, u.l, h.href
+      FROM u LEFT JOIN h ON h.k = u.k AND h.id = u.i
      ORDER BY u.st, u.c DESC;
 END;
 $function$;

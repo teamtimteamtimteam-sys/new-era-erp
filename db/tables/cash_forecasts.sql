@@ -45,4 +45,4 @@ ALTER TABLE public.cash_forecasts ENABLE ROW LEVEL SECURITY;
 -- 没有 INSERT/UPDATE/DELETE 策略:唯一写入口是 freeze_cash_forecast(属主权限)
 CREATE POLICY "cash_forecasts select by permission" ON public.cash_forecasts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

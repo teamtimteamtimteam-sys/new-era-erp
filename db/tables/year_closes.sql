@@ -59,5 +59,5 @@ CREATE TRIGGER trg_year_closes_immutable
 ALTER TABLE public.year_closes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "year_closes select by permission" ON public.year_closes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 -- 写入只经 SECURITY DEFINER 函数;不开 INSERT/UPDATE/DELETE 策略。

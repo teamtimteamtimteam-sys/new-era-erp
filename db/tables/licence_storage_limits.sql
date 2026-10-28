@@ -33,17 +33,17 @@ ALTER TABLE public.licence_storage_limits ENABLE ROW LEVEL SECURITY;
 -- 与 company_compliance 同一对码:读 module.suppliers.view,写 module.suppliers.edit。
 CREATE POLICY "licence_storage_limits select by permission"
     ON public.licence_storage_limits AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'));
+    USING ((SELECT has_permission('module.suppliers.view')));
 CREATE POLICY "licence_storage_limits insert by permission"
     ON public.licence_storage_limits AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.suppliers.edit'));
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit')));
 CREATE POLICY "licence_storage_limits update by permission"
     ON public.licence_storage_limits AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.suppliers.edit'))
-    WITH CHECK (has_permission('module.suppliers.edit'));
+    USING ((SELECT has_permission('module.suppliers.edit')))
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit')));
 CREATE POLICY "licence_storage_limits delete by permission"
     ON public.licence_storage_limits AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.suppliers.edit'));
+    USING ((SELECT has_permission('module.suppliers.edit')));
 
 REVOKE ALL ON public.licence_storage_limits FROM anon;
 

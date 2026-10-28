@@ -41,7 +41,7 @@ ALTER TABLE public.tax_rates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tax_rates select by permission"
     ON public.tax_rates
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子:法定税率史】。逐行跟踪线上(check_mirrors 的 SEED_TABLES)。

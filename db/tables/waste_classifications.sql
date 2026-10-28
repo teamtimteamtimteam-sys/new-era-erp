@@ -49,8 +49,8 @@ CREATE POLICY "waste_classifications select"
     ON public.waste_classifications AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "waste_classifications write by permission"
     ON public.waste_classifications AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.materials.edit'))
-    WITH CHECK (has_permission('module.materials.edit'));
+    USING ((SELECT has_permission('module.materials.edit')))
+    WITH CHECK ((SELECT has_permission('module.materials.edit')));
 
 -- ── 引导:Tim 点名的两个,理由写在行上 ──────────────────────────────────────
 INSERT INTO public.waste_classifications (code, name_en, name_zh, is_controlled, sort_order, notes) VALUES

@@ -31,5 +31,5 @@ ALTER TABLE public.cod_issues ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "cod_issues select by permission"
     ON public.cod_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('action.issue_cod'::text));
+    USING ((SELECT has_permission('action.issue_cod'::text)));
 -- 【没有 INSERT 策略,这是刻意的】唯一写入口是 record_cod_issue()。

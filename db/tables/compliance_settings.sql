@@ -42,6 +42,6 @@ ALTER TABLE public.compliance_settings ENABLE ROW LEVEL SECURITY;
 -- 读:合规的查看码(合规包页的设定面板、待补的值那两行)。写只经函数。
 CREATE POLICY "compliance_settings select by permission" ON public.compliance_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.compliance.view'::text));
+    USING ((SELECT has_permission('module.compliance.view'::text)));
 GRANT SELECT ON public.compliance_settings TO authenticated;
 REVOKE ALL ON public.compliance_settings FROM anon;

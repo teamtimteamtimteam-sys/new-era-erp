@@ -1,0 +1,1262 @@
+STEP|database as postgres (base tables): {"purchase_order":"861fe74b-14d8-45f7-992c-92aa9aaaac90","inbound_batch":"d719cc6e-3b84-45f3-be3e-a2c0594079e1","inbound_batch_any":"5163d599-77e7-4b76-a61b-8f4ff47d7a7c","assay":"38a2653b-8738-4997-a4e6-e1847fbd00f6|662bfff7-6121-454c-b37b-fd69a90c3b99","payable":"a64532e3-b58b-4c2a-9dc2-abc88af8c078","payment_out":"ca9697a1-c9ad-4222-a16b-85e31ada415c","bank_statement":"e65a8389-9707-48b2-b39c-a249823cff71","work_order":"5564bf06-ac59-44be-b372-b2ec92ed3f77","processing_run":"ea0d9479-11d2-4e17-98b3-2140ae880969","output_batch":"12dd44fb-7400-4122-81bf-3fd1f9c9e2a7","output_0119":"848d954a-1a82-49cb-b71f-f82716c39ff9","quote":"896c59df-89fc-486f-b50e-d290803cf0bb","sales_order":"0564cb00-6890-4dee-b9ba-0f8618540cf4","shipment":"9895abe0-17cc-4a82-afc5-a108f9ae2221","container":"9381f352-115d-4b89-add3-efb3cb8a4965","invoice":"63951e5b-5681-47f1-803a-4d25a63faa37","payment_receipt":"bcc4c794-e6e1-42ac-8b19-7dfffe571284","credit_note":"a4d827ce-d184-4ec0-9b59-8bfa959ffc9a","leave_request":"e1cb68da-9299-4d40-9d92-91bba7b4c680","payroll_period":"b3784931-8c17-4f63-b6f3-7809b52bb1a2","payroll_payment":"bc3b3db0-5b34-49d9-a6f9-9cd8923237ed","none":{"payment_requests":0,"attendance_periods":0,"overtime_batches":0}}
+PASS|live data: a purchase order to look at (861fe74b-14d8-45f7-992c-92aa9aaaac90)
+PASS|live data: a inbound batch to look at (d719cc6e-3b84-45f3-be3e-a2c0594079e1)
+PASS|live data: a assay to look at (38a2653b-8738-4997-a4e6-e1847fbd00f6)
+PASS|live data: a payable to look at (a64532e3-b58b-4c2a-9dc2-abc88af8c078)
+PASS|live data: a payment to look at (ca9697a1-c9ad-4222-a16b-85e31ada415c)
+PASS|live data: a bank statement to look at (e65a8389-9707-48b2-b39c-a249823cff71)
+PASS|live data: a work order to look at (5564bf06-ac59-44be-b372-b2ec92ed3f77)
+PASS|live data: a processing run to look at (ea0d9479-11d2-4e17-98b3-2140ae880969)
+PASS|live data: a output batch to look at (12dd44fb-7400-4122-81bf-3fd1f9c9e2a7)
+PASS|live data: a output batch OUT-2026-0119 to look at (848d954a-1a82-49cb-b71f-f82716c39ff9)
+PASS|live data: a quote to look at (896c59df-89fc-486f-b50e-d290803cf0bb)
+PASS|live data: a sales order to look at (0564cb00-6890-4dee-b9ba-0f8618540cf4)
+PASS|live data: a shipment to look at (9895abe0-17cc-4a82-afc5-a108f9ae2221)
+PASS|live data: a container to look at (9381f352-115d-4b89-add3-efb3cb8a4965)
+PASS|live data: a invoice to look at (63951e5b-5681-47f1-803a-4d25a63faa37)
+PASS|live data: a receipt to look at (bcc4c794-e6e1-42ac-8b19-7dfffe571284)
+PASS|live data: a credit note to look at (a4d827ce-d184-4ec0-9b59-8bfa959ffc9a)
+PASS|live data: a leave to look at (e1cb68da-9299-4d40-9d92-91bba7b4c680)
+PASS|live data: a payroll period to look at (b3784931-8c17-4f63-b6f3-7809b52bb1a2)
+PASS|live data: a payroll payment to look at (bc3b3db0-5b34-49d9-a6f9-9cd8923237ed)
+STEP|no live data (proved only by fixture 296 on the local rebuild): {"payment_requests":0,"attendance_periods":0,"overtime_batches":0}
+SELECT1|before admin client round trips 408 / 515 / 442 / 407 / 1087 ms (median 442) · server execution 0.056 ms
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|admin · purchase order: the audit trail section is drawn (entries)
+TIME|admin · purchase order · walk purchasing: 150.496 ms
+PASS|admin · purchase order · walk purchasing inside the database: 150.496 ms, not refused
+TIME|admin · purchase order · trail: 131.495 ms
+PASS|admin · purchase order · trail inside the database: 131.495 ms
+PASS|admin · purchase order: the purchasing chain is drawn
+PASS|admin · purchase order: purchasing has all 8 steps, "purchase_order" marked as here (8 drawn)
+PASS|admin · purchase order · purchasing.purchase_order: not blank (current: "Purchase order PO-2026-0001")
+PASS|admin · purchase order · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0029")
+PASS|admin · purchase order · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|admin · purchase order · purchasing.inbound_batch: link /inbound/5163d599-77e7-4b76-a61b-8f4ff47d7a7c/edit resolves (HTTP 200)
+PASS|admin · purchase order · purchasing.assay: not blank (none: "Assay none yet")
+PASS|admin · purchase order · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|admin · purchase order · purchasing.pricing: not blank (found: "Pricing IN-2026-0029")
+PASS|admin · purchase order · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|admin · purchase order · purchasing.pricing: link /inbound/5163d599-77e7-4b76-a61b-8f4ff47d7a7c/edit#pricing resolves (HTTP 200)
+PASS|admin · purchase order · purchasing.payable: not blank (found: "Payable IN-2026-0029")
+PASS|admin · purchase order · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|admin · purchase order · purchasing.payable: link /finance/payables/5163d599-77e7-4b76-a61b-8f4ff47d7a7c resolves (HTTP 200)
+PASS|admin · purchase order · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|admin · purchase order · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|admin · purchase order · purchasing.payment: not blank (none: "Payment none yet")
+PASS|admin · purchase order · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|admin · purchase order · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|admin · purchase order · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|admin · purchase order: "All related records" → /related/purchase_order/861fe74b-14d8-45f7-992c-92aa9aaaac90 (HTTP 200)
+PASS|admin · inbound batch: the audit trail section is drawn (entries)
+TIME|admin · inbound batch · walk purchasing: 221.853 ms
+PASS|admin · inbound batch · walk purchasing inside the database: 221.853 ms, not refused
+TIME|admin · inbound batch · walk processing: 111.379 ms
+PASS|admin · inbound batch · walk processing inside the database: 111.379 ms, not refused
+TIME|admin · inbound batch · trail: 498.492 ms
+PASS|admin · inbound batch · trail inside the database: 498.492 ms
+PASS|admin · inbound batch: the purchasing chain is drawn
+PASS|admin · inbound batch: purchasing has all 8 steps, "inbound_batch" marked as here (8 drawn)
+PASS|admin · inbound batch · purchasing.purchase_order: not blank (found: "Purchase order PO-2026-0002")
+PASS|admin · inbound batch · purchasing.purchase_order: holds module.purchasing.view → not restricted (found)
+PASS|admin · inbound batch · purchasing.purchase_order: link /purchasing/orders/79c9228c-5168-4add-97a0-44cff9e37993 resolves (HTTP 200)
+PASS|admin · inbound batch · purchasing.inbound_batch: not blank (current: "Inbound batch IN-2026-0152")
+PASS|admin · inbound batch · purchasing.assay: not blank (found: "Assay ASY-2026-0002")
+PASS|admin · inbound batch · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (found)
+PASS|admin · inbound batch · purchasing.assay: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/assays/18555e99-5ecb-4731-ada8-76a088166306 resolves (HTTP 200)
+PASS|admin · inbound batch · purchasing.pricing: not blank (found: "Pricing IN-2026-0152")
+PASS|admin · inbound batch · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|admin · inbound batch · purchasing.pricing: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/edit#pricing resolves (HTTP 200)
+PASS|admin · inbound batch · purchasing.payable: not blank (found: "Payable IN-2026-0152")
+PASS|admin · inbound batch · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|admin · inbound batch · purchasing.payable: link /finance/payables/d719cc6e-3b84-45f3-be3e-a2c0594079e1 resolves (HTTP 200)
+PASS|admin · inbound batch · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|admin · inbound batch · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|admin · inbound batch · purchasing.payment: not blank (none: "Payment none yet")
+PASS|admin · inbound batch · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|admin · inbound batch · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|admin · inbound batch · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|admin · inbound batch: the processing chain is drawn
+PASS|admin · inbound batch: processing has all 5 steps, "input_batches" marked as here (5 drawn)
+PASS|admin · inbound batch · processing.work_order: not blank (none: "Work order none yet")
+PASS|admin · inbound batch · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|admin · inbound batch · processing.processing_run: not blank (found: "Processing run PROC-2026-0107")
+PASS|admin · inbound batch · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|admin · inbound batch · processing.processing_run: link /operation/processing/4796d43a-20bc-49e1-9c2b-0f2a585a30de resolves (HTTP 200)
+PASS|admin · inbound batch · processing.input_batches: not blank (current: "Input batches IN-2026-0152")
+PASS|admin · inbound batch · processing.output_batches: not blank (found: "Output batches OUT-2026-0119")
+PASS|admin · inbound batch · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|admin · inbound batch · processing.output_batches: link /output/848d954a-1a82-49cb-b71f-f82716c39ff9/edit resolves (HTTP 200)
+PASS|admin · inbound batch · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|admin · inbound batch · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|admin · inbound batch: "All related records" → /related/inbound_batch/d719cc6e-3b84-45f3-be3e-a2c0594079e1 (HTTP 200)
+TIME|admin · assay · walk purchasing: 958.057 ms
+PASS|admin · assay · walk purchasing inside the database: 958.057 ms, not refused
+PASS|admin · assay: the purchasing chain is drawn
+PASS|admin · assay: purchasing has all 8 steps, "assay" marked as here (8 drawn)
+PASS|admin · assay · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|admin · assay · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|admin · assay · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0001")
+PASS|admin · assay · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|admin · assay · purchasing.inbound_batch: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit resolves (HTTP 200)
+PASS|admin · assay · purchasing.assay: not blank (current: "Assay ASY-2026-0001")
+PASS|admin · assay · purchasing.pricing: not blank (found: "Pricing IN-2026-0001")
+PASS|admin · assay · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|admin · assay · purchasing.pricing: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit#pricing resolves (HTTP 200)
+PASS|admin · assay · purchasing.payable: not blank (found: "Payable IN-2026-0001")
+PASS|admin · assay · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|admin · assay · purchasing.payable: link /finance/payables/662bfff7-6121-454c-b37b-fd69a90c3b99 resolves (HTTP 200)
+PASS|admin · assay · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|admin · assay · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|admin · assay · purchasing.payment: not blank (none: "Payment none yet")
+PASS|admin · assay · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|admin · assay · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|admin · assay · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|admin · assay: "All related records" → /related/assay_result/38a2653b-8738-4997-a4e6-e1847fbd00f6 (HTTP 200)
+PASS|admin · payable: the audit trail section is drawn (entries)
+TIME|admin · payable · walk purchasing: 347.59 ms
+PASS|admin · payable · walk purchasing inside the database: 347.59 ms, not refused
+TIME|admin · payable · trail: 290.339 ms
+PASS|admin · payable · trail inside the database: 290.339 ms
+PASS|admin · payable: the purchasing chain is drawn
+PASS|admin · payable: purchasing has all 8 steps, "payable" marked as here (8 drawn)
+PASS|admin · payable · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|admin · payable · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|admin · payable · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0003")
+PASS|admin · payable · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|admin · payable · purchasing.inbound_batch: link /inbound/a64532e3-b58b-4c2a-9dc2-abc88af8c078/edit resolves (HTTP 200)
+PASS|admin · payable · purchasing.assay: not blank (none: "Assay none yet")
+PASS|admin · payable · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|admin · payable · purchasing.pricing: not blank (found: "Pricing IN-2026-0003")
+PASS|admin · payable · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|admin · payable · purchasing.pricing: link /inbound/a64532e3-b58b-4c2a-9dc2-abc88af8c078/edit#pricing resolves (HTTP 200)
+PASS|admin · payable · purchasing.payable: not blank (current: "Payable IN-2026-0003")
+PASS|admin · payable · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|admin · payable · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|admin · payable · purchasing.payment: not blank (none: "Payment none yet")
+PASS|admin · payable · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|admin · payable · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|admin · payable · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|admin · payable: "All related records" → /related/inbound_batch/a64532e3-b58b-4c2a-9dc2-abc88af8c078 (HTTP 200)
+PASS|admin · payment: the audit trail section is drawn (entries)
+TIME|admin · payment · walk purchasing: 949.661 ms
+PASS|admin · payment · walk purchasing inside the database: 949.661 ms, not refused
+TIME|admin · payment · trail: 229.667 ms
+PASS|admin · payment · trail inside the database: 229.667 ms
+PASS|admin · payment: the purchasing chain is drawn
+PASS|admin · payment: purchasing has all 8 steps, "payment" marked as here (8 drawn)
+PASS|admin · payment · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|admin · payment · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|admin · payment · purchasing.inbound_batch: not blank (none: "Inbound batch none yet")
+PASS|admin · payment · purchasing.inbound_batch: holds module.inbound.view → not restricted (none)
+PASS|admin · payment · purchasing.assay: not blank (none: "Assay none yet")
+PASS|admin · payment · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|admin · payment · purchasing.pricing: not blank (none: "Pricing none yet")
+PASS|admin · payment · purchasing.pricing: holds module.inbound.view → not restricted (none)
+PASS|admin · payment · purchasing.payable: not blank (none: "Payable none yet")
+PASS|admin · payment · purchasing.payable: holds module.finance.view → not restricted (none)
+PASS|admin · payment · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|admin · payment · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|admin · payment · purchasing.payment: not blank (current: "Payment PMT-2026-0001")
+PASS|admin · payment · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|admin · payment · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|admin · payment: "All related records" → /related/payment_out/ca9697a1-c9ad-4222-a16b-85e31ada415c (HTTP 200)
+PASS|admin · bank statement: the audit trail section is drawn (entries)
+TIME|admin · bank statement · walk purchasing: 1149.762 ms
+PASS|admin · bank statement · walk purchasing inside the database: 1149.762 ms, not refused
+TIME|admin · bank statement · trail: 273.627 ms
+PASS|admin · bank statement · trail inside the database: 273.627 ms
+PASS|admin · bank statement: the purchasing chain is drawn
+PASS|admin · bank statement: purchasing has all 8 steps, "bank_reconciliation" marked as here (8 drawn)
+PASS|admin · bank statement · purchasing.purchase_order: not blank (none: "Purchase ordernone yet")
+PASS|admin · bank statement · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|admin · bank statement · purchasing.inbound_batch: not blank (none: "Inbound batchnone yet")
+PASS|admin · bank statement · purchasing.inbound_batch: holds module.inbound.view → not restricted (none)
+PASS|admin · bank statement · purchasing.assay: not blank (none: "Assaynone yet")
+PASS|admin · bank statement · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|admin · bank statement · purchasing.pricing: not blank (none: "Pricingnone yet")
+PASS|admin · bank statement · purchasing.pricing: holds module.inbound.view → not restricted (none)
+PASS|admin · bank statement · purchasing.payable: not blank (none: "Payablenone yet")
+PASS|admin · bank statement · purchasing.payable: holds module.finance.view → not restricted (none)
+PASS|admin · bank statement · purchasing.payment_request: not blank (none: "Payment requestnone yet")
+PASS|admin · bank statement · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|admin · bank statement · purchasing.payment: not blank (none: "Paymentnone yet")
+PASS|admin · bank statement · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|admin · bank statement · purchasing.bank_reconciliation: not blank (current: "Bank reconciliationBS-2026-0001")
+PASS|admin · bank statement: "All related records" → /related/bank_statement/e65a8389-9707-48b2-b39c-a249823cff71 (HTTP 200)
+PASS|admin · work order: the audit trail section is drawn (entries)
+TIME|admin · work order · walk processing: 559.146 ms
+PASS|admin · work order · walk processing inside the database: 559.146 ms, not refused
+TIME|admin · work order · trail: 161.34 ms
+PASS|admin · work order · trail inside the database: 161.34 ms
+PASS|admin · work order: the processing chain is drawn
+PASS|admin · work order: processing has all 5 steps, "work_order" marked as here (5 drawn)
+PASS|admin · work order · processing.work_order: not blank (current: "Work order WO-2026-0001")
+PASS|admin · work order · processing.processing_run: not blank (found: "Processing run PROC-2026-0225")
+PASS|admin · work order · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|admin · work order · processing.processing_run: link /operation/processing/ea0d9479-11d2-4e17-98b3-2140ae880969 resolves (HTTP 200)
+PASS|admin · work order · processing.input_batches: not blank (found: "Input batches IN-2026-0180")
+PASS|admin · work order · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|admin · work order · processing.input_batches: link /inbound/f38d23de-6959-473c-b98e-94b18cf06342/edit resolves (HTTP 200)
+PASS|admin · work order · processing.output_batches: not blank (found: "Output batches OUT-2026-0381 OUT-2026-0380")
+PASS|admin · work order · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|admin · work order · processing.output_batches: link /output/b9edf2ac-c1af-4837-afaa-afbbfbed0344/edit resolves (HTTP 200)
+PASS|admin · work order · processing.output_batches: link /output/7329b061-9b21-4ad3-bc23-2ead6c8fb30a/edit resolves (HTTP 200)
+PASS|admin · work order · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|admin · work order · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|admin · work order: "All related records" → /related/work_order/5564bf06-ac59-44be-b372-b2ec92ed3f77 (HTTP 200)
+PASS|admin · processing run: the audit trail section is drawn (entries)
+TIME|admin · processing run · walk processing: 916.399 ms
+PASS|admin · processing run · walk processing inside the database: 916.399 ms, not refused
+TIME|admin · processing run · trail: 275.363 ms
+PASS|admin · processing run · trail inside the database: 275.363 ms
+PASS|admin · processing run: the processing chain is drawn
+PASS|admin · processing run: processing has all 5 steps, "processing_run" marked as here (5 drawn)
+PASS|admin · processing run · processing.work_order: not blank (found: "Work order WO-2026-0001")
+PASS|admin · processing run · processing.work_order: holds module.processing.view → not restricted (found)
+PASS|admin · processing run · processing.work_order: link /operation/orders/5564bf06-ac59-44be-b372-b2ec92ed3f77 resolves (HTTP 200)
+PASS|admin · processing run · processing.processing_run: not blank (current: "Processing run PROC-2026-0225")
+PASS|admin · processing run · processing.input_batches: not blank (found: "Input batches IN-2026-0180")
+PASS|admin · processing run · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|admin · processing run · processing.input_batches: link /inbound/f38d23de-6959-473c-b98e-94b18cf06342/edit resolves (HTTP 200)
+PASS|admin · processing run · processing.output_batches: not blank (found: "Output batches OUT-2026-0381 OUT-2026-0380")
+PASS|admin · processing run · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|admin · processing run · processing.output_batches: link /output/b9edf2ac-c1af-4837-afaa-afbbfbed0344/edit resolves (HTTP 200)
+PASS|admin · processing run · processing.output_batches: link /output/7329b061-9b21-4ad3-bc23-2ead6c8fb30a/edit resolves (HTTP 200)
+PASS|admin · processing run · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|admin · processing run · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|admin · processing run: "All related records" → /related/processing_run/ea0d9479-11d2-4e17-98b3-2140ae880969 (HTTP 200)
+PASS|admin · output batch: the audit trail section is drawn (entries)
+TIME|admin · output batch · walk processing: 961.636 ms
+PASS|admin · output batch · walk processing inside the database: 961.636 ms, not refused
+TIME|admin · output batch · trail: 703.674 ms
+PASS|admin · output batch · trail inside the database: 703.674 ms
+PASS|admin · output batch: the processing chain is drawn
+PASS|admin · output batch: processing has all 5 steps, "output_batches" marked as here (5 drawn)
+PASS|admin · output batch · processing.work_order: not blank (none: "Work order none yet")
+PASS|admin · output batch · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|admin · output batch · processing.processing_run: not blank (found: "Processing run PROC-2026-0106")
+PASS|admin · output batch · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|admin · output batch · processing.processing_run: link /operation/processing/7383eb11-cdfe-49b7-a9f6-5cb7bd1f889c resolves (HTTP 200)
+PASS|admin · output batch · processing.input_batches: not blank (found: "Input batches IN-2026-0001")
+PASS|admin · output batch · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|admin · output batch · processing.input_batches: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit resolves (HTTP 200)
+PASS|admin · output batch · processing.output_batches: not blank (current: "Output batches OUT-2026-0118")
+PASS|admin · output batch · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|admin · output batch · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|admin · output batch: "All related records" → /related/output_batch/12dd44fb-7400-4122-81bf-3fd1f9c9e2a7 (HTTP 200)
+PASS|admin · output batch OUT-2026-0119: the audit trail section is drawn (entries)
+TIME|admin · output batch OUT-2026-0119 · walk processing: 1068.7 ms
+PASS|admin · output batch OUT-2026-0119 · walk processing inside the database: 1068.7 ms, not refused
+TIME|admin · output batch OUT-2026-0119 · trail: 421.592 ms
+PASS|admin · output batch OUT-2026-0119 · trail inside the database: 421.592 ms
+PASS|admin · output batch OUT-2026-0119: the processing chain is drawn
+PASS|admin · output batch OUT-2026-0119: processing has all 5 steps, "output_batches" marked as here (5 drawn)
+PASS|admin · output batch OUT-2026-0119 · processing.work_order: not blank (none: "Work order none yet")
+PASS|admin · output batch OUT-2026-0119 · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|admin · output batch OUT-2026-0119 · processing.processing_run: not blank (found: "Processing run PROC-2026-0107")
+PASS|admin · output batch OUT-2026-0119 · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|admin · output batch OUT-2026-0119 · processing.processing_run: link /operation/processing/4796d43a-20bc-49e1-9c2b-0f2a585a30de resolves (HTTP 200)
+PASS|admin · output batch OUT-2026-0119 · processing.input_batches: not blank (found: "Input batches IN-2026-0152")
+PASS|admin · output batch OUT-2026-0119 · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|admin · output batch OUT-2026-0119 · processing.input_batches: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/edit resolves (HTTP 200)
+PASS|admin · output batch OUT-2026-0119 · processing.output_batches: not blank (current: "Output batches OUT-2026-0119")
+PASS|admin · output batch OUT-2026-0119 · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|admin · output batch OUT-2026-0119 · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|admin · output batch OUT-2026-0119: "All related records" → /related/output_batch/848d954a-1a82-49cb-b71f-f82716c39ff9 (HTTP 200)
+PASS|admin · quote: the audit trail section is drawn (entries)
+TIME|admin · quote · walk sales: 805.368 ms
+PASS|admin · quote · walk sales inside the database: 805.368 ms, not refused
+TIME|admin · quote · trail: 280.659 ms
+PASS|admin · quote · trail inside the database: 280.659 ms
+PASS|admin · quote: the sales chain is drawn
+PASS|admin · quote: sales has all 8 steps, "quote" marked as here (8 drawn)
+PASS|admin · quote · sales.quote: not blank (current: "QuoteQT-2026-0001")
+PASS|admin · quote · sales.sales_order: not blank (found: "Sales orderSO-2026-0004")
+PASS|admin · quote · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|admin · quote · sales.sales_order: link /sales/orders/5daf053f-fce3-4df7-a2ef-f577f47d99b2 resolves (HTTP 200)
+PASS|admin · quote · sales.reservation: not blank (none: "Reservationnone yet")
+PASS|admin · quote · sales.reservation: holds module.sales.view → not restricted (none)
+PASS|admin · quote · sales.shipment: not blank (none: "Shipmentnone yet")
+PASS|admin · quote · sales.shipment: holds module.sales.view → not restricted (none)
+PASS|admin · quote · sales.container: not blank (none: "Containernone yet")
+PASS|admin · quote · sales.container: holds module.logistics.view → not restricted (none)
+PASS|admin · quote · sales.invoice: not blank (none: "Invoicenone yet")
+PASS|admin · quote · sales.invoice: holds module.finance.view → not restricted (none)
+PASS|admin · quote · sales.receipt: not blank (none: "Receiptnone yet")
+PASS|admin · quote · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|admin · quote · sales.credit_note: not blank (none: "Credit notenone yet")
+PASS|admin · quote · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|admin · quote: "All related records" → /related/quote/896c59df-89fc-486f-b50e-d290803cf0bb (HTTP 200)
+PASS|admin · sales order: the audit trail section is drawn (entries)
+TIME|admin · sales order · walk sales: 788.528 ms
+PASS|admin · sales order · walk sales inside the database: 788.528 ms, not refused
+TIME|admin · sales order · trail: 309.751 ms
+PASS|admin · sales order · trail inside the database: 309.751 ms
+PASS|admin · sales order: the sales chain is drawn
+PASS|admin · sales order: sales has all 8 steps, "sales_order" marked as here (8 drawn)
+PASS|admin · sales order · sales.quote: not blank (none: "Quote none yet")
+PASS|admin · sales order · sales.quote: holds module.sales.view → not restricted (none)
+PASS|admin · sales order · sales.sales_order: not blank (current: "Sales order SO-2026-0001")
+PASS|admin · sales order · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|admin · sales order · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|admin · sales order · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|admin · sales order · sales.shipment: not blank (found: "Shipment SHP-2026-0001")
+PASS|admin · sales order · sales.shipment: holds module.sales.view → not restricted (found)
+PASS|admin · sales order · sales.shipment: link /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221 resolves (HTTP 200)
+PASS|admin · sales order · sales.container: not blank (none: "Container none yet")
+PASS|admin · sales order · sales.container: holds module.logistics.view → not restricted (none)
+PASS|admin · sales order · sales.invoice: not blank (found: "Invoice INV-2026-0007 INV-2026-0006")
+PASS|admin · sales order · sales.invoice: holds module.finance.view → not restricted (found)
+PASS|admin · sales order · sales.invoice: link /finance/invoices/b82d06cf-fc0b-4233-9aba-44ba5e895190 resolves (HTTP 200)
+PASS|admin · sales order · sales.invoice: link /finance/invoices/63951e5b-5681-47f1-803a-4d25a63faa37 resolves (HTTP 200)
+PASS|admin · sales order · sales.receipt: not blank (none: "Receipt none yet")
+PASS|admin · sales order · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|admin · sales order · sales.credit_note: not blank (found: "Credit note CN-2026-0001")
+PASS|admin · sales order · sales.credit_note: holds module.finance.view → not restricted (found)
+PASS|admin · sales order · sales.credit_note: link /finance/credit-notes/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a resolves (HTTP 200)
+PASS|admin · sales order: "All related records" → /related/sales_order/0564cb00-6890-4dee-b9ba-0f8618540cf4 (HTTP 200)
+PASS|admin · shipment: the audit trail section is drawn (entries)
+TIME|admin · shipment · walk sales: 808.277 ms
+PASS|admin · shipment · walk sales inside the database: 808.277 ms, not refused
+TIME|admin · shipment · trail: 338.379 ms
+PASS|admin · shipment · trail inside the database: 338.379 ms
+PASS|admin · shipment: the sales chain is drawn
+PASS|admin · shipment: sales has all 8 steps, "shipment" marked as here (8 drawn)
+PASS|admin · shipment · sales.quote: not blank (none: "Quote none yet")
+PASS|admin · shipment · sales.quote: holds module.sales.view → not restricted (none)
+PASS|admin · shipment · sales.sales_order: not blank (found: "Sales order SO-2026-0001")
+PASS|admin · shipment · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|admin · shipment · sales.sales_order: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4 resolves (HTTP 200)
+PASS|admin · shipment · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|admin · shipment · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|admin · shipment · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|admin · shipment · sales.shipment: not blank (current: "Shipment SHP-2026-0001")
+PASS|admin · shipment · sales.container: not blank (none: "Container none yet")
+PASS|admin · shipment · sales.container: holds module.logistics.view → not restricted (none)
+PASS|admin · shipment · sales.invoice: not blank (found: "Invoice INV-2026-0007 INV-2026-0006")
+PASS|admin · shipment · sales.invoice: holds module.finance.view → not restricted (found)
+PASS|admin · shipment · sales.invoice: link /finance/invoices/b82d06cf-fc0b-4233-9aba-44ba5e895190 resolves (HTTP 200)
+PASS|admin · shipment · sales.invoice: link /finance/invoices/63951e5b-5681-47f1-803a-4d25a63faa37 resolves (HTTP 200)
+PASS|admin · shipment · sales.receipt: not blank (none: "Receipt none yet")
+PASS|admin · shipment · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|admin · shipment · sales.credit_note: not blank (found: "Credit note CN-2026-0001")
+PASS|admin · shipment · sales.credit_note: holds module.finance.view → not restricted (found)
+PASS|admin · shipment · sales.credit_note: link /finance/credit-notes/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a resolves (HTTP 200)
+PASS|admin · shipment: "All related records" → /related/shipment/9895abe0-17cc-4a82-afc5-a108f9ae2221 (HTTP 200)
+PASS|admin · container: the audit trail section is drawn (entries)
+TIME|admin · container · walk sales: 859.095 ms
+PASS|admin · container · walk sales inside the database: 859.095 ms, not refused
+TIME|admin · container · trail: 2320.597 ms
+PASS|admin · container · trail inside the database: 2320.597 ms
+PASS|admin · container: the sales chain is drawn
+PASS|admin · container: sales has all 8 steps, "container" marked as here (8 drawn)
+PASS|admin · container · sales.quote: not blank (none: "Quote none yet")
+PASS|admin · container · sales.quote: holds module.sales.view → not restricted (none)
+PASS|admin · container · sales.sales_order: not blank (none: "Sales order none yet")
+PASS|admin · container · sales.sales_order: holds module.sales.view → not restricted (none)
+PASS|admin · container · sales.reservation: not blank (none: "Reservation none yet")
+PASS|admin · container · sales.reservation: holds module.sales.view → not restricted (none)
+PASS|admin · container · sales.shipment: not blank (none: "Shipment none yet")
+PASS|admin · container · sales.shipment: holds module.sales.view → not restricted (none)
+PASS|admin · container · sales.container: not blank (current: "Container CTR-2026-0002")
+PASS|admin · container · sales.invoice: not blank (none: "Invoice none yet")
+PASS|admin · container · sales.invoice: holds module.finance.view → not restricted (none)
+PASS|admin · container · sales.receipt: not blank (none: "Receipt none yet")
+PASS|admin · container · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|admin · container · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|admin · container · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|admin · container: "All related records" → /related/container/9381f352-115d-4b89-add3-efb3cb8a4965 (HTTP 200)
+PASS|admin · invoice: the audit trail section is drawn (entries)
+TIME|admin · invoice · walk sales: 616.416 ms
+PASS|admin · invoice · walk sales inside the database: 616.416 ms, not refused
+TIME|admin · invoice · trail: 260.692 ms
+PASS|admin · invoice · trail inside the database: 260.692 ms
+PASS|admin · invoice: the sales chain is drawn
+PASS|admin · invoice: sales has all 8 steps, "invoice" marked as here (8 drawn)
+PASS|admin · invoice · sales.quote: not blank (none: "Quote none yet")
+PASS|admin · invoice · sales.quote: holds module.sales.view → not restricted (none)
+PASS|admin · invoice · sales.sales_order: not blank (found: "Sales order SO-2026-0001")
+PASS|admin · invoice · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|admin · invoice · sales.sales_order: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4 resolves (HTTP 200)
+PASS|admin · invoice · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|admin · invoice · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|admin · invoice · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|admin · invoice · sales.shipment: not blank (found: "Shipment SHP-2026-0001")
+PASS|admin · invoice · sales.shipment: holds module.sales.view → not restricted (found)
+PASS|admin · invoice · sales.shipment: link /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221 resolves (HTTP 200)
+PASS|admin · invoice · sales.container: not blank (none: "Container none yet")
+PASS|admin · invoice · sales.container: holds module.logistics.view → not restricted (none)
+PASS|admin · invoice · sales.invoice: not blank (current: "Invoice INV-2026-0006")
+PASS|admin · invoice · sales.receipt: not blank (none: "Receipt none yet")
+PASS|admin · invoice · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|admin · invoice · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|admin · invoice · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|admin · invoice: "All related records" → /related/invoice/63951e5b-5681-47f1-803a-4d25a63faa37 (HTTP 200)
+PASS|admin · receipt: the audit trail section is drawn (entries)
+TIME|admin · receipt · walk sales: 250.035 ms
+PASS|admin · receipt · walk sales inside the database: 250.035 ms, not refused
+TIME|admin · receipt · trail: 178.449 ms
+PASS|admin · receipt · trail inside the database: 178.449 ms
+PASS|admin · receipt: the sales chain is drawn
+PASS|admin · receipt: sales has all 8 steps, "receipt" marked as here (8 drawn)
+PASS|admin · receipt · sales.quote: not blank (none: "Quote none yet")
+PASS|admin · receipt · sales.quote: holds module.sales.view → not restricted (none)
+PASS|admin · receipt · sales.sales_order: not blank (none: "Sales order none yet")
+PASS|admin · receipt · sales.sales_order: holds module.sales.view → not restricted (none)
+PASS|admin · receipt · sales.reservation: not blank (none: "Reservation none yet")
+PASS|admin · receipt · sales.reservation: holds module.sales.view → not restricted (none)
+PASS|admin · receipt · sales.shipment: not blank (none: "Shipment none yet")
+PASS|admin · receipt · sales.shipment: holds module.sales.view → not restricted (none)
+PASS|admin · receipt · sales.container: not blank (none: "Container none yet")
+PASS|admin · receipt · sales.container: holds module.logistics.view → not restricted (none)
+PASS|admin · receipt · sales.invoice: not blank (none: "Invoice none yet")
+PASS|admin · receipt · sales.invoice: holds module.finance.view → not restricted (none)
+PASS|admin · receipt · sales.receipt: not blank (current: "Receipt RCPT-2026-0001")
+PASS|admin · receipt · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|admin · receipt · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|admin · receipt: "All related records" → /related/payment_receipt/bcc4c794-e6e1-42ac-8b19-7dfffe571284 (HTTP 200)
+PASS|admin · credit note: the audit trail section is drawn (entries)
+TIME|admin · credit note · walk sales: 293.028 ms
+PASS|admin · credit note · walk sales inside the database: 293.028 ms, not refused
+TIME|admin · credit note · trail: 634.441 ms
+PASS|admin · credit note · trail inside the database: 634.441 ms
+PASS|admin · credit note: the sales chain is drawn
+PASS|admin · credit note: sales has all 8 steps, "credit_note" marked as here (8 drawn)
+PASS|admin · credit note · sales.quote: not blank (none: "Quote none yet")
+PASS|admin · credit note · sales.quote: holds module.sales.view → not restricted (none)
+PASS|admin · credit note · sales.sales_order: not blank (found: "Sales order SO-2026-0001")
+PASS|admin · credit note · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|admin · credit note · sales.sales_order: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4 resolves (HTTP 200)
+PASS|admin · credit note · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|admin · credit note · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|admin · credit note · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|admin · credit note · sales.shipment: not blank (found: "Shipment SHP-2026-0001")
+PASS|admin · credit note · sales.shipment: holds module.sales.view → not restricted (found)
+PASS|admin · credit note · sales.shipment: link /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221 resolves (HTTP 200)
+PASS|admin · credit note · sales.container: not blank (none: "Container none yet")
+PASS|admin · credit note · sales.container: holds module.logistics.view → not restricted (none)
+PASS|admin · credit note · sales.invoice: not blank (found: "Invoice INV-2026-0007")
+PASS|admin · credit note · sales.invoice: holds module.finance.view → not restricted (found)
+PASS|admin · credit note · sales.invoice: link /finance/invoices/b82d06cf-fc0b-4233-9aba-44ba5e895190 resolves (HTTP 200)
+PASS|admin · credit note · sales.receipt: not blank (none: "Receipt none yet")
+PASS|admin · credit note · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|admin · credit note · sales.credit_note: not blank (current: "Credit note CN-2026-0001")
+PASS|admin · credit note: "All related records" → /related/credit_note/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a (HTTP 200)
+PASS|admin · leave: the audit trail section is drawn (entries)
+TIME|admin · leave · walk people: 1936.266 ms
+PASS|admin · leave · walk people inside the database: 1936.266 ms, not refused
+TIME|admin · leave · trail: 256.079 ms
+PASS|admin · leave · trail inside the database: 256.079 ms
+SELECT1|budget refusal · admin · leave client round trips 983 / 893 / 451 / 414 / 413 ms (median 451) · server execution 0.02 ms
+BUDGET_REFUSAL|admin · leave: a bar was refused with DOCUMENT_CHAIN_WALK_BUDGET; at that moment select 1 inside the database 0.02 ms · db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY — recorded, the page itself rendered (HTTP 200)
+FAIL|admin · leave: 0 budget refusals is this cut's acceptance — a bar was refused (the page itself rendered, HTTP 200)
+PASS|admin · payroll period: the audit trail section is drawn (entries)
+TIME|admin · payroll period · walk people: 154.683 ms
+PASS|admin · payroll period · walk people inside the database: 154.683 ms, not refused
+TIME|admin · payroll period · trail: 122.694 ms
+PASS|admin · payroll period · trail inside the database: 122.694 ms
+PASS|admin · payroll period: the people chain is drawn
+PASS|admin · payroll period: people has all 5 steps, "payroll_period" marked as here (5 drawn)
+PASS|admin · payroll period · people.attendance: not blank (none: "Attendance none yet")
+PASS|admin · payroll period · people.attendance: holds module.hr.view → not restricted (none)
+PASS|admin · payroll period · people.overtime: not blank (none: "Overtime none yet")
+PASS|admin · payroll period · people.overtime: holds module.hr.view / action.overtime_enter / action.overtime_approve → not restricted (none)
+PASS|admin · payroll period · people.leave: not blank (none: "Leave none yet")
+PASS|admin · payroll period · people.leave: holds module.hr.view → not restricted (none)
+PASS|admin · payroll period · people.payroll_period: not blank (current: "Payroll period PAY-2026-0001")
+PASS|admin · payroll period · people.payroll_payment: not blank (found: "Payroll payment JE-2026-0020 JE-2026-0019 JE-2026-0018")
+PASS|admin · payroll period · people.payroll_payment: holds module.finance.view → not restricted (found)
+PASS|admin · payroll period · people.payroll_payment: link /finance/journal/2d32a813-5b8d-4e10-80e9-dbc68bb0f4e9 resolves (HTTP 200)
+PASS|admin · payroll period · people.payroll_payment: link /finance/journal/417dc5b0-d75c-4f42-805e-dc5afeba8fda resolves (HTTP 200)
+PASS|admin · payroll period · people.payroll_payment: link /finance/journal/bc3b3db0-5b34-49d9-a6f9-9cd8923237ed resolves (HTTP 200)
+PASS|admin · payroll period: "All related records" → /related/payroll_period/b3784931-8c17-4f63-b6f3-7809b52bb1a2 (HTTP 200)
+PASS|admin · payroll payment: the audit trail section is drawn (entries)
+TIME|admin · payroll payment · walk people: 781.365 ms
+PASS|admin · payroll payment · walk people inside the database: 781.365 ms, not refused
+TIME|admin · payroll payment · trail: 333.108 ms
+PASS|admin · payroll payment · trail inside the database: 333.108 ms
+PASS|admin · payroll payment: the people chain is drawn
+PASS|admin · payroll payment: people has all 5 steps, "payroll_payment" marked as here (5 drawn)
+PASS|admin · payroll payment · people.attendance: not blank (none: "Attendance none yet")
+PASS|admin · payroll payment · people.attendance: holds module.hr.view → not restricted (none)
+PASS|admin · payroll payment · people.overtime: not blank (none: "Overtime none yet")
+PASS|admin · payroll payment · people.overtime: holds module.hr.view / action.overtime_enter / action.overtime_approve → not restricted (none)
+PASS|admin · payroll payment · people.leave: not blank (none: "Leave none yet")
+PASS|admin · payroll payment · people.leave: holds module.hr.view → not restricted (none)
+PASS|admin · payroll payment · people.payroll_period: not blank (found: "Payroll period PAY-2026-0001")
+PASS|admin · payroll payment · people.payroll_period: holds module.hr.view → not restricted (found)
+PASS|admin · payroll payment · people.payroll_period: link /hr/payroll/b3784931-8c17-4f63-b6f3-7809b52bb1a2 resolves (HTTP 200)
+PASS|admin · payroll payment · people.payroll_payment: not blank (current: "Payroll payment JE-2026-0018")
+PASS|admin · payroll payment: "All related records" → /related/journal_entry/bc3b3db0-5b34-49d9-a6f9-9cd8923237ed (HTTP 200)
+SELECT1|before cfo client round trips 923 / 426 / 1213 / 416 / 445 ms (median 445) · server execution 0.063 ms
+HEALTH|before cfo: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|cfo · purchase order: the audit trail section is drawn (entries)
+TIME|cfo · purchase order · walk purchasing: 820.891 ms
+PASS|cfo · purchase order · walk purchasing inside the database: 820.891 ms, not refused
+TIME|cfo · purchase order · trail: 385.195 ms
+PASS|cfo · purchase order · trail inside the database: 385.195 ms
+PASS|cfo · purchase order: the purchasing chain is drawn
+PASS|cfo · purchase order: purchasing has all 8 steps, "purchase_order" marked as here (8 drawn)
+PASS|cfo · purchase order · purchasing.purchase_order: not blank (current: "Purchase order PO-2026-0001")
+PASS|cfo · purchase order · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0029")
+PASS|cfo · purchase order · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|cfo · purchase order · purchasing.inbound_batch: link /inbound/5163d599-77e7-4b76-a61b-8f4ff47d7a7c/edit resolves (HTTP 200)
+PASS|cfo · purchase order · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cfo · purchase order · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cfo · purchase order · purchasing.pricing: not blank (found: "Pricing IN-2026-0029")
+PASS|cfo · purchase order · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cfo · purchase order · purchasing.pricing: link /inbound/5163d599-77e7-4b76-a61b-8f4ff47d7a7c/edit#pricing resolves (HTTP 200)
+PASS|cfo · purchase order · purchasing.payable: not blank (found: "Payable IN-2026-0029")
+PASS|cfo · purchase order · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|cfo · purchase order · purchasing.payable: link /finance/payables/5163d599-77e7-4b76-a61b-8f4ff47d7a7c resolves (HTTP 200)
+PASS|cfo · purchase order · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cfo · purchase order · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cfo · purchase order · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cfo · purchase order · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cfo · purchase order · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cfo · purchase order · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cfo · purchase order: "All related records" → /related/purchase_order/861fe74b-14d8-45f7-992c-92aa9aaaac90 (HTTP 200)
+PASS|cfo · inbound batch: the audit trail section is drawn (entries)
+TIME|cfo · inbound batch · walk purchasing: 1030.144 ms
+PASS|cfo · inbound batch · walk purchasing inside the database: 1030.144 ms, not refused
+TIME|cfo · inbound batch · walk processing: 1077.459 ms
+PASS|cfo · inbound batch · walk processing inside the database: 1077.459 ms, not refused
+TIME|cfo · inbound batch · trail: 795.106 ms
+PASS|cfo · inbound batch · trail inside the database: 795.106 ms
+PASS|cfo · inbound batch: the purchasing chain is drawn
+PASS|cfo · inbound batch: purchasing has all 8 steps, "inbound_batch" marked as here (8 drawn)
+PASS|cfo · inbound batch · purchasing.purchase_order: not blank (found: "Purchase order PO-2026-0002")
+PASS|cfo · inbound batch · purchasing.purchase_order: holds module.purchasing.view → not restricted (found)
+PASS|cfo · inbound batch · purchasing.purchase_order: link /purchasing/orders/79c9228c-5168-4add-97a0-44cff9e37993 resolves (HTTP 200)
+PASS|cfo · inbound batch · purchasing.inbound_batch: not blank (current: "Inbound batch IN-2026-0152")
+PASS|cfo · inbound batch · purchasing.assay: not blank (found: "Assay ASY-2026-0002")
+PASS|cfo · inbound batch · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (found)
+PASS|cfo · inbound batch · purchasing.assay: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/assays/18555e99-5ecb-4731-ada8-76a088166306 resolves (HTTP 200)
+PASS|cfo · inbound batch · purchasing.pricing: not blank (found: "Pricing IN-2026-0152")
+PASS|cfo · inbound batch · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cfo · inbound batch · purchasing.pricing: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/edit#pricing resolves (HTTP 200)
+PASS|cfo · inbound batch · purchasing.payable: not blank (found: "Payable IN-2026-0152")
+PASS|cfo · inbound batch · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|cfo · inbound batch · purchasing.payable: link /finance/payables/d719cc6e-3b84-45f3-be3e-a2c0594079e1 resolves (HTTP 200)
+PASS|cfo · inbound batch · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cfo · inbound batch · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cfo · inbound batch · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cfo · inbound batch · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cfo · inbound batch · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cfo · inbound batch · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cfo · inbound batch: the processing chain is drawn
+PASS|cfo · inbound batch: processing has all 5 steps, "input_batches" marked as here (5 drawn)
+PASS|cfo · inbound batch · processing.work_order: not blank (none: "Work order none yet")
+PASS|cfo · inbound batch · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|cfo · inbound batch · processing.processing_run: not blank (found: "Processing run PROC-2026-0107")
+PASS|cfo · inbound batch · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|cfo · inbound batch · processing.processing_run: link /operation/processing/4796d43a-20bc-49e1-9c2b-0f2a585a30de resolves (HTTP 200)
+PASS|cfo · inbound batch · processing.input_batches: not blank (current: "Input batches IN-2026-0152")
+PASS|cfo · inbound batch · processing.output_batches: not blank (found: "Output batches OUT-2026-0119")
+PASS|cfo · inbound batch · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|cfo · inbound batch · processing.output_batches: link /output/848d954a-1a82-49cb-b71f-f82716c39ff9/edit resolves (HTTP 200)
+PASS|cfo · inbound batch · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cfo · inbound batch · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cfo · inbound batch: "All related records" → /related/inbound_batch/d719cc6e-3b84-45f3-be3e-a2c0594079e1 (HTTP 200)
+TIME|cfo · assay · walk purchasing: 233.439 ms
+PASS|cfo · assay · walk purchasing inside the database: 233.439 ms, not refused
+PASS|cfo · assay: the purchasing chain is drawn
+PASS|cfo · assay: purchasing has all 8 steps, "assay" marked as here (8 drawn)
+PASS|cfo · assay · purchasing.purchase_order: not blank (none: "Purchase ordernone yet")
+PASS|cfo · assay · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cfo · assay · purchasing.inbound_batch: not blank (found: "Inbound batchIN-2026-0001")
+PASS|cfo · assay · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|cfo · assay · purchasing.inbound_batch: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit resolves (HTTP 200)
+PASS|cfo · assay · purchasing.assay: not blank (current: "AssayASY-2026-0001")
+PASS|cfo · assay · purchasing.pricing: not blank (found: "PricingIN-2026-0001")
+PASS|cfo · assay · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cfo · assay · purchasing.pricing: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit#pricing resolves (HTTP 200)
+PASS|cfo · assay · purchasing.payable: not blank (found: "PayableIN-2026-0001")
+PASS|cfo · assay · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|cfo · assay · purchasing.payable: link /finance/payables/662bfff7-6121-454c-b37b-fd69a90c3b99 resolves (HTTP 200)
+PASS|cfo · assay · purchasing.payment_request: not blank (none: "Payment requestnone yet")
+PASS|cfo · assay · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cfo · assay · purchasing.payment: not blank (none: "Paymentnone yet")
+PASS|cfo · assay · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cfo · assay · purchasing.bank_reconciliation: not blank (none: "Bank reconciliationnone yet")
+PASS|cfo · assay · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cfo · assay: "All related records" → /related/assay_result/38a2653b-8738-4997-a4e6-e1847fbd00f6 (HTTP 200)
+PASS|cfo · payable: the audit trail section is drawn (entries)
+TIME|cfo · payable · walk purchasing: 701.703 ms
+PASS|cfo · payable · walk purchasing inside the database: 701.703 ms, not refused
+TIME|cfo · payable · trail: 220.023 ms
+PASS|cfo · payable · trail inside the database: 220.023 ms
+PASS|cfo · payable: the purchasing chain is drawn
+PASS|cfo · payable: purchasing has all 8 steps, "payable" marked as here (8 drawn)
+PASS|cfo · payable · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|cfo · payable · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cfo · payable · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0003")
+PASS|cfo · payable · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|cfo · payable · purchasing.inbound_batch: link /inbound/a64532e3-b58b-4c2a-9dc2-abc88af8c078/edit resolves (HTTP 200)
+PASS|cfo · payable · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cfo · payable · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cfo · payable · purchasing.pricing: not blank (found: "Pricing IN-2026-0003")
+PASS|cfo · payable · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cfo · payable · purchasing.pricing: link /inbound/a64532e3-b58b-4c2a-9dc2-abc88af8c078/edit#pricing resolves (HTTP 200)
+PASS|cfo · payable · purchasing.payable: not blank (current: "Payable IN-2026-0003")
+PASS|cfo · payable · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cfo · payable · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cfo · payable · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cfo · payable · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cfo · payable · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cfo · payable · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cfo · payable: "All related records" → /related/inbound_batch/a64532e3-b58b-4c2a-9dc2-abc88af8c078 (HTTP 200)
+PASS|cfo · payment: the audit trail section is drawn (entries)
+TIME|cfo · payment · walk purchasing: 821.839 ms
+PASS|cfo · payment · walk purchasing inside the database: 821.839 ms, not refused
+TIME|cfo · payment · trail: 205.617 ms
+PASS|cfo · payment · trail inside the database: 205.617 ms
+PASS|cfo · payment: the purchasing chain is drawn
+PASS|cfo · payment: purchasing has all 8 steps, "payment" marked as here (8 drawn)
+PASS|cfo · payment · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|cfo · payment · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cfo · payment · purchasing.inbound_batch: not blank (none: "Inbound batch none yet")
+PASS|cfo · payment · purchasing.inbound_batch: holds module.inbound.view → not restricted (none)
+PASS|cfo · payment · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cfo · payment · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cfo · payment · purchasing.pricing: not blank (none: "Pricing none yet")
+PASS|cfo · payment · purchasing.pricing: holds module.inbound.view → not restricted (none)
+PASS|cfo · payment · purchasing.payable: not blank (none: "Payable none yet")
+PASS|cfo · payment · purchasing.payable: holds module.finance.view → not restricted (none)
+PASS|cfo · payment · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cfo · payment · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cfo · payment · purchasing.payment: not blank (current: "Payment PMT-2026-0001")
+PASS|cfo · payment · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cfo · payment · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cfo · payment: "All related records" → /related/payment_out/ca9697a1-c9ad-4222-a16b-85e31ada415c (HTTP 200)
+PASS|cfo · bank statement: the audit trail section is drawn (entries)
+TIME|cfo · bank statement · walk purchasing: 109.634 ms
+PASS|cfo · bank statement · walk purchasing inside the database: 109.634 ms, not refused
+TIME|cfo · bank statement · trail: 57.417 ms
+PASS|cfo · bank statement · trail inside the database: 57.417 ms
+PASS|cfo · bank statement: the purchasing chain is drawn
+PASS|cfo · bank statement: purchasing has all 8 steps, "bank_reconciliation" marked as here (8 drawn)
+PASS|cfo · bank statement · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|cfo · bank statement · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cfo · bank statement · purchasing.inbound_batch: not blank (none: "Inbound batch none yet")
+PASS|cfo · bank statement · purchasing.inbound_batch: holds module.inbound.view → not restricted (none)
+PASS|cfo · bank statement · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cfo · bank statement · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cfo · bank statement · purchasing.pricing: not blank (none: "Pricing none yet")
+PASS|cfo · bank statement · purchasing.pricing: holds module.inbound.view → not restricted (none)
+PASS|cfo · bank statement · purchasing.payable: not blank (none: "Payable none yet")
+PASS|cfo · bank statement · purchasing.payable: holds module.finance.view → not restricted (none)
+PASS|cfo · bank statement · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cfo · bank statement · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cfo · bank statement · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cfo · bank statement · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cfo · bank statement · purchasing.bank_reconciliation: not blank (current: "Bank reconciliation BS-2026-0001")
+PASS|cfo · bank statement: "All related records" → /related/bank_statement/e65a8389-9707-48b2-b39c-a249823cff71 (HTTP 200)
+PASS|cfo · work order: the audit trail section is drawn (entries)
+TIME|cfo · work order · walk processing: 1139.756 ms
+PASS|cfo · work order · walk processing inside the database: 1139.756 ms, not refused
+TIME|cfo · work order · trail: 310.792 ms
+PASS|cfo · work order · trail inside the database: 310.792 ms
+SELECT1|budget refusal · cfo · work order client round trips 592 / 533 / 592 / 423 / 432 ms (median 533) · server execution 0.019 ms
+BUDGET_REFUSAL|cfo · work order: a bar was refused with DOCUMENT_CHAIN_WALK_BUDGET; at that moment select 1 inside the database 0.019 ms · db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY — recorded, the page itself rendered (HTTP 200)
+FAIL|cfo · work order: 0 budget refusals is this cut's acceptance — a bar was refused (the page itself rendered, HTTP 200)
+PASS|cfo · processing run: the audit trail section is drawn (entries)
+TIME|cfo · processing run · walk processing: 246.774 ms
+PASS|cfo · processing run · walk processing inside the database: 246.774 ms, not refused
+TIME|cfo · processing run · trail: 105.492 ms
+PASS|cfo · processing run · trail inside the database: 105.492 ms
+PASS|cfo · processing run: the processing chain is drawn
+PASS|cfo · processing run: processing has all 5 steps, "processing_run" marked as here (5 drawn)
+PASS|cfo · processing run · processing.work_order: not blank (found: "Work order WO-2026-0001")
+PASS|cfo · processing run · processing.work_order: holds module.processing.view → not restricted (found)
+PASS|cfo · processing run · processing.work_order: link /operation/orders/5564bf06-ac59-44be-b372-b2ec92ed3f77 resolves (HTTP 200)
+PASS|cfo · processing run · processing.processing_run: not blank (current: "Processing run PROC-2026-0225")
+PASS|cfo · processing run · processing.input_batches: not blank (found: "Input batches IN-2026-0180")
+PASS|cfo · processing run · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|cfo · processing run · processing.input_batches: link /inbound/f38d23de-6959-473c-b98e-94b18cf06342/edit resolves (HTTP 200)
+PASS|cfo · processing run · processing.output_batches: not blank (found: "Output batches OUT-2026-0381 OUT-2026-0380")
+PASS|cfo · processing run · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|cfo · processing run · processing.output_batches: link /output/b9edf2ac-c1af-4837-afaa-afbbfbed0344/edit resolves (HTTP 200)
+PASS|cfo · processing run · processing.output_batches: link /output/7329b061-9b21-4ad3-bc23-2ead6c8fb30a/edit resolves (HTTP 200)
+PASS|cfo · processing run · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cfo · processing run · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cfo · processing run: "All related records" → /related/processing_run/ea0d9479-11d2-4e17-98b3-2140ae880969 (HTTP 200)
+PASS|cfo · output batch: the audit trail section is drawn (entries)
+TIME|cfo · output batch · walk processing: 286.939 ms
+PASS|cfo · output batch · walk processing inside the database: 286.939 ms, not refused
+TIME|cfo · output batch · trail: 335.218 ms
+PASS|cfo · output batch · trail inside the database: 335.218 ms
+PASS|cfo · output batch: the processing chain is drawn
+PASS|cfo · output batch: processing has all 5 steps, "output_batches" marked as here (5 drawn)
+PASS|cfo · output batch · processing.work_order: not blank (none: "Work order none yet")
+PASS|cfo · output batch · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|cfo · output batch · processing.processing_run: not blank (found: "Processing run PROC-2026-0106")
+PASS|cfo · output batch · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|cfo · output batch · processing.processing_run: link /operation/processing/7383eb11-cdfe-49b7-a9f6-5cb7bd1f889c resolves (HTTP 200)
+PASS|cfo · output batch · processing.input_batches: not blank (found: "Input batches IN-2026-0001")
+PASS|cfo · output batch · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|cfo · output batch · processing.input_batches: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit resolves (HTTP 200)
+PASS|cfo · output batch · processing.output_batches: not blank (current: "Output batches OUT-2026-0118")
+PASS|cfo · output batch · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cfo · output batch · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cfo · output batch: "All related records" → /related/output_batch/12dd44fb-7400-4122-81bf-3fd1f9c9e2a7 (HTTP 200)
+PASS|cfo · output batch OUT-2026-0119: the audit trail section is drawn (entries)
+TIME|cfo · output batch OUT-2026-0119 · walk processing: 849.765 ms
+PASS|cfo · output batch OUT-2026-0119 · walk processing inside the database: 849.765 ms, not refused
+TIME|cfo · output batch OUT-2026-0119 · trail: 357.91 ms
+PASS|cfo · output batch OUT-2026-0119 · trail inside the database: 357.91 ms
+PASS|cfo · output batch OUT-2026-0119: the processing chain is drawn
+PASS|cfo · output batch OUT-2026-0119: processing has all 5 steps, "output_batches" marked as here (5 drawn)
+PASS|cfo · output batch OUT-2026-0119 · processing.work_order: not blank (none: "Work order none yet")
+PASS|cfo · output batch OUT-2026-0119 · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|cfo · output batch OUT-2026-0119 · processing.processing_run: not blank (found: "Processing run PROC-2026-0107")
+PASS|cfo · output batch OUT-2026-0119 · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|cfo · output batch OUT-2026-0119 · processing.processing_run: link /operation/processing/4796d43a-20bc-49e1-9c2b-0f2a585a30de resolves (HTTP 200)
+PASS|cfo · output batch OUT-2026-0119 · processing.input_batches: not blank (found: "Input batches IN-2026-0152")
+PASS|cfo · output batch OUT-2026-0119 · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|cfo · output batch OUT-2026-0119 · processing.input_batches: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/edit resolves (HTTP 200)
+PASS|cfo · output batch OUT-2026-0119 · processing.output_batches: not blank (current: "Output batches OUT-2026-0119")
+PASS|cfo · output batch OUT-2026-0119 · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cfo · output batch OUT-2026-0119 · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cfo · output batch OUT-2026-0119: "All related records" → /related/output_batch/848d954a-1a82-49cb-b71f-f82716c39ff9 (HTTP 200)
+PASS|cfo · quote: the audit trail section is drawn (entries)
+TIME|cfo · quote · walk sales: 211.543 ms
+PASS|cfo · quote · walk sales inside the database: 211.543 ms, not refused
+TIME|cfo · quote · trail: 296.256 ms
+PASS|cfo · quote · trail inside the database: 296.256 ms
+PASS|cfo · quote: the sales chain is drawn
+PASS|cfo · quote: sales has all 8 steps, "quote" marked as here (8 drawn)
+PASS|cfo · quote · sales.quote: not blank (current: "Quote QT-2026-0001")
+PASS|cfo · quote · sales.sales_order: not blank (found: "Sales order SO-2026-0004")
+PASS|cfo · quote · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|cfo · quote · sales.sales_order: link /sales/orders/5daf053f-fce3-4df7-a2ef-f577f47d99b2 resolves (HTTP 200)
+PASS|cfo · quote · sales.reservation: not blank (none: "Reservation none yet")
+PASS|cfo · quote · sales.reservation: holds module.sales.view → not restricted (none)
+PASS|cfo · quote · sales.shipment: not blank (none: "Shipment none yet")
+PASS|cfo · quote · sales.shipment: holds module.sales.view → not restricted (none)
+PASS|cfo · quote · sales.container: not blank (none: "Container none yet")
+PASS|cfo · quote · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cfo · quote · sales.invoice: not blank (none: "Invoice none yet")
+PASS|cfo · quote · sales.invoice: holds module.finance.view → not restricted (none)
+PASS|cfo · quote · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cfo · quote · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cfo · quote · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|cfo · quote · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|cfo · quote: "All related records" → /related/quote/896c59df-89fc-486f-b50e-d290803cf0bb (HTTP 200)
+PASS|cfo · sales order: the audit trail section is drawn (entries)
+TIME|cfo · sales order · walk sales: 349.449 ms
+PASS|cfo · sales order · walk sales inside the database: 349.449 ms, not refused
+TIME|cfo · sales order · trail: 377.518 ms
+PASS|cfo · sales order · trail inside the database: 377.518 ms
+PASS|cfo · sales order: the sales chain is drawn
+PASS|cfo · sales order: sales has all 8 steps, "sales_order" marked as here (8 drawn)
+PASS|cfo · sales order · sales.quote: not blank (none: "Quote none yet")
+PASS|cfo · sales order · sales.quote: holds module.sales.view → not restricted (none)
+PASS|cfo · sales order · sales.sales_order: not blank (current: "Sales order SO-2026-0001")
+PASS|cfo · sales order · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|cfo · sales order · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|cfo · sales order · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|cfo · sales order · sales.shipment: not blank (found: "Shipment SHP-2026-0001")
+PASS|cfo · sales order · sales.shipment: holds module.sales.view → not restricted (found)
+PASS|cfo · sales order · sales.shipment: link /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221 resolves (HTTP 200)
+PASS|cfo · sales order · sales.container: not blank (none: "Container none yet")
+PASS|cfo · sales order · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cfo · sales order · sales.invoice: not blank (found: "Invoice INV-2026-0007 INV-2026-0006")
+PASS|cfo · sales order · sales.invoice: holds module.finance.view → not restricted (found)
+PASS|cfo · sales order · sales.invoice: link /finance/invoices/b82d06cf-fc0b-4233-9aba-44ba5e895190 resolves (HTTP 200)
+PASS|cfo · sales order · sales.invoice: link /finance/invoices/63951e5b-5681-47f1-803a-4d25a63faa37 resolves (HTTP 200)
+PASS|cfo · sales order · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cfo · sales order · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cfo · sales order · sales.credit_note: not blank (found: "Credit note CN-2026-0001")
+PASS|cfo · sales order · sales.credit_note: holds module.finance.view → not restricted (found)
+PASS|cfo · sales order · sales.credit_note: link /finance/credit-notes/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a resolves (HTTP 200)
+PASS|cfo · sales order: "All related records" → /related/sales_order/0564cb00-6890-4dee-b9ba-0f8618540cf4 (HTTP 200)
+PASS|cfo · shipment: the audit trail section is drawn (entries)
+TIME|cfo · shipment · walk sales: 1160.302 ms
+PASS|cfo · shipment · walk sales inside the database: 1160.302 ms, not refused
+TIME|cfo · shipment · trail: 244.106 ms
+PASS|cfo · shipment · trail inside the database: 244.106 ms
+PASS|cfo · shipment: the sales chain is drawn
+PASS|cfo · shipment: sales has all 8 steps, "shipment" marked as here (8 drawn)
+PASS|cfo · shipment · sales.quote: not blank (none: "Quote none yet")
+PASS|cfo · shipment · sales.quote: holds module.sales.view → not restricted (none)
+PASS|cfo · shipment · sales.sales_order: not blank (found: "Sales order SO-2026-0001")
+PASS|cfo · shipment · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|cfo · shipment · sales.sales_order: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4 resolves (HTTP 200)
+PASS|cfo · shipment · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|cfo · shipment · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|cfo · shipment · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|cfo · shipment · sales.shipment: not blank (current: "Shipment SHP-2026-0001")
+PASS|cfo · shipment · sales.container: not blank (none: "Container none yet")
+PASS|cfo · shipment · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cfo · shipment · sales.invoice: not blank (found: "Invoice INV-2026-0007 INV-2026-0006")
+PASS|cfo · shipment · sales.invoice: holds module.finance.view → not restricted (found)
+PASS|cfo · shipment · sales.invoice: link /finance/invoices/b82d06cf-fc0b-4233-9aba-44ba5e895190 resolves (HTTP 200)
+PASS|cfo · shipment · sales.invoice: link /finance/invoices/63951e5b-5681-47f1-803a-4d25a63faa37 resolves (HTTP 200)
+PASS|cfo · shipment · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cfo · shipment · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cfo · shipment · sales.credit_note: not blank (found: "Credit note CN-2026-0001")
+PASS|cfo · shipment · sales.credit_note: holds module.finance.view → not restricted (found)
+PASS|cfo · shipment · sales.credit_note: link /finance/credit-notes/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a resolves (HTTP 200)
+PASS|cfo · shipment: "All related records" → /related/shipment/9895abe0-17cc-4a82-afc5-a108f9ae2221 (HTTP 200)
+PASS|cfo · container: the audit trail section is drawn (entries)
+TIME|cfo · container · walk sales: 162.842 ms
+PASS|cfo · container · walk sales inside the database: 162.842 ms, not refused
+TIME|cfo · container · trail: 85.211 ms
+PASS|cfo · container · trail inside the database: 85.211 ms
+PASS|cfo · container: the sales chain is drawn
+PASS|cfo · container: sales has all 8 steps, "container" marked as here (8 drawn)
+PASS|cfo · container · sales.quote: not blank (none: "Quote none yet")
+PASS|cfo · container · sales.quote: holds module.sales.view → not restricted (none)
+PASS|cfo · container · sales.sales_order: not blank (none: "Sales order none yet")
+PASS|cfo · container · sales.sales_order: holds module.sales.view → not restricted (none)
+PASS|cfo · container · sales.reservation: not blank (none: "Reservation none yet")
+PASS|cfo · container · sales.reservation: holds module.sales.view → not restricted (none)
+PASS|cfo · container · sales.shipment: not blank (none: "Shipment none yet")
+PASS|cfo · container · sales.shipment: holds module.sales.view → not restricted (none)
+PASS|cfo · container · sales.container: not blank (current: "Container CTR-2026-0002")
+PASS|cfo · container · sales.invoice: not blank (none: "Invoice none yet")
+PASS|cfo · container · sales.invoice: holds module.finance.view → not restricted (none)
+PASS|cfo · container · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cfo · container · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cfo · container · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|cfo · container · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|cfo · container: "All related records" → /related/container/9381f352-115d-4b89-add3-efb3cb8a4965 (HTTP 200)
+PASS|cfo · invoice: the audit trail section is drawn (entries)
+TIME|cfo · invoice · walk sales: 138.769 ms
+PASS|cfo · invoice · walk sales inside the database: 138.769 ms, not refused
+TIME|cfo · invoice · trail: 100.885 ms
+PASS|cfo · invoice · trail inside the database: 100.885 ms
+PASS|cfo · invoice: the sales chain is drawn
+PASS|cfo · invoice: sales has all 8 steps, "invoice" marked as here (8 drawn)
+PASS|cfo · invoice · sales.quote: not blank (none: "Quote none yet")
+PASS|cfo · invoice · sales.quote: holds module.sales.view → not restricted (none)
+PASS|cfo · invoice · sales.sales_order: not blank (found: "Sales order SO-2026-0001")
+PASS|cfo · invoice · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|cfo · invoice · sales.sales_order: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4 resolves (HTTP 200)
+PASS|cfo · invoice · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|cfo · invoice · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|cfo · invoice · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|cfo · invoice · sales.shipment: not blank (found: "Shipment SHP-2026-0001")
+PASS|cfo · invoice · sales.shipment: holds module.sales.view → not restricted (found)
+PASS|cfo · invoice · sales.shipment: link /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221 resolves (HTTP 200)
+PASS|cfo · invoice · sales.container: not blank (none: "Container none yet")
+PASS|cfo · invoice · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cfo · invoice · sales.invoice: not blank (current: "Invoice INV-2026-0006")
+PASS|cfo · invoice · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cfo · invoice · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cfo · invoice · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|cfo · invoice · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|cfo · invoice: "All related records" → /related/invoice/63951e5b-5681-47f1-803a-4d25a63faa37 (HTTP 200)
+PASS|cfo · receipt: the audit trail section is drawn (entries)
+TIME|cfo · receipt · walk sales: 102.442 ms
+PASS|cfo · receipt · walk sales inside the database: 102.442 ms, not refused
+TIME|cfo · receipt · trail: 53.936 ms
+PASS|cfo · receipt · trail inside the database: 53.936 ms
+PASS|cfo · receipt: the sales chain is drawn
+PASS|cfo · receipt: sales has all 8 steps, "receipt" marked as here (8 drawn)
+PASS|cfo · receipt · sales.quote: not blank (none: "Quote none yet")
+PASS|cfo · receipt · sales.quote: holds module.sales.view → not restricted (none)
+PASS|cfo · receipt · sales.sales_order: not blank (none: "Sales order none yet")
+PASS|cfo · receipt · sales.sales_order: holds module.sales.view → not restricted (none)
+PASS|cfo · receipt · sales.reservation: not blank (none: "Reservation none yet")
+PASS|cfo · receipt · sales.reservation: holds module.sales.view → not restricted (none)
+PASS|cfo · receipt · sales.shipment: not blank (none: "Shipment none yet")
+PASS|cfo · receipt · sales.shipment: holds module.sales.view → not restricted (none)
+PASS|cfo · receipt · sales.container: not blank (none: "Container none yet")
+PASS|cfo · receipt · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cfo · receipt · sales.invoice: not blank (none: "Invoice none yet")
+PASS|cfo · receipt · sales.invoice: holds module.finance.view → not restricted (none)
+PASS|cfo · receipt · sales.receipt: not blank (current: "Receipt RCPT-2026-0001")
+PASS|cfo · receipt · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|cfo · receipt · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|cfo · receipt: "All related records" → /related/payment_receipt/bcc4c794-e6e1-42ac-8b19-7dfffe571284 (HTTP 200)
+PASS|cfo · credit note: the audit trail section is drawn (entries)
+TIME|cfo · credit note · walk sales: 130.623 ms
+PASS|cfo · credit note · walk sales inside the database: 130.623 ms, not refused
+TIME|cfo · credit note · trail: 96.576 ms
+PASS|cfo · credit note · trail inside the database: 96.576 ms
+PASS|cfo · credit note: the sales chain is drawn
+PASS|cfo · credit note: sales has all 8 steps, "credit_note" marked as here (8 drawn)
+PASS|cfo · credit note · sales.quote: not blank (none: "Quote none yet")
+PASS|cfo · credit note · sales.quote: holds module.sales.view → not restricted (none)
+PASS|cfo · credit note · sales.sales_order: not blank (found: "Sales order SO-2026-0001")
+PASS|cfo · credit note · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|cfo · credit note · sales.sales_order: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4 resolves (HTTP 200)
+PASS|cfo · credit note · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|cfo · credit note · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|cfo · credit note · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|cfo · credit note · sales.shipment: not blank (found: "Shipment SHP-2026-0001")
+PASS|cfo · credit note · sales.shipment: holds module.sales.view → not restricted (found)
+PASS|cfo · credit note · sales.shipment: link /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221 resolves (HTTP 200)
+PASS|cfo · credit note · sales.container: not blank (none: "Container none yet")
+PASS|cfo · credit note · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cfo · credit note · sales.invoice: not blank (found: "Invoice INV-2026-0007")
+PASS|cfo · credit note · sales.invoice: holds module.finance.view → not restricted (found)
+PASS|cfo · credit note · sales.invoice: link /finance/invoices/b82d06cf-fc0b-4233-9aba-44ba5e895190 resolves (HTTP 200)
+PASS|cfo · credit note · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cfo · credit note · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cfo · credit note · sales.credit_note: not blank (current: "Credit note CN-2026-0001")
+PASS|cfo · credit note: "All related records" → /related/credit_note/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a (HTTP 200)
+PASS|cfo · leave: the audit trail section is drawn (entries)
+TIME|cfo · leave · walk people: 115.407 ms
+PASS|cfo · leave · walk people inside the database: 115.407 ms, not refused
+TIME|cfo · leave · trail: 72.992 ms
+PASS|cfo · leave · trail inside the database: 72.992 ms
+PASS|cfo · leave: the people chain is drawn
+PASS|cfo · leave: people has all 5 steps, "leave" marked as here (5 drawn)
+PASS|cfo · leave · people.attendance: not blank (none: "Attendance none yet")
+PASS|cfo · leave · people.attendance: holds module.hr.view → not restricted (none)
+PASS|cfo · leave · people.overtime: not blank (none: "Overtime none yet")
+PASS|cfo · leave · people.overtime: holds module.hr.view → not restricted (none)
+PASS|cfo · leave · people.leave: not blank (current: "Leave LV-2026-0002")
+PASS|cfo · leave · people.payroll_period: not blank (none: "Payroll period none yet")
+PASS|cfo · leave · people.payroll_period: holds module.hr.view → not restricted (none)
+PASS|cfo · leave · people.payroll_payment: not blank (none: "Payroll payment none yet")
+PASS|cfo · leave · people.payroll_payment: holds module.finance.view → not restricted (none)
+PASS|cfo · leave: "All related records" → /related/leave_request/e1cb68da-9299-4d40-9d92-91bba7b4c680 (HTTP 200)
+PASS|cfo · payroll period: the audit trail section is drawn (entries)
+TIME|cfo · payroll period · walk people: 706.63 ms
+PASS|cfo · payroll period · walk people inside the database: 706.63 ms, not refused
+TIME|cfo · payroll period · trail: 180.362 ms
+PASS|cfo · payroll period · trail inside the database: 180.362 ms
+PASS|cfo · payroll period: the people chain is drawn
+PASS|cfo · payroll period: people has all 5 steps, "payroll_period" marked as here (5 drawn)
+PASS|cfo · payroll period · people.attendance: not blank (none: "Attendance none yet")
+PASS|cfo · payroll period · people.attendance: holds module.hr.view → not restricted (none)
+PASS|cfo · payroll period · people.overtime: not blank (none: "Overtime none yet")
+PASS|cfo · payroll period · people.overtime: holds module.hr.view → not restricted (none)
+PASS|cfo · payroll period · people.leave: not blank (none: "Leave none yet")
+PASS|cfo · payroll period · people.leave: holds module.hr.view → not restricted (none)
+PASS|cfo · payroll period · people.payroll_period: not blank (current: "Payroll period PAY-2026-0001")
+PASS|cfo · payroll period · people.payroll_payment: not blank (found: "Payroll payment JE-2026-0020 JE-2026-0019 JE-2026-0018")
+PASS|cfo · payroll period · people.payroll_payment: holds module.finance.view → not restricted (found)
+PASS|cfo · payroll period · people.payroll_payment: link /finance/journal/2d32a813-5b8d-4e10-80e9-dbc68bb0f4e9 resolves (HTTP 200)
+PASS|cfo · payroll period · people.payroll_payment: link /finance/journal/417dc5b0-d75c-4f42-805e-dc5afeba8fda resolves (HTTP 200)
+PASS|cfo · payroll period · people.payroll_payment: link /finance/journal/bc3b3db0-5b34-49d9-a6f9-9cd8923237ed resolves (HTTP 200)
+PASS|cfo · payroll period: "All related records" → /related/payroll_period/b3784931-8c17-4f63-b6f3-7809b52bb1a2 (HTTP 200)
+PASS|cfo · payroll payment: the audit trail section is drawn (entries)
+TIME|cfo · payroll payment · walk people: 763.553 ms
+PASS|cfo · payroll payment · walk people inside the database: 763.553 ms, not refused
+TIME|cfo · payroll payment · trail: 201.866 ms
+PASS|cfo · payroll payment · trail inside the database: 201.866 ms
+PASS|cfo · payroll payment: the people chain is drawn
+PASS|cfo · payroll payment: people has all 5 steps, "payroll_payment" marked as here (5 drawn)
+PASS|cfo · payroll payment · people.attendance: not blank (none: "Attendance none yet")
+PASS|cfo · payroll payment · people.attendance: holds module.hr.view → not restricted (none)
+PASS|cfo · payroll payment · people.overtime: not blank (none: "Overtime none yet")
+PASS|cfo · payroll payment · people.overtime: holds module.hr.view → not restricted (none)
+PASS|cfo · payroll payment · people.leave: not blank (none: "Leave none yet")
+PASS|cfo · payroll payment · people.leave: holds module.hr.view → not restricted (none)
+PASS|cfo · payroll payment · people.payroll_period: not blank (found: "Payroll period PAY-2026-0001")
+PASS|cfo · payroll payment · people.payroll_period: holds module.hr.view → not restricted (found)
+PASS|cfo · payroll payment · people.payroll_period: link /hr/payroll/b3784931-8c17-4f63-b6f3-7809b52bb1a2 resolves (HTTP 200)
+PASS|cfo · payroll payment · people.payroll_payment: not blank (current: "Payroll payment JE-2026-0018")
+PASS|cfo · payroll payment: "All related records" → /related/journal_entry/bc3b3db0-5b34-49d9-a6f9-9cd8923237ed (HTTP 200)
+SELECT1|before cco client round trips 493 / 417 / 416 / 416 / 416 ms (median 416) · server execution 0.064 ms
+HEALTH|before cco: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|cco · purchase order: the audit trail section is drawn (entries)
+TIME|cco · purchase order · walk purchasing: 995.335 ms
+PASS|cco · purchase order · walk purchasing inside the database: 995.335 ms, not refused
+TIME|cco · purchase order · trail: 276.543 ms
+PASS|cco · purchase order · trail inside the database: 276.543 ms
+PASS|cco · purchase order: the purchasing chain is drawn
+PASS|cco · purchase order: purchasing has all 8 steps, "purchase_order" marked as here (8 drawn)
+PASS|cco · purchase order · purchasing.purchase_order: not blank (current: "Purchase order PO-2026-0001")
+PASS|cco · purchase order · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0029")
+PASS|cco · purchase order · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|cco · purchase order · purchasing.inbound_batch: link /inbound/5163d599-77e7-4b76-a61b-8f4ff47d7a7c/edit resolves (HTTP 200)
+PASS|cco · purchase order · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cco · purchase order · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cco · purchase order · purchasing.pricing: not blank (found: "Pricing IN-2026-0029")
+PASS|cco · purchase order · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cco · purchase order · purchasing.pricing: link /inbound/5163d599-77e7-4b76-a61b-8f4ff47d7a7c/edit#pricing resolves (HTTP 200)
+PASS|cco · purchase order · purchasing.payable: not blank (found: "Payable IN-2026-0029")
+PASS|cco · purchase order · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|cco · purchase order · purchasing.payable: link /finance/payables/5163d599-77e7-4b76-a61b-8f4ff47d7a7c resolves (HTTP 200)
+PASS|cco · purchase order · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cco · purchase order · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cco · purchase order · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cco · purchase order · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cco · purchase order · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cco · purchase order · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cco · purchase order: "All related records" → /related/purchase_order/861fe74b-14d8-45f7-992c-92aa9aaaac90 (HTTP 200)
+PASS|cco · inbound batch: the audit trail section is drawn (entries)
+TIME|cco · inbound batch · walk purchasing: 885.196 ms
+PASS|cco · inbound batch · walk purchasing inside the database: 885.196 ms, not refused
+TIME|cco · inbound batch · walk processing: 2068.675 ms
+PASS|cco · inbound batch · walk processing inside the database: 2068.675 ms, not refused
+TIME|cco · inbound batch · trail: 928.153 ms
+PASS|cco · inbound batch · trail inside the database: 928.153 ms
+PASS|cco · inbound batch: the purchasing chain is drawn
+PASS|cco · inbound batch: purchasing has all 8 steps, "inbound_batch" marked as here (8 drawn)
+PASS|cco · inbound batch · purchasing.purchase_order: not blank (found: "Purchase order PO-2026-0002")
+PASS|cco · inbound batch · purchasing.purchase_order: holds module.purchasing.view → not restricted (found)
+PASS|cco · inbound batch · purchasing.purchase_order: link /purchasing/orders/79c9228c-5168-4add-97a0-44cff9e37993 resolves (HTTP 200)
+PASS|cco · inbound batch · purchasing.inbound_batch: not blank (current: "Inbound batch IN-2026-0152")
+PASS|cco · inbound batch · purchasing.assay: not blank (found: "Assay ASY-2026-0002")
+PASS|cco · inbound batch · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (found)
+PASS|cco · inbound batch · purchasing.assay: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/assays/18555e99-5ecb-4731-ada8-76a088166306 resolves (HTTP 200)
+PASS|cco · inbound batch · purchasing.pricing: not blank (found: "Pricing IN-2026-0152")
+PASS|cco · inbound batch · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cco · inbound batch · purchasing.pricing: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/edit#pricing resolves (HTTP 200)
+PASS|cco · inbound batch · purchasing.payable: not blank (found: "Payable IN-2026-0152")
+PASS|cco · inbound batch · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|cco · inbound batch · purchasing.payable: link /finance/payables/d719cc6e-3b84-45f3-be3e-a2c0594079e1 resolves (HTTP 200)
+PASS|cco · inbound batch · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cco · inbound batch · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cco · inbound batch · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cco · inbound batch · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cco · inbound batch · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cco · inbound batch · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cco · inbound batch: the processing chain is drawn
+PASS|cco · inbound batch: processing has all 5 steps, "input_batches" marked as here (5 drawn)
+PASS|cco · inbound batch · processing.work_order: not blank (none: "Work order none yet")
+PASS|cco · inbound batch · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|cco · inbound batch · processing.processing_run: not blank (found: "Processing run PROC-2026-0107")
+PASS|cco · inbound batch · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|cco · inbound batch · processing.processing_run: link /operation/processing/4796d43a-20bc-49e1-9c2b-0f2a585a30de resolves (HTTP 200)
+PASS|cco · inbound batch · processing.input_batches: not blank (current: "Input batches IN-2026-0152")
+PASS|cco · inbound batch · processing.output_batches: not blank (found: "Output batches OUT-2026-0119")
+PASS|cco · inbound batch · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|cco · inbound batch · processing.output_batches: link /output/848d954a-1a82-49cb-b71f-f82716c39ff9/edit resolves (HTTP 200)
+PASS|cco · inbound batch · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cco · inbound batch · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cco · inbound batch: "All related records" → /related/inbound_batch/d719cc6e-3b84-45f3-be3e-a2c0594079e1 (HTTP 200)
+TIME|cco · assay · walk purchasing: 777.782 ms
+PASS|cco · assay · walk purchasing inside the database: 777.782 ms, not refused
+PASS|cco · assay: the purchasing chain is drawn
+PASS|cco · assay: purchasing has all 8 steps, "assay" marked as here (8 drawn)
+PASS|cco · assay · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|cco · assay · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cco · assay · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0001")
+PASS|cco · assay · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|cco · assay · purchasing.inbound_batch: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit resolves (HTTP 200)
+PASS|cco · assay · purchasing.assay: not blank (current: "Assay ASY-2026-0001")
+PASS|cco · assay · purchasing.pricing: not blank (found: "Pricing IN-2026-0001")
+PASS|cco · assay · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cco · assay · purchasing.pricing: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit#pricing resolves (HTTP 200)
+PASS|cco · assay · purchasing.payable: not blank (found: "Payable IN-2026-0001")
+PASS|cco · assay · purchasing.payable: holds module.finance.view → not restricted (found)
+PASS|cco · assay · purchasing.payable: link /finance/payables/662bfff7-6121-454c-b37b-fd69a90c3b99 resolves (HTTP 200)
+PASS|cco · assay · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cco · assay · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cco · assay · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cco · assay · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cco · assay · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cco · assay · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cco · assay: "All related records" → /related/assay_result/38a2653b-8738-4997-a4e6-e1847fbd00f6 (HTTP 200)
+PASS|cco · payable: the audit trail section is drawn (entries)
+TIME|cco · payable · walk purchasing: 713.528 ms
+PASS|cco · payable · walk purchasing inside the database: 713.528 ms, not refused
+TIME|cco · payable · trail: 411.585 ms
+PASS|cco · payable · trail inside the database: 411.585 ms
+PASS|cco · payable: the purchasing chain is drawn
+PASS|cco · payable: purchasing has all 8 steps, "payable" marked as here (8 drawn)
+PASS|cco · payable · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|cco · payable · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cco · payable · purchasing.inbound_batch: not blank (found: "Inbound batch IN-2026-0003")
+PASS|cco · payable · purchasing.inbound_batch: holds module.inbound.view → not restricted (found)
+PASS|cco · payable · purchasing.inbound_batch: link /inbound/a64532e3-b58b-4c2a-9dc2-abc88af8c078/edit resolves (HTTP 200)
+PASS|cco · payable · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cco · payable · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cco · payable · purchasing.pricing: not blank (found: "Pricing IN-2026-0003")
+PASS|cco · payable · purchasing.pricing: holds module.inbound.view → not restricted (found)
+PASS|cco · payable · purchasing.pricing: link /inbound/a64532e3-b58b-4c2a-9dc2-abc88af8c078/edit#pricing resolves (HTTP 200)
+PASS|cco · payable · purchasing.payable: not blank (current: "Payable IN-2026-0003")
+PASS|cco · payable · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cco · payable · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cco · payable · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cco · payable · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cco · payable · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cco · payable · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cco · payable: "All related records" → /related/inbound_batch/a64532e3-b58b-4c2a-9dc2-abc88af8c078 (HTTP 200)
+PASS|cco · payment: the audit trail section is drawn (entries)
+TIME|cco · payment · walk purchasing: 1466.55 ms
+PASS|cco · payment · walk purchasing inside the database: 1466.55 ms, not refused
+TIME|cco · payment · trail: 234.321 ms
+PASS|cco · payment · trail inside the database: 234.321 ms
+PASS|cco · payment: the purchasing chain is drawn
+PASS|cco · payment: purchasing has all 8 steps, "payment" marked as here (8 drawn)
+PASS|cco · payment · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|cco · payment · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cco · payment · purchasing.inbound_batch: not blank (none: "Inbound batch none yet")
+PASS|cco · payment · purchasing.inbound_batch: holds module.inbound.view → not restricted (none)
+PASS|cco · payment · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cco · payment · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cco · payment · purchasing.pricing: not blank (none: "Pricing none yet")
+PASS|cco · payment · purchasing.pricing: holds module.inbound.view → not restricted (none)
+PASS|cco · payment · purchasing.payable: not blank (none: "Payable none yet")
+PASS|cco · payment · purchasing.payable: holds module.finance.view → not restricted (none)
+PASS|cco · payment · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cco · payment · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cco · payment · purchasing.payment: not blank (current: "Payment PMT-2026-0001")
+PASS|cco · payment · purchasing.bank_reconciliation: not blank (none: "Bank reconciliation none yet")
+PASS|cco · payment · purchasing.bank_reconciliation: holds module.finance.view → not restricted (none)
+PASS|cco · payment: "All related records" → /related/payment_out/ca9697a1-c9ad-4222-a16b-85e31ada415c (HTTP 200)
+PASS|cco · bank statement: the audit trail section is drawn (entries)
+TIME|cco · bank statement · walk purchasing: 239.29 ms
+PASS|cco · bank statement · walk purchasing inside the database: 239.29 ms, not refused
+TIME|cco · bank statement · trail: 412.04 ms
+PASS|cco · bank statement · trail inside the database: 412.04 ms
+PASS|cco · bank statement: the purchasing chain is drawn
+PASS|cco · bank statement: purchasing has all 8 steps, "bank_reconciliation" marked as here (8 drawn)
+PASS|cco · bank statement · purchasing.purchase_order: not blank (none: "Purchase order none yet")
+PASS|cco · bank statement · purchasing.purchase_order: holds module.purchasing.view → not restricted (none)
+PASS|cco · bank statement · purchasing.inbound_batch: not blank (none: "Inbound batch none yet")
+PASS|cco · bank statement · purchasing.inbound_batch: holds module.inbound.view → not restricted (none)
+PASS|cco · bank statement · purchasing.assay: not blank (none: "Assay none yet")
+PASS|cco · bank statement · purchasing.assay: holds module.inbound.view / module.output.view → not restricted (none)
+PASS|cco · bank statement · purchasing.pricing: not blank (none: "Pricing none yet")
+PASS|cco · bank statement · purchasing.pricing: holds module.inbound.view → not restricted (none)
+PASS|cco · bank statement · purchasing.payable: not blank (none: "Payable none yet")
+PASS|cco · bank statement · purchasing.payable: holds module.finance.view → not restricted (none)
+PASS|cco · bank statement · purchasing.payment_request: not blank (none: "Payment request none yet")
+PASS|cco · bank statement · purchasing.payment_request: holds module.finance.view → not restricted (none)
+PASS|cco · bank statement · purchasing.payment: not blank (none: "Payment none yet")
+PASS|cco · bank statement · purchasing.payment: holds module.finance.view → not restricted (none)
+PASS|cco · bank statement · purchasing.bank_reconciliation: not blank (current: "Bank reconciliation BS-2026-0001")
+PASS|cco · bank statement: "All related records" → /related/bank_statement/e65a8389-9707-48b2-b39c-a249823cff71 (HTTP 200)
+PASS|cco · work order: the audit trail section is drawn (entries)
+TIME|cco · work order · walk processing: 597.037 ms
+PASS|cco · work order · walk processing inside the database: 597.037 ms, not refused
+TIME|cco · work order · trail: 321.471 ms
+PASS|cco · work order · trail inside the database: 321.471 ms
+PASS|cco · work order: the processing chain is drawn
+PASS|cco · work order: processing has all 5 steps, "work_order" marked as here (5 drawn)
+PASS|cco · work order · processing.work_order: not blank (current: "Work order WO-2026-0001")
+PASS|cco · work order · processing.processing_run: not blank (found: "Processing run PROC-2026-0225")
+PASS|cco · work order · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|cco · work order · processing.processing_run: link /operation/processing/ea0d9479-11d2-4e17-98b3-2140ae880969 resolves (HTTP 200)
+PASS|cco · work order · processing.input_batches: not blank (found: "Input batches IN-2026-0180")
+PASS|cco · work order · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|cco · work order · processing.input_batches: link /inbound/f38d23de-6959-473c-b98e-94b18cf06342/edit resolves (HTTP 200)
+PASS|cco · work order · processing.output_batches: not blank (found: "Output batches OUT-2026-0381 OUT-2026-0380")
+PASS|cco · work order · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|cco · work order · processing.output_batches: link /output/b9edf2ac-c1af-4837-afaa-afbbfbed0344/edit resolves (HTTP 200)
+PASS|cco · work order · processing.output_batches: link /output/7329b061-9b21-4ad3-bc23-2ead6c8fb30a/edit resolves (HTTP 200)
+PASS|cco · work order · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cco · work order · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cco · work order: "All related records" → /related/work_order/5564bf06-ac59-44be-b372-b2ec92ed3f77 (HTTP 200)
+PASS|cco · processing run: the audit trail section is drawn (entries)
+TIME|cco · processing run · walk processing: 1022.158 ms
+PASS|cco · processing run · walk processing inside the database: 1022.158 ms, not refused
+TIME|cco · processing run · trail: 307.441 ms
+PASS|cco · processing run · trail inside the database: 307.441 ms
+PASS|cco · processing run: the processing chain is drawn
+PASS|cco · processing run: processing has all 5 steps, "processing_run" marked as here (5 drawn)
+PASS|cco · processing run · processing.work_order: not blank (found: "Work order WO-2026-0001")
+PASS|cco · processing run · processing.work_order: holds module.processing.view → not restricted (found)
+PASS|cco · processing run · processing.work_order: link /operation/orders/5564bf06-ac59-44be-b372-b2ec92ed3f77 resolves (HTTP 200)
+PASS|cco · processing run · processing.processing_run: not blank (current: "Processing run PROC-2026-0225")
+PASS|cco · processing run · processing.input_batches: not blank (found: "Input batches IN-2026-0180")
+PASS|cco · processing run · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|cco · processing run · processing.input_batches: link /inbound/f38d23de-6959-473c-b98e-94b18cf06342/edit resolves (HTTP 200)
+PASS|cco · processing run · processing.output_batches: not blank (found: "Output batches OUT-2026-0381 OUT-2026-0380")
+PASS|cco · processing run · processing.output_batches: holds module.output.view → not restricted (found)
+PASS|cco · processing run · processing.output_batches: link /output/b9edf2ac-c1af-4837-afaa-afbbfbed0344/edit resolves (HTTP 200)
+PASS|cco · processing run · processing.output_batches: link /output/7329b061-9b21-4ad3-bc23-2ead6c8fb30a/edit resolves (HTTP 200)
+PASS|cco · processing run · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cco · processing run · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cco · processing run: "All related records" → /related/processing_run/ea0d9479-11d2-4e17-98b3-2140ae880969 (HTTP 200)
+PASS|cco · output batch: the audit trail section is drawn (entries)
+TIME|cco · output batch · walk processing: 1054.612 ms
+PASS|cco · output batch · walk processing inside the database: 1054.612 ms, not refused
+TIME|cco · output batch · trail: 600.489 ms
+PASS|cco · output batch · trail inside the database: 600.489 ms
+PASS|cco · output batch: the processing chain is drawn
+PASS|cco · output batch: processing has all 5 steps, "output_batches" marked as here (5 drawn)
+PASS|cco · output batch · processing.work_order: not blank (none: "Work order none yet")
+PASS|cco · output batch · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|cco · output batch · processing.processing_run: not blank (found: "Processing run PROC-2026-0106")
+PASS|cco · output batch · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|cco · output batch · processing.processing_run: link /operation/processing/7383eb11-cdfe-49b7-a9f6-5cb7bd1f889c resolves (HTTP 200)
+PASS|cco · output batch · processing.input_batches: not blank (found: "Input batches IN-2026-0001")
+PASS|cco · output batch · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|cco · output batch · processing.input_batches: link /inbound/662bfff7-6121-454c-b37b-fd69a90c3b99/edit resolves (HTTP 200)
+PASS|cco · output batch · processing.output_batches: not blank (current: "Output batches OUT-2026-0118")
+PASS|cco · output batch · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cco · output batch · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cco · output batch: "All related records" → /related/output_batch/12dd44fb-7400-4122-81bf-3fd1f9c9e2a7 (HTTP 200)
+PASS|cco · output batch OUT-2026-0119: the audit trail section is drawn (entries)
+TIME|cco · output batch OUT-2026-0119 · walk processing: 1239.736 ms
+PASS|cco · output batch OUT-2026-0119 · walk processing inside the database: 1239.736 ms, not refused
+TIME|cco · output batch OUT-2026-0119 · trail: 431.64 ms
+PASS|cco · output batch OUT-2026-0119 · trail inside the database: 431.64 ms
+PASS|cco · output batch OUT-2026-0119: the processing chain is drawn
+PASS|cco · output batch OUT-2026-0119: processing has all 5 steps, "output_batches" marked as here (5 drawn)
+PASS|cco · output batch OUT-2026-0119 · processing.work_order: not blank (none: "Work order none yet")
+PASS|cco · output batch OUT-2026-0119 · processing.work_order: holds module.processing.view → not restricted (none)
+PASS|cco · output batch OUT-2026-0119 · processing.processing_run: not blank (found: "Processing run PROC-2026-0107")
+PASS|cco · output batch OUT-2026-0119 · processing.processing_run: holds module.processing.view → not restricted (found)
+PASS|cco · output batch OUT-2026-0119 · processing.processing_run: link /operation/processing/4796d43a-20bc-49e1-9c2b-0f2a585a30de resolves (HTTP 200)
+PASS|cco · output batch OUT-2026-0119 · processing.input_batches: not blank (found: "Input batches IN-2026-0152")
+PASS|cco · output batch OUT-2026-0119 · processing.input_batches: holds module.inbound.view → not restricted (found)
+PASS|cco · output batch OUT-2026-0119 · processing.input_batches: link /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/edit resolves (HTTP 200)
+PASS|cco · output batch OUT-2026-0119 · processing.output_batches: not blank (current: "Output batches OUT-2026-0119")
+PASS|cco · output batch OUT-2026-0119 · processing.cost_allocation: not blank (none: "Cost allocation none yet")
+PASS|cco · output batch OUT-2026-0119 · processing.cost_allocation: holds module.processing.view → not restricted (none)
+PASS|cco · output batch OUT-2026-0119: "All related records" → /related/output_batch/848d954a-1a82-49cb-b71f-f82716c39ff9 (HTTP 200)
+PASS|cco · quote: the audit trail section is drawn (entries)
+TIME|cco · quote · walk sales: 801.809 ms
+PASS|cco · quote · walk sales inside the database: 801.809 ms, not refused
+TIME|cco · quote · trail: 278.687 ms
+PASS|cco · quote · trail inside the database: 278.687 ms
+PASS|cco · quote: the sales chain is drawn
+PASS|cco · quote: sales has all 8 steps, "quote" marked as here (8 drawn)
+PASS|cco · quote · sales.quote: not blank (current: "Quote QT-2026-0001")
+PASS|cco · quote · sales.sales_order: not blank (found: "Sales order SO-2026-0004")
+PASS|cco · quote · sales.sales_order: holds module.sales.view → not restricted (found)
+PASS|cco · quote · sales.sales_order: link /sales/orders/5daf053f-fce3-4df7-a2ef-f577f47d99b2 resolves (HTTP 200)
+PASS|cco · quote · sales.reservation: not blank (none: "Reservation none yet")
+PASS|cco · quote · sales.reservation: holds module.sales.view → not restricted (none)
+PASS|cco · quote · sales.shipment: not blank (none: "Shipment none yet")
+PASS|cco · quote · sales.shipment: holds module.sales.view → not restricted (none)
+PASS|cco · quote · sales.container: not blank (none: "Container none yet")
+PASS|cco · quote · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cco · quote · sales.invoice: not blank (none: "Invoice none yet")
+PASS|cco · quote · sales.invoice: holds module.finance.view → not restricted (none)
+PASS|cco · quote · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cco · quote · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cco · quote · sales.credit_note: not blank (none: "Credit note none yet")
+PASS|cco · quote · sales.credit_note: holds module.finance.view → not restricted (none)
+PASS|cco · quote: "All related records" → /related/quote/896c59df-89fc-486f-b50e-d290803cf0bb (HTTP 200)
+PASS|cco · sales order: the audit trail section is drawn (entries)
+TIME|cco · sales order · walk sales: 753.624 ms
+PASS|cco · sales order · walk sales inside the database: 753.624 ms, not refused
+TIME|cco · sales order · trail: 378.276 ms
+PASS|cco · sales order · trail inside the database: 378.276 ms
+PASS|cco · sales order: the sales chain is drawn
+PASS|cco · sales order: sales has all 8 steps, "sales_order" marked as here (8 drawn)
+PASS|cco · sales order · sales.quote: not blank (none: "Quote none yet")
+PASS|cco · sales order · sales.quote: holds module.sales.view → not restricted (none)
+PASS|cco · sales order · sales.sales_order: not blank (current: "Sales order SO-2026-0001")
+PASS|cco · sales order · sales.reservation: not blank (found: "Reservation SO-2026-0001")
+PASS|cco · sales order · sales.reservation: holds module.sales.view → not restricted (found)
+PASS|cco · sales order · sales.reservation: link /sales/orders/0564cb00-6890-4dee-b9ba-0f8618540cf4#reservations resolves (HTTP 200)
+PASS|cco · sales order · sales.shipment: not blank (found: "Shipment SHP-2026-0001")
+PASS|cco · sales order · sales.shipment: holds module.sales.view → not restricted (found)
+PASS|cco · sales order · sales.shipment: link /sales/shipments/9895abe0-17cc-4a82-afc5-a108f9ae2221 resolves (HTTP 200)
+PASS|cco · sales order · sales.container: not blank (none: "Container none yet")
+PASS|cco · sales order · sales.container: holds module.logistics.view → not restricted (none)
+PASS|cco · sales order · sales.invoice: not blank (found: "Invoice INV-2026-0007 INV-2026-0006")
+PASS|cco · sales order · sales.invoice: holds module.finance.view → not restricted (found)
+
+!! 收到 SIGTERM —— 先清理,再退出
+PASS|cco · sales order · sales.invoice: link /finance/invoices/b82d06cf-fc0b-4233-9aba-44ba5e895190 resolves (HTTP 200)
+PASS|cco · sales order · sales.invoice: link /finance/invoices/63951e5b-5681-47f1-803a-4d25a63faa37 resolves (HTTP 200)
+PASS|cco · sales order · sales.receipt: not blank (none: "Receipt none yet")
+PASS|cco · sales order · sales.receipt: holds module.finance.view → not restricted (none)
+PASS|cco · sales order · sales.credit_note: not blank (found: "Credit note CN-2026-0001")
+PASS|cco · sales order · sales.credit_note: holds module.finance.view → not restricted (found)
+FAIL|cco · sales order · sales.credit_note: link /finance/credit-notes/a4d827ce-d184-4ec0-9b59-8bfa959ffc9a resolves (HTTP 307)
+FAIL|cco · sales order: "All related records" → /related/sales_order/0564cb00-6890-4dee-b9ba-0f8618540cf4 (HTTP 307)
+ConnectionClosedError: Connection closed.
+    at Connection._rawSend (file:///private/tmp/claude-501/-Users-timchen/d370be5a-b509-4585-8b15-f0b4ce60ace9/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/cdp/Connection.js:119:35)
+    at Connection.send (file:///private/tmp/claude-501/-Users-timchen/d370be5a-b509-4585-8b15-f0b4ce60ace9/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/cdp/Connection.js:112:21)
+    at CdpPage.close (file:///private/tmp/claude-501/-Users-timchen/d370be5a-b509-4585-8b15-f0b4ce60ace9/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/cdp/Page.js:982:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-28-chain-walk-cost-live-proof.mjs:329:25)
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); the browser only sent GETs
+CWC_PROOF_EXIT=143

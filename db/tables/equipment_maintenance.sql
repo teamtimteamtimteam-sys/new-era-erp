@@ -151,7 +151,7 @@ ALTER TABLE public.equipment_maintenance ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "equipment_maintenance select by permission"
     ON public.equipment_maintenance
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)) OR (SELECT has_permission('module.processing.view'::text)));
 
 -- ★ MES-7a-1(MES-7a Step 0 Q6):INSERT 与 UPDATE 两条写策略拿掉 —— 写只经 record_equipment_maintenance(记一次活)与
 --   record_expense(资本化那一笔钱)。直连写由下面的 trg_equipment_maintenance_direct 按名拒(零行也触发)。

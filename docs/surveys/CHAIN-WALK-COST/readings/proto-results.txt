@@ -1,0 +1,24 @@
+=== sp1 document_chain_walk
+route                                  admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/purchasing/orders/[id]                  107       107       110       108       108       107        82   PO-2026-0003 (purchasing)
+/operation/processing/[id]                33        33        34        34        35        34        34   PROC-2026-0009 (processing)
+/sales/orders/[id]                       586       598       603       594       592       596         0   SO-2026-0001 (sales)
+errors: 0
+=== sp2 document_chain_walk
+route                                  admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/purchasing/orders/[id]                  106       103       104       104       102       103        79   PO-2026-0003 (purchasing)
+/operation/processing/[id]              1662      1128       870       964      1029       661       837   PROC-2026-0009 (processing)
+/sales/orders/[id]                       560       557       558       559       558       558         0   SO-2026-0001 (sales)
+errors: 0
+=== sw2 document_chain_walk2
+route                                  admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/purchasing/orders/[id]                   76        71        72        74        74        73        70   PO-2026-0003 (purchasing)
+/operation/processing/[id]             12344     11461     11283     11588     11500     11147     11259   PROC-2026-0009 (processing)
+/sales/orders/[id]                       100        95        95        96        96        94         0   SO-2026-0001 (sales)
+errors: 0
+=== sall document_chain_walk2
+route                                  admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/purchasing/orders/[id]                   64        62        62        62        62        62        48   PO-2026-0003 (purchasing)
+/operation/processing/[id]              1688      1163       937       960      1024       692       881   PROC-2026-0009 (processing)
+/sales/orders/[id]                        44        41        41        41        41        40         0   SO-2026-0001 (sales)
+errors: 0

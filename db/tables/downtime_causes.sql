@@ -35,10 +35,10 @@ INSERT INTO public.downtime_causes (code, class, name_en, name_zh, sort_order, n
 ALTER TABLE public.downtime_causes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "downtime_causes select by permission" ON public.downtime_causes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text) OR has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)) OR (SELECT has_permission('module.finance.view'::text)));
 CREATE POLICY "downtime_causes write by permission" ON public.downtime_causes
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.downtime_causes TO authenticated;
 REVOKE ALL ON public.downtime_causes FROM anon;
 

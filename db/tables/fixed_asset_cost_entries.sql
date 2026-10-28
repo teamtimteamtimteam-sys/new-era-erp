@@ -41,4 +41,4 @@ CREATE INDEX idx_fixed_asset_cost_entries_asset ON public.fixed_asset_cost_entri
 ALTER TABLE public.fixed_asset_cost_entries ENABLE ROW LEVEL SECURITY;
 -- 读 module.finance.view(与 fixed_assets 同一扇门);写只经 record_expense。
 CREATE POLICY "fixed_asset_cost_entries select by permission" ON public.fixed_asset_cost_entries
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.finance.view'::text)));

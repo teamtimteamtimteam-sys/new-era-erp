@@ -67,14 +67,14 @@ ALTER TABLE public.batch_processing_cost_allocations ENABLE ROW LEVEL SECURITY;
 -- 读:进料侧与财务侧都要看得见(批次页的落地成本拆解在进料侧)。与 freight_allocations 同形。
 CREATE POLICY "batch_processing_cost_allocations select by permission"
     ON public.batch_processing_cost_allocations AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view') OR has_permission('module.finance.view')
-           OR has_permission('module.processing.view'));
+    USING ((SELECT has_permission('module.inbound.view')) OR (SELECT has_permission('module.finance.view'))
+           OR (SELECT has_permission('module.processing.view')));
 -- 写:只由 allocate_processing_costs(SECURITY DEFINER)产生。这条策略是给人挡的门,
 -- 不是给函数开的门 —— 函数以属主身份跑,绕过 RLS。
 CREATE POLICY "batch_processing_cost_allocations write by permission"
     ON public.batch_processing_cost_allocations AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'))
-    WITH CHECK (has_permission('module.processing.edit'));
+    USING ((SELECT has_permission('module.processing.edit')))
+    WITH CHECK ((SELECT has_permission('module.processing.edit')));
 
 CREATE INDEX idx_bpca_batch ON public.batch_processing_cost_allocations (inbound_batch_id);
 CREATE INDEX idx_bpca_run   ON public.batch_processing_cost_allocations (run_id);

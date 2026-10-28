@@ -45,13 +45,13 @@ CREATE POLICY "review_rating_scale select by permission"
     USING (true);
 CREATE POLICY "review_rating_scale insert by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.hr_reviews'));
+    WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "review_rating_scale update by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews'))) WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "review_rating_scale delete by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews')));
 
 -- 四档,sort_order 由高到低排列(升序取出即为 OUTSTANDING → BELOW,同 leave_types 的用法)
 INSERT INTO public.review_rating_scale

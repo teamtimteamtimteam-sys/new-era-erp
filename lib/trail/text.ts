@@ -29,6 +29,8 @@ export const TRAIL_TEXT = {
     'restrictedPart': 'Part of this change is restricted.',
     'refusal.notPermitted': 'You cannot see the audit trail of this record.',
     'refusal.unknown': 'This page does not have an audit trail yet.',
+    // CHAIN-WALK-COST(Tim 2026-10-28 scope C):取数失败画在这一段自己里面,与单据链条那一格同一个形状 —— 页面其余照常
+    'section.failed': 'The audit trail could not be loaded this time ({reason}). The rest of this page is not affected.',
     // ── 谁(Q14 · Q17 · Q18)───────────────────────────────────────────────────
     'who.system': 'System (automatic)',
     'who.removed': 'Removed account',

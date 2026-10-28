@@ -29,4 +29,4 @@ CREATE INDEX fixed_asset_depreciation_journal_entry_id_rel ON public.fixed_asset
 ALTER TABLE public.fixed_asset_depreciation ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fa_depreciation select by permission" ON public.fixed_asset_depreciation
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

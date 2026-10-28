@@ -47,13 +47,13 @@ ALTER TABLE public.dangerous_goods_codes ENABLE ROW LEVEL SECURITY;
 -- 读:要用到它的模块(物料主数据、库存、进料 / 产出、物流、销售)—— 不是 USING (true):那 44 条开着的读策略不再加一条(MES-0 Q86)。
 CREATE POLICY "dangerous_goods_codes select by permission"
     ON public.dangerous_goods_codes AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.materials.view') OR has_permission('module.inventory.view')
-           OR has_permission('module.inbound.view') OR has_permission('module.output.view')
-           OR has_permission('module.logistics.view') OR has_permission('module.sales.view'));
+    USING ((SELECT has_permission('module.materials.view')) OR (SELECT has_permission('module.inventory.view'))
+           OR (SELECT has_permission('module.inbound.view')) OR (SELECT has_permission('module.output.view'))
+           OR (SELECT has_permission('module.logistics.view')) OR (SELECT has_permission('module.sales.view')));
 CREATE POLICY "dangerous_goods_codes write by permission"
     ON public.dangerous_goods_codes AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.materials.edit'))
-    WITH CHECK (has_permission('module.materials.edit'));
+    USING ((SELECT has_permission('module.materials.edit')))
+    WITH CHECK ((SELECT has_permission('module.materials.edit')));
 
 REVOKE ALL ON public.dangerous_goods_codes FROM anon;
 

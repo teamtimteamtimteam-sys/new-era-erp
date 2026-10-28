@@ -81,5 +81,5 @@ ALTER TABLE public.payment_trigger_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payment_trigger_events select by permission"
     ON public.payment_trigger_events
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text)
-        OR has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text))
+        OR (SELECT has_permission('module.finance.view'::text)));

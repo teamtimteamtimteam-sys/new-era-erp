@@ -39,7 +39,7 @@ ALTER TABLE public.tax_codes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tax_codes select by permission"
     ON public.tax_codes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子:IRAS 的九个税码】。逐行跟踪线上(check_mirrors 的 SEED_TABLES)。

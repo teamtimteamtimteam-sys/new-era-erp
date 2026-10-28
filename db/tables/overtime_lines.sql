@@ -40,8 +40,8 @@ ALTER TABLE public.overtime_lines ENABLE ROW LEVEL SECURITY;
 --   而且不报错。所以本人那一半走属主权限的 my_overtime_lines()(与 my_document_decisions 同形)。
 CREATE POLICY "overtime_lines select by permission" ON public.overtime_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text)
-        OR has_permission('action.overtime_enter'::text)
-        OR has_permission('action.overtime_approve'::text));
+    USING ((SELECT has_permission('module.hr.view'::text))
+        OR (SELECT has_permission('action.overtime_enter'::text))
+        OR (SELECT has_permission('action.overtime_approve'::text)));
 
 REVOKE ALL ON public.overtime_lines FROM anon;

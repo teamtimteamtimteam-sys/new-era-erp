@@ -1,0 +1,2 @@
+route                                  admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/finance/journal/[id]                    360       348       338       342       341       344         2   JE-2025-Wpay01 (people)

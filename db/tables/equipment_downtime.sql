@@ -109,7 +109,7 @@ ALTER TABLE public.equipment_downtime ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "equipment_downtime select by permission"
     ON public.equipment_downtime
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)) OR (SELECT has_permission('module.processing.view'::text)));
 
 -- 【写:只经函数】(MES-7a-1,MES-7a Step 0 Q6)记停机的是车间(module.processing.edit),而它现在走五支函数里的三支:
 -- open_equipment_downtime · close_equipment_downtime · correct_equipment_downtime(作废照旧 void_equipment_downtime)。

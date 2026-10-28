@@ -89,7 +89,7 @@ CREATE TRIGGER trg_sales_settlements_immutable
 ALTER TABLE public.sales_settlements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sales settlements select by customer permission"
     ON public.sales_settlements AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.customers.view'::text));
+    USING ((SELECT has_permission('module.customers.view'::text)));
 -- 【没有 INSERT/UPDATE 策略,而那是刻意的】写入只走 record_sale_settlement:
 -- 检查与写入必须在同一笔事务里,否则分两步之间那道缝足够让一份不合口径的
 -- 结算先被写下来(与 contract_document_terms 同一条理由)。

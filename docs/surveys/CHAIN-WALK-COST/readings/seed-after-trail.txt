@@ -1,0 +1,31 @@
+182 trails per role
+admin done
+cco done
+cfo done
+cto done
+finance done
+gm done
+warehouse done
+route                                admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/purchasing/orders/[id]                 18        17        16        15        15        15        15   PO-2025-0001
+/inbound/[id]/edit                      60        46        45        45        45        45        45   IN-2025-0001
+/finance/payables/[batchId]             10        10        10        10        10        10   refused   IN-2025-0001
+/finance/payment-requests/[id]          10         9         9         9         9         8   refused   PREQ-2025-0001
+/finance/payments/[id]                  12        11        11        11        12        11   refused   PMT-2025-0001
+/finance/bank/statements/[id]           69        60        60        61        60        60   refused   BS-2025-0001
+/operation/orders/[id]                   5         4         4         4         4         4         4   WO-2025-0001
+/operation/processing/[id]              22        20        20        20        20        20        20   PROC-2025-0001
+/output/[id]/edit                       33        30        30        30        30        30        27   CPW-2025-00001
+/sales/quotes/[id]                       5         4         4         4         4         4   refused   QT-2025-0001
+/sales/orders/[id]                      10        10        10        10        10        10   refused   SO-2025-0001
+/sales/shipments/[id]                    4         4         4         4         4         4         4   SHP-2025-0001
+/logistics/containers/[id]               4         4         4         4         4         4         4   CTR-2025-0001
+/finance/invoices/[id]                  10         9        10        10        10         9   refused   INV-2025-0001
+/finance/credit-notes/[id]               5         5         5         5         5         5   refused   CN-2025-0001
+/hr/attendance/[id]                     19        19        19        19        18        19   refused   ATT-2025-01
+/hr/overtime/[id]                       19        18        18        19        18        18        24   OT-2025-01
+/hr/leave/[id]                           5         4         4         4         4         4   refused   LV-2025-0001
+/hr/payroll/[id]                        32        34        31        39        31        38   refused   PAY-2025-0001
+/finance/journal/[id]                   12        10        10        11        10        10   refused   JE-2025-P00001
+named refusals/errors: {'TRAIL_NOT_PERMITTED': 111}
+EXIT=0

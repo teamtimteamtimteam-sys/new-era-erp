@@ -48,6 +48,6 @@ ALTER TABLE public.traceability_report_issues ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "traceability_report_issues select by permission"
     ON public.traceability_report_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.sales.view', 'module.processing.view']));
+    USING ((SELECT has_any_permission(ARRAY['module.sales.view', 'module.processing.view'])));
 -- 【没有 INSERT 策略,这是刻意的】唯一写入口是 record_traceability_report_issue
 -- (属主权限)—— 与 approval_log / 另外六个族同一条:档案不该有第二个写法。

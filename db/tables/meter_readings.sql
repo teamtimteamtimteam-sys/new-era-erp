@@ -62,6 +62,6 @@ ALTER TABLE public.meter_readings ENABLE ROW LEVEL SECURITY;
 -- 读:设备页的读者(加工查看码),以及电费分摊页的读者(财务查看码)。kWh 不遮(Q30)。写只经函数。
 CREATE POLICY "meter_readings select by permission" ON public.meter_readings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.view'::text, 'module.finance.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.processing.view'::text, 'module.finance.view'::text])));
 GRANT SELECT ON public.meter_readings TO authenticated;
 REVOKE ALL ON public.meter_readings FROM anon;

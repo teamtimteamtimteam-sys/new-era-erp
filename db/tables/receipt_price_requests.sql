@@ -102,7 +102,7 @@ ALTER TABLE public.receipt_price_requests ENABLE ROW LEVEL SECURITY;
 -- 提交(四扇门)、decide / withdraw 与应用 / 撤销化验(全是 SECURITY DEFINER)。
 CREATE POLICY "receipt_price_requests select by permission" ON public.receipt_price_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view'::text) AND has_permission('data.view_purchase_prices'::text));
+    USING ((SELECT has_permission('module.inbound.view'::text)) AND (SELECT has_permission('data.view_purchase_prices'::text)));
 
 -- APR-7(grilling Q3):一张在等 CFO 的注销申请冻住那一批 —— 上面不许再开定价申请(改价会改注销的价值)。
 CREATE TRIGGER trg_receipt_price_requests_warehouse_request_freeze

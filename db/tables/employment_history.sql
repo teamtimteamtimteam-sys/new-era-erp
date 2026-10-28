@@ -109,18 +109,18 @@ ALTER TABLE public.employment_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "employment_history select by permission"
     ON public.employment_history
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 CREATE POLICY "employment_history insert by permission"
     ON public.employment_history
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
 -- 自助是行级的 —— 给普通员工 module.hr.view 会让他看见所有人,那恰好是反的。
 CREATE POLICY "employment_history select own rows"
     ON public.employment_history AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee());
+    USING (employee_id = (SELECT current_user_employee()));
 
 -- HR-3a 字段级遮蔽:表级 SELECT 授权【蕴含所有列】,所以先整表收回,再把非敏感列
 -- 逐列授回。调薪两列只能经 employment_history_masked 读取。

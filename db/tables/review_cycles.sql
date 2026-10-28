@@ -34,16 +34,16 @@ CREATE TRIGGER trg_review_cycles_updated_at
 ALTER TABLE public.review_cycles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "review_cycles select by permission"
     ON public.review_cycles AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING ((SELECT has_permission('module.hr.view')));
 CREATE POLICY "review_cycles insert by permission"
     ON public.review_cycles AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.hr_reviews'));
+    WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "review_cycles update by permission"
     ON public.review_cycles AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews'))) WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "review_cycles delete by permission"
     ON public.review_cycles AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews')));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

@@ -77,13 +77,13 @@ CREATE POLICY "festival_doodles select all"
     ON public.festival_doodles AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "festival_doodles insert by permission"
     ON public.festival_doodles AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.manage_permissions'));
+    WITH CHECK ((SELECT has_permission('action.manage_permissions')));
 CREATE POLICY "festival_doodles update by permission"
     ON public.festival_doodles AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.manage_permissions')) WITH CHECK (has_permission('action.manage_permissions'));
+    USING ((SELECT has_permission('action.manage_permissions'))) WITH CHECK ((SELECT has_permission('action.manage_permissions')));
 CREATE POLICY "festival_doodles delete by permission"
     ON public.festival_doodles AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.manage_permissions'));
+    USING ((SELECT has_permission('action.manage_permissions')));
 
 -- ── 种子:23 个节日,窗口按 Tim 的三条特例 + 一条通则算好 ──────────────
 INSERT INTO public.festival_doodles

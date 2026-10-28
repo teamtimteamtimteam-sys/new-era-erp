@@ -143,7 +143,7 @@ ALTER TABLE public.inventory_movements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inventory_movements select by permission"
     ON public.inventory_movements
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inventory.view'::text));
+    USING ((SELECT has_permission('module.inventory.view'::text)));
 
 CREATE TRIGGER trg_inventory_movements_through_function
     BEFORE INSERT ON public.inventory_movements

@@ -55,11 +55,11 @@ COMMENT ON COLUMN public.shift_handovers.acknowledged_by IS
 ALTER TABLE public.shift_handovers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "shift_handovers select by permission" ON public.shift_handovers
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 CREATE POLICY "shift_handovers write by permission" ON public.shift_handovers
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.shift_handovers TO authenticated;
 
 CREATE TRIGGER trg_shift_handovers_updated_at

@@ -98,7 +98,7 @@ ALTER TABLE public.kpi_entries ENABLE ROW LEVEL SECURITY;
 -- 【读:HR 模块 + 评估数据类】与 performance_reviews 同一道门,不比它宽。
 CREATE POLICY "kpi_entries select by permission"
     ON public.kpi_entries AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text) AND has_permission('data.view_reviews'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)) AND (SELECT has_permission('data.view_reviews'::text)));
 
 -- ★ U1-A(UNBLOCK-1 Q5,Tim 2026-10-05):那条 "kpi_entries select own" 自读策略【拿掉了】。
 --   它没有"这一轮已结束"的条件,于是本人经 API(以及持 module.hr.view 的本人经审计记录 —— trail_row_visible 拿表的策略判行)

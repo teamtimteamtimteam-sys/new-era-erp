@@ -67,7 +67,7 @@ ALTER TABLE public.wht_remittances ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "wht_remittances select by permission"
     ON public.wht_remittances
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 COMMENT ON TABLE public.wht_remittances IS
 'WHT-1:一次向 IRAS 的预提税汇款,只可追加。**没有"打开一期"这个动作** ——

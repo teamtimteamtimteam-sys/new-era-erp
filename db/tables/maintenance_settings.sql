@@ -61,12 +61,12 @@ ALTER TABLE public.maintenance_settings ENABLE ROW LEVEL SECURITY;
 -- 读:与保养记录同一个 OR(机器卡在财务、干活的人在加工,两边都要读得到阈值)。
 CREATE POLICY "maintenance_settings select by permission" ON public.maintenance_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)) OR (SELECT has_permission('module.processing.view'::text)));
 -- 改阈值是财务侧的事(它是一条会计政策),不是车间的。
 CREATE POLICY "maintenance_settings update by permission" ON public.maintenance_settings
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text))
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

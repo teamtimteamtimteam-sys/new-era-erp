@@ -86,7 +86,7 @@ ALTER TABLE public.gst_filing_requests ENABLE ROW LEVEL SECURITY;
 -- (全是 SECURITY DEFINER)。屏幕读 gst_filing_requests_visible()。
 CREATE POLICY "gst_filing_requests select by permission" ON public.gst_filing_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.gst_filing_requests FROM anon;

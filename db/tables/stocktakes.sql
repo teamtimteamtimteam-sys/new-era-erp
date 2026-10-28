@@ -68,7 +68,7 @@ ALTER TABLE public.stocktakes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "stocktakes select by permission"
     ON public.stocktakes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.stocktakes.view'::text));
+    USING ((SELECT has_permission('module.stocktakes.view'::text)));
 
 -- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q3):**没有写策略**。原来的 INSERT / UPDATE 两条
 --   (都开在 module.stocktakes.edit 上)拿掉 —— 它们让任何持码的人直接把 status 写成 posted、改写

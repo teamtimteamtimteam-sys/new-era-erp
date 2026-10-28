@@ -43,7 +43,7 @@ COMMENT ON COLUMN public.import_batches.code_last IS '本批次里【字典序�
 ALTER TABLE public.import_batches ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "import_batches select by permission" ON public.import_batches
-    FOR SELECT TO authenticated USING (has_permission('action.bulk_import'::text));
+    FOR SELECT TO authenticated USING ((SELECT has_permission('action.bulk_import'::text)));
 -- 写入只走 SECURITY DEFINER 的 master_import_apply,所以这里【故意】没有 INSERT 策略。
 
 REVOKE ALL ON public.import_batches FROM authenticated;

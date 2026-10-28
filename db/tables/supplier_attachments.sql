@@ -53,22 +53,22 @@ ALTER TABLE public.supplier_attachments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "supplier_attachments select by permission"
     ON public.supplier_attachments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 
 CREATE POLICY "supplier_attachments insert by permission"
     ON public.supplier_attachments
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.suppliers.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 
 CREATE POLICY "supplier_attachments update by permission"
     ON public.supplier_attachments
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.suppliers.edit'::text)) WITH CHECK (has_permission('module.suppliers.edit'::text));
+    USING ((SELECT has_permission('module.suppliers.edit'::text))) WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 
 CREATE POLICY "supplier_attachments delete by permission"
     ON public.supplier_attachments
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.suppliers.edit'::text));
+    USING ((SELECT has_permission('module.suppliers.edit'::text)));
 
 -- 4. Index: we always query attachments by their owning supplier.
 CREATE INDEX idx_supplier_attachments_supplier_id

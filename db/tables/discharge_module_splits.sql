@@ -40,6 +40,6 @@ CREATE TRIGGER trg_discharge_module_splits_append_only
 ALTER TABLE public.discharge_module_splits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "discharge_module_splits select by permission" ON public.discharge_module_splits
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.view'::text, 'module.inbound.view'::text, 'module.output.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.processing.view'::text, 'module.inbound.view'::text, 'module.output.view'::text])));
 GRANT SELECT ON public.discharge_module_splits TO authenticated;
 REVOKE ALL ON public.discharge_module_splits FROM anon;

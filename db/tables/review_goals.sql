@@ -48,30 +48,30 @@ ALTER TABLE public.review_goals ENABLE ROW LEVEL SECURITY;
 -- 目标行里就是自评与评语的正文,不能比它依附的评估更宽。
 CREATE POLICY "review_goals select by permission"
     ON public.review_goals AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view') AND has_permission('data.view_reviews'));
+    USING ((SELECT has_permission('module.hr.view')) AND (SELECT has_permission('data.view_reviews')));
 
 CREATE POLICY "review_goals select as reviewer"
     ON public.review_goals AS PERMISSIVE FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM performance_reviews r
                    WHERE r.id = review_goals.review_id
-                     AND r.reviewer_employee_id = current_user_employee()));
+                     AND r.reviewer_employee_id = (SELECT current_user_employee())));
 
 CREATE POLICY "review_goals select own approved"
     ON public.review_goals AS PERMISSIVE FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM performance_reviews r
                    WHERE r.id = review_goals.review_id
-                     AND r.employee_id = current_user_employee()
+                     AND r.employee_id = (SELECT current_user_employee())
                      AND r.status IN ('approved','acknowledged')));
 
 CREATE POLICY "review_goals insert by permission"
     ON public.review_goals AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.hr_reviews'));
+    WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "review_goals update by permission"
     ON public.review_goals AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews'))) WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "review_goals delete by permission"
     ON public.review_goals AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews')));
 GRANT SELECT (target_value, actual_value, unit) ON public.review_goals TO authenticated;
 COMMENT ON COLUMN public.review_goals.target_value IS
     '期初定下的量化指标。【可选】—— 数字编不出来就不编,这一行仍然只靠 objective_text 说清楚。';

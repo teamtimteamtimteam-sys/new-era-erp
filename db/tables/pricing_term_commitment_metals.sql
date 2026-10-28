@@ -38,8 +38,8 @@ ALTER TABLE public.pricing_term_commitment_metals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "pricing_term_commitment_metals select by permission"
     ON public.pricing_term_commitment_metals
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text)
-        OR has_permission('module.inbound.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text))
+        OR (SELECT has_permission('module.inbound.view'::text)));
 
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.pricing_term_commitment_metals FROM authenticated, anon;

@@ -1,0 +1,27 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review d0c88745-7ca5-43fe-abbf-9ae1b6fbae38
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 250 measurable (59 dynamic) · 26 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/3] 29s  ovf=0 clip=0 /output/848d954a-1a82-49cb-b71f-f82716c39ff9/edit
+  [  2/3] 49s  ovf=0 clip=0 /purchasing/orders/6d2ce1ff-728e-4594-bd7b-155002f54de7
+  [  3/3] 80s  ovf=0 clip=0 /inbound/d719cc6e-3b84-45f3-be3e-a2c0594079e1/edit
+
+════ 390px SURVEY ════
+measured: 3  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 26
+U1 pan-free (no page overflow):       3 / 3
+U2 no clipped ledger:                 3 / 3
+USABLE (U1 AND U2):                   3 / 3
+
+pages FAILING U1 (page overflows): 0
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 3 / 3  median per page: 92
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/phone-390.json
+· cleaned up ephemeral survey account(s)
+layout 390 OWN_EXIT=0

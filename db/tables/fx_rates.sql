@@ -53,22 +53,22 @@ ALTER TABLE public.fx_rates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fx_rates select by permission"
     ON public.fx_rates
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 CREATE POLICY "fx_rates insert by permission"
     ON public.fx_rates
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 CREATE POLICY "fx_rates update by permission"
     ON public.fx_rates
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text))) WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 CREATE POLICY "fx_rates delete by permission"
     ON public.fx_rates
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text)));
 
 COMMENT ON TABLE public.fx_rates IS
     '行方每日外汇牌价(1 外币 = rate_sgd_per_unit SGD)。只用于估值【未发生兑换】的交易;真实兑换以银行实际金额入账,不查本表。';

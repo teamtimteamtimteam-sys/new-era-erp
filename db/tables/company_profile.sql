@@ -60,17 +60,17 @@ CREATE POLICY "company_profile select by permission"
 CREATE POLICY "company_profile insert by permission"
     ON public.company_profile
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.finance_settings'::text));
+    WITH CHECK ((SELECT has_permission('action.finance_settings'::text)));
 
 CREATE POLICY "company_profile update by permission"
     ON public.company_profile
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.finance_settings'::text)) WITH CHECK (has_permission('action.finance_settings'::text));
+    USING ((SELECT has_permission('action.finance_settings'::text))) WITH CHECK ((SELECT has_permission('action.finance_settings'::text)));
 
 CREATE POLICY "company_profile delete by permission"
     ON public.company_profile
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.finance_settings'::text));
+    USING ((SELECT has_permission('action.finance_settings'::text)));
 
 -- cut 3 银行明细遮蔽:收回原始银行列。表级 SELECT 蕴含所有列,
 -- 所以先整表收回,再把非银行列逐列授回。银行列只能经 company_profile_masked 读取。

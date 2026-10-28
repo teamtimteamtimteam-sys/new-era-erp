@@ -48,6 +48,6 @@ ALTER TABLE public.instrument_calibrations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "instrument_calibrations select by permission" ON public.instrument_calibrations
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.instrument_calibrations FROM anon;

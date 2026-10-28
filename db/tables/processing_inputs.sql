@@ -269,12 +269,12 @@ ALTER TABLE public.processing_inputs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_inputs select by permission"
     ON public.processing_inputs
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 CREATE POLICY "processing_inputs insert by permission"
     ON public.processing_inputs
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 
 -- ★ MES-4a(2026-10-07,MES-4a Step 0 Q32,Tim):UPDATE 策略拿掉了(ROLE1B3B-PROCESSING-UPDATE-POLICIES 关闭)—— 投入腿写下就不改;
 --   数量错了是回滚 + 新单(Q31)。直连改按名拒(见文末)。

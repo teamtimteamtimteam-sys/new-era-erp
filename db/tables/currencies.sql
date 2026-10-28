@@ -42,17 +42,17 @@ CREATE POLICY "currencies select by permission"
 CREATE POLICY "currencies insert by permission"
     ON public.currencies
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.finance_settings'::text));
+    WITH CHECK ((SELECT has_permission('action.finance_settings'::text)));
 
 CREATE POLICY "currencies update by permission"
     ON public.currencies
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.finance_settings'::text)) WITH CHECK (has_permission('action.finance_settings'::text));
+    USING ((SELECT has_permission('action.finance_settings'::text))) WITH CHECK ((SELECT has_permission('action.finance_settings'::text)));
 
 CREATE POLICY "currencies delete by permission"
     ON public.currencies
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.finance_settings'::text));
+    USING ((SELECT has_permission('action.finance_settings'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

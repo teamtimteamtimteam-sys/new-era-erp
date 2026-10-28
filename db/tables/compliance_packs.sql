@@ -50,6 +50,6 @@ ALTER TABLE public.compliance_packs ENABLE ROW LEVEL SECURITY;
 -- 读:合规的查看码(清单、包页、PDF)。写只经函数。
 CREATE POLICY "compliance_packs select by permission" ON public.compliance_packs
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.compliance.view'::text));
+    USING ((SELECT has_permission('module.compliance.view'::text)));
 GRANT SELECT ON public.compliance_packs TO authenticated;
 REVOKE ALL ON public.compliance_packs FROM anon;

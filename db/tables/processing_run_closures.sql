@@ -44,6 +44,6 @@ CREATE TRIGGER trg_processing_run_closures_append_only
 
 ALTER TABLE public.processing_run_closures ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_run_closures select by permission" ON public.processing_run_closures
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 GRANT SELECT ON public.processing_run_closures TO authenticated;
 REVOKE ALL ON public.processing_run_closures FROM anon;

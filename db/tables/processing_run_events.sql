@@ -48,6 +48,6 @@ CREATE TRIGGER trg_processing_run_events_append_only
 
 ALTER TABLE public.processing_run_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_run_events select by permission" ON public.processing_run_events
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 GRANT SELECT ON public.processing_run_events TO authenticated;
 REVOKE ALL ON public.processing_run_events FROM anon;

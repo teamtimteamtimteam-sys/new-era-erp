@@ -32,11 +32,11 @@ ALTER TABLE public.loss_metal_fates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "loss_metal_fates select all" ON public.loss_metal_fates
     AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "loss_metal_fates insert by permission" ON public.loss_metal_fates
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.processing.edit'::text));
+    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 CREATE POLICY "loss_metal_fates update by permission" ON public.loss_metal_fates
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.loss_metal_fates TO authenticated;
 

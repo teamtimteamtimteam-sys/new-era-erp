@@ -30,11 +30,11 @@ CREATE TRIGGER trg_forwarder_details_updated_at
 
 ALTER TABLE public.forwarder_details ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "forwarder_details select" ON public.forwarder_details
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.logistics.view'::text)));
 CREATE POLICY "forwarder_details write" ON public.forwarder_details
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.purchasing.edit'::text))
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 CREATE TRIGGER trg_forwarder_details_is_forwarder
     BEFORE INSERT OR UPDATE ON public.forwarder_details

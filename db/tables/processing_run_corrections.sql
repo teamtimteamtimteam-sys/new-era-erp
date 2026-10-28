@@ -30,6 +30,6 @@ CREATE TRIGGER trg_processing_run_corrections_append_only
 
 ALTER TABLE public.processing_run_corrections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_run_corrections select by permission" ON public.processing_run_corrections
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 GRANT SELECT ON public.processing_run_corrections TO authenticated;
 REVOKE ALL ON public.processing_run_corrections FROM anon;

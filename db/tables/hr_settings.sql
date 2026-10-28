@@ -42,7 +42,7 @@ CREATE POLICY "hr_settings select by permission"
     ON public.hr_settings AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "hr_settings update by permission"
     ON public.hr_settings AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit'))) WITH CHECK ((SELECT has_permission('module.hr.edit')));
 
 INSERT INTO public.hr_settings (id) VALUES (true);
 

@@ -57,7 +57,7 @@ CREATE TRIGGER trg_credit_note_lines_belongs
 ALTER TABLE public.credit_note_lines ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "credit_note_lines select by permission" ON public.credit_note_lines
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- GST-2:未注册时写不进税码(与 invoice_lines / expenses 同一道闸)。
 CREATE TRIGGER trg_credit_note_lines_tax_code_registered

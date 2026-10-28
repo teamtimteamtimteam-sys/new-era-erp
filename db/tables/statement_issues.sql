@@ -29,4 +29,4 @@ ALTER TABLE public.statement_issues ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "statement_issues select by permission" ON public.statement_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

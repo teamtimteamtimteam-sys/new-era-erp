@@ -64,11 +64,11 @@ CREATE POLICY "inbound_source_reasons select all"
 --   迁移:db/migrations/2026-09-04-c1b-two-dictionaries-are-material-master-data.sql
 CREATE POLICY "inbound_source_reasons insert by permission"
     ON public.inbound_source_reasons AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 CREATE POLICY "inbound_source_reasons update by permission"
     ON public.inbound_source_reasons AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text))
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inbound_source_reasons TO authenticated;
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────

@@ -1,0 +1,12 @@
+STEP|base https://new-era-erp.vercel.app
+SELECT1|before the reader client round trips 444 / 456 / 684 / 509 / 452 ms (median 456) · server execution 0.698 ms
+HEALTH|before the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|purchase order PO-2026-0003 (6d2ce1ff-728e-4594-bd7b-155002f54de7) — most inbound batches, read as postgres on base tables
+PASS|/purchasing/orders/<PO-2026-0003> → HTTP 200, h1 "Purchase OrderPO-2026-0003": purchasing chain drawn, at purchase_order, 8 steps (purchase_order=current · inbound_batch=found · assay=found · pricing=found · payable=found · payment_request=none · payment=none · bank_reconciliation=none)
+PASS|"All related records" link on the page → /related/purchase_order/6d2ce1ff-728e-4594-bd7b-155002f54de7
+PASS|/related/purchase_order/6d2ce1ff-728e-4594-bd7b-155002f54de7 → HTTP 200, h1 "All related records — PO-2026-0003", 0 group link(s)
+SELECT1|after the reader client round trips 449 / 445 / 438 / 440 / 435 ms (median 440) · server execution 0.039 ms
+HEALTH|after the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+SM3_CLOSEOUT_EXIT=0
+SM3C_OWN_EXIT=0

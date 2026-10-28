@@ -25,7 +25,7 @@ COMMENT ON TABLE public.inspection_results IS
 ALTER TABLE public.inspection_results ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inspection_results select by permission" ON public.inspection_results
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inspection_results TO authenticated;
 REVOKE ALL ON public.inspection_results FROM anon;
 

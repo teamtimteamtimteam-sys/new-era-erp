@@ -59,6 +59,7 @@ DECLARE
     v_label text;
     v_doc   boolean;
     v_extra text;
+    v_type  text;
 BEGIN
     IF p_value IS NULL THEN
         RETURN NULL;
@@ -82,8 +83,24 @@ BEGIN
         RETURN jsonb_build_object('person', v_img, 'gone', false,
                                   'label', CASE WHEN v_img ->> 'state' = 'person' THEN v_img ->> 'name' END);
     END IF;
-    EXECUTE format('SELECT to_jsonb(t) FROM public.%I t WHERE t.%I::text = $1 LIMIT 1', p_table, p_column)
-       INTO v_img USING p_value;
+    -- CHAIN-WALK-COST:按那一列自己的类型比,不把列转成文字(`t.col::text = $1` 用不上索引,每一个名字一次整表扫)。
+    --   值读不成那个类型时什么都对不上 —— 与以前"文字比不上"同一个结局;值都来自那一列自己的影像,所以是它的规范写法,答案逐字不变。
+    SELECT format_type(a.atttypid, a.atttypmod) INTO v_type
+      FROM pg_attribute a WHERE a.attrelid = format('public.%I', p_table)::regclass AND a.attname = p_column AND NOT a.attisdropped;
+    IF v_type IS NULL THEN
+        -- 没有这一列:照旧让那一句自己报错(不把一个写错的列名变成"找不到")
+        EXECUTE format('SELECT to_jsonb(t) FROM public.%I t WHERE t.%I::text = $1 LIMIT 1', p_table, p_column)
+           INTO v_img USING p_value;
+    ELSE
+        -- ★ 不用 pg_input_is_valid(值, 变化的类型) 先验:在 PL/pgSQL 缓存的表达式里它记住【第一次】的类型(本地实测:先判一次 uuid,
+        --   之后 'USD' 对 text 也判成无效)。改成一个只接数据错误(SQLSTATE 22 类)的子事务:读不成那个类型 = 对不上,与以前同一个结局。
+        BEGIN
+            EXECUTE format('SELECT to_jsonb(t) FROM public.%I t WHERE t.%I = $1::%s LIMIT 1', p_table, p_column, v_type)
+               INTO v_img USING p_value;
+        EXCEPTION WHEN data_exception THEN
+            v_img := NULL;
+        END;
+    END IF;
     IF v_img IS NULL THEN
         v_gone := true;
         SELECT CASE WHEN c.op = 'DELETE' THEN c.old ELSE c.new END INTO v_img
@@ -106,7 +123,7 @@ BEGIN
         WHEN p_table = 'training_records' THEN v_img ->> 'training_name'
         WHEN p_table = 'import_batches' THEN v_img ->> 'file_name'
         WHEN p_table = 'purchase_order_lines' THEN
-            (SELECT po.code FROM purchase_orders po WHERE po.id::text = v_img ->> 'purchase_order_id')
+            (SELECT po.code FROM purchase_orders po WHERE po.id = CASE WHEN pg_input_is_valid(v_img ->> 'purchase_order_id', 'uuid') THEN (v_img ->> 'purchase_order_id')::uuid END)
             || ' line ' || (v_img ->> 'line_no')
         WHEN v_doc AND v_img ? 'code' THEN v_img ->> 'code'
         WHEN v_img ? 'name_en' THEN v_img ->> 'name_en'
@@ -119,24 +136,24 @@ BEGIN
         v_label := to_char((v_img ->> 'handover_date')::date, 'DD/MM/YYYY')
                    || COALESCE(' · ' || (SELECT s.name_en FROM shifts s WHERE s.code = v_img ->> 'shift_code'), '');
     ELSIF p_table = 'equipment_downtime' THEN
-        v_label := COALESCE((SELECT fa.code FROM fixed_assets fa WHERE fa.id::text = v_img ->> 'equipment_id') || ' · ', '')
+        v_label := COALESCE((SELECT fa.code FROM fixed_assets fa WHERE fa.id = CASE WHEN pg_input_is_valid(v_img ->> 'equipment_id', 'uuid') THEN (v_img ->> 'equipment_id')::uuid END) || ' · ', '')
                    || to_char(((v_img ->> 'started_at')::timestamptz) AT TIME ZONE 'Asia/Singapore', 'DD/MM/YYYY HH24:MI');
     ELSIF p_table IN ('sales_order_lines', 'quote_lines', 'invoice_lines') THEN
         -- AUDIT-TRAIL-1b-2:订单 / 报价的明细行 → "SO-2026-0001 line 1"(与采购单明细同一种说法)
         -- AUDIT-TRAIL-1c-1:发票明细行同一种说法(贷项通知的每一行冲的是发票的哪一行)
         v_label := CASE p_table
-            WHEN 'sales_order_lines' THEN (SELECT so.code FROM sales_orders so WHERE so.id::text = v_img ->> 'sales_order_id')
-            WHEN 'invoice_lines' THEN (SELECT i.code FROM invoices i WHERE i.id::text = v_img ->> 'invoice_id')
-            ELSE (SELECT q.code FROM quotes q WHERE q.id::text = v_img ->> 'quote_id') END
+            WHEN 'sales_order_lines' THEN (SELECT so.code FROM sales_orders so WHERE so.id = CASE WHEN pg_input_is_valid(v_img ->> 'sales_order_id', 'uuid') THEN (v_img ->> 'sales_order_id')::uuid END)
+            WHEN 'invoice_lines' THEN (SELECT i.code FROM invoices i WHERE i.id = CASE WHEN pg_input_is_valid(v_img ->> 'invoice_id', 'uuid') THEN (v_img ->> 'invoice_id')::uuid END)
+            ELSE (SELECT q.code FROM quotes q WHERE q.id = CASE WHEN pg_input_is_valid(v_img ->> 'quote_id', 'uuid') THEN (v_img ->> 'quote_id')::uuid END) END
             || ' line ' || (v_img ->> 'line_no');
     ELSIF p_table = 'ports' THEN
         -- 港口 → "SGSIN Singapore"(航段页、货代页上的同一种写法)
         v_label := concat_ws(' ', v_img ->> 'code', v_img ->> 'name');
     ELSIF p_table = 'lanes' THEN
         -- 航段没有名字 → "起运港 → 目的港"(两头各按港口那一句说)
-        v_label := COALESCE((SELECT concat_ws(' ', pt.code, pt.name) FROM ports pt WHERE pt.id::text = v_img ->> 'origin_port_id'), '?')
+        v_label := COALESCE((SELECT concat_ws(' ', pt.code, pt.name) FROM ports pt WHERE pt.id = CASE WHEN pg_input_is_valid(v_img ->> 'origin_port_id', 'uuid') THEN (v_img ->> 'origin_port_id')::uuid END), '?')
                    || ' → ' ||
-                   COALESCE((SELECT concat_ws(' ', pt.code, pt.name) FROM ports pt WHERE pt.id::text = v_img ->> 'destination_port_id'), '?');
+                   COALESCE((SELECT concat_ws(' ', pt.code, pt.name) FROM ports pt WHERE pt.id = CASE WHEN pg_input_is_valid(v_img ->> 'destination_port_id', 'uuid') THEN (v_img ->> 'destination_port_id')::uuid END), '?');
     ELSIF p_table IN ('company_compliance', 'supplier_compliance') THEN
         -- 执照 / 证书 → "证书种类 · 编号"
         v_label := concat_ws(' · ', (SELECT ct.name_en FROM certificate_types ct WHERE ct.code = v_img ->> 'cert_type_code'),
@@ -146,7 +163,7 @@ BEGIN
     ELSIF p_table = 'container_documents' THEN
         v_label := v_img ->> 'document_type';
     ELSIF p_table = 'sales_records' THEN
-        v_label := COALESCE((SELECT ob.code FROM output_batches ob WHERE ob.id::text = v_img ->> 'output_batch_id') || ' sale ', 'Sale ')
+        v_label := COALESCE((SELECT ob.code FROM output_batches ob WHERE ob.id = CASE WHEN pg_input_is_valid(v_img ->> 'output_batch_id', 'uuid') THEN (v_img ->> 'output_batch_id')::uuid END) || ' sale ', 'Sale ')
                    || to_char((v_img ->> 'sale_date')::date, 'DD/MM/YYYY');
         RETURN jsonb_build_object('label', v_label, 'gone', v_gone)
                || CASE WHEN p_column = 'id' AND NOT v_gone
@@ -158,17 +175,17 @@ BEGIN
                              to_char((v_img ->> 'rate_date')::date, 'DD/MM/YYYY'));
     ELSIF p_table = 'journal_lines' THEN
         -- 对账单的一行匹配到的那一行分录 → "JE-2026-0001 · Cash at Bank – SGD"(分录号 · 科目)
-        v_label := concat_ws(' · ', (SELECT je.code FROM journal_entries je WHERE je.id::text = v_img ->> 'entry_id'),
-                             (SELECT a.name_en FROM accounts a WHERE a.id::text = v_img ->> 'account_id'));
+        v_label := concat_ws(' · ', (SELECT je.code FROM journal_entries je WHERE je.id = CASE WHEN pg_input_is_valid(v_img ->> 'entry_id', 'uuid') THEN (v_img ->> 'entry_id')::uuid END),
+                             (SELECT a.name_en FROM accounts a WHERE a.id = CASE WHEN pg_input_is_valid(v_img ->> 'account_id', 'uuid') THEN (v_img ->> 'account_id')::uuid END));
     ELSIF p_table = 'bank_statement_lines' THEN
-        v_label := (SELECT bs.code FROM bank_statements bs WHERE bs.id::text = v_img ->> 'statement_id') || ' line ' || (v_img ->> 'line_no');
+        v_label := (SELECT bs.code FROM bank_statements bs WHERE bs.id = CASE WHEN pg_input_is_valid(v_img ->> 'statement_id', 'uuid') THEN (v_img ->> 'statement_id')::uuid END) || ' line ' || (v_img ->> 'line_no');
     ELSIF p_table = 'gst_return_boxes' THEN
         v_label := 'Box ' || regexp_replace(v_img ->> 'box', '^box', '');
     ELSIF p_table = 'bank_reconciliations' THEN
-        v_label := (SELECT bs.code FROM bank_statements bs WHERE bs.id::text = v_img ->> 'statement_id')
+        v_label := (SELECT bs.code FROM bank_statements bs WHERE bs.id = CASE WHEN pg_input_is_valid(v_img ->> 'statement_id', 'uuid') THEN (v_img ->> 'statement_id')::uuid END)
                    || ' reconciliation ' || to_char(((v_img ->> 'reconciled_at')::timestamptz) AT TIME ZONE 'Asia/Singapore', 'DD/MM/YYYY');
     ELSIF p_table = 'fixed_asset_depreciation' THEN
-        v_label := (SELECT fa.code FROM fixed_assets fa WHERE fa.id::text = v_img ->> 'asset_id')
+        v_label := (SELECT fa.code FROM fixed_assets fa WHERE fa.id = CASE WHEN pg_input_is_valid(v_img ->> 'asset_id', 'uuid') THEN (v_img ->> 'asset_id')::uuid END)
                    || ' · period ending ' || to_char((v_img ->> 'period_end')::date, 'DD/MM/YYYY');
     ELSIF p_table = 'finance_settings' THEN
         v_label := 'Finance settings';
@@ -195,11 +212,11 @@ BEGIN
                || CASE WHEN p_column = 'id' AND NOT v_gone
                        THEN jsonb_build_object('href', '/hr/reviews/' || p_value) ELSE '{}'::jsonb END;
     ELSIF p_table = 'payroll_requests' THEN
-        v_label := COALESCE((SELECT pp.code FROM payroll_periods pp WHERE pp.id::text = v_img ->> 'payroll_period_id') || ' ', '')
+        v_label := COALESCE((SELECT pp.code FROM payroll_periods pp WHERE pp.id = CASE WHEN pg_input_is_valid(v_img ->> 'payroll_period_id', 'uuid') THEN (v_img ->> 'payroll_period_id')::uuid END) || ' ', '')
                    || CASE v_img ->> 'kind' WHEN 'reversal' THEN 'unposting request' ELSE 'posting request' END;
     ELSIF p_table = 'process_recipe_versions' THEN
         -- MES-4a(2026-10-07):一个配方版本说成"配方代号 v版本号"(CR-STD v2)—— 它自己没有 code / name 列
-        v_label := (SELECT rc.code FROM process_recipes rc WHERE rc.id::text = v_img ->> 'recipe_id') || ' v' || (v_img ->> 'version');
+        v_label := (SELECT rc.code FROM process_recipes rc WHERE rc.id = CASE WHEN pg_input_is_valid(v_img ->> 'recipe_id', 'uuid') THEN (v_img ->> 'recipe_id')::uuid END) || ' v' || (v_img ->> 'version');
     ELSIF p_table = 'kpi_entries' THEN
         v_label := concat_ws(' · ', NULLIF(v_img ->> 'kpi_ref', ''), NULLIF(v_img ->> 'title', ''));
     ELSIF p_table = 'processing_runs' THEN
@@ -213,7 +230,7 @@ BEGIN
     END IF;
     IF p_table IN ('inbound_batches', 'output_batches') THEN
         IF v_img ->> 'material_id' IS NOT NULL THEN
-            SELECT m.name INTO v_extra FROM materials m WHERE m.id::text = v_img ->> 'material_id';
+            SELECT m.name INTO v_extra FROM materials m WHERE m.id = CASE WHEN pg_input_is_valid(v_img ->> 'material_id', 'uuid') THEN (v_img ->> 'material_id')::uuid END;
             IF v_extra IS NOT NULL THEN
                 v_label := v_label || ' · ' || v_extra;
             END IF;

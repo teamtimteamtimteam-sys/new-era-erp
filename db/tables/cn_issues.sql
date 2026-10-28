@@ -29,4 +29,4 @@ ALTER TABLE public.cn_issues ENABLE ROW LEVEL SECURITY;
 -- 签发档【没有 INSERT 策略】:唯一写入口是 record_cn_issue(属主权限)——
 -- 与 so_issues / po_issues / approval_log 同一条:档案不该有第二个写法。
 CREATE POLICY "cn_issues select by permission" ON public.cn_issues
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.finance.view'::text)));

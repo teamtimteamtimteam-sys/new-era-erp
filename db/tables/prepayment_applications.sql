@@ -68,12 +68,12 @@ ALTER TABLE public.prepayment_applications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "prepayment_applications select by permission"
     ON public.prepayment_applications
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 CREATE POLICY "prepayment_applications insert by permission"
     ON public.prepayment_applications
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 prepayment_applications_masked 读取。

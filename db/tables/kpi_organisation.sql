@@ -54,7 +54,7 @@ CREATE TABLE public.kpi_organisation (
 ALTER TABLE public.kpi_organisation ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "kpi_organisation select by permission"
     ON public.kpi_organisation AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 -- ★【权重合计 = 100 的闸】★ 见抬头。约束触发器,提交时检查。
 CREATE OR REPLACE FUNCTION public.guard_kpi_org_weight_total()

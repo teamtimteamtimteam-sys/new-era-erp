@@ -1,0 +1,9 @@
+admin done
+cco done
+cfo done
+cto done
+finance done
+gm done
+warehouse done
+TDIFF|cwclive.record_trail vs cwcliveafter.record_trail: 249 records × 3 page sizes × 7 roles = 5229 · identical 5229 (22178 rows, 471 identical named refusals) · different 0
+EXIT=0

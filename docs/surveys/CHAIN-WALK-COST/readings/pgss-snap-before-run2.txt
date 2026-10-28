@@ -1,0 +1,3 @@
+# snapshot 01:24:03 (before proof run 2; authenticated PostgREST calls: fn|calls|total ms|max ms)
+SNAP|document_chain_walk|989|796603.1|7762.9
+SNAP|record_trail|16129|4652914.0|7614.0

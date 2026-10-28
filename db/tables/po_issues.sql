@@ -44,7 +44,7 @@ ALTER TABLE public.po_issues ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "po_issues select by permission"
     ON public.po_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text)));
 -- 【没有 INSERT 策略】唯一写入口是 record_po_issue()(属主权限)——
 -- 与 approval_log 同一条:档案不该有第二个写法。
 

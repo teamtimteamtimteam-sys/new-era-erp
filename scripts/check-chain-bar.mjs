@@ -25,6 +25,7 @@
 //   unbar:<文件>      假装那个文件里没有 <DocumentChains> → exit 1 并点名那一步
 //   unanchor:<锚点>   假装宿主页上没有那个锚点(pricing / reservations / cost-allocation / line)→ exit 1
 //   drift:<链>        把 fixture 那一份的边删掉一条 → exit 1(fixture 证的不再是这一份定义)
+//   drift297:<链>     只动 fixture 297 那一份(CHAIN-WALK-COST)→ exit 1
 //   blind             全树扫描读出 0 个页面 → exit 2,不许报"干净"
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -127,18 +128,22 @@ assertPopulation(SELF, '登记表里 output_batches 的种类', outKinds.length)
 assertPinned(SELF, '加工链「产出批」那一步的种类 ↔ 登记表里 output_batches 的种类', [...(outStep?.keys ?? [])].sort().join(','), outKinds.join(','),
     '登记表多了(或少了)一个产出批前缀,而链条那一步没有跟上 —— 那一种产出批的页面上会没有加工链')
 
-// ③ fixture 296 抄的四条链 = lib/chains.ts
-const fx = read('db/fixtures/296-every-adjacent-pair-on-the-four-chains-links-both-ways.sql')
-const copies = new Map([...fx.matchAll(/^\s*c_[a-z]+\s+constant jsonb := '(\{.*\})';\s*-- CHAIN ([a-z]+)\s*$/gm)].map((m) => [m[2], m[1]]))
-for (const c of CHAINS) {
-    let copy = copies.get(c.id)
-    if (!copy) { problems.push(`fixture 296 里没有「-- CHAIN ${c.id}」那一行 —— 它证的不是这一条链`); continue }
-    if (FAULT === `drift:${c.id}`) { const j = JSON.parse(copy); j.edges.pop(); copy = JSON.stringify(j) }
-    if (JSON.stringify(JSON.parse(copy)) !== JSON.stringify(walkDef(c))) {
-        problems.push(`fixture 296 抄的 ${c.id} 链与 lib/chains.ts 不一样 —— 改了链就要同一个提交改 fixture(它证的是这一份定义)`)
+// ③ fixture 296 与 297 抄的四条链 = lib/chains.ts(297:CHAIN-WALK-COST 的按角色计时 —— 它计时的也必须是这一份定义)
+for (const fxFile of ['db/fixtures/296-every-adjacent-pair-on-the-four-chains-links-both-ways.sql',
+                      'db/fixtures/297-the-chain-walk-and-the-trail-stay-cheap-for-seven-roles-at-a-years-volume.sql']) {
+    const fxNo = fxFile.match(/fixtures\/(\d+)/)[1]
+    const fx = read(fxFile)
+    const copies = new Map([...fx.matchAll(/^\s*c_[a-z]+\s+constant jsonb := '(\{.*\})';\s*-- CHAIN ([a-z]+)\s*$/gm)].map((m) => [m[2], m[1]]))
+    for (const c of CHAINS) {
+        let copy = copies.get(c.id)
+        if (!copy) { problems.push(`fixture ${fxNo} 里没有「-- CHAIN ${c.id}」那一行 —— 它证的不是这一条链`); continue }
+        if (FAULT === `drift:${c.id}` || FAULT === `drift${fxNo}:${c.id}`) { const j = JSON.parse(copy); j.edges.pop(); copy = JSON.stringify(j) }
+        if (JSON.stringify(JSON.parse(copy)) !== JSON.stringify(walkDef(c))) {
+            problems.push(`fixture ${fxNo} 抄的 ${c.id} 链与 lib/chains.ts 不一样 —— 改了链就要同一个提交改 fixture(它证的是这一份定义)`)
+        }
     }
+    assertPinned(SELF, `fixture ${fxNo} 里的链条数 ↔ lib/chains.ts 的链条数`, copies.size, CHAINS.length, 'fixture 抄的链多了或少了')
 }
-assertPinned(SELF, 'fixture 296 里的链条数 ↔ lib/chains.ts 的链条数', copies.size, CHAINS.length, 'fixture 抄的链多了或少了')
 
 // ④ 覆盖:表里的页面 = 全树里画着 <DocumentChains> 的 page.tsx(两条独立的路)
 const scanned = []
@@ -162,4 +167,4 @@ if (problems.length) {
     console.error('  ☞ 裁定 2.4 (12)(docs/system-map.md):四条链上每一种单据的详情页都有那条上下游链条;没有自己页面的那几步住在宿主页的锚点上。')
     process.exit(1)
 }
-console.log(`✓ ${SELF}:${CHAINS.length} 条链 · ${steps} 步各有落点 · ${pageFiles.size} 张详情页画着链条(全树扫描数到 ${scannedCount}) · fixture 296 抄的四条链与 lib/chains.ts 一致`)
+console.log(`✓ ${SELF}:${CHAINS.length} 条链 · ${steps} 步各有落点 · ${pageFiles.size} 张详情页画着链条(全树扫描数到 ${scannedCount}) · fixture 296 / 297 抄的四条链与 lib/chains.ts 一致`)

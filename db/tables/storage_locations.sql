@@ -80,17 +80,17 @@ ALTER TABLE public.storage_locations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "storage_locations select by permission"
     ON public.storage_locations
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inventory.view'::text));
+    USING ((SELECT has_permission('module.inventory.view'::text)));
 
 CREATE POLICY "storage_locations insert by permission"
     ON public.storage_locations
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.inventory.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.inventory.edit'::text)));
 
 CREATE POLICY "storage_locations update by permission"
     ON public.storage_locations
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.inventory.edit'::text)) WITH CHECK (has_permission('module.inventory.edit'::text));
+    USING ((SELECT has_permission('module.inventory.edit'::text))) WITH CHECK ((SELECT has_permission('module.inventory.edit'::text)));
 
 -- 【没有 DELETE 策略,这是刻意的】LOC-1 撤掉了它。下架 = 停用;硬删由
 -- trg_storage_locations_no_hard_delete 具名拒绝。

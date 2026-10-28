@@ -42,4 +42,4 @@ ALTER TABLE public.sales_record_movements ENABLE ROW LEVEL SECURITY;
 -- 台账对不上的腿,而这张表存在的全部意义就是它与流水说的是同一件事。
 CREATE POLICY "sales_record_movements select by permission" ON public.sales_record_movements
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

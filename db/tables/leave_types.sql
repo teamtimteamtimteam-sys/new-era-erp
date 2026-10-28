@@ -55,13 +55,13 @@ CREATE POLICY "leave_types select by permission"
     USING (true);
 CREATE POLICY "leave_types insert by permission"
     ON public.leave_types AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "leave_types update by permission"
     ON public.leave_types AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit'))) WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "leave_types delete by permission"
     ON public.leave_types AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit')));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 播种。【法定数字来源:新加坡人力部(MOM)/ Made For Families,2026-08 查证】

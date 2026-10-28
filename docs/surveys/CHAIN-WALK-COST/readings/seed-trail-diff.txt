@@ -1,0 +1,2 @@
+TDIFF|cwcseed.record_trail vs cwcafter.record_trail: 70 records × 1 page sizes × 7 roles = 490 · identical 490 (4692 rows, 42 identical named refusals) · different 0
+EXIT=0

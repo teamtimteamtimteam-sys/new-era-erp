@@ -31,12 +31,12 @@ CREATE POLICY "certificate_types select all"
 CREATE POLICY "certificate_types insert by permission"
     ON public.certificate_types
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.suppliers.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 CREATE POLICY "certificate_types update by permission"
     ON public.certificate_types
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.suppliers.edit'::text))
-    WITH CHECK (has_permission('module.suppliers.edit'::text));
+    USING ((SELECT has_permission('module.suppliers.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 
 -- 【默认值的理由写在行上,读的人才分得清"默认"与"决定"】——
 -- Basel / Article 18 / TFS / NEA / GWDF 是【处理或移动受控废物的法定前置条件】,

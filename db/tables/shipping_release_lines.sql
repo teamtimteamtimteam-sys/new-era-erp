@@ -30,6 +30,6 @@ ALTER TABLE public.shipping_release_lines ENABLE ROW LEVEL SECURITY;
 -- 读:与 shipping_releases 同一个码。写:一条策略都不给(只经 submit_shipping_release)。
 CREATE POLICY "shipping_release_lines select by permission" ON public.shipping_release_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.sales.view'::text));
+    USING ((SELECT has_permission('module.sales.view'::text)));
 
 REVOKE ALL ON public.shipping_release_lines FROM anon;

@@ -51,7 +51,7 @@ CREATE TRIGGER trg_electricity_allocation_lines_one_live
 ALTER TABLE public.electricity_allocation_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "electricity_allocation_lines select by permission" ON public.electricity_allocation_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.finance.view'::text, 'module.processing.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.finance.view'::text, 'module.processing.view'::text])));
 
 -- 字段级遮蔽:amount 只经 electricity_allocation_lines_masked 读。【加列必改这一行与 _masked 视图】
 REVOKE SELECT ON public.electricity_allocation_lines FROM authenticated, anon;

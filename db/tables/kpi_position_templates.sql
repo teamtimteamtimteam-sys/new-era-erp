@@ -62,12 +62,12 @@ CREATE TABLE public.kpi_template_org_links (
 ALTER TABLE public.kpi_position_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "kpi_position_templates select by permission"
     ON public.kpi_position_templates AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 ALTER TABLE public.kpi_template_org_links ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "kpi_template_org_links select by permission"
     ON public.kpi_template_org_links AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 -- ★【每个职位的模板权重合计 = 100 的闸】★(§9.3)
 -- 与组织那条同一形状:DEFERRABLE,提交时按【职位】分组检查。

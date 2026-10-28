@@ -83,7 +83,7 @@ ALTER TABLE public.certificates_of_destruction ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "certificates_of_destruction select by permission"
     ON public.certificates_of_destruction
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('action.issue_cod'::text));
+    USING ((SELECT has_permission('action.issue_cod'::text)));
 -- 【没有 INSERT / UPDATE / DELETE 策略,这是刻意的】唯一写入口是本刀的
 -- 四支 SECURITY DEFINER 函数。档案不该有第二个写法。
 

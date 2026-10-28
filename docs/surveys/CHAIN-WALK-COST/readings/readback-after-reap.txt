@@ -1,0 +1,6 @@
+PROOF|{"users" : 14, "enabled" : 14, "throwaway_users" : 7, "throwaway_roles" : 7, "orphan_grants" : 0, "role_codes_held" : "admin,cco,cfo,cto,finance,gm,probe-sm3probe-admin-1793204194217,probe-sm3probe-cco-1793204194217,probe-sm3probe-cfo-1793204194217,probe-sm3probe-cto-1793204194217,probe-sm3probe-finance-1793204194217,probe-sm3probe-gm-1793204194217,probe-sm3probe-warehouse-1793204194217,warehouse", "approvals" : true, "chain" : "finance/cfo/1000", "req_cal" : "NULL", "cods" : 2, "cfo_grants_active" : 1, "saved_views" : 0}
+BEGIN
+SET
+PROOF|recon ap unexplained=0.00 agrees=true · ar unexplained=0.00 agrees=true
+ROLLBACK
+READBACK_OWN_EXIT=0

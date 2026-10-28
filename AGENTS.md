@@ -1839,6 +1839,22 @@ existing `freight_documents` row — all rolled back, all forbidden (`docs/handb
   任何一次 1–2 s 的走链(上线准备组的 CHAIN-WALK-COST 管它)。
 - 先例:`db/scripts/2026-10-27-system-map-3-live-proof.mjs` 与 `…-perf-budget.mjs` 里的 `abortReason()`。
 
+## ★★★ 策略里的权限判断与读者身份【按语句求一次】(CHAIN-WALK-COST,Tim 2026-10-28 Q1)
+
+> **每一条策略写 `(SELECT has_permission('x'))` · `(SELECT has_any_permission(ARRAY[…]))` · `(SELECT current_user_employee())` · `(SELECT auth.uid())`,
+> 不写裸调用。** `scripts/check-policy-permission-wrap.mjs` 在 `npm run build` 里拦(读 `db/tables/*.sql` 与 `db/storage/buckets-and-policies.sql`);
+> 例外只进 `db/policy-permission-allowlist.tsv`,一条一句理由:`row` = 判断随行变(`can_view_task(task_id)` 那一族,今天 12 条)·
+> `storage` = storage.objects 的策略(不在 Q1 裁定的 public 那 560 条里;portal-uploads / claim-receipts 两个桶按 LIVE SAFETY 不许动)。
+
+**Why:** `has_permission()` 是 SECURITY DEFINER + SET search_path(永远不内联),裸写在策略里 RLS 对【扫过的每一行】调它一次,每次重新汇总读者的角色(约 177 个缓冲区)。
+一年体量的本地重建上,加工链一次走链 11–12 秒、18 万次调用;包成标量子查询它是一个 InitPlan,一条语句一次,答案逐行不变(318 张表 × 七个角色,线上数据拷贝与一年种子两份上逐行比过)。
+**How(同一刀量到的三个坑,别再踩):**
+- **行级安全下,非 leakproof 的条件当不了索引条件**(jsonb `@>`、`LIKE` 之类)—— 一支 INVOKER 函数里"按一个 id 查一次"的 jsonb 判断,加了 GIN 索引照样整表扫。
+  解药不是索引,是**一圈一次**:把一组 id 一起交进去(`document_relation_arm_pairs` · `document_chain_step_admitted` · `document_detail_hrefs`)。
+- **`t.col::text = $1` 用不上索引** —— 按那一列自己的类型比(`t.col = %L` 让字面量由列定型,或 `$1::<列的类型>`)。值都来自那一列自己的影像时答案不变。
+- **`pg_input_is_valid(值, 变化的类型)` 在 PL/pgSQL 缓存的表达式里记住第一次的类型**(本地实测:判过一次 uuid,之后 'USD' 对 text 也判成无效)。
+  类型会变时改用只接 `data_exception` 的子事务。
+
 ## ★★ 两张已签发的 COD —— 字节基线【只记在这里】(TABLE-EXPORT-2,2026-10-22)
 
 **每一刀的线上安全规矩里都有一条「两张已签发的 COD 逐字节不变」。比对的对象就是下面这两行,不是别的报告里的缩写。**

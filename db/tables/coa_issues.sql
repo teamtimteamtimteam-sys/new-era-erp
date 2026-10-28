@@ -26,7 +26,7 @@ COMMENT ON TABLE public.coa_issues IS
 ALTER TABLE public.coa_issues ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "coa_issues select by permission" ON public.coa_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.output.view'::text));
+    USING ((SELECT has_permission('module.output.view'::text)));
 -- 【没有 INSERT 策略,这是刻意的】唯一写入口是 record_coa_issue()。
 GRANT SELECT ON public.coa_issues TO authenticated;
 REVOKE ALL ON public.coa_issues FROM anon;

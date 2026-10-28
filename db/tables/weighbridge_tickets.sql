@@ -59,6 +59,6 @@ ALTER TABLE public.weighbridge_tickets ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "weighbridge_tickets select by permission" ON public.weighbridge_tickets
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((has_permission('module.inbound.view'::text) OR has_permission('module.logistics.view'::text)));
+    USING (((SELECT has_permission('module.inbound.view'::text)) OR (SELECT has_permission('module.logistics.view'::text))));
 
 REVOKE ALL ON public.weighbridge_tickets FROM anon;

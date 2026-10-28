@@ -51,6 +51,6 @@ ALTER TABLE public.employee_accounts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "employee_accounts select"
     ON public.employee_accounts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text)
-           OR has_permission('action.manage_permissions'::text)
-           OR user_id = auth.uid());
+    USING ((SELECT has_permission('module.hr.view'::text))
+           OR (SELECT has_permission('action.manage_permissions'::text))
+           OR user_id = (SELECT auth.uid()));

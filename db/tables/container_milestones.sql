@@ -37,9 +37,9 @@ CREATE TRIGGER trg_container_milestones_append_only
 
 ALTER TABLE public.container_milestones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "container_milestones select" ON public.container_milestones
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.logistics.view'::text)));
 CREATE POLICY "container_milestones insert" ON public.container_milestones
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.purchasing.edit'::text));
+    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 COMMENT ON COLUMN public.container_milestones.recorded_at IS
     'LOG-5d:这一行是【什么时候被录进来的】——【不是】事情发生的时间(那是 event_date)。

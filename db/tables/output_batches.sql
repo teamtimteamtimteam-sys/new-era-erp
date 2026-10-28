@@ -184,7 +184,7 @@ ALTER TABLE public.output_batches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "output_batches select by permission"
     ON public.output_batches
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.output.view'::text));
+    USING ((SELECT has_permission('module.output.view'::text)));
 
 -- 【没有面向客户端的 INSERT 策略,这是刻意的】(IOD-1b,2026-08-13)
 -- 建批次只有一扇门:create_inbound_batch / receive_inbound_batch_against_po
@@ -200,12 +200,12 @@ CREATE POLICY "output_batches select by permission"
 CREATE POLICY "output_batches update by permission"
     ON public.output_batches
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.output.edit'::text)) WITH CHECK (has_permission('module.output.edit'::text));
+    USING ((SELECT has_permission('module.output.edit'::text))) WITH CHECK ((SELECT has_permission('module.output.edit'::text)));
 
 CREATE POLICY "output_batches delete by permission"
     ON public.output_batches
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.output.edit'::text));
+    USING ((SELECT has_permission('module.output.edit'::text)));
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),理由与 inbound_batches 逐字相同
 -- (output_batch_metals 同样是 CASCADE)。守卫只挡 DELETE,软删照常。

@@ -101,11 +101,11 @@ CREATE POLICY "material_forms select all"
     ON public.material_forms AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "material_forms insert by permission"
     ON public.material_forms AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 CREATE POLICY "material_forms update by permission"
     ON public.material_forms AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text))
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 COMMENT ON COLUMN public.material_forms.may_be_sold IS
 'PROC-BUILD-1【R5,Tim 的裁定】:**法律上允许不允许把这个形态卖给任何人。**

@@ -84,8 +84,8 @@ ALTER TABLE public.contract_document_terms ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "contract document terms select by owner permission"
     ON public.contract_document_terms AS PERMISSIVE FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+                     AND ((c.customer_id IS NOT NULL AND (SELECT has_permission('module.customers.view'::text)))
+                       OR (c.supplier_id IS NOT NULL AND (SELECT has_permission('module.suppliers.view'::text))))));
 
 COMMENT ON TABLE public.contract_document_terms IS
     'CONTRACT-1:一张单据挂上一份合同时,**把当时在效的条款抄下来**。★★**抄,不是引用**★★ —— 形状照抄 `pricing_term_commitments`(FIN-27:把 source_formula_id/code/name 连同那一刻的数值一起抄到承诺记录上,结算读副本);同一条还出现过两次(GST-2 的税率在开票那刻冻结、PARTY-1 的 bill_to_snapshot)。**一张单据当时按哪些条款开出去,是一件已经发生的事** —— 合同后来改了条款不该回头改写它,那不是更新,那是改历史。contract_code/incoterm/currency/payment_terms_days/grade_specs 全是抄过来的值;contract_id 只回答"挂在哪一份合同上",**任何读取路径都不许拿它回查条款内容**,一旦那么写,抄就静悄悄退化成了引用。FIN-27 的下半句一并继承:**引用了合同却没留下副本的记录要按名拒**,所以 contract_code 是 NOT NULL。品位规格抄成 jsonb 数组而合同那侧是真表 —— 刻意不同(活的主数据要引用完整性,冻住的事实要自成一体),于是"合同现在要求什么"与"这张单据当时依据什么"是两份推导,而它们本来就该在合同被改之后分开。**写入只走 link_document_to_contract**:那两条拒绝必须与抄写在同一笔事务里,否则可以先抄下条款再让检查失败。';

@@ -29,7 +29,7 @@ CREATE POLICY "assay_result_indicators select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM public.assay_results ar
                     WHERE ar.id = assay_result_indicators.assay_result_id
-                      AND ((ar.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-                        OR (ar.output_batch_id IS NOT NULL AND has_permission('module.output.view'::text)))));
+                      AND ((ar.inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+                        OR (ar.output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text))))));
 GRANT SELECT ON public.assay_result_indicators TO authenticated;
 REVOKE ALL ON public.assay_result_indicators FROM anon;

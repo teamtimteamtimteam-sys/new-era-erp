@@ -69,11 +69,11 @@ ALTER TABLE public.expense_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "expense_lines select by permission"
     ON public.expense_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 CREATE POLICY "expense_lines insert by permission"
     ON public.expense_lines
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 REVOKE ALL ON public.expense_lines FROM anon;

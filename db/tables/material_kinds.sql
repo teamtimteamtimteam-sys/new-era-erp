@@ -92,12 +92,12 @@ CREATE POLICY "material_kinds select all"
 CREATE POLICY "material_kinds insert by permission"
     ON public.material_kinds
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 CREATE POLICY "material_kinds update by permission"
     ON public.material_kinds
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text))
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 COMMENT ON COLUMN public.material_kinds.has_condition_axes IS
 'PROC-2:这一类物料要不要回答【状态轴】(形态 / 来源 / 规格尺寸)。

@@ -93,22 +93,22 @@ ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "customers select by permission"
     ON public.customers
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.customers.view'::text));
+    USING ((SELECT has_permission('module.customers.view'::text)));
 
 CREATE POLICY "customers insert by permission"
     ON public.customers
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.customers.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.customers.edit'::text)));
 
 CREATE POLICY "customers update by permission"
     ON public.customers
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.customers.edit'::text)) WITH CHECK (has_permission('module.customers.edit'::text));
+    USING ((SELECT has_permission('module.customers.edit'::text))) WITH CHECK ((SELECT has_permission('module.customers.edit'::text)));
 
 CREATE POLICY "customers delete by permission"
     ON public.customers
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.customers.edit'::text));
+    USING ((SELECT has_permission('module.customers.edit'::text)));
 
 -- ROLE-1 Batch 2a(Q11):信用限额与冻结只归 CFO —— 直连写改动这两列按名拒,
 -- 只走 set_customer_credit(函数体在 db/functions/guard_customer_credit_write.sql)。

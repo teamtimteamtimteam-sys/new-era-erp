@@ -51,22 +51,22 @@ ALTER TABLE public.payment_term_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payment_term_templates select by permission"
     ON public.payment_term_templates
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text)));
 
 CREATE POLICY "payment_term_templates insert by permission"
     ON public.payment_term_templates
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 CREATE POLICY "payment_term_templates update by permission"
     ON public.payment_term_templates
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text))) WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 CREATE POLICY "payment_term_templates delete by permission"
     ON public.payment_term_templates
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

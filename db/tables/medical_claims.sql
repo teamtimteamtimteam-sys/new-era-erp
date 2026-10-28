@@ -57,19 +57,19 @@ CREATE TRIGGER trg_medical_claims_updated_at
 ALTER TABLE public.medical_claims ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "medical_claims select by permission"
     ON public.medical_claims AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING ((SELECT has_permission('module.hr.view')));
 CREATE POLICY "medical_claims select own rows"
     ON public.medical_claims AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee());
+    USING (employee_id = (SELECT current_user_employee()));
 CREATE POLICY "medical_claims insert by permission"
     ON public.medical_claims AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "medical_claims update by permission"
     ON public.medical_claims AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit'))) WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "medical_claims delete by permission"
     ON public.medical_claims AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit')));
 
 -- ★ U1-A(UNBLOCK-1 Q8,2026-10-05):健康数据要 data.view_health。description(看病的事由)与 amount_sgd(报销金额)
 --   从列授权里拿掉,只经 medical_claims_masked 读 —— 那里给持 data.view_health 的人,并【对本人让路】(自己的报销单照旧读得到)。

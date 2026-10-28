@@ -84,22 +84,22 @@ ALTER TABLE public.storage_location_allowed_classes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "storage_location_allowed_classes select by permission"
     ON public.storage_location_allowed_classes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inventory.view'::text));
+    USING ((SELECT has_permission('module.inventory.view'::text)));
 
 CREATE POLICY "storage_location_allowed_classes insert by permission"
     ON public.storage_location_allowed_classes
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.inventory.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.inventory.edit'::text)));
 
 CREATE POLICY "storage_location_allowed_classes update by permission"
     ON public.storage_location_allowed_classes
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.inventory.edit'::text)) WITH CHECK (has_permission('module.inventory.edit'::text));
+    USING ((SELECT has_permission('module.inventory.edit'::text))) WITH CHECK ((SELECT has_permission('module.inventory.edit'::text)));
 
 CREATE POLICY "storage_location_allowed_classes delete by permission"
     ON public.storage_location_allowed_classes
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.inventory.edit'::text));
+    USING ((SELECT has_permission('module.inventory.edit'::text)));
 
 -- NTF-1:许可分类【被写了】之后,按最终集合看已有存量是否违规。
 -- 【语句级 + 过渡表】界面那一侧是"整体删掉再插回去",要看的是这条语句写完

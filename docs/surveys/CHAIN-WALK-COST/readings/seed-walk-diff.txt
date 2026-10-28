@@ -1,0 +1,2 @@
+DIFF|cwcseed.document_chain_walk vs cwcafter.document_chain_walk: 78 walks × 7 roles = 546 · identical 546 (21782 rows) · different 0
+EXIT=0

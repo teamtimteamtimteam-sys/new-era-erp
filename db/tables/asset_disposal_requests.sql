@@ -100,7 +100,7 @@ ALTER TABLE public.asset_disposal_requests ENABLE ROW LEVEL SECURITY;
 -- 只经 submit / decide / withdraw(全是 SECURITY DEFINER)。屏幕读 asset_disposal_requests_visible()。
 CREATE POLICY "asset_disposal_requests select by permission" ON public.asset_disposal_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.asset_disposal_requests FROM anon;

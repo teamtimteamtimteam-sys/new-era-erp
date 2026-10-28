@@ -93,11 +93,11 @@ CREATE TRIGGER trg_freight_documents_status_guard
 ALTER TABLE public.freight_documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "freight_documents select by permission"
     ON public.freight_documents AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view') OR has_permission('module.finance.view'));
+    USING ((SELECT has_permission('module.inbound.view')) OR (SELECT has_permission('module.finance.view')));
 CREATE POLICY "freight_documents write by permission"
     ON public.freight_documents AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.finance.edit'))
-    WITH CHECK (has_permission('module.finance.edit'));
+    USING ((SELECT has_permission('module.finance.edit')))
+    WITH CHECK ((SELECT has_permission('module.finance.edit')));
 
 -- ── 2 · 分摊行 ──────────────────────────────────────────────────────────────
 CREATE TABLE public.freight_allocations (
@@ -122,11 +122,11 @@ COMMENT ON COLUMN public.freight_allocations.in_stock_ratio IS
 ALTER TABLE public.freight_allocations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "freight_allocations select by permission"
     ON public.freight_allocations AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view') OR has_permission('module.finance.view'));
+    USING ((SELECT has_permission('module.inbound.view')) OR (SELECT has_permission('module.finance.view')));
 CREATE POLICY "freight_allocations write by permission"
     ON public.freight_allocations AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.finance.edit'))
-    WITH CHECK (has_permission('module.finance.edit'));
+    USING ((SELECT has_permission('module.finance.edit')))
+    WITH CHECK ((SELECT has_permission('module.finance.edit')));
 
 CREATE INDEX idx_freight_allocations_batch ON public.freight_allocations (inbound_batch_id);
 

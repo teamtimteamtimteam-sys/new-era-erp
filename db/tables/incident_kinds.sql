@@ -35,10 +35,10 @@ INSERT INTO public.incident_kinds (code, name_en, name_zh, sort_order, notes) VA
 ALTER TABLE public.incident_kinds ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "incident_kinds select by permission" ON public.incident_kinds
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 CREATE POLICY "incident_kinds write by permission" ON public.incident_kinds
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.safety.edit'::text)) WITH CHECK (has_permission('module.safety.edit'::text));
+    USING ((SELECT has_permission('module.safety.edit'::text))) WITH CHECK ((SELECT has_permission('module.safety.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.incident_kinds TO authenticated;
 REVOKE ALL ON public.incident_kinds FROM anon;
 

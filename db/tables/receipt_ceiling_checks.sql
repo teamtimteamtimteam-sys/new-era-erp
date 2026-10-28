@@ -49,7 +49,7 @@ ALTER TABLE public.receipt_ceiling_checks ENABLE ROW LEVEL SECURITY;
 -- 跟着那一批判:进料行要进料查看码,产出行要产出查看码。没有写策略:只有那支内层函数(属主身份)写。
 CREATE POLICY "receipt_ceiling_checks select by permission" ON public.receipt_ceiling_checks
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-            OR (output_batch_id IS NOT NULL AND has_permission('module.output.view'::text))));
+    USING (((inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+            OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text)))));
 
 REVOKE ALL ON public.receipt_ceiling_checks FROM anon;

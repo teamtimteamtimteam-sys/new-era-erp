@@ -11778,6 +11778,12 @@ Management API health:db = UNHEALTHY、rest = UNHEALTHY(pooler 健康)。停掉�
 同一条走链(从那张发货单起,EXPLAIN ANALYZE 的 Execution Time,整笔回滚)**真 admin 账号 1,126.8 ms · tim@(cfo)255.6 ms**。
 原因没有查清(推断:admin 持每一个码,走链经过的关联查询与行级策略更多)—— 查清它是 `docs/forward-queue.md` 64d-4 CHAIN-WALK-COST 的第一步。
 上限由 -fu2 兜着:一条链画不出来时,链条那一格说「这一次没有画出来」,页面其余部分照常。
+**CHAIN-WALK-COST(v1.4.80,2026-10-28/29)之后 —— 仍然开着,裁定的关闭条件(线上证明 0 次拒绝)没有满足:**
+病因查清了,而且【不是】角色:同一份数据、同一组授权,七个角色的走链在 15% 之内(`docs/surveys/CHAIN-WALK-COST/README.md` Step 0 A)。本刀把走链在一年体量的本地重建上
+从最慢 62–70 秒降到最慢 133 ms(fixture 297:七个角色、300 ms 硬红、0 个越线),结果逐行不变。**但线上两跑一位一位的证明都记下了 2 秒上限拒绝**
+(run 1 两次:admin · 请假、cfo · 工单;run 2 八次:admin 加工 · cfo 应付 / 工单 · cco 发货 · finance 与 warehouse 的 OUT-2026-0119 · gm 化验 / 销售订单;`docs/surveys/CHAIN-WALK-COST/readings/live-proof*.txt`),库那一侧的四个信号每一次都正常。原因是线上这台机器本身:
+**426 MB 内存、约 580 MB 在交换分区、1,277 万次主缺页;证明进行中 CPU 87–88% 空闲、iowait 7.5%**(`readings/live-host-metrics.txt`)—— 查询在等换页与磁盘,不在算。
+同一条走链本地 10–30 ms、线上 250–1,430 ms;变更记录同样。去处:`docs/forward-queue.md` 上线准备组第 15 条 SUPABASE-PLAN(Tim 的决定);重启项目能清掉交换,但要 Tim 裁定。
 
 ### SM3-OUTPUT-TRAIL-TIMEOUT —— 产出批页的变更记录偶尔撞上 8 秒语句上限,整页 500(SYSTEM-MAP-3 线上证明量到,不是本刀引入的)
 
@@ -11786,3 +11792,32 @@ Management API health:db = UNHEALTHY、rest = UNHEALTHY(pooler 健康)。停掉�
 2026-10-27 那一跑里 cco 在同一页上撞过同一次。事后库静止时同一支 `record_trail('output_batch', <那一批>, 20)`(EXPLAIN ANALYZE,整笔回滚):
 **仓库 785.2 ms · cfo 265.9 ms**。`record_trail` 自 MES-4a(v1.4.41)起没有改过;同一页上本刀的链条也在取数,于是负载多了一份(链条取数失败只画在链条那一格,不会 500)。
 去处:**Tim 2026-10-28 15:55 裁定 3 —— 本刀不修,并进 `docs/forward-queue.md` 64d-4 CHAIN-WALK-COST**:让 `record_trail` 对受限的读者也便宜(静止时仓库 785 ms · cfo 266 ms),并让变更记录那一块像链条一样【在它自己那一格里】失败,永远不让整页 500。
+**CHAIN-WALK-COST(v1.4.80)之后 —— 仍然开着(裁定:线上证明 0 次拒绝且 0 次变更记录出错才关;拒绝那一半没有满足,见 SM3-ADMIN-WALK-OVER-BUDGET)。**
+做了的两件:① 变更记录那一段取数失败画在它自己那一格里(`AuditTrail.tsx`:`section.failed`,Next 自己的控制流照旧抛出),不再整页 500;
+② `record_trail` 在一年体量上最慢从 16.7 秒(对账单)降到 42–69 ms,七个角色,结果逐行不变(`docs/surveys/CHAIN-WALK-COST/README.md`)。
+线上那一页(OUT-2026-0119)仓库读者在 run 2 里打开:HTTP 200,变更记录画出来了(带记录);全程 0 段变更记录没画出来。仍开着,只因为拒绝那一半。
+
+## CHAIN-WALK-COST 登记(2026-10-28)
+
+### CWC-STORAGE-POLICIES-UNWRAPPED —— storage.objects 的 53 条策略仍然按行调 has_permission / auth.uid()
+
+CHAIN-WALK-COST 把 public 的 560 条策略里的权限判断与读者身份包成了 `(SELECT …)`(Tim 2026-10-28 Q1,`AGENTS.md`「策略里的权限判断与读者身份按语句求一次」)。
+`db/storage/buckets-and-policies.sql` 里 storage.objects 的 **53 条**没有动:Q1 那一问说的是 public 的 541(+19)条,存储策略由 Storage API 判、本刀没有在本地证得了它们的读写等价,
+而且 portal-uploads / claim-receipts 两个桶按 LIVE SAFETY 不许碰。它们逐条进了 `db/policy-permission-allowlist.tsv`(kind = storage),构建闸认得它们、不放过一条新的。
+**今天没有量到它们慢**(一个桶里的对象以百计,不是以万计);要不要包、哪几条(除开那两个桶)由 Tim 定。
+
+### CWC-RELATED-PAGE-COUNTS-RECOMPUTE-RELATIONS —— 关联页的计数仍然每一组从 pg_catalog 推一遍关联图
+
+`search_related()`(关联页 `/related/<种类>/<id>` 的分组计数)与 `search_related_rows()` 每调一次都读 `document_relations`(从 pg_catalog 推出来的视图,本地一次 3.5–7.5 ms;
+桥边那一支在宽一点的筛选下走嵌套循环,本地 ~40 ms)。本刀只改了单据链条那一侧(整次读一遍、那一句关掉嵌套循环);关联页没有动 —— 它不在 21 张链条页上,结果逐行不变。
+线上读数(`pg_stat_statements`,2026-07-29 起,以 postgres 读):`search_related` 482 次 · 均值 749.6 ms · 最大 6,113.0 ms(`docs/surveys/CHAIN-WALK-COST/README.md` Step 0)。
+去处:与 `docs/forward-queue.md` 上线准备组第 13 条(页面慢到没法用)一起看。
+
+### CWC-LIVE-INSTANCE-SWAPPING —— 线上数据库这台机器在换页:426 MB 内存、约 580 MB 在交换分区(2026-10-29 01:3x 读数)
+
+CHAIN-WALK-COST 的线上证明期间从 Supabase 的特权指标端点读到(只读;只留了这几行,`docs/surveys/CHAIN-WALK-COST/readings/live-host-metrics.txt`):
+`MemTotal` 426 MB · `MemAvailable` 101 MB · 交换分区 1.07 GB 里用了约 580 MB · 主缺页 1,277 万次;一位读者在跑时两颗 CPU 87–88% 空闲、iowait 7.5%、steal 0。
+**查询在等换页与磁盘,不在算** —— 同一批查询本地 10–30 ms、线上 250–1,430 ms,四个"库那一侧"的中止信号(库里 select 1 0.02 ms、往返中位数、health)全都看不见它。
+`shared_buffers` 224 MB 放在一台 426 MB 的机器上。后果:任何一刀的线上计时都会被它放大、并且随机;单据链条的 2 秒上限在证明里被它撞到。
+**去处:`docs/forward-queue.md` 上线准备组第 15 条 SUPABASE-PLAN(Tim 的决定)。** 重启项目能暂时清掉交换(要 Tim 裁定,本刀没有动)。
+☞ 中止规则看不见这一类(它们量的是一次 `select 1`,那一页一直在内存里);下一刀的线上证明若要看它,得加一条读 `node_memory_SwapFree_bytes` 与 iowait 的信号 —— 那是 Tim 的规矩,本刀没有改。

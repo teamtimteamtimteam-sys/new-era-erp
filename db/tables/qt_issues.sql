@@ -32,4 +32,4 @@ CREATE TRIGGER trg_qt_issues_append_only
 ALTER TABLE public.qt_issues ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "qt_issues select by permission" ON public.qt_issues
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.sales.view'::text)));

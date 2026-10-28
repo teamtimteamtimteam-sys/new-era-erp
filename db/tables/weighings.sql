@@ -60,7 +60,7 @@ ALTER TABLE public.weighings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "weighings select by permission" ON public.weighings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((has_permission('module.processing.view'::text) OR has_permission('module.inbound.view'::text)
-            OR has_permission('module.logistics.view'::text)));
+    USING (((SELECT has_permission('module.processing.view'::text)) OR (SELECT has_permission('module.inbound.view'::text))
+            OR (SELECT has_permission('module.logistics.view'::text))));
 
 REVOKE ALL ON public.weighings FROM anon;

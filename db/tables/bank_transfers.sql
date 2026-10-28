@@ -39,7 +39,7 @@ CREATE INDEX bank_transfers_reversal_entry_id_rel ON public.bank_transfers (reve
 ALTER TABLE public.bank_transfers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "bank_transfers select by permission"
     ON public.bank_transfers AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 -- ★ PAY-REQ-1(Tim 的 Q2(a),2026-09-23):写策略(INSERT 与 UPDATE)已拆除。
 --   它们让持 module.finance.edit 的人不经 record_bank_transfer / reverse_bank_transfer
 --   直接写这张表(插一行没有分录的转账、把 reversed_at 改掉)。两支函数都是

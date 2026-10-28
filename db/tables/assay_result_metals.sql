@@ -24,36 +24,36 @@ CREATE POLICY "assay_result_metals select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM public.assay_results ar
                     WHERE ar.id = assay_result_metals.assay_result_id
-                      AND ((ar.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-                        OR (ar.output_batch_id IS NOT NULL AND has_permission('module.output.view'::text)))));
+                      AND ((ar.inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+                        OR (ar.output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text))))));
 
 CREATE POLICY "assay_result_metals insert by permission"
     ON public.assay_result_metals
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (EXISTS (SELECT 1 FROM public.assay_results ar
                     WHERE ar.id = assay_result_metals.assay_result_id
-                      AND ((ar.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-                        OR (ar.output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)))));
+                      AND ((ar.inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+                        OR (ar.output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))))));
 
 CREATE POLICY "assay_result_metals update by permission"
     ON public.assay_result_metals
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (EXISTS (SELECT 1 FROM public.assay_results ar
                     WHERE ar.id = assay_result_metals.assay_result_id
-                      AND ((ar.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-                        OR (ar.output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)))))
+                      AND ((ar.inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+                        OR (ar.output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))))))
     WITH CHECK (EXISTS (SELECT 1 FROM public.assay_results ar
                     WHERE ar.id = assay_result_metals.assay_result_id
-                      AND ((ar.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-                        OR (ar.output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)))));
+                      AND ((ar.inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+                        OR (ar.output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))))));
 
 CREATE POLICY "assay_result_metals delete by permission"
     ON public.assay_result_metals
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (EXISTS (SELECT 1 FROM public.assay_results ar
                     WHERE ar.id = assay_result_metals.assay_result_id
-                      AND ((ar.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
-                        OR (ar.output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)))));
+                      AND ((ar.inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.edit'::text)))
+                        OR (ar.output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.edit'::text))))));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

@@ -120,12 +120,12 @@ ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
 -- 真正不能绕的两件事各有机制:'created' 留痕由触发器保证,converted 之后的
 -- 冻结由守卫保证。
 CREATE POLICY "quotes select by permission" ON public.quotes
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.sales.view'::text)));
 CREATE POLICY "quotes insert by permission" ON public.quotes
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.sales.edit'::text));
+    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((SELECT has_permission('module.sales.edit'::text)));
 CREATE POLICY "quotes update by permission" ON public.quotes
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.sales.edit'::text)) WITH CHECK (has_permission('module.sales.edit'::text));
+    USING ((SELECT has_permission('module.sales.edit'::text))) WITH CHECK ((SELECT has_permission('module.sales.edit'::text)));
 
 -- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
 -- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。

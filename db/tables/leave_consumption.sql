@@ -41,10 +41,10 @@ CREATE TRIGGER trg_leave_consumption_immutable
 ALTER TABLE public.leave_consumption ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "leave_consumption select by permission"
     ON public.leave_consumption AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING ((SELECT has_permission('module.hr.view')));
 CREATE POLICY "leave_consumption insert by permission"
     ON public.leave_consumption AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK ((SELECT has_permission('module.hr.edit')));
 
 -- ============================================================================
 GRANT SELECT (accrual_year) ON public.leave_consumption TO authenticated;

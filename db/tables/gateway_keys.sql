@@ -48,7 +48,7 @@ ALTER TABLE public.gateway_keys ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "gateway_keys select by permission" ON public.gateway_keys
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.gateway_keys FROM anon;
 -- 【遮蔽:列授权】key_hash 不给任何人(AGENTS.md 遮蔽表三件事:列授权 · _masked 视图 · 变更记录规则,一支迁移)。

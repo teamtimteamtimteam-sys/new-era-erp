@@ -87,7 +87,7 @@ ALTER TABLE public.incidents ENABLE ROW LEVEL SECURITY;
 -- 读:安全查看码。写:一条策略都不给 —— 只经 record_incident。
 CREATE POLICY "incidents select by permission" ON public.incidents
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 -- ★ 健康数据(Q6):受伤的人、伤情、处理、误工天数从列授权里拿掉,只经 incidents_masked 读。
 --   表级 SELECT 授权蕴含所有列,所以先整表收回、再逐列授回(medical_claims 的同一个做法)。
 --   列授权不随 ADD COLUMN 自动延伸:给这张表加列,要回到这一行,并把它放进 incidents_masked(gate 的 colgrant)。

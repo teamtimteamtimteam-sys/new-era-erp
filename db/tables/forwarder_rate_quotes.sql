@@ -47,11 +47,11 @@ CREATE TRIGGER trg_forwarder_rate_quotes_guard
 
 ALTER TABLE public.forwarder_rate_quotes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "forwarder_rate_quotes select" ON public.forwarder_rate_quotes
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.logistics.view'::text)));
 CREATE POLICY "forwarder_rate_quotes write" ON public.forwarder_rate_quotes
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.purchasing.edit'::text))
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

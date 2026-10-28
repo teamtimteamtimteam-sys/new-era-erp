@@ -79,6 +79,6 @@ CREATE TRIGGER trg_discharge_module_results_append_only
 ALTER TABLE public.discharge_module_results ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "discharge_module_results select by permission" ON public.discharge_module_results
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.view'::text, 'module.inbound.view'::text, 'module.output.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.processing.view'::text, 'module.inbound.view'::text, 'module.output.view'::text])));
 GRANT SELECT ON public.discharge_module_results TO authenticated;
 REVOKE ALL ON public.discharge_module_results FROM anon;

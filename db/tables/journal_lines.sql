@@ -90,7 +90,7 @@ ALTER TABLE public.journal_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "journal_lines select by permission"
     ON public.journal_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ★ U1-A(Tim 的 UNBLOCK-1 Q1 · Q2 · Q3,2026-10-05):工资分录里【每一行】都是一个人的工资 ——
 --   source_type = 'payroll' 的分录(过账、发薪、公积金、扣款,以及它们的冲销:冲销件照抄 source_type)的每一行,
@@ -106,7 +106,7 @@ CREATE POLICY "journal_lines select by permission"
 CREATE POLICY "amounts: payroll journal lines need data.view_pay"
     ON public.journal_lines
     AS RESTRICTIVE FOR SELECT TO authenticated
-    USING (has_permission('data.view_pay'::text)
+    USING ((SELECT has_permission('data.view_pay'::text))
            OR NOT EXISTS (SELECT 1 FROM public.journal_entries e
                            WHERE e.id = journal_lines.entry_id AND e.source_type = 'payroll'));
 

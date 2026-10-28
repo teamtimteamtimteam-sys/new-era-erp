@@ -65,9 +65,14 @@ BEGIN
        AND p.policyname NOT LIKE 'amounts:%';
     v_perm := '(' || v_perm || ')' || COALESCE(' AND (' || v_restr || ')', '');
 
-    SELECT string_agg(format('%I.%I::text = %L', p_table, k.key, k.value), ' AND ')
+    -- CHAIN-WALK-COST:同 trail_current_image —— 按列自己的类型比,用得上主键索引
+    SELECT string_agg(format('%I.%I = %L', p_table, k.key, k.value), ' AND ')
       INTO v_where FROM jsonb_each_text(p_key) k;
-    EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%1$I %1$I WHERE %2$s)', p_table, v_where) INTO v_live;
+    BEGIN
+        EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%1$I %1$I WHERE %2$s)', p_table, v_where) INTO v_live;
+    EXCEPTION WHEN data_exception THEN
+        v_live := false;   -- 键读不成那一列的类型 = 不是今天的一行(与以前文字比较的结局相同),落到下面按影像判
+    END;
     IF v_live THEN
         EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%1$I %1$I WHERE %2$s AND (%3$s))', p_table, v_where, v_perm)
            INTO v_ok;

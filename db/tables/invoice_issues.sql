@@ -35,6 +35,6 @@ ALTER TABLE public.invoice_issues ENABLE ROW LEVEL SECURITY;
 -- 也取得回那份字节 —— 而他【签发不了】(那要 finance.edit)。审计要看的正是
 -- "发出去的是什么",所以读这一侧不该比看发票本身更严。
 CREATE POLICY "invoice_issues select by permission" ON public.invoice_issues
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.finance.view'::text)));
 -- 【没有 INSERT 策略,这是刻意的】唯一写入口是 record_invoice_issue(属主权限)——
 -- 与 approval_log / so_issues / cn_issues 同一条:档案不该有第二个写法。

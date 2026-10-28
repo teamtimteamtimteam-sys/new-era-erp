@@ -61,17 +61,17 @@ CREATE TRIGGER trg_sales_order_lines_history
 ALTER TABLE public.sales_order_lines   ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "sales_order_lines select by permission" ON public.sales_order_lines
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.sales.view'::text)));
 
 -- 【没有 INSERT 策略,这是刻意的】(SO-2b)行与单头同生:唯一入口
 -- create_sales_order 在同一个事务里写它们。见 sales_orders.sql 的同一段。
 
 CREATE POLICY "sales_order_lines update by permission" ON public.sales_order_lines
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.sales.edit'::text)) WITH CHECK (has_permission('module.sales.edit'::text));
+    USING ((SELECT has_permission('module.sales.edit'::text))) WITH CHECK ((SELECT has_permission('module.sales.edit'::text)));
 
 CREATE POLICY "sales_order_lines delete by permission" ON public.sales_order_lines
-    AS PERMISSIVE FOR DELETE TO authenticated USING (has_permission('module.sales.edit'::text));
+    AS PERMISSIVE FOR DELETE TO authenticated USING ((SELECT has_permission('module.sales.edit'::text)));
 
 -- PROC-BUILD-1(R5):订单行也拦 —— 一份永远履行不了的承诺。
 CREATE TRIGGER trg_sales_order_lines_form_saleable

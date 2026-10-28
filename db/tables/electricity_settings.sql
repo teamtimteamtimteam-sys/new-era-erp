@@ -33,6 +33,6 @@ ALTER TABLE public.electricity_settings ENABLE ROW LEVEL SECURITY;
 -- 读:财务查看码(分摊页与待补的值那一行)。写只经函数。
 CREATE POLICY "electricity_settings select by permission" ON public.electricity_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 GRANT SELECT ON public.electricity_settings TO authenticated;
 REVOKE ALL ON public.electricity_settings FROM anon;

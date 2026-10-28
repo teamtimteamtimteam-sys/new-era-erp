@@ -42,6 +42,6 @@ ALTER TABLE public.weighbridge_ticket_photos ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "weighbridge_ticket_photos select by permission" ON public.weighbridge_ticket_photos
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((has_permission('module.inbound.view'::text) OR has_permission('module.logistics.view'::text)));
+    USING (((SELECT has_permission('module.inbound.view'::text)) OR (SELECT has_permission('module.logistics.view'::text))));
 
 REVOKE ALL ON public.weighbridge_ticket_photos FROM anon;

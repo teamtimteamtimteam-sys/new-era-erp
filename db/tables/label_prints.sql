@@ -54,8 +54,8 @@ ALTER TABLE public.label_prints ENABLE ROW LEVEL SECURITY;
 -- 跟着那样东西判:进料批要进料查看码,产出批要产出查看码,库位要库存查看码。没有写策略:只有 record_label_print(属主身份)写。
 CREATE POLICY "label_prints select by permission" ON public.label_prints
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-            OR (output_batch_id IS NOT NULL AND has_permission('module.output.view'::text))
-            OR (storage_location_id IS NOT NULL AND has_permission('module.inventory.view'::text))));
+    USING (((inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+            OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text)))
+            OR (storage_location_id IS NOT NULL AND (SELECT has_permission('module.inventory.view'::text)))));
 
 REVOKE ALL ON public.label_prints FROM anon;

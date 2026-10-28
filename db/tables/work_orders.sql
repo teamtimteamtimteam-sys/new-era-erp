@@ -65,4 +65,4 @@ ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 -- SECURITY DEFINER 函数(与 so_issues / cn_issues / approval_log 同一条:
 -- 单据不该有第二个写法)。
 CREATE POLICY "work_orders select by permission" ON public.work_orders
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));

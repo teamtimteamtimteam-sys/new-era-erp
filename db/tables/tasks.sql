@@ -92,11 +92,11 @@ CREATE POLICY "tasks select by predicate"
     ON public.tasks
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (
-        has_permission('module.tasks.view'::text)
+        (SELECT has_permission('module.tasks.view'::text))
         AND (
             task_type = 'team'::text
-            OR owner_id = current_user_employee()
-            OR has_permission('module.tasks.view_all'::text)
+            OR owner_id = (SELECT current_user_employee())
+            OR (SELECT has_permission('module.tasks.view_all'::text))
         )
     );
 
@@ -116,10 +116,10 @@ CREATE POLICY "tasks insert by permission"
     ON public.tasks
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (
-        owner_id = current_user_employee()
+        owner_id = (SELECT current_user_employee())
         AND (
-            has_permission('module.tasks.edit'::text)
-            OR (has_permission('module.tasks.view'::text) AND task_is_own(task_type, owner_id))
+            (SELECT has_permission('module.tasks.edit'::text))
+            OR ((SELECT has_permission('module.tasks.view'::text)) AND task_is_own(task_type, owner_id))
         )
     );
 

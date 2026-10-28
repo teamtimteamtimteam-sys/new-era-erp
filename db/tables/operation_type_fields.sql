@@ -108,12 +108,12 @@ INSERT INTO public.operation_type_fields (operation_type_code, field_code, name_
 
 ALTER TABLE public.operation_type_fields ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_type_fields select by permission" ON public.operation_type_fields
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 CREATE POLICY "operation_type_fields insert by permission" ON public.operation_type_fields
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.processing.edit'::text));
+    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 CREATE POLICY "operation_type_fields update by permission" ON public.operation_type_fields
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE ON public.operation_type_fields TO authenticated;
 REVOKE ALL ON public.operation_type_fields FROM anon;
 

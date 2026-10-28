@@ -36,10 +36,10 @@ COMMENT ON COLUMN public.environmental_parameters.limit_basis IS
 ALTER TABLE public.environmental_parameters ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "environmental_parameters select by permission" ON public.environmental_parameters
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 CREATE POLICY "environmental_parameters write by permission" ON public.environmental_parameters
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.safety.edit'::text)) WITH CHECK (has_permission('module.safety.edit'::text));
+    USING ((SELECT has_permission('module.safety.edit'::text))) WITH CHECK ((SELECT has_permission('module.safety.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.environmental_parameters TO authenticated;
 REVOKE ALL ON public.environmental_parameters FROM anon;
 

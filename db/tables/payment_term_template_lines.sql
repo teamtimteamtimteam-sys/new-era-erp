@@ -42,22 +42,22 @@ ALTER TABLE public.payment_term_template_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payment_term_template_lines select by permission"
     ON public.payment_term_template_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text)));
 
 CREATE POLICY "payment_term_template_lines insert by permission"
     ON public.payment_term_template_lines
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 CREATE POLICY "payment_term_template_lines update by permission"
     ON public.payment_term_template_lines
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text))) WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 CREATE POLICY "payment_term_template_lines delete by permission"
     ON public.payment_term_template_lines
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text)));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 payment_term_template_lines_masked 读取。

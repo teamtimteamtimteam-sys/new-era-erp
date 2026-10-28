@@ -96,19 +96,19 @@ CREATE TRIGGER trg_leave_accrual_rates_updated_at
 ALTER TABLE public.leave_accrual_rates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "leave_accrual_rates select by permission"
     ON public.leave_accrual_rates AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING ((SELECT has_permission('module.hr.view')));
 CREATE POLICY "leave_accrual_rates select own rows"
     ON public.leave_accrual_rates AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee());
+    USING (employee_id = (SELECT current_user_employee()));
 CREATE POLICY "leave_accrual_rates insert by permission"
     ON public.leave_accrual_rates AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "leave_accrual_rates update by permission"
     ON public.leave_accrual_rates AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit'))) WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "leave_accrual_rates delete by permission"
     ON public.leave_accrual_rates AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit')));
 
 -- 引导默认值:手册的办公室 24 / 车间 18,换算成每月。
 INSERT INTO public.leave_accrual_rates (work_category, days_per_year, effective_from, notes) VALUES

@@ -86,22 +86,22 @@ ALTER TABLE public.payroll_periods ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payroll_periods select by permission"
     ON public.payroll_periods
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 CREATE POLICY "payroll_periods insert by permission"
     ON public.payroll_periods
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "payroll_periods update by permission"
     ON public.payroll_periods
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text))) WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "payroll_periods delete by permission"
     ON public.payroll_periods
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text)));
 
 -- ★ U1-A(UNBLOCK-1 Q9,2026-10-05):这一期的五个合计要 data.view_pay —— 一期只有一两个人时,合计就是一个人的工资;
 --   此前持 module.hr.view 的 cto 与 gm 在 /hr/payroll 上读得到。五列从列授权里拿掉,只经 payroll_periods_masked 读

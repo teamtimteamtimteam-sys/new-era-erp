@@ -37,6 +37,6 @@ ALTER TABLE public.floor_board_settings ENABLE ROW LEVEL SECURITY;
 -- 读:大屏的码(大屏自己经 floor_board() 读,不直接读表)或 action.manage_permissions(设它的人)。写只经函数。
 CREATE POLICY "floor_board_settings select by permission" ON public.floor_board_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('data.view_floor_board'::text) OR has_permission('action.manage_permissions'::text));
+    USING ((SELECT has_permission('data.view_floor_board'::text)) OR (SELECT has_permission('action.manage_permissions'::text)));
 GRANT SELECT ON public.floor_board_settings TO authenticated;
 REVOKE ALL ON public.floor_board_settings FROM anon;

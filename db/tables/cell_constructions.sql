@@ -35,10 +35,10 @@ INSERT INTO public.cell_constructions (code, name_en, name_zh, is_determined, so
 ALTER TABLE public.cell_constructions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "cell_constructions select by permission" ON public.cell_constructions
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.view'::text, 'module.inbound.view'::text, 'module.output.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.processing.view'::text, 'module.inbound.view'::text, 'module.output.view'::text])));
 CREATE POLICY "cell_constructions write by permission" ON public.cell_constructions
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.cell_constructions TO authenticated;
 REVOKE ALL ON public.cell_constructions FROM anon;
 

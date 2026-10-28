@@ -20,7 +20,7 @@ COMMENT ON TABLE public.inspection_finding_closures IS
 ALTER TABLE public.inspection_finding_closures ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inspection_finding_closures select by permission" ON public.inspection_finding_closures
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inspection_finding_closures TO authenticated;
 REVOKE ALL ON public.inspection_finding_closures FROM anon;
 

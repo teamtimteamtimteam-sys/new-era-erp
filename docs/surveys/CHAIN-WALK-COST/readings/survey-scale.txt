@@ -1,0 +1,32 @@
+20 walks per role
+admin done
+cco done
+cfo done
+cto done
+finance done
+gm done
+warehouse done
+route                                  admin       cco       cfo       cto   finance        gm warehouse   worst doc
+/purchasing/orders/[id]                  114       126       111       117       113       108        97   PO-2026-0003 (purchasing)
+/inbound/[id]/edit                        50        54        53        49        49        47        42   IN-2026-0152 (purchasing)
+/inbound/[id]/assays/[assayId]            49        48        49        47        46        46        40   ASY-2026-0003 (purchasing)
+/finance/payables/[batchId]               49        49        50        48        47        48         7   IN-2026-0152 (purchasing)
+/finance/payment-requests/[id]       (no rows)
+/finance/payments/[id]                    17        17        18        18        16        17         0   PMT-2026-0001 (purchasing)
+/finance/bank/statements/[id]              4         4         4         4         4         4         0   BS-2026-0001 (purchasing)
+/operation/orders/[id]               (no rows)
+/operation/processing/[id]           (no rows)
+/output/[id]/edit                    (no rows)
+/sales/quotes/[id]                        12        12        12        11        11        11         0   QT-2026-0001 (sales)
+/sales/orders/[id]                       678       681       660       661       641       641         0   SO-2026-0001 (sales)
+/sales/shipments/[id]                     55        56        54        55        54        54        11   SHP-2026-0001 (sales)
+/logistics/containers/[id]                 4         3         3         4         3         3         4   CTR-2027-0006 (sales)
+/finance/invoices/[id]                   647       652       645       636       620       617         0   INV-2026-0006 (sales)
+/finance/credit-notes/[id]               643       643       633       646       617       616         0   CN-2026-0001 (sales)
+/hr/attendance/[id]                  (no rows)
+/hr/overtime/[id]                    (no rows)
+/hr/leave/[id]                             5         4         4         4         4         4         1   LV-2026-0001 (people)
+/hr/payroll/[id]                          22        21        22        21        20        21         0   PAY-2026-0001 (people)
+/finance/journal/[id]                     20        20        20        20        20        20         0   JE-2026-0018 (people)
+errors: 0
+EXIT=0

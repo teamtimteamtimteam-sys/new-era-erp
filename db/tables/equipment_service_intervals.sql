@@ -153,7 +153,7 @@ ALTER TABLE public.equipment_service_intervals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "equipment_service_intervals select by permission"
     ON public.equipment_service_intervals
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text) OR has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)) OR (SELECT has_permission('module.processing.view'::text)));
 
 -- ★ MES-7a-1(MES-7a Step 0 Q6):INSERT 与 UPDATE 两条策略拿掉 —— 新加与改走 save_equipment_service_interval;
 --   直连 INSERT / UPDATE 由 trg_equipment_service_intervals_direct 按名拒。DELETE 策略【留着】(下面那条的理由不变)。
@@ -161,7 +161,7 @@ CREATE POLICY "equipment_service_intervals select by permission"
 CREATE POLICY "equipment_service_intervals delete by permission"
     ON public.equipment_service_intervals
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

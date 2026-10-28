@@ -63,6 +63,6 @@ ALTER TABLE public.supplier_scorecard_reviews ENABLE ROW LEVEL SECURITY;
 -- 【没有 INSERT/UPDATE/DELETE 策略】唯一写入口是 record_supplier_review(属主权限)。
 CREATE POLICY "supplier_scorecard_reviews select by permission" ON public.supplier_scorecard_reviews
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 GRANT SELECT ON public.supplier_scorecard_reviews TO authenticated;
 REVOKE ALL ON public.supplier_scorecard_reviews FROM anon;

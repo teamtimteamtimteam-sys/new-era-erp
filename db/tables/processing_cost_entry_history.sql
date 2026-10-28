@@ -44,7 +44,7 @@ CREATE TRIGGER trg_cost_entry_history_append_only
 
 ALTER TABLE public.processing_cost_entry_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "cost entry history select by permission" ON public.processing_cost_entry_history
-    FOR SELECT USING (has_permission('module.processing.view'::text));
+    FOR SELECT USING ((SELECT has_permission('module.processing.view'::text)));
 
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 -- 【加列必改这一行】列清单 SELECT 授权不会自动延伸到 ALTER 加的新列。

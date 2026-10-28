@@ -36,7 +36,7 @@ COMMENT ON COLUMN public.inspection_templates.frequency_days IS
 ALTER TABLE public.inspection_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inspection_templates select by permission" ON public.inspection_templates
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 -- 写:一条策略都不给 —— 只经 save_inspection_template。INSERT / UPDATE / DELETE 授着,是为了让直连的写走到守卫、按名被拒,而不是撞上一句 42501。
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inspection_templates TO authenticated;
 REVOKE ALL ON public.inspection_templates FROM anon;

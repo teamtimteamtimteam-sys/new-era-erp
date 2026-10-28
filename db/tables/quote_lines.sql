@@ -50,14 +50,14 @@ CREATE TRIGGER trg_quote_lines_touch_parent
 ALTER TABLE public.quote_lines ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "quote_lines select by permission" ON public.quote_lines
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.sales.view'::text)));
 CREATE POLICY "quote_lines insert by permission" ON public.quote_lines
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.sales.edit'::text));
+    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((SELECT has_permission('module.sales.edit'::text)));
 CREATE POLICY "quote_lines update by permission" ON public.quote_lines
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.sales.edit'::text)) WITH CHECK (has_permission('module.sales.edit'::text));
+    USING ((SELECT has_permission('module.sales.edit'::text))) WITH CHECK ((SELECT has_permission('module.sales.edit'::text)));
 CREATE POLICY "quote_lines delete by permission" ON public.quote_lines
-    AS PERMISSIVE FOR DELETE TO authenticated USING (has_permission('module.sales.edit'::text));
+    AS PERMISSIVE FOR DELETE TO authenticated USING ((SELECT has_permission('module.sales.edit'::text)));
 
 -- PROC-BUILD-1(R5):报价行也拦 —— 一份卖不了的东西的报价,是一个太晚才会被
 -- 发现的承诺(客户手上已经有一份签了字的单据)。

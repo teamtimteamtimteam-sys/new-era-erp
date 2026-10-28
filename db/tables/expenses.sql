@@ -252,12 +252,12 @@ ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "expenses select by permission"
     ON public.expenses
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 CREATE POLICY "expenses insert by permission"
     ON public.expenses
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.expenses.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';

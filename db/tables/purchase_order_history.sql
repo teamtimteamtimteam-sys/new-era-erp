@@ -68,7 +68,7 @@ CREATE INDEX idx_po_history_po ON public.purchase_order_history (purchase_order_
 ALTER TABLE public.purchase_order_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "po_history select by permission"
     ON public.purchase_order_history AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text)));
 -- 【没有 INSERT/UPDATE/DELETE 策略】唯一写入口是触发器(属主权限)——
 -- 与 approval_log / po_issues 同一条:档案不该有第二个写法。
 

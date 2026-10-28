@@ -1,0 +1,5 @@
+# fault injection: document_relation_arm_pairs sleeps 350 ms on the bank_statement_to_payment arm (left in place, local copy cwcinj); fixture 297 must go red
+psql:db/seeds/chain-walk-year.sql:302: NOTICE:  CWC_SEED change_log: 280039 INSERT rows + 2.130 UPDATE rows per document row on average
+psql:db/fixtures/297-the-chain-walk-and-the-trail-stay-cheap-for-seven-roles-at-a-years-volume.sql:194: ERROR:  FIXTURE 297A 失败:6 处超过 300 ms 或出错:admin · /finance/bank/statements/[id] 走链 438.9 ms(> 300) | cco · /finance/bank/statements/[id] 走链 438.0 ms(> 300) | cfo · /finance/bank/statements/[id] 走链 437.3 ms(> 300) | cto · /finance/bank/statements/[id] 走链 438.0 ms(> 300) | finance · /finance/bank/statements/[id] 走链 439.4 ms(> 300) | gm · /finance/bank/statements/[id] 走链 440.0 ms(> 300)
+CONTEXT:  PL/pgSQL function inline_code_block line 112 at RAISE
+F297_INJECTED_OWN_EXIT=3

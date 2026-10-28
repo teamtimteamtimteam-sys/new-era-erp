@@ -22,7 +22,7 @@ COMMENT ON TABLE public.inspection_template_items IS
 ALTER TABLE public.inspection_template_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inspection_template_items select by permission" ON public.inspection_template_items
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inspection_template_items TO authenticated;
 REVOKE ALL ON public.inspection_template_items FROM anon;
 

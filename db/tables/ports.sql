@@ -17,11 +17,11 @@ country 与 suppliers.country 一样是【自由文本】:本仓库没有国家�
 
 ALTER TABLE public.ports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "ports select" ON public.ports
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.logistics.view'::text)));
 CREATE POLICY "ports write" ON public.ports
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.purchasing.edit'::text))
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+    USING ((SELECT has_permission('module.purchasing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.purchasing.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

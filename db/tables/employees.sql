@@ -204,22 +204,22 @@ ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "employees select by permission"
     ON public.employees
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 CREATE POLICY "employees insert by permission"
     ON public.employees
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "employees update by permission"
     ON public.employees
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text))) WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "employees delete by permission"
     ON public.employees
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text)));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 employees_masked 读取。
@@ -243,7 +243,7 @@ GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, 
 -- 自助是行级的 —— 给普通员工 module.hr.view 会让他看见所有人,那恰好是反的。
 CREATE POLICY "employees select own row"
     ON public.employees AS PERMISSIVE FOR SELECT TO authenticated
-    USING (id = current_user_employee());
+    USING (id = (SELECT current_user_employee()));
 
 -- HR-3a 部门经理外键。【定在这一侧而不是 departments.sql】—— 两张表互相引用
 -- (employees.department_id ↔ departments.manager_employee_id),镜像重放靠拓扑排序,

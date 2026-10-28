@@ -67,22 +67,22 @@ ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "roles select by permission"
     ON public.roles
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['action.manage_permissions'::text, 'data.view_change_log'::text]));
+    USING ((SELECT has_any_permission(ARRAY['action.manage_permissions'::text, 'data.view_change_log'::text])));
 
 CREATE POLICY "roles insert by permission"
     ON public.roles
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.manage_permissions'::text));
+    WITH CHECK ((SELECT has_permission('action.manage_permissions'::text)));
 
 CREATE POLICY "roles update by permission"
     ON public.roles
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.manage_permissions'::text)) WITH CHECK (has_permission('action.manage_permissions'::text));
+    USING ((SELECT has_permission('action.manage_permissions'::text))) WITH CHECK ((SELECT has_permission('action.manage_permissions'::text)));
 
 CREATE POLICY "roles delete by permission"
     ON public.roles
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.manage_permissions'::text));
+    USING ((SELECT has_permission('action.manage_permissions'::text)));
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【引导默认值 / BOOTSTRAP —— 全新安装的起点,不是线上快照】

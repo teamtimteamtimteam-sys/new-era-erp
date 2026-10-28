@@ -85,8 +85,8 @@ CREATE POLICY "deep_discharge_judgements select all"
     ON public.deep_discharge_judgements AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "deep_discharge_judgements write by permission"
     ON public.deep_discharge_judgements AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.materials.edit'::text))
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.deep_discharge_judgements TO authenticated;
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────

@@ -54,6 +54,6 @@ ALTER TABLE public.supplier_score_settings ENABLE ROW LEVEL SECURITY;
 -- 读:供应商查看码(评分卡页的设定面板、待补的值那一行)。写只经函数。
 CREATE POLICY "supplier_score_settings select by permission" ON public.supplier_score_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 GRANT SELECT ON public.supplier_score_settings TO authenticated;
 REVOKE ALL ON public.supplier_score_settings FROM anon;

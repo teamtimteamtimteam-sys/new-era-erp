@@ -44,7 +44,7 @@ ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "permissions select by permission"
     ON public.permissions
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['action.manage_permissions'::text, 'data.view_change_log'::text]));
+    USING ((SELECT has_any_permission(ARRAY['action.manage_permissions'::text, 'data.view_change_log'::text])));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子 / INSTALL SEED】没有这些行,权限系统无从谈起。

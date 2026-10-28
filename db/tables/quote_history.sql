@@ -30,7 +30,7 @@ ALTER TABLE public.quote_history ENABLE ROW LEVEL SECURITY;
 -- 留痕【没有 INSERT 策略】:唯一写入口是属主权限的触发器与函数
 -- (同 approval_log / so_issues:档案不该有第二个写法)。
 CREATE POLICY "quote_history select by permission" ON public.quote_history
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.sales.view'::text)));
 
 -- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
 CREATE TRIGGER trg_quote_history_no_truncate

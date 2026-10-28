@@ -20,11 +20,11 @@ COMMENT ON TABLE public.shift_handover_equipment_refs IS
 ALTER TABLE public.shift_handover_equipment_refs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "shift_handover_equipment_refs select by permission" ON public.shift_handover_equipment_refs
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 CREATE POLICY "shift_handover_equipment_refs write by permission" ON public.shift_handover_equipment_refs
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.shift_handover_equipment_refs TO authenticated;
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────

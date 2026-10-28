@@ -114,12 +114,12 @@ ALTER TABLE public.terms_requests ENABLE ROW LEVEL SECURITY;
 -- 只经 submit_* · decide_terms_request · withdraw_terms_request(全是 SECURITY DEFINER)。
 CREATE POLICY "terms_requests select by permission" ON public.terms_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((formula_id IS NOT NULL AND has_permission('module.pricing.view'::text)
-                AND has_permission('data.view_prices'::text) AND has_permission('data.view_purchase_prices'::text))
+    USING ((formula_id IS NOT NULL AND (SELECT has_permission('module.pricing.view'::text))
+                AND (SELECT has_permission('data.view_prices'::text)) AND (SELECT has_permission('data.view_purchase_prices'::text)))
         OR (contract_id IS NOT NULL AND EXISTS (
                 SELECT 1 FROM contracts c WHERE c.id = terms_requests.contract_id
-                   AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
-                     OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text))))));
+                   AND ((c.customer_id IS NOT NULL AND (SELECT has_permission('module.customers.view'::text)))
+                     OR (c.supplier_id IS NOT NULL AND (SELECT has_permission('module.suppliers.view'::text)))))));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.terms_requests FROM anon;

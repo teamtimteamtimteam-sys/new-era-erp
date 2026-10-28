@@ -66,4 +66,4 @@ ALTER TABLE public.credit_notes ENABLE ROW LEVEL SECURITY;
 -- 【为什么是 module.finance.*】开票是财务的动作(create_order_invoice 要
 -- module.finance.edit),而贷项凭证是它的反面 —— 它直接改总账与应收。
 CREATE POLICY "credit_notes select by permission" ON public.credit_notes
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.finance.view'::text)));

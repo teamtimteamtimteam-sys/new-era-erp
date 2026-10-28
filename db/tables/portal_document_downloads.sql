@@ -47,6 +47,6 @@ CREATE TRIGGER trg_portal_document_downloads_no_delete
 ALTER TABLE public.portal_document_downloads ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "portal_document_downloads select by permission" ON public.portal_document_downloads
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 REVOKE ALL ON public.portal_document_downloads FROM authenticated, anon;
 GRANT SELECT ON public.portal_document_downloads TO authenticated;

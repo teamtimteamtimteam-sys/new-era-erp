@@ -67,7 +67,7 @@ ALTER TABLE public.output_batch_safety_states ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "output_batch_safety_states select by permission"
     ON public.output_batch_safety_states
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.output.view'::text));
+    USING ((SELECT has_permission('module.output.view'::text)));
 -- ★ MES-3a:写策略拿掉 —— 此前产出批页面从浏览器直连插 / 删(删 = 硬删,没有理由、没有墓碑)。
 --   从此写只经 set_output_safety_states(SECURITY DEFINER,module.output.edit)与加工的提交 / 回滚;
 --   直连写按名拒 SAFETY_STATES_THROUGH_FUNCTION_ONLY,删除一律拒 SAFETY_STATE_NEVER_DELETED。

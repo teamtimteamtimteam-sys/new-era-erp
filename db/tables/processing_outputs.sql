@@ -39,7 +39,7 @@ ALTER TABLE public.processing_outputs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_outputs select by permission"
     ON public.processing_outputs
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q7;Batch 3b grilling Q1):INSERT 与 DELETE 两条写策略拿掉 ——
 --   提交与回滚只经 commit_processing_run / rollback_processing_run(SECURITY DEFINER);直连写按名拒

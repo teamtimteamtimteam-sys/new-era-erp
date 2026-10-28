@@ -116,7 +116,7 @@ ALTER TABLE public.journal_requests ENABLE ROW LEVEL SECURITY;
 -- withdraw_journal_request(全是 SECURITY DEFINER)。
 CREATE POLICY "journal_requests select by permission" ON public.journal_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.journal_requests FROM anon;

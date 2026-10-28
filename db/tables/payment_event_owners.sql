@@ -26,8 +26,8 @@ ALTER TABLE public.payment_event_owners ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "payment_event_owners select by permission" ON public.payment_event_owners
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text)
-        OR has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text))
+        OR (SELECT has_permission('module.finance.view'::text)));
 
 -- 种子:Tim 的裁定,逐字
 INSERT INTO public.payment_event_owners (trigger_event, owner_name, note) VALUES

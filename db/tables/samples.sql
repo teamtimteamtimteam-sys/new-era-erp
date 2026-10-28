@@ -67,8 +67,8 @@ ALTER TABLE public.samples ENABLE ROW LEVEL SECURITY;
 -- 读:质量查看码,或那一批自己那一页的查看码(Q11)。写:一条策略都不给 —— 只经 record_sample。
 CREATE POLICY "samples select by permission" ON public.samples
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.quality.view'::text)
-        OR (inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-        OR (output_batch_id IS NOT NULL AND has_permission('module.output.view'::text)));
+    USING ((SELECT has_permission('module.quality.view'::text))
+        OR (inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+        OR (output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text))));
 GRANT SELECT ON public.samples TO authenticated;
 REVOKE ALL ON public.samples FROM anon;

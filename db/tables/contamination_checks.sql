@@ -65,6 +65,6 @@ CREATE TRIGGER trg_contamination_checks_append_only
 ALTER TABLE public.contamination_checks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "contamination_checks select by permission" ON public.contamination_checks
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.view'::text, 'module.output.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.processing.view'::text, 'module.output.view'::text])));
 GRANT SELECT ON public.contamination_checks TO authenticated;
 REVOKE ALL ON public.contamination_checks FROM anon;

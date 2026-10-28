@@ -32,6 +32,6 @@ ALTER TABLE public.quality_settings ENABLE ROW LEVEL SECURITY;
 -- 读:质量查看码(样品页的设定面板与待补的值那一行)。写只经函数。
 CREATE POLICY "quality_settings select by permission" ON public.quality_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.quality.view'::text));
+    USING ((SELECT has_permission('module.quality.view'::text)));
 GRANT SELECT ON public.quality_settings TO authenticated;
 REVOKE ALL ON public.quality_settings FROM anon;

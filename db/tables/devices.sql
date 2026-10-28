@@ -103,6 +103,6 @@ ALTER TABLE public.devices ENABLE ROW LEVEL SECURITY;
 -- 读:持加工查看码的人(MES-0 §3.10)。写只经函数。
 CREATE POLICY "devices select by permission" ON public.devices
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.devices FROM anon;

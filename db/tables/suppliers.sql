@@ -201,22 +201,22 @@ ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "suppliers select by permission"
     ON public.suppliers
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 
 CREATE POLICY "suppliers insert by permission"
     ON public.suppliers
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.suppliers.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 
 CREATE POLICY "suppliers update by permission"
     ON public.suppliers
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.suppliers.edit'::text)) WITH CHECK (has_permission('module.suppliers.edit'::text));
+    USING ((SELECT has_permission('module.suppliers.edit'::text))) WITH CHECK ((SELECT has_permission('module.suppliers.edit'::text)));
 
 CREATE POLICY "suppliers delete by permission"
     ON public.suppliers
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.suppliers.edit'::text));
+    USING ((SELECT has_permission('module.suppliers.edit'::text)));
 
 
 COMMENT ON COLUMN public.suppliers.created_by IS

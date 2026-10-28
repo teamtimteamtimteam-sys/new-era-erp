@@ -50,7 +50,7 @@ COMMENT ON COLUMN public.inspection_runs.corrects_run_id IS
 ALTER TABLE public.inspection_runs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inspection_runs select by permission" ON public.inspection_runs
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inspection_runs TO authenticated;
 REVOKE ALL ON public.inspection_runs FROM anon;
 

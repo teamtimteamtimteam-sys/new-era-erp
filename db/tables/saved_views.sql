@@ -40,23 +40,23 @@ ALTER TABLE public.saved_views ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "saved_views select own"
     ON public.saved_views
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (user_id = auth.uid());
+    USING (user_id = (SELECT auth.uid()));
 
 CREATE POLICY "saved_views insert own"
     ON public.saved_views
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (user_id = auth.uid());
+    WITH CHECK (user_id = (SELECT auth.uid()));
 
 CREATE POLICY "saved_views update own"
     ON public.saved_views
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (user_id = auth.uid())
-    WITH CHECK (user_id = auth.uid());
+    USING (user_id = (SELECT auth.uid()))
+    WITH CHECK (user_id = (SELECT auth.uid()));
 
 CREATE POLICY "saved_views delete own"
     ON public.saved_views
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (user_id = auth.uid());
+    USING (user_id = (SELECT auth.uid()));
 
 REVOKE ALL ON public.saved_views FROM anon;
 REVOKE ALL ON public.saved_views FROM authenticated;

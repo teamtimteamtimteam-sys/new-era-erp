@@ -89,7 +89,7 @@ ALTER TABLE public.fixed_asset_depreciation_anchors ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fa depreciation anchors select by permission"
     ON public.fixed_asset_depreciation_anchors
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 COMMENT ON TABLE public.fixed_asset_depreciation_anchors IS
     'CAPEX-1:折旧的锚点 —— 一次会计估计变更从哪个月起、按什么摊。**它把"过去的月份"冻成一个存下来的常数(pre_anchor_target_base)**,于是抬高成本不再能把过去每一个月的目标一起抬高(4.7 明令禁止的回溯补提)。【自己一张表而不是资产上的三个列】:估计变更天然是一串;【不挂在 fixed_asset_cost_entries 上】:那样"哪个锚点有效"会变成按 created_at 的取最新一行,而那是事务时刻 + 随机 uuid 破平局 —— AGING-1 栽过的坑。这里按业务日期 effective_from 排,(asset_id, effective_from) 唯一。';

@@ -40,6 +40,6 @@ ALTER TABLE public.scan_events ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "scan_events select by permission" ON public.scan_events
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inventory.view'::text));
+    USING ((SELECT has_permission('module.inventory.view'::text)));
 
 REVOKE ALL ON public.scan_events FROM anon;

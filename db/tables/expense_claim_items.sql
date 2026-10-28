@@ -67,9 +67,9 @@ ALTER TABLE public.expense_claim_items ENABLE ROW LEVEL SECURITY;
 -- 与表头同一条:财务看得见全部,员工看得见自己那张单的明细
 CREATE POLICY "expense_claim_items select by permission" ON public.expense_claim_items
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text)
+    USING ((SELECT has_permission('module.finance.view'::text))
         OR EXISTS (SELECT 1 FROM public.expense_claims c
-                    WHERE c.id = expense_claim_items.claim_id AND c.employee_id = current_user_employee()));
+                    WHERE c.id = expense_claim_items.claim_id AND c.employee_id = (SELECT current_user_employee())));
 
 -- 【没有 INSERT/UPDATE/DELETE 策略】唯一写入口是属主权限函数(submit_expense_claim_items · decide_expense_claim_items)。
 REVOKE ALL ON public.expense_claim_items FROM anon;

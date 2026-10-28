@@ -81,7 +81,7 @@ ALTER TABLE public.shipping_releases ENABLE ROW LEVEL SECURITY;
 -- decide_shipping_release · withdraw_shipping_release(全是 SECURITY DEFINER)。
 CREATE POLICY "shipping_releases select by permission" ON public.shipping_releases
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.sales.view'::text));
+    USING ((SELECT has_permission('module.sales.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.shipping_releases FROM anon;

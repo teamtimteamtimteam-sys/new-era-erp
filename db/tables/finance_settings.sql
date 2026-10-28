@@ -130,22 +130,22 @@ CREATE TRIGGER trg_finance_settings_cfo_columns
 CREATE POLICY "finance_settings select by permission"
     ON public.finance_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 CREATE POLICY "finance_settings insert by permission"
     ON public.finance_settings
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 CREATE POLICY "finance_settings update by permission"
     ON public.finance_settings
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text))) WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 CREATE POLICY "finance_settings delete by permission"
     ON public.finance_settings
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text)));
 
 COMMENT ON COLUMN public.finance_settings.system_start_date IS
     '本库自哪一天起持有【完整】记录 —— 不是安装日、也不一定是切换日。若切换前的交易会被补录进来,取【最早那笔真实交易】的日期。所有年度性守卫(年末结转、医疗额度)以它为界:早于它的期间,本库的数据不完整,任何据此推算的余额或额度都是凭空的。取错不会报错,只会让守卫站错位置。';

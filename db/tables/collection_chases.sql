@@ -66,4 +66,4 @@ ALTER TABLE public.collection_chases ENABLE ROW LEVEL SECURITY;
 -- 与 customer_statements、bank_reconciliations、八张签发档同一条。
 CREATE POLICY "collection_chases select by permission" ON public.collection_chases
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

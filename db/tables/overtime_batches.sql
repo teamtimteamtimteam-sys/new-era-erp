@@ -70,8 +70,8 @@ ALTER TABLE public.overtime_batches ENABLE ROW LEVEL SECURITY;
 -- 读:人力、录的人、批的人。仓库不持 module.hr.view,所以批的人要靠自己的码读得到。
 CREATE POLICY "overtime_batches select by permission" ON public.overtime_batches
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text)
-        OR has_permission('action.overtime_enter'::text)
-        OR has_permission('action.overtime_approve'::text));
+    USING ((SELECT has_permission('module.hr.view'::text))
+        OR (SELECT has_permission('action.overtime_enter'::text))
+        OR (SELECT has_permission('action.overtime_approve'::text)));
 
 REVOKE ALL ON public.overtime_batches FROM anon;

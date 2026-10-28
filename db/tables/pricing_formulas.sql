@@ -90,7 +90,7 @@ ALTER TABLE public.pricing_formulas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "pricing_formulas select by permission"
     ON public.pricing_formulas
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.pricing.view'::text));
+    USING ((SELECT has_permission('module.pricing.view'::text)));
 
 -- ★ APR-8(2026-09-26,grilling Q6):**写策略一条都不给**。原来的 insert / update / delete 三条开在
 --   module.pricing.edit 上,cco 一次保存就改掉了此后每一次报价 —— 现在公式只经函数写(SECURITY DEFINER):

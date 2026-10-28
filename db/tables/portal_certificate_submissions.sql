@@ -57,6 +57,6 @@ COMMENT ON TABLE public.portal_certificate_submissions IS
 ALTER TABLE public.portal_certificate_submissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "portal_certificate_submissions select by permission" ON public.portal_certificate_submissions
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 REVOKE ALL ON public.portal_certificate_submissions FROM authenticated, anon;
 GRANT SELECT ON public.portal_certificate_submissions TO authenticated;

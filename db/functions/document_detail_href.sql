@@ -11,6 +11,7 @@
 -- ★ 读者:document_chain_walk()(单据链条)· document_detail_hrefs()(关联页的表格,一次一屏)。
 --
 -- NOTE: introduced by db/migrations/2026-10-27-system-map-3-chain-bar.sql.
+-- ★ CHAIN-WALK-COST(v1.4.80):实现在 document_detail_hrefs(key, ids[]) 里一份;这一支是它的单张写法。
 
 CREATE OR REPLACE FUNCTION public.document_detail_href(p_key text, p_id uuid)
  RETURNS text
@@ -18,39 +19,10 @@ CREATE OR REPLACE FUNCTION public.document_detail_href(p_key text, p_id uuid)
  STABLE
 AS $function$
 DECLARE
-    d     record;
-    v     text;
-    m     text[];
-    v_val text;
+    v text;
 BEGIN
-    SELECT dt.key, dt.table_name, dt.route, dt.link_mode, dt.detail_route INTO d
-      FROM public.document_types dt WHERE dt.key = p_key;
-    IF d.key IS NULL THEN
-        RAISE EXCEPTION 'SEARCH_UNKNOWN_DOCUMENT_TYPE|% —— 它不在 document_types 里', coalesce(p_key, '(null)');
-    END IF;
-    IF p_id IS NULL THEN
-        RETURN NULL;
-    END IF;
-    IF d.detail_route IS NOT NULL THEN
-        v := d.detail_route;
-        FOR m IN SELECT regexp_matches(d.detail_route, '\{([a-z_]+)\}', 'g') LOOP
-            IF m[1] = 'id' THEN
-                v_val := p_id::text;
-            ELSE
-                EXECUTE format('SELECT t.%I::text FROM public.%I t WHERE t.id = $1', m[1], d.table_name)
-                   INTO v_val USING p_id;
-            END IF;
-            IF v_val IS NULL THEN
-                RETURN NULL;
-            END IF;
-            v := replace(v, '{' || m[1] || '}', v_val);
-        END LOOP;
-        RETURN v;
-    END IF;
-    IF d.link_mode = 'detail' THEN
-        RETURN d.route || '/' || p_id::text;
-    END IF;
-    RETURN NULL;
+    SELECT h.href INTO v FROM public.document_detail_hrefs(p_key, ARRAY[p_id]) h;
+    RETURN v;
 END;
 $function$;
 

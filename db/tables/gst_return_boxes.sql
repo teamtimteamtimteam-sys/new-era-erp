@@ -50,7 +50,7 @@ ALTER TABLE public.gst_return_boxes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "gst_return_boxes select by permission"
     ON public.gst_return_boxes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 COMMENT ON TABLE public.gst_return_boxes IS
     'GST-1:**报出去的那一份的快照。** 申报那一刻把每一格的数字抄下来,此后底下的数据再动,这一份也不动 —— 与已签发单据同一条规矩。想知道"现在算出来是多少",调 f5_return();想知道"当时报了多少",读这张表。两者不一致本身就是一条要人看的信息。';

@@ -79,12 +79,12 @@ ALTER TABLE public.payment_allocations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payment_allocations select by permission"
     ON public.payment_allocations
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 CREATE POLICY "payment_allocations insert by permission"
     ON public.payment_allocations
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.payment_allocations.allocated_base IS

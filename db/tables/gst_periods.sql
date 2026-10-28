@@ -70,7 +70,7 @@ ALTER TABLE public.gst_periods ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "gst_periods select by permission"
     ON public.gst_periods
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 COMMENT ON TABLE public.gst_periods IS
     'GST-1:GST 申报期间(季度)。与会计期间锁【不是同一件事】—— 会计锁按月、随月结推进,GST 期间按季、随申报推进。但一个"已申报"而底下分录还能改的期间是一句假话,所以申报的前置条件是 locked_before > period_end(那一季每个月都已关账)。更正【不是编辑】:它是新的一行,corrects_period_id 指着被更正的那一期。';

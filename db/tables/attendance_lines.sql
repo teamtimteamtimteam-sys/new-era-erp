@@ -47,5 +47,5 @@ ALTER TABLE public.attendance_lines ENABLE ROW LEVEL SECURITY;
 -- 员工看得见【关于他自己被报了什么】,正是让错误被抓住的那一半。
 CREATE POLICY "attendance_lines select by permission" ON public.attendance_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text)
-        OR employee_id = current_user_employee());
+    USING ((SELECT has_permission('module.hr.view'::text))
+        OR employee_id = (SELECT current_user_employee()));

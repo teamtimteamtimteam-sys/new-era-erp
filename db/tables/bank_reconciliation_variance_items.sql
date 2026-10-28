@@ -64,4 +64,4 @@ ALTER TABLE public.bank_reconciliation_variance_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "bank_variance_items select by permission"
     ON public.bank_reconciliation_variance_items
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

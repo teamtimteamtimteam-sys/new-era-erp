@@ -35,7 +35,7 @@ ALTER TABLE public.stocktake_counts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "stocktake_counts select by permission"
     ON public.stocktake_counts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.stocktakes.view'::text));
+    USING ((SELECT has_permission('module.stocktakes.view'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.stocktake_counts FROM anon;

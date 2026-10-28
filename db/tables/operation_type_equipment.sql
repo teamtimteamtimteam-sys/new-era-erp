@@ -49,10 +49,10 @@ CREATE TRIGGER trg_operation_type_equipment_guard
 
 ALTER TABLE public.operation_type_equipment ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_type_equipment select by permission" ON public.operation_type_equipment
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 CREATE POLICY "operation_type_equipment write by permission" ON public.operation_type_equipment
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.operation_type_equipment TO authenticated;
 REVOKE ALL ON public.operation_type_equipment FROM anon;
 

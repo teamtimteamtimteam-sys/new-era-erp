@@ -38,7 +38,7 @@ ALTER TABLE public.employee_account_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "employee_account_history select by permission"
     ON public.employee_account_history
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('action.manage_permissions'::text));
+    USING ((SELECT has_permission('action.manage_permissions'::text)));
 
 -- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
 CREATE TRIGGER trg_employee_account_history_no_truncate

@@ -33,11 +33,11 @@ ALTER TABLE public.cash_forecast_lines ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "cash_forecast_lines select by permission" ON public.cash_forecast_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 CREATE POLICY "cash_forecast_lines write by permission" ON public.cash_forecast_lines
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.finance.edit'::text))
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

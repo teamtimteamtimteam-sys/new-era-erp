@@ -56,4 +56,4 @@ COMMENT ON COLUMN public.work_order_expected_outputs.basis_reference IS
 
 ALTER TABLE public.work_order_expected_outputs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "work_order_expected_outputs select by permission" ON public.work_order_expected_outputs
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));

@@ -32,7 +32,7 @@ ALTER TABLE public.wht_rates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "wht_rates select by permission"
     ON public.wht_rates
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 INSERT INTO public.wht_rates (nature, rate_pct, effective_from, effective_to, note) VALUES
     -- 【''none'' 的 0% 不是一个税率,是那个显式判断的算术后果】它存在是为了让

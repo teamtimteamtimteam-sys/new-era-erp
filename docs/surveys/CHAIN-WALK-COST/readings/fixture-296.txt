@@ -1,0 +1,6 @@
+psql:db/fixtures/296-every-adjacent-pair-on-the-four-chains-links-both-ways.sql:321: NOTICE:  FIXTURE 296 全部通过:A 四条链 26 次走、178 格(任两步互相找得到,每步恰好一张,地址落在单据自己那一页)· R 声明的边就是关联页的边(已批准的请假在、待批的不在)· N 没有财务闸的读者走不到应付以后 · C OT-2025-04 / OT-2025-04-2 · D 四种坏定义按名拒 · T 时间上限按名拒(DOCUMENT_CHAIN_WALK_BUDGET)
+
+real	0m3.105s
+user	0m0.006s
+sys	0m0.003s
+F296_OWN_EXIT=0

@@ -67,6 +67,6 @@ COMMENT ON COLUMN public.blending_plans.run_id IS
 ALTER TABLE public.blending_plans ENABLE ROW LEVEL SECURITY;
 -- 读:module.processing.view(工单的同一个码,Q19)。写:一条策略都不给 —— 只经五支 DEFINER 函数。
 CREATE POLICY "blending_plans select by permission" ON public.blending_plans
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 GRANT SELECT ON public.blending_plans TO authenticated;
 REVOKE ALL ON public.blending_plans FROM anon;

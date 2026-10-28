@@ -53,6 +53,6 @@ ALTER TABLE public.ingest_data_classes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "ingest_data_classes select by permission" ON public.ingest_data_classes
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.ingest_data_classes FROM anon;

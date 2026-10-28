@@ -125,7 +125,7 @@ ALTER TABLE public.management_packs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "management_packs select by permission"
     ON public.management_packs
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 COMMENT ON TABLE public.management_packs IS
     'GLEXPORT-1:冻下来的月度管理报表包。**一份存下来的包意味着一件事:它被产出的那一刻,那个月已经关账了**(CHECK management_packs_month_was_locked)。开放月份看得到实时预览、导得出 CSV,但【不落库】—— 仓库为"什么时候该冻"裁过三次,三次的触发点都是「有东西离开了这栋楼」,而不是有人按了计算。重出一份 = 新行 + 旧行 superseded + 必填理由。';

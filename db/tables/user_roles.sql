@@ -106,22 +106,22 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "user_roles select by permission"
     ON public.user_roles
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['action.manage_permissions'::text, 'module.hr.view'::text, 'data.view_change_log'::text]) OR (user_id = auth.uid()));
+    USING ((SELECT has_any_permission(ARRAY['action.manage_permissions'::text, 'module.hr.view'::text, 'data.view_change_log'::text])) OR (user_id = (SELECT auth.uid())));
 
 CREATE POLICY "user_roles insert by permission"
     ON public.user_roles
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.manage_permissions'::text));
+    WITH CHECK ((SELECT has_permission('action.manage_permissions'::text)));
 
 CREATE POLICY "user_roles update by permission"
     ON public.user_roles
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.manage_permissions'::text)) WITH CHECK (has_permission('action.manage_permissions'::text));
+    USING ((SELECT has_permission('action.manage_permissions'::text))) WITH CHECK ((SELECT has_permission('action.manage_permissions'::text)));
 
 CREATE POLICY "user_roles delete by permission"
     ON public.user_roles
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.manage_permissions'::text));
+    USING ((SELECT has_permission('action.manage_permissions'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

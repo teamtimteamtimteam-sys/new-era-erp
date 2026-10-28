@@ -26,4 +26,4 @@ COMMENT ON TABLE public.work_order_lines IS
 
 ALTER TABLE public.work_order_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "work_order_lines select by permission" ON public.work_order_lines
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));

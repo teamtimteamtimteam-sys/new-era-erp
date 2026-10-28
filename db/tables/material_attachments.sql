@@ -53,22 +53,22 @@ ALTER TABLE public.material_attachments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "material_attachments select by permission"
     ON public.material_attachments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.materials.view'::text));
+    USING ((SELECT has_permission('module.materials.view'::text)));
 
 CREATE POLICY "material_attachments insert by permission"
     ON public.material_attachments
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 CREATE POLICY "material_attachments update by permission"
     ON public.material_attachments
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text)) WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text))) WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 CREATE POLICY "material_attachments delete by permission"
     ON public.material_attachments
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)));
 
 -- 4. Index: we always query attachments by their owning material.
 CREATE INDEX idx_material_attachments_material_id

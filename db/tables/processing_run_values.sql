@@ -61,6 +61,6 @@ CREATE TRIGGER trg_processing_run_values_append_only
 
 ALTER TABLE public.processing_run_values ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_run_values select by permission" ON public.processing_run_values
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING ((SELECT has_permission('module.processing.view'::text)));
 GRANT SELECT ON public.processing_run_values TO authenticated;
 REVOKE ALL ON public.processing_run_values FROM anon;

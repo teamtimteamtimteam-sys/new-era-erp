@@ -59,11 +59,11 @@ CREATE TRIGGER trg_leave_requests_updated_at
 ALTER TABLE public.leave_requests ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "leave_requests select by permission"
     ON public.leave_requests AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING ((SELECT has_permission('module.hr.view')));
 -- 自助:自己的申请自己看得见(权限 cut 4 的行级模式)
 CREATE POLICY "leave_requests select own rows"
     ON public.leave_requests AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee());
+    USING (employee_id = (SELECT current_user_employee()));
 
 -- ★ LEAVE-BAL-1(Tim Q12,2026-09-28):【写只走 SECURITY DEFINER 函数】——
 --   submit_leave_request / decide_leave_request / cancel_leave_request。

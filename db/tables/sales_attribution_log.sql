@@ -30,7 +30,7 @@ ALTER TABLE public.sales_attribution_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sales_attribution_log select by permission"
     ON public.sales_attribution_log
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 COMMENT ON TABLE public.sales_attribution_log IS
     '无主销售【补挂客户】的只增不改留痕(SAL-C)。补挂是记录一个已经成立的事实,所以不做信用检查;但谁在什么时候把哪笔债记到了谁头上,必须留下来 —— 补挂当时的敞口一并记下(exposure_after),因为它常常是"越限"的那一刻。';

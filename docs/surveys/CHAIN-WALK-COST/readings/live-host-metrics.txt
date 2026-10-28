@@ -1,0 +1,11 @@
+# live database host metrics (Supabase privileged metrics endpoint, read with the service key; only these lines kept), read 2026-10-29 01:3x CST during proof run 2
+node_memory_MemAvailable_bytes 1.01728256e+08
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_memory_MemTotal_bytes 4.26258432e+08
+node_vmstat_pgmajfault 1.27749e+07
+node_memory_Cached_bytes 8.9935872e+07
+node_memory_SwapFree_bytes 4.90917888e+08
+# CPU over 125.5 s (01:34:29 -> 01:36:35), two samples:
+cpu0 idle 87.1% · iowait 7.5% · user 3.2% · system 2.1% · steal 0.0%
+cpu1 idle 88.3% · iowait 7.6% · user 1.9% · system 2.2% · steal 0.0%
+load1 0.14 -> 0.31

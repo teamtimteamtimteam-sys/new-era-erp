@@ -9,6 +9,7 @@
 // 【分页】先 20 条;"Show older entries"把 ?trail= 加 20,整页重画并落回这一段(Q29)。
 // 【数据只到服务端为止】给客户端的是造好的句子(Entry[]),不是原始行 —— 表名、主键、影像不进页面负载。
 // ════════════════════════════════════════════════════════════════════════════
+import { unstable_rethrow } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { Refusal } from '@/app/components/ui/refusal'
@@ -192,18 +193,34 @@ export function trailCount(raw: string | string[] | undefined): number {
 //   落回点的那一段)。不传就是 'audit-trail',与以前逐字相同。
 // compact:一张卡片 / 一行里的那一块(人工分录申请、报销单 —— Q17 · Q20):折起来(<details>),标题与说明不画,
 //   分页链接落回那一块;section 照样带 data-audit-trail,冒烟与探针认得出它。
-export default async function AuditTrail({ subject, id, show, anchor = 'audit-trail', compact = false }: {
+// CHAIN-WALK-COST(Tim 2026-10-28 scope C):取数失败【画在这一段自己里面】(与单据链条那一格同一个形状),永远不冒到页面的错误边界去
+//   拖垮整页 —— SYSTEM-MAP-3 的线上证明里,仓库读者在一张产出批页上因为 record_trail 撞了 8 秒语句上限而整页 500
+//   (docs/known-issues.md § SM3-OUTPUT-TRAIL-TIMEOUT)。失败照样【说出来】、带原因(不是一段空的审计记录 —— 那读起来是"什么都没发生过"),
+//   具名拒绝(TRAIL_NOT_PERMITTED / TRAIL_SUBJECT_UNKNOWN)照旧画成拒绝。
+export default async function AuditTrail(props: {
     subject: TrailSubject; id: string; show: number; anchor?: string; compact?: boolean
 }) {
-    const supabase = await createClient()
-    const res = await supabase.rpc('record_trail', { p_subject: subject, p_id: id, p_entries: show })
+    try {
+        return await auditTrailBody(props)
+    } catch (e) {
+        unstable_rethrow(e)   // Next.js 自己的控制流(动态渲染、redirect / notFound)照旧抛出去 —— 只接这一段自己的失败
+        const { anchor = 'audit-trail', compact = false } = props
+        return trailFrame(compact, anchor, 'failed', (
+            <p className="text-sm text-[color:var(--brand-muted-text)]">
+                {fill(TRAIL_TEXT['section.failed'], { reason: e instanceof Error ? e.message : String(e) })}
+            </p>
+        ))
+    }
+}
+
+function trailFrame(compact: boolean, anchor: string, state: string, body: React.ReactNode) {
     const heading = compact ? null : (
         <>
             <h2 className="mb-1">{TRAIL_TEXT['section.title']}</h2>
             <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{TRAIL_TEXT['section.intro']}</p>
         </>
     )
-    const frame = (state: string, body: React.ReactNode) => compact ? (
+    return compact ? (
         <details id={anchor} className="mt-3 border-t pt-2">
             <summary className="cursor-pointer text-xs text-[color:var(--brand-muted-text)]">{TRAIL_TEXT['rowTrail.summary']}</summary>
             <section data-audit-trail={state} className="mt-2">{body}</section>
@@ -211,6 +228,14 @@ export default async function AuditTrail({ subject, id, show, anchor = 'audit-tr
     ) : (
         <section id={anchor} data-audit-trail={state} className="mt-8 border-t pt-6">{heading}{body}</section>
     )
+}
+
+async function auditTrailBody({ subject, id, show, anchor = 'audit-trail', compact = false }: {
+    subject: TrailSubject; id: string; show: number; anchor?: string; compact?: boolean
+}) {
+    const supabase = await createClient()
+    const res = await supabase.rpc('record_trail', { p_subject: subject, p_id: id, p_entries: show })
+    const frame = (state: string, body: React.ReactNode) => trailFrame(compact, anchor, state, body)
     if (res.error) {
         const code = res.error.message.split('|')[0]
         if (code === 'TRAIL_NOT_PERMITTED' || code === 'TRAIL_SUBJECT_UNKNOWN') {

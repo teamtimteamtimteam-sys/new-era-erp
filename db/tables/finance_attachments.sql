@@ -57,22 +57,22 @@ ALTER TABLE public.finance_attachments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "finance_attachments select by permission"
     ON public.finance_attachments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 CREATE POLICY "finance_attachments insert by permission"
     ON public.finance_attachments
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 CREATE POLICY "finance_attachments update by permission"
     ON public.finance_attachments
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text))) WITH CHECK ((SELECT has_permission('module.finance.edit'::text)));
 
 CREATE POLICY "finance_attachments delete by permission"
     ON public.finance_attachments
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.finance.edit'::text));
+    USING ((SELECT has_permission('module.finance.edit'::text)));
 
 -- 4. Indexes: attachments are always queried by their owning document.
 CREATE INDEX idx_finance_attachments_sale ON public.finance_attachments (sales_record_id);

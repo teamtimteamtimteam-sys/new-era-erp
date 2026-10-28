@@ -56,6 +56,6 @@ ALTER TABLE public.material_required_metals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "material_required_metals select by permission"
     ON public.material_required_metals
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.materials.view'::text));
+    USING ((SELECT has_permission('module.materials.view'::text)));
 
 -- 写没有策略 —— 见抬头。

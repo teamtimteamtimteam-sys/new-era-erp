@@ -59,13 +59,13 @@ ALTER TABLE public.contract_quality_limits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "contract quality limits select by owner permission"
     ON public.contract_quality_limits AS PERMISSIVE FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+                     AND ((c.customer_id IS NOT NULL AND (SELECT has_permission('module.customers.view'::text)))
+                       OR (c.supplier_id IS NOT NULL AND (SELECT has_permission('module.suppliers.view'::text))))));
 -- 写条款只归 cco(action.contract_terms),与另外七张条款表同一条(ROLE-1 Batch 2b)。
 CREATE POLICY "contract quality limits write by owner permission"
     ON public.contract_quality_limits AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('action.contract_terms'::text))
-    WITH CHECK (has_permission('action.contract_terms'::text));
+    USING ((SELECT has_permission('action.contract_terms'::text)))
+    WITH CHECK ((SELECT has_permission('action.contract_terms'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.contract_quality_limits TO authenticated;
 REVOKE ALL ON public.contract_quality_limits FROM anon;
 

@@ -130,7 +130,7 @@ ALTER TABLE public.invoice_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "invoice_lines select by permission"
     ON public.invoice_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ★ APR-5a(Tim,grilling Q11 ①):**没有写策略**。原来的 INSERT / UPDATE 两条(都开在 module.finance.edit 上)
 --   拿掉了:写本表的函数(create_invoice · create_order_invoice)与 invoices 上那支作废传播触发器都在属主身份下跑。

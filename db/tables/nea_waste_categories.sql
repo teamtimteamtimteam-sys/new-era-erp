@@ -33,13 +33,13 @@ ALTER TABLE public.nea_waste_categories ENABLE ROW LEVEL SECURITY;
 -- 读:要用到它的四个模块(物料主数据、执照、库存、进料 / 产出)—— 不是 USING (true):那 44 条开着的读策略不再加一条(MES-0 Q86)。
 CREATE POLICY "nea_waste_categories select by permission"
     ON public.nea_waste_categories AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.materials.view') OR has_permission('module.suppliers.view')
-           OR has_permission('module.inventory.view') OR has_permission('module.inbound.view')
-           OR has_permission('module.output.view'));
+    USING ((SELECT has_permission('module.materials.view')) OR (SELECT has_permission('module.suppliers.view'))
+           OR (SELECT has_permission('module.inventory.view')) OR (SELECT has_permission('module.inbound.view'))
+           OR (SELECT has_permission('module.output.view')));
 CREATE POLICY "nea_waste_categories write by permission"
     ON public.nea_waste_categories AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.materials.edit'))
-    WITH CHECK (has_permission('module.materials.edit'));
+    USING ((SELECT has_permission('module.materials.edit')))
+    WITH CHECK ((SELECT has_permission('module.materials.edit')));
 
 REVOKE ALL ON public.nea_waste_categories FROM anon;
 

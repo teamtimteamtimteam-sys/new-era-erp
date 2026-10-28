@@ -41,7 +41,7 @@ COMMENT ON COLUMN public.inspection_findings.task_id IS
 ALTER TABLE public.inspection_findings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inspection_findings select by permission" ON public.inspection_findings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inspection_findings TO authenticated;
 REVOKE ALL ON public.inspection_findings FROM anon;
 

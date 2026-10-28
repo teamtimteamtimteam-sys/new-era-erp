@@ -84,4 +84,4 @@ ALTER TABLE public.bank_reconciliations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "bank_reconciliations select by permission"
     ON public.bank_reconciliations
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));

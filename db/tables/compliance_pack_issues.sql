@@ -34,6 +34,6 @@ ALTER TABLE public.compliance_pack_issues ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "compliance_pack_issues select by permission" ON public.compliance_pack_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.compliance.view'::text));
+    USING ((SELECT has_permission('module.compliance.view'::text)));
 GRANT SELECT ON public.compliance_pack_issues TO authenticated;
 REVOKE ALL ON public.compliance_pack_issues FROM anon;

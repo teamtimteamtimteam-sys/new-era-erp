@@ -39,7 +39,7 @@ ALTER TABLE public.stocktake_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "stocktake_lines select by permission"
     ON public.stocktake_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.stocktakes.view'::text));
+    USING ((SELECT has_permission('module.stocktakes.view'::text)));
 
 -- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q2 · Q3):**没有写策略**。录数与重录只经
 --   record_stocktake_count(SECURITY DEFINER,action.stocktake_count):它核盘点单仍是 open、按

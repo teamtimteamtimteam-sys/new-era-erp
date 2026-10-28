@@ -49,29 +49,29 @@ ALTER TABLE public.payroll_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payroll_lines select by permission"
     ON public.payroll_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 -- FIN-4:财务做银行对账,对账单上本来就一人一行看得见净额 ——
 -- 系统内再遮只会挡住对账本身(D 部分,已拍板)。行级放行,金额列仍走遮蔽视图。
 CREATE POLICY "payroll_lines select for reconciliation"
     ON public.payroll_lines
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text) AND has_permission('data.view_pay'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)) AND (SELECT has_permission('data.view_pay'::text)));
 
 CREATE POLICY "payroll_lines insert by permission"
     ON public.payroll_lines
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "payroll_lines update by permission"
     ON public.payroll_lines
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text))) WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "payroll_lines delete by permission"
     ON public.payroll_lines
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text)));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 payroll_lines_masked 读取。
@@ -84,7 +84,7 @@ GRANT SELECT (id, payroll_period_id, employee_id, notes, created_at, paid_at, pa
 -- 自助是行级的 —— 给普通员工 module.hr.view 会让他看见所有人,那恰好是反的。
 CREATE POLICY "payroll_lines select own rows"
     ON public.payroll_lines AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee());
+    USING (employee_id = (SELECT current_user_employee()));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

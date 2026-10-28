@@ -129,7 +129,7 @@ ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "purchase_orders select by permission"
     ON public.purchase_orders
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text)));
 
 -- ★ APR-10(2026-09-27):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 采购单只经函数写(guard_po_direct_write 按名拒
 --   PO_THROUGH_FUNCTION_ONLY)。拿掉之前,持 module.purchasing.edit 的人能直连 INSERT 一张 approval_status 默认

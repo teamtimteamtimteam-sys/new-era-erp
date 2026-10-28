@@ -33,9 +33,15 @@ BEGIN
         image := NULL;
         RETURN;
     END IF;
-    SELECT string_agg(format('t.%I::text = %L', k.key, k.value), ' AND ')
+    -- CHAIN-WALK-COST:键按那一列自己的类型比(未定型的字面量由列定型),不把列转成文字 —— 后者用不上主键索引,每一行一次整表扫。
+    --   键都来自这张表自己的主键(或它的影像),是那个类型的规范写法,所以答案逐字不变。
+    SELECT string_agg(format('t.%I = %L', k.key, k.value), ' AND ')
       INTO v_where FROM jsonb_each_text(p_key) k;
-    EXECUTE format('SELECT to_jsonb(t) FROM public.%I t WHERE %s LIMIT 1', p_table, v_where) INTO image;
+    BEGIN
+        EXECUTE format('SELECT to_jsonb(t) FROM public.%I t WHERE %s LIMIT 1', p_table, v_where) INTO image;
+    EXCEPTION WHEN data_exception THEN
+        image := NULL;   -- 一个读不成那一列类型的键(页面传来的 'not-a-uuid')= 找不到,与以前文字比较的结局相同(fixture 236 R3)
+    END;
     IF image IS NOT NULL THEN
         RETURN;
     END IF;

@@ -1,0 +1,14 @@
+=== cwclive (today's data)
+read                        page                            docs    admin      cco      cfo      cto  finance       gmwarehouse
+inbound_batch_margin        /inbound/[id]/edit                24       14       13       13       13       13       13  refused   INBOUND_BATCH_NOT_FOUND|ba2ebe30-864b-42f1-a80f-29087ae0694c; PERMISSION_DENIED|
+coa_certificate_data        /output/[id]/edit                 20        9        6        6        6        6        7        6   OUTPUT_NOT_FOUND|9ee0e93f-a68f-495b-ab82-e0fe6d941415
+traceability_report_data    /output/[id]/edit                 20        2        2        2        2        2        2        2   NOTHING_TO_REPORT|OUT-2026-0002
+shipment_document           /sales/shipments/[id]              3        3        3        3        3        3        3        3   
+payroll_payment_entries     /hr/payroll/[id]                   1        3        3        3        3        3        3  refused   PERMISSION_DENIED|module.finance.view
+po_document_data            /purchasing/orders/[id]           11        4        3        3        3        3        3        3   
+journal_lines_masked        /finance/journal/[id]             30        1        1        1        1        1        1        1   
+discharge_module_rows       /operation/processing/[id]        14        2        2        2        2        2        2        2   
+bank_reconciliation_record  /finance/bank/statements/[id]      2        2        1        1        1        1        1  refused   PERMISSION_DENIED|module.finance.view
+customer_credit_status      /output/[id]/edit                  1        1        1        1        1        1        1        1   
+employees_masked            /hr/attendance/[id]                1        3        3        3        3        3        3        4   
+=== cwcscale (proxy volume)

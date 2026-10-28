@@ -44,6 +44,6 @@ ALTER TABLE public.account_settings ENABLE ROW LEVEL SECURITY;
 -- 读:管账号的人(/settings/accounts)与看供应商的人(供应商页的门户账号那一块要说初始密码会不会过期)。写只经函数。
 CREATE POLICY "account_settings select by permission" ON public.account_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['action.manage_permissions'::text, 'module.suppliers.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['action.manage_permissions'::text, 'module.suppliers.view'::text])));
 GRANT SELECT ON public.account_settings TO authenticated;
 REVOKE ALL ON public.account_settings FROM anon;

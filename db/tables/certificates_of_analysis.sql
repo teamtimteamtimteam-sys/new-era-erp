@@ -70,7 +70,7 @@ ALTER TABLE public.certificates_of_analysis ENABLE ROW LEVEL SECURITY;
 -- 读:跟着那一批的查看码(Q30)。写:一条策略都不给 —— 只经 issue_coa / void_coa_internal(SECURITY DEFINER)。
 CREATE POLICY "certificates_of_analysis select by permission" ON public.certificates_of_analysis
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.output.view'::text));
+    USING ((SELECT has_permission('module.output.view'::text)));
 GRANT SELECT ON public.certificates_of_analysis TO authenticated;
 REVOKE ALL ON public.certificates_of_analysis FROM anon;
 

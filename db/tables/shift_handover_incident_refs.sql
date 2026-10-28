@@ -25,7 +25,7 @@ COMMENT ON TABLE public.shift_handover_incident_refs IS
 ALTER TABLE public.shift_handover_incident_refs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "shift_handover_incident_refs select by permission" ON public.shift_handover_incident_refs
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text) OR has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)) OR (SELECT has_permission('module.safety.view'::text)));
 -- 默认权限会把 INSERT / UPDATE / DELETE 也授给 authenticated(线上 pg_default_acl)—— 收掉:这张表只经 submit_shift_handover 写,直连写按 42501 拒。
 REVOKE ALL ON public.shift_handover_incident_refs FROM authenticated, anon;
 GRANT SELECT ON public.shift_handover_incident_refs TO authenticated;

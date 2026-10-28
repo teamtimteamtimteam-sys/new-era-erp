@@ -90,7 +90,7 @@ ALTER TABLE public.salary_change_requests ENABLE ROW LEVEL SECURITY;
 -- (全是 SECURITY DEFINER)。屏幕读 salary_change_requests_visible()(带提单人 / 决定人邮箱与"我能不能批")。
 CREATE POLICY "salary_change_requests select by permission" ON public.salary_change_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text) AND has_permission('data.view_pay'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)) AND (SELECT has_permission('data.view_pay'::text)));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.salary_change_requests FROM anon;

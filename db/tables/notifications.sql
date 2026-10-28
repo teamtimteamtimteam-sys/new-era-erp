@@ -68,8 +68,8 @@ CREATE POLICY "notifications select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (
         CASE subject_type
-            WHEN 'material'         THEN has_permission('module.materials.view'::text)
-            WHEN 'storage_location' THEN has_permission('module.inventory.view'::text)
+            WHEN 'material'         THEN (SELECT has_permission('module.materials.view'::text))
+            WHEN 'storage_location' THEN (SELECT has_permission('module.inventory.view'::text))
             ELSE false
         END
     );

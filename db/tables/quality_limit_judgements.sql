@@ -62,7 +62,7 @@ ALTER TABLE public.quality_limit_judgements ENABLE ROW LEVEL SECURITY;
 -- 读:质量查看码,或产出批的查看码(Q39:判定挂在批次上)。写:一条策略都不给 —— 只经 judge_quality_limits。
 CREATE POLICY "quality limit judgements select by permission" ON public.quality_limit_judgements
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.quality.view'::text) OR has_permission('module.output.view'::text));
+    USING ((SELECT has_permission('module.quality.view'::text)) OR (SELECT has_permission('module.output.view'::text)));
 GRANT SELECT ON public.quality_limit_judgements TO authenticated;
 REVOKE ALL ON public.quality_limit_judgements FROM anon;
 

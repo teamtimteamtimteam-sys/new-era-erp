@@ -95,11 +95,11 @@ CREATE POLICY "inbound_safety_states select all"
     ON public.inbound_safety_states AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "inbound_safety_states insert by permission"
     ON public.inbound_safety_states AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 CREATE POLICY "inbound_safety_states update by permission"
     ON public.inbound_safety_states AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.materials.edit'::text))
-    WITH CHECK (has_permission('module.materials.edit'::text));
+    USING ((SELECT has_permission('module.materials.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.materials.edit'::text)));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

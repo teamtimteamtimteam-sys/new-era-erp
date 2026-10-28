@@ -297,7 +297,7 @@ ALTER TABLE public.inbound_batches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inbound_batches select by permission"
     ON public.inbound_batches
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view'::text));
+    USING ((SELECT has_permission('module.inbound.view'::text)));
 
 -- 【没有面向客户端的 INSERT 策略,这是刻意的】(IOD-1b,2026-08-13)
 -- 建批次只有一扇门:create_inbound_batch / receive_inbound_batch_against_po
@@ -313,12 +313,12 @@ CREATE POLICY "inbound_batches select by permission"
 CREATE POLICY "inbound_batches update by permission"
     ON public.inbound_batches
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.inbound.edit'::text)) WITH CHECK (has_permission('module.inbound.edit'::text));
+    USING ((SELECT has_permission('module.inbound.edit'::text))) WITH CHECK ((SELECT has_permission('module.inbound.edit'::text)));
 
 CREATE POLICY "inbound_batches delete by permission"
     ON public.inbound_batches
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.inbound.edit'::text));
+    USING ((SELECT has_permission('module.inbound.edit'::text)));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 inbound_batches_masked 读取。

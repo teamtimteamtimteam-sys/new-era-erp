@@ -33,6 +33,6 @@ ALTER TABLE public.gateway_outages ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "gateway_outages select by permission" ON public.gateway_outages
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.gateway_outages FROM anon;

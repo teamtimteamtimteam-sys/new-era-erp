@@ -64,22 +64,22 @@ ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "departments select by permission"
     ON public.departments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 CREATE POLICY "departments insert by permission"
     ON public.departments
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'::text));
+    WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "departments update by permission"
     ON public.departments
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text))) WITH CHECK ((SELECT has_permission('module.hr.edit'::text)));
 
 CREATE POLICY "departments delete by permission"
     ON public.departments
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'::text));
+    USING ((SELECT has_permission('module.hr.edit'::text)));
 
 -- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
 COMMENT ON COLUMN public.departments.manager_employee_id IS

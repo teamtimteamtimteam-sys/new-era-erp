@@ -58,8 +58,8 @@ ALTER TABLE public.sample_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sample_events select by permission" ON public.sample_events
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM samples s WHERE s.id = sample_events.sample_id
-                     AND (has_permission('module.quality.view'::text)
-                          OR (s.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.view'::text))
-                          OR (s.output_batch_id IS NOT NULL AND has_permission('module.output.view'::text)))));
+                     AND ((SELECT has_permission('module.quality.view'::text))
+                          OR (s.inbound_batch_id IS NOT NULL AND (SELECT has_permission('module.inbound.view'::text)))
+                          OR (s.output_batch_id IS NOT NULL AND (SELECT has_permission('module.output.view'::text))))));
 GRANT SELECT ON public.sample_events TO authenticated;
 REVOKE ALL ON public.sample_events FROM anon;

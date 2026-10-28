@@ -64,13 +64,13 @@ CREATE POLICY "public_holidays select by permission"
     ON public.public_holidays AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "public_holidays insert by permission"
     ON public.public_holidays AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "public_holidays update by permission"
     ON public.public_holidays AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit'))) WITH CHECK ((SELECT has_permission('module.hr.edit')));
 CREATE POLICY "public_holidays delete by permission"
     ON public.public_holidays AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING ((SELECT has_permission('module.hr.edit')));
 
 -- 【2026 年新加坡宪报公布的公共假期】(MOM 官方,2026-08 查证)。
 -- 11 个法定假日 + 3 个"逢周日顺延周一"的补假 = 14 个日期。

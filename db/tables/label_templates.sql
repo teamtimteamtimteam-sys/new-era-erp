@@ -44,12 +44,12 @@ ALTER TABLE public.label_templates ENABLE ROW LEVEL SECURITY;
 -- 读:印得了哪一种标签的人(进料 / 产出 / 库存查看)。写:库存的编辑码。
 CREATE POLICY "label_templates select by permission"
     ON public.label_templates AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inventory.view') OR has_permission('module.inbound.view')
-           OR has_permission('module.output.view'));
+    USING ((SELECT has_permission('module.inventory.view')) OR (SELECT has_permission('module.inbound.view'))
+           OR (SELECT has_permission('module.output.view')));
 CREATE POLICY "label_templates write by permission"
     ON public.label_templates AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.inventory.edit'))
-    WITH CHECK (has_permission('module.inventory.edit'));
+    USING ((SELECT has_permission('module.inventory.edit')))
+    WITH CHECK ((SELECT has_permission('module.inventory.edit')));
 
 REVOKE ALL ON public.label_templates FROM anon;
 

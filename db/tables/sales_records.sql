@@ -99,7 +99,7 @@ ALTER TABLE public.sales_records ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sales_records select by permission"
     ON public.sales_records
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 
 -- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q14 · Batch 2b grilling Q3):**没有写策略**。
 --   原来的 INSERT / UPDATE 两条(都开在 module.finance.edit 上)拿掉了:写本表的四支函数

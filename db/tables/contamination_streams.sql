@@ -39,10 +39,10 @@ INSERT INTO public.contamination_streams (code, name_en, name_zh, sheet_form_cod
 ALTER TABLE public.contamination_streams ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "contamination_streams select by permission" ON public.contamination_streams
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_any_permission(ARRAY['module.processing.view'::text, 'module.output.view'::text]));
+    USING ((SELECT has_any_permission(ARRAY['module.processing.view'::text, 'module.output.view'::text])));
 CREATE POLICY "contamination_streams write by permission" ON public.contamination_streams
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text))) WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.contamination_streams TO authenticated;
 REVOKE ALL ON public.contamination_streams FROM anon;
 

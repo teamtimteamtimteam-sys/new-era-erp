@@ -77,7 +77,7 @@ MES-4a:更正行可以是 0 —— 那就是撤回这一类(链的末端是 0,�
 ALTER TABLE public.processing_run_losses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_run_losses select by permission"
     ON public.processing_run_losses AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 -- ★ MES-4a(2026-10-07,Q28 · Q32):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 只经 record_run_loss / correct_run_loss(SECURITY DEFINER,
 --   module.processing.edit 或 action.processing_aftercare,与此前那三条策略同一组码)写。authenticated 只剩 SELECT,所以直连写
 --   在权限那一步就是 42501(不是零行、不是"成功的空操作")。

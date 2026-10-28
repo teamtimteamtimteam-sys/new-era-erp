@@ -45,4 +45,4 @@ ALTER TABLE public.attendance_periods ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "attendance_periods select by permission" ON public.attendance_periods
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));

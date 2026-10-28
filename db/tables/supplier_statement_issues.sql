@@ -34,6 +34,6 @@ ALTER TABLE public.supplier_statement_issues ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "supplier_statement_issues select by permission" ON public.supplier_statement_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING ((SELECT has_permission('module.finance.view'::text)));
 GRANT SELECT ON public.supplier_statement_issues TO authenticated;
 REVOKE ALL ON public.supplier_statement_issues FROM anon;

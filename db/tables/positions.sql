@@ -51,7 +51,7 @@ ALTER TABLE public.positions ENABLE ROW LEVEL SECURITY;
 -- 【读:HR 模块】职位是人事主数据。写:只经迁移(它是安装种子,见 check_mirrors)。
 CREATE POLICY "positions select by permission"
     ON public.positions AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 
 COMMENT ON TABLE public.positions IS
     'KPI-1:职位主数据(规格 docs/kpi-framework.md §8.2)。**它不只服务 KPI** —— 招聘、组织架构、薪资将来都要用它,而一张挂在 KPI 之下的职位表第一次被招聘用到时就要搬家。**KPI 绑在职位上不绑在人上**(§8.1),那是 exec-views-plan 开篇「答案取自职责,不取自职级」的第二次落地。`code` 是本仓库加的,**原表没有代号**;`title` 与 `source_incumbent_name` 是原表原文。**安装种子表**:行与代码版本绑定,改一行是迁移级动作(见 db/check_mirrors.py 的 SEED_TABLES 判据)。';

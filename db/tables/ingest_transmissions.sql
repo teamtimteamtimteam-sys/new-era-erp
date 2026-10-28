@@ -84,6 +84,6 @@ ALTER TABLE public.ingest_transmissions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "ingest_transmissions select by permission" ON public.ingest_transmissions
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+    USING ((SELECT has_permission('module.processing.view'::text)));
 
 REVOKE ALL ON public.ingest_transmissions FROM anon;

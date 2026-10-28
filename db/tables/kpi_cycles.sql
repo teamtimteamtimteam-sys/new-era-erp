@@ -56,13 +56,13 @@ CREATE INDEX idx_kpi_cycles_open ON public.kpi_cycles (period_start DESC) WHERE 
 ALTER TABLE public.kpi_cycles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "kpi_cycles select by permission"
     ON public.kpi_cycles AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'::text));
+    USING ((SELECT has_permission('module.hr.view'::text)));
 CREATE POLICY "kpi_cycles insert by permission"
     ON public.kpi_cycles AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.hr_reviews'::text));
+    WITH CHECK ((SELECT has_permission('action.hr_reviews'::text)));
 CREATE POLICY "kpi_cycles update by permission"
     ON public.kpi_cycles AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.hr_reviews'::text)) WITH CHECK (has_permission('action.hr_reviews'::text));
+    USING ((SELECT has_permission('action.hr_reviews'::text))) WITH CHECK ((SELECT has_permission('action.hr_reviews'::text)));
 
 COMMENT ON TABLE public.kpi_cycles IS
     'KPI-1:KPI 的考核周期。★**刻意不复用 review_cycles,尽管形状一模一样**★(Tim 2026-08-29):共用周期是两个模块悄悄变成一个的方式 —— 第一次有人开一个 HR 评估周期,每块 KPI 屏幕都会继承它,而 Tim 裁过的"两者并存"就被一条没人再读过的外键推翻了。五个重复的列 vs 一次永久的耦合。**形状刻意保持一致**,好让将来真要合并时代价还是小的。两者必须并存的理由在 review_goals 自己的表注里:它写着「没有权重、没有逐条打分」,而 KPI 的全部内容就是 0–5 乘权重 —— **设计上的对立面,不是偶然的重复**。本模块不读也不写 review_goals,尤其不碰它那条「本人只在 approved/acknowledged 之后才看得见自己目标」的自评可见性策略。';

@@ -28,14 +28,14 @@ ALTER TABLE public.notification_reads ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "notification_reads select own"
     ON public.notification_reads
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (user_id = auth.uid());
+    USING (user_id = (SELECT auth.uid()));
 
 CREATE POLICY "notification_reads insert own"
     ON public.notification_reads
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (user_id = auth.uid());
+    WITH CHECK (user_id = (SELECT auth.uid()));
 
 CREATE POLICY "notification_reads delete own"
     ON public.notification_reads
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (user_id = auth.uid());
+    USING (user_id = (SELECT auth.uid()));

@@ -44,7 +44,7 @@ ALTER TABLE public.price_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "price_history select by permission"
     ON public.price_history
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.inbound.view'::text));
+    USING ((SELECT has_permission('module.inbound.view'::text)));
 
 -- ★ ROLE-1 Batch 4a(侧门 (a),Tim 2026-09-25):原来这里有一条 INSERT 策略
 --   (WITH CHECK has_permission('module.inbound.edit'))—— 任何持 inbound.edit 的人都能直接插一行

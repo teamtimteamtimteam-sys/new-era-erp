@@ -51,7 +51,7 @@ CREATE TRIGGER trg_supplier_portal_users_separation
 ALTER TABLE public.supplier_portal_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "supplier_portal_users select by permission" ON public.supplier_portal_users
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.suppliers.view'::text));
+    USING ((SELECT has_permission('module.suppliers.view'::text)));
 -- Supabase Auth 的 hook(portal_access_token_hook,调用者权限)以 supabase_auth_admin 跑,它要读得到这一张表 —— 只读,只给它
 CREATE POLICY "supplier_portal_users read by the auth hook" ON public.supplier_portal_users
     AS PERMISSIVE FOR SELECT TO supabase_auth_admin

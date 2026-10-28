@@ -82,8 +82,8 @@ CREATE POLICY "operation_type_safety_states select all" ON public.operation_type
     AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "operation_type_safety_states write by permission" ON public.operation_type_safety_states
     AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    USING ((SELECT has_permission('module.processing.edit'::text)))
+    WITH CHECK ((SELECT has_permission('module.processing.edit'::text)));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.operation_type_safety_states TO authenticated;
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────

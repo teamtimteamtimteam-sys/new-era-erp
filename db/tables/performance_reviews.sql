@@ -129,27 +129,27 @@ ALTER TABLE public.performance_reviews ENABLE ROW LEVEL SECURITY;
 -- 评价,不是可审计的账。
 CREATE POLICY "performance_reviews select by permission"
     ON public.performance_reviews AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view') AND has_permission('data.view_reviews'));
+    USING ((SELECT has_permission('module.hr.view')) AND (SELECT has_permission('data.view_reviews')));
 
 CREATE POLICY "performance_reviews select as reviewer"
     ON public.performance_reviews AS PERMISSIVE FOR SELECT TO authenticated
-    USING (reviewer_employee_id = current_user_employee());
+    USING (reviewer_employee_id = (SELECT current_user_employee()));
 
 -- 【本人只在批准之后看得见】草稿与已提交未批准的评估对被评估人不可见 ——
 -- 那还是评估人手上没定稿的东西,提前泄露会把一份未完成的判断变成既成事实。
 CREATE POLICY "performance_reviews select own approved"
     ON public.performance_reviews AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee() AND status IN ('approved','acknowledged'));
+    USING (employee_id = (SELECT current_user_employee()) AND status IN ('approved','acknowledged'));
 
 CREATE POLICY "performance_reviews insert by permission"
     ON public.performance_reviews AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('action.hr_reviews'));
+    WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "performance_reviews update by permission"
     ON public.performance_reviews AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews'))) WITH CHECK ((SELECT has_permission('action.hr_reviews')));
 CREATE POLICY "performance_reviews delete by permission"
     ON public.performance_reviews AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('action.hr_reviews'));
+    USING ((SELECT has_permission('action.hr_reviews')));
 
 -- 字段级遮蔽:表级 SELECT 授权【蕴含所有列】,所以先整表收回,再把非敏感列逐列授回。
 -- new_monthly_salary 在 PostgREST 上是 42501 硬报错(不是静悄悄的泄露)。

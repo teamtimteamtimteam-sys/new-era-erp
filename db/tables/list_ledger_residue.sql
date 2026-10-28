@@ -52,7 +52,7 @@ COMMENT ON TABLE public.list_ledger_residue IS
 ALTER TABLE public.list_ledger_residue ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY list_ledger_residue_select ON public.list_ledger_residue
-    FOR SELECT TO authenticated USING (has_permission('module.finance.view'));
+    FOR SELECT TO authenticated USING ((SELECT has_permission('module.finance.view')));
 
 REVOKE ALL ON public.list_ledger_residue FROM anon;
 GRANT SELECT ON public.list_ledger_residue TO authenticated;

@@ -63,4 +63,4 @@ ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
 --   本表没有价格列(Step 0 以 postgres 读列清单);仓库仍不持 module.sales.view(Q7)。
 CREATE POLICY "shipments select by permission" ON public.shipments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((has_permission('module.sales.view'::text) OR has_permission('action.ship_goods'::text)));
+    USING (((SELECT has_permission('module.sales.view'::text)) OR (SELECT has_permission('action.ship_goods'::text))));

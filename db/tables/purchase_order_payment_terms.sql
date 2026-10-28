@@ -53,7 +53,7 @@ ALTER TABLE public.purchase_order_payment_terms ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "purchase_order_payment_terms select by permission"
     ON public.purchase_order_payment_terms
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.purchasing.view'::text));
+    USING ((SELECT has_permission('module.purchasing.view'::text)));
 
 -- ★ APR-10(2026-09-27):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 只经函数写(guard_po_direct_write 按名拒
 --   PO_THROUGH_FUNCTION_ONLY)。见 db/functions/guard_po_direct_write.sql 的抬头。

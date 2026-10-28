@@ -46,6 +46,6 @@ ALTER TABLE public.safety_settings ENABLE ROW LEVEL SECURITY;
 -- 读:安全查看码(事故页的设定面板、期限与待补的值那一行)。写只经函数。
 CREATE POLICY "safety_settings select by permission" ON public.safety_settings
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.safety.view'::text));
+    USING ((SELECT has_permission('module.safety.view'::text)));
 GRANT SELECT ON public.safety_settings TO authenticated;
 REVOKE ALL ON public.safety_settings FROM anon;

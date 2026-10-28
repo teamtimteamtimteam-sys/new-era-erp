@@ -78,10 +78,10 @@ ALTER TABLE public.expense_claim_receipts ENABLE ROW LEVEL SECURITY;
 -- Q6:财务看得见全部;这张单说的那名员工与替他提单的人看得见这张单的
 CREATE POLICY "expense_claim_receipts select by permission" ON public.expense_claim_receipts
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text)
+    USING ((SELECT has_permission('module.finance.view'::text))
         OR EXISTS (SELECT 1 FROM public.expense_claims c
                     WHERE c.id = expense_claim_receipts.claim_id
-                      AND (c.employee_id = current_user_employee() OR c.created_by = auth.uid())));
+                      AND (c.employee_id = (SELECT current_user_employee()) OR c.created_by = (SELECT auth.uid()))));
 
 -- 【没有 INSERT/UPDATE/DELETE 策略】唯一写入口是属主权限函数(claim_receipt_begin · _finish · _abandon · _remove)。
 REVOKE ALL ON public.expense_claim_receipts FROM authenticated, anon;
