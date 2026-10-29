@@ -7,6 +7,8 @@
 //   (库存流水按业务日期)。【实时数,不冻结】—— 页面照直说(Q9)。月末那一步"物料平衡已结"链到这里。
 // 【算术一个字都不在这里】读 processing_balance_monthly 与 stock_rollforward_monthly(带门的外壳);这里只把行摆出来,
 //   恒等式那一行是把同一个月的几条线加起来给人看,不是一次判断。
+// ★ SYSTEM-MAP-4(Tim 2026-10-29 第 9 条 · Q4 (a)):得率并进来了 —— 平衡的三张表下面是得率那一段(YieldSection,#yield),
+//   用同一个月份选择;?group= 是得率的分组(全部 / 机器 / 化学体系 / 供应商)。/operation/yield 带着筛选跳到这里。
 // 【门】requireFunction(FN.balance) = module.processing.view。读的两张外壳另认 finance / inventory 的查看码(/inventory 与月末靠它)。
 // ════════════════════════════════════════════════════════════════════════════
 import Link from 'next/link'
@@ -22,10 +24,11 @@ import MassTable, { type MassRow } from './MassTable'
 import { labelMaps, remainderOrder, type MonthlyLine } from './labels'
 import { balancePageIsEmpty } from '@/lib/balanceEmptyState'
 import { xText, xNum, xInt } from '@/lib/export/cells'
+import YieldSection, { YIELD_GROUPS, type YieldGroup } from './YieldSection'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
-export default async function BalancePage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
+export default async function BalancePage({ searchParams }: { searchParams: Promise<{ month?: string; group?: string }> }) {
     const denied = await requireFunction(FN.balance)
     if (denied) return denied
 
@@ -38,6 +41,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
     const months = [...new Set(mustRows(monthsRes, 'processing_balance_monthly').map((r) => String(r.month).slice(0, 7)))]
     const month = sp.month && MONTH_RE.test(sp.month) ? sp.month : (months[0] ?? businessToday().slice(0, 7))
     const monthStart = `${month}-01`
+    const group: YieldGroup = (YIELD_GROUPS as readonly string[]).includes(sp.group ?? '') ? (sp.group as YieldGroup) : 'all'
+    const groupQs = group === 'all' ? '' : `&group=${group}`
 
     const [linesRes, rollRes, labels] = await Promise.all([
         supabase.from('processing_balance_monthly').select('scope, operation_type_code, line, line_key, basis, qty, runs').eq('month', monthStart),
@@ -128,9 +133,9 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
                 {(months.includes(month) ? months : [month, ...months]).map((m) => (
                     m === month
                         ? <span key={m} className="font-medium" aria-current="true">{m}</span>
-                        : <Link key={m} href={`/operation/balance?month=${m}`} className="hover:underline app-link">{m}</Link>
+                        : <Link key={m} href={`/operation/balance?month=${m}${groupQs}`} className="hover:underline app-link">{m}</Link>
                 ))}
-                <Link href={`/operation/yield?month=${month}`} className="ml-auto hover:underline app-link">{t('massBalance.toYield')}</Link>
+                <a href="#yield" className="ml-auto hover:underline app-link">{t('massBalance.toYield')}</a>
             </nav>
 
             <h2 className="mb-2">{t('massBalance.plantTitle')}</h2>
@@ -159,6 +164,8 @@ export default async function BalancePage({ searchParams }: { searchParams: Prom
                                  { label: t('massBalance.colVoided'), align: 'right' }, { label: t('massBalance.colMaintenance'), align: 'right' }, { label: t('massBalance.colMoved'), align: 'right' },
                                  { label: t('massBalance.colClosing'), priority: true, align: 'right' }]}
                        rows={rollRows} />
+
+            <YieldSection supabase={supabase} t={t} labels={labels} month={month} group={group} />
         </ListPage>
     )
 }

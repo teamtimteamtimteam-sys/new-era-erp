@@ -12,6 +12,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { localizeProcessingError } from '@/app/operation/errorCodes'
 import type { Database } from '@/lib/database.types'
+import { getLocale } from '@/lib/i18n/server'
+import { readShiftRuns, type ShiftRuns } from './shiftRuns'
 
 export type HandoverItemInput = { item_type_code: string; body: string }
 
@@ -62,4 +64,17 @@ export async function acknowledgeShiftHandover(handoverId: string): Promise<Hand
     if (error) return { error: await localizeProcessingError(error.message) }
     revalidatePath('/operation/handovers')
     return {}
+}
+
+/**
+ * SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · 2026-10-30 Q5):新建交接班那一屏选好班次与日期之后,列出这个班这一天的加工单。
+ * 【只读】—— 与交接班详情页同一份读取(./shiftRuns.ts);读者的行级规则照常裁决。不写库,不 revalidate。
+ */
+export async function shiftRunsFor(shiftCode: string, date: string): Promise<{ data?: ShiftRuns; error?: string }> {
+    if (!shiftCode || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { data: { runs: [], unattributed: 0 } }
+    try {
+        return { data: await readShiftRuns(await createClient(), shiftCode, date, await getLocale()) }
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : String(e) }
+    }
 }

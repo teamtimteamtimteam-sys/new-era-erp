@@ -172,3 +172,54 @@ Readings: `docs/surveys/COD-READERS/` (README + `readings/`). Migration: `db/mig
 - **The certificate panel on `/inbound/[id]/edit`** shows readers status, number, issue date, verification address, void reason and the stored PDF; Issue, the void request, the internal copy and the "why it is not ready" reason are drawn only for `action.issue_cod` holders, and readers see one line saying the panel is read only (Q1 (a)).
 - **The inbound list's COD column stays on `action.issue_cod`** (it only feeds the write-off button, which only admin and warehouse hold).
 - **Logistics** is the tenth bar button, directly after Sales: /logistics · containers · forwarders · lanes · shipping · /finance/freight. Sales keeps its overview, quotes, orders, customers (with the overlap child) and commissions; its full name is "Sales / 销售". The single breakpoint stays at 1280 px (`xl`): on a page with the search box the English row (801.1 px) ends at 952 px against a right-hand group starting at 976 px; both languages fit from 1256 px (English) / 1007 px (Chinese). No page scrolls sideways at 390 · 1024 · 1280 · 1366 · 1440.
+
+---
+
+## SYSTEM-MAP-4 rulings (Tim, 2026-10-29 · 2026-10-30) — verbatim meaning
+
+Tim's menu clean-up of 2026-10-29, numbered as he wrote them (item 2, electronic contract upload and e-signature, is a separate later cut after GOLIVE-2). Rulings in force with it: Chinese module names Operation = 运营, HR = 人事, ESG = ESG; single home stays — a page that leaves the menu and is reached by a button on another page is registered as that page's child (parent set), so search, breadcrumbs and the single-home check keep working; page URLs and page permissions do not change.
+
+1. Workbench: Notifications leaves the Workbench menu. The bell keeps its unread count and opens /notifications; the to-do list keeps listing unread notifications.
+3. Payment terms leave the menu; a "Payment terms" button on /purchasing/orders sits top-right, directly left of "+ New purchase order".
+4. Receiving discrepancies leave the menu; a button on /inbound sits top-right, directly left of "Field receiving".
+5. The unit converter moves out of Tools and sits inside Pricing alongside Pricing's other three functions, in the same form (a card on the Pricing page).
+6. "Stock overview" is renamed "Inventory". Storage locations leaves the menu (the Inventory page links it). Stocktakes leaves the menu: a "Stocktakes" button on the Inventory page, top-right, directly left of "Storage locations". Scan leaves the menu: a "Scan" button directly left of "Stocktakes".
+7. Processing runs record a time of day as well as the date (start and end), so a shift handover can show what that shift processed.
+8. Blending plans leave the menu; a "Blending plans" button on /output, top-right, directly left of "+ Add output".
+9. Yield is integrated into the material balance page and leaves the menu.
+10. "Confirm readings" leaves the menu (weighbridge tickets already lead to it).
+11. The data capture inbox moves to the Equipment module.
+12. Reports leave the menu; an entry button on the Inventory page leads to them (the report sub-pages stay reachable under it).
+13. The Production module is renamed: en "Operation" / zh 运营 (short label and full name).
+14. In Logistics, "Logistics overview" is renamed "Overview".
+15. The People module is renamed: en "HR" / zh 人事 (short label and full name).
+16. The Safety module is renamed: en "ESG" / zh "ESG" (full name en "Environment, social and governance"). It gains an Overview page as its first entry.
+17. Certificates of destruction leave the ESG menu; a "COD" button on /inbound reaches /compliance/cod.
+18. Supplier certificates leave the ESG menu; a "Supplier certificates" button on /suppliers reaches /compliance/supplier-certificates.
+19. In Equipment, "Equipment register" is renamed "Overview"; Equipment reliability leaves the menu (the register already links it).
+20. The Tools button left of the avatar (three dots) becomes a button showing today's date; clicking it opens the calendar. Tools then holds nothing else: the Tools section leaves the drawer too.
+
+Also: every message line, heading, breadcrumb or back link naming an old module or entry name is updated in both languages; the bar is measured at 1024, 1280, 1366 and 1440 in both languages and the 390 px drawer; no page scrolls sideways.
+
+From Tim's reply to SYSTEM-MAP-4 Step 0 (2026-10-30):
+
+- Grilling's scope changes 1-9 accepted: the date button at every width showing businessToday(); the four report sub-pages as children of /inventory; children follow their parent's module; item 7 is the handover side and the run list; old-name messages get the new path; the button orders as listed (/inbound: COD · Receiving discrepancies · Field receiving · + New; /inventory: Reports · Scan · Stocktakes · Storage locations; the capture inbox after Instruments and gateways); smoke entry-point checks for each new button; the shared Overview label; the manual stays queued as 64d-6.
+- Q1 - Build the ESG Overview (four statements, each gated by its own code) plus candidate 1 (energy intensity: kWh per tonne processed from electricity_allocations and existing tables; no Scope 2 figure and no new setting) and candidate 2 (recovery / circularity: recovered output and the loss split from the material balance), both as ESG menu rows after the Overview, read-only, on the shared table with sorting and Excel/CSV export, each gated by the codes its data already needs, no new tables and no migration. Queued as one later ESG cut: Scope 2 with a grid emission factor setting; safety rates (lost-time injuries, with hours worked); training compliance; a policy / whistleblowing register; no gender or age data.
+- Q2 - A button whose target the reader cannot open is drawn disabled with the 「受限」 suffix and the same hover text and marker as menu rows; its access comes from the registry entry.
+- Q3 - Warehouse reaches the unit converter through global search only.
+- Q4 - (a). Yield becomes a second section of /operation/balance under the same month picker; /operation/yield is registered as a child and redirects to /operation/balance#yield keeping its filters.
+- Q5 - A handover's runs are matched by the run's shift plus its process date; shown read-only on the handover page and the new-handover form; the run list gains start, end and shift columns. The stale shift_handovers comment is registered in docs/known-issues.md; no migration for it.
+- Q6 - ESG Chinese full name: 环境、社会与治理.
+- Split - Do NOT split.
+
+## What SYSTEM-MAP-4 built (v1.4.83)
+
+Readings: `docs/surveys/SYSTEM-MAP-4/` (README + `readings/`). No migration.
+
+- **Registry** (`lib/modules.ts`): 141 → 144 entries; menu rows 121 → 110; children 20 → 34. Fourteen entries left the menu and became children of the page whose button or link reaches them; a child takes its parent's module (`check-nav-routes` ⑧), so Receiving discrepancies and COD now live under Operation (parent /inbound) and Supplier certificates and the unit converter under Purchasing (parents /suppliers and /tools/pricing). The capture inbox is an Equipment menu row after Instruments and gateways. Three new ESG rows: /safety (Overview), /safety/energy, /safety/recovery. Menu rows per module: Workbench 5 · Purchasing 6 · Operation 11 · Quality 5 · Sales 5 · Logistics 6 · Finance 35 · HR 12 · ESG 9 · Equipment 6 · Tools 1 (calendar) · Settings 9.
+- **Entry buttons** (`app/components/nav/EntryButton.tsx`): a link to the registry entry when the reader may open it; otherwise a disabled button with 「· 受限」, the menu rows' hover text and `data-module-restricted` (Q2). On /purchasing/orders, /inbound, /inventory, /output and /suppliers; the converter is a fourth card on the Pricing page.
+- **Names**: Operation / 运营, HR / 人事, ESG / ESG (full name Environment, social and governance / 环境、社会与治理); Inventory, and "Overview" for Logistics and Equipment (the shared `nav.moduleOverview`).
+- **Date button** (`app/components/nav/DateButton.tsx`): Singapore's business date (DD/MM/YYYY) at every width, linking to /tools/calendar; the Tools dropdown and the drawer's Tools section are gone. The single breakpoint stays at 1280 px.
+- **Yield** is the `#yield` section of /operation/balance (`YieldSection.tsx`); /operation/yield redirects there with its filters.
+- **Handovers**: `app/operation/handovers/shiftRuns.ts` matches runs by shift + process date; read-only on the handover page and the new-handover form; runs without a shift on that date are counted, not hidden. The run list has Start, End and Shift columns (sortable, exported).
+- **ESG**: the Overview (incidents and findings · environmental exceedances · licences and supplier certificates · certificates of destruction, each gated by its own code), Energy intensity (each bill's kWh against the material balance's plant input for bills whose period is whole calendar months) and Recovery (by month, by output form, losses by category).

@@ -17,7 +17,7 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
-import { xText, xNum, xDate } from '@/lib/export/cells'
+import { xText, xNum, xDate, xTime } from '@/lib/export/cells'
 import { useSortHref } from '@/app/components/ui/use-sort-href'
 import type { ListSort } from '@/lib/listSort'
 
@@ -38,6 +38,12 @@ export type ProcessingRunRow = {
     totalInputQty: number | null
     totalOutputQty: number | null
     lossQty: number | null
+    /** SYSTEM-MAP-4(第 7 条 · Q5):开始 / 结束(拼好的字;MES-4a 之前的单是 null)与两个原始时刻(导出用),以及班次名 */
+    startedAt: string | null
+    endedAt: string | null
+    startedAtRaw: string | null
+    endedAtRaw: string | null
+    shiftLabel: string | null
 }
 
 export default function ProcessingTable({ rows, empty, exportHref, sort, shown, total }: {
@@ -65,6 +71,23 @@ export default function ProcessingTable({ rows, empty, exportHref, sort, shown, 
         },
         // TABLE-FEATURES-1:列键与排序参数同名(process_date),旧的 ?sort=process_date 地址照旧
         { key: 'process_date', sortable: true, header: t('processing.colProcessDate'), render: (r) => r.processDate, exportAs: (r) => xDate(r.processDateRaw) },
+        // SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5):一张单在哪一段时刻、哪一个班做的 —— 交接班页按「班次 + 加工日」把单列出来
+        //   开始与结束各一列,导出才是两个真时刻(一格只能装一个数)
+        {
+            key: 'started_at', sortable: true, header: t('processing.rec.startedAt'),
+            render: (r) => r.startedAt ?? <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.rec.predatesField')}</span>,
+            exportAs: (r) => (r.startedAtRaw ? xTime(r.startedAtRaw) : xText(t('processing.rec.predatesField'))),
+        },
+        {
+            key: 'ended_at', sortable: true, header: t('processing.rec.endedAt'),
+            render: (r) => r.endedAt ?? <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.rec.predatesField')}</span>,
+            exportAs: (r) => (r.endedAtRaw ? xTime(r.endedAtRaw) : xText(t('processing.rec.predatesField'))),
+        },
+        {
+            key: 'shift', sortable: true, header: t('processing.rec.shift'),
+            render: (r) => r.shiftLabel ?? <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.rec.predatesField')}</span>,
+            exportAs: (r) => xText(r.shiftLabel ?? t('processing.rec.predatesField')),
+        },
         { key: 'totalInput', sortable: true, header: t('processing.colTotalInput'), render: (r) => r.totalInput, exportAs: (r) => xNum(r.totalInputQty, 'qty') },
         { key: 'totalOutput', sortable: true, header: t('processing.colTotalOutput'), render: (r) => r.totalOutput, exportAs: (r) => xNum(r.totalOutputQty, 'qty') },
         // 屏幕上括号里那个百分数由投入与损耗两列算得出,导出只写损耗量本身(一个数)

@@ -3,20 +3,20 @@
 // app/operation/handovers/new/NewHandoverForm.tsx
 // PROC-SUPPORT-1(R4/R5):交班的人填的那一屏。
 //
-// ★【这一屏刻意【没有】"这个班处理了什么"那一栏】★
-// 加工单只有 process_date(一个 date),全库在本刀之前没有任何时刻维度,
-// 所以一张加工单归不到某一个班次上 —— 那是阶段 7 的 G8。
-// 一个自由文本框会收下一个猜测,而那个猜测将来会与加工单算出来的数打架,
-// **而人们读到的那一份会是错的那一份**。缺席看得见,不一致看不见。
-// 屏幕上有一句常驻的话说明这件事,免得下一个人以为是这一屏忘了做。
+// ★【"这个班处理了什么"不是一个让人填的框 —— 它从加工单读出来】★
+// 当初(PROC-SUPPORT-1)这一栏是【缺的】:加工单只有日期,归不到班次上(G8)。MES-4a 给加工单加了起止时刻与班次,
+// SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5)于是把它接上:选好班次与日期,下面列出这个班这一天的加工单(只读,
+// 与交接班详情页同一份读取 ../shiftRuns.ts)。**仍然没有自由文本框** —— 手写的数会与加工单算出来的数打架,那条理由没变。
 //
 // ★【也【没有】事故那一栏】★ 它属于 WSH 事故与未遂事件登记簿(MES-7b-1 建好了:「安全 › 事故」)。
 // NEA 的"立即通报 + 书面报告"只能有一个载体。★ MES-7b-1(Step 0 Q12):这里可以【引用】事故 —— 勾的是 incidents 的行,
 // 存进 shift_handover_incident_refs,不抄一句"发生了什么"(与设备停机同一个形状)。
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { submitShiftHandover } from '../actions'
+import { submitShiftHandover, shiftRunsFor } from '../actions'
+import ShiftRunsTable from '../ShiftRunsTable'
+import type { ShiftRuns } from '../shiftRuns'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { DatePicker } from '@/app/components/ui/date-picker'
@@ -46,6 +46,17 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime, i
     const [items, setItems] = useState<Record<string, string>>({})
     const [refs, setRefs] = useState<string[]>([])
     const [incidentRefs, setIncidentRefs] = useState<string[]>([])
+    // SYSTEM-MAP-4(第 7 条 · Q5):班次与日期都选好了,就去读这个班这一天的加工单(只读)。
+    //   读到之前 / 读失败时说出来,不画一张"零张单"的空表冒充答案。
+    const [runs, setRuns] = useState<{ key: string; data?: ShiftRuns; error?: string } | null>(null)
+    const runsKey = shiftCode && date && !dateBad ? `${shiftCode}|${date}` : ''
+    useEffect(() => {
+        if (!runsKey) return
+        let live = true
+        const [s, d] = runsKey.split('|')
+        shiftRunsFor(s, d).then((res) => { if (live) setRuns({ key: runsKey, ...res }) })
+        return () => { live = false }
+    }, [runsKey])
 
     const submit = () => startTransition(async () => {
         setError(null)
@@ -69,7 +80,6 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime, i
             <h1 className="">{t('processing.handover.newTitle')}</h1>
 
             {/* ★ 这一屏答不出什么,自己说出来 ★ */}
-            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.handover.cannotAnswerYet')}</p>
             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.handover.incidentsElsewhere')}</p>
 
             {people.length === 0 && (
@@ -115,6 +125,19 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime, i
                         {people.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
                 </div>
+            </div>
+
+            {/* SYSTEM-MAP-4(第 7 条 · Q5):这个班处理了什么 —— 只读 */}
+            <div data-runs-preview>
+                <h2 className="mb-1">{t('processing.handover.runsTitle')}</h2>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.handover.runsBasis')}</p>
+                {!runsKey ? (
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('processing.handover.runsPickFirst')}</p>
+                ) : runs?.key !== runsKey ? (
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('processing.handover.runsLoading')}</p>
+                ) : runs.error ? (
+                    <p className="text-sm text-red-700" role="alert">{t('processing.handover.runsError', { error: runs.error })}</p>
+                ) : runs.data ? <ShiftRunsTable data={runs.data} /> : null}
             </div>
 
             {/* 【内容是【行】—— 这一段整个由字典驱动】加第七类内容 = 字典加一行,

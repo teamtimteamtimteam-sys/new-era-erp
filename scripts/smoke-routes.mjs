@@ -911,6 +911,40 @@ const MUST_CONTAIN = {
         // ★【COMM-1:同一条可达性断言,同一个理由】★ /sales/commissions 也是建好那天没有入口的。
         { needle: 'href="/sales/commissions"',
           why: '★ 供应商列表页上通往佣金协议的入口不见了 —— /sales/commissions 会变成一个上了线却走不到的页面(而 --reach 要跑两小时)' },
+        { needle: 'data-entry-button="/compliance/supplier-certificates"', why: '★ SYSTEM-MAP-4 第 18 条:供应商列表页上通往供应商证书的入口钮不见了 —— 那一页已离开菜单,这颗钮是它唯一的门' },
+    ],
+
+    // ★★【SYSTEM-MAP-4(Tim 2026-10-29):十四条条目离开了菜单,门是别的页面右上角的一颗钮】★★
+    //   与上面 /contracts 那条同一个理由:一颗钮删了,那一页就成了上了线却走不到的页面。
+    //   针是 EntryButton 的机器标记 data-entry-button —— 进得去(链接)与进不去(禁用 +「受限」)两种画法都带它,
+    //   所以这条断言问的是"门画了没有",与冒烟会话持不持目标页的码无关;进得去时真的通向那一页,由线上证明逐角色量。
+    '/purchasing/orders': [
+        { needle: 'data-entry-button="/purchasing/payment-terms"', why: '★ 第 3 条:采购单列表上通往付款条件的入口钮不见了' },
+    ],
+    '/inbound': [
+        { needle: 'data-entry-button="/compliance/cod"', why: '★ 第 17 条:进料列表上通往销毁证书清单的 COD 钮不见了' },
+        { needle: 'data-entry-button="/purchasing/discrepancies"', why: '★ 第 4 条:进料列表上通往收货差异的入口钮不见了' },
+    ],
+    '/inventory': [
+        { needle: 'data-entry-button="/inventory/reports"', why: '★ 第 12 条:库存页上通往报表的入口钮不见了' },
+        { needle: 'data-entry-button="/inventory/scan"', why: '★ 第 6 条:库存页上通往扫码的入口钮不见了' },
+        { needle: 'data-entry-button="/stocktakes"', why: '★ 第 6 条:库存页上通往盘点的入口钮不见了' },
+        { needle: 'data-entry-button="/inventory/locations"', why: '★ 第 6 条:库存页上通往库位的入口钮不见了' },
+    ],
+    '/output': [
+        { needle: 'data-entry-button="/operation/blending"', why: '★ 第 8 条:产出列表上通往配料计划的入口钮不见了' },
+    ],
+    '/tools/pricing': [
+        { needle: 'href="/tools/converter"', why: '★ 第 5 条:定价页上单位换算那张卡不见了 —— 换算器已离开工具,这张卡是它唯一的门' },
+    ],
+    '/operation/weighbridge': [
+        { needle: 'href="/operation/capture"', why: '★ 第 10 条:地磅单页上通往「确认读数」的链接不见了 —— 那一页已离开菜单' },
+    ],
+    '/operation/equipment': [
+        { needle: 'href="/operation/equipment/reliability"', why: '★ 第 19 条:设备概览上通往设备可靠性的链接不见了 —— 那一页已离开菜单' },
+    ],
+    '/operation/balance': [
+        { needle: 'id="yield"', why: '★ 第 9 条:得率那一段不在物料平衡页上了 —— /operation/yield 跳到这里的 #yield' },
     ],
 
     // ── COMM-1:佣金那两句无条件渲染的话,真的在屏幕上吗 ──────────────────
@@ -1164,6 +1198,9 @@ const EXPECTED = {
     // 所以主循环后面加了一条【不带 cookie】的探针,专门守那一半 ——
     // 否则这条 EXPECTED 会把登录页彻底坏掉的情形一起放过去。
     '/login': [307],
+    // SYSTEM-MAP-4(Tim 2026-10-29 第 9 条 · Q4 (a)):得率并进了物料平衡页 —— /operation/yield 过了门就带着筛选跳到 /operation/balance#yield。
+    //   精确写 307(上面那条理由):一个 200 意味着那张旧页又活了过来,与平衡页上的那一段各说各话。
+    '/operation/yield': [307],
     // GLEXPORT-1:总账导出【必须】有期间 —— 不带 from/to 就是 400,而那是契约:
     // 一份说不出自己覆盖哪一段的总账导出,日后没有人对得起来。
     // 【只声明这个 400 是不够的】那样这条路由就只有「拒绝」那一半被走过,

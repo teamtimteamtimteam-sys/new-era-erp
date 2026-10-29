@@ -30,7 +30,7 @@ import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { activeModuleForPath, entryForPath } from '@/lib/navTrail'
-import { BAR_MODULE_IDS, SETTINGS_MODULE_ID, TOOLS_MODULE_ID } from '@/lib/modules'
+import { BAR_MODULE_IDS, SETTINGS_MODULE_ID } from '@/lib/modules'
 import {
     ScrollPanel, menuPanelClass, useMenuDismiss, MenuEntryRow, MenuSectionLabel,
 } from './MenuPanel'
@@ -359,12 +359,8 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                             名下的条目;取不到就是一个只有标题、底下没有一行的区 ——
                             那在屏幕上是显眼的错,不是一处安静的缺席。
                             (真源不一致由 check-nav-routes 判据①④ 在构建期拦。) */}
-                        <div className="mt-2 border-t border-[color:var(--brand-border)] pt-1">
-                            <MenuSectionLabel>{t('nav.tools')}</MenuSectionLabel>
-                            {sectionEntries(TOOLS_MODULE_ID).map((e) => (
-                                <MenuEntryRow key={e.href} entry={e} activeHref={activeEntryHref} />
-                            ))}
-                        </div>
+                        {/* SYSTEM-MAP-4(Tim 2026-10-29 第 20 条):「工具」区删了 —— 工具名下只剩日历,而日历的门是顶栏上那颗
+                            写着今天日期的钮,它在每一个宽度上都画(app/components/nav/DateButton.tsx)。 */}
                         <div className="mt-2 border-t border-[color:var(--brand-border)] pt-1">
                             <MenuSectionLabel>{t('nav.settings')}</MenuSectionLabel>
                             {sectionEntries(SETTINGS_MODULE_ID).map((e) => (

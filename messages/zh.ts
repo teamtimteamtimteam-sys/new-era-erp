@@ -446,7 +446,7 @@ const zh = {
             overRemaining: '这一行最多还能发 {left}。',
             action: '发货',
             consequence: '货离开库存台账,收入由系统过账。发出去就撤不回来。',
-            afterNote: '发完之后,从订单的发货单或物流概览打开那张发货单,开具送货单。',
+            afterNote: '发完之后,从订单的发货单或 物流 › 概览 打开那张发货单,开具送货单。',
         },
         milestoneLabel: {
             booked: '已订舱',
@@ -643,19 +643,17 @@ const zh = {
     },
     nav: {
         // SYSTEM-MAP-1(Tim Q1,2026-10-27):顶栏与抽屉的短标签(mod)与完整流程名(modFull:悬停提示、模块概览页页头)
+        // SYSTEM-MAP-4(Tim 2026-10-29 第 13 · 15 · 16 条):生产 → 运营 / Operation,人员 → 人事 / HR,安全 → ESG(全名 环境、社会与治理 / Environment, social and governance)
         mod: {
-            workbench: '工作台', purchasing: '采购', production: '生产', quality: '质量', sales: '销售',
+            workbench: '工作台', purchasing: '采购', production: '运营', quality: '质量', sales: '销售',
             // LOGISTICS-MODULE(Tim 2026-10-29):物流重新是一个一级模块(它既管进料的提货,也管出货的发运)
             logistics: '物流',
-            finance: '财务', people: '人事', safety: '安全', equipment: '设备',
+            finance: '财务', people: '人事', safety: 'ESG', equipment: '设备',
         },
         modFull: {
-            workbench: '我的工作台', purchasing: '采购', production: '生产与仓储', quality: '质量',
-            sales: '销售', logistics: '物流', finance: '财务', people: '人事', safety: '安全与合规', equipment: '设备',
+            workbench: '我的工作台', purchasing: '采购', production: '运营', quality: '质量',
+            sales: '销售', logistics: '物流', finance: '财务', people: '人事', safety: '环境、社会与治理', equipment: '设备',
         },
-        equipmentRegister: '设备台账',
-        logisticsOverview: '物流概览',
-        stockOverview: '库存总览',
         claims: '报销',
         medicalClaims: '医疗报销',
         codList: '销毁证书',
@@ -701,7 +699,7 @@ const zh = {
         calendar: '日历',
         // ★ UI-FIX-1 ⑥:一级模块「任务」改名为「工具」。★ 见 en.ts 同一处的说明。
         tools: '工具',
-        hr: '人力资源',
+        hr: '人事',
         deleted: '已删除记录',
         // NAV-CLEANUP-1 ④:设置的落地页(/settings)。
         // 【CONV-6 ④:settingsOverview 删了】理由见 en.ts 同一处。
@@ -3019,6 +3017,8 @@ const zh = {
         },
     },
     inbound: {
+        // SYSTEM-MAP-4(Tim 2026-10-29 第 17 条):/inbound 右上角通向销毁证书清单的那颗钮,Tim 原话叫它「COD」
+        codButton: 'COD',
         // PROC-COST-1:落地成本拆解。三个组件各自是一笔【欠给不同人】的钱 ——
         // 采购价欠材料供应商,运费欠货代,加工成本不欠任何人(我们自己烧的电)。
         landedCost: {
@@ -3554,8 +3554,16 @@ const zh = {
             // 【时刻没人说过,就说没人说过 —— 不要显示成 00:00】
             hoursUnstated: '起止时刻还没有人说过',
             // ★ 这一屏答不出什么,自己说出来 ★
-            cannotAnswerYet: '★ 这里【不记】"这个班处理了什么、多少" ★ —— 加工单只有日期、没有时刻(全库在本刀之前没有任何时刻维度),所以一张加工单归不到某一个班次上。那是阶段 7 的 G8。手写一个数会与加工单算出来的数打架,而人们读到的那一份会是错的那一份 —— 所以这一栏是【缺的】,而不是让人猜。',
-            incidentsElsewhere: '★ 事故【不记在这里】★ —— 它记在「安全 › 事故」,NEA 的"立即通报、在规定的工作日内交书面报告"由那里承载。下面可以引用下一个班该知道的事故 —— 引用是一条链接,不是第二份记录。',
+            // SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5):cannotAnswerYet(G8)退休 —— 加工单的班次 + 加工日配交接班
+            runsTitle: '这个班处理了什么',
+            runsBasis: '记在这个班次、加工日是这一天(单上写的那一天)的加工单。从加工单本身读出来 —— 这里没有一个数是手填的。',
+            runsNone: '这个班次、这一天没有记过加工单。',
+            runsUnattributed: '这一天有 {n} 张加工单没有班次(在起止时刻与班次成为必填之前记的),归不到任何一个班上,所以没有列出来。',
+            runsPickFirst: '先选班次与日期,下面才列得出那个班那一天的加工单。',
+            runsLoading: '正在读这个班这一天的加工单……',
+            runsError: '这个班这一天的加工单读不出来:{error}',
+            runsOnDetail: '打开一次交接班,就能看到记在它那个班次、那一天的加工单。',
+            incidentsElsewhere: '★ 事故【不记在这里】★ —— 它记在「ESG › 事故」,NEA 的"立即通报、在规定的工作日内交书面报告"由那里承载。下面可以引用下一个班该知道的事故 —— 引用是一条链接,不是第二份记录。',
             equipmentTitle: '设备状态',
             equipmentReference: '这里勾的是【已经记在设备停机里】的那几段 —— 交接班【指向】它们,不再抄一遍。同一件事记两遍,迟早会有一份是错的,而那一份恰好会是被人读到的。',
             downtimeOngoing: '还没结束',
@@ -4031,7 +4039,7 @@ const zh = {
             DISCHARGE_ASSIGNMENT_SUPERSEDED: '这一条通道分配已经被更正过。请更正最新的那一条。',
             DISCHARGE_SPLIT_MODULES_REQUIRED: '至少选一个失败的模组拆出去(每个只选一次)。',
             DISCHARGE_SPLIT_MODULE_NOT_QUARANTINE: '模组 {0} 最新的结论不是"失败 · 隔离"(或已经拆走了),不能拆去隔离。',
-            QUARANTINE_LOCATION_REQUIRED: '失效的模组只能进一个在用的、标成隔离的库位,而给的库位({1})不是。什么都没有保存。请选一个隔离库位,或到 生产 → 库位 标一个。',
+            QUARANTINE_LOCATION_REQUIRED: '失效的模组只能进一个在用的、标成隔离的库位,而给的库位({1})不是。什么都没有保存。请选一个隔离库位,或到 运营 → 库存 → 库位 标一个。',
         },
         status: {
             committed: '已提交',
@@ -5140,7 +5148,7 @@ const zh = {
         transferConsequence: '把这些数量搬到另一个库位。物理总量不变,货仍然是可用的。',
         transferConsequenceHeld: '把这些【被暂扣】的数量搬到另一个库位。到了目的地它仍然是暂扣状态 —— 转移改变的是货在哪里,永远不改变它可不可用。',
         transferBlockedNoStock: '这里没有可搬的货。',
-        transferBlockedNoTargets: '还没有第二个在用库位 —— 请先到 生产 → 库位 建一个。',
+        transferBlockedNoTargets: '还没有第二个在用库位 —— 请先到 运营 → 库存 → 库位 建一个。',
         transferBlockedNoTarget: '请选择转入库位。',
         receiptLocation: '存放库位',
         receiptLocationUnspecified: '未指定 —— 之后用转移指定',
@@ -5170,7 +5178,7 @@ const zh = {
             IOD_RECEIPT_LOCATION_UNKNOWN: '这个库位已经不存在了。请刷新表单重新选择,或者先不指定 —— 之后用一次转移把它指定过去。',
             IOD_TRANSFER_EXCEEDS_BUCKET: '搬不了 {0} —— 这个桶里只有 {1}。转移搬的是已经在那里的货,它不会凭空造出库存。',
             IOD_TRANSFER_SAME_LOCATION: '转出与转入是同一个库位 —— 这样什么也不会发生。请换一个转入库位。',
-            IOD_TRANSFER_TO_INACTIVE: '目标库位已停用,不能再往里放货。请到 生产 → 库位 重新启用它,或换一个。',
+            IOD_TRANSFER_TO_INACTIVE: '目标库位已停用,不能再往里放货。请到 运营 → 库存 → 库位 重新启用它,或换一个。',
             // SO-2:四个数,不是三个。只说"可用 0、暂扣 0"而货就是卖不掉,
             // 真正的答案(它许给了某张订单)整个不在屏幕上。
             IOD_SALE_EXCEEDS_AVAILABLE: '卖不了 {0} —— 只有 {1} 可售。另有 {2} 处于暂扣、{3} 已承诺给销售订单。暂扣的货【释放】之后可售(释放按钮在上面的库存分布里);已承诺的货要由那张订单释放或发货。',
@@ -5180,14 +5188,14 @@ const zh = {
             ARRIVAL_DATE_REQUIRED: '到货日必填 —— 库存流水要记下货【实际到的那一天】,而它永远不会替你填。什么都没有保存,请填好日期再提交。',
             OUTPUT_DATE_REQUIRED: '产出日必填 —— 库存流水要记下货【实际产出的那一天】,而它永远不会替你填。什么都没有保存,请填好日期再提交。',
             SO_BATCH_HAS_RESERVATIONS: '批次 {0} 注销不了:还有 {1} 条活预留把它许给了【{2}】。请先到那张订单上释放 —— 注销不可逆,而"这个承诺可以撤了"是下单那一侧的判断,不该由系统替人做。',
-            IOD_CLASS_EXCLUDED: '库位 {0} 配置了可存放的物料分类,而【{1} 不在其中】—— 所以什么都没有保存。请换一个库位,或到 生产 → 库位 把 {1} 加进这个库位的许可分类,或到物料字典更正这个物料的分类。',
-            QUARANTINE_LOCATION_REQUIRED: '这一批带着一个需要隔离的安全状态,所以只能收进、移进标成隔离的库位,而给的库位({1})不是。什么都没有保存。请选一个隔离库位,或到 生产 → 库位 标一个。',
+            IOD_CLASS_EXCLUDED: '库位 {0} 配置了可存放的物料分类,而【{1} 不在其中】—— 所以什么都没有保存。请换一个库位,或到 运营 → 库存 → 库位 把 {1} 加进这个库位的许可分类,或到物料字典更正这个物料的分类。',
+            QUARANTINE_LOCATION_REQUIRED: '这一批带着一个需要隔离的安全状态,所以只能收进、移进标成隔离的库位,而给的库位({1})不是。什么都没有保存。请选一个隔离库位,或到 运营 → 库存 → 库位 标一个。',
             STORAGE_CEILING_EXCEEDED: '拒绝:这会让执照 {0} 下 NEA 类别 {1}(「*」是执照总量)超过上限 —— 在厂 {2} 吨,加上 {3} 吨,上限 {4} 吨。什么都没有保存。',
             STORAGE_CEILING_UNIT_NOT_CONVERTIBLE: '拒绝:批次 {0},或 NEA 类别 {1}(「*」是执照总量)里已在厂的货,用的单位换算不成吨,所以查不了上限。请用 kg 或 t 记数量。',
             MOVEMENTS_THROUGH_FUNCTION_ONLY: '库存流水只由收货、转移等库存动作写入,不能直接写({0})。',
         },
         warnings: {
-            IOD_CLASS_UNCONFIGURED_LOCATION: '已保存。提示:还没有人配置过库位 {0} 可以存放哪些分类,所以这一次【没有东西可校验】。请到 生产 → 库位 给它配置许可分类,这道检查才有意义。',
+            IOD_CLASS_UNCONFIGURED_LOCATION: '已保存。提示:还没有人配置过库位 {0} 可以存放哪些分类,所以这一次【没有东西可校验】。请到 运营 → 库存 → 库位 给它配置许可分类,这道检查才有意义。',
             IOD_MATERIAL_UNCLASSIFIED: '已保存。提示:物料 {0} 还没有分类,所以无法拿它与这个库位比对。请到物料字典给它分类 —— 【未分类不等于不受限】,它的意思是还没有人做过这个决定。',
         },
     },
@@ -9157,10 +9165,10 @@ const zh = {
             credit_note: '这张分录由一张贷项通知生成。贷项在发票上提出与更正(「财务 → 发票」),经 CFO 批准。',
             expense: '这张分录由一笔开支生成。请冲销那笔开支本身(「财务 → 开支」),让单据与分录一起走。',
             freight: '这张分录由一张运费单生成。请冲销那张运费单本身,让单据与分录一起走。',
-            allocation: '这张分录由加工成本分摊生成。请重跑分摊或回滚那张加工单(「生产 → 加工单」),不要在这里冲它的分录。',
-            processing_cost: '这张分录由加工成本生成。要在加工单上更正(「生产 → 加工单」),不要在这里冲它的分录。',
+            allocation: '这张分录由加工成本分摊生成。请重跑分摊或回滚那张加工单(「运营 → 加工单」),不要在这里冲它的分录。',
+            processing_cost: '这张分录由加工成本生成。要在加工单上更正(「运营 → 加工单」),不要在这里冲它的分录。',
             year_close: '这是一张年结分录。要撤销它,请重开那一年(「财务 → 关账」),只有 CFO 能做。',
-            maintenance_part: '这张分录由备件出给一条保养记录(或退回)生成。要更正,请在那台机器的保养记录上把件退回(「设备 → 设备台账」)—— 库存与总账一起动;只在这里冲掉分录,库存数就错了。',
+            maintenance_part: '这张分录由备件出给一条保养记录(或退回)生成。要更正,请在那台机器的保养记录上把件退回(「设备 → 概览」)—— 库存与总账一起动;只在这里冲掉分录,库存数就错了。',
             payroll: '这是一张工资过账分录。要撤销它,请在工资期上点「申请撤销过账」(「人事 → 薪资」),经 CFO 批准。',
             asset_disposal: '这是一张固定资产处置分录。处置目前还没有撤销的路 —— 在这里冲掉它,总账回来了,资产却仍是已处置,所以不许。',
         },
@@ -9438,7 +9446,7 @@ const zh = {
             PROCESSING_COSTS_UNALLOCATED:
                 // U1-B:{2} 是逗号分隔的单号清单(不是张数)—— 把它们点出来。
                 '{0} 这个期间关不了:截至那天有 {1} 张已提交的加工单成本从未分摊 —— {2}。'
-                + '料已经动了,而在制品还挂在 1200 上没有解除 —— 去「生产 → 加工」'
+                + '料已经动了,而在制品还挂在 1200 上没有解除 —— 去「运营 → 加工单」'
                 + '把这些单子的成本分摊掉,再回来关账。',
             JOURNAL_IMMUTABLE:
                 '已过账的分录不能再改,也不能删 —— 账簿一旦成立就是只读的。'
@@ -9833,7 +9841,7 @@ const zh = {
         // CMPL-1:公司自家执照(NEA)。样本只提供【字段】,一个值都没有进来。
         licence: {
             // IA-BUILD-1 / D7:登记簿搬到采购去了(它的码本来就是 module.suppliers.*)。
-            movedToSafety: '执照登记簿已经搬到「安全与合规」底下',
+            movedToSafety: '执照登记簿已经搬到「ESG」底下',
             title: '执照',
             what: '【本公司自己】的执照 —— 不是供应商的。供应商的执照记在那家供应商自己的合规档案里。号码、种类、签发方、有效期,以及批准的贮存上限。种类取自证书类型字典,所以加一类执照是加一行,不是改 schema。',
             none: '还没有录入任何执照。**这是预期状态** —— 公司尚未获发执照,这里空着是正确的,不是数据缺失。',
@@ -10059,6 +10067,8 @@ const zh = {
         calculatorDesc: '按化验结果与当前行情为批次估值',
         pricesCard: '金属行情',
         pricesDesc: '历次录入的行情,最新在前',
+        // SYSTEM-MAP-4(第 5 条):单位换算成了定价页的第四张卡
+        converterDesc: '吨、公斤、磅;百分比与克/吨;湿重与干重',
         bulkCard: '每日行情录入',
         bulkDesc: '一次录入当天所有金属行情',
         subnav: {
@@ -11702,7 +11712,7 @@ const zh = {
             dwellIntro: '有存量的批次身上开着 {n} 条安全状态,其中 {past} 条已过提醒天数。',
             dwellNone: '有存量的批次身上没有开着的安全状态。',
             quarantineTitle: '应在隔离区的货',
-            noQuarantineLocation: '还没有任何库位标成隔离区,所以在标出一个之前,鼓包或漏液的货收不进来。请到 生产 → 库位 标一个。',
+            noQuarantineLocation: '还没有任何库位标成隔离区,所以在标出一个之前,鼓包或漏液的货收不进来。请到 运营 → 库存 → 库位 标一个。',
             quarantineLocations: '有 {n} 个启用中的库位标成了隔离区。',
             quarantineNone: '没有需要隔离的批次把货放在隔离区外。',
         },
@@ -11853,7 +11863,7 @@ const zh = {
         splitLine: '{batch} 的模组 {modules}:',
         splitTitle: '把 {batch} 失败的模组拆去隔离',
         splitIntro: '记一炉新的加工:把失败模组称出来的重量从这一批拿出来,成为同一物料的一批新货(带电未放电),放进选的隔离库位。这一批的核实把它们算作已处置。',
-        noQuarantineLocation: '还没有标成隔离的库位(V34),拆分会被拒。到 生产 → 库位 标一个。',
+        noQuarantineLocation: '还没有标成隔离的库位(V34),拆分会被拒。到 运营 → 库存 → 库位 标一个。',
         locationsRestricted: '库位要库存查看权限才列得出来。',
         quarantineLocation: '隔离库位',
         pickLocation: '选一个隔离库位',
@@ -12152,7 +12162,6 @@ const zh = {
             noRuns: '这个月没有消耗型加工单。',
             sharedNote: '化学体系与供应商两种分组,按每张单的投入往回追到它来自的批次,按各自喂进的质量成比例分。',
             recoveryNote: '金属得率(每种金属的回收率)仍在每张加工单的页面上。',
-            toBalance: '这个月的物料平衡',
         },
         panel: {
             title: '这一批的质量去了哪里',
@@ -12687,6 +12696,61 @@ const zh = {
         },
     },
     // MES-7b-1(2026-10-16):安全 —— 事故登记簿
+    // SYSTEM-MAP-4(Tim 2026-10-29 第 16 条 · 2026-10-30 Q1):ESG 的概览与两张新页(能耗强度 · 回收)
+    esg: {
+        overview: {
+            safetyTitle: '事故与巡检发现',
+            safetySource: '本月发生的事故与还没关闭的事故,旁边是还开着的巡检发现与其中已过期限的。',
+            safetySpans: '事故在 ESG › 事故,发现在 ESG › 巡检;两页都不把这两样并排说。',
+            safetyLine: '本月事故 {month} 起 · 未关闭 {open} 起 · 巡检发现未关闭 {findings} 条,其中逾期 {overdue} 条',
+            envTitle: '环境超标',
+            envSource: '{year} 年采样的环境监测结果、其中超出限值的条数,以及这些超标里事故还开着的条数。',
+            envSpans: '结果在 ESG › 环境监测,超标开出的事故在 ESG › 事故。',
+            envNone: '{year} 年还没有记过环境监测结果,没有东西可以与限值比。',
+            envLine: '今年结果 {results} 条 · 超标 {exceed} 条 · 其中事故仍开着 {open} 条',
+            certTitle: '执照与供应商证书',
+            certSource: '已过期、或已进入该种证书提醒期的公司执照与供应商证书 —— 与提醒页同一支判据。',
+            certSpans: '公司执照在 ESG › 公司执照;供应商证书在 采购 › 供应商 › 供应商证书。',
+            certNone: '还没有登记任何公司执照,也没有任何供应商证书。',
+            certLicences: '公司执照:在册 {total} 张 · 已过期 {expired} 张 · 快到期 {expiring} 张',
+            certSuppliers: '供应商证书:在册 {total} 张 · 已过期 {expired} 张 · 快到期 {expiring} 张',
+            codTitle: '销毁证书',
+            codSource: '销毁证书按状态:已签发、等待签发、已作废。',
+            codSpans: '清单在 运营 › 进料 › COD;每一张在它的进料批次页上签发与作废。',
+            codNone: '还没有任何一张销毁证书。',
+            codLine: '已签发 {issued} 张 · 等待签发 {pending} 张 · 已作废 {voided} 张',
+        },
+        energy: {
+            title: '能耗强度',
+            intro: '每一张电费单的 kWh,旁边是同一段时间加工了多少,以及由此得出的每吨 kWh。吨数来自物料平衡(全厂投入),与 运营 › 物料平衡 是同一个数。',
+            colPeriod: '账期',
+            colInvoice: '发票号',
+            colBillKwh: '账单 kWh',
+            colMetered: '有表计 kWh',
+            colUnmetered: '无表计 kWh',
+            colInput: '加工量(kg)',
+            colPerTonne: '每吨 kWh',
+            notWholeMonths: '账期不是整月 —— 算不出',
+            noInput: '这一段没有加工',
+            none: '还没有记过电费单(财务 › 电费)。',
+            reversedNote: '{n} 张已冲回的电费单不计。',
+            basis: '物料平衡按自然月记,所以只有账期从某月 1 日到某月最后一天(一个或几个整月)的电费单才配得上一个吨数;切在月中的单不按天数摊。这里不给排放数。',
+        },
+        recovery: {
+            title: '回收',
+            intro: '全厂从加工的料里回收了多少、其余去了哪里 —— 逐月,来自物料平衡(与 运营 › 物料平衡 是同一组数)。',
+            monthsTitle: '逐月',
+            colRecovered: '回收的产出(kg)',
+            colRate: '回收率',
+            formsTitle: '回收的产出 · 按形态',
+            colForm: '形态',
+            colShare: '占投入',
+            lossTitle: '损耗 · 按类别',
+            colLoss: '类别 · 来由',
+            noLoss: '还没有记过有名字的损耗。',
+            basis: '回收率 = 回收的产出 ÷ 投入。只是穿过去的质量(深度放电、拆去隔离)、回滚的单、单位不是 kg 的单都不在投入里,与物料平衡页一样。',
+        },
+    },
     safety: {
         subnav: { incidents: '事故', inspections: '巡检', environment: '环境监测', compliancePacks: '合规包' },
         notYetSet: '尚未设定',

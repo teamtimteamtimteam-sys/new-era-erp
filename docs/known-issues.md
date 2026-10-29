@@ -11621,7 +11621,7 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 `/contracts` 列表页读它的 `sales_order_id, contract_id, contract_code`(不读费率),而 `assay_disagreements_all` 与 `sale_settlement_compute` 读里面的数;
 ② 条款申请的快照(`terms_requests_visible`,合同详情页的「申请」面板与差异),它有自己的门(审计记录那一句:不持 `module.pricing.view` 的读者那几行是 Restricted)。
 **今天线上:** `contracts` 0 份、`contract_document_terms` 0 行(以 `postgres` 读基表,2026-10-29)—— 没有人因此看见一个不该看的价。
-**去处:** 等 Tim 定要不要并进同一个遮蔽决定(Q9 的字面只说结算与条款本身)。
+**去处:** 等 Tim 定要不要并进同一个遮蔽决定(Q9 的字面只说结算与条款本身)。 ★ **Tim 2026-10-29(SYSTEM-MAP-4 委托书 1.3):并进 GOLIVE-2 的范围**(第 9 · 10 · 13 行 + 本条;`docs/forward-queue.md` 上线准备组那一段)。
 
 ## TABLE-EXPORT-2b-2(`v1.4.70`)—— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」
 
@@ -11864,3 +11864,13 @@ CHAIN-WALK-COST 的线上证明期间从 Supabase 的特权指标端点读到(�
 | 冒烟之后 10:4x(静止) | 143 MB | 478 MB | 1.5–1.7 % |
 
 **结论:** 一台 426 MB 的机器连静止的常驻集都放不下 —— 重启九分钟、一位读者都没有的时候它已经在换页(每分钟约 9,000 页进出)。重启清掉的只是累积的那一部分。后果照旧:同一批走链线上 1.0–1.9 秒(本地 10–60 ms),5 次 2 秒上限拒绝;冒烟里 `/tools/reminders` 因 `operations_now` 撞 8 秒语句上限而 500(单独计时 planning 537 + execution 382 ms;`operations_now` 自 SYSTEM-MAP-2 起没改过,CWC 那一跑冒烟这一页是过的 —— 归因是推断,不是证明)。四个中止信号全程正常:它们仍然看不见这一类。
+
+
+### SHIFT-HANDOVERS-COMMENT-STALE · `shift_handovers` 与 `shifts` 的表注释还说「加工单归不到班次上」(SYSTEM-MAP-4 登记,2026-10-30;Tim Q5:登记,不为它出迁移)
+
+**是什么:** 两张表在库里的 `COMMENT ON TABLE`(镜像 `db/tables/shift_handovers.sql:40` 的 ① 与 `db/tables/shifts.sql:29`)写的是 PROC-SUPPORT-1 那时的事实 ——
+加工单只有日期、归不到班次(G8),所以交接班刻意不记「这个班处理了什么」。MES-4a 给加工单加了起止时刻与班次,SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5)
+把它接上了:交接班页与新建交接班那一屏按【加工单的班次 + 加工日】列出那个班那一天的加工单(`app/operation/handovers/shiftRuns.ts`)。
+**屏幕与代码注释都改了;库里那两句注释没有改** —— 改一句表注释要一支迁移(镜像要逐字对得上),Tim 2026-10-30 Q5 裁定不为它出迁移。
+**后果:** 只有读库的人(`\d+`、Supabase 面板)会读到那句过期的话;没有一处屏幕或判据读它。
+**去处:** 下一支碰这两张表的迁移顺手把两句注释改成今天的事实(同一提交改镜像)。

@@ -23,9 +23,9 @@ import { InventoryTable } from './InventoryTable'
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { shapeListTotals } from '@/lib/listTotals'
 import { requireModule } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
+import EntryButton from '@/app/components/nav/EntryButton'
 import { getBaseCurrency } from '@/lib/currency'
-import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import WarehouseRequestsPanel, { type WarehouseRequestView } from './WarehouseRequestsPanel'
@@ -237,7 +237,7 @@ export default async function InventoryPage() {
     return (
         <>
         <div className="p-8 space-y-6">
-            <div className="flex justify-between items-start gap-4">
+            <div className="flex flex-wrap justify-between items-start gap-4">
                 <div>
                     <h1 className="">{t('inventory.listTitle')}</h1>
                     <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">{t('inventory.ledgerNote')}</p>
@@ -246,13 +246,14 @@ export default async function InventoryPage() {
                     是动态路由之外的一条静态路由,但可达性走查只断言"打得开却走不到"
                     的静态路由集合,新加一条没有入口的页面会被它抓到;这一行就是那个
                     入口,而且它落在读者已经持有的模块里(两者同为 module.inventory)。 */}
-                <Button asChild variant="outline" className="whitespace-nowrap">
-                    <Link
-                        href="/inventory/locations"
-                    >
-                        {t('locations.listTitle')}
-                    </Link>
-                </Button>
+                {/* SYSTEM-MAP-4(Tim 2026-10-29 第 6 · 12 条):库位之外,盘点 · 扫码 · 报表也离开了菜单 —— 四颗入口钮都在这里,
+                    从左到右:报表 · 扫码 · 盘点 · 库位。每一颗按它目标页自己的判据画(盘点是 module.stocktakes.view)。 */}
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    <EntryButton entry={FN.inventoryReports} />
+                    <EntryButton entry={FN.scan} />
+                    <EntryButton entry={FN.stocktakes} />
+                    <EntryButton entry={FN.locations} label={t('locations.listTitle')} />
+                </div>
             </div>
 
             {/* APR-7:等 CFO 批的注销 / 回滚 / 证书作废申请 */}

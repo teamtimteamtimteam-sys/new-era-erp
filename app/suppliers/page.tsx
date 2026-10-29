@@ -18,6 +18,7 @@ import { supplierCount, supplierPage, shapeSupplierRows } from './supplierRows'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
+import EntryButton from '@/app/components/nav/EntryButton'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
 
@@ -131,6 +132,8 @@ export default async function SuppliersPage({
                     <Button asChild variant="outline">
                         <Link href={FN.commissions.href}>{t('commissions.entryLink')}</Link>
                     </Button>
+                    {/* SYSTEM-MAP-4(Tim 2026-10-29 第 18 条):供应商证书离开 ESG 菜单 —— 入口在这里,「+ 新增供应商」的左边 */}
+                    <EntryButton entry={FN.supplierCertificates} />
                     <Button asChild>
                         <Link href="/suppliers/new">{t('suppliers.addButton')}</Link>
                     </Button>

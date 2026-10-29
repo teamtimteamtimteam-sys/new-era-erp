@@ -25,6 +25,8 @@ import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import AcknowledgeButton from '../AcknowledgeButton'
 import CellsTable, { type CellRow } from '../../equipment/CellsTable'
 import { xText, xTime } from '@/lib/export/cells'
+import { readShiftRuns } from '../shiftRuns'
+import ShiftRunsTable from '../ShiftRunsTable'
 
 type Handover = {
     id: string; shift_code: string; handover_date: string; outgoing_employee_id: string; incoming_employee_id: string
@@ -67,6 +69,9 @@ export default async function HandoverPage({ params, searchParams }: {
     const incRows = incIds.length === 0 ? [] : mustRows(await supabase.from('incident_rows')
         .select('id, code, kind_name_en, kind_name_zh, occurred_at').in('id', incIds), 'incident_rows') as
         { id: string; code: string; kind_name_en: string; kind_name_zh: string; occurred_at: string }[]
+
+    // SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5):这个班 · 这一天处理了什么 —— 按加工单的班次 + 加工日配(../shiftRuns.ts)
+    const shiftRuns = await readShiftRuns(supabase, h.shift_code, h.handover_date, locale)
 
     // 提到的停机:停机那一行 + 哪一台机器(equipment_usage,加工的人读得到)
     const downIds = refRows.map((r) => r.downtime_id)
@@ -171,7 +176,6 @@ export default async function HandoverPage({ params, searchParams }: {
                     },
                 ]}
             />
-            <p className="text-xs text-[color:var(--brand-muted-text)] mt-4">{t('processing.handover.cannotAnswerYet')}</p>
 
             {h.notes && (
                 <section className="mt-6">
@@ -179,6 +183,13 @@ export default async function HandoverPage({ params, searchParams }: {
                     <p className="text-sm whitespace-pre-wrap break-words">{h.notes}</p>
                 </section>
             )}
+
+            {/* SYSTEM-MAP-4(第 7 条 · Q5):这个班处理了什么 —— 只读,从加工单读出来,不是交班的人手写的一个数 */}
+            <section className="mt-6">
+                <h2 className="mb-1">{t('processing.handover.runsTitle')}</h2>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.handover.runsBasis')}</p>
+                <ShiftRunsTable data={shiftRuns} />
+            </section>
 
             <section className="mt-6">
                 <h2 className="mb-2">{t('processing.handover.itemsTitle')}</h2>

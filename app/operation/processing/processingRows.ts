@@ -9,7 +9,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatDate } from '@/lib/dates'
+import { formatDate, formatDateTime } from '@/lib/dates'
 import { processingStatusLabelKey } from '../status'
 import { applyProcessingFilters, applyProcessingSort, type ProcessingListParams } from '../processingQuery'
 import type { ProcessingRunRow } from './ProcessingTable'
@@ -17,7 +17,7 @@ import type { ProcessingRunRow } from './ProcessingTable'
 type Client = SupabaseClient<Database>
 
 export const PROCESSING_LIST_SELECT =
-    'id, code, process_date, total_input, total_output, loss_qty, status, created_at, work_order_id'
+    'id, code, process_date, total_input, total_output, loss_qty, status, created_at, work_order_id, started_at, ended_at, shift_code'
 
 export function processingCount(supabase: Client, params: ProcessingListParams) {
     return applyProcessingFilters(supabase.from('processing_runs').select('id', { count: 'exact', head: true }), params)
@@ -70,6 +70,14 @@ export async function shapeProcessingRows(supabase: Client, runs: ProcessingDbRo
         'processing_run_balance')
     bRows.forEach((b) => { if (b.run_id && b.balance_state) balanceState.set(b.run_id, b.balance_state) })
 
+    // SYSTEM-MAP-4(第 7 条 · Q5):班次的名字(shifts 是一张小字典,一次读全)
+    const shiftRows = mustRows(await supabase.from('shifts').select('code, name_en, name_zh'), 'shifts') as { code: string; name_en: string; name_zh: string }[]
+    const shiftName = (code: string | null) => {
+        if (!code) return null
+        const s = shiftRows.find((x) => x.code === code)
+        return s ? (locale === 'zh' ? s.name_zh : s.name_en) : code
+    }
+
     return runs.map((r) => ({
         id: r.id,
         code: r.code,
@@ -88,5 +96,11 @@ export async function shapeProcessingRows(supabase: Client, runs: ProcessingDbRo
         totalInputQty: r.total_input,
         totalOutputQty: r.total_output,
         lossQty: r.loss_qty,
+        // MES-4a 之前的单没有起止与班次 —— 屏幕与导出都说「没有记」,不编一个(与详情页同一句)
+        startedAt: r.started_at ? formatDateTime(r.started_at, locale) : null,
+        endedAt: r.ended_at ? formatDateTime(r.ended_at, locale) : null,
+        startedAtRaw: r.started_at,
+        endedAtRaw: r.ended_at,
+        shiftLabel: shiftName(r.shift_code),
     }))
 }

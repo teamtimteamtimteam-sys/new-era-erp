@@ -1,0 +1,3 @@
+01:21:55 watchdog anchored to the smoke node process 9706
+01:22:04 median=487.803ms max=554.408ms in-db=0.026ms  · node=9706
+01:22:04 ABORT health:  → SIGTERM to 9706

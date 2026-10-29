@@ -971,3 +971,36 @@ live 最终授权实测:`data.view_deleted` 的持有者 = **`admin auditor`**�
 * **说错了家的那几行**:把六条之一说成「在销售底下」的消息行 0 行(`messages/en.ts` · `zh.ts` 逐行查过,返回链接都指向物流自己的页面);
   还写着旧名「Sales and logistics / 销售与物流」的消息 2 行(两种语言的 `nav.modFull.sales`),都改了;注册表里两段注释的「它今天只有一个家(销售与物流)」改成了今天的家。
 * **逐角色的实测**(一次性账号 `codrprobe`,每个真角色克隆一个,读画出来的顶栏与物流、销售两张菜单):`docs/surveys/COD-READERS/README.md`。
+
+# SYSTEM-MAP-4(2026-10-30,v1.4.83)—— 十四条离开菜单,改由别的页面上的一颗钮进;ESG 多三条;工具只剩日历
+
+> Tim 2026-10-29 的 19 条与 2026-10-30 的 Q1–Q6(原话在 `docs/system-map.md` 末尾那两节)。**地址与每一页的权限一个字不动。**
+
+* **离开菜单的十四条 —— 每一条都成了【点到它的那一页】的孩子(`parent`)**,于是搜索、面包屑与单一归属检查照旧;孩子的家跟着父(`check-nav-routes` ⑧):
+
+| 条目 | 之前(家 · 菜单) | 之后(家 · 父) | 门在哪 |
+|---|---|---|---|
+| `/notifications` | 工作台 · 菜单 | 工作台 · `/workbench` | 头像菜单的铃铛;待办的未读通知行 |
+| `/purchasing/payment-terms` | 采购 · 菜单 | 采购 · `/purchasing/orders` | 入口钮,「+ 新建采购单」左边 |
+| `/purchasing/discrepancies` | 采购 · 菜单 | **运营** · `/inbound` | 入口钮,「现场收货」左边 |
+| `/compliance/cod` | 安全 · 菜单 | **运营** · `/inbound` | 入口钮「COD」,收货差异左边 |
+| `/compliance/supplier-certificates` | 安全 · 菜单 | **采购** · `/suppliers` | 入口钮,「+ 新增供应商」左边 |
+| `/tools/converter` | 工具 · 菜单 | **采购** · `/tools/pricing` | 定价页上的第四张卡 |
+| `/inventory/reports`(及四张子页) | 运营 · 菜单(子页的父是 `/inventory/reports`) | 运营 · `/inventory` | 入口钮「报表」(子页挂到 `/inventory`:父必须是菜单条目) |
+| `/inventory/scan` · `/stocktakes` · `/inventory/locations` | 运营 · 菜单 | 运营 · `/inventory` | 入口钮(从左到右:报表 · 扫码 · 盘点 · 库位) |
+| `/operation/blending` | 运营 · 菜单 | 运营 · `/output` | 入口钮,「+ 新增产出」左边 |
+| `/operation/yield` | 运营 · 菜单 | 运营 · `/operation/balance` | 平衡页的 `#yield` 一段;旧地址 307 跳过去 |
+| `/operation/capture` | 运营 · 菜单 | 运营 · `/operation/weighbridge` | 地磅单页上的既有链接 |
+| `/operation/equipment/reliability` | 设备 · 菜单 | 设备 · `/operation/equipment` | 设备概览上的既有链接 |
+
+* **搬家的一条菜单条目**:`/operation/capture/inbox` 运营 → **设备**,排在「仪器与网关」之后。
+* **新的三条**(ESG,排在最前):`/safety`(概览,`{ all: [], any: ['module.safety.view', 'module.suppliers.view', 'data.view_cod'] }`)·
+  `/safety/energy`(`{ any: [finance, processing] }`)· `/safety/recovery`(`{ any: [processing, finance, inventory] }`)—— 判据就是它们读的视图的门。
+* **改名**:`/inventory` 的标签 `nav.stockOverview` → `nav.inventory`;`/logistics` 与 `/operation/equipment` 用共用的 `nav.moduleOverview`。三个旧键删了。
+* **入口钮**(`app/components/nav/EntryButton.tsx`,Tim Q2):判据取自那条注册表条目、经 `allows()`;进不去画禁用 +「· 受限」+ `data-module-restricted`,
+  与菜单行同一套。每一颗带 `data-entry-button="<目标地址>"`,冒烟的 `MUST_CONTAIN` 逐颗认它(门画没画)。
+* **工具**:`ToolsMenu.tsx` 删了;顶栏的门是写着今天日期的钮(`DateButton.tsx`),抽屉里的「工具」区删了。工具名下只剩 `/tools/calendar` 一条菜单条目
+  (`check-single-home`:每个模块至少一条)。
+* **条目数**:141 → **144**(菜单条目 121 → **110**,子条目 20 → **34**);每个模块的菜单条目:工作台 5 · 采购 6 · 运营 11 · 质量 5 · 销售 5 · 物流 6 ·
+  财务 35 · 人事 12 · ESG 9 · 设备 6 · 工具 1 · 设置 9。`scripts/check-list-sorting.mjs` 的名单 89 → 91(两张 ESG 新页)。
+* **逐角色的实测**(一次性账号 `sm4probe`,每个真角色克隆一个):`docs/surveys/SYSTEM-MAP-4/README.md`。

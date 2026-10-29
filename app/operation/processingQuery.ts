@@ -11,6 +11,8 @@ import { parseListSort, applyListSort, type ListSort } from '@/lib/listSort'
 export const PROCESSING_SORT = {
     process_date: 'process_date', created_at: 'created_at', code: 'code',
     totalInput: 'total_input', totalOutput: 'total_output', loss: 'loss_qty', status: 'status',
+    // SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5):起止时刻与班次进了列表 —— 按开始时刻排(MES-4a 之前的单没有,排在最后)
+    started_at: 'started_at', ended_at: 'ended_at', shift: 'shift_code',
 } as const
 export type ProcessingSortCol = keyof typeof PROCESSING_SORT
 export const PROCESSING_SORTABLE = Object.keys(PROCESSING_SORT) as ProcessingSortCol[]

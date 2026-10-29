@@ -1,0 +1,34 @@
+01:22:57 watchdog anchored to the smoke node process 10149
+01:23:06 median=494.322ms max=1054.720ms in-db=0.020ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:24:18 median=493.915ms max=705.186ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:25:29 median=494.661ms max=607.400ms in-db=1.234ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:26:39 median=499.737ms max=578.451ms in-db=0.039ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:27:51 median=508.288ms max=678.476ms in-db=1.243ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:29:04 median=489.144ms max=1522.408ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:29:04 WARN single round trip 1522.408ms > 1500ms (recorded, not an abort)
+01:30:15 median=512.694ms max=1167.947ms in-db=1.173ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:31:25 median=510.796ms max=766.597ms in-db=0.910ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:32:38 median=506.989ms max=554.106ms in-db=0.996ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:33:49 median=604.338ms max=615.027ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:35:02 median=489.799ms max=1084.480ms in-db=0.043ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:36:12 median=504.516ms max=1200.140ms in-db=0.027ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:37:24 median=982.872ms max=1078.739ms in-db=0.055ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:38:34 median=500.896ms max=556.349ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:39:44 median=531.533ms max=738.260ms in-db=0.670ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:40:55 median=485.905ms max=1016.743ms in-db=0.034ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:42:07 median=492.252ms max=507.193ms in-db=0.610ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:43:16 median=487.648ms max=502.813ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:44:26 median=494.697ms max=1279.472ms in-db=1.480ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:45:36 median=499.928ms max=531.395ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:46:46 median=494.612ms max=532.842ms in-db=0.605ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:47:55 median=496.298ms max=558.298ms in-db=0.048ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:49:05 median=486.361ms max=513.023ms in-db=0.047ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:50:15 median=494.501ms max=740.760ms in-db=0.051ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:51:25 median=486.246ms max=1056.848ms in-db=0.674ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:52:34 median=480.976ms max=487.317ms in-db=0.033ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:53:44 median=485.038ms max=1218.226ms in-db=0.571ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:54:53 median=492.647ms max=526.646ms in-db=0.049ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:56:03 median=486.302ms max=530.000ms in-db=1.286ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:57:12 median=491.848ms max=565.770ms in-db=0.027ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:58:21 median=494.416ms max=536.275ms in-db=0.653ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=10149
+01:59:21 smoke node process 10149 ended; watchdog done

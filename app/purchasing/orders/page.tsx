@@ -25,7 +25,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import OrdersTable, { type PurchaseOrderRow } from './OrdersTable'
 import { parsePoListParams, poCount, poPage, shapePoRows, poExportHref, poTotals } from './orderRows'
 import { requireModule } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
+import EntryButton from '@/app/components/nav/EntryButton'
 import { setSortParams } from '@/lib/listSort'
 
 const PAGE_SIZE = 20
@@ -108,8 +109,11 @@ export default async function PurchaseOrdersPage({
         <ListPage
             title={t('purchasing.ordersTitle')}
             actions={
-                /* ★ APR-10(Q6):开单要某一类的开单码 —— 一类都不持的人看得见这颗钮、按不动、说出码 */
-                poAccess.any ? (
+                <>
+                {/* SYSTEM-MAP-4(Tim 2026-10-29 第 3 条):付款条件离开菜单 —— 入口在这里,「+ 新建采购单」的左边 */}
+                <EntryButton entry={FN.paymentTerms} />
+                {/* ★ APR-10(Q6):开单要某一类的开单码 —— 一类都不持的人看得见这颗钮、按不动、说出码 */}
+                {poAccess.any ? (
                     <Button asChild>
                         <Link href="/purchasing/orders/new">{t('purchasing.newOrder')}</Link>
                     </Button>
@@ -117,7 +121,8 @@ export default async function PurchaseOrdersPage({
                     <PermissionGate code={Object.values(poAccess.codes).join(' · ')} allowed={false} inline>
                         <Button disabled>{t('purchasing.newOrder')}</Button>
                     </PermissionGate>
-                )
+                )}
+                </>
             }
             state={{ kind: 'ok' }}
         >

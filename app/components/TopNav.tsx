@@ -44,12 +44,12 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import ModuleBar from './nav/ModuleBar'
-import ToolsMenu from './nav/ToolsMenu'
+import DateButton from './nav/DateButton'
 import AvatarMenu from './nav/AvatarMenu'
 import SearchShell from './nav/SearchShell'
 import { getModuleAccess } from '@/lib/moduleAccess'
 import { getUnreadCount } from '@/lib/notifications'
-import { SETTINGS_MODULE_ID, TOOLS_MODULE_ID } from '@/lib/modules'
+import { SETTINGS_MODULE_ID } from '@/lib/modules'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
 import type { NavModule } from './nav/types'
 
@@ -141,11 +141,8 @@ export default async function TopNav() {
         })),
     }))
 
-    // ── 工具下拉的五行。**同一份注册表,同一个 allowed** ──────────────────
-    // 五条:任务 · 日历 · 单位换算 · 提醒 · 定价(工具的三级分组今天没有住户,
-    // 所以它本来就画成平铺的五条 —— 见 lib/modules.ts 的 TOOLS_GROUPS 抬头)。
-    const toolsEntries =
-        modules.find((m) => m.id === TOOLS_MODULE_ID)?.entries ?? []
+    // ── SYSTEM-MAP-4(Tim 2026-10-29 第 20 条):工具下拉【退休了】—— 那个三点按钮换成一颗写着今天日期的钮,点开是日历。
+    //   单位换算搬进了定价(第 5 条),工具名下只剩日历,于是不再需要一张下拉。
 
     // ── 设置下拉的【七行】。**同一份注册表,同一个 allowed** ─────────────
     //
@@ -242,11 +239,10 @@ export default async function TopNav() {
                         而模块条与它之间那段空白就是"可伸缩的那一段"。 */}
                     <div className="ml-auto flex shrink-0 items-center gap-2">
                         <SearchShell />
-                        {/* 工具下拉是桌面的门;**手机走抽屉里的「工具」区**。
-                            在这里给手机再造一个工具下拉,就是造第二扇通向同一处的门。 */}
-                        <div className="hidden xl:block">
-                            <ToolsMenu entries={toolsEntries} />
-                        </div>
+                        {/* SYSTEM-MAP-4(第 20 条 · 滚问第 1 条):今天的日期(新加坡的营业日),点开日历。
+                            【每一个宽度都在】—— 抽屉里的「工具」区一并删了,它若仍只在 xl 以上出现,
+                            1280 以下日历就一扇门都没有了(「顶栏挪走什么,抽屉就得接住什么」的反面)。 */}
+                        <DateButton />
                         {/* 头像菜单【所有宽度都在】—— 它接住了从前平铺在顶栏上的
                             通知、语言与登出,手机上那三样从前也是可见的。 */}
                         <AvatarMenu

@@ -73,7 +73,7 @@ export async function setExpectedYield(code: string, form: string, raw: string):
     if (error) return { error: await opError(error.message) }
     if (!data || data.length === 0) return { error: (await refuseNothingChanged(EDIT)).error }
     refresh(code)
-    revalidatePath('/operation/yield')
+    revalidatePath('/operation/balance')   // SYSTEM-MAP-4:得率是平衡页的第二段了
     return {}
 }
 

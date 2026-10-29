@@ -26,7 +26,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
+import EntryButton from '@/app/components/nav/EntryButton'
 
 // TABLE-EXPORT-1:行的类型、select、「库里的行 → 表的行」(含化验状态 · 定价申请 · 销毁证书 ·
 // 仓库申请 · 来源三态)都搬进了 inboundRows.ts,与导出路由共用。注释随代码一起搬过去了。
@@ -215,7 +216,7 @@ export default async function InboundPage({
         <div className="p-8">
             {/* IOD-2:刚刚那次收货的落地告警(建批次成功、但有决定没人做过) */}
             <StockWarningBanner warn={sp.warn} />
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <h1 className="">{t('inbound.listTitle')}</h1>
                 {/* FIX-1:这两个钮原本是 sm:hidden / hidden sm:inline-block ——
                     【互斥】的:桌面上现场收货那条路根本不出现,手机上完整录入
@@ -227,6 +228,11 @@ export default async function InboundPage({
                 {/* ROLE-1 Batch 3b:建收货单归 action.receive_goods(仓库、管理员)。缺码时两个入口
                     都看得见、按不动 —— <Link> 禁不掉(fieldset 不管链接),所以挡住的那一支画真的
                     <Button disabled>,与 finance/invoices/[id] 的 PDF 钮同一个形状。 */}
+                {/* SYSTEM-MAP-4(Tim 2026-10-29 第 4 · 17 条):COD 与收货差异离开菜单 —— 入口在这里,「现场收货」的左边
+                    (从左到右:COD · 收货差异 · 现场收货 · 新增)。两颗入口钮各按自己目标页的判据画,与能不能收货无关。 */}
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                <EntryButton entry={FN.codList} label={t('inbound.codButton')} />
+                <EntryButton entry={FN.discrepancies} />
                 {canReceive ? (
                     <div className="flex items-center gap-2">
                         <Button asChild variant="outline">
@@ -248,6 +254,7 @@ export default async function InboundPage({
                         </span>
                     </PermissionGate>
                 )}
+                </div>
             </div>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('inbound.twoPathsHint')}</p>
 

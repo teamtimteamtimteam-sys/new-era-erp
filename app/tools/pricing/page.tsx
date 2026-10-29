@@ -52,7 +52,7 @@
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
 
 // ★【一个新键都没有加】★ `pricing.pricesCard` / `pricing.pricesDesc` 本来就在
 // messages 里 —— 它们是这张卡【被改指 bulk 那次】留下的孤儿键(实测:改动之前
@@ -62,6 +62,9 @@ const CARDS = [
     { href: '/tools/pricing/formulas', titleKey: 'pricing.formulasCard', descKey: 'pricing.formulasDesc' },
     { href: '/tools/pricing/calculator', titleKey: 'pricing.calculatorCard', descKey: 'pricing.calculatorDesc' },
     { href: '/tools/pricing/metal-prices', titleKey: 'pricing.pricesCard', descKey: 'pricing.pricesDesc' },
+    // SYSTEM-MAP-4(Tim 2026-10-29 第 5 条):单位换算从工具搬进定价,与上面三张同一个形状(网格本来就是四列)。
+    //   地址取自注册表条目;那一页对谁都开着,所以这张卡不需要「受限」那一支。
+    { href: FN.converter.href, titleKey: FN.converter.navKey, descKey: 'pricing.converterDesc' },
 ]
 
 export default async function PricingHubPage() {

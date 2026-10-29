@@ -1,0 +1,272 @@
+SELECT1|before admin client round trips 745 / 633 / 489 / 732 / 488 ms (median 633) · server execution 0.03 ms
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+(node:17889) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/modules.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS|N admin: bar = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons)
+PASS|N admin: 100 entries rendered across 10 modules, each under exactly one module
+PASS|N admin: every row of every menu matches the registry for this role (same rows, open/restricted)
+PASS|N admin: none of the 14 entries that left the menu is in any menu
+PASS|N admin: hover titles — Operation "Operation" · HR "HR" · ESG "Environment, social and governance"
+MENU|admin Operation: /operation · /inbound · /operation/weighbridge · /inventory · /materials · /operation/orders · /operation/processing · /operation/wip · /operation/handovers · /output · /operation/balance
+MENU|admin ESG: /safety · /safety/energy · /safety/recovery · /safety/incidents · /safety/inspections · /safety/environment · /compliance/packs · /purchasing/licences · /inventory/storage-safety
+MENU|admin Equipment: /operation/equipment · /operation/devices · /operation/capture/inbox · /operation/calibration · /operation/operation-types · /operation/spare-parts
+PASS|B admin /purchasing/orders (HTTP 200): entry buttons left to right = /purchasing/payment-terms
+PASS|B admin /purchasing/orders → "Payment terms": a link to /purchasing/payment-terms; GET it → HTTP 200 (reader may open it)
+PASS|B admin /inbound (HTTP 200): entry buttons left to right = /compliance/cod · /purchasing/discrepancies
+PASS|B admin /inbound → "COD": a link to /compliance/cod; GET it → HTTP 200 (reader may open it)
+PASS|B admin /inbound → "Receiving discrepancies": a link to /purchasing/discrepancies; GET it → HTTP 200 (reader may open it)
+PASS|B admin /inventory (HTTP 200): entry buttons left to right = /inventory/reports · /inventory/scan · /stocktakes · /inventory/locations
+PASS|B admin /inventory → "Reports": a link to /inventory/reports; GET it → HTTP 200 (reader may open it)
+PASS|B admin /inventory → "Scan": a link to /inventory/scan; GET it → HTTP 200 (reader may open it)
+PASS|B admin /inventory → "Stocktakes": a link to /stocktakes; GET it → HTTP 200 (reader may open it)
+PASS|B admin /inventory → "Storage Locations": a link to /inventory/locations; GET it → HTTP 200 (reader may open it)
+PASS|B admin /output (HTTP 200): entry buttons left to right = /operation/blending
+PASS|B admin /output → "Blending plans": a link to /operation/blending; GET it → HTTP 200 (reader may open it)
+PASS|B admin /suppliers (HTTP 200): entry buttons left to right = /compliance/supplier-certificates
+PASS|B admin /suppliers → "Supplier certificates": a link to /compliance/supplier-certificates; GET it → HTTP 200 (reader may open it)
+PASS|B admin /tools/pricing (HTTP 200): link to /tools/converter present; GET it → HTTP 200
+PASS|B admin /operation/weighbridge (HTTP 200): link to /operation/capture present; GET it → HTTP 200
+PASS|B admin /operation/equipment (HTTP 200): link to /operation/equipment/reliability present; GET it → HTTP 200
+PASS|Y admin /operation/yield?month=2026-08&group=machine → HTTP 307 to /operation/balance?month=2026-08&group=machine#yield; /operation/balance has the #yield section: true
+PASS|E admin /safety: HTTP 200, opens (registry: opens)
+PASS|E admin /safety: 0 statement(s) drawn Restricted (expected 0 from the reader's codes); safety true · certificates true · cod true
+PASS|E admin /safety/energy: HTTP 200, opens (registry: opens)
+PASS|E admin /safety/recovery: HTTP 200, opens (registry: opens)
+PASS|D admin 1440px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|D admin 390px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|G admin 390px drawer: 10 module rows (Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment) + sections SETTINGS; page 390px wide at 390px, panel no sideways overflow
+WIDTH|en 1024px /tools/calendar (search box drawn, date button 93.6px): menu drawer; the 10-button row measures 483px, last button ends 909px, right group starts 658px → spare -251px (fits from 1275px); page 1024px wide
+PASS|G admin en 1024px /tools/calendar: menu drawer; date button drawn; page 1024px wide, no sideways scroll
+WIDTH|en 1280px /tools/calendar (search box drawn, date button 93.6px): module row; the 10-button row measures 751px, last button ends 909px, right group starts 914px → spare 5px (fits from 1275px); page 1280px wide
+PASS|G admin en 1280px /tools/calendar: module row (10 buttons, row 751px, last button ends 909px, right group starts 914px); date button drawn; page 1280px wide, no sideways scroll
+WIDTH|en 1366px /tools/calendar (search box drawn, date button 93.6px): module row; the 10-button row measures 757.9px, last button ends 909px, right group starts 1000px → spare 91px (fits from 1275px); page 1366px wide
+PASS|G admin en 1366px /tools/calendar: module row (10 buttons, row 757.9px, last button ends 909px, right group starts 1000px); date button drawn; page 1366px wide, no sideways scroll
+WIDTH|en 1440px /tools/calendar (search box drawn, date button 93.6px): module row; the 10-button row measures 757.9px, last button ends 909px, right group starts 1074px → spare 165px (fits from 1275px); page 1440px wide
+PASS|G admin en 1440px /tools/calendar: module row (10 buttons, row 757.9px, last button ends 909px, right group starts 1074px); date button drawn; page 1440px wide, no sideways scroll
+WIDTH|zh 1024px /tools/calendar (search box drawn, date button 93.6px): menu drawer; the 10-button row measures 483px, last button ends 702px, right group starts 658px → spare -44px (fits from 1068px); page 1024px wide
+PASS|G admin zh 1024px /tools/calendar: menu drawer; date button drawn; page 1024px wide, no sideways scroll
+WIDTH|zh 1280px /tools/calendar (search box drawn, date button 93.6px): module row; the 10-button row measures 550.5px, last button ends 702px, right group starts 914px → spare 212px (fits from 1068px); page 1280px wide
+PASS|G admin zh 1280px /tools/calendar: module row (10 buttons, row 550.5px, last button ends 702px, right group starts 914px); date button drawn; page 1280px wide, no sideways scroll
+WIDTH|zh 1366px /tools/calendar (search box drawn, date button 93.6px): module row; the 10-button row measures 550.5px, last button ends 702px, right group starts 1000px → spare 298px (fits from 1068px); page 1366px wide
+PASS|G admin zh 1366px /tools/calendar: module row (10 buttons, row 550.5px, last button ends 702px, right group starts 1000px); date button drawn; page 1366px wide, no sideways scroll
+WIDTH|zh 1440px /tools/calendar (search box drawn, date button 93.6px): module row; the 10-button row measures 550.5px, last button ends 702px, right group starts 1074px → spare 372px (fits from 1068px); page 1440px wide
+PASS|G admin zh 1440px /tools/calendar: module row (10 buttons, row 550.5px, last button ends 702px, right group starts 1074px); date button drawn; page 1440px wide, no sideways scroll
+SELECT1|before warehouse client round trips 3942 / 1828 / 942 / 492 / 530 ms (median 942) · server execution 0.029 ms
+WARN|before warehouse: a single round trip took 3942 ms (> 1500 ms; recorded, not an abort)
+HEALTH|before warehouse: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|N warehouse: bar = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons)
+PASS|N warehouse: 100 entries rendered across 10 modules, each under exactly one module
+PASS|N warehouse: every row of every menu matches the registry for this role (same rows, open/restricted)
+PASS|N warehouse: none of the 14 entries that left the menu is in any menu
+PASS|N warehouse: hover titles — Operation "Operation" · HR "HR" · ESG "Environment, social and governance"
+MENU|warehouse Operation: /operation · /inbound · /operation/weighbridge · /inventory · /materials (restricted) · /operation/orders · /operation/processing · /operation/wip · /operation/handovers · /output · /operation/balance
+MENU|warehouse ESG: /safety · /safety/energy · /safety/recovery · /safety/incidents · /safety/inspections · /safety/environment · /compliance/packs (restricted) · /purchasing/licences · /inventory/storage-safety
+MENU|warehouse Equipment: /operation/equipment · /operation/devices · /operation/capture/inbox · /operation/calibration · /operation/operation-types · /operation/spare-parts
+PASS|B warehouse /purchasing/orders (HTTP 200): entry buttons left to right = /purchasing/payment-terms
+PASS|B warehouse /purchasing/orders → "Payment terms": a link to /purchasing/payment-terms; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /inbound (HTTP 200): entry buttons left to right = /compliance/cod · /purchasing/discrepancies
+PASS|B warehouse /inbound → "COD": a link to /compliance/cod; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /inbound → "Receiving discrepancies": a link to /purchasing/discrepancies; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /inventory (HTTP 200): entry buttons left to right = /inventory/reports · /inventory/scan · /stocktakes · /inventory/locations
+PASS|B warehouse /inventory → "Reports": a link to /inventory/reports; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /inventory → "Scan": a link to /inventory/scan; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /inventory → "Stocktakes": a link to /stocktakes; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /inventory → "Storage Locations": a link to /inventory/locations; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /output (HTTP 200): entry buttons left to right = /operation/blending
+PASS|B warehouse /output → "Blending plans": a link to /operation/blending; GET it → HTTP 200 (reader may open it)
+PASS|B warehouse /suppliers (HTTP 200): entry buttons left to right = /compliance/supplier-certificates
+PASS|B warehouse /suppliers → "Supplier certificates": a link to /compliance/supplier-certificates; GET it → HTTP 200 (reader may open it)
+STEP|warehouse /tools/pricing: reader cannot open the host page — its link is not measured
+PASS|B warehouse /operation/weighbridge (HTTP 200): link to /operation/capture present; GET it → HTTP 200
+PASS|B warehouse /operation/equipment (HTTP 200): link to /operation/equipment/reliability present; GET it → HTTP 200
+PASS|Y warehouse /operation/yield?month=2026-08&group=machine → HTTP 307 to /operation/balance?month=2026-08&group=machine#yield; /operation/balance has the #yield section: true
+PASS|E warehouse /safety: HTTP 200, opens (registry: opens)
+PASS|E warehouse /safety: 0 statement(s) drawn Restricted (expected 0 from the reader's codes); safety true · certificates true · cod true
+PASS|E warehouse /safety/energy: HTTP 200, opens (registry: opens)
+PASS|E warehouse /safety/recovery: HTTP 200, opens (registry: opens)
+PASS|D warehouse 1440px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|D warehouse 390px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|G warehouse 390px drawer: 10 module rows (Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · Restricted · HR · ESG · Equipment) + sections SETTINGS; page 390px wide at 390px, panel no sideways overflow
+SELECT1|before cfo client round trips 1207 / 487 / 541 / 487 / 1044 ms (median 541) · server execution 0.027 ms
+HEALTH|before cfo: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|N cfo: bar = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons)
+PASS|N cfo: 100 entries rendered across 10 modules, each under exactly one module
+PASS|N cfo: every row of every menu matches the registry for this role (same rows, open/restricted)
+PASS|N cfo: none of the 14 entries that left the menu is in any menu
+PASS|N cfo: hover titles — Operation "Operation" · HR "HR" · ESG "Environment, social and governance"
+MENU|cfo Operation: /operation · /inbound · /operation/weighbridge · /inventory · /materials · /operation/orders · /operation/processing · /operation/wip · /operation/handovers · /output · /operation/balance
+MENU|cfo ESG: /safety · /safety/energy · /safety/recovery · /safety/incidents · /safety/inspections · /safety/environment · /compliance/packs · /purchasing/licences · /inventory/storage-safety
+MENU|cfo Equipment: /operation/equipment · /operation/devices · /operation/capture/inbox · /operation/calibration · /operation/operation-types · /operation/spare-parts
+PASS|B cfo /purchasing/orders (HTTP 200): entry buttons left to right = /purchasing/payment-terms
+PASS|B cfo /purchasing/orders → "Payment terms": a link to /purchasing/payment-terms; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /inbound (HTTP 200): entry buttons left to right = /compliance/cod · /purchasing/discrepancies
+PASS|B cfo /inbound → "COD": a link to /compliance/cod; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /inbound → "Receiving discrepancies": a link to /purchasing/discrepancies; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /inventory (HTTP 200): entry buttons left to right = /inventory/reports · /inventory/scan · /stocktakes · /inventory/locations
+PASS|B cfo /inventory → "Reports": a link to /inventory/reports; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /inventory → "Scan": a link to /inventory/scan; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /inventory → "Stocktakes": a link to /stocktakes; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /inventory → "Storage Locations": a link to /inventory/locations; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /output (HTTP 200): entry buttons left to right = /operation/blending
+PASS|B cfo /output → "Blending plans": a link to /operation/blending; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /suppliers (HTTP 200): entry buttons left to right = /compliance/supplier-certificates
+PASS|B cfo /suppliers → "Supplier certificates": a link to /compliance/supplier-certificates; GET it → HTTP 200 (reader may open it)
+PASS|B cfo /tools/pricing (HTTP 200): link to /tools/converter present; GET it → HTTP 200
+PASS|B cfo /operation/weighbridge (HTTP 200): link to /operation/capture present; GET it → HTTP 200
+PASS|B cfo /operation/equipment (HTTP 200): link to /operation/equipment/reliability present; GET it → HTTP 200
+PASS|Y cfo /operation/yield?month=2026-08&group=machine → HTTP 307 to /operation/balance?month=2026-08&group=machine#yield; /operation/balance has the #yield section: true
+PASS|E cfo /safety: HTTP 200, opens (registry: opens)
+PASS|E cfo /safety: 0 statement(s) drawn Restricted (expected 0 from the reader's codes); safety true · certificates true · cod true
+PASS|E cfo /safety/energy: HTTP 200, opens (registry: opens)
+PASS|E cfo /safety/recovery: HTTP 200, opens (registry: opens)
+PASS|D cfo 1440px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|D cfo 390px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|G cfo 390px drawer: 10 module rows (Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment) + sections SETTINGS; page 390px wide at 390px, panel no sideways overflow
+SELECT1|before cco client round trips 511 / 504 / 503 / 502 / 507 ms (median 504) · server execution 0.028 ms
+HEALTH|before cco: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|N cco: bar = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons)
+PASS|N cco: 100 entries rendered across 10 modules, each under exactly one module
+PASS|N cco: every row of every menu matches the registry for this role (same rows, open/restricted)
+PASS|N cco: none of the 14 entries that left the menu is in any menu
+PASS|N cco: hover titles — Operation "Operation" · HR "HR" · ESG "Environment, social and governance"
+MENU|cco Operation: /operation · /inbound · /operation/weighbridge · /inventory · /materials · /operation/orders · /operation/processing · /operation/wip · /operation/handovers · /output · /operation/balance
+MENU|cco ESG: /safety · /safety/energy · /safety/recovery · /safety/incidents · /safety/inspections · /safety/environment · /compliance/packs · /purchasing/licences · /inventory/storage-safety
+MENU|cco Equipment: /operation/equipment · /operation/devices · /operation/capture/inbox · /operation/calibration · /operation/operation-types · /operation/spare-parts
+PASS|B cco /purchasing/orders (HTTP 200): entry buttons left to right = /purchasing/payment-terms
+PASS|B cco /purchasing/orders → "Payment terms": a link to /purchasing/payment-terms; GET it → HTTP 200 (reader may open it)
+PASS|B cco /inbound (HTTP 200): entry buttons left to right = /compliance/cod · /purchasing/discrepancies
+PASS|B cco /inbound → "COD": a link to /compliance/cod; GET it → HTTP 200 (reader may open it)
+PASS|B cco /inbound → "Receiving discrepancies": a link to /purchasing/discrepancies; GET it → HTTP 200 (reader may open it)
+PASS|B cco /inventory (HTTP 200): entry buttons left to right = /inventory/reports · /inventory/scan · /stocktakes · /inventory/locations
+PASS|B cco /inventory → "Reports": a link to /inventory/reports; GET it → HTTP 200 (reader may open it)
+PASS|B cco /inventory → "Scan": a link to /inventory/scan; GET it → HTTP 200 (reader may open it)
+PASS|B cco /inventory → "Stocktakes": a link to /stocktakes; GET it → HTTP 200 (reader may open it)
+PASS|B cco /inventory → "Storage Locations": a link to /inventory/locations; GET it → HTTP 200 (reader may open it)
+PASS|B cco /output (HTTP 200): entry buttons left to right = /operation/blending
+PASS|B cco /output → "Blending plans": a link to /operation/blending; GET it → HTTP 200 (reader may open it)
+PASS|B cco /suppliers (HTTP 200): entry buttons left to right = /compliance/supplier-certificates
+PASS|B cco /suppliers → "Supplier certificates": a link to /compliance/supplier-certificates; GET it → HTTP 200 (reader may open it)
+PASS|B cco /tools/pricing (HTTP 200): link to /tools/converter present; GET it → HTTP 200
+PASS|B cco /operation/weighbridge (HTTP 200): link to /operation/capture present; GET it → HTTP 200
+PASS|B cco /operation/equipment (HTTP 200): link to /operation/equipment/reliability present; GET it → HTTP 200
+PASS|Y cco /operation/yield?month=2026-08&group=machine → HTTP 307 to /operation/balance?month=2026-08&group=machine#yield; /operation/balance has the #yield section: true
+PASS|E cco /safety: HTTP 200, opens (registry: opens)
+PASS|E cco /safety: 0 statement(s) drawn Restricted (expected 0 from the reader's codes); safety true · certificates true · cod true
+PASS|E cco /safety/energy: HTTP 200, opens (registry: opens)
+PASS|E cco /safety/recovery: HTTP 200, opens (registry: opens)
+PASS|D cco 1440px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|D cco 390px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|G cco 390px drawer: 10 module rows (Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment) + sections SETTINGS; page 390px wide at 390px, panel no sideways overflow
+SELECT1|before cto client round trips 492 / 737 / 574 / 486 / 526 ms (median 526) · server execution 0.029 ms
+HEALTH|before cto: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|N cto: bar = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons)
+PASS|N cto: 100 entries rendered across 10 modules, each under exactly one module
+PASS|N cto: every row of every menu matches the registry for this role (same rows, open/restricted)
+PASS|N cto: none of the 14 entries that left the menu is in any menu
+PASS|N cto: hover titles — Operation "Operation" · HR "HR" · ESG "Environment, social and governance"
+MENU|cto Operation: /operation · /inbound · /operation/weighbridge · /inventory · /materials · /operation/orders · /operation/processing · /operation/wip · /operation/handovers · /output · /operation/balance
+MENU|cto ESG: /safety · /safety/energy · /safety/recovery · /safety/incidents · /safety/inspections · /safety/environment · /compliance/packs · /purchasing/licences · /inventory/storage-safety
+MENU|cto Equipment: /operation/equipment · /operation/devices · /operation/capture/inbox · /operation/calibration · /operation/operation-types · /operation/spare-parts
+PASS|B cto /purchasing/orders (HTTP 200): entry buttons left to right = /purchasing/payment-terms
+PASS|B cto /purchasing/orders → "Payment terms": a link to /purchasing/payment-terms; GET it → HTTP 200 (reader may open it)
+PASS|B cto /inbound (HTTP 200): entry buttons left to right = /compliance/cod · /purchasing/discrepancies
+PASS|B cto /inbound → "COD": a link to /compliance/cod; GET it → HTTP 200 (reader may open it)
+PASS|B cto /inbound → "Receiving discrepancies": a link to /purchasing/discrepancies; GET it → HTTP 200 (reader may open it)
+PASS|B cto /inventory (HTTP 200): entry buttons left to right = /inventory/reports · /inventory/scan · /stocktakes · /inventory/locations
+PASS|B cto /inventory → "Reports": a link to /inventory/reports; GET it → HTTP 200 (reader may open it)
+PASS|B cto /inventory → "Scan": a link to /inventory/scan; GET it → HTTP 200 (reader may open it)
+PASS|B cto /inventory → "Stocktakes": a link to /stocktakes; GET it → HTTP 200 (reader may open it)
+PASS|B cto /inventory → "Storage Locations": a link to /inventory/locations; GET it → HTTP 200 (reader may open it)
+PASS|B cto /output (HTTP 200): entry buttons left to right = /operation/blending
+PASS|B cto /output → "Blending plans": a link to /operation/blending; GET it → HTTP 200 (reader may open it)
+PASS|B cto /suppliers (HTTP 200): entry buttons left to right = /compliance/supplier-certificates
+PASS|B cto /suppliers → "Supplier certificates": a link to /compliance/supplier-certificates; GET it → HTTP 200 (reader may open it)
+PASS|B cto /tools/pricing (HTTP 200): link to /tools/converter present; GET it → HTTP 200
+PASS|B cto /operation/weighbridge (HTTP 200): link to /operation/capture present; GET it → HTTP 200
+PASS|B cto /operation/equipment (HTTP 200): link to /operation/equipment/reliability present; GET it → HTTP 200
+PASS|Y cto /operation/yield?month=2026-08&group=machine → HTTP 307 to /operation/balance?month=2026-08&group=machine#yield; /operation/balance has the #yield section: true
+PASS|E cto /safety: HTTP 200, opens (registry: opens)
+PASS|E cto /safety: 0 statement(s) drawn Restricted (expected 0 from the reader's codes); safety true · certificates true · cod true
+PASS|E cto /safety/energy: HTTP 200, opens (registry: opens)
+PASS|E cto /safety/recovery: HTTP 200, opens (registry: opens)
+PASS|D cto 1440px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|D cto 390px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|G cto 390px drawer: 10 module rows (Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment) + sections SETTINGS; page 390px wide at 390px, panel no sideways overflow
+SELECT1|before finance client round trips 494 / 509 / 496 / 495 / 498 ms (median 496) · server execution 0.027 ms
+HEALTH|before finance: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|N finance: bar = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons)
+PASS|N finance: 100 entries rendered across 10 modules, each under exactly one module
+PASS|N finance: every row of every menu matches the registry for this role (same rows, open/restricted)
+PASS|N finance: none of the 14 entries that left the menu is in any menu
+PASS|N finance: hover titles — Operation "Operation" · HR "HR" · ESG "Environment, social and governance"
+MENU|finance Operation: /operation · /inbound · /operation/weighbridge · /inventory · /materials · /operation/orders · /operation/processing · /operation/wip · /operation/handovers · /output · /operation/balance
+MENU|finance ESG: /safety · /safety/energy · /safety/recovery · /safety/incidents · /safety/inspections · /safety/environment · /compliance/packs (restricted) · /purchasing/licences · /inventory/storage-safety
+MENU|finance Equipment: /operation/equipment · /operation/devices · /operation/capture/inbox · /operation/calibration · /operation/operation-types · /operation/spare-parts
+PASS|B finance /purchasing/orders (HTTP 200): entry buttons left to right = /purchasing/payment-terms
+PASS|B finance /purchasing/orders → "Payment terms": a link to /purchasing/payment-terms; GET it → HTTP 200 (reader may open it)
+PASS|B finance /inbound (HTTP 200): entry buttons left to right = /compliance/cod · /purchasing/discrepancies
+PASS|B finance /inbound → "COD": a link to /compliance/cod; GET it → HTTP 200 (reader may open it)
+PASS|B finance /inbound → "Receiving discrepancies": a link to /purchasing/discrepancies; GET it → HTTP 200 (reader may open it)
+PASS|B finance /inventory (HTTP 200): entry buttons left to right = /inventory/reports · /inventory/scan · /stocktakes · /inventory/locations
+PASS|B finance /inventory → "Reports": a link to /inventory/reports; GET it → HTTP 200 (reader may open it)
+PASS|B finance /inventory → "Scan": a link to /inventory/scan; GET it → HTTP 200 (reader may open it)
+PASS|B finance /inventory → "Stocktakes": a link to /stocktakes; GET it → HTTP 200 (reader may open it)
+PASS|B finance /inventory → "Storage Locations": a link to /inventory/locations; GET it → HTTP 200 (reader may open it)
+PASS|B finance /output (HTTP 200): entry buttons left to right = /operation/blending
+PASS|B finance /output → "Blending plans": a link to /operation/blending; GET it → HTTP 200 (reader may open it)
+PASS|B finance /suppliers (HTTP 200): entry buttons left to right = /compliance/supplier-certificates
+PASS|B finance /suppliers → "Supplier certificates": a link to /compliance/supplier-certificates; GET it → HTTP 200 (reader may open it)
+PASS|B finance /tools/pricing (HTTP 200): link to /tools/converter present; GET it → HTTP 200
+PASS|B finance /operation/weighbridge (HTTP 200): link to /operation/capture present; GET it → HTTP 200
+PASS|B finance /operation/equipment (HTTP 200): link to /operation/equipment/reliability present; GET it → HTTP 200
+PASS|Y finance /operation/yield?month=2026-08&group=machine → HTTP 307 to /operation/balance?month=2026-08&group=machine#yield; /operation/balance has the #yield section: true
+PASS|E finance /safety: HTTP 200, opens (registry: opens)
+PASS|E finance /safety: 0 statement(s) drawn Restricted (expected 0 from the reader's codes); safety true · certificates true · cod true
+PASS|E finance /safety/energy: HTTP 200, opens (registry: opens)
+PASS|E finance /safety/recovery: HTTP 200, opens (registry: opens)
+PASS|D finance 1440px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|D finance 390px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|G finance 390px drawer: 10 module rows (Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment) + sections SETTINGS; page 390px wide at 390px, panel no sideways overflow
+SELECT1|before gm client round trips 510 / 786 / 493 / 505 / 498 ms (median 505) · server execution 0.027 ms
+HEALTH|before gm: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|N gm: bar = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons)
+PASS|N gm: 100 entries rendered across 10 modules, each under exactly one module
+PASS|N gm: every row of every menu matches the registry for this role (same rows, open/restricted)
+PASS|N gm: none of the 14 entries that left the menu is in any menu
+PASS|N gm: hover titles — Operation "Operation" · HR "HR" · ESG "Environment, social and governance"
+MENU|gm Operation: /operation · /inbound · /operation/weighbridge · /inventory · /materials · /operation/orders · /operation/processing · /operation/wip · /operation/handovers · /output · /operation/balance
+MENU|gm ESG: /safety · /safety/energy · /safety/recovery · /safety/incidents · /safety/inspections · /safety/environment · /compliance/packs · /purchasing/licences · /inventory/storage-safety
+MENU|gm Equipment: /operation/equipment · /operation/devices · /operation/capture/inbox · /operation/calibration · /operation/operation-types · /operation/spare-parts
+PASS|B gm /purchasing/orders (HTTP 200): entry buttons left to right = /purchasing/payment-terms
+PASS|B gm /purchasing/orders → "Payment terms": a link to /purchasing/payment-terms; GET it → HTTP 200 (reader may open it)
+PASS|B gm /inbound (HTTP 200): entry buttons left to right = /compliance/cod · /purchasing/discrepancies
+PASS|B gm /inbound → "COD": a link to /compliance/cod; GET it → HTTP 200 (reader may open it)
+PASS|B gm /inbound → "Receiving discrepancies": a link to /purchasing/discrepancies; GET it → HTTP 200 (reader may open it)
+PASS|B gm /inventory (HTTP 200): entry buttons left to right = /inventory/reports · /inventory/scan · /stocktakes · /inventory/locations
+PASS|B gm /inventory → "Reports": a link to /inventory/reports; GET it → HTTP 200 (reader may open it)
+PASS|B gm /inventory → "Scan": a link to /inventory/scan; GET it → HTTP 200 (reader may open it)
+PASS|B gm /inventory → "Stocktakes": a link to /stocktakes; GET it → HTTP 200 (reader may open it)
+PASS|B gm /inventory → "Storage Locations": a link to /inventory/locations; GET it → HTTP 200 (reader may open it)
+PASS|B gm /output (HTTP 200): entry buttons left to right = /operation/blending
+PASS|B gm /output → "Blending plans": a link to /operation/blending; GET it → HTTP 200 (reader may open it)
+PASS|B gm /suppliers (HTTP 200): entry buttons left to right = /compliance/supplier-certificates
+PASS|B gm /suppliers → "Supplier certificates": a link to /compliance/supplier-certificates; GET it → HTTP 200 (reader may open it)
+PASS|B gm /tools/pricing (HTTP 200): link to /tools/converter present; GET it → HTTP 200
+PASS|B gm /operation/weighbridge (HTTP 200): link to /operation/capture present; GET it → HTTP 200
+PASS|B gm /operation/equipment (HTTP 200): link to /operation/equipment/reliability present; GET it → HTTP 200
+PASS|Y gm /operation/yield?month=2026-08&group=machine → HTTP 307 to /operation/balance?month=2026-08&group=machine#yield; /operation/balance has the #yield section: true
+PASS|E gm /safety: HTTP 200, opens (registry: opens)
+PASS|E gm /safety: 0 statement(s) drawn Restricted (expected 0 from the reader's codes); safety true · certificates true · cod true
+PASS|E gm /safety/energy: HTTP 200, opens (registry: opens)
+PASS|E gm /safety/recovery: HTTP 200, opens (registry: opens)
+PASS|D gm 1440px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|D gm 390px: date button "30/10/2026" (94px), Singapore today 30/10/2026; clicked → /tools/calendar (h1 "Calendar")
+PASS|G gm 390px drawer: 10 module rows (Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment) + sections SETTINGS; page 390px wide at 390px, panel no sideways overflow
+SELECT1|after all readers client round trips 532 / 494 / 523 / 488 / 494 ms (median 494) · server execution 0.456 ms
+HEALTH|after all readers: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|all PASS · 1 warning(s) recorded
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); the browser only sent GETs, opened menus and followed links
+SM4_PROOF_EXIT=0
+PROOF_EXIT=0

@@ -1,0 +1,39 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 2260a3fd-5758-4d06-add3-349dd772a5c3
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 254 measurable (60 dynamic) · 25 unresolvable (no live row / no id source)
+· starting next dev on :3198
+· launching chrome-headless-shell
+· self-test PASSED — overflow injection read +510px and named its culprit; clipped-table injection read 1; scrolling ancestor correctly read 0
+  [  1/15] 9s  ovf=0 clip=0 /
+  [  2/15] 22s  ovf=0 clip=0 /inbound
+  [  3/15] 31s  ovf=0 clip=0 /inventory
+  [  4/15] 40s  ovf=0 clip=0 /operation/balance
+  [  5/15] 46s  ovf=0 clip=0 /operation/handovers
+  [  6/15] 54s  ovf=0 clip=0 /operation/handovers/new
+  [  7/15] 67s  ovf=0 clip=0 /operation/processing
+  [  8/15] 76s  ovf=0 clip=0 /operation/processing/new
+  [  9/15] 83s  ovf=0 clip=0 /output
+  [ 10/15] 95s  ovf=0 clip=0 /purchasing/orders
+  [ 11/15] 102s  ovf=0 clip=0 /safety
+  [ 12/15] 108s  ovf=0 clip=0 /safety/energy
+  [ 13/15] 114s  ovf=0 clip=0 /safety/recovery
+  [ 14/15] 122s  ovf=0 clip=0 /suppliers
+  [ 15/15] 128s  ovf=0 clip=0 /tools/pricing
+
+════ 1280px SURVEY ════
+measured: 15  errored: 0  redirected (excluded): 0  not-found (excluded): 0  unresolvable routes: 25
+U1 pan-free (no page overflow):       15 / 15
+U2 no clipped ledger:                 15 / 15
+USABLE (U1 AND U2):                   15 / 15
+
+pages FAILING U1 (page overflows): 0
+
+pages FAILING U2 (table clipped by a non-scrolling ancestor): 0
+
+touch targets < 44px (reported, not part of "usable"):
+   pages with >=1: 15 / 15  median per page: 35
+
+wrote /Users/timchen/Documents/projects/new-era-erp/.survey-out/viewport-1280.json
+· cleaned up ephemeral survey account(s)
+SURVEY_OWN_EXIT=0

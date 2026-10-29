@@ -26,7 +26,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
+import EntryButton from '@/app/components/nav/EntryButton'
 import { can } from '@/lib/permissions'
 
 // TABLE-EXPORT-1:行的类型、select、「库里的行 → 表的行」都搬进了 outputRows.ts(与导出路由共用)。
@@ -181,9 +182,13 @@ export default async function OutputPage({
         <ListPage
             title={t('output.listTitle')}
             actions={
-                <Button asChild>
-                    <Link href="/output/new">{t('output.addButton')}</Link>
-                </Button>
+                <>
+                    {/* SYSTEM-MAP-4(Tim 2026-10-29 第 8 条):配料计划离开菜单 —— 入口在这里,「+ 新增产出」的左边 */}
+                    <EntryButton entry={FN.blending} />
+                    <Button asChild>
+                        <Link href="/output/new">{t('output.addButton')}</Link>
+                    </Button>
+                </>
             }
             notices={
                 /* IOD-2:刚刚那次建批次的落地告警(成功、但有决定没人做过)。

@@ -24,10 +24,14 @@ import { assertPopulation, assertPinned } from './lib/selfproof.mjs'
 const SELF = 'check-list-sorting'
 const ROOT = process.cwd()
 
-/** Tim 2026-10-25 Q8 的 84 张(Step 0 量的名单,原样)+ SYSTEM-MAP-1 D4 的 4 张(Tim 2026-10-27:每一张都带排序与导出)+ SYSTEM-MAP-2 的待办 1 张。 */
+/** Tim 2026-10-25 Q8 的 84 张(Step 0 量的名单,原样)+ SYSTEM-MAP-1 D4 的 4 张(Tim 2026-10-27:每一张都带排序与导出)+ SYSTEM-MAP-2 的待办 1 张
+ *  + SYSTEM-MAP-4 的 ESG 两张(Tim 2026-10-30 Q1:能耗强度 · 回收,共享表、排序、导出)。 */
 const LIST_ROUTES = [
     // SYSTEM-MAP-2(Tim 2.4 (9)):工作台 › 待办
     '/workbench',
+    // SYSTEM-MAP-4(Tim 2026-10-30 Q1):ESG 的两张只读新页 —— 共享表、排序、Excel/CSV 导出
+    '/safety/energy',
+    '/safety/recovery',
     // SYSTEM-MAP-1 D4
     '/claims',
     '/compliance/cod',
@@ -178,7 +182,7 @@ for (const e of EXEMPT) {
     }
 }
 
-assertPinned(SELF, '列表页名单(Tim Q8 的 84 + SYSTEM-MAP-1 D4 的 4 + SYSTEM-MAP-2 待办 1)', LIST_ROUTES.length, 89, '名单不再是 89 条 —— 改它要有一条裁定')
+assertPinned(SELF, '列表页名单(Tim Q8 的 84 + SYSTEM-MAP-1 D4 的 4 + SYSTEM-MAP-2 待办 1 + SYSTEM-MAP-4 ESG 2)', LIST_ROUTES.length, 91, '名单不再是 91 条 —— 改它要有一条裁定')
 let files = 0, tags = 0, rough = 0
 const bad = []
 for (const r of LIST_ROUTES) {

@@ -1,0 +1,28 @@
+SELECT1|before admin client round trips 512 / 550 / 1198 / 494 / 785 ms (median 550) · server execution 0.03 ms
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+(node:91030) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/modules.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+WIDTH|en 1024px /tools/calendar (search box drawn, date button 101.6px): menu drawer; the 10-button row measures 475px, last button ends 909px, right group starts 650px → spare -259px (fits from 1283px); page 1024px wide
+PASS|G admin en 1024px /tools/calendar: menu drawer; date button drawn; page 1024px wide, no sideways scroll
+WIDTH|en 1280px /tools/calendar (search box drawn, date button 101.6px): module row; the 10-button row measures 743px, last button ends 909px, right group starts 906px → spare -3px (fits from 1283px); page 1280px wide
+FAIL|G admin en 1280px /tools/calendar: module row (10 buttons, row 743px, last button ends 909px, right group starts 906px); date button drawn; page 1280px wide, no sideways scroll
+WIDTH|en 1366px /tools/calendar (search box drawn, date button 101.6px): module row; the 10-button row measures 757.9px, last button ends 909px, right group starts 992px → spare 83px (fits from 1283px); page 1366px wide
+PASS|G admin en 1366px /tools/calendar: module row (10 buttons, row 757.9px, last button ends 909px, right group starts 992px); date button drawn; page 1366px wide, no sideways scroll
+WIDTH|en 1440px /tools/calendar (search box drawn, date button 101.6px): module row; the 10-button row measures 757.9px, last button ends 909px, right group starts 1066px → spare 157px (fits from 1283px); page 1440px wide
+PASS|G admin en 1440px /tools/calendar: module row (10 buttons, row 757.9px, last button ends 909px, right group starts 1066px); date button drawn; page 1440px wide, no sideways scroll
+WIDTH|zh 1024px /tools/calendar (search box drawn, date button 101.6px): menu drawer; the 10-button row measures 475px, last button ends 702px, right group starts 650px → spare -52px (fits from 1076px); page 1024px wide
+PASS|G admin zh 1024px /tools/calendar: menu drawer; date button drawn; page 1024px wide, no sideways scroll
+WIDTH|zh 1280px /tools/calendar (search box drawn, date button 101.6px): module row; the 10-button row measures 550.5px, last button ends 702px, right group starts 906px → spare 204px (fits from 1076px); page 1280px wide
+PASS|G admin zh 1280px /tools/calendar: module row (10 buttons, row 550.5px, last button ends 702px, right group starts 906px); date button drawn; page 1280px wide, no sideways scroll
+WIDTH|zh 1366px /tools/calendar (search box drawn, date button 101.6px): module row; the 10-button row measures 550.5px, last button ends 702px, right group starts 992px → spare 290px (fits from 1076px); page 1366px wide
+PASS|G admin zh 1366px /tools/calendar: module row (10 buttons, row 550.5px, last button ends 702px, right group starts 992px); date button drawn; page 1366px wide, no sideways scroll
+WIDTH|zh 1440px /tools/calendar (search box drawn, date button 101.6px): module row; the 10-button row measures 550.5px, last button ends 702px, right group starts 1066px → spare 364px (fits from 1076px); page 1440px wide
+PASS|G admin zh 1440px /tools/calendar: module row (10 buttons, row 550.5px, last button ends 702px, right group starts 1066px); date button drawn; page 1440px wide, no sideways scroll
+SELECT1|after all readers client round trips 499 / 498 / 496 / 498 / 495 ms (median 498) · server execution 0.645 ms
+HEALTH|after all readers: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|1 FAIL · 0 warning(s) recorded
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); the browser only sent GETs, opened menus and followed links
+SM4_PROOF_EXIT=1
+X_OWN_EXIT=1

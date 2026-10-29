@@ -4,7 +4,7 @@
 // CONV-5:套 CONV-1 的两文件模板。
 // ★ state 恒为 'ok',而且这一页是【为什么】那条判据存在的一个干净例子:
 //   抬头第二段写着"这一页第一天会是空的,而空态要说出为什么"。那句
-//   cannotAnswerYet(G8:答不出"这个班处理了什么")必须在【空态下也出现】——
+//   runsOnDetail(SYSTEM-MAP-4 之前是 cannotAnswerYet —— G8 答不出"这个班处理了什么")必须在【空态下也出现】——
 //   它走 notices 槽,画在状态分支之前;而"在等什么"那句空态话由 DataTable
 //   自己的 empty 说(emptyNoStaff),不是一句"暂无数据"。
 //
@@ -13,9 +13,8 @@
 // 一句说得清【在等什么】的话 —— 与 output_batch_safety_states 那条"缺失即阻断"
 // 同一条:一个说不出原因的空屏幕,读起来像功能坏了。
 //
-// 【这一页【不】显示"这个班处理了什么"】加工单只有 process_date(一个 date),
-// 归不到某一个班次上(G8)。屏幕上因此有一句常驻的话说明这件事 ——
-// 不写,下一个人会以为是这一页忘了查。
+// 【"这个班处理了什么"在每一次交接班的详情页上】SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5):加工单的班次 + 加工日
+// 配交接班的班次 + 交接日(./shiftRuns.ts)。G8 那句"答不出"退休了;这里留一句常驻的话说它在哪儿。
 import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -114,8 +113,8 @@ export default async function HandoversPage() {
             }
             notices={
                 <>
-                    {/* ★【G8:这一页答不出"这个班处理了什么",而它必须自己说出来】★ */}
-                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('processing.handover.cannotAnswerYet')}</p>
+                    {/* SYSTEM-MAP-4(第 7 条 · Q5):"这个班处理了什么"在哪儿 */}
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('processing.handover.runsOnDetail')}</p>
                     {unacknowledged > 0 && (
                         <p className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded">
                             {t('processing.handover.unacknowledgedCount', { n: String(unacknowledged) })}

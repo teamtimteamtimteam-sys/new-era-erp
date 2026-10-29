@@ -1,0 +1,11 @@
+STEP|base https://new-era-erp.vercel.app
+SELECT1|before the reader client round trips 496 / 498 / 526 / 502 / 495 ms (median 498) · server execution 0.02 ms
+HEALTH|before the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|database as postgres (base tables): contracts 0 · first approved-family supplier SUP-2026-0003 (approved)
+PASS|/contracts (HTTP 200, h1 "Contracts"): error boundary none; alerts none
+STEP|/contracts/[id]: no contract on live (postgres, base table: 0 rows) — not opened
+PASS|SUP-2026-0003 (approved) /suppliers/<id>/edit (HTTP 200): review warning shown — "This supplier is approved. Saving a change to its legal name, tax number or type sends it back t…" (nothing pressed) ⇒ production serves bf93b86 / 7c727f6
+SELECT1|after the reader client round trips 488 / 526 / 576 / 516 / 494 ms (median 516) · server execution 0.033 ms
+HEALTH|after the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+GL1_CLOSEOUT_EXIT=0
