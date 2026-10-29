@@ -1833,10 +1833,16 @@ existing `freight_documents` row — all rolled back, all forbidden (`docs/handb
 `docs/known-issues.md` § SM3-LIVE-PROOF-OUTAGE。
 
 **How(中止规则,Tim 2026-10-28 10:40,原样的意思):**
-- **中止**(停下、finally 里收尾、报告)只认【库那一侧】的信号:库里 `select 1` 的执行 > 50 ms · 线上任何一次走链被 `DOCUMENT_CHAIN_WALK_BUDGET` 拒 ·
-  Management API 的 health 报 db 或 rest 不健康 · 这台机器上【五次往返的中位数】> 1.5 s。
+- **中止**(停下、finally 里收尾、报告)只认【库那一侧】的信号:库里 `select 1` 的执行 > 50 ms ·
+  Management API 的 health 报 db 或 rest 不健康 · 这台机器上【五次往返的中位数】> 1.5 s ·
+  线上一次走链被 `DOCUMENT_CHAIN_WALK_BUDGET` 拒、而【就在那一刻】库那一侧不正常(见下一条)。
 - **只记下、不停**:任何一次单独的往返 > 1.5 s(这台机器到新加坡的底线约 410 ms,单次的尖刺是这条链路自己的,不是库的)·
-  任何一次 1–2 s 的走链(上线准备组的 CHAIN-WALK-COST 管它)。
+  任何一次 1–2 s 的走链(上线准备组的 CHAIN-WALK-COST 管它)·
+  ★ **线上一次走链被 `DOCUMENT_CHAIN_WALK_BUDGET` 拒,而【就在那一刻】库里 `select 1` 的执行 < 50 ms、health 报 db 与 rest 都健康** ——
+  记下(哪一位读者、哪一页、那一刻的三个读数),不停。**理由:Tim 2026-10-29 11:43 CST 决定先不升级 Supabase 套餐,免费档这台
+  426 MB、会换页的机器留下来**(上线准备组第 15 条 SUPABASE-PLAN;`docs/known-issues.md` § CWC-LIVE-INSTANCE-SWAPPING ·
+  SM3-ADMIN-WALK-OVER-BUDGET 仍开)—— 在它上面,库那一侧一切正常时的 2 秒上限拒绝是这台机器的常态,不是本次证明压出来的。
+  这把 Tim 2026-10-28 11:25 当场的裁定(那一次照记不停)变成常设的(COD-READERS,2026-10-29)。别的中止规则一条不变。
 - 先例:`db/scripts/2026-10-27-system-map-3-live-proof.mjs` 与 `…-perf-budget.mjs` 里的 `abortReason()`。
 
 ## ★★★ 策略里的权限判断与读者身份【按语句求一次】(CHAIN-WALK-COST,Tim 2026-10-28 Q1)

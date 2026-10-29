@@ -10,6 +10,9 @@
 //   · 已作废     —— 红。编号仍然在(供应商手里那张纸要查得到),外加作废理由。
 //
 // 【内部存档那个链接在四种状态里都在】—— 存档是内部的事,永远不因缺执照被拒。
+//   ★ COD-READERS(Tim 2026-10-29,64d-5):只对签发人。持 data.view_cod 而不持 action.issue_cod 的读者(cfo · cco · cto · finance · gm)
+//   看得见同一块面板的【只读】样子:状态、编号、签发日、核验网址、作废理由与【存下的那份】PDF;
+//   签发钮、作废申请钮、内部存档与「为什么还不能签发」都不画(Q1 (a):cod_certificate_data 仍只归签发人)。
 //
 // ★ APR-7(Tim 2026-09-25):作废是【一张给 CFO 的申请】,批准之前什么都不发生 —— 公开核验页照旧说"有效",
 //   那是真的。签发不变(仓库,不经批准:资格由系统算)。一张在等的申请碰到这张证书时(作废它的,或回滚、
@@ -33,10 +36,12 @@ export type CertificatePanelData = {
 }
 
 export default function CertificatePanel({
-    batchId, data, canIssue, openRequestLabel,
+    batchId, data, canView, canIssue, openRequestLabel,
 }: {
     batchId: string
     data: CertificatePanelData
+    /** COD-READERS:读得到证书(data.view_cod,或签发人) */
+    canView: boolean
     canIssue: boolean
     /** APR-7:碰到这张证书(或这票货)的那一张在等的仓库申请 */
     openRequestLabel?: string | null
@@ -46,8 +51,8 @@ export default function CertificatePanel({
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // 【没有这条能力就整块不画】—— 与本页其他跨模块面板同一条处置。
-    if (!canIssue) return null
+    // 【没有这条能力就整块不画】—— 与本页其他跨模块面板同一条处置。COD-READERS:那条能力是【读】。
+    if (!canView && !canIssue) return null
 
     const state = data.status ?? 'blocked'
     const tone =
@@ -66,7 +71,7 @@ export default function CertificatePanel({
     }
 
     return (
-        <section className="mt-8">
+        <section className="mt-8" data-cod-panel={canIssue ? 'issuer' : 'reader'}>
             <h2 className="mb-1">{t('cod.title')}</h2>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('cod.intro')}</p>
 
@@ -127,38 +132,43 @@ export default function CertificatePanel({
                         <a
                             className="text-sm underline"
                             href={`/inbound/${batchId}/cod/pdf?cod=${encodeURIComponent(data.code)}`}
+                            data-cod-link="stored"
                             target="_blank" rel="noopener noreferrer"
                         >
                             {t('cod.openIssued')}
                         </a>
-                    ) : (
+                    ) : canIssue ? (
                         <a
                             className="text-sm underline"
                             href={`/inbound/${batchId}/cod/pdf`}
+                            data-cod-link="internal"
                             target="_blank" rel="noopener noreferrer"
                         >
                             {t('cod.internalExport')}
                         </a>
-                    )}
+                    ) : null}
 
-                    {state === 'pending' && (
-                        <Button onClick={onIssue} disabled={busy}>
+                    {canIssue && state === 'pending' && (
+                        <Button onClick={onIssue} disabled={busy} data-cod-control="issue">
                             {t('cod.issueButton')}
                         </Button>
                     )}
 
-                    {state === 'issued' && data.codId && (
-                        <WarehouseRequestButton kind="cod_void" subjectId={data.codId} subjectCode={data.code ?? ''}
+                    {canIssue && state === 'issued' && data.codId && (
+                        <span data-cod-control="void" className="contents"><WarehouseRequestButton kind="cod_void" subjectId={data.codId} subjectCode={data.code ?? ''}
                             permissionCode="action.issue_cod" allowed={canIssue}
-                            openRequestLabel={openRequestLabel} extraPath={`/inbound/${batchId}/edit`} size="default" />
+                            openRequestLabel={openRequestLabel} extraPath={`/inbound/${batchId}/edit`} size="default" /></span>
                     )}
                 </div>
 
-                {state === 'pending' && (
+                {canIssue && state === 'pending' && (
                     <p className="text-xs mt-2 opacity-70 text-[color:var(--brand-muted-text)]">{t('cod.issueHint')}</p>
                 )}
-                {state === 'blocked' && (
+                {canIssue && state === 'blocked' && (
                     <p className="text-xs mt-2 opacity-70 text-[color:var(--brand-muted-text)]">{t('cod.internalExportHint')}</p>
+                )}
+                {!canIssue && (
+                    <p className="text-xs mt-2 opacity-70 text-[color:var(--brand-muted-text)]" data-cod-read-only>{t('cod.readOnlyHint')}</p>
                 )}
 
                 {error && <p className="mt-3 text-sm text-red-700 whitespace-pre-line">{error}</p>}

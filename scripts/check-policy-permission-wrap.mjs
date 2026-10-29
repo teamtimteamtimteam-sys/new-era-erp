@@ -86,7 +86,9 @@ for (const p of policies) {
     const a = allowed.get(k)
     let unwrapped = 0
     for (const m of p.body.matchAll(/\bhas_(?:any_)?permission\(|\bcurrent_user_employee\(\)|\bauth\.uid\(\)/g)) {
-        if (/\(\s*SELECT\s+$/i.test(p.body.slice(0, m.index))) wrapped++
+        // COD-READERS(2026-10-29):storage.objects 上的策略写 public.has_permission(…)(那一侧的 search_path 不含 public),
+        //   包起来是 (SELECT public.has_permission(…)) —— 同一种写法,前缀不改判词。第一条这样写的是「cod-documents read by view_cod」。
+        if (/\(\s*SELECT\s+(?:public\.)?$/i.test(p.body.slice(0, m.index))) wrapped++
         else unwrapped++
     }
     const helpers = ROW_HELPERS.filter((h) => new RegExp(`\\b${h}\\(`).test(p.body))

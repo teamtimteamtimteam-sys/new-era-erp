@@ -12,6 +12,8 @@
 --   NCR_DECIDE  action.ncr_decide 的持有角色恰好是 admin · cco · cto(MES-0 Q90 · MES-6b Step 0 Q9)
 --   VIEWS       持这两个码的每一个角色也持它们各自声明的查看码之一(动作码蕴含查看码,MES-5b-1 的常设规矩)
 --   SUBJECT     线上确实有一个代码为 cco 的角色,而且它有一个启用着的账号(否则 ISSUE_COA 的"cco"是一个空名字)
+--   VIEW_COD    ★ COD-READERS(Tim 2026-10-29,64d-5):data.view_cod 的持有角色恰好是 admin · cco · cfo · cto · finance · gm · warehouse;
+--               action.issue_cod 仍恰好是 admin · warehouse,而且每一个签发的角色也持 data.view_cod(签发的人读得到他签的那一张)
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN READ ONLY;
 DO $live$
@@ -40,7 +42,23 @@ BEGIN
                       AND u.email NOT LIKE '%@test.local') THEN
         RAISE EXCEPTION 'LIVE FIXTURE 265 SUBJECT: no enabled account holds the cco role';
     END IF;
-    RAISE NOTICE 'LIVE FIXTURE 265 全部通过: ISSUE_COA · NCR_DECIDE · VIEWS · SUBJECT';
+    SELECT string_agg(r.code, ',' ORDER BY r.code) INTO v FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
+     WHERE rp.permission_code = 'data.view_cod';
+    IF v IS DISTINCT FROM 'admin,cco,cfo,cto,finance,gm,warehouse' THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 265 VIEW_COD: data.view_cod is held by % (ruled: admin,cco,cfo,cto,finance,gm,warehouse)', COALESCE(v, '<nobody>');
+    END IF;
+    SELECT string_agg(r.code, ',' ORDER BY r.code) INTO v FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
+     WHERE rp.permission_code = 'action.issue_cod';
+    IF v IS DISTINCT FROM 'admin,warehouse' THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 265 VIEW_COD: action.issue_cod is held by % (ruled: admin,warehouse)', COALESCE(v, '<nobody>');
+    END IF;
+    SELECT string_agg(r.code, ',' ORDER BY r.code) INTO v FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
+     WHERE rp.permission_code = 'action.issue_cod'
+       AND NOT EXISTS (SELECT 1 FROM role_permissions w WHERE w.role_id = rp.role_id AND w.permission_code = 'data.view_cod');
+    IF v IS NOT NULL THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 265 VIEW_COD: % issue certificates of destruction but cannot read them', v;
+    END IF;
+    RAISE NOTICE 'LIVE FIXTURE 265 全部通过: ISSUE_COA · NCR_DECIDE · VIEWS · SUBJECT · VIEW_COD';
 END
 $live$;
 ROLLBACK;

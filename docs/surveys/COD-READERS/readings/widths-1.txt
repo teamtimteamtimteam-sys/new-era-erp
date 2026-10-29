@@ -1,0 +1,29 @@
+STEP|database as postgres (base tables): 3 certificates — (no number) pending · COD-2026-0001 issued · COD-2026-0002 issued
+SELECT1|before admin client round trips 409 / 512 / 1129 / 1226 / 512 ms (median 512) · server execution 0.019 ms
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+(node:71895) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/modules.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+WIDTH|en 1024px /tools/calendar (search box drawn): menu drawer; the 10-button row measures 584.6px, last button ends 952px, right group starts 760px → spare -192px (fits from 1216px); page 1024px wide
+PASS|G admin en 1024px /tools/calendar: menu drawer; page 1024px wide, no sideways scroll
+WIDTH|en 1280px /tools/calendar (search box drawn): module row; the 10-button row measures 801.1px, last button ends 952px, right group starts 976px → spare 24px (fits from 1256px); page 1280px wide
+PASS|G admin en 1280px /tools/calendar: module row (10 buttons, row 801.1px, last button ends 952px, right group starts 976px); page 1280px wide, no sideways scroll
+WIDTH|en 1366px /tools/calendar (search box drawn): module row; the 10-button row measures 801.1px, last button ends 952px, right group starts 1062px → spare 110px (fits from 1256px); page 1366px wide
+PASS|G admin en 1366px /tools/calendar: module row (10 buttons, row 801.1px, last button ends 952px, right group starts 1062px); page 1366px wide, no sideways scroll
+WIDTH|en 1440px /tools/calendar (search box drawn): module row; the 10-button row measures 801.1px, last button ends 952px, right group starts 1136px → spare 184px (fits from 1256px); page 1440px wide
+PASS|G admin en 1440px /tools/calendar: module row (10 buttons, row 801.1px, last button ends 952px, right group starts 1136px); page 1440px wide, no sideways scroll
+WIDTH|zh 1024px /tools/calendar (search box drawn): menu drawer; the 10-button row measures 552px, last button ends 703px, right group starts 760px → spare 57px (fits from 967px); page 1024px wide
+PASS|G admin zh 1024px /tools/calendar: menu drawer; page 1024px wide, no sideways scroll
+WIDTH|zh 1280px /tools/calendar (search box drawn): module row; the 10-button row measures 552px, last button ends 703px, right group starts 976px → spare 273px (fits from 1007px); page 1280px wide
+PASS|G admin zh 1280px /tools/calendar: module row (10 buttons, row 552px, last button ends 703px, right group starts 976px); page 1280px wide, no sideways scroll
+WIDTH|zh 1366px /tools/calendar (search box drawn): module row; the 10-button row measures 552px, last button ends 703px, right group starts 1062px → spare 359px (fits from 1007px); page 1366px wide
+PASS|G admin zh 1366px /tools/calendar: module row (10 buttons, row 552px, last button ends 703px, right group starts 1062px); page 1366px wide, no sideways scroll
+WIDTH|zh 1440px /tools/calendar (search box drawn): module row; the 10-button row measures 552px, last button ends 703px, right group starts 1136px → spare 433px (fits from 1007px); page 1440px wide
+PASS|G admin zh 1440px /tools/calendar: module row (10 buttons, row 552px, last button ends 703px, right group starts 1136px); page 1440px wide, no sideways scroll
+SELECT1|after all readers client round trips 533 / 525 / 514 / 453 / 525 ms (median 525) · server execution 0.023 ms
+HEALTH|after all readers: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|all PASS · 0 warning(s) recorded
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); the browser only sent GETs and opened menus
+CODR_PROOF_EXIT=0
+X_OWN_EXIT=0

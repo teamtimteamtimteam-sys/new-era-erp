@@ -25,6 +25,8 @@
 --   E2b(MES-7a-1 · F10)签发的返回值带着存下的那一份快照,逐字相等 —— 路由照它渲染
 --   J 权限:没有能力的读者被拒;仓储现场拿得到供应商【名字】,却读不到
 --     suppliers 与 company_compliance 一行
+--   J5 / J6(COD-READERS,Tim 2026-10-29):持 data.view_cod 的只读读者读得到每一张证书与档案行、组装 / 签发 / 作废 / 提申请一律被拒;
+--     不持它的读者一行都读不到
 -- APR-7(2026-09-25):作废 / 注销 / 回滚改走 CFO 批的申请(docs/approvals.md §3t)。本支审批关着,申请生下来就是
 --   approved、当场生效,所以原来那几格照旧成立;H1 的空理由改由提交按名拒 WAREHOUSE_REQUEST_REASON_REQUIRED。
 BEGIN;
@@ -37,7 +39,10 @@ DECLARE
     v_issuer uuid := gen_random_uuid();
     v_wh     uuid := gen_random_uuid();
     v_ops    uuid := gen_random_uuid();
-    v_role_full uuid; v_role_wh uuid; v_role_ops uuid;
+    -- COD-READERS(2026-10-29):第四个会话 —— 一位【只读】的读者(照引导的 gm 抄:持 data.view_cod,不持 action.issue_cod)
+    v_rd     uuid := gen_random_uuid();
+    v_role_full uuid; v_role_wh uuid; v_role_ops uuid; v_role_rd uuid;
+    v_all_cod integer; v_all_iss integer;
 
     mat uuid; sup uuid;
     b_done uuid; b_part uuid; b_wo uuid; b_adj uuid; b_none uuid; b_auto uuid;
@@ -89,6 +94,21 @@ BEGIN
     IF EXISTS (SELECT 1 FROM role_permissions WHERE role_id = v_role_ops
                 AND permission_code = 'action.issue_cod') THEN
         RAISE EXCEPTION 'FIXTURE 195 前提不成立:operations 持有了 action.issue_cod,J1 臂将测不到东西';
+    END IF;
+
+    -- COD-READERS(Tim 2026-10-29,64d-5):只读的读者,照播种的 gm 抄(与上面两个角色同一条:不写第二份清单)
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+    VALUES ('fixture-195-reader', 'fixture', 'fixture', true) RETURNING id INTO v_role_rd;
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT v_role_rd, rp.permission_code FROM role_permissions rp
+      JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'gm';
+    INSERT INTO user_roles (user_id, role_id) VALUES (v_rd, v_role_rd);
+    IF NOT EXISTS (SELECT 1 FROM role_permissions WHERE role_id = v_role_rd AND permission_code = 'data.view_cod')
+       OR EXISTS (SELECT 1 FROM role_permissions WHERE role_id = v_role_rd AND permission_code = 'action.issue_cod') THEN
+        RAISE EXCEPTION 'FIXTURE 195 前提不成立:gm 应持 data.view_cod 而不持 action.issue_cod,J5 臂将测不到东西';
+    END IF;
+    IF EXISTS (SELECT 1 FROM role_permissions WHERE role_id = v_role_ops AND permission_code = 'data.view_cod') THEN
+        RAISE EXCEPTION 'FIXTURE 195 前提不成立:operations 持有了 data.view_cod,J6 臂将测不到东西';
     END IF;
 
     -- 公司抬头。★【"有没有行"与"法定名称填没填"是两件事】★
@@ -566,6 +586,43 @@ BEGIN
         END IF;
     END LOOP;
     r := r || jsonb_build_object('J4_internal_functions_unreachable', 3);
+
+    -- J5:★ COD-READERS(Tim 2026-10-29,64d-5)★ 持 data.view_cod、不持 action.issue_cod 的读者:
+    --   读得到【每一张】证书与它的字节档案行(PDF 路由要的就是这两张表);
+    --   组装、签发、作废、提作废申请【一律按名拒】—— 读放宽了,写一扇都没开。
+    SELECT count(*) INTO v_all_cod FROM certificates_of_destruction;
+    SELECT count(*) INTO v_all_iss FROM cod_issues;
+    IF v_all_cod = 0 OR v_all_iss = 0 THEN
+        RAISE EXCEPTION 'J5 前提不成立:此刻没有证书(%)或没有档案行(%)', v_all_cod, v_all_iss;
+    END IF;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_rd), true);
+    SELECT count(*) INTO v_rows FROM certificates_of_destruction;
+    IF v_rows <> v_all_cod THEN RAISE EXCEPTION 'J5a 失败:读者读到 % 张证书,应为 %', v_rows, v_all_cod; END IF;
+    SELECT count(*) INTO v_rows FROM cod_issues;
+    IF v_rows <> v_all_iss THEN RAISE EXCEPTION 'J5b 失败:读者读到 % 行档案,应为 %', v_rows, v_all_iss; END IF;
+    v_err := NULL;
+    BEGIN PERFORM cod_certificate_data(b_part); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
+    IF v_err IS DISTINCT FROM 'PERMISSION_DENIED' THEN RAISE EXCEPTION 'J5c 失败:读者组装证书得到 "%"(应为 PERMISSION_DENIED)', v_err; END IF;
+    v_err := NULL;
+    BEGIN PERFORM issue_cod(v_cod2); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
+    IF v_err IS DISTINCT FROM 'PERMISSION_DENIED' THEN RAISE EXCEPTION 'J5d 失败:读者签发得到 "%"(应为 PERMISSION_DENIED)', v_err; END IF;
+    v_err := NULL;
+    BEGIN PERFORM void_cod(v_cod2, 'f195 J5'); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
+    IF v_err IS DISTINCT FROM 'PERMISSION_DENIED|action.issue_cod' THEN RAISE EXCEPTION 'J5e 失败:读者作废得到 "%"', v_err; END IF;
+    v_err := NULL;
+    BEGIN PERFORM submit_cod_void_request(v_cod2, 'f195 J5'); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
+    IF v_err IS DISTINCT FROM 'PERMISSION_DENIED|action.issue_cod' THEN RAISE EXCEPTION 'J5f 失败:读者提作废申请得到 "%"', v_err; END IF;
+    RESET ROLE;
+    r := r || jsonb_build_object('J5_reader_rows', jsonb_build_array(v_all_cod, v_all_iss), 'J5_reader_writes_refused', 4);
+
+    -- J6:不持 data.view_cod 的读者(运营)一张证书、一行档案都读不到
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_ops), true);
+    SELECT (SELECT count(*) FROM certificates_of_destruction) + (SELECT count(*) FROM cod_issues) INTO v_rows;
+    RESET ROLE;
+    IF v_rows <> 0 THEN RAISE EXCEPTION 'J6 失败:没有 data.view_cod 的读者读到 % 行', v_rows; END IF;
+    r := r || jsonb_build_object('J6_no_reader_rows', 0);
 
     -- ★【NOTICE,不是 EXCEPTION —— 而这是两条不同的跑法】★
     -- 经 Management API 单跑时,惯例是 RAISE EXCEPTION 'FIXTURE_REPORT %',

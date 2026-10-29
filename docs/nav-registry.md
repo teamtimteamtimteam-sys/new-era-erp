@@ -953,3 +953,21 @@ live 最终授权实测:`data.view_deleted` 的持有者 = **`admin auditor`**�
   一个什么都不用批的人进来看见「没有在等你的事」,不是一句拒绝。条目 140 → 141(菜单条目 120 → 121)。
 * **提醒页仍在工作台里**(Tim 2.4 (11)),排在待办、任务之后;它的审批支从此按读者逐行裁(`docs/dashboard-arm-inventory.md` 的 SYSTEM-MAP-2 一节)。
 * `scripts/check-list-sorting.mjs` 的名单 88 → 89(`/workbench`,浏览器里排,带导出)。
+
+# LOGISTICS-MODULE(2026-10-29,v1.4.81,与 COD-READERS 同一刀)—— 物流重新是一级模块
+
+> Tim 2026-10-29(原话与全文在 `docs/system-map.md` 末尾那一节):整族物流放在销售底下不合理 —— 物流既服务进料的提货,也服务出货的发运。
+> **这一条取代 SYSTEM-MAP 裁定 (6) 的「销售与物流」那一组**;上面 SYSTEM-MAP-1 一节写的「物流并进 `sales`」是那一刀的事实,原样留着。
+
+* **模块**:`MODULES` 与 `BAR_MODULE_IDS` 在 `sales` 后面多一个 `logistics`(`nav.mod.logistics` 「Logistics / 物流」,完整名 `nav.modFull.logistics` 同字);
+  顶栏十个按钮:`workbench · purchasing · production · quality · sales · logistics · finance · people · safety · equipment`,`tools · settings` 仍是抽屉里的两个区。
+  销售的完整名从「Sales and logistics / 销售与物流」改成「Sales / 销售」。`/logistics` 那一页的页头读 `nav.modFull.logistics`(与另外五张模块概览页同一种读法)。
+* **搬家的六条**(地址与权限一个字不动,属主 `sales` → `logistics`,菜单顺序就是下面的顺序):
+  `/logistics`(概览,`module.logistics.view`)· `/logistics/containers` · `/logistics/forwarders` · `/logistics/lanes`(三条都是 `module.logistics.view`)·
+  `/logistics/shipping`(`action.ship_goods`)· `/finance/freight`(`module.finance.view`)。
+* **销售留下的**:`/sales`(概览)· `/sales/quotes` · `/sales/orders` · `/sales/customers`(和它的子条目 `/sales/customers/overlap`)· `/sales/commissions`。
+* **条目数没有变**:141 条 = 121 条菜单条目 + 20 条子条目;每个模块的菜单条目:工作台 6 · 采购 8 · 生产 19 · 质量 5 · 销售 5 · **物流 6** · 财务 35 · 人事 12 · 安全 8 · 设备 6。
+  `scripts/check-single-home.mjs` 照旧绿(每一条恰好一个家,而且那个家在 `MODULES` 里;`MODULES` 里每一个模块至少一条菜单条目 —— 新的 `logistics` 有六条)。
+* **说错了家的那几行**:把六条之一说成「在销售底下」的消息行 0 行(`messages/en.ts` · `zh.ts` 逐行查过,返回链接都指向物流自己的页面);
+  还写着旧名「Sales and logistics / 销售与物流」的消息 2 行(两种语言的 `nav.modFull.sales`),都改了;注册表里两段注释的「它今天只有一个家(销售与物流)」改成了今天的家。
+* **逐角色的实测**(一次性账号 `codrprobe`,每个真角色克隆一个,读画出来的顶栏与物流、销售两张菜单):`docs/surveys/COD-READERS/README.md`。

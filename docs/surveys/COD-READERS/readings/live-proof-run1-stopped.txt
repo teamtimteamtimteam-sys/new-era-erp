@@ -1,0 +1,27 @@
+STEP|database as postgres (base tables): 3 certificates — (no number) pending · COD-2026-0001 issued · COD-2026-0002 issued
+SELECT1|before admin client round trips 710 / 616 / 509 / 1229 / 514 ms (median 616) · server execution 0.023 ms
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+(node:85720) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/modules.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS|R admin: the clone holds data.view_cod true · action.issue_cod true (ruled: view yes · issue yes)
+PASS|N admin: bar = Workbench · Purchasing · Production · Quality · Sales · Logistics · Finance · People · Safety · Equipment (10 buttons)
+PASS|N admin: 110 entries rendered across 10 modules, each under exactly one module
+FAIL|N admin: every row matches the registry for this role (order and open/restricted) — finance: rows /finance,/finance/trial-balance,/finance/pnl,/finance/balance-sheet,/finance/cashflow,/finance/cash-forecast,/finance/price-exposure,/margin,/finance/self-approved,/finance/journal,/finance/journal/new,/finance/receivables,/finance/invoices,/finance/credit-notes,/finance/payables,/finance/supplier-statements,/finance/payment-requests,/finance/payments,/finance/expenses,/finance/assets,/finance/month-end,/finance/list-vs-ledger,/finance/payroll-payments,/finance/processing-costs,/finance/electricity,/finance/revaluation,/finance/cost-variance,/finance/close,/finance/gst,/finance/wht,/finance/packs,/finance/bank,/finance/settings,/finance/company,/finance/fx ≠ registry /finance,/finance/trial-balance,/finance/pnl,/finance/balance-sheet,/finance/cashflow,/finance/cash-forecast,/finance/price-exposure,/margin,/finance/journal,/finance/journal/new,/finance/receivables,/finance/invoices,/finance/credit-notes,/finance/payables,/finance/supplier-statements,/finance/payment-requests,/finance/payments,/finance/expenses,/finance/assets,/finance/month-end,/finance/list-vs-ledger,/finance/payroll-payments,/finance/processing-costs,/finance/electricity,/finance/revaluation,/finance/cost-variance,/finance/close,/finance/gst,/finance/wht,/finance/packs,/finance/bank,/finance/settings,/finance/company,/finance/fx,/finance/self-approved
+PASS|N admin: Logistics menu (title "Logistics") = /logistics · /logistics/containers · /logistics/forwarders · /logistics/lanes · /logistics/shipping · /finance/freight
+PASS|N admin: Sales menu (title "Sales") = /sales · /sales/quotes · /sales/orders · /sales/customers · /sales/commissions
+PASS|L admin /compliance/cod: opens (HTTP 200), 3 rows (database 3), 2 PDF links (issued or voided: 2)
+
+!! 收到 SIGTERM —— 先清理,再退出
+CODR_DRIVER|Error: Navigating frame was detached
+    at <instance_members_initializer> (file:///private/tmp/claude-501/-Users-timchen/dfbb73bb-9fe7-4d5a-82dd-dc195e421ccf/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/cdp/LifecycleWatcher.js:33:14)
+    at new LifecycleWatcher (file:///private/tmp/claude-501/-Users-timchen/dfbb73bb-9fe7-4d5a-82dd-dc195e421ccf/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/cdp/LifecycleWatcher.js:37:16)
+    at CdpFrame.goto (file:///private/tmp/claude-501/-Users-timchen/dfbb73bb-9fe7-4d5a-82dd-dc195e421ccf/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/cdp/Frame.js:152:29)
+    at CdpFrame.<anonymous> (file:///private/tmp/claude-501/-Users-timchen/dfbb73bb-9fe7-4d5a-82dd-dc195e421ccf/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/util/decorators.js:101:27)
+    at CdpPage.goto (file:///private/tmp/claude-501/-Users-timchen/dfbb73bb-9fe7-4d5a-82dd-dc195e421ccf/scratchpad/pup/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:582:43)
+    at openAs (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-29-cod-readers-live-proof.mjs:117:28)
+    at async main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-29-cod-readers-live-proof.mjs:279:38)
+AFTER|nothing but the throwaway accounts, their roles and grants was committed (removed by the plan); the browser only sent GETs and opened menus
+CODR_PROOF_EXIT=143
+X_OWN_EXIT=143

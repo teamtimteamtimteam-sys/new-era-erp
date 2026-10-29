@@ -137,8 +137,10 @@ export async function shapeInboundRows(
     }
     // ── APR-7:注销要不要经 CFO(grilling Q1 —— 与库里 batch_write_off_needs_request 同一条判据:
     //   还有料,或挂着一张【已签发】的销毁证书),以及哪一张在等的申请碰到了这一批。
-    //   证书表的读策略是 action.issue_cod;读不到的人(他们也不持注销的码)这一格按"没有证书"画,
-    //   库照样按名拒。
+    //   这一格只喂注销钮,所以问的是签发 / 注销那一侧的码 action.issue_cod(持注销码的 admin · warehouse 都持它)——
+    //   ★ COD-READERS(Tim 2026-10-29):证书表的读从此是 data.view_cod,而这一格【刻意】留在 action.issue_cod:
+    //   只读的读者(cfo · cco · cto · finance · gm)不持注销的码,替他们多读一遍证书什么都不改变。
+    //   不持它的人这一格按"没有证书"画,库照样按名拒。
     const issuedCodBatches = new Set<string>()
     if (ids.length > 0 && await can('action.issue_cod')) {
         const codRows = await inChunks(ids, (chunk) => supabase

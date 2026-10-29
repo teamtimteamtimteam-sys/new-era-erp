@@ -645,11 +645,13 @@ const zh = {
         // SYSTEM-MAP-1(Tim Q1,2026-10-27):顶栏与抽屉的短标签(mod)与完整流程名(modFull:悬停提示、模块概览页页头)
         mod: {
             workbench: '工作台', purchasing: '采购', production: '生产', quality: '质量', sales: '销售',
+            // LOGISTICS-MODULE(Tim 2026-10-29):物流重新是一个一级模块(它既管进料的提货,也管出货的发运)
+            logistics: '物流',
             finance: '财务', people: '人事', safety: '安全', equipment: '设备',
         },
         modFull: {
             workbench: '我的工作台', purchasing: '采购', production: '生产与仓储', quality: '质量',
-            sales: '销售与物流', finance: '财务', people: '人事', safety: '安全与合规', equipment: '设备',
+            sales: '销售', logistics: '物流', finance: '财务', people: '人事', safety: '安全与合规', equipment: '设备',
         },
         equipmentRegister: '设备台账',
         logisticsOverview: '物流概览',
@@ -7299,6 +7301,8 @@ const zh = {
         voidReasonLabel: '为什么作废?',
         voidedBecause: '已作废:{0}',
         restricted: '你没有签发销毁证书的权限。',
+        // COD-READERS(Tim 2026-10-29):只读的读者在面板底下看到的那一句
+        readOnlyHint: '只读 —— 签发与作废要「签发销毁证书」权限。',
         errors: {
             BATCH_REQUIRED: '没有指明是哪一票货。',
             BATCH_NOT_FOUND: '没有这一票货:{0}。',

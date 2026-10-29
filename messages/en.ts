@@ -666,11 +666,13 @@ const en = {
         // SYSTEM-MAP-1(Tim Q1,2026-10-27):顶栏与抽屉的短标签(mod)与完整流程名(modFull:悬停提示、模块概览页页头)
         mod: {
             workbench: 'Workbench', purchasing: 'Purchasing', production: 'Production', quality: 'Quality', sales: 'Sales',
+            // LOGISTICS-MODULE(Tim 2026-10-29):物流重新是一个一级模块(它既管进料的提货,也管出货的发运)
+            logistics: 'Logistics',
             finance: 'Finance', people: 'People', safety: 'Safety', equipment: 'Equipment',
         },
         modFull: {
             workbench: 'My workbench', purchasing: 'Purchasing', production: 'Production and warehouse', quality: 'Quality',
-            sales: 'Sales and logistics', finance: 'Finance', people: 'People', safety: 'Safety and compliance', equipment: 'Equipment',
+            sales: 'Sales', logistics: 'Logistics', finance: 'Finance', people: 'People', safety: 'Safety and compliance', equipment: 'Equipment',
         },
         equipmentRegister: 'Equipment register',
         logisticsOverview: 'Logistics overview',
@@ -7502,6 +7504,8 @@ const en = {
         voidReasonLabel: 'Why is it being voided?',
         voidedBecause: 'Voided: {0}',
         restricted: 'You do not have permission to issue certificates of destruction.',
+        // COD-READERS(Tim 2026-10-29):只读的读者在面板底下看到的那一句
+        readOnlyHint: 'Read only — issuing and voiding need the Issue certificate of destruction permission.',
         errors: {
             BATCH_REQUIRED: 'No delivery was named.',
             BATCH_NOT_FOUND: 'No such delivery: {0}.',

@@ -145,7 +145,11 @@ export default async function EditInboundPage({
     // 【一个权限码,不多不少】—— 页面的门与组装函数的门是同一个 action.issue_cod。
     // 挂 module.processing.view 是另一条路,而仓储现场不持有它:那会为了看一张
     // 证书把整个加工模块打开。
+    // ★ COD-READERS(Tim 2026-10-29,64d-5):【读】这一块换成 data.view_cod(与证书表的读策略同一个码)——
+    //   cfo · cco · cto · finance · gm 看得见证书(只读);签发、作废、内部存档与「为什么还不能签发」仍只归 action.issue_cod
+    //   (Q1 (a):cod_certificate_data 仍只归签发人,读者对一张还没签发的证书只看得见状态)。
     const canIssueCod = await can('action.issue_cod')
+    const canViewCod = canIssueCod || await can('data.view_cod')
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes, priceHistoryRes] = await Promise.all([
@@ -649,7 +653,7 @@ export default async function EditInboundPage({
         completedOn: null, verificationToken: null, voidReason: null,
         blockedBecause: null,
     }
-    if (canIssueCod) {
+    if (canViewCod) {
         const codRes = await supabase
             .from('certificates_of_destruction')
             .select('id, code, status, issued_at, completed_on, verification_token, void_reason')
@@ -682,9 +686,10 @@ export default async function EditInboundPage({
             // 所以这里走 cod_certificate_data —— 它有 action.issue_cod 的门,
             // 而它组装不出来时抛的正是 CANNOT_CERTIFY|批号|具名理由。
             // 判据仍然只有一份实现,外面只有一扇门。
-            const { error: whyErr } = await supabase.rpc('cod_certificate_data', {
-                p_inbound_batch_id: id,
-            })
+            // COD-READERS(Q1 (a)):只读的读者不问 —— 那支函数只归签发人,读者看见的是状态,没有理由
+            const { error: whyErr } = canIssueCod
+                ? await supabase.rpc('cod_certificate_data', { p_inbound_batch_id: id })
+                : { error: null }
             codPanel = {
                 codId: cod?.id ?? null, code: cod?.code ?? null,
                 status: cod?.status ?? null,
@@ -1017,7 +1022,7 @@ export default async function EditInboundPage({
             {/* COD-1:销毁证书。它【自己成立】—— 整批加工完的那一刻就有了一行,
                 不等谁打开这个页面(refresh_cod_for_batch 挂在 commit / rollback /
                 软删三处)。这里只是把它显示出来,并给签发与作废两个动作。 */}
-            <CertificatePanel batchId={id} data={codPanel} canIssue={canIssueCod}
+            <CertificatePanel batchId={id} data={codPanel} canView={canViewCod} canIssue={canIssueCod}
                 openRequestLabel={(codPanel.code ? openWarehouseRequest.get(codPanel.code) : null) ?? openWarehouseRequest.get(batch.code) ?? null} />
 
             {/* MES-3a(Q10):进厂那一刻库存上限是怎么判的 */}

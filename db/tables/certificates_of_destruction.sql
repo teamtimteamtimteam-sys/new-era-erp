@@ -80,10 +80,12 @@ ALTER TABLE public.certificates_of_destruction ENABLE ROW LEVEL SECURITY;
 
 -- 【读:一个权限码,不多不少】S7 的裁定 —— 判据必须正好是一个能力,
 -- 而且这张表【不接受供应商 id 作参数】,所以它成不了一扇查供应商的门。
+-- ★ COD-READERS(Tim 2026-10-29,64d-5):那一个码从 action.issue_cod 换成读的码 data.view_cod
+--   (admin · warehouse · cfo · cco · cto · finance · gm)。签发与作废仍只经下面那四支函数,门仍是 action.issue_cod。
 CREATE POLICY "certificates_of_destruction select by permission"
     ON public.certificates_of_destruction
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((SELECT has_permission('action.issue_cod'::text)));
+    USING ((SELECT has_permission('data.view_cod'::text)));
 -- 【没有 INSERT / UPDATE / DELETE 策略,这是刻意的】唯一写入口是本刀的
 -- 四支 SECURITY DEFINER 函数。档案不该有第二个写法。
 

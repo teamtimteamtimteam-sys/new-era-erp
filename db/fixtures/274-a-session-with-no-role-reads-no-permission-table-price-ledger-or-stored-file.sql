@@ -100,7 +100,7 @@ DECLARE
     -- bucket → [read codes], [upload codes] (Step 0 §3, Q7–Q10)
     v_bk jsonb := jsonb_build_object(
         'cn-documents', jsonb_build_array(jsonb_build_array('module.finance.view'), jsonb_build_array('module.finance.edit')),
-        'cod-documents', jsonb_build_array(jsonb_build_array('action.issue_cod'), jsonb_build_array('action.issue_cod')),
+        'cod-documents', jsonb_build_array(jsonb_build_array('data.view_cod'), jsonb_build_array('action.issue_cod')),  -- COD-READERS(2026-10-29):读 data.view_cod
         'customer-attachments', jsonb_build_array(jsonb_build_array('module.customers.view'), jsonb_build_array('module.customers.edit')),
         'finance-attachments', jsonb_build_array(jsonb_build_array('module.finance.view'), jsonb_build_array('module.finance.edit')),
         'invoice-documents', jsonb_build_array(jsonb_build_array('module.finance.view'), jsonb_build_array('module.finance.edit')),

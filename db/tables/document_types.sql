@@ -124,7 +124,8 @@ INSERT INTO public.document_types
 VALUES
     ('assay_result', 'ASY', 'assay_results', 'gapless', NULL, '/inbound', 'type_list', 'notes', ARRAY['lab_name', 'certificate_ref', 'sample_ref', 'notes']::text[], ARRAY['module.inbound.view','module.output.view']::text[]),
     ('collection_chase', 'CHASE', 'collection_chases', 'gapless', NULL, '/sales/customers', 'type_list', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
-    ('cod', 'COD', 'certificates_of_destruction', 'gapless', NULL, '/output', 'type_list', 'void_reason', ARRAY['void_reason']::text[], ARRAY['action.issue_cod']::text[]),
+    -- COD-READERS(Tim 2026-10-29,64d-5):读码从 action.issue_cod 换成 data.view_cod(与证书表的读策略逐字同一个码)
+    ('cod', 'COD', 'certificates_of_destruction', 'gapless', NULL, '/output', 'type_list', 'void_reason', ARRAY['void_reason']::text[], ARRAY['data.view_cod']::text[]),
     ('container', 'CTR', 'containers', 'gapless', NULL, '/logistics/containers', 'detail', 'notes', ARRAY['container_number', 'vessel', 'voyage', 'bl_number', 'notes']::text[], ARRAY['module.logistics.view']::text[]),
     ('credit_note', 'CN', 'credit_notes', 'gapless', NULL, '/finance/credit-notes', 'list', 'reason', ARRAY['reason']::text[], ARRAY['module.finance.view']::text[]),
     ('employee', 'EMP', 'employees', 'gapless', NULL, '/hr/employees', 'detail', 'legal_name', ARRAY['legal_name', 'preferred_name']::text[], ARRAY['module.hr.view']::text[]),

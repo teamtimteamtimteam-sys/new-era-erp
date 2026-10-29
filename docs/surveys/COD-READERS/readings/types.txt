@@ -1,0 +1,1 @@
+supabase gen types → byte-identical to lib/database.types.ts (diff 0 lines); TYPES_OWN_EXIT=0

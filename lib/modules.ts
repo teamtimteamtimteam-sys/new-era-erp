@@ -189,6 +189,9 @@ export const MODULES: readonly ModuleEntry[] = [
     { id: 'production', navKey: 'nav.mod.production', titleKey: 'nav.modFull.production' },
     { id: 'quality', navKey: 'nav.mod.quality', titleKey: 'nav.modFull.quality' },
     { id: 'sales', navKey: 'nav.mod.sales', titleKey: 'nav.modFull.sales' },
+    // ★ LOGISTICS-MODULE(Tim 2026-10-29,取代 SYSTEM-MAP 裁定 (6) 的「销售与物流」那一组):物流重新是自己的一级模块,
+    //   紧跟在销售后面 —— 它不只服务出货的发运,也服务进料的提货,整族放进销售不合理。六条条目搬过来,地址与权限一个字不动。
+    { id: 'logistics', navKey: 'nav.mod.logistics', titleKey: 'nav.modFull.logistics' },
     { id: 'finance', navKey: 'nav.mod.finance', titleKey: 'nav.modFull.finance' },
     { id: 'people', navKey: 'nav.mod.people', titleKey: 'nav.modFull.people' },
     { id: 'safety', navKey: 'nav.mod.safety', titleKey: 'nav.modFull.safety' },
@@ -243,7 +246,8 @@ export const MODULES: readonly ModuleEntry[] = [
 //   docs/information-architecture.md §23.3 与 §23.7。
 export const BAR_MODULE_IDS: readonly string[] = [
     // SYSTEM-MAP-1(Q1):工作台第一,然后是 2.2 的八个业务模块,顺序即 2.2 的顺序。
-    'workbench', 'purchasing', 'production', 'quality', 'sales', 'finance', 'people', 'safety', 'equipment',
+    // LOGISTICS-MODULE(Tim 2026-10-29):物流紧跟销售 —— 顶栏十个按钮。
+    'workbench', 'purchasing', 'production', 'quality', 'sales', 'logistics', 'finance', 'people', 'safety', 'equipment',
 ]
 
 /** 退出顶栏那一行、但【仍然在注册表里】的模块。工具进工具下拉,设置进头像下拉。 */
@@ -609,15 +613,11 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // MES-4b(2026-10-07,Step 0 Q21–Q25,Tim):交叉污染抽检 —— 每一个班 × 每一条流抽过没有、污染率对着警戒线(V11)。只读;记在加工单页上。
     { href: '/operation/contamination', navKey: 'processing.subnav.contamination', modules: ['quality'], permission: P_CONTAMINATION },
 
-    // ══ 销售与物流 Sales and logistics(SYSTEM-MAP-1:销售 + 物流) ═══════════════════════
+    // ══ 销售 Sales(SYSTEM-MAP-1 把物流并了进来;LOGISTICS-MODULE,Tim 2026-10-29,又把它分了出去 —— 见下面「物流」那一段)══════
     // ★【CONV-6 ⑤c:销售也【此前没有模块根】,与物流同一处缺席】★
     { href: '/sales', navKey: 'nav.moduleOverview', modules: ['sales'], permission: P_SALES },
     { href: '/sales/quotes', navKey: 'sales.subnav.quotes', modules: ['sales'], permission: P_SALES },
     { href: '/sales/orders', navKey: 'sales.subnav.orders', modules: ['sales'], permission: P_SALES },
-    // ★【CONV-6 ⑤c:物流【此前根本没有模块根】—— app/logistics/page.tsx 不存在】★
-    //   NAV-REG-1 早就为物流记过那个陷阱(「一个打得开却零行的库存页」),
-    //   而它自己连打得开的那一页都没有。本刀建了,内容是 ⑨ 的 Overview。
-    { href: '/logistics', navKey: 'nav.logisticsOverview', modules: ['sales'], permission: P_LOGISTICS },
     // ★★【CONV-6 ⑤b:客户【整族】搬进销售,地址前缀换成 /sales/customers】★★
     //   与「任务→工具」、「加工→运营」那两次逐字同一种拆法:
     //   **导航与路由前缀搬,RLS 上写着的那个码一个字不动。**
@@ -639,14 +639,22 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // (第二份排序表正是本刀在财务子导航里刚刚删掉的那种东西。)
     // 【双】佣金:主语是代理人(一个 service_vendor 供应商),但 free_standing
     // 与卖方侧的佣金是销售在看 —— 勘察 C1/C4。
-    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(销售与物流)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(销售)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
     { href: '/sales/commissions', navKey: 'nav.commissions', modules: ['sales'], permission: P_SUPPLIERS },
-    { href: '/logistics/containers', navKey: 'logistics.containersTitle', modules: ['sales'], permission: P_LOGISTICS },
-    { href: '/logistics/forwarders', navKey: 'logistics.forwardersTitle', modules: ['sales'], permission: P_LOGISTICS },
-    { href: '/logistics/lanes', navKey: 'logistics.lanesTitle', modules: ['sales'], permission: P_LOGISTICS },
+
+    // ══ 物流 Logistics(LOGISTICS-MODULE,Tim 2026-10-29)═════════════════════════════════════════════
+    // 取代 SYSTEM-MAP 裁定 (6) 的「销售与物流」那一组:物流既服务进料的提货,也服务出货的发运,整族放在销售底下不合理。
+    // 六条条目从销售搬过来,地址与权限一个字不动(scripts/check-single-home.mjs 照旧:每一条恰好一个家)。
+    // ★【CONV-6 ⑤c:物流【此前根本没有模块根】—— app/logistics/page.tsx 不存在】★
+    //   NAV-REG-1 早就为物流记过那个陷阱(「一个打得开却零行的库存页」),
+    //   而它自己连打得开的那一页都没有。本刀建了,内容是 ⑨ 的 Overview。
+    { href: '/logistics', navKey: 'nav.logisticsOverview', modules: ['logistics'], permission: P_LOGISTICS },
+    { href: '/logistics/containers', navKey: 'logistics.containersTitle', modules: ['logistics'], permission: P_LOGISTICS },
+    { href: '/logistics/forwarders', navKey: 'logistics.forwardersTitle', modules: ['logistics'], permission: P_LOGISTICS },
+    { href: '/logistics/lanes', navKey: 'logistics.lanesTitle', modules: ['logistics'], permission: P_LOGISTICS },
     // ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q7):仓库的发货队列 —— 发货归 action.ship_goods(warehouse · admin)。
     //   属于物流模块(仓库持 module.logistics.view);没有这个码的人看得见入口、写着「受限」、进不去。
-    { href: '/logistics/shipping', navKey: 'logistics.shipping.title', modules: ['sales'], permission: 'action.ship_goods' },
+    { href: '/logistics/shipping', navKey: 'logistics.shipping.title', modules: ['logistics'], permission: 'action.ship_goods' },
     // 这里从前写的是:「定价与行情同属采购与销售,一份判据,不设第十个模块 ——
     // 定价服务采购(payable %、扣杂)与销售(报价)两侧;塞进任何一侧都会让另一侧
     // 看不见。/margin 是这条的先例。」
@@ -656,8 +664,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【被推翻的是这一族的摆放,不是多属主机制】机制仍然在用:上面的 /sales/commissions、
     //   /inbound(本刀刚变成三属主)、/output、下面的 /finance/freight 都是。
     // 【双】运费单:既是一笔应付,也是一票货的成本 —— 勘察 C2。
-    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(销售与物流;财务的应付与付款经链接到它)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
-    { href: '/finance/freight', navKey: 'finance.subnav.freight', modules: ['sales'], permission: P_FINANCE },
+    // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(物流 —— LOGISTICS-MODULE 之前是「销售与物流」;财务的应付与付款经链接到它)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
+    { href: '/finance/freight', navKey: 'finance.subnav.freight', modules: ['logistics'], permission: P_FINANCE },
 
     // ══ 财务 Finance —— 唯一有第三级的模块。六组顺序见 FINANCE_GROUPS ══════════════════════════
     // ★★【CONV-6 ⑤b:「客户重叠检查」这一条【整条从菜单里删掉】】★★
@@ -852,8 +860,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/purchasing/licences', navKey: 'company.licence.title', modules: ['safety'], permission: P_SUPPLIERS },
     // MES-3a(Q1 · Q32):库存安全 —— 上限、滞留、隔离一页看全。门 = module.inventory.view;每一段的行带它自己的谓词。
     { href: '/inventory/storage-safety', navKey: 'inventory.subnav.storageSafety', modules: ['safety'], permission: P_INVENTORY },
-    // SYSTEM-MAP-1(D4 · Q4):销毁证书清单。门与证书表的读策略同一个码 action.issue_cod(admin · warehouse);别的角色画「受限」。
-    { href: '/compliance/cod', navKey: 'nav.codList', modules: ['safety'], permission: 'action.issue_cod' },
+    // SYSTEM-MAP-1(D4 · Q4):销毁证书清单。门与证书表的读策略同一个码;别的角色画「受限」。
+    // ★ COD-READERS(Tim 2026-10-29,64d-5):那个码从 action.issue_cod 换成读的码 data.view_cod
+    //   (admin · warehouse · cfo · cco · cto · finance · gm)。这一页只读;签发与作废在批次页上,仍只归 action.issue_cod。
+    { href: '/compliance/cod', navKey: 'nav.codList', modules: ['safety'], permission: 'data.view_cod' },
     // SYSTEM-MAP-1(D4 · Q3):供应商证书总表 —— 只列有效期,按最早到期排;不算状态(状态列排进 SYSTEM-MAP-2,见 docs/forward-queue.md)。
     { href: '/compliance/supplier-certificates', navKey: 'nav.supplierCertificates', modules: ['safety'], permission: P_SUPPLIERS },
 

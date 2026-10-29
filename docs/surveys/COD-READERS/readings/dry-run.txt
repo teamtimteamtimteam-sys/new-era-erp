@@ -1,0 +1,86 @@
+SET
+Timing is on.
+BEGIN
+Time: 395.418 ms
+PROOF|clock before|2026-10-29 13:35:36.184289+08
+Time: 403.096 ms
+PROOF|B|postgres|rows|{"cod" : "3 8c1a7c1234cdc9fb179ba377c64b0a05", "issues" : "2 097dacfa233e71e7cf70482c25249b4e", "objects" : "2 18447161d419ba1c5e02f81d7e8317c6"}
+Time: 504.911 ms
+SET
+Time: 402.628 ms
+Time: 401.431 ms
+PROOF|B|cfo|reads|0 cod · 0 issues · 0 objects
+Time: 457.336 ms
+RESET
+Time: 397.833 ms
+SET
+Time: 396.190 ms
+Time: 396.420 ms
+PROOF|B|warehouse|reads|3 cod · 2 issues · 2 objects
+Time: 401.052 ms
+RESET
+Time: 402.203 ms
+SET
+Time: 458.337 ms
+Time: 395.893 ms
+PROOF|B|no-role|reads|0 cod · 0 issues · 0 objects
+Time: 417.118 ms
+RESET
+Time: 411.407 ms
+PROOF|B|catalog|{"view_cod" : null, "issue_cod" : "admin,warehouse", "doctype" : ["action.issue_cod"], "policies" : { "certificates_of_destruction / certificates_of_destruction select by permission / SELECT" : "( SELECT has_permission('action.issue_cod'::text) AS has_permission)", "cod_issues / cod_issues select by permission / SELECT" : "( SELECT has_permission('action.issue_cod'::text) AS has_permission)", "objects / cod-documents read by issue_cod / SELECT" : "((bucket_id = 'cod-documents'::text) AND has_permission('action.issue_cod'::text))", "objects / cod-documents remove unrecorded by issue_cod / DELETE" : "((bucket_id = 'cod-documents'::text) AND has_permission('action.issue_cod'::text) AND (NOT (EXISTS ( SELECT 1\n   FROM cod_issues i\n  WHERE (i.file_path = objects.name)))))", "objects / cod-documents upload by issue_cod / INSERT" : "((bucket_id = 'cod-documents'::text) AND has_permission('action.issue_cod'::text))" }}
+Time: 628.707 ms
+PROOF|clock migration start|2026-10-29 13:35:42.686697+08
+Time: 427.434 ms
+INSERT 0 1
+Time: 578.963 ms
+INSERT 0 7
+Time: 433.362 ms
+DROP POLICY
+Time: 492.931 ms
+CREATE POLICY
+Time: 512.310 ms
+DROP POLICY
+Time: 396.165 ms
+CREATE POLICY
+Time: 396.245 ms
+DROP POLICY
+Time: 435.500 ms
+CREATE POLICY
+Time: 399.848 ms
+UPDATE 1
+Time: 416.840 ms
+psql:/private/tmp/claude-501/-Users-timchen/dfbb73bb-9fe7-4d5a-82dd-dc195e421ccf/scratchpad/dry-run.sql:96: NOTICE:  COD_READERS_PROOF ok
+DO
+Time: 514.133 ms
+PROOF|clock migration end|2026-10-29 13:35:47.661643+08
+Time: 399.453 ms
+PROOF|A|postgres|rows|{"cod" : "3 8c1a7c1234cdc9fb179ba377c64b0a05", "issues" : "2 097dacfa233e71e7cf70482c25249b4e", "objects" : "2 18447161d419ba1c5e02f81d7e8317c6"}
+Time: 399.458 ms
+SET
+Time: 397.432 ms
+Time: 395.750 ms
+PROOF|A|cfo|reads|3 cod · 2 issues · 2 objects
+Time: 454.699 ms
+RESET
+Time: 399.900 ms
+SET
+Time: 831.719 ms
+Time: 610.488 ms
+PROOF|A|warehouse|reads|3 cod · 2 issues · 2 objects
+Time: 405.664 ms
+RESET
+Time: 401.890 ms
+SET
+Time: 420.553 ms
+Time: 397.281 ms
+PROOF|A|no-role|reads|0 cod · 0 issues · 0 objects
+Time: 421.149 ms
+RESET
+Time: 717.271 ms
+PROOF|A|catalog|{"view_cod" : "admin,cco,cfo,cto,finance,gm,warehouse", "issue_cod" : "admin,warehouse", "doctype" : ["data.view_cod"], "policies" : { "certificates_of_destruction / certificates_of_destruction select by permission / SELECT" : "( SELECT has_permission('data.view_cod'::text) AS has_permission)", "cod_issues / cod_issues select by permission / SELECT" : "( SELECT has_permission('data.view_cod'::text) AS has_permission)", "objects / cod-documents read by view_cod / SELECT" : "((bucket_id = 'cod-documents'::text) AND ( SELECT has_permission('data.view_cod'::text) AS has_permission))", "objects / cod-documents remove unrecorded by issue_cod / DELETE" : "((bucket_id = 'cod-documents'::text) AND has_permission('action.issue_cod'::text) AND (NOT (EXISTS ( SELECT 1\n   FROM cod_issues i\n  WHERE (i.file_path = objects.name)))))", "objects / cod-documents upload by issue_cod / INSERT" : "((bucket_id = 'cod-documents'::text) AND has_permission('action.issue_cod'::text))" }}
+Time: 512.793 ms
+PROOF|clock rollback|2026-10-29 13:35:54.86236+08
+Time: 446.476 ms
+ROLLBACK
+Time: 769.208 ms
+DRY_OWN_EXIT=0

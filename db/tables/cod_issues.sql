@@ -28,8 +28,10 @@ CREATE TRIGGER trg_cod_issues_append_only
 
 ALTER TABLE public.cod_issues ENABLE ROW LEVEL SECURITY;
 
+-- ★ COD-READERS(Tim 2026-10-29,64d-5):读的码与证书表同一个 data.view_cod —— PDF 路由从这里取存档的路径与哈希,
+--   读不到这一行的人打开已签发的证书只会拿到 404。写仍只经 record_cod_issue()。
 CREATE POLICY "cod_issues select by permission"
     ON public.cod_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((SELECT has_permission('action.issue_cod'::text)));
+    USING ((SELECT has_permission('data.view_cod'::text)));
 -- 【没有 INSERT 策略,这是刻意的】唯一写入口是 record_cod_issue()。

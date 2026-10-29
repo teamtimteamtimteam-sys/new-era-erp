@@ -141,10 +141,13 @@ CREATE POLICY "cn-documents upload by finance.edit"
     ON storage.objects AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'cn-documents'::text AND public.has_permission('module.finance.edit'::text));
 
+-- ★ COD-READERS(Tim 2026-10-29,64d-5):读存下的证书字节归 data.view_cod(与证书表、cod_issues 的读策略同一个码),
+--   写成按语句求一次的形状(CHAIN-WALK-COST 的规矩)。上传与删除仍是 action.issue_cod。旧名「read by issue_cod」由迁移删掉。
 DROP POLICY IF EXISTS "cod-documents read by issue_cod" ON storage.objects;
-CREATE POLICY "cod-documents read by issue_cod"
+DROP POLICY IF EXISTS "cod-documents read by view_cod" ON storage.objects;
+CREATE POLICY "cod-documents read by view_cod"
     ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated
-    USING (bucket_id = 'cod-documents'::text AND public.has_permission('action.issue_cod'::text));
+    USING (bucket_id = 'cod-documents'::text AND (SELECT public.has_permission('data.view_cod'::text)));
 
 DROP POLICY IF EXISTS "cod-documents upload by issue_cod" ON storage.objects;
 CREATE POLICY "cod-documents upload by issue_cod"

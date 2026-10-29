@@ -97,7 +97,7 @@ export default async function LogisticsOverviewPage() {
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
             <h1 className="mb-1" style={{ color: 'var(--brand-text)' }}>
-                {t('nav.logistics')}
+                {t('nav.modFull.logistics')}
             </h1>
             <p className="text-sm mb-6 max-w-2xl" style={{ color: 'var(--brand-muted-text)' }}>
                 {t('overview.intro')}

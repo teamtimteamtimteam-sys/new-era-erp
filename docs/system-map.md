@@ -147,3 +147,28 @@ Readings: `docs/surveys/SYSTEM-MAP-3/` (README + `readings/`). Migrations: `db/m
 - **`/related/<type>/<id>`** — all related records of one document, the search dropdown's groups (Q2); a `check-nav-routes` exception like its sibling (registry entries are static addresses).
 - **Overtime batches** are document type `overtime_batch`, code **OT-YYYY-MM**, then **OT-YYYY-MM-2** … for supplementary batches (trigger `generate_overtime_batch_code`), label unchanged; they are in global search (Q4).
 - **PO page at 390 px** (item 9): inline permission gates wrap (`PermissionGate wrap`); the shared list skeleton bar no longer overflows.
+
+---
+
+## COD-READERS and LOGISTICS-MODULE rulings (Tim, 2026-10-29) — verbatim
+
+From the COD-READERS brief (rulings in force, 2026-10-29) and Tim's reply to its Step 0 (12:49 CST). One cut, v1.4.81.
+
+- COD readers: cfo, cco, cto, finance and gm may READ certificates of destruction: the /compliance/cod list, each certificate's detail, and its PDF. Issuing, refreshing, voiding and every other write stay exactly as today (action.issue_cod: admin and warehouse). The two issued CODs stay byte-identical. *(This answers SYSTEM-MAP-1 Q4's queued permission question, `docs/forward-queue.md` 64d-5.)*
+- Grilling's scope changes 1-8 accepted: cod_issues' read policy, the cod-documents storage read policy (wrapped form), document_types.view_permission for cod, the read-only certificate panel on /inbound/[id]/edit, the inbound list's COD column staying on action.issue_cod, the new seven-role snapshot with fixture 297 repointed, the live assertion, and the code name data.view_cod.
+- Q1 - (a). Readers see the status of a certificate that is not yet issued, nothing more: no draft PDF link and no "why it isn't ready" reason. cod_certificate_data stays issuer-only.
+- **D - Logistics becomes its own top-level module again** (Tim 2026-10-29: moving logistics wholesale under Sales is not reasonable; logistics serves inbound collection as well as outbound shipping). **This replaces ruling (6)'s "Sales and logistics" grouping** (and the "Sales and logistics" line of 2.2 and the freight home in 2.3 above, which are kept as written on 2026-10-26).
+  - New module "logistics", placed directly after "sales" in MODULES. Short label en "Logistics" / zh "物流"; full name (hover title and overview heading) en "Logistics" / zh "物流".
+  - These six entries move from sales to logistics, URLs and permissions unchanged: /logistics (overview), /logistics/containers, /logistics/forwarders, /logistics/lanes, /logistics/shipping, /finance/freight.
+  - Sales keeps /sales (overview), /sales/quotes, /sales/orders, /sales/customers (and its overlap child), /sales/commissions. Sales' full name becomes en "Sales" / zh "销售" (no longer "Sales and logistics").
+  - The single-home build check stays green (every entry exactly one module).
+  - Widths: ten bar buttons. Measure the module row in both languages at 1024, 1280, 1366 and 1440 on a page with the search box. No page may scroll sideways at any width. The breakpoint must not depend on language: if the English row does not fit at 1280, move the single breakpoint up to the narrowest width where both languages fit, and report it. The phone drawer at 390 px must show all ten module rows plus Tools and Settings with no sideways overflow.
+
+## What COD-READERS and LOGISTICS-MODULE built (v1.4.81)
+
+Readings: `docs/surveys/COD-READERS/` (README + `readings/`). Migration: `db/migrations/2026-10-29-cod-readers.sql` (broken window from 2026-10-29 13:39:08 CST).
+
+- **One read code, `data.view_cod`**, held by admin · warehouse · cfo · cco · cto · finance · gm. It is the read predicate of `certificates_of_destruction`, `cod_issues` (where the PDF route finds the stored file and its digest) and the `cod-documents` storage bucket (`cod-documents read by view_cod`, written in the once-per-statement form), the `view_permission` of the `cod` document type (global search, related records, `/documents/cod`) and the gate of `/compliance/cod`. Upload and delete in the bucket, the four SECURITY DEFINER write functions, `submit_cod_void_request` and `cod_certificate_data` stay on `action.issue_cod`.
+- **The certificate panel on `/inbound/[id]/edit`** shows readers status, number, issue date, verification address, void reason and the stored PDF; Issue, the void request, the internal copy and the "why it is not ready" reason are drawn only for `action.issue_cod` holders, and readers see one line saying the panel is read only (Q1 (a)).
+- **The inbound list's COD column stays on `action.issue_cod`** (it only feeds the write-off button, which only admin and warehouse hold).
+- **Logistics** is the tenth bar button, directly after Sales: /logistics · containers · forwarders · lanes · shipping · /finance/freight. Sales keeps its overview, quotes, orders, customers (with the overlap child) and commissions; its full name is "Sales / 销售". The single breakpoint stays at 1280 px (`xl`): on a page with the search box the English row (801.1 px) ends at 952 px against a right-hand group starting at 976 px; both languages fit from 1256 px (English) / 1007 px (Chinese). No page scrolls sideways at 390 · 1024 · 1280 · 1366 · 1440.

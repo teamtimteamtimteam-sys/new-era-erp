@@ -101,7 +101,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- ★ MES-8b-1(MES-8 Step 0 Q17):合规查看(读合规包)—— admin · auditor · cfo · cco · cto · gm;本文件里只有 gm 与 auditor(cfo · cco · cto 只活在线上,迁移授)。
         'module.compliance.view',
         -- APR-ROUTE-1(R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm。
-        'data.view_self_approvals') WHERE r.code = 'gm';
+        'data.view_self_approvals',
+        -- ★ COD-READERS(Tim 2026-10-29,64d-5):读销毁证书(只读;签发归 action.issue_cod)。
+        'data.view_cod') WHERE r.code = 'gm';
 
 -- finance:总账、应付应收、开票收付款 + 全部成本可见。
 -- ★ ROLE-1(Tim 的矩阵,2026-09-23):此前这里写着「【不含 HR】—— 薪酬与员工档案不是财务的工作对象」。
@@ -143,7 +145,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- ★ MES-6a-1(MES-0 Q90 · MES-6a Step 0 Q11):质量查看(样品与化验争议)—— 财务看得见争议,仲裁费是它记的费用单。
         'module.quality.view',
         -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
-        'module.safety.view'
+        'module.safety.view',
+        -- ★ COD-READERS(Tim 2026-10-29,64d-5):读销毁证书(只读;签发归 action.issue_cod)。
+        'data.view_cod'
 ) WHERE r.code = 'finance';
 
 -- procurement(14):议价、下采购单,看得见价格。【完全没有 finance】—— 定价的人不能同时把钱付出去(不相容职务分离)。
@@ -194,6 +198,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- 【为什么是仓储现场】过磅收货的人就是知道这票货处理完了的人;
         -- 而证书住在进料批页上,他本来就持有 module.inbound.view。
         'action.issue_cod',
+        -- ★ COD-READERS(Tim 2026-10-29,64d-5):证书的读归 data.view_cod —— 签发的人当然读得到他签的那一张。
+        'data.view_cod',
         -- ── ROLE-1 Batch 2a(Tim,Batch 2a grilling Q5 · 矩阵 §6「供应商建档:cco · 仓库 · 财务」)──
         -- 仓储现场建供应商档案。★ 这一行【推翻】了上面 COD-1 那句「suppliers 对仓储现场仍然是零行」——
         -- 那句话说的是 COD-1 的时候;从这一刀起仓库读得到供应商表。证书那条路不变,

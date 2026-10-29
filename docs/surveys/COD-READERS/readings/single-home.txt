@@ -1,0 +1,2 @@
+✓ check-single-home:141 条注册表条目(两条路数得一样多)各有恰好一个家 · 12 个模块各有菜单条目
+SINGLEHOME_OWN_EXIT=0

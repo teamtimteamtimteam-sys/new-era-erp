@@ -126,6 +126,9 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('data.view_self_approvals', 'data', 'View self-approved decisions', '查看自批记录', 'Every expense claim or medical claim decided by the person it is about — the one exception to "nobody decides their own", open to the top approval level only and flagged every time', '每一张由单据主角本人决定的报销单或医疗申报 —— "没有人批自己的单"的唯一例外,只对最高审批级别开放,每一次都被标记', 270),
     -- ★ HISTORY-1(Tim 的 Q10 · Q1,2026-09-28):变更记录自己的码。只授 admin 与 cfo,不捆进任何别的角色。
     ('data.view_change_log', 'data', 'View change history', '查看变更记录', 'The system-wide change history: every insert, edit and delete, who made it and what it was before. Masked values follow the same data codes as the source screens.', '全系统变更记录:每一次新增、修改与删除 —— 谁做的、改之前是什么。受遮蔽的值跟源屏幕问同一批数据码。', 280),
+    -- ★ COD-READERS(Tim 2026-10-29,64d-5):销毁证书【读】的码 —— 清单 /compliance/cod、批次页上那块证书(只读)与它存下的 PDF。
+    --   持有人 admin · warehouse · cfo · cco · cto · finance · gm(只在迁移里授;cfo · cco · cto 只活在线上)。签发与作废仍只归 action.issue_cod。
+    ('data.view_cod', 'data', 'View certificates of destruction', '查看销毁证书', 'The certificates of destruction: the list, each certificate on its delivery''s page and the stored PDF of an issued or voided one. Issuing and voiding need Issue certificate of destruction.', '销毁证书:清单、进料批页上的那一张与已签发或已作废证书存下的 PDF。签发与作废要「签发销毁证书」。', 285),
     -- ★ MES-8b-2(2026-10-17,MES-0 Q83 · Q90 · MES-8 Step 0 Q19 · Q20,Tim):车间大屏的码。读的只有一支 floor_board()(SECURITY DEFINER,只吐计数)。
     --   持有人 floor_display · admin(每一个码都给 admin)· cfo(「CFO 读得到每一样东西」:每一个 data.view_*)—— 只在迁移里授。
     --   【它是唯一一个能让会话免于空闲登出的码,而且只在它是那个会话【唯一】的码、floor_display 是那个会话【唯一】的角色时】。

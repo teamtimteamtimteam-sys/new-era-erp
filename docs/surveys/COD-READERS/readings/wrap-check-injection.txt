@@ -1,0 +1,7 @@
+# check-policy-permission-wrap accepts (SELECT public.has_permission(...)) — injection: unwrap the new storage read policy, expect red
+✗ check-policy-permission-wrap:1 条策略违反「权限判断按语句求一次」(CHAIN-WALK-COST Q1):
+  · db/storage/buckets-and-policies.sql:storage.objects "cod-documents read by view_cod" —— 1 处权限 / 身份判断没有包成 (SELECT …);包起来,或(参数随行时)进名单并写理由
+INJECTED_OWN_EXIT=1
+bc45783daadb89b4473b1fd06eb202114e699657917fefb6e5350139d6f54d98  db/storage/buckets-and-policies.sql
+✓ check-policy-permission-wrap:667 条策略 · 784 处判断包成 (SELECT …) · 名单 64 条(随行 12 · storage 52,其中 55 处未包)
+RESTORED_OWN_EXIT=0

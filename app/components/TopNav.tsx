@@ -227,7 +227,8 @@ export default async function TopNav() {
                       + 内距与间隙 → 1280 上余 276px,1440 上余 436px。
                     委托书为"放不下"准备了一个折叠成放大镜的形态;**实测放得下,
                     所以那个形态没有造** —— 一个没有触发条件的机制比没有更糟
-                    (Tim 的裁定)。宽度表在报告里,将来加第八个模块时照它重算。 */}
+                    (Tim 的裁定)。宽度表在报告里,将来加第八个模块时照它重算。
+                    ★ 重算过(LOGISTICS-MODULE,2026-10-29,十个按钮):1280 宽、带搜索框时英文余 24px —— 读数见 ModuleBar 的宽屏那一段。 */}
                 <div className="px-4 sm:px-6 py-2.5 flex items-center gap-2 sm:gap-3">
                     <Link href="/" className="shrink-0" data-nav="wordmark">
                         <Wordmark />
