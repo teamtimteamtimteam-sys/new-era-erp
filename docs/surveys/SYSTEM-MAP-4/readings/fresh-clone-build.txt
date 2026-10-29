@@ -1,0 +1,17 @@
+fresh clone of 327b13194e8d3e29c6358406af1dadb6c29e50c3 into the scratchpad, no .env.local (0 files matching env.local)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+CI_OWN_EXIT=0
+--- npm run build (tail)
+├ ƒ /tools/tasks
+├ ƒ /tools/tasks/[id]
+├ ƒ /verify/cod/[token]
+├ ƒ /welcome
+└ ƒ /workbench
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+FRESH_OWN_EXIT=0
