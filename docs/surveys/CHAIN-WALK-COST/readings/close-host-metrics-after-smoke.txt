@@ -1,0 +1,15 @@
+# after smoke · read 2026-10-29 10:41:08 CST
+node_memory_Cached_bytes 1.35122944e+08
+node_vmstat_pgmajfault 5.023217e+06
+node_vmstat_pswpin 4.779515e+06
+node_memory_MemAvailable_bytes 1.4282752e+08
+node_memory_MemTotal_bytes 4.26262528e+08
+node_vmstat_pswpout 4.688355e+06
+node_memory_SwapFree_bytes 5.95959808e+08
+node_memory_SwapTotal_bytes 1.073737728e+09
+SUMMARY|mem total 426 MB · available 143 MB · swap used 478 MB of 1074 MB
+cpu0 idle 97.3% · iowait 1.7% · user 0.3% · system 0.7% · steal 0.0%  (over 67 s)
+cpu1 idle 97.5% · iowait 1.5% · user 0.4% · system 0.6% · steal 0.0%  (over 67 s)
+end node_vmstat_pgmajfault 5.028539e+06
+end node_vmstat_pswpout 4.689654e+06
+end node_vmstat_pswpin 4.781722e+06

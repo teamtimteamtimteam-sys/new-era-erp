@@ -1,0 +1,3728 @@
+{
+  "admin": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "budgetRefusal": true,
+      "select1": 0.02
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch OUT-2026-0119",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "cfo": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch OUT-2026-0119",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "cco": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch OUT-2026-0119",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "cto": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch OUT-2026-0119",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "finance": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=current"
+      ]
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch OUT-2026-0119",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "gm": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=found",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=current",
+        "purchasing.payment_request=none",
+        "purchasing.payment=none",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=none",
+        "purchasing.assay=none",
+        "purchasing.pricing=none",
+        "purchasing.payable=none",
+        "purchasing.payment_request=none",
+        "purchasing.payment=current",
+        "purchasing.bank_reconciliation=none"
+      ]
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "states": [
+        "processing.work_order=found",
+        "processing.processing_run=current",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch OUT-2026-0119",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "states": [
+        "sales.quote=current",
+        "sales.sales_order=found",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=current",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=found"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=current",
+        "sales.invoice=none",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=current",
+        "sales.receipt=none",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=none",
+        "sales.reservation=none",
+        "sales.shipment=none",
+        "sales.container=none",
+        "sales.invoice=none",
+        "sales.receipt=current",
+        "sales.credit_note=none"
+      ]
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "states": [
+        "sales.quote=none",
+        "sales.sales_order=found",
+        "sales.reservation=found",
+        "sales.shipment=found",
+        "sales.container=none",
+        "sales.invoice=found",
+        "sales.receipt=none",
+        "sales.credit_note=current"
+      ]
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=current",
+        "people.payroll_period=none",
+        "people.payroll_payment=none"
+      ]
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=current",
+        "people.payroll_payment=found"
+      ]
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "states": [
+        "people.attendance=none",
+        "people.overtime=none",
+        "people.leave=none",
+        "people.payroll_period=found",
+        "people.payroll_payment=current"
+      ]
+    }
+  ],
+  "warehouse": [
+    {
+      "page": "purchase order",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=current",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=none",
+        "purchasing.pricing=found",
+        "purchasing.payable=restricted",
+        "purchasing.payment_request=restricted",
+        "purchasing.payment=restricted",
+        "purchasing.bank_reconciliation=restricted"
+      ]
+    },
+    {
+      "page": "inbound batch",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=found",
+        "purchasing.inbound_batch=current",
+        "purchasing.assay=found",
+        "purchasing.pricing=found",
+        "purchasing.payable=restricted",
+        "purchasing.payment_request=restricted",
+        "purchasing.payment=restricted",
+        "purchasing.bank_reconciliation=restricted",
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=current",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "assay",
+      "status": 200,
+      "states": [
+        "purchasing.purchase_order=none",
+        "purchasing.inbound_batch=found",
+        "purchasing.assay=current",
+        "purchasing.pricing=found",
+        "purchasing.payable=restricted",
+        "purchasing.payment_request=restricted",
+        "purchasing.payment=restricted",
+        "purchasing.bank_reconciliation=restricted"
+      ]
+    },
+    {
+      "page": "payable",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "payment",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "bank statement",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "work order",
+      "status": 200,
+      "states": [
+        "processing.work_order=current",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=found",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "processing run",
+      "status": 200,
+      "budgetRefusal": true,
+      "select1": 0.045
+    },
+    {
+      "page": "output batch",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "output batch OUT-2026-0119",
+      "status": 200,
+      "states": [
+        "processing.work_order=none",
+        "processing.processing_run=found",
+        "processing.input_batches=found",
+        "processing.output_batches=current",
+        "processing.cost_allocation=none"
+      ]
+    },
+    {
+      "page": "quote",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "sales order",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "shipment",
+      "status": 200,
+      "states": [
+        "sales.quote=restricted",
+        "sales.sales_order=restricted",
+        "sales.reservation=restricted",
+        "sales.shipment=current",
+        "sales.container=none",
+        "sales.invoice=restricted",
+        "sales.receipt=restricted",
+        "sales.credit_note=restricted"
+      ]
+    },
+    {
+      "page": "container",
+      "status": 200,
+      "states": [
+        "sales.quote=restricted",
+        "sales.sales_order=restricted",
+        "sales.reservation=restricted",
+        "sales.shipment=restricted",
+        "sales.container=current",
+        "sales.invoice=restricted",
+        "sales.receipt=restricted",
+        "sales.credit_note=restricted"
+      ]
+    },
+    {
+      "page": "invoice",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "receipt",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "credit note",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "leave",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "payroll period",
+      "status": 200,
+      "refused": true
+    },
+    {
+      "page": "payroll payment",
+      "status": 200,
+      "refused": true
+    }
+  ],
+  "phone": {
+    "closed": {
+      "docW": 390,
+      "vw": 390,
+      "open": false,
+      "summary": "Purchasing chain · step 1 of 8 · Show chain"
+    },
+    "opened": {
+      "docW": 390,
+      "vw": 390,
+      "steps": 8,
+      "height": 235
+    }
+  },
+  "timings": [
+    {
+      "role": "admin",
+      "page": "purchase order",
+      "what": "walk purchasing",
+      "ms": 228.145,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "purchase order",
+      "what": "trail",
+      "ms": 130.106,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "inbound batch",
+      "what": "walk purchasing",
+      "ms": 1154.28,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "inbound batch",
+      "what": "walk processing",
+      "ms": 221.07,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "inbound batch",
+      "what": "trail",
+      "ms": 495.59,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "assay",
+      "what": "walk purchasing",
+      "ms": 1072.533,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payable",
+      "what": "walk purchasing",
+      "ms": 778.096,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payable",
+      "what": "trail",
+      "ms": 227.681,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payment",
+      "what": "walk purchasing",
+      "ms": 201.028,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payment",
+      "what": "trail",
+      "ms": 262.858,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "bank statement",
+      "what": "walk purchasing",
+      "ms": 399.95,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "bank statement",
+      "what": "trail",
+      "ms": 202.333,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "work order",
+      "what": "walk processing",
+      "ms": 334.403,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "work order",
+      "what": "trail",
+      "ms": 98.521,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "processing run",
+      "what": "walk processing",
+      "ms": 369.397,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "processing run",
+      "what": "trail",
+      "ms": 128.301,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "output batch",
+      "what": "walk processing",
+      "ms": 1014.868,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "output batch",
+      "what": "trail",
+      "ms": 417.904,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "output batch OUT-2026-0119",
+      "what": "walk processing",
+      "ms": 836.007,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "output batch OUT-2026-0119",
+      "what": "trail",
+      "ms": 309.217,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "quote",
+      "what": "walk sales",
+      "ms": 98.238,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "quote",
+      "what": "trail",
+      "ms": 93.246,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "sales order",
+      "what": "walk sales",
+      "ms": 790.423,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "sales order",
+      "what": "trail",
+      "ms": 279.428,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "shipment",
+      "what": "walk sales",
+      "ms": 1284.636,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "shipment",
+      "what": "trail",
+      "ms": 526.499,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "container",
+      "what": "walk sales",
+      "ms": 118.946,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "container",
+      "what": "trail",
+      "ms": 96.765,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "invoice",
+      "what": "walk sales",
+      "ms": 374.163,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "invoice",
+      "what": "trail",
+      "ms": 87.191,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "receipt",
+      "what": "walk sales",
+      "ms": 672.506,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "receipt",
+      "what": "trail",
+      "ms": 122.741,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "credit note",
+      "what": "walk sales",
+      "ms": 271.45,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "credit note",
+      "what": "trail",
+      "ms": 119.011,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "leave",
+      "what": "walk people",
+      "ms": 73.891,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "leave",
+      "what": "trail",
+      "ms": 58.278,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payroll period",
+      "what": "walk people",
+      "ms": 308.628,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payroll period",
+      "what": "trail",
+      "ms": 116.656,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payroll payment",
+      "what": "walk people",
+      "ms": 840.874,
+      "err": null
+    },
+    {
+      "role": "admin",
+      "page": "payroll payment",
+      "what": "trail",
+      "ms": 215.238,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "purchase order",
+      "what": "walk purchasing",
+      "ms": 706.278,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "purchase order",
+      "what": "trail",
+      "ms": 275.927,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "inbound batch",
+      "what": "walk purchasing",
+      "ms": 1085.787,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "inbound batch",
+      "what": "walk processing",
+      "ms": 300.752,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "inbound batch",
+      "what": "trail",
+      "ms": 493.26,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "assay",
+      "what": "walk purchasing",
+      "ms": 1868.002,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payable",
+      "what": "walk purchasing",
+      "ms": 806.821,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payable",
+      "what": "trail",
+      "ms": 361.194,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payment",
+      "what": "walk purchasing",
+      "ms": 980.281,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payment",
+      "what": "trail",
+      "ms": 195.634,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "bank statement",
+      "what": "walk purchasing",
+      "ms": 229.159,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "bank statement",
+      "what": "trail",
+      "ms": 83.646,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "work order",
+      "what": "walk processing",
+      "ms": 459.27,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "work order",
+      "what": "trail",
+      "ms": 131.666,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "processing run",
+      "what": "walk processing",
+      "ms": 801.158,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "processing run",
+      "what": "trail",
+      "ms": 258.037,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "output batch",
+      "what": "walk processing",
+      "ms": null,
+      "err": "DOCUMENT_CHAIN_WALK_BUDGET"
+    },
+    {
+      "role": "cfo",
+      "page": "output batch",
+      "what": "trail",
+      "ms": 1152.174,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "output batch OUT-2026-0119",
+      "what": "walk processing",
+      "ms": 1212.418,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "output batch OUT-2026-0119",
+      "what": "trail",
+      "ms": 360.665,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "quote",
+      "what": "walk sales",
+      "ms": 297.048,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "quote",
+      "what": "trail",
+      "ms": 139.257,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "sales order",
+      "what": "walk sales",
+      "ms": 421.394,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "sales order",
+      "what": "trail",
+      "ms": 204.345,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "shipment",
+      "what": "walk sales",
+      "ms": 946.283,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "shipment",
+      "what": "trail",
+      "ms": 309.095,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "container",
+      "what": "walk sales",
+      "ms": 103.179,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "container",
+      "what": "trail",
+      "ms": 73.627,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "invoice",
+      "what": "walk sales",
+      "ms": 357.618,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "invoice",
+      "what": "trail",
+      "ms": 120.645,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "receipt",
+      "what": "walk sales",
+      "ms": 100.174,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "receipt",
+      "what": "trail",
+      "ms": 96.482,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "credit note",
+      "what": "walk sales",
+      "ms": 228.026,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "credit note",
+      "what": "trail",
+      "ms": 87.78,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "leave",
+      "what": "walk people",
+      "ms": 493.426,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "leave",
+      "what": "trail",
+      "ms": 420.266,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payroll period",
+      "what": "walk people",
+      "ms": 657.014,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payroll period",
+      "what": "trail",
+      "ms": 101.671,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payroll payment",
+      "what": "walk people",
+      "ms": 418.229,
+      "err": null
+    },
+    {
+      "role": "cfo",
+      "page": "payroll payment",
+      "what": "trail",
+      "ms": 303.531,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "purchase order",
+      "what": "walk purchasing",
+      "ms": 1049.708,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "purchase order",
+      "what": "trail",
+      "ms": 309.147,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "inbound batch",
+      "what": "walk purchasing",
+      "ms": 1035.28,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "inbound batch",
+      "what": "walk processing",
+      "ms": 229.896,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "inbound batch",
+      "what": "trail",
+      "ms": 557.813,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "assay",
+      "what": "walk purchasing",
+      "ms": 983.061,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payable",
+      "what": "walk purchasing",
+      "ms": 937.705,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payable",
+      "what": "trail",
+      "ms": 284.766,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payment",
+      "what": "walk purchasing",
+      "ms": 820.797,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payment",
+      "what": "trail",
+      "ms": 181.203,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "bank statement",
+      "what": "walk purchasing",
+      "ms": 55.292,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "bank statement",
+      "what": "trail",
+      "ms": 67.738,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "work order",
+      "what": "walk processing",
+      "ms": 432.663,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "work order",
+      "what": "trail",
+      "ms": 159.566,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "processing run",
+      "what": "walk processing",
+      "ms": 918.08,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "processing run",
+      "what": "trail",
+      "ms": 284.087,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "output batch",
+      "what": "walk processing",
+      "ms": 870.525,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "output batch",
+      "what": "trail",
+      "ms": 580.201,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "output batch OUT-2026-0119",
+      "what": "walk processing",
+      "ms": 886.64,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "output batch OUT-2026-0119",
+      "what": "trail",
+      "ms": 341.219,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "quote",
+      "what": "walk sales",
+      "ms": 245.983,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "quote",
+      "what": "trail",
+      "ms": 209.197,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "sales order",
+      "what": "walk sales",
+      "ms": 243.146,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "sales order",
+      "what": "trail",
+      "ms": 168.681,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "shipment",
+      "what": "walk sales",
+      "ms": 943.944,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "shipment",
+      "what": "trail",
+      "ms": 234.626,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "container",
+      "what": "walk sales",
+      "ms": 69.023,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "container",
+      "what": "trail",
+      "ms": 71.787,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "invoice",
+      "what": "walk sales",
+      "ms": 408.677,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "invoice",
+      "what": "trail",
+      "ms": 137.475,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "receipt",
+      "what": "walk sales",
+      "ms": 57.068,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "receipt",
+      "what": "trail",
+      "ms": 44.153,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "credit note",
+      "what": "walk sales",
+      "ms": 235.61,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "credit note",
+      "what": "trail",
+      "ms": 101.056,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "leave",
+      "what": "walk people",
+      "ms": 124.892,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "leave",
+      "what": "trail",
+      "ms": 85.206,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payroll period",
+      "what": "walk people",
+      "ms": 201.645,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payroll period",
+      "what": "trail",
+      "ms": 82.563,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payroll payment",
+      "what": "walk people",
+      "ms": 681.734,
+      "err": null
+    },
+    {
+      "role": "cco",
+      "page": "payroll payment",
+      "what": "trail",
+      "ms": 158.782,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "purchase order",
+      "what": "walk purchasing",
+      "ms": 258.359,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "purchase order",
+      "what": "trail",
+      "ms": 156.033,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "inbound batch",
+      "what": "walk purchasing",
+      "ms": 1094.146,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "inbound batch",
+      "what": "walk processing",
+      "ms": 217.147,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "inbound batch",
+      "what": "trail",
+      "ms": 408.895,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "assay",
+      "what": "walk purchasing",
+      "ms": 624.237,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payable",
+      "what": "walk purchasing",
+      "ms": 847.822,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payable",
+      "what": "trail",
+      "ms": 489.297,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payment",
+      "what": "walk purchasing",
+      "ms": 981.686,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payment",
+      "what": "trail",
+      "ms": 219.719,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "bank statement",
+      "what": "walk purchasing",
+      "ms": 67.241,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "bank statement",
+      "what": "trail",
+      "ms": 57.14,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "work order",
+      "what": "walk processing",
+      "ms": 458.707,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "work order",
+      "what": "trail",
+      "ms": 117.578,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "processing run",
+      "what": "walk processing",
+      "ms": 1176.372,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "processing run",
+      "what": "trail",
+      "ms": 280.379,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "output batch",
+      "what": "walk processing",
+      "ms": 1103.275,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "output batch",
+      "what": "trail",
+      "ms": 645.205,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "output batch OUT-2026-0119",
+      "what": "walk processing",
+      "ms": 1059.076,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "output batch OUT-2026-0119",
+      "what": "trail",
+      "ms": 418.512,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "quote",
+      "what": "walk sales",
+      "ms": 225.128,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "quote",
+      "what": "trail",
+      "ms": 123.513,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "sales order",
+      "what": "walk sales",
+      "ms": 397.791,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "sales order",
+      "what": "trail",
+      "ms": 186.473,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "shipment",
+      "what": "walk sales",
+      "ms": 880.345,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "shipment",
+      "what": "trail",
+      "ms": 301.096,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "container",
+      "what": "walk sales",
+      "ms": 56.562,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "container",
+      "what": "trail",
+      "ms": 61.806,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "invoice",
+      "what": "walk sales",
+      "ms": 360.485,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "invoice",
+      "what": "trail",
+      "ms": 119.831,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "receipt",
+      "what": "walk sales",
+      "ms": 61.049,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "receipt",
+      "what": "trail",
+      "ms": 66.522,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "credit note",
+      "what": "walk sales",
+      "ms": 227.718,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "credit note",
+      "what": "trail",
+      "ms": 80.732,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "leave",
+      "what": "walk people",
+      "ms": 64.082,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "leave",
+      "what": "trail",
+      "ms": 56.158,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payroll period",
+      "what": "walk people",
+      "ms": 724.004,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payroll period",
+      "what": "trail",
+      "ms": 224.458,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payroll payment",
+      "what": "walk people",
+      "ms": 802.378,
+      "err": null
+    },
+    {
+      "role": "cto",
+      "page": "payroll payment",
+      "what": "trail",
+      "ms": 212.057,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "purchase order",
+      "what": "walk purchasing",
+      "ms": 1056.205,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "purchase order",
+      "what": "trail",
+      "ms": 257.091,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "inbound batch",
+      "what": "walk purchasing",
+      "ms": 976.574,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "inbound batch",
+      "what": "walk processing",
+      "ms": 818.469,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "inbound batch",
+      "what": "trail",
+      "ms": 701.668,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "assay",
+      "what": "walk purchasing",
+      "ms": 1107.937,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "payable",
+      "what": "walk purchasing",
+      "ms": 852.899,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "payable",
+      "what": "trail",
+      "ms": 243.714,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "payment",
+      "what": "walk purchasing",
+      "ms": null,
+      "err": "DOCUMENT_CHAIN_WALK_BUDGET"
+    },
+    {
+      "role": "finance",
+      "page": "payment",
+      "what": "trail",
+      "ms": 549.733,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "bank statement",
+      "what": "walk purchasing",
+      "ms": 97.134,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "bank statement",
+      "what": "trail",
+      "ms": 57.803,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "work order",
+      "what": "walk processing",
+      "ms": 670.814,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "work order",
+      "what": "trail",
+      "ms": 147.204,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "processing run",
+      "what": "walk processing",
+      "ms": 884.028,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "processing run",
+      "what": "trail",
+      "ms": 271.637,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "output batch",
+      "what": "walk processing",
+      "ms": null,
+      "err": "DOCUMENT_CHAIN_WALK_BUDGET"
+    },
+    {
+      "role": "finance",
+      "page": "output batch",
+      "what": "trail",
+      "ms": 1044.416,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "output batch OUT-2026-0119",
+      "what": "walk processing",
+      "ms": 1018.501,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "output batch OUT-2026-0119",
+      "what": "trail",
+      "ms": 3101.973,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "quote",
+      "what": "walk sales",
+      "ms": 801.818,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "quote",
+      "what": "trail",
+      "ms": 325.224,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "sales order",
+      "what": "walk sales",
+      "ms": 447.059,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "sales order",
+      "what": "trail",
+      "ms": 458.672,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "shipment",
+      "what": "walk sales",
+      "ms": 944.22,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "shipment",
+      "what": "trail",
+      "ms": 273.887,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "container",
+      "what": "walk sales",
+      "ms": 605.19,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "container",
+      "what": "trail",
+      "ms": 401.004,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "invoice",
+      "what": "walk sales",
+      "ms": 453.353,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "invoice",
+      "what": "trail",
+      "ms": 135.376,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "receipt",
+      "what": "walk sales",
+      "ms": 70.903,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "receipt",
+      "what": "trail",
+      "ms": 75.964,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "credit note",
+      "what": "walk sales",
+      "ms": 194.811,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "credit note",
+      "what": "trail",
+      "ms": 57.793,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "leave",
+      "what": "walk people",
+      "ms": 292.423,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "leave",
+      "what": "trail",
+      "ms": 227.212,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "payroll period",
+      "what": "walk people",
+      "ms": 514.507,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "payroll period",
+      "what": "trail",
+      "ms": 98.239,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "payroll payment",
+      "what": "walk people",
+      "ms": 610.226,
+      "err": null
+    },
+    {
+      "role": "finance",
+      "page": "payroll payment",
+      "what": "trail",
+      "ms": 199.137,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "purchase order",
+      "what": "walk purchasing",
+      "ms": 847.689,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "purchase order",
+      "what": "trail",
+      "ms": 359.025,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "inbound batch",
+      "what": "walk purchasing",
+      "ms": 435.106,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "inbound batch",
+      "what": "walk processing",
+      "ms": 248.009,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "inbound batch",
+      "what": "trail",
+      "ms": 704.047,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "assay",
+      "what": "walk purchasing",
+      "ms": 952.291,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payable",
+      "what": "walk purchasing",
+      "ms": 435.764,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payable",
+      "what": "trail",
+      "ms": 221.728,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payment",
+      "what": "walk purchasing",
+      "ms": 817.738,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payment",
+      "what": "trail",
+      "ms": 253.245,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "bank statement",
+      "what": "walk purchasing",
+      "ms": 49.733,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "bank statement",
+      "what": "trail",
+      "ms": 117.628,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "work order",
+      "what": "walk processing",
+      "ms": 372.967,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "work order",
+      "what": "trail",
+      "ms": 127.923,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "processing run",
+      "what": "walk processing",
+      "ms": 281.271,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "processing run",
+      "what": "trail",
+      "ms": 114.189,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "output batch",
+      "what": "walk processing",
+      "ms": 881.422,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "output batch",
+      "what": "trail",
+      "ms": 472.897,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "output batch OUT-2026-0119",
+      "what": "walk processing",
+      "ms": 972.669,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "output batch OUT-2026-0119",
+      "what": "trail",
+      "ms": 341.522,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "quote",
+      "what": "walk sales",
+      "ms": 131.656,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "quote",
+      "what": "trail",
+      "ms": 136.911,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "sales order",
+      "what": "walk sales",
+      "ms": 564.98,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "sales order",
+      "what": "trail",
+      "ms": 281.73,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "shipment",
+      "what": "walk sales",
+      "ms": 1026.857,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "shipment",
+      "what": "trail",
+      "ms": 233.24,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "container",
+      "what": "walk sales",
+      "ms": 150.986,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "container",
+      "what": "trail",
+      "ms": 230.14,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "invoice",
+      "what": "walk sales",
+      "ms": 1008.723,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "invoice",
+      "what": "trail",
+      "ms": 280.466,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "receipt",
+      "what": "walk sales",
+      "ms": 85.094,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "receipt",
+      "what": "trail",
+      "ms": 70.112,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "credit note",
+      "what": "walk sales",
+      "ms": 311.017,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "credit note",
+      "what": "trail",
+      "ms": 64.668,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "leave",
+      "what": "walk people",
+      "ms": 62.314,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "leave",
+      "what": "trail",
+      "ms": 77.139,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payroll period",
+      "what": "walk people",
+      "ms": 323.823,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payroll period",
+      "what": "trail",
+      "ms": 98.406,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payroll payment",
+      "what": "walk people",
+      "ms": 916.772,
+      "err": null
+    },
+    {
+      "role": "gm",
+      "page": "payroll payment",
+      "what": "trail",
+      "ms": 236.812,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "purchase order",
+      "what": "walk purchasing",
+      "ms": 1007.85,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "purchase order",
+      "what": "trail",
+      "ms": 298.924,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "inbound batch",
+      "what": "walk purchasing",
+      "ms": 1621.656,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "inbound batch",
+      "what": "walk processing",
+      "ms": 263.535,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "inbound batch",
+      "what": "trail",
+      "ms": 806.845,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "assay",
+      "what": "walk purchasing",
+      "ms": 955.574,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "payable",
+      "what": "walk purchasing",
+      "ms": 161.436,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "payable",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "payment",
+      "what": "walk purchasing",
+      "ms": 199.944,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "payment",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "bank statement",
+      "what": "walk purchasing",
+      "ms": 24.46,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "bank statement",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "work order",
+      "what": "walk processing",
+      "ms": 236.722,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "work order",
+      "what": "trail",
+      "ms": 216.404,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "processing run",
+      "what": "walk processing",
+      "ms": 1446.383,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "processing run",
+      "what": "trail",
+      "ms": 537.202,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "output batch",
+      "what": "walk processing",
+      "ms": 238.75,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "output batch",
+      "what": "trail",
+      "ms": 208.057,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "output batch OUT-2026-0119",
+      "what": "walk processing",
+      "ms": 909.298,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "output batch OUT-2026-0119",
+      "what": "trail",
+      "ms": 285.646,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "quote",
+      "what": "walk sales",
+      "ms": 47.182,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "quote",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "sales order",
+      "what": "walk sales",
+      "ms": 42.578,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "sales order",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "shipment",
+      "what": "walk sales",
+      "ms": 77.623,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "shipment",
+      "what": "trail",
+      "ms": 117.926,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "container",
+      "what": "walk sales",
+      "ms": 157.219,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "container",
+      "what": "trail",
+      "ms": 172.592,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "invoice",
+      "what": "walk sales",
+      "ms": 27.379,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "invoice",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "receipt",
+      "what": "walk sales",
+      "ms": 16.209,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "receipt",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "credit note",
+      "what": "walk sales",
+      "ms": 19.863,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "credit note",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "leave",
+      "what": "walk people",
+      "ms": 26.035,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "leave",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "payroll period",
+      "what": "walk people",
+      "ms": 9.931,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "payroll period",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    },
+    {
+      "role": "warehouse",
+      "page": "payroll payment",
+      "what": "walk people",
+      "ms": 34.75,
+      "err": null
+    },
+    {
+      "role": "warehouse",
+      "page": "payroll payment",
+      "what": "trail",
+      "ms": null,
+      "err": "TRAIL_NOT_PERMITTED"
+    }
+  ]
+}

@@ -179,3 +179,80 @@ fixtures 296 / 297 green (297: walks worst 113.8 ms, 27 of 161 over the 100 ms a
 | smoke | `SMOKE_EXIT=0` — 344 ok · 25 skipped (no data) · 0 FAILED · `NETRETRY_TOTAL=0`, 1,923 s (`smoke.txt`); watchdog never fired, recorded single round trips 2,141 · 1,854 · 1,829 ms (`smoke-watchdog.txt`); read-back clean. Not re-run after -fu1 (no app change; one function, covered by the gate's fixtures and proof run 2) |
 | COD bytes | both equal the AGENTS.md baseline: 34,701 B `ba299a4f…f42101` · 34,746 B `717661f6…2513a4f9` (`cod-bytes.txt`, `COD_OWN_EXIT=0`) |
 | fresh clone | `d318f579fb2f32c36ba4e93fc93e6e2a63ef1af8`, no `.env.local`, `npm ci && npm run build`: **`FRESH_OWN_EXIT=0`** (`fresh-clone-build.txt`). The only change after that clone is this line and that log (docs only). |
+
+---
+
+# CWC-CLOSE — clean-memory live re-proof and smoke (2026-10-29 08:15 → 10:4x CST)
+
+Close-out of CHAIN-WALK-COST: **no code, no migration, no version number.** Started from `ffddc974b3e1752f822a38b6c8ec4aaa77fbe6dc` (HEAD = origin/main). No sub-agent was started.
+Tim upgraded the plan: **NO** → Tim authorised one project restart through the Management API.
+
+**Identity of every reading.** Host metrics: Supabase's privileged metrics endpoint (read-only, the service key passed to curl on stdin; only the memory / swap / vmstat / CPU lines kept — `scratchpad` reader, not committed).
+Health and restart: Management API. Read-backs as `postgres` (`rolbypassrls = true`) on base tables, reconciliation as tim@ (cfo) rolled back. Walk / trail timings: the proof's own `EXPLAIN (ANALYZE)` as each role's throwaway clone, rolled back.
+
+| step | reading |
+|---|---|
+| 1 · production | GitHub's newest Production deployment is `ffddc974b3e1` (id 7394743752), `state=success` 2026-10-28T19:05:46Z (03:05:46 CST) — a downstream record (AGENTS.md: Vercel is the source); Tim confirmed the deployment 2026-10-29 08:15 CST (relayed, not measured). The CWC app change (`section.failed`) is drawn only on a failure, so the HTML cannot tell the versions apart. |
+| 2 · before restart (08:23:24) | `MemTotal` 426 MB · `MemAvailable` 185 MB · **swap 450 MB of 1,074 MB in use** · CPUs over 62 s: idle 90 % · **iowait 4.8 %** · steal 0 (no proof running). Compute: `billing/addons` → **no compute add-on selected** (the plan's default instance; 426 MB is what the host reports). (`close-host-metrics-restart.txt`) |
+| 3 · restart | `POST /v1/projects/<ref>/restart` **08:24:48 CST → HTTP 200**; `pg_postmaster_start_time()` **08:25:52 CST** (vmstat counters reset: the host rebooted). Health: `db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY` at **08:34:38** — the nine polls 08:26–08:34 were unreadable (a parser bug in my poller, not the API), so the moment it became healthy between 08:25:52 and 08:34:38 is **not measured**. (`close-restart.txt`) |
+| 3 · after restart (08:34:53) | `MemAvailable` 142 MB · **swap 355 MB in use nine minutes after boot** · ~9,000 pages swapped in and out per minute · iowait 3.5 % with no reader running. **The restart did not give a swap-free instance: the idle footprint does not fit in 426 MB.** |
+| 4 · read-back (`close-readback-before-proof.txt`, `READBACK_OWN_EXIT=0`) | 7 users / 7 enabled, each holding exactly one role (admin · cco · cfo · cto · finance · gm · warehouse; per account by uuid) · 0 throwaway users / roles · 0 orphan grants · 7 active grants · 1 cfo · approvals ON `finance/cfo/1000` · `require_calibrated_since` NULL · 2 CODs · AP 0.00 / AR 0.00 unexplained. COD bytes equal the AGENTS.md baseline (`close-cod-bytes-before.txt`, `COD_OWN_EXIT=0`). |
+
+## Step 5 — live proof on the final code (`close-live-proof.txt`, `close-live-proof.json`)
+
+The same script and pages as proof run 2 (`db/scripts/2026-10-28-chain-walk-cost-live-proof.mjs`, unchanged), `next start` on a fresh `npm run build` of `ffddc97` (`BUILD_OWN_EXIT=0`), seven throwaway clones, one reader at a time, GET only.
+08:39:05 → 10:08 CST. Abort rules never fired: in-database `select 1` ≤ 0.475 ms, five-trip medians 394–545 ms, db / rest ACTIVE_HEALTHY before every reader. **`CWC_PROOF_EXIT=1` — 2,822 PASS · 5 FAIL; all five are `DOCUMENT_CHAIN_WALK_BUDGET` refusals** (run 2: 2,712 PASS · 10 FAIL, 8 page bars refused):
+
+| # | where | how it showed | in-database `select 1` at that moment |
+|---|---|---|---|
+| 1 | admin · payable | the page's bar refused (page HTTP 200) | 0.02 ms · db / rest healthy |
+| 2 | cfo · output batch | the in-database walk timing (processing) refused | reader start 0.022 ms (the script measures `select 1` at the moment only for a page-bar refusal) |
+| 3 | finance · payment | the in-database walk timing (purchasing) refused | reader start 0.475 ms (same) |
+| 4 | finance · output batch | the in-database walk timing (processing) refused | reader start 0.475 ms (same) |
+| 5 | warehouse · processing run | the page's bar refused (page HTTP 200) | 0.045 ms · db / rest healthy |
+
+**Change-history trail: 0 errors** — 133 in-database trail timings (11 `TRAIL_NOT_PERMITTED` by design, 0 other errors); on the pages 121 drawn with entries, 12 where the role cannot open the page, **0 `failed`**; warehouse · OUT-2026-0119 HTTP 200 with the trail drawn.
+
+In-database time per role (EXPLAIN ANALYZE as the clone, fresh connection), worst — run 2 beside it:
+
+| role | walk worst (page) | run 2 walk worst | trail worst (page) | run 2 trail worst | walk median | trail median |
+|---|--:|--:|--:|--:|--:|--:|
+| admin | 1,285 (shipment) | 1,428 | 526 (shipment) | 677 | 374 | 130 |
+| cfo | 1,868 (assay) | 1,897 | 1,152 (output batch) | 1,029 | 493 | 204 |
+| cco | 1,050 (purchase order) | 1,368 | 580 (output batch) | 780 | 433 | 169 |
+| cto | 1,176 (processing run) | 996 | 645 (output batch) | 601 | 459 | 186 |
+| finance | 1,108 (assay) | 1,393 | **3,102 (OUT-2026-0119)** | 625 | 671 | 257 |
+| gm | 1,027 (shipment) | 1,148 | 704 (inbound batch) | 1,416 | 435 | 230 |
+| warehouse | 1,622 (inbound batch) | 977 | 807 (inbound batch) | 1,230 | 157 | 286 |
+
+(Medians and worsts exclude the three refused timings, which have no time.) Page-level, live's `pg_stat_statements` deltas over the run (`close-pgss.txt`, PostgREST callers): `document_chain_walk` 144 calls, mean 543 ms (run 2: 717); `record_trail` 122 calls, mean 272 ms (run 2: 796).
+Locally the same walks are 10–60 ms (Step 1). **Same picture as run 2: the host, not the code.**
+
+Host per reader (`close-host-metrics-per-role.txt`; read when each reader starts, i.e. after the previous one):
+
+| marker | available | swap in use | iowait (2 CPUs) |
+|---|--:|--:|--|
+| before admin 08:39:55 | 158 MB | 256 MB | not measured (window too short — the endpoint refreshes about once a minute, so a 30 s window compared a sample with itself; fixed to ≥ 65 s from cto on) |
+| before cfo 08:52 | 101 MB | 591 MB | not measured (same) |
+| before cco 09:05 | 121 MB | 790 MB | not measured (same) |
+| before cto 09:18 | 120 MB | 458 MB | 9.8 · 10.2 % |
+| before finance 09:30 | 127 MB | 719 MB | **18.2 · 15.8 %** |
+| before gm 09:44 | 117 MB | 541 MB | 11.1 · 10.6 % |
+| before warehouse 09:58 | 107 MB | 636 MB | 13.2 · 12.6 % |
+| after all readers 10:07 | 144 MB | 325 MB | 1.5 · 1.9 % |
+
+Read-back after (`close-readback-after-proof.txt`): **byte-identical** to the one before.
+
+## Step 6 — smoke on the final database state (`close-smoke.txt`, `close-smoke-watchdog.txt`)
+
+`node scripts/smoke-routes.mjs` (with SYSTEM-MAP-3's network-level retry) under `db/run_detached.sh`, 10:08:50 → 10:39 CST, under a watchdog applying the AGENTS.md abort rules once a minute (plus host memory / swap, recorded only).
+**`SMOKE_EXIT=1` — one route failed: `/tools/reminders` → HTTP 500**, `查询失败(operations_now): 57014 canceling statement due to statement timeout` (15,615 ms). **343 ok · 25 skipped (no data) · 1 FAILED** (the CWC smoke: 344 · 25 · 0); 318 routes timed, 1,459.8 s, median 3,592 ms. **`NETRETRY_TOTAL=0`** (no network retries).
+Watchdog: never fired — in-database `select 1` ≤ 1.53 ms, medians 391–550 ms, db / rest healthy every minute; **swap climbed 377 → 1,033 MB of 1,074 MB** (10:37:22). (The first watchdog matched the `run_detached` wrapper instead of the node process; it was restarted at 10:09:23, before it had read anything, and the second targeted node 44268.)
+The failing read timed once afterwards as the real admin account, alone, rolled back (`close-operations-now-timing.txt`): **planning 537 ms + execution 382 ms**. `operations_now` last changed in SYSTEM-MAP-2 (`2e0d0477`); the CWC smoke at 2026-10-28 23:33 passed this route. ⇒ **inference, not proof:** the 8 s timeout is the same swapping host, under smoke load, with swap near full. Not re-run (no measurement says the host would be better on a second try) and not fixed (close-out, no code).
+Read-back after smoke (`close-readback-after-smoke.txt`): **byte-identical**; COD bytes equal the baseline (`close-cod-bytes-after.txt`); host at rest afterwards: 143 MB available · swap 478 MB · iowait 1.5–1.7 % (`close-host-metrics-after-smoke.txt`).
+
+## Verdicts
+- 64d-4 closed (deployment confirmed by Tim 2026-10-29 08:15 CST; broken window 2026-10-28 23:11:30 → 2026-10-29 08:15 CST, about 9 h 04 m).
+- **SM3-ADMIN-WALK-OVER-BUDGET and SM3-OUTPUT-TRAIL-TIMEOUT stay open** (5 refusals; the trail half is met — 0 trail errors). No fix attempted.
+- CWC-LIVE-INSTANCE-SWAPPING stays open, linked to go-live item 15 (SUPABASE-PLAN): a restart does not clear it.
+- CWC-STORAGE-POLICIES-UNWRAPPED closed as accepted (Tim 2026-10-29).

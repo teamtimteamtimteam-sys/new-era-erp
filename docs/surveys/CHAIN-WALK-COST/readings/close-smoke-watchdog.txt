@@ -1,0 +1,26 @@
+10:09:23 watchdog restarted: the first one matched the run_detached wrapper (44261) — an abort would not have reached smoke; now anchored to the node process
+10:09:38 median=391.336ms max=398.842ms in-db=0.025ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 131 MB · swap used 377 MB of 1074 MB · node=44268
+10:10:51 median=462.851ms max=484.583ms in-db=0.952ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 97 MB · swap used 394 MB of 1074 MB · node=44268
+10:12:02 median=396.331ms max=978.827ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 111 MB · swap used 544 MB of 1074 MB · node=44268
+10:13:14 median=445.352ms max=505.400ms in-db=0.527ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 144 MB · swap used 607 MB of 1074 MB · node=44268
+10:14:28 median=444.271ms max=1429.152ms in-db=0.658ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 107 MB · swap used 542 MB of 1074 MB · node=44268
+10:15:39 median=420.053ms max=898.389ms in-db=1.219ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 122 MB · swap used 563 MB of 1074 MB · node=44268
+10:17:01 median=550.460ms max=1025.997ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 107 MB · swap used 572 MB of 1074 MB · node=44268
+10:18:16 median=513.146ms max=987.399ms in-db=0.571ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 106 MB · swap used 561 MB of 1074 MB · node=44268
+10:19:29 median=512.303ms max=681.703ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 114 MB · swap used 577 MB of 1074 MB · node=44268
+10:20:40 median=444.325ms max=469.775ms in-db=1.156ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 116 MB · swap used 608 MB of 1074 MB · node=44268
+10:21:53 median=537.565ms max=757.356ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 119 MB · swap used 669 MB of 1074 MB · node=44268
+10:23:11 median=430.288ms max=513.678ms in-db=1.273ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 116 MB · swap used 657 MB of 1074 MB · node=44268
+10:24:23 median=391.663ms max=679.403ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 120 MB · swap used 663 MB of 1074 MB · node=44268
+10:25:38 median=444.585ms max=474.470ms in-db=1.528ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 120 MB · swap used 707 MB of 1074 MB · node=44268
+10:26:49 median=420.851ms max=662.716ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 114 MB · swap used 734 MB of 1074 MB · node=44268
+10:28:06 median=396.409ms max=511.797ms in-db=1.224ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 125 MB · swap used 822 MB of 1074 MB · node=44268
+10:29:23 median=398.270ms max=413.440ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 111 MB · swap used 801 MB of 1074 MB · node=44268
+10:30:48 median=481.314ms max=1423.549ms in-db=1.110ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 115 MB · swap used 898 MB of 1074 MB · node=44268
+10:31:59 median=395.694ms max=396.319ms in-db=0.033ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 105 MB · swap used 832 MB of 1074 MB · node=44268
+10:33:24 median=478.398ms max=837.145ms in-db=1.118ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 116 MB · swap used 918 MB of 1074 MB · node=44268
+10:34:45 median=436.392ms max=482.986ms in-db=0.031ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 107 MB · swap used 884 MB of 1074 MB · node=44268
+10:36:03 median=407.037ms max=575.130ms in-db=0.617ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 109 MB · swap used 889 MB of 1074 MB · node=44268
+10:37:22 median=404.014ms max=476.263ms in-db=0.041ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 116 MB · swap used 1033 MB of 1074 MB · node=44268
+10:38:40 median=475.979ms max=616.040ms in-db=1.206ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · mem total 426 MB · available 104 MB · swap used 1009 MB of 1074 MB · node=44268
+10:39:40 SMOKE_EXIT seen — watchdog done

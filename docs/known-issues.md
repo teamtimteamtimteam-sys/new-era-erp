@@ -11784,6 +11784,7 @@ Management API health:db = UNHEALTHY、rest = UNHEALTHY(pooler 健康)。停掉�
 (run 1 两次:admin · 请假、cfo · 工单;run 2 八次:admin 加工 · cfo 应付 / 工单 · cco 发货 · finance 与 warehouse 的 OUT-2026-0119 · gm 化验 / 销售订单;`docs/surveys/CHAIN-WALK-COST/readings/live-proof*.txt`),库那一侧的四个信号每一次都正常。原因是线上这台机器本身:
 **426 MB 内存、约 580 MB 在交换分区、1,277 万次主缺页;证明进行中 CPU 87–88% 空闲、iowait 7.5%**(`readings/live-host-metrics.txt`)—— 查询在等换页与磁盘,不在算。
 同一条走链本地 10–30 ms、线上 250–1,430 ms;变更记录同样。去处:`docs/forward-queue.md` 上线准备组第 15 条 SUPABASE-PLAN(Tim 的决定);重启项目能清掉交换,但要 Tim 裁定。
+**CWC-CLOSE(2026-10-29)—— 重启之后再证一次,仍然开着:** Tim 授权一次重启(08:24:48,库 08:25:52 起来),同一支证明、同一批页面、一位一位七个角色(`readings/close-live-proof.txt`):2,822 PASS · **5 次 2 秒上限拒绝** —— 页面上的链条两次(admin · 应付,当时库里 select 1 0.02 ms;warehouse · 加工,0.045 ms;db / rest 都健康),库里计时三次(cfo · 产出批、finance · 付款、finance · 产出批)。每个角色最慢的走链 1,027–1,868 ms(run 2:977–1,897)。**没有试任何修法**(收尾不改代码)。重启没有换来干净的内存:起来九分钟交换分区已用 355 MB,证明进行中 256 → 790 MB、iowait 10–18%(`docs/surveys/CHAIN-WALK-COST/README.md` § CWC-CLOSE)。去处不变:SUPABASE-PLAN。
 
 ### SM3-OUTPUT-TRAIL-TIMEOUT —— 产出批页的变更记录偶尔撞上 8 秒语句上限,整页 500(SYSTEM-MAP-3 线上证明量到,不是本刀引入的)
 
@@ -11796,10 +11797,13 @@ Management API health:db = UNHEALTHY、rest = UNHEALTHY(pooler 健康)。停掉�
 做了的两件:① 变更记录那一段取数失败画在它自己那一格里(`AuditTrail.tsx`:`section.failed`,Next 自己的控制流照旧抛出),不再整页 500;
 ② `record_trail` 在一年体量上最慢从 16.7 秒(对账单)降到 42–69 ms,七个角色,结果逐行不变(`docs/surveys/CHAIN-WALK-COST/README.md`)。
 线上那一页(OUT-2026-0119)仓库读者在 run 2 里打开:HTTP 200,变更记录画出来了(带记录);全程 0 段变更记录没画出来。仍开着,只因为拒绝那一半。
+**CWC-CLOSE(2026-10-29)—— 重启之后再证一次:变更记录这一半又一次满足,拒绝那一半没有,所以仍开着。** 133 次库里计时 0 次出错(11 次 `TRAIL_NOT_PERMITTED` 是设计);页面上 121 段画出记录、12 段是那个角色进不了那一页、**0 段 `failed`**;仓库读者打开 OUT-2026-0119 HTTP 200、变更记录画出来了。最慢的一次是 finance · OUT-2026-0119 3,102 ms(没有撞 8 秒),其余角色 526–1,152 ms;线上 `record_trail` 页面调用 122 次、均值 272 ms(run 2:796)。5 次走链拒绝见 SM3-ADMIN-WALK-OVER-BUDGET(`docs/surveys/CHAIN-WALK-COST/README.md` § CWC-CLOSE)。
 
 ## CHAIN-WALK-COST 登记(2026-10-28)
 
-### CWC-STORAGE-POLICIES-UNWRAPPED —— storage.objects 的 53 条策略仍然按行调 has_permission / auth.uid()
+### ~~CWC-STORAGE-POLICIES-UNWRAPPED~~ —— **✅ 已关闭:接受现状(Tim 2026-10-29 裁定)** —— storage.objects 的 53 条策略仍然按行调 has_permission / auth.uid()
+
+> **Tim 2026-10-29 的裁定:接受现状。** 存储策略保持不包、留在 `db/policy-permission-allowlist.tsv`(kind = storage)里;portal-uploads / claim-receipts 两个桶不许碰;它们不在热路径上。不是一个待修的缺陷 —— 构建闸照旧认得这 53 条、不放过一条新的。下面是立案时的原文。
 
 CHAIN-WALK-COST 把 public 的 560 条策略里的权限判断与读者身份包成了 `(SELECT …)`(Tim 2026-10-28 Q1,`AGENTS.md`「策略里的权限判断与读者身份按语句求一次」)。
 `db/storage/buckets-and-policies.sql` 里 storage.objects 的 **53 条**没有动:Q1 那一问说的是 public 的 541(+19)条,存储策略由 Storage API 判、本刀没有在本地证得了它们的读写等价,
@@ -11821,3 +11825,14 @@ CHAIN-WALK-COST 的线上证明期间从 Supabase 的特权指标端点读到(�
 `shared_buffers` 224 MB 放在一台 426 MB 的机器上。后果:任何一刀的线上计时都会被它放大、并且随机;单据链条的 2 秒上限在证明里被它撞到。
 **去处:`docs/forward-queue.md` 上线准备组第 15 条 SUPABASE-PLAN(Tim 的决定)。** 重启项目能暂时清掉交换(要 Tim 裁定,本刀没有动)。
 ☞ 中止规则看不见这一类(它们量的是一次 `select 1`,那一页一直在内存里);下一刀的线上证明若要看它,得加一条读 `node_memory_SwapFree_bytes` 与 iowait 的信号 —— 那是 Tim 的规矩,本刀没有改。
+**CWC-CLOSE(2026-10-29)—— 套餐没有升级;一次重启【没有】清掉它,仍然开着,连着上线准备组第 15 条 SUPABASE-PLAN。** 同一个端点、同样只留这几行(`docs/surveys/CHAIN-WALK-COST/README.md` § CWC-CLOSE):
+| 时刻 | 可用内存 | 交换分区已用 | iowait |
+|---|--:|--:|--|
+| 重启前 08:23(没有证明在跑) | 185 MB | 450 MB | 4.8 % |
+| 重启 08:24:48 请求 · 08:25:52 库起来 · 08:34:53(九分钟后,没有读者) | 142 MB | **355 MB** | 3.5 % |
+| 证明进行中(七位读者开跑时,08:39–09:58) | 101–158 MB | 256 → **790 MB** | 9.8–**18.2 %**(cto 起;前三位窗口太短,没量到) |
+| 证明之后 10:08 | 131 MB | 377 MB | 4.1 % |
+| 冒烟进行中(每分钟,10:09–10:38) | 97–144 MB | 377 → **1,033 / 1,074 MB** | (只记内存) |
+| 冒烟之后 10:4x(静止) | 143 MB | 478 MB | 1.5–1.7 % |
+
+**结论:** 一台 426 MB 的机器连静止的常驻集都放不下 —— 重启九分钟、一位读者都没有的时候它已经在换页(每分钟约 9,000 页进出)。重启清掉的只是累积的那一部分。后果照旧:同一批走链线上 1.0–1.9 秒(本地 10–60 ms),5 次 2 秒上限拒绝;冒烟里 `/tools/reminders` 因 `operations_now` 撞 8 秒语句上限而 500(单独计时 planning 537 + execution 382 ms;`operations_now` 自 SYSTEM-MAP-2 起没改过,CWC 那一跑冒烟这一页是过的 —— 归因是推断,不是证明)。四个中止信号全程正常:它们仍然看不见这一类。

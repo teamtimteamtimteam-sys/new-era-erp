@@ -1,0 +1,136 @@
+# at proof marker: before admin · read 2026-10-29 08:39:55 CST
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_vmstat_pgmajfault 176354
+node_memory_Cached_bytes 1.54816512e+08
+node_memory_SwapFree_bytes 8.17610752e+08
+node_vmstat_pswpout 178200
+node_memory_MemTotal_bytes 4.26262528e+08
+node_vmstat_pswpin 115725
+node_memory_MemAvailable_bytes 1.57503488e+08
+SUMMARY|mem total 426 MB · available 158 MB · swap used 256 MB of 1074 MB
+cpu0 idle 0.0% · iowait 0.0% · user 0.0% · system 0.0% · steal 0.0%  (over 31 s)
+cpu1 idle 0.0% · iowait 0.0% · user 0.0% · system 0.0% · steal 0.0%  (over 31 s)
+end node_vmstat_pgmajfault 176354
+end node_vmstat_pswpout 178200
+end node_vmstat_pswpin 115725
+# at proof marker: before cfo · read 2026-10-29 08:52:13 CST
+node_memory_MemTotal_bytes 4.26262528e+08
+node_vmstat_pswpin 605196
+node_memory_Cached_bytes 1.00335616e+08
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_vmstat_pgmajfault 709032
+node_memory_MemAvailable_bytes 1.01371904e+08
+node_vmstat_pswpout 710283
+node_memory_SwapFree_bytes 4.830208e+08
+SUMMARY|mem total 426 MB · available 101 MB · swap used 591 MB of 1074 MB
+cpu0 idle 0.0% · iowait 0.0% · user 0.0% · system 0.0% · steal 0.0%  (over 32 s)
+cpu1 idle 0.0% · iowait 0.0% · user 0.0% · system 0.0% · steal 0.0%  (over 32 s)
+end node_vmstat_pswpin 605196
+end node_vmstat_pgmajfault 709032
+end node_vmstat_pswpout 710283
+# at proof marker: before cco · read 2026-10-29 09:05:04 CST
+node_memory_MemAvailable_bytes 1.214464e+08
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_vmstat_pswpout 1.277128e+06
+node_vmstat_pgmajfault 1.29183e+06
+node_memory_Cached_bytes 1.18120448e+08
+node_memory_MemTotal_bytes 4.26262528e+08
+node_vmstat_pswpin 1.222505e+06
+node_memory_SwapFree_bytes 2.84008448e+08
+SUMMARY|mem total 426 MB · available 121 MB · swap used 790 MB of 1074 MB
+cpu0 idle 0.0% · iowait 0.0% · user 0.0% · system 0.0% · steal 0.0%  (over 33 s)
+cpu1 idle 0.0% · iowait 0.0% · user 0.0% · system 0.0% · steal 0.0%  (over 33 s)
+end node_vmstat_pswpout 1.277128e+06
+end node_vmstat_pgmajfault 1.29183e+06
+end node_vmstat_pswpin 1.222505e+06
+# at proof marker: before cto · read 2026-10-29 09:18:27 CST
+node_memory_MemTotal_bytes 4.26262528e+08
+node_vmstat_pgmajfault 1.836885e+06
+node_vmstat_pswpout 1.764999e+06
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_memory_MemAvailable_bytes 1.20127488e+08
+node_vmstat_pswpin 1.77756e+06
+node_memory_Cached_bytes 1.16969472e+08
+node_memory_SwapFree_bytes 6.15903232e+08
+SUMMARY|mem total 426 MB · available 120 MB · swap used 458 MB of 1074 MB
+cpu0 idle 84.4% · iowait 9.8% · user 3.1% · system 2.5% · steal 0.0%  (over 69 s)
+cpu1 idle 83.2% · iowait 10.2% · user 3.8% · system 2.6% · steal 0.0%  (over 69 s)
+end node_vmstat_pswpin 1.812189e+06
+end node_vmstat_pgmajfault 1.877118e+06
+end node_vmstat_pswpout 1.798443e+06
+# at proof marker: before finance · read 2026-10-29 09:30:54 CST
+node_memory_MemAvailable_bytes 1.2709888e+08
+node_memory_SwapFree_bytes 3.54615296e+08
+node_memory_MemTotal_bytes 4.26262528e+08
+node_memory_Cached_bytes 1.08859392e+08
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_vmstat_pgmajfault 2.426758e+06
+node_vmstat_pswpout 2.321026e+06
+node_vmstat_pswpin 2.356359e+06
+SUMMARY|mem total 426 MB · available 127 MB · swap used 719 MB of 1074 MB
+cpu0 idle 74.2% · iowait 18.2% · user 3.5% · system 3.9% · steal 0.0%  (over 69 s)
+cpu1 idle 77.1% · iowait 15.8% · user 2.9% · system 4.0% · steal 0.0%  (over 69 s)
+end node_vmstat_pswpout 2.383723e+06
+end node_vmstat_pswpin 2.43356e+06
+end node_vmstat_pgmajfault 2.495937e+06
+# at proof marker: before gm · read 2026-10-29 09:44:40 CST
+node_memory_MemTotal_bytes 4.26262528e+08
+node_vmstat_pswpout 2.917188e+06
+node_memory_Cached_bytes 1.11489024e+08
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_vmstat_pswpin 3.037457e+06
+node_memory_MemAvailable_bytes 1.17301248e+08
+node_memory_SwapFree_bytes 5.32791296e+08
+node_vmstat_pgmajfault 3.056775e+06
+SUMMARY|mem total 426 MB · available 117 MB · swap used 541 MB of 1074 MB
+cpu0 idle 81.8% · iowait 11.1% · user 3.6% · system 3.4% · steal 0.0%  (over 67 s)
+cpu1 idle 82.7% · iowait 10.6% · user 3.3% · system 3.2% · steal 0.0%  (over 67 s)
+end node_vmstat_pgmajfault 3.10995e+06
+end node_vmstat_pswpout 2.968333e+06
+end node_vmstat_pswpin 3.084439e+06
+# at proof marker: before warehouse · read 2026-10-29 09:58:07 CST
+node_memory_SwapFree_bytes 4.37321728e+08
+node_vmstat_pgmajfault 3.663502e+06
+node_vmstat_pswpout 3.464048e+06
+node_memory_MemAvailable_bytes 1.0719232e+08
+node_vmstat_pswpin 3.602718e+06
+node_memory_MemTotal_bytes 4.26262528e+08
+node_memory_Cached_bytes 1.01593088e+08
+node_memory_SwapTotal_bytes 1.073737728e+09
+SUMMARY|mem total 426 MB · available 107 MB · swap used 636 MB of 1074 MB
+cpu0 idle 81.0% · iowait 13.2% · user 2.5% · system 3.1% · steal 0.0%  (over 73 s)
+cpu1 idle 81.3% · iowait 12.6% · user 2.9% · system 3.0% · steal 0.0%  (over 73 s)
+end node_vmstat_pgmajfault 3.712508e+06
+end node_vmstat_pswpin 3.658316e+06
+end node_vmstat_pswpout 3.521631e+06
+# at proof marker: after all readers · read 2026-10-29 10:07:38 CST
+node_vmstat_pswpout 3.795766e+06
+node_vmstat_pgmajfault 4.034056e+06
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_vmstat_pswpin 3.915074e+06
+node_memory_MemTotal_bytes 4.26262528e+08
+node_memory_SwapFree_bytes 7.48879872e+08
+node_memory_MemAvailable_bytes 1.43659008e+08
+node_memory_Cached_bytes 1.4221312e+08
+SUMMARY|mem total 426 MB · available 144 MB · swap used 325 MB of 1074 MB
+cpu0 idle 96.1% · iowait 1.5% · user 1.4% · system 0.9% · steal 0.0%  (over 67 s)
+cpu1 idle 96.3% · iowait 1.9% · user 1.0% · system 0.8% · steal 0.0%  (over 67 s)
+end node_vmstat_pswpout 3.797563e+06
+end node_vmstat_pgmajfault 4.044862e+06
+end node_vmstat_pswpin 3.919856e+06
+# after the proof exited · read 2026-10-29 10:08:50 CST
+node_memory_MemAvailable_bytes 1.31325952e+08
+node_vmstat_pswpout 3.797563e+06
+node_vmstat_pgmajfault 4.044862e+06
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_memory_Cached_bytes 1.28331776e+08
+node_vmstat_pswpin 3.919856e+06
+node_memory_SwapFree_bytes 6.96414208e+08
+node_memory_MemTotal_bytes 4.26262528e+08
+SUMMARY|mem total 426 MB · available 131 MB · swap used 377 MB of 1074 MB
+cpu0 idle 92.7% · iowait 4.1% · user 1.4% · system 1.7% · steal 0.0%  (over 71 s)
+cpu1 idle 92.8% · iowait 4.2% · user 1.1% · system 1.8% · steal 0.0%  (over 71 s)
+end node_vmstat_pgmajfault 4.069951e+06
+end node_vmstat_pswpin 3.930456e+06
+end node_vmstat_pswpout 3.810832e+06
+WATCH_DONE

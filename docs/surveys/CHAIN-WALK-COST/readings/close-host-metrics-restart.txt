@@ -1,0 +1,30 @@
+# step 2 · before restart · read 2026-10-29 08:23:24 CST
+node_memory_Cached_bytes 1.4804992e+08
+node_memory_MemAvailable_bytes 1.84782848e+08
+node_memory_SwapFree_bytes 6.23968256e+08
+node_vmstat_pswpin 1.3022709e+07
+node_memory_MemTotal_bytes 4.26258432e+08
+node_vmstat_pswpout 1.2746881e+07
+node_vmstat_pgmajfault 1.731825e+07
+node_memory_SwapTotal_bytes 1.073737728e+09
+SUMMARY|mem total 426 MB · available 185 MB · swap used 450 MB of 1074 MB
+cpu0 idle 90.5% · iowait 4.8% · user 2.9% · system 1.7% · steal 0.0%  (over 62 s)
+cpu1 idle 90.0% · iowait 4.8% · user 3.4% · system 1.7% · steal 0.0%  (over 62 s)
+end node_vmstat_pgmajfault 1.7335468e+07
+end node_vmstat_pswpin 1.3030611e+07
+end node_vmstat_pswpout 1.2754158e+07
+# step 3 · after restart · read 2026-10-29 08:34:53 CST
+node_memory_SwapFree_bytes 7.18524416e+08
+node_vmstat_pswpin 100877
+node_memory_SwapTotal_bytes 1.073737728e+09
+node_memory_MemAvailable_bytes 1.424384e+08
+node_memory_Cached_bytes 1.1790336e+08
+node_vmstat_pswpout 165665
+node_memory_MemTotal_bytes 4.26262528e+08
+node_vmstat_pgmajfault 151257
+SUMMARY|mem total 426 MB · available 142 MB · swap used 355 MB of 1074 MB
+cpu0 idle 93.5% · iowait 3.5% · user 1.5% · system 1.4% · steal 0.0%  (over 62 s)
+cpu1 idle 93.3% · iowait 3.5% · user 1.8% · system 1.4% · steal 0.0%  (over 62 s)
+end node_vmstat_pswpin 110120
+end node_vmstat_pgmajfault 167499
+end node_vmstat_pswpout 174584

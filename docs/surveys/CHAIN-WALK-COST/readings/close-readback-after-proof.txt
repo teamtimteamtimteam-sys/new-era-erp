@@ -1,0 +1,14 @@
+PROOF|{"users" : 7, "enabled" : 7, "throwaway_users" : 0, "throwaway_roles" : 0, "orphan_grants" : 0, "role_codes_held" : "admin,cco,cfo,cto,finance,gm,warehouse", "approvals" : true, "chain" : "finance/cfo/1000", "req_cal" : "NULL", "cods" : 2, "cfo_grants_active" : 1, "saved_views" : 0}
+BEGIN
+SET
+PROOF|recon ap unexplained=0.00 agrees=true · ar unexplained=0.00 agrees=true
+ROLLBACK
+PROOF|account 01ae00e4-306f-4527-8537-10291e4750c7 enabled=true roles=cco
+PROOF|account 09496449-52a3-4af4-8f3b-7cf16ccc9dc5 enabled=true roles=gm
+PROOF|account 321f1819-8449-48f7-9ae0-78b2c4b50f35 enabled=true roles=admin
+PROOF|account 476bf8c8-c248-4352-9a75-945bf52ca390 enabled=true roles=finance
+PROOF|account 634c00f9-c3a9-4444-9eed-b624cb6a2a93 enabled=true roles=cfo
+PROOF|account c8116e6c-80db-4a16-be12-24fb6ce6859d enabled=true roles=warehouse
+PROOF|account e61d99f2-2b95-4059-86f8-5aef8b5cffb5 enabled=true roles=cto
+PROOF|role_grants_total_active=7
+READBACK_OWN_EXIT=0

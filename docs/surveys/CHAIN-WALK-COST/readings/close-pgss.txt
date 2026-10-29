@@ -1,0 +1,6 @@
+# snapshot 08:38:41 CST (before close-out proof; fn|calls|total ms|max ms)
+SNAP|document_chain_walk|361|165193.7|2085.9
+SNAP|record_trail|187|55457.3|2335.0
+# snapshot 10:08:21 CST (after close-out proof; fn|calls|total ms|max ms)
+SNAP|document_chain_walk|505|243426.2|2085.9
+SNAP|record_trail|309|88635.0|3103.7
