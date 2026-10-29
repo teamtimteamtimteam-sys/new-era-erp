@@ -2012,6 +2012,8 @@ const zh = {
         newTitle: '新增供应商',
         editTitle: '编辑供应商',
         form: {
+            // GOLIVE-1 第 4 行(Tim Q7):已批准的供应商,保存之前先说清改身份的后果
+            requeueWarning: '这家供应商已批准。保存对法定名、税号或类型的改动,它会回到待审、批准作废;重新批准之前,不能向它付款,也不能给它开新的采购单。改别的字段不影响批准。',
             legalName: '法人名',
             legalNamePlaceholder: '例如：Acme Battery Recycling Pte Ltd',
             shortName: '简称',
@@ -7591,6 +7593,8 @@ const zh = {
         deleteBody: '这一行从合同上拿掉。如果这份合同以前批准过,下一次申请生效时 CFO 会看见这个差别。',
         addRow: '加一条',
         editRow: '编辑这一条',
+        // GOLIVE-1 第 12 行(Tim Q9):一行里有你看不见的价格,就不给编辑(存下去会拿空白盖掉那个数)
+        editRestricted: '这一条带着你看不见的价格,不能在这里编辑。请持这份合同价格码的人来改。',
         choose: '— 请选择 —',
         yes: '是',
         no: '否',

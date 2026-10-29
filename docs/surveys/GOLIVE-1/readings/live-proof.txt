@@ -1,0 +1,81 @@
+STEP|database as postgres (base tables): containers 6 · metal_prices 12 · calendar 0 · pricing_settings 1 · contracts 0 · settlements 0 · supplier SUP-2026-0003 approved · employee for E found (work pass null)
+SELECT1|before admin client round trips 882 / 910 / 445 / 473 / 444 ms (median 473) · server execution 0.023 ms
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H admin: / → HTTP 200
+PASS|C admin: /logistics/containers → HTTP 200, 6 rows (database 6; reader holds module.logistics.view true)
+PASS|C admin: /logistics → HTTP 200, the containers figure is drawn (not restricted)
+PASS|K admin: /contracts → HTTP 200 (suppliers.view true)
+PASS|K admin: PostgREST base price columns → 403 / 403 (42501 true / true); masked companions → 200 / 200
+PASS|E admin: /hr/employees/<id>/edit → HTTP 200; data.view_identity true: 0 field(s) drawn 「受限」, 3 identity input(s) (nothing saved)
+PASS|S admin: /suppliers/<SUP-2026-0003>/edit → HTTP 200; the "back to review" warning is shown (nothing pressed)
+SELECT1|before warehouse client round trips 436 / 395 / 834 / 396 / 399 ms (median 399) · server execution 0.607 ms
+HEALTH|before warehouse: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H warehouse: / → HTTP 200
+PASS|C warehouse: /logistics/containers → HTTP 200, 6 rows (database 6; reader holds module.logistics.view true)
+PASS|C warehouse: /logistics → HTTP 200, the containers figure is drawn (not restricted)
+PASS|K warehouse: /contracts → HTTP 200 (suppliers.view true)
+PASS|K warehouse: PostgREST base price columns → 403 / 403 (42501 true / true); masked companions → 200 / 200
+PASS|S warehouse: /suppliers/<SUP-2026-0003>/edit → HTTP 200; the "back to review" warning is shown (nothing pressed)
+SELECT1|before cfo client round trips 457 / 452 / 450 / 454 / 454 ms (median 454) · server execution 0.027 ms
+HEALTH|before cfo: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H cfo: / → HTTP 200
+PASS|C cfo: /logistics/containers → HTTP 200, 6 rows (database 6; reader holds module.logistics.view true)
+PASS|C cfo: /logistics → HTTP 200, the containers figure is drawn (not restricted)
+PASS|K cfo: /contracts → HTTP 200 (suppliers.view true)
+PASS|K cfo: PostgREST base price columns → 403 / 403 (42501 true / true); masked companions → 200 / 200
+PASS|E cfo: /hr/employees/<id>/edit → HTTP 200; data.view_identity true: 0 field(s) drawn 「受限」, 3 identity input(s) (nothing saved)
+PASS|S cfo: /suppliers/<SUP-2026-0003>/edit → HTTP 200; the "back to review" warning is shown (nothing pressed)
+SELECT1|before cco client round trips 419 / 400 / 396 / 398 / 395 ms (median 398) · server execution 0.618 ms
+HEALTH|before cco: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H cco: / → HTTP 200
+PASS|C cco: /logistics/containers → HTTP 200, 6 rows (database 6; reader holds module.logistics.view true)
+PASS|C cco: /logistics → HTTP 200, the containers figure is drawn (not restricted)
+PASS|K cco: /contracts → HTTP 200 (suppliers.view true)
+PASS|K cco: PostgREST base price columns → 403 / 403 (42501 true / true); masked companions → 200 / 200
+PASS|E cco: /hr/employees/<id>/edit → HTTP 200; data.view_identity false: 3 field(s) drawn 「受限」, 0 identity input(s) (nothing saved)
+PASS|S cco: /suppliers/<SUP-2026-0003>/edit → HTTP 200; the "back to review" warning is shown (nothing pressed)
+SELECT1|before cto client round trips 455 / 451 / 461 / 452 / 451 ms (median 452) · server execution 0.027 ms
+HEALTH|before cto: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H cto: / → HTTP 200
+PASS|C cto: /logistics/containers → HTTP 200, 6 rows (database 6; reader holds module.logistics.view true)
+PASS|C cto: /logistics → HTTP 200, the containers figure is drawn (not restricted)
+PASS|K cto: /contracts → HTTP 200 (suppliers.view true)
+PASS|K cto: PostgREST base price columns → 403 / 403 (42501 true / true); masked companions → 200 / 200
+PASS|E cto: /hr/employees/<id>/edit → HTTP 200; data.view_identity false: 3 field(s) drawn 「受限」, 0 identity input(s) (nothing saved)
+PASS|S cto: /suppliers/<SUP-2026-0003>/edit → HTTP 200; the "back to review" warning is shown (nothing pressed)
+SELECT1|before finance client round trips 413 / 396 / 395 / 778 / 396 ms (median 396) · server execution 0.615 ms
+HEALTH|before finance: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H finance: / → HTTP 200
+PASS|C finance: /logistics/containers → HTTP 200, 6 rows (database 6; reader holds module.logistics.view true)
+PASS|C finance: /logistics → HTTP 200, the containers figure is drawn (not restricted)
+PASS|K finance: /contracts → HTTP 200 (suppliers.view true)
+PASS|K finance: PostgREST base price columns → 403 / 403 (42501 true / true); masked companions → 200 / 200
+PASS|E finance: /hr/employees/<id>/edit → HTTP 200; data.view_identity true: 0 field(s) drawn 「受限」, 3 identity input(s) (nothing saved)
+PASS|S finance: /suppliers/<SUP-2026-0003>/edit → HTTP 200; the "back to review" warning is shown (nothing pressed)
+SELECT1|before gm client round trips 863 / 915 / 398 / 397 / 398 ms (median 398) · server execution 0.029 ms
+HEALTH|before gm: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H gm: / → HTTP 200
+PASS|C gm: /logistics/containers → HTTP 200, 6 rows (database 6; reader holds module.logistics.view true)
+PASS|C gm: /logistics → HTTP 200, the containers figure is drawn (not restricted)
+PASS|K gm: /contracts → HTTP 200 (suppliers.view true)
+PASS|K gm: PostgREST base price columns → 403 / 403 (42501 true / true); masked companions → 200 / 200
+PASS|E gm: /hr/employees/<id>/edit → HTTP 200; data.view_identity false: 3 field(s) drawn 「受限」, 0 identity input(s) (nothing saved)
+PASS|S gm: /suppliers/<SUP-2026-0003>/edit → HTTP 200; the "back to review" warning is shown (nothing pressed)
+SELECT1|before metal-only client round trips 433 / 399 / 396 / 399 / 947 ms (median 399) · server execution 1.255 ms
+HEALTH|before metal-only: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|M metal-only: metal_prices 12 (database 12) · index_market_calendar 0 (database 0) · pricing_settings 1 (database 1)
+SELECT1|before anonymous client round trips 451 / 444 / 448 / 446 / 444 ms (median 446) · server execution 0.038 ms
+HEALTH|before anonymous: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|A anonymous: /verify/cod/<token of COD-2026-0001> → HTTP 200, names the certificate
+PASS|A anonymous: PostgREST collection_promise_status with the anon key → HTTP 401
+PASS|A anonymous: /login → HTTP 200
+SELECT1|before portal client round trips 397 / 394 / 398 / 421 / 396 ms (median 397) · server execution 0.025 ms
+HEALTH|before portal: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|P portal: /portal → HTTP 200, names its own supplier SUP-2026-0469
+PASS|P portal: /portal/certificates → HTTP 200
+SELECT1|after the last reader client round trips 454 / 454 / 452 / 454 / 1383 ms (median 454) · server execution 0.058 ms
+HEALTH|after the last reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done (0 warning(s))
+AFTER|nothing but the throwaway accounts, their roles and grants, one throwaway supplier and its portal account was committed (removed by the plan); pages were only read, no form was sent
+GOLIVE1_PROOF_EXIT=0
+GOLIVE1_PROOF_OWN_EXIT=0

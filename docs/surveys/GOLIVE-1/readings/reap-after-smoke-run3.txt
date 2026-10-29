@@ -1,0 +1,9 @@
+
+> new-era-erp@0.1.0 reap:ephemeral
+> node scripts/reap-ephemeral.mjs
+
+发现 1 份清理计划,逐份检查持有者是否还活着…
+· 收割上一次没跑完的清理:scripts/smoke-routes.mjs pid=50824 起于 2026-10-29T12:15:07.363Z,8 步
+
+收割 1 份 · 补删失败 0 份 · 持有者还活着跳过 0 份
+REAP_OWN_EXIT=0

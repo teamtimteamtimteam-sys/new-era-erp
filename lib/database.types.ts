@@ -27716,6 +27716,13 @@ export type Database = {
             referencedRelation: "sales_settlements"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_settlements_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "sales_settlements_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sample_events: {
@@ -35139,6 +35146,135 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contracts"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_insurance_obligations_masked: {
+        Row: {
+          contract_id: string | null
+          cover_type: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          id: string | null
+          insured_by: string | null
+          min_amount: number | null
+          notes: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_insurance_obligations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_insurance_obligations_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_penalty_elements_masked: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          notes: string | null
+          substance: string | null
+          threshold_pct: number | null
+          updated_at: string | null
+          updated_by: string | null
+          usd_per_tonne_per_pct_over: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_penalty_elements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_penalty_elements_substance_fkey"
+            columns: ["substance"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_pricing_terms_masked: {
+        Row: {
+          base_event: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          index_code: string | null
+          metal: string | null
+          notes: string | null
+          payable_pct: number | null
+          qp_months: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_pricing_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_pricing_terms_index_code_fkey"
+            columns: ["index_code"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "contract_pricing_terms_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_refining_charges_masked: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          metal: string | null
+          notes: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usd_per_tonne_of_metal: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_refining_charges_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_refining_charges_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -47036,6 +47172,182 @@ export type Database = {
           },
         ]
       }
+      sales_settlements_masked: {
+        Row: {
+          amount_usd: number | null
+          assay_result_id: string | null
+          breakdown: Json | null
+          computed_at: string | null
+          computed_by: string | null
+          gross_weight_kg: number | null
+          id: string | null
+          metal_value_usd: number | null
+          moisture_pct: number | null
+          output_batch_id: string | null
+          penalty_usd: number | null
+          refining_charge_usd: number | null
+          sales_order_id: string | null
+          settlement_weight_kg: number | null
+          settling_party_used: string | null
+          superseded_by: string | null
+          terms_snapshot: Json | null
+          weight_basis_used: string | null
+        }
+        Insert: {
+          amount_usd?: never
+          assay_result_id?: string | null
+          breakdown?: never
+          computed_at?: string | null
+          computed_by?: string | null
+          gross_weight_kg?: number | null
+          id?: string | null
+          metal_value_usd?: never
+          moisture_pct?: number | null
+          output_batch_id?: string | null
+          penalty_usd?: never
+          refining_charge_usd?: never
+          sales_order_id?: string | null
+          settlement_weight_kg?: number | null
+          settling_party_used?: string | null
+          superseded_by?: string | null
+          terms_snapshot?: never
+          weight_basis_used?: string | null
+        }
+        Update: {
+          amount_usd?: never
+          assay_result_id?: string | null
+          breakdown?: never
+          computed_at?: string | null
+          computed_by?: string | null
+          gross_weight_kg?: number | null
+          id?: string | null
+          metal_value_usd?: never
+          moisture_pct?: number | null
+          output_batch_id?: string | null
+          penalty_usd?: never
+          refining_charge_usd?: never
+          sales_order_id?: string | null
+          settlement_weight_kg?: number | null
+          settling_party_used?: string | null
+          superseded_by?: string | null
+          terms_snapshot?: never
+          weight_basis_used?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["counterparty_assay_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["our_assay_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_chemistry_certainty_all"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "sales_settlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "sales_settlements_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sample_rows: {
         Row: {
           batch_code: string | null
@@ -49763,6 +50075,10 @@ export type Database = {
       contract_terms_lock_reason: {
         Args: { p_contract_id: string }
         Returns: string
+      }
+      contract_terms_price_visible: {
+        Args: { p_contract_id: string }
+        Returns: boolean
       }
       contract_terms_state: { Args: { p_contract_id: string }; Returns: Json }
       convert_grade_basis: {

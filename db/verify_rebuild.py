@@ -53,6 +53,18 @@ cm = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cm)
 
 PRELUDE = REPO / "db" / "platform-prelude.sql"
+# GOLIVE-1 第 2 行:prelude 里这一行标记以下的部分在【重放之后】跑(裸集群与真 Supabase 项目都跑)—— 见那个文件第 6 节。
+AFTER_REPLAY_MARK = "-- @@ AFTER REPLAY @@"
+
+
+def prelude_parts() -> tuple:
+    text = PRELUDE.read_text()
+    if text.count(AFTER_REPLAY_MARK) != 1:
+        raise SystemExit(f"db/platform-prelude.sql must carry exactly one '{AFTER_REPLAY_MARK}' line")
+    before, after = text.split(AFTER_REPLAY_MARK)
+    if "ALTER DEFAULT PRIVILEGES" not in after:
+        raise SystemExit("db/platform-prelude.sql: the after-replay part lost its default-privilege revoke")
+    return before, after
 DB_SETTINGS = REPO / "db" / "database-settings.sql"
 
 # 重放失败时,把"缺了什么"直接指出来 —— 这就是【前置文件是否仍然够用】的答案。
@@ -136,7 +148,7 @@ def rebuild(dsn: str, prelude: str = "auto") -> int:
         print("== prelude: SKIPPED - the platform already provides auth, the roles and the default privileges")
     else:
         print("== prelude: db/platform-prelude.sql")
-        p = psql(dsn, fixup(PRELUDE.read_text()))
+        p = psql(dsn, fixup(prelude_parts()[0]))
         if p.returncode != 0:
             sys.stderr.write(p.stderr)
             print("\nPRELUDE FAILED - the platform substrate could not be created.")
@@ -196,6 +208,13 @@ def rebuild(dsn: str, prelude: str = "auto") -> int:
             if not ordering and not platform:
                 print("\n  (not a missing-object error - the mirror itself is broken)")
             return 2
+    # GOLIVE-1 第 2 行:重放之后收窄默认权限(prelude 第 6 节)—— 无论平台在不在都跑
+    print("== after replay: db/platform-prelude.sql section 6 (default privileges)")
+    p = psql(dsn, prelude_parts()[1])
+    if p.returncode != 0:
+        sys.stderr.write(p.stderr)
+        print("\nAFTER-REPLAY FAILED - the default-privilege revoke did not apply.")
+        return 2
     if prelude == "run":
         print("\nREBUILD OK - db/platform-prelude.sql is SUFFICIENT for the current mirror set.")
     else:

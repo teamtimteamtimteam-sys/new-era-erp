@@ -1,0 +1,5 @@
+19:40:32 watchdog done (smoke process gone or time up)
+20:13:09 watchdog anchored to the smoke node process 50453
+20:13:26 median=1778.591ms max=2072.274ms in-db=0.027ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=50453
+20:13:26 WARN single round trip 2072.274ms > 1500 (recorded, not an abort)
+20:13:26 ABORT:  median 1778.591ms > 1500 — SIGTERM to 50453

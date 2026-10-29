@@ -1,0 +1,50 @@
+{
+  "roles": {
+    "admin": {
+      "containers": 6,
+      "employee": {
+        "masked": 0,
+        "inputs": 3
+      }
+    },
+    "warehouse": {
+      "containers": 6
+    },
+    "cfo": {
+      "containers": 6,
+      "employee": {
+        "masked": 0,
+        "inputs": 3
+      }
+    },
+    "cco": {
+      "containers": 6,
+      "employee": {
+        "masked": 3,
+        "inputs": 0
+      }
+    },
+    "cto": {
+      "containers": 6,
+      "employee": {
+        "masked": 3,
+        "inputs": 0
+      }
+    },
+    "finance": {
+      "containers": 6,
+      "employee": {
+        "masked": 0,
+        "inputs": 3
+      }
+    },
+    "gm": {
+      "containers": 6,
+      "employee": {
+        "masked": 3,
+        "inputs": 0
+      }
+    }
+  },
+  "warnings": []
+}

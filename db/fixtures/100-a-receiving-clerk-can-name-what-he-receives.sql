@@ -37,8 +37,22 @@ BEGIN
     -- ── 设置:四个合成账号。user_roles.user_id 是裸 uuid(没有 FK),
     --    所以不需要 auth.users 行 —— 本 fixture 不碰任何 employees。
     INSERT INTO user_roles (user_id, role_id) SELECT u_wh,   id FROM roles WHERE code = 'warehouse';
-    INSERT INTO user_roles (user_id, role_id) SELECT u_hr,   id FROM roles WHERE code = 'hr';
-    INSERT INTO user_roles (user_id, role_id) SELECT u_proc, id FROM roles WHERE code = 'procurement';
+    -- ★ GOLIVE-1 第 5 行:hr 与 procurement 两个角色删掉了(Tim d2 #27)。这两位读者要的是【那两组码】,不是那两个名字 ——
+    --   所以 fixture 自己造两个角色,码与删掉之前的引导逐字相同(hr 8 个 · procurement 16 个),事务结尾一起回滚。
+    INSERT INTO roles (code, name_en, name_zh) VALUES ('zz-fx100-hr', 'ZZ fixture 100 hr', 'ZZ fixture 100 hr'),
+                                                      ('zz-fx100-proc', 'ZZ fixture 100 procurement', 'ZZ fixture 100 procurement');
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r, unnest(ARRAY['data.view_health', 'data.view_identity', 'data.view_pay', 'data.view_reviews',
+                                              'module.hr.edit', 'module.hr.view', 'module.tasks.edit', 'module.tasks.view']) c
+     WHERE r.code = 'zz-fx100-hr';
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r, unnest(ARRAY['data.view_prices', 'data.view_purchase_prices', 'module.inbound.edit', 'module.inbound.view',
+                                              'module.inventory.view', 'module.logistics.view', 'module.materials.edit', 'module.materials.view',
+                                              'module.pricing.edit', 'module.pricing.view', 'module.purchasing.edit', 'module.purchasing.view',
+                                              'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit', 'module.tasks.view']) c
+     WHERE r.code = 'zz-fx100-proc';
+    INSERT INTO user_roles (user_id, role_id) SELECT u_hr,   id FROM roles WHERE code = 'zz-fx100-hr';
+    INSERT INTO user_roles (user_id, role_id) SELECT u_proc, id FROM roles WHERE code = 'zz-fx100-proc';
     -- u_none 刻意【不】授任何角色。
 
     -- ══ 设置:本 fixture 【自己造】它要的每一行 ═══════════════════════════

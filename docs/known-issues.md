@@ -151,7 +151,9 @@ MES-0 Q84 与 MES-9 Step 0 §4 / Q14 的推荐里有"自己那几批的最终化
 ~~**要不要删、谁删,是 Tim 的一句话。**~~ ★ **Tim 裁定(2026-10-19,NOROLE-SURFACE close-out):留给 Tim 方便的时候自己删。任何一刀都不删它**
 (包括线上证明的清理计划 —— 它不是本会话造的东西)。Tim 删掉之后,把这一条移走。
 
-## NOROLE-METAL-PRICES-ACTION-CODE-ALONE · 只持 `action.metal_prices` 的角色读不到 `metal_prices`(NOROLE-SURFACE 记,2026-10-19) —— ★ **已裁(Tim 2026-10-20):加进读谓词 —— 归上线准备组**
+## ~~NOROLE-METAL-PRICES-ACTION-CODE-ALONE · 只持 `action.metal_prices` 的角色读不到 `metal_prices`(NOROLE-SURFACE 记,2026-10-19) —— ★ **已裁(Tim 2026-10-20):加进读谓词 —— 归上线准备组**~~ —— ✅ 关闭于 GOLIVE-1(`v1.4.82`)
+
+✅ **关闭于 GOLIVE-1(`v1.4.82`,2026-10-29)**:`action.metal_prices` 进了 `metal_prices`、`index_market_calendar`、`pricing_settings` 三张表的读谓词(Tim Q6:三张一起);fixture 299 钉住只持这个码的读者,并带一格换回旧策略的故障注入。
 
 ★ **Tim 2026-10-20 裁定(d2 #2,FIN-CHAIN-1 记):`action.metal_prices` 加进 `metal_prices` 的读谓词。** 归 `docs/forward-queue.md`「上线准备组」第 1 行;本条在那一刀里关闭。
 
@@ -536,7 +538,9 @@ Tim 的裁定(Batch 3 grilling Q6):**登记,不在 3b 里造**。**删除条件:
 而数据库其实会放他批 —— **说错原因比不说更坏**。线上在途 CLM-2026-0004 的唯一决定人正是 tim@。
 **删除条件:** 按钮按 `approval_deciders` / 同一门判断,或至少按 `finance.view + view_prices` 画。
 
-## ★ ROLE1-BOOTSTRAP-MISSING-ROLES · 引导默认值里没有 `cco` / `cfo` / `cto`,而 ROLE-1 的新码只有它们持(ROLE-1 登记,2026-09-23) —— ★ **已裁(Tim 2026-10-20,d2 #27):与空角色一起做 —— 归上线准备组**
+## ~~★ ROLE1-BOOTSTRAP-MISSING-ROLES · 引导默认值里没有 `cco` / `cfo` / `cto`,而 ROLE-1 的新码只有它们持(ROLE-1 登记,2026-09-23) —— ★ **已裁(Tim 2026-10-20,d2 #27):与空角色一起做 —— 归上线准备组**~~ —— ✅ 关闭于 GOLIVE-1(`v1.4.82`)
+
+✅ **关闭于 GOLIVE-1(`v1.4.82`,2026-10-29)**:引导 = 线上那 11 个角色、逐码相同(Tim Q5;`db/seeds/eleven-roles-2026-10-29.sql`)。cfo · cco · cto 在引导里了,所以全新安装里有人持 `action.finance_reopen` / `action.approve_review` / `action.hr_reviews`。fixture 298(重建 = 快照)与 live fixture 298(线上 = 快照)两头钉住。
 
 ★ **Tim 2026-10-20 裁定(d2 #27,FIN-CHAIN-1 记):与下一条(空角色)同一刀做,归 `docs/forward-queue.md`「上线准备组」第 5 行。**
 
@@ -552,7 +556,9 @@ ROLE-1 Batch 1 之后后果变重了:**全新安装里没有任何人持 `action
 付款人只有 chooer@(以 `postgres` 读基表并按 `real_role_grants` 算)。Tim 的矩阵:医疗申报付款 = 财务,不批 ——
 批准那一步已经由别人做过。**记下来,不改。** 若将来要改,它属于付款申请那一刀([LC])。
 
-## ROLE1-UNHELD-HR-ROLE-LOST-REVIEWS · 无人持有的 `hr` 角色随拆分失去了绩效评估与请假决定(ROLE-1 登记,2026-09-23) —— ★ **已裁(Tim 2026-10-20,d2 #27):auditor 全模块只读;employee 只有 /me;hr、procurement、sales 删掉 —— 归上线准备组**
+## ~~ROLE1-UNHELD-HR-ROLE-LOST-REVIEWS · 无人持有的 `hr` 角色随拆分失去了绩效评估与请假决定(ROLE-1 登记,2026-09-23) —— ★ **已裁(Tim 2026-10-20,d2 #27):auditor 全模块只读;employee 只有 /me;hr、procurement、sales 删掉 —— 归上线准备组**~~ —— ✅ 关闭于 GOLIVE-1(`v1.4.82`)
+
+✅ **关闭于 GOLIVE-1(`v1.4.82`,2026-10-29)**:hr · procurement · sales 三个角色删掉(迁移里先断言 0 个持有人,含已撤销的授予);auditor = 18 个模块查看码 + 七个数据码,共 25 个(Q2);employee 0 码、说明改写(Q3);operations 与 floor_display 不动(Q4)。
 
 ★ **Tim 2026-10-20 裁定(d2 #27,FIN-CHAIN-1 记):空角色 —— auditor = 每个模块只读;employee = 只有 `/me`;hr、procurement、sales 删掉。** 连同 ROLE1-BOOTSTRAP-MISSING-ROLES 一起做,归「上线准备组」第 5 行;本条在那一刀里关闭。
 
@@ -7273,7 +7279,9 @@ TASK-1c-d),但**数据库这一侧没有任何东西说出这个区别** ——
 
 ---
 
-## CONV-6-LOGISTICS-GATE(2026-09-04)—— 物流有自己的码,而 `container_overview` 还在用采购的 —— ★ **已裁(Tim 2026-10-20,d2 #30):读者 = module.logistics.view —— 归上线准备组**
+## ~~CONV-6-LOGISTICS-GATE(2026-09-04)—— 物流有自己的码,而 `container_overview` 还在用采购的 —— ★ **已裁(Tim 2026-10-20,d2 #30):读者 = module.logistics.view —— 归上线准备组**~~ —— ✅ 关闭于 GOLIVE-1(`v1.4.82`)
+
+✅ **关闭于 GOLIVE-1(`v1.4.82`,2026-10-29)**:FIX-2a(2026-09-05)早已把视图放宽成 purchasing OR logistics,本条下面的表格从那天起就过时了;GOLIVE-1 收成 `module.logistics.view` 一个码(线上持 purchasing 的 9 个角色都持 logistics,没有一个角色丢路),`app/logistics/page.tsx` 的判断换成同一个码;fixture 301。
 
 ★ **Tim 2026-10-20 裁定(d2 #30,FIN-CHAIN-1 记):`container_overview` 的读者 = `module.logistics.view`。** 归「上线准备组」第 6 行;本条在那一刀里关闭。
 
@@ -7309,7 +7317,9 @@ SELECT 策略换成了它。**`db/views/container_overview.sql` 这张视图没�
 
 ---
 
-## CONV-6-MYREVIEWS-GAP(2026-09-04)—— `/my-reviews` 在中间那一段宽度上到不了 —— ★ **已裁(Tim 2026-10-20,d2 #31):与 /me 同一个断点,先量 768 px 的顶栏 —— 归上线准备组**
+## ~~CONV-6-MYREVIEWS-GAP(2026-09-04)—— `/my-reviews` 在中间那一段宽度上到不了 —— ★ **已裁(Tim 2026-10-20,d2 #31):与 /me 同一个断点,先量 768 px 的顶栏 —— 归上线准备组**~~ —— ⊘ 被取代
+
+⊘ **被取代(Tim 2026-10-29)**:SYSTEM-MAP-1 把 `/my-reviews` 从头像菜单搬进了工作台(`lib/modules.ts` 里 `modules: ['workbench']`),顶栏的断点问题不复存在。没有代码。
 
 ★ **Tim 2026-10-20 裁定(d2 #31,FIN-CHAIN-1 记):`/my-reviews` 用与 `/me` 同一个断点 —— 先量 768 px 的顶栏。** 归「上线准备组」第 7 行。
 
@@ -11561,7 +11571,9 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 
 ## TABLE-EXPORT-2b-1(`v1.4.69`,2026-10-23)—— me · settings · safety · tools · compliance · my-reviews · contracts 的列表页导出
 
-### EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY · 看不见证件号的人保存员工表单,证件号被清空(Tim 2026-10-23 TABLE-EXPORT-2b Q5:量,登记,不在本刀修;上线准备组第 11 行)
+### ~~EMPLOYEE-EDIT-CLEARS-MASKED-IDENTITY · 看不见证件号的人保存员工表单,证件号被清空(Tim 2026-10-23 TABLE-EXPORT-2b Q5:量,登记,不在本刀修;上线准备组第 11 行)~~ —— ✅ 关闭于 GOLIVE-1(`v1.4.82`)
+
+✅ **关闭于 GOLIVE-1(`v1.4.82`,2026-10-29)**:编辑页对不持 `data.view_identity`(且不是本人)的人把四列画成「受限」、不送值;`save_employee` 对这样的人那一次 UPDATE 不写那四列(Tim Q8,四列一起);新建页不变。fixture 302(A 原样 · B 对照清空 · C 本人 · D 新建 · E 故障注入)。
 
 **是什么(量过的,不是推的):** `/hr/employees/[id]/edit` 读 `employees_masked`,不持 `data.view_identity` 的人读到的 `identity_no` 是 NULL,
 `EmployeeForm` 把它预填成空白(`app/hr/employees/EmployeeForm.tsx:435`);`readForm` 把空白写成 `identity_no: s('identity_no') || null`
@@ -11574,7 +11586,9 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 **改法(照定价公式那一刀,TABLE-EXPORT-2b-1 Q5):** 被遮的格子画「受限」、不送值;库里那扇门对看不见的人把被遮的列按原值存。
 **去处:** 上线准备组(`docs/forward-queue.md` 第 11 行)。
 
-### CONTRACTS-SETTLEMENTS-AMOUNT-UNMASKED · `/contracts` 的结算金额读的是没有列遮蔽的 `sales_settlements`(Tim 2026-10-23 TABLE-EXPORT-2b 旁支发现:量,登记,不改;上线准备组第 12 行)
+### ~~CONTRACTS-SETTLEMENTS-AMOUNT-UNMASKED · `/contracts` 的结算金额读的是没有列遮蔽的 `sales_settlements`(Tim 2026-10-23 TABLE-EXPORT-2b 旁支发现:量,登记,不改;上线准备组第 12 行)~~ —— ✅ 关闭于 GOLIVE-1(`v1.4.82`)
+
+✅ **关闭于 GOLIVE-1(`v1.4.82`,2026-10-29)**:`sales_settlements` 的六列钱(metal_value_usd · refining_charge_usd · penalty_usd · amount_usd · breakdown · terms_snapshot)不再随行给,只经 `sales_settlements_masked`(`data.view_prices`)读;`/contracts` 与表尾合计 `list_totals_settlements` 改读它,看不见画「受限」。fixture 303。
 
 **是什么:** `/contracts` 的门是 `module.suppliers.view`(`app/contracts/page.tsx:64`),结算那一张表读 `sales_settlements` 基表的 `amount_usd`
 (`app/contracts/page.tsx:113`),那张表没有列级 SELECT 授权、也没有 `_masked` 伴生视图 —— 金额不按 `data.view_prices` 遮。
@@ -11585,7 +11599,9 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 **所以今天没有人因此看见一个不该看的价;** 缺口在于这件事靠的是「恰好没有哪个角色那样组合」,而不是一道遮蔽。下一次给哪个角色加 `module.customers.view` 时它就打开。
 **去处:** 上线准备组(`docs/forward-queue.md` 第 12 行)—— 届时决定:加列遮蔽 / 伴生视图,或把那一张表的门改成 `data.view_prices`。
 
-### CONTRACT-TERMS-RATES-UNMASKED · `/contracts/[id]` 的条款费率与最低金额没有列遮蔽,只靠行级策略(Tim 2026-10-25 TABLE-EXPORT-3c Q3:登记,不在 3c 修;并进上线准备组第 12 行)
+### ~~CONTRACT-TERMS-RATES-UNMASKED · `/contracts/[id]` 的条款费率与最低金额没有列遮蔽,只靠行级策略(Tim 2026-10-25 TABLE-EXPORT-3c Q3:登记,不在 3c 修;并进上线准备组第 12 行)~~ —— ✅ 关闭于 GOLIVE-1(`v1.4.82`)
+
+✅ **关闭于 GOLIVE-1(`v1.4.82`,2026-10-29)**:payable_pct · 精炼费 · 罚则费率 · 保险最低金额按合同那一侧遮(客户 → `data.view_prices`,供应商 → `data.view_purchase_prices`;判据只在 `contract_terms_price_visible`),四张 `contract_*_masked`;详情页那几格画「受限」、带受限价格的那一行不给编辑,导出写 Restricted。fixture 303。★ 没有覆盖的两份副本另立 GOLIVE1-CONTRACT-TERM-COPIES-UNMASKED(下一条)。
 
 **是什么:** 合同详情页的条款表(`app/contracts/[id]/TermSection.tsx`,一页画 8 张,`termSpecs.ts`)读的是条款基表 ——
 精炼费 `contract_refining_charges.usd_per_tonne_of_metal`(`termSpecs.ts:130`)、罚则 `contract_penalty_elements.usd_per_tonne_per_pct_over`(:139)、
@@ -11597,6 +11613,15 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 线上 `contracts` **0 行**,条款表 0 行。**所以今天没有人因此看见一个不该看的价** —— 与上一条同一个形状:靠的是「恰好没有哪个角色那样组合」,不是一道遮蔽。
 **3c 的导出照屏幕写**(Tim Q3:不在 3c 加遮蔽)。
 **去处:** 与上一条 **合成一次修**(上线准备组第 12 行,Tim 2026-10-25):结算金额与条款费率走同一个遮蔽决定。
+
+### GOLIVE1-CONTRACT-TERM-COPIES-UNMASKED · 合同条款的两份【副本】仍不按价格码遮(GOLIVE-1 登记,2026-10-29;量,登记,不在本刀修)
+
+**是什么:** 第 12 行遮的是合同条款的【原件】与结算。条款还被抄到两个地方,而那两处的费率今天只靠行级读策略:
+① `contract_document_terms`(合同挂到销售单 / 采购单那一刻冻结的条款副本,jsonb:pricing_terms · refining_charges · penalty_elements 等),
+`/contracts` 列表页读它的 `sales_order_id, contract_id, contract_code`(不读费率),而 `assay_disagreements_all` 与 `sale_settlement_compute` 读里面的数;
+② 条款申请的快照(`terms_requests_visible`,合同详情页的「申请」面板与差异),它有自己的门(审计记录那一句:不持 `module.pricing.view` 的读者那几行是 Restricted)。
+**今天线上:** `contracts` 0 份、`contract_document_terms` 0 行(以 `postgres` 读基表,2026-10-29)—— 没有人因此看见一个不该看的价。
+**去处:** 等 Tim 定要不要并进同一个遮蔽决定(Q9 的字面只说结算与条款本身)。
 
 ## TABLE-EXPORT-2b-2(`v1.4.70`)—— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」
 
@@ -11818,6 +11843,9 @@ CHAIN-WALK-COST 把 public 的 560 条策略里的权限判断与读者身份包
 去处:与 `docs/forward-queue.md` 上线准备组第 13 条(页面慢到没法用)一起看。
 
 ### CWC-LIVE-INSTANCE-SWAPPING —— 线上数据库这台机器在换页:426 MB 内存、约 580 MB 在交换分区(2026-10-29 01:3x 读数)
+
+★ **GOLIVE-1(2026-10-29)记下的两次,照 Tim 2026-10-29 的裁定只记不当缺陷:** ① 冒烟第二跑 20:13 第一次读数就是中止信号(五次往返中位数 1,779 ms,库里 select 1 0.027 ms,db / rest 健康)—— 当场停;
+② 冒烟第三跑 `/tools/tasks/[id]` → 503「认证够不着」(`UND_ERR_CONNECT_TIMEOUT`,前一分钟看门狗读数正常),随后 20:56 这台机器自己的网络断了(DNS `ENOTFOUND`),收尾够不着线上退 6,网络回来后收割干净。读数:`docs/surveys/GOLIVE-1/README.md` 第 10 行。
 
 CHAIN-WALK-COST 的线上证明期间从 Supabase 的特权指标端点读到(只读;只留了这几行,`docs/surveys/CHAIN-WALK-COST/readings/live-host-metrics.txt`):
 `MemTotal` 426 MB · `MemAvailable` 101 MB · 交换分区 1.07 GB 里用了约 580 MB · 主缺页 1,277 万次;一位读者在跑时两颗 CPU 87–88% 空闲、iowait 7.5%、steal 0。

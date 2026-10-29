@@ -10,6 +10,7 @@
 // 居留状态选"工作准证"时才展开准证四项(类型/号码/签发日/到期日),且此时
 // 类型与到期日为必填 —— DB 的 employees_work_pass_shape 是后墙。
 // 离职组只在状态为"已离职"时出现。
+import { Refusal } from '@/app/components/ui/refusal'
 import { useActionState, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
@@ -88,8 +89,11 @@ export default function EmployeeForm({
     canLinkAccount,
     linkedAccountLabel,
     positions,
+    identityMasked = false,
 }: {
     employee?: EmployeeRecord
+    /** GOLIVE-1 第 11 行(Tim Q8):编辑页上看不见身份四列的人 —— 那四格画「受限」、不送值(库里 save_employee 原样不动它们)。新建页永远 false。 */
+    identityMasked?: boolean
     departments: PickOption[]
     // KPI-1:可选的职位。一张【空的】职位表意味着这个下拉只有"未指定"一项 ——
     // 那不该长得像"这个人没有职位",所以下面那句 positionWhat 会说清楚。
@@ -239,24 +243,26 @@ export default function EmployeeForm({
                             {t('hr.colWorkEmail')}
                             <Restricted />
                         </label>
+                        {identityMasked ? <Refusal data-identity-masked="work_email">{t('common.restricted')}</Refusal> : (
                         <input
                             type="email"
                             name="work_email"
                             defaultValue={employee?.work_email ?? ''}
                             className={field}
-                        />
+                        />)}
                     </div>
                     <div className="flex-1 min-w-[12rem]">
                         <label className={label}>
                             {t('hr.colWorkPhone')}
                             <Restricted />
                         </label>
+                        {identityMasked ? <Refusal data-identity-masked="work_phone">{t('common.restricted')}</Refusal> : (
                         <input
                             type="text"
                             name="work_phone"
                             defaultValue={employee?.work_phone ?? ''}
                             className={field}
-                        />
+                        />)}
                     </div>
                 </div>
             </section>
@@ -430,12 +436,13 @@ export default function EmployeeForm({
                             {t('hr.colIdentityNo')}
                             <Restricted />
                         </label>
+                        {identityMasked ? <Refusal data-identity-masked="identity_no">{t('common.restricted')}</Refusal> : (
                         <input
                             type="text"
                             name="identity_no"
                             defaultValue={employee?.identity_no ?? ''}
                             className={field}
-                        />
+                        />)}
                     </div>
                 </div>
 
@@ -457,15 +464,16 @@ export default function EmployeeForm({
                             <label className={label}>
                                 {t('hr.colWorkPassNo')}
                                 <Restricted />
-                                <span className="text-red-600"> *</span>
+                                {!identityMasked && <span className="text-red-600"> *</span>}
                             </label>
+                            {identityMasked ? <Refusal data-identity-masked="work_pass_no">{t('common.restricted')}</Refusal> : (
                             <input
                                 type="text"
                                 name="work_pass_no"
                                 required
                                 defaultValue={employee?.work_pass_no ?? ''}
                                 className={`${CONTROL_INPUT} w-44`}
-                            />
+                            />)}
                         </div>
                         <div>
                             <label className={label}>

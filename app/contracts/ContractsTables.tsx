@@ -16,7 +16,8 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
-import { xText, xNum, xMoney } from '@/lib/export/cells'
+import { xText, xNum, xMoney, xRestricted } from '@/lib/export/cells'
+import { Refusal } from '@/app/components/ui/refusal'
 import type { ListTotal } from '@/lib/listTotals'
 import { totalsFooterRows } from '@/app/components/ui/list-totals'
 
@@ -57,7 +58,8 @@ export type PricingTermRow = {
     indexCode: string
     payablePct: string
     /** TABLE-EXPORT-2b-1:计价比例的原始数(%) */
-    payablePctRaw: number
+    /** GOLIVE-1 第 12 行(Q9):null = 受限(这份合同那一侧的价格码不持;contract_pricing_terms_masked 置空) */
+    payablePctRaw: number | null
 }
 
 export type SettleTermRow = {
@@ -82,7 +84,8 @@ export type SettlementRow = {
     partyNote: string
     amount: string
     /** TABLE-EXPORT-2b-1:结算金额的原始数(USD —— 币种写在表头上) */
-    amountUsd: number
+    /** GOLIVE-1 第 12 行(Q9):null = 受限(不持 data.view_prices;sales_settlements_masked 置空) */
+    amountUsd: number | null
 }
 
 export function BreachesTable({ rows }: { rows: BreachRow[] }) {
@@ -145,7 +148,7 @@ export function PricingTermsTable({ rows }: { rows: PricingTermRow[] }) {
         { key: 'baseEvent', header: t('contracts.pricing.colBaseEvent'), className: 'text-sm', render: (r) => r.baseEventLabel, exportAs: (r) => xText(r.baseEventLabel) },
         { key: 'qp', header: t('contracts.pricing.colQp'), className: 'text-sm', render: (r) => r.qpLabel, exportAs: (r) => xText(r.qpLabel) },
         { key: 'index', header: t('contracts.pricing.colIndex'), priority: true, className: 'text-sm', render: (r) => r.indexCode, exportAs: (r) => xText(r.indexCode) },
-        { key: 'payable', header: t('contracts.pricing.colPayable'), className: 'text-sm', render: (r) => r.payablePct, exportAs: (r) => xNum(r.payablePctRaw, 'pct', '%') },
+        { key: 'payable', header: t('contracts.pricing.colPayable'), className: 'text-sm', render: (r) => r.payablePctRaw === null ? <Refusal>{t('common.restricted')}</Refusal> : r.payablePct, exportAs: (r) => r.payablePctRaw === null ? xRestricted : xNum(r.payablePctRaw, 'pct', '%') },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} className="mb-4 max-w-4xl"
         exportSpec={{ name: 'contract-pricing-terms', title: t('contracts.pricing.termsTitle') }} />
@@ -195,7 +198,7 @@ export function SettlementsTable({ rows, totals }: {
                 </>
             ),
         },
-        { key: 'amount', header: t('contracts.settlement.colAmount'), priority: true, className: 'text-sm', render: (r) => r.amount, exportAs: (r) => xMoney(r.amountUsd) },
+        { key: 'amount', header: t('contracts.settlement.colAmount'), priority: true, className: 'text-sm', render: (r) => r.amountUsd === null ? <Refusal>{t('common.restricted')}</Refusal> : r.amount, exportAs: (r) => r.amountUsd === null ? xRestricted : xMoney(r.amountUsd) },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} sorting={{ mode: 'client', coverage: 'complete' }} className="mb-2 max-w-5xl"
         exportSpec={{ name: 'contract-settlements', title: t('contracts.settlement.settlementsTitle') }}

@@ -1,0 +1,3 @@
+Time: 833.235 Time: 873.391 Time: 426.505 Time: 1029.454 Time: 401.483 Execution Time: 0.021 Time: 451.180 
+Time: 398.767 Time: 398.486 Time: 398.727 Time: 395.338 Time: 397.640 Execution Time: 0.020 Time: 397.612 
+Time: 395.925 Time: 420.503 Time: 396.815 Time: 398.964 Time: 1095.308 Execution Time: 0.020 Time: 874.683 

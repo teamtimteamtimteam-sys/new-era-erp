@@ -1,0 +1,14 @@
+== 预检 2026-10-29-golive-1.sql
+account    未引用任何科目码
+function   6 条 CREATE FUNCTION:4 替换 · 2 新建
+masked     本迁移不加列
+✓ 预检通过
+== 破窗开始(migration applied at): 2026-10-29 18:09:44 CST  ← 切次报告要写的那个起点
+== applying 2026-10-29-golive-1.sql over direct psql (single transaction)
+psql:<stdin>:760: NOTICE:  GOLIVE1_PROOF ok
+== re-asserting function grants (db/views/zzz_function_grants.sql)
+✓ committed atomically (含函数授权兜底)
+== 库已经是新的了(18:12:03) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)
+== 破窗起点已落盘:/Users/timchen/Documents/projects/new-era-erp/db/migration-windows.tsv
+   2026-10-29T18:12:03+0800  2026-10-29-golive-1.sql  2bb34df2
+APPLY_OWN_EXIT=0

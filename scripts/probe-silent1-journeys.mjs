@@ -81,7 +81,12 @@ try {
     //   为什么克隆就够、不必真角色:S 那条拒绝是 set_supplier_status 的状态机(supplier_status_moves 里每一步
     //   要的是【码】,require_permission),T 那条是 can_edit_task(has_permission('module.tasks.edit') + 行);
     //   两条都不按角色码认人,本探针也不测审批人 / 决定者。克隆源不存在或零码,mintThrowaway 当场抛。
-    const tw = await mintThrowaway({ prefix: 's1probe', label: 'procurement', codes: { cloneOf: 'procurement' }, password: 's1-probe-1' })
+    // ★ GOLIVE-1 第 5 行:procurement 这个角色删掉了(Tim d2 #27)。这里要的是那两样码,不是那个名字 —— 改授一份码清单
+    //   (删掉之前 procurement 的 16 个码,逐字),探针问的两条拒绝都只按码认人(见上)。
+    const tw = await mintThrowaway({ prefix: 's1probe', label: 'procurement', password: 's1-probe-1', codes: [
+        'data.view_prices', 'data.view_purchase_prices', 'module.inbound.edit', 'module.inbound.view', 'module.inventory.view', 'module.logistics.view',
+        'module.materials.edit', 'module.materials.view', 'module.pricing.edit', 'module.pricing.view', 'module.purchasing.edit', 'module.purchasing.view',
+        'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit', 'module.tasks.view'] })
 
     // ★ 断言前提:这个会话【真的】两样都持有 —— 否则整支探针在测一个错的前提。
     //   (U1-B:读的是这个会话【实际持有】的码 —— 即克隆时从 procurement 读来、写进一次性角色的那一组。)

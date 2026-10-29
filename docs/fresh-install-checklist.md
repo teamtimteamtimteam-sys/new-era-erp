@@ -59,6 +59,23 @@ Standing up a new EVoltrya OS project from this repository.
           has_table_privilege('supplier_portal', 'storage.objects', 'INSERT');   -- true, true, true
    ```
    `db/check_norole.py` (verdict 7 of `db/gate.py`) compares exactly these against `db/storage/buckets-and-policies.sql`.
+2c. **New objects are not granted to `anon` by default** (GOLIVE-1, 2026-10-29 — Tim's ruling d2 #6, plan 4 of `docs/anon-surface.md`).
+   Step 2 does this for you: `db/verify_rebuild.py` runs section 6 of `db/platform-prelude.sql` (everything below the
+   `-- @@ AFTER REPLAY @@` line) **after** the replay, on bare PostgreSQL and on a real Supabase project alike. If you rebuilt by hand,
+   run these three lines in the SQL editor **after** the replay (before it, every table would lose the `anon` grants the mirrors expect
+   and the new project would not match live):
+   ```sql
+   ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon;
+   ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon;
+   ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon;
+   ```
+   **Verify by reading it back** — no row may contain `anon=`:
+   ```sql
+   SELECT d.defaclobjtype, d.defaclacl FROM pg_default_acl d JOIN pg_namespace n ON n.oid = d.defaclnamespace
+    WHERE d.defaclrole = 'postgres'::regrole AND n.nspname = 'public';   -- three rows (r · S · f), none naming anon
+   ```
+   On live this was done by COD-2 (2026-09-08); `db/gate.py`'s `defacl` line compares the two sides on every full gate.
+   Without it the first table created after go-live would be readable by anyone holding the public anon key, subject only to its RLS.
 3. **Run any C0.5 scripts.** *Currently none* — every intended default is expressible
    as a bootstrap seed and is applied by step 2. If that ever stops being true, the
    script's invocation goes here.

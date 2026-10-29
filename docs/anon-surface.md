@@ -321,6 +321,15 @@ returns one snapshot has no list to expose — there is no endpoint to enumerate
 
 ## Proposed narrowing — a plan, not an action
 
+> ✅ **Status, GOLIVE-1 (2026-10-29, Tim's ruling d2 #6 and GOLIVE-1 Q1).** Plans **1** and **4** are done, and were done on live by
+> COD-2 on 2026-09-08 (`db/migrations/2026-09-08-cod2-the-verification-page.sql:59-61` — the default privileges of `postgres` in
+> `public` no longer include `anon`; `:86-87` — both armed views `REVOKE ALL … FROM anon`). What was missing was the **rebuild**: a
+> fresh install still granted `anon` by default after the replay. GOLIVE-1 closed that — section 6 of `db/platform-prelude.sql` runs
+> after the replay (on bare PostgreSQL and on a real Supabase project), `docs/fresh-install-checklist.md` step 2c says so, and
+> `db/gate.py`'s `defacl` line compares the two sides on every full gate (fault injection `GATE_DEFACL_FAULT=grant` goes red). The
+> anon baseline (`db/anon-grants-baseline.tsv`) was shrunk to the live set in the same commit. **Plan 3 (wholesale revoke) stays
+> deferred.** Plan 2 was not needed (plan 1 was chosen).
+
 **Nothing was revoked in this cut, `PUBLIC_PATHS` was not touched, and no page was built.**
 
 The measurement changes what a narrowing is worth. `anon` holds 2,272 table-grant rows across

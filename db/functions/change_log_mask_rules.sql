@@ -14,6 +14,7 @@
 --   apr_amount                   approval_log_amount_visible(subject_type, subject_id)(approval_log_masked;U1-A,Q8 · Q10)
 --   apr_note                     approval_log_note_visible(subject_type, subject_id)(approval_log_masked;U1-B)
 --   jr_amount                    journal_request_amount_visible(id)(journal_requests_masked;U1-B)
+--   contract_price               contract_terms_price_visible(这一行的 contract_id)—— 合同那一侧的价格码(GOLIVE-1 第 12 行,Q9)
 --   never                        谁都看不见(gateway_keys_masked 里 CASE WHEN false;MES-1 Q20:网关钥匙的哈希)
 -- ★ MES-7b-1(2026-10-16,MES-7b Step 0 Q6)加了 5 行(114 → 119):事故的受伤细节(受伤的人 · 名字 · 伤情 · 处理 · 误工天数)——
 --   code_or_self:data.view_health:injured_employee_id,每一行抄自 incidents_masked 里那句 CASE。
@@ -24,6 +25,8 @@
 -- ★ U1-B(2026-10-05)加了 3 行(101 → 104):工资分录冲销申请的金额 · 医疗报销的批准 / 驳回理由(在报销单上与在审批留痕上)。
 -- ★ U1-A(UNBLOCK-1,2026-10-05)加了 20 行(81 → 101):工资分录的金额(Q1)· 审批留痕上的金额(Q8 · Q10)· 人事备注(Q6)·
 --   健康数据(Q8)· 工资期的合计与工资申请的快照和金额(Q9 · Q10)。每一行都抄自它那张 _masked 视图里的 CASE。
+-- ★ GOLIVE-1(2026-10-29,第 12 行,Tim TABLE-EXPORT-3c Q3 · Q9)加了 10 行:结算的六列钱(sales_settlements_masked,data.view_prices)与
+--   四张合同条款表上的价格(contract_*_masked,contract_price —— 客户合同问 data.view_prices、供应商合同问 data.view_purchase_prices)。
 -- 【它会不会和视图漂开】会 —— 所以有一道闸:change_log_mask_gaps() 拿目录里【真的被遮的列】
 --   (_masked 视图里 CASE … END AS <基表的列>)与本名单逐列对,缺一条或多一条都报;
 --   gate 的 changemask 那一行在线上与重建两侧各问一次,fixture 234 里注入"删掉一条"必须变红。
@@ -153,5 +156,15 @@ AS $function$
         ('sales_records', 'unit_price', 'code:data.view_prices'),
         ('sales_records', 'fx_rate', 'code:data.view_prices'),
         ('sales_records', 'amount_base', 'code:data.view_prices'),
-        ('sales_records', 'price_provenance', 'code:data.view_prices');
+        ('sales_records', 'price_provenance', 'code:data.view_prices'),
+        ('sales_settlements', 'metal_value_usd', 'code:data.view_prices'),
+        ('sales_settlements', 'refining_charge_usd', 'code:data.view_prices'),
+        ('sales_settlements', 'penalty_usd', 'code:data.view_prices'),
+        ('sales_settlements', 'amount_usd', 'code:data.view_prices'),
+        ('sales_settlements', 'breakdown', 'code:data.view_prices'),
+        ('sales_settlements', 'terms_snapshot', 'code:data.view_prices'),
+        ('contract_pricing_terms', 'payable_pct', 'contract_price'),
+        ('contract_refining_charges', 'usd_per_tonne_of_metal', 'contract_price'),
+        ('contract_penalty_elements', 'usd_per_tonne_per_pct_over', 'contract_price'),
+        ('contract_insurance_obligations', 'min_amount', 'contract_price');
 $function$;

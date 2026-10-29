@@ -2104,6 +2104,8 @@ const en = {
         newTitle: 'Add Supplier',
         editTitle: 'Edit Supplier',
         form: {
+            // GOLIVE-1 第 4 行(Tim Q7):已批准的供应商,保存之前先说清改身份的后果
+            requeueWarning: 'This supplier is approved. Saving a change to its legal name, tax number or type sends it back to review and clears the approval; until it is approved again, payments to it and new purchase orders are blocked. Other changes keep the approval.',
             legalName: 'Legal Name',
             legalNamePlaceholder: 'e.g. Acme Battery Recycling Pte Ltd',
             shortName: 'Short Name',
@@ -7802,6 +7804,8 @@ const en = {
         deleteBody: 'The row is removed from the contract. If the contract has been approved before, the CFO will see the difference at the next activation request.',
         addRow: 'Add a term',
         editRow: 'Edit this term',
+        // GOLIVE-1 第 12 行(Tim Q9):一行里有你看不见的价格,就不给编辑(存下去会拿空白盖掉那个数)
+        editRestricted: 'This term carries a price you cannot see, so it cannot be edited here. Ask someone who holds the price code for this contract.',
         choose: '— Choose —',
         yes: 'Yes',
         no: 'No',

@@ -87,3 +87,8 @@ CREATE TRIGGER trg_contract_insurance_obligations_frozen
     BEFORE INSERT OR UPDATE OR DELETE ON public.contract_insurance_obligations
     FOR EACH ROW EXECUTE FUNCTION public.guard_contract_terms_frozen();
 
+-- ★ GOLIVE-1 第 12 行(Tim 2026-10-25 TABLE-EXPORT-3c Q3 · 2026-10-29 Q9):价格那几列不再随行一起给 —— 列级 SELECT 授权只列不是钱的那些,
+--   被遮的 min_amount 只经 contract_insurance_obligations_masked 读(按合同那一侧的价格码置空)。
+--   写(INSERT / UPDATE / DELETE)的表级授权不变 —— PostgreSQL 的列级 SELECT 不跟着新加的列走,加列时记得同一支迁移里补进来(AGENTS.md)。
+REVOKE SELECT ON public.contract_insurance_obligations FROM authenticated, anon;
+GRANT SELECT (id, contract_id, insured_by, cover_type, currency, notes, created_at, created_by, updated_at, updated_by) ON public.contract_insurance_obligations TO authenticated;

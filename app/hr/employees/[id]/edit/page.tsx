@@ -8,7 +8,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import EmployeeForm, { type PickOption, type EmployeeRecord } from '../../EmployeeForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
-import { canManagePermissions } from '@/lib/permissions'
+import { canManagePermissions, can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 
 // 下属闭包:从自己出发,沿 manager_id 往下收集
@@ -104,6 +104,13 @@ export default async function EditEmployeePage({
             .eq('is_active', true).order('sort_order'),
         'positions') as { id: string; code: string; title: string }[]
 
+    // ★ GOLIVE-1 第 11 行(Tim Q8):身份四列(工作邮箱 · 工作电话 · 证件号 · 准证号)与 employees_masked 同一个判据 ——
+    //   持 data.view_identity,或这一行就是读者本人。看不见的人那四格画「受限」、不送值;库里 save_employee 对他原样不动那四列。
+    const { data: me, error: meError } = await supabase.auth.getUser()
+    if (meError) throw meError
+    const identityMasked = !(await can('data.view_identity'))
+        && !(empRes.data.user_id && empRes.data.user_id === me.user?.id)
+
     return (
         <div className="p-8">
             <div className="mb-6">
@@ -118,6 +125,7 @@ export default async function EditEmployeePage({
             <EmployeeForm
                 positions={positions}
                 employee={empRes.data as EmployeeRecord}
+                identityMasked={identityMasked}
                 departments={departments}
                 managers={managers}
                 accounts={accounts}

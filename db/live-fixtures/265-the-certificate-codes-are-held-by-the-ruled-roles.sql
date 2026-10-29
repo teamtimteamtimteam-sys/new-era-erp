@@ -44,8 +44,9 @@ BEGIN
     END IF;
     SELECT string_agg(r.code, ',' ORDER BY r.code) INTO v FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
      WHERE rp.permission_code = 'data.view_cod';
-    IF v IS DISTINCT FROM 'admin,cco,cfo,cto,finance,gm,warehouse' THEN
-        RAISE EXCEPTION 'LIVE FIXTURE 265 VIEW_COD: data.view_cod is held by % (ruled: admin,cco,cfo,cto,finance,gm,warehouse)', COALESCE(v, '<nobody>');
+    -- ★ GOLIVE-1(Tim 2026-10-29 Q2):auditor 读每一个模块,含销毁证书 —— data.view_cod 多了 auditor(签发仍只归 admin · warehouse)
+    IF v IS DISTINCT FROM 'admin,auditor,cco,cfo,cto,finance,gm,warehouse' THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 265 VIEW_COD: data.view_cod is held by % (ruled: admin,auditor,cco,cfo,cto,finance,gm,warehouse)', COALESCE(v, '<nobody>');
     END IF;
     SELECT string_agg(r.code, ',' ORDER BY r.code) INTO v FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
      WHERE rp.permission_code = 'action.issue_cod';

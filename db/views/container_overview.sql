@@ -6,6 +6,9 @@
 --   替换用的是 -- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
 --   替换用的是 CREATE OR REPLACE VIEW,而它【会丢掉 WITH (...)】——
 --   迁移末尾因此补了一句 ALTER VIEW ... SET (security_invoker = off)。
+-- ★ GOLIVE-1 第 6 行(Tim 2026-10-20 d2 #30):读者 = module.logistics.view,只此一个码(FIX-2a 留下的 purchasing OR logistics 收成 logistics)。
+--   线上 2026-10-29 实测:持 module.purchasing.view 的 9 个角色每一个都持 module.logistics.view,所以没有一个角色丢掉一条路。
+--   判断写成按语句求一次的 (SELECT has_permission(…))(CHAIN-WALK-COST 那条规矩)。
 
 CREATE VIEW public.container_overview WITH (security_invoker = off) AS
  SELECT c.id,
@@ -42,7 +45,7 @@ CREATE VIEW public.container_overview WITH (security_invoker = off) AS
    FROM containers c
      LEFT JOIN suppliers f ON f.id = c.forwarder_id
      LEFT JOIN lane_checklist_status ls ON ls.lane_id = c.lane_id
-  WHERE c.deleted_at IS NULL AND (has_permission('module.purchasing.view'::text) OR has_permission('module.logistics.view'::text));
+  WHERE c.deleted_at IS NULL AND (( SELECT has_permission('module.logistics.view'::text) AS has_permission));
 
 COMMENT ON VIEW public.container_overview IS
     'LOG-2a:箱子一行 —— 发货单数、涉及几个客户、最新里程碑、清单状态、待收单据数。
@@ -51,7 +54,7 @@ COMMENT ON VIEW public.container_overview IS
 【属主权限,不是 invoker(LOG-2a-fu1)】:它跨 purchasing + sales + suppliers 三个模块,
 invoker 语义下一个只持 purchasing 的读者会【静默地少看到几条发货单】——
 计数会小,而没有任何东西报错(OPS-14 那五处缺陷的形状)。
-门写在视图体里那一句 has_permission(''module.purchasing.view'');
+门写在视图体里那一句 has_permission(''module.logistics.view'')(GOLIVE-1:物流有自己的码,读者只认它);
 has_permission 是 DEFINER、解析的是调用者,所以属主权限并不放宽模块边界。';
 
 GRANT SELECT ON public.container_overview TO anon, authenticated, service_role;

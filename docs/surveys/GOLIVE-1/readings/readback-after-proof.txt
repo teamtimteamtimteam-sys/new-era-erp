@@ -1,0 +1,6 @@
+PROOF|{"users" : 7, "enabled" : 7, "throwaway_users" : 0, "throwaway_roles" : 0, "throwaway_suppliers" : 0, "orphan_grants" : 0, "role_codes_held" : "admin,cco,cfo,cto,finance,gm,warehouse", "roles" : "admin:87 auditor:25 cco:51 cfo:37 cto:42 employee:0 finance:44 floor_display:1 gm:24 operations:16 warehouse:32", "approvals" : true, "chain" : "finance/cfo/1000", "req_cal" : "NULL", "cods" : 2, "cfo_grants_active" : 1, "sup_2026_0003" : "approved / Shanghai Yidong Battery Recycle Co.", "anon_relations" : 285, "saved_views" : 0}
+BEGIN
+SET
+PROOF|recon ap unexplained=0.00 agrees=true · ar unexplained=0.00 agrees=true
+ROLLBACK
+READBACK_OWN_EXIT=0

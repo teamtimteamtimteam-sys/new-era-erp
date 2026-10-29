@@ -96,3 +96,9 @@ CREATE POLICY "sales settlements select by customer permission"
 
 COMMENT ON TABLE public.sales_settlements IS
     'SETTLE-1:一次销售最终结算的**记录** —— **它记下决定,它不过账**。★**能/不能**★:能记下这次结算**用了谁的化验、按哪种重量基准、依据哪一份冻结条款**,并存下金额与逐项拆解;**不能**——**一分钱都不进总账**,没有暂定价发票、没有结算单据、没有差额分录。两个独立的理由:① 会计政策 **5.7 自己标着 NOT BUILT**(差额科目已裁定、过账路径没有),在它之前落过账路就是越过那个标记;② PRICE-1 **声明过断点**,两阶段开票还不存在,**没有开票就没有东西喂给过账路**。★★**为什么"哪一份化验说了算"必须记、不能推**★★:诱惑是从 assay_results.applied_at 推,而 **applied_at 说的是「这份化验被应用到批次成分上」——那是一个【成分事实】,不是一次【结算决定】**;拿前者冒充后者正是 F6 警告的 supersession 滥用,F6 明说那会**销毁我们自己的数**。★**与 F6 的边界**★:F6 警告的是拿 supersession 表示**另一方的**结果,而 result_party 轴让那件事不再必要;本表的 superseded_by 纠正的是**我们自己的那一句陈述**,**不夹带别人的结果** —— 主语不同,不冲突。★**不可改**★:写下来就是一次要过钱的陈述,就地改会毁掉「当初要的是什么」;改正 = 再写一行并把旧的标成被取代(全库已有 27 道同族守卫)。';
+
+-- ★ GOLIVE-1 第 12 行(Tim 2026-10-25 TABLE-EXPORT-3c Q3 · 2026-10-29 Q9):价格那几列不再随行一起给 —— 列级 SELECT 授权只列不是钱的那些,
+--   被遮的 metal_value_usd · refining_charge_usd · penalty_usd · amount_usd · breakdown · terms_snapshot 只经 sales_settlements_masked 读(按data.view_prices置空)。
+--   写(INSERT / UPDATE / DELETE)的表级授权不变 —— PostgreSQL 的列级 SELECT 不跟着新加的列走,加列时记得同一支迁移里补进来(AGENTS.md)。
+REVOKE SELECT ON public.sales_settlements FROM authenticated, anon;
+GRANT SELECT (id, sales_order_id, output_batch_id, assay_result_id, settling_party_used, weight_basis_used, gross_weight_kg, moisture_pct, settlement_weight_kg, superseded_by, computed_at, computed_by) ON public.sales_settlements TO authenticated;

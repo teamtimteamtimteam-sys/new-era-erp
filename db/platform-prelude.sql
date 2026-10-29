@@ -201,3 +201,20 @@ CREATE TABLE IF NOT EXISTS auth.sessions (
     user_id    uuid NOT NULL,
     created_at timestamptz
 );
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 6. ★ GOLIVE-1 第 2 行(Tim 2026-10-20 d2 #6 · 2026-10-29 Q1):匿名收缩的方案 4 —— 在【重放之后】收回默认权限 ★
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【线上早就是这样】COD-2(db/migrations/2026-09-08-cod2-the-verification-page.sql:59-61)把 postgres 在 public 上的默认权限里的 anon
+--   拿掉了:2026-09-08 之后由 postgres 新建的表、序列与函数,不再自动授给 anon。重建这一侧此前没有这一步 —— 一个照镜像重建出来的库
+--   (以及一次全新安装)在重放完之后,默认权限里仍然带着 anon,于是上线之后的【下一张】新表会对匿名开着。
+-- 【为什么在重放之后,不在上面那三行里】上面那三行要照旧带着 anon:线上 2026-09-08 之前建的关系今天仍握着 anon 的授权(方案 3 暂缓,
+--   Tim d2 #6),重放时少了它们,重建库会每一张表都比线上少几条授权 —— 那是另一个库,不是镜像。所以先照旧全给、按镜像逐张收,
+--   【全部重放完之后】再把默认权限收窄到与线上同一个样子。db/verify_rebuild.py 认下面这一行标记:标记以上在重放之前跑(只在裸集群上),
+--   标记以下在重放之后跑(裸集群与真 Supabase 项目都跑 —— 这不是平台基座,是线上的一条设置)。
+-- 【谁看着它】db/gate.py 的 defacl 那一行:重建一侧断言 postgres 在 public 上的默认权限里没有 anon(离线也问),整门再与线上逐条比
+--   (故障注入 GATE_DEFACL_FAULT=grant:在重建库上把 anon 授回去,这一行必须红)。全新安装:docs/fresh-install-checklist.md 第 2c 步。
+-- @@ AFTER REPLAY @@
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon;

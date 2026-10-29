@@ -342,7 +342,9 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 260 CODES: two module codes; action.apply_assay declares module.quality.view among its pages'' views'; END IF;
     IF (SELECT array_agg(r.code || ':' || rp.permission_code ORDER BY r.code, rp.permission_code) FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
          WHERE rp.permission_code LIKE 'module.quality.%' AND r.code NOT LIKE 'fx260-%')
-         IS DISTINCT FROM ARRAY['admin:module.quality.edit', 'admin:module.quality.view', 'finance:module.quality.view', 'warehouse:module.quality.view'] THEN
+         -- ★ GOLIVE-1 第 5 行(Tim Q5):引导 = 线上那 11 个角色 —— cco · cto 编辑与查看,cfo · auditor(Q2)查看,其余照旧
+         IS DISTINCT FROM ARRAY['admin:module.quality.edit', 'admin:module.quality.view', 'auditor:module.quality.view', 'cco:module.quality.edit', 'cco:module.quality.view',
+                                'cfo:module.quality.view', 'cto:module.quality.edit', 'cto:module.quality.view', 'finance:module.quality.view', 'warehouse:module.quality.view'] THEN
         RAISE EXCEPTION 'FIXTURE 260 CODES: the bootstrap gives admin both, finance and warehouse view only (Q90 · Q12), got %',
             (SELECT array_agg(r.code || ':' || rp.permission_code ORDER BY r.code, rp.permission_code) FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
               WHERE rp.permission_code LIKE 'module.quality.%' AND r.code NOT LIKE 'fx260-%'); END IF;

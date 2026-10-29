@@ -11,6 +11,8 @@
 -- ★ MES-1(2026-10-06,Q20)一种新写法:
 --   never              谁都看不见(gateway_keys_masked 里那一列恒为空)。它与"认不出的规则"答的是同一个 false,
 --                       而它在这里点名写出来 —— 一条只因为认不出才成立的规则,是一份只写在注释里的契约。
+-- ★ GOLIVE-1(2026-10-29,第 12 行)一种新写法:
+--   contract_price     contract_terms_price_visible(这一行的 contract_id)—— 与四张 contract_*_masked 视图里的 CASE 调同一支函数。
 CREATE OR REPLACE FUNCTION public.change_log_rule_visible(p_rule text, p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -39,6 +41,8 @@ BEGIN
     ELSIF p_rule = 'apr_note' THEN
         RETURN COALESCE(approval_log_note_visible(change_log_field(p_table, p_key, p_old, p_new, 'subject_type'),
                                                   change_log_field(p_table, p_key, p_old, p_new, 'subject_id')::uuid), false);
+    ELSIF p_rule = 'contract_price' THEN
+        RETURN COALESCE(contract_terms_price_visible(change_log_field(p_table, p_key, p_old, p_new, 'contract_id')::uuid), false);
     ELSIF p_rule = 'jr_amount' THEN
         RETURN COALESCE(journal_request_amount_visible(change_log_field(p_table, p_key, p_old, p_new, 'id')::uuid), false);
     ELSIF p_rule = 'pft:direction' THEN

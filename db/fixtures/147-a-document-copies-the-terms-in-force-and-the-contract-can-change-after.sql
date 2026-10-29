@@ -309,7 +309,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM certificate_types WHERE code = 'insurance') THEN
         RAISE EXCEPTION 'FIXTURE 147G 失败:保险那一行不在 certificate_types 里'; END IF;
     SELECT count(*) INTO v_n FROM information_schema.tables
-     WHERE table_schema = 'public' AND table_name ~ 'insurance' AND table_name <> 'contract_insurance_obligations';
+     WHERE table_schema = 'public' AND table_name ~ 'insurance' AND table_name <> 'contract_insurance_obligations'
+       -- GOLIVE-1 第 12 行:它的遮蔽伴生视图(最低金额按合同那一侧的价格码置空)是同一张表的读法,不是第二套机制
+       AND table_name <> 'contract_insurance_obligations_masked';
     IF v_n <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 147G 失败:出现了第二套保险机制(% 张表)—— 保险是一种证书,不是一套新机制', v_n; END IF;
 

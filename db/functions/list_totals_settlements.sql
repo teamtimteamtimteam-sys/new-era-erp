@@ -7,6 +7,8 @@
 -- 【受限】整个读者:NOT has_permission('module.customers.view')。页面的门是 suppliers.view,而这张表的读策略要
 --   customers.view(sales_settlements.sql:90-92)—— 不持它的读者读到【零行】,而那不是「没有结算」。
 --   所以那时回一行 restricted(currency NULL,total NULL),不回零行。
+-- ★ GOLIVE-1 第 12 行(Tim Q9):结算金额从此按 data.view_prices 遮 —— amount_usd 不在 authenticated 的列级 SELECT 里,
+--   这里改读 sales_settlements_masked;不持 data.view_prices 的读者同样回一行 restricted(屏幕上那一列是「受限」,表尾不许是一个数)。
 CREATE OR REPLACE FUNCTION public.list_totals_settlements()
  RETURNS TABLE(grp text, currency text, measure text, total numeric, restricted boolean)
  LANGUAGE plpgsql
@@ -15,13 +17,13 @@ CREATE OR REPLACE FUNCTION public.list_totals_settlements()
 AS $function$
 BEGIN
     PERFORM require_permission('module.suppliers.view');
-    IF NOT has_permission('module.customers.view') THEN
+    IF NOT has_permission('module.customers.view') OR NOT has_permission('data.view_prices') THEN
         RETURN QUERY SELECT ''::text, NULL::text, 'amount'::text, NULL::numeric, true;
         RETURN;
     END IF;
     RETURN QUERY
     SELECT ''::text, NULL::text, 'amount'::text, round(sum(ss.amount_usd), 2), false
-      FROM sales_settlements ss
+      FROM sales_settlements_masked ss
      WHERE ss.superseded_by IS NULL
     HAVING count(*) > 0;
 END;

@@ -7,11 +7,16 @@ import { updateSupplier, type UpdateSupplierState } from './actions'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { SUPPLIER_TYPE_OPTIONS } from '../../supplierTypes'
 import { Button } from '@/app/components/ui/button'
+import { Alert, AlertDescription } from '@/app/components/ui/alert'
 
 const initialState: UpdateSupplierState = {}
 
+// 与 db/functions/requeue_supplier_on_identity_change.sql 那一句 IN (…) 同一组(带批准戳的三种状态,Tim Q7)
+const APPROVED_STATUSES = new Set(['approved', 'active', 'suspended'])
+
 type Supplier = {
     id: string
+    status: string
     legal_name: string
     short_name: string | null
     country: string
@@ -266,6 +271,14 @@ export default function EditSupplierForm({
                         className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
+
+                {/* GOLIVE-1 第 4 行(Tim Q7):已批准(approved · active · suspended)的供应商,保存之前就说清楚 ——
+                    改法定名、税号或类型会让它回到待审(库里的 requeue_supplier_on_identity_change 做这件事,页面只负责先说)。 */}
+                {APPROVED_STATUSES.has(supplier.status) && (
+                    <Alert data-supplier-requeue-warning className="max-w-3xl">
+                        <AlertDescription>{t('suppliers.form.requeueWarning')}</AlertDescription>
+                    </Alert>
+                )}
 
                 <div className="flex gap-3 pt-4">
                     <Button

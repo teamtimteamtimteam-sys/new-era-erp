@@ -808,6 +808,46 @@ def main() -> int:
         else:
             print(f"guc        库级 GUC 一致 ✓ (allowlisted {n_allowed})")
 
+        # ── 默认权限:postgres 在 public 上新建的对象给不给 anon(GOLIVE-1 第 2 行,Tim d2 #6 · 2026-10-29 Q1)────────────
+        # 方案 4 在线上是 COD-2 做的(ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL … FROM anon);
+        # 重建这一侧由 db/platform-prelude.sql 第 6 节在重放之后做。两条判据:① 重建库里那三条默认权限没有一条带 anon(离线也问 ——
+        # 只要仓库就答得了);② 整门再与线上逐条比(按对象种类,aclitem 当集合比 —— 顺序不是事实)。
+        # 故障注入 GATE_DEFACL_FAULT=grant:在重建库上把 anon 授回表的默认权限,这一行必须红并点名它。
+        if os.environ.get("GATE_DEFACL_FAULT") == "grant":
+            psql(local, "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES TO anon;")
+            print("defacl     ★ 故障注入:GATE_DEFACL_FAULT=grant —— 重建库上 postgres 的表默认权限把 SELECT 授回给了 anon(这一行该红,正是它该做的)")
+        DEFACL_SQL = ("SELECT COALESCE(string_agg(d.defaclobjtype::text || '|' || array_to_string(d.defaclacl, ','), ';' "
+                      "ORDER BY d.defaclobjtype), '') FROM pg_default_acl d JOIN pg_namespace n ON n.oid = d.defaclnamespace "
+                      "WHERE d.defaclrole = 'postgres'::regrole AND n.nspname = 'public';")
+        def defacl_map(raw: str) -> dict:
+            out = {}
+            for part in [x for x in raw.split(";") if x]:
+                kind, acl = part.split("|", 1)
+                # 属主自己那一条(postgres=…/postgres)不算:属主对自己建的对象本来就握着全部权限;线上平台把它显式写进了数组,
+                # 裸集群上的 ALTER DEFAULT PRIVILEGES 不写 —— 同一个事实两种写法(整门 2026-10-29 第一跑在这里报过三条「仅线上」)
+                out[kind] = set(a for a in acl.split(",") if a and not a.startswith("postgres="))
+            return out
+        dfl_local = defacl_map(psql(local, DEFACL_SQL))
+        dfl_bad = sorted(f"{k}:{a}" for k, s in dfl_local.items() for a in s if a.startswith("anon="))
+        dfl_kinds = sorted(dfl_local)
+        dfl_problem = ""
+        if dfl_kinds != ["S", "f", "r"]:
+            dfl_problem = f"rebuild has default-privilege rows for {dfl_kinds or 'nothing'} (expected r · S · f) —— 读不到就不许说干净"
+        elif dfl_bad:
+            dfl_problem = f"rebuild still grants anon by default: {', '.join(dfl_bad)}"
+        elif not OFF:
+            dfl_live = defacl_map(psql(args.live, DEFACL_SQL))
+            diff = sorted(f"{k}:{a} ({'仅线上' if a in dfl_live.get(k, set()) else '仅重建'})"
+                          for k in set(dfl_live) | set(dfl_local)
+                          for a in dfl_live.get(k, set()) ^ dfl_local.get(k, set()))
+            if diff:
+                dfl_problem = f"default privileges differ from live: {'; '.join(diff)}"
+        if dfl_problem:
+            print(f"defacl     ✗ {dfl_problem}")
+            problems.append(f"default privileges: {dfl_problem}")
+        else:
+            print("defacl     postgres 在 public 上的默认权限(表 · 序列 · 函数)不给 anon ✓" + ("(重建一侧;与线上的比对由迁移之后的整门跑)" if OFF else ",与线上逐条一致 ✓"))
+
         # 币种写死:界面把 'USD'/'SGD' 当常量用过四次,每次都是 FIN-0 改本位币后
         # 没人记得改的残留。名单在 scripts/check-currency-literals.mjs 里,例外要写理由。
         cur = subprocess.run(["node", os.path.join(HERE, "..", "scripts", "check-currency-literals.mjs")],

@@ -52,9 +52,10 @@ CREATE TRIGGER trg_pricing_settings_updated_at
 ALTER TABLE public.pricing_settings ENABLE ROW LEVEL SECURITY;
 
 -- ★ NOROLE-SURFACE(2026-10-19,Step 0 Q1–Q5,Tim):读不再是 USING (true) —— 一个没有角色的会话一行都读不到;谓词 = 今天读它的那几页的码之并(没有一个角色丢掉一条路)。
+-- ★ GOLIVE-1 第 1 行(Tim 2026-10-20 d2 #2 · 2026-10-29 Q6):持 action.metal_prices 的人读得到它写的东西 —— 行情、指数交易日历、报价阈值三张一起。
 CREATE POLICY "pricing_settings select"
     ON public.pricing_settings AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'module.inventory.view'::text])));
+    USING ((SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'module.inventory.view'::text, 'action.metal_prices'::text])));
 
 -- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
 --   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。

@@ -24,6 +24,13 @@ batch) and the "approves" half does not exist yet** — the action still complet
 财务 = `finance`(Choo Er)· CCO = `cco`(Sandra)· CTO = `cto`(Phua)· 仓库 = `warehouse`(Fu Sheng)·
 MD = `gm`(Vince,只读)。
 
+★ **空角色(GOLIVE-1,`v1.4.82`,2026-10-29 —— Tim d2 #27 · Q2–Q5):** `hr` · `procurement` · `sales` **已删除**(删前 0 个持有人);
+`auditor` = 18 个模块查看码 + `data.view_deleted` · `view_prices` · `view_purchase_prices` · `view_sales` · `view_self_approvals` · `view_cod` · `view_change_log`
+(25 个;不含银行、薪酬、身份、健康与绩效);`employee` = 0 个码,只打得开每一个账号都有的个人页;`operations`(停用)与 `floor_display` 不动。
+线上与全新重建从此都是这 11 个角色(`db/seeds/eleven-roles-2026-10-29.sql`)。下文提到 hr / procurement / sales 的地方是历史。
+**Empty roles (GOLIVE-1):** hr, procurement and sales are deleted; auditor reads every module (25 codes, no banking, pay, identity, health or reviews);
+employee holds no code; operations and floor_display are unchanged. Live and a fresh rebuild both have these 11 roles.
+
 ## ★ 常设规矩 · Standing rule — 一个动作码与它那一页的查看码一起授 · an action code is granted together with its page's view code
 
 **Tim 的裁定,2026-10-08(MES-5a-2 close-out 裁定 f,选项 A)。** 每一个动作码(`action.*`,以及在一页之内当动作用的 `module.*.edit`)

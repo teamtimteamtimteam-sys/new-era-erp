@@ -1,0 +1,12 @@
+STEP|base https://new-era-erp.vercel.app
+SELECT1|before the reader client round trips 446 / 424 / 440 / 995 / 433 ms (median 440) · server execution 0.037 ms
+HEALTH|before the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|database as postgres (base tables): 3 certificates — (no number) pending · COD-2026-0001 issued · COD-2026-0002 issued
+PASS|bar on / (HTTP 200) = Workbench · Purchasing · Production · Quality · Sales · Logistics · Finance · People · Safety · Equipment (10 buttons; Logistics right after Sales: true) ⇒ production serves bd127ff / 2bb34df
+PASS|/compliance/cod (HTTP 200, h1 "Certificates of destruction"): 3 rows (database 3); Issue / Void controls on the page: 0
+PASS|COD-2026-0001 on /inbound/<batch>/edit (HTTP 200): panel reader, issue none · void none · buttons 0; read-only line shown (nothing pressed)
+PASS|COD-2026-0001 PDF: HTTP 200 application/pdf, 34701 bytes, sha256 ba299a4f3488fc543cdd1f410fabf6523434d39caa0dc58d6f376309c1f42101 — AGENTS.md baseline identical
+SELECT1|after the reader client round trips 459 / 430 / 422 / 426 / 417 ms (median 426) · server execution 0.03 ms
+HEALTH|after the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+CODR_CLOSEOUT_EXIT=0

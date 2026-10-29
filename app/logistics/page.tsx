@@ -16,20 +16,11 @@
 //      发运是销售那侧的东西(销售订单的发货腿),货柜在 /logistics/containers:
 //      **"有几票发运还没挂到任何箱子上"两边都说不出。**
 //
-// ★★【这一页的 D5 是【实测出来的】,而它同时是本刀报出的一条【发现】】★★
-//   进得来这一页的是 module.logistics.view =
-//     admin·auditor·cfo·finance·gm·operations·procurement·sales·warehouse(九个)。
-//   而 `container_overview` 这张视图体内的谓词是 **module.purchasing.view** =
-//     admin·auditor·cfo·finance·gm·procurement(六个)。
-//   ★ 于是 **operations · sales · warehouse 三个角色进得来这一页,却读不到货柜** ★。
-//
-//   【为什么这是一条发现,而不是本页的毛病】NAV-REG-1 / R2 给物流铸了它自己的码,
-//   并把【八张表】的 SELECT 策略换成了它。**container_overview 这张视图没有跟着换。**
-//   本刀【不改那个门】—— 改一个视图的谓词是一次权限改动,它需要 Tim 裁,
-//   而这一刀写在委托书里的是"权限码不变"。所以本页做正确的那件事:
-//   **由权限分,不由值分** —— 三个角色看到的是【具名的】「受限(module.purchasing.view)」,
-//   而不是一句「没有货柜」。后者是一句谎,而且是最难发现的那一种。
-//   (详见本刀报告的「只有人走得了的一遍」那一节。)
+// ★【货柜那一半由权限分,不由值分】★ `container_overview` 的门写在视图体里。CONV-6 写这一页时它是
+//   module.purchasing.view,于是 operations · sales · warehouse 进得来、读不到 —— 本页因此先判码、画具名的「受限」。
+//   FIX-2a(2026-09-05)把视图放宽成 purchasing OR logistics;GOLIVE-1 第 6 行(Tim 2026-10-20 d2 #30)收成
+//   **module.logistics.view 一个码** —— 与这一页自己的门是同一个码,所以下面那一句今天对每一个进得来的人都成立。
+//   它仍然留着:视图的门哪天再变,这一页说的是「受限」,不是「一只箱子都没有」。
 //
 // 【手机(390px)】单列 max-w-3xl,与 CONV-7 那两页逐字相同。
 // ════════════════════════════════════════════════════════════════════════════
@@ -64,7 +55,7 @@ export default async function LogisticsOverviewPage() {
 
     // ★【先判权限,再决定查不查】★ —— 见抬头。这一行【就是】那条 D5:
     // 没有它,三个角色会拿到一个空集,然后屏幕告诉他们"一只箱子都没有"。
-    const canReadContainers = allows('module.purchasing.view', perms)
+    const canReadContainers = allows('module.logistics.view', perms)
 
     const [ctrRes, shpRes] = await Promise.all([
         canReadContainers
@@ -113,7 +104,7 @@ export default async function LogisticsOverviewPage() {
                 }}
                 state={
                     !canReadContainers
-                        ? { kind: 'restricted', permission: 'module.purchasing.view' }
+                        ? { kind: 'restricted', permission: 'module.logistics.view' }
                         : containers.length === 0
                           ? { kind: 'unanswerable', why: t('logisticsOverview.milestoneNone') }
                           : { kind: 'ok' }

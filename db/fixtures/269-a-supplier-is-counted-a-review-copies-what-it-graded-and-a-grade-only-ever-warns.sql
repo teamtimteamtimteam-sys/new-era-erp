@@ -150,8 +150,8 @@ BEGIN
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass))) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 269 REG: every new table is change-logged'; END IF;
     IF (EXISTS (SELECT 1 FROM change_log_mask_rules() WHERE table_name LIKE 'supplier_score%' OR table_name LIKE 'supplier_statement%')
-       OR (SELECT count(*) FROM change_log_mask_rules()) <> 119) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 269 REG: no masked column in MES-8a (rules stay 119)'; END IF;
+       OR (SELECT count(*) FROM change_log_mask_rules()) <> 129) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 269 REG: no masked column in MES-8a (rules stay 119 from that cut; 129 since GOLIVE-1 row 12 added the settlement and contract-term prices)'; END IF;
     IF (EXISTS (SELECT 1 FROM unnest(ARRAY['supplier_latest_reviews', 'supplier_scorecard_rows', 'supplier_statement_rows', 'grn_discrepancies']) v
                 WHERE NOT has_table_privilege('authenticated', ('public.' || v)::regclass, 'SELECT'))
        OR has_table_privilege('authenticated', 'public.grn_discrepancies_all'::regclass, 'SELECT')) IS NOT FALSE THEN

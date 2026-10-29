@@ -1,0 +1,201 @@
+SET
+Timing is on.
+BEGIN
+Time: 411.554 ms
+PROOF|clock before|2026-10-29 18:08:01.859967+08
+Time: 436.067 ms
+PROOF|B|postgres|{"roles" : "admin:1h/87c auditor:0h/22c cco:1h/51c cfo:1h/37c cto:1h/42c employee:0h/0c finance:1h/44c floor_display:0h/1c gm:1h/24c hr:0h/8c operations:0h/16c procurement:0h/16c sales:0h/17c warehouse:1h/32c", "held_hr_proc_sales_incl_revoked" : 0, "seven_grants" : "317 d6fa1ea206dc8f27bf6e453688c90fe1", "user_roles" : "9 2372199afc0ae559a703d5b048992be5", "suppliers" : "18 d1e7bf5f51985cf02f97b52f629ef7e0", "employees" : "22 6b4586070d227db1e07e5ae7eaff4edb", "contracts" : "0 d41d8cd98f00b204e9800998ecf8427e", "sales_settlements" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_pricing_terms" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_refining_charges" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_penalty_elements" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_insurance_obligations" : "0 d41d8cd98f00b204e9800998ecf8427e", "cod_issues" : "2 097dacfa233e71e7cf70482c25249b4e", "cods" : "3 8c1a7c1234cdc9fb179ba377c64b0a05", "anon_relations" : 290, "anon_functions" : "cod_verification,ingest_submit", "auditor" : "data.view_deleted,data.view_prices,data.view_purchase_prices,data.view_sales,data.view_self_approvals,module.compliance.view,module.customers.view,module.finance.view,module.hr.view,module.inbound.view,module.inventory.view,module.logistics.view,module.materials.view,module.output.view,module.pricing.view,module.processing.view,module.purchasing.view,module.safety.view,module.sales.view,module.stocktakes.view,module.suppliers.view,module.tasks.view", "employee_desc" : "Not used for access. Employee self-service is row-level and ", "policies" : { "index_market_calendar / index market calendar select by pricing permission" : "( SELECT has_permission('module.pricing.view'::text) AS has_permission)", "metal_prices / metal_prices select by permission" : "( SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'module.suppliers.view'::text, 'module.inventory.view'::text, 'module.materials.view'::text]) AS has_any_permission)", "pricing_settings / pricing_settings select" : "( SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'module.inventory.view'::text]) AS has_any_permission)" }, "container_overview_where" : "WHERE (s.container_id = c.id)))::integer AS shipment_count,\n    (( SELECT count(DISTINCT o.customer_id) AS count\n           FROM (shipments s\n             JOIN sales_orders o ON ((o.id = s.sales_order_id)))\n          WHERE (s.container_id = c.id)))::integer AS customer_count,\n    ( SELECT m.milestone\n           FROM container_milestones m\n          WHERE (m.container_id = c.id)\n          ORDER BY m.event_date DESC, m.recorded_at DESC\n         LIMIT 1) AS latest_milestone,\n    ( SELECT m.event_date\n           FROM container_milestones m\n          WHERE (m.container_id = c.id)\n          ORDER BY m.event_date DESC, m.recorded_at DESC\n         LIMIT 1) AS latest_milestone_date,\n    COALESCE(ls.checklist_state, 'no_lane'::text) AS lane_checklist_state,\n    (( SELECT count(*) AS count\n           FROM container_documents d\n          WHERE ((d.container_id = c.id) AND (d.status = 'pending'::text))))::integer AS documents_pending\n   FROM ((containers c\n     LEFT JOIN suppliers f ON ((f.id = c.forwarder_id)))\n     LEFT JOIN lane_checklist_status ls ON ((ls.lane_id = c.lane_id)))\n  WHERE ((c.deleted_at IS NULL) AND (has_permission('module.purchasing.view'::text) OR has_permission('module.logistics.view'::text)));", "price_columns_granted" : 5, "status_history_trigger" : "CREATE TRIGGER trg_suppliers_status_history AFTER UPDATE OF status ON public.suppliers FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION log_supplier_status_change()"}
+Time: 1789.469 ms (00:01.789)
+SET
+Time: 423.716 ms
+Time: 513.542 ms
+PROOF|B|cfo|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 461.936 ms
+RESET
+Time: 408.749 ms
+SET
+Time: 425.642 ms
+Time: 409.691 ms
+PROOF|B|cco|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 800.084 ms
+RESET
+Time: 422.295 ms
+SET
+Time: 409.103 ms
+Time: 1076.378 ms (00:01.076)
+PROOF|B|warehouse|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 425.684 ms
+RESET
+Time: 417.570 ms
+SET
+Time: 408.967 ms
+Time: 421.243 ms
+PROOF|B|finance|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 415.139 ms
+RESET
+Time: 421.033 ms
+SET
+Time: 414.849 ms
+Time: 419.868 ms
+PROOF|B|no-role|reads|{"metal_prices" : 0, "calendar" : 0, "pricing_settings" : 0, "container_overview" : 0, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 415.196 ms
+RESET
+Time: 938.817 ms
+PROOF|clock migration start|2026-10-29 18:08:14.12545+08
+Time: 419.416 ms
+DO
+Time: 421.926 ms
+DROP POLICY
+Time: 467.593 ms
+CREATE POLICY
+Time: 910.143 ms
+DROP POLICY
+Time: 440.101 ms
+CREATE POLICY
+Time: 413.793 ms
+DROP POLICY
+Time: 679.601 ms
+CREATE POLICY
+Time: 421.747 ms
+CREATE FUNCTION
+Time: 661.454 ms
+COMMENT
+Time: 424.246 ms
+DROP TRIGGER
+Time: 416.112 ms
+CREATE TRIGGER
+Time: 431.652 ms
+CREATE TRIGGER
+Time: 412.391 ms
+DELETE 3
+Time: 512.661 ms
+INSERT 0 3
+Time: 458.296 ms
+UPDATE 1
+Time: 422.803 ms
+CREATE VIEW
+Time: 443.635 ms
+COMMENT
+Time: 414.979 ms
+CREATE FUNCTION
+Time: 1226.538 ms (00:01.227)
+CREATE FUNCTION
+Time: 417.805 ms
+REVOKE
+Time: 534.829 ms
+GRANT
+Time: 413.974 ms
+REVOKE
+Time: 506.905 ms
+GRANT
+Time: 427.888 ms
+REVOKE
+Time: 1221.361 ms (00:01.221)
+GRANT
+Time: 417.779 ms
+REVOKE
+Time: 449.930 ms
+GRANT
+Time: 429.664 ms
+REVOKE
+Time: 417.960 ms
+GRANT
+Time: 422.661 ms
+REVOKE
+Time: 416.360 ms
+GRANT
+Time: 416.216 ms
+CREATE VIEW
+Time: 435.128 ms
+REVOKE
+Time: 421.605 ms
+GRANT
+Time: 410.936 ms
+CREATE VIEW
+Time: 425.421 ms
+REVOKE
+Time: 412.639 ms
+GRANT
+Time: 421.237 ms
+CREATE VIEW
+Time: 411.843 ms
+REVOKE
+Time: 422.460 ms
+GRANT
+Time: 414.448 ms
+CREATE VIEW
+Time: 420.601 ms
+REVOKE
+Time: 420.814 ms
+GRANT
+Time: 494.472 ms
+CREATE VIEW
+Time: 426.603 ms
+REVOKE
+Time: 418.508 ms
+GRANT
+Time: 418.880 ms
+CREATE FUNCTION
+Time: 449.894 ms
+CREATE FUNCTION
+Time: 426.601 ms
+CREATE FUNCTION
+Time: 411.095 ms
+psql:docs/surveys/GOLIVE-1/readings/dry-run.sql:812: NOTICE:  GOLIVE1_PROOF ok
+DO
+Time: 898.746 ms
+PROOF|clock migration end|2026-10-29 18:08:39.189691+08
+Time: 421.967 ms
+PROOF|A|postgres|{"roles" : "admin:1h/87c auditor:0h/25c cco:1h/51c cfo:1h/37c cto:1h/42c employee:0h/0c finance:1h/44c floor_display:0h/1c gm:1h/24c operations:0h/16c warehouse:1h/32c", "held_hr_proc_sales_incl_revoked" : 0, "seven_grants" : "317 d6fa1ea206dc8f27bf6e453688c90fe1", "user_roles" : "9 2372199afc0ae559a703d5b048992be5", "suppliers" : "18 d1e7bf5f51985cf02f97b52f629ef7e0", "employees" : "22 6b4586070d227db1e07e5ae7eaff4edb", "contracts" : "0 d41d8cd98f00b204e9800998ecf8427e", "sales_settlements" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_pricing_terms" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_refining_charges" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_penalty_elements" : "0 d41d8cd98f00b204e9800998ecf8427e", "contract_insurance_obligations" : "0 d41d8cd98f00b204e9800998ecf8427e", "cod_issues" : "2 097dacfa233e71e7cf70482c25249b4e", "cods" : "3 8c1a7c1234cdc9fb179ba377c64b0a05", "anon_relations" : 285, "anon_functions" : "cod_verification,ingest_submit,requeue_supplier_on_identity_change", "auditor" : "data.view_change_log,data.view_cod,data.view_deleted,data.view_prices,data.view_purchase_prices,data.view_sales,data.view_self_approvals,module.compliance.view,module.customers.view,module.finance.view,module.hr.view,module.inbound.view,module.inventory.view,module.logistics.view,module.materials.view,module.output.view,module.pricing.view,module.processing.view,module.purchasing.view,module.quality.view,module.safety.view,module.sales.view,module.stocktakes.view,module.suppliers.view,module.tasks.view", "employee_desc" : "Holds no codes. It opens only the personal pages every accou", "policies" : { "index_market_calendar / index market calendar select by pricing permission" : "( SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'action.metal_prices'::text]) AS has_any_permission)", "metal_prices / metal_prices select by permission" : "( SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'module.suppliers.view'::text, 'module.inventory.view'::text, 'module.materials.view'::text, 'action.metal_prices'::text]) AS has_any_permission)", "pricing_settings / pricing_settings select" : "( SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'module.inventory.view'::text, 'action.metal_prices'::text]) AS has_any_permission)" }, "container_overview_where" : "WHERE (s.container_id = c.id)))::integer AS shipment_count,\n    (( SELECT count(DISTINCT o.customer_id) AS count\n           FROM (shipments s\n             JOIN sales_orders o ON ((o.id = s.sales_order_id)))\n          WHERE (s.container_id = c.id)))::integer AS customer_count,\n    ( SELECT m.milestone\n           FROM container_milestones m\n          WHERE (m.container_id = c.id)\n          ORDER BY m.event_date DESC, m.recorded_at DESC\n         LIMIT 1) AS latest_milestone,\n    ( SELECT m.event_date\n           FROM container_milestones m\n          WHERE (m.container_id = c.id)\n          ORDER BY m.event_date DESC, m.recorded_at DESC\n         LIMIT 1) AS latest_milestone_date,\n    COALESCE(ls.checklist_state, 'no_lane'::text) AS lane_checklist_state,\n    (( SELECT count(*) AS count\n           FROM container_documents d\n          WHERE ((d.container_id = c.id) AND (d.status = 'pending'::text))))::integer AS documents_pending\n   FROM ((containers c\n     LEFT JOIN suppliers f ON ((f.id = c.forwarder_id)))\n     LEFT JOIN lane_checklist_status ls ON ((ls.lane_id = c.lane_id)))\n  WHERE ((c.deleted_at IS NULL) AND ( SELECT has_permission('module.logistics.view'::text) AS has_permission));", "price_columns_granted" : 0, "status_history_trigger" : "CREATE TRIGGER trg_suppliers_status_history AFTER UPDATE ON public.suppliers FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION log_supplier_status_change()"}
+Time: 434.808 ms
+SET
+Time: 649.409 ms
+Time: 420.197 ms
+PROOF|A|cfo|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 420.856 ms
+RESET
+Time: 422.963 ms
+SET
+Time: 410.600 ms
+Time: 419.590 ms
+PROOF|A|cco|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 414.280 ms
+RESET
+Time: 419.479 ms
+SET
+Time: 410.975 ms
+Time: 907.851 ms
+PROOF|A|warehouse|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 426.134 ms
+RESET
+Time: 443.203 ms
+SET
+Time: 418.314 ms
+Time: 421.198 ms
+PROOF|A|finance|reads|{"metal_prices" : 12, "calendar" : 0, "pricing_settings" : 1, "container_overview" : 6, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 474.331 ms
+RESET
+Time: 424.032 ms
+SET
+Time: 419.527 ms
+Time: 420.673 ms
+PROOF|A|no-role|reads|{"metal_prices" : 0, "calendar" : 0, "pricing_settings" : 0, "container_overview" : 0, "settlements" : 0, "pricing_terms" : 0, "refining" : 0, "penalty" : 0, "insurance" : 0}
+Time: 417.666 ms
+RESET
+Time: 421.135 ms
+PROOF|Q7|before|{"code" : "SUP-2026-0003", "status" : "approved", "approved_at" : null, "legal_name" : "Shanghai Yidong Battery Recycle Co."}
+Time: 436.018 ms
+SET
+Time: 501.814 ms
+Time: 412.335 ms
+UPDATE 1
+Time: 609.882 ms
+RESET
+Time: 420.534 ms
+PROOF|Q7|after|{"code" : "SUP-2026-0003", "status" : "pending_review", "approved_by" : null, "approved_at" : null, "legal_name" : "Shanghai Yidong Battery Recycle Co. (GOLIVE-1 dry run)"} · history 1
+Time: 417.346 ms
+PROOF|clock rollback|2026-10-29 18:08:52.030521+08
+Time: 419.009 ms
+ROLLBACK
+Time: 411.875 ms
+DRY_OWN_EXIT=0

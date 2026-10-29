@@ -1,0 +1,10 @@
+== db/check_grants.py —— anon 够得着什么(线上)
+   注入自检:✓ 两格都变红(基线打瞎 · 查询打瞎)
+   relation  universe 534(两条路一致)
+   function  universe 1078(两条路一致)
+   column    universe 7113(两条路一致)
+   bucket    universe 21(两条路一致)
+   anon 够得着:关系 325 · 函数 2 · 公开桶 0 · 列级 ACL 0
+   函数(逐个点名,这一格【应该很短】):cod_verification(text), ingest_submit(text,text,jsonb)
+   基线已写:/Users/timchen/Documents/projects/new-era-erp/db/anon-grants-baseline.tsv
+BASELINE_OWN_EXIT=0

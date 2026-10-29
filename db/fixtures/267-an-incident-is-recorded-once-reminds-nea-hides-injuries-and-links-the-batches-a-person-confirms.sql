@@ -236,8 +236,8 @@ BEGIN
                   AND NOT EXISTS (SELECT 1 FROM role_permissions v WHERE v.role_id = rp.role_id AND v.permission_code = 'module.safety.view')) THEN
         RAISE EXCEPTION 'FIXTURE 267 GRANT: edit implies view'; END IF;
     IF (SELECT string_agg(r.code, ',' ORDER BY r.code) FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
-         WHERE rp.permission_code = 'module.safety.edit' AND r.code NOT LIKE 'fx%') IS DISTINCT FROM 'admin,warehouse' THEN
-        RAISE EXCEPTION 'FIXTURE 267 GRANT: the bootstrap gives module.safety.edit to admin and warehouse (cto is not in the bootstrap)'; END IF;
+         WHERE rp.permission_code = 'module.safety.edit' AND r.code NOT LIKE 'fx%') IS DISTINCT FROM 'admin,cto,warehouse' THEN
+        RAISE EXCEPTION 'FIXTURE 267 GRANT: the bootstrap gives module.safety.edit to admin, cto and warehouse (GOLIVE-1 Q5: the bootstrap is live''s eleven roles)'; END IF;
     IF EXISTS (SELECT 1 FROM role_permissions rp JOIN roles r ON r.id = rp.role_id WHERE r.code = 'warehouse' AND rp.permission_code = 'data.view_health') THEN
         RAISE EXCEPTION 'FIXTURE 267 GRANT: warehouse must not hold data.view_health (Q6)'; END IF;
     u_all := pg_temp.f267_user('all', ARRAY(SELECT code FROM permissions));

@@ -38,12 +38,16 @@ export type FieldSpec = {
     defaultValue?: string
     /** MES-6b-1(F7 · Q18):这一格是 %,旁边实时带 ppm —— 当同一行 roleOf 那一格选的物质是惩罚元素时 */
     ppmBeside?: { roleOf: string }
+    /** GOLIVE-1 第 12 行(Tim Q9):这一格是价格 —— 读的是 readTable 那张遮蔽伴生视图,按合同那一侧的价格码置空(contract_terms_price_visible) */
+    masked?: true
 }
 
 export type SectionSpec = {
     table: TermTable
-    /** 真表名 */
+    /** 真表名(写) */
     dbTable: string
+    /** GOLIVE-1 第 12 行:读这一段走的关系(有价格格的四段是 <表>_masked;其余 = dbTable) */
+    readTable?: string
     /** 一份合同恰好一行(结算口径) */
     onePerContract?: boolean
     fields: readonly FieldSpec[]
@@ -64,11 +68,11 @@ export const SECTIONS: readonly SectionSpec[] = [
         ],
     },
     {
-        table: 'insurance_obligations', dbTable: 'contract_insurance_obligations',
+        table: 'insurance_obligations', dbTable: 'contract_insurance_obligations', readTable: 'contract_insurance_obligations_masked',
         fields: [
             { name: 'insured_by', type: 'select', required: true, options: PARTY },
             { name: 'cover_type', type: 'text', required: true },
-            { name: 'min_amount', type: 'number', min: 0 },
+            { name: 'min_amount', type: 'number', min: 0, masked: true },
             { name: 'currency', type: 'select', options: { kind: 'dict', dict: 'currencies' } },
             NOTES,
         ],
@@ -88,14 +92,14 @@ export const SECTIONS: readonly SectionSpec[] = [
         ],
     },
     {
-        table: 'pricing_terms', dbTable: 'contract_pricing_terms',
+        table: 'pricing_terms', dbTable: 'contract_pricing_terms', readTable: 'contract_pricing_terms_masked',
         fields: [
             { name: 'metal', type: 'select', required: true, options: { kind: 'dict', dict: 'payables' } },
             { name: 'base_event', type: 'select', required: true,
               options: { kind: 'enum', values: ['shipment', 'arrival', 'assay_complete'] } },
             { name: 'qp_months', type: 'integer', required: true, min: 0, max: 12 },
             { name: 'index_code', type: 'select', required: true, options: { kind: 'dict', dict: 'indices' } },
-            { name: 'payable_pct', type: 'number', required: true, min: 0, max: 100, minExclusive: true },
+            { name: 'payable_pct', type: 'number', required: true, min: 0, max: 100, minExclusive: true, masked: true },
             NOTES,
         ],
     },
@@ -124,19 +128,19 @@ export const SECTIONS: readonly SectionSpec[] = [
         ],
     },
     {
-        table: 'refining_charges', dbTable: 'contract_refining_charges',
+        table: 'refining_charges', dbTable: 'contract_refining_charges', readTable: 'contract_refining_charges_masked',
         fields: [
             { name: 'metal', type: 'select', required: true, options: { kind: 'dict', dict: 'payables' } },
-            { name: 'usd_per_tonne_of_metal', type: 'number', required: true, min: 0 },
+            { name: 'usd_per_tonne_of_metal', type: 'number', required: true, min: 0, masked: true },
             NOTES,
         ],
     },
     {
-        table: 'penalty_elements', dbTable: 'contract_penalty_elements',
+        table: 'penalty_elements', dbTable: 'contract_penalty_elements', readTable: 'contract_penalty_elements_masked',
         fields: [
             { name: 'substance', type: 'select', required: true, options: { kind: 'dict', dict: 'penaltyCandidates' } },
             { name: 'threshold_pct', type: 'number', required: true, min: 0, max: 100, ppmBeside: { roleOf: 'substance' } },
-            { name: 'usd_per_tonne_per_pct_over', type: 'number', required: true, min: 0 },
+            { name: 'usd_per_tonne_per_pct_over', type: 'number', required: true, min: 0, masked: true },
             NOTES,
         ],
     },

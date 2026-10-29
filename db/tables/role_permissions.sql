@@ -74,215 +74,324 @@ INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
  WHERE r.code = 'admin';
 
--- gm:看得见整个生意,包括成本与利润;【但不操作任何东西】。
--- ★★ APR-ROUTE-1 Batch B(Tim 裁定,2026-09-23):gm 变成【只读】。
---   Tim 的 MD(Vince)持 gm,他的工作是读,不是操作。于是 gm 上【每一个】
---   会写或会做决定的码都拿掉 —— 全部 *.edit(14 个)与 action.*(线上本来就 0 个);
---   保留全部 module.*.view、data.view_* 与 data.view_self_approvals。
---   ☞ 这一条【取代】C-1(2026-09-04)Q3 那句「gm 一个字不动」—— 那一句答的是
---     "要不要给 gm【加】码",不是"要不要从 gm【拿掉】码"。
---   ☞ 2026-09-03 NAV-CLEANUP-1 记过"MD 被另行裁定为只读",而那一条此前只落在
---     一个页面上(不给 gm data.view_deleted)—— 所以线上的 gm 从来没有对上它。
---   ★ 【不要为了补偿而给 gm 加任何东西】—— cco 刻意比 gm 宽(C-1 Q2/Q3),
---     不要"修"那个不对称。
---   ⚠ 一个真实的后果,照直写:tasks 表的插入要 module.tasks.edit、没有"自己的
---     任务"那一支,所以 Vince 从此连【个人任务】都建不了。自有任务的例外登记为
---     一刀可能的后续(docs/forward-queue.md),待 Tim 定。
-INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_reviews', 'data.view_sales',
-        'module.customers.view', 'module.finance.view', 'module.hr.view',
-        'module.inbound.view', 'module.inventory.view', 'module.materials.view',
-        'module.output.view', 'module.pricing.view', 'module.processing.view',
-        'module.purchasing.view', 'module.stocktakes.view', 'module.suppliers.view',
-        'module.tasks.view', 'module.sales.view', 'module.logistics.view',
-        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
-        'module.safety.view',
-        -- ★ MES-8b-1(MES-8 Step 0 Q17):合规查看(读合规包)—— admin · auditor · cfo · cco · cto · gm;本文件里只有 gm 与 auditor(cfo · cco · cto 只活在线上,迁移授)。
-        'module.compliance.view',
-        -- APR-ROUTE-1(R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm。
-        'data.view_self_approvals',
-        -- ★ COD-READERS(Tim 2026-10-29,64d-5):读销毁证书(只读;签发归 action.issue_cod)。
-        'data.view_cod') WHERE r.code = 'gm';
+-- ★★ GOLIVE-1 第 5 行(Tim 2026-10-20 d2 #27 · 2026-10-29 Q2–Q5):下面每一个角色的码【逐字取自线上】(2026-10-29,以 postgres 读基表
+--   role_permissions)—— 七个真角色 = db/seeds/seven-roles-2026-10-29.sql;auditor 按 Q2;operations 与 floor_display 照线上;employee 0 个。
+--   此前这里是一份"全新安装的起点"设计(九角色分工 + 各刀追加),而线上早已按 Tim 的矩阵(ROLE-1 及以后)走开:
+--   没有 cfo / cco / cto、finance 少码、还留着无人持有的 hr / procurement / sales。Tim Q5:引导 = 线上。
+--   每一个角色【为什么】是这些码,写在它们各自落地的那一刀里(docs/role-matrix.md、db/migrations/、上面 admin 那一段的历史)——
+--   这一段只负责一件事:全新重建出来的,与线上一模一样。db/fixtures/298 与 db/live-fixtures/298 两头钉住它。
+--   auditor(Q2):只读 —— 18 个模块查看码,外加被删记录、价格(销售与采购两侧)、销售、自批报表、销毁证书、变更历史;
+--     【不给】银行明细、薪酬、身份信息、健康数据与绩效正文(绩效是一个人对另一个人的评价,不是可审计的账)。
+--   employee(Q3):一个码都不给 —— 它打得开的只有每一个账号都有的个人页;员工自助是行级的(current_user_employee())。
+--   operations(Q4):线上停用、0 个持有人,照旧;floor_display 只持 data.view_floor_board(多一个码,空闲豁免就没了,MES-8b-2)。
 
--- finance:总账、应付应收、开票收付款 + 全部成本可见。
--- ★ ROLE-1(Tim 的矩阵,2026-09-23):此前这里写着「【不含 HR】—— 薪酬与员工档案不是财务的工作对象」。
---   Tim 裁定相反:除 KPI 与绩效评估(归 cco)以外的全部人事与薪资工作归财务 ——
---   工资期、算薪、考勤、员工档案(月薪除外)、请假与医疗申报的决定。
---   于是加 module.hr.edit / module.hr.view / data.view_identity(身份信息从此只归财务,Q6;
---   ★ PAY-REQ-1(Tim 2026-09-23)把这句收窄了:cfo 也持 data.view_identity —— 只读,
---   Tim 裁定 cfo 持有每一个 view 码。【录入与改动】身份信息仍只归财务)/
---   data.view_pay / action.decide_hr_requests。(线上的 finance 另持 action.bulk_import,ROLE-1 在线上拿掉 —— 批量导入只归 admin;本文件里它本来就没有。)
--- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情归财务,定价公式只归 cco ——
---   module.pricing.edit 换成 action.metal_prices(行情、指数、指数交易日历、报价阈值)。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'module.hr.edit', 'module.hr.view', 'data.view_identity', 'data.view_pay',
-        -- ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):健康数据(医疗报销的事由与金额、请假的事由)归决定 HR 申请的人 ——
-        --   财务持 action.decide_hr_requests,所以一并持 data.view_health。
-        'data.view_health',
-        'action.decide_hr_requests', 'action.metal_prices',
-        -- ★ ROLE-1 Batch 4a(Tim 2026-09-25,grilling Q1):收货定价与改价归财务。
-        'action.price_receipts',
-        -- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q4):盘点过账归财务;要读得到盘点单才过得了。
-        'action.stocktake_post', 'module.stocktakes.view',
-        -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling):下达工单归财务;建单人永远不能下达(按人认)。
-        -- ★ MES-5b-1(Step 0 Q31,Tim):下达在 /operation/orders/[id] 上,那一页的门是 module.processing.view —— 引导的财务此前不持它,
-        --   于是持下达码而进不了下达的那一页(线上的财务 ROLE-1 Batch 3b 起就持它)。动作码与它那一页的查看码一起授。
-        'action.wo_release', 'module.processing.view',
-        -- ★ APR-10(Tim 2026-09-27,grilling Q6):办公用品采购单归财务开(module.purchasing.edit 不再开单)。
-        'action.raise_po_office',
-        -- ★ OVERTIME-1(Tim 2026-09-28):现场员工的加班由财务按月录。
-        'action.overtime_enter',
-        'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit',
-        'module.customers.view', 'module.finance.edit', 'module.finance.view',
-        'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
-        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
-        'module.output.edit', 'module.output.view',
-        'module.pricing.view', 'module.purchasing.edit', 'module.purchasing.view',
-        'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
-        'module.tasks.view', 'module.logistics.view',
-        -- ★ MES-6a-1(MES-0 Q90 · MES-6a Step 0 Q11):质量查看(样品与化验争议)—— 财务看得见争议,仲裁费是它记的费用单。
-        'module.quality.view',
-        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
+        'data.view_banking',
+        'data.view_cod',
+        'data.view_prices',
+        'data.view_purchase_prices',
+        'data.view_reviews',
+        'data.view_sales',
+        'data.view_self_approvals',
+        'module.compliance.view',
+        'module.customers.view',
+        'module.finance.view',
+        'module.hr.view',
+        'module.inbound.view',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.materials.view',
+        'module.output.view',
+        'module.pricing.view',
+        'module.processing.view',
+        'module.purchasing.view',
         'module.safety.view',
-        -- ★ COD-READERS(Tim 2026-10-29,64d-5):读销毁证书(只读;签发归 action.issue_cod)。
-        'data.view_cod'
+        'module.sales.view',
+        'module.stocktakes.view',
+        'module.suppliers.view',
+        'module.tasks.view'
+) WHERE r.code = 'gm';
+
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'action.contract_terms',
+        'action.decide_hr_requests',
+        'action.direct_sale',
+        'action.hr_reviews',
+        'action.issue_coa',
+        'action.manage_portal_users',
+        'action.ncr_decide',
+        'action.raise_po_equipment',
+        'action.request_shipping_release',
+        'action.supplier_review',
+        'data.view_banking',
+        'data.view_cod',
+        'data.view_deleted',
+        'data.view_health',
+        'data.view_pay',
+        'data.view_prices',
+        'data.view_purchase_prices',
+        'data.view_reviews',
+        'data.view_sales',
+        'module.compliance.view',
+        'module.customers.edit',
+        'module.customers.view',
+        'module.finance.view',
+        'module.hr.edit',
+        'module.hr.view',
+        'module.inbound.edit',
+        'module.inbound.view',
+        'module.inventory.edit',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.materials.edit',
+        'module.materials.view',
+        'module.output.edit',
+        'module.output.view',
+        'module.pricing.edit',
+        'module.pricing.view',
+        'module.processing.edit',
+        'module.processing.view',
+        'module.purchasing.edit',
+        'module.purchasing.view',
+        'module.quality.edit',
+        'module.quality.view',
+        'module.safety.view',
+        'module.sales.edit',
+        'module.sales.view',
+        'module.stocktakes.edit',
+        'module.stocktakes.view',
+        'module.suppliers.edit',
+        'module.suppliers.view',
+        'module.tasks.edit',
+        'module.tasks.view'
+) WHERE r.code = 'cco';
+
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'action.approve_review',
+        'action.customer_credit',
+        'action.decide_hr_requests',
+        'action.finance_reopen',
+        'action.finance_settings',
+        'action.supplier_approve',
+        'data.view_banking',
+        'data.view_change_log',
+        'data.view_cod',
+        'data.view_deleted',
+        'data.view_floor_board',
+        'data.view_health',
+        'data.view_identity',
+        'data.view_pay',
+        'data.view_prices',
+        'data.view_purchase_prices',
+        'data.view_reviews',
+        'data.view_sales',
+        'data.view_self_approvals',
+        'module.compliance.view',
+        'module.customers.view',
+        'module.finance.view',
+        'module.hr.view',
+        'module.inbound.view',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.materials.view',
+        'module.output.view',
+        'module.pricing.view',
+        'module.processing.view',
+        'module.purchasing.view',
+        'module.quality.view',
+        'module.safety.view',
+        'module.sales.view',
+        'module.stocktakes.view',
+        'module.suppliers.view',
+        'module.tasks.view'
+) WHERE r.code = 'cfo';
+
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'action.decide_hr_requests',
+        'action.metal_prices',
+        'action.overtime_enter',
+        'action.price_receipts',
+        'action.raise_po_office',
+        'action.stocktake_post',
+        'action.wo_release',
+        'data.view_banking',
+        'data.view_cod',
+        'data.view_deleted',
+        'data.view_health',
+        'data.view_identity',
+        'data.view_pay',
+        'data.view_prices',
+        'data.view_purchase_prices',
+        'data.view_sales',
+        'module.customers.edit',
+        'module.customers.view',
+        'module.finance.edit',
+        'module.finance.view',
+        'module.hr.edit',
+        'module.hr.view',
+        'module.inbound.edit',
+        'module.inbound.view',
+        'module.inventory.edit',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.materials.edit',
+        'module.materials.view',
+        'module.output.edit',
+        'module.output.view',
+        'module.pricing.view',
+        'module.processing.view',
+        'module.purchasing.edit',
+        'module.purchasing.view',
+        'module.quality.view',
+        'module.safety.view',
+        'module.sales.view',
+        'module.stocktakes.edit',
+        'module.stocktakes.view',
+        'module.suppliers.edit',
+        'module.suppliers.view',
+        'module.tasks.edit',
+        'module.tasks.view'
 ) WHERE r.code = 'finance';
 
--- procurement(14):议价、下采购单,看得见价格。【完全没有 finance】—— 定价的人不能同时把钱付出去(不相容职务分离)。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_prices', 'data.view_purchase_prices', 'module.inbound.edit', 'module.inbound.view',
-        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
-        'module.pricing.edit', 'module.pricing.view', 'module.purchasing.edit',
-        'module.purchasing.view', 'module.suppliers.edit', 'module.suppliers.view',
-        'module.tasks.edit', 'module.tasks.view', 'module.logistics.view'
-) WHERE r.code = 'procurement';
-
--- sales(13):客户、产出批次与销售。【开票归财务】,所以没有 finance。
-INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit', 'module.customers.view',
-        'module.inventory.edit', 'module.inventory.view', 'module.materials.view',
-        'module.output.edit', 'module.output.view', 'module.pricing.edit',
-        'module.pricing.view', 'module.tasks.edit', 'module.tasks.view',
-        'module.sales.edit', 'module.sales.view',
-        'module.logistics.view') WHERE r.code = 'sales';
-
--- operations(14):加工、库存、盘点:管数量、产出与回收率。【不给 data.view_prices】—— 少一个人看得见成本就少一处泄露。
-INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
-        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
-        'module.output.edit', 'module.output.view', 'module.processing.edit',
-        'module.processing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
-        'module.tasks.edit', 'module.tasks.view', 'module.logistics.view',
-        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
-        'module.safety.view'
-) WHERE r.code = 'operations';
-
--- warehouse(10):现场收货、产出、盘点。【不给任何数据类权限】—— 过磅的人不需要看见价格,也不需要看见别人的身份信息。
-INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
-        'module.inventory.view', 'module.output.edit', 'module.output.view',
-        'module.stocktakes.edit', 'module.stocktakes.view', 'module.tasks.edit',
-        'module.tasks.view', 'module.logistics.view',
-        -- ── COD-1:签发销毁证书 ────────────────────────────────────────────
-        -- 【它没有破上面那句「不给任何数据类权限」】—— 这不是一条 data.* 权限,
-        -- 而且它够得着的东西是【逐格挑出来的】:供应商的名字(随单据走的展示
-        -- 标签)与这票货背后的加工事实,经 cod_certificate_data 一支函数交付。
-        -- suppliers 与 company_compliance 对仓储现场【仍然是零行】——
-        -- fixture 195 的 J2 / J3 两臂就是钉这一句的:名字拿得到,表读不到。
-        -- 【为什么是仓储现场】过磅收货的人就是知道这票货处理完了的人;
-        -- 而证书住在进料批页上,他本来就持有 module.inbound.view。
-        'action.issue_cod',
-        -- ★ COD-READERS(Tim 2026-10-29,64d-5):证书的读归 data.view_cod —— 签发的人当然读得到他签的那一张。
-        'data.view_cod',
-        -- ── ROLE-1 Batch 2a(Tim,Batch 2a grilling Q5 · 矩阵 §6「供应商建档:cco · 仓库 · 财务」)──
-        -- 仓储现场建供应商档案。★ 这一行【推翻】了上面 COD-1 那句「suppliers 对仓储现场仍然是零行」——
-        -- 那句话说的是 COD-1 的时候;从这一刀起仓库读得到供应商表。证书那条路不变,
-        -- 仍经 cod_certificate_data(fixture 195 的 J2 改为从复制出来的角色里拿掉这两个码,
-        -- 以继续钉住"证书不需要读供应商表"这一句)。
-        'module.suppliers.view', 'module.suppliers.edit',
-        -- ── ROLE-1 Batch 4a(Tim 的 Q9 线,2026-09-25)──────────────────────────────
-        -- ★ 这一行【推翻】了上面那句「不给任何数据类权限」:仓库看得见【采购那一侧】的价格
-        -- (采购单、收货单价与改价历史、公式与条款承诺、应付账龄),好开它的采购单。
-        -- 销售、发票、应收、到岸成本、存货计值、加工成本与毛利仍按 data.view_prices,仓库不拿。
-        -- 看得见不等于定得了价:收货定价要 action.price_receipts(只归财务)。
-        'data.view_purchase_prices',
-        -- ── ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q4)──────────────────────────────
-        -- 开盘点单与录数归仓库;过账归财务(action.stocktake_post),录过数的人永远不能过账。
-        'action.stocktake_count',
-        -- ── ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q1 · Q6–Q9;Batch 3b grilling Q2)─────────
-        -- 收货建单、建工单(与改 / 取消 / 关闭)、提交加工、回滚加工、注销批次、加工损耗与交接班归仓库。
-        -- 下达工单归财务(action.wo_release)。仓库读得到加工模块(module.processing.view);
-        -- 物料只经 material_lookup 查名,不拿 module.materials.view(Q8)。
-        'action.receive_goods', 'action.wo_create', 'action.processing_commit', 'action.processing_rollback',
-        'action.batch_write_off', 'action.processing_aftercare', 'module.processing.view',
-        -- ── APR-5b(Tim 2026-09-25,APR-5 grilling Q7):发货归仓库,在 CFO 放行之后 ────────────────
-        -- 发货队列不带价格(shipping_queue_rows);仓库【不】拿 module.sales.view。
-        'action.ship_goods',
-        -- ── APR-10(Tim 2026-09-27,grilling Q6):工厂耗材采购单归仓库开;要读得到采购模块才开得了 ─────
-        'action.raise_po_consumables', 'module.purchasing.view',
-        -- ── OVERTIME-1(Tim 2026-09-28):现场员工的加班由仓库整批批(仓库不拿 module.hr.view)─────
-        'action.overtime_approve',
-        -- ── MES-2(Tim 2026-10-06,MES-0 Q11):过磅的人确认秤送来的数、手工录称重、开地磅单 ─────
+        'action.apply_assay',
+        'action.compliance_pack',
         'action.confirm_capture',
-        -- ── MES-6a-1(MES-0 Q90 · MES-6a Step 0 Q11 · Q12):质量【查看】—— 样品与争议;不给编辑(Q12:若 Fu Sheng 管样品,以后是一行)─────
+        'action.manage_devices',
+        'action.ncr_decide',
+        'data.view_banking',
+        'data.view_cod',
+        'data.view_deleted',
+        'data.view_prices',
+        'data.view_purchase_prices',
+        'data.view_reviews',
+        'data.view_sales',
+        'module.compliance.view',
+        'module.customers.edit',
+        'module.customers.view',
+        'module.finance.view',
+        'module.hr.view',
+        'module.inbound.edit',
+        'module.inbound.view',
+        'module.inventory.edit',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.materials.edit',
+        'module.materials.view',
+        'module.output.edit',
+        'module.output.view',
+        'module.pricing.view',
+        'module.processing.edit',
+        'module.processing.view',
+        'module.purchasing.edit',
+        'module.purchasing.view',
+        'module.quality.edit',
         'module.quality.view',
-        -- ── MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2 · Q6):安全 —— 查看与编辑(记事故的是现场)。受伤的细节要 data.view_health,仓库【不】拿它 ─────
-        'module.safety.view', 'module.safety.edit'
+        'module.safety.edit',
+        'module.safety.view',
+        'module.sales.view',
+        'module.stocktakes.edit',
+        'module.stocktakes.view',
+        'module.suppliers.edit',
+        'module.suppliers.view',
+        'module.tasks.edit',
+        'module.tasks.view'
+) WHERE r.code = 'cto';
+
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'action.batch_write_off',
+        'action.confirm_capture',
+        'action.issue_cod',
+        'action.overtime_approve',
+        'action.processing_aftercare',
+        'action.processing_commit',
+        'action.processing_rollback',
+        'action.raise_po_consumables',
+        'action.receive_goods',
+        'action.ship_goods',
+        'action.stocktake_count',
+        'action.wo_create',
+        'data.view_cod',
+        'data.view_purchase_prices',
+        'module.inbound.edit',
+        'module.inbound.view',
+        'module.inventory.edit',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.output.edit',
+        'module.output.view',
+        'module.processing.view',
+        'module.purchasing.view',
+        'module.quality.view',
+        'module.safety.edit',
+        'module.safety.view',
+        'module.stocktakes.edit',
+        'module.stocktakes.view',
+        'module.suppliers.edit',
+        'module.suppliers.view',
+        'module.tasks.edit',
+        'module.tasks.view'
 ) WHERE r.code = 'warehouse';
 
--- hr(8):人力资源 + 薪酬 + 身份信息 + 绩效正文 + 健康数据。这五类正是 HR 的工作对象,也正是别人不该看见的。
--- ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):加 data.view_health(医疗报销的事由与金额、请假的事由)。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_health',
-        'data.view_identity', 'data.view_pay', 'data.view_reviews', 'module.hr.edit',
-        'module.hr.view', 'module.tasks.edit', 'module.tasks.view'
-) WHERE r.code = 'hr';
-
--- auditor(16):全部模块【只给 .view】+ 价格 + 销售。【不给 data.view_reviews】—— 绩效是一个人对另一个人的评价,不是可审计的账;也不给薪酬与银行明细。
-INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.view', 'module.finance.view',
-        'module.hr.view', 'module.inbound.view', 'module.inventory.view',
-        'module.materials.view', 'module.output.view', 'module.pricing.view',
-        'module.processing.view', 'module.purchasing.view', 'module.stocktakes.view',
-        'module.suppliers.view', 'module.tasks.view',
-        'module.sales.view',
-        'module.logistics.view',
-        -- ★ NAV-CLEANUP-1 ①:被删记录。auditor 与 admin 是【仅有的】两个持有者;
-        --   gm 刻意不给 —— 理由在那支迁移的抬头(一份过期文档仍把 gm 写成 MD)。
+        'data.view_change_log',
+        'data.view_cod',
         'data.view_deleted',
-        -- APR-ROUTE-1(R2 · Q4):自批报表 —— 审计性质,正是审计角色要看的那一类。
+        'data.view_prices',
+        'data.view_purchase_prices',
+        'data.view_sales',
         'data.view_self_approvals',
-        -- ★ MES-7b-1(MES-0 Q90 · MES-7b Step 0 Q2):安全查看 —— 每一个持加工查看码的角色。
+        'module.compliance.view',
+        'module.customers.view',
+        'module.finance.view',
+        'module.hr.view',
+        'module.inbound.view',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.materials.view',
+        'module.output.view',
+        'module.pricing.view',
+        'module.processing.view',
+        'module.purchasing.view',
+        'module.quality.view',
         'module.safety.view',
-        -- ★ MES-8b-1(MES-8 Step 0 Q17):合规查看(读合规包)。
-        'module.compliance.view') WHERE r.code = 'auditor';
+        'module.sales.view',
+        'module.stocktakes.view',
+        'module.suppliers.view',
+        'module.tasks.view'
+) WHERE r.code = 'auditor';
 
--- ═══════════════════════════════════════════════════════════════════════════
--- NAV-REG-1 / R2:module.logistics.view 授给了上面 8 个角色中的每一个。
--- 【本文件里【没有】cfo 这个角色,而线上有(且它有一个真实用户)】—— 这份文件
--- 自称是"全新安装的起点",不是线上的快照,而这正是那句话的证据。线上的授予由
--- db/migrations/2026-09-01-navreg1-logistics-gets-its-own-code.sql 做,那一刀授了
--- 9 个角色(这里的 8 个 + cfo),并在事务里断言了 9 这个数。
--- 【判据:今天进得去物流的人,明天也要进得去】授予名单 = 今天持
--- module.purchasing.view 的每一个角色(借来的那道门)+ Tim 点名的
--- operations / warehouse / sales。对三个角色是扩大,对任何人都不是缩小。
--- ═══════════════════════════════════════════════════════════════════════════
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'module.inbound.edit',
+        'module.inbound.view',
+        'module.inventory.edit',
+        'module.inventory.view',
+        'module.logistics.view',
+        'module.materials.edit',
+        'module.materials.view',
+        'module.output.edit',
+        'module.output.view',
+        'module.processing.edit',
+        'module.processing.view',
+        'module.safety.view',
+        'module.stocktakes.edit',
+        'module.stocktakes.view',
+        'module.tasks.edit',
+        'module.tasks.view'
+) WHERE r.code = 'operations';
 
--- ★ MES-8b-2(2026-10-17,MES-0 Q83 · Q90,Tim):floor_display 只持 data.view_floor_board —— 一个码,不多一个(多一个,空闲豁免就没了)。
---   admin 由上面那一句(目录里每一个码)自动拿到它;线上的 cfo 由迁移授(本文件没有 cfo 这个角色,见上)。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, 'data.view_floor_board' FROM roles r WHERE r.code = 'floor_display';
 
--- employee:【一个模块权限都不给】—— 员工自助是行级的,靠 current_user_employee()
--- 限定到本人相关的行。给模块权限反而会把整张表打开。
+-- employee:【一个码都不给】(GOLIVE-1 Q3)。
 
 -- 引导默认值的自检:edit 必须伴随同模块的 view;动作码必须伴随用它那一页的查看码之一(MES-5b-1)。
 DO $bootstrap_check$

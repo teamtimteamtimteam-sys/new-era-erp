@@ -16,6 +16,11 @@
 --     (AGENTS.md「写那一半更坏」)—— 不先问,一个没有编辑权的人点保存会得到一句"保存成功"。
 -- 【一列都没变就不留痕】不在这里逐列比旧值:那要读几列被遮蔽的列(证件号、工作邮箱、月薪 —— 列级 SELECT 授权里没有它们),
 --   调用者身份下读不得(实测 42501);而变更记录的触发器本来就不为"改了等于没改"写行(fixture 234 A3)—— 同一个结果,不多读一列。
+-- ★ GOLIVE-1 第 11 行(Tim 2026-10-23 TABLE-EXPORT-2b Q5 · 2026-10-29 Q8):看不见身份四列的人保存,那四列【原样不动】。
+--   work_email · work_phone · identity_no · work_pass_no 在 employees_masked 里按 data.view_identity(或这一行就是读者本人)遮;
+--   编辑页对这样的人画「受限」、不送值 —— 而这里不看表单送了什么:看不见的人(编辑别人)那一次 UPDATE 根本不写那四列。
+--   【为什么是两句 UPDATE 而不是 SET col = CASE … ELSE e.col】后者要读那一列,而那四列不在 authenticated 的列级 SELECT 里(42501);
+--   只写一句、按看不看得见挑列,一次保存仍是一行变更记录。新建(p_id 为空)不变:还没有存下的值可遮,新建页照常可填(Q8)。
 CREATE OR REPLACE FUNCTION public.save_employee(p_id uuid, p_fields jsonb, p_history jsonb DEFAULT NULL::jsonb)
  RETURNS uuid
  LANGUAGE plpgsql
@@ -40,6 +45,21 @@ BEGIN
                 f.separation_date, f.separation_type, f.separation_notes, f.work_email, f.work_phone, f.residency_status,
                 f.identity_no, f.work_pass_type, f.work_pass_no, f.work_pass_issue_date, f.work_pass_expiry_date, f.notes)
         RETURNING id INTO v_id;
+    ELSIF NOT (has_permission('data.view_identity') OR v_id IS NOT DISTINCT FROM current_user_employee()) THEN
+        -- 看不见身份四列:那四列不在这一句里(GOLIVE-1 第 11 行)
+        UPDATE employees e SET
+               (legal_name, first_name, last_name, preferred_name, department_id, position_id, manager_id,
+                employment_type, work_category, is_site_staff, hire_date, probation_end_date, employment_status,
+                separation_date, separation_type, separation_notes, residency_status,
+                work_pass_type, work_pass_issue_date, work_pass_expiry_date, notes)
+             = (f.legal_name, f.first_name, f.last_name, f.preferred_name, f.department_id, f.position_id, f.manager_id,
+                f.employment_type, f.work_category, COALESCE(f.is_site_staff, false), f.hire_date, f.probation_end_date, f.employment_status,
+                f.separation_date, f.separation_type, f.separation_notes, f.residency_status,
+                f.work_pass_type, f.work_pass_issue_date, f.work_pass_expiry_date, f.notes)
+         WHERE e.id = v_id;
+        IF NOT FOUND AND NOT EXISTS (SELECT 1 FROM employees e WHERE e.id = v_id AND e.deleted_at IS NULL) THEN
+            RAISE EXCEPTION 'EMPLOYEE_NOT_FOUND|%', v_id;
+        END IF;
     ELSE
         UPDATE employees e SET
                (legal_name, first_name, last_name, preferred_name, department_id, position_id, manager_id,

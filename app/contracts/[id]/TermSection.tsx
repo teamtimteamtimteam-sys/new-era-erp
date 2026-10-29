@@ -18,7 +18,7 @@ import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Refusal } from '@/app/components/ui/refusal'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { DataTable, type ExportableColumn } from '@/app/components/ui/data-table'
-import { xNum, xText, type ExportCell } from '@/lib/export/cells'
+import { xNum, xText, xRestricted, type ExportCell } from '@/lib/export/cells'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import PpmReadout from '@/app/components/metals/PpmReadout'
 import type { SubstanceRole } from '@/lib/substances'
@@ -43,6 +43,9 @@ export type TermRowView = {
     shown: Record<string, string>
     /** 编辑表单的原值 */
     values: Record<string, string>
+    /** GOLIVE-1 第 12 行(Tim Q9):这一行里画「受限」的格(价格格,读者不持这份合同那一侧的价格码)。有它的行不给编辑 ——
+     *  表单里那一格只会是空白,存下去就是拿一个空值盖掉看不见的数。删除照旧(删的是整行,不是那个数)。 */
+    restricted?: string[]
 }
 
 export default function TermSection({
@@ -168,12 +171,13 @@ export default function TermSection({
         )
     }
 
-    // TABLE-EXPORT-3c(Tim 2026-10-25):八张条款表各一对导出。Q3:费率今天不遮蔽 —— 文件写屏幕上那个值,不另加遮蔽。
+    // TABLE-EXPORT-3c(Tim 2026-10-25):八张条款表各一对导出。Q3 当时:费率不遮蔽 —— ★ GOLIVE-1 第 12 行(Q9)起遮:受限的格写 "Restricted"(与屏幕同一个判据)。
     //   数(number / integer)从 values 里的原值写成数:惩罚条款的阈值与费率屏幕上旁边带着 ppm 等值
     //   (「0.5 %(5,000 ppm)」),导出只写主值 —— 那个以 % 存、以 % 录的原数;ppm 是从它换算出来的,不写。
     //   字典、枚举、是 / 否、文字:写屏幕上那串已经翻译好的字(shown)。空 = 没填 → 空格(屏幕上的「—」不写)。
     const cellOf = (f: TermFieldView, r: TermRowView): ExportCell =>
-        f.type === 'number' || f.type === 'integer'
+        r.restricted?.includes(f.name) ? xRestricted
+        : f.type === 'number' || f.type === 'integer'
             ? xNum(r.values[f.name], f.type === 'integer' ? 'int' : 'qty')
             : xText(r.shown[f.name] || null)
     const columns: ExportableColumn<TermRowView>[] = [
@@ -182,7 +186,7 @@ export default function TermSection({
             header: f.label,
             priority: i === 0,
             className: f.type === 'textarea' ? 'whitespace-pre-line break-words' : undefined,
-            render: (r) => r.shown[f.name] || '—',
+            render: (r) => r.restricted?.includes(f.name) ? <Refusal>{t('common.restricted')}</Refusal> : r.shown[f.name] || '—',
             exportAs: (r) => cellOf(f, r),
         })),
         {
@@ -190,7 +194,8 @@ export default function TermSection({
             render: (r) => (
                 <PermissionGate code="action.contract_terms" allowed={canWrite} inline>
                     <span className="inline-flex gap-2">
-                        <Button type="button" size="sm" variant="outline" disabled={pending || blocked}
+                        <Button type="button" size="sm" variant="outline" disabled={pending || blocked || Boolean(r.restricted?.length)}
+                                title={r.restricted?.length ? t('contractDetail.editRestricted') : undefined}
                                 onClick={() => { setEditing(r.id); setResult(null) }}>
                             {t('contractDetail.edit')}
                         </Button>

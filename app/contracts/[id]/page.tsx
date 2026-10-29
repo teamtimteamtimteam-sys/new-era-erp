@@ -70,7 +70,8 @@ export default async function ContractDetailPage({ params, searchParams }: {
     // ── 七张条款表:这份合同的行,按 termSpecs 的列读 ─────────────────────────
     const termRows = await Promise.all(SECTIONS.map(async (s) =>
         mustRows(
-            await supabase.from(s.dbTable as 'contract_grade_specs')
+            // GOLIVE-1 第 12 行:有价格格的四段读遮蔽伴生视图(readTable),价格按合同那一侧的价格码置空
+            await supabase.from((s.readTable ?? s.dbTable) as 'contract_grade_specs')
                 .select(['id', ...s.fields.map((f) => f.name)].join(', '))
                 .eq('contract_id', c.id)
                 .order('created_at'),
@@ -122,6 +123,9 @@ export default async function ContractDetailPage({ params, searchParams }: {
         firstMissingDecideCode(can),
         loadTermsRequests(supabase, t, { which: 'contract', contractId: c.id, recent: 50 }),
     ])
+    // ★ GOLIVE-1 第 12 行(Tim Q9):这份合同上的价格格看不看得见 —— 与 contract_terms_price_visible 同一个判据
+    //   (客户合同 → data.view_prices,供应商合同 → data.view_purchase_prices)。看不见时那几格读回来是 NULL,画「受限」。
+    const pricesVisible = c.customer_id ? await can('data.view_prices') : c.supplier_id ? await can('data.view_purchase_prices') : false
     const lock = mustOne(lockRes, 'contract_terms_lock_reason') as string | null
     const missingItems = (mustOne(missingRes, 'contract_activation_missing') as string[] | null) ?? []
     const missing = await Promise.all(missingItems.map(missingTermLabel))
@@ -152,8 +156,10 @@ export default async function ContractDetailPage({ params, searchParams }: {
     const rowView = (s: SectionSpec, r: Record<string, unknown>): TermRowView => {
         const shown: Record<string, string> = {}
         const values: Record<string, string> = {}
+        const restricted: string[] = []
         for (const f of s.fields) {
             const v = r[f.name]
+            if (f.masked && !pricesVisible) { restricted.push(f.name); values[f.name] = ''; shown[f.name] = ''; continue }
             values[f.name] = v === null || v === undefined ? '' : String(v)
             if (v === null || v === undefined || v === '') shown[f.name] = ''
             else if (f.type === 'boolean') shown[f.name] = v ? t('contractDetail.yes') : t('contractDetail.no')
@@ -172,7 +178,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
                     : t('contractDetail.perPctOnly', { rate: plainDecimal(String(v)) })
             else shown[f.name] = String(v)
         }
-        return { id: String(r.id), shown, values }
+        return { id: String(r.id), shown, values, restricted }
     }
 
     const activationRow: ActivationRow[] =

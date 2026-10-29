@@ -169,10 +169,19 @@ CREATE TRIGGER trg_suppliers_direct_write
     FOR EACH ROW EXECUTE FUNCTION public.guard_supplier_direct_write();
 
 -- ROLE-1 Batch 2a(Q3):状态每变一次记一行(函数体在 db/functions/log_supplier_status_change.sql)
+-- ★ GOLIVE-1 第 4 行:从 AFTER UPDATE OF status 改成 AFTER UPDATE … WHEN 状态变了 —— OF status 只认 SET 列表里写了 status 的语句,
+--   而改身份回待审(下面那支触发器)是 BEFORE 触发器改的状态,语句本身从不写它;不改这一句,那一次回待审就不留历史。
 CREATE TRIGGER trg_suppliers_status_history
-    AFTER UPDATE OF status ON public.suppliers
+    AFTER UPDATE ON public.suppliers
     FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
     EXECUTE FUNCTION public.log_supplier_status_change();
+
+-- ★ GOLIVE-1 第 4 行(Tim 2026-10-20 d2 #14 · 2026-10-29 Q7):已批准(approved / active / suspended)的供应商改了法定名、税号或类型 → 回到待审、
+--   清批准戳(函数体在 db/functions/requeue_supplier_on_identity_change.sql)。名字里的 zz 是承重的:它要排在 trg_suppliers_direct_write、
+--   trg_suppliers_normalise_identity 与 trg_suppliers_status_transition 之后(同一时机的行级触发器按名字的字典序跑)。
+CREATE TRIGGER trg_suppliers_zz_requeue_on_identity_change
+    BEFORE UPDATE ON public.suppliers
+    FOR EACH ROW EXECUTE FUNCTION public.requeue_supplier_on_identity_change();
 
 CREATE TRIGGER trg_suppliers_updated_at
     BEFORE UPDATE ON public.suppliers

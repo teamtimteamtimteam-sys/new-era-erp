@@ -46,7 +46,7 @@ type Coverage = {
 }
 type PricingTerm = {
     contract_id: string; metal: string; base_event: string
-    qp_months: number; index_code: string; payable_pct: number
+    qp_months: number; index_code: string; payable_pct: number | null
 }
 type CalRow = { index_code: string; calendar_date: string; is_trading_day: boolean }
 type SettleTerm = {
@@ -56,7 +56,7 @@ type SettleTerm = {
 }
 type Settlement = {
     id: string; sales_order_id: string; settling_party_used: string
-    weight_basis_used: string; amount_usd: number
+    weight_basis_used: string; amount_usd: number | null
 }
 type Breach = {
     purchase_order_code: string; contract_code: string; inbound_batch_code: string
@@ -91,10 +91,11 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
     // 三样都读出来,是因为这一页要能回答"为什么均价现在算不出来" ——
     // 而那个答案有三种,它们【必须分得开】(见下面那三段具名的缺席)。
     const pricingTerms = mustRows(
-        await supabase.from('contract_pricing_terms')
+        // ★ GOLIVE-1 第 12 行(Tim Q9):价格那一格只经遮蔽伴生视图读(payable_pct 按合同那一侧的价格码置空)
+        await supabase.from('contract_pricing_terms_masked')
             .select('contract_id, metal, base_event, qp_months, index_code, payable_pct')
             .order('metal'),
-        'contract_pricing_terms') as PricingTerm[]
+        'contract_pricing_terms_masked') as PricingTerm[]
     const calendar = mustRows(
         await supabase.from('index_market_calendar')
             .select('index_code, calendar_date, is_trading_day')
@@ -115,16 +116,17 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
             .select('contract_id, sale_weight_basis, settling_party, splitting_limit_pct, sample_retention_required, refining_charge_basis, penalty_basis'),
         'contract_settlement_terms') as SettleTerm[]
     const rcRows = mustRows(
-        await supabase.from('contract_refining_charges').select('contract_id'),
+        await supabase.from('contract_refining_charges_masked').select('contract_id'),
         'contract_refining_charges') as { contract_id: string }[]
     const penRows = mustRows(
-        await supabase.from('contract_penalty_elements').select('contract_id'),
+        await supabase.from('contract_penalty_elements_masked').select('contract_id'),
         'contract_penalty_elements') as { contract_id: string }[]
     const settlements = mustRows(
-        await supabase.from('sales_settlements')
+        // ★ GOLIVE-1 第 12 行(Tim Q9):结算金额按 data.view_prices 遮 —— 只经 sales_settlements_masked 读
+        await supabase.from('sales_settlements_masked')
             .select('id, sales_order_id, settling_party_used, weight_basis_used, amount_usd')
             .is('superseded_by', null),
-        'sales_settlements') as Settlement[]
+        'sales_settlements_masked') as Settlement[]
     // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):结算表的表尾合计,由库算(list_totals_settlements)。这张表的读策略要
     //   module.customers.view,而本页的门是 suppliers.view —— 不持前者的读者读到零行,合计回一行「受限」。
     const settlementTotals = shapeListTotals(mustRows(await supabase.rpc('list_totals_settlements'), 'settlement totals'))
@@ -202,7 +204,7 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
                     ? t('contracts.pricing.qpSameMonth')
                     : t('contracts.pricing.qpMonths', { n: String(pt.qp_months) }),
             indexCode: pt.index_code,
-            payablePct: `${pt.payable_pct}%`,
+            payablePct: pt.payable_pct === null ? '' : `${pt.payable_pct}%`,
             payablePctRaw: pt.payable_pct,
         }))
     )
@@ -246,7 +248,7 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
                           actual: t(`contracts.settlement.party.${s2.settling_party_used}`),
                       })
                     : t('contracts.settlement.partyResultAsNamed'),
-            amount: String(s2.amount_usd),
+            amount: s2.amount_usd === null ? '' : String(s2.amount_usd),
             amountUsd: s2.amount_usd,
         }
     })

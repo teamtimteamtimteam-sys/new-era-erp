@@ -71,9 +71,10 @@ ALTER TABLE public.index_market_calendar ENABLE ROW LEVEL SECURITY;
 -- 【读:任何能看定价的人】市场开不开市不是商业机密,它是公开事实;
 -- 而读不到它的人会看到一次 QP_CALENDAR_NOT_COVERED,那读起来像"数据缺了",
 -- 不像"你没权限" —— 两者必须分得开(lib/permissions.ts 存在的理由)。
+-- ★ GOLIVE-1 第 1 行(Tim 2026-10-20 d2 #2 · 2026-10-29 Q6):持 action.metal_prices 的人读得到它写的东西 —— 行情、指数交易日历、报价阈值三张一起。
 CREATE POLICY "index market calendar select by pricing permission"
     ON public.index_market_calendar AS PERMISSIVE FOR SELECT TO authenticated
-    USING ((SELECT has_permission('module.pricing.view'::text)));
+    USING ((SELECT has_any_permission(ARRAY['module.pricing.view'::text, 'action.metal_prices'::text])));
 -- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
 --   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。
 CREATE POLICY "index market calendar write by pricing permission"
