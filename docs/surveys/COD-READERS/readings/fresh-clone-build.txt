@@ -1,0 +1,6 @@
+fresh clone of bd127ffd5e9ec185a8870a0f2d22a14826901c10 — .env.local present? no
+NPM_CI_OWN_EXIT=0
+FRESH_OWN_EXIT=0
+
+ƒ  (Dynamic)  server-rendered on demand
+
