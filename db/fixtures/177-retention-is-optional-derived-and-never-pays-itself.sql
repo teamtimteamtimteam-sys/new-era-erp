@@ -124,7 +124,9 @@ BEGIN
 
     -- ══════════ C · 锚一动,到期日跟着动 ════════════════════════════════════
     -- 【验收日必须由人明确填写,不从任何东西默认出来】
-    PERFORM set_asset_acceptance(v_asset_a, (CURRENT_DATE - INTERVAL '18 months')::date);
+    -- ★ CONTRACT-ESIGN(2026-10-31 00:55 的整门量到):这一对原来从 CURRENT_DATE 往回数 —— 在月底(10-31)18 个月前夹成 04-30、15 个月前是 07-31,
+    --   于是"+3 个月"差一天,臂 C 红了,而被测的东西一个字没变(fixtures/README 第 4 条:不依赖随时间变的状态)。锚到本月 15 日,月份算术不再夹日。
+    PERFORM set_asset_acceptance(v_asset_a, ((date_trunc('month', CURRENT_DATE)::date + 14) - INTERVAL '18 months')::date);
     SELECT maturity_date INTO v_mat_date
     FROM purchase_order_retention_status WHERE retention_id = ret_a;
     IF v_mat_date IS NULL THEN
@@ -132,7 +134,7 @@ BEGIN
     END IF;
 
     -- 把验收推后三个月 —— 到期日必须【正好】跟着推后三个月。
-    PERFORM set_asset_acceptance(v_asset_a, (CURRENT_DATE - INTERVAL '15 months')::date);
+    PERFORM set_asset_acceptance(v_asset_a, ((date_trunc('month', CURRENT_DATE)::date + 14) - INTERVAL '15 months')::date);
     SELECT maturity_date INTO v_mat_date2
     FROM purchase_order_retention_status WHERE retention_id = ret_a;
     IF v_mat_date2 IS NULL THEN

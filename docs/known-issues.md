@@ -3,6 +3,40 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## CONTRACT-ESIGN-SIGNING-NOT-PROVEN-ON-LIVE · 一次真的签字(盖章、存下签过的那一份)在线上一次都没有走过(CONTRACT-ESIGN 记,2026-10-30;刻意的)
+
+签只在【生效中】的合同上(Tim Q1),而线上让一份合同生效只有 CFO 那条路:`decide_terms_request` 写 `approval_log`(BEFORE UPDATE OR DELETE 一律拒),
+批的人要持真的 cfo 角色。一次性证明要"收尾删干净",这两条它都做不到 —— 所以按 Tim 2026-10-30 的裁定:**签字那一条路在本地重建库上证**
+(fixture 306 的 G · I · C · V 臂:名单、密码时刻、生效、一份只签一次、守卫、签回件、作废、重签;`docs/surveys/CONTRACT-ESIGN/stamp-local.mjs`:
+真的 `stampPdf` 在一份两页 PDF 上盖签名与印章,源文件不动、带密码 / 越页 / 旋转的页按名拒),**线上只证了不要生效合同的那几件**
+(上传、草稿上签不了、名单、签名、印章;`readings/live-proof.txt`)。没走过的那一段:服务端以新会话把签过的字节【传进】contract-files、
+`contract_file_finish` 收下它 —— 与未签文件那一次上传是同一个桶、同一条策略的另一个入口(登记过、十分钟之内、读得到那份合同)。
+**第一次真的签字就是那一段第一次在线上跑**;签完之后合同页上那一行的 sha256 与取件路由取回的字节对得上,就证完了。
+
+## CONTRACT-ESIGN-ROTATED-PAGES · 一页带 /Rotate 的 PDF,那一页签不了(按名拒)(CONTRACT-ESIGN 记,2026-10-30)
+
+签字页的预览(pdf.js)按【转过之后】的样子画,而盖章的坐标落在【没转的那一面】上 —— 两者不是同一面,签名会落歪、落反。
+v1 的处置是按名拒(`CONTRACT_SIGN_PAGE_ROTATED`,说出走法:换一页,或上传一份不带旋转的副本)。真要支持,是把落点按旋转换算、把图也转过去 —— 量过的需要再做。
+扫描件常见横放的一页;签字页通常不是那一页。
+
+## CONTRACT-ESIGN-CJK-FONT-ADDS-1-4-MB · 签署人名字里有中文时,签过的那一份 PDF 多约 1.4 MB(CONTRACT-ESIGN 记,2026-10-30)
+
+签名下面那一行(名字 · 职衔 · 时刻 · signed electronically in Evoltrya OS)全是西文时用 PDF 内置的 Helvetica,一个字节的字体都不加;
+有中文时整份嵌 Noto Sans SC 子集(`assets/fonts/NotoSansSC-Regular.subset.ttf`)。★ 不用 fontkit 的 `subset: true`:实测它把中文与大半西文字形画成空白
+(抽得出字、看不见字,`docs/surveys/CONTRACT-ESIGN/readings/stamp-local.txt` 之前那一次)。代价是那一份多 1.4 MB(25 MB 的上限之内)。
+
+## CONTRACT-ESIGN-FILE-EVENTS-NOT-ON-THE-CONTRACT-TRAIL · 合同页底的审计记录里看不到合同文件的上传、签字与作废(CONTRACT-ESIGN 记,2026-10-30)
+
+四张新表都进了变更记录(`/settings/change-history` 里每一次都在),合同页上「合同文件」那一块自己就列出每一个版本:谁传的、谁签的、谁作废、理由。
+但合同页底那一块审计记录(`record_trail('contract')`)的成员里没有 `contract_files` —— 加进去要成员行、事件措辞、目录标签(`docs/change-log.md` §9.6),
+本刀没做。一份合同的文件史今天读那一块列表,不读页底。
+
+## CONTRACT-ESIGN-ABANDONED-BYTES-STAY · 没传成 / 没签成的那一次,桶里若留下了字节,它们留着(CONTRACT-ESIGN 记,2026-10-30;刻意的)
+
+contract-files 与 signing-assets 两个桶都没有 UPDATE、没有 DELETE 策略(一份存下的文件不能被覆盖、也删不掉)。一次中途失败的上传或签字,那一行变成 abandoned,
+对象若已经落下就留在桶里 —— 与报销收据、门户上传同一条(Tim 2026-10-20 d2 #3)。新上传的合同文件也受 900 MB 的整项目存储上限管(`CONTRACT_FILE_STORAGE_FULL`,
+与 CLAIM-RECEIPTS-1 Q10 同一个数,免费方案)。
+
 ## ~~NOROLE-SURFACE · 一个登录了、没有角色的会话读得到权限表、金属价、科目表、催收承诺与 40 份存下的文件里的 38 份(Step 0 量到,2026-10-19)~~ —— ✅ **关闭于 NOROLE-SURFACE(`v1.4.59`,2026-10-19)**
 
 **找到(`docs/surveys/NOROLE-SURFACE/STEP0-HANDBACK.md` §1):** 一个随机 uuid 的 JWT(没有账号、没有角色)读得到 `user_roles` 9 · `roles` 14 · `role_permissions` 388 ·
@@ -11896,6 +11930,12 @@ CHAIN-WALK-COST 的线上证明期间从 Supabase 的特权指标端点读到(�
 | 冒烟之后 10:4x(静止) | 143 MB | 478 MB | 1.5–1.7 % |
 
 **结论:** 一台 426 MB 的机器连静止的常驻集都放不下 —— 重启九分钟、一位读者都没有的时候它已经在换页(每分钟约 9,000 页进出)。重启清掉的只是累积的那一部分。后果照旧:同一批走链线上 1.0–1.9 秒(本地 10–60 ms),5 次 2 秒上限拒绝;冒烟里 `/tools/reminders` 因 `operations_now` 撞 8 秒语句上限而 500(单独计时 planning 537 + execution 382 ms;`operations_now` 自 SYSTEM-MAP-2 起没改过,CWC 那一跑冒烟这一页是过的 —— 归因是推断,不是证明)。四个中止信号全程正常:它们仍然看不见这一类。
+
+
+★ **CONTRACT-ESIGN(2026-10-30 23:54 CST)记在这里(Tim 的常设裁定:一次只被本机网络截短的冒烟归本条):** 冒烟 350 ok · 25 skipped · **0 FAILED**;
+  收尾的按名兜底清扫有一次往返超时(`roles?code=like.probe-smoke-*`,TimeoutError)→ `SMOKE_EXIT=6`。计划里的每一步都确认删掉了;`npm run reap:ephemeral` 读到没有滞留的计划;
+  读回(postgres 只数):0 个一次性账号 / 角色 / 员工 / 授权,0 份合同(`docs/surveys/CONTRACT-ESIGN/readings/smoke.txt` · `reap-after-smoke.txt` · `readback-after-smoke.txt`)。
+  同一晚的线上证明在最后一位读者之后量到本机五次往返中位数 1,818 ms(库里 `select 1` 0.045 ms、db 与 rest 健康)→ 中止规则,没有一项被截短(`live-proof.txt`)。
 
 
 ### SHIFT-HANDOVERS-COMMENT-STALE · `shift_handovers` 与 `shifts` 的表注释还说「加工单归不到班次上」(SYSTEM-MAP-4 登记,2026-10-30;Tim Q5:登记,不为它出迁移)

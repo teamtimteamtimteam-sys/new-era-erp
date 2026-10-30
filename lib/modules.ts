@@ -1113,6 +1113,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   从那里也够得着。判据只有 data.view_change_log 一个码。
     // ☞ SYSTEM-MAP-1(Tim 2.3):【单一归属】—— 它今天只有一个家(设置)。上面若还有说「多个属主」的历史段落,那是 2.3 之前的事;别的模块经单据页上的链接够到它。
     { href: '/settings/change-history', navKey: 'changeHistory.title', modules: ['settings'], permission: P_VIEW_CHANGE_LOG },
+    // ★ CONTRACT-ESIGN(Tim 2026-10-29 · 2026-10-30 Q3):合同签署人名单与公司印章 —— 一个码 action.manage_signatories(只授 admin)。
+    //   签字本身不在这里:签署人在合同页上签,签名样本在 /me 上本人画。
+    { href: '/settings/signatories', navKey: 'signatories.title', modules: ['settings'], permission: 'action.manage_signatories' },
 ]
 
 /** 某个模块名下的二级条目(一个条目会在它每个属主模块下各出现一次 —— 那是要点)。 */
@@ -1199,6 +1202,8 @@ export const FN = {
     selfApproved: fnByHref('/finance/self-approved'),
     /** HISTORY-1:变更记录 —— 设置与财务两个属主,判据 data.view_change_log。 */
     changeHistory: fnByHref('/settings/change-history'),
+    /** CONTRACT-ESIGN:签署人名单与公司印章(action.manage_signatories)。 */
+    signatories: fnByHref('/settings/signatories'),
     /** NAV-CLEANUP-1:落地页的判据 —— 页面守卫按名取,拼错是编译期错误。
      *  【CONV-6 ④:settingsHome 删了】那一页与那条条目一起没了;
      *  留着一个指向不存在条目的名字,fnByHref 会在【模块加载时】抛。

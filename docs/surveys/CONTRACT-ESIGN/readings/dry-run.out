@@ -1,0 +1,673 @@
+SET
+Timing is on.
+BEGIN
+Time: 444.061 ms
+PROOF|A|postgres|{"seven_grants" : "317 d6fa1ea206dc8f27bf6e453688c90fe1", "six_grants_no_admin" : "230 40b32c97dd31ad5fe6d15c7d92a34211", "user_roles" : "9 2372199afc0ae559a703d5b048992be5", "change_log" : "108598 max 116326", "contracts" : "0 d41d8cd98f00b204e9800998ecf8427e", "cod_issues" : "2 097dacfa233e71e7cf70482c25249b4e", "buckets" : 21, "storage_policies" : 58, "anon_relations" : 284, "new_tables" : null, "manage_signatories_holders" : null, "approvals" : true, "req_cal" : "NULL"}
+Time: 1322.870 ms (00:01.323)
+DO
+Time: 472.987 ms
+SELECT 58
+Time: 1064.505 ms (00:01.065)
+SELECT 21
+Time: 481.140 ms
+SELECT 359
+Time: 660.184 ms
+SELECT 9
+Time: 525.188 ms
+INSERT 0 1
+Time: 1199.841 ms (00:01.200)
+UPDATE 1
+Time: 1507.310 ms (00:01.507)
+INSERT 0 1
+Time: 443.768 ms
+CREATE FUNCTION
+Time: 458.529 ms
+CREATE FUNCTION
+Time: 439.509 ms
+CREATE FUNCTION
+Time: 444.660 ms
+CREATE FUNCTION
+Time: 443.259 ms
+CREATE TABLE
+Time: 492.536 ms
+CREATE INDEX
+Time: 1109.890 ms (00:01.110)
+COMMENT
+Time: 486.979 ms
+CREATE FUNCTION
+Time: 464.718 ms
+CREATE TRIGGER
+Time: 1475.667 ms (00:01.476)
+ALTER TABLE
+Time: 855.312 ms
+CREATE POLICY
+Time: 587.115 ms
+REVOKE
+Time: 460.761 ms
+GRANT
+Time: 458.036 ms
+CREATE FUNCTION
+Time: 1036.063 ms (00:01.036)
+CREATE TABLE
+Time: 468.141 ms
+CREATE INDEX
+Time: 442.582 ms
+COMMENT
+Time: 443.976 ms
+CREATE TRIGGER
+Time: 784.257 ms
+ALTER TABLE
+Time: 432.027 ms
+CREATE POLICY
+Time: 429.260 ms
+REVOKE
+Time: 433.721 ms
+GRANT
+Time: 833.966 ms
+CREATE TABLE
+Time: 458.384 ms
+CREATE INDEX
+Time: 438.482 ms
+COMMENT
+Time: 670.112 ms
+CREATE TRIGGER
+Time: 428.822 ms
+ALTER TABLE
+Time: 429.851 ms
+CREATE POLICY
+Time: 434.367 ms
+REVOKE
+Time: 427.810 ms
+GRANT
+Time: 429.466 ms
+CREATE TABLE
+Time: 654.901 ms
+CREATE INDEX
+Time: 435.353 ms
+CREATE INDEX
+Time: 2325.418 ms (00:02.325)
+CREATE INDEX
+Time: 430.700 ms
+CREATE INDEX
+Time: 434.077 ms
+CREATE INDEX
+Time: 429.344 ms
+COMMENT
+Time: 882.943 ms
+CREATE TRIGGER
+Time: 512.015 ms
+ALTER TABLE
+Time: 780.695 ms
+CREATE POLICY
+Time: 430.361 ms
+REVOKE
+Time: 711.895 ms
+GRANT
+Time: 1111.775 ms (00:01.112)
+CREATE FUNCTION
+Time: 428.777 ms
+CREATE FUNCTION
+Time: 469.317 ms
+CREATE FUNCTION
+Time: 430.904 ms
+CREATE FUNCTION
+Time: 1721.982 ms (00:01.722)
+CREATE FUNCTION
+Time: 396.134 ms
+CREATE FUNCTION
+Time: 874.899 ms
+CREATE FUNCTION
+Time: 612.924 ms
+CREATE FUNCTION
+Time: 979.775 ms
+CREATE FUNCTION
+Time: 866.381 ms
+CREATE FUNCTION
+Time: 1022.697 ms (00:01.023)
+CREATE FUNCTION
+Time: 395.902 ms
+CREATE FUNCTION
+Time: 396.056 ms
+CREATE FUNCTION
+Time: 1246.762 ms (00:01.247)
+CREATE TRIGGER
+Time: 397.779 ms
+CREATE TRIGGER
+Time: 1132.556 ms (00:01.133)
+CREATE TRIGGER
+Time: 769.157 ms
+CREATE TRIGGER
+Time: 855.231 ms
+CREATE TRIGGER
+Time: 1111.838 ms (00:01.112)
+CREATE TRIGGER
+Time: 618.326 ms
+CREATE TRIGGER
+Time: 394.112 ms
+CREATE TRIGGER
+Time: 394.263 ms
+INSERT 0 1
+Time: 396.990 ms
+INSERT 0 1
+Time: 443.651 ms
+psql:docs/surveys/CONTRACT-ESIGN/readings/dry-run.sql:1003: NOTICE:  policy "contract files upload own registered path" for relation "storage.objects" does not exist, skipping
+DROP POLICY
+Time: 867.026 ms
+CREATE POLICY
+Time: 395.497 ms
+psql:docs/surveys/CONTRACT-ESIGN/readings/dry-run.sql:1008: NOTICE:  policy "contract files read by contract side and price code" for relation "storage.objects" does not exist, skipping
+DROP POLICY
+Time: 694.314 ms
+CREATE POLICY
+Time: 479.117 ms
+psql:docs/surveys/CONTRACT-ESIGN/readings/dry-run.sql:1013: NOTICE:  policy "signing assets upload own specimen or stamp" for relation "storage.objects" does not exist, skipping
+DROP POLICY
+Time: 399.361 ms
+CREATE POLICY
+Time: 399.886 ms
+psql:docs/surveys/CONTRACT-ESIGN/readings/dry-run.sql:1018: NOTICE:  policy "signing assets read own specimen or stamp" for relation "storage.objects" does not exist, skipping
+DROP POLICY
+Time: 1017.830 ms (00:01.018)
+CREATE POLICY
+Time: 839.332 ms
+DO
+Time: 1202.635 ms (00:01.203)
+NOTIFY
+Time: 836.703 ms
+REVOKE
+Time: 1824.897 ms (00:01.825)
+GRANT
+Time: 601.009 ms
+REVOKE
+Time: 804.004 ms
+REVOKE
+Time: 854.417 ms
+REVOKE
+Time: 1325.354 ms (00:01.325)
+REVOKE
+Time: 701.631 ms
+REVOKE
+Time: 434.337 ms
+REVOKE
+Time: 448.944 ms
+REVOKE
+Time: 650.349 ms
+REVOKE
+Time: 914.735 ms
+REVOKE
+Time: 527.701 ms
+REVOKE
+Time: 399.629 ms
+REVOKE
+Time: 1254.606 ms (00:01.255)
+REVOKE
+Time: 438.938 ms
+REVOKE
+Time: 1459.424 ms (00:01.459)
+REVOKE
+Time: 532.864 ms
+REVOKE
+Time: 421.934 ms
+REVOKE
+Time: 400.139 ms
+REVOKE
+Time: 796.011 ms
+REVOKE
+Time: 416.886 ms
+REVOKE
+Time: 748.731 ms
+REVOKE
+Time: 906.106 ms
+REVOKE
+Time: 493.899 ms
+REVOKE
+Time: 626.863 ms
+REVOKE
+Time: 554.324 ms
+REVOKE
+Time: 593.472 ms
+REVOKE
+Time: 432.028 ms
+REVOKE
+Time: 577.614 ms
+REVOKE
+Time: 1064.622 ms (00:01.065)
+REVOKE
+Time: 601.130 ms
+REVOKE
+Time: 757.646 ms
+REVOKE
+Time: 719.091 ms
+REVOKE
+Time: 655.658 ms
+REVOKE
+Time: 401.597 ms
+REVOKE
+Time: 794.203 ms
+REVOKE
+Time: 748.824 ms
+REVOKE
+Time: 8060.756 ms (00:08.061)
+REVOKE
+Time: 395.412 ms
+REVOKE
+Time: 399.856 ms
+REVOKE
+Time: 393.710 ms
+REVOKE
+Time: 394.490 ms
+REVOKE
+Time: 790.999 ms
+REVOKE
+Time: 396.356 ms
+REVOKE
+Time: 397.886 ms
+REVOKE
+Time: 683.579 ms
+REVOKE
+Time: 1056.757 ms (00:01.057)
+REVOKE
+Time: 2155.078 ms (00:02.155)
+REVOKE
+Time: 2186.716 ms (00:02.187)
+REVOKE
+Time: 1293.815 ms (00:01.294)
+GRANT
+Time: 396.908 ms
+REVOKE
+Time: 394.434 ms
+REVOKE
+Time: 814.263 ms
+REVOKE
+Time: 397.300 ms
+REVOKE
+Time: 777.365 ms
+REVOKE
+Time: 908.380 ms
+REVOKE
+Time: 820.053 ms
+REVOKE
+Time: 617.293 ms
+REVOKE
+Time: 404.025 ms
+REVOKE
+Time: 473.913 ms
+REVOKE
+Time: 1216.805 ms (00:01.217)
+REVOKE
+Time: 394.243 ms
+REVOKE
+Time: 395.615 ms
+REVOKE
+Time: 398.409 ms
+REVOKE
+Time: 395.870 ms
+REVOKE
+Time: 394.975 ms
+REVOKE
+Time: 396.759 ms
+REVOKE
+Time: 434.304 ms
+REVOKE
+Time: 897.275 ms
+REVOKE
+Time: 396.335 ms
+REVOKE
+Time: 402.058 ms
+REVOKE
+Time: 395.077 ms
+REVOKE
+Time: 808.850 ms
+REVOKE
+Time: 396.398 ms
+REVOKE
+Time: 1250.272 ms (00:01.250)
+REVOKE
+Time: 395.698 ms
+REVOKE
+Time: 419.608 ms
+REVOKE
+Time: 404.073 ms
+REVOKE
+Time: 395.909 ms
+REVOKE
+Time: 423.543 ms
+REVOKE
+Time: 394.628 ms
+REVOKE
+Time: 819.847 ms
+REVOKE
+Time: 961.333 ms
+REVOKE
+Time: 396.217 ms
+REVOKE
+Time: 395.682 ms
+REVOKE
+Time: 397.164 ms
+REVOKE
+Time: 802.507 ms
+REVOKE
+Time: 398.208 ms
+REVOKE
+Time: 397.057 ms
+REVOKE
+Time: 395.896 ms
+REVOKE
+Time: 396.525 ms
+REVOKE
+Time: 395.885 ms
+REVOKE
+Time: 394.081 ms
+REVOKE
+Time: 394.184 ms
+REVOKE
+Time: 401.011 ms
+REVOKE
+Time: 410.047 ms
+REVOKE
+Time: 396.033 ms
+REVOKE
+Time: 400.416 ms
+REVOKE
+Time: 439.573 ms
+REVOKE
+Time: 408.188 ms
+REVOKE
+Time: 397.353 ms
+REVOKE
+Time: 395.263 ms
+REVOKE
+Time: 426.275 ms
+REVOKE
+Time: 394.257 ms
+REVOKE
+Time: 839.900 ms
+REVOKE
+Time: 395.434 ms
+REVOKE
+Time: 399.444 ms
+REVOKE
+Time: 394.656 ms
+REVOKE
+Time: 397.222 ms
+REVOKE
+Time: 1180.344 ms (00:01.180)
+REVOKE
+Time: 428.495 ms
+REVOKE
+Time: 1248.731 ms (00:01.249)
+REVOKE
+Time: 428.300 ms
+REVOKE
+Time: 428.315 ms
+REVOKE
+Time: 1043.237 ms (00:01.043)
+REVOKE
+Time: 431.453 ms
+REVOKE
+Time: 427.533 ms
+REVOKE
+Time: 1601.398 ms (00:01.601)
+REVOKE
+Time: 1202.585 ms (00:01.203)
+REVOKE
+Time: 429.157 ms
+REVOKE
+Time: 429.180 ms
+REVOKE
+Time: 428.386 ms
+REVOKE
+Time: 888.891 ms
+REVOKE
+Time: 428.562 ms
+REVOKE
+Time: 429.697 ms
+REVOKE
+Time: 886.493 ms
+REVOKE
+Time: 1229.590 ms (00:01.230)
+REVOKE
+Time: 1018.368 ms (00:01.018)
+REVOKE
+Time: 1669.125 ms (00:01.669)
+REVOKE
+Time: 428.256 ms
+REVOKE
+Time: 428.721 ms
+REVOKE
+Time: 427.494 ms
+REVOKE
+Time: 429.672 ms
+REVOKE
+Time: 428.280 ms
+REVOKE
+Time: 485.790 ms
+REVOKE
+Time: 431.490 ms
+REVOKE
+Time: 429.493 ms
+REVOKE
+Time: 427.695 ms
+REVOKE
+Time: 430.854 ms
+REVOKE
+Time: 428.342 ms
+GRANT
+Time: 428.691 ms
+REVOKE
+Time: 429.345 ms
+REVOKE
+Time: 475.838 ms
+REVOKE
+Time: 889.336 ms
+REVOKE
+Time: 455.207 ms
+REVOKE
+Time: 428.849 ms
+REVOKE
+Time: 428.566 ms
+REVOKE
+Time: 428.679 ms
+REVOKE
+Time: 429.696 ms
+REVOKE
+Time: 435.833 ms
+REVOKE
+Time: 428.538 ms
+REVOKE
+Time: 428.502 ms
+REVOKE
+Time: 1533.546 ms (00:01.534)
+REVOKE
+Time: 428.330 ms
+REVOKE
+Time: 876.831 ms
+REVOKE
+Time: 430.282 ms
+REVOKE
+Time: 464.386 ms
+REVOKE
+Time: 431.996 ms
+REVOKE
+Time: 429.174 ms
+REVOKE
+Time: 428.189 ms
+REVOKE
+Time: 445.722 ms
+REVOKE
+Time: 428.096 ms
+REVOKE
+Time: 1005.284 ms (00:01.005)
+REVOKE
+Time: 824.682 ms
+REVOKE
+Time: 428.613 ms
+REVOKE
+Time: 435.063 ms
+REVOKE
+Time: 429.484 ms
+REVOKE
+Time: 719.495 ms
+REVOKE
+Time: 912.636 ms
+REVOKE
+Time: 428.258 ms
+REVOKE
+Time: 428.603 ms
+REVOKE
+Time: 1950.485 ms (00:01.950)
+REVOKE
+Time: 1121.677 ms (00:01.122)
+REVOKE
+Time: 428.515 ms
+REVOKE
+Time: 907.884 ms
+REVOKE
+Time: 427.857 ms
+REVOKE
+Time: 430.758 ms
+REVOKE
+Time: 429.205 ms
+REVOKE
+Time: 865.789 ms
+REVOKE
+Time: 918.960 ms
+REVOKE
+Time: 427.961 ms
+REVOKE
+Time: 902.197 ms
+REVOKE
+Time: 428.247 ms
+REVOKE
+Time: 428.541 ms
+REVOKE
+Time: 1662.378 ms (00:01.662)
+REVOKE
+Time: 487.403 ms
+REVOKE
+Time: 791.403 ms
+REVOKE
+Time: 394.691 ms
+REVOKE
+Time: 394.677 ms
+REVOKE
+Time: 395.500 ms
+REVOKE
+Time: 394.182 ms
+REVOKE
+Time: 395.923 ms
+REVOKE
+Time: 899.742 ms
+REVOKE
+Time: 902.329 ms
+REVOKE
+Time: 395.017 ms
+REVOKE
+Time: 400.447 ms
+REVOKE
+Time: 623.183 ms
+REVOKE
+Time: 1134.913 ms (00:01.135)
+REVOKE
+Time: 395.315 ms
+REVOKE
+Time: 395.585 ms
+REVOKE
+Time: 982.244 ms
+REVOKE
+Time: 394.243 ms
+REVOKE
+Time: 1022.784 ms (00:01.023)
+REVOKE
+Time: 845.602 ms
+REVOKE
+Time: 395.055 ms
+REVOKE
+Time: 790.799 ms
+REVOKE
+Time: 792.185 ms
+REVOKE
+Time: 438.950 ms
+REVOKE
+Time: 393.985 ms
+REVOKE
+Time: 790.066 ms
+GRANT
+Time: 865.696 ms
+GRANT
+Time: 509.414 ms
+REVOKE
+Time: 867.514 ms
+REVOKE
+Time: 393.432 ms
+GRANT
+Time: 393.383 ms
+REVOKE
+Time: 400.568 ms
+REVOKE
+Time: 393.931 ms
+REVOKE
+Time: 396.601 ms
+REVOKE
+Time: 393.799 ms
+GRANT
+Time: 394.756 ms
+GRANT
+Time: 394.028 ms
+GRANT
+Time: 394.257 ms
+GRANT
+Time: 405.658 ms
+REVOKE
+Time: 397.569 ms
+REVOKE
+Time: 427.202 ms
+REVOKE
+Time: 399.880 ms
+REVOKE
+Time: 393.964 ms
+REVOKE
+Time: 814.883 ms
+GRANT
+Time: 396.144 ms
+GRANT
+Time: 393.971 ms
+GRANT
+Time: 818.560 ms
+GRANT
+Time: 399.445 ms
+GRANT
+Time: 393.851 ms
+DO
+Time: 787.275 ms
+REVOKE
+Time: 397.238 ms
+REVOKE
+Time: 494.060 ms
+PROOF|B|postgres|{"seven_grants" : "318 04b6913daa8720484584d5ffef5ad0d7", "six_grants_no_admin" : "230 40b32c97dd31ad5fe6d15c7d92a34211", "user_roles" : "9 2372199afc0ae559a703d5b048992be5", "change_log" : "108601 max 116329", "contracts" : "0 d41d8cd98f00b204e9800998ecf8427e", "cod_issues" : "2 097dacfa233e71e7cf70482c25249b4e", "buckets" : 23, "storage_policies" : 62, "anon_relations" : 284, "new_tables" : "company_stamps,contract_files,contract_signatories,signature_specimens", "manage_signatories_holders" : "admin", "approvals" : true, "req_cal" : "NULL"}
+Time: 866.434 ms
+SET
+Time: 520.480 ms
+Time: 427.298 ms
+PROOF|B|cfo|signatory_active false
+Time: 833.941 ms
+PROOF|B|cfo|files_visible 0
+Time: 434.030 ms
+psql:docs/surveys/CONTRACT-ESIGN/readings/dry-run.sql:2009: NOTICE:  PROOF|B|cfo|sign_begin refused CONTRACT_FILE_NOT_FOUND
+DO
+Time: 1715.754 ms (00:01.716)
+RESET
+Time: 429.276 ms
+SET
+Time: 1347.374 ms (00:01.347)
+Time: 429.648 ms
+psql:docs/surveys/CONTRACT-ESIGN/readings/dry-run.sql:2014: NOTICE:  PROOF|B|warehouse|signatory_add refused PERMISSION_DENIED|action.manage_signatories
+DO
+Time: 436.679 ms
+RESET
+Time: 535.694 ms
+ROLLBACK
+Time: 439.367 ms
+PROOF|C|after rollback|new_tables=none buckets=21
+Time: 1238.964 ms (00:01.239)
+DRYRUN_EXIT=0 elapsed 224 s

@@ -1,0 +1,9 @@
+PASS|latin: stampPdf returned a PDF
+PASS|latin: output opens, 2 pages, source bytes unchanged (035ac417b980…), output 24517 bytes sha256 8f4f8a5cf7c8461e…
+PASS|chinese: stampPdf returned a PDF
+PASS|chinese: output opens, 2 pages, source bytes unchanged (035ac417b980…), output 1456319 bytes sha256 09a7c0eb41c23782…
+PASS|a password-protected PDF → CONTRACT_PDF_ENCRYPTED
+PASS|page 3 of a 2-page file → CONTRACT_SIGN_PAGE_OUT_OF_RANGE
+PASS|a /Rotate 90 page → CONTRACT_SIGN_PAGE_ROTATED
+PASS|checkPdf (the upload's finish step) on the password-protected PDF → CONTRACT_PDF_ENCRYPTED
+STAMP_LOCAL_EXIT=0

@@ -198,6 +198,8 @@ const routes = SMOKE_ONLY.length ? ALL_ROUTES.filter((r) => SMOKE_ONLY.includes(
 
 // ── 动态段的真实 id 从哪来(PostgREST + service key,随数据变化自动跟上)────
 const ID_SOURCES = {
+    // CONTRACT-ESIGN(2026-10-30):合同文件的取件路由(存下的字节 + 哈希核对)。线上 contract_files 零行,故同时列在 EXPECTED_SKIPS 里。
+    '[fileId]': { '/contracts': 'contract_files' },
     '[id]': {
         '/sales/customers': 'customers', '/finance/bank/statements': 'bank_statements',
         '/finance/expenses': 'expenses', '/finance/freight': 'freight_documents',
@@ -824,6 +826,10 @@ const MUST_CONTAIN = {
     ],
     // TERMS-EDIT-1:合同详情页 —— 走的是冒烟自己造的那份卖方草稿(七种条款各一行)。
     //   断言表头与七段都画出来了,而且那份合同自己的号在页面上(不是一张空壳)。
+    // CONTRACT-ESIGN:签字页 —— 冒烟那份卖方草稿签不了(Q1:只签生效中的合同),页面要说出为什么,而不是一张空壳
+    '/contracts/[id]/sign': [
+        { needle: 'data-sign-blocked="ZZ-SMOKE-CON-SELL', why: '签字页没有说出这份草稿为什么签不了' },
+    ],
     '/contracts/[id]': [
         { needle: 'ZZ-SMOKE-CON-SELL', why: '详情页没有画出这份合同的号 —— 读到的不是它' },
         { needle: 'data-contract-section="header"', why: '表头那一段没有画出来' },
@@ -1385,6 +1391,9 @@ const QUERY_PROBES = [
 ]
 
 const EXPECTED_SKIPS = new Set([
+    // CONTRACT-ESIGN(2026-10-30):线上 contract_files 零行 —— 本刀的线上证明造的那一份在 finally 里删掉了。第一份真的合同文件传上来那天,
+    //   这条断言会响,这一行随之删掉。
+    '/contracts/[id]/files/[fileId]',
     // MES-3b(2026-10-07,Q9 · Q20):两条短链接【刻意】不走 —— 每打开一次都往只追加的 scan_events 写一行(理由在主循环里那一段)。
     //   这两行不是"等数据到位",它们永远在这里;要拿掉,先让冒烟有一个不留痕的办法证它们。
     '/b/[code]',
@@ -2645,6 +2654,8 @@ async function main() {
             }
             // TERMS-EDIT-1:合同详情页走冒烟自己的那份卖方草稿(见"临时合同")
             if (route === '/contracts/[id]') url = `/contracts/${smokeSell.id}`
+            // CONTRACT-ESIGN:签字页走同一份卖方草稿 —— 草稿签不了,页面说出为什么(data-sign-blocked)
+            if (route === '/contracts/[id]/sign') url = `/contracts/${smokeSell.id}/sign`
             for (const [seg, srcs] of Object.entries(ID_SOURCES)) {
                 if (!url.includes(seg)) continue
                 const prefix = Object.keys(srcs).filter((p) => route.startsWith(p) || p === '')

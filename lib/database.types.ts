@@ -3581,6 +3581,36 @@ export type Database = {
         }
         Relationships: []
       }
+      company_stamps: {
+        Row: {
+          created_at: string
+          created_by: string
+          file_path: string
+          file_size: number
+          id: string
+          sha256: string
+          superseded_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          file_path: string
+          file_size: number
+          id?: string
+          sha256: string
+          superseded_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          sha256?: string
+          superseded_at?: string | null
+        }
+        Relationships: []
+      }
       compliance_pack_issues: {
         Row: {
           file_path: string
@@ -4367,6 +4397,232 @@ export type Database = {
           },
         ]
       }
+      contract_files: {
+        Row: {
+          bucket_id: string
+          contract_id: string
+          created_at: string
+          created_by: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          kind: string
+          password_verified_at: string | null
+          sha256: string | null
+          signatory_id: string | null
+          signature_page: number | null
+          signature_x: number | null
+          signature_y: number | null
+          signer_employee_id: string | null
+          signer_name: string | null
+          signer_title: string | null
+          source_file_id: string | null
+          specimen_id: string | null
+          stamp_id: string | null
+          stamp_page: number | null
+          stamp_x: number | null
+          stamp_y: number | null
+          status: string
+          stored_at: string | null
+          superseded_at: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          bucket_id?: string
+          contract_id: string
+          created_at?: string
+          created_by: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          kind: string
+          password_verified_at?: string | null
+          sha256?: string | null
+          signatory_id?: string | null
+          signature_page?: number | null
+          signature_x?: number | null
+          signature_y?: number | null
+          signer_employee_id?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          source_file_id?: string | null
+          specimen_id?: string | null
+          stamp_id?: string | null
+          stamp_page?: number | null
+          stamp_x?: number | null
+          stamp_y?: number | null
+          status?: string
+          stored_at?: string | null
+          superseded_at?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          bucket_id?: string
+          contract_id?: string
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          password_verified_at?: string | null
+          sha256?: string | null
+          signatory_id?: string | null
+          signature_page?: number | null
+          signature_x?: number | null
+          signature_y?: number | null
+          signer_employee_id?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          source_file_id?: string | null
+          specimen_id?: string | null
+          stamp_id?: string | null
+          stamp_page?: number | null
+          stamp_x?: number | null
+          stamp_y?: number | null
+          status?: string
+          stored_at?: string | null
+          superseded_at?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_files_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_signatory_id_fkey"
+            columns: ["signatory_id"]
+            isOneToOne: false
+            referencedRelation: "contract_signatories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_signer_employee_id_fkey"
+            columns: ["signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_files_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "contract_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_specimen_id_fkey"
+            columns: ["specimen_id"]
+            isOneToOne: false
+            referencedRelation: "signature_specimens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_files_stamp_id_fkey"
+            columns: ["stamp_id"]
+            isOneToOne: false
+            referencedRelation: "company_stamps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_grade_specs: {
         Row: {
           contract_id: string
@@ -4845,6 +5101,128 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "contracts"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_signatories: {
+        Row: {
+          added_at: string
+          added_by: string
+          employee_id: string
+          id: string
+          removed_at: string | null
+          removed_by: string | null
+          title: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          employee_id: string
+          id?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          title: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          employee_id?: string
+          id?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "contract_signatories_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -28973,6 +29351,131 @@ export type Database = {
           },
         ]
       }
+      signature_specimens: {
+        Row: {
+          created_at: string
+          created_by: string
+          employee_id: string
+          file_path: string
+          file_size: number
+          id: string
+          sha256: string
+          superseded_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          employee_id: string
+          file_path: string
+          file_size: number
+          id?: string
+          sha256: string
+          superseded_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          employee_id?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          sha256?: string
+          superseded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "signature_specimens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
       so_issues: {
         Row: {
           file_path: string
@@ -50207,6 +50710,10 @@ export type Database = {
         Args: { p_inbound_batch_id: string; p_reference_date: string }
         Returns: Json
       }
+      company_stamp_record: {
+        Args: { p_sha256: string; p_stamp_id: string }
+        Returns: Json
+      }
       complete_attendance_period: {
         Args: { p_period_id: string }
         Returns: Json
@@ -50253,6 +50760,59 @@ export type Database = {
       contract_copy_price_visible: {
         Args: { p_purchase_order_id: string; p_sales_order_id: string }
         Returns: boolean
+      }
+      contract_file_abandon: { Args: { p_file_id: string }; Returns: Json }
+      contract_file_begin: {
+        Args: {
+          p_contract_id: string
+          p_file_name: string
+          p_file_size: number
+          p_file_type: string
+          p_kind: string
+        }
+        Returns: Json
+      }
+      contract_file_can_read: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
+      contract_file_can_upload: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
+      contract_file_finish: {
+        Args: { p_file_id: string; p_sha256: string }
+        Returns: Json
+      }
+      contract_file_readable: {
+        Args: { p_contract_id: string }
+        Returns: boolean
+      }
+      contract_file_void: {
+        Args: { p_file_id: string; p_reason: string }
+        Returns: Json
+      }
+      contract_sign_begin: {
+        Args: {
+          p_file_id: string
+          p_signature_page: number
+          p_signature_x: number
+          p_signature_y: number
+          p_stamp_page?: number
+          p_stamp_x?: number
+          p_stamp_y?: number
+          p_with_stamp: boolean
+        }
+        Returns: Json
+      }
+      contract_signatory_active: { Args: never; Returns: boolean }
+      contract_signatory_add: {
+        Args: { p_employee_id: string; p_title: string }
+        Returns: Json
+      }
+      contract_signatory_remove: {
+        Args: { p_signatory_id: string }
+        Returns: Json
       }
       contract_terms_lock_reason: {
         Args: { p_contract_id: string }
@@ -53645,6 +54205,19 @@ export type Database = {
         Args: { p_release_id: string }
         Returns: Json
       }
+      signature_specimen_record: {
+        Args: { p_sha256: string; p_specimen_id: string }
+        Returns: Json
+      }
+      signing_asset_can_read: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
+      signing_asset_can_upload: {
+        Args: { p_bucket: string; p_name: string }
+        Returns: boolean
+      }
+      signing_password_verified_at: { Args: never; Returns: string }
       sod_manual_posters_in: {
         Args: { p_from: string; p_to: string }
         Returns: string[]

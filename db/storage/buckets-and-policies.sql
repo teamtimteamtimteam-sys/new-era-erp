@@ -17,7 +17,7 @@
 SET client_min_messages = warning;   -- DROP POLICY IF EXISTS 在全新安装上每一条都会说一句 skipping
 
 
--- ── 桶(21;MES-9c 起多一个 portal-uploads,CLAIM-RECEIPTS-1 起多一个 claim-receipts)────────────────────────────────────────────────────────────────
+-- ── 桶(23;MES-9c 起多一个 portal-uploads,CLAIM-RECEIPTS-1 起多一个 claim-receipts,CONTRACT-ESIGN 起多 contract-files 与 signing-assets)────────────────────────────────────────────────────────────────
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('avatars', 'avatars', false, 262144, ARRAY['image/webp'])
@@ -31,6 +31,11 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
 
 -- CLAIM-RECEIPTS-1(2026-10-21,Tim Q1):报销单每一笔的收据。上限与门户同一个数(10 MB · PDF / JPEG / PNG)——
 --   claim_receipt_begin 先按 account_settings 的那两列拒(任何字节存下之前),桶自己再拦一道。
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('contract-files', 'contract-files', false, 26214400, ARRAY['application/pdf'])
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
+
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('claim-receipts', 'claim-receipts', false, 10485760, ARRAY['application/pdf', 'image/jpeg', 'image/png'])
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
@@ -100,6 +105,11 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('shipment-documents', 'shipment-documents', false, NULL, NULL)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('signing-assets', 'signing-assets', false, 1048576, ARRAY['image/png'])
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, public = EXCLUDED.public,
     file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
 
@@ -466,3 +476,31 @@ DROP POLICY IF EXISTS "claim receipts read by finance.view or own claim" ON stor
 CREATE POLICY "claim receipts read by finance.view or own claim"
     ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated
     USING (((bucket_id = 'claim-receipts'::text) AND public.claim_receipt_can_read(bucket_id, name)));
+
+
+-- ── 合同的电子文件与签字用的图(CONTRACT-ESIGN,2026-10-30,Tim Q3 · Q4 · Q8 · Q12)—— 第 59–62 条策略 ─────────────────────────────────────
+-- contract-files(25 MB · 只收 PDF):传 = 只有【这个会话自己】一行 uploading 的合同文件登记过的那一条路径(contract_file_can_upload;
+--   那一行只由 contract_file_begin / contract_sign_begin 在判过调用者之后写);读 = 那份合同那一侧的读码 + 价格码(Q8),
+--   已经存下的(作废的照样读得到),或自己刚登记、还在传的那一条(contract_file_can_read)。
+-- signing-assets(1 MB · 只收 PNG):specimens/<员工 id>/ 只有本人传、本人读(Q4:admin 替别人设不了签名);
+--   stamps/ 由持 action.manage_signatories 的人传,签署人与持码的人读(Q3)。
+-- 【两个桶都没有 UPDATE、没有 DELETE】一份存下的文件不能被覆盖、也删不掉;没传成的字节留着(与报销收据同一条)。
+DROP POLICY IF EXISTS "contract files upload own registered path" ON storage.objects;
+CREATE POLICY "contract files upload own registered path"
+    ON storage.objects AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (((bucket_id = 'contract-files'::text) AND public.contract_file_can_upload(bucket_id, name)));
+
+DROP POLICY IF EXISTS "contract files read by contract side and price code" ON storage.objects;
+CREATE POLICY "contract files read by contract side and price code"
+    ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated
+    USING (((bucket_id = 'contract-files'::text) AND public.contract_file_can_read(bucket_id, name)));
+
+DROP POLICY IF EXISTS "signing assets upload own specimen or stamp" ON storage.objects;
+CREATE POLICY "signing assets upload own specimen or stamp"
+    ON storage.objects AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (((bucket_id = 'signing-assets'::text) AND public.signing_asset_can_upload(bucket_id, name)));
+
+DROP POLICY IF EXISTS "signing assets read own specimen or stamp" ON storage.objects;
+CREATE POLICY "signing assets read own specimen or stamp"
+    ON storage.objects AS PERMISSIVE FOR SELECT TO authenticated
+    USING (((bucket_id = 'signing-assets'::text) AND public.signing_asset_can_read(bucket_id, name)));

@@ -15,7 +15,7 @@
 --   NOUPDATE 四个附件桶的 UPDATE:连上传码都改不动一个文件(0 行)
 --   DELETE   七个删孤儿的桶:上传码删得掉一个没有记录指着的文件;只读码删不掉;一个有记录指着的文件(customer_attachments)上传码也删不掉;
 --            另 6 个文档桶与 company-assets 之外,没有一个桶对谁开着删;七条删除策略各自指着对的那张表、那一列
---   SHAPE    存储策略一共 58 条(MES-9b 起第 53 条是门户那一条,判据 portal_can_read_object;MES-9c 起第 54–56 条:门户传 / 读回自己
+--   SHAPE    存储策略一共 62 条(CONTRACT-ESIGN 起第 59–62 条:合同文件与签字用图的传 / 读,fixture 306)。此前 58 条(MES-9b 起第 53 条是门户那一条,判据 portal_can_read_object;MES-9c 起第 54–56 条:门户传 / 读回自己
 --            申请的那一条路径两条,判据 portal_can_upload_object,与员工读 portal-uploads 一条;CLAIM-RECEIPTS-1 起第 57–58 条:
 --            报销单收据的传 / 读,判据 claim_receipt_can_upload / claim_receipt_can_read —— 它们的行为由 fixture 287 证),没有一条不带判据;UPDATE 只剩 avatars 与 company-assets
 --
@@ -298,8 +298,9 @@ BEGIN
     -- MES-9b(2026-10-19):第 53 条是门户那一条读策略(TO supplier_portal,判据 portal_can_read_object —— 门户会话的判据,它不持任何码)
     -- MES-9c(2026-10-20):54–56 —— 门户往 portal-uploads 传 / 读回自己申请的那一条路径(TO supplier_portal,判据 portal_can_upload_object)与员工读它
     -- CLAIM-RECEIPTS-1(2026-10-21):57–58 —— 员工往 claim-receipts 传自己登记过的路径 / 读(判据 claim_receipt_can_upload / _read,fixture 287)
-    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage') <> 58 THEN
-        RAISE EXCEPTION 'FIXTURE 274 SHAPE: % storage policies (expected 58)', (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage'); END IF;
+    -- CONTRACT-ESIGN(2026-10-30):59–62 —— 合同文件传 / 读(contract_file_can_upload / _read)与签字用图传 / 读(signing_asset_can_upload / _read),fixture 306
+    IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage') <> 62 THEN
+        RAISE EXCEPTION 'FIXTURE 274 SHAPE: % storage policies (expected 62)', (SELECT count(*) FROM pg_policies WHERE schemaname = 'storage'); END IF;
     IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage'
                 AND COALESCE(qual, '') || COALESCE(with_check, '') !~ '(has_permission|has_any_permission|auth\.uid)'
                 AND NOT (policyname = 'portal reads its own logged issued documents' AND roles = ARRAY['supplier_portal']::name[]
@@ -311,7 +312,15 @@ BEGIN
                 AND NOT (policyname = 'claim receipts upload own registered path' AND roles = ARRAY['authenticated']::name[]
                          AND cmd = 'INSERT' AND with_check ~ 'claim_receipt_can_upload\(bucket_id, name\)')
                 AND NOT (policyname = 'claim receipts read by finance.view or own claim' AND roles = ARRAY['authenticated']::name[]
-                         AND cmd = 'SELECT' AND qual ~ 'claim_receipt_can_read\(bucket_id, name\)')) THEN
+                         AND cmd = 'SELECT' AND qual ~ 'claim_receipt_can_read\(bucket_id, name\)')
+                AND NOT (policyname = 'contract files upload own registered path' AND roles = ARRAY['authenticated']::name[]
+                         AND cmd = 'INSERT' AND with_check ~ 'contract_file_can_upload\(bucket_id, name\)')
+                AND NOT (policyname = 'contract files read by contract side and price code' AND roles = ARRAY['authenticated']::name[]
+                         AND cmd = 'SELECT' AND qual ~ 'contract_file_can_read\(bucket_id, name\)')
+                AND NOT (policyname = 'signing assets upload own specimen or stamp' AND roles = ARRAY['authenticated']::name[]
+                         AND cmd = 'INSERT' AND with_check ~ 'signing_asset_can_upload\(bucket_id, name\)')
+                AND NOT (policyname = 'signing assets read own specimen or stamp' AND roles = ARRAY['authenticated']::name[]
+                         AND cmd = 'SELECT' AND qual ~ 'signing_asset_can_read\(bucket_id, name\)')) THEN
         RAISE EXCEPTION 'FIXTURE 274 SHAPE: a storage policy without a judge'; END IF;
     IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'storage' AND cmd = 'UPDATE'
                 AND policyname NOT IN ('own avatar update', 'finance settings update company-assets')) THEN

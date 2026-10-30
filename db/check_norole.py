@@ -64,7 +64,11 @@ JUDGE = (r"(has_permission|has_any_permission|require_permission|require_any_per
          r"current_user_permissions|approval_log_readable|can_view_task|can_edit_task|can_write_task|assert_[a-z_]+\(|"
          r"auth\.uid\(\)|current_user_employee|arm_permission|"
          # CLAIM-RECEIPTS-1(2026-10-21):claim-receipts 上两条存储策略的判据(各自判 auth.uid() / current_user_employee() / has_permission)
-         r"claim_receipt_can_upload\(|claim_receipt_can_read\()")
+         r"claim_receipt_can_upload\(|claim_receipt_can_read\(|"
+         # CONTRACT-ESIGN(2026-10-30):合同文件与签字用图两个桶上四条存储策略的判据(各自判 auth.uid() / current_user_employee() /
+         #   has_permission —— 合同那一侧的读码 + 价格码经 contract_file_readable),以及印章表读策略里的 contract_signatory_active
+         r"contract_file_can_upload\(|contract_file_can_read\(|signing_asset_can_upload\(|signing_asset_can_read\(|"
+         r"contract_file_readable\(|contract_signatory_active\()")
 KINDS = ("rows", "storage", "call", "policy", "rls-off", "view", "definer")
 FLOORS = {"relations": 400, "policies": 400, "functions": 500}
 

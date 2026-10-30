@@ -7,13 +7,13 @@
 --   它不建任何身份(只读事务里建不了):有码那一半(每一个码读得到 / 传得进 / 删得掉孤儿)由 fixture 274 在重建库上以真的 RLS 证,
 --   并由交回报告里的线上 HTTP 证明(一次性账号,list · download · upload · remove)证;线上策略 == 仓库镜像由判词七逐条比。
 -- 断言:
---   NOROLE      一个没有角色的会话在 storage.objects 里一行都看不见(40 份文件、21 个桶)、在 storage.buckets 里一个桶都看不见
+--   NOROLE      一个没有角色的会话在 storage.objects 里一行都看不见(40 份文件、23 个桶)、在 storage.buckets 里一个桶都看不见
 --   JUDGE       storage.objects 上每一条策略都带判据(has_permission / has_any_permission / 自己的头像 auth.uid();门户那一条是 portal_can_read_object;门户传 / 读回自己申请的那两条是 portal_can_upload_object;
 --               报销单的收据那两条是 claim_receipt_can_upload / claim_receipt_can_read);58 条(CLAIM-RECEIPTS-1 起)
 --   NOUPDATE    UPDATE 只剩 avatars(自己的)与 company-assets(action.finance_settings);四个附件桶没有
 --   DELETE      会删的桶恰好是:avatars(自己的)· company-assets · coa · compliance · supplier-statement · cod · po · traceability ·
 --               四个附件桶 —— 除 avatars 与 company-assets 之外每一条删除都带 NOT EXISTS(记录表.列 = objects.name)
---   BUCKETS     21 个桶,全部私有(MES-9c 起多一个 portal-uploads,CLAIM-RECEIPTS-1 起多一个 claim-receipts)
+--   BUCKETS     23 个桶,全部私有(MES-9c 起多一个 portal-uploads,CLAIM-RECEIPTS-1 起多一个 claim-receipts,CONTRACT-ESIGN 起多 contract-files 与 signing-assets)
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN READ ONLY;
 DO $live$
@@ -21,8 +21,8 @@ DECLARE
     v_n bigint; v_bad text;
 BEGIN
     SELECT count(*) INTO v_n FROM storage.buckets;
-    IF v_n <> 21 OR EXISTS (SELECT 1 FROM storage.buckets WHERE public) THEN
-        RAISE EXCEPTION 'LIVE FIXTURE 266 BUCKETS: % buckets, or one is public (ruled: 21, all private)', v_n;
+    IF v_n <> 23 OR EXISTS (SELECT 1 FROM storage.buckets WHERE public) THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 266 BUCKETS: % buckets, or one is public (ruled: 23, all private)', v_n;
     END IF;
     IF (SELECT count(*) FROM storage.objects) = 0 THEN
         RAISE EXCEPTION 'LIVE FIXTURE 266 NOROLE: live holds no stored file at all — the arm below would be vacuous';
@@ -52,9 +52,18 @@ BEGIN
        AND NOT (policyname = 'claim receipts upload own registered path' AND roles = ARRAY['authenticated']::name[]
                 AND cmd = 'INSERT' AND with_check ~ 'claim_receipt_can_upload\(bucket_id, name\)')
        AND NOT (policyname = 'claim receipts read by finance.view or own claim' AND roles = ARRAY['authenticated']::name[]
-                AND cmd = 'SELECT' AND qual ~ 'claim_receipt_can_read\(bucket_id, name\)');
-    IF v_n <> 58 OR v_bad IS NOT NULL THEN
-        RAISE EXCEPTION 'LIVE FIXTURE 266 JUDGE: % storage policies (ruled 58); without a judge: %', v_n, COALESCE(v_bad, '-');
+                AND cmd = 'SELECT' AND qual ~ 'claim_receipt_can_read\(bucket_id, name\)')
+       -- CONTRACT-ESIGN(2026-10-30):合同文件与签字用图的传 / 读(判据 contract_file_can_upload / _read · signing_asset_can_upload / _read,fixture 306)
+       AND NOT (policyname = 'contract files upload own registered path' AND roles = ARRAY['authenticated']::name[]
+                AND cmd = 'INSERT' AND with_check ~ 'contract_file_can_upload\(bucket_id, name\)')
+       AND NOT (policyname = 'contract files read by contract side and price code' AND roles = ARRAY['authenticated']::name[]
+                AND cmd = 'SELECT' AND qual ~ 'contract_file_can_read\(bucket_id, name\)')
+       AND NOT (policyname = 'signing assets upload own specimen or stamp' AND roles = ARRAY['authenticated']::name[]
+                AND cmd = 'INSERT' AND with_check ~ 'signing_asset_can_upload\(bucket_id, name\)')
+       AND NOT (policyname = 'signing assets read own specimen or stamp' AND roles = ARRAY['authenticated']::name[]
+                AND cmd = 'SELECT' AND qual ~ 'signing_asset_can_read\(bucket_id, name\)');
+    IF v_n <> 62 OR v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'LIVE FIXTURE 266 JUDGE: % storage policies (ruled 62); without a judge: %', v_n, COALESCE(v_bad, '-');
     END IF;
     SELECT string_agg(policyname, ', ') INTO v_bad FROM pg_policies WHERE schemaname = 'storage' AND cmd IN ('UPDATE', 'ALL')
        AND policyname NOT IN ('own avatar update', 'finance settings update company-assets');

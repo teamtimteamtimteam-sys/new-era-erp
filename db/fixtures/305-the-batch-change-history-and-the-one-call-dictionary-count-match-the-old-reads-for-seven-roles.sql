@@ -1,7 +1,7 @@
 -- fixture 305 —— 变更记录的成批读法与字典页的一次计数,对【七个角色】与原来的读法逐行相同(GOLIVE-2 第 13 行,v1.4.84)
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Tim 2026-10-30 Q2:"every result identical row for row to today's for all seven roles"。
--- 【数据】db/seeds/chain-walk-year.sql(一年的量,与 fixture 297 同一份)+ 七个角色的读码 db/seeds/seven-roles-2026-10-29.sql。整支回滚。
+-- 【数据】db/seeds/chain-walk-year.sql(一年的量,与 fixture 297 同一份)+ 七个角色的读码 db/seeds/seven-roles-2026-10-30.sql。整支回滚。
 -- 【A】七个角色 × 八种读法(最新 20 次 · 200 次 · 只看关键事件那一圈要读的 100 次 · 一组表 · 一种记录 · 一条记录 · 一个人 · 一段日期):
 --      change_log_page(一次调用)交出的行 ≡ 页面原来那一圈 change_log_rows(p_by_entry => true,事务 200 一块、行 100 一页)交出的行
 --      (jsonb 逐行,按 seq);两边一起拒(只有持 data.view_change_log 的 admin 与 cfo 读得到)也算相同,拒的码要一样。
@@ -11,7 +11,7 @@
 -- 【E】故障注入:在子事务里让 change_log_page 少交最旧的一行 → A 的比对必须变红;让 dictionary_usage_counts 每一组多数一行 → D 必须变红。回滚后核对还原。
 -- ★ 种子走 session_replication_role = replica(与 fixture 296 / 297 同一个先例:只在 db/gate.py 的一次性本地库上跑,线上从来不跑)。
 BEGIN;
-\ir ../seeds/seven-roles-2026-10-29.sql
+\ir ../seeds/seven-roles-2026-10-30.sql
 \ir ../seeds/chain-walk-year.sql
 SET LOCAL statement_timeout = '600s';
 

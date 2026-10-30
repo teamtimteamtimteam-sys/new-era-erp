@@ -4,7 +4,7 @@
 --   budget, with a fault injection (one deliberately slow arm) proving it bites." · Q3:目标 ≤ 100 ms,fixture 在 300 ms【硬红】· Q4:三次取最好的一次。
 --
 -- 【数据】db/seeds/chain-walk-year.sql —— 一年的量(Tim Q2),按线上今天的链接形状造;七个角色的读码是线上快照
---   db/seeds/seven-roles-2026-10-29.sql(db/live-fixtures/297 对着线上核对它仍然一字不差)。灌进来约 10 秒,整支回滚。
+--   db/seeds/seven-roles-2026-10-30.sql(db/live-fixtures/297 对着线上核对它仍然一字不差)。灌进来约 10 秒,整支回滚。
 -- 【量什么】每一张有链条的详情页(21 张)各取一张单据 —— 月结对账单取最重的那一张(BS-2025-0005,走出一千多行);
 --   以【七个角色各自的账号】(SET LOCAL ROLE authenticated + 那个账号的 claims)在库里计时:
 --   document_chain_walk(页面原样调的那一句)· record_trail(那一页底部的变更记录,20 条)。三次取最好的一次(机器忙时的抖动不该让门红)。
@@ -15,7 +15,7 @@
 --   从对账单再走一次:同一支计时必须量出 > 300 ms —— 否则这支 fixture 的判据看不见慢,它的绿就不作数。
 -- ★ 造数据走 session_replication_role = replica(与 fixture 296 同一个先例:只在 db/gate.py 的一次性本地库上跑,线上从来不跑)。
 BEGIN;
-\ir ../seeds/seven-roles-2026-10-29.sql
+\ir ../seeds/seven-roles-2026-10-30.sql
 \ir ../seeds/chain-walk-year.sql
 
 -- 一次走链 / 一段变更记录的库内时间(毫秒,三次取最好的一次);拒绝原样返回成文字

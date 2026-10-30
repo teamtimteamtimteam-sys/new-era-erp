@@ -34,3 +34,4 @@
 20:15:43 median=388.780ms max=832.194ms in-db=6.401ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
 20:16:51 median=398.827ms max=592.208ms in-db=1.509ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
 20:18:03 median=735.706ms max=1026.408ms in-db=0.027ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:19:03 the smoke node process 36901 is gone — watchdog done

@@ -31,6 +31,8 @@ import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/r
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { mustOne, mustRows, mustCount } from '@/lib/db-helpers'
 import AvatarPanel from './AvatarPanel'
+import SignatureSpecimenPanel from './SignatureSpecimenPanel'
+import { SIGNING_ASSETS_BUCKET, readStored } from '@/lib/contractFiles'
 import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
 import { formatDate, formatDateTime, formatMonth } from '@/lib/dates'
@@ -142,6 +144,19 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     // my_profile 的 WHERE 已经保证了这一行存在且有 id;视图没有 NOT NULL 约束,
     // 所以生成的类型把每一列都标成可空 —— 这里把它断言回来。
     const employeeId = p.employee_id as string
+
+    // ── CONTRACT-ESIGN(Q4):签署人名单上的人在这里画自己的签名(读策略只露本人那一行;样本图只有本人读得到)──
+    const mySignatory = (mustRows(
+        await supabase.from('contract_signatories').select('title').eq('employee_id', employeeId).is('removed_at', null).limit(1),
+        'contract_signatories') as { title: string }[])[0] ?? null
+    let mySpecimenUri: string | null = null
+    if (mySignatory) {
+        const spec = (mustRows(
+            await supabase.from('signature_specimens').select('file_path, sha256').eq('employee_id', employeeId).is('superseded_at', null).limit(1),
+            'signature_specimens') as { file_path: string; sha256: string }[])[0] ?? null
+        const got = spec ? await readStored(supabase, SIGNING_ASSETS_BUCKET, spec.file_path, spec.sha256) : null
+        mySpecimenUri = got?.ok ? `data:image/png;base64,${Buffer.from(got.bytes).toString('base64')}` : null
+    }
 
     // 自己的薪资、培训、任职历史 —— 全部由行级策略放行,不需要任何模块权限
     const [payRes, trainRes, histRes, payslipTotals, medicalTotals, expenseTotals] = await Promise.all([
@@ -370,6 +385,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('me.subtitle')}</p>
 
             {avatarSection}
+
+            {mySignatory && <SignatureSpecimenPanel currentUri={mySpecimenUri} title={mySignatory.title} />}
 
             {/* ── profile ── */}
             <section className={card + ' mb-6'}>

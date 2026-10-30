@@ -1,0 +1,3 @@
+gate started 22:30:17
+final gate started 00:37:25
+final gate (run 3) started 01:01:01

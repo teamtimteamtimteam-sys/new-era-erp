@@ -75,7 +75,7 @@ SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
  WHERE r.code = 'admin';
 
 -- ★★ GOLIVE-1 第 5 行(Tim 2026-10-20 d2 #27 · 2026-10-29 Q2–Q5):下面每一个角色的码【逐字取自线上】(2026-10-29,以 postgres 读基表
---   role_permissions)—— 七个真角色 = db/seeds/seven-roles-2026-10-29.sql;auditor 按 Q2;operations 与 floor_display 照线上;employee 0 个。
+--   role_permissions)—— 七个真角色 = db/seeds/seven-roles-2026-10-30.sql;auditor 按 Q2;operations 与 floor_display 照线上;employee 0 个。
 --   此前这里是一份"全新安装的起点"设计(九角色分工 + 各刀追加),而线上早已按 Tim 的矩阵(ROLE-1 及以后)走开:
 --   没有 cfo / cco / cto、finance 少码、还留着无人持有的 hr / procurement / sales。Tim Q5:引导 = 线上。
 --   每一个角色【为什么】是这些码,写在它们各自落地的那一刀里(docs/role-matrix.md、db/migrations/、上面 admin 那一段的历史)——

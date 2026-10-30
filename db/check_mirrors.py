@@ -757,7 +757,10 @@ CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employ
                   "has_any_permission(",
                   # MES-9a(2026-10-19,MES-9 Step 0 Q8 · Q11):门户函数的调用者检查 —— 角色是 supplier_portal、令牌声明也是、有一条链接、
                   # 没撤销没被封、会话还在(portal_require_link 的五条)。verify_rebuild.py 的 CALLER_CHECK_RE 同改,两处必须一致。
-                  "portal_require_link(")
+                  "portal_require_link(",
+                  # CONTRACT-ESIGN(2026-10-30,Tim Q8):合同文件的调用者检查 —— 那一侧的读码 + 价格码,判据 contract_file_readable 自己读
+                  # has_permission(按 auth.uid() 解析调用者)。verify_rebuild.py 的 CALLER_CHECK_RE 同改,两处必须一致。
+                  "contract_file_readable(")
 
 
 def strip_sql_comments(sql: str) -> str:

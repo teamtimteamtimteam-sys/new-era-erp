@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- fixture 298 —— 全新重建出来的角色,正是线上那 11 个,逐码相同(GOLIVE-1 第 5 行,Tim 2026-10-20 d2 #27 · 2026-10-29 Q2–Q5)
 -- ═══════════════════════════════════════════════════════════════════════════
--- 【钉的事】重建库的引导(db/tables/roles.sql · role_permissions.sql)与 db/seeds/eleven-roles-2026-10-29.sql 逐个相同 ——
+-- 【钉的事】重建库的引导(db/tables/roles.sql · role_permissions.sql)与 db/seeds/eleven-roles-2026-10-30.sql 逐个相同 ——
 --   而 db/live-fixtures/298 对着线上核对同一份。两支都绿 = "重建出来的角色就是线上的角色"(ROLE1-BOOTSTRAP-MISSING-ROLES 关闭)。
 --   SET     角色的集合恰好是那 11 个(hr · procurement · sales 不在;cfo · cco · cto 在)
 --   SAME    每一个角色的码集合与快照逐个相同(多一个、少一个都红,点名角色与码)
@@ -10,7 +10,7 @@
 --   INJECT  ★ 故障注入(每次都跑):子事务里从 auditor 拿掉 module.quality.view,SAME 的判据必须点出这一个码;子事务回滚
 -- 以 postgres 读基表(rolbypassrls,基表 —— 真行数)。重建库里没有任何 user_roles,所以这里只比角色与授权,不比持有人。
 -- ═══════════════════════════════════════════════════════════════════════════
-\ir ../seeds/eleven-roles-2026-10-29.sql
+\ir ../seeds/eleven-roles-2026-10-30.sql
 BEGIN;
 SELECT set_config('golive1.eleven_roles', :'eleven_roles', true) \g /dev/null
 
@@ -51,7 +51,7 @@ BEGIN
     -- SAME
     v := pg_temp.f298_diff(snap);
     IF v IS NOT NULL THEN
-        RAISE EXCEPTION 'FIXTURE 298 SAME: the rebuild bootstrap differs from db/seeds/eleven-roles-2026-10-29.sql — %', v;
+        RAISE EXCEPTION 'FIXTURE 298 SAME: the rebuild bootstrap differs from db/seeds/eleven-roles-2026-10-30.sql — %', v;
     END IF;
     -- SHAPE
     IF EXISTS (SELECT 1 FROM permissions p WHERE p.code LIKE 'module.%.view' AND NOT (snap -> 'auditor') ? p.code) THEN

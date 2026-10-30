@@ -1,0 +1,17 @@
+== 预检 2026-10-30-contract-esign.sql
+account    未引用任何科目码
+function   19 条 CREATE FUNCTION:0 替换 · 19 新建
+masked     本迁移不加列
+✓ 预检通过
+== 破窗开始(migration applied at): 2026-10-30 22:21:25 CST  ← 切次报告要写的那个起点
+== applying 2026-10-30-contract-esign.sql over direct psql (single transaction)
+psql:<stdin>:1002: NOTICE:  policy "contract files upload own registered path" for relation "storage.objects" does not exist, skipping
+psql:<stdin>:1007: NOTICE:  policy "contract files read by contract side and price code" for relation "storage.objects" does not exist, skipping
+psql:<stdin>:1012: NOTICE:  policy "signing assets upload own specimen or stamp" for relation "storage.objects" does not exist, skipping
+psql:<stdin>:1017: NOTICE:  policy "signing assets read own specimen or stamp" for relation "storage.objects" does not exist, skipping
+== re-asserting function grants (db/views/zzz_function_grants.sql)
+✓ committed atomically (含函数授权兜底)
+== 库已经是新的了(22:24:37) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)
+== 破窗起点已落盘:/Users/timchen/Documents/projects/new-era-erp/db/migration-windows.tsv
+   2026-10-30T22:24:37+0800  2026-10-30-contract-esign.sql  c9d80aae
+APPLY_OWN_EXIT=0

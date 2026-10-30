@@ -32,6 +32,9 @@ import HeaderForm from './HeaderForm'
 import { SECTIONS, SELL_ONLY, type SectionSpec } from './termSpecs'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { readAll } from '@/lib/readAll'
+import { Refusal } from '@/app/components/ui/refusal'
+import ContractFilesPanel from './files/ContractFilesPanel'
+import { loadContractFiles } from './files/filesData'
 
 type Contract = {
     id: string; code: string; side: 'buy' | 'sell'; kind: string; title: string; status: string
@@ -182,6 +185,9 @@ export default async function ContractDetailPage({ params, searchParams }: {
         return { id: String(r.id), shown, values, restricted }
     }
 
+    // ── CONTRACT-ESIGN:合同文件(每一个版本 · 传 · 签 · 作废);读不到的人(Q8:那一侧的价格码)整块是「受限」 ─────────
+    const files = await loadContractFiles(supabase, t, locale, c)
+
     const activationRow: ActivationRow[] =
         c.status === 'draft' || c.status === 'suspended' || c.status === 'active'
             ? [{
@@ -261,6 +267,25 @@ export default async function ContractDetailPage({ params, searchParams }: {
                     onePerContract={Boolean(s.onePerContract)}
                 />
             ))}
+
+            {files.readable ? (
+                <ContractFilesPanel
+                    contractId={c.id}
+                    contractCode={c.code}
+                    versions={files.versions}
+                    original={files.original}
+                    countersigned={files.countersigned}
+                    sign={files.sign}
+                    voidAllowed={files.voidAllowed}
+                />
+            ) : (
+                <section className="space-y-2" aria-label={t('contractFiles.title')} data-contract-files-restricted={c.code}>
+                    <h2 className="mb-1">{t('contractFiles.title')}</h2>
+                    <Refusal className="whitespace-normal text-left" why={t('contractFiles.restrictedWhy', { code: files.priceCode })}>
+                        {t('contractFiles.restricted', { code: files.priceCode })}
+                    </Refusal>
+                </section>
+            )}
 
             {/* AUDIT-TRAIL-1c-2(Q21):这份合同的审计记录 —— 建立、表头的改动、七张条款表的每一行、生效申请与 CFO 的决定
                 (不持 module.pricing.view 的读者,那几行决定是 Restricted —— 读规则说的)、生效 / 暂停、挂到订单上的那一次。

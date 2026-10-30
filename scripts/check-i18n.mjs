@@ -448,6 +448,11 @@ const MANIFEST = {
     //   —— MANUAL-FIX-1 刚刚数过那个形状的代价(勘察 S4 的"机制二"):有句子、
     //   但闸看不见,于是新加一个码却忘了写句子是【静悄悄】的。
     'contracts.errors.': { kind: 'enum', values: () => tsSet('app/contracts/contractErrorCodes.ts', 'CONTRACT_ERROR_CODES') },
+    // CONTRACT-ESIGN:合同文件 / 签字 / 签署人 / 印章那一族的具名拒绝(码从函数体数出来,登记在 ESIGN_ERROR_CODES)
+    'contractFiles.errors.': { kind: 'enum', values: () => tsSet('app/contracts/[id]/files/esignErrorCodes.ts', 'ESIGN_ERROR_CODES') },
+    // CONTRACT-ESIGN:一个版本的种类与状态 —— 取自 contract_files 的 CHECK(状态只画存下的三种:uploading / abandoned 从不列出)
+    'contractFiles.kind.': { kind: 'enum', values: () => sqlEnum('db/tables/contract_files.sql', 'kind') },
+    'contractFiles.status.': { kind: 'enum', values: () => sqlEnum('db/tables/contract_files.sql', 'status').filter((v) => v !== 'uploading' && v !== 'abandoned') },
     // PROC-BUILD-1:损耗分类那两个动态前缀,两条都【接真源】——
     // 金属去向读 loss_metal_fates 的种子行(那张字典没有 CHECK,种子【就是】取值),
     // 拒绝码读那张 Set。于是加一种金属去向、加一条拒绝,这道检查自动跟着变宽。

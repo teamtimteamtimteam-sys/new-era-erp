@@ -1,0 +1,51 @@
+STEP|base http://localhost:3196
+STEP|live before (postgres, base tables): signatories 0 · specimens 0 · stamps 0 · contract files 0
+SELECT1|before the admin reader client round trips 391 / 447 / 388 / 387 / 808 ms (median 391) · server execution 0.02 ms
+HEALTH|before the admin reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|throwaway draft contract CON-2026-0093 on throwaway supplier 7bba374b-e634-4652-b38b-ef2699ba9030
+PASS|A /settings/signatories (HTTP 200) opens for the admin clone
+PASS|A the throwaway employee was added through the form: 1 active row, title "Probe Director", added by the admin clone; 1 change-log row(s)
+PASS|A the company stamp was uploaded through the form: stamps/a8e4b5f8-2deb-45a4-a66f-cf09972d1acb.png (sha256 1c5ce7a10764…), shown on the page
+PASS|A /contracts/CON-2026-0093 (HTTP 200) opens; the contract files section is there
+PASS|A a PNG named .pdf → "Only PDF files are accepted (this one reads as image/png)"; storage requests 0; rows 0
+FAIL|A a real PDF uploaded through the form, bytes straight to storage (0 bytes): row current, stored sha256 = page sha256 = local file sha256 = re-downloaded bytes' sha256 (86b9f59244358820…); download route HTTP 200
+PASS|A a countersigned copy before our side signed → CONTRACT_COUNTERSIGN_NEEDS_SIGNED|CON-2026-0093
+PASS|LAYOUT 390px /contracts/CON-2026-0093 with a file (admin): page 390px wide in a 390px window — no sideways scroll
+PASS|LAYOUT 1440px /contracts/CON-2026-0093 with a file (admin): page 1440px wide in a 1440px window — no sideways scroll
+PASS|LAYOUT 390px /settings/signatories with one signatory and a stamp: page 390px wide in a 390px window — no sideways scroll
+PASS|LAYOUT 1440px /settings/signatories with one signatory and a stamp: page 1440px wide in a 1440px window — no sideways scroll
+SELECT1|after the admin reader client round trips 453 / 421 / 422 / 1256 / 601 ms (median 453) · server execution 0.05 ms
+HEALTH|after the admin reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before the signatory client round trips 873 / 1276 / 689 / 1028 / 389 ms (median 873) · server execution 0.019 ms
+HEALTH|before the signatory: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|S /me (HTTP 200) shows the signature pad to the signatory
+PASS|LAYOUT 390px /me with the signature pad: page 390px wide in a 390px window — no sideways scroll
+PASS|LAYOUT 1440px /me with the signature pad: page 1440px wide in a 1440px window — no sideways scroll
+PASS|S the signatory drew and saved their signature: specimens/094282d7-fca3-40ec-8469-974a2c6d79ee/a3e01cdf-3d8a-4baf-9749-c77297b49604.png, recorded by themselves
+PASS|S the contract page: Sign is visible, unpressable, and says "The contract is Draft. Only an active contract — its terms approved through the CFO — can be signed."
+PASS|S /contracts/CON-2026-0093/sign (HTTP 200) says "The contract is Draft. Only an active contract — its terms approved through the CFO — can be signed." — no signing form on a draft (Q1)
+PASS|LAYOUT 390px /contracts/CON-2026-0093/sign (draft: the refusal state): page 390px wide in a 390px window — no sideways scroll
+PASS|LAYOUT 1440px /contracts/CON-2026-0093/sign (draft: the refusal state): page 1440px wide in a 1440px window — no sideways scroll
+PASS|S contract_sign_begin with a token just issued for the password (amr ["password"]) on the draft → CONTRACT_SIGN_NOT_ACTIVE|CON-2026-0093|draft — the password check passed on a live token and the draft refused (Q1 · Q5)
+STEP|the same call with the cookie session's token (signed in 512 s ago) → CONTRACT_SIGN_PASSWORD_REQUIRED (refused either way on a draft)
+PASS|S no signed version exists after the refusals (0 rows)
+SELECT1|after the signatory client round trips 1629 / 821 / 837 / 605 / 926 ms (median 837) · server execution 0.05 ms
+WARN|after the signatory: a single round trip took 1629 ms (> 1500 ms; recorded, not an abort)
+HEALTH|after the signatory: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before the non-signatory client round trips 720 / 637 / 423 / 620 / 424 ms (median 620) · server execution 0.037 ms
+HEALTH|before the non-signatory: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|N a finance clone (not on the list) → CONTRACT_SIGN_NOT_SIGNATORY
+PASS|N the company stamp object: finance clone HTTP 400 (refused), signatory HTTP 200
+PASS|N the finance clone cannot change the signatory list → PERMISSION_DENIED|action.manage_signatories
+SELECT1|after the non-signatory client round trips 388 / 396 / 1072 / 935 / 386 ms (median 396) · server execution 0.019 ms
+HEALTH|after the non-signatory: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before the restricted reader client round trips 820 / 386 / 386 / 647 / 386 ms (median 386) · server execution 0.06 ms
+HEALTH|before the restricted reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|R a reader with module.suppliers.view only: contract page HTTP 200 shows "Contract filesRestricted — the contract files need data.view_purchase_prices as well as this contract's view code."; rows 0; stored object HTTP 400; download route HTTP 404
+SELECT1|after the restricted reader client round trips 827 / 466 / 522 / 698 / 634 ms (median 634) · server execution 0.038 ms
+HEALTH|after the restricted reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done with 1 FAIL
+WARN|after the signatory: a single round trip took 1629 ms (> 1500 ms; recorded, not an abort)
+AFTER|committed on live by this run: a throwaway supplier and one draft contract on it, one contract file and its stored object, one signatory entry, one specimen and (if live had none) one company stamp with their stored objects, and the throwaway staff clones with their employee record, roles and grants — every one of them on the cleanup plan; nothing real was signed, stamped, uploaded onto or pressed
+CES_PROOF_EXIT=1
+CES_RUN_EXIT=1

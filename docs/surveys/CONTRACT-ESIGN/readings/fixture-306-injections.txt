@@ -1,0 +1,6 @@
+== injection ①: contract_file_readable always true (expected: arm R or U red)
+psql:db/fixtures/306-a-contract-file-is-signed-only-by-a-named-signatory-on-an-active-contract.sql:452: ERROR:  FIXTURE 306U 失败:读不到价格的人传得了(Q8)→ {"id": "edf710f6-3b8d-451f-80dd-a97d8c4b3e67", "path": "84ec8dd2-39df-4543-a122-79ca4c784758/edf710f6-3b8d-451f-80dd-a97d8c4b3e67.pdf", "bucket": "contract-files"}
+== injection ②: contract_sign_begin without the password check (expected: arm G red)
+psql:db/fixtures/306-a-contract-file-is-signed-only-by-a-named-signatory-on-an-active-contract.sql:452: ERROR:  FIXTURE 306G 失败:没有重新输入密码就签得了(Q5)→ ERR|new row for relation "contract_files" violates check constraint "contract_files_signing"
+== restored: fixture 306 again (expected: pass)
+psql:db/fixtures/306-a-contract-file-is-signed-only-by-a-named-signatory-on-an-active-contract.sql:452: NOTICE:  FIXTURE 306 全部通过: P · L · S · U · R · G · T · I · C · V · X

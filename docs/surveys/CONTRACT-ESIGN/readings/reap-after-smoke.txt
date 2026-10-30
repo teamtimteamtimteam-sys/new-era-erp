@@ -1,0 +1,6 @@
+
+> new-era-erp@0.1.0 reap:ephemeral
+> node scripts/reap-ephemeral.mjs
+
+✓ 没有滞留的清理计划(.ephemeral/ 是空的)
+REAP_OWN_EXIT=0

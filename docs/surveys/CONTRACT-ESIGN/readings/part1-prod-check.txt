@@ -1,0 +1,10 @@
+STEP|base https://new-era-erp.vercel.app
+SELECT1|before the reader client round trips 425 / 424 / 421 / 833 / 913 ms (median 425) · server execution 0.026 ms
+HEALTH|before the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|/settings/change-history default view (HTTP 200, h1 "Change history", 27761 ms to network idle): error boundary none; alerts none; v1.4.84 export line "Choose both dates (up to 366 days) to export." present ⇒ production serves 6fb2b63 / c9d80aa
+PASS|/settings/dictionaries (HTTP 200, h1 "Dictionaries", 15223 ms to network idle): error boundary none; alerts Deactivating is NOT deleting. The Active / Deactivated status decides whether a value can be NEWLY CHOSEN - it never invalidates a fact already recorded against it. A deactivated safety state still blocks a load from being fed.
+SELECT1|after the reader client round trips 450 / 1200 / 419 / 685 / 421 ms (median 450) · server execution 0.622 ms
+HEALTH|after the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+GL2_CLOSEOUT_EXIT=0
+GL2_RUN_EXIT=0

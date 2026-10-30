@@ -92,7 +92,7 @@ CREATE POLICY "roles delete by permission"
 --   hr · procurement · sales 删掉(线上 0 个持有人,本刀的迁移同时删);cfo · cco · cto 补进来(ROLE1-BOOTSTRAP-MISSING-ROLES 关闭)。
 --   ★ operations 在线上是【停用并软删】的(is_active = false,deleted_at 2026-09-10,0 个持有人),Tim Q4:照旧不动 —— 引导里同样停用、软删(见本段末)。
 --   ★ employee:不持任何码,只打得开每一个账号都有的个人页(Tim Q3,说明改写);员工自助是行级的,与角色无关。
---   这一点由两支 fixture 钉住:db/fixtures/298(重建库的角色与授权 = db/seeds/eleven-roles-2026-10-29.sql)与
+--   这一点由两支 fixture 钉住:db/fixtures/298(重建库的角色与授权 = db/seeds/eleven-roles-2026-10-30.sql)与
 --   db/live-fixtures/298(线上 = 同一份),所以"重建出来的角色就是线上的角色"是一句会红的话,不是一句注释。
 --   本表【仍然是运行期配置】:界面上改角色是正常的;改了,就同一个提交重取那份快照(新日期的文件)。
 -- ═══════════════════════════════════════════════════════════════════════════
