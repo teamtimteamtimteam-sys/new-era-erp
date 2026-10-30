@@ -1,0 +1,9 @@
+ls: .env.local: No such file or directory
+HEAD=06287697bda31c1248faf68624a6a1a582f39f1f
+NPMCI_EXIT=0
+FRESH_OWN_EXIT=0
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
