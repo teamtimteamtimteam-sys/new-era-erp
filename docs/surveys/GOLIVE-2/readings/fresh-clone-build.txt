@@ -1,0 +1,4 @@
+GOLIVE-2 · fresh clone of 6fb2b635ef229c4d61b3ec2edea4ef4fe7f8a9eb into the scratchpad, no .env.local present, npm ci && npm run build (2026-10-30 20:21 CST)
+FRESH_OWN_EXIT=0
+✓ check-unpaged-reads:2027 条读取(1412 个文件,AST = 词法 = 2027)· helper 451 · paged 50 · later 1 · capped 63 · one 292 · head 76 · write 130 · scalar 474 · bounded 292 · parent 206 · exempt 7
+✓ Compiled successfully in 23.5s
