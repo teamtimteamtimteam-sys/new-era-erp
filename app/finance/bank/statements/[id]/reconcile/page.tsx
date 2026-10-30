@@ -14,6 +14,7 @@ import ReconcileWorkspace, {
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function ReconcilePage({
     params,
@@ -51,17 +52,17 @@ export default async function ReconcilePage({
     }
 
     const [linesRes, candidatesRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('bank_statement_lines')
             .select('id, line_no, line_date, description, reference, amount, match_status, ignore_reason')
             .eq('statement_id', id)
-            .order('line_no', { ascending: true }),
-        supabase
+            .order('line_no', { ascending: true }), { label: 'bank_statement_lines' }),
+        readAll(() => supabase
             .from('bank_unmatched_journal_lines')
             .select('journal_line_id, entry_id, entry_code, entry_date, memo, source_type, amount_ccy, direction')
             .eq('account_code', stmt.bank_account_code)
             .eq('currency', stmt.currency)
-            .order('entry_date', { ascending: true }),
+            .order('entry_date', { ascending: true }), { label: 'bank_unmatched_journal_lines', key: ['journal_line_id', 'entry_id', 'entry_code', 'entry_date', 'memo', 'source_type', 'source_id', 'account_code', 'currency', 'amount_ccy', 'direction', 'amounts_restricted'] }),
     ])
 
     // BANK-REC:差额必须在人按下按钮【之前】就看得见(销售单信用提示的先例),
@@ -99,18 +100,18 @@ export default async function ReconcilePage({
     //   基表上工资分录的行对不持 data.view_pay 的人不在,内嵌会是 null,于是配到发薪那几笔的对账单行【悄悄】丢掉它的分录链接。
     //   (matched_amount 是银行那一侧的数,与对账单行同一件事 —— 见 known-issues 的 UNBLOCK1-BANK-STATEMENT-SHOWS-PAY,Q4 不在本刀。)
     const matchRows = matchedLineIds.length
-        ? (mustRows(await supabase
+        ? (mustRows(await readAllIn(matchedLineIds, (__ids) => supabase
               .from('bank_line_matches')
               .select('statement_line_id, matched_amount, journal_line_id')
-              .in('statement_line_id', matchedLineIds), 'bank_line_matches') as { statement_line_id: string; matched_amount: number; journal_line_id: string }[])
+              .in('statement_line_id', __ids), { label: 'bank_line_matches' }), 'bank_line_matches') as { statement_line_id: string; matched_amount: number; journal_line_id: string }[])
         : []
     const jlIds = [...new Set(matchRows.map((m) => m.journal_line_id))]
     const jls = jlIds.length
-        ? (mustRows(await supabase.from('journal_lines_masked').select('id, entry_id').in('id', jlIds), 'journal_lines_masked') as { id: string; entry_id: string }[])
+        ? (mustRows(await readAllIn(jlIds, (__ids) => supabase.from('journal_lines_masked').select('id, entry_id').in('id', __ids), { label: 'journal_lines_masked' }), 'journal_lines_masked') as { id: string; entry_id: string }[])
         : []
     const entryIds = [...new Set(jls.map((j) => j.entry_id))]
     const entryRows = entryIds.length
-        ? mustRows(await supabase.from('journal_entries').select('id, code, entry_date, memo').in('id', entryIds), 'journal_entries')
+        ? mustRows(await readAllIn(entryIds, (__ids) => supabase.from('journal_entries').select('id, code, entry_date, memo').in('id', __ids), { label: 'journal_entries' }), 'journal_entries')
         : []
     const entryByLine = new Map(jls.map((j) => [j.id, entryRows.find((e) => e.id === j.entry_id) ?? null]))
 

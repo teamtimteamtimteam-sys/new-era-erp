@@ -11,6 +11,7 @@ import { requireEditPermission } from '@/app/components/moduleGuard'
 import { getMetalPriceIndices } from '../indexQuery'
 import { INDEX_UNSTATED } from '../indexOptions'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll } from '@/lib/readAll'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -64,18 +65,20 @@ export default async function BulkPricesPage({
               : null
 
     // 该日期之前(含)的全部在册行情,按金属+日期倒序 —— 首条即"最近一次"。
-    let historyQuery = supabase
-        .from('metal_prices')
-        .select('metal, price_usd_per_tonne, price_date')
-        .is('deleted_at', null)
-        .lte('price_date', priceDate)
-    // 未声明指数是一个【取值】,不是"不过滤" —— .is() 与 .eq() 是两个问题
-    historyQuery = priceIndex === null
-        ? historyQuery.is('price_index', null)
-        : historyQuery.eq('price_index', priceIndex)
-    const { data: history } = await historyQuery
-        .order('metal')
-        .order('price_date', { ascending: false })
+    // GOLIVE-2 第 10 行:行情一天一条、每种金属一条 —— 一年就过 1,000,一律翻页读(lib/readAll.ts)
+    const { data: history } = await readAll(() => {
+        const historyQuery = supabase
+            .from('metal_prices')
+            .select('metal, price_usd_per_tonne, price_date')
+            .is('deleted_at', null)
+            .lte('price_date', priceDate)
+        // 未声明指数是一个【取值】,不是"不过滤" —— .is() 与 .eq() 是两个问题
+        return (priceIndex === null
+            ? historyQuery.is('price_index', null)
+            : historyQuery.eq('price_index', priceIndex))
+            .order('metal')
+            .order('price_date', { ascending: false })
+    }, { label: 'metal_prices' })
 
     const rows: MetalRowData[] = substanceOptions.map((opt) => {
         const forMetal = (history ?? []).filter((h) => h.metal === opt.value)

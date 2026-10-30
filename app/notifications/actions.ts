@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 export type MarkReadState = { error?: string }
 
@@ -41,7 +42,7 @@ export async function markAllRead(): Promise<MarkReadState> {
     // 【只标记"我读得到的"】—— RLS 已经把看不见的行挡在外面,所以这里取到的
     // 就是这个读者的收件箱。用 mustRows:一次失败的查询【不是空集】,
     // 否则"全部已读"会在读不到任何东西时静悄悄地什么也不做并显示成功。
-    const res = await supabase.from('notifications').select('id')
+    const res = await readAll(() => supabase.from('notifications').select('id'), { label: 'notifications' })
     const rows = mustRows(res, 'notifications')
     if (rows.length === 0) return {}
 

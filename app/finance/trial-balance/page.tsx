@@ -39,6 +39,7 @@ import { tableC } from '@/app/components/ui/table-style'
 import { ReportExportBar } from '@/app/components/ui/report-export'
 import { xMoney, xText } from '@/lib/export/cells'
 import type { ReportLine } from '@/lib/export/report'
+import { readAll } from '@/lib/readAll'
 
 // ★ CONV-4:不套 DataTable —— 与 balance-sheet 同一条理由(按科目类型
 //   动态分组 + 每组小计 + 底部借贷合计,不是记录列表)。
@@ -83,7 +84,7 @@ export default async function FinancePage({
         // ★ U1-A(Tim 的 UNBLOCK-1 Q2,2026-10-05):按科目的合计问库(trial_balance_totals,属主身份),不再把每一行拉回来自己加。
         //   journal_lines 上那条 restrictive 策略让不持 data.view_pay 的财务读者读不到工资分录的行;逐行求和会让那几行
         //   【悄悄】从合计里消失,而表仍然"平"(工资分录自己借贷相等)。库里那一支对每一个读者给同一组数。
-        supabase.rpc('trial_balance_totals'),
+        readAll(() => supabase.rpc('trial_balance_totals'), { label: 'trial_balance_totals', key: ['account_id', 'debits', 'credits'] }),
     ])
 
     if (accountsRes.error || linesRes.error) {

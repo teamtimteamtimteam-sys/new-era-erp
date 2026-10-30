@@ -19,6 +19,7 @@ import { Button } from '@/app/components/ui/button'
 import { tableC } from '@/app/components/ui/table-style'
 import { FlatExportBar } from '@/app/components/ui/report-export'
 import { xText } from '@/lib/export/cells'
+import { readAll } from '@/lib/readAll'
 
 // ★ CONV-4:不套 DataTable —— 这张表是一份【固定的工作流清单】(10 个
 //   写死的步骤,0 个 <th>),不是从数据库查出来的记录集合。每一行的"这一
@@ -50,18 +51,18 @@ export default async function MonthEndPage({
     const t = await getTranslations()
 
     const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes, reconRes, blockingRes, unclosedRes] = await Promise.all([
-        supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
-            .gte('rate_date', start).lte('rate_date', end),
+        readAll(() => supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
+            .gte('rate_date', start).lte('rate_date', end), { label: 'fx_rate_gaps', key: ['rate_date', 'currency', 'missing_types', 'entry_count', 'quote_count', 'gap_source'] }),
         // FIX-2a:见 /finance/payroll-payments —— 挂 hr.view,关账的人读不到。
         supabase.from('payroll_period_lookup')
             .select('id, code, status, period_month, net_pay_total, employer_cpf_total, employee_cpf_total, other_deductions_total, cpf_paid_at, deductions_paid_at')
             .eq('period_month', start).is('deleted_at', null).maybeSingle(),
         // 遮蔽视图,不是基表:amount_base 在基表上没有 SELECT(perm2b),直接选它 42501
-        supabase.from('processing_cost_entry_lookup').select('id, cost_type, amount_base, is_estimate')
+        readAll(() => supabase.from('processing_cost_entry_lookup').select('id, cost_type, amount_base, is_estimate')
             .is('deleted_at', null).is('remitted_at', null).is('relieved_at', null)
-            .lte('created_at', end + 'T23:59:59Z'),
-        supabase.from('journal_entries').select('id, code')
-            .eq('source_type', 'revaluation').eq('entry_date', end).eq('status', 'posted'),
+            .lte('created_at', end + 'T23:59:59Z'), { label: 'processing_cost_entry_lookup' }),
+        readAll(() => supabase.from('journal_entries').select('id, code')
+            .eq('source_type', 'revaluation').eq('entry_date', end).eq('status', 'posted'), { label: 'journal_entries' }),
         supabase.from('finance_settings').select('locked_before').maybeSingle(),
         // FIN-22:折旧应提额 —— 与执行同一份算术(preview),0 = 本期已提平/无资产
         supabase.rpc('preview_depreciate_fixed_assets', { p_period_end: end }),
@@ -69,13 +70,13 @@ export default async function MonthEndPage({
         // 原来只查 id 存不存在:两个币种时,一条 USD 中间价就让这一步显示成"可以做了",
         // 而重估要按币种逐个换算。CNY 进来之后这个漏洞会真的漏 —— 它换算金属报价用的
         // 也是 mid,而这一刀把 mid 从"存在的一种类型"变成"必须维护的一种类型"。
-        supabase.from('fx_rates').select('currency').eq('rate_date', end)
-            .eq('rate_type', 'mid').is('deleted_at', null),
+        readAll(() => supabase.from('fx_rates').select('currency').eq('rate_date', end)
+            .eq('rate_type', 'mid').is('deleted_at', null), { label: 'fx_rates' }),
         supabase.from('currencies').select('code').eq('is_base', false),
         // FIN-8:批次成本与成本条目是否还对得上。改了条目,总账会动,批次不会 ——
         // 月结前必须看见,否则存货和销货成本就带着这个差额结账。
-        supabase.from('processing_run_allocation_status')
-            .select('code, allocated_at, last_cost_change, is_stale, safe_to_reallocate'),
+        readAll(() => supabase.from('processing_run_allocation_status')
+            .select('code, allocated_at, last_cost_change, is_stale, safe_to_reallocate'), { label: 'processing_run_allocation_status', key: ['run_id', 'code', 'allocated_at', 'last_cost_change', 'is_stale', 'cogs_posted', 'safe_to_reallocate'] }),
         // AP-RECON-1 Batch B(Tim Q11):清单 ↔ 总账。全账、不截日 —— 它说的是【此刻】,
         // 不是所选月份。★ FIN-CHAIN-1(Tim 2026-10-20,Q11 的裁定):它【挡】锁期 —— close_period 读同一支,
         // 没对上(或答不上来)就按名拒,所以这一步没对上时是 blocked。

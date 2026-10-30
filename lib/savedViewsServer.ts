@@ -8,14 +8,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { viewHref, type SavedView, type ViewDates } from '@/lib/savedViews'
+import { readAll } from '@/lib/readAll'
 
 export async function loadSavedViews(
     supabase: SupabaseClient<Database>,
     { listKey, sp, dates }: { listKey: string; sp: Record<string, string | string[] | undefined>; dates?: ViewDates },
 ): Promise<SavedView[]> {
     const views = mustRows(
-        await supabase.from('saved_views').select('id, name, query, is_default')
-            .eq('list_key', listKey).order('name', { ascending: true }),
+        await readAll(() => supabase.from('saved_views').select('id, name, query, is_default')
+            .eq('list_key', listKey).order('name', { ascending: true }), { label: 'saved_views' }),
         'saved views',
     )
     const addressIsEmpty = Object.values(sp).every((v) => v === undefined)

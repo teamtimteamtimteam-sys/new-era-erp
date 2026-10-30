@@ -19,6 +19,7 @@ import { formatDate } from '@/lib/dates'
 import { sampleKindKey, sampleStateKey, batchHref } from '../qualityTypes'
 import SamplesTable, { type SampleRow } from './SamplesTable'
 import QualitySettingsPanel from './QualitySettingsPanel'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     id: string; code: string; kind: string; state: string; batch_kind: string; inbound_batch_id: string | null; output_batch_id: string | null
@@ -35,9 +36,9 @@ export default async function SamplesPage({ searchParams }: { searchParams: Prom
     const supabase = await createClient()
 
     const [samplesRes, settingsRes, canEdit] = await Promise.all([
-        supabase.from('sample_rows')
+        readAll(() => supabase.from('sample_rows')
             .select('id, code, kind, state, batch_kind, inbound_batch_id, output_batch_id, batch_code, taken_on, retain_until, retain_until_source, laboratory_code, storage_location_code, disposed_at, disposed_early, retention_due')
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false }), { label: 'sample_rows' }),
         supabase.from('quality_settings').select('internal_retention_days').maybeSingle(),
         can('module.quality.edit'),
     ])

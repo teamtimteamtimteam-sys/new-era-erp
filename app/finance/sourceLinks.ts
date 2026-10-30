@@ -16,6 +16,7 @@ import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 
 import { effectiveSources, type SourceRef } from './sourceLinkReversal'
+import { readAllIn } from '@/lib/readAll'
 export type { SourceRef }
 
 // key: `${source_type}:${source_id}` → href
@@ -26,7 +27,7 @@ export async function resolveSourceHrefs(
 ): Promise<Map<string, string>> {
     const ids0 = Array.from(new Set(refs0.map((r) => r.source_id).filter(Boolean) as string[]))
     const journals = ids0.length
-        ? mustRows(await supabase.from('journal_entries').select('id, source_type, source_id').in('id', ids0), 'reversal journals (Q15)')
+        ? mustRows(await readAllIn(ids0, (__ids) => supabase.from('journal_entries').select('id, source_type, source_id').in('id', __ids), { label: 'journal_entries' }), 'reversal journals (Q15)')
         : []
     const eff = effectiveSources(refs0, journals)
     const refs = Array.from(eff.values())
@@ -64,18 +65,18 @@ async function resolveDirect(
     const [salesRes, costRes, inWoRes, outWoRes] = await Promise.all([
         // sale → sales_records.output_batch_id → 产出批次编辑页
         saleIds.length
-            ? supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
+            ? readAllIn(saleIds, (__ids) => supabase.from('sales_records').select('id, output_batch_id').in('id', __ids), { label: 'sales_records' })
             : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[], error: null }),
         // processing_cost → 成本行的 run → 加工单详情
         costIds.length
-            ? supabase.from('processing_cost_entry_lookup').select('id, run_id').in('id', costIds)
+            ? readAllIn(costIds, (__ids) => supabase.from('processing_cost_entry_lookup').select('id, run_id').in('id', __ids), { label: 'processing_cost_entry_lookup' })
             : Promise.resolve({ data: [] as { id: string; run_id: string }[], error: null }),
         // writeoff 的 source_id 是批次 id,但不知道在哪张表 —— 两边都查,命中即得
         writeoffIds.length
-            ? supabase.from('inbound_batch_lookup').select('id').in('id', writeoffIds)
+            ? readAllIn(writeoffIds, (__ids) => supabase.from('inbound_batch_lookup').select('id').in('id', __ids), { label: 'inbound_batch_lookup' })
             : Promise.resolve({ data: [] as { id: string }[], error: null }),
         writeoffIds.length
-            ? supabase.from('output_batch_lookup').select('id').in('id', writeoffIds)
+            ? readAllIn(writeoffIds, (__ids) => supabase.from('output_batch_lookup').select('id').in('id', __ids), { label: 'output_batch_lookup' })
             : Promise.resolve({ data: [] as { id: string }[], error: null }),
     ])
 

@@ -11,6 +11,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { ListPage } from '@/app/components/ui/list-page'
 import { docType, subjectRow } from '@/app/components/related/relatedRows'
+import { readAll } from '@/lib/readAll'
 
 type DbError = { message: string; code?: string } | null
 
@@ -40,7 +41,7 @@ export default async function RelatedIndexPage({ params }: { params: Promise<{ s
     }
     const name = row.label && row.label !== '' ? row.label : row.code
     const groups = mustRows(
-        await supabase.rpc('search_related', { p_key: subject, p_id: id }) as {
+        await readAll(() => supabase.rpc('search_related', { p_key: subject, p_id: id }), { label: 'search_related', key: ['target_key', 'target_table', 'route', 'link_mode', 'n'] }) as {
             data: { target_key: string; n: number }[] | null; error: DbError },
         'search_related')
     const back = mustOne(

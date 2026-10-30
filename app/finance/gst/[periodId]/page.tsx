@@ -14,6 +14,7 @@ import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number; derived: boolean; note_zh?: string; note_en?: string }
 
@@ -55,9 +56,9 @@ export default async function GstPeriodPage({ params, searchParams }: {
     const live = liveRes.data as unknown as { boxes: Box[]; ties: Record<string, unknown> } | null
     const snap = snapRes ? mustRows(snapRes) : []
     const detailRes = box
-        ? await supabase.rpc('f5_box_detail', {
+        ? await readAll(() => supabase.rpc('f5_box_detail', {
             p_period_start: period.period_start, p_period_end: period.period_end, p_box: box,
-        })
+        }), { label: 'f5_box_detail', key: ['doc_kind', 'doc_id', 'doc_code', 'doc_date', 'memo', 'tax_code', 'amount_base'] })
         : null
 
     // 【被打开的那一格的数字】—— 钻取那一段要把它重复出来,好让"空"读起来
@@ -77,7 +78,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
     // ★ APR-10:这一期的申报申请(在等的全部 + 最近了结的十张)。冻结的每一格、此刻的数(只对在等的算)、
     //   更正件的原件快照 —— 全由 gst_filing_requests_visible 一次给出,屏幕不自己算。
     type VisibleBox = { box: string; label_en?: string; label_zh?: string; value: number | string }
-    const gfrRows = mustRows(await supabase.rpc('gst_filing_requests_visible', { p_period_id: periodId, p_recent: 10 }),
+    const gfrRows = mustRows(await readAll(() => supabase.rpc('gst_filing_requests_visible', { p_period_id: periodId, p_recent: 10 }), { label: 'gst_filing_requests_visible' }),
         'gst_filing_requests_visible') as unknown as {
         id: string; status: GstFilingView['status']; label: string
         boxes: VisibleBox[]; current_boxes: VisibleBox[] | null; current_matches: boolean | null

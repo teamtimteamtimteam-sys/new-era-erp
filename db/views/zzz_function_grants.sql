@@ -907,3 +907,8 @@ $f16$;
 --   waiting_decision_reach 【不收】:它们是 SECURITY DEFINER,只答【调用者自己】(auth.uid() / current_user_employee()),
 --   operations_now(属主视图)调用 waiting_decisions,而视图里的函数按读者判 EXECUTE。
 REVOKE EXECUTE ON FUNCTION public.self_approval_allows(uuid, uuid, text, uuid) FROM authenticated;
+
+-- GOLIVE-2(Tim 2026-10-30 Q5):结算的算术只由 record_sale_settlement(SECURITY DEFINER,先问 module.customers.edit,不持 data.view_prices
+--   时把六样钱读成受限)调用。它自己是 SECURITY INVOKER、没有价格码的判断 —— 留着 authenticated 的 EXECUTE,任何登录用户都能直接调它,
+--   绕过 sales_settlements_masked 拿到结算金额(app / lib 里没有任何一处调它)。收回之后它照常在 record_sale_settlement 的函数体里以属主身份跑。
+REVOKE EXECUTE ON FUNCTION public.sale_settlement_compute(uuid, uuid, uuid) FROM authenticated;

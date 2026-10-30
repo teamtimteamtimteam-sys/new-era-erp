@@ -11,6 +11,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { loadMaterialNames } from '../materialNames'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewProcessingPage({
     searchParams,
@@ -29,32 +30,32 @@ export default async function NewProcessingPage({
     // 与 fy_end_month / system_start_date 同一形状。表单显示它、允许改,
     // 并把选中的值显式送给 commit_processing_run(那边必填)。
     const [batchesRes, outputBatchesRes, materialsRes, settingsRes, workOrdersRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('inbound_batches')
             .select('id, code, remaining_qty, unit, material_id, cell_construction_code, module_count')
             .is('deleted_at', null)
             .gt('remaining_qty', 0) // 只看还有库存的批次
-            .order('code'),
+            .order('code'), { label: 'inbound_batches' }),
         // FIN-25:再加工 —— 有库存的产出批也可投料
         // (ROLE-1 Batch 3b:两处批次都不再嵌 materials ( name ),名字在下面从 material_lookup 映射)
-        supabase
+        readAll(() => supabase
             .from('output_batches')
             .select('id, code, remaining_qty, unit, material_id, cell_construction_code, module_count')
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
-            .order('code'),
+            .order('code'), { label: 'output_batches' }),
         // ROLE-1 Batch 3b:仓库持 processing.view 但不持 materials.view —— 读查名视图,不读基表。
-        supabase
+        readAll(() => supabase
             .from('material_lookup')
             .select('id, code, name')
             .is('deleted_at', null)
-            .order('name'),
+            .order('name'), { label: 'material_lookup' }),
         supabase.from('finance_settings_lookup').select('default_allocation_basis').maybeSingle(),
         // WO-1c:【只列已放行的工单】草稿是还没答应的事,已收工/已取消是已经结束的事 ——
         // 服务端会按名拒(WO_NOT_RELEASED),而这里不把一个必然被拒的选项画出来
         // (AGENTS.md:页面不该提供一个服务端保证会拒绝的动作)。
-        supabase.from('work_orders').select('id, code, scheduled_date')
-            .eq('status', 'released').order('code'),
+        readAll(() => supabase.from('work_orders').select('id, code, scheduled_date')
+            .eq('status', 'released').order('code'), { label: 'work_orders' }),
     ])
 
     if (batchesRes.error || outputBatchesRes.error || materialsRes.error) {
@@ -78,10 +79,10 @@ export default async function NewProcessingPage({
     // 按 remaining 填了数,提交才被 IOD_CONSUME_EXCEEDS_AVAILABLE 拦下,
     // 而屏幕上此前没有任何提示。问库,页面不算账。
     const availRows = mustRows(
-        await supabase
+        await readAll(() => supabase
             .from('stock_by_status')
             .select('inbound_batch_id, output_batch_id, qty')
-            .eq('stock_status', 'available'),
+            .eq('stock_status', 'available'), { label: 'stock_by_status', key: ['inbound_batch_id', 'output_batch_id', 'batch_code', 'unit', 'location_id', 'location_code', 'location_name', 'stock_status', 'qty'] }),
         'stock_by_status'
     ) as unknown as { inbound_batch_id: string | null; output_batch_id: string | null; qty: number }[]
     const availByBatch = new Map<string, number>()
@@ -111,8 +112,8 @@ export default async function NewProcessingPage({
         supabase.from('run_weighing_options')
             .select('weighing_id, weight_kg, device_code, captured_at, calibration_status')
             .order('captured_at', { ascending: false }).limit(200),
-        supabase.from('devices').select('id, code, name, kind, retired_at')
-            .is('retired_at', null).in('kind', ['scale', 'weighbridge', 'meter', 'inline_instrument']).order('code'),
+        readAll(() => supabase.from('devices').select('id, code, name, kind, retired_at')
+            .is('retired_at', null).in('kind', ['scale', 'weighbridge', 'meter', 'inline_instrument']).order('code'), { label: 'devices' }),
     ])
     const links = mustRows(linksRes, 'operation_type_equipment')
     const fieldRows = mustRows(fieldsRes, 'operation_type_fields')
@@ -177,11 +178,11 @@ export default async function NewProcessingPage({
     // 这里不画一个必然被拒的选项。尚未购入那一条(EQUIPMENT_NOT_ACQUIRED)取决于
     // 加工日期,而日期在表单里会变 —— 那一条留给服务端说,不在这里预判。
     const equipment = (mustRows(
-        await supabase
+        await readAll(() => supabase
             .from('equipment_usage')
             .select('equipment_id, equipment_code, equipment_description')
             .neq('equipment_status', 'disposed')
-            .order('equipment_code'),
+            .order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
         'equipment_usage'
     ) as unknown as { equipment_id: string; equipment_code: string; equipment_description: string | null }[])
         .map((e) => ({ id: e.equipment_id, code: e.equipment_code, description: e.equipment_description }))

@@ -10,6 +10,7 @@ import { MOD } from '@/lib/modules'
 import AttendanceGrid from './AttendanceGrid'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAll } from '@/lib/readAll'
 
 export default async function AttendancePeriodPage({
     params,
@@ -42,7 +43,7 @@ export default async function AttendancePeriodPage({
     // ★ OVERTIME-1(Tim Q3):三个加班桶【只读】,来自批过的加班批 —— 已完成的月读冻住的数,
     //   还开着的月读此刻批过的数(overtime_month_hours 一份判据,工资期详情也读它)。
     const otRows = mustRows(
-        await supabase.rpc('overtime_month_hours', { p_month: period.period_month as string }),
+        await readAll(() => supabase.rpc('overtime_month_hours', { p_month: period.period_month as string }), { label: 'overtime_month_hours', key: ['employee_id', 'weekday_hours', 'rest_day_hours', 'public_holiday_hours', 'total_hours', 'fixed'] }),
         'overtime_month_hours',
     )
     const otByEmployee = new Map(otRows.map((o) => [o.employee_id, o]))

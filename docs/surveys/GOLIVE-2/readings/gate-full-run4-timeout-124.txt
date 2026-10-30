@@ -1,0 +1,2 @@
+GATE_EXIT=124
+-- run 4 (16:30:56) reached the supervisor's 3000 s limit; python's stdout was block-buffered, so nothing but the verdict reached the log. After it: no gate process, no .live-lock, 0 idle-in-transaction on live. Run 5 is unbuffered and its live DSN carries connect_timeout / keepalives / tcp_user_timeout so a dead pooler socket errors instead of waiting.

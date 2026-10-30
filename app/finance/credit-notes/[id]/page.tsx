@@ -26,6 +26,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import CreditNoteLinesTable, { type CreditNoteLineRow } from './CreditNoteLinesTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAllIn } from '@/lib/readAll'
 
 export default async function CreditNotePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -74,8 +75,8 @@ export default async function CreditNotePage({ params, searchParams }: { params:
 
     const ilIds = [...new Set(lines.map((l) => l.invoice_line_id))]
     const il = ilIds.length === 0 ? [] : (mustRows(
-        await supabase.from('invoice_lines_masked')
-            .select('id, line_no, description, unit').in('id', ilIds),
+        await readAllIn(ilIds, (__ids) => supabase.from('invoice_lines_masked')
+            .select('id, line_no, description, unit').in('id', __ids), { label: 'invoice_lines_masked' }),
         'invoice_lines') as unknown as {
             id: string; line_no: number; description: string; unit: string }[])
     const byId = new Map(il.map((r) => [r.id, r]))

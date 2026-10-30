@@ -17,6 +17,7 @@ import type { CreditNoteRow } from './CreditNotesTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -47,7 +48,7 @@ export type CreditNoteDbRow = { id: string; code: string; note_date: string; cur
  * (db/functions/list_totals_credit_notes.sql)。这一页没有筛选。
  */
 export async function creditNoteTotals(supabase: Client): Promise<ListTotal[]> {
-    const res = await supabase.rpc('list_totals_credit_notes')
+    const res = await readAll(() => supabase.rpc('list_totals_credit_notes'), { label: 'list_totals_credit_notes', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'credit notes totals'))
 }
 
@@ -74,12 +75,12 @@ export async function shapeCreditNoteRows(supabase: Client, notes: CreditNoteDbR
     const canReadCustomers = await can('module.customers.view')
     const noteIds = notes.map((n) => n.id)
     const [lines, issues, invoices] = await Promise.all([
-        inChunks(noteIds, (ids) => supabase.from('credit_note_lines').select('credit_note_id, amount').in('credit_note_id', ids)
+        inChunks(noteIds, (ids) => readAllIn(ids, (__ids) => supabase.from('credit_note_lines').select('credit_note_id, amount').in('credit_note_id', __ids), { label: 'credit_note_lines' })
             .then(({ data, error }) => ({ error, data: data as unknown as { credit_note_id: string; amount: number }[] | null })), 'credit_note_lines'),
         // 签发:最高版本号即当前版本;一条都没有 = 还没签发过(具名状态,不是 0)
-        inChunks(noteIds, (ids) => supabase.from('cn_issues').select('credit_note_id, version').in('credit_note_id', ids)
+        inChunks(noteIds, (ids) => readAllIn(ids, (__ids) => supabase.from('cn_issues').select('credit_note_id, version').in('credit_note_id', __ids), { label: 'cn_issues' })
             .then(({ data, error }) => ({ error, data: data as unknown as { credit_note_id: string; version: number }[] | null })), 'cn_issues'),
-        inChunks(notes.map((n) => n.invoice_id).filter(Boolean), (ids) => supabase.from('invoices_masked').select('id, code, customer_id').in('id', ids)
+        inChunks(notes.map((n) => n.invoice_id).filter(Boolean), (ids) => readAllIn(ids, (__ids) => supabase.from('invoices_masked').select('id, code, customer_id').in('id', __ids), { label: 'invoices_masked' })
             .then(({ data, error }) => ({ error, data: data as unknown as { id: string; code: string; customer_id: string }[] | null })), 'invoices_masked'),
     ])
     const totalByNote = new Map<string, number>()
@@ -88,7 +89,7 @@ export async function shapeCreditNoteRows(supabase: Client, notes: CreditNoteDbR
     for (const i of issues) versionByNote.set(i.credit_note_id, Math.max(versionByNote.get(i.credit_note_id) ?? 0, i.version))
     const invoiceById = new Map(invoices.map((i) => [i.id, i]))
     const customers = canReadCustomers
-        ? await inChunks(invoices.map((i) => i.customer_id).filter(Boolean), (ids) => supabase.from('customers').select('id, code, legal_name').in('id', ids)
+        ? await inChunks(invoices.map((i) => i.customer_id).filter(Boolean), (ids) => readAllIn(ids, (__ids) => supabase.from('customers').select('id, code, legal_name').in('id', __ids), { label: 'customers' })
             .then(({ data, error }) => ({ error, data: data as unknown as { id: string; code: string; legal_name: string }[] | null })), 'customers')
         : []
     const customerById = new Map(customers.map((c) => [c.id, c]))

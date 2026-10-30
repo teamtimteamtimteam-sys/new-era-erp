@@ -16,6 +16,7 @@ import type { PaymentRow } from './PaymentsTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -62,9 +63,9 @@ function applyFilters<T>(query: T, p: PaymentListParams): T {
  *   收款与付款各一个、每个币种一行,冲销件记负数。筛选与 applyFilters 同一套参数。
  */
 export async function paymentTotals(supabase: Client, p: PaymentListParams): Promise<ListTotal[]> {
-    const res = await supabase.rpc('list_totals_payments', {
+    const res = await readAll(() => supabase.rpc('list_totals_payments', {
         p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined, p_direction: p.direction || undefined,
-    })
+    }), { label: 'list_totals_payments', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'payments totals'))
 }
 
@@ -103,11 +104,11 @@ export async function shapePaymentRows(supabase: Client, rows: PaymentDbRow[]): 
     const supplierIds = rows.map((r) => r.supplier_id).filter((x): x is string => !!x)
     type NameRow = { id: string; legal_name: string }
     const [customers, suppliers] = await Promise.all([
-        inChunks(customerIds, (ids) => supabase.from('customer_lookup').select('id, legal_name').in('id', ids)
+        inChunks(customerIds, (ids) => readAllIn(ids, (__ids) => supabase.from('customer_lookup').select('id, legal_name').in('id', __ids), { label: 'customer_lookup' })
             .then(({ data, error }) => ({ error, data: data as unknown as NameRow[] | null })), 'customer_lookup'),
         // LOG-1b:【这一处绝不过滤 counterparty_type】—— 它把 id 换成名字,不是选择器。
         //         过滤它会让【货代那几笔运费付款】的收款方名字变成空白,而那正是本模块存在的理由。
-        inChunks(supplierIds, (ids) => supabase.from('supplier_lookup').select('id, legal_name').in('id', ids)
+        inChunks(supplierIds, (ids) => readAllIn(ids, (__ids) => supabase.from('supplier_lookup').select('id, legal_name').in('id', __ids), { label: 'supplier_lookup' })
             .then(({ data, error }) => ({ error, data: data as unknown as NameRow[] | null })), 'supplier_lookup'),
     ])
     const nameById = new Map<string, string>()

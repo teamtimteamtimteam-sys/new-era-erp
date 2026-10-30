@@ -11,6 +11,7 @@ import BulkFxGrid, { type Existing } from './BulkFxGrid'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
+import { readAllIn } from '@/lib/readAll'
 
 const WINDOW_DAYS = 7
 
@@ -49,13 +50,13 @@ export default async function BulkFxPage() {
     //     所以这一条同时把「本位币自己的牌价行」挡在外面 —— 那一行对这张表没有意义。
     //   ★ 币种由**客户端下拉**切换,所以这里【不能】只取那一种:一收窄到单一币种,
     //     切换下拉就要走一次服务端往返,而今天它是即时的。收窄到"这几种"是对的。
-    const existingRes = await supabase
+    const existingRes = await readAllIn(currencies, (__ids) => supabase
         .from('fx_rates')
         .select('id, currency, rate_date, rate_type, rate_sgd_per_unit')
-        .in('currency', currencies)
+        .in('currency', __ids)
         .gte('rate_date', dates[0])
         .lte('rate_date', dates[dates.length - 1])
-        .is('deleted_at', null)
+        .is('deleted_at', null), { label: 'fx_rates' })
     const existingAll = mustRows(existingRes, 'fx_rates')
 
     return (

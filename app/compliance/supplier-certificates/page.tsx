@@ -14,6 +14,7 @@ import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import SupplierCertsTable, { type SupplierCertRow } from './SupplierCertsTable'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     id: string; supplier_id: string; supplier_code: string; supplier_name: string; cert_type_code: string; cert_no: string | null
@@ -30,9 +31,9 @@ export default async function SupplierCertificatesPage() {
 
     const [certRes, typeRes] = await Promise.all([
         // 删掉了的证书与已删除的供应商,视图自己就不列(它的 WHERE)
-        supabase.from('supplier_certificate_status')
+        readAll(() => supabase.from('supplier_certificate_status')
             .select('id, supplier_id, supplier_code, supplier_name, cert_type_code, cert_no, issuing_body, valid_from, valid_until, status')
-            .order('valid_until', { ascending: true, nullsFirst: false }).order('id', { ascending: true }),
+            .order('valid_until', { ascending: true, nullsFirst: false }).order('id', { ascending: true }), { label: 'supplier_certificate_status' }),
         supabase.from('certificate_types').select('code, name_en, name_zh'),
     ])
     const certs = mustRows(certRes, 'supplier_certificate_status') as unknown as Row[]

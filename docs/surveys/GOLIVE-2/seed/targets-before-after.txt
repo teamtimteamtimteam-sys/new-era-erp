@@ -1,0 +1,11 @@
+== BEFORE (gl2ref)
+SIM|show=20 · 4 calls · 305 rows · 21 operations · 1401 ms
+SIM|show=500 · 77 calls · 7505 rows · 501 operations · 29976 ms
+DICT|180 usage counts · 14 ms in the database
+EXPORT_BEFORE|read 50000 recorded changes · 121847 ms (no count function exists before)
+== AFTER (gl2mig)
+PAGE|entries=21 · 305 rows · 123 ms
+PAGE|entries=501 · 7505 rows · 2649 ms
+EXPORT|count 366 days = 600124 · 20 ms
+EXPORT|read 50094 recorded changes in 86 calls · 15772 ms
+DICT|1 call · 32 reference pairs · 10 ms

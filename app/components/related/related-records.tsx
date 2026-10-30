@@ -105,6 +105,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import RelatedTable from './RelatedTable'
 // TABLE-EXPORT-3c:docType / subjectRow / 行的映射搬进了 relatedRows.ts,页面与导出路由 import 同一份
 import { docType, subjectRow, shapeRelatedRows, detailHrefs, type DocType, type RowsRow } from './relatedRows'
+import { readAll } from '@/lib/readAll'
 
 /** 房子的分页常量。★ 树里 17 处 `PAGE_SIZE` 全是 20 —— 照抄,不新造一个数。 */
 export const PAGE_SIZE = 20
@@ -191,13 +192,13 @@ export default async function RelatedRecords({
     //     而那句话是假的。**修法是让 SQL 把自己的意思说完整,不是在这里写一句
     //     cast 把整个参数对象的检查关掉**(BUGFIX-1a:6 句 `as never` 挡住了
     //     唯一看得见 `container_no` 不存在的那道闸,一条死查询活了 8 天)。
-    const rowsRes = await supabase.rpc('search_related_rows', {
+    const rowsRes = await readAll(() => supabase.rpc('search_related_rows', {
         p_key: subjectKey,
         p_id: subjectId,
         p_target_key: targetKey,
         p_limit: PAGE_SIZE + 1,
         p_after_code: after,
-    })
+    }), { label: 'search_related_rows' })
     const fetched = mustRows(
         rowsRes as { data: RowsRow[] | null; error: { message: string; code?: string } | null },
         'search_related_rows')

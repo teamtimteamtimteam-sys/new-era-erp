@@ -1,3 +1,5 @@
+-- ★ GOLIVE-2(2026-10-30,Tim Q5):sale_settlement_compute 从此只由本支调用(authenticated 的 EXECUTE 收回,db/views/zzz_function_grants.sql);
+--   不持 data.view_prices 的调用者拿回的六样钱读成受限 —— 此前任何持客户模块编辑码的人经本支、任何登录用户经那一支直接调,都拿得到真数。
 CREATE OR REPLACE FUNCTION public.record_sale_settlement(p_sales_order_id uuid, p_output_batch_id uuid, p_assay_result_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -48,6 +50,14 @@ BEGIN
         v_r->'breakdown', v_r->'terms_snapshot', auth.uid())
     RETURNING id INTO v_id;
 
+    -- GOLIVE-2(Tim Q5):不持 data.view_prices 的调用者拿回的结算里,那六样钱读成受限 —— 与 sales_settlements_masked 同一组列、同一个码,
+    --   同一种受限的写法({"$restricted": true},change_log_restrict 那一个)。写进 sales_settlements 的仍是真数。
+    IF NOT has_permission('data.view_prices'::text) THEN
+        v_r := v_r || jsonb_build_object(
+            'metal_value_usd', '{"$restricted": true}'::jsonb, 'refining_charge_usd', '{"$restricted": true}'::jsonb,
+            'penalty_usd', '{"$restricted": true}'::jsonb, 'amount_usd', '{"$restricted": true}'::jsonb,
+            'breakdown', '{"$restricted": true}'::jsonb, 'terms_snapshot', '{"$restricted": true}'::jsonb);
+    END IF;
     RETURN v_r || jsonb_build_object('settlement_id', v_id, 'posted_to_ledger', false);
 END
 $function$;

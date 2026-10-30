@@ -27,6 +27,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import HandoversTable, { type HandoverRow } from './HandoversTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { readAll } from '@/lib/readAll'
 
 export default async function HandoversPage() {
     const denied = await requireModule(MOD.processing)
@@ -40,9 +41,9 @@ export default async function HandoversPage() {
     const canEdit = (await can('action.processing_aftercare')) || (await can('module.processing.edit'))
 
     const rows = mustRows(
-        await supabase.from('shift_handovers')
+        await readAll(() => supabase.from('shift_handovers')
             .select('id, shift_code, handover_date, outgoing_employee_id, incoming_employee_id, notes, submitted_at, acknowledged_at, acknowledged_by')
-            .order('handover_date', { ascending: false }),
+            .order('handover_date', { ascending: false }), { label: 'shift_handovers' }),
         'shift_handovers') as {
             id: string; shift_code: string; handover_date: string
             outgoing_employee_id: string; incoming_employee_id: string

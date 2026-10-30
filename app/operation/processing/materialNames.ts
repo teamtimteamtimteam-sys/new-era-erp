@@ -9,6 +9,7 @@
 // 不过滤 deleted_at:一个批次的物料后来被删了,它的名字照样要显示。
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { mustRows } from '@/lib/db-helpers'
+import { readAllIn } from '@/lib/readAll'
 
 export async function loadMaterialNames(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,7 +23,7 @@ export async function loadMaterialNames(
     const out = new Map<string, string>()
     for (let i = 0; i < unique.length; i += CHUNK) {
         const rows = mustRows(
-            await supabase.from('material_lookup').select('id, name').in('id', unique.slice(i, i + CHUNK)),
+            await readAllIn(unique.slice(i, i + CHUNK), (__ids) => supabase.from('material_lookup').select('id, name').in('id', __ids), { label: 'material_lookup' }),
             'material_lookup'
         ) as unknown as { id: string; name: string }[]
         for (const r of rows) out.set(r.id, r.name)

@@ -15,6 +15,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
+import { readAllIn } from '@/lib/readAll'
 
 export const TASKS_EDIT = 'module.tasks.edit'
 
@@ -37,7 +38,7 @@ export async function loadTaskAccess(
     const out = new Map<string, TaskAccess>()
     if (ids.length === 0) return out
     const rows = mustRows(
-        await supabase.from('task_board_rows').select('id, may_write, may_manage').in('id', ids),
+        await readAllIn(ids, (__ids) => supabase.from('task_board_rows').select('id, may_write, may_manage').in('id', __ids), { label: 'task_board_rows' }),
         'task_board_rows (may_write / may_manage)'
     )
     for (const r of rows) {

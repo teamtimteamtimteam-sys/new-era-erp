@@ -12,6 +12,7 @@ import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeCondition
 import { loadCellConstructionData } from '../cellConstructionQuery'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { loadShareableTickets } from '../ticketQuery'
+import { readAll } from '@/lib/readAll'
 
 export default async function ReceivePage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -24,7 +25,7 @@ export default async function ReceivePage() {
     const locale = await getLocale()
 
     const [suppliersRes, materialsRes, poLinesRes, blockedRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             // SUP-TYPE-1b:【只列供货的供应商】。1a 之后 guard_inbound_supplier_supplies_goods
             // 会按名拒绝往非供货往来户名下收货(RECEIPT_AGAINST_NON_GOODS_VENDOR),
             // 而这个下拉此前把每一家在册供应商都摆出来 —— 那正是 AGENTS.md 禁的
@@ -35,23 +36,23 @@ export default async function ReceivePage() {
             .select('id, code, legal_name')
             .is('deleted_at', null)
             .eq('supplies_goods', true)
-            .order('legal_name'),
-        supabase
+            .order('legal_name'), { label: 'supplier_lookup' }),
+        readAll(() => supabase
             .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
-            .order('name'),
+            .order('name'), { label: 'material_lookup' }),
         // 可收货的采购单行(cut 4c;客户端按供应商过滤)
-        supabase
+        readAll(() => supabase
             .from('po_receivable_lines_lookup')   // FIX-1 item 3:十列、无价,见迁移 2026-09-05-fix1
             .select('po_id, po_code, supplier_id, order_date, line_id, line_no, material_id, material_name, remaining_qty, unit')
             .order('po_code')
-            .order('line_no'),
+            .order('line_no'), { label: 'po_receivable_lines_lookup', key: ['po_id', 'po_code', 'supplier_id', 'order_date', 'line_id', 'line_no', 'material_id', 'material_name', 'unit', 'remaining_qty'] }),
         // CMP-2:收货会被证书拦截的供应商(视图与触发器同一份谓词)——
         // 表单据此把拦截原因写在按钮旁,而不是让服务端的拒绝当第一声。
-        supabase
+        readAll(() => supabase
             .from('supplier_receiving_blocked')
-            .select('supplier_id, supplier_code, cert_type_code, name_en, name_zh, valid_until'),
+            .select('supplier_id, supplier_code, cert_type_code, name_en, name_zh, valid_until'), { label: 'supplier_receiving_blocked', key: ['supplier_id', 'supplier_code', 'cert_type_code', 'name_en', 'name_zh', 'valid_until'] }),
     ])
 
     // IOD-1b:收货库位的可选清单 —— 只列在用库位(便利);停用/不存在由

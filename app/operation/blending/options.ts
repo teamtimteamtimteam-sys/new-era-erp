@@ -6,6 +6,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Supa = Awaited<ReturnType<typeof createClient>>
 
@@ -25,7 +26,7 @@ export async function loadBlendingOptions(supabase: Supa, locale: string) {
     const allForms = [...new Set([...inputForms, ...outputForms])]
 
     const mats = allForms.length === 0 ? [] : mustRows(
-        await supabase.from('material_lookup').select('id, code, name, form_code').is('deleted_at', null).in('form_code', allForms).order('code'),
+        await readAllIn(allForms, (__ids) => supabase.from('material_lookup').select('id, code, name, form_code').is('deleted_at', null).in('form_code', __ids).order('code'), { label: 'material_lookup' }),
         'material_lookup') as MaterialOption[]
     const outputMaterials = mats.filter((m) => m.form_code && outputForms.includes(m.form_code))
     const inputMatIds = mats.filter((m) => m.form_code && inputForms.includes(m.form_code)).map((m) => m.id)
@@ -33,12 +34,12 @@ export async function loadBlendingOptions(supabase: Supa, locale: string) {
 
     const [canIn, canOut] = await Promise.all([can('module.inbound.view'), can('module.output.view')])
     const ib = !canIn || inputMatIds.length === 0 ? [] : mustRows(
-        await supabase.from('inbound_batches_masked').select('id, code, material_id, remaining_qty, unit')
-            .is('deleted_at', null).in('material_id', inputMatIds).gt('remaining_qty', 0).eq('unit', 'kg').order('code'),
+        await readAllIn(inputMatIds, (__ids) => supabase.from('inbound_batches_masked').select('id, code, material_id, remaining_qty, unit')
+            .is('deleted_at', null).in('material_id', __ids).gt('remaining_qty', 0).eq('unit', 'kg').order('code'), { label: 'inbound_batches_masked' }),
         'inbound_batches_masked') as { id: string; code: string; material_id: string; remaining_qty: number }[]
     const ob = !canOut || inputMatIds.length === 0 ? [] : mustRows(
-        await supabase.from('output_batches').select('id, code, material_id, remaining_qty, unit')
-            .is('deleted_at', null).in('material_id', inputMatIds).gt('remaining_qty', 0).eq('unit', 'kg').order('code'),
+        await readAllIn(inputMatIds, (__ids) => supabase.from('output_batches').select('id, code, material_id, remaining_qty, unit')
+            .is('deleted_at', null).in('material_id', __ids).gt('remaining_qty', 0).eq('unit', 'kg').order('code'), { label: 'output_batches' }),
         'output_batches') as { id: string; code: string; material_id: string; remaining_qty: number }[]
     const batches: BatchOption[] = [
         ...ib.map((b) => ({ key: 'inbound:' + b.id, kind: 'inbound' as const, id: b.id, code: b.code, materialCode: matCode.get(b.material_id) ?? '—', remaining: Number(b.remaining_qty) })),
@@ -47,11 +48,11 @@ export async function loadBlendingOptions(supabase: Supa, locale: string) {
 
     // 合同:读得到的那几份(合同的读规则按客户 / 供应商查看码)与它们的品位规格
     const contracts = mustRows(
-        await supabase.from('contracts').select('id, code, title').order('code', { ascending: false }), 'contracts') as
+        await readAll(() => supabase.from('contracts').select('id, code, title').order('code', { ascending: false }), { label: 'contracts' }), 'contracts') as
         { id: string; code: string; title: string }[]
     const specs = contracts.length === 0 ? [] : mustRows(
-        await supabase.from('contract_grade_specs').select('id, contract_id, metal, min_pct, max_pct, material_id')
-            .in('contract_id', contracts.map((c) => c.id)),
+        await readAllIn(contracts.map((c) => c.id), (__ids) => supabase.from('contract_grade_specs').select('id, contract_id, metal, min_pct, max_pct, material_id')
+            .in('contract_id', __ids), { label: 'contract_grade_specs' }),
         'contract_grade_specs') as { id: string; contract_id: string; metal: string; min_pct: number | null; max_pct: number | null; material_id: string | null }[]
     const contractOptions: ContractOption[] = contracts.map((c) => ({
         id: c.id, code: c.code, title: c.title,

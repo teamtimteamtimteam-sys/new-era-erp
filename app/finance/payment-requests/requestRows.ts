@@ -15,6 +15,7 @@ import type { PaymentRequestRow } from './PaymentRequestsTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -70,7 +71,7 @@ export function requestCount(supabase: Client, filter: string) {
  *   传同一个解析过的筛选(parseRequestFilter 的结果);库里按 statusSet 同一条规矩展开('all' → 不限;其余 → 那一个状态)。
  */
 export async function requestTotals(supabase: Client, filter: string): Promise<ListTotal[]> {
-    return shapeListTotals(mustRows(await supabase.rpc('list_totals_payment_requests', { p_status: filter }), 'payment requests totals'))
+    return shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_payment_requests', { p_status: filter }), { label: 'list_totals_payment_requests', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'payment requests totals'))
 }
 
 export function requestPage(supabase: Client, filter: string, sort: ListSort<RequestSortKey>, from: number, to: number) {
@@ -101,7 +102,7 @@ export async function shapeRequestRows(supabase: Client, rows: RequestDbRow[]): 
     type NameRow = { id: string; legal_name: string }
     // 查名视图:这一页的门是 finance.view,基表挂的是各自模块(FIX-2a 那一课)。
     const names = (view: 'supplier_lookup' | 'employee_lookup' | 'customer_lookup', list: string[]) =>
-        inChunks(list, (chunk) => supabase.from(view).select('id, legal_name').in('id', chunk)
+        inChunks(list, (chunk) => readAllIn(chunk, (__ids) => supabase.from(view).select('id, legal_name').in('id', __ids), { label: 'view' })
             .then(({ data, error }) => ({ error, data: data as unknown as NameRow[] | null })), view)
     const lists = await Promise.all([
         names('supplier_lookup', ids('supplier_id')),

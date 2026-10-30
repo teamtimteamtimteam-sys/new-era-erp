@@ -17,11 +17,11 @@
 --          (trail_row_record)。同一张表挂在两个主语下时(加工投入既属于加工单、也出现在批次上),只有一处是家。
 --   原来旧批次审计记录那 20 支(db/views/batch_audit_trail_all.sql)的每一支都在下面有它的来处 ——
 --   fixture 238 逐行对照两边,少一行就红。
+-- ★ GOLIVE-2(第 13 行):去掉了 SET search_path —— 函数体只是一张常量 VALUES 表、不引用任何对象,不带 SET 的 SQL 函数才能被内联(trail_row_record 每走一跳扫一遍 402 行)。
 CREATE OR REPLACE FUNCTION public.trail_subject_members()
  RETURNS TABLE(subject text, ord integer, table_name text, parent_table text, fk_column text, match jsonb, hop text, shown boolean, home boolean)
  LANGUAGE sql
  IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
 AS $function$
     SELECT * FROM (VALUES
         -- 采购单:明细行 · 付款计划 · 保留金 · 条款承诺 · 签发 · 合同条款 · 审批 · 修改史(Tim 的 AT-1a 范围)

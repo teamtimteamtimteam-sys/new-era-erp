@@ -11,6 +11,7 @@ import { inChunks } from '@/lib/export/serverRows'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -95,13 +96,13 @@ export function myExpensePage(supabase: Client, employeeId: string, sort: ListSo
 // (current_user_employee()),与上面的 .eq('employee_id') 同一个人;不是员工的调用按名拒(本页对他不画这几张表)。
 // 工资单那一支是 DEFINER —— 币种住在只给 hr.view 的 payroll_periods 上(与 my_period_labels 同一个理由)。
 export async function myPayslipTotals(supabase: Client): Promise<ListTotal[]> {
-    return shapeListTotals(mustRows(await supabase.rpc('list_totals_my_payslips'), 'my payslip totals'))
+    return shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_my_payslips'), { label: 'list_totals_my_payslips', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'my payslip totals'))
 }
 export async function myMedicalTotals(supabase: Client): Promise<ListTotal[]> {
-    return shapeListTotals(mustRows(await supabase.rpc('list_totals_my_medical_claims'), 'my medical claim totals'))
+    return shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_my_medical_claims'), { label: 'list_totals_my_medical_claims', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'my medical claim totals'))
 }
 export async function myExpenseTotals(supabase: Client): Promise<ListTotal[]> {
-    return shapeListTotals(mustRows(await supabase.rpc('list_totals_my_expense_claims'), 'my expense claim totals'))
+    return shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_my_expense_claims'), { label: 'list_totals_my_expense_claims', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'my expense claim totals'))
 }
 
 type ItemDb = { id: string; claim_id: string; line_no: number; spend_date: string; amount_ccy: number; description: string; no_receipt_reason: string | null }
@@ -114,12 +115,12 @@ type ItemDb = { id: string; claim_id: string; line_no: number; spend_date: strin
 export async function attachMyExpenseItems<H extends { claim_id: string }>(supabase: Client, headers: H[]) {
     const ids = headers.map((h) => h.claim_id)
     const [items, receipts] = await Promise.all([
-        inChunks(ids, (c) => supabase.from('expense_claim_items')
+        inChunks(ids, (c) => readAllIn(c, (__ids) => supabase.from('expense_claim_items')
             .select('id, claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason')
-            .in('claim_id', c).order('line_no')
+            .in('claim_id', __ids).order('line_no'), { label: 'expense_claim_items' })
             .then(({ data, error }) => ({ error, data: data as ItemDb[] | null })), 'expense_claim_items (me)'),
-        inChunks(ids, (c) => supabase.from('expense_claim_receipts').select('item_id')
-            .in('claim_id', c).eq('status', 'attached')
+        inChunks(ids, (c) => readAllIn(c, (__ids) => supabase.from('expense_claim_receipts').select('item_id')
+            .in('claim_id', __ids).eq('status', 'attached'), { label: 'expense_claim_receipts' })
             .then(({ data, error }) => ({ error, data: data as { item_id: string }[] | null })), 'expense_claim_receipts (me)'),
     ])
     const withReceipt = new Set(receipts.map((r) => r.item_id))

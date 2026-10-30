@@ -19,6 +19,7 @@ import ImportHistoryTable, { type ImportBatchRow } from './ImportHistoryTable'
 import { formatTrailStamp } from '@/lib/dates'
 import ListTrail from '@/app/components/trail/ListTrail'
 import { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 export default async function ImportPage({
     searchParams,
@@ -51,7 +52,7 @@ export default async function ImportPage({
     // 上一版在 error 时返回空数组,于是指南整块消失,读起来像"这张表没什么可说的"。
     // 那正是 lib/permissions.ts 存在的全部理由,换了一块屏幕而已。
     const guideEntries = await Promise.all(IMPORT_TABLES.map(async (tbl) => {
-        const res = await supabase.rpc('master_import_template_columns', { p_table: tbl })
+        const res = await readAll(() => supabase.rpc('master_import_template_columns', { p_table: tbl }), { label: 'master_import_template_columns', key: ['column_name', 'is_required', 'accepted_values'] })
         if (res.error) return [tbl, { status: 'unavailable' as const, cols: [] }] as const
         return [tbl, { status: 'ok' as const, cols: (res.data ?? []) as TemplateColumn[] }] as const
     }))

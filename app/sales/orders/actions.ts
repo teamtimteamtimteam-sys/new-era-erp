@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { mustRows } from '@/lib/db-helpers'
 import { localizeSalesOrderError } from './salesOrderErrorCodes'
 import { localizeInvoiceError } from '@/app/finance/invoiceErrorCodes'
+import { readAll } from '@/lib/readAll'
 
 export type OrderFormState = { error?: string; fieldErrors?: Record<string, string> }
 
@@ -173,10 +174,10 @@ export async function createOrderInvoice(orderId: string, issueDate: string): Pr
 export async function listCustomersAndMaterials() {
     const supabase = await createClient()
     const customers = mustRows(
-        await supabase.from('customers').select('id, code, legal_name').is('deleted_at', null).order('code'),
+        await readAll(() => supabase.from('customers').select('id, code, legal_name').is('deleted_at', null).order('code'), { label: 'customers' }),
         'customers')
     const materials = mustRows(
-        await supabase.from('materials').select('id, code, name').is('deleted_at', null).order('code'),
+        await readAll(() => supabase.from('materials').select('id, code, name').is('deleted_at', null).order('code'), { label: 'materials' }),
         'materials')
     const currencies = mustRows(await supabase.from('currencies').select('code').order('code'), 'currencies')
     return { customers, materials, currencies }

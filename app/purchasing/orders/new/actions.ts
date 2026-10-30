@@ -18,6 +18,7 @@ import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '../../purchasingErrorCodes'
 import { localizePricingError } from '@/app/tools/pricing/pricingErrorCodes'
 import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
+import { readAll } from '@/lib/readAll'
 
 export type CreateOrderState = { error?: string }
 
@@ -292,9 +293,9 @@ async function lookupRate(currency: string, date: string):
     Promise<{ rate?: number; asOf?: string; error?: string }> {
     const t = await getTranslations()
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc('fx_rate_asof', {
+    const { data, error } = await readAll(() => supabase.rpc('fx_rate_asof', {
         p_currency: currency, p_date: date, p_rate_type: 'tt_sell',
-    })
+    }), { label: 'fx_rate_asof', key: ['rate', 'as_of'] })
     if (error) return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: 'tt_sell' }) }
     const row = (data as { rate: number; as_of: string }[] | null)?.[0]
     if (!row || !Number.isFinite(Number(row.rate)) || Number(row.rate) <= 0) {

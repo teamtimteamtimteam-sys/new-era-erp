@@ -14,6 +14,7 @@ import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate, formatAuditStamp } from '@/lib/dates'
 import CodTable, { type CodRow } from './CodTable'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Row = {
     id: string; code: string | null; status: 'pending' | 'issued' | 'void'; completed_on: string; issued_at: string | null
@@ -28,12 +29,12 @@ export default async function CodListPage() {
     const locale = await getLocale()
     const supabase = await createClient()
 
-    const cods = mustRows(await supabase.from('certificates_of_destruction')
+    const cods = mustRows(await readAll(() => supabase.from('certificates_of_destruction')
         .select('id, code, status, completed_on, issued_at, inbound_batch_id, void_reason, created_at')
-        .order('created_at', { ascending: false }).order('id', { ascending: true }), 'certificates_of_destruction') as Row[]
+        .order('created_at', { ascending: false }).order('id', { ascending: true }), { label: 'certificates_of_destruction' }), 'certificates_of_destruction') as Row[]
     const batchIds = [...new Set(cods.map((c) => c.inbound_batch_id))]
     const batches = batchIds.length
-        ? mustRows(await supabase.from('inbound_batches_masked').select('id, code').in('id', batchIds), 'inbound_batches_masked') as { id: string; code: string }[]
+        ? mustRows(await readAllIn(batchIds, (__ids) => supabase.from('inbound_batches_masked').select('id, code').in('id', __ids), { label: 'inbound_batches_masked' }), 'inbound_batches_masked') as { id: string; code: string }[]
         : []
     const batchCode = new Map(batches.map((b) => [b.id, b.code]))
 

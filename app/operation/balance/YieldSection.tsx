@@ -15,6 +15,7 @@ import { fmtKg, fmtPct, num } from '@/lib/massFormat'
 import MassTable, { type MassCell, type MassRow } from './MassTable'
 import { remainderOrder, type labelMaps } from './labels'
 import { xText, xNum, xRestricted, type ExportCell } from '@/lib/export/cells'
+import { readAll } from '@/lib/readAll'
 
 export const YIELD_GROUPS = ['all', 'machine', 'chemistry', 'supplier'] as const
 export type YieldGroup = (typeof YIELD_GROUPS)[number]
@@ -43,12 +44,12 @@ export default async function YieldSection({ supabase, t, labels, month, group }
 }) {
     const monthStart = `${month}-01`
     const [sumRes, runRes] = await Promise.all([
-        supabase.from('processing_yield_summary')
+        readAll(() => supabase.from('processing_yield_summary')
             .select('group_kind, group_key, group_label, group_label_restricted, operation_type_code, line_kind, line_key, recoverable, qty, input_qty, runs, pre_mes4a_runs, yield_pct, expected_yield_pct, below_expected')
-            .eq('month', monthStart).eq('group_kind', group),
-        supabase.from('processing_run_yield')
+            .eq('month', monthStart).eq('group_kind', group), { label: 'processing_yield_summary', key: ['group_kind', 'group_key', 'group_label', 'group_label_restricted', 'operation_type_code', 'month', 'line_kind', 'line_key', 'recoverable', 'qty', 'input_qty', 'runs', 'pre_mes4a_runs', 'yield_pct', 'expected_yield_pct', 'below_expected'] }),
+        readAll(() => supabase.from('processing_run_yield')
             .select('run_id, run_code, operation_type_code, era_mes4a, input_qty, line_kind, line_key, recoverable, qty, yield_pct, expected_yield_pct, below_expected')
-            .eq('month', monthStart).order('run_code'),
+            .eq('month', monthStart).order('run_code'), { label: 'processing_run_yield', key: ['run_id', 'run_code', 'process_date', 'month', 'operation_type_code', 'equipment_id', 'era_mes4a', 'input_qty', 'line_kind', 'line_key', 'recoverable', 'qty', 'yield_pct', 'expected_yield_pct', 'below_expected'] }),
     ])
     const summary = mustRows(sumRes, 'processing_yield_summary') as unknown as YieldLine[]
     const runs = mustRows(runRes, 'processing_run_yield') as unknown as RunLine[]

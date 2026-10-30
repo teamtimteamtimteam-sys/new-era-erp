@@ -1235,10 +1235,11 @@ const EXPECTED = {
     //   (不调任何函数、不写下载记录)。门户会话那一半(200 + 重算的哈希 · 409 · 别家的 404)由线上证明证
     //   (db/scripts/2026-10-19-mes9b-live-proof.mjs)。不写库。
     '/portal/documents/file': [403],
-    // ── MES-9c(2026-10-20,MES-9 Step 0 §5 · V39):门户交一份证书 —— 一个【只收 POST】的 Route Handler(multipart 表单)。冒烟发的是 GET,
-    //   Next 对没有 GET 的路由回 405 —— 那正是它该说的话(一个 200 才是坏了)。POST 那一半(门户会话 · V39 的两种拒绝 · 交上去)由本地重建上的
-    //   HTTP 证明证(db/scripts/2026-10-20-mes9c-local-upload-proof.mjs);员工会话 POST 是 403。不写库。
-    '/portal/certificates/upload': [405],
+    // (MES-9c 的 /portal/certificates/upload 那条只收 POST 的路由,GOLIVE-2 第 9 行删掉了:门户的字节改成从浏览器直传存储,
+    //   见 app/portal/certificates/UploadForm.tsx 与 actions.ts。)
+    // ── GOLIVE-2 第 13 行:变更记录的导出路由 —— 冒烟发的是不带日期的 GET,而 Q7 规定两个日期必填:400 EXPORT_DATES_REQUIRED 正是它该说的话
+    //   (一个 200 才是坏了)。带日期的那一半(计数 · 一个字段一行 · 超过 366 天拒)由线上证明证(db/scripts/2026-10-30-golive-2-live-proof.mjs 的 C)。不写库。
+    '/settings/change-history/export': [400],
     // ── TABLE-EXPORT-2b-1(2026-10-23):/me 上三张表的导出路由 —— 只回【本人】的行,先问"这个会话是不是一位员工"。冒烟的会话是一个
     //   没有员工档案的一次性账号,于是它【必须】被拒:403 EXPORT_DENIED 正是这条路由对它该说的话(一个 200 才是坏了 —— 那意味着
     //   不是员工的人也拿得到一份"我的"清单)。主人那一半(200、只有自己的行、别人的 6 张请假一张都不出现)由线上证明证

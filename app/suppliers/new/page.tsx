@@ -7,6 +7,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import NewSupplierForm, { type TemplateOption } from './NewSupplierForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewSupplierPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -17,12 +18,12 @@ export default async function NewSupplierPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data: templateRows } = await supabase
+    const { data: templateRows } = await readAll(() => supabase
         .from('payment_term_templates')
         .select('id, name')
         .is('deleted_at', null)
         .eq('is_active', true)
-        .order('name')
+        .order('name'), { label: 'payment_term_templates' })
     const templates: TemplateOption[] = templateRows ?? []
 
     return (

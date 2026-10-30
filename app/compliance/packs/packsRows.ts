@@ -12,6 +12,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { PackRow } from './PacksTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { readAllIn } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -61,9 +62,9 @@ export async function shapePackRows(supabase: Client, rows: PackDbRow[]): Promis
     const ids = rows.map((r) => r.id)
     const byIds = rows.map((r) => r.superseded_by).filter((x): x is string => !!x)
     const [issues, coders] = await Promise.all([
-        inChunks(ids, (c) => supabase.from('compliance_pack_issues').select('pack_id, version').in('pack_id', c)
+        inChunks(ids, (c) => readAllIn(c, (__ids) => supabase.from('compliance_pack_issues').select('pack_id, version').in('pack_id', __ids), { label: 'compliance_pack_issues' })
             .then(({ data, error }) => ({ error, data: data as { pack_id: string; version: number }[] | null })), 'compliance_pack_issues'),
-        inChunks(byIds, (c) => supabase.from('compliance_packs').select('id, code').in('id', c)
+        inChunks(byIds, (c) => readAllIn(c, (__ids) => supabase.from('compliance_packs').select('id, code').in('id', __ids), { label: 'compliance_packs' })
             .then(({ data, error }) => ({ error, data: data as { id: string; code: string }[] | null })), 'compliance_packs superseded_by'),
     ])
     const codeById = new Map(coders.map((r) => [r.id, r.code]))

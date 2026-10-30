@@ -21,6 +21,7 @@ import { fmtKg, num } from '@/lib/massFormat'
 import { ListPage } from '@/app/components/ui/list-page'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import { xText, xNum, xDate } from '@/lib/export/cells'
+import { readAll } from '@/lib/readAll'
 
 type Bill = {
     id: string; period_from: string; period_to: string; invoice_ref: string
@@ -46,10 +47,10 @@ export default async function EnergyIntensityPage() {
     const supabase = await createClient()
 
     const [billRes, revRes, inRes] = await Promise.all([
-        supabase.from('electricity_allocations_masked')
+        readAll(() => supabase.from('electricity_allocations_masked')
             .select('id, period_from, period_to, invoice_ref, bill_kwh, metered_kwh, unmetered_kwh')
-            .order('period_from', { ascending: false }),
-        supabase.from('electricity_allocation_reversals_masked').select('allocation_id'),
+            .order('period_from', { ascending: false }), { label: 'electricity_allocations_masked' }),
+        readAll(() => supabase.from('electricity_allocation_reversals_masked').select('allocation_id'), { label: 'electricity_allocation_reversals_masked' }),
         supabase.from('processing_balance_monthly').select('month, qty').eq('scope', 'plant').eq('line', 'input'),
     ])
     const reversed = new Set((mustRows(revRes, 'electricity_allocation_reversals_masked') as { allocation_id: string }[]).map((r) => r.allocation_id))

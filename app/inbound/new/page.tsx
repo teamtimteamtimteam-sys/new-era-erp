@@ -13,6 +13,7 @@ import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { loadShareableTickets } from '../ticketQuery'
 import { getBaseCurrency, getCurrencyCodes } from '@/lib/currency'
 import { can, receiptPricingGate } from '@/lib/permissions'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewInboundPage({
     searchParams,
@@ -52,12 +53,12 @@ export default async function NewInboundPage({
     // 与紧邻的 poLines / locationChoices 早就在用的写法逐字相同。
     // ════════════════════════════════════════════════════════════════════
     const [materialsRes, suppliersRes, poLinesRes, blockedRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
-            .order('name'),
-        supabase
+            .order('name'), { label: 'material_lookup' }),
+        readAll(() => supabase
             // SUP-TYPE-1b:【只列供货的供应商】。1a 之后 guard_inbound_supplier_supplies_goods
             // 会按名拒绝往非供货往来户名下收货(RECEIPT_AGAINST_NON_GOODS_VENDOR),
             // 而这个下拉此前把每一家在册供应商都摆出来 —— 那正是 AGENTS.md 禁的
@@ -68,18 +69,18 @@ export default async function NewInboundPage({
             .select('id, code, legal_name')
             .is('deleted_at', null)
             .eq('supplies_goods', true)
-            .order('legal_name'),
-        supabase
+            .order('legal_name'), { label: 'supplier_lookup' }),
+        readAll(() => supabase
             .from('po_receivable_lines_lookup')   // FIX-1 item 3:十列、无价,见迁移 2026-09-05-fix1
             .select('po_id, po_code, supplier_id, order_date, line_id, line_no, material_id, material_name, remaining_qty, unit')
             .order('po_code')
-            .order('line_no'),
+            .order('line_no'), { label: 'po_receivable_lines_lookup', key: ['po_id', 'po_code', 'supplier_id', 'order_date', 'line_id', 'line_no', 'material_id', 'material_name', 'unit', 'remaining_qty'] }),
         // CMP-2:收货会被证书拦截的供应商 —— 问数据库,不在 JS 里复算触发器的谓词
         // (视图与 guard_inbound_po_receivable 同一份谓词,fixture 37F 钉一致)。
         // 表单据此把"为什么点不动"写在按钮旁,服务端触发器仍是独立的那道拒绝。
-        supabase
+        readAll(() => supabase
             .from('supplier_receiving_blocked')
-            .select('supplier_id, supplier_code, cert_type_code, name_en, name_zh, valid_until'),
+            .select('supplier_id, supplier_code, cert_type_code, name_en, name_zh, valid_until'), { label: 'supplier_receiving_blocked', key: ['supplier_id', 'supplier_code', 'cert_type_code', 'name_en', 'name_zh', 'valid_until'] }),
     ])
 
     if (materialsRes.error || suppliersRes.error || poLinesRes.error || blockedRes.error) {

@@ -12,6 +12,7 @@ import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import SparePartsTable, { type SparePartRow } from './SparePartsTable'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     inbound_batch_id: string; batch_code: string; material_id: string; material_code: string; material_name: string; unit: string
@@ -26,9 +27,9 @@ export default async function SparePartsPage() {
     const locale = await getLocale()
     const supabase = await createClient()
 
-    const stock = mustRows(await supabase.from('spare_part_stock')
+    const stock = mustRows(await readAll(() => supabase.from('spare_part_stock')
         .select('inbound_batch_id, batch_code, material_id, material_code, material_name, unit, available_qty, remaining_qty, priced, hold_ncr_code, arrival_date')
-        .order('material_code', { ascending: true }).order('batch_code', { ascending: true }), 'spare_part_stock') as Row[]
+        .order('material_code', { ascending: true }).order('batch_code', { ascending: true }), { label: 'spare_part_stock', key: ['inbound_batch_id', 'batch_code', 'material_id', 'material_code', 'material_name', 'unit', 'available_qty', 'remaining_qty', 'priced', 'pricing_status', 'hold_ncr_code', 'arrival_date'] }), 'spare_part_stock') as Row[]
 
     const rows: SparePartRow[] = stock.map((r) => ({
         batchId: r.inbound_batch_id,

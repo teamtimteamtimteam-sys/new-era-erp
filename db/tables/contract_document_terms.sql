@@ -98,3 +98,11 @@ COMMENT ON COLUMN public.contract_document_terms.pricing_terms IS
 
 COMMENT ON COLUMN public.contract_document_terms.settlement_terms IS
     'SETTLE-1:挂上去那一刻抄下来的**结算口径**快照 —— 一个**对象**(一份合同一套口径),里面装 contract_settlement_terms 那一行的值,**外加**它两张子表的行(精炼费 / 惩罚元素)。**三样一起冻**,因为结算靠它们一起算钱,而分开冻会让「我按哪一份算的」变成三个不同的时刻。**空对象 {} 合法**(合同可以没有结算口径),NULL 不合法 —— **「没有口径」与「没抄」必须分得开**。冻结的时刻与品位规格、计价条款相同:**挂接那一刻**,不是下单那一刻(回填挂接是正当的,见 pricing_terms 那条注释)。';
+
+-- ★ GOLIVE-2(Tim 2026-10-30 Q4):副本里的价格不再随行一起给 —— 列级 SELECT 授权只列不带价格的那些;pricing_terms 与 settlement_terms
+--   只经 contract_document_terms_masked 读(三样价格按副本那一侧的码置空:销售单 data.view_prices,采购单 data.view_purchase_prices)。
+--   anon 什么都不给(此前它留着默认授权,只是策略只给 authenticated 所以读到 0 行;db/anon-grants-baseline.tsv 同一个提交收掉那一行)。
+--   写的表级授权不变(本来就没有写策略,唯一写入口是 link_document_to_contract)。加列时记得同一支迁移里补进列清单(AGENTS.md)。
+REVOKE SELECT ON public.contract_document_terms FROM authenticated, anon;
+REVOKE ALL ON public.contract_document_terms FROM anon;
+GRANT SELECT (id, purchase_order_id, sales_order_id, contract_id, contract_code, contract_title, incoterm, currency, payment_terms_days, grade_specs, linked_at, linked_by) ON public.contract_document_terms TO authenticated;

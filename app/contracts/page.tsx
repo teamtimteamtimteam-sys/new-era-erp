@@ -30,6 +30,7 @@ import { Suspense } from 'react'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
 import { filteredListHref } from '@/lib/savedViews'
+import { readAll } from '@/lib/readAll'
 
 type Contract = {
     id: string; code: string; side: string; kind: string; title: string
@@ -79,30 +80,30 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
     const t = await getTranslations()
 
     const contracts = mustRows(
-        await supabase.from('contracts')
+        await readAll(() => supabase.from('contracts')
             .select('id, code, side, kind, title, effective_from, effective_to, status, currency, incoterm, payment_terms_days, customer_id, supplier_id')
-            .is('deleted_at', null).order('effective_from', { ascending: false }),
+            .is('deleted_at', null).order('effective_from', { ascending: false }), { label: 'contracts' }),
         'contracts') as Contract[]
     const cov = mustOne(await supabase.from('contract_coverage').select('*').single()) as unknown as Coverage
     const breaches = mustRows(
-        await supabase.from('contract_grade_breaches').select('*').order('purchase_order_code'),
+        await readAll(() => supabase.from('contract_grade_breaches').select('*').order('purchase_order_code'), { label: 'contract_grade_breaches', key: ['purchase_order_id', 'purchase_order_code', 'contract_id', 'contract_code', 'inbound_batch_id', 'inbound_batch_code', 'assay_result_id', 'assay_date', 'metal', 'content_pct', 'min_pct', 'max_pct', 'breach_side'] }),
         'contract_grade_breaches') as Breach[]
     // PRICE-1:计价条款、开市日历、以及【标了指数的报价有几条】。
     // 三样都读出来,是因为这一页要能回答"为什么均价现在算不出来" ——
     // 而那个答案有三种,它们【必须分得开】(见下面那三段具名的缺席)。
     const pricingTerms = mustRows(
         // ★ GOLIVE-1 第 12 行(Tim Q9):价格那一格只经遮蔽伴生视图读(payable_pct 按合同那一侧的价格码置空)
-        await supabase.from('contract_pricing_terms_masked')
+        await readAll(() => supabase.from('contract_pricing_terms_masked')
             .select('contract_id, metal, base_event, qp_months, index_code, payable_pct')
-            .order('metal'),
+            .order('metal'), { label: 'contract_pricing_terms_masked' }),
         'contract_pricing_terms_masked') as PricingTerm[]
     const calendar = mustRows(
-        await supabase.from('index_market_calendar')
+        await readAll(() => supabase.from('index_market_calendar')
             .select('index_code, calendar_date, is_trading_day')
-            .order('index_code').order('calendar_date'),
+            .order('index_code').order('calendar_date'), { label: 'index_market_calendar', key: ['index_code', 'calendar_date', 'is_trading_day', 'note', 'created_at', 'created_by', 'updated_at', 'updated_by'] }),
         'index_market_calendar') as CalRow[]
     const quotesTotal = mustRows(
-        await supabase.from('metal_prices').select('price_index').is('deleted_at', null),
+        await readAll(() => supabase.from('metal_prices').select('price_index').is('deleted_at', null), { label: 'metal_prices' }),
         'metal_prices') as { price_index: string | null }[]
     const quotesTagged = quotesTotal.filter((q) => q.price_index !== null).length
     const calByIndex = new Map<string, CalRow[]>()
@@ -112,24 +113,24 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
     }
     // SETTLE-1:结算口径、它两张子表的条数、以及已记录的结算。
     const settleTerms = mustRows(
-        await supabase.from('contract_settlement_terms')
-            .select('contract_id, sale_weight_basis, settling_party, splitting_limit_pct, sample_retention_required, refining_charge_basis, penalty_basis'),
+        await readAll(() => supabase.from('contract_settlement_terms')
+            .select('contract_id, sale_weight_basis, settling_party, splitting_limit_pct, sample_retention_required, refining_charge_basis, penalty_basis'), { label: 'contract_settlement_terms' }),
         'contract_settlement_terms') as SettleTerm[]
     const rcRows = mustRows(
-        await supabase.from('contract_refining_charges_masked').select('contract_id'),
+        await readAll(() => supabase.from('contract_refining_charges_masked').select('contract_id'), { label: 'contract_refining_charges_masked' }),
         'contract_refining_charges') as { contract_id: string }[]
     const penRows = mustRows(
-        await supabase.from('contract_penalty_elements_masked').select('contract_id'),
+        await readAll(() => supabase.from('contract_penalty_elements_masked').select('contract_id'), { label: 'contract_penalty_elements_masked' }),
         'contract_penalty_elements') as { contract_id: string }[]
     const settlements = mustRows(
         // ★ GOLIVE-1 第 12 行(Tim Q9):结算金额按 data.view_prices 遮 —— 只经 sales_settlements_masked 读
-        await supabase.from('sales_settlements_masked')
+        await readAll(() => supabase.from('sales_settlements_masked')
             .select('id, sales_order_id, settling_party_used, weight_basis_used, amount_usd')
-            .is('superseded_by', null),
+            .is('superseded_by', null), { label: 'sales_settlements_masked' }),
         'sales_settlements_masked') as Settlement[]
     // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):结算表的表尾合计,由库算(list_totals_settlements)。这张表的读策略要
     //   module.customers.view,而本页的门是 suppliers.view —— 不持前者的读者读到零行,合计回一行「受限」。
-    const settlementTotals = shapeListTotals(mustRows(await supabase.rpc('list_totals_settlements'), 'settlement totals'))
+    const settlementTotals = shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_settlements'), { label: 'list_totals_settlements', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'settlement totals'))
     const settlementsRestricted = settlementTotals.some((x) => x.restricted)
     const rcCount = new Map<string, number>()
     for (const r of rcRows) rcCount.set(r.contract_id, (rcCount.get(r.contract_id) ?? 0) + 1)
@@ -141,9 +142,9 @@ export default async function ContractsPage({ searchParams }: { searchParams: Pr
     const orderToContract = new Map<string, string>()
     for (const c of contracts) { /* 下面用 contract_document_terms 补 */ void c }
     const docTerms = mustRows(
-        await supabase.from('contract_document_terms')
+        await readAll(() => supabase.from('contract_document_terms_masked')
             .select('sales_order_id, contract_id, contract_code')
-            .not('sales_order_id', 'is', null),
+            .not('sales_order_id', 'is', null), { label: 'contract_document_terms_masked' }),
         'contract_document_terms') as { sales_order_id: string; contract_id: string; contract_code: string }[]
     const orderMeta = new Map<string, { contract_id: string; contract_code: string }>()
     for (const d of docTerms) orderMeta.set(d.sales_order_id, { contract_id: d.contract_id, contract_code: d.contract_code })

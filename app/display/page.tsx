@@ -14,6 +14,7 @@ import { isFloorDisplayOnly } from '@/lib/floorDisplay'
 import { toBusinessDateTime } from '@/lib/dates'
 import RefreshControls from './RefreshControls'
 import DisplaySettingsPanel from './DisplaySettingsPanel'
+import { readAll } from '@/lib/readAll'
 
 type Tile = { section: 'processing' | 'safety' | 'inventory'; item_type: string; count: number }
 type Board = { as_of: string; tiles: Tile[]; refresh_seconds: number | null; settings_set: boolean }
@@ -39,7 +40,7 @@ export default async function DisplayPage() {
     let settings: { arms: { item_type: string; label: string }[]; tiles: string[] | null; canEdit: boolean } | null = null
     if (!floorSession) {
         const [armsRes, settingsRes, canEdit] = await Promise.all([
-            supabase.rpc('floor_board_arms'),
+            readAll(() => supabase.rpc('floor_board_arms'), { label: 'floor_board_arms', key: ['item_type', 'section', 'sort_order'] }),
             supabase.from('floor_board_settings').select('refresh_seconds, tiles').maybeSingle(),
             can('action.manage_permissions'),
         ])

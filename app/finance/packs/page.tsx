@@ -25,6 +25,7 @@ import { formatAuditStamp } from '@/lib/dates'
 import { Suspense } from 'react'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
+import { readAll } from '@/lib/readAll'
 
 function monthOf(v: string | undefined): string {
     // 【只认 YYYY-MM;认不出就用上个月】上个月是"最可能已经关账"的那一个,
@@ -50,9 +51,9 @@ export default async function PacksPage({
     const t = await getTranslations()
 
     const [packsRes, previewRes] = await Promise.all([
-        supabase.from('management_packs')
+        readAll(() => supabase.from('management_packs')
             .select('id, code, period_month, produced_at, locked_before_at_production, superseded_at, superseded_by, superseded_reason')
-            .order('period_month', { ascending: false }).order('produced_at', { ascending: false }),
+            .order('period_month', { ascending: false }).order('produced_at', { ascending: false }), { label: 'management_packs' }),
         // 【预览与存档读的是同一支函数】—— 屏幕上看到的与冻下来的不可能是两个数。
         supabase.rpc('management_pack_data', { p_period_month: `${month}-01` }),
     ])

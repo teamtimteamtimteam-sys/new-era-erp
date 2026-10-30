@@ -1,0 +1,9 @@
+VERDICTS {"paged":50,"head":76,"helper":451,"one":292,"parent":206,"scalar":474,"bounded":292,"capped":63,"write":130,"exempt":7,"later":1}
+HELPER {"from":375,"rpc":76,"readAll":329,"readAllIn":122}
+EXEMPT app/components/inventory/StockStatusPanel.tsx:58 stock_by_status — one batch's stock by location and status — a handful of rows per batch, never a thousand
+EXEMPT app/contracts/[id]/actions.ts:94 spec.dbTable as 'contract_grade_specs' — a write builder (the insert / update right below), not a read
+EXEMPT app/hr/leave/leaveRows.ts:82 leave_requests_masked — a builder factory — every caller pages it with .range (leavePage below, the export route through it)
+EXEMPT app/inventory/reports/ledger/ledgerQuery.ts:113 inventory_movements — a builder factory — ledgerCount asks it for a count (head) and ledgerSidePage pages it with .range
+EXEMPT app/inventory/scan/actions.ts:19 stock_by_status — one batch's stock by location and status — a handful of rows per batch, never a thousand
+EXEMPT app/settings/change-history/export/route.ts:92 fn as never — change_log_page returns ONE jsonb (the row cap cannot cut it); change_log_rows is only called with p_row_limit 100
+EXEMPT app/settings/change-history/page.tsx:117 fn as never — change_log_page returns ONE jsonb (the row cap cannot cut it); change_log_rows is only called with p_row_limit 100

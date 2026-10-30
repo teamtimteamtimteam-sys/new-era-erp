@@ -38,6 +38,12 @@ LANGUAGE sql AS $f$
                       CASE WHEN p_user IS NULL THEN '' ELSE format('{"sub":"%s","role":"authenticated"}', p_user) END, true)
 $f$;
 
+-- GOLIVE-2(Tim 2026-10-30 Q5):sale_settlement_compute 的 authenticated EXECUTE 收回,它从此只在 record_sale_settlement(SECURITY DEFINER)
+--   的函数体里以属主身份跑。这一支要证的是它的【按名拒绝】(与读者是谁无关的那几条),所以读者那一侧的调用走这个属主身份的小壳 ——
+--   与 record_sale_settlement 给它的是同一个上下文(属主 + 读者的 claims)。直接调被拒那一件由 fixture 304 的 F / G 证。
+CREATE FUNCTION pg_temp.f261_compute(p_so uuid, p_ob uuid, p_as uuid) RETURNS jsonb LANGUAGE sql SECURITY DEFINER
+    AS $c$ SELECT public.sale_settlement_compute(p_so, p_ob, p_as) $c$;
+
 CREATE FUNCTION pg_temp.f261_do(p_user uuid, p_sql text) RETURNS text
 LANGUAGE plpgsql AS $f$
 DECLARE v_prev text := NULLIF(current_setting('request.jwt.claims', true), '');
@@ -368,13 +374,13 @@ BEGIN
     INSERT INTO assay_results (code, output_batch_id, assay_date, is_final, weight_basis, moisture_pct, result_party, lab_name)
     VALUES ('ZZ261-OB1-CP', ob1, DATE '2026-09-15', true, 'dry', 10, 'counterparty', 'ZZ261-BUY') RETURNING id INTO p1;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (o1, 'ni', 20), (p1, 'ni', 20.3);
-    v_msg := pg_temp.f261_do(u_all, format($q$SELECT sale_settlement_compute(%L, %L, %L)$q$, so1, ob1, o1));
+    v_msg := pg_temp.f261_do(u_all, format($q$SELECT pg_temp.f261_compute(%L, %L, %L)$q$, so1, ob1, o1));
     IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 261 SELL: setup — within the 0.5 limit the settlement computes, got %', v_msg; END IF;
     v_j := pg_temp.f261_get(u_qe, format($q$SELECT open_assay_dispute(%L, %L, 'buyer contests nickel', %L)$q$, o1, p1, so1));
     dS := (v_j ->> 'dispute_id')::uuid;
     IF (v_j ->> 'limit_pct_at')::numeric IS DISTINCT FROM 0.5 OR (v_j ->> 'fee_rule_at') IS DISTINCT FROM 'equal' THEN
         RAISE EXCEPTION 'FIXTURE 261 SELL: the sell-side dispute copies the limit and the fee rule from the sales order''s contract snapshot, got %', v_j; END IF;
-    v_msg := pg_temp.f261_do(u_all, format($q$SELECT sale_settlement_compute(%L, %L, %L)$q$, so1, ob1, o1));
+    v_msg := pg_temp.f261_do(u_all, format($q$SELECT pg_temp.f261_compute(%L, %L, %L)$q$, so1, ob1, o1));
     IF v_msg NOT LIKE format('ASSAY_DISPUTE_OPEN|ZZ261-OB1|%s', dS) THEN
         RAISE EXCEPTION 'FIXTURE 261 SELL: settlement is refused by name while the dispute is open, got %', v_msg; END IF;
     v_msg := pg_temp.f261_do(u_qe, format($q$SELECT open_assay_dispute(%L, %L, 'x', %L)$q$, a1, c1, so1));

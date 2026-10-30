@@ -16,6 +16,7 @@ import ContainersTable, { type ContainerRow } from './ContainersTable'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll } from '@/lib/readAll'
 
 export default async function ContainersPage() {
     const locale = await getLocale()
@@ -27,7 +28,7 @@ export default async function ContainersPage() {
     const t = await getTranslations()
 
     const rows = mustRows(
-        await supabase.from('container_overview').select('*').order('departure_date', { ascending: false }),
+        await readAll(() => supabase.from('container_overview').select('*').order('departure_date', { ascending: false }), { label: 'container_overview' }),
         'container_overview'
     )
     const ports = mustRows(
@@ -39,8 +40,8 @@ export default async function ContainersPage() {
         'lanes'
     )
     const forwarders = mustRows(
-        await supabase.from('supplier_lookup').select('id, legal_name')
-            .eq('counterparty_type', 'forwarder').is('deleted_at', null).order('legal_name'),
+        await readAll(() => supabase.from('supplier_lookup').select('id, legal_name')
+            .eq('counterparty_type', 'forwarder').is('deleted_at', null).order('legal_name'), { label: 'supplier_lookup' }),
         'forwarders'
     )
     const portName = new Map(ports.map((p) => [p.id as string, `${p.code} ${p.name}`]))

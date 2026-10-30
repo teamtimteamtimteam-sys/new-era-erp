@@ -29,6 +29,7 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAll } from '@/lib/readAll'
 
 export default async function QuotePage({ params, searchParams }: {
     params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
@@ -92,8 +93,8 @@ export default async function QuotePage({ params, searchParams }: {
         'qt_issues') as { version: number; sha256: string; issued_at: string }[]
 
     const materials = mustRows(
-        await supabase.from('materials').select('id, code, name')
-            .is('deleted_at', null).order('code'),
+        await readAll(() => supabase.from('materials').select('id, code, name')
+            .is('deleted_at', null).order('code'), { label: 'materials' }),
         'materials') as unknown as { id: string; code: string; name: string }[]
 
     const canEdit = await can('module.sales.edit')

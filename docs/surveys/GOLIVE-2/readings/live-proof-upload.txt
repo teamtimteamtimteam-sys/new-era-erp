@@ -1,0 +1,23 @@
+STEP|base http://localhost:3196
+SELECT1|before the portal reader client round trips 608 / 409 / 819 / 1105 / 1046 ms (median 819) · server execution 0.03 ms
+HEALTH|before the portal reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|V39 (account_settings, as postgres): max 10485760 bytes · types application/pdf,image/jpeg,image/png
+PASS|U /portal/certificates (HTTP 200): the page states "Up to 10 MB per file. Accepted file types: PDF · JPEG · PNG." — V39 says 10485760 bytes
+PASS|U layout 1440px /portal/certificates: page 1440px wide in a 1440px window — no sideways scroll
+REQFAILED|GET http://localhost:3196/portal?_rsc=e16qZnLqcg_fkw7v net::ERR_ABORTED
+PASS|U layout 390px /portal/certificates: page 390px wide in a 390px window — no sideways scroll
+REQFAILED|GET http://localhost:3196/portal?_rsc=e16qZnLqcg_fkw7v net::ERR_ABORTED
+REQFAILED|GET http://localhost:3196/portal?_rsc=e16qZnLqcg_fkw7v net::ERR_ABORTED
+PASS|U the upload form is the direct-to-storage one (data-upload-path="direct"); the old multipart route is gone
+REQFAILED|GET http://localhost:3196/portal?_rsc=e16qZnLqcg_fkw7v net::ERR_ABORTED
+PASS|U an 11 MB file (11,534,336 bytes) → ?error=PORTAL_UPLOAD_TOO_LARGE; storage requests 0; submission rows 0 — refused before a byte was stored
+PASS|U a 9441505-byte PDF → landed on ?submitted=1 (notice "ok") in 49.5 s
+PASS|U bytes went browser → storage: storage POST portal-uploads/08e91023-0dc0-4254-8068-1a9e5f686fac/3ab11702-d693-43c5-bf52-a8c4653a47d0.pdf; requests to the app 3, largest body 163 bytes (< 65,536)
+STEP|database as postgres: 1 submission row(s): submitted|9441505|application/pdf|08e91023-0dc0-4254-8068-1a9e5f686fac/3ab11702-d693-43c5-bf52-a8c4653a47d0.pdf|9441505
+PASS|U one submission, status submitted, file_size 9441505, stored object 9441505 bytes at the registered path — registered and confirmed
+SELECT1|after the portal reader client round trips 818 / 425 / 390 / 386 / 587 ms (median 425) · server execution 0.661 ms
+HEALTH|after the portal reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+AFTER|committed on live by this run: the throwaway supplier, contact, portal account and link, one certificate submission and its stored object, and the throwaway staff clones with their roles and grants — every one of them on the cleanup plan; nothing else was pressed
+GL2_PROOF_EXIT=0
+GL2_RUN_EXIT=0

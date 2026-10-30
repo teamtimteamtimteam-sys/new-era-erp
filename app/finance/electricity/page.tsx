@@ -26,6 +26,7 @@ import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import SharedPoolRulePanel from './SharedPoolRulePanel'
 import { xText, xMoney, xMasked } from '@/lib/export/cells'
 import { shapeListTotals } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type AllocRow = {
     id: string; period_from: string; period_to: string; bill_date: string; invoice_ref: string; currency: string
@@ -44,20 +45,20 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
     ])
 
     const [allocRes, settingsRes, revRes, totalsRes] = await Promise.all([
-        supabase.from('electricity_allocations_masked')
+        readAll(() => supabase.from('electricity_allocations_masked')
             .select('id, period_from, period_to, bill_date, invoice_ref, currency, bill_amount, bill_kwh, metered_kwh, allocated_kwh, allocated_amount, overhead_amount, relieved_estimate_count, payment_status, expense_id')
-            .order('period_from', { ascending: false }),
+            .order('period_from', { ascending: false }), { label: 'electricity_allocations_masked' }),
         supabase.from('electricity_settings').select('shared_pool_rule').maybeSingle(),
-        supabase.from('electricity_allocation_reversals_masked').select('allocation_id'),
+        readAll(() => supabase.from('electricity_allocation_reversals_masked').select('allocation_id'), { label: 'electricity_allocation_reversals_masked' }),
         // TABLE-FEATURES-2(Tim Q1 · Q2):表尾合计,库算 —— 撤回过的分摊排除;没有价格码时三格都读「受限」
-        supabase.rpc('list_totals_electricity'),
+        readAll(() => supabase.rpc('list_totals_electricity'), { label: 'list_totals_electricity', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }),
     ])
     const allocTotals = shapeListTotals(mustRows(totalsRes, 'electricity totals'))
     const allocs = mustRows(allocRes, 'electricity_allocations_masked') as AllocRow[]
     const settings = mustOne(settingsRes, 'electricity_settings') as { shared_pool_rule: string | null } | null
     const reversed = new Set((mustRows(revRes, 'electricity_allocation_reversals_masked') as { allocation_id: string }[]).map((r) => r.allocation_id))
     const expIds = [...new Set(allocs.map((a) => a.expense_id))]
-    const exps = expIds.length ? mustRows(await supabase.from('expenses').select('id, code').in('id', expIds), 'expenses') as { id: string; code: string }[] : []
+    const exps = expIds.length ? mustRows(await readAllIn(expIds, (__ids) => supabase.from('expenses').select('id, code').in('id', __ids), { label: 'expenses' }), 'expenses') as { id: string; code: string }[] : []
     const expCode = new Map(exps.map((e) => [e.id, e.code]))
     const money = (v: number | null) => <MaskedValue value={v === null ? null : formatAmount(Number(v), baseCurrency)} canView={showPrices} fallback="—" />
 
@@ -93,9 +94,9 @@ export default async function ElectricityPage({ searchParams }: { searchParams: 
     let poolMeters: number | null = null
     if (canSeeDevices) {
         const [mRes, rRes, eqRes] = await Promise.all([
-            supabase.from('devices').select('id, code, name, equipment_id, retired_at').eq('kind', 'meter').order('code'),
-            supabase.from('meter_readings_current').select('device_id, read_at, register_kwh').order('read_at', { ascending: false }),
-            supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description'),
+            readAll(() => supabase.from('devices').select('id, code, name, equipment_id, retired_at').eq('kind', 'meter').order('code'), { label: 'devices' }),
+            readAll(() => supabase.from('meter_readings_current').select('device_id, read_at, register_kwh').order('read_at', { ascending: false }), { label: 'meter_readings_current' }),
+            readAll(() => supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
         ])
         const meters = mustRows(mRes, 'devices') as { id: string; code: string; name: string; equipment_id: string | null; retired_at: string | null }[]
         const reads = mustRows(rRes, 'meter_readings_current') as { device_id: string; read_at: string; register_kwh: number }[]

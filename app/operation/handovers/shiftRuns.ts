@@ -14,6 +14,7 @@ import 'server-only'
 import { mustRows } from '@/lib/db-helpers'
 import { formatDateTime } from '@/lib/dates'
 import type { createClient } from '@/lib/supabase/server'
+import { readAll } from '@/lib/readAll'
 
 export type ShiftRun = {
     id: string
@@ -34,10 +35,10 @@ export async function readShiftRuns(
     supabase: Awaited<ReturnType<typeof createClient>>, shiftCode: string, date: string, locale: string,
 ): Promise<ShiftRuns> {
     const [runRes, noShiftRes, opRes] = await Promise.all([
-        supabase.from('processing_runs_masked')
+        readAll(() => supabase.from('processing_runs_masked')
             .select('id, code, operation_type_code, started_at, ended_at, total_input, total_output, loss_qty, status')
             .eq('shift_code', shiftCode).eq('process_date', date).is('deleted_at', null)
-            .order('started_at', { ascending: true }).order('code'),
+            .order('started_at', { ascending: true }).order('code'), { label: 'processing_runs_masked' }),
         supabase.from('processing_runs_masked').select('id', { count: 'exact', head: true })
             .is('shift_code', null).eq('process_date', date).is('deleted_at', null),
         supabase.from('operation_types').select('code, name_en, name_zh'),

@@ -34,6 +34,7 @@ import {
     weighingExports, weighingLookups,
     PENDING_SORT, RECENT_SORT, RECENT_SORT_PREFIX, parsePendingSort, parseRecentSort, pendingExportHref, recentExportHref,
 } from './captureRows'
+import { readAll } from '@/lib/readAll'
 
 type Device = { id: string; code: string; name: string; kind: string; retired_at: string | null }
 
@@ -59,8 +60,8 @@ export default async function CapturePage({
     const [draftRes, draftTotalRes, devRes, openRes, wRes, wTotalRes, receivedRes] = await Promise.all([
         pendingPage(supabase, pendingSort, 0, PENDING_SHOWN - 1),
         pendingCount(supabase),
-        supabase.from('devices').select('id, code, name, kind, retired_at').order('code'),
-        supabase.from('weighbridge_ticket_weights').select('ticket_id, code, direction, vehicle_reg, status').eq('status', 'open').order('code'),
+        readAll(() => supabase.from('devices').select('id, code, name, kind, retired_at').order('code'), { label: 'devices' }),
+        readAll(() => supabase.from('weighbridge_ticket_weights').select('ticket_id, code, direction, vehicle_reg, status').eq('status', 'open').order('code'), { label: 'weighbridge_ticket_weights', key: ['ticket_id', 'code', 'direction', 'vehicle_reg', 'notes', 'created_at', 'created_by', 'completed_at', 'voided_at', 'void_reason', 'status', 'gross_weighing_id', 'gross_kg', 'gross_at', 'tare_weighing_id', 'tare_kg', 'tare_at', 'net_kg', 'shared_kg', 'difference_kg', 'share_count', 'deleted_receipt_shares'] }),
         recentPage(supabase, recentSort, 0, RECENT_SHOWN - 1),
         recentCount(supabase),
         supabase.from('ingest_inbox').select('id', { count: 'exact', head: true }).eq('status', 'received'),

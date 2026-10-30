@@ -21,6 +21,7 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     id: string
@@ -59,6 +60,8 @@ export default async function TrainingPage({
     in90Date.setDate(in90Date.getDate() + 90) // "即将到期" = 90 天内,与 hr_alerts 同档
     const in90 = in90Date.toISOString().slice(0, 10)
 
+    type PageableRows = PromiseLike<{ data: unknown; error: { message: string } | null }> &
+        { range(from: number, to: number): PromiseLike<{ data: unknown; error: { message: string } | null }> }
     interface Chain {
         eq(c: string, v: string): Chain
         lt(c: string, v: string): Chain
@@ -67,18 +70,20 @@ export default async function TrainingPage({
         is(c: string, v: null): Chain
         not(c: string, op: string, v: null): Chain
     }
-    let query = supabase
-        .from('training_records')
-        .select('id, training_name, category, completed_date, expiry_date, provider, certificate_ref, employees(id, code, legal_name)')
-        .is('deleted_at', null) as unknown as Chain
-    if (category) query = query.eq('category', category)
-    if (expiry === 'expired') query = query.not('expiry_date', 'is', null).lt('expiry_date', today)
-    else if (expiry === 'soon') query = query.gte('expiry_date', today).lte('expiry_date', in90)
-    else if (expiry === 'none') query = query.is('expiry_date', null)
-
-    const { data } = await (query as unknown as {
-        order(c: string, o: { ascending: boolean }): Promise<{ data: Row[] | null }>
-    }).order('completed_date', { ascending: false })
+    // GOLIVE-2 第 10 行:培训记录只会越积越多 —— 一律翻页读(lib/readAll.ts);整条查询(筛选 + 排序)在回调里现建,每一页一次
+    const { data } = await readAll(() => {
+        let query = supabase
+            .from('training_records')
+            .select('id, training_name, category, completed_date, expiry_date, provider, certificate_ref, employees(id, code, legal_name)')
+            .is('deleted_at', null) as unknown as Chain
+        if (category) query = query.eq('category', category)
+        if (expiry === 'expired') query = query.not('expiry_date', 'is', null).lt('expiry_date', today)
+        else if (expiry === 'soon') query = query.gte('expiry_date', today).lte('expiry_date', in90)
+        else if (expiry === 'none') query = query.is('expiry_date', null)
+        // Chain 只是为了在筛选那几步里不让 supabase 的泛型把 tsc 撑爆;交回 readAll 的仍是那个真的 builder(它有 .range)
+        return (query as unknown as { order(c: string, o: { ascending: boolean }): PageableRows })
+            .order('completed_date', { ascending: false })
+    }, { label: 'training_records' })
 
     const rows = (data as unknown as Row[] | null) ?? []
 

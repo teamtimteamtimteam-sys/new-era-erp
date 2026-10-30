@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { formatDate } from '@/lib/dates'
+import { readAll } from '@/lib/readAll'
 
 type PrintRow = { printed_at: string; is_reprint: boolean; reprint_reason: string | null; page_size: string; copies: number }
 
@@ -20,8 +21,8 @@ export default async function LabelPrintHistory({ kind, id, locale }: {
     const supabase = await createClient()
     const col = kind === 'inbound_batch' ? 'inbound_batch_id' : kind === 'output_batch' ? 'output_batch_id' : 'storage_location_id'
     const href = kind === 'inbound_batch' ? `/inbound/${id}/label` : kind === 'output_batch' ? `/output/${id}/label` : `/inventory/locations/${id}/label`
-    const rows = mustRows(await supabase.from('label_prints').select('printed_at, is_reprint, reprint_reason, page_size, copies')
-        .eq(col, id).order('printed_at'), 'label_prints') as PrintRow[]
+    const rows = mustRows(await readAll(() => supabase.from('label_prints').select('printed_at, is_reprint, reprint_reason, page_size, copies')
+        .eq(col, id).order('printed_at'), { label: 'label_prints' }), 'label_prints') as PrintRow[]
     const lastReprint = [...rows].reverse().find((r) => r.is_reprint)
     return (
         <p className="text-sm mb-4" data-label-prints={rows.length}>

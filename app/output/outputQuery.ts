@@ -13,6 +13,7 @@ import type { createClient } from '@/lib/supabase/server'
 import { STATE_OPTIONS } from '../inbound/options'
 import { parseDateRange } from '@/lib/dateFilter'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 // page.tsx 和 route.ts 都是服务端,这里只借用 server client 的"类型",不引入它的运行时。
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
@@ -96,12 +97,12 @@ export async function resolveOutputSearchIds(
     if (!q) return { materialIds: [], customerIds: [] }
     const pattern = `%${q}%`
     const [matRes, custRes] = await Promise.all([
-        supabase.from('material_lookup').select('id').is('deleted_at', null).ilike('name', pattern),
-        supabase
+        readAll(() => supabase.from('material_lookup').select('id').is('deleted_at', null).ilike('name', pattern), { label: 'material_lookup' }),
+        readAll(() => supabase
             .from('customer_lookup')
             .select('id')
             .is('deleted_at', null)
-            .ilike('legal_name', pattern),
+            .ilike('legal_name', pattern), { label: 'customer_lookup' }),
     ])
     // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死。
     type IdRow = { id: string }

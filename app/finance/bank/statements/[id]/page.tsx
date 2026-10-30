@@ -22,6 +22,7 @@ import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 import DocumentChains from '@/app/components/chain/DocumentChains'
 import { HashTarget } from '@/app/components/ui/hash-target'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 
 export default async function BankStatementDetailPage({
@@ -62,11 +63,11 @@ export default async function BankStatementDetailPage({
         if (refused) return refused
     }
 
-    const { data: lines } = await supabase
+    const { data: lines } = await readAll(() => supabase
         .from('bank_statement_lines')
         .select('id, line_no, line_date, description, reference, amount, match_status, ignore_reason')
         .eq('statement_id', id)
-        .order('line_no', { ascending: true })
+        .order('line_no', { ascending: true }), { label: 'bank_statement_lines' })
 
     const rows = lines ?? []
 
@@ -104,11 +105,11 @@ export default async function BankStatementDetailPage({
     const records = mustRows(recordsRes) as unknown as ReconRecord[]
 
     const varianceRes = records.length
-        ? await supabase
+        ? await readAllIn(records.map((r) => r.reconciliation_id), (__ids) => supabase
               .from('bank_reconciliation_variance_items')
               .select('reconciliation_id, item_no, item_kind, amount, note')
-              .in('reconciliation_id', records.map((r) => r.reconciliation_id))
-              .order('item_no', { ascending: true })
+              .in('reconciliation_id', __ids)
+              .order('item_no', { ascending: true }), { label: 'bank_reconciliation_variance_items' })
         : { data: [], error: null }
     const varianceItems = mustRows(varianceRes)
 
@@ -127,18 +128,18 @@ export default async function BankStatementDetailPage({
     // ★ U1-A(Tim 的 UNBLOCK-1 Q1,2026-10-05):配到的分录行经 journal_lines_masked 认,不再内嵌 journal_lines ——
     //   基表上工资分录的行对不持 data.view_pay 的人不在,内嵌会是 null,于是发薪那几笔的"匹配到"一栏【悄悄】空掉。
     const matchRows = matchedLineIds.length
-        ? (mustRows(await supabase
+        ? (mustRows(await readAllIn(matchedLineIds, (__ids) => supabase
               .from('bank_line_matches')
               .select('statement_line_id, journal_line_id')
-              .in('statement_line_id', matchedLineIds), 'bank_line_matches') as { statement_line_id: string; journal_line_id: string }[])
+              .in('statement_line_id', __ids), { label: 'bank_line_matches' }), 'bank_line_matches') as { statement_line_id: string; journal_line_id: string }[])
         : []
     const jlIds = [...new Set(matchRows.map((m) => m.journal_line_id))]
     const jls = jlIds.length
-        ? (mustRows(await supabase.from('journal_lines_masked').select('id, entry_id').in('id', jlIds), 'journal_lines_masked') as { id: string; entry_id: string }[])
+        ? (mustRows(await readAllIn(jlIds, (__ids) => supabase.from('journal_lines_masked').select('id, entry_id').in('id', __ids), { label: 'journal_lines_masked' }), 'journal_lines_masked') as { id: string; entry_id: string }[])
         : []
     const entryIds = [...new Set(jls.map((j) => j.entry_id))]
     const entryRows = entryIds.length
-        ? mustRows(await supabase.from('journal_entries').select('id, code').in('id', entryIds), 'journal_entries')
+        ? mustRows(await readAllIn(entryIds, (__ids) => supabase.from('journal_entries').select('id, code').in('id', __ids), { label: 'journal_entries' }), 'journal_entries')
         : []
     const entryByLine = new Map(jls.map((j) => [j.id, entryRows.find((e) => e.id === j.entry_id) ?? null]))
     const matchesByLine = new Map<string, { entry_id: string; entry_code: string }[]>()

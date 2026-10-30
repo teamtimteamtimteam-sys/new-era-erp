@@ -14,6 +14,7 @@ import type { createClient } from '@/lib/supabase/server'
 import { STAGE_OPTIONS } from './options'
 import { parseDateRange } from '@/lib/dateFilter'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 // page.tsx 和 route.ts 都是服务端,这里只借用 server client 的"类型",不引入它的运行时。
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
@@ -112,14 +113,14 @@ export async function resolveInboundSearchIds(
     //   它不留空白格,只是让一次搜索少给几行,而少给的那几行看起来就像"没有"。
     //   两张视图的谓词都含 module.inbound.view,而这里只要 id + 一次 ilike。
     const [matRes, supRes] = await Promise.all([
-        supabase.from('material_lookup').select('id').is('deleted_at', null).ilike('name', pattern),
-        supabase
+        readAll(() => supabase.from('material_lookup').select('id').is('deleted_at', null).ilike('name', pattern), { label: 'material_lookup' }),
+        readAll(() => supabase
             .from('supplier_lookup')
             .select('id')
             .is('deleted_at', null)
             // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
             .neq('counterparty_type', 'forwarder')
-            .ilike('legal_name', pattern),
+            .ilike('legal_name', pattern), { label: 'supplier_lookup' }),
     ])
     // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)。
     return {

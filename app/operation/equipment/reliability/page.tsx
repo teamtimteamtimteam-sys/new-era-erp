@@ -24,6 +24,7 @@ import CellsTable, { type CellRow } from '../CellsTable'
 import { xText, xInt, xNum } from '@/lib/export/cells'
 import { hours, reliabilityWords, type ReliabilityRow } from '../reliability'
 import { localizeEquipmentError } from '../equipmentErrorCodes'
+import { readAll } from '@/lib/readAll'
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
@@ -50,9 +51,9 @@ export default async function ReliabilityPage({ searchParams }: { searchParams: 
     if (!from.ok || !to.ok) {
         refusal = t('equipment.rel.badDate')
     } else {
-        const res = await supabase.rpc('equipment_reliability', {
+        const res = await readAll(() => supabase.rpc('equipment_reliability', {
             p_from: from.at ?? undefined, p_to: to.at ?? undefined,
-        })
+        }), { label: 'equipment_reliability', key: ['equipment_id', 'equipment_code', 'equipment_description', 'equipment_status', 'range_from', 'range_to', 'operating_hours', 'runs_counted', 'runs_without_times', 'runs_without_machine', 'failures', 'failures_open', 'mtbf_hours', 'mtbf_state', 'mttr_hours', 'repairs_closed', 'planned_stops', 'external_stops', 'unclassified_stops'] })
         // 区间倒着走是一句具名拒绝(RELIABILITY_RANGE_INVALID),不是一张空表;别的失败照常抛
         if (res.error && /RELIABILITY_RANGE_INVALID/.test(res.error.message)) refusal = await localizeEquipmentError(res.error.message)
         else rows = mustRows(res, 'equipment_reliability') as unknown as ReliabilityRow[]

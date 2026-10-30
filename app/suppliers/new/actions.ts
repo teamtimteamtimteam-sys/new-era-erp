@@ -6,6 +6,7 @@ import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { readAll } from '@/lib/readAll'
 
 // 表单返回的状态(用于把错误信息回传给页面)
 export type CreateSupplierState = {
@@ -76,10 +77,10 @@ export async function createSupplier(
     // INSERT 授权(GO-2 实测)。这是可以接受的:警告本来就不是执行。
     // **真正执行的是数据库上 tax_id 的部分唯一索引。两种强度,分开说。**
     if (!ackNearDuplicate) {
-        const existing = await supabase
+        const existing = await readAll(() => supabase
             .from('suppliers')
             .select('legal_name')
-            .is('deleted_at', null)
+            .is('deleted_at', null), { label: 'suppliers' })
         // 【查不到【不是】"没有近重复"】—— 读失败被当成空集,这条提醒就静静失效了。
         if (existing.error || !existing.data) {
             return { error: t('suppliers.form.saveError', { message: existing.error?.message ?? 'suppliers read failed' }) }

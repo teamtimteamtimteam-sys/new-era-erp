@@ -107,6 +107,7 @@ const sidesOf = (p: LedgerParams): Side[] => (narrowsByBatch(p) ? ['inbound', 'o
 const likeLiteral = (v: string) => `%${v.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
 
 function sideQuery(supabase: Client, side: Side, p: LedgerParams, head: boolean) {
+    // unpaged-ok: a builder factory — ledgerCount asks it for a count (head) and ledgerSidePage pages it with .range
     let q = head
         ? supabase.from('inventory_movements').select(side === 'all' ? 'id' : `id, ${EMBED[side]}`, { count: 'exact', head: true })
         : supabase.from('inventory_movements').select(`${COLS} ${EMBED[side]}`)

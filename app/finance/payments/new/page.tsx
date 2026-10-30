@@ -16,6 +16,7 @@ import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll } from '@/lib/readAll'
 
 // 视图列生成类型全可空;行进视图即非空,取用列本地锁死
 type ArItem = {
@@ -72,12 +73,12 @@ export default async function NewPaymentPage({
     const initialPartyId = initialDirection === 'out' ? (sp.supplier ?? '') : ''
 
     const [customersRes, suppliersRes, employeesRes, arRes, apRes, poRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('customer_lookup')
             .select('id, legal_name')
             .is('deleted_at', null)
-            .order('legal_name'),
-        supabase
+            .order('legal_name'), { label: 'customer_lookup' }),
+        readAll(() => supabase
             // ★★【FIX-2a:收款人名单走查名视图 —— 此前对 cfo 整张是空的】★★
             // 这一页的守卫是 module.finance.view,而 suppliers 基表挂
             // module.suppliers.view。cfo 只持 finance / logistics / purchasing 三个
@@ -105,7 +106,7 @@ export default async function NewPaymentPage({
             // 理由,收窄它们会是一次真正的功能损失"(docs/known-issues.md)。
             // 货代是那句话最纯粹的例子。
             // ════════════════════════════════════════════════════════════════
-            .order('legal_name'),
+            .order('legal_name'), { label: 'supplier_lookup' }),
         // PAYEE-1b:出款也可以付给员工(报销)。读遮蔽视图,门是 module.hr.view。
         supabase
             // FIX-2a:员工走【查名】视图 —— employees_masked 整张挂 module.hr.view,
@@ -116,22 +117,22 @@ export default async function NewPaymentPage({
             .select('id, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
-        supabase
+        readAll(() => supabase
             .from('ar_open_items')
             .select('sales_record_id, invoice_id, doc_kind, customer_id, doc_code, sale_date, open_ccy, currency')
-            .order('sale_date', { ascending: true }),
+            .order('sale_date', { ascending: true }), { label: 'ar_open_items', key: ['sales_record_id', 'doc_code', 'customer_id', 'customer_name', 'sale_date', 'amount_base', 'currency', 'amount_ccy', 'settled_ccy', 'open_ccy', 'open_base', 'days_outstanding', 'bucket', 'invoice_id', 'invoice_code', 'doc_kind', 'settled_base', 'credited_ccy', 'credited_base'] }),
         // PAYEE-1b:核销候选按【往来对象】取 —— 员工行的 supplier_id 是 NULL,
         // 照旧读它,员工的应付永远匹配不上任何一个选中的往来对象(等于看不见)。
-        supabase
+        readAll(() => supabase
             .from('ap_open_items')
             .select('doc_kind, doc_id, counterparty_id, doc_code, doc_date, open_ccy, currency')
-            .order('doc_date', { ascending: true }),
+            .order('doc_date', { ascending: true }), { label: 'ap_open_items', key: ['doc_kind', 'doc_id', 'doc_code', 'inbound_batch_id', 'supplier_id', 'supplier_name', 'doc_date', 'doc_value_base', 'settled_base', 'open_base', 'currency', 'open_ccy', 'days_outstanding', 'bucket', 'counterparty_kind', 'counterparty_id', 'counterparty_name'] }),
         // 可预付的采购单:视图本身排除已取消,这里再排除已结束的
-        supabase
+        readAll(() => supabase
             .from('purchase_order_status')
             .select('po_id, supplier_id, code, order_date, estimated_total_ccy, prepaid_base, currency')
             .neq('status', 'closed')
-            .order('order_date', { ascending: true }),
+            .order('order_date', { ascending: true }), { label: 'purchase_order_status', key: ['po_id', 'code', 'supplier_id', 'supplier_name', 'order_date', 'expected_delivery_date', 'status', 'currency', 'estimated_total_ccy', 'prepaid_base', 'prepaid_applied_base', 'prepaid_remaining_base', 'received_batches', 'received_qty', 'ordered_qty', 'receipt_pct', 'tax_total_ccy', 'gross_total_ccy', 'carries_tax', 'approval_status'] }),
     ])
 
     const error = customersRes.error ?? suppliersRes.error ?? employeesRes.error ?? arRes.error ?? apRes.error ?? poRes.error
@@ -164,7 +165,7 @@ export default async function NewPaymentPage({
     const createdByOf = new Map<string, string | null>()
     if (await can('module.suppliers.view')) {
         for (const s of mustRows(
-            await supabase.from('suppliers').select('id, created_by').is('deleted_at', null),
+            await readAll(() => supabase.from('suppliers').select('id, created_by').is('deleted_at', null), { label: 'suppliers' }),
             'supplier created_by (SOD-1)'
         )) {
             createdByOf.set(s.id as string, s.created_by as string | null)

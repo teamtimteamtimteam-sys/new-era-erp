@@ -17,6 +17,7 @@ import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { formatDate, formatAuditStamp } from '@/lib/dates'
 import ShipQueueControl from './ShipQueueControl'
+import { readAll } from '@/lib/readAll'
 
 type QueueRow = {
     sales_order_id: string
@@ -52,7 +53,7 @@ export default async function ShippingQueuePage() {
     const supabase = await createClient()
 
     const [queueRes, statesRes] = await Promise.all([
-        supabase.rpc('shipping_queue_rows'),
+        readAll(() => supabase.rpc('shipping_queue_rows'), { label: 'shipping_queue_rows', key: ['sales_order_id', 'order_code', 'order_date', 'customer_name', 'delivery_address', 'released_at', 'sales_order_line_id', 'line_no', 'material_code', 'material_name', 'unit', 'released_qty', 'shipped_qty', 'remaining_qty', 'reservation_id', 'output_batch_code', 'location_code', 'location_name', 'reserved_qty', 'dg_code', 'dg_missing', 'quarantine_states'] }),
         supabase.from('inbound_safety_states').select('code, name_en, name_zh'),
     ])
     const rows = mustRows(queueRes, 'shipping_queue_rows') as unknown as QueueRow[]

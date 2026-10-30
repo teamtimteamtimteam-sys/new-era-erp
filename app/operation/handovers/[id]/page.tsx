@@ -27,6 +27,7 @@ import CellsTable, { type CellRow } from '../../equipment/CellsTable'
 import { xText, xTime } from '@/lib/export/cells'
 import { readShiftRuns } from '../shiftRuns'
 import ShiftRunsTable from '../ShiftRunsTable'
+import { readAllIn } from '@/lib/readAll'
 
 type Handover = {
     id: string; shift_code: string; handover_date: string; outgoing_employee_id: string; incoming_employee_id: string
@@ -66,8 +67,8 @@ export default async function HandoverPage({ params, searchParams }: {
     const shiftRows = mustRows(shifts, 'shifts') as { code: string; name_en: string; name_zh: string; starts_at: string | null; ends_at: string | null }[]
     const typeRows = mustRows(types, 'handover_item_types') as { code: string; name_en: string; name_zh: string }[]
     const incIds = (mustRows(incRefs, 'shift_handover_incident_refs') as { incident_id: string }[]).map((r) => r.incident_id)
-    const incRows = incIds.length === 0 ? [] : mustRows(await supabase.from('incident_rows')
-        .select('id, code, kind_name_en, kind_name_zh, occurred_at').in('id', incIds), 'incident_rows') as
+    const incRows = incIds.length === 0 ? [] : mustRows(await readAllIn(incIds, (__ids) => supabase.from('incident_rows')
+        .select('id, code, kind_name_en, kind_name_zh, occurred_at').in('id', __ids), { label: 'incident_rows' }), 'incident_rows') as
         { id: string; code: string; kind_name_en: string; kind_name_zh: string; occurred_at: string }[]
 
     // SYSTEM-MAP-4(Tim 2026-10-29 第 7 条 · Q5):这个班 · 这一天处理了什么 —— 按加工单的班次 + 加工日配(../shiftRuns.ts)
@@ -77,13 +78,13 @@ export default async function HandoverPage({ params, searchParams }: {
     const downIds = refRows.map((r) => r.downtime_id)
     // U1-B(Q15):一段停机可以在交接【之后】被作废。交接单不动(那是交接时说过的话),
     //   但读它的人要知道那一段后来被收回了 —— 所以 voided_at / void_reason 一起读,画一个标记。
-    const downRows = downIds.length === 0 ? [] : mustRows(await supabase.from('equipment_downtime')
-        .select('id, equipment_id, started_at, ended_at, reason, voided_at, void_reason').in('id', downIds), 'equipment_downtime') as
+    const downRows = downIds.length === 0 ? [] : mustRows(await readAllIn(downIds, (__ids) => supabase.from('equipment_downtime')
+        .select('id, equipment_id, started_at, ended_at, reason, voided_at, void_reason').in('id', __ids), { label: 'equipment_downtime' }), 'equipment_downtime') as
         { id: string; equipment_id: string; started_at: string; ended_at: string | null; reason: string
           voided_at: string | null; void_reason: string | null }[]
     const eqIds = [...new Set(downRows.map((d) => d.equipment_id))]
-    const machines = eqIds.length === 0 ? [] : mustRows(await supabase.from('equipment_usage')
-        .select('equipment_id, equipment_code').in('equipment_id', eqIds), 'equipment_usage') as { equipment_id: string; equipment_code: string }[]
+    const machines = eqIds.length === 0 ? [] : mustRows(await readAllIn(eqIds, (__ids) => supabase.from('equipment_usage')
+        .select('equipment_id, equipment_code').in('equipment_id', __ids), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }), 'equipment_usage') as { equipment_id: string; equipment_code: string }[]
 
     const nameOf = (pid: string | null) => {
         if (!pid) return '—'

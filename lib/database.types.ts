@@ -35116,6 +35116,110 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_document_terms_masked: {
+        Row: {
+          contract_code: string | null
+          contract_id: string | null
+          contract_title: string | null
+          currency: string | null
+          grade_specs: Json | null
+          id: string | null
+          incoterm: string | null
+          linked_at: string | null
+          linked_by: string | null
+          payment_terms_days: number | null
+          pricing_terms: Json | null
+          purchase_order_id: string | null
+          sales_order_id: string | null
+          settlement_terms: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_document_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "grn_discrepancies_all"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines_lookup"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: true
+            referencedRelation: "assay_disagreements_all"
+            referencedColumns: ["sales_order_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: true
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_grade_breaches: {
         Row: {
           assay_date: string | null
@@ -48693,6 +48797,52 @@ export type Database = {
         }
         Relationships: []
       }
+      terms_requests_masked: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          executed_at: string | null
+          fingerprint: string | null
+          formula_id: string | null
+          id: string | null
+          kind: string | null
+          label: string | null
+          proposed: Json | null
+          reason: string | null
+          snapshot: Json | null
+          status: string | null
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_requests_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terms_requests_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terms_requests_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_directory: {
         Row: {
           account_kind: string | null
@@ -49805,6 +49955,19 @@ export type Database = {
         Returns: string
       }
       change_log_began_at: { Args: never; Returns: string }
+      change_log_count: {
+        Args: {
+          p_actor?: string
+          p_from?: string
+          p_no_session?: boolean
+          p_record_ids?: string[]
+          p_removed_account?: boolean
+          p_table?: string
+          p_tables?: string[]
+          p_to?: string
+        }
+        Returns: number
+      }
       change_log_coverage_gaps: { Args: never; Returns: Json }
       change_log_exclusions: {
         Args: never
@@ -49840,6 +50003,21 @@ export type Database = {
       }
       change_log_null_keys: {
         Args: { p_img: Json; p_keys: string[] }
+        Returns: Json
+      }
+      change_log_page: {
+        Args: {
+          p_actor?: string
+          p_before?: number
+          p_entries?: number
+          p_from?: string
+          p_no_session?: boolean
+          p_record_ids?: string[]
+          p_removed_account?: boolean
+          p_table?: string
+          p_tables?: string[]
+          p_to?: string
+        }
         Returns: Json
       }
       change_log_redact_employee: {
@@ -50071,6 +50249,10 @@ export type Database = {
       contract_activation_missing: {
         Args: { p_contract_id: string }
         Returns: string[]
+      }
+      contract_copy_price_visible: {
+        Args: { p_purchase_order_id: string; p_sales_order_id: string }
+        Returns: boolean
       }
       contract_terms_lock_reason: {
         Args: { p_contract_id: string }
@@ -50535,6 +50717,7 @@ export type Database = {
         Args: { p_reason: string; p_shipment_id: string }
         Returns: Json
       }
+      dictionary_usage_counts: { Args: { p_refs: Json }; Returns: Json }
       discard_inbox_row: {
         Args: { p_id: number; p_reason: string }
         Returns: undefined
@@ -53916,6 +54099,7 @@ export type Database = {
         Args: { p_image: Json; p_key: Json; p_table: string }
         Returns: boolean
       }
+      trail_subject_member_map: { Args: never; Returns: Json }
       trail_subject_members: {
         Args: never
         Returns: {
@@ -53930,6 +54114,7 @@ export type Database = {
           table_name: string
         }[]
       }
+      trail_subject_root_map: { Args: never; Returns: Json }
       trail_subjects: {
         Args: never
         Returns: {

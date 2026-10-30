@@ -17,6 +17,7 @@ import type { createClient } from '@/lib/supabase/server'
 import { STAGE_OPTIONS, labelKeyForValue } from './options'
 import { applyInboundFilters, type InboundListParams } from './inboundQuery'
 import type { InboundTableRow } from './InboundTable'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
 
@@ -83,8 +84,8 @@ export type InboundNames = { materialNameById: Map<string, string>; supplierName
  */
 export async function loadInboundNames(supabase: ServerSupabase): Promise<InboundNames> {
     const [matNameRes, supNameRes] = await Promise.all([
-        supabase.from('material_lookup').select('id, name').is('deleted_at', null),
-        supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null),
+        readAll(() => supabase.from('material_lookup').select('id, name').is('deleted_at', null), { label: 'material_lookup' }),
+        readAll(() => supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null), { label: 'supplier_lookup' }),
     ])
     return {
         materialNameById: new Map((mustRows(matNameRes) as unknown as
@@ -116,21 +117,21 @@ export async function shapeInboundRows(
     // TABLE-EXPORT-1:此前是 `{ data: assayStatusRows }` 不看 error —— 读不出来会把每一行画成"没有未应用化验"。
     //   搬过来时改走 mustRows(失败不是空集)。
     const assayStatusRows = ids.length
-        ? await inChunks(ids, (chunk) => supabase
+        ? await inChunks(ids, (chunk) => readAllIn(chunk, (__ids) => supabase
               .from('batch_assay_status')
               .select('inbound_batch_id, has_unapplied_assay')
-              .in('inbound_batch_id', chunk), 'batch_assay_status')
+              .in('inbound_batch_id', __ids), { label: 'batch_assay_status', key: ['inbound_batch_id', 'batch_code', 'supplier_name', 'material_name', 'quantity', 'unit', 'unit_price', 'pricing_status', 'pricing_formula_id', 'formula_code', 'assay_count', 'latest_assay_id', 'latest_assay_code', 'latest_assay_date', 'latest_assay_applied', 'has_unapplied_assay', 'purchase_order_id', 'po_code'] }), 'batch_assay_status')
         : []
     // ── ROLE-1 Batch 4b:哪几张收货挂着在等 CFO 的定价申请 ─────────────────────────
     //   申请表的读策略要 inbound.view + 采购码;不持采购码的人不去读(读了是 0 行,而 0 行
     //   不许画成"没有申请")—— 那时这一列不画徽标,注销按钮照常,由库按名拒(RECEIPT_PRICE_REQUEST_OPEN)。
     const openPriceRequestByBatch = new Map<string, string>()
     if (ids.length > 0 && await can('data.view_purchase_prices')) {
-        const reqRows = await inChunks(ids, (chunk) => supabase
+        const reqRows = await inChunks(ids, (chunk) => readAllIn(chunk, (__ids) => supabase
             .from('receipt_price_requests')
             .select('inbound_batch_id, label')
             .eq('status', 'submitted')
-            .in('inbound_batch_id', chunk), 'receipt_price_requests')
+            .in('inbound_batch_id', __ids), { label: 'receipt_price_requests' }), 'receipt_price_requests')
         for (const r of reqRows as { inbound_batch_id: string; label: string }[]) {
             openPriceRequestByBatch.set(r.inbound_batch_id, r.label)
         }
@@ -143,11 +144,11 @@ export async function shapeInboundRows(
     //   不持它的人这一格按"没有证书"画,库照样按名拒。
     const issuedCodBatches = new Set<string>()
     if (ids.length > 0 && await can('action.issue_cod')) {
-        const codRows = await inChunks(ids, (chunk) => supabase
+        const codRows = await inChunks(ids, (chunk) => readAllIn(chunk, (__ids) => supabase
             .from('certificates_of_destruction')
             .select('inbound_batch_id')
             .eq('status', 'issued')
-            .in('inbound_batch_id', chunk), 'certificates_of_destruction')
+            .in('inbound_batch_id', __ids), { label: 'certificates_of_destruction' }), 'certificates_of_destruction')
         for (const r of codRows as { inbound_batch_id: string }[]) issuedCodBatches.add(r.inbound_batch_id)
     }
     const openWarehouseRequest = await can('module.inventory.view')
@@ -172,7 +173,7 @@ export async function shapeInboundRows(
     const poCodeById = new Map<string, string>()
     if (canViewPurchasing && poIds.length) {
         const poRows = await inChunks(poIds, (chunk) =>
-            supabase.from('purchase_orders_masked').select('id, code').in('id', chunk), 'purchase_orders_masked')
+            readAllIn(chunk, (__ids) => supabase.from('purchase_orders_masked').select('id, code').in('id', __ids), { label: 'purchase_orders_masked' }), 'purchase_orders_masked')
         for (const r of poRows) {
             if (r.id && r.code) poCodeById.set(r.id, r.code)
         }

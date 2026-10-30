@@ -9,6 +9,7 @@ import CommissionForm, { type Agent, type Currency } from '../../CommissionForm'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     id: string; agent_supplier_id: string; side: string; basis: string
@@ -44,11 +45,11 @@ export default async function EditCommissionPage({ params, searchParams }: {
     }
 
     const agents = mustRows(
-        await supabase.from('suppliers')
+        await readAll(() => supabase.from('suppliers')
             .select('id, code, legal_name')
             .eq('counterparty_type', 'service_vendor')
             .is('deleted_at', null)
-            .order('code'),
+            .order('code'), { label: 'suppliers' }),
         'suppliers') as Agent[]
     const currencies = mustRows(
         await supabase.from('currencies').select('code').order('code'),

@@ -37,6 +37,7 @@ import ServiceIntervalPanel, { type IntervalRow } from './ServiceIntervalPanel'
 import SparePartsPanel, { type PartIssueRow, type PartStock } from './SparePartsPanel'
 import LinkedIncidents from '@/app/components/safety/LinkedIncidents'
 import { loadDowntimeCauses, reliabilityWords, type ReliabilityRow } from '../reliability'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 const KG = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -86,7 +87,7 @@ export default async function EquipmentPage({ params, searchParams }: {
             .eq('equipment_id', id).is('deleted_at', null).order('process_date', { ascending: false }).limit(10),
         supabase.from('supplier_lookup').select('id, code, legal_name').is('deleted_at', null).order('code').limit(200),
         supabase.from('maintenance_settings').select('capitalise_pct_of_cost, capitalise_floor_base').maybeSingle(),
-        supabase.rpc('equipment_reliability', { p_equipment_id: id }),
+        readAll(() => supabase.rpc('equipment_reliability', { p_equipment_id: id }), { label: 'equipment_reliability', key: ['equipment_id', 'equipment_code', 'equipment_description', 'equipment_status', 'range_from', 'range_to', 'operating_hours', 'runs_counted', 'runs_without_times', 'runs_without_machine', 'failures', 'failures_open', 'mtbf_hours', 'mtbf_state', 'mttr_hours', 'repairs_closed', 'planned_stops', 'external_stops', 'unclassified_stops'] }),
     ])
     const statusRows = mustRows(statusRes, 'equipment_service_status') as unknown as IntervalRow[]
     const maintRaw = mustRows(maintRes, 'equipment_maintenance') as {
@@ -162,21 +163,21 @@ export default async function EquipmentPage({ params, searchParams }: {
     // ── MES-7a-2:这台机器的保养记录上出过的备件(读:module.processing.view 或 module.inventory.view —— 本页的门已经是加工)──────────
     const maintIds = maintRaw.map((m) => m.id)
     const partRaw = maintIds.length
-        ? (mustRows(await supabase.from('maintenance_part_issues')
+        ? (mustRows(await readAllIn(maintIds, (__ids) => supabase.from('maintenance_part_issues')
                 .select('id, maintenance_id, inbound_batch_id, kind, returns_issue_id, quantity, business_date, reason')
-                .in('maintenance_id', maintIds).order('business_date', { ascending: false }), 'maintenance_part_issues') as {
+                .in('maintenance_id', __ids).order('business_date', { ascending: false }), { label: 'maintenance_part_issues' }), 'maintenance_part_issues') as {
                 id: string; maintenance_id: string; inbound_batch_id: string; kind: string; returns_issue_id: string | null
                 quantity: number; business_date: string; reason: string | null }[])
         : []
     // 批号与物料名是标签,跟着这一行走(常设决定 3)—— 但批次表的门是 module.inbound.view;读不到的那几批印「受限」,不印空
     const partBatchIds = [...new Set(partRaw.map((p) => p.inbound_batch_id))]
     const partBatchRows = partBatchIds.length
-        ? mustRows(await supabase.from('inbound_batches_masked').select('id, code, unit, material_id').in('id', partBatchIds), 'inbound_batches_masked parts') as
+        ? mustRows(await readAllIn(partBatchIds, (__ids) => supabase.from('inbound_batches_masked').select('id, code, unit, material_id').in('id', __ids), { label: 'inbound_batches_masked' }), 'inbound_batches_masked parts') as
             { id: string; code: string; unit: string; material_id: string }[]
         : []
     const partMatIds = [...new Set(partBatchRows.map((b) => b.material_id))]
     const partMatName = new Map((partMatIds.length
-        ? mustRows(await supabase.from('materials').select('id, name').in('id', partMatIds), 'materials parts') as { id: string; name: string }[]
+        ? mustRows(await readAllIn(partMatIds, (__ids) => supabase.from('materials').select('id, name').in('id', __ids), { label: 'materials' }), 'materials parts') as { id: string; name: string }[]
         : []).map((m) => [m.id, m.name]))
     const partBatches = new Map(partBatchRows.map((b) => [b.id, { ...b, materials: { name: partMatName.get(b.material_id) ?? '' } }]))
     // 金额:还挂着的数量 × 今天的落地单价 —— 与账一致,因为改价时出给保养那一份已进 6800。
@@ -186,7 +187,7 @@ export default async function EquipmentPage({ params, searchParams }: {
     const canSeeValue = canSeePrices && canSeeStock
     const landed = new Map<string, number | null>()
     if (canSeeValue && partBatchIds.length) {
-        for (const v of mustRows(await supabase.from('inbound_batch_valuation').select('id, landed_unit_cost').in('id', partBatchIds),
+        for (const v of mustRows(await readAllIn(partBatchIds, (__ids) => supabase.from('inbound_batch_valuation').select('id, landed_unit_cost').in('id', __ids), { label: 'inbound_batch_valuation' }),
                                  'inbound_batch_valuation parts') as { id: string; landed_unit_cost: number | null }[]) {
             landed.set(v.id, v.landed_unit_cost === null ? null : Number(v.landed_unit_cost))
         }
@@ -220,9 +221,9 @@ export default async function EquipmentPage({ params, searchParams }: {
     })
     // 出库表单从 spare_part_stock 挑批(可用数量 · 有没有价 · 在不在暂扣 —— 与 issue_spare_parts 同一组判据);读不到 = null
     const partStock: PartStock[] | null = canSeeStock
-        ? (mustRows(await supabase.from('spare_part_stock')
+        ? (mustRows(await readAll(() => supabase.from('spare_part_stock')
                 .select('inbound_batch_id, batch_code, material_name, unit, available_qty, priced, hold_ncr_code')
-                .order('batch_code'), 'spare_part_stock') as {
+                .order('batch_code'), { label: 'spare_part_stock', key: ['inbound_batch_id', 'batch_code', 'material_id', 'material_code', 'material_name', 'unit', 'available_qty', 'remaining_qty', 'priced', 'pricing_status', 'hold_ncr_code', 'arrival_date'] }), 'spare_part_stock') as {
                 inbound_batch_id: string; batch_code: string; material_name: string; unit: string; available_qty: number
                 priced: boolean; hold_ncr_code: string | null }[])
             .map((s) => ({ batchId: s.inbound_batch_id, label: `${s.batch_code} · ${s.material_name}`, unit: s.unit,

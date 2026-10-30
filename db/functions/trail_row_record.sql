@@ -13,6 +13,8 @@
 -- AUDIT-TRAIL-1d-2(Q36):加班批同一个形状 —— 没有 code 列,不进 document_types;链接落在 /hr/overtime/<id>(doc_key 'overtime_batch')。
 -- AUDIT-TRAIL-1d-3:评审同一个形状 —— 没有 code 列,不进 document_types;链接落在 /hr/reviews/<id>(doc_key 'performance_review')。
 -- 【属主身份】EXECUTE 已从 authenticated 收回。
+-- ★ GOLIVE-2(第 13 行):成员与主语根两张常量表改成按表名预先分组的常量(trail_subject_member_map · trail_subject_root_map),
+--   同一个筛选、同一个排序 —— 变更记录 show=500 在年体量种子上 12.6 s 的那一段由此消失。
 CREATE OR REPLACE FUNCTION public.trail_row_record(p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -42,11 +44,14 @@ BEGIN
     v_id := CASE WHEN cardinality(v_pk) = 1 THEN p_key ->> v_pk[1] END;
 
     IF NOT EXISTS (SELECT 1 FROM document_types dt WHERE dt.table_name = p_table)
-       AND NOT EXISTS (SELECT 1 FROM trail_subjects() ts WHERE ts.root_table = p_table) THEN
+       AND NOT (trail_subject_root_map() ? p_table) THEN
         -- ② 登记过的子行:沿父键往上走,最多三跳
         --   AUDIT-TRAIL-1c-1(M7):hop = 'all' 的家是那个单行设置表本身 —— 没有外键可走,那一行的键取它唯一那一行的根键
         LOOP
-            SELECT tm.* INTO m FROM trail_subject_members() tm
+            -- GOLIVE-2(第 13 行):成员表按表名预先分好组的常量(trail_subject_member_map,规划时求一次)—— 每一跳不再扫一遍 402 行;
+            --   同一个筛选、同一个排序(subject, ord),答案逐字不变
+            SELECT tm.* INTO m FROM jsonb_to_recordset(trail_subject_member_map() -> v_table)
+                       AS tm(subject text, ord integer, table_name text, parent_table text, fk_column text, match jsonb, hop text, shown boolean, home boolean)
              WHERE tm.table_name = v_table AND tm.home AND v_img @> tm.match
                AND ((tm.hop = 'down' AND v_img ->> tm.fk_column IS NOT NULL)
                     OR (tm.hop = 'all' AND EXISTS (SELECT 1 FROM trail_subjects() ts

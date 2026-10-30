@@ -64,6 +64,7 @@ import { Button } from '@/app/components/ui/button'
 import { formatTrailStamp } from '@/lib/dates'
 import { xText, xRestricted, type ExportCell } from '@/lib/export/cells'
 import { filteredListHref } from '@/lib/savedViews'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     record_kind: string
@@ -131,19 +132,23 @@ export default async function DeletedRecordsPage({
     const from = isYmd(sp.from ?? '') ? (sp.from as string) : ''
     const to = isYmd(sp.to ?? '') ? (sp.to as string) : ''
 
-    let q = supabase
-        .from('deleted_records')
-        .select('record_kind, permission, record_id, code, deleted_at, deleted_by, delete_reason, movement_id, detail')
-        .order('deleted_at', { ascending: false })
-    if (kind) q = q.eq('record_kind', kind)
-    if (from) q = q.gte('deleted_at', from)
-    // to 是一个【日期】,而 deleted_at 是时刻 —— 用当天的下一天做上界,
-    // 否则当天的记录会被整天漏掉(经典的边界错)。
-    if (to) q = q.lt('deleted_at', new Date(new Date(to).getTime() + 86400000).toISOString().slice(0, 10))
+    // GOLIVE-2 第 10 行:删过的记录只会越积越多 —— 一律翻页读(lib/readAll.ts);同一条查询,每一页现建一次
+    const deletedRes = await readAll(() => {
+        let q = supabase
+            .from('deleted_records')
+            .select('record_kind, permission, record_id, code, deleted_at, deleted_by, delete_reason, movement_id, detail')
+            .order('deleted_at', { ascending: false })
+        if (kind) q = q.eq('record_kind', kind)
+        if (from) q = q.gte('deleted_at', from)
+        // to 是一个【日期】,而 deleted_at 是时刻 —— 用当天的下一天做上界,
+        // 否则当天的记录会被整天漏掉(经典的边界错)。
+        if (to) q = q.lt('deleted_at', new Date(new Date(to).getTime() + 86400000).toISOString().slice(0, 10))
+        return q
+    }, { label: 'deleted_records', key: ['record_kind', 'record_id', 'deleted_at'] })
 
     // 【失败必须失败】不 `?? []`:读不出来会渲染成"什么都没删过",
     // 而那正是这一页最不能撒的谎。
-    const rows = mustRows(await q, 'deleted_records') as unknown as Row[]
+    const rows = mustRows(deletedRes, 'deleted_records') as unknown as Row[]
 
     // 一次把姓名查回来(逐行查会是 N 次往返)
     const names = await loadActorNames(supabase, rows.map((r) => r.deleted_by))

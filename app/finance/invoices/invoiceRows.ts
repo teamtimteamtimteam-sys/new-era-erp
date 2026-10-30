@@ -23,6 +23,7 @@ import type { InvoiceRow } from './InvoicesTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -89,10 +90,10 @@ function applyState<T>(query: T, p: InvoiceListParams): T {
  * 合计 / 未收按 data.view_prices 整个读者地遮 → 「受限」;已收不遮。
  */
 export async function invoiceTotals(supabase: Client, p: InvoiceListParams): Promise<ListTotal[]> {
-    const res = await supabase.rpc('list_totals_invoices', {
+    const res = await readAll(() => supabase.rpc('list_totals_invoices', {
         p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined,
         p_state: p.state || undefined, p_status: p.status,
-    })
+    }), { label: 'list_totals_invoices', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'invoices totals'))
 }
 

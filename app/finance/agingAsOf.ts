@@ -21,6 +21,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { isYmd } from '@/lib/dateFilter'
+import { readAll } from '@/lib/readAll'
 
 export type AgingRowAp = {
     doc_kind: 'inbound' | 'expense' | 'freight'
@@ -109,10 +110,10 @@ export async function readAging<R>(
     asOf: string,
 ): Promise<AgingReport<R>> {
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc(
+    const { data, error } = await readAll(() => supabase.rpc(
         side === 'ap' ? 'ap_aging_asof' : 'ar_aging_asof',
         asOf ? { p_as_of: asOf } : {},
-    )
+    ), { label: 'sideapap_aging_asofar_aging_asof' })
     if (error) throw new Error(error.message)
     if (!data) throw new Error(`${side}_aging_asof returned no report`)
     return data as unknown as AgingReport<R>

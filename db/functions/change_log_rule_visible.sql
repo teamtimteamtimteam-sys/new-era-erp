@@ -13,6 +13,10 @@
 --                       而它在这里点名写出来 —— 一条只因为认不出才成立的规则,是一份只写在注释里的契约。
 -- ★ GOLIVE-1(2026-10-29,第 12 行)一种新写法:
 --   contract_price     contract_terms_price_visible(这一行的 contract_id)—— 与四张 contract_*_masked 视图里的 CASE 调同一支函数。
+-- ★ GOLIVE-2(2026-10-30,Tim Q4 · Q6)两种新写法:
+--   cdt_price          contract_copy_price_visible(sales_order_id, purchase_order_id) —— 合同条款冻结副本的价格按副本自己那一侧(contract_document_terms_masked 同一支)。
+--   tr_snapshot        条款申请的快照:公式申请照 pft:formula_id(公式那一行的 direction),合同申请照 contract_terms_price_visible(contract_id)
+--                       —— 与 terms_requests_masked / terms_requests_visible 同一个判据。
 CREATE OR REPLACE FUNCTION public.change_log_rule_visible(p_rule text, p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -42,6 +46,16 @@ BEGIN
         RETURN COALESCE(approval_log_note_visible(change_log_field(p_table, p_key, p_old, p_new, 'subject_type'),
                                                   change_log_field(p_table, p_key, p_old, p_new, 'subject_id')::uuid), false);
     ELSIF p_rule = 'contract_price' THEN
+        RETURN COALESCE(contract_terms_price_visible(change_log_field(p_table, p_key, p_old, p_new, 'contract_id')::uuid), false);
+    ELSIF p_rule = 'cdt_price' THEN
+        RETURN COALESCE(contract_copy_price_visible(change_log_field(p_table, p_key, p_old, p_new, 'sales_order_id')::uuid,
+                                                    change_log_field(p_table, p_key, p_old, p_new, 'purchase_order_id')::uuid), false);
+    ELSIF p_rule = 'tr_snapshot' THEN
+        IF change_log_field(p_table, p_key, p_old, p_new, 'formula_id') IS NOT NULL THEN
+            RETURN pricing_formula_terms_visible(
+                change_log_field('pricing_formulas', jsonb_build_object('id', change_log_field(p_table, p_key, p_old, p_new, 'formula_id')),
+                                 NULL, NULL, 'direction'));
+        END IF;
         RETURN COALESCE(contract_terms_price_visible(change_log_field(p_table, p_key, p_old, p_new, 'contract_id')::uuid), false);
     ELSIF p_rule = 'jr_amount' THEN
         RETURN COALESCE(journal_request_amount_visible(change_log_field(p_table, p_key, p_old, p_new, 'id')::uuid), false);

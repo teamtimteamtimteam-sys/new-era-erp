@@ -30,6 +30,7 @@ import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import WarehouseRequestsPanel, { type WarehouseRequestView } from './WarehouseRequestsPanel'
 import RecentTrail from '@/app/components/trail/RecentTrail'
+import { readAll } from '@/lib/readAll'
 
 // PROC-1:种类从 material_kinds 嵌进来,不再是物料上的一列自由文本
 type MaterialEmbed = { name: string; material_kinds: { name_en: string; name_zh: string } | null } | null
@@ -88,7 +89,7 @@ export default async function InventoryPage() {
         supplier_name?: string; remaining_qty?: number; unit?: string; process_date?: string; locked_period?: boolean
         locked_before?: string | null; outputs?: string[]; inputs?: string[]; cods_voided?: string[]
     }
-    const wrRows = mustRows(await supabase.rpc('warehouse_requests_visible', { p_recent: 10 })) as {
+    const wrRows = mustRows(await readAll(() => supabase.rpc('warehouse_requests_visible', { p_recent: 10 }), { label: 'warehouse_requests_visible' })) as {
         id: string; kind: WarehouseRequestView['kind']; status: WarehouseRequestView['status']; label: string
         reason: string; snapshot: WrSnapshot | null; amount_base: number | null; created_at: string
         created_by_email: string | null; raised_by_me: boolean; decided_by_email: string | null
@@ -130,9 +131,9 @@ export default async function InventoryPage() {
         // TABLE-FEATURES-2:台账的行 —— 一种物料一行,库算(进料按到岸成本、产出按产出腿成本与金属市价)。
         //   从前这里是六次整表读再在 JS 里合并;FIX-2a / INV-VAL-1 那几条关于读哪张视图的理由
         //   现在住在那支函数里(它读的就是那几张视图,所以遮蔽与行谓词原样跟着走)。
-        supabase.rpc('inventory_stock_by_material'),
+        readAll(() => supabase.rpc('inventory_stock_by_material'), { label: 'inventory_stock_by_material', key: ['material_id', 'unit', 'mixed_unit', 'inbound_stock', 'output_stock', 'priced_qty', 'stock_value', 'cost_value', 'market_value'] }),
         // 表尾合计:同一组行的列和(本位币两格、USD 一格),「受限」按 data.view_prices 判
-        supabase.rpc('list_totals_inventory'),
+        readAll(() => supabase.rpc('list_totals_inventory'), { label: 'list_totals_inventory', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }),
         // MES-5b-1(Step 0 Q3 · Q12):平衡合计改读月度物料平衡的全期之和 —— 只算消耗型加工单(深度放电与拆去隔离是穿过去的质量,
         //   回滚的单与有一条腿单位不是 kg 的单不算)。此前把每一张没删的单的表头加起来,于是把放电穿过去的量也当成了消耗。
         //   "没有日期筛选"的约定不变:全期。外壳的门(加工 / 财务 / 库存查看任一)与 processing_run_lookup 给这几个数时同一组。
@@ -148,11 +149,11 @@ export default async function InventoryPage() {
             .select('id', { count: 'exact', head: true })
             .eq('unpriced', true),
         // INV-VAL-1:物料名与种类 —— 行里只有 material_id,单独取。
-        supabase
+        readAll(() => supabase
             // FIX-2a:种类名在 material_lookup 上是【摊平的两列】,不是内嵌。
             .from('material_lookup')
             .select('id, name, kind_name_en, kind_name_zh')
-            .is('deleted_at', null),
+            .is('deleted_at', null), { label: 'material_lookup' }),
     ])
 
     if (stockRes.error || totalsRes.error || runsRes.error || materialsRes.error) {

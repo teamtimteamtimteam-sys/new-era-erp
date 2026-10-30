@@ -44,6 +44,7 @@ import CostEntriesTable, { type CostEntryRow } from './CostEntriesTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 // AUDIT-TRAIL-1c-2(Q10 · Q26):这台机器被谁、什么时候、把什么改成了什么 —— 页底的审计记录(替掉 FA-HIST-1 的"Change history"面板)
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function AssetPage({ params, searchParams }: {
     params: Promise<{ id: string }>
@@ -62,7 +63,7 @@ export default async function AssetPage({ params, searchParams }: {
     // ★ APR-9:这台资产上那一张在等的处置申请(有的话)—— 处置钮按不动并指向资产页顶上那一块(#adr-<id>)。
     //   读 asset_disposal_requests_visible(它自己要 module.finance.view;本页的门就是那个码)。
     const pendingDisposal = (mustRows(
-        await supabase.rpc('asset_disposal_requests_visible', { p_asset_id: id, p_recent: 0 }),
+        await readAll(() => supabase.rpc('asset_disposal_requests_visible', { p_asset_id: id, p_recent: 0 }), { label: 'asset_disposal_requests_visible' }),
         'asset_disposal_requests_visible') as { status: string; label: string }[])
         .find((r) => r.status === 'submitted') ?? null
     // 【先问,再解释】—— 空结果的含义取决于这一句的答案。
@@ -125,9 +126,9 @@ export default async function AssetPage({ params, searchParams }: {
     const lineRows = mustRows(lineRes) as unknown as LineRaw[]
     // 【视图上不做 embed】表头另查一次,在 TS 里拼(本仓库既有做法)。
     const headsRes = lineRows.length
-        ? await supabase.from('purchase_orders_masked')
+        ? await readAllIn(lineRows.map((l) => l.purchase_order_id), (__ids) => supabase.from('purchase_orders_masked')
             .select('id, code, status, approval_status, currency, deleted_at, cancelled_at, cancel_reason')
-            .in('id', lineRows.map((l) => l.purchase_order_id))
+            .in('id', __ids), { label: 'purchase_orders_masked' })
         : { data: [], error: null }
     const headById = new Map((mustRows(headsRes) as unknown as PoHead[]).map((h) => [h.id, h]))
     const claims = lineRows.map((l) => ({ ...l, po: headById.get(l.purchase_order_id) ?? null }))

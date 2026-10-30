@@ -20,6 +20,7 @@ import { getLocale, getTranslations } from '@/lib/i18n/server'
 import { inChunks } from '@/lib/export/serverRows'
 import type { ExpenseRow } from './ExpensesTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -55,7 +56,7 @@ export type ExpenseFilter = ExpenseListParams & {
 export async function resolveExpenseFilter(supabase: Client, p: ExpenseListParams): Promise<ExpenseFilter> {
     const ids = new Set<string>()
     if (p.account) {
-        const linesRes = await supabase.from('expense_lines').select('expense_id').eq('account_code', p.account)
+        const linesRes = await readAll(() => supabase.from('expense_lines').select('expense_id').eq('account_code', p.account), { label: 'expense_lines' })
         for (const l of mustRows(linesRes, 'expense_lines (account filter)') as { expense_id: string }[]) ids.add(l.expense_id)
     }
     // 一个没有任何一行落在这个科目上的筛选,应当是【空】,而不是"不筛";in.() 收一个永远对不上的 id。
@@ -90,10 +91,10 @@ export type ExpenseDbRow = {
  * 每个单据币种一行;冲销镜像单记负数。科目筛选传【原样的科目码】给库(库里是 EXISTS),不传 JS 解出来的那组 id。
  */
 export async function expenseTotals(supabase: Client, p: ExpenseListParams): Promise<ListTotal[]> {
-    const res = await supabase.rpc('list_totals_expenses', {
+    const res = await readAll(() => supabase.rpc('list_totals_expenses', {
         p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined,
         p_payment_status: p.status || undefined, p_account: p.account || undefined,
-    })
+    }), { label: 'list_totals_expenses', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'expenses totals'))
 }
 
@@ -142,9 +143,9 @@ export async function shapeExpenseRows(supabase: Client, rows: ExpenseDbRow[]): 
     const [accountOptions, suppliers, lines] = await Promise.all([
         expenseAccountOptions(supabase, locale),
         // LOG-1b:【这一处绝不过滤 counterparty_type】—— 解析器,不是选择器。过滤它只会让已有单据的对方名字变成空白。
-        inChunks(supplierIds, (ids) => supabase.from('supplier_lookup').select('id, legal_name').in('id', ids)
+        inChunks(supplierIds, (ids) => readAllIn(ids, (__ids) => supabase.from('supplier_lookup').select('id, legal_name').in('id', __ids), { label: 'supplier_lookup' })
             .then(({ data, error }) => ({ error, data: data as unknown as { id: string; legal_name: string }[] | null })), 'supplier_lookup'),
-        inChunks(rows.map((r) => r.id), (ids) => supabase.from('expense_lines').select('expense_id, account_code').in('expense_id', ids)
+        inChunks(rows.map((r) => r.id), (ids) => readAllIn(ids, (__ids) => supabase.from('expense_lines').select('expense_id, account_code').in('expense_id', __ids), { label: 'expense_lines' })
             .then(({ data, error }) => ({ error, data: data as unknown as { expense_id: string; account_code: string }[] | null })), 'expense_lines (accounts)'),
     ])
     const accountsByExpense = new Map<string, Set<string>>()

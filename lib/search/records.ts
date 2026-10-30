@@ -33,6 +33,7 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import { FUNCTIONS, MODULES } from '@/lib/modules'
 import type { RecordHit, RelatedGroup, WithheldCount } from '@/lib/search/types'
 import { documentHref } from '@/lib/search/documentHref'
+import { readAll } from '@/lib/readAll'
 
 /**
  * 一次显示几条。
@@ -142,8 +143,8 @@ export async function searchRecords(query: string): Promise<{
 }> {
     const supabase = await createClient()
     const [found, held] = await Promise.all([
-        supabase.rpc('search_documents', { p_query: query, p_limit: RECORD_LIMIT }),
-        supabase.rpc('search_documents_withheld', { p_query: query }),
+        readAll(() => supabase.rpc('search_documents', { p_query: query, p_limit: RECORD_LIMIT }), { label: 'search_documents' }),
+        readAll(() => supabase.rpc('search_documents_withheld', { p_query: query }), { label: 'search_documents_withheld', key: ['key', 'route', 'n'] }),
     ])
     const rows = mustRows(found as { data: Row[] | null; error: DbError }, 'search_documents')
     const heldRows = mustRows(
@@ -180,7 +181,7 @@ async function relatedFor(
     supabase: Awaited<ReturnType<typeof createClient>>,
     row: Row,
 ): Promise<RelatedGroup[]> {
-    const res = await supabase.rpc('search_related', { p_key: row.key, p_id: row.id })
+    const res = await readAll(() => supabase.rpc('search_related', { p_key: row.key, p_id: row.id }), { label: 'search_related', key: ['target_key', 'target_table', 'route', 'link_mode', 'n'] })
     // ★ 失败就抛 —— 与 searchRecords 同一条理由,而这里更容易读错:
     //   一次失败若被读成空数组,屏幕上会说「这张单据没有关联记录」,
     //   而那是一句【关于数据的断言】,不是一句关于查询的断言。
@@ -227,7 +228,7 @@ function rollUpWithheld(rows: WithheldRow[]): WithheldCount[] {
 export async function recentRecords(): Promise<{ hits: RecordHit[]; uncovered: number }> {
     const supabase = await createClient()
     const [recent, uncovered] = await Promise.all([
-        supabase.rpc('search_recents', { p_limit: RECENTS_LIMIT }),
+        readAll(() => supabase.rpc('search_recents', { p_limit: RECENTS_LIMIT }), { label: 'search_recents' }),
         supabase.rpc('search_recents_uncovered'),
     ])
     // ★ 走 mustRows / mustOne —— 一次失败必须【失败】。这一节尤其要紧:

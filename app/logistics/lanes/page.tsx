@@ -13,6 +13,7 @@ import LanesPanel from './LanesPanel'
 import { can } from '@/lib/permissions'
 import ListTrail, { type ListTrailRecord } from '@/app/components/trail/ListTrail'
 import { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 export default async function LanesPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const denied = await requireModule(MOD.logistics)
@@ -31,7 +32,7 @@ export default async function LanesPage({ searchParams }: { searchParams: Promis
         'lanes'
     )
     const status = mustRows(
-        await supabase.from('lane_checklist_status').select('lane_id, checklist_state, requirement_count'),
+        await readAll(() => supabase.from('lane_checklist_status').select('lane_id, checklist_state, requirement_count'), { label: 'lane_checklist_status', key: ['lane_id', 'checklist_reviewed_at', 'requirement_count', 'checklist_state'] }),
         'lane_checklist_status'
     )
     const reqs = mustRows(

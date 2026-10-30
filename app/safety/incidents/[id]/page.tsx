@@ -22,6 +22,7 @@ import { neaStatusLabel, deadlineLabel } from '../neaStatus'
 import { fieldKey, updateKindKey, batchHref } from '../../safetyTypes'
 import IncidentUpdatesPanel, { type UpdateRow } from './IncidentUpdatesPanel'
 import IncidentBatchesPanel, { type LinkRow, type SuggestionRow } from './IncidentBatchesPanel'
+import { readAll } from '@/lib/readAll'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -136,7 +137,7 @@ export default async function IncidentPage({ params, searchParams }: {
         // TABLE-EXPORT-3c(Tim 2026-10-25):导出读链上的那个时刻本身
         linkedAtRaw: l.linked_at,
     }))
-    const sugRes = await supabase.rpc('suggest_incident_batches', { p_incident_id: id })
+    const sugRes = await readAll(() => supabase.rpc('suggest_incident_batches', { p_incident_id: id }), { label: 'suggest_incident_batches', key: ['batch_kind', 'batch_id', 'batch_code', 'basis', 'evidence', 'qty', 'already_linked'] })
     const suggestions: SuggestionRow[] = (mustRows(sugRes, 'suggest_incident_batches') as {
         batch_kind: string; batch_id: string; batch_code: string; basis: string; evidence: string; qty: number; already_linked: boolean }[]).map((s) => ({
         batchKind: s.batch_kind as 'inbound' | 'output', batchId: s.batch_id, batchCode: s.batch_code, basis: s.basis,

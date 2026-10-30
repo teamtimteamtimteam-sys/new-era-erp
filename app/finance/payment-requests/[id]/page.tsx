@@ -25,6 +25,7 @@ import RequestActions from './RequestActions'
 import { requestSubjectLabel } from '../requestSubject'
 import RequestAllocationsTable, { type RequestAllocRow } from './RequestAllocationsTable'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAllIn } from '@/lib/readAll'
 
 // allocations 的形状与 record_payment 收的那一组相同:每行恰好一个单据键 + amount_doc。
 type AllocIn = {
@@ -94,7 +95,7 @@ export default async function PaymentRequestDetailPage({
     const noCodes = Promise.resolve({ data: [] as CodeRow0[], error: null })
     const [nameRes, paymentsRes, entryRes, transferRes, remitRes] = await Promise.all([
         nameQuery,
-        payIds.length ? supabase.from('payments').select('id, code').in('id', payIds) : noCodes,
+        payIds.length ? readAllIn(payIds, (__ids) => supabase.from('payments').select('id, code').in('id', __ids), { label: 'payments' }) : noCodes,
         r.result_journal_entry_id
             ? supabase.from('journal_entries').select('id, code').eq('id', r.result_journal_entry_id)
             : noCodes,
@@ -122,11 +123,11 @@ export default async function PaymentRequestDetailPage({
     type CodeRow = { id: string; code: string }
     const noneCodes = Promise.resolve({ data: [] as CodeRow[], error: null })
     const [expRes, batchRes, poRes, frtRes] = await Promise.all([
-        expIds.length ? supabase.from('expenses').select('id, code').in('id', expIds) : noneCodes,
+        expIds.length ? readAllIn(expIds, (__ids) => supabase.from('expenses').select('id, code').in('id', __ids), { label: 'expenses' }) : noneCodes,
         // FIX-2a:批次编号走查名视图(基表挂 inbound.view,这一页的门是 finance.view)。
-        batchIds.length ? supabase.from('inbound_batch_lookup').select('id, code').in('id', batchIds) : noneCodes,
-        poIds.length ? supabase.from('purchase_orders_masked').select('id, code').in('id', poIds) : noneCodes,
-        frtIds.length ? supabase.from('freight_documents').select('id, code').in('id', frtIds) : noneCodes,
+        batchIds.length ? readAllIn(batchIds, (__ids) => supabase.from('inbound_batch_lookup').select('id, code').in('id', __ids), { label: 'inbound_batch_lookup' }) : noneCodes,
+        poIds.length ? readAllIn(poIds, (__ids) => supabase.from('purchase_orders_masked').select('id, code').in('id', __ids), { label: 'purchase_orders_masked' }) : noneCodes,
+        frtIds.length ? readAllIn(frtIds, (__ids) => supabase.from('freight_documents').select('id, code').in('id', __ids), { label: 'freight_documents' }) : noneCodes,
     ])
     const codeOf = new Map<string, string>()
     for (const res of [expRes, batchRes, poRes, frtRes]) {

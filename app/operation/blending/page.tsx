@@ -15,6 +15,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import { blendingStatusKey } from './blendingTypes'
 import BlendingPlansTable, { type BlendingPlanRow } from './BlendingPlansTable'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function BlendingPlansPage() {
     const denied = await requireFunction(FN.blending)
@@ -25,9 +26,9 @@ export default async function BlendingPlansPage() {
     const supabase = await createClient()
 
     const plans = mustRows(
-        await supabase.from('blending_plans')
+        await readAll(() => supabase.from('blending_plans')
             .select('id, code, status, output_material_id, notes, created_at, run_id')
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false }), { label: 'blending_plans' }),
         'blending_plans') as { id: string; code: string; status: string; output_material_id: string
                                 notes: string | null; created_at: string; run_id: string | null }[]
 
@@ -35,10 +36,10 @@ export default async function BlendingPlansPage() {
     const matIds = [...new Set(plans.map((p) => p.output_material_id))]
     const runIds = plans.map((p) => p.run_id).filter((x): x is string => !!x)
     const materials = matIds.length === 0 ? [] : mustRows(
-        await supabase.from('material_lookup').select('id, code, name').in('id', matIds), 'material_lookup') as
+        await readAllIn(matIds, (__ids) => supabase.from('material_lookup').select('id, code, name').in('id', __ids), { label: 'material_lookup' }), 'material_lookup') as
         { id: string; code: string; name: string }[]
     const runs = runIds.length === 0 ? [] : mustRows(
-        await supabase.from('processing_runs_masked').select('id, code').in('id', runIds), 'processing_runs_masked') as { id: string; code: string }[]
+        await readAllIn(runIds, (__ids) => supabase.from('processing_runs_masked').select('id, code').in('id', __ids), { label: 'processing_runs_masked' }), 'processing_runs_masked') as { id: string; code: string }[]
     const matOf = new Map(materials.map((m) => [m.id, `${m.code} — ${m.name}`]))
     const runOf = new Map(runs.map((r) => [r.id, r]))
     const canCreate = await can('action.wo_create')

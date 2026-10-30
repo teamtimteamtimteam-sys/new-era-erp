@@ -10,6 +10,7 @@
 // 而模板正是靠这两件事实才不会发出一份自己都不收的文件(见 lib/importTables.ts 抬头)。
 import { isImportTable, templateCsv, type TemplateColumn } from '@/lib/importTables'
 import { createClient } from '@/lib/supabase/server'
+import { readAll } from '@/lib/readAll'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ table: string }> }) {
     const { table } = await params
@@ -32,7 +33,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ table: 
         return Response.json({ error: 'IMPORT_NOT_PERMITTED' }, { status: 403 })
     }
 
-    const { data, error } = await supabase.rpc('master_import_template_columns', { p_table: table })
+    const { data, error } = await readAll(() => supabase.rpc('master_import_template_columns', { p_table: table }), { label: 'master_import_template_columns', key: ['column_name', 'is_required', 'accepted_values'] })
     if (error) {
         const denied = /permission|denied|42501/i.test(error.message)
         return Response.json(

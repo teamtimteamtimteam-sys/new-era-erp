@@ -8,6 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { formatAuditStamp } from '@/lib/dates'
+import { readAll } from '@/lib/readAll'
 
 type Translate = (key: string, params?: Record<string, string>) => string
 
@@ -114,10 +115,10 @@ export async function loadTermsRequests(
     t: Translate,
     opts: { which: 'formula' | 'contract'; formulaId?: string; contractId?: string; recent?: number },
 ): Promise<{ open: TermsRequestView[]; history: TermsRequestView[] }> {
-    const rows = (mustRows(await supabase.rpc('terms_requests_visible', {
+    const rows = (mustRows(await readAll(() => supabase.rpc('terms_requests_visible', {
         p_recent: opts.recent ?? 10,
         p_formula_id: opts.formulaId,
-    }), 'terms_requests_visible') as unknown as Row[])
+    }), { label: 'terms_requests_visible' }), 'terms_requests_visible') as unknown as Row[])
         .filter((r) => (opts.which === 'contract') === (r.contract_id !== null))
         // TERMS-EDIT-1:合同详情页只要这一份合同的(库那一侧没有按合同过滤的参数;行数由 p_recent 封顶)
         .filter((r) => opts.contractId === undefined || r.contract_id === opts.contractId)
@@ -133,8 +134,8 @@ export async function loadTermsRequests(
     const names = new Map<string, string>()
     if (ids.size > 0) {
         const [sup, cus] = await Promise.all([
-            supabase.from('supplier_lookup').select('id, legal_name').in('id', [...ids]),
-            supabase.from('customer_lookup').select('id, legal_name').in('id', [...ids]),
+            readAll(() => supabase.from('supplier_lookup').select('id, legal_name').in('id', [...ids]), { label: 'supplier_lookup' }),
+            readAll(() => supabase.from('customer_lookup').select('id, legal_name').in('id', [...ids]), { label: 'customer_lookup' }),
         ])
         for (const x of [...mustRows(sup, 'supplier_lookup'), ...mustRows(cus, 'customer_lookup')] as
                  { id: string | null; legal_name: string | null }[]) {

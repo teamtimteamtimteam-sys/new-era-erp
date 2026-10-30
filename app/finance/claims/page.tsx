@@ -29,6 +29,7 @@ import ClaimDecisionPanel, { type ClaimItem, type ClaimRow } from './ClaimDecisi
 import type { ReceiptRow } from '@/app/me/ClaimReceipts'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { shapeListTotals } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 // AUDIT-TRAIL-1c-3(Tim 的 Q20):每一张报销单一段审计记录(提交 · 决定 · 撤回 · 收据 · 批准时记下的费用单);
 //   报销人自己那一半在 /me(my_expense_claim,M8)。
@@ -46,18 +47,18 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
     const canDecide = await canViewPrices()
 
     const headers = mustRows(
-        await supabase
+        await readAll(() => supabase
             .from('expense_claim_status')
             .select('*')
-            .order('spend_date', { ascending: false })
+            .order('spend_date', { ascending: false }), { label: 'expense_claim_status', key: ['claim_id', 'code', 'employee_id', 'employee_code', 'employee_name', 'spend_date', 'submitted_at', 'amount_ccy', 'currency', 'description', 'status', 'decided_at', 'decision_notes', 'posting_date', 'expense_id', 'payment_status', 'expense_reversed', 'settled_ccy', 'is_paid', 'is_owing', 'expense_net_ccy', 'expense_tax_ccy', 'item_count'] })
     ) as unknown as Omit<ClaimRow, 'items'>[]
     // EXPENSE-MULTILINE-1:每张单的明细(同一条读规则:持 finance.view,或者那张单说的就是你)
     const items = headers.length
         ? mustRows(
-            await supabase.from('expense_claim_items')
+            await readAllIn(headers.map((h) => h.claim_id), (__ids) => supabase.from('expense_claim_items')
                 .select('id, claim_id, line_no, spend_date, amount_ccy, description, no_receipt_reason, account_code, tax_code')
-                .in('claim_id', headers.map((h) => h.claim_id))
-                .order('line_no'),
+                .in('claim_id', __ids)
+                .order('line_no'), { label: 'expense_claim_items' }),
             'expense_claim_items',
         ) as unknown as (ClaimItem & { claim_id: string })[]
         : []
@@ -66,17 +67,17 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
     //   (拿掉的从单上隐去,Q5)。替人提单的人(expense_claims.created_by = 我)在这里也传得了(Q4),所以读一下每张单是谁提的。
     const receipts = headers.length
         ? mustRows(
-            await supabase.from('expense_claim_receipts')
+            await readAllIn(headers.map((h) => h.claim_id), (__ids) => supabase.from('expense_claim_receipts')
                 .select('id, item_id, file_name')
-                .in('claim_id', headers.map((h) => h.claim_id))
+                .in('claim_id', __ids)
                 .eq('status', 'attached')
-                .order('created_at'),
+                .order('created_at'), { label: 'expense_claim_receipts' }),
             'expense_claim_receipts',
         ) as ReceiptRow[]
         : []
     const raisers = headers.length
         ? mustRows(
-            await supabase.from('expense_claims').select('id, created_by').in('id', headers.map((h) => h.claim_id)),
+            await readAllIn(headers.map((h) => h.claim_id), (__ids) => supabase.from('expense_claims').select('id, created_by').in('id', __ids), { label: 'expense_claims' }),
             'expense_claims (raisers)',
         ) as { id: string; created_by: string | null }[]
         : []
@@ -102,7 +103,7 @@ export default async function ClaimsPage({ searchParams }: { searchParams: Promi
     const decided = rows.filter((r) => r.status !== 'submitted')
     // TABLE-FEATURES-2(Tim Q1):已决登记簿的表尾合计 —— 库算(db/functions/list_totals_expense_claims.sql),
     //   在 SQL 里用与上一行同一条 status <> 'submitted'。
-    const decidedTotals = shapeListTotals(mustRows(await supabase.rpc('list_totals_expense_claims'), 'expense claims totals'))
+    const decidedTotals = shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_expense_claims'), { label: 'list_totals_expense_claims', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'expense claims totals'))
 
     return (
         <ListPage

@@ -1,0 +1,69 @@
+STEP|base http://localhost:3196
+SELECT1|before admin client round trips 4765 / 1049 / 392 / 387 / 427 ms (median 427) · server execution 0.019 ms
+WARN|before admin: a single round trip took 4765 ms (> 1500 ms; recorded, not an abort)
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|C admin /settings/change-history: HTTP 200 in 10.3 s — 20 entry marker(s)
+TIME|admin|change-history show=20|10256
+PASS|C admin /settings/change-history?show=500: HTTP 200 in 69.7 s — 500 entry marker(s), the 500 stop notice
+TIME|admin|change-history show=500|69697
+PASS|D admin /settings/dictionaries: HTTP 200 in 20.6 s — 17 dictionary section(s) (one audit trail each)
+TIME|admin|dictionaries|20581
+SELECT1|before warehouse client round trips 413 / 536 / 411 / 417 / 431 ms (median 417) · server execution 0.026 ms
+HEALTH|before warehouse: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|C warehouse /settings/change-history: HTTP 200 in 4.2 s — named refusal (no data.view_change_log)
+TIME|warehouse|change-history show=20|4211
+PASS|C warehouse /settings/change-history?show=500: HTTP 200 in 2.5 s — named refusal (no data.view_change_log)
+TIME|warehouse|change-history show=500|2530
+PASS|D warehouse /settings/dictionaries: HTTP 200 in 11.1 s — 10 dictionary section(s) (one audit trail each)
+TIME|warehouse|dictionaries|11122
+SELECT1|before cfo client round trips 1043 / 465 / 488 / 513 / 511 ms (median 511) · server execution 0.03 ms
+HEALTH|before cfo: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|C cfo /settings/change-history: HTTP 200 in 12.5 s — 20 entry marker(s)
+TIME|cfo|change-history show=20|12502
+PASS|C cfo /settings/change-history?show=500: HTTP 200 in 78.5 s — 500 entry marker(s), the 500 stop notice
+TIME|cfo|change-history show=500|78536
+PASS|D cfo /settings/dictionaries: HTTP 200 in 21.2 s — 17 dictionary section(s) (one audit trail each)
+TIME|cfo|dictionaries|21225
+PASS|C cfo export 2026-10-30..2026-10-30: HTTP 200 in 45.8 s — 4230 recorded changes counted (postgres reads 4230 in the base table), 797 file rows (one per field changed)
+PASS|C cfo export over 730 days: HTTP 400 EXPORT_RANGE_TOO_LONG (Q7: at most 366 days)
+SELECT1|before cco client round trips 497 / 414 / 544 / 420 / 1423 ms (median 497) · server execution 0.022 ms
+HEALTH|before cco: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|C cco /settings/change-history: HTTP 200 in 4.7 s — named refusal (no data.view_change_log)
+TIME|cco|change-history show=20|4655
+PASS|C cco /settings/change-history?show=500: HTTP 200 in 3.3 s — named refusal (no data.view_change_log)
+TIME|cco|change-history show=500|3337
+PASS|D cco /settings/dictionaries: HTTP 200 in 18.3 s — 17 dictionary section(s) (one audit trail each)
+TIME|cco|dictionaries|18315
+SELECT1|before cto client round trips 623 / 411 / 602 / 512 / 408 ms (median 512) · server execution 0.025 ms
+HEALTH|before cto: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|C cto /settings/change-history: HTTP 200 in 3.2 s — named refusal (no data.view_change_log)
+TIME|cto|change-history show=20|3211
+PASS|C cto /settings/change-history?show=500: HTTP 200 in 3.1 s — named refusal (no data.view_change_log)
+TIME|cto|change-history show=500|3072
+PASS|D cto /settings/dictionaries: HTTP 200 in 21.6 s — 17 dictionary section(s) (one audit trail each)
+TIME|cto|dictionaries|21597
+SELECT1|before finance client round trips 415 / 392 / 836 / 1741 / 1024 ms (median 836) · server execution 0.03 ms
+WARN|before finance: a single round trip took 1741 ms (> 1500 ms; recorded, not an abort)
+HEALTH|before finance: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|C finance /settings/change-history: HTTP 200 in 3.4 s — named refusal (no data.view_change_log)
+TIME|finance|change-history show=20|3391
+PASS|C finance /settings/change-history?show=500: HTTP 200 in 3.5 s — named refusal (no data.view_change_log)
+TIME|finance|change-history show=500|3543
+PASS|D finance /settings/dictionaries: HTTP 200 in 15.9 s — 17 dictionary section(s) (one audit trail each)
+TIME|finance|dictionaries|15856
+SELECT1|before gm client round trips 453 / 418 / 419 / 586 / 520 ms (median 453) · server execution 0.029 ms
+HEALTH|before gm: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|C gm /settings/change-history: HTTP 200 in 6.1 s — named refusal (no data.view_change_log)
+TIME|gm|change-history show=20|6055
+PASS|C gm /settings/change-history?show=500: HTTP 200 in 3.4 s — named refusal (no data.view_change_log)
+TIME|gm|change-history show=500|3407
+PASS|D gm /settings/dictionaries: HTTP 200 in 17.9 s — 17 dictionary section(s) (one audit trail each)
+TIME|gm|dictionaries|17883
+SELECT1|after the last reader client round trips 935 / 390 / 942 / 385 / 392 ms (median 392) · server execution 1.141 ms
+HEALTH|after the last reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+WARN|before admin: a single round trip took 4765 ms (> 1500 ms; recorded, not an abort)
+WARN|before finance: a single round trip took 1741 ms (> 1500 ms; recorded, not an abort)
+AFTER|committed on live by this run: the throwaway supplier, contact, portal account and link, one certificate submission and its stored object, and the throwaway staff clones with their roles and grants — every one of them on the cleanup plan; nothing else was pressed
+GL2_PROOF_EXIT=0
+GL2_RUN_EXIT=0

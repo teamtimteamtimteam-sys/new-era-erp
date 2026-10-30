@@ -13,6 +13,7 @@ import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import RunForm from '../RunForm'
+import { readAll } from '@/lib/readAll'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? ''
@@ -52,8 +53,8 @@ export default async function NewRunPage({ searchParams }: { searchParams: Promi
         supabase.from('inspection_template_items').select('position, item_text').eq('template_id', templateId).order('position'),
         supabase.from('incident_people').select('id, code, preferred_name').order('code'),
         supabase.from('storage_locations').select('id, code, name').eq('is_active', true).order('code'),
-        canProcessing ? supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description')
-            .eq('equipment_category', 'equipment').order('equipment_code') : null,
+        canProcessing ? readAll(() => supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description')
+            .eq('equipment_category', 'equipment').order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }) : null,
     ])
     const items = (mustRows(itemsRes, 'inspection_template_items') as { position: number; item_text: string }[]).map((x) => ({ position: x.position, text: x.item_text }))
     const people = (mustRows(peopleRes, 'incident_people') as { id: string; code: string; preferred_name: string | null }[])

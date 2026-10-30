@@ -15,6 +15,7 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAll } from '@/lib/readAll'
 
 export default async function ContainerDetailPage({ params, searchParams }: {
     params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
@@ -38,8 +39,8 @@ export default async function ContainerDetailPage({ params, searchParams }: {
     // CTN-FWD:承运方候选与当前那一家的名字。【只列货代】—— 与运费录入页
     // 那一处同向(.eq),与其余十一处 .neq 相反,所以它单独写在这里。
     const forwarders = mustRows(
-        await supabase.from('supplier_lookup').select('id, legal_name')
-            .is('deleted_at', null).eq('counterparty_type', 'forwarder').order('legal_name'),
+        await readAll(() => supabase.from('supplier_lookup').select('id, legal_name')
+            .is('deleted_at', null).eq('counterparty_type', 'forwarder').order('legal_name'), { label: 'supplier_lookup' }),
         'forwarders'
     ) as unknown as { id: string; legal_name: string }[]
     // 【先把它取到一个局部里】—— notFound() 的收窄跨不过回调,
@@ -59,9 +60,9 @@ export default async function ContainerDetailPage({ params, searchParams }: {
         'attached shipments'
     )
     const attachable = mustRows(
-        await supabase.from('shipment_lookup')
+        await readAll(() => supabase.from('shipment_lookup')
             .select('id, code, ship_date, sales_order_code, customer_legal_name')
-            .is('container_id', null).order('ship_date'),
+            .is('container_id', null).order('ship_date'), { label: 'shipment_lookup' }),
         'attachable shipments'
     )
     const milestones = mustRows(

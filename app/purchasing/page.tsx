@@ -38,6 +38,7 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import { formatAmount, businessToday } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import Figure from '@/app/components/overview/Figure'
+import { readAllIn } from '@/lib/readAll'
 
 type PoRow = {
     po_id: string
@@ -78,10 +79,10 @@ export default async function PurchasingOverviewPage() {
         allows('module.suppliers.view', perms) || allows('module.customers.view', perms)
 
     const [poRes, covRes] = await Promise.all([
-        supabase
+        readAllIn(IN_FLIGHT, (__ids) => supabase
             .from('purchase_order_status')
             .select('po_id, code, status, expected_delivery_date, currency, estimated_total_ccy, ordered_qty, received_qty, receipt_pct')
-            .in('status', IN_FLIGHT),
+            .in('status', __ids), { label: 'purchase_order_status', key: ['po_id', 'code', 'supplier_id', 'supplier_name', 'order_date', 'expected_delivery_date', 'status', 'currency', 'estimated_total_ccy', 'prepaid_base', 'prepaid_applied_base', 'prepaid_remaining_base', 'received_batches', 'received_qty', 'ordered_qty', 'receipt_pct', 'tax_total_ccy', 'gross_total_ccy', 'carries_tax', 'approval_status'] }),
         canSeeContracts
             ? supabase
                   .from('contract_coverage')

@@ -13,6 +13,7 @@ import { loadPaymentTriggerEvents, triggerLabel } from '@/lib/paymentTriggers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
+import { readAll } from '@/lib/readAll'
 
 type TemplateLine = {
     template_id: string
@@ -37,15 +38,15 @@ export default async function PaymentTermTemplatesPage() {
     const t = await getTranslations()
 
     const [tplRes, lineRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('payment_term_templates')
             .select('id, name, description, is_active, currency')
             .is('deleted_at', null)
-            .order('name'),
-        supabase
+            .order('name'), { label: 'payment_term_templates' }),
+        readAll(() => supabase
             .from('payment_term_template_lines_masked')
             .select('template_id, seq, label, percentage, fixed_amount_ccy, trigger_event, days_offset')
-            .order('seq'),
+            .order('seq'), { label: 'payment_term_template_lines_masked' }),
     ])
 
     const templates = mustRows(tplRes)

@@ -10,6 +10,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
 import { FlatExportBar } from '@/app/components/ui/report-export'
 import { xMoney, xText } from '@/lib/export/cells'
+import { readAll } from '@/lib/readAll'
 
 // ★ CONV-4:不套 DataTable —— 这是一张【透视表】,行 = 成本类型、
 //   列 = 动态生成的月份,两根轴都不是"记录"。与 §⑧-3 拒绝把
@@ -25,7 +26,7 @@ export default async function CostVariancePage() {
     const t = await getTranslations()
     // 列头是月份,没有一处写着币种 —— 差异金额自己带(CCY-1)
     const baseCurrency = await getBaseCurrency()
-    const res = await supabase.from('processing_cost_variance').select('*')
+    const res = await readAll(() => supabase.from('processing_cost_variance').select('*'), { label: 'processing_cost_variance', key: ['month', 'cost_type', 'estimated_total', 'actual_total', 'variance', 'direction'] })
     type Row = { month: string; cost_type: string; estimated_total: number; actual_total: number; variance: number; direction: string }
     const rows = mustRows(res) as unknown as Row[]
     const months = [...new Set(rows.map((r) => r.month.slice(0, 7)))].sort().slice(-6)

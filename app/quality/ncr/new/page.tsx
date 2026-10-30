@@ -18,6 +18,7 @@ import { parseBatchRef, batchHref, resultPartyKey, disputeStatusKey } from '../.
 import { loadBatchOptions, loadBatchCode } from '../../samples/batchOptions'
 import BatchPicker from '../../samples/BatchPicker'
 import NcrForm, { type Option } from '../NcrForm'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewNcrPage({ searchParams }: { searchParams: Promise<{ batch?: string | string[]; finding?: string | string[] }> }) {
     const denied = await requireFunction(FN.qualityNcr)
@@ -70,8 +71,8 @@ export default async function NewNcrPage({ searchParams }: { searchParams: Promi
     }
     const col = ref.kind === 'inbound' ? 'inbound_batch_id' : 'output_batch_id'
     const [assayRes, disputeRes, resvRes, canEdit, canSales] = await Promise.all([
-        supabase.from('assay_results').select('id, code, result_party, assay_date').eq(col, ref.id).is('deleted_at', null).order('assay_date', { ascending: false }),
-        supabase.from('assay_dispute_rows').select('id, status, our_assay_code, counterparty_assay_code').eq(col, ref.id).order('created_at', { ascending: false }),
+        readAll(() => supabase.from('assay_results').select('id, code, result_party, assay_date').eq(col, ref.id).is('deleted_at', null).order('assay_date', { ascending: false }), { label: 'assay_results' }),
+        readAll(() => supabase.from('assay_dispute_rows').select('id, status, our_assay_code, counterparty_assay_code').eq(col, ref.id).order('created_at', { ascending: false }), { label: 'assay_dispute_rows' }),
         ref.kind === 'output'
             ? supabase.from('sales_order_reservations').select('sales_order_lines ( sales_order_id, sales_orders ( code ) )').eq('output_batch_id', ref.id)
             : null,

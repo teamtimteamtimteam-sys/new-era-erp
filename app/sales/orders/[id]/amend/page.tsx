@@ -24,6 +24,7 @@ import { requireEditPermission } from '@/app/components/moduleGuard'
 import AmendOrderForm, { type AmendLine } from './AmendOrderForm'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function AmendSalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const locale = await getLocale()
@@ -56,9 +57,9 @@ export default async function AmendSalesOrderPage({ params }: { params: Promise<
     // 已发:读 shipment_lines —— 【货真的离开了】的记录,与 line_spoken_for 同一个
     // 理由(consumed_at 只是预留的终局标记)。
     const shipLines = lineIds.length === 0 ? [] : (mustRows(
-        await supabase.from('shipment_lines')
+        await readAllIn(lineIds, (__ids) => supabase.from('shipment_lines')
             .select('sales_order_line_id, qty, shipments ( code )')
-            .in('sales_order_line_id', lineIds),
+            .in('sales_order_line_id', __ids), { label: 'shipment_lines' }),
         'shipment_lines') as unknown as {
             sales_order_line_id: string; qty: number; shipments: { code: string } | null }[])
 
@@ -68,9 +69,9 @@ export default async function AmendSalesOrderPage({ params }: { params: Promise<
     //     SO_LINE_HAS_RECORD 正是为它们存在的:删行会销毁一条真发生过的记录。
     //     不取回来,这张页面就会给一条注定被拒的行摆一个可勾的删除框。
     const reservations = lineIds.length === 0 ? [] : (mustRows(
-        await supabase.from('sales_order_reservations')
+        await readAllIn(lineIds, (__ids) => supabase.from('sales_order_reservations')
             .select('sales_order_line_id, qty, released_at, consumed_at')
-            .in('sales_order_line_id', lineIds),
+            .in('sales_order_line_id', __ids), { label: 'sales_order_reservations' }),
         'sales_order_reservations') as unknown as {
             sales_order_line_id: string; qty: number
             released_at: string | null; consumed_at: string | null }[])
@@ -80,17 +81,17 @@ export default async function AmendSalesOrderPage({ params }: { params: Promise<
     const canSeeFinance = await can('module.finance.view')
     // 【作废了的发票行也取】—— 同上:它是一条留着供审计的记录,删行会毁掉它。
     const invLines = !canSeeFinance || lineIds.length === 0 ? [] : (mustRows(
-        await supabase.from('invoice_lines_masked')
+        await readAllIn(lineIds, (__ids) => supabase.from('invoice_lines_masked')
             .select('sales_order_line_id, invoice_id, quantity, invoice_voided')
-            .in('sales_order_line_id', lineIds),
+            .in('sales_order_line_id', __ids), { label: 'invoice_lines_masked' }),
         'invoice_lines') as unknown as {
             sales_order_line_id: string | null; invoice_id: string; quantity: number
             invoice_voided: boolean }[])
     const liveInvoices = invLines.length === 0 ? [] : (mustRows(
-        await supabase.from('invoices_masked')
+        await readAll(() => supabase.from('invoices_masked')
             .select('id, code')
             .in('id', [...new Set(invLines.filter((r) => !r.invoice_voided).map((r) => r.invoice_id))])
-            .eq('kind', 'order').eq('status', 'issued'),
+            .eq('kind', 'order').eq('status', 'issued'), { label: 'invoices_masked' }),
         'invoices') as unknown as { id: string; code: string }[])
     const invCodeById = new Map(liveInvoices.map((i) => [i.id, i.code]))
 
@@ -139,8 +140,8 @@ export default async function AmendSalesOrderPage({ params }: { params: Promise<
     }))
 
     const materials = mustRows(
-        await supabase.from('materials').select('id, code, name')
-            .is('deleted_at', null).order('code'),
+        await readAll(() => supabase.from('materials').select('id, code, name')
+            .is('deleted_at', null).order('code'), { label: 'materials' }),
         'materials') as unknown as { id: string; code: string; name: string }[]
 
     return (

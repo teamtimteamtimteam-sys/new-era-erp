@@ -15,6 +15,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import { disputeStatusKey, resultPartyKey } from '../qualityTypes'
 import DisputesTable, { type DisputeRow } from './DisputesTable'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     id: string; status: string; batch_code: string; our_assay_code: string; counterparty_assay_code: string; umpire_assay_code: string | null
@@ -30,9 +31,9 @@ export default async function DisputesPage() {
     const supabase = await createClient()
 
     const [res, canEdit] = await Promise.all([
-        supabase.from('assay_dispute_rows')
+        readAll(() => supabase.from('assay_dispute_rows')
             .select('id, status, batch_code, our_assay_code, counterparty_assay_code, umpire_assay_code, max_diff_pct, limit_pct_at, beyond_limit, governing_assay_code, governing_party, created_at')
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false }), { label: 'assay_dispute_rows' }),
         can('module.quality.edit'),
     ])
     const disputes = mustRows(res, 'assay_dispute_rows') as Row[]

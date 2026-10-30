@@ -1,0 +1,31 @@
+18:06:37 watchdog anchored to the smoke node process 18370
+18:06:45 median=417.445ms max=922.965ms in-db=0.035ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:07:54 median=425.630ms max=908.841ms in-db=0.485ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:09:02 median=409.049ms max=814.042ms in-db=1.178ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:10:11 median=420.026ms max=420.856ms in-db=0.033ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:11:19 median=486.408ms max=673.926ms in-db=0.611ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:12:28 median=490.918ms max=537.024ms in-db=0.027ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:13:37 median=412.142ms max=513.245ms in-db=0.523ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:14:46 median=405.172ms max=830.272ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:15:55 median=396.863ms max=504.927ms in-db=0.958ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:17:03 median=417.373ms max=660.308ms in-db=0.031ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:18:12 median=496.458ms max=865.926ms in-db=1.174ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:19:20 median=408.939ms max=548.294ms in-db=0.033ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:20:29 median=423.234ms max=510.343ms in-db=1.217ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:21:37 median=410.698ms max=554.754ms in-db=0.033ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:22:46 median=424.458ms max=512.461ms in-db=0.471ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:23:55 median=431.719ms max=519.885ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:25:05 median=471.522ms max=546.057ms in-db=0.980ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:26:14 median=396.448ms max=869.690ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:27:23 median=409.389ms max=468.974ms in-db=0.998ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:28:33 median=420.049ms max=424.149ms in-db=0.529ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:29:41 median=419.587ms max=618.835ms in-db=0.571ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:30:50 median=470.426ms max=631.314ms in-db=0.033ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:32:01 median=425.103ms max=482.879ms in-db=0.628ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:33:11 median=660.950ms max=1104.774ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:34:19 median=387.458ms max=416.727ms in-db=1.121ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:35:28 median=402.861ms max=489.427ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:36:36 median=430.364ms max=570.497ms in-db=0.646ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:37:46 median=682.251ms max=1458.651ms in-db=0.523ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:38:54 median=435.499ms max=714.573ms in-db=1.113ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=18370
+18:39:54 the smoke node process 18370 is gone — watchdog done

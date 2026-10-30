@@ -22,6 +22,7 @@ import { getMyPermissions } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { businessToday } from '@/lib/format'
 import Figure from '@/app/components/overview/Figure'
+import { readAll } from '@/lib/readAll'
 
 const P_SAFETY = 'module.safety.view'
 const P_SUPPLIERS = 'module.suppliers.view'
@@ -45,13 +46,13 @@ export default async function EsgOverviewPage() {
     const canCod = allows(P_COD, perms)
 
     const [incRes, findRes, envRes, licRes, typeRes, supRes, codRes] = await Promise.all([
-        canSafety ? supabase.from('incident_rows').select('id, occurred_on, closed_at') : Promise.resolve(none),
-        canSafety ? supabase.from('inspection_finding_rows').select('id, is_open, overdue') : Promise.resolve(none),
-        canSafety ? supabase.from('environmental_result_rows').select('id, exceeds, incident_id, sampled_on').gte('sampled_on', yearStart) : Promise.resolve(none),
+        canSafety ? readAll(() => supabase.from('incident_rows').select('id, occurred_on, closed_at'), { label: 'incident_rows' }) : Promise.resolve(none),
+        canSafety ? readAll(() => supabase.from('inspection_finding_rows').select('id, is_open, overdue'), { label: 'inspection_finding_rows' }) : Promise.resolve(none),
+        canSafety ? readAll(() => supabase.from('environmental_result_rows').select('id, exceeds, incident_id, sampled_on').gte('sampled_on', yearStart), { label: 'environmental_result_rows' }) : Promise.resolve(none),
         canSuppliers ? supabase.from('company_compliance').select('id, cert_type_code, valid_until').is('deleted_at', null) : Promise.resolve(none),
         canSuppliers ? supabase.from('certificate_types').select('code, disposition, warn_lead_days') : Promise.resolve(none),
-        canSuppliers ? supabase.from('supplier_certificate_status').select('id, status') : Promise.resolve(none),
-        canCod ? supabase.from('certificates_of_destruction').select('id, status') : Promise.resolve(none),
+        canSuppliers ? readAll(() => supabase.from('supplier_certificate_status').select('id, status'), { label: 'supplier_certificate_status' }) : Promise.resolve(none),
+        canCod ? readAll(() => supabase.from('certificates_of_destruction').select('id, status'), { label: 'certificates_of_destruction' }) : Promise.resolve(none),
     ])
 
     // ── ① 事故与巡检 ────────────────────────────────────────────────────────

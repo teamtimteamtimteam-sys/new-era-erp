@@ -187,11 +187,11 @@
 --   compliance_pack     → /compliance/packs/[id]   requireFunction(FN.compliancePacks) = module.compliance.view。成员:签发档(compliance_pack_issues,住在这里)。
 --                         被谁取代是旧那一份自己那几列说的,不经 superseded_by 自连(管理包的同一个理由)。
 --   compliance_settings → /compliance/packs 上的 V26 / V27 那一块   module.compliance.view;单行设置作根(supplier_score_settings 的先例)
+-- ★ GOLIVE-2(第 13 行):去掉了 SET search_path —— 函数体只是一张常量 VALUES 表、不引用任何对象,不带 SET 的 SQL 函数才能被内联(trail_row_record 每一行问一次「这张表是不是某个主语的根」)。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
  RETURNS TABLE(subject text, view_codes text[], root_table text, root_key text, root_rule text, root_columns text[])
  LANGUAGE sql
  IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
 AS $function$
     SELECT * FROM (VALUES
         ('purchase_order',    ARRAY['module.purchasing.view'],    'purchase_orders',    'id', 'table', NULL::text[]),

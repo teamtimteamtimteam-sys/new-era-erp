@@ -6,6 +6,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewOutputPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -17,16 +18,16 @@ export default async function NewOutputPage() {
     const t = await getTranslations()
 
     const [materialsRes, customersRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
-            .order('name'),
-        supabase
+            .order('name'), { label: 'material_lookup' }),
+        readAll(() => supabase
             .from('customer_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, legal_name')
             .is('deleted_at', null)
-            .order('legal_name'),
+            .order('legal_name'), { label: 'customer_lookup' }),
     ])
 
     if (materialsRes.error || customersRes.error) {

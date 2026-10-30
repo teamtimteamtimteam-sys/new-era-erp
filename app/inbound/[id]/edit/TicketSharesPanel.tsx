@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
+import { readAllIn } from '@/lib/readAll'
 
 export default async function TicketSharesPanel({ batchId, quantity, createdAt }: { batchId: string; quantity: number; createdAt: string }) {
     const t = await getTranslations()
@@ -31,10 +32,10 @@ export default async function TicketSharesPanel({ batchId, quantity, createdAt }
     const tickets = new Map<string, { code: string; net_kg: number | null; shared_kg: number; difference_kg: number | null }>()
     const readings = new Map<string, { role: string; device_code: string | null; status: string }[]>()
     if (ticketIds.length > 0) {
-        ;(mustRows(await supabase.from('weighbridge_ticket_weights').select('ticket_id, code, net_kg, shared_kg, difference_kg').in('ticket_id', ticketIds),
+        ;(mustRows(await readAllIn(ticketIds, (__ids) => supabase.from('weighbridge_ticket_weights').select('ticket_id, code, net_kg, shared_kg, difference_kg').in('ticket_id', __ids), { label: 'weighbridge_ticket_weights', key: ['ticket_id', 'code', 'direction', 'vehicle_reg', 'notes', 'created_at', 'created_by', 'completed_at', 'voided_at', 'void_reason', 'status', 'gross_weighing_id', 'gross_kg', 'gross_at', 'tare_weighing_id', 'tare_kg', 'tare_at', 'net_kg', 'shared_kg', 'difference_kg', 'share_count', 'deleted_receipt_shares'] }),
             'weighbridge_ticket_weights') as { ticket_id: string; code: string; net_kg: number | null; shared_kg: number; difference_kg: number | null }[])
             .forEach((x) => tickets.set(x.ticket_id, x))
-        ;(mustRows(await supabase.from('weighing_calibration').select('ticket_id, role, device_code, status').in('ticket_id', ticketIds).eq('is_current', true),
+        ;(mustRows(await readAllIn(ticketIds, (__ids) => supabase.from('weighing_calibration').select('ticket_id, role, device_code, status').in('ticket_id', __ids).eq('is_current', true), { label: 'weighing_calibration', key: ['weighing_id', 'ticket_id', 'role', 'weight_kg', 'source', 'device_id', 'device_code', 'captured_at', 'captured_on', 'is_current', 'calibration_id', 'calibration_result', 'valid_until', 'status'] }),
             'weighing_calibration') as { ticket_id: string; role: string; device_code: string | null; status: string }[])
             .forEach((w) => readings.set(w.ticket_id, [...(readings.get(w.ticket_id) ?? []), w]))
     }

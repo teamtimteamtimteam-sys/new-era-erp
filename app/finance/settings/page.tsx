@@ -17,6 +17,7 @@ import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 // AUDIT-TRAIL-1c-3(Tim 的 Q25 · Q4):这一行设置由两块面板分着管,每一块下面是【它自己那几列】的审计记录 ——
 //   锁期那一块(locked_before,外加月结 / 反结,M7)、GST 那一块(注册开关与注册号)。同一行上没有面板的六列
@@ -79,15 +80,16 @@ export default async function FinanceSettingsPage({ searchParams }: { searchPara
     const sodUnknown = !!userErr
     let myManualDates: string[] = []
     if (user && !sodUnknown) {
-        const q = supabase
-            .from('journal_entries')
-            .select('entry_date')
-            .eq('source_type', 'manual')
-            .eq('created_by', user.id)
-            .order('entry_date')
-        const { data: mine } = lockedBefore
-            ? await q.gte('entry_date', lockedBefore)
-            : await q
+        // GOLIVE-2 第 10 行:一个人多年的手工分录可以过 1,000 —— 一律翻页读(lib/readAll.ts)
+        const { data: mine } = await readAll(() => {
+            const q = supabase
+                .from('journal_entries')
+                .select('entry_date')
+                .eq('source_type', 'manual')
+                .eq('created_by', user.id)
+                .order('entry_date')
+            return lockedBefore ? q.gte('entry_date', lockedBefore) : q
+        }, { label: 'journal_entries' })
         myManualDates = [...new Set((mine ?? []).map((e) => e.entry_date as string))]
     }
 

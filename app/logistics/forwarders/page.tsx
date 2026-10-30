@@ -20,6 +20,7 @@ import { shapeListTotals } from '@/lib/listTotals'
 import NewForwarderForm from './NewForwarderForm'
 import { ListPage } from '@/app/components/ui/list-page'
 import ForwardersTable, { type ForwarderRow } from './ForwardersTable'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function ForwardersPage() {
     const denied = await requireModule(MOD.logistics)
@@ -35,12 +36,12 @@ export default async function ForwardersPage() {
     // 名字走 supplier_lookup(FIX-1 建的那张查名视图,本刀把 logistics.view 加进它的
     // 体内谓词);付款条件与未结应付【不跟着来】,见下面两处。
     const rows = mustRows(
-        await supabase
+        await readAll(() => supabase
             .from('supplier_lookup')
             .select('id, code, legal_name')
             .eq('counterparty_type', 'forwarder')
             .is('deleted_at', null)
-            .order('legal_name'),
+            .order('legal_name'), { label: 'supplier_lookup' }),
         'forwarders'
     ) as unknown as { id: string; code: string; legal_name: string }[]
 
@@ -52,10 +53,10 @@ export default async function ForwardersPage() {
     const termsById = new Map<string, string | null>()
     if (canCommercial && rows.length) {
         for (const s of mustRows(
-            await supabase
+            await readAllIn(rows.map((r) => r.id), (__ids) => supabase
                 .from('suppliers')
                 .select('id, payment_terms')
-                .in('id', rows.map((r) => r.id)),
+                .in('id', __ids), { label: 'suppliers' }),
             'forwarder payment terms'
         )) {
             termsById.set(s.id as string, s.payment_terms as string | null)
@@ -65,7 +66,7 @@ export default async function ForwardersPage() {
     const ids = rows.map((r) => r.id)
     const details = ids.length
         ? mustRows(
-              await supabase.from('forwarder_details').select('supplier_id, main_routes').in('supplier_id', ids),
+              await readAllIn(ids, (__ids) => supabase.from('forwarder_details').select('supplier_id, main_routes').in('supplier_id', __ids), { label: 'forwarder_details', key: ['supplier_id', 'main_routes', 'ports_served', 'free_time_terms', 'dg_classes', 'notes', 'created_at', 'created_by', 'updated_at', 'updated_by'] }),
               'forwarder_details'
           )
         : []
@@ -83,7 +84,7 @@ export default async function ForwardersPage() {
     const canMoney = await can('module.finance.view')
     const open = canMoney && ids.length
         ? mustRows(
-              await supabase.from('ap_open_items').select('counterparty_id, open_base, currency').in('counterparty_id', ids),
+              await readAllIn(ids, (__ids) => supabase.from('ap_open_items').select('counterparty_id, open_base, currency').in('counterparty_id', __ids), { label: 'ap_open_items', key: ['doc_kind', 'doc_id', 'doc_code', 'inbound_batch_id', 'supplier_id', 'supplier_name', 'doc_date', 'doc_value_base', 'settled_base', 'open_base', 'currency', 'open_ccy', 'days_outstanding', 'bucket', 'counterparty_kind', 'counterparty_id', 'counterparty_name'] }),
               'ap_open_items'
           )
         : []
@@ -100,7 +101,7 @@ export default async function ForwardersPage() {
     const baseCcy = (baseRow[0]?.code as string) ?? null
     // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):表尾合计 —— 全部货代的未结应付,本位币,由库算(list_totals_forwarders)。
     //   不持 finance.view(零行)或不持 data.view_purchase_prices(视图悄悄少了入库应付)的读者读「受限」。每一行的「未结应付」照旧。
-    const totals = shapeListTotals(mustRows(await supabase.rpc('list_totals_forwarders'), 'forwarder totals'))
+    const totals = shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_forwarders'), { label: 'list_totals_forwarders', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'forwarder totals'))
 
     const tableRows: ForwarderRow[] = rows.map((r) => ({
         id: r.id,

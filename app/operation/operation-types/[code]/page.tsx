@@ -20,6 +20,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import OperationTypeEditor, { type EditorField, type EditorMachine, type EditorRecipe } from './OperationTypeEditor'
 import ExpectedYieldPanel, { type ExpectedYieldRow } from './ExpectedYieldPanel'
+import { readAll } from '@/lib/readAll'
 
 export default async function OperationTypePage({
     params,
@@ -51,9 +52,9 @@ export default async function OperationTypePage({
             .eq('operation_type_code', code).order('sort_order'),
         supabase.from('operation_type_equipment').select('fixed_asset_id').eq('operation_type_code', code),
         // 机器的标签经 equipment_usage 读(加工的人读不到 fixed_assets 基表,MES-1 Q29);只收设备类(Q9)
-        supabase.from('equipment_usage')
+        readAll(() => supabase.from('equipment_usage')
             .select('equipment_id, equipment_code, equipment_description, equipment_status, equipment_category')
-            .order('equipment_code'),
+            .order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
         supabase.from('process_recipes').select('id, code, name_en, name_zh, is_active, notes').eq('operation_type_code', code).order('code'),
         supabase.from('process_recipe_versions').select('id, recipe_id, version, param_values, notes, created_at').order('version', { ascending: false }),
         can('module.processing.edit'),

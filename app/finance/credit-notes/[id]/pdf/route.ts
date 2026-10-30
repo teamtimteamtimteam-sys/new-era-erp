@@ -19,6 +19,7 @@ import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { localizeCreditNoteError } from '../../../creditNoteErrorCodes'
 import { formatDocumentDate } from '@/lib/dates'
+import { readAllIn } from '@/lib/readAll'
 
 const BUCKET = 'cn-documents'
 
@@ -54,8 +55,8 @@ async function loadDoc(id: string): Promise<CnDocData | null> {
 
     const ilIds = [...new Set(lines.map((l) => l.invoice_line_id))]
     const il = ilIds.length === 0 ? [] : (mustRows(
-        await supabase.from('invoice_lines_masked')
-            .select('id, line_no, description').in('id', ilIds),
+        await readAllIn(ilIds, (__ids) => supabase.from('invoice_lines_masked')
+            .select('id, line_no, description').in('id', __ids), { label: 'invoice_lines_masked' }),
         'invoice_lines') as unknown as { id: string; line_no: number; description: string }[])
     const byId = new Map(il.map((r) => [r.id, r]))
 

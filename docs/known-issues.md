@@ -71,7 +71,9 @@ MES-9a 委托书的 fixture 清单(15 项,逐项对照见 `docs/surveys/MES-9b/M
 **取档 200 + 重算的哈希与改过的字节 409 是【本地重建】那一支证的**(`db/scripts/2026-10-19-mes9b-local-download-proof.mjs`,`docs/surveys/MES-9b/readings/local-download-proof.txt:17`)——
 线上没有一份已提交的签发档可取(MES-9b 续做裁定 4)。路由那一段是 `app/portal/documents/file/route.ts:56-58`。
 
-## MES9C-LIVE-STORAGE-UPLOAD-BY-POLICY-NOT-BY-API · 门户经 Storage API 把字节真的传进 portal-uploads 那一步,线上只证到【策略与平台的预检】,没有证到【一次真的上传】(MES-9c 记,2026-10-20;刻意的)
+## ~~MES9C-LIVE-STORAGE-UPLOAD-BY-POLICY-NOT-BY-API · 门户经 Storage API 把字节真的传进 portal-uploads 那一步,线上只证到【策略与平台的预检】,没有证到【一次真的上传】(MES-9c 记,2026-10-20;刻意的)~~ —— ✅ 关闭于 GOLIVE-2(`v1.4.84`)
+
+✅ **关闭于 GOLIVE-2(`v1.4.84`,2026-10-30)**:GOLIVE-2 的线上证明(U)第一次在线上走完了一次真的 Storage API 上传:一次性门户账号以它自己的令牌把 ≈ 9 MB 传进 `portal-uploads` 那一行登记过的路径,存储对象的大小与登记的一致、库确认成一份等审核的申请,随后由清理计划删掉。`supplier_portal` 经 Storage API 的上传与签名链接(finish 读文件头)两条都走通了。
 
 委托书:线上不提交任何一份申请。而 portal-uploads 的上传策略只放行【一行已提交的 uploading 申请】登记过的那一条路径 —— 所以一次真的 Storage API 上传要先在线上
 提交一行申请,那正是不许做的。**线上证到的(`db/scripts/2026-10-20-mes9c-live-proof.mjs`):** ① 在一笔回滚的事务里,以门户账号真令牌里的声明、在 `supplier_portal` 角色下,
@@ -11421,7 +11423,9 @@ SQL fixture 结构上够不到它们(没有 JS / HTTP 运行器 —— 与上面
 财务读得到;新的库与存储权限规矩,自带 grilling 与线上证明。理由:这是员工第一次拿到存储的写权限,一个新的安全面。
 **在它之前:** 每一笔都带一句无收据理由(今天的规矩要求的就是这个);`/me` 的表单每一笔都有那一格,并且说明了为什么。
 
-### PORTAL-UPLOAD-CAPPED-BY-VERCEL-4-5-MB · 门户承诺「每份不超过 10 MB」,而生产上 4.3 MB 以上的文件在到达应用之前就被 Vercel 拒了(CLAIM-RECEIPTS-1 Q14 量到,2026-10-21)
+### ~~PORTAL-UPLOAD-CAPPED-BY-VERCEL-4-5-MB · 门户承诺「每份不超过 10 MB」,而生产上 4.3 MB 以上的文件在到达应用之前就被 Vercel 拒了(CLAIM-RECEIPTS-1 Q14 量到,2026-10-21)~~ —— ✅ 关闭于 GOLIVE-2(`v1.4.84`)
+
+✅ **关闭于 GOLIVE-2(`v1.4.84`,2026-10-30)**:字节从浏览器直传 `portal-uploads`(`app/portal/certificates/UploadForm.tsx`),服务端动作只做 begin / finish / abandon(`actions.ts`);begin 由库按 V39 判类型与大小(上传之前),finish 从存储读回文件头再认一次、库再比一次大小与类型(上传之后);旧路由 `/portal/certificates/upload` 删掉,于是不再有一个读整份文件的函数,Vercel 的 4.5 MB 请求体上限够不着它 —— 页面上那句「每份不超过 10 MB」(V39 的数,桶的 file_size_limit 同一个数)从此在生产上是真的。没有迁移,门户桶与策略一字未动;报销收据不受影响(同一组 V39、两个桶都没变)。没传成的那一行 abandoned、员工与门户都看不见它;浏览器在传完之后、确认之前被关掉,那一行停在 uploading(十分钟后存储策略不再放行那条路径,两侧都看不见),字节留着 —— 与 Tim 2026-10-20 d2 #3 同一个处置。线上证明:`db/scripts/2026-10-30-golive-2-live-proof.mjs` 的 U(≈ 9 MB 交上去、11 MB 在任何字节存下之前按名拒)。
 
 **量过的(生产,`https://new-era-erp.vercel.app`,2026-10-21 21:3x CST,一次性门户账号,`db/scripts/2026-10-21-claim-receipts-1-q14-portal-upload-limit.mjs`
 → `docs/surveys/CLAIM-RECEIPTS-1/readings/q14-portal-upload-limit.txt`,`Q14_EXIT=0`):** 每一次都送故意认不出的字节,于是到了应用的那几次都在
@@ -11433,7 +11437,9 @@ HTTP 413 `FUNCTION_PAYLOAD_TOO_LARGE`,由 Vercel 回、在应用之前。** 二�
 **去处:** ★ **Tim 2026-10-21(CLAIM-RECEIPTS-1 Q14):登记,修法进「上线准备组」(`docs/forward-queue.md` 那一组第 9 行),必须在第一个真实供应商账号之前落地;本刀不修。**
 修法的形状已经有了:报销收据(CLAIM-RECEIPTS-1)的字节从浏览器直传存储,路由 / 服务端动作只做登记(begin)与确认(finish,在那里按文件头认类型)。
 
-### SETTINGS-DICTIONARIES-30-SECOND-LOAD · `/settings/dictionaries` 一次要 30–45 秒,smoke 里有一次它的用量查询失败了(CLAIM-RECEIPTS-1 量到,2026-10-21;不是本刀碰的页)
+### ~~SETTINGS-DICTIONARIES-30-SECOND-LOAD · `/settings/dictionaries` 一次要 30–45 秒,smoke 里有一次它的用量查询失败了(CLAIM-RECEIPTS-1 量到,2026-10-21;不是本刀碰的页)~~ —— ✅ 关闭于 GOLIVE-2(`v1.4.84`)
+
+✅ **关闭于 GOLIVE-2(`v1.4.84`,2026-10-30)**:用量从每个值 × 每张引用表一次 count(线上 180 次往返)改成一次 `dictionary_usage_counts`(按读者自己的权限,每张引用表一条按值分组的查询);年体量种子上库内 10 ms,七个角色的每一个数与原来逐值数的逐个相同(fixture 305 的 D 臂)。
 
 **量过的:** CLAIM-RECEIPTS-1 的 smoke(`docs/surveys/CLAIM-RECEIPTS-1/readings/smoke.txt`,`SMOKE_EXIT=1`)里只有这一条红:HTTP 500,
 `用量查询失败(materials): `(`app/settings/dictionaries/page.tsx:150`)—— **错误信息是空的**,也就是 PostgREST 那一侧没有给出一个码,
@@ -11525,7 +11531,9 @@ capture「最近确认」与 contamination「最近检查」(Q1)· 通知(只说
 
 ## TABLE-EXPORT-2a(`v1.4.68`,2026-10-22)—— 财务那一半的列表页导出
 
-### READ-ALL-STOPS-AT-1000 · 一次【不翻页】的读取在线上第 1,000 行处悄悄停下 —— 不只是导出,屏幕上的合计也会悄悄偏小(Tim 2026-10-22 TABLE-EXPORT-2 Q3:登记,不在 TABLE-EXPORT-2 修)
+### ~~READ-ALL-STOPS-AT-1000 · 一次【不翻页】的读取在线上第 1,000 行处悄悄停下 —— 不只是导出,屏幕上的合计也会悄悄偏小(Tim 2026-10-22 TABLE-EXPORT-2 Q3:登记,不在 TABLE-EXPORT-2 修)~~ —— ✅ 关闭于 GOLIVE-2(`v1.4.84`)
+
+✅ **关闭于 GOLIVE-2(`v1.4.84`,2026-10-30)**:Tim 2026-10-30 Q1:一律翻页读 —— `lib/readAll.ts`(readAll / readAllIn),451 处读取改经它、7 处带理由豁免;构建闸 `scripts/check-unpaged-reads.mjs`(一张会长的表上新写一条不翻页的读取 → 构建红;`.limit(n)` 而 n > 1000 → 红)。点名的那几个数(固定资产的累计折旧与净值、每期工资人数、加班批合计、费用筛选合计、`/finance/claims`)都在那 451 处里。残余两条依赖照直登记在下面 GOLIVE2-READALL-MAX-ROWS-DEPENDENCY 与 GOLIVE2-READALLIN-ORDER-ACROSS-CHUNKS。
 
 **是什么:** 线上 PostgREST `max_rows = 1000`(TABLE-EXPORT-1 实测)。一条既不 `.range` 也不翻页的读取拿到第 1,000 行就停,不报错。
 TABLE-EXPORT-1 的规矩「表手里是全体就导出它手里那一份」默认了「读全部」真的读到全部 —— 过了 1,000 行就不成立。更要紧的是**屏幕上由这类读取算出来的数**:
@@ -11535,7 +11543,9 @@ TABLE-EXPORT-1 的规矩「表手里是全体就导出它手里那一份」默�
 **去处:** 上线准备组的一条(`docs/forward-queue.md`),届时选一个共用的修法 —— 一律翻页读,或在一次读取正好回 1,000 行时出声。
 **本刀顺手修掉的几处(都在本刀改写的读取里,不是另起的活):** 对账单列表逐张的行计数、分录清单逐张的金额 —— 改成分批且每批翻页(`statementRows.ts` · `journalRows.ts`)。
 
-### CHANGE-HISTORY-NO-EXPORT · `/settings/change-history` 没有导出(Tim 2026-10-22 TABLE-EXPORT-2 Q4)
+### ~~CHANGE-HISTORY-NO-EXPORT · `/settings/change-history` 没有导出(Tim 2026-10-22 TABLE-EXPORT-2 Q4)~~ —— ✅ 关闭于 GOLIVE-2(`v1.4.84`)
+
+✅ **关闭于 GOLIVE-2(`v1.4.84`,2026-10-30)**:导出做了,照 Q7 的形状:`app/settings/change-history/export/route.ts`(两个日期必填、最长 366 天、页面上每一个筛选都生效、一个字段一行 When · Who · Record · What happened · Field · Old value · New value、看不见的写 Restricted);Q3(2026-10-30):5 万的上限数的是库这一侧筛选下的已记录变更(`change_log_count`),「只看关键事件」在写文件时由造句器判;拒绝说出那个数并请人收窄日期区间。读法是 `change_log_page`(成批遮蔽),年体量种子上 5 万条 15.8 s(此前逐行 121.8 s)。
 
 **是什么:** 它不是一张表(`AuditTrailList`,一张有序列表),不在豁免清单上,也没有导出。`change_log` 今天 **78,441 行**(TABLE-EXPORT-2 Step 0,以 `postgres` 读,基表)。
 **Tim 的裁定:** 本轮不做导出;「查看更早」停在 500 条时说出来(TABLE-EXPORT-2b)。**将来的导出要求一个日期区间** —— 登记在 TABLE-EXPORT-3(`docs/forward-queue.md` 64b)。
@@ -11614,7 +11624,9 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 **3c 的导出照屏幕写**(Tim Q3:不在 3c 加遮蔽)。
 **去处:** 与上一条 **合成一次修**(上线准备组第 12 行,Tim 2026-10-25):结算金额与条款费率走同一个遮蔽决定。
 
-### GOLIVE1-CONTRACT-TERM-COPIES-UNMASKED · 合同条款的两份【副本】仍不按价格码遮(GOLIVE-1 登记,2026-10-29;量,登记,不在本刀修)
+### ~~GOLIVE1-CONTRACT-TERM-COPIES-UNMASKED · 合同条款的两份【副本】仍不按价格码遮(GOLIVE-1 登记,2026-10-29;量,登记,不在本刀修)~~ —— ✅ 关闭于 GOLIVE-2(`v1.4.84`)
+
+✅ **关闭于 GOLIVE-2(`v1.4.84`,2026-10-30)**:Tim Q4:冻结副本 `contract_document_terms` 的 pricing_terms / settlement_terms 不再随行给(列级 SELECT 收回、anon 收掉),只经 `contract_document_terms_masked` 读 —— payable_pct、精炼费 USD/t、罚则 USD/t 三样按副本自己那一侧置空(销售单 → data.view_prices,采购单 → data.view_purchase_prices;`contract_copy_price_visible`),品位、质量限值、争议条款照旧;变更记录里那两列整列受限(cdt_price)。Tim Q6:条款申请的快照对不持那一侧价格码的读者整份受限(`terms_requests_visible` 的 ELSE true 改掉;基表 snapshot 列收回、`terms_requests_masked`;tr_snapshot)。Tim Q5:`sale_settlement_compute` 的 authenticated EXECUTE 收回(此前任何登录用户都能直接调、拿到结算金额),只由 `record_sale_settlement` 调;后者对不持 data.view_prices 的调用者把六样钱读成受限。fixture 304(含两格故障注入:判据换成 true · EXECUTE 授回)。线上今天 0 份合同、0 份副本、0 张合同申请 —— 没有可读的,所以线上证明照直说没有。
 
 **是什么:** 第 12 行遮的是合同条款的【原件】与结算。条款还被抄到两个地方,而那两处的费率今天只靠行级读策略:
 ① `contract_document_terms`(合同挂到销售单 / 采购单那一刻冻结的条款副本,jsonb:pricing_terms · refining_charges · penalty_elements 等),
@@ -11623,9 +11635,29 @@ Tim 的 Q7 定了形状(两个日期必填、最长 366 天、50,000 行上限�
 **今天线上:** `contracts` 0 份、`contract_document_terms` 0 行(以 `postgres` 读基表,2026-10-29)—— 没有人因此看见一个不该看的价。
 **去处:** 等 Tim 定要不要并进同一个遮蔽决定(Q9 的字面只说结算与条款本身)。 ★ **Tim 2026-10-29(SYSTEM-MAP-4 委托书 1.3):并进 GOLIVE-2 的范围**(第 9 · 10 · 13 行 + 本条;`docs/forward-queue.md` 上线准备组那一段)。
 
+### GOLIVE2-LIVE-CHANGE-HISTORY-SLOW-ON-FREE-PLAN · 变更记录 show=500 在免费档线上仍要 70–79 秒,一条大的导出可能撞上函数时限(GOLIVE-2 记,2026-10-30;归上线准备组第 15 行)
+
+年体量种子上(库内)show=500 2.65 s、5 万条导出 15.8 s,都在 Tim Q2 的目标之内;**线上(免费档,426 MB、会换页)同一页 70–79 s**,一天 4,230 条的导出 46 s ——
+按这个速率,一次接近 5 万条的导出要几分钟,可能超过 Vercel 函数的时限(路由写着 `maxDuration = 300`,能不能拿到要看 Vercel 的套餐)。
+**这不是本刀的读法错了**(种子上逐行相同、目标都达到),是 Tim 2026-10-29 决定留下的那台机器(上线准备组第 15 行 SUPABASE-PLAN · CWC-LIVE-INSTANCE-SWAPPING)。
+**删除条件:** 第 15 行的决定(换套餐)之后在线上重量一次;或者 Tim 要求导出改成后台生成。
+
+### GOLIVE2-READALL-MAX-ROWS-DEPENDENCY · `readAll` 一页不满 1,000 行就停 —— 这依赖线上 `max_rows` ≥ 1,000(GOLIVE-2 记,2026-10-30;刻意的)
+
+`lib/readAll.ts` 停在【一页不满 READ_PAGE】,不像导出路由(`fetchAllPages`)那样停在【拿到 0 行】:屏幕上的每一次读取都多一次空请求太贵(线上一次往返约 0.4 s)。
+**于是有人把 PostgREST 的 `max_rows` 调到 1,000 以下,`readAll` 会在第一页之后就停 —— 又是一次悄悄的截断。** 今天 `max_rows = 1000`(TABLE-EXPORT-1 实测)。
+**删除条件:** 要么证明 max_rows 不会再变(写进安装清单并在门里比一次),要么改成停在 0 行并接受那一次往返。
+
+### GOLIVE2-READALLIN-ORDER-ACROSS-CHUNKS · `readAllIn` 分了批,原来那条查询的 `.order(…)` 只在每一批之内成立(GOLIVE-2 记,2026-10-30;今天无影响)
+
+一组 id 超过 100 个时 `readAllIn` 分批问、首尾相接;一条带 `.order(…)` 的 `.in(…)` 读取于是只在每一批之内有序。今天的 122 处都是按 id 回查名字 / 金额再进 Map,
+次序不进屏幕;一组超过 100 个 id 的读取今天线上一处都没有(最大的表 226 行)。**删除条件:** 一处靠 `.in(…)` 的次序画屏幕、而名单会过 100 的读取出现时,在那一处自己排序。
+
 ## TABLE-EXPORT-2b-2(`v1.4.70`)—— 销售 · 人事 · 库存 · 运营上的 part B,以及其余 17 处「受限」
 
-### PAGES-TOO-SLOW-TO-USE · 两张设置页慢到没法用(Tim 2026-10-23 TABLE-EXPORT-2b-2 委托书 Part 1.6:登记,不在本刀修;上线准备组第 13 行)
+### ~~PAGES-TOO-SLOW-TO-USE · 两张设置页慢到没法用(Tim 2026-10-23 TABLE-EXPORT-2b-2 委托书 Part 1.6:登记,不在本刀修;上线准备组第 13 行)~~ —— ✅ 关闭于 GOLIVE-2(`v1.4.84`)
+
+✅ **关闭于 GOLIVE-2(`v1.4.84`,2026-10-30)**:成因在年体量种子(顶部按线上的形状)上量出来了:变更记录每一次调用都把整张 change_log 按事务分组一遍(81 次 × 约 145 ms),外加逐行审计记录里两张常量表每一跳重扫一遍(12.6 s)。`change_log_page` 一次调用、窗口取事务、`idx_change_log_txid`、常量表可内联:show=20 1.40 s → 0.12 s,show=500 30.0 s → 2.65 s(库内);字典页一次调用,库内 10 ms。七个角色逐行相同(fixture 305;`docs/surveys/GOLIVE-2/seed/compare-before-after.txt` 70/70)。线上的耗时由线上证明记下(免费档不是尺,Tim 2026-10-29;`docs/surveys/GOLIVE-2/readings/live-proof-pages.txt`,`next start` 读线上):show=20 10–13 s,**show=500 70–79 s(此前 107 s)**,字典七个角色 11–22 s(此前 28–46 s),cfo 一天的导出(4,230 条已记录变更)46 s。★ 线上证明还量出一件种子上看不见的事:**线上 authenticated 的 statement_timeout = 8 s**,一次读 501 次操作(7,602 行)在免费档上撞上它(57014)—— 所以页面与导出按块读(`lib/trail/changeLogFilters.ts` 的 readChangeLog:一块 20 次操作,超时就减半,一次操作还超时就走原来的 change_log_rows 行 100 一页),每一次调用有上界,与 F19 同一种保证。残余见 GOLIVE2-LIVE-CHANGE-HISTORY-SLOW-ON-FREE-PLAN。
 
 **量过的:**
 * `/settings/change-history?show=500` —— TABLE-EXPORT-2b-1 的线上证明(`next start` 对着线上,`change_log` 79,000+ 行)里加载 **107 s**

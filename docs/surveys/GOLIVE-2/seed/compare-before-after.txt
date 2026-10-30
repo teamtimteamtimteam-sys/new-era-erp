@@ -1,0 +1,73 @@
+COMPARE|record filter 95759c15-5330-9676-b274-0b00f79255c0 · actor filter 7f89668d-5f83-dd1e-214a-0b451e4b09df
+SAME|admin     show20          before 305 rows 1469485cbd98071c694098348229f327 · after 305 rows 1469485cbd98071c694098348229f327
+SAME|admin     show500         before 7505 rows 05532256ee852d119b34a3cd4bf1632d · after 7505 rows 05532256ee852d119b34a3cd4bf1632d
+SAME|admin     key-only20      before 1490 rows 4acc5041d7592be23881ac8e75705113 · after 1490 rows 4acc5041d7592be23881ac8e75705113
+SAME|admin     area-finance40  before 41 rows f68854a30ebf11b67454ad7a07275b46 · after 41 rows f68854a30ebf11b67454ad7a07275b46
+SAME|admin     type-inbound20  before 21 rows 116d74189d77c343bdeb92cf179674f8 · after 21 rows 116d74189d77c343bdeb92cf179674f8
+SAME|admin     record20        before 4 rows 87e72139f214998501397fd20cc084a0 · after 4 rows 87e72139f214998501397fd20cc084a0
+SAME|admin     who20           before 305 rows 1469485cbd98071c694098348229f327 · after 305 rows 1469485cbd98071c694098348229f327
+SAME|admin     dates20         before 189 rows 547727be5e6b1cfd8c7db85f89fa4174 · after 189 rows 547727be5e6b1cfd8c7db85f89fa4174
+SAME|admin     system20        before 0 rows d41d8cd98f00b204e9800998ecf8427e · after 0 rows d41d8cd98f00b204e9800998ecf8427e
+SAME|admin     dictionaries    before 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values · after 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values
+SAME|cco       show20          before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       show500         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       key-only20      before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       area-finance40  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       type-inbound20  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       record20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       who20           before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       dates20         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       system20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cco       dictionaries    before 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values · after 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values
+SAME|cfo       show20          before 305 rows 1469485cbd98071c694098348229f327 · after 305 rows 1469485cbd98071c694098348229f327
+SAME|cfo       show500         before 7505 rows 05532256ee852d119b34a3cd4bf1632d · after 7505 rows 05532256ee852d119b34a3cd4bf1632d
+SAME|cfo       key-only20      before 1490 rows 4acc5041d7592be23881ac8e75705113 · after 1490 rows 4acc5041d7592be23881ac8e75705113
+SAME|cfo       area-finance40  before 41 rows f68854a30ebf11b67454ad7a07275b46 · after 41 rows f68854a30ebf11b67454ad7a07275b46
+SAME|cfo       type-inbound20  before 21 rows 116d74189d77c343bdeb92cf179674f8 · after 21 rows 116d74189d77c343bdeb92cf179674f8
+SAME|cfo       record20        before 4 rows 87e72139f214998501397fd20cc084a0 · after 4 rows 87e72139f214998501397fd20cc084a0
+SAME|cfo       who20           before 305 rows 1469485cbd98071c694098348229f327 · after 305 rows 1469485cbd98071c694098348229f327
+SAME|cfo       dates20         before 189 rows 547727be5e6b1cfd8c7db85f89fa4174 · after 189 rows 547727be5e6b1cfd8c7db85f89fa4174
+SAME|cfo       system20        before 0 rows d41d8cd98f00b204e9800998ecf8427e · after 0 rows d41d8cd98f00b204e9800998ecf8427e
+SAME|cfo       dictionaries    before 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values · after 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values
+SAME|cto       show20          before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       show500         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       key-only20      before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       area-finance40  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       type-inbound20  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       record20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       who20           before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       dates20         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       system20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|cto       dictionaries    before 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values · after 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values
+SAME|finance   show20          before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   show500         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   key-only20      before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   area-finance40  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   type-inbound20  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   record20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   who20           before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   dates20         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   system20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|finance   dictionaries    before 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values · after 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values
+SAME|gm        show20          before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        show500         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        key-only20      before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        area-finance40  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        type-inbound20  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        record20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        who20           before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        dates20         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        system20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|gm        dictionaries    before 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values · after 95075af3b50d932a6dee4bcd0a7a47a5 over 67 values
+SAME|warehouse show20          before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse show500         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse key-only20      before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse area-finance40  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse type-inbound20  before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse record20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse who20           before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse dates20         before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse system20        before refused P0001 PERMISSION_DENIED · after refused P0001 PERMISSION_DENIED
+SAME|warehouse dictionaries    before 6be318138d42392b3209217aee0f502d over 67 values · after 6be318138d42392b3209217aee0f502d over 67 values
+COMPARE_EXIT=0 (0 differing of 70)
+python3 docs/surveys/GOLIVE-2/seed/compare-before-after.py  gl2mig  0.67s user 0.39s system 1% cpu 1:27.63 total

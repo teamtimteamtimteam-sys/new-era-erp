@@ -1,0 +1,12 @@
+STEP|base https://new-era-erp.vercel.app
+SELECT1|before the reader client round trips 1215 / 406 / 412 / 423 / 759 ms (median 423) · server execution 0.025 ms
+HEALTH|before the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|bar on / (HTTP 200) = Workbench · Purchasing · Operation · Quality · Sales · Logistics · Finance · HR · ESG · Equipment (10 buttons) ⇒ production serves 327b131 / 8ae2ce2 (Operation · HR · ESG exist only in v1.4.83)
+PASS|date button "30/10/2026" → /tools/calendar; clicked (a link, not a control that records anything) → /tools/calendar (h1 "Calendar", error boundary none)
+PASS|/inbound (HTTP 200): entry buttons "COD" → /compliance/cod · "Receiving discrepancies" → /purchasing/discrepancies (nothing pressed)
+PASS|/safety (HTTP 200, h1 "Environment, social and governance"): error boundary none; alerts none
+SELECT1|after the reader client round trips 413 / 422 / 482 / 418 / 503 ms (median 422) · server execution 0.042 ms
+HEALTH|after the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+SM4_CLOSEOUT_EXIT=0
+SM4_RUN_EXIT=0

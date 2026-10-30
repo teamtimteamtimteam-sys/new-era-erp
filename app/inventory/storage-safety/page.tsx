@@ -15,6 +15,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { formatDate } from '@/lib/dates'
 import { ListPage } from '@/app/components/ui/list-page'
 import { CeilingTable, DwellTable, ExposureTable, type CeilingRow, type DwellRow, type ExposureRow } from './StorageSafetyTables'
+import { readAll } from '@/lib/readAll'
 
 type Ceiling = {
     licence_id: string; cert_no: string | null; category_code: string | null; name_en: string; name_zh: string; sort_order: number
@@ -42,12 +43,12 @@ export default async function StorageSafetyPage() {
         supabase.from('storage_ceiling_status')
             .select('licence_id, cert_no, category_code, name_en, name_zh, sort_order, limit_tonnes, on_hand_t, batches, unconvertible_batches, status')
             .order('sort_order').order('category_code'),
-        supabase.from('safety_state_dwell')
+        readAll(() => supabase.from('safety_state_dwell')
             .select('batch_kind, state_row_id, batch_id, batch_code, safety_state_code, name_en, name_zh, recorded_on, days_recorded, dwell_warning_days, dwell_status, on_site')
-            .eq('on_site', true).order('days_recorded', { ascending: false }),
-        supabase.from('quarantine_exposure')
+            .eq('on_site', true).order('days_recorded', { ascending: false }), { label: 'safety_state_dwell', key: ['batch_kind', 'state_row_id', 'batch_id', 'batch_code', 'safety_state_code', 'name_en', 'name_zh', 'sort_order', 'recorded_at', 'recorded_by', 'recorded_on', 'days_recorded', 'dwell_warning_days', 'requires_quarantine', 'dwell_status', 'on_site'] }),
+        readAll(() => supabase.from('quarantine_exposure')
             .select('batch_kind, batch_id, batch_code, safety_state_code, name_en, name_zh, recorded_on, location_id, location_code, qty')
-            .order('batch_code'),
+            .order('batch_code'), { label: 'quarantine_exposure', key: ['batch_kind', 'batch_id', 'batch_code', 'safety_state_code', 'name_en', 'name_zh', 'recorded_on', 'location_id', 'location_code', 'qty'] }),
         supabase.from('nea_waste_categories').select('code').eq('is_active', true),
         supabase.from('storage_locations').select('id').eq('is_quarantine', true).eq('is_active', true),
     ])

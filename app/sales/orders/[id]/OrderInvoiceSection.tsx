@@ -15,6 +15,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import CreateOrderInvoiceControl from './CreateOrderInvoiceControl'
 import { formatDate } from '@/lib/dates'
+import { readAllIn } from '@/lib/readAll'
 
 type InvoiceRow = {
     id: string
@@ -69,11 +70,11 @@ export default async function OrderInvoiceSection({
         lineIds.length === 0
             ? []
             : (mustRows(
-                  await supabase
+                  await readAllIn(lineIds, (__ids) => supabase
                       .from('invoice_lines_masked')
                       .select('sales_order_line_id, invoice_id')
-                      .in('sales_order_line_id', lineIds)
-                      .eq('invoice_voided', false),
+                      .in('sales_order_line_id', __ids)
+                      .eq('invoice_voided', false), { label: 'invoice_lines_masked' }),
                   'invoice_lines'
               ) as unknown as BilledLine[])
     const billedSet = new Set(billed.map((b) => b.sales_order_line_id))

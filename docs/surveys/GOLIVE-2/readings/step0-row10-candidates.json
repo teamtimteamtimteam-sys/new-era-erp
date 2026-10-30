@@ -1,0 +1,1650 @@
+{
+ "B-in-list": [
+  {
+   "file": "app/compliance/cod/page.tsx",
+   "line": 36,
+   "kind": "from",
+   "rel": "inbound_batches_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', batchIds)"
+  },
+  {
+   "file": "app/finance/assets/[id]/page.tsx",
+   "line": 128,
+   "kind": "from",
+   "rel": "purchase_orders_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', lineRows.map((l) => l.purchase_order_id))"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/page.tsx",
+   "line": 130,
+   "kind": "from",
+   "rel": "bank_line_matches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('statement_line_id', matchedLineIds)"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/page.tsx",
+   "line": 137,
+   "kind": "from",
+   "rel": "journal_lines_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', jlIds)"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/page.tsx",
+   "line": 141,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', entryIds)"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/reconcile/page.tsx",
+   "line": 102,
+   "kind": "from",
+   "rel": "bank_line_matches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('statement_line_id', matchedLineIds)"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/reconcile/page.tsx",
+   "line": 109,
+   "kind": "from",
+   "rel": "journal_lines_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', jlIds)"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/reconcile/page.tsx",
+   "line": 113,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', entryIds)"
+  },
+  {
+   "file": "app/finance/credit-notes/creditNoteRows.ts",
+   "line": 82,
+   "kind": "from",
+   "rel": "invoices_masked",
+   "bucket": "unbounded",
+   "escapes": "returned",
+   "methods": "select.in.then",
+   "filters": "in('id', ids)"
+  },
+  {
+   "file": "app/finance/electricity/[id]/page.tsx",
+   "line": 94,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', runIds)"
+  },
+  {
+   "file": "app/finance/electricity/page.tsx",
+   "line": 60,
+   "kind": "from",
+   "rel": "expenses",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', expIds)"
+  },
+  {
+   "file": "app/finance/invoices/[id]/page.tsx",
+   "line": 128,
+   "kind": "from",
+   "rel": "payment_allocations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.order",
+   "filters": "in('sales_record_id', saleIds)"
+  },
+  {
+   "file": "app/finance/journal/page.tsx",
+   "line": 140,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', linkedIds)"
+  },
+  {
+   "file": "app/finance/payment-requests/[id]/page.tsx",
+   "line": 97,
+   "kind": "from",
+   "rel": "payments",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', payIds)"
+  },
+  {
+   "file": "app/finance/payment-requests/[id]/page.tsx",
+   "line": 125,
+   "kind": "from",
+   "rel": "expenses",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', expIds)"
+  },
+  {
+   "file": "app/finance/payment-requests/[id]/page.tsx",
+   "line": 127,
+   "kind": "from",
+   "rel": "inbound_batch_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', batchIds)"
+  },
+  {
+   "file": "app/finance/payment-requests/[id]/page.tsx",
+   "line": 128,
+   "kind": "from",
+   "rel": "purchase_orders_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', poIds)"
+  },
+  {
+   "file": "app/finance/payments/[id]/page.tsx",
+   "line": 114,
+   "kind": "from",
+   "rel": "sales_records",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', saleIds)"
+  },
+  {
+   "file": "app/finance/payments/[id]/page.tsx",
+   "line": 120,
+   "kind": "from",
+   "rel": "inbound_batch_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', batchIds)"
+  },
+  {
+   "file": "app/finance/payments/[id]/page.tsx",
+   "line": 123,
+   "kind": "from",
+   "rel": "expenses",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', expenseIds)"
+  },
+  {
+   "file": "app/finance/payments/[id]/page.tsx",
+   "line": 126,
+   "kind": "from",
+   "rel": "purchase_orders",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', poIds)"
+  },
+  {
+   "file": "app/finance/payments/[id]/page.tsx",
+   "line": 132,
+   "kind": "from",
+   "rel": "output_batch_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', outputIds)"
+  },
+  {
+   "file": "app/finance/payments/[id]/page.tsx",
+   "line": 141,
+   "kind": "from",
+   "rel": "invoices_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', invoiceIds)"
+  },
+  {
+   "file": "app/finance/processing-costs/page.tsx",
+   "line": 61,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', jIds)"
+  },
+  {
+   "file": "app/finance/processing-costs/page.tsx",
+   "line": 63,
+   "kind": "from",
+   "rel": "expenses",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', eIds)"
+  },
+  {
+   "file": "app/finance/sourceLinks.ts",
+   "line": 29,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', ids0)"
+  },
+  {
+   "file": "app/finance/sourceLinks.ts",
+   "line": 67,
+   "kind": "from",
+   "rel": "sales_records",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', saleIds)"
+  },
+  {
+   "file": "app/finance/sourceLinks.ts",
+   "line": 75,
+   "kind": "from",
+   "rel": "inbound_batch_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', writeoffIds)"
+  },
+  {
+   "file": "app/finance/sourceLinks.ts",
+   "line": 78,
+   "kind": "from",
+   "rel": "output_batch_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', writeoffIds)"
+  },
+  {
+   "file": "app/finance/wht/page.tsx",
+   "line": 99,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', entryIds)"
+  },
+  {
+   "file": "app/hr/payroll/page.tsx",
+   "line": 77,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', jeIds)"
+  },
+  {
+   "file": "app/inbound/inboundRows.ts",
+   "line": 119,
+   "kind": "from",
+   "rel": "batch_assay_status",
+   "bucket": "unbounded",
+   "escapes": "returned",
+   "methods": "select.in",
+   "filters": "in('inbound_batch_id', chunk)"
+  },
+  {
+   "file": "app/inbound/inboundRows.ts",
+   "line": 175,
+   "kind": "from",
+   "rel": "purchase_orders_masked",
+   "bucket": "unbounded",
+   "escapes": "returned",
+   "methods": "select.in",
+   "filters": "in('id', chunk)"
+  },
+  {
+   "file": "app/inventory/output/[materialId]/page.tsx",
+   "line": 119,
+   "kind": "from",
+   "rel": "processing_output_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('output_batch_id', batchIds)"
+  },
+  {
+   "file": "app/inventory/output/[materialId]/page.tsx",
+   "line": 145,
+   "kind": "from",
+   "rel": "processing_run_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', runIds)"
+  },
+  {
+   "file": "app/inventory/output/[materialId]/page.tsx",
+   "line": 193,
+   "kind": "from",
+   "rel": "work_order_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', woIds)"
+  },
+  {
+   "file": "app/operation/blending/page.tsx",
+   "line": 41,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', runIds)"
+  },
+  {
+   "file": "app/operation/equipment/[id]/page.tsx",
+   "line": 174,
+   "kind": "from",
+   "rel": "inbound_batches_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', partBatchIds)"
+  },
+  {
+   "file": "app/operation/equipment/[id]/page.tsx",
+   "line": 189,
+   "kind": "from",
+   "rel": "inbound_batch_valuation",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', partBatchIds)"
+  },
+  {
+   "file": "app/operation/processing/[id]/dischargeData.ts",
+   "line": 133,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', splitRunIds)"
+  },
+  {
+   "file": "app/operation/processing/[id]/dischargeData.ts",
+   "line": 136,
+   "kind": "from",
+   "rel": "output_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', newIds)"
+  },
+  {
+   "file": "app/operation/processing/[id]/page.tsx",
+   "line": 185,
+   "kind": "from",
+   "rel": "batch_lineage",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.order",
+   "filters": "in('output_batch_id', outputIds)"
+  },
+  {
+   "file": "app/operation/weighbridge/[id]/page.tsx",
+   "line": 84,
+   "kind": "from",
+   "rel": "inbound_batches_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', batchIds)"
+  },
+  {
+   "file": "app/safety/incidents/new/page.tsx",
+   "line": 52,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('id', runIds)"
+  },
+  {
+   "file": "app/sales/orders/[id]/ReservationSection.tsx",
+   "line": 75,
+   "kind": "from",
+   "rel": "sales_order_reservations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.order",
+   "filters": "in('sales_order_line_id', lineIds)"
+  },
+  {
+   "file": "app/sales/orders/[id]/ReservationSection.tsx",
+   "line": 120,
+   "kind": "from",
+   "rel": "output_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.is.order",
+   "filters": "in('material_id', materialIds) is('deleted_at', null)"
+  },
+  {
+   "file": "app/sales/orders/[id]/amend/page.tsx",
+   "line": 71,
+   "kind": "from",
+   "rel": "sales_order_reservations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('sales_order_line_id', lineIds)"
+  }
+ ],
+ "C-per-parent": [
+  {
+   "file": "app/components/audit/auditTrailQuery.ts",
+   "line": 17,
+   "kind": "from",
+   "rel": "batch_audit_trail",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.eq.order",
+   "filters": "eq('batch_kind', batchKind) eq('batch_id', batchId)"
+  },
+  {
+   "file": "app/components/batch/BatchBalancePanel.tsx",
+   "line": 36,
+   "kind": "from",
+   "rel": "batch_balance_tree",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.eq.order.order",
+   "filters": "eq('root_kind', kind) eq('root_id', batchId)"
+  },
+  {
+   "file": "app/components/batch/moduleDischargeQuery.ts",
+   "line": 53,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('id', splits[0].split_run_id)"
+  },
+  {
+   "file": "app/components/inventory/StockStatusPanel.tsx",
+   "line": 77,
+   "kind": "from",
+   "rel": "sales_order_reservations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order",
+   "filters": "eq('output_batch_id', outputBatchId) is('released_at', null)"
+  },
+  {
+   "file": "app/components/quality/AssayIndicators.tsx",
+   "line": 76,
+   "kind": "from",
+   "rel": "assay_results",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is",
+   "filters": "eq(col, props.batchId) is('deleted_at', null)"
+  },
+  {
+   "file": "app/finance/assets/[id]/page.tsx",
+   "line": 93,
+   "kind": "from",
+   "rel": "fixed_asset_depreciation",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('asset_id', id)"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/page.tsx",
+   "line": 65,
+   "kind": "from",
+   "rel": "bank_statement_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('statement_id', id)"
+  },
+  {
+   "file": "app/finance/bank/statements/[id]/reconcile/page.tsx",
+   "line": 54,
+   "kind": "from",
+   "rel": "bank_statement_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('statement_id', id)"
+  },
+  {
+   "file": "app/finance/expenses/[id]/page.tsx",
+   "line": 122,
+   "kind": "from",
+   "rel": "payment_allocations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('expense_id', id)"
+  },
+  {
+   "file": "app/finance/invoices/[id]/page.tsx",
+   "line": 122,
+   "kind": "from",
+   "rel": "payment_allocations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('invoice_id', inv.id)"
+  },
+  {
+   "file": "app/finance/journal/[id]/page.tsx",
+   "line": 71,
+   "kind": "from",
+   "rel": "journal_lines_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order.order",
+   "filters": "eq('entry_id', id)"
+  },
+  {
+   "file": "app/finance/payables/[batchId]/page.tsx",
+   "line": 95,
+   "kind": "from",
+   "rel": "payment_allocations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('inbound_batch_id', batchId)"
+  },
+  {
+   "file": "app/finance/payables/[batchId]/page.tsx",
+   "line": 100,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.eq.order",
+   "filters": "eq('source_type', 'purchase') eq('source_id', batchId)"
+  },
+  {
+   "file": "app/finance/payment-requests/[id]/page.tsx",
+   "line": 99,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('id', r.result_journal_entry_id)"
+  },
+  {
+   "file": "app/finance/payments/[id]/page.tsx",
+   "line": 78,
+   "kind": "from",
+   "rel": "payment_allocations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('payment_id', id)"
+  },
+  {
+   "file": "app/finance/receivables/[saleId]/page.tsx",
+   "line": 86,
+   "kind": "from",
+   "rel": "payment_allocations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('sales_record_id', saleId)"
+  },
+  {
+   "file": "app/finance/receivables/[saleId]/page.tsx",
+   "line": 91,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.eq.order",
+   "filters": "eq('source_type', 'sale') eq('source_id', saleId)"
+  },
+  {
+   "file": "app/hr/attendance/[id]/page.tsx",
+   "line": 37,
+   "kind": "from",
+   "rel": "attendance_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('period_id', id)"
+  },
+  {
+   "file": "app/hr/employees/[id]/page.tsx",
+   "line": 80,
+   "kind": "from",
+   "rel": "training_records",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order",
+   "filters": "eq('employee_id', id) is('deleted_at', null)"
+  },
+  {
+   "file": "app/inbound/[id]/edit/page.tsx",
+   "line": 181,
+   "kind": "from",
+   "rel": "inventory_movements",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('inbound_batch_id', id)"
+  },
+  {
+   "file": "app/inbound/[id]/edit/page.tsx",
+   "line": 289,
+   "kind": "from",
+   "rel": "assay_results",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order.order",
+   "filters": "eq('inbound_batch_id', id) is('deleted_at', null)"
+  },
+  {
+   "file": "app/inventory/inbound/[materialId]/page.tsx",
+   "line": 64,
+   "kind": "from",
+   "rel": "inbound_batch_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.gt.order",
+   "filters": "eq('material_id', materialId) is('deleted_at', null) gt('remaining_qty', 0)"
+  },
+  {
+   "file": "app/inventory/inbound/[materialId]/page.tsx",
+   "line": 75,
+   "kind": "from",
+   "rel": "inbound_batch_valuation",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.gt",
+   "filters": "eq('material_id', materialId) gt('remaining_qty', 0)"
+  },
+  {
+   "file": "app/inventory/output/[materialId]/page.tsx",
+   "line": 74,
+   "kind": "from",
+   "rel": "output_batch_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.gt.order",
+   "filters": "eq('material_id', materialId) is('deleted_at', null) gt('remaining_qty', 0)"
+  },
+  {
+   "file": "app/inventory/output/[materialId]/page.tsx",
+   "line": 91,
+   "kind": "from",
+   "rel": "output_batch_valuation",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.gt",
+   "filters": "eq('material_id', materialId) gt('remaining_qty', 0)"
+  },
+  {
+   "file": "app/logistics/containers/[id]/page.tsx",
+   "line": 56,
+   "kind": "from",
+   "rel": "shipment_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('container_id', id)"
+  },
+  {
+   "file": "app/me/page.tsx",
+   "line": 151,
+   "kind": "from",
+   "rel": "training_records",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order",
+   "filters": "eq('employee_id', employeeId) is('deleted_at', null)"
+  },
+  {
+   "file": "app/me/page.tsx",
+   "line": 247,
+   "kind": "from",
+   "rel": "attendance_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('employee_id', employeeId)"
+  },
+  {
+   "file": "app/operation/orders/[id]/page.tsx",
+   "line": 67,
+   "kind": "from",
+   "rel": "work_order_fulfilment",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('work_order_id', id)"
+  },
+  {
+   "file": "app/operation/orders/[id]/page.tsx",
+   "line": 75,
+   "kind": "from",
+   "rel": "processing_runs",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('work_order_id', id)"
+  },
+  {
+   "file": "app/operation/processing/[id]/dischargeData.ts",
+   "line": 170,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('id', dischargeRunId)"
+  },
+  {
+   "file": "app/operation/processing/[id]/page.tsx",
+   "line": 121,
+   "kind": "from",
+   "rel": "processing_inputs",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('run_id', id)"
+  },
+  {
+   "file": "app/operation/processing/[id]/page.tsx",
+   "line": 126,
+   "kind": "from",
+   "rel": "processing_outputs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('run_id', id)"
+  },
+  {
+   "file": "app/operation/processing/[id]/page.tsx",
+   "line": 271,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('corrects_run_id', id)"
+  },
+  {
+   "file": "app/operation/processing/[id]/page.tsx",
+   "line": 569,
+   "kind": "from",
+   "rel": "work_order_fulfilment",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('work_order_id', woId)"
+  },
+  {
+   "file": "app/operation/processing/new/page.tsx",
+   "line": 199,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('corrects_run_id', correctsId)"
+  },
+  {
+   "file": "app/output/[id]/edit/CoaSection.tsx",
+   "line": 29,
+   "kind": "from",
+   "rel": "sales_order_reservations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('output_batch_id', batchId)"
+  },
+  {
+   "file": "app/output/[id]/edit/page.tsx",
+   "line": 126,
+   "kind": "from",
+   "rel": "inventory_movements",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('output_batch_id', id)"
+  },
+  {
+   "file": "app/output/[id]/edit/page.tsx",
+   "line": 270,
+   "kind": "from",
+   "rel": "stock_by_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('output_batch_id', id)"
+  },
+  {
+   "file": "app/output/[id]/edit/page.tsx",
+   "line": 298,
+   "kind": "from",
+   "rel": "assay_results",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order.order",
+   "filters": "eq('output_batch_id', id) is('deleted_at', null)"
+  },
+  {
+   "file": "app/purchasing/orders/[id]/amend/page.tsx",
+   "line": 51,
+   "kind": "from",
+   "rel": "inbound_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is",
+   "filters": "eq('purchase_order_id', id) is('deleted_at', null)"
+  },
+  {
+   "file": "app/purchasing/orders/[id]/page.tsx",
+   "line": 133,
+   "kind": "from",
+   "rel": "inbound_batches_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order",
+   "filters": "eq('purchase_order_id', id) is('deleted_at', null)"
+  },
+  {
+   "file": "app/quality/disputes/[id]/page.tsx",
+   "line": 67,
+   "kind": "from",
+   "rel": "assay_results",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order",
+   "filters": "eq(col, batchId) is('deleted_at', null)"
+  },
+  {
+   "file": "app/quality/disputes/new/page.tsx",
+   "line": 47,
+   "kind": "from",
+   "rel": "assay_results",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.is.order",
+   "filters": "eq(col, ref.id) is('deleted_at', null) is('superseded_by', null)"
+  },
+  {
+   "file": "app/quality/ncr/new/page.tsx",
+   "line": 73,
+   "kind": "from",
+   "rel": "assay_results",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order",
+   "filters": "eq(col, ref.id) is('deleted_at', null)"
+  },
+  {
+   "file": "app/quality/ncr/new/page.tsx",
+   "line": 76,
+   "kind": "from",
+   "rel": "sales_order_reservations",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('output_batch_id', ref.id)"
+  },
+  {
+   "file": "app/quality/samples/[id]/page.tsx",
+   "line": 62,
+   "kind": "from",
+   "rel": "assay_results",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.is.order",
+   "filters": "eq('sample_id', id) is('deleted_at', null)"
+  },
+  {
+   "file": "app/sales/orders/[id]/OrderInvoiceSection.tsx",
+   "line": 58,
+   "kind": "from",
+   "rel": "invoices_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('sales_order_id', orderId)"
+  },
+  {
+   "file": "app/sales/orders/[id]/ShippingSection.tsx",
+   "line": 59,
+   "kind": "from",
+   "rel": "shipments",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('sales_order_id', orderId)"
+  },
+  {
+   "file": "app/sales/orders/[id]/amend/page.tsx",
+   "line": 48,
+   "kind": "from",
+   "rel": "sales_order_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('sales_order_id', id)"
+  },
+  {
+   "file": "app/sales/orders/[id]/page.tsx",
+   "line": 55,
+   "kind": "from",
+   "rel": "sales_order_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('sales_order_id', id)"
+  },
+  {
+   "file": "app/sales/orders/[id]/pdf/route.ts",
+   "line": 37,
+   "kind": "from",
+   "rel": "sales_order_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('sales_order_id', id)"
+  }
+ ],
+ "A-set-wide": [
+  {
+   "file": "app/components/inventory/StockStatusPanel.tsx",
+   "line": 57,
+   "kind": "from",
+   "rel": "stock_by_status",
+   "bucket": "unbounded",
+   "escapes": "var:q",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/assets/page.tsx",
+   "line": 109,
+   "kind": "from",
+   "rel": "fixed_asset_depreciation",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/bank/page.tsx",
+   "line": 83,
+   "kind": "from",
+   "rel": "bank_statement_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.eq",
+   "filters": "in('statement_id', openIds) eq('match_status', 'unmatched')"
+  },
+  {
+   "file": "app/finance/bank/transferRows.ts",
+   "line": 83,
+   "kind": "from",
+   "rel": "payment_requests",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.in",
+   "filters": "eq('kind', 'bank_transfer_reversal') in('status', ['submitted', 'approved'])"
+  },
+  {
+   "file": "app/finance/claims/page.tsx",
+   "line": 49,
+   "kind": "from",
+   "rel": "expense_claim_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.order",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/expenses/new/page.tsx",
+   "line": 89,
+   "kind": "from",
+   "rel": "purchase_orders_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/expenses/new/page.tsx",
+   "line": 91,
+   "kind": "from",
+   "rel": "expenses",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.not",
+   "filters": "not('purchase_order_line_id', 'is', null)"
+  },
+  {
+   "file": "app/finance/invoices/new/page.tsx",
+   "line": 49,
+   "kind": "from",
+   "rel": "sales_records_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.order",
+   "filters": "is('sales_order_line_id', null)"
+  },
+  {
+   "file": "app/finance/month-end/page.tsx",
+   "line": 63,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.eq.eq",
+   "filters": "eq('source_type', 'revaluation') eq('entry_date', end) eq('status', 'posted')"
+  },
+  {
+   "file": "app/finance/month-end/page.tsx",
+   "line": 77,
+   "kind": "from",
+   "rel": "processing_run_allocation_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/payments/new/page.tsx",
+   "line": 130,
+   "kind": "from",
+   "rel": "purchase_order_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.neq.order",
+   "filters": "neq('status', 'closed')"
+  },
+  {
+   "file": "app/finance/processing-costs/page.tsx",
+   "line": 42,
+   "kind": "from",
+   "rel": "processing_run_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/settings/page.tsx",
+   "line": 82,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": "var:q",
+   "methods": "select.eq.eq.order",
+   "filters": "eq('source_type', 'manual') eq('created_by', user.id)"
+  },
+  {
+   "file": "app/finance/wht/page.tsx",
+   "line": 94,
+   "kind": "from",
+   "rel": "payment_requests",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.in",
+   "filters": "in('kind', ['wht_remittance', 'wht_remittance_reversal']) in('status', ['submitted', 'approved'])"
+  },
+  {
+   "file": "app/hr/leave/calendar/page.tsx",
+   "line": 59,
+   "kind": "from",
+   "rel": "leave_calendar",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.lte.gte.order",
+   "filters": "lte('start_date', last) gte('end_date', first)"
+  },
+  {
+   "file": "app/hr/overtime/page.tsx",
+   "line": 33,
+   "kind": "from",
+   "rel": "overtime_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/hr/payroll/page.tsx",
+   "line": 39,
+   "kind": "from",
+   "rel": "payroll_lines",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/hr/training/page.tsx",
+   "line": 70,
+   "kind": "from",
+   "rel": "training_records",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/inventory/reports/ledger/ledgerQuery.ts",
+   "line": 112,
+   "kind": "from",
+   "rel": "inventory_movements",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/inventory/scan/actions.ts",
+   "line": 18,
+   "kind": "from",
+   "rel": "stock_by_status",
+   "bucket": "unbounded",
+   "escapes": "var:q",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/logistics/containers/[id]/page.tsx",
+   "line": 62,
+   "kind": "from",
+   "rel": "shipment_lookup",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.order",
+   "filters": "is('container_id', null)"
+  },
+  {
+   "file": "app/logistics/page.tsx",
+   "line": 68,
+   "kind": "from",
+   "rel": "shipments",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/margin/page.tsx",
+   "line": 87,
+   "kind": "from",
+   "rel": "batch_margin",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.order",
+   "filters": ""
+  },
+  {
+   "file": "app/operation/balance/YieldSection.tsx",
+   "line": 49,
+   "kind": "from",
+   "rel": "processing_run_yield",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('month', monthStart)"
+  },
+  {
+   "file": "app/operation/blending/options.ts",
+   "line": 36,
+   "kind": "from",
+   "rel": "inbound_batches_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.in.gt.eq.order",
+   "filters": "is('deleted_at', null) in('material_id', inputMatIds) gt('remaining_qty', 0) eq('unit', 'kg')"
+  },
+  {
+   "file": "app/operation/blending/options.ts",
+   "line": 40,
+   "kind": "from",
+   "rel": "output_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.in.gt.eq.order",
+   "filters": "is('deleted_at', null) in('material_id', inputMatIds) gt('remaining_qty', 0) eq('unit', 'kg')"
+  },
+  {
+   "file": "app/operation/handovers/shiftRuns.ts",
+   "line": 37,
+   "kind": "from",
+   "rel": "processing_runs_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.eq.is.order.order",
+   "filters": "eq('shift_code', shiftCode) eq('process_date', date) is('deleted_at', null)"
+  },
+  {
+   "file": "app/operation/orders/page.tsx",
+   "line": 40,
+   "kind": "from",
+   "rel": "work_orders",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.order",
+   "filters": ""
+  },
+  {
+   "file": "app/operation/orders/page.tsx",
+   "line": 51,
+   "kind": "from",
+   "rel": "work_order_fulfilment",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('side', 'input')"
+  },
+  {
+   "file": "app/operation/page.tsx",
+   "line": 89,
+   "kind": "from",
+   "rel": "work_order_fulfilment",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('has_plan', true)"
+  },
+  {
+   "file": "app/operation/processing/new/page.tsx",
+   "line": 32,
+   "kind": "from",
+   "rel": "inbound_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.gt.order",
+   "filters": "is('deleted_at', null) gt('remaining_qty', 0)"
+  },
+  {
+   "file": "app/operation/processing/new/page.tsx",
+   "line": 40,
+   "kind": "from",
+   "rel": "output_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.gt.order",
+   "filters": "is('deleted_at', null) gt('remaining_qty', 0)"
+  },
+  {
+   "file": "app/operation/processing/new/page.tsx",
+   "line": 56,
+   "kind": "from",
+   "rel": "work_orders",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq.order",
+   "filters": "eq('status', 'released')"
+  },
+  {
+   "file": "app/operation/processing/new/page.tsx",
+   "line": 81,
+   "kind": "from",
+   "rel": "stock_by_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.eq",
+   "filters": "eq('stock_status', 'available')"
+  },
+  {
+   "file": "app/purchasing/orders/new/page.tsx",
+   "line": 154,
+   "kind": "from",
+   "rel": "purchase_orders_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/purchasing/page.tsx",
+   "line": 81,
+   "kind": "from",
+   "rel": "purchase_order_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in",
+   "filters": "in('status', IN_FLIGHT)"
+  },
+  {
+   "file": "app/sales/orders/[id]/ReservationSection.tsx",
+   "line": 132,
+   "kind": "from",
+   "rel": "stock_by_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.eq",
+   "filters": "in('output_batch_id', batches.map((b) => b.id)) eq('stock_status', 'available')"
+  },
+  {
+   "file": "app/sales/orders/[id]/amend/page.tsx",
+   "line": 90,
+   "kind": "from",
+   "rel": "invoices_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.in.eq.eq",
+   "filters": "in('id', [...new Set(invLines.filter((r) => !r.invoice_voided).map((r) => r.invoice) eq('kind', 'order') eq('status', 'issued')"
+  },
+  {
+   "file": "app/sales/page.tsx",
+   "line": 73,
+   "kind": "from",
+   "rel": "quote_status",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/sales/page.tsx",
+   "line": 74,
+   "kind": "from",
+   "rel": "sales_orders",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/sales/page.tsx",
+   "line": 75,
+   "kind": "from",
+   "rel": "shipments",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/sales/page.tsx",
+   "line": 91,
+   "kind": "from",
+   "rel": "invoices_masked",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/stocktakes/[id]/page.tsx",
+   "line": 63,
+   "kind": "from",
+   "rel": "inbound_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.order",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/stocktakes/[id]/page.tsx",
+   "line": 68,
+   "kind": "from",
+   "rel": "output_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is.order",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/stocktakes/[id]/review/page.tsx",
+   "line": 52,
+   "kind": "from",
+   "rel": "inbound_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/stocktakes/[id]/review/page.tsx",
+   "line": 56,
+   "kind": "from",
+   "rel": "output_batches",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select.is",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/tools/calendar/sources.ts",
+   "line": 172,
+   "kind": "from",
+   "rel": "leave_calendar",
+   "bucket": "unbounded",
+   "escapes": "returned",
+   "methods": "select.lte.gte",
+   "filters": "lte('start_date', last) gte('end_date', first)"
+  },
+  {
+   "file": "app/tools/calendar/sources.ts",
+   "line": 202,
+   "kind": "from",
+   "rel": "invoices_masked",
+   "bucket": "unbounded",
+   "escapes": "returned",
+   "methods": "select.gte.lte",
+   "filters": "gte('due_date', first) lte('due_date', last)"
+  },
+  {
+   "file": "app/tools/reminders/page.tsx",
+   "line": 129,
+   "kind": "from",
+   "rel": "operations_now",
+   "bucket": "unbounded",
+   "escapes": null,
+   "methods": "select",
+   "filters": ""
+  }
+ ],
+ "P-wrapped": [
+  {
+   "file": "app/finance/expenses/expenseRows.ts",
+   "line": 107,
+   "kind": "from",
+   "rel": "expenses",
+   "bucket": "unbounded",
+   "escapes": "passed:applyExpenseFilters",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/invoices/invoiceRows.ts",
+   "line": 105,
+   "kind": "from",
+   "rel": "invoice_status",
+   "bucket": "unbounded",
+   "escapes": "passed:applyState",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/invoices/invoiceRows.ts",
+   "line": 128,
+   "kind": "from",
+   "rel": "invoices_masked",
+   "bucket": "unbounded",
+   "escapes": "passed:applyDates",
+   "methods": "select.eq",
+   "filters": "eq('status', 'void')"
+  },
+  {
+   "file": "app/finance/journal/journalRows.ts",
+   "line": 75,
+   "kind": "from",
+   "rel": "journal_entries",
+   "bucket": "unbounded",
+   "escapes": "passed:applyFilters",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/payment-requests/requestRows.ts",
+   "line": 79,
+   "kind": "from",
+   "rel": "payment_requests",
+   "bucket": "unbounded",
+   "escapes": "passed:applyFilters",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/finance/payments/paymentRows.ts",
+   "line": 78,
+   "kind": "from",
+   "rel": "payments",
+   "bucket": "unbounded",
+   "escapes": "passed:applyFilters",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/hr/leave/leaveRows.ts",
+   "line": 81,
+   "kind": "from",
+   "rel": "leave_requests_masked",
+   "bucket": "unbounded",
+   "escapes": "passed:filtered",
+   "methods": "select.is",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/inbound/inboundRows.ts",
+   "line": 70,
+   "kind": "from",
+   "rel": "inbound_batches",
+   "bucket": "unbounded",
+   "escapes": "passed:applyInboundFilters",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/me/meRows.ts",
+   "line": 60,
+   "kind": "from",
+   "rel": "leave_requests_masked",
+   "bucket": "unbounded",
+   "escapes": "passed:applyListSort",
+   "methods": "select.eq.is",
+   "filters": "eq('employee_id', employeeId) is('deleted_at', null)"
+  },
+  {
+   "file": "app/me/meRows.ts",
+   "line": 86,
+   "kind": "from",
+   "rel": "expense_claim_status",
+   "bucket": "unbounded",
+   "escapes": "passed:applyListSort",
+   "methods": "select.eq",
+   "filters": "eq('employee_id', employeeId)"
+  },
+  {
+   "file": "app/operation/processing/processingRows.ts",
+   "line": 28,
+   "kind": "from",
+   "rel": "processing_runs",
+   "bucket": "unbounded",
+   "escapes": "passed:applyProcessingFilters",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/output/outputRows.ts",
+   "line": 59,
+   "kind": "from",
+   "rel": "output_batches",
+   "bucket": "unbounded",
+   "escapes": "passed:applyOutputFilters",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/purchasing/orders/orderRows.ts",
+   "line": 140,
+   "kind": "from",
+   "rel": "purchase_orders_masked",
+   "bucket": "unbounded",
+   "escapes": "passed:applyFilters",
+   "methods": "select.eq.is",
+   "filters": "eq('status', 'cancelled') is('deleted_at', null)"
+  },
+  {
+   "file": "app/purchasing/orders/orderRows.ts",
+   "line": 173,
+   "kind": "from",
+   "rel": "purchase_order_status",
+   "bucket": "unbounded",
+   "escapes": "passed:applyStatus",
+   "methods": "select",
+   "filters": ""
+  },
+  {
+   "file": "app/sales/orders/ordersRows.ts",
+   "line": 49,
+   "kind": "from",
+   "rel": "sales_orders",
+   "bucket": "unbounded",
+   "escapes": "passed:applyListSort",
+   "methods": "select.is",
+   "filters": "is('deleted_at', null)"
+  },
+  {
+   "file": "app/sales/quotes/quotesRows.ts",
+   "line": 45,
+   "kind": "from",
+   "rel": "quote_status",
+   "bucket": "unbounded",
+   "escapes": "passed:applyListSort",
+   "methods": "select",
+   "filters": ""
+  }
+ ]
+}

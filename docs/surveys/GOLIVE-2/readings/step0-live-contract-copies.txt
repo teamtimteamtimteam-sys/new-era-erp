@@ -1,0 +1,5 @@
+PROOF|record_sale_settlement secdef=true auth_exec=true
+PROOF|record_trail secdef=true auth_exec=true
+PROOF|sale_settlement_compute secdef=false auth_exec=true
+PROOF|terms_requests_visible secdef=true auth_exec=true
+PROOF|cdt=0 terms_requests=0 contract_requests=0 contracts=0 sales_settlements=0

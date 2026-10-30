@@ -10,6 +10,7 @@
 export const MASKED_TABLES: ReadonlySet<string> = new Set([
     'approval_log',
     'company_profile',
+    'contract_document_terms',
     'contract_insurance_obligations',
     'contract_penalty_elements',
     'contract_pricing_terms',
@@ -51,5 +52,6 @@ export const MASKED_TABLES: ReadonlySet<string> = new Set([
     'purchase_orders',
     'sales_records',
     'sales_settlements',
+    'terms_requests',
     'warehouse_requests',
 ])

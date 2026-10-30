@@ -1,6 +1,7 @@
 // RPT-1:安全库存总览 —— 复用 SS-1 的 material_stock_available,不新建视图。
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 export type SafetyRow = {
     material_id: string; code: string; name: string; unit: string
@@ -12,10 +13,10 @@ export type SafetyRow = {
 export async function fetchSafety() {
     const supabase = await createClient()
     const rows = mustRows(
-        await supabase.from('material_stock_available')
+        await readAll(() => supabase.from('material_stock_available')
             .select('material_id, code, name, unit, safety_stock_qty, available_qty')
             .not('safety_stock_qty', 'is', null)
-            .order('code'),
+            .order('code'), { label: 'material_stock_available', key: ['material_id', 'code', 'name', 'unit', 'safety_stock_qty', 'available_qty', 'last_movement_date'] }),
         'material_stock_available'
     ) as SafetyRow[]
     const monitored = rows.length

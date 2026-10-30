@@ -13,6 +13,7 @@ import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll } from '@/lib/readAll'
 
 type SaleFetchRow = {
     id: string
@@ -41,18 +42,18 @@ export default async function NewInvoicePage() {
     const t = await getTranslations()
 
     const [customersRes, salesRes, settingsRes, codesRes, ratesRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('customers')
             .select('id, legal_name, payment_terms_days, default_tax_code')
             .is('deleted_at', null)
-            .order('legal_name'),
-        supabase
+            .order('legal_name'), { label: 'customers' }),
+        readAll(() => supabase
             .from('sales_records_masked')
             .select('id, customer_id, quantity, unit_price, currency, amount_base, sale_date, output_batches(code, unit, materials(name))')
             // FIN-CHAIN-1(Tim APR-5 Q12):订单流的销售(ship_order 写下的,sales_order_line_id 非空)已经在订单发票上了 ——
             //   它们不是候选;create_invoice 对它们按名拒 SALE_IS_ORDER_FLOW,这里同一个判据,不给人一个必然被拒的勾选框。
             .is('sales_order_line_id', null)
-            .order('sale_date', { ascending: false }),
+            .order('sale_date', { ascending: false }), { label: 'sales_records_masked' }),
         supabase.from('finance_settings').select('gst_registered').limit(1).single(),
         // GST-2:销项税码与【按生效期间挂着的】税率史。
         // 【为什么把整段税率史送到前端,而不是送一个数】税率按【开票日】解析,
@@ -82,10 +83,10 @@ export default async function NewInvoicePage() {
     // 已挂在册(未作废)发票上的销售 —— 这些不能再开
     // 读不到就必须炸:takenRows 是"这些销售不能再开票"的唯一依据,
     // 读成空集等于把重复开票的护栏拆掉。
-    const takenRes = await supabase
+    const takenRes = await readAll(() => supabase
         .from('invoice_lines')
         .select('sales_record_id')
-        .eq('invoice_voided', false)
+        .eq('invoice_voided', false), { label: 'invoice_lines' })
     const taken = new Set(mustRows(takenRes, 'invoice_lines taken').map((r) => r.sales_record_id))
 
     const customers: CustomerOption[] = (mustRows(customersRes)).map((c) => ({

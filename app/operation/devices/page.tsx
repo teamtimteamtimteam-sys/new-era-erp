@@ -27,6 +27,7 @@ import { xText, xInt, xTime } from '@/lib/export/cells'
 import DeviceForm from './DeviceForm'
 import { EMPTY_DEVICE, type Option } from './deviceFields'
 import IngestSettingsPanel, { type SettingValues } from './IngestSettingsPanel'
+import { readAll } from '@/lib/readAll'
 
 type Device = {
     id: string; code: string; name: string; kind: string; gateway_id: string | null; data_class: string | null
@@ -47,12 +48,12 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
     const canManage = await can('action.manage_devices')
 
     const [devRes, healthRes, classRes, eqRes, setRes, receivedRes, failedRes, awaitingRes] = await Promise.all([
-        supabase.from('devices').select('id, code, name, kind, gateway_id, data_class, station, interface_status, retired_at')
-            .order('code'),
+        readAll(() => supabase.from('devices').select('id, code, name, kind, gateway_id, data_class, station, interface_status, retired_at')
+            .order('code'), { label: 'devices' }),
         supabase.from('gateway_health').select('gateway_id, status, last_heard_at, heartbeat_interval_s, active_keys'),
         supabase.from('ingest_data_classes').select('code, name_en, name_zh, transform_function, is_active').order('sort_order'),
-        supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description')
-            .neq('equipment_status', 'disposed').order('equipment_code'),
+        readAll(() => supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description')
+            .neq('equipment_status', 'disposed').order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
         supabase.from('ingest_settings').select('fail_budget, fail_window_s, global_reject_budget, max_payload_bytes, max_messages, clock_ahead_s')
             .maybeSingle(),
         supabase.from('ingest_inbox').select('id', { count: 'exact', head: true }).eq('status', 'received'),

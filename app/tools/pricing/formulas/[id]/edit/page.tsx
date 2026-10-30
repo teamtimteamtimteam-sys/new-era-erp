@@ -20,6 +20,7 @@ import { MOD } from '@/lib/modules'
 import { loadSubstances, payableOnly, toOptions } from '../../../metal-prices/substanceQuery'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import { readAll } from '@/lib/readAll'
 
 export default async function EditFormulaPage({
     params, searchParams,
@@ -65,8 +66,8 @@ export default async function EditFormulaPage({
     const [metalsRes, supRes, cusRes] = await Promise.all([
         supabase.from('pricing_formula_metals_masked').select('metal, payable_pct').eq('formula_id', id),
         // LOG-1b:货代不进供应商名单
-        supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
-        supabase.from('customer_lookup').select('id, legal_name').is('deleted_at', null).order('legal_name'),
+        readAll(() => supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'), { label: 'supplier_lookup' }),
+        readAll(() => supabase.from('customer_lookup').select('id, legal_name').is('deleted_at', null).order('legal_name'), { label: 'customer_lookup' }),
     ])
 
     const defaults: FormulaDefaults = {
@@ -93,12 +94,12 @@ export default async function EditFormulaPage({
 
     // 行情覆盖(最近一年,数据量极小):供表单当场说出"这两个基准现在算不算同一个数"。
     // 读 price_date 而不是 created_at —— 补录过的行情按【行情日】算窗口内外。
-    const quoteRes = await supabase
+    const quoteRes = await readAll(() => supabase
         .from('metal_prices')
         .select('metal, price_date')
         .is('deleted_at', null)
         .gte('price_date', new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10))
-        .order('price_date', { ascending: false })
+        .order('price_date', { ascending: false }), { label: 'metal_prices' })
     const quoteDates = mustRows(quoteRes) as QuoteDate[]
 
 

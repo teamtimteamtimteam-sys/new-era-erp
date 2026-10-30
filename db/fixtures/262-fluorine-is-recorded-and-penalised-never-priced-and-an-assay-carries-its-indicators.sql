@@ -37,6 +37,12 @@ LANGUAGE sql AS $f$
 $f$;
 
 -- 以某人跑一句;返回 'OK' 或错误原文。之后身份回到调用之前的那一个。
+-- GOLIVE-2(Tim 2026-10-30 Q5):sale_settlement_compute 的 authenticated EXECUTE 收回,它从此只在 record_sale_settlement(SECURITY DEFINER)
+--   的函数体里以属主身份跑。这一支要证的是它的【按名拒绝】(与读者是谁无关的那几条),所以读者那一侧的调用走这个属主身份的小壳 ——
+--   与 record_sale_settlement 给它的是同一个上下文(属主 + 读者的 claims)。直接调被拒那一件由 fixture 304 的 F / G 证。
+CREATE FUNCTION pg_temp.f262_compute(p_so uuid, p_ob uuid, p_as uuid) RETURNS jsonb LANGUAGE sql SECURITY DEFINER
+    AS $c$ SELECT public.sale_settlement_compute(p_so, p_ob, p_as) $c$;
+
 CREATE FUNCTION pg_temp.f262_do(p_user uuid, p_sql text) RETURNS text
 LANGUAGE plpgsql AS $f$
 DECLARE v_prev text := NULLIF(current_setting('request.jwt.claims', true), '');
@@ -267,10 +273,10 @@ BEGIN
             p_metals => '[{"metal": "ni", "content_pct": 20}, {"metal": "f", "content_pct": 0.0123}, {"metal": "cl", "content_pct": 0.004}]'::jsonb)
             ->> 'assay_result_id')::uuid;
     PERFORM pg_temp.f262_as(NULL);
-    v_msg := pg_temp.f262_do(u_all, format($q$SELECT sale_settlement_compute(%L, %L, %L)$q$, so, ob, a_f));
+    v_msg := pg_temp.f262_do(u_all, format($q$SELECT pg_temp.f262_compute(%L, %L, %L)$q$, so, ob, a_f));
     IF v_msg <> 'OK' THEN
         RAISE EXCEPTION 'FIXTURE 262 SETTLE: a sale assay carrying F and Cl settles (Q28 — no pricing term or refining charge is asked of them), got %', v_msg; END IF;
-    v_j := pg_temp.f262_get(u_all, format($q$SELECT sale_settlement_compute(%L, %L, %L)$q$, so, ob, a_f));
+    v_j := pg_temp.f262_get(u_all, format($q$SELECT pg_temp.f262_compute(%L, %L, %L)$q$, so, ob, a_f));
     -- 手算:结算重量 = 10,000 × (1 − 10 %) = 9,000 kg(干基合同,化验干基,含量照用)
     --   ni 含 9,000 × 20 % = 1,800 kg;可付 70 % = 1,260 kg;× 10,000 USD/t = 12,600.00
     --   精炼费 1,800 kg ÷ 1,000 × 100 = 180.00
@@ -287,7 +293,7 @@ BEGIN
     IF v_t IS DISTINCT FROM 'f' THEN
         RAISE EXCEPTION 'FIXTURE 262 SETTLE: the penalty line is f only (cl has no term in this contract), got %', v_t; END IF;
     -- 对照:同一批、同一份化验,"没有约定惩罚"的合同 —— 金属价值逐分相同,惩罚 0
-    v_j2 := pg_temp.f262_get(u_all, format($q$SELECT sale_settlement_compute(%L, %L, %L)$q$, so_np, ob, a_f));
+    v_j2 := pg_temp.f262_get(u_all, format($q$SELECT pg_temp.f262_compute(%L, %L, %L)$q$, so_np, ob, a_f));
     IF (v_j2 ->> 'metal_value_usd')::numeric <> (v_j ->> 'metal_value_usd')::numeric OR (v_j2 ->> 'penalty_usd')::numeric <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 262 SETTLE: the metal value is the same without a penalty term, got % vs %', v_j2 ->> 'metal_value_usd', v_j ->> 'metal_value_usd'; END IF;
 

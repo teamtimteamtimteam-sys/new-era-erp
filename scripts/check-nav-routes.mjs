@@ -125,7 +125,6 @@ const EXCEPTIONS = new Map([
     ['/portal/documents/file', '门户取一份签发档(一个 Route Handler,回 PDF 附件 —— 不是页面);入口是 /portal/documents 上每一份的下载链接。'],
     // ★ MES-9c(2026-10-20,MES-9 Step 0 §5 · Q19):门户的证书一页与交证书的那条路由 —— 读者同样【只】是门户会话。
     ['/portal/certificates', '门户的证书(/portal/certificates):自己那一家在册的证书、自己交上来的每一份与状态,以及交一份新的;入口是 /portal 首页的链接。'],
-    ['/portal/certificates/upload', '门户交一份证书(一个只收 POST 的 Route Handler —— 不是页面);入口是 /portal/certificates 上那张上传表单。'],
     // ★ COD-2(2026-09-08):两条【不是给本系统用户走的】路由 ★
     ['/verify/cod/[token]',
         '销毁证书的核验页。**本系统第一条不需要会话的业务路由**(PUBLIC_PATHS 里加的那一条),' +

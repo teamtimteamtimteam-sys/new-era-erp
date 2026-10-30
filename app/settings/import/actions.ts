@@ -18,6 +18,7 @@ import { isImportTable, TEMPLATE_COMMENT_PREFIX } from '@/lib/importTables'
 import { parseImportError } from './importErrorCodes'
 import { getTranslations } from '@/lib/i18n/server'
 import type { ImportIssue, NearDuplicateWarning, PreviewResult } from './types'
+import { readAll } from '@/lib/readAll'
 
 /** 名字那一列叫什么 —— 只有这两族有"公司名"可比。 */
 const NAME_COLUMN: Record<string, string> = {
@@ -135,8 +136,8 @@ export async function previewImport(_prev: unknown, formData: FormData): Promise
     const nearDuplicates: NearDuplicateWarning[] = []
     const nameCol = NAME_COLUMN[table]
     if (nameCol) {
-        const { data: existing } = await supabase
-            .from(table).select(`code, ${nameCol}`).is('deleted_at', null)
+        const { data: existing } = await readAll(() => supabase
+            .from(table).select(`code, ${nameCol}`).is('deleted_at', null), { label: 'table' })
         const pool = (existing ?? []) as unknown as Record<string, string>[]
         rows.forEach((r, i) => {
             const candidate = (r[nameCol] ?? '').trim()

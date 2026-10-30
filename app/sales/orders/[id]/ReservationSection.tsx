@@ -21,6 +21,7 @@ import ReserveControl, { type BucketOption } from './ReserveControl'
 import ReleaseControl from './ReleaseControl'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp } from '@/lib/dates'
+import { readAllIn } from '@/lib/readAll'
 
 export type ReservationLine = {
     id: string
@@ -72,13 +73,13 @@ export default async function ReservationSection({
     const reservations = (lineIds.length === 0
         ? []
         : (mustRows(
-              await supabase
+              await readAllIn(lineIds, (__ids) => supabase
                   .from('sales_order_reservations')
                   .select(
                       'id, sales_order_line_id, output_batch_id, location_id, qty, created_at, released_at, consumed_at, release_reason, output_batches ( code, unit ), storage_locations ( code, name )'
                   )
-                  .in('sales_order_line_id', lineIds)
-                  .order('created_at'),
+                  .in('sales_order_line_id', __ids)
+                  .order('created_at'), { label: 'sales_order_reservations' }),
               'sales_order_reservations'
           ) as unknown as ReservationRow[])) as ReservationRow[]
 
@@ -88,10 +89,10 @@ export default async function ReservationSection({
     const consumedRows = (lineIds.length === 0
         ? []
         : (mustRows(
-              await supabase
+              await readAllIn(lineIds, (__ids) => supabase
                   .from('shipment_lines')
                   .select('reservation_id, qty, shipments ( id, code )')
-                  .in('sales_order_line_id', lineIds),
+                  .in('sales_order_line_id', __ids), { label: 'shipment_lines' }),
               'shipment_lines'
           ) as unknown as ConsumedRow[])) as ConsumedRow[]
     const shipByReservation = new Map(consumedRows.map((r) => [r.reservation_id, r.shipments]))
@@ -104,8 +105,8 @@ export default async function ReservationSection({
     const holdsReadable = canQualityView || canOutputView
     const heldBatches = holdsReadable && activeBatchIds.length > 0
         ? (mustRows(
-              await supabase.from('ncr_rows').select('id, code, batch_code, output_batch_id, status').in('output_batch_id', activeBatchIds).eq('holding', true)
-                  .order('opened_at'),
+              await readAllIn(activeBatchIds, (__ids) => supabase.from('ncr_rows').select('id, code, batch_code, output_batch_id, status').in('output_batch_id', __ids).eq('holding', true)
+                  .order('opened_at'), { label: 'ncr_rows' }),
               'ncr_rows'
           ) as { id: string; code: string; batch_code: string; output_batch_id: string; status: string }[])
         : []
@@ -117,23 +118,23 @@ export default async function ReservationSection({
     const buckets = new Map<string, BucketOption[]>() // material_id → 候选桶
     if (canSeeStock && materialIds.length > 0) {
         const batches = mustRows(
-            await supabase
+            await readAllIn(materialIds, (__ids) => supabase
                 .from('output_batches')
                 .select('id, code, unit, material_id')
-                .in('material_id', materialIds)
+                .in('material_id', __ids)
                 .is('deleted_at', null)
-                .order('code'),
+                .order('code'), { label: 'output_batches' }),
             'output_batches'
         ) as unknown as { id: string; code: string; unit: string; material_id: string }[]
 
         if (batches.length > 0) {
             const byBatch = new Map(batches.map((b) => [b.id, b]))
             const rows = mustRows(
-                await supabase
+                await readAllIn(batches.map((b) => b.id), (__ids) => supabase
                     .from('stock_by_status')
                     .select('output_batch_id, location_id, location_code, location_name, stock_status, qty')
-                    .in('output_batch_id', batches.map((b) => b.id))
-                    .eq('stock_status', 'available'),
+                    .in('output_batch_id', __ids)
+                    .eq('stock_status', 'available'), { label: 'stock_by_status', key: ['inbound_batch_id', 'output_batch_id', 'batch_code', 'unit', 'location_id', 'location_code', 'location_name', 'stock_status', 'qty'] }),
                 'stock_by_status'
             ) as unknown as {
                 output_batch_id: string

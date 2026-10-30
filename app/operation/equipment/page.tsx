@@ -23,6 +23,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import CellsTable, { type CellRow } from './CellsTable'
 import { xText, xInt, xNum, xDate } from '@/lib/export/cells'
+import { readAll } from '@/lib/readAll'
 
 const KG = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -34,17 +35,17 @@ export default async function EquipmentListPage() {
     const locale = await getLocale()
     const supabase = await createClient()
     const rows = mustRows(
-        await supabase.from('equipment_usage')
+        await readAll(() => supabase.from('equipment_usage')
             .select('equipment_id, equipment_code, equipment_description, equipment_status, run_count, input_kg, last_run_date')
             .eq('equipment_category', 'equipment')
-            .order('equipment_code'),
+            .order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
         'equipment_usage') as {
             equipment_id: string; equipment_code: string; equipment_description: string | null; equipment_status: string
             run_count: number; input_kg: number; last_run_date: string | null }[]
 
     // 有没有在盯:一台机器在 equipment_service_status 里至少一行(没有间隔时也有一行,monitored = false)
     const monitoredRes = mustRows(
-        await supabase.from('equipment_service_status').select('equipment_id, monitored'),
+        await readAll(() => supabase.from('equipment_service_status').select('equipment_id, monitored'), { label: 'equipment_service_status', key: ['equipment_id', 'equipment_code', 'equipment_description', 'equipment_status', 'acquisition_date', 'interval_id', 'monitored', 'service_kind', 'disposition', 'interval_kg', 'lead_kg', 'interval_days', 'lead_days', 'last_service_date', 'never_serviced', 'baseline_date', 'kg_since', 'days_since', 'unattributed_runs_in_window', 'due_kg', 'due_days', 'is_due', 'due_reason', 'is_approaching', 'approaching_reason'] }),
         'equipment_service_status') as { equipment_id: string; monitored: boolean }[]
     const monitored = new Set(monitoredRes.filter((m) => m.monitored).map((m) => m.equipment_id))
 

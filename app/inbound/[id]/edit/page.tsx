@@ -58,6 +58,7 @@ import LinkedIncidents from '@/app/components/safety/LinkedIncidents'
 import AssayIndicators from '@/app/components/quality/AssayIndicators'
 import { loadBatchDischarge } from '@/app/components/batch/moduleDischargeQuery'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAll } from '@/lib/readAll'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -160,18 +161,18 @@ export default async function EditInboundPage({
             .select('*')
             .eq('id', id)
             .single(),
-        supabase
+        readAll(() => supabase
             .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
-            .order('name'),
-        supabase
+            .order('name'), { label: 'material_lookup' }),
+        readAll(() => supabase
             .from('supplier_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, legal_name')
             .is('deleted_at', null)
             // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
             .neq('counterparty_type', 'forwarder')
-            .order('legal_name'),
+            .order('legal_name'), { label: 'supplier_lookup' }),
         supabase
             .from('inbound_batch_metals')
             // PROC-1b:含量带出处 —— 化验来源嵌出单据号,行上要看得见是谁说的数
@@ -337,7 +338,7 @@ export default async function EditInboundPage({
     // 一致(批次自己的 → 它那条采购行的)。有公式引用却没有副本的批次,结算会点名
     // 拒(PRICING_TERMS_NOT_COMMITTED);那不是要瞒着操作员到按下按钮才说的事,
     // 所以这里就说,并且不渲染一个注定被拒的按钮。
-    const commitmentRes = await supabase
+    const commitmentRes = await readAll(() => supabase
         .from('pricing_term_commitments')
         .select('id, source_formula_code, committed_at, inbound_batch_id, purchase_order_line_id')
         .or(
@@ -349,7 +350,7 @@ export default async function EditInboundPage({
             ]
                 .filter(Boolean)
                 .join(',')
-        )
+        ), { label: 'pricing_term_commitments' })
     const commitmentRows = mustRows(commitmentRes)
     const commitment =
         commitmentRows.find((c) => c.inbound_batch_id === id) ??

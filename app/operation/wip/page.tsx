@@ -19,6 +19,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import WipTable, { type WipRow } from './WipTable'
+import { readAll } from '@/lib/readAll'
 
 export default async function WipPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -30,9 +31,9 @@ export default async function WipPage() {
     const supabase = await createClient()
 
     const rows = mustRows(
-        await supabase.from('processing_wip')
+        await readAll(() => supabase.from('processing_wip')
             .select('output_batch_id, batch_code, material_code, material_name, remaining_qty, unit, awaiting_operation_type_code, awaiting_operation_zh, awaiting_operation_en, safety_states_recorded')
-            .order('batch_code'),
+            .order('batch_code'), { label: 'processing_wip', key: ['output_batch_id', 'batch_code', 'material_id', 'material_code', 'material_name', 'remaining_qty', 'unit', 'purpose_code', 'awaiting_operation_type_code', 'awaiting_operation_zh', 'awaiting_operation_en', 'output_date', 'safety_states_recorded'] }),
         'processing_wip') as {
             output_batch_id: string; batch_code: string
             material_code: string | null; material_name: string | null

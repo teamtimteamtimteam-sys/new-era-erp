@@ -153,8 +153,8 @@ BEGIN
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass))) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 268 REG: every new table is change-logged'; END IF;
     IF (EXISTS (SELECT 1 FROM change_log_mask_rules() WHERE table_name LIKE 'inspection%' OR table_name LIKE 'environmental%')
-       OR (SELECT count(*) FROM change_log_mask_rules()) <> 129) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 268 REG: no masked column in MES-7b-2 (rules stay 119 from that cut; 129 since GOLIVE-1 row 12 added the settlement and contract-term prices)'; END IF;
+       OR (SELECT count(*) FROM change_log_mask_rules()) <> 132) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 268 REG: no masked column in MES-7b-2 (rules stay 119 from that cut; 129 since GOLIVE-1 row 12 added the settlement and contract-term prices; 132 since GOLIVE-2 added the frozen contract copy (2) and the terms-request snapshot (1))'; END IF;
     -- COALESCE:约束被摘掉时 pg_get_constraintdef 给 NULL,而 NULL NOT LIKE … 是 NULL,IF 会把它读成"通过"
     IF (COALESCE(pg_get_constraintdef((SELECT oid FROM pg_constraint WHERE conname = 'nonconformance_reports_source_check')), '') NOT LIKE '%''inspection''%'
        OR COALESCE(pg_get_constraintdef((SELECT oid FROM pg_constraint WHERE conname = 'nonconformance_reports_inspection_source')), '') NOT LIKE '%inspection_finding_id IS NOT NULL%') IS NOT FALSE THEN

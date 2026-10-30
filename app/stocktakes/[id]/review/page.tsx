@@ -14,6 +14,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import ReviewDiffTable, { type ReviewDiffRow } from './ReviewDiffTable'
 import { can } from '@/lib/permissions'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
+import { readAll } from '@/lib/readAll'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -49,14 +50,14 @@ export default async function StocktakeReviewPage({
             .from('stocktake_lines')
             .select('*')
             .eq('stocktake_id', id),
-        supabase
+        readAll(() => supabase
             .from('inbound_batches')
             .select('id, code, remaining_qty, unit, materials ( name )')
-            .is('deleted_at', null),
-        supabase
+            .is('deleted_at', null), { label: 'inbound_batches' }),
+        readAll(() => supabase
             .from('output_batches')
             .select('id, code, remaining_qty, unit, materials ( name )')
-            .is('deleted_at', null),
+            .is('deleted_at', null), { label: 'output_batches' }),
         // ROLE-1 Batch 3a:谁在这张单上数过(只增不改)—— 过账时每一个都被拒
         supabase
             .from('stocktake_counts')

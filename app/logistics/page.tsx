@@ -33,6 +33,7 @@ import { getMyPermissions } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { businessToday } from '@/lib/format'
 import Figure from '@/app/components/overview/Figure'
+import { readAll } from '@/lib/readAll'
 
 type ContainerRow = {
     id: string
@@ -59,13 +60,13 @@ export default async function LogisticsOverviewPage() {
 
     const [ctrRes, shpRes] = await Promise.all([
         canReadContainers
-            ? supabase
+            ? readAll(() => supabase
                   .from('container_overview')
-                  .select('id, code, latest_milestone, latest_milestone_date, documents_pending, shipment_count')
+                  .select('id, code, latest_milestone, latest_milestone_date, documents_pending, shipment_count'), { label: 'container_overview' })
             : Promise.resolve({ data: null, error: null }),
         // 【发运那一半的门是它自己的 RLS】—— shipments 跟着销售/物流的策略走,
         // 这里不替它判;它要是拒绝,mustRows 会【抛】,不会变成"零票"。
-        supabase.from('shipments').select('id, container_id'),
+        readAll(() => supabase.from('shipments').select('id, container_id'), { label: 'shipments' }),
     ])
 
     const containers = canReadContainers

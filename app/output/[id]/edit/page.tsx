@@ -42,6 +42,7 @@ import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAll } from '@/lib/readAll'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -107,16 +108,16 @@ export default async function EditOutputPage({
             .select('*')
             .eq('id', id)
             .single(),
-        supabase
+        readAll(() => supabase
             .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
-            .order('name'),
-        supabase
+            .order('name'), { label: 'material_lookup' }),
+        readAll(() => supabase
             .from('customer_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, legal_name')
             .is('deleted_at', null)
-            .order('legal_name'),
+            .order('legal_name'), { label: 'customer_lookup' }),
         supabase
             .from('output_batch_metals')
             // PROC-1b:含量带出处 —— 化验来源嵌出单据号,行上要看得见是谁说的数
@@ -146,9 +147,9 @@ export default async function EditOutputPage({
     // 【失败必须失败】查询炸了不能变成"零行" —— 零行在这里的含义是"无权",
     // 面板会据此渲染「受限」,于是一次真正的查询错误会被伪装成一个合理的权限答复。
     // 无权的人本来就拿不到行(视图的谓词),两者必须分得开。
-    const creditRes = await supabase
+    const creditRes = await readAll(() => supabase
         .from('customer_credit_status')
-        .select('customer_id, code, credit_limit_base, credit_hold, exposure_base, headroom_base, sales_blocked')
+        .select('customer_id, code, credit_limit_base, credit_hold, exposure_base, headroom_base, sales_blocked'), { label: 'customer_credit_status', key: ['customer_id', 'code', 'legal_name', 'credit_limit_base', 'credit_hold', 'exposure_base', 'headroom_base', 'sales_blocked'] })
 
     // PROC-WIRE-1A:用途字典 —— 只取在用的,停用的不该再被指派上去(与门里同一条)。
     const purposesRes = await supabase
@@ -324,13 +325,13 @@ export default async function EditOutputPage({
 
     // SAL-A:卖方可用的公式(方向 sale/both、启用)。走遮蔽视图 —— 没有
     // module.pricing.view 的读者拿到 0 行,面板于是只剩手填与现货预设,而不是报错。
-    const { data: sellFormulaRows } = await supabase
+    const { data: sellFormulaRows } = await readAll(() => supabase
         .from('pricing_formulas_masked')
         .select('id, code, name, direction, is_active')
         .in('direction', ['sale', 'both'])
         .eq('is_active', true)
         .is('deleted_at', null)
-        .order('code')
+        .order('code'), { label: 'pricing_formulas_masked' })
     const sellFormulas = (sellFormulaRows ?? []).map((f) => ({ id: f.id as string, code: f.code as string, name: f.name as string }))
 
     return (

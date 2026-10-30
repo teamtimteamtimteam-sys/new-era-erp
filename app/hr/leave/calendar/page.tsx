@@ -22,6 +22,7 @@ import { expandRange, KIND_COLOR } from '@/app/tools/calendar/sources'
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { businessToday } from '@/lib/format'
+import { readAll } from '@/lib/readAll'
 
 export default async function LeaveCalendarPage({
     searchParams,
@@ -56,8 +57,8 @@ export default async function LeaveCalendarPage({
     const locale = await getLocale()
 
     const [leaveRes, holRes] = await Promise.all([
-        supabase.from('leave_calendar').select('*')
-            .lte('start_date', last).gte('end_date', first).order('start_date'),
+        readAll(() => supabase.from('leave_calendar').select('*')
+            .lte('start_date', last).gte('end_date', first).order('start_date'), { label: 'leave_calendar', key: ['request_id', 'code', 'employee_id', 'employee_code', 'legal_name', 'department_id', 'leave_type_code', 'leave_type_en', 'leave_type_zh', 'start_date', 'end_date', 'start_half_day', 'end_half_day', 'days', 'status'] }),
         supabase.from('public_holidays').select('holiday_date, name_en, name_zh')
             .eq('is_active', true).gte('holiday_date', first).lte('holiday_date', last),
     ])

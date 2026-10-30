@@ -17,6 +17,7 @@ import type { PayrollPaymentEntry } from './paymentEntries'
 import { formatDate } from '@/lib/dates'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { readAllIn } from '@/lib/readAll'
 
 // AUDIT-TRAIL-1c-3(Tim 的 Q18):这一页的审计记录是【工资的分录】—— 一张 source_type = 'payroll' 的分录就是一次付薪 /
 //   一次 CPF / 一次代扣款汇缴(还有过账时那一张应计)。期间自己的整段记录归 AT-1d 的 /hr/payroll/[id]。读最近 24 张。
@@ -41,9 +42,9 @@ export default async function PayrollPaymentsPage({ searchParams }: { searchPara
         .order('period_month', { ascending: false }).limit(6)
     const ids = (periods ?? []).map((p) => p.id).filter((x): x is string => !!x)
     const { data: lines } = ids.length
-        ? await supabase.from('payroll_lines_masked')
+        ? await readAllIn(ids, (__ids) => supabase.from('payroll_lines_masked')
             .select('id, payroll_period_id, employee_id, net_pay, paid_at')
-            .in('payroll_period_id', ids)
+            .in('payroll_period_id', __ids), { label: 'payroll_lines_masked' })
         : { data: [] }
     const empIds = Array.from(new Set((lines ?? []).map((l) => l.employee_id).filter((x): x is string => !!x)))
     const { data: emps } = empIds.length

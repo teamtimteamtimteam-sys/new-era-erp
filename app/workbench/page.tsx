@@ -18,6 +18,7 @@ import { formatDate } from '@/lib/dates'
 import { businessToday } from '@/lib/format'
 import { todoHref, bulkMode, daysWaited, isTodoType, type WaitingRow } from '@/lib/workbench'
 import WorkbenchTable, { type TodoRow } from './WorkbenchTable'
+import { readAll } from '@/lib/readAll'
 
 type Actor = { state?: string; name?: string | null } | null
 
@@ -28,7 +29,7 @@ export default async function WorkbenchPage() {
     const t = await getTranslations()
     const locale = await getLocale()
     const supabase = await createClient()
-    const rows = mustRows(await supabase.rpc('waiting_for_me'), 'waiting_for_me') as unknown as WaitingRow[]
+    const rows = mustRows(await readAll(() => supabase.rpc('waiting_for_me'), { label: 'waiting_for_me', key: ['kind', 'item_type', 'item_id', 'parent_id', 'doc_kind', 'code', 'subject', 'raised_by', 'waiting_since', 'due_date'] }), 'waiting_for_me') as unknown as WaitingRow[]
     const today = businessToday()
 
     const who = (a: Actor): { text: string; restricted: boolean } => {

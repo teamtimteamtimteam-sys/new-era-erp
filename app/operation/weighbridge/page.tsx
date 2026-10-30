@@ -23,6 +23,7 @@ import { RowCapNotice } from '@/app/components/ui/row-cap-notice'
 import { TICKETS_SHOWN, TICKET_SORT, ticketExports, ticketsCount, ticketsPage, parseTicketSort, ticketsExportHref } from './ticketsRows'
 import { ManualWeighingForm } from '@/app/operation/capture/CaptureControls'
 import { INSTRUMENT_KINDS, type Option } from '@/app/operation/capture/captureFields'
+import { readAll } from '@/lib/readAll'
 
 export default async function WeighbridgePage({
     searchParams,
@@ -42,7 +43,7 @@ export default async function WeighbridgePage({
     const [tRes, totalRes, devRes] = await Promise.all([
         ticketsPage(supabase, sort, 0, TICKETS_SHOWN - 1),
         ticketsCount(supabase),
-        supabase.from('devices').select('id, code, name, kind, retired_at').order('code'),
+        readAll(() => supabase.from('devices').select('id, code, name, kind, retired_at').order('code'), { label: 'devices' }),
     ])
     const tickets = mustRows(tRes, 'weighbridge_ticket_weights')
     const total = mustCount(totalRes, 'weighbridge_ticket_weights count')

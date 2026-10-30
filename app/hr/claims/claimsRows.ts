@@ -14,6 +14,7 @@ import type { ClaimRow } from './ClaimsTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -72,7 +73,7 @@ function filtered<Q extends { eq: (c: string, v: string | number) => Q }>(qb: Q,
  */
 export async function claimsTotals(supabase: Client, f: ClaimsFilter): Promise<ListTotal[]> {
     const args = { p_employee: f.employee || undefined, p_year: f.year ? Number(f.year) : undefined, p_status: f.status || undefined }
-    const res = await supabase.rpc('list_totals_medical_claims', args)
+    const res = await readAll(() => supabase.rpc('list_totals_medical_claims', args), { label: 'list_totals_medical_claims', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'medical claims totals'))
 }
 

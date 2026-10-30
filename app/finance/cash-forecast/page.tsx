@@ -31,6 +31,7 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { readAll } from '@/lib/readAll'
 
 // AUDIT-TRAIL-1c-3(Q16):页底一块合起来的审计记录 —— 冻结过的预测(被取代的也在:那一张"被取代"正是要说的事)与常设行。
 //   冻结一张新的、作废旧的一张是同一次操作,读回来两条记录各一行,op_key 把它们并成一条。
@@ -50,10 +51,10 @@ export default async function CashForecastPage({ searchParams }: { searchParams:
     const forecast = data as unknown as ForecastData
 
     const lines = mustRows(
-        await supabase
+        await readAll(() => supabase
             .from('cash_forecast_lines')
             .select('id, label, direction, amount_ccy, currency, cadence, start_date, end_date, is_active')
-            .order('start_date')
+            .order('start_date'), { label: 'cash_forecast_lines' })
     ) as unknown as Parameters<typeof RecurringLines>[0]['rows']
 
     // ★ TABLE-EXPORT-2a(Tim Q2):读取搬进 frozenRows.ts,与导出路由共用;只画最近 FROZEN_SHOWN 张,而且说出来。

@@ -47,6 +47,12 @@ LANGUAGE sql AS $f$
                       CASE WHEN p_user IS NULL THEN '' ELSE format('{"sub":"%s","role":"authenticated"}', p_user) END, true)
 $f$;
 
+-- GOLIVE-2(Tim 2026-10-30 Q5):sale_settlement_compute 的 authenticated EXECUTE 收回,它从此只在 record_sale_settlement(SECURITY DEFINER)
+--   的函数体里以属主身份跑。这一支要证的是它的【按名拒绝】(与读者是谁无关的那几条),所以读者那一侧的调用走这个属主身份的小壳 ——
+--   与 record_sale_settlement 给它的是同一个上下文(属主 + 读者的 claims)。直接调被拒那一件由 fixture 304 的 F / G 证。
+CREATE FUNCTION pg_temp.f263_compute(p_so uuid, p_ob uuid, p_as uuid) RETURNS jsonb LANGUAGE sql SECURITY DEFINER
+    AS $c$ SELECT public.sale_settlement_compute(p_so, p_ob, p_as) $c$;
+
 CREATE FUNCTION pg_temp.f263_do(p_user uuid, p_sql text) RETURNS text
 LANGUAGE plpgsql AS $f$
 DECLARE v_prev text := NULLIF(current_setting('request.jwt.claims', true), '');
@@ -488,7 +494,7 @@ BEGIN
     INSERT INTO assay_results (code, output_batch_id, assay_date, is_final, weight_basis, moisture_pct, result_party)
     VALUES ('ZZ263-OBH-OURS', ob_h, DATE '2026-09-15', true, 'dry', 10, 'ours') RETURNING id INTO a_s;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a_s, 'ni', 20);
-    v_msg := pg_temp.f263_do(u_all, format($q$SELECT sale_settlement_compute(%L, %L, %L)$q$, so1, ob_h, a_s));
+    v_msg := pg_temp.f263_do(u_all, format($q$SELECT pg_temp.f263_compute(%L, %L, %L)$q$, so1, ob_h, a_s));
     v_msg2 := pg_temp.f263_do(u_all, format($q$SELECT record_sale_settlement(%L, %L, %L)$q$, so1, ob_h, a_s));
     IF v_msg <> 'QUALITY_HOLD_OPEN|' || (SELECT code FROM output_batches WHERE id = ob_h) || '|' || v_code OR v_msg2 <> v_msg
        OR EXISTS (SELECT 1 FROM sales_settlements WHERE output_batch_id = ob_h) THEN
@@ -512,7 +518,7 @@ BEGIN
     v_msg := pg_temp.f263_do(u_wh, format($q$SELECT ship_order(%L, %L, %L::jsonb)$q$, so1, v_today, jsonb_build_array(jsonb_build_object('reservation_id', r1, 'qty', 5))));
     IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 263 DISP: once released the reservation ships, got %', v_msg; END IF;
     PERFORM pg_temp.f263_agree(u_all, 'shipped after release');
-    v_msg := pg_temp.f263_do(u_all, format($q$SELECT sale_settlement_compute(%L, %L, %L)$q$, so1, ob_h, a_s));
+    v_msg := pg_temp.f263_do(u_all, format($q$SELECT pg_temp.f263_compute(%L, %L, %L)$q$, so1, ob_h, a_s));
     IF v_msg <> 'OK' THEN RAISE EXCEPTION 'FIXTURE 263 DISP: once released the batch settles, got %', v_msg; END IF;
     -- accept / downgrade 放行;reject 不放行,出路是注销申请
     n7 := (pg_temp.f263_get(u_qe, format($q$SELECT open_ncr('manual', 'Odd colour', p_output_batch_id => %L)$q$, ob5)) ->> 'ncr_id')::uuid;

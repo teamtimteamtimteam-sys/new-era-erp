@@ -31,6 +31,7 @@ import DiscrepancyKinds, {
 } from '@/app/components/receiving/DiscrepancyKinds'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll } from '@/lib/readAll'
 
 export default async function ReceivingDiscrepanciesPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const locale = await getLocale()
@@ -47,7 +48,7 @@ export default async function ReceivingDiscrepanciesPage({ searchParams }: { sea
     // 阈值,屏幕上会显示新阈值配旧判词。这是一个已知的、很窄的窗口,写在这里而不是
     // 假装不存在 —— 真要消除它,视图得把它用的那三个数一起返回(那是一支迁移)。
     const [rowsRes, settingsRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('grn_discrepancies')
             .select('batch_id, batch_code, arrival_date, supplier_name, po_id, po_code, po_status, ' +
                     'line_id, line_no, ordered_material_code, received_material_code, ' +
@@ -57,7 +58,7 @@ export default async function ReceivingDiscrepanciesPage({ searchParams }: { sea
                     // PROC-1B-iii:两侧的【原始码】都要取 —— 只取那个布尔的话,
                     // 「没设」与「未评估」在屏幕上就并成一句了(两者的布尔都是 NULL)。
                     'deep_discharge_judged, deep_discharge_actual, deep_discharge_contradicted, kinds')
-            .order('arrival_date', { ascending: false }),
+            .order('arrival_date', { ascending: false }), { label: 'grn_discrepancies', key: ['batch_id', 'batch_code', 'arrival_date', 'supplier_id', 'supplier_name', 'po_id', 'po_code', 'po_status', 'line_id', 'line_no', 'ordered_material_id', 'ordered_material_code', 'received_material_id', 'received_material_code', 'ordered_qty', 'ordered_unit', 'received_qty', 'received_unit', 'declared_qty', 'line_received_qty', 'line_receipt_count', 'line_delta_qty', 'line_delta_pct', 'declared_delta_qty', 'assay_beyond_tolerance', 'assay_metals_compared', 'deep_discharge_judged', 'deep_discharge_actual', 'deep_discharge_contradicted', 'kinds'] }),
         supabase
             .from('receiving_settings')
             .select('grn_short_pct, grn_over_pct, grn_assay_tolerance_pct')

@@ -7,6 +7,7 @@ import NewFreightForm, { type BatchOption } from './NewFreightForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewFreightPage() {
     const locale = await getLocale()
@@ -32,9 +33,9 @@ export default async function NewFreightPage() {
         //   * 于是这个下拉【自建成起就没有真的列出过任何人】,而页面还说"还没有货代"。
         // 全仓十一个读 suppliers 的下拉,【没有第二个】过滤 status —— 只有这里。
         // 所以删掉它是回到房里的写法,不是放宽一条规则。
-        await supabase.from('suppliers').select('id, code, legal_name')
+        await readAll(() => supabase.from('suppliers').select('id, code, legal_name')
             .is('deleted_at', null)
-            .eq('counterparty_type', 'forwarder').order('legal_name'),
+            .eq('counterparty_type', 'forwarder').order('legal_name'), { label: 'suppliers' }),
         'suppliers'
     ) as { id: string; code: string; legal_name: string }[]
 

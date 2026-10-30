@@ -13,6 +13,7 @@ import { getLocale } from '@/lib/i18n/server'
 import type { TransferRow } from './TransfersTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -60,7 +61,7 @@ export function transferCount(supabase: Client) {
  *   ★ 覆盖【所有】转账(表只画前 TRANSFERS_SHOWN 笔);已冲销的排除。这张表没有筛选,所以不传参数。
  */
 export async function transferTotals(supabase: Client): Promise<ListTotal[]> {
-    return shapeListTotals(mustRows(await supabase.rpc('list_totals_bank_transfers'), 'bank transfers totals'))
+    return shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_bank_transfers'), { label: 'list_totals_bank_transfers', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'bank transfers totals'))
 }
 
 export function transferPage(supabase: Client, p: TransferListParams, from: number, to: number) {
@@ -80,8 +81,8 @@ export async function shapeTransferRows(supabase: Client, transfers: TransferDbR
     const locale = await getLocale()
     const [ccyRows, openReversals] = await Promise.all([
         supabase.from('bank_reconciliation_status').select('account_code, currency'),
-        supabase.from('payment_requests').select('id, code, transfer_id')
-            .eq('kind', 'bank_transfer_reversal').in('status', ['submitted', 'approved']),
+        readAll(() => supabase.from('payment_requests').select('id, code, transfer_id')
+            .eq('kind', 'bank_transfer_reversal').in('status', ['submitted', 'approved']), { label: 'payment_requests' }),
     ])
     const ccyOf = new Map((mustRows(ccyRows, 'bank account currencies') as unknown as
         { account_code: string; currency: string | null }[]).map((r) => [r.account_code, r.currency ?? '']))

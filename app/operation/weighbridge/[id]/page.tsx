@@ -28,6 +28,7 @@ import { xText, xNum, xTime, xRestricted } from '@/lib/export/cells'
 import { ManualWeighingForm } from '@/app/operation/capture/CaptureControls'
 import { INSTRUMENT_KINDS, type Option } from '@/app/operation/capture/captureFields'
 import { ShareForm, VoidTicket, PhotoPanel } from './TicketControls'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -66,7 +67,7 @@ export default async function TicketPage({ params, searchParams }: {
             .eq('ticket_id', id).order('created_at'),
         supabase.from('weighbridge_ticket_photos').select('id, file_path, file_name, uploaded_at, withdrawn_at, withdraw_reason')
             .eq('ticket_id', id).order('uploaded_at'),
-        supabase.from('devices').select('id, code, name, kind, retired_at').order('code'),
+        readAll(() => supabase.from('devices').select('id, code, name, kind, retired_at').order('code'), { label: 'devices' }),
     ])
     const weighings = mustRows(wRes, 'weighing_calibration') as W[]
     const shares = mustRows(sRes, 'weighbridge_ticket_shares') as Share[]
@@ -81,13 +82,13 @@ export default async function TicketPage({ params, searchParams }: {
     const batchLabel = new Map<string, { code: string; quantity: number; deleted: boolean }>()
     if (batchIds.length > 0) {
         // RLS 挡下的是【行】(零行,不是错误)—— 读不到的那几份落到「受限」;一次真的失败照样抛
-        ;(mustRows(await supabase.from('inbound_batches_masked').select('id, code, quantity, deleted_at').in('id', batchIds), 'inbound_batches_masked') as
+        ;(mustRows(await readAllIn(batchIds, (__ids) => supabase.from('inbound_batches_masked').select('id, code, quantity, deleted_at').in('id', __ids), { label: 'inbound_batches_masked' }), 'inbound_batches_masked') as
             { id: string; code: string; quantity: number; deleted_at: string | null }[])
             .forEach((b) => batchLabel.set(b.id, { code: b.code, quantity: Number(b.quantity), deleted: !!b.deleted_at }))
     }
     const lineLabel = new Map<string, string>()
     if (lineIds.length > 0) {
-        ;(mustRows(await supabase.from('shipment_lines').select('id, qty, shipments(code)').in('id', lineIds), 'shipment_lines') as unknown as
+        ;(mustRows(await readAllIn(lineIds, (__ids) => supabase.from('shipment_lines').select('id, qty, shipments(code)').in('id', __ids), { label: 'shipment_lines' }), 'shipment_lines') as unknown as
             { id: string; qty: number; shipments: { code: string } | null }[])
             .forEach((l) => lineLabel.set(l.id, `${l.shipments?.code ?? '—'} · ${t('capture.kg', { n: String(l.qty) })}`))
     }

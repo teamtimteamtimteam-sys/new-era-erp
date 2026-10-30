@@ -23,6 +23,7 @@ import { disputeStatusKey, resultPartyKey, feeRuleKey, sampleKindKey, batchHref,
 import DisputeActions, { type Opt } from './DisputeActions'
 import FeeLinkForm from './FeeLinkForm'
 import MetalsTable, { type MetalRow } from './MetalsTable'
+import { readAll } from '@/lib/readAll'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -64,8 +65,8 @@ export default async function DisputePage({ params, searchParams }: {
     const [metalRes, substRes, assayRes, sampleRes, labRes, canEdit, canResolve, canFinance, baseCcy] = await Promise.all([
         supabase.from('assay_dispute_metals').select('metal, ours_pct, counterparty_pct, umpire_pct, diff_pct, beyond_limit').eq('dispute_id', id).order('metal'),
         supabase.from('substances').select('code, name_en, name_zh'),
-        open ? supabase.from('assay_results').select('id, code, result_party, assay_date, lab_name').eq(col, batchId).is('deleted_at', null).order('assay_date', { ascending: false }) : null,
-        open ? supabase.from('sample_rows').select('id, code, kind').eq(col, batchId).order('created_at', { ascending: false }) : null,
+        open ? readAll(() => supabase.from('assay_results').select('id, code, result_party, assay_date, lab_name').eq(col, batchId).is('deleted_at', null).order('assay_date', { ascending: false }), { label: 'assay_results' }) : null,
+        open ? readAll(() => supabase.from('sample_rows').select('id, code, kind').eq(col, batchId).order('created_at', { ascending: false }), { label: 'sample_rows' }) : null,
         d.umpire_lab_code ? supabase.from('laboratories').select('code, supplier_id').eq('code', d.umpire_lab_code).maybeSingle() : null,
         can('module.quality.edit'), can('action.apply_assay'), can('module.finance.view'), getBaseCurrency(),
     ])

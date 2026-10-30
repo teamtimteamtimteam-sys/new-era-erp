@@ -1,0 +1,2 @@
+PROOF|largest operations (rows): 88 · 88 · 88 · 88 · 88 · 88 · 88 · 88
+PROOF|operations over 200 rows: 0 · over 500: 0

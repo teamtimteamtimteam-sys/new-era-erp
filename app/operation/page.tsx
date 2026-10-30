@@ -48,6 +48,7 @@ import { getMyPermissions } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { businessToday } from '@/lib/format'
 import Figure from '@/app/components/overview/Figure'
+import { readAll } from '@/lib/readAll'
 
 type Fulfilment = {
     work_order_id: string
@@ -86,11 +87,11 @@ export default async function OperationOverviewPage() {
     const canReadOutput = allows('module.output.view', perms)
 
     const [fulRes, wipRes, outRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             .from('work_order_fulfilment')
             .select('work_order_id, work_order_code, side, material_code, planned_or_expected_qty, actual_qty, variance_qty, has_plan')
-            .eq('has_plan', true),
-        supabase.from('processing_wip').select('output_batch_id, remaining_qty, output_date'),
+            .eq('has_plan', true), { label: 'work_order_fulfilment', key: ['work_order_id', 'work_order_code', 'status', 'scheduled_date', 'side', 'material_id', 'material_code', 'material_name', 'planned_or_expected_qty', 'actual_qty', 'variance_qty', 'has_plan'] }),
+        readAll(() => supabase.from('processing_wip').select('output_batch_id, remaining_qty, output_date'), { label: 'processing_wip', key: ['output_batch_id', 'batch_code', 'material_id', 'material_code', 'material_name', 'remaining_qty', 'unit', 'purpose_code', 'awaiting_operation_type_code', 'awaiting_operation_zh', 'awaiting_operation_en', 'output_date', 'safety_states_recorded'] }),
         canReadOutput
             ? supabase.from('output_batches').select('id', { count: 'exact', head: true }).is('deleted_at', null)
             : Promise.resolve({ data: null, error: null, count: null }),

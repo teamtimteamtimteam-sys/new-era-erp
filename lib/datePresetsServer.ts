@@ -6,9 +6,10 @@ import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { businessToday } from '@/lib/format'
 import { datePresets, type DatePreset } from '@/lib/datePresets'
+import { readAll } from '@/lib/readAll'
 
 export async function readDatePresets(supabase: SupabaseClient<Database>): Promise<DatePreset[]> {
-    const rows = mustRows(await supabase.rpc('fiscal_year_end_setting'), 'fiscal year end')
+    const rows = mustRows(await readAll(() => supabase.rpc('fiscal_year_end_setting'), { label: 'fiscal_year_end_setting', key: ['fy_end_month', 'fy_end_day'] }), 'fiscal year end')
     const fy = rows[0]
     if (!fy || fy.fy_end_month == null || fy.fy_end_day == null) throw new Error('DATE_PRESETS_NO_FY_END|finance_settings has no row')
     return datePresets(businessToday(), { month: fy.fy_end_month, day: fy.fy_end_day })

@@ -21,6 +21,7 @@ import type { JournalRow } from './JournalTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -61,7 +62,7 @@ export type JournalDbRow = {
  * (db/functions/list_totals_journal.sql,读 journal_lines_masked);冲销分录记负数;集合里有一行工资金额受限 → 整个合计「受限」。
  */
 export async function journalTotals(supabase: Client, p: JournalListParams): Promise<ListTotal[]> {
-    const res = await supabase.rpc('list_totals_journal', { p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined })
+    const res = await readAll(() => supabase.rpc('list_totals_journal', { p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined }), { label: 'list_totals_journal', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'journal totals'))
 }
 

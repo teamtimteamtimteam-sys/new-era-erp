@@ -31,6 +31,7 @@ import { formatMonth } from '@/lib/dates'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
 import { shapeListTotals } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function WhtPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const sp = await searchParams
@@ -49,9 +50,9 @@ export default async function WhtPage({ searchParams }: { searchParams: Promise<
         supabase.from('wht_liability_by_month')
             .select('period_month, withheld_base, remitted_base, unremitted_base, due_date, is_overdue')
             .order('period_month', { ascending: false }),
-        supabase.from('wht_remittances')
+        readAll(() => supabase.from('wht_remittances')
             .select('id, code, period_month, remitted_on, amount_base, filed_reference, notes, journal_entry_id')
-            .order('period_month', { ascending: false }).order('remitted_on', { ascending: false }),
+            .order('period_month', { ascending: false }).order('remitted_on', { ascending: false }), { label: 'wht_remittances' }),
         supabase.from('wht_natures')
             .select('code, name_en, name_zh, statute_ref, sort_order').eq('is_active', true).order('sort_order'),
         supabase.from('wht_rates')
@@ -75,8 +76,8 @@ export default async function WhtPage({ searchParams }: { searchParams: Promise<
                 .is('deleted_at', null).is('tax_residence', null)
             : Promise.resolve({ count: null, data: null, error: null }),
         // TABLE-FEATURES-2(Tim Q1 · Q2):两张表各自的表尾合计,库算 —— 汇款那一张排除已冲销的(与下面 reversed 同一条判据)
-        supabase.rpc('list_totals_wht_liability'),
-        supabase.rpc('list_totals_wht_remittances'),
+        readAll(() => supabase.rpc('list_totals_wht_liability'), { label: 'list_totals_wht_liability', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }),
+        readAll(() => supabase.rpc('list_totals_wht_remittances'), { label: 'list_totals_wht_remittances', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }),
     ])
     const liabilityTotals = shapeListTotals(mustRows(liabTotalsRes, 'wht liability totals'))
     const remittanceTotals = shapeListTotals(mustRows(remitTotalsRes, 'wht remittances totals'))
@@ -91,12 +92,12 @@ export default async function WhtPage({ searchParams }: { searchParams: Promise<
     //   而是列在下拉上方,链到那张申请。
     const entryIds = remittances.map((r) => r.journal_entry_id as string)
     const [openReqRes, entriesRes] = await Promise.all([
-        supabase.from('payment_requests')
+        readAll(() => supabase.from('payment_requests')
             .select('id, code, kind, status, period_month, wht_remittance_id, amount_ccy')
             .in('kind', ['wht_remittance', 'wht_remittance_reversal'])
-            .in('status', ['submitted', 'approved']),
+            .in('status', ['submitted', 'approved']), { label: 'payment_requests' }),
         entryIds.length
-            ? supabase.from('journal_entries').select('id, status').in('id', entryIds)
+            ? readAllIn(entryIds, (__ids) => supabase.from('journal_entries').select('id, status').in('id', __ids), { label: 'journal_entries' })
             : Promise.resolve({ data: [] as { id: string; status: string }[], error: null }),
     ])
     const openReqs = mustRows(openReqRes)

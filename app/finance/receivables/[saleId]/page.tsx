@@ -23,6 +23,7 @@ import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 type AllocRow = {
     id: string
@@ -153,11 +154,11 @@ export default async function ReceivableDocPage({
     const attributable = sale.customer_id === null
     const customerOptions = attributable
         ? mustRows(
-              await supabase
+              await readAll(() => supabase
                   .from('customer_lookup')
                   .select('id, code, legal_name')
                   .is('deleted_at', null)
-                  .order('code')
+                  .order('code'), { label: 'customer_lookup' })
           ) as unknown as { id: string; code: string; legal_name: string }[]
         : []
 

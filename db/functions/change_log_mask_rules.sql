@@ -30,11 +30,15 @@
 -- 【它会不会和视图漂开】会 —— 所以有一道闸:change_log_mask_gaps() 拿目录里【真的被遮的列】
 --   (_masked 视图里 CASE … END AS <基表的列>)与本名单逐列对,缺一条或多一条都报;
 --   gate 的 changemask 那一行在线上与重建两侧各问一次,fixture 234 里注入"删掉一条"必须变红。
+-- ★ GOLIVE-2(2026-10-30,Tim Q4 · Q6)加了 3 行:合同条款的冻结副本(contract_document_terms 的 pricing_terms · settlement_terms,
+--   新写法 cdt_price —— 按副本自己那一侧:销售单 → data.view_prices,采购单 → data.view_purchase_prices;两列在变更记录里整列受限)与
+--   条款申请的快照(terms_requests.snapshot,新写法 tr_snapshot —— 公式申请照 pft:formula_id,合同申请照 contract_price)。
+-- ★ GOLIVE-2(第 13 行):去掉了 SET search_path —— 函数体只是一张常量 VALUES 表、不引用任何对象,不带 SET 的 SQL 函数才能被内联
+--   (带着它,change_log_mask_row 每一行都要把整张表物化一遍:年体量种子上 7,810 次调用 704 ms)。
 CREATE OR REPLACE FUNCTION public.change_log_mask_rules()
  RETURNS TABLE(table_name text, column_name text, rule text)
  LANGUAGE sql
  IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
 AS $function$
     VALUES
         ('approval_log'::text, 'amount_ccy'::text, 'apr_amount'::text),
@@ -166,5 +170,8 @@ AS $function$
         ('contract_pricing_terms', 'payable_pct', 'contract_price'),
         ('contract_refining_charges', 'usd_per_tonne_of_metal', 'contract_price'),
         ('contract_penalty_elements', 'usd_per_tonne_per_pct_over', 'contract_price'),
-        ('contract_insurance_obligations', 'min_amount', 'contract_price');
+        ('contract_insurance_obligations', 'min_amount', 'contract_price'),
+        ('contract_document_terms', 'pricing_terms', 'cdt_price'),
+        ('contract_document_terms', 'settlement_terms', 'cdt_price'),
+        ('terms_requests', 'snapshot', 'tr_snapshot');
 $function$;

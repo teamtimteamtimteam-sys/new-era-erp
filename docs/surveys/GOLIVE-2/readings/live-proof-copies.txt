@@ -1,0 +1,6 @@
+STEP|base http://localhost:3196
+STEP|M live data does not allow the masked-copy reading: contract_document_terms 0 rows · contract terms requests 0 · contracts 0 (postgres, base tables). Fixture 304 proves the masking on the rebuild; nothing was created on live to show it.
+STEP|done
+AFTER|committed on live by this run: the throwaway supplier, contact, portal account and link, one certificate submission and its stored object, and the throwaway staff clones with their roles and grants — every one of them on the cleanup plan; nothing else was pressed
+GL2_PROOF_EXIT=0
+GL2_RUN_EXIT=0

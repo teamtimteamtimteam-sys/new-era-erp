@@ -23,6 +23,7 @@ import PaymentAllocationsTable, { type PaymentAllocRow } from './PaymentAllocati
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAllIn } from '@/lib/readAll'
 
 type AllocRow = {
     id: string
@@ -111,25 +112,25 @@ export default async function PaymentDetailPage({
     const invoiceIds = allocs.map((a) => a.invoice_id).filter(Boolean) as string[]
     const [salesRes, inboundRes, expensesRes, poRes] = await Promise.all([
         saleIds.length
-            ? supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
+            ? readAllIn(saleIds, (__ids) => supabase.from('sales_records').select('id, output_batch_id').in('id', __ids), { label: 'sales_records' })
             : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[], error: null }),
         batchIds.length
             // FIX-2a:批次编号走查名视图 —— 两张基表分别挂 inbound.view / output.view,
             // 而这一页的守卫是 finance.view。cfo 读回零行,于是每一条核销行的
             // 「这笔钱冲的是哪一批」都退化成没有编号可印。
-            ? supabase.from('inbound_batch_lookup').select('id, code').in('id', batchIds)
+            ? readAllIn(batchIds, (__ids) => supabase.from('inbound_batch_lookup').select('id, code').in('id', __ids), { label: 'inbound_batch_lookup' })
             : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
         expenseIds.length
-            ? supabase.from('expenses').select('id, code').in('id', expenseIds)
+            ? readAllIn(expenseIds, (__ids) => supabase.from('expenses').select('id, code').in('id', __ids), { label: 'expenses' })
             : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
         poIds.length
-            ? supabase.from('purchase_orders').select('id, code').in('id', poIds)
+            ? readAllIn(poIds, (__ids) => supabase.from('purchase_orders').select('id, code').in('id', __ids), { label: 'purchase_orders' })
             : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
     ])
     const outputBySale = new Map((mustRows(salesRes)).map((s) => [s.id, s.output_batch_id]))
     const outputIds = Array.from(new Set(Array.from(outputBySale.values())))
     const { data: outputBatches } = outputIds.length
-        ? await supabase.from('output_batch_lookup').select('id, code').in('id', outputIds)
+        ? await readAllIn(outputIds, (__ids) => supabase.from('output_batch_lookup').select('id, code').in('id', __ids), { label: 'output_batch_lookup' })
         : { data: [] as { id: string; code: string }[] }
     const outputCodeById = new Map((outputBatches ?? []).map((b) => [b.id, b.code]))
     const inboundById = new Map((mustRows(inboundRes)).map((b) => [b.id, b.code]))
@@ -138,7 +139,7 @@ export default async function PaymentDetailPage({
     // SO-3a:订单流发票的核销行 —— 单据就是发票本身
     const invoiceById = new Map<string, string>()
     if (invoiceIds.length) {
-        const { data: invs } = await supabase.from('invoices_masked').select('id, code').in('id', invoiceIds)
+        const { data: invs } = await readAllIn(invoiceIds, (__ids) => supabase.from('invoices_masked').select('id, code').in('id', __ids), { label: 'invoices_masked' })
         for (const i of (invs as { id: string; code: string }[] | null) ?? []) invoiceById.set(i.id, i.code)
     }
 

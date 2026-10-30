@@ -6,6 +6,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import NewWorkOrderForm from './NewWorkOrderForm'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewWorkOrderPage() {
     const denied = await requireModule(MOD.processing)
@@ -15,8 +16,8 @@ export default async function NewWorkOrderPage() {
     // ROLE-1 Batch 3b:仓库持 processing.view 但不持 materials.view —— 读 materials 基表会被 RLS 静默
     // 读成零行(下拉全空)。改读查名视图 material_lookup(processing.view 读得到),列与过滤不变。
     const materials = mustRows(
-        await supabase.from('material_lookup').select('id, code, name')
-            .is('deleted_at', null).order('code'),
+        await readAll(() => supabase.from('material_lookup').select('id, code, name')
+            .is('deleted_at', null).order('code'), { label: 'material_lookup' }),
         'material_lookup') as unknown as { id: string; code: string; name: string }[]
     const canCreate = await can('action.wo_create')
 

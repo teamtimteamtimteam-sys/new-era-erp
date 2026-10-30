@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { mustRows } from '@/lib/db-helpers'
 import type { SafetyState, Certainty } from './IntakeConditionFields'
 import type { MaterialAxis } from './IntakeConditionFormSection'
+import { readAll } from '@/lib/readAll'
 
 export type IntakeConditionOptions = { states: SafetyState[]; certainties: Certainty[] }
 
@@ -46,7 +47,7 @@ export async function loadMaterialAxes(
     supabase: SupabaseClient<any, any, any>
 ): Promise<Record<string, MaterialAxis>> {
     const [matRes, kindRes] = await Promise.all([
-        supabase.from('material_lookup').select('id, kind_code').is('deleted_at', null),
+        readAll(() => supabase.from('material_lookup').select('id, kind_code').is('deleted_at', null), { label: 'material_lookup' }),
         supabase.from('material_kinds').select('code, has_condition_axes, name_en, name_zh'),
     ])
     const mats = mustRows(matRes, 'materials') as unknown as { id: string; kind_code: string | null }[]

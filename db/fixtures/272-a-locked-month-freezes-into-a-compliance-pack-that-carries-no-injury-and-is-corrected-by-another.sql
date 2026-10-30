@@ -145,8 +145,8 @@ BEGIN
     v_j := change_log_coverage_gaps();
     IF (jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 272 REG: change-log coverage (gaps 0, exclusions 9): %', v_j; END IF;
-    IF (EXISTS (SELECT 1 FROM change_log_mask_rules() WHERE table_name LIKE 'compliance_%') OR (SELECT count(*) FROM change_log_mask_rules()) <> 129) IS NOT FALSE THEN
-        RAISE EXCEPTION 'FIXTURE 272 REG: no masked column in MES-8b-1 (rules stay 119 from that cut; 129 since GOLIVE-1 row 12 added the settlement and contract-term prices)'; END IF;
+    IF (EXISTS (SELECT 1 FROM change_log_mask_rules() WHERE table_name LIKE 'compliance_%') OR (SELECT count(*) FROM change_log_mask_rules()) <> 132) IS NOT FALSE THEN
+        RAISE EXCEPTION 'FIXTURE 272 REG: no masked column in MES-8b-1 (rules stay 119 from that cut; 129 since GOLIVE-1 row 12 added the settlement and contract-term prices; 132 since GOLIVE-2 added the frozen contract copy (2) and the terms-request snapshot (1))'; END IF;
     SELECT string_agg(c.relname || ':' || g.r || ':' || p.priv, ', ') INTO v_txt
       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
      CROSS JOIN (VALUES ('anon'), ('authenticated')) g(r) CROSS JOIN (VALUES ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) p(priv)

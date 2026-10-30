@@ -18,6 +18,7 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import IncidentsTable, { type IncidentRow } from './IncidentsTable'
 import SafetySettingsPanel from './SafetySettingsPanel'
 import { neaStatusLabel } from './neaStatus'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     id: string; code: string; kind_name_en: string; kind_name_zh: string; occurred_at: string; location_code: string | null
@@ -35,9 +36,9 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
     const supabase = await createClient()
 
     const [res, settingsRes, canEdit] = await Promise.all([
-        supabase.from('incident_rows')
+        readAll(() => supabase.from('incident_rows')
             .select('id, code, kind_name_en, kind_name_zh, occurred_at, location_code, equipment_code, what_happened, nea_reportable, notified_at, report_submitted_at, report_deadline, deadline_state, deadline_confirmed, closed_at')
-            .order('occurred_at', { ascending: false }),
+            .order('occurred_at', { ascending: false }), { label: 'incident_rows' }),
         supabase.from('safety_settings')
             .select('nea_report_working_days, nea_report_days_source, nea_report_days_confirmed_at').maybeSingle(),
         can('module.safety.edit'),

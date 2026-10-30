@@ -21,6 +21,7 @@ import BatchDetail, { type LineRow, type StaffOption } from './BatchDetail'
 import { OVERTIME_STATUS_CLS } from '../BatchesTable'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAll } from '@/lib/readAll'
 
 export default async function OvertimeBatchPage({ params, searchParams }: {
     params: Promise<{ id: string }>
@@ -45,8 +46,8 @@ export default async function OvertimeBatchPage({ params, searchParams }: {
     if (!batch) notFound()
 
     const [lineRes, staffRes, canEnter, canApprove, meRes] = await Promise.all([
-        supabase.rpc('overtime_batch_lines', { p_batch_id: id }),
-        supabase.rpc('overtime_site_staff'),
+        readAll(() => supabase.rpc('overtime_batch_lines', { p_batch_id: id }), { label: 'overtime_batch_lines', key: ['line_id', 'employee_id', 'employee_code', 'employee_name', 'work_date', 'day_kind', 'hours', 'note', 'voided'] }),
+        readAll(() => supabase.rpc('overtime_site_staff'), { label: 'overtime_site_staff', key: ['employee_id', 'employee_code', 'employee_name', 'hire_date', 'separation_date'] }),
         can('action.overtime_enter'),
         can('action.overtime_approve'),
         supabase.rpc('current_user_employee'),

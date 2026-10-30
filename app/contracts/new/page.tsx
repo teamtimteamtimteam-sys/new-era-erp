@@ -15,6 +15,7 @@ import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import NewContractForm, { type PartyOption } from './NewContractForm'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewContractPage() {
     // 进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -37,12 +38,12 @@ export default async function NewContractPage() {
 
     const [supRes, custRes, ccyRes] = await Promise.all([
         canSeeSuppliers
-            ? supabase.from('suppliers').select('id, code, legal_name')
-                  .is('deleted_at', null).order('legal_name')
+            ? readAll(() => supabase.from('suppliers').select('id, code, legal_name')
+                  .is('deleted_at', null).order('legal_name'), { label: 'suppliers' })
             : Promise.resolve({ data: [] as { id: string; code: string; legal_name: string }[], error: null }),
         canSeeCustomers
-            ? supabase.from('customers').select('id, code, legal_name')
-                  .is('deleted_at', null).order('legal_name')
+            ? readAll(() => supabase.from('customers').select('id, code, legal_name')
+                  .is('deleted_at', null).order('legal_name'), { label: 'customers' })
             : Promise.resolve({ data: [] as { id: string; code: string; legal_name: string }[], error: null }),
         supabase.from('currencies').select('code').order('code'),
     ])

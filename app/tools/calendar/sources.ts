@@ -43,6 +43,7 @@ import { pMap, DEFAULT_QUERY_CONCURRENCY } from '@/lib/pMap'
 import { can } from '@/lib/permissions'
 import type { CalendarItem } from '@/app/components/calendar/MonthGrid'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { readAll } from '@/lib/readAll'
 
 /** 来源键 —— 也是筛选器的取值。**顺序即图例顺序。** */
 export const CALENDAR_KINDS = [
@@ -169,8 +170,8 @@ export async function loadMonth(month: string, locale: string): Promise<{
             // leave_calendar 是【区间】(start..end),不是单日 —— 展开由下面统一做。
             kind: 'leave',
             needs: 'module.hr.view',
-            run: () => supabase.from('leave_calendar').select('*')
-                .lte('start_date', last).gte('end_date', first),
+            run: () => readAll(() => supabase.from('leave_calendar').select('*')
+                .lte('start_date', last).gte('end_date', first), { label: 'leave_calendar', key: ['request_id', 'code', 'employee_id', 'employee_code', 'legal_name', 'department_id', 'leave_type_code', 'leave_type_en', 'leave_type_zh', 'start_date', 'end_date', 'start_half_day', 'end_half_day', 'days', 'status'] }),
             // ★【请假是一段区间,要【铺满】它覆盖的每一天】★
             // 只放在 start_date 上,一段跨十天的假在日历上只会出现一次 ——
             // 而看排期的人正是要看"这十天里谁不在"。区间要裁到本月之内。
@@ -187,8 +188,8 @@ export async function loadMonth(month: string, locale: string): Promise<{
         {
             kind: 'task',
             needs: 'module.tasks.view',
-            run: () => supabase.from('tasks').select('id, title, due_date')
-                .is('deleted_at', null).gte('due_date', first).lte('due_date', last),
+            run: () => readAll(() => supabase.from('tasks').select('id, title, due_date')
+                .is('deleted_at', null).gte('due_date', first).lte('due_date', last), { label: 'tasks' }),
             map: (r) => [{
                 date: String(r.due_date), kind: 'task', label: String(r.title),
                 href: `/tools/tasks/${String(r.id)}`,
@@ -199,8 +200,8 @@ export async function loadMonth(month: string, locale: string): Promise<{
             needs: 'module.finance.view',
             // 【读遮蔽视图,不读基表】invoices 是遮蔽表;而这一页只要
             // 编号与到期日两列(都不是被扣住的列),走 _masked 是免费的。
-            run: () => supabase.from('invoices_masked').select('id, code, due_date')
-                .gte('due_date', first).lte('due_date', last),
+            run: () => readAll(() => supabase.from('invoices_masked').select('id, code, due_date')
+                .gte('due_date', first).lte('due_date', last), { label: 'invoices_masked' }),
             map: (r) => [{
                 date: String(r.due_date), kind: 'invoiceDue', label: String(r.code),
                 href: `/finance/invoices/${String(r.id)}`,
@@ -214,8 +215,8 @@ export async function loadMonth(month: string, locale: string): Promise<{
             //   而 `git log -G` 在 db/ 下 0 次提交。真正的列叫 `container_number`。
             //   后果是 Container ETA 从那天起【一条都没有出现在日历上】——
             //   整个来源每次都报错,月视图顶上那条 INCOMPLETE 横幅说的就是它。
-            run: () => supabase.from('containers').select('id, code, container_number, expected_arrival_date')
-                .gte('expected_arrival_date', first).lte('expected_arrival_date', last),
+            run: () => readAll(() => supabase.from('containers').select('id, code, container_number, expected_arrival_date')
+                .gte('expected_arrival_date', first).lte('expected_arrival_date', last), { label: 'containers' }),
             map: (r) => [{
                 date: String(r.expected_arrival_date), kind: 'containerEta',
                 // ★ `container_number` 可空(实测 18 列里它是 NULL 允许的),

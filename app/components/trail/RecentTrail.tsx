@@ -16,6 +16,7 @@ import { TRAIL_TEXT } from '@/lib/trail/text'
 import { trailDict } from '@/lib/trail/dict'
 import { buildEntries, fromRecordTrail } from '@/lib/trail/render'
 import AuditTrailList, { type ViewEntry } from './AuditTrailList'
+import { readAll } from '@/lib/readAll'
 
 const SHOW = 10
 const REQUESTS = 5
@@ -31,12 +32,12 @@ function subjectHref(r: Req): string | null {
 
 export default async function RecentTrail() {
     const supabase = await createClient()
-    const reqs = (mustRows(await supabase.rpc('warehouse_requests_visible', { p_recent: REQUESTS }), 'warehouse_requests_visible') as Req[])
+    const reqs = (mustRows(await readAll(() => supabase.rpc('warehouse_requests_visible', { p_recent: REQUESTS }), { label: 'warehouse_requests_visible' }), 'warehouse_requests_visible') as Req[])
         .slice(0, REQUESTS)
     const dict = trailDict(await getBaseCurrency())
     const all: ViewEntry[] = []
     for (const r of reqs) {
-        const rows = mustRows(await supabase.rpc('record_trail', { p_subject: 'warehouse_request', p_id: r.id, p_entries: SHOW }),
+        const rows = mustRows(await readAll(() => supabase.rpc('record_trail', { p_subject: 'warehouse_request', p_id: r.id, p_entries: SHOW }), { label: 'record_trail', key: 'seq' }),
             `record_trail(warehouse_request ${r.label})`)
         const entries = buildEntries(dict, rows.map((x) => fromRecordTrail(x as Parameters<typeof fromRecordTrail>[0])),
             { subject: 'warehouse_request' })

@@ -8,6 +8,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { TASKS_EDIT } from '@/lib/taskAccess'
+import { readAll } from '@/lib/readAll'
 
 export default async function TasksPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -18,19 +19,19 @@ export default async function TasksPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data: tasks, error } = await supabase
+    const { data: tasks, error } = await readAll(() => supabase
         .from('tasks')
         .select(TASK_COLUMNS)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }), { label: 'tasks' })
 
     // TASK-1b:步骤数 / 已完成数 / 「步骤排到了截止日之后」——【一律来自视图】,
     // 页面不自己算。两次查询而不是一次,只是因为看板还要 description 之类
     // 视图不吐的列;算法仍然只有 task_board_rows 那一处。
-    const { data: derived, error: derivedError } = await supabase
+    const { data: derived, error: derivedError } = await readAll(() => supabase
         .from('task_board_rows')
         // APR-4:may_write 是【数据库的】"能不能改"判据(can_write_task),卡片按它决定能不能拖。
-        .select('id, node_count, done_count, steps_overrun_due_date, may_write')
+        .select('id, node_count, done_count, steps_overrun_due_date, may_write'), { label: 'task_board_rows' })
 
     if (error || derivedError) {
         return (

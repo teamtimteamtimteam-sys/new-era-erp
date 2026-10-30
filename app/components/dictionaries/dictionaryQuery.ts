@@ -14,6 +14,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 export type DictRow = {
     code: string
@@ -30,7 +31,7 @@ type Sb = SupabaseClient<any, any, any>
 
 async function load(sb: Sb, table: string): Promise<DictRow[]> {
     return mustRows(
-        await sb.from(table).select('code, name_en, name_zh, is_active').order('sort_order'),
+        await readAll(() => sb.from(table).select('code, name_en, name_zh, is_active').order('sort_order'), { label: 'table' }),
         table
     ) as unknown as DictRow[]
 }

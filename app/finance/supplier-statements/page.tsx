@@ -13,6 +13,7 @@ import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import IssuePanel from './IssuePanel'
 import StatementsTable, { type StatementRow } from './StatementsTable'
+import { readAll } from '@/lib/readAll'
 
 export default async function SupplierStatementsPage({ searchParams }: { searchParams: Promise<{ sort?: string; dir?: string }> }) {
     const denied = await requireFunction(FN.financeSupplierStatements)
@@ -24,7 +25,7 @@ export default async function SupplierStatementsPage({ searchParams }: { searchP
     const [listRes, supRes, canIssue] = await Promise.all([
         // ★ TABLE-EXPORT-2a(Tim Q2):读取与映射搬进 statementRows.ts,与导出路由共用;只画最近 STATEMENTS_SHOWN 份,而且说出来。
         statementPage(supabase, params, 0, STATEMENTS_SHOWN - 1),
-        supabase.from('supplier_lookup').select('id, code, legal_name').order('code'),
+        readAll(() => supabase.from('supplier_lookup').select('id, code, legal_name').order('code'), { label: 'supplier_lookup' }),
         can('module.finance.edit'),
     ])
     const total = mustCount(await statementCount(supabase), 'supplier_statement_rows count')

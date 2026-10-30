@@ -19,6 +19,7 @@ import { allows } from '@/lib/modules'
 import { documentHref, type DocumentLinkMode } from '@/lib/search/documentHref'
 import { EXPORT_CAP, exportDenied } from '@/lib/export/serverRows'
 import type { RelatedRow } from './RelatedTable'
+import { readAll } from '@/lib/readAll'
 
 /** 导出那一侧一批取多少 —— `search_related_rows` 只收 1..100(响亮地拒,不夹)。 */
 const EXPORT_KEYSET_BATCH = 100
@@ -93,7 +94,7 @@ export async function detailHrefs(
 ): Promise<Map<string, string | null>> {
     if (ids.length === 0) return new Map()
     const got = mustRows(
-        await supabase.rpc('document_detail_hrefs', { p_key: key, p_ids: ids }) as {
+        await readAll(() => supabase.rpc('document_detail_hrefs', { p_key: key, p_ids: ids }), { label: 'document_detail_hrefs' }) as {
             data: { id: string; href: string | null }[] | null; error: { message: string; code?: string } | null },
         'document_detail_hrefs')
     return new Map(got.map((g) => [g.id, g.href]))
@@ -142,13 +143,13 @@ export async function relatedExportResponse(o: {
     let after: string | undefined
     for (;;) {
         const got = mustRows(
-            (await supabase.rpc('search_related_rows', {
+            (await readAll(() => supabase.rpc('search_related_rows', {
                 p_key: o.subjectKey,
                 p_id: o.subjectId,
                 p_target_key: o.targetKey,
                 p_limit: EXPORT_KEYSET_BATCH,
                 p_after_code: after,
-            })) as { data: RowsRow[] | null; error: { message: string; code?: string } | null },
+            }), { label: 'search_related_rows' })) as { data: RowsRow[] | null; error: { message: string; code?: string } | null },
             'search_related_rows (export)')
         if (got.length === 0) break
         if (out.length === 0 && Number(got[0].total) > EXPORT_CAP) {

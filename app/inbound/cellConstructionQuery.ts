@@ -7,6 +7,7 @@
 //   material_forms(目录,人人可读)。
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 export type CellConstructionOption = { code: string; name_en: string; name_zh: string; is_determined: boolean }
 export type CellConstructionData = { options: CellConstructionOption[]; carries: Record<string, boolean> }
@@ -17,7 +18,7 @@ export async function loadCellConstructionData(
 ): Promise<CellConstructionData> {
     const [ccRes, matRes, formRes] = await Promise.all([
         supabase.from('cell_constructions').select('code, name_en, name_zh, is_determined').eq('is_active', true).order('sort_order'),
-        supabase.from('material_lookup').select('id, form_code').is('deleted_at', null),
+        readAll(() => supabase.from('material_lookup').select('id, form_code').is('deleted_at', null), { label: 'material_lookup' }),
         supabase.from('material_forms').select('code, implies_dismantling'),
     ])
     const options = mustRows(ccRes, 'cell_constructions') as CellConstructionOption[]

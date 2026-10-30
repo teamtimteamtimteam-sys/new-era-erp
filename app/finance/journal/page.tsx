@@ -27,6 +27,7 @@ import { formatAmount } from '@/lib/format'
 import { can, canViewPrices } from '@/lib/permissions'
 import JournalRequestsPanel, { type JournalRequestView } from './JournalRequestsPanel'
 import { setSortParams } from '@/lib/listSort'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 const JOURNAL_PAGE_SIZE = 20
 
@@ -113,7 +114,7 @@ export default async function JournalListPage({
     //   行谓词与基表的读策略同一个(module.finance.view),所以"读不到"仍然只会是一次真的失败。
     const reqCols = 'id, label, kind, status, entry_date, memo, lines, target_entry_id, amount_base, amount_restricted, credits_bank, result_journal_entry_id, decision_notes, withdraw_reason, created_at, created_by'
     const [openReqRes, histReqRes, settingsRes, canDecideRequest, canEditJournal, accountsRes] = await Promise.all([
-        supabase.from('journal_requests_masked').select(reqCols).eq('status', 'submitted').order('created_at', { ascending: true }),
+        readAll(() => supabase.from('journal_requests_masked').select(reqCols).eq('status', 'submitted').order('created_at', { ascending: true }), { label: 'journal_requests_masked' }),
         supabase.from('journal_requests_masked').select(reqCols).neq('status', 'submitted').order('created_at', { ascending: false }).limit(10),
         supabase.from('finance_settings').select('locked_before').maybeSingle(),
         canViewPrices(),
@@ -137,7 +138,7 @@ export default async function JournalListPage({
     const accountName = new Map(mustRows(accountsRes, 'accounts').map((a) => [a.code, locale === 'zh' ? a.name_zh : a.name_en]))
     const linkedIds = Array.from(new Set(rawRequests.flatMap((r) => [r.target_entry_id, r.result_journal_entry_id]).filter((x): x is string => !!x)))
     const linkedRes = linkedIds.length
-        ? await supabase.from('journal_entries').select('id, code').in('id', linkedIds)
+        ? await readAllIn(linkedIds, (__ids) => supabase.from('journal_entries').select('id, code').in('id', __ids), { label: 'journal_entries' })
         : { data: [] as { id: string; code: string }[], error: null }
     const entryCode = new Map(mustRows(linkedRes, 'journal_entries').map((e) => [e.id, e.code]))
     type RawLine = { account_code?: string; side?: string; currency?: string; amount_ccy?: number; fx_rate?: number; line_memo?: string }

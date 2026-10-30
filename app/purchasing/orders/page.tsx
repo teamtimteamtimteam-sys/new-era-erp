@@ -28,6 +28,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import EntryButton from '@/app/components/nav/EntryButton'
 import { setSortParams } from '@/lib/listSort'
+import { readAll } from '@/lib/readAll'
 
 const PAGE_SIZE = 20
 
@@ -87,13 +88,13 @@ export default async function PurchaseOrdersPage({
     //   的读者是【一张空下拉】—— 而表格里的供应商名是从视图带出来的、照常显示,
     //   于是屏幕自相矛盾:列里有六家供应商,筛选器里一家都没有。
     //   supplier_lookup 的谓词含 finance.view,列含 counterparty_type(筛货代要用)。
-    const { data: supplierRows } = await supabase
+    const { data: supplierRows } = await readAll(() => supabase
         .from('supplier_lookup')
         .select('id, legal_name')
         .is('deleted_at', null)
         // LOG-1b:货代不进供应商名单
         .neq('counterparty_type', 'forwarder')
-        .order('legal_name')
+        .order('legal_name'), { label: 'supplier_lookup' })
     // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)。
     const supplierOptions = ((supplierRows ?? []) as unknown as
         { id: string; legal_name: string }[]).map((s) => ({ id: s.id, name: s.legal_name }))

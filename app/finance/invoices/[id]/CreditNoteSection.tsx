@@ -17,6 +17,7 @@ import { can } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
 import CreateCreditNoteControl, { type CnLineOption } from './CreateCreditNoteControl'
 import { formatDate } from '@/lib/dates'
+import { readAllIn } from '@/lib/readAll'
 
 export default async function CreditNoteSection({
     invoiceId, invoiceCode, currency, isOrderKind, isVoid, openCcy, openRequestLabel,
@@ -61,9 +62,9 @@ export default async function CreditNoteSection({
 
     const noteIds = notes.map((n) => n.id)
     const noteLines = noteIds.length === 0 ? [] : (mustRows(
-        await supabase.from('credit_note_lines')
+        await readAllIn(noteIds, (__ids) => supabase.from('credit_note_lines')
             .select('credit_note_id, invoice_line_id, kind, qty, amount')
-            .in('credit_note_id', noteIds),
+            .in('credit_note_id', __ids), { label: 'credit_note_lines' }),
         'credit_note_lines') as unknown as {
             credit_note_id: string; invoice_line_id: string; kind: string
             qty: number | null; amount: number }[])
@@ -75,14 +76,14 @@ export default async function CreditNoteSection({
     const shipped = new Map<string, number>()
     if (canSeeSales && invLineIds.length > 0) {
         const il = mustRows(
-            await supabase.from('invoice_lines_masked')
-                .select('id, sales_order_line_id').in('id', invLineIds),
+            await readAllIn(invLineIds, (__ids) => supabase.from('invoice_lines_masked')
+                .select('id, sales_order_line_id').in('id', __ids), { label: 'invoice_lines_masked' }),
             'invoice_lines') as unknown as { id: string; sales_order_line_id: string | null }[]
         const solIds = il.map((r) => r.sales_order_line_id).filter(Boolean) as string[]
         if (solIds.length > 0) {
             const sl = mustRows(
-                await supabase.from('shipment_lines')
-                    .select('sales_order_line_id, qty').in('sales_order_line_id', solIds),
+                await readAllIn(solIds, (__ids) => supabase.from('shipment_lines')
+                    .select('sales_order_line_id, qty').in('sales_order_line_id', __ids), { label: 'shipment_lines' }),
                 'shipment_lines') as unknown as { sales_order_line_id: string; qty: number }[]
             const byOrderLine = new Map<string, number>()
             for (const r of sl)

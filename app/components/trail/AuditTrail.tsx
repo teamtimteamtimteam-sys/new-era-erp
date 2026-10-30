@@ -19,6 +19,7 @@ import { buildEntries, fill, fromRecordTrail, type Json } from '@/lib/trail/rend
 import { formatTrailStamp } from '@/lib/dates'
 import { mustRows } from '@/lib/db-helpers'
 import AuditTrailList, { OlderEntriesLink } from './AuditTrailList'
+import { readAll } from '@/lib/readAll'
 
 export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbound_batch' | 'output_batch' | 'work_order'
     | 'stocktake' | 'equipment' | 'shift_handover' | 'warehouse_request'
@@ -234,7 +235,7 @@ async function auditTrailBody({ subject, id, show, anchor = 'audit-trail', compa
     subject: TrailSubject; id: string; show: number; anchor?: string; compact?: boolean
 }) {
     const supabase = await createClient()
-    const res = await supabase.rpc('record_trail', { p_subject: subject, p_id: id, p_entries: show })
+    const res = await readAll(() => supabase.rpc('record_trail', { p_subject: subject, p_id: id, p_entries: show }), { label: 'record_trail', key: 'seq' })
     const frame = (state: string, body: React.ReactNode) => trailFrame(compact, anchor, state, body)
     if (res.error) {
         const code = res.error.message.split('|')[0]

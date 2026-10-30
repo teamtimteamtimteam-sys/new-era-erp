@@ -45,6 +45,7 @@ import {
     ValuesPanel, type ValueRow, EventsPanel, type EventRow, BalancePanel, type BalanceView,
     HeaderCorrectionPanel, type CorrectionRow,
 } from './RunRecordPanels'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 // ROLE-1 Batch 3b:批次里不再嵌 materials ( name ) —— 仓库读不了 materials 基表,嵌入会静默成 null。
@@ -182,11 +183,11 @@ export default async function ProcessingDetailPage({
         .map((o) => o.output_batches?.id).filter(Boolean) as string[]
     let lineage: LineageRow[] = []
     if (outputIds.length > 0) {
-        const lineageRes = await supabase
+        const lineageRes = await readAllIn(outputIds, (__ids) => supabase
             .from('batch_lineage')
             .select('output_batch_id, depth, via_run_id, via_run_code, parent_kind, parent_batch_id, parent_code, quantity_consumed')
-            .in('output_batch_id', outputIds)
-            .order('depth')
+            .in('output_batch_id', __ids)
+            .order('depth'), { label: 'batch_lineage', key: ['output_batch_id', 'depth', 'via_run_id', 'via_run_code', 'parent_kind', 'parent_batch_id', 'parent_code', 'quantity_consumed'] })
         lineage = (mustRows(lineageRes, 'batch_lineage') as unknown as LineageRow[])
     }
     // ROLE-1 Batch 3b:投入与产出两侧批次的物料名,一次从 material_lookup 取回
@@ -247,7 +248,7 @@ export default async function ProcessingDetailPage({
            balanceRes, corrRes, correctedByRes] = await Promise.all([
         supabase.from('operation_types').select('code, name_en, name_zh, electrolyte_loss_applies, electrolyte_share_pct, verifies_by_unit, started_from_run_page').order('sort_order'),
         supabase.from('shifts').select('code, name_en, name_zh, is_active').order('sort_order'),
-        supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description, equipment_status').order('equipment_code'),
+        readAll(() => supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description, equipment_status').order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
         supabase.from('operation_type_equipment').select('operation_type_code, fixed_asset_id'),
         supabase.from('process_recipes').select('id, code, operation_type_code, is_active'),
         supabase.from('process_recipe_versions').select('id, recipe_id, version').order('version', { ascending: false }),
@@ -371,7 +372,7 @@ export default async function ProcessingDetailPage({
         supabase.from('contamination_check_rows')
             .select('id, stream_code, kind, output_batch_id, output_batch_code, sample_mass_g, foreign_mass_g, rate_pct, warning_pct_at, above_warning, sampled_at, method, not_sampled_reason, corrects_id, correction_reason, is_current')
             .eq('run_id', id).order('id'),
-        supabase.from('material_lookup').select('id, form_code'),
+        readAll(() => supabase.from('material_lookup').select('id, form_code'), { label: 'material_lookup' }),
         supabase.from('cell_constructions').select('code, name_en, name_zh'),
         supabase.from('material_forms').select('code, implies_dismantling'),
     ])

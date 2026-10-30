@@ -21,6 +21,7 @@ import ReceiptPatternPanel, {
 import { formatAuditStamp } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import { readAll } from '@/lib/readAll'
 
 export default async function EditSupplierPage({
     params,
@@ -82,7 +83,7 @@ export default async function EditSupplierPage({
 
     // ★ ROLE-1 Batch 2a:这一家此刻能走哪几步、每一步要哪个码 —— 问库里那一份定义
     //   (supplier_status_moves),不在页面上再抄一份跳转图。每个码问一次 can()。
-    const moveRows = mustRows(await supabase.rpc('supplier_status_moves'), 'supplier_status_moves')
+    const moveRows = mustRows(await readAll(() => supabase.rpc('supplier_status_moves'), { label: 'supplier_status_moves', key: ['from_status', 'to_status', 'required_code'] }), 'supplier_status_moves')
         .filter((m) => m.from_status === supplier.status)
     const canApproveSupplier = await can('action.supplier_approve')
     const statusMoves = moveRows.map((m) => ({
@@ -158,12 +159,12 @@ export default async function EditSupplierPage({
 
     // 默认付款条款模板下拉:启用的 + 该供应商当前指着的那个(即便已停用/已删,
     // 也得让它出现在选项里 —— 否则一打开编辑页就"看起来像无",一保存就静默清掉)
-    const { data: templateRows } = await supabase
+    const { data: templateRows } = await readAll(() => supabase
         .from('payment_term_templates')
         .select('id, name')
         .is('deleted_at', null)
         .eq('is_active', true)
-        .order('name')
+        .order('name'), { label: 'payment_term_templates' })
     const templates = [...(templateRows ?? [])]
     const currentTplId = supplier.default_payment_term_template_id
     if (currentTplId && !templates.some((tpl) => tpl.id === currentTplId)) {

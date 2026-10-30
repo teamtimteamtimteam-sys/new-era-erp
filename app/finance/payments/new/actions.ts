@@ -10,6 +10,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizePaymentError } from '../../paymentErrorCodes'
+import { readAll } from '@/lib/readAll'
 
 export type CreatePaymentState = { error?: string }
 
@@ -227,8 +228,8 @@ export async function lookupFxRate(
     const supabase = await createClient()
     // FIN-13:问 fx_rate_asof —— 它同时告诉我们【取自哪一天】。周末用周五的价是对的,
     // 但必须让人看见;同一套机制悄悄用上三周前的价,才是当初要除掉的那个错。
-    const { data, error } = await supabase
-        .rpc('fx_rate_asof', { p_currency: currency, p_date: date, p_rate_type: side })
+    const { data, error } = await readAll(() => supabase
+        .rpc('fx_rate_asof', { p_currency: currency, p_date: date, p_rate_type: side }), { label: 'fx_rate_asof', key: ['rate', 'as_of'] })
     if (error) return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: side }) }
     const row = (data as { rate: number; as_of: string }[] | null)?.[0]
     const rate = Number(row?.rate)
@@ -254,9 +255,9 @@ export async function lookupRatesFor(
     const out: Record<string, number> = {}
     const asOf: Record<string, string> = {}
     for (const ccy of [...new Set(currencies)].filter(Boolean)) {
-        const { data, error } = await supabase.rpc('fx_rate_asof', {
+        const { data, error } = await readAll(() => supabase.rpc('fx_rate_asof', {
             p_currency: ccy, p_date: date, p_rate_type: side,
-        })
+        }), { label: 'fx_rate_asof', key: ['rate', 'as_of'] })
         if (error) return { error: t('finance.fxLookup.missing', { 0: date, 1: ccy, 2: side }) }
         const row = (data as { rate: number; as_of: string }[] | null)?.[0]
         if (!row) return { error: t('finance.fxLookup.missing', { 0: date, 1: ccy, 2: side }) }

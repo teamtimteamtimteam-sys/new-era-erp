@@ -19,6 +19,7 @@ import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail from '@/app/components/trail/ListTrail'
+import { readAllIn } from '@/lib/readAll'
 
 // 视图列生成类型全可空;取用列本地锁死
 type StatusRow = {
@@ -80,11 +81,11 @@ export default async function BankHomePage({ searchParams }: { searchParams: Pro
 
     const openIds = (openStatements ?? []).map((s) => s.id)
     const { data: openLines } = openIds.length
-        ? await supabase
+        ? await readAllIn(openIds, (__ids) => supabase
               .from('bank_statement_lines')
               .select('statement_id, match_status')
-              .in('statement_id', openIds)
-              .eq('match_status', 'unmatched')
+              .in('statement_id', __ids)
+              .eq('match_status', 'unmatched'), { label: 'bank_statement_lines' })
         : { data: [] as { statement_id: string; match_status: string }[] }
 
     // ★ PAY-REQ-1 · Batch B:最近的行内转账 + 它们未了结的冲销申请(每行一个「申请冲销」)。

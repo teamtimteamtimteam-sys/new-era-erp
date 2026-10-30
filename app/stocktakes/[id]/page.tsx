@@ -19,6 +19,7 @@ import { MOD } from '@/lib/modules'
 import { formatAuditStamp } from '@/lib/dates'
 import { can } from '@/lib/permissions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { readAll } from '@/lib/readAll'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -60,16 +61,16 @@ export default async function StocktakeDetailPage({
             .select('*')
             .eq('stocktake_id', id)
             .order('counted_at', { ascending: false }),
-        supabase
+        readAll(() => supabase
             .from('inbound_batches')
             .select('id, code, remaining_qty, unit, materials ( name )')
             .is('deleted_at', null)
-            .order('code'),
-        supabase
+            .order('code'), { label: 'inbound_batches' }),
+        readAll(() => supabase
             .from('output_batches')
             .select('id, code, remaining_qty, unit, materials ( name )')
             .is('deleted_at', null)
-            .order('code'),
+            .order('code'), { label: 'output_batches' }),
     ])
 
     if (stRes.error || !stRes.data) {

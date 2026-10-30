@@ -15,6 +15,7 @@ import { can } from '@/lib/permissions'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAuditStamp } from '@/lib/dates'
 import ShippingReleasePanel, { type ReleaseView, type ReleaseCandidate, type ReleaseContext } from './ShippingReleasePanel'
+import { readAllIn } from '@/lib/readAll'
 
 type RawRelease = {
     id: string; label: string; status: ReleaseView['status']; amount_base: number
@@ -56,10 +57,10 @@ export default async function ShippingReleaseSection({
     const liveInvoiceLines = !canSeeFinance || lineIds.length === 0
         ? null
         : (mustRows(
-              await supabase.from('invoice_lines_masked')
+              await readAllIn(lineIds, (__ids) => supabase.from('invoice_lines_masked')
                   .select('id, sales_order_line_id')
-                  .in('sales_order_line_id', lineIds)
-                  .eq('invoice_voided', false),
+                  .in('sales_order_line_id', __ids)
+                  .eq('invoice_voided', false), { label: 'invoice_lines_masked' }),
               'invoice_lines') as unknown as { id: string; sales_order_line_id: string }[])
     const liveSet = new Set((liveInvoiceLines ?? []).map((l) => l.id))
     const covered = new Set(

@@ -90,6 +90,7 @@ export async function saveTermRow(
 
     const supabase = await createClient()
     // 表名来自 termSpecs 的白名单(上面 sectionSpec 已经认过),不是来自表单
+    // unpaged-ok: a write builder (the insert / update right below), not a read
     const from = supabase.from(spec.dbTable as 'contract_grade_specs')
     if (rowId === null) {
         const { error } = await from.insert({ ...values, contract_id: contractId } as never)

@@ -48,6 +48,7 @@ import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import MarginTable, { type MarginRow as MarginTableRow, type MarginFlag } from './MarginTable'
 import { Alert, AlertTitle } from '@/app/components/ui/alert'
+import { readAll } from '@/lib/readAll'
 
 type MarginRow = {
     output_batch_id: string
@@ -84,12 +85,12 @@ export default async function MarginPage() {
     const canViewPrices = await canViewPricesNow()
 
     const rows = mustRows(
-        await supabase
+        await readAll(() => supabase
             .from('batch_margin')
             .select(
                 'output_batch_id, batch_code, material_name, qty_sold, revenue_base, run_code, unit_cost_base, cost_current_base, margin_base, margin_pct, margin_status, cost_incomplete, is_stale, cogs_posted_base, cogs_differs'
             )
-            .order('batch_code'),
+            .order('batch_code'), { label: 'batch_margin', key: ['output_batch_id', 'batch_code', 'material_name', 'qty_sold', 'revenue_base', 'run_id', 'run_code', 'unit_cost_base', 'cost_current_base', 'margin_base', 'margin_pct', 'margin_status', 'cost_incomplete', 'is_stale', 'cogs_posted_base', 'cogs_differs'] }),
         'batch_margin'
     ) as MarginRow[]
 

@@ -16,6 +16,7 @@ import { can } from '@/lib/permissions'
 import { ListPage } from '@/app/components/ui/list-page'
 import NewBatchForm from './NewBatchForm'
 import BatchesTable, { type BatchRow } from './BatchesTable'
+import { readAll } from '@/lib/readAll'
 
 export default async function OvertimePage() {
     const denied = await requireFunction(FN.overtime)
@@ -25,12 +26,12 @@ export default async function OvertimePage() {
     const t = await getTranslations()
 
     const [staffRes, batchRes, lineRes, canEnter] = await Promise.all([
-        supabase.rpc('overtime_site_staff'),
+        readAll(() => supabase.rpc('overtime_site_staff'), { label: 'overtime_site_staff', key: ['employee_id', 'employee_code', 'employee_name', 'hire_date', 'separation_date'] }),
         supabase.from('overtime_batches')
             .select('id, label, period_month, seq, status, submitted_at, decided_at')
             .order('period_month', { ascending: false })
             .order('seq', { ascending: false }),
-        supabase.from('overtime_lines').select('batch_id, employee_id, hours, voided_at'),
+        readAll(() => supabase.from('overtime_lines').select('batch_id, employee_id, hours, voided_at'), { label: 'overtime_lines' }),
         can('action.overtime_enter'),
     ])
     const staff = mustRows(staffRes, 'overtime_site_staff')

@@ -41,6 +41,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { formatAmount, businessToday } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import Figure from '@/app/components/overview/Figure'
+import { readAll } from '@/lib/readAll'
 
 type QuoteRow = { quote_id: string; status: string; expired: boolean | null; convertible: boolean | null }
 type OrderRow = { id: string; status: string }
@@ -70,9 +71,9 @@ export default async function SalesOverviewPage() {
     const canSeeCustomers = allows('module.customers.view', perms)
 
     const [qRes, oRes, sRes, iRes, cRes] = await Promise.all([
-        supabase.from('quote_status').select('quote_id, status, expired, convertible'),
-        supabase.from('sales_orders').select('id, status').is('deleted_at', null),
-        supabase.from('shipments').select('id, sales_order_id'),
+        readAll(() => supabase.from('quote_status').select('quote_id, status, expired, convertible'), { label: 'quote_status', key: ['quote_id', 'code', 'customer_id', 'customer_code', 'customer_name', 'quote_date', 'valid_until', 'currency', 'fx_rate', 'status', 'decline_reason', 'converted_order_id', 'converted_order_code', 'expired', 'convertible', 'issue_version', 'amended_since_issue', 'notes', 'terms_text', 'updated_at'] }),
+        readAll(() => supabase.from('sales_orders').select('id, status').is('deleted_at', null), { label: 'sales_orders' }),
+        readAll(() => supabase.from('shipments').select('id, sales_order_id'), { label: 'shipments' }),
         canSeeInvoices
             // 【读的是 invoices_masked,不是 invoices】—— check-masked-reads 当场
             // 抓到了第一版的直连。遮蔽表要走它的 _masked 伴生视图,否则一个
@@ -88,12 +89,12 @@ export default async function SalesOverviewPage() {
             //     这正是那条规矩要的结果:**一次失败必须是失败**。若当初写的是
             //     `?? []`,这一页会平静地印着「已开且未结清的发票:0 张」,
             //     而 200 看不出这件事。★
-            ? supabase.from('invoices_masked').select('id, status')
+            ? readAll(() => supabase.from('invoices_masked').select('id, status'), { label: 'invoices_masked' })
             : Promise.resolve({ data: null, error: null }),
         canSeeCustomers
-            ? supabase
+            ? readAll(() => supabase
                   .from('customer_credit_status')
-                  .select('customer_id, code, credit_limit_base, exposure_base, headroom_base, credit_hold')
+                  .select('customer_id, code, credit_limit_base, exposure_base, headroom_base, credit_hold'), { label: 'customer_credit_status', key: ['customer_id', 'code', 'legal_name', 'credit_limit_base', 'credit_hold', 'exposure_base', 'headroom_base', 'sales_blocked'] })
             : Promise.resolve({ data: null, error: null }),
     ])
 

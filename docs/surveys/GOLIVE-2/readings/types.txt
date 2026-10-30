@@ -1,0 +1,5 @@
+
+> new-era-erp@0.1.0 types:gen
+> supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts.tmp && mv lib/database.types.ts.tmp lib/database.types.ts || (rm -f lib/database.types.ts.tmp; exit 1)
+
+TYPES_OWN_EXIT=0

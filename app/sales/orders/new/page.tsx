@@ -5,6 +5,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import NewOrderForm from './NewOrderForm'
 import { can } from '@/lib/permissions'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewSalesOrderPage() {
     const denied = await requireModule(MOD.sales)
@@ -13,10 +14,10 @@ export default async function NewSalesOrderPage() {
     const supabase = await createClient()
 
     const customers = mustRows(
-        await supabase.from('customers').select('id, code, legal_name').is('deleted_at', null).order('code'),
+        await readAll(() => supabase.from('customers').select('id, code, legal_name').is('deleted_at', null).order('code'), { label: 'customers' }),
         'customers')
     const materials = mustRows(
-        await supabase.from('materials').select('id, code, name').is('deleted_at', null).order('code'),
+        await readAll(() => supabase.from('materials').select('id, code, name').is('deleted_at', null).order('code'), { label: 'materials' }),
         'materials')
     const currencies = mustRows(await supabase.from('currencies').select('code').order('code'), 'currencies')
 
@@ -27,8 +28,8 @@ export default async function NewSalesOrderPage() {
     const seeCredit = await can('module.customers.view')
     const credit = seeCredit
         ? mustRows(
-              await supabase.from('customer_credit_status')
-                  .select('customer_id, credit_limit_base, credit_hold, exposure_base, headroom_base, sales_blocked'),
+              await readAll(() => supabase.from('customer_credit_status')
+                  .select('customer_id, credit_limit_base, credit_hold, exposure_base, headroom_base, sales_blocked'), { label: 'customer_credit_status', key: ['customer_id', 'code', 'legal_name', 'credit_limit_base', 'credit_hold', 'exposure_base', 'headroom_base', 'sales_blocked'] }),
               'customer_credit_status')
         : []
 

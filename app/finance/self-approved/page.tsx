@@ -22,6 +22,7 @@ import { formatAmount } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import SelfApprovedTable, { type SelfApprovedRow } from './SelfApprovedTable'
 import { shapeListTotals } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     seq: number
@@ -55,10 +56,10 @@ export default async function SelfApprovedPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const rows = mustRows<Row>(await supabase.rpc('self_approved_decisions'), 'self-approved decisions')
+    const rows = mustRows<Row>(await readAll(() => supabase.rpc('self_approved_decisions'), { label: 'self_approved_decisions', key: 'seq' }), 'self-approved decisions')
     // TABLE-FEATURES-2(Tim Q1):表尾合计,库算(db/functions/list_totals_self_approved.sql)—— 同一个行集、同一道门;
     //   哪个币种里有一笔医疗金额对读者是遮着的,那个币种就读「受限」(与下面 healthHidden 同一支判据,在库里问)。
-    const totals = shapeListTotals(mustRows(await supabase.rpc('list_totals_self_approved'), 'self-approved totals'))
+    const totals = shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_self_approved'), { label: 'list_totals_self_approved', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'self-approved totals'))
 
     // ★ U1-B(Tim:健康的字跟 data.view_health 走):一张医疗报销的金额与【说明】(note)对不持 data.view_health、
     //   又不是那位员工本人的读者,在 self_approved_decisions 里是 NULL(approval_log_amount_visible /

@@ -54,6 +54,7 @@ export default async function StockStatusPanel({
     const supabase = await createClient()
     const t = await getTranslations()
 
+    // unpaged-ok: one batch's stock by location and status — a handful of rows per batch, never a thousand
     let q = supabase
         .from('stock_by_status')
         .select('location_id, location_code, location_name, stock_status, qty')

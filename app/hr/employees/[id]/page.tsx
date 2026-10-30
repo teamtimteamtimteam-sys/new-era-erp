@@ -24,6 +24,7 @@ import { formatDate, formatMonth, toYearMonth } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 import { requireDeletedAccess } from '@/app/components/moduleGuard'
+import { readAll } from '@/lib/readAll'
 
 export default async function EmployeeDetailPage({
     params,
@@ -135,7 +136,7 @@ export default async function EmployeeDetailPage({
         decide_code: string; decide_block: string | null
     }
     const scrRows: ScrRow[] = emp.monthly_salary_set && canPay
-        ? (mustRows(await supabase.rpc('salary_change_requests_visible', { p_employee_id: id, p_recent: 5 }),
+        ? (mustRows(await readAll(() => supabase.rpc('salary_change_requests_visible', { p_employee_id: id, p_recent: 5 }), { label: 'salary_change_requests_visible' }),
                     'salary_change_requests_visible') as unknown as ScrRow[])
         : []
     const scrViews: SalaryChangeView[] = scrRows.map((r) => ({

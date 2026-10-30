@@ -10,11 +10,11 @@
 --                             trail_row_visible 读不到它的策略)—— 与 user_directory 的谓词同一个码。
 -- 【读它的人】trail_current_image · trail_row_visible · record_trail(都是属主身份)· scripts/check-trail-wording.mjs(解析投影,
 --   当作这张表的"列")。加一行之前先问:那张表有没有一列不该进审计记录?有,就不要放进 image_columns。
+-- ★ GOLIVE-2(第 13 行):去掉了 SET search_path —— 函数体只是一张常量 VALUES 表、不引用任何对象,不带 SET 的 SQL 函数才能被内联(trail_current_image 每一行问一次)。
 CREATE OR REPLACE FUNCTION public.trail_log_only_tables()
  RETURNS TABLE(table_name text, schema_name text, rel_name text, image_columns text[], read_code text)
  LANGUAGE sql
  IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
 AS $function$
     SELECT * FROM (VALUES
         ('auth.users', 'auth', 'users', ARRAY['id', 'email', 'created_at', 'banned_until'], 'action.manage_permissions')

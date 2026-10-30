@@ -22,6 +22,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import OutputBatchesTable, { type OutputBatchRow } from './OutputBatchesTable'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Row = {
     id: string
@@ -71,28 +72,28 @@ export default async function OutputDrillPage({
         //   「没有库存」,只是这一次没有报错、连 42501 都没有。
         //   **改法是把内嵌拆成几张查名视图,在服务端拼回同一个形状** ——
         //   下面 Row 的结构一个字段都没变,所以再往下 60 行一行都不用动。
-        supabase
+        readAll(() => supabase
             .from('output_batch_lookup')
             .select('id, code, quantity, remaining_qty, unit, state, output_date, customer_id')
             .eq('material_id', materialId)
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
-            .order('remaining_qty', { ascending: false }),
+            .order('remaining_qty', { ascending: false }), { label: 'output_batch_lookup' }),
         // 每金属的最新有效价(只取今天及以前,忽略预登的未来价)
         // METAL-2:房屋约定的那条序列(没有合同可继承指数时用它)
         supabase.from('pricing_settings').select('default_metal_index').eq('id', true).maybeSingle(),
-        supabase
+        readAll(() => supabase
             .from('metal_prices')
             .select('metal, price_usd_per_tonne, price_date, price_index')
             .is('deleted_at', null)
-            .lte('price_date', todayYmd),
+            .lte('price_date', todayYmd), { label: 'metal_prices' }),
         // INV-VAL-1(R4):库龄档【从 DB 取】—— aging_bucket 是唯一一处边界定义,
         // 屏幕不再自己划 30/90。天数一并带出来,免得两边各算一次。
-        supabase
+        readAll(() => supabase
             .from('output_batch_valuation')
             .select('id, aging_days, aging_bucket')
             .eq('material_id', materialId)
-            .gt('remaining_qty', 0),
+            .gt('remaining_qty', 0), { label: 'output_batch_valuation' }),
     ])
 
     if (matRes.error || !matRes.data) {
@@ -116,22 +117,22 @@ export default async function OutputDrillPage({
     const [legRows, metalRows, custRows] = batchIds.length
         ? await Promise.all([
               mustRows(
-                  await supabase
+                  await readAllIn(batchIds, (__ids) => supabase
                       .from('processing_output_lookup')
                       .select('output_batch_id, unit_cost_base, run_id')
-                      .in('output_batch_id', batchIds),
+                      .in('output_batch_id', __ids), { label: 'processing_output_lookup' }),
                   'processing output legs'
               ),
               mustRows(
-                  await supabase
+                  await readAllIn(batchIds, (__ids) => supabase
                       .from('output_batch_metal_lookup')
                       .select('output_batch_id, metal, content_pct')
-                      .in('output_batch_id', batchIds),
+                      .in('output_batch_id', __ids), { label: 'output_batch_metal_lookup', key: ['output_batch_id', 'metal', 'content_pct'] }),
                   'output batch metals'
               ),
               custIds.length
                   ? mustRows(
-                        await supabase.from('customer_lookup').select('id, legal_name').in('id', custIds),
+                        await readAllIn(custIds, (__ids) => supabase.from('customer_lookup').select('id, legal_name').in('id', __ids), { label: 'customer_lookup' }),
                         'customer names'
                     )
                   : [],
@@ -142,7 +143,7 @@ export default async function OutputDrillPage({
     const runById = new Map<string, { id: string; work_order_id: string | null }>()
     if (runIds.length) {
         for (const r of mustRows(
-            await supabase.from('processing_run_lookup').select('id, work_order_id').in('id', runIds),
+            await readAllIn(runIds, (__ids) => supabase.from('processing_run_lookup').select('id, work_order_id').in('id', __ids), { label: 'processing_run_lookup' }),
             'processing runs'
         )) {
             runById.set(r.id as string, { id: r.id as string, work_order_id: r.work_order_id as string | null })
@@ -190,7 +191,7 @@ export default async function OutputDrillPage({
     const woCode = new Map<string, string>()
     if (woIds.length > 0) {
         const woRows = mustRows(
-            await supabase.from('work_order_lookup').select('id, code').in('id', woIds),
+            await readAllIn(woIds, (__ids) => supabase.from('work_order_lookup').select('id, code').in('id', __ids), { label: 'work_order_lookup' }),
             'work_orders') as { id: string; code: string }[]
         woRows.forEach((w) => woCode.set(w.id, w.code))
     }

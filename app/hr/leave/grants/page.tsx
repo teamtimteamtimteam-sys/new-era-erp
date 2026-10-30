@@ -14,6 +14,7 @@ import { Button } from '@/app/components/ui/button'
 import ListTrail from '@/app/components/trail/ListTrail'
 import TrailCapNotice, { TRAIL_RECORDS } from '@/app/components/trail/TrailCapNotice'
 import { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 export default async function GrantsPage({
     searchParams,
@@ -29,9 +30,9 @@ export default async function GrantsPage({
     const t = await getTranslations()
 
     // 【只剩年末结转】年度发放随 HR-2c 删除:年假按月累积、读时派生。
-    const grantRes = await supabase.from('leave_grants')
+    const grantRes = await readAll(() => supabase.from('leave_grants')
         .select('employee_id, grant_type, days, leave_year')
-        .eq('leave_type_code', 'annual').is('deleted_at', null)
+        .eq('leave_type_code', 'annual').is('deleted_at', null), { label: 'leave_grants' })
 
     const grants = mustRows(grantRes)
     // AUDIT-TRAIL-1d-2:这一个假期年的每一笔发放(删掉的也读 —— "被删"是那一笔的一部分)一条记录,清单块按操作合起来:

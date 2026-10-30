@@ -30,6 +30,7 @@ import { fill, fromRecordTrail, mergeByOperation, mergeKey, type TrailRow } from
 import { formatTrailStamp } from '@/lib/dates'
 import AuditTrailList, { OlderEntriesLink, type ViewEntry } from './AuditTrailList'
 import { PAGE, type TrailSubject } from './AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 // AUDIT-TRAIL-1c-3:一条记录有自己的页时(重估分录、汇率、删掉的对账单……)交一个 href,Record 一栏就是一个链接 ——
 //   撤回了的汇率、删掉的对账单从这里打得开(1c-2 留下的"没有入口")。一次操作碰到几条记录时 Record 一栏只说名字。
@@ -70,7 +71,7 @@ export default async function ListTrail({ records, intro, show, anchor = 'audit-
         )
     }
     const results = await Promise.all(records.map(async (r) => ({
-        r, res: await supabase.rpc('record_trail', { p_subject: r.subject, p_id: r.id, p_entries: show }) })))
+        r, res: await readAll(() => supabase.rpc('record_trail', { p_subject: r.subject, p_id: r.id, p_entries: show }), { label: 'record_trail', key: 'seq' }) })))
     // 每一行记下它从哪一条记录读回来(同一行被两条记录读到,只留第一条的那一份)
     const merged: { row: TrailRow; rec: ListTrailRecord }[] = []
     const seenRow = new Set<string>()

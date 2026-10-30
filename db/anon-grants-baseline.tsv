@@ -54,7 +54,6 @@ relation	container_milestones
 relation	container_overview
 relation	containers
 relation	contract_coverage
-relation	contract_document_terms
 relation	contract_grade_breaches
 relation	contract_grade_specs
 relation	contract_insurance_obligations

@@ -49,6 +49,7 @@ import { shapeListTotals } from '@/lib/listTotals'
 import { Suspense } from 'react'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
+import { readAll } from '@/lib/readAll'
 
 type AssetRow = {
     id: string
@@ -105,11 +106,11 @@ export default async function AssetsPage({
     const t = await getTranslations()
 
     const [assetsRes, depRes, totalsRes] = await Promise.all([
-        supabase.from('fixed_assets').select('*').order('code'),
-        supabase.from('fixed_asset_depreciation').select('asset_id, amount_base'),
+        readAll(() => supabase.from('fixed_assets').select('*').order('code'), { label: 'fixed_assets' }),
+        readAll(() => supabase.from('fixed_asset_depreciation').select('asset_id, amount_base'), { label: 'fixed_asset_depreciation' }),
         // TABLE-FEATURES-2(Tim Q1):台账的表尾合计,库算(db/functions/list_totals_fixed_assets.sql)——
         //   原值按币种;本位币原值 · 累计折旧 · 净值与下面每一行同一个算法。
-        supabase.rpc('list_totals_fixed_assets'),
+        readAll(() => supabase.rpc('list_totals_fixed_assets'), { label: 'list_totals_fixed_assets', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }),
     ])
     const assetTotals = shapeListTotals(mustRows(totalsRes, 'fixed assets totals'))
     const assets = (mustRows(assetsRes) as unknown as AssetRow[])
@@ -152,7 +153,7 @@ export default async function AssetsPage({
         costRelieved: f.cost_relieved ?? null, accumRelieved: f.accum_relieved ?? null,
         proceeds: f.proceeds ?? null, gainLoss: f.gain_loss ?? null,
     })
-    const adrRows = mustRows(await supabase.rpc('asset_disposal_requests_visible', { p_recent: 10 }),
+    const adrRows = mustRows(await readAll(() => supabase.rpc('asset_disposal_requests_visible', { p_recent: 10 }), { label: 'asset_disposal_requests_visible' }),
         'asset_disposal_requests_visible') as unknown as {
         id: string; status: DisposalRequestView['status']; label: string; asset_id: string; asset_code: string
         asset_description: string; proceeds_base: number; bank_account: string | null; reason: string

@@ -69,6 +69,8 @@ CREATE INDEX idx_change_log_actor_employee ON public.change_log (actor_employee)
 -- 两条都是 jsonb_path_ops 的 GIN(只支持 @>,比默认的 jsonb_ops 小)。
 CREATE INDEX idx_change_log_image ON public.change_log USING gin (COALESCE(new, old) jsonb_path_ops);
 CREATE INDEX idx_change_log_update_old ON public.change_log USING gin (old jsonb_path_ops) WHERE op = 'UPDATE';
+-- GOLIVE-2(第 13 行):change_log_page 按事务取那几次操作的行(txid = ANY(…))、并剔除跨过上一块边界的事务 —— 没有这一条,每一次都是整表扫。
+CREATE INDEX idx_change_log_txid ON public.change_log (txid);
 
 -- 【没有任何直接授权】平台的默认权限会把新表授给 anon / authenticated / service_role,
 -- 这里全部收回。RLS 打开且没有一条策略 —— 双保险:哪天有人误授了一句 SELECT,仍然零行。

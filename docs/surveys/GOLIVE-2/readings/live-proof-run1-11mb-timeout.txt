@@ -1,0 +1,19 @@
+STEP|base http://localhost:3196
+SELECT1|before the portal reader client round trips 425 / 1402 / 412 / 415 / 408 ms (median 415) · server execution 0.028 ms
+HEALTH|before the portal reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|V39 (account_settings, as postgres): max 10485760 bytes · types application/pdf,image/jpeg,image/png
+PASS|U /portal/certificates (HTTP 200): the page states "Up to 10 MB per file. Accepted file types: PDF · JPEG · PNG." — V39 says 10485760 bytes
+PASS|U layout 1440px /portal/certificates: page 1440px wide in a 1440px window — no sideways scroll
+PASS|U layout 390px /portal/certificates: page 390px wide in a 390px window — no sideways scroll
+PASS|U the upload form is the direct-to-storage one (data-upload-path="direct"); the old multipart route is gone
+TimeoutError: Waiting failed: 120000ms exceeded
+    at new WaitTask (/private/tmp/claude-501/-Users-timchen/037fa304-7011-4402-84d3-69a715469bb7/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/common/WaitTask.js:49:34)
+    at IsolatedWorld.waitForFunction (/private/tmp/claude-501/-Users-timchen/037fa304-7011-4402-84d3-69a715469bb7/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Realm.js:52:26)
+    at CdpFrame.waitForFunction (/private/tmp/claude-501/-Users-timchen/037fa304-7011-4402-84d3-69a715469bb7/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Frame.js:583:43)
+    at CdpFrame.<anonymous> (/private/tmp/claude-501/-Users-timchen/037fa304-7011-4402-84d3-69a715469bb7/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/util/decorators.js:109:27)
+    at CdpPage.waitForFunction (/private/tmp/claude-501/-Users-timchen/037fa304-7011-4402-84d3-69a715469bb7/scratchpad/pup/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Page.js:1451:37)
+    at proveUpload (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-30-golive-2-live-proof.mjs:174:33)
+    at async main (file:///Users/timchen/Documents/projects/new-era-erp/db/scripts/2026-10-30-golive-2-live-proof.mjs:272:45)
+AFTER|committed on live by this run: the throwaway supplier, contact, portal account and link, one certificate submission and its stored object, and the throwaway staff clones with their roles and grants — every one of them on the cleanup plan; nothing else was pressed
+GL2_PROOF_EXIT=1
+GL2_RUN_EXIT=1

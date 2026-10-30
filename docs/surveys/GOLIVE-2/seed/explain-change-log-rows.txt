@@ -1,0 +1,37 @@
+-- GOLIVE-2 Step 0 · local year seed (reshaped top), as postgres: the txid-selection query change_log_rows runs on EVERY call (db/functions/change_log_rows.sql:43-63), unfiltered page
+Limit  (cost=86362.39..86362.89 rows=200 width=16) (actual time=110.368..112.096 rows=200 loops=1)
+  Buffers: shared hit=29821 read=2291, temp read=1435 written=1925
+  ->  Sort  (cost=86362.39..86570.42 rows=83212 width=16) (actual time=110.368..112.089 rows=200 loops=1)
+        Sort Key: (max(seq)) DESC
+        Sort Method: top-N heapsort  Memory: 40kB
+        Buffers: shared hit=29821 read=2291, temp read=1435 written=1925
+        ->  Finalize GroupAggregate  (cost=61684.29..82766.02 rows=83212 width=16) (actual time=67.010..99.589 rows=180706 loops=1)
+              Group Key: txid
+              Buffers: shared hit=29821 read=2291, temp read=1435 written=1925
+              ->  Gather Merge  (cost=61684.29..81101.78 rows=166424 width=16) (actual time=67.005..84.215 rows=313073 loops=1)
+                    Workers Planned: 2
+                    Workers Launched: 2
+                    Buffers: shared hit=29821 read=2291, temp read=1435 written=1925
+                    ->  Sort  (cost=60684.27..60892.30 rows=83212 width=16) (actual time=64.656..67.910 rows=104358 loops=3)
+                          Sort Key: txid
+                          Sort Method: external merge  Disk: 2624kB
+                          Buffers: shared hit=29821 read=2291, temp read=1435 written=1925
+                          Worker 0:  Sort Method: external merge  Disk: 2752kB
+                          Worker 1:  Sort Method: external merge  Disk: 2624kB
+                          ->  Partial HashAggregate  (cost=50610.59..53883.98 rows=83212 width=16) (actual time=41.375..51.185 rows=104358 loops=3)
+                                Group Key: txid
+                                Batches: 5  Memory Usage: 8241kB  Disk Usage: 1616kB
+                                Buffers: shared hit=29805 read=2291, temp read=435 written=922
+                                Worker 0:  Batches: 5  Memory Usage: 8241kB  Disk Usage: 1672kB
+                                Worker 1:  Batches: 5  Memory Usage: 8241kB  Disk Usage: 1616kB
+                                ->  Parallel Seq Scan on change_log c  (cost=0.00..34595.86 rows=249986 width=16) (actual time=0.006..12.281 rows=200041 loops=3)
+                                      Buffers: shared hit=29805 read=2291
+Planning:
+  Buffers: shared hit=199 read=15
+Planning Time: 0.610 ms
+Execution Time: 112.658 ms
+-- trail_subject_members() alone (called twice per row by trail_row_record)
+Function Scan on trail_subject_members  (cost=0.25..10.25 rows=1000 width=198) (actual time=1.076..1.083 rows=402 loops=1)
+  Buffers: shared hit=4 read=3
+Planning Time: 0.030 ms
+Execution Time: 1.098 ms

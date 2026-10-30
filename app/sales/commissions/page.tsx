@@ -21,6 +21,7 @@ import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { shapeListTotals } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Agreement = {
     id: string
@@ -46,15 +47,15 @@ export default async function CommissionsPage() {
     const t = await getTranslations()
 
     const rows = mustRows(
-        await supabase
+        await readAll(() => supabase
             .from('commission_agreements')
             .select('id, agent_supplier_id, side, basis, rate_pct, amount_ccy, currency, recognition_trigger, valid_from, valid_to, remarks, suppliers!commission_agreements_agent_supplier_id_fkey(code, legal_name)')
             .is('deleted_at', null)
-            .order('valid_from', { ascending: false }),
+            .order('valid_from', { ascending: false }), { label: 'commission_agreements' }),
         'commission_agreements') as unknown as Agreement[]
     // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1 · 2026-10-26 Q3):表尾合计 —— 只加 fixed_amount 的金额,每个币种一行,由库算
     //   (list_totals_commissions)。费率与按吨的单价不进合计:前者没有金额,后者相加是把单价相加。
-    const totals = shapeListTotals(mustRows(await supabase.rpc('list_totals_commissions'), 'commission totals'))
+    const totals = shapeListTotals(mustRows(await readAll(() => supabase.rpc('list_totals_commissions'), { label: 'list_totals_commissions', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }), 'commission totals'))
 
     // 【把嵌套的关联压平成纯数据】—— 函数过不了客户端边界,嵌套对象过得了,
     // 但压平之后列描述符不必再知道这个 select 的形状。

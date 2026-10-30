@@ -16,6 +16,7 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import ScorecardsTable, { type ScorecardRow } from './ScorecardsTable'
 import SettingsPanel from './SettingsPanel'
 import type { ScoreSettings } from '../scorecardTypes'
+import { readAll } from '@/lib/readAll'
 
 type R = {
     supplier_id: string; supplier_code: string; supplier_name: string; supplier_status: string; review_id: string | null
@@ -31,9 +32,9 @@ export default async function ScorecardsPage({ searchParams }: { searchParams: P
     const sp = await searchParams
     const supabase = await createClient()
     const [rowsRes, setRes, canEdit] = await Promise.all([
-        supabase.from('supplier_scorecard_rows')
+        readAll(() => supabase.from('supplier_scorecard_rows')
             .select('supplier_id, supplier_code, supplier_name, supplier_status, review_id, window_from, window_to, grade, score, not_graded_reason, recorded_at, review_count')
-            .order('supplier_code'),
+            .order('supplier_code'), { label: 'supplier_scorecard_rows', key: ['supplier_id', 'supplier_code', 'supplier_name', 'supplier_status', 'counterparty_type', 'review_id', 'window_from', 'window_to', 'grade', 'score', 'not_graded_reason', 'recorded_at', 'review_count'] }),
         supabase.from('supplier_score_settings').select('weights, grade_lines, review_window_days, grade_caps').limit(1).maybeSingle(),
         can('action.supplier_review'),
     ])

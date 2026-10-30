@@ -28,6 +28,7 @@ import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import ReverseAllocationControl from './ReverseAllocationControl'
 import { xText, xNum, xMoney, xMasked } from '@/lib/export/cells'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -73,7 +74,7 @@ export default async function ElectricityAllocationPage({ params, searchParams }
         supabase.from('expenses').select('id, code').eq('id', a.expense_id).maybeSingle(),
         supabase.from('journal_entries').select('id, code').eq('id', a.journal_entry_id).maybeSingle(),
         a.supplier_id ? supabase.from('supplier_lookup').select('legal_name').eq('id', a.supplier_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
-        supabase.from('equipment_usage').select('equipment_id, equipment_code'),
+        readAll(() => supabase.from('equipment_usage').select('equipment_id, equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
         supabase.from('electricity_allocation_reversals_masked')
             .select('reversal_date, reason, reversal_expense_id, reversal_journal_entry_id, payment_status, bank_account_code, bill_amount, actual_line_count, actual_line_amount, restored_estimate_count, restored_estimate_amount, created_at')
             .eq('allocation_id', id).maybeSingle(),
@@ -91,7 +92,7 @@ export default async function ElectricityAllocationPage({ params, searchParams }
     const revExp = revDocs ? mustOne(revDocs[0], 'expenses') as { id: string; code: string } | null : null
     const revJe = revDocs ? mustOne(revDocs[1], 'journal_entries') as { id: string; code: string } | null : null
     const runIds = lines.map((l) => l.run_id)
-    const runs = runIds.length ? mustRows(await supabase.from('processing_runs_masked').select('id, code').in('id', runIds), 'processing_runs_masked') as { id: string; code: string }[] : []
+    const runs = runIds.length ? mustRows(await readAllIn(runIds, (__ids) => supabase.from('processing_runs_masked').select('id, code').in('id', __ids), { label: 'processing_runs_masked' }), 'processing_runs_masked') as { id: string; code: string }[] : []
     const runCode = new Map(runs.map((r) => [r.id, r.code]))
     const eqCode = new Map(eqs.map((e) => [e.equipment_id, e.equipment_code]))
     const money = (v: number | null) => <MaskedValue value={v === null ? null : formatAmount(Number(v), baseCurrency)} canView={showPrices} fallback="—" />

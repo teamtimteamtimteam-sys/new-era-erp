@@ -5,14 +5,15 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { sampleKindKey, sampleStateKey } from '@/app/quality/qualityTypes'
 import type { SampleOption } from './SamplePickerField'
+import { readAll } from '@/lib/readAll'
 
 type Supa = Awaited<ReturnType<typeof createClient>>
 
 export async function loadBatchSampleOptions(supabase: Supa, kind: 'inbound' | 'output', batchId: string): Promise<SampleOption[]> {
     const t = await getTranslations()
     const rows = mustRows(
-        await supabase.from('sample_rows').select('id, code, kind, state')
-            .eq(kind === 'inbound' ? 'inbound_batch_id' : 'output_batch_id', batchId).order('created_at', { ascending: false }),
+        await readAll(() => supabase.from('sample_rows').select('id, code, kind, state')
+            .eq(kind === 'inbound' ? 'inbound_batch_id' : 'output_batch_id', batchId).order('created_at', { ascending: false }), { label: 'sample_rows' }),
         'sample_rows') as { id: string; code: string; kind: string; state: string }[]
     return rows.map((r) => ({ id: r.id, label: `${r.code} · ${t(sampleKindKey(r.kind))} · ${t(sampleStateKey(r.state))}` }))
 }

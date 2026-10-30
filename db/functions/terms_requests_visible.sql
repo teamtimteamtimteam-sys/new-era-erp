@@ -7,6 +7,9 @@
 --   p_formula_id / p_contract_id 给了就只给那一个主体的。
 -- NOTE: introduced by db/migrations/2026-09-26-apr8-contract-terms-and-pricing-formulas-wait-for-the-cfo.sql.
 
+-- ★ GOLIVE-2(2026-10-30,Tim Q6):合同申请的快照不再无条件给 —— 读者不持那一侧的价格码(客户合同 data.view_prices,供应商合同
+--   data.view_purchase_prices;contract_terms_price_visible)时整份快照读成受限(snapshot = NULL,TermsRequestsPanel 画「受限」),
+--   与公式申请(pricing_formula_terms_visible)同一个形状。此前这里是 ELSE true。
 CREATE OR REPLACE FUNCTION public.terms_requests_visible(p_recent integer DEFAULT 10, p_formula_id uuid DEFAULT NULL::uuid, p_contract_id uuid DEFAULT NULL::uuid)
  RETURNS TABLE(id uuid, kind text, status text, label text, formula_id uuid, contract_id uuid, subject_code text, reason text, proposed jsonb, snapshot jsonb, created_at timestamp with time zone, created_by_email text, raised_by_me boolean, decided_at timestamp with time zone, decided_by_email text, decision_notes text, withdrawn_at timestamp with time zone, withdraw_reason text)
  LANGUAGE sql
@@ -16,7 +19,7 @@ AS $function$
     WITH r AS (
         SELECT q.*, (q.status = 'submitted') AS is_open,
                COALESCE(f.code, c.code) AS subject_code,
-               CASE WHEN q.formula_id IS NOT NULL THEN pricing_formula_terms_visible(f.direction) ELSE true END AS terms_ok,
+               CASE WHEN q.formula_id IS NOT NULL THEN pricing_formula_terms_visible(f.direction) ELSE contract_terms_price_visible(q.contract_id) END AS terms_ok,
                row_number() OVER (PARTITION BY (q.status = 'submitted')
                                   ORDER BY COALESCE(q.decided_at, q.withdrawn_at, q.created_at) DESC) AS rn
           FROM terms_requests q

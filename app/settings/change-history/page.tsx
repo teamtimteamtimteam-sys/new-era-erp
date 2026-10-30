@@ -3,7 +3,7 @@
 // AUDIT-TRAIL-1a(Tim 的 Q14 · Q15 · Q28 · Q30 · Q31,2026-09-29):改写成与每一页底部的审计记录【同一种话】。
 //
 // 【门】data.view_change_log(只授 admin 与 cfo)。一条注册表条目、两个属主(设置 + 财务的报表组)—— 没有变。
-// 【读法只有一支】change_log_rows()(SECURITY DEFINER,自己查码、自己遮蔽 —— 遮蔽与审计记录是同一步,Q5)。
+// 【读法只有一支】change_log_page()(GOLIVE-2;SECURITY DEFINER,自己查码、自己遮蔽 —— 遮蔽与审计记录是同一步,Q5;与 change_log_rows 逐行相同)。
 //   它按【事务】分页(p_by_entry):一次操作一条(Q2),每一行带回人名、所属单据与引用值的名字(Q40)。
 //   造句走 lib/trail/render.ts 的 buildEntries —— 与页底的审计记录是同一个造句器,所以两处说同样的话(Q30)。
 // 【它仍然列出每一次写入】(Q31):系统的、冒烟的、账号事件的,一条不少。"Key events only"只是筛,不是删。
@@ -14,15 +14,16 @@
 //   谁(人 / System (automatic) / Removed account)· 只看关键事件。GET 表单,链接可以抄给别人。
 // 【分页】AUDIT-TRAIL-1b-1(Tim 的折入 2,推翻 AT-1a 决定 21):与每一页的审计记录同一个样子 —— 先 20 次操作,
 //   然后"Show older entries"把列表【接长】20 次(?show=40,上限 500),不再是"最新 / 较早"两个翻页链接。
-//   change_log_rows 一次最多给 200 次操作,所以要多读时按它自己的键集(p_before = 已读到的最旧那次操作的最大 seq)
-//   分几次读;F19(MES-9c)起同一组事务的行也按 seq 分页取(p_row_before / p_row_limit),交出的行与一次取完逐行相同。只看关键事件时往前多读(要显示的数的 5 倍,上限 1,000)凑满,并说出藏了几条日常编辑。
+//   GOLIVE-2 第 13 行起一次调用 change_log_page 读完(此前是一圈 change_log_rows:事务 200 一块、行 100 一页,show=500 线上 107 s)。
+//   只看关键事件时往前多读(要显示的数的 5 倍,上限 1,000)凑满,并说出藏了几条日常编辑。
+//   【导出】GOLIVE-2(Tim 2026-10-23 Q7 · 2026-10-30 Q3):./export(两个日期必填,最长 366 天,5 万上限数的是库这一侧筛选下的已记录变更)。
 // 【折入 3(Q7)】列表那一段里的每一个字都是英文:列头、每一句、空状态、分页说明、"Show older entries"都来自
 //   lib/trail/text.ts;标题、说明、筛选随界面语言走(与任何别的页面的外框一样)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
-import { mustOne, mustRows } from '@/lib/db-helpers'
+import { mustOne } from '@/lib/db-helpers'
 import { isYmd } from '@/lib/dateFilter'
 import { ListPage } from '@/app/components/ui/list-page'
 import { requireFunction } from '@/app/components/moduleGuard'
@@ -35,13 +36,12 @@ import { TRAIL_TEXT } from '@/lib/trail/text'
 import { TRAIL_TABLES } from '@/lib/trail/catalogue.generated'
 import { trailDict } from '@/lib/trail/dict'
 import { buildEntries, fill, fromChangeLog, type RecordRef } from '@/lib/trail/render'
+import { readChangeLog, CHANGE_LOG_WHO_UUID as UUID } from '@/lib/trail/changeLogFilters'
 import AuditTrailList, { OlderEntriesLink, type ViewEntry } from '@/app/components/trail/AuditTrailList'
+import ChangeHistoryExport from './ChangeHistoryExport'
 
 const PAGE = 20
 const MAX_SHOW = 500
-const CHUNK = 200
-const ROW_PAGE = 100   // F19:一次调用至多算 100 行的审计记录(线上实测每行 ≈ 17 ms → ≈ 1.7 s,远在 8 秒之下)
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type LogRow = Parameters<typeof fromChangeLog>[0] & { seq: number }
 type Filters = {
@@ -106,40 +106,20 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
     if (!noMatch) {
         // 要读几次操作:显示 show 条(多读一条用来知道后面还有没有);只看关键事件时多读几倍凑满
         const target = keyOnly ? Math.min(show * 5, 1000) : show + 1
-        let before: number | undefined
-        let read = 0
-        while (read < target) {
-            const want = Math.min(CHUNK, target - read)
-            // F19:同一组事务的行按 seq 分几次取(每次至多 ROW_PAGE 行)—— 一次批量授权几百行时,单次调用不再撞 8 秒上限
-            const chunk: LogRow[] = []
-            let rowBefore: number | undefined
-            for (;;) {
-                const part = mustRows(await supabase.rpc('change_log_rows', {
-                    p_from: from || undefined,
-                    p_to: to || undefined,
-                    p_table: type || undefined,
-                    p_tables: !type && area ? types.filter((x) => x.area === area).map((x) => x.tbl) : undefined,
-                    p_record_ids: recordIds,
-                    p_actor: UUID.test(who) ? who : undefined,
-                    p_no_session: who === 'system',
-                    p_removed_account: who === 'removed',
-                    p_by_entry: true,
-                    p_before: before,
-                    p_limit: want,
-                    p_row_before: rowBefore,
-                    p_row_limit: ROW_PAGE,
-                }), 'change_log_rows') as unknown as LogRow[]
-                chunk.push(...part)
-                if (part.length < ROW_PAGE) break
-                rowBefore = Math.min(...part.map((r) => r.seq))
-            }
-            const tops = new Map<number, number>()
-            for (const r of chunk) tops.set(r.txid, Math.max(tops.get(r.txid) ?? 0, r.seq))
-            rows.push(...chunk)
-            read += tops.size
-            if (tops.size < want) { exhausted = true; break }
-            before = Math.min(...tops.values())
-        }
+        // GOLIVE-2 第 13 行(Tim 2026-10-30 Q2):一次调用 change_log_page —— 同一道门、同一套筛选、同一段逐行遮蔽,交出的行与原来那一圈
+        //   change_log_rows(事务 200 一块、行 100 一页)【逐行相同】(fixture 305,七个角色);库里只把"要哪几次操作"求一次。
+        //   年体量种子(顶部按线上的形状)上:show=20 1.40 s → 0.12 s,show=500 30.0 s → 2.65 s(docs/surveys/GOLIVE-2/seed/targets-before-after.txt)。
+        //   它回一个 jsonb(不是一组行),所以 PostgREST 的 max_rows 截不到它。线上 authenticated 有 8 秒的语句上限,所以按块读(lib/trail/changeLogFilters.ts)。
+        // supabase.rpc 的函数名与参数是按数据库类型逐个定型的;这里交给共用的读法,它只认 { data, error } —— 这一句 cast 关掉的就是那份逐个定型,
+        //   而两支函数的参数由 changeLogFilterArgs 一处给出(fixture 305 钉住它们与页面原来那一圈逐行相同)。
+        const res = await readChangeLog<LogRow>(
+            // unpaged-ok: change_log_page returns ONE jsonb (the row cap cannot cut it); change_log_rows is only called with p_row_limit 100
+            (fn, args) => supabase.rpc(fn as never, args as never), {
+            from, to, type, tables: !type && area ? types.filter((x) => x.area === area).map((x) => x.tbl) : undefined,
+            recordIds, who,
+        }, target)
+        rows.push(...res.rows)
+        exhausted = res.exhausted
     }
 
     // 一次操作 = 一笔事务;按它里面最大的 seq 排(新的在前),也拿它当下一页的键
@@ -160,6 +140,10 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
         shown.push({ ...e, recordText: recordText(e.record), recordHref: e.record ? recordHref(e.record) : null })
     }
     const hasOlder = keyOnly ? consumed < built.length || !exhausted : order.length > show
+
+    const exportDays = from && to ? Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1 : 0
+    const exportReady = exportDays >= 1 && exportDays <= 366
+    const exportQuery = new URLSearchParams(Object.entries({ from, to, area, type, record, who, key: keyOnly ? '1' : '' }).filter(([, v]) => v)).toString()
 
     function href(next: Partial<Record<keyof SP, string>>) {
         const p = new URLSearchParams()
@@ -237,6 +221,9 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
                 </Link>
             </form>
 
+            {/* GOLIVE-2 第 13 行:导出(Q7 · Q3)—— 两个日期都选了、区间不超过 366 天才按得下去;筛选与页面同一份 */}
+            <ChangeHistoryExport query={exportQuery} ready={exportReady} />
+
             <section id="audit-trail" data-change-history={noMatch ? 'no-match' : shown.length ? 'entries' : 'empty'}>
                 {noMatch ? (
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{fill(TRAIL_TEXT['summary.noRecordMatch'], { q: record })}</p>
@@ -256,7 +243,7 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
                     {hasOlder && show < MAX_SHOW && <OlderEntriesLink href={`${href({ show: String(show + PAGE) })}#audit-trail`} />}
                 </div>
                 {/* ★ TABLE-EXPORT-2b-1(Tim 2026-10-22 TABLE-EXPORT-2 Q4):「查看更早」到 MAX_SHOW 条就不再出现 —— 从前一句不说,
-                    读起来像「没有更早的了」。还有更早的时候说出来,并指出怎么看到它们(收窄筛选)。本轮不做导出(Q4)。 */}
+                    读起来像「没有更早的了」。还有更早的时候说出来,并指出怎么看到它们(收窄筛选)。导出由 GOLIVE-2 加上(上面那一排)。 */}
                 {hasOlder && show >= MAX_SHOW && (
                     <p role="status" data-change-history-stop="" className="mt-2 text-sm text-amber-800">
                         {t('changeHistory.stopsAt', { n: String(MAX_SHOW) })}

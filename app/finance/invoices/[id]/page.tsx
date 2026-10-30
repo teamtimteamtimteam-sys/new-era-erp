@@ -31,6 +31,7 @@ import { Button } from '@/app/components/ui/button'
 import { Alert } from '@/app/components/ui/alert'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAllIn } from '@/lib/readAll'
 
 type BillTo = {
     code?: string | null
@@ -125,11 +126,11 @@ export default async function InvoiceDetailPage({
               .eq('invoice_id', inv.id)
               .order('created_at', { ascending: true }), 'payment_allocations (invoice)')
         : saleIds.length
-        ? mustRows(await supabase
+        ? mustRows(await readAllIn(saleIds, (__ids) => supabase
               .from('payment_allocations')
               .select('id, allocated_ccy, sales_record_id, payments(id, code, payment_date, status)')
-              .in('sales_record_id', saleIds)
-              .order('created_at', { ascending: true }), 'payment_allocations (sales)')
+              .in('sales_record_id', __ids)
+              .order('created_at', { ascending: true }), { label: 'payment_allocations' }), 'payment_allocations (sales)')
         : []
 
     // order 头:分录与订单的门牌。分录 code 从 journal_entries 取;订单行受

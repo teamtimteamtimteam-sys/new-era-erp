@@ -13,6 +13,7 @@ import type { FreightRow } from './FreightTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -55,7 +56,7 @@ export type FreightDbRow = {
  * (db/functions/list_totals_freight.sql);冲销的只是被标记,加 0。是全体,不是画出来的前 FREIGHT_SHOWN 张。
  */
 export async function freightTotals(supabase: Client): Promise<ListTotal[]> {
-    const res = await supabase.rpc('list_totals_freight')
+    const res = await readAll(() => supabase.rpc('list_totals_freight'), { label: 'list_totals_freight', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'freight totals'))
 }
 

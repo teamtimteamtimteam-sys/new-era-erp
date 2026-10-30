@@ -39,6 +39,7 @@ import ListTrail from '@/app/components/trail/ListTrail'
 import { Suspense } from 'react'
 import { SavedViewsBar } from '@/app/components/ui/saved-views'
 import { loadSavedViews } from '@/lib/savedViewsServer'
+import { readAll } from '@/lib/readAll'
 
 type CloseRow = {
     id: string
@@ -172,7 +173,7 @@ export default async function ClosePage({
         // 也就是说:那个对勾恰恰是【失败本身】画出来的。验不了就不能画勾。
         // ★ U1-A(Tim 的 UNBLOCK-1 Q2,2026-10-05):问库(journal_close_preview,属主身份)。逐行拉 journal_lines 会让不持
         //   data.view_pay 的财务读者【悄悄】少掉工资分录那几行 —— 分录数与两个合计都变小,而「✓ 已平」照样画出来。
-        const prevRes = await supabase.rpc('journal_close_preview', { p_period_end: selected })
+        const prevRes = await readAll(() => supabase.rpc('journal_close_preview', { p_period_end: selected }), { label: 'journal_close_preview', key: ['entry_count', 'debits', 'credits'] })
         const row = (mustRows(prevRes, 'journal_close_preview') as { entry_count: number; debits: number; credits: number }[])[0]
         // 一句聚合恒回一行;没有行就是读法坏了 —— 抛,不画一个由空结果拼出来的「已平」
         if (!row) throw new Error('journal_close_preview returned no row')

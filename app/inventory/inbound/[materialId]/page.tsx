@@ -17,6 +17,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import InboundBatchesTable, { type InboundBatchRow } from './InboundBatchesTable'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Row = {
     id: string
@@ -61,7 +62,7 @@ export default async function InboundDrillPage({
     // 档位是 aging_bucket 的结果,屏幕不再自己划边界。
     const [matRes, batchesRes, valRes] = await Promise.all([
         supabase.from('material_lookup').select('name').eq('id', materialId).single(),
-        supabase
+        readAll(() => supabase
             .from('inbound_batch_lookup')
             // FIX-2a:内嵌 suppliers 要 module.suppliers.view,而这一页的守卫是
             // inventory.view —— sales 通过守卫却读不到供应商,整条查询少一列;
@@ -71,12 +72,12 @@ export default async function InboundDrillPage({
             .eq('material_id', materialId)
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
-            .order('remaining_qty', { ascending: false }),
-        supabase
+            .order('remaining_qty', { ascending: false }), { label: 'inbound_batch_lookup' }),
+        readAll(() => supabase
             .from('inbound_batch_valuation')
             .select('id, landed_unit_cost, landed_value_base, unpriced, aging_days, aging_bucket')
             .eq('material_id', materialId)
-            .gt('remaining_qty', 0),
+            .gt('remaining_qty', 0), { label: 'inbound_batch_valuation' }),
     ])
 
     if (matRes.error || !matRes.data) {
@@ -90,7 +91,7 @@ export default async function InboundDrillPage({
     const supName = new Map<string, string>()
     if (supIds.length) {
         for (const sup of mustRows(
-            await supabase.from('supplier_lookup').select('id, legal_name').in('id', supIds),
+            await readAllIn(supIds, (__ids) => supabase.from('supplier_lookup').select('id, legal_name').in('id', __ids), { label: 'supplier_lookup' }),
             'supplier names'
         )) {
             supName.set(sup.id as string, sup.legal_name as string)

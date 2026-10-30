@@ -65,6 +65,7 @@ import { REMINDERS, specFor, type OpsRow } from '@/lib/reminders'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { Refusal, RefusalBlock } from '@/app/components/ui/refusal'
 import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 // 一块里最多列几件;其余交给那一支自己的列表。
 // 【8 而不是首页的 5】首页是路过,这一页是【专程来看的地方】—— 同一个数在两种
@@ -99,7 +100,7 @@ export default async function RemindersPage() {
     // ★ SYSTEM-MAP-2(Tim 2026-10-27 Q3):审批支(decision_arms())多一道 —— 读者批不批得了这一类(waiting_decision_reach)。
     //   批不了 → 那一支进「受限」,带一句由谁决定(不消失、不画 0);批得了 → 行由 operations_now 按 waiting_decisions 逐行裁。
     //   两张表都是库里的那一份:哪几支是审批、由谁决定,本页都不另写。
-    const [armsRes, reachRes] = await Promise.all([supabase.rpc('decision_arms'), supabase.rpc('waiting_decision_reach')])
+    const [armsRes, reachRes] = await Promise.all([readAll(() => supabase.rpc('decision_arms'), { label: 'decision_arms', key: ['arm', 'decision_type', 'parent_keyed'] }), readAll(() => supabase.rpc('waiting_decision_reach'), { label: 'waiting_decision_reach', key: ['item_type', 'can_decide', 'decided_by'] })])
     const decisionOf = new Map(
         (mustRows(armsRes, 'decision_arms') as { arm: string; decision_type: string }[]).map((a) => [a.arm, a.decision_type]))
     const reach = new Map(
@@ -126,9 +127,9 @@ export default async function RemindersPage() {
     // 【days_waiting 现在取了】—— 见文件抬头改法二。
     const rows = anyArmAllowed
         ? (mustRows(
-              await supabase
+              await readAll(() => supabase
                   .from('operations_now')
-                  .select('item_type, item_id, doc_kind, item_code, subject, item_date, days_waiting'),
+                  .select('item_type, item_id, doc_kind, item_code, subject, item_date, days_waiting'), { label: 'operations_now', key: ['item_type', 'permission', 'permission_any', 'item_id', 'doc_kind', 'item_code', 'subject', 'item_date', 'days_waiting'] }),
               'operations_now'
           ) as OpsRow[])
         : []
@@ -145,10 +146,10 @@ export default async function RemindersPage() {
         .filter(Boolean) as string[]
     const apPartyById = new Map<string, string>()
     if (apIds.length > 0) {
-        const apRes = await supabase
+        const apRes = await readAllIn(apIds, (__ids) => supabase
             .from('ap_open_items')
             .select('doc_id, counterparty_name')
-            .in('doc_id', apIds)
+            .in('doc_id', __ids), { label: 'ap_open_items', key: ['doc_kind', 'doc_id', 'doc_code', 'inbound_batch_id', 'supplier_id', 'supplier_name', 'doc_date', 'doc_value_base', 'settled_base', 'open_base', 'currency', 'open_ccy', 'days_outstanding', 'bucket', 'counterparty_kind', 'counterparty_id', 'counterparty_name'] })
         for (const r of mustRows(apRes, 'ap_open_items counterparty') as {
             doc_id: string
             counterparty_name: string

@@ -35,6 +35,7 @@ import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
 import { formatDate, formatDateTime, formatMonth } from '@/lib/dates'
 import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type MyKpiRow = {
     id: string; cycle_name: string; cycle_status: string; gate: string | null
@@ -73,7 +74,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     // KPI-1:自己这个周期被考核的那五条。**条目与目标始终可见**(期初就该知道),
     // **而分数只在周期关掉之后才可见** —— 两者的区别写在 my_kpi_entries 的视图注里。
     const myKpi = mustRows(
-        await supabase.from('my_kpi_entries').select('*').order('kpi_ref'),
+        await readAll(() => supabase.from('my_kpi_entries').select('*').order('kpi_ref'), { label: 'my_kpi_entries' }),
         'my_kpi_entries') as unknown as MyKpiRow[]
     const p = profileRows?.[0]
 
@@ -187,7 +188,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
         myExpenseCount(supabase, employeeId).then((r) => mustCount(r, 'expense_claim_status count (me)')),
         // EMP-SELF-1(G2):谁决定的、为什么 —— 属主权限的读者,只给调用者自己的单据;决定人已经是【人】的名字。
         //   approval_log 不开给员工(Tim 的 Q4 at EMP-SELF-0),所以读的是单据本身。
-        supabase.rpc('my_document_decisions'),
+        readAll(() => supabase.rpc('my_document_decisions'), { label: 'my_document_decisions', key: ['kind', 'doc_id', 'decider', 'decided_at', 'decision_notes', 'self_decided'] }),
     ])
     // 按单据 id 索引;日期在这一侧格好(与本页其余日期同一个理由:服务端与水合不许各算各的)。
     const decisions: Record<string, Decision> = Object.fromEntries(
@@ -205,11 +206,11 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     // ★ CLAIM-RECEIPTS-1(Tim 2026-10-21,Q6):每一笔的收据 —— 读规则:这张单说的就是你(或你替人提的);只列 attached 的
     //   (拿掉的从单上隐去,Q5)。上限从库里来(claim_receipt_limits,与门户同一个数),不在这里另写一份。
     const expenseClaimReceipts = expenseClaimHeaders.length
-        ? mustRows(await supabase.from('expense_claim_receipts')
+        ? mustRows(await readAllIn(expenseClaimHeaders.map((h) => h.claim_id), (__ids) => supabase.from('expense_claim_receipts')
             .select('id, item_id, file_name')
-            .in('claim_id', expenseClaimHeaders.map((h) => h.claim_id))
+            .in('claim_id', __ids)
             .eq('status', 'attached')
-            .order('created_at'), 'expense_claim_receipts (me)') as { id: string; item_id: string; file_name: string }[]
+            .order('created_at'), { label: 'expense_claim_receipts' }), 'expense_claim_receipts (me)') as { id: string; item_id: string; file_name: string }[]
         : []
     const receiptLimits = mustOne(await supabase.rpc('claim_receipt_limits'), 'claim_receipt_limits') as
         { set: boolean; max_bytes: number | null; types: string[] | null } | null
@@ -218,7 +219,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     //   (员工读不到批次,"批准了没有"住在批次上;与 my_document_decisions 同形)。
     //   面板只对现场员工、或者有过批准加班的人画:一块对办公室员工恒空的面板读起来像"漏了数据"。
     const [myOtRes, mySiteRes] = await Promise.all([
-        supabase.rpc('my_overtime_lines'),
+        readAll(() => supabase.rpc('my_overtime_lines'), { label: 'my_overtime_lines', key: ['line_id', 'work_date', 'hours', 'day_kind', 'note', 'batch_label', 'approved_at', 'approver'] }),
         supabase.from('employees_masked').select('is_site_staff').eq('id', employeeId).limit(1),
     ])
     const myOvertime = mustRows(myOtRes, 'my_overtime_lines').map((o) => ({
@@ -241,7 +242,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     //   于是不持 hr.view 的员工读到 0 个期间,编号与月份印成 "—"(AT-1d-2 以 fusheng@ 量过)。现在编号与月份经
     //   my_period_labels()(属主函数:只给你自己的行所在的期间,只给编号与月份两样);状态仍直读 —— 那一样不是给本人的,
     //   不持 hr.view 的人那一格照旧是空的。工资单同一个做法(下面)。
-    const myPeriodLabels = mustRows(await supabase.rpc('my_period_labels'), 'my_period_labels')
+    const myPeriodLabels = mustRows(await readAll(() => supabase.rpc('my_period_labels'), { label: 'my_period_labels', key: ['kind', 'period_id', 'code', 'period_month', 'currency'] }), 'my_period_labels')
     const labelOf = (kind: 'attendance' | 'payroll', id: string | null | undefined) =>
         id ? myPeriodLabels.find((x) => x.kind === kind && x.period_id === id) : undefined
     const myLinesRes = await supabase
@@ -278,8 +279,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     // 自评 —— 两个窄视图,只在 status='self_review' 时有行;
     // 定论 —— 行级策略只放行 approved/acknowledged,读到的都是定过的。
     const [selfAssessRes, selfGoalsRes, myReviewsRes, ratingRes] = await Promise.all([
-        supabase.from('my_self_assessment').select('*'),
-        supabase.from('my_self_assessment_goals').select('*'),
+        readAll(() => supabase.from('my_self_assessment').select('*'), { label: 'my_self_assessment', key: ['review_id', 'employee_id', 'review_type', 'cycle_id', 'cycle_name', 'period_start', 'period_end', 'status', 'self_assessment_text', 'self_assessment_submitted_at'] }),
+        readAll(() => supabase.from('my_self_assessment_goals').select('*'), { label: 'my_self_assessment_goals', key: ['goal_id', 'review_id', 'sequence', 'objective_text', 'target_value', 'unit', 'employee_result_text', 'actual_value'] }),
         supabase
             .from('performance_reviews_masked')
             .select(REVIEW_COLUMNS)
@@ -290,13 +291,13 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     ])
     const myReviews = (mustRows(myReviewsRes)) as unknown as ReviewRow[]
     const { data: myReviewGoals } = myReviews.length
-        ? await supabase
+        ? await readAllIn(myReviews.map((r) => r.id), (__ids) => supabase
               .from('review_goals')
               .select(
                   'id, review_id, sequence, objective_text, target_value, unit, actual_value, employee_result_text, reviewer_assessment_text'
               )
-              .in('review_id', myReviews.map((r) => r.id))
-              .order('sequence')
+              .in('review_id', __ids)
+              .order('sequence'), { label: 'review_goals' })
         : { data: [] as GoalRow[] }
 
     // ★ U1-A(Tim 的 UNBLOCK-1 Q12,2026-10-05):工资单的币种也经 my_period_labels()(多了 currency 一列)——

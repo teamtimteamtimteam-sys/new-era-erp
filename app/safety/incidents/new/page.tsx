@@ -14,6 +14,7 @@ import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import IncidentForm, { type Opt } from './IncidentForm'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function NewIncidentPage() {
     const denied = await requireFunction(FN.safetyIncidents)
@@ -27,8 +28,8 @@ export default async function NewIncidentPage() {
         supabase.from('incident_kinds').select('code, name_en, name_zh').eq('is_active', true).order('sort_order'),
         supabase.from('storage_locations').select('id, code, name').eq('is_active', true).order('code'),
         supabase.from('incident_people').select('id, code, preferred_name').order('code'),
-        canProcessing ? supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description')
-            .eq('equipment_category', 'equipment').order('equipment_code') : null,
+        canProcessing ? readAll(() => supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description')
+            .eq('equipment_category', 'equipment').order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }) : null,
         canProcessing ? supabase.from('equipment_downtime').select('id, equipment_id, started_at, reason')
             .is('voided_at', null).order('started_at', { ascending: false }).limit(100) : null,
         canProcessing ? supabase.from('processing_run_events').select('id, run_id, event_type_code, occurred_at, action_taken')
@@ -46,10 +47,10 @@ export default async function NewIncidentPage() {
         .map((d) => ({ id: d.id, machineId: d.equipment_id, label: `${formatAuditStamp(d.started_at)} · ${d.reason}` })) : []
     const evRows = evRes ? mustRows(evRes, 'processing_run_events') as { id: number; run_id: string; event_type_code: string; occurred_at: string; action_taken: string }[] : []
     // 一条事件已经被另一行更正 / 撤回时,说话的是那一行(守卫按名拒引用被取代的那一条)—— 这里只列此刻说话的那几行
-    const supersededRes = evRows.length === 0 ? null : await supabase.from('processing_run_events').select('corrects_id').in('corrects_id', evRows.map((e) => e.id))
+    const supersededRes = evRows.length === 0 ? null : await readAllIn(evRows.map((e) => e.id), (__ids) => supabase.from('processing_run_events').select('corrects_id').in('corrects_id', __ids), { label: 'processing_run_events' })
     const superseded = new Set((supersededRes ? mustRows(supersededRes, 'processing_run_events') as { corrects_id: number }[] : []).map((r) => r.corrects_id))
     const runIds = [...new Set(evRows.map((e) => e.run_id))]
-    const runRes = runIds.length === 0 ? null : await supabase.from('processing_runs_masked').select('id, code').in('id', runIds)
+    const runRes = runIds.length === 0 ? null : await readAllIn(runIds, (__ids) => supabase.from('processing_runs_masked').select('id, code').in('id', __ids), { label: 'processing_runs_masked' })
     const runCode = new Map((runRes ? mustRows(runRes, 'processing_runs_masked') as { id: string; code: string }[] : []).map((r) => [r.id, r.code]))
     const events: Opt[] = evRows.filter((e) => !superseded.has(e.id))
         .map((e) => ({ id: String(e.id), label: `${runCode.get(e.run_id) ?? '—'} · ${formatAuditStamp(e.occurred_at)} · ${e.action_taken}` }))

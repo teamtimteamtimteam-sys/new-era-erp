@@ -12,6 +12,7 @@ import { can } from '@/lib/permissions'
 import { getBaseCurrency } from '@/lib/currency'
 import { ListPage } from '@/app/components/ui/list-page'
 import NewAllocationForm from './NewAllocationForm'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewElectricityAllocationPage() {
     const denied = await requireModule(MOD.finance)
@@ -20,7 +21,7 @@ export default async function NewElectricityAllocationPage() {
     const supabase = await createClient()
     const [canEdit, baseCurrency, supRes] = await Promise.all([
         can('module.finance.edit'), getBaseCurrency(),
-        supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
+        readAll(() => supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'), { label: 'supplier_lookup' }),
     ])
     const suppliers = (mustRows(supRes, 'supplier_lookup') as { id: string; legal_name: string }[])
         .map((s) => ({ value: s.id, label: s.legal_name }))

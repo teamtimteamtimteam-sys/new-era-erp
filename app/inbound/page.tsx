@@ -28,6 +28,7 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { MOD, FN } from '@/lib/modules'
 import EntryButton from '@/app/components/nav/EntryButton'
+import { readAll } from '@/lib/readAll'
 
 // TABLE-EXPORT-1:行的类型、select、「库里的行 → 表的行」(含化验状态 · 定价申请 · 销毁证书 ·
 // 仓库申请 · 来源三态)都搬进了 inboundRows.ts,与导出路由共用。注释随代码一起搬过去了。
@@ -83,18 +84,18 @@ export default async function InboundPage({
         //   Phua 从 suppliers 读到 0 行 —— 于是这一页的两个筛选下拉对他们【整张是空的】,
         //   读起来是「系统里没有登记供应商 / 物料」。而这一页正是 Fu Sheng 每天的活。
         //   FIX-1 开的两张查名视图的谓词都含 module.inbound.view,列也够。
-        supabase
+        readAll(() => supabase
             .from('supplier_lookup')
             // LOG-1b 的过滤【搬到 TS 侧】—— 见下面 supplierOptions 的理由:
             // 下拉要筛掉货代,而【名字表不能筛】。一次查询,两种用法。
             .select('id, legal_name, counterparty_type')
             .is('deleted_at', null)
-            .order('legal_name'),
-        supabase
+            .order('legal_name'), { label: 'supplier_lookup' }),
+        readAll(() => supabase
             .from('material_lookup')
             .select('id, name')
             .is('deleted_at', null)
-            .order('name'),
+            .order('name'), { label: 'material_lookup' }),
         // 未计价的在册批次数(cut 1 估值缺口提示;不做筛选入口,仅提示)
         supabase
             .from('inbound_batches_masked')

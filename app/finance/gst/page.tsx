@@ -16,6 +16,7 @@ import GstTaxCodesTable, { type TaxCodeRow } from './GstTaxCodesTable'
 import GstPeriodsTable, { type GstPeriodRow } from './GstPeriodsTable'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
+import { readAll } from '@/lib/readAll'
 
 export default async function GstPage() {
     const denied = await requireModule(MOD.finance)
@@ -39,7 +40,7 @@ export default async function GstPage() {
         // EXPENSE-MULTILINE-1:税码在费用单的【行】上(expense_lines),与发票那一侧一样数行
         supabase.from('expense_lines').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
         // ★ APR-10:哪几期挂着一张等 CFO 批的申报申请 —— 状态那一列说"等批准"
-        supabase.from('gst_filing_requests').select('period_id').eq('status', 'submitted'),
+        readAll(() => supabase.from('gst_filing_requests').select('period_id').eq('status', 'submitted'), { label: 'gst_filing_requests' }),
     ])
     const settings = mustOne(settingsRes)
     const codes = mustRows(codesRes)

@@ -1,0 +1,36 @@
+19:41:45 watchdog anchored to the smoke node process 36901
+19:41:53 median=429.303ms max=589.366ms in-db=0.963ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:43:03 median=398.269ms max=1971.330ms in-db=0.579ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:43:03 WARN a single round trip took 1971.330 ms (> 1500 ms; recorded, not an abort)
+19:44:12 median=455.609ms max=504.175ms in-db=1.224ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:45:23 median=405.751ms max=722.173ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:46:33 median=415.563ms max=820.989ms in-db=1.104ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:47:45 median=708.357ms max=1341.475ms in-db=0.482ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:48:56 median=592.198ms max=1325.389ms in-db=1.212ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:50:09 median=487.188ms max=2288.047ms in-db=0.030ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:50:09 WARN a single round trip took 2288.047 ms (> 1500 ms; recorded, not an abort)
+19:51:21 median=407.303ms max=1016.949ms in-db=0.616ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:52:31 median=438.760ms max=897.034ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:53:41 median=419.579ms max=1673.093ms in-db=0.499ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:53:41 WARN a single round trip took 1673.093 ms (> 1500 ms; recorded, not an abort)
+19:54:50 median=418.186ms max=424.762ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:55:59 median=421.318ms max=801.950ms in-db=0.552ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:57:09 median=387.320ms max=579.643ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:58:18 median=419.138ms max=437.410ms in-db=1.000ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+19:59:27 median=387.746ms max=596.997ms in-db=0.028ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:00:41 median=512.211ms max=631.042ms in-db=1.385ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:01:50 median=421.656ms max=445.751ms in-db=0.034ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:02:59 median=680.040ms max=838.777ms in-db=1.124ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:04:09 median=511.281ms max=597.189ms in-db=0.049ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:05:18 median=480.040ms max=890.133ms in-db=1.254ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:06:28 median=683.348ms max=758.353ms in-db=0.613ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:07:38 median=763.877ms max=1217.826ms in-db=0.775ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:08:47 median=419.702ms max=423.458ms in-db=0.032ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:09:56 median=482.342ms max=663.386ms in-db=0.699ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:11:05 median=387.995ms max=416.545ms in-db=0.029ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:12:14 median=449.902ms max=974.107ms in-db=0.608ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:13:24 median=387.446ms max=796.603ms in-db=0.026ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:14:34 median=457.585ms max=949.029ms in-db=1.193ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:15:43 median=388.780ms max=832.194ms in-db=6.401ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:16:51 median=398.827ms max=592.208ms in-db=1.509ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901
+20:18:03 median=735.706ms max=1026.408ms in-db=0.027ms db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY · node=36901

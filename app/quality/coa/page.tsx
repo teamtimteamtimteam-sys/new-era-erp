@@ -14,6 +14,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { formatAuditStamp } from '@/lib/dates'
 import { COA_ROW_COLUMNS, type CoaRow } from '@/app/output/coa/coaTypes'
 import CoaTable, { type CoaListRow } from './CoaTable'
+import { readAll } from '@/lib/readAll'
 
 export default async function CoaListPage() {
     const denied = await requireFunction(FN.qualityCoa)
@@ -21,7 +22,7 @@ export default async function CoaListPage() {
     const t = await getTranslations()
     const supabase = await createClient()
     const [res, canIssue] = await Promise.all([
-        supabase.from('coa_rows').select(COA_ROW_COLUMNS).order('issued_at', { ascending: false }),
+        readAll(() => supabase.from('coa_rows').select(COA_ROW_COLUMNS).order('issued_at', { ascending: false }), { label: 'coa_rows' }),
         can('action.issue_coa'),
     ])
     const coas = mustRows(res, 'coa_rows') as unknown as CoaRow[]

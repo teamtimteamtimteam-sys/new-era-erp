@@ -14,6 +14,7 @@ import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { trailCount } from '@/app/components/trail/AuditTrail'
 import ListTrail, { type ListTrailRecord } from '@/app/components/trail/ListTrail'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 // AUDIT-TRAIL-1c-3(Tim 的 Q19):这一页的审计记录是【结算留下的单据】—— 汇缴的分录(remit_processing_costs 一次一张)与
 //   冲抵的费用单(relieve_processing_accruals 一次一张)。条目自己的修改史留在加工单那一页上(processing_run)。
@@ -35,13 +36,13 @@ export default async function ProcessingCostsPage({ searchParams }: { searchPara
     // 直接选它一律 42501;金额只能经 _masked 按 data.view_prices 取。
     // 结算三列曾经不在视图里,两条路都不通 —— 视图已于 fin7-fu 补齐。
     const [entriesRes, runsRes, supRes] = await Promise.all([
-        supabase.from('processing_cost_entry_lookup')
+        readAll(() => supabase.from('processing_cost_entry_lookup')
             .select('id, run_id, cost_type, amount_base, is_estimate, created_at')
             .is('deleted_at', null).is('remitted_at', null).is('relieved_at', null)
-            .order('created_at'),
-        supabase.from('processing_run_lookup').select('id, code'),
+            .order('created_at'), { label: 'processing_cost_entry_lookup' }),
+        readAll(() => supabase.from('processing_run_lookup').select('id, code'), { label: 'processing_run_lookup' }),
         // LOG-1b:货代不进供应商名单
-        supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
+        readAll(() => supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'), { label: 'supplier_lookup' }),
     ])
     // 读不出来就报错,不许渲染成「没有待结算」—— 见 lib/db-helpers 的政策注释
     const entries = mustRows(entriesRes, 'processing_cost_entries_masked')
@@ -52,15 +53,15 @@ export default async function ProcessingCostsPage({ searchParams }: { searchPara
     let settled: ListTrailRecord[] = []
     if (canSeeEntries) {
         // 遮蔽伴生视图(与基表同一道行谓词:module.processing.view;这两列是单据 id,不是钱)
-        const done = mustRows(await supabase.from('processing_cost_entries_masked')
+        const done = mustRows(await readAll(() => supabase.from('processing_cost_entries_masked')
             .select('remitted_journal_entry_id, relief_expense_id')
-            .or('remitted_journal_entry_id.not.is.null,relief_expense_id.not.is.null'), 'processing_cost_entries settled') as
+            .or('remitted_journal_entry_id.not.is.null,relief_expense_id.not.is.null'), { label: 'processing_cost_entries_masked' }), 'processing_cost_entries settled') as
             { remitted_journal_entry_id: string | null; relief_expense_id: string | null }[]
         const jIds = [...new Set(done.map((x) => x.remitted_journal_entry_id).filter((x): x is string => !!x))]
         const eIds = [...new Set(done.map((x) => x.relief_expense_id).filter((x): x is string => !!x))]
-        const js = jIds.length ? mustRows(await supabase.from('journal_entries').select('id, code, entry_date, status').in('id', jIds), 'journal_entries remittance') as
+        const js = jIds.length ? mustRows(await readAllIn(jIds, (__ids) => supabase.from('journal_entries').select('id, code, entry_date, status').in('id', __ids), { label: 'journal_entries' }), 'journal_entries remittance') as
             { id: string; code: string; entry_date: string; status: string }[] : []
-        const es = eIds.length ? mustRows(await supabase.from('expenses').select('id, code, expense_date, status').in('id', eIds), 'expenses relief') as
+        const es = eIds.length ? mustRows(await readAllIn(eIds, (__ids) => supabase.from('expenses').select('id, code, expense_date, status').in('id', __ids), { label: 'expenses' }), 'expenses relief') as
             { id: string; code: string; expense_date: string; status: string }[] : []
         settled = [
             ...js.map((j) => ({ subject: 'journal_entry' as const, id: j.id, href: `/finance/journal/${j.id}`,

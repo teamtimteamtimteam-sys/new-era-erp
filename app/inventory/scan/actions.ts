@@ -15,6 +15,7 @@ export async function scannedBatchStock(kind: 'inbound_batch' | 'output_batch', 
     const head = kind === 'inbound_batch'
         ? mustOne(await supabase.from('inbound_batches_masked').select('code, unit').eq('id', id).single(), 'inbound_batches_masked')
         : mustOne(await supabase.from('output_batches').select('code, unit').eq('id', id).single(), 'output_batches')
+    // unpaged-ok: one batch's stock by location and status — a handful of rows per batch, never a thousand
     const q = supabase.from('stock_by_status').select('location_id, location_code, location_name, stock_status, qty')
     const rows = mustRows(await (kind === 'inbound_batch' ? q.eq('inbound_batch_id', id) : q.eq('output_batch_id', id)),
         'stock_by_status') as unknown as ScanBucket[]

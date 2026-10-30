@@ -34,6 +34,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { getMyPermissions } from '@/lib/permissions'
 import { allows } from '@/lib/modules'
 import { chainById, chainWalkDefinition, type Chain, type ChainId, type ChainStep } from '@/lib/chains'
+import { readAll } from '@/lib/readAll'
 
 /** 一步最多画几个链接(Tim 接受的 grilling 第 6 条) */
 const LINKS_PER_STEP = 3
@@ -116,9 +117,9 @@ async function chainsBody(t: Tr, { table, id, code, chains }: Props) {
         let lines: Map<string, string>
         try {
             rows = mustRows(
-                await supabase.rpc('document_chain_walk', {
+                await readAll(() => supabase.rpc('document_chain_walk', {
                     p_chain: chainWalkDefinition(chain), p_step: at, p_key: me.key, p_id: id,
-                }) as { data: WalkRow[] | null; error: DbError },
+                }), { label: 'document_chain_walk' }) as { data: WalkRow[] | null; error: DbError },
                 'document_chain_walk')
             lines = rows.length === 0 ? new Map() : await bankLines(supabase, chain, rows)
         } catch (e) {
@@ -158,7 +159,7 @@ async function bankLines(
     const payments = rows.filter((r) => r.step === paymentStep).map((r) => r.id)
     if (payments.length === 0) return out
     const got = mustRows(
-        await supabase.rpc('bank_match_lines', { p_payment_ids: payments }) as {
+        await readAll(() => supabase.rpc('bank_match_lines', { p_payment_ids: payments }), { label: 'bank_match_lines', key: ['payment_id', 'statement_id', 'line_id'] }) as {
             data: { payment_id: string; statement_id: string; line_id: string }[] | null; error: DbError },
         'bank_match_lines')
     for (const g of got) if (!out.has(g.statement_id)) out.set(g.statement_id, g.line_id)

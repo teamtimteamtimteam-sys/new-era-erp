@@ -16,6 +16,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { inChunks } from '@/lib/export/serverRows'
 import { xText, xNum, xInt, xTime, type ExportCell } from '@/lib/export/cells'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 type T = (key: string, values?: Record<string, string | number>) => string
@@ -116,17 +117,17 @@ export async function weighingLookups(supabase: Client, weighings: Weighing[]): 
     const tickets = new Map<string, string>()
     const wIds = weighings.map((w) => w.weighing_id)
     if (wIds.length > 0) {
-        const wr = await inChunks(wIds, (c) => supabase.from('weighings').select('id, draft_id, correction_reason, corrects_id').in('id', c)
+        const wr = await inChunks(wIds, (c) => readAllIn(c, (__ids) => supabase.from('weighings').select('id, draft_id, correction_reason, corrects_id').in('id', __ids), { label: 'weighings' })
             .then(({ data, error }) => ({ error, data: data as { id: string; draft_id: string; correction_reason: string | null; corrects_id: string | null }[] | null })), 'weighings')
         const draftOf = new Map(wr.map((w) => [w.draft_id, w.id]))
         wr.forEach((w) => { if (w.correction_reason) correctionReason.set(w.id, w.correction_reason) })
-        const ch = await inChunks([...draftOf.keys()], (c) => supabase.from('capture_draft_changes').select('draft_id, original_value, confirmed_value, reason').in('draft_id', c)
+        const ch = await inChunks([...draftOf.keys()], (c) => readAllIn(c, (__ids) => supabase.from('capture_draft_changes').select('draft_id, original_value, confirmed_value, reason').in('draft_id', __ids), { label: 'capture_draft_changes' })
             .then(({ data, error }) => ({ error, data: data as { draft_id: string; original_value: unknown; confirmed_value: unknown; reason: string }[] | null })), 'capture_draft_changes')
         ch.forEach((c) => { const w = draftOf.get(c.draft_id); if (w) changesByWeighing.set(w, c) })
     }
     const tIds = [...new Set(weighings.map((w) => w.ticket_id).filter((x): x is string => !!x))]
     if (tIds.length > 0) {
-        const tr = await inChunks(tIds, (c) => supabase.from('weighbridge_tickets').select('id, code').in('id', c)
+        const tr = await inChunks(tIds, (c) => readAllIn(c, (__ids) => supabase.from('weighbridge_tickets').select('id, code').in('id', __ids), { label: 'weighbridge_tickets' })
             .then(({ data, error }) => ({ error, data: data as { id: string; code: string }[] | null })), 'weighbridge_tickets')
         tr.forEach((x) => tickets.set(x.id, x.code))
     }
@@ -146,6 +147,6 @@ export function weighingExports(w: Weighing, lk: WeighingLookups, t: T, kgUnit: 
 
 /** 路由用:设备 id → 编号(草稿那一张的「仪器」一列)。 */
 export async function deviceRefs(supabase: Client): Promise<Map<string, DeviceRef>> {
-    const devs = mustRows(await supabase.from('devices').select('id, code'), 'devices') as DeviceRef[]
+    const devs = mustRows(await readAll(() => supabase.from('devices').select('id, code'), { label: 'devices' }), 'devices') as DeviceRef[]
     return new Map(devs.map((d) => [d.id, d]))
 }

@@ -7,6 +7,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 type Snapshot = {
     batch_code?: string
@@ -19,7 +20,7 @@ type Snapshot = {
 
 /** 编号(批号 / 单号 / 证书号)→ 碰到它的那一张在等的申请的 label */
 export async function openWarehouseRequestsByCode(supabase: SupabaseClient<Database>): Promise<Map<string, string>> {
-    const rows = mustRows(await supabase.rpc('warehouse_requests_visible', { p_recent: 0 })) as {
+    const rows = mustRows(await readAll(() => supabase.rpc('warehouse_requests_visible', { p_recent: 0 }), { label: 'warehouse_requests_visible' })) as {
         status: string; label: string; snapshot: Snapshot | null
     }[]
     const byCode = new Map<string, string>()

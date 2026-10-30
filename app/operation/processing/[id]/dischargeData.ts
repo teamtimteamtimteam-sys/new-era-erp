@@ -8,6 +8,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { getTranslations } from '@/lib/i18n/server'
 import type { DischargeBatchView, DischargeResultView, DischargeChannelView, DischargeSplitView } from './DischargePanel'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type Opt = { value: string; label: string }
 type InputLeg = {
@@ -56,11 +57,11 @@ export async function loadDischargePanel(
     const [locationsVisible, outputVisible] = await Promise.all([can('module.inventory.view'), can('module.output.view')])
 
     const [statusRes, latestRes, rowsRes, chanRes, splitRes, devRes, locRes] = await Promise.all([
-        supabase.from('discharge_status_by_batch')
+        readAllIn(ids, (__ids) => supabase.from('discharge_status_by_batch')
             .select('batch_id, module_count, modules_recorded, passed, failed_redischarge, failed_quarantine, split_out, contradictions, currently_verified')
-            .in('batch_id', ids),
-        supabase.from('discharge_module_rows').select('batch_id, module_ref, verdict, disposition, split_out')
-            .in('batch_id', ids).eq('is_latest', true),
+            .in('batch_id', __ids), { label: 'discharge_status_by_batch', key: ['batch_kind', 'batch_id', 'batch_code', 'material_id', 'module_count', 'modules_recorded', 'passed', 'failed_redischarge', 'failed_quarantine', 'split_out', 'contradictions', 'rule_verified', 'latest_run_id', 'latest_run_code', 'latest_run_date', 'result_state', 'currently_verified'] }),
+        readAllIn(ids, (__ids) => supabase.from('discharge_module_rows').select('batch_id, module_ref, verdict, disposition, split_out')
+            .in('batch_id', __ids).eq('is_latest', true), { label: 'discharge_module_rows' }),
         supabase.from('discharge_module_rows')
             .select('id, batch_kind, batch_id, batch_code, module_ref, channel_no, outlet_voltage_v, start_voltage_v, verdict, verdict_at, disposition, duration_min, energy_recovered_wh, pass_voltage_v_at, contradicts_pass_voltage, device_id, photo_path, notes, corrects_id, correction_reason, is_latest, split_out')
             .eq('run_id', runId).order('id'),
@@ -70,7 +71,7 @@ export async function loadDischargePanel(
         supabase.from('discharge_module_splits')
             .select('split_run_id, discharge_run_id, inbound_batch_id, output_batch_id, module_ref, new_output_batch_id')
             .eq('discharge_run_id', runId).order('id'),
-        supabase.from('devices').select('id, code, name').eq('kind', 'discharge_cabinet').is('retired_at', null).order('code'),
+        readAll(() => supabase.from('devices').select('id, code, name').eq('kind', 'discharge_cabinet').is('retired_at', null).order('code'), { label: 'devices' }),
         locationsVisible
             ? supabase.from('storage_locations').select('id, code, name').eq('is_active', true).eq('is_quarantine', true).order('code')
             : Promise.resolve({ data: [], error: null }),
@@ -130,10 +131,10 @@ export async function loadDischargePanel(
     const newIds = [...new Set(splitRows.map((s) => s.new_output_batch_id))]
     const [splitRunRes, newBatchRes] = await Promise.all([
         splitRunIds.length > 0
-            ? supabase.from('processing_runs_masked').select('id, code').in('id', splitRunIds)
+            ? readAllIn(splitRunIds, (__ids) => supabase.from('processing_runs_masked').select('id, code').in('id', __ids), { label: 'processing_runs_masked' })
             : Promise.resolve({ data: [], error: null }),
         outputVisible && newIds.length > 0
-            ? supabase.from('output_batches').select('id, code').in('id', newIds)
+            ? readAllIn(newIds, (__ids) => supabase.from('output_batches').select('id, code').in('id', __ids), { label: 'output_batches' })
             : Promise.resolve({ data: [], error: null }),
     ])
     const splitRunCode = new Map((mustRows(splitRunRes, 'processing_runs_masked') as unknown as { id: string; code: string }[]).map((r) => [r.id, r.code]))

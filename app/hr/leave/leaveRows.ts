@@ -78,6 +78,7 @@ export function leaveCount(supabase: Client, f: LeaveFilter) {
 const LEAVE_SELECT = 'id, code, employee_id, leave_type_code, start_date, end_date, days, status, is_exception, created_at'
 
 function leaveRows(supabase: Client, f: LeaveFilter) {
+    // unpaged-ok: a builder factory — every caller pages it with .range (leavePage below, the export route through it)
     return filtered(supabase.from('leave_requests_masked').select(LEAVE_SELECT).is('deleted_at', null), f)
 }
 

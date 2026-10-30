@@ -11,6 +11,7 @@ import NewExpenseForm, {
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewExpensePage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -31,14 +32,14 @@ export default async function NewExpensePage() {
             .eq('account_type', 'expense')
             .eq('is_active', true)
             .order('code'),
-        supabase
+        readAll(() => supabase
             .from('suppliers')
             .select('id, legal_name, default_tax_code, tax_residence')
             .is('deleted_at', null)
             // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
             // 【服务商(房东/水电)要留下】—— 只排货代,不是只留供货商
             .neq('counterparty_type', 'forwarder')
-            .order('legal_name'),
+            .order('legal_name'), { label: 'suppliers' }),
         // PAYEE-1b:未付费用的往来对象可以是员工(报销)。
         //
         // ★★【FIX-2b:上面那条"已知项"结清了,而它此前【比自己以为的更不准】】★★
@@ -66,9 +67,9 @@ export default async function NewExpensePage() {
         // 所以它照样只列未投用的,并由 expense.form.existingAssetHint 点名该去哪儿。
         // 【为什么照抄而不是自己想一套】列表若比函数宽,人会挑到一台注定被拒的机器;
         // 若比函数窄,人会以为某台机器加不了成本 —— 而两种都不是这张表单该做的判断。
-        supabase.from('fixed_assets')
+        readAll(() => supabase.from('fixed_assets')
             .select('id, code, description, cost_base')
-            .eq('status', 'active').is('in_service_date', null).order('code'),
+            .eq('status', 'active').is('in_service_date', null).order('code'), { label: 'fixed_assets' }),
         // ── EQP-1c-c:设备采购行 + 它挂的机器 + 它属于谁 + 它有没有被报销过 ──
         // 【"已报销"的判据【就是】EQP-1b-ii 那一条,不是另想的一条】:
         // 那条行上存在一笔 status = 'posted' 的支出。同一句话有三个地方在说 ——
@@ -83,14 +84,14 @@ export default async function NewExpensePage() {
         // 它不知道那几列是【故意】扣住的。
         // 【视图上不做 embed】本仓库每一处读遮蔽视图的地方都是分开查、在 TS 里拼
         // (invoices_masked / invoice_lines_masked 那几处就是),这里照办。
-        supabase.from('purchase_order_lines_masked')
+        readAll(() => supabase.from('purchase_order_lines_masked')
             .select('id, line_no, asset_id, purchase_order_id, estimated_amount_ccy')
-            .not('asset_id', 'is', null),
-        supabase.from('purchase_orders_masked')
-            .select('id, code, supplier_id, status, approval_status, currency, deleted_at'),
-        supabase.from('expenses')
+            .not('asset_id', 'is', null), { label: 'purchase_order_lines_masked' }),
+        readAll(() => supabase.from('purchase_orders_masked')
+            .select('id, code, supplier_id, status, approval_status, currency, deleted_at'), { label: 'purchase_orders_masked' }),
+        readAll(() => supabase.from('expenses')
             .select('id, code, status, purchase_order_line_id')
-            .not('purchase_order_line_id', 'is', null),
+            .not('purchase_order_line_id', 'is', null), { label: 'expenses' }),
         // 1500 的名字【从库里取】,不写死 —— 资本支出的借方就是它(record_expense 定死)。
         supabase.from('accounts').select('code, name_en, name_zh').eq('code', '1500').maybeSingle(),
         supabase.from('finance_settings').select('gst_registered').limit(1).single(),

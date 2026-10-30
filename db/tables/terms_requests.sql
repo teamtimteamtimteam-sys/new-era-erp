@@ -123,3 +123,8 @@ CREATE POLICY "terms_requests select by permission" ON public.terms_requests
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.terms_requests FROM anon;
+-- ★ GOLIVE-2(Tim 2026-10-30 Q6):快照(snapshot)不再随行一起给 —— 合同申请的快照里有价格条款,而行门只问合同那一侧的模块码。
+--   列级 SELECT 授权列出除 snapshot 以外的每一列;snapshot 只经 terms_requests_masked(或屏幕读的 terms_requests_visible())读,
+--   不持那一侧价格码的读者读到 NULL。加列时记得同一支迁移里补进列清单(AGENTS.md)。
+REVOKE SELECT ON public.terms_requests FROM authenticated;
+GRANT SELECT (id, kind, status, label, formula_id, contract_id, reason, proposed, fingerprint, decided_at, decided_by, decision_notes, executed_at, withdrawn_at, withdrawn_by, withdraw_reason, created_at, created_by) ON public.terms_requests TO authenticated;

@@ -13,6 +13,7 @@ import FormulasTable, { type FormulaRow as FormulasTableRow } from './FormulasTa
 import { can } from '@/lib/permissions'
 import TermsRequestsPanel from '@/app/components/pricing/TermsRequestsPanel'
 import { firstMissingDecideCode, loadTermsRequests } from '@/app/components/pricing/termsRequestsData'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 type FormulaRow = {
     id: string
@@ -39,11 +40,11 @@ export default async function FormulasPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data, error } = await supabase
+    const { data, error } = await readAll(() => supabase
         .from('pricing_formulas_masked')
         .select('id, code, name, direction, price_basis, price_index, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, is_active')
         .is('deleted_at', null)
-        .order('code', { ascending: false })
+        .order('code', { ascending: false }), { label: 'pricing_formulas_masked' })
 
     if (error) {
         return (
@@ -68,10 +69,10 @@ export default async function FormulasPage() {
     const [supRes, cusRes] = await Promise.all([
         supplierIds.length
             ? // LOG-1b:【这一处绝不过滤 counterparty_type】—— 解析器,不是选择器。
-              supabase.from('supplier_lookup').select('id, legal_name').in('id', supplierIds)
+              readAllIn(supplierIds, (__ids) => supabase.from('supplier_lookup').select('id, legal_name').in('id', __ids), { label: 'supplier_lookup' })
             : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
         customerIds.length
-            ? supabase.from('customer_lookup').select('id, legal_name').in('id', customerIds)
+            ? readAllIn(customerIds, (__ids) => supabase.from('customer_lookup').select('id, legal_name').in('id', __ids), { label: 'customer_lookup' })
             : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
     ])
     // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死。

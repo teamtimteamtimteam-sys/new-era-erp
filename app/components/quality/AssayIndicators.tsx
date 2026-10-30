@@ -17,6 +17,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { formatDate } from '@/lib/dates'
 import { plainDecimal } from '@/lib/substances'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export type IndicatorDef = { code: string; name_en: string; name_zh: string; unit: string; is_active: boolean }
 
@@ -73,11 +74,11 @@ export default async function AssayIndicators(props: { assayId: string } | { kin
 
     // ── 批次页:这一批的化验上最近记下的每个指标 ──
     const col = props.kind === 'inbound' ? 'inbound_batch_id' : 'output_batch_id'
-    const assays = mustRows(await supabase.from('assay_results').select('id, code, assay_date')
-        .eq(col, props.batchId).is('deleted_at', null), 'assay_results') as { id: string; code: string; assay_date: string }[]
+    const assays = mustRows(await readAll(() => supabase.from('assay_results').select('id, code, assay_date')
+        .eq(col, props.batchId).is('deleted_at', null), { label: 'assay_results' }), 'assay_results') as { id: string; code: string; assay_date: string }[]
     const assayOf = new Map(assays.map((a) => [a.id, a]))
-    const values = assays.length === 0 ? [] : mustRows(await supabase.from('assay_result_indicators')
-        .select('assay_result_id, indicator, value').in('assay_result_id', assays.map((a) => a.id)), 'assay_result_indicators') as unknown as ValueRow[]
+    const values = assays.length === 0 ? [] : mustRows(await readAllIn(assays.map((a) => a.id), (__ids) => supabase.from('assay_result_indicators')
+        .select('assay_result_id, indicator, value').in('assay_result_id', __ids), { label: 'assay_result_indicators', key: ['assay_result_id', 'indicator', 'value', 'created_at'] }), 'assay_result_indicators') as unknown as ValueRow[]
     // 每个指标取最新那一份:化验日期大的在前,同一天编号大的在前(编号按年无洞、单调 —— 排序确定)
     const latest = new Map<string, ValueRow>()
     for (const v of values) {

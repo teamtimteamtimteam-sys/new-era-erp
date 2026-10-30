@@ -16,6 +16,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { DICTIONARIES, type ExtraField } from './registry'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { readAll } from '@/lib/readAll'
 
 export type DictState = { error?: string; success?: boolean }
 
@@ -52,7 +53,7 @@ export async function addDictValue(input: {
 
     // ② 近重复:不分大小写比一遍。**这一步是 D6 的核心** ——
     // 库里那条主键只挡逐字相同,挡不住 NMC / nmc / Nmc。
-    const existing = await supabase.from(sp.table).select('code')
+    const existing = await readAll(() => supabase.from(sp.table).select('code'), { label: 'sp.table' })
     // 【查不到【不是】"没有重复"】—— 这一步失败而被读成空集,近重复检查就静静失效了,
     // 而它正是 D6 的核心。所以不写 `?? []`:错误当场变成一句拒绝。
     if (existing.error || !existing.data) {

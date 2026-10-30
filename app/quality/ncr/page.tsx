@@ -15,6 +15,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 import { ncrStatusKey, ncrSourceKey, ncrDispositionKey, batchHref } from '../qualityTypes'
 import NcrTable, { type NcrRow } from './NcrTable'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     id: string; code: string; status: string; source: string; batch_kind: string; inbound_batch_id: string | null
@@ -29,9 +30,9 @@ export default async function NcrListPage() {
     const supabase = await createClient()
 
     const [res, canEdit] = await Promise.all([
-        supabase.from('ncr_rows')
+        readAll(() => supabase.from('ncr_rows')
             .select('id, code, status, source, batch_kind, inbound_batch_id, output_batch_id, batch_code, description, disposition, opened_at, holding')
-            .order('opened_at', { ascending: false }),
+            .order('opened_at', { ascending: false }), { label: 'ncr_rows' }),
         can('module.quality.edit'),
     ])
     const ncrs = mustRows(res, 'ncr_rows') as Row[]

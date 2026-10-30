@@ -17,6 +17,7 @@ import PayrollPeriodsTable, { type PayrollPeriodRow } from './PayrollPeriodsTabl
 import { formatDate, formatMonth } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { shapeListTotals } from '@/lib/listTotals'
+import { readAll, readAllIn } from '@/lib/readAll'
 
 export default async function PayrollListPage() {
     const locale = await getLocale()
@@ -36,12 +37,12 @@ export default async function PayrollListPage() {
             .select('id, code, period_month, payment_date, currency, gross_total, net_pay_total, status, journal_entry_id')
             .is('deleted_at', null)
             .order('period_month', { ascending: false }),
-        supabase.from('payroll_lines').select('payroll_period_id'),
+        readAll(() => supabase.from('payroll_lines').select('payroll_period_id'), { label: 'payroll_lines' }),
         // PAYROLL-APR-1:每一期挂着的未了结申请(一期同时最多一张,唯一索引保证)
-        supabase.from('payroll_requests_masked').select('payroll_period_id, kind, status').in('status', ['submitted', 'approved']),
+        readAll(() => supabase.from('payroll_requests_masked').select('payroll_period_id, kind, status').in('status', ['submitted', 'approved']), { label: 'payroll_requests_masked' }),
         // ★ TABLE-FEATURES-2(Tim 2026-10-25 Q1):表尾合计 —— 所有未删除的期间,由库算(list_totals_payroll),每个币种一行;
         //   不持 data.view_pay 读「受限」(与上面那两列同一个码)。
-        supabase.rpc('list_totals_payroll'),
+        readAll(() => supabase.rpc('list_totals_payroll'), { label: 'list_totals_payroll', key: ['grp', 'currency', 'measure', 'total', 'restricted'] }),
     ])
     const totals = shapeListTotals(mustRows(totalsRes, 'payroll totals'))
 
@@ -74,7 +75,7 @@ export default async function PayrollListPage() {
     const canReadEntries = await can('module.finance.view')
     const jeIds = periods.map((p) => p.journal_entry_id).filter(Boolean) as string[]
     const { data: jes } = canReadEntries && jeIds.length
-        ? await supabase.from('journal_entries').select('id, code').in('id', jeIds)
+        ? await readAllIn(jeIds, (__ids) => supabase.from('journal_entries').select('id, code').in('id', __ids), { label: 'journal_entries' })
         : { data: [] as { id: string; code: string }[] }
     const jeCodeById = new Map((jes ?? []).map((j) => [j.id, j.code]))
 

@@ -1,0 +1,20 @@
+▶ gate full —— 后台起,判词只认日志里那一行 ^GATE_EXIT=
+db/run_detached.sh: child setpgid (31927 to 31927): Operation not permitted
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(60s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(121s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(181s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(241s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(301s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(361s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(422s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(482s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(542s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(602s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(662s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(722s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(782s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(842s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(903s / 3000s)
+   …仍在等 gate full:脚本自报退出码(^GATE_EXIT=)(963s / 3000s)
+✓ 等到了:gate full:脚本自报退出码(^GATE_EXIT=)(993s)
+✓ gate full:脚本自报 GATE_EXIT=0

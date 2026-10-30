@@ -20,6 +20,7 @@ import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { sampleKindKey, sampleStateKey, disputeStatusKey, ncrStatusKey, ncrDispositionKey, judgementResultKey } from '@/app/quality/qualityTypes'
 import { qualityParameterLabeller } from './qualityParameters'
+import { readAll } from '@/lib/readAll'
 
 export default async function QualityPanel({ kind, batchId, assaySampleId }: {
     kind: 'inbound' | 'output'
@@ -32,9 +33,9 @@ export default async function QualityPanel({ kind, batchId, assaySampleId }: {
     const col = kind === 'inbound' ? 'inbound_batch_id' : 'output_batch_id'
     const locale = await getLocale()
     const [sRes, dRes, nRes, jRes, canView, canEdit, paramLabel] = await Promise.all([
-        supabase.from('sample_rows').select('id, code, kind, state, retention_due').eq(col, batchId).order('created_at', { ascending: false }),
-        supabase.from('assay_dispute_rows').select('id, status, our_assay_code, counterparty_assay_code, created_at').eq(col, batchId).order('created_at', { ascending: false }),
-        supabase.from('ncr_rows').select('id, code, status, disposition, holding, opened_at').eq(col, batchId).order('opened_at', { ascending: true }),
+        readAll(() => supabase.from('sample_rows').select('id, code, kind, state, retention_due').eq(col, batchId).order('created_at', { ascending: false }), { label: 'sample_rows' }),
+        readAll(() => supabase.from('assay_dispute_rows').select('id, status, our_assay_code, counterparty_assay_code, created_at').eq(col, batchId).order('created_at', { ascending: false }), { label: 'assay_dispute_rows' }),
+        readAll(() => supabase.from('ncr_rows').select('id, code, status, disposition, holding, opened_at').eq(col, batchId).order('opened_at', { ascending: true }), { label: 'ncr_rows' }),
         kind === 'output'
             ? supabase.from('quality_limit_judgements').select('id, parameter, value, limit_min_at, limit_max_at, result, sales_order_id, assay_result_id, judged_at, sales_orders ( code ), assay_results ( code )')
                 .eq('output_batch_id', batchId).order('id', { ascending: false })

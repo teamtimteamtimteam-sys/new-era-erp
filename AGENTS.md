@@ -1904,6 +1904,16 @@ existing `freight_documents` row — all rolled back, all forbidden (`docs/handb
   四眼、CFO 档位与拒绝要【按项】由库判,结果名单要逐项说出理由。全选只勾屏幕上的。
 * 请假与医疗报销的驳回要理由:库按名拒(`LEAVE_REJECT_REASON_REQUIRED` · `MEDICAL_CLAIM_REJECT_REASON_REQUIRED`),与十二条审批链同一个形状。全文:`docs/table-features.md`。
 
+## ★★ 一次读取不许悄悄停在第 1,000 行 —— 一律翻页读(GOLIVE-2,Tim 2026-10-30 Q1)
+
+* 线上 PostgREST `max_rows = 1000`。**一张会长的表上,每一条 `.from(…)` / 回一组行的 `.rpc(…)` 读取都经 `lib/readAll.ts`**:
+  `readAll(() => <原样那条查询>, { label, key })`(返回的形状与 await 那条查询相同,`mustRows` 原样用)·
+  `readAllIn(ids, (chunk) => <那条查询 .in(列, chunk)>)`(长名单 100 个一批)。一页读得完只多一个 Range;读满 1,000 行按稳定次序重读;5 万行按名拒。
+* **构建闸 `scripts/check-unpaged-reads.mjs`**(判法只在 `scripts/unpaged-reads/classify.mjs`):不翻页、不封顶(`.limit(n)`,n ≤ 1000)、不是单行 / 计数 / 写,
+  关系又不在 `bounded-relations.json`(带理由)里、也不是一条在年体量种子上量过的按父键筛的读取(`per-parent-max.json`)→ 红。
+  真要例外,在那一句写 `unpaged-ok: <理由>`(理由进构建输出,数得出来)。**新写一张字典 / 目录表:加进 bounded-relations.json 并写清理由;新写一条按父键筛的读取:量一次那位父亲最多几行。**
+* `.limit(n)` 而 n > 1000 也红 —— 线上照样只给 1,000 行,写的人以为是 n(`/inventory/reports/ledger` 曾经就是 `.limit(2000)`)。
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and

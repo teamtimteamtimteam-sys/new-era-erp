@@ -15,6 +15,7 @@ import { parseBatchRef, batchHref } from '../../qualityTypes'
 import { loadBatchOptions, loadBatchCode } from '../../samples/batchOptions'
 import BatchPicker from '../../samples/BatchPicker'
 import OpenDisputeForm, { type AssayOption } from '../OpenDisputeForm'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewDisputePage({ searchParams }: { searchParams: Promise<{ batch?: string | string[] }> }) {
     const denied = await requireFunction(FN.qualityDisputes)
@@ -44,8 +45,8 @@ export default async function NewDisputePage({ searchParams }: { searchParams: P
 
     const col = ref.kind === 'inbound' ? 'inbound_batch_id' : 'output_batch_id'
     const [assayRes, soRes, canEdit] = await Promise.all([
-        supabase.from('assay_results').select('id, code, result_party, assay_date, lab_name')
-            .eq(col, ref.id).is('deleted_at', null).is('superseded_by', null).order('assay_date', { ascending: false }),
+        readAll(() => supabase.from('assay_results').select('id, code, result_party, assay_date, lab_name')
+            .eq(col, ref.id).is('deleted_at', null).is('superseded_by', null).order('assay_date', { ascending: false }), { label: 'assay_results' }),
         ref.kind === 'output'
             ? supabase.from('sales_orders').select('id, code').is('deleted_at', null).neq('status', 'cancelled').order('created_at', { ascending: false }).limit(200)
             : null,

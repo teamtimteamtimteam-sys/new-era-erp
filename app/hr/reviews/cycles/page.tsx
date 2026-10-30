@@ -41,6 +41,7 @@ import { getLocale } from '@/lib/i18n/server'
 import ListTrail from '@/app/components/trail/ListTrail'
 import TrailCapNotice, { TRAIL_RECORDS } from '@/app/components/trail/TrailCapNotice'
 import { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 type CycleRow = {
     id: string
@@ -76,11 +77,11 @@ export default async function ReviewCyclesPage({ searchParams }: { searchParams:
             .select('id, name, period_start, period_end, due_date, status, notes')
             .is('deleted_at', null)
             .order('period_start', { ascending: false }),
-        supabase
+        readAll(() => supabase
             .from('performance_reviews_masked')
             .select('id, employee_id, cycle_id, status, reviewer_employee_id')
             .not('cycle_id', 'is', null)
-            .neq('status', 'void'),
+            .neq('status', 'void'), { label: 'performance_reviews_masked' }),
         supabase
             .from('employees')
             .select('id, code, legal_name, employment_status')

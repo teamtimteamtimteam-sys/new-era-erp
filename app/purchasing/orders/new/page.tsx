@@ -21,6 +21,7 @@ import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { readAll } from '@/lib/readAll'
 
 export default async function NewOrderPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -48,7 +49,7 @@ export default async function NewOrderPage() {
     const canSeePricingFormulas = await can('module.pricing.view')
 
     const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes, triggersRes, assetsRes, onOrderRes, poHeadsRes] = await Promise.all([
-        supabase
+        readAll(() => supabase
             // SUP-TYPE-1b:【只列供货的供应商】——【但这里的理由与收货那两张不同,
             // 不要照抄】实测:purchase_orders 上【没有任何守卫】看 supplies_goods,
             // 所以开一张给房东的采购单,服务端是【收下的】。
@@ -74,34 +75,34 @@ export default async function NewOrderPage() {
             .select('id, legal_name')
             .is('deleted_at', null)
             .eq('supplies_goods', true)
-            .order('legal_name'),
+            .order('legal_name'), { label: 'supplier_lookup' }),
         // ★ FIX-2b:查名视图。materials 的 RLS 是 module.materials.view,而本页的门
         //   是采购 —— 一个只有采购权限的读者拿到零行,于是物料下拉是空的,
         //   读起来是「这套系统里还没有登记物料」。material_lookup 的谓词含
         //   module.purchasing.view,列有 id/code/name。换读法,不扩权。
-        supabase
+        readAll(() => supabase
             .from('material_lookup')
             .select('id, code, name')
             .is('deleted_at', null)
-            .order('code'),
+            .order('code'), { label: 'material_lookup' }),
         // 采购向或通用的启用公式(direction 'sale' 专用的不出现)
-        supabase
+        readAll(() => supabase
             .from('pricing_formulas')
             .select('id, code, name, direction')
             .is('deleted_at', null)
             .eq('is_active', true)
             .neq('direction', 'sale')
-            .order('code'),
-        supabase
+            .order('code'), { label: 'pricing_formulas' }),
+        readAll(() => supabase
             .from('payment_term_templates')
             .select('id, name')
             .is('deleted_at', null)
             .eq('is_active', true)
-            .order('name'),
-        supabase
+            .order('name'), { label: 'payment_term_templates' }),
+        readAll(() => supabase
             .from('payment_term_template_lines_masked')
             .select('template_id, seq, label, percentage, fixed_amount_ccy, trigger_event, days_offset')
-            .order('seq'),
+            .order('seq'), { label: 'payment_term_template_lines_masked' }),
         // EQP-PAY-1:付款里程碑的【单一真源】。屏幕上能挑什么,由这张表决定 ——
         // 加第七种里程碑是一行数据,不是一次改码(lib/paymentTriggers.ts 的抬头
         // 列着它此前散落的那六处)。
@@ -118,9 +119,9 @@ export default async function NewOrderPage() {
         // 【缺席要具名】这一点由表单上那句 hint 说出来,它点名了该去哪儿 ——
         // 一个静默消失的选项与一条刻意的限制长得一模一样(FIN-16 那一课)。
         canSeeAssets
-            ? supabase.from('fixed_assets')
+            ? readAll(() => supabase.from('fixed_assets')
                 .select('id, code, description, cost_base')
-                .eq('status', 'active').is('in_service_date', null).order('code')
+                .eq('status', 'active').is('in_service_date', null).order('code'), { label: 'fixed_assets' })
             : Promise.resolve({ data: [] as { id: string; code: string; description: string; cost_base: number }[], error: null }),
         // 已经挂在某条【还活着的】采购单行上的资产 —— 挑过的不该再挑一次(表上没有
         // 唯一约束拦这件事,所以这里只是【不引导人去踩】,不是一道保证)。
@@ -149,9 +150,9 @@ export default async function NewOrderPage() {
         // 【碰巧】能直接查表 —— 而那正是陷阱:哪天有人往 select 里加一个被扣住的
         // 列,它会突然 42501。判据不该是"我这次只选了安全的列"。
         // 【视图上不做 embed】表头另查一次,在 TS 里拼(本仓库既有做法)。
-        supabase.from('purchase_order_lines_masked')
-            .select('asset_id, purchase_order_id').not('asset_id', 'is', null),
-        supabase.from('purchase_orders_masked').select('id, status, deleted_at'),
+        readAll(() => supabase.from('purchase_order_lines_masked')
+            .select('asset_id, purchase_order_id').not('asset_id', 'is', null), { label: 'purchase_order_lines_masked' }),
+        readAll(() => supabase.from('purchase_orders_masked').select('id, status, deleted_at'), { label: 'purchase_orders_masked' }),
     ])
 
     const error =
@@ -177,9 +178,9 @@ export default async function NewOrderPage() {
     const canSeeSupplierTerms = await can('module.suppliers.view')
     const supplierTerms = canSeeSupplierTerms
         ? new Map((mustRows(
-              await supabase.from('suppliers')
+              await readAll(() => supabase.from('suppliers')
                   .select('id, default_payment_term_template_id')
-                  .is('deleted_at', null).eq('supplies_goods', true)
+                  .is('deleted_at', null).eq('supplies_goods', true), { label: 'suppliers' })
           ) as { id: string; default_payment_term_template_id: string | null }[])
               .map((s) => [s.id, s.default_payment_term_template_id]))
         : new Map<string, string | null>()

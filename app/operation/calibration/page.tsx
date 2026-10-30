@@ -24,6 +24,7 @@ import CellsTable, { type CellRow } from '@/app/operation/equipment/CellsTable'
 import { xText, xDate } from '@/lib/export/cells'
 import { RecordCalibrationForm, CalibrationSettings } from './CalibrationControls'
 import type { Option } from '@/app/operation/capture/captureFields'
+import { readAll } from '@/lib/readAll'
 
 type Row = {
     device_id: string; code: string; name: string; kind: string; station: string | null; in_use: boolean
@@ -40,9 +41,9 @@ export default async function CalibrationPage() {
     const supabase = await createClient()
     const canManage = await can('action.manage_devices')
     const [rowsRes, setRes] = await Promise.all([
-        supabase.from('instrument_calibration_now')
+        readAll(() => supabase.from('instrument_calibration_now')
             .select('device_id, code, name, kind, station, in_use, calibrated_on, valid_until, result, certificate_no, calibrating_body, status, approaching')
-            .order('code'),
+            .order('code'), { label: 'instrument_calibration_now', key: ['device_id', 'code', 'name', 'kind', 'station', 'interface_status', 'in_use', 'capacity', 'unit', 'registered_at', 'calibration_id', 'calibrated_on', 'valid_until', 'result', 'certificate_no', 'calibrating_body', 'status', 'approaching', 'lead_days'] }),
         supabase.from('ingest_settings').select('calibration_lead_days, require_calibrated_since').maybeSingle(),
     ])
     const rows = mustRows(rowsRes, 'instrument_calibration_now') as Row[]

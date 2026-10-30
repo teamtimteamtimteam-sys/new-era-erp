@@ -31,6 +31,7 @@ import TermSection, { type TermFieldView, type TermRowView } from './TermSection
 import HeaderForm from './HeaderForm'
 import { SECTIONS, SELL_ONLY, type SectionSpec } from './termSpecs'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 type Contract = {
     id: string; code: string; side: 'buy' | 'sell'; kind: string; title: string; status: string
@@ -71,16 +72,16 @@ export default async function ContractDetailPage({ params, searchParams }: {
     const termRows = await Promise.all(SECTIONS.map(async (s) =>
         mustRows(
             // GOLIVE-1 第 12 行:有价格格的四段读遮蔽伴生视图(readTable),价格按合同那一侧的价格码置空
-            await supabase.from((s.readTable ?? s.dbTable) as 'contract_grade_specs')
+            await readAll(() => supabase.from((s.readTable ?? s.dbTable) as 'contract_grade_specs')
                 .select(['id', ...s.fields.map((f) => f.name)].join(', '))
                 .eq('contract_id', c.id)
-                .order('created_at'),
+                .order('created_at'), { label: 's.readTables.dbTableascontract_grade_spe' }),
             s.dbTable) as unknown as Record<string, unknown>[]))
 
     // ── 字典 ───────────────────────────────────────────────────────────────
     const [substances, materials, currencies, indices, indicatorDefs] = await Promise.all([
         loadSubstanceLabels(supabase),
-        supabase.from('materials').select('id, code, name').is('deleted_at', null).order('code'),
+        readAll(() => supabase.from('materials').select('id, code, name').is('deleted_at', null).order('code'), { label: 'materials' }),
         supabase.from('currencies').select('code').order('code'),
         supabase.from('metal_price_indices').select('code, name_en, name_zh, is_active').order('sort_order'),
         // MES-6b-1(V17):质量验收限的参数 = 水分 + 指标字典(全部读:停用的照样读得出名字,选单只给启用的)
@@ -118,7 +119,7 @@ export default async function ContractDetailPage({ params, searchParams }: {
     // ── 冻结的理由、清单、权限、申请 ────────────────────────────────────────
     const [lockRes, missingRes, canWrite, missingDecideCode, requests] = await Promise.all([
         supabase.rpc('contract_terms_lock_reason', { p_contract_id: c.id }),
-        supabase.rpc('contract_activation_missing', { p_contract_id: c.id }),
+        readAll(() => supabase.rpc('contract_activation_missing', { p_contract_id: c.id }), { label: 'contract_activation_missing' }),
         can('action.contract_terms'),
         firstMissingDecideCode(can),
         loadTermsRequests(supabase, t, { which: 'contract', contractId: c.id, recent: 50 }),

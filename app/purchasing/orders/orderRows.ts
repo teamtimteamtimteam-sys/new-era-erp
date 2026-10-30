@@ -22,6 +22,7 @@ import type { PurchaseOrderRow } from './OrdersTable'
 import { parseListSort, applyListSort, setSortParams, type ListSort } from '@/lib/listSort'
 import { mustRows } from '@/lib/db-helpers'
 import { shapeListTotals, type ListTotal } from '@/lib/listTotals'
+import { readAll } from '@/lib/readAll'
 
 type Client = SupabaseClient<Database>
 
@@ -105,10 +106,10 @@ function applyStatus<T>(query: T, p: PoListParams): T {
  *   与 applyFilters / applyStatus 同一套参数,含「已取消」那一支换关系;净额 / 税 / 含税额每个币种一行,预付另一行(本位币)。
  */
 export async function poTotals(supabase: Client, p: PoListParams): Promise<ListTotal[]> {
-    const res = await supabase.rpc('list_totals_purchase_orders', {
+    const res = await readAll(() => supabase.rpc('list_totals_purchase_orders', {
         p_date_from: p.dateFrom || undefined, p_date_to: p.dateTo || undefined,
         p_supplier: p.supplier || undefined, p_status: p.status || undefined,
-    })
+    }), { label: 'list_totals_purchase_orders', key: ['grp', 'currency', 'measure', 'total', 'restricted'] })
     return shapeListTotals(mustRows(res, 'purchase order totals'))
 }
 

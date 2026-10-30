@@ -41,6 +41,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { Refusal } from '@/app/components/ui/refusal'
+import { readAll } from '@/lib/readAll'
 
 /** 名字表 + 【这位读者能不能看人事】—— 两件事必须一起传,见抬头 ④。 */
 export type ActorNameMap = { names: Map<string, string>; restricted: boolean }
@@ -119,7 +120,7 @@ export async function loadActorNames(
     const stillMissing = unique.filter((id) => !map.names.has(id))
     if (stillMissing.length > 0) {
         const portal = mustRows(
-            await supabase.rpc('portal_actor_labels', { p_user_ids: stillMissing }),
+            await readAll(() => supabase.rpc('portal_actor_labels', { p_user_ids: stillMissing }), { label: 'portal_actor_labels', key: ['user_id', 'supplier_name'] }),
             'portal account labels for actor names'
         )
         if (portal.length > 0) {

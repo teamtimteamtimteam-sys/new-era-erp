@@ -6,6 +6,7 @@
 // (IOD-2 表头那条,报表这一侧的对应物)。
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
+import { readAll } from '@/lib/readAll'
 
 export type ViolationRow = {
     material_id: string; material_code: string; class_code: string
@@ -17,9 +18,9 @@ export async function fetchViolations() {
     const supabase = await createClient()
 
     const violations = mustRows(
-        await supabase.from('stock_class_violations')
+        await readAll(() => supabase.from('stock_class_violations')
             .select('material_id, material_code, class_code, location_id, location_code, qty')
-            .order('location_code'),
+            .order('location_code'), { label: 'stock_class_violations', key: ['material_id', 'material_code', 'class_code', 'location_id', 'location_code', 'qty'] }),
         'stock_class_violations'
     ) as ViolationRow[]
 
@@ -33,7 +34,7 @@ export async function fetchViolations() {
            location_id: string | null; location_code: string | null; location_name: string | null; qty: number }[]
 
     const mats = mustRows(
-        await supabase.from('material_lookup').select('id, waste_classification_code').is('deleted_at', null),
+        await readAll(() => supabase.from('material_lookup').select('id, waste_classification_code').is('deleted_at', null), { label: 'material_lookup' }),
         'materials'
     ) as { id: string; waste_classification_code: string | null }[]
     const unclassified = new Set(mats.filter((m) => !m.waste_classification_code).map((m) => m.id))

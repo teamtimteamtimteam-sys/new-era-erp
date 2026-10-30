@@ -22,6 +22,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import MyReviewsTable, { type MyReviewRow } from './MyReviewsTable'
 import { formatDate } from '@/lib/dates'
 import { requireNotFloorDisplay } from '@/app/components/moduleGuard'
+import { readAll } from '@/lib/readAll'
 
 type SubjectRow = {
     review_id: string
@@ -63,7 +64,7 @@ export default async function MyReviewsPage() {
             .eq('reviewer_employee_id', me as string)
             .neq('status', 'void')
             .order('created_at', { ascending: false }),
-        supabase.from('my_review_subjects').select('*'),
+        readAll(() => supabase.from('my_review_subjects').select('*'), { label: 'my_review_subjects', key: ['review_id', 'employee_id', 'employee_code', 'employee_name', 'job_title', 'department_name_en', 'department_name_zh', 'cycle_name'] }),
     ])
 
     const reviews = (reviewsRes.data as unknown as ReviewRow[] | null) ?? []

@@ -48,6 +48,7 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAllIn } from '@/lib/readAll'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -156,7 +157,7 @@ export default async function PurchaseOrderDetailPage({
         //   是挂接那一刻抄下来的【值】。顺着 purchase_orders.contract_id 回查
         //   contracts.code,就是把"抄"静悄悄退化成"引用"—— 那张表的表注把这件事
         //   写成了一条禁令,而退化是没有声音的。
-        supabase.from('contract_document_terms')
+        supabase.from('contract_document_terms_masked')
             .select('contract_code, linked_at').eq('purchase_order_id', id).maybeSingle(),
         // 可挂的合同:【这家供应商的】【生效中的】【买方】合同。
         // 三条判据与 link_document_to_contract 的三条拒绝一一对应 —— 这里是礼貌
@@ -288,13 +289,13 @@ export default async function PurchaseOrderDetailPage({
     const batchIds = receipts.map((r) => r.id)
     const [materialsRes, formulasRes, apRes] = await Promise.all([
         materialIds.length
-            ? supabase.from('materials').select('id, code, name').in('id', materialIds)
+            ? readAllIn(materialIds, (__ids) => supabase.from('materials').select('id, code, name').in('id', __ids), { label: 'materials' })
             : Promise.resolve({ data: [] as { id: string; code: string; name: string }[], error: null }),
         formulaIds.length
-            ? supabase.from('pricing_formulas').select('id, code, name').in('id', formulaIds)
+            ? readAllIn(formulaIds, (__ids) => supabase.from('pricing_formulas').select('id, code, name').in('id', __ids), { label: 'pricing_formulas' })
             : Promise.resolve({ data: [] as { id: string; code: string; name: string }[], error: null }),
         batchIds.length
-            ? supabase.from('ap_open_items').select('inbound_batch_id, open_base').in('inbound_batch_id', batchIds)
+            ? readAllIn(batchIds, (__ids) => supabase.from('ap_open_items').select('inbound_batch_id, open_base').in('inbound_batch_id', __ids), { label: 'ap_open_items', key: ['doc_kind', 'doc_id', 'doc_code', 'inbound_batch_id', 'supplier_id', 'supplier_name', 'doc_date', 'doc_value_base', 'settled_base', 'open_base', 'currency', 'open_ccy', 'days_outstanding', 'bucket', 'counterparty_kind', 'counterparty_id', 'counterparty_name'] })
             : Promise.resolve({ data: [] as { inbound_batch_id: string | null; open_base: number }[], error: null }),
     ])
     // ── EQP-1c-b-fu2:这张单是【设备单】还是【材料单】───────────────────────
@@ -360,10 +361,10 @@ export default async function PurchaseOrderDetailPage({
     // 灰色"出处未知"同一条规矩:编造的记录比缺失的记录更坏。
     const lineIds = lines.map((l) => l.id)
     const commitmentsRes = lineIds.length
-        ? await supabase
+        ? await readAllIn(lineIds, (__ids) => supabase
               .from('pricing_term_commitments')
               .select('purchase_order_line_id, source_formula_code, committed_at')
-              .in('purchase_order_line_id', lineIds)
+              .in('purchase_order_line_id', __ids), { label: 'pricing_term_commitments' })
         : { data: [] as { purchase_order_line_id: string | null; source_formula_code: string; committed_at: string }[], error: null }
     const commitmentByLine = new Map(
         (mustRows(commitmentsRes)).map((c) => [c.purchase_order_line_id ?? '', c])
@@ -372,10 +373,10 @@ export default async function PurchaseOrderDetailPage({
 
     // 每批已抵扣的预付(cut 4c:收货记录多一列)
     const { data: appliedRows } = batchIds.length
-        ? await supabase
+        ? await readAllIn(batchIds, (__ids) => supabase
               .from('prepayment_applications_masked')
               .select('inbound_batch_id, amount_base')
-              .in('inbound_batch_id', batchIds)
+              .in('inbound_batch_id', __ids), { label: 'prepayment_applications_masked' })
         : { data: [] as { inbound_batch_id: string; amount_base: number }[] }
     const appliedByBatch = new Map<string, number>()
     for (const r of maskedRows<Tables<'prepayment_applications'>, 'amount_base'>(appliedRows)) {

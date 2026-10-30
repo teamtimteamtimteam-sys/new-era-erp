@@ -29,6 +29,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import EntryButton from '@/app/components/nav/EntryButton'
 import { can } from '@/lib/permissions'
+import { readAll } from '@/lib/readAll'
 
 // TABLE-EXPORT-1:行的类型、select、「库里的行 → 表的行」都搬进了 outputRows.ts(与导出路由共用)。
 
@@ -77,16 +78,16 @@ export default async function OutputPage({
     //    + 同时取客户/物料下拉选项(独立查询,并行)。
     const [{ count }, customersRes, materialsRes] = await Promise.all([
         outputCount(supabase, filterParams, searchOr),
-        supabase
+        readAll(() => supabase
             .from('customer_lookup')
             .select('id, legal_name')
             .is('deleted_at', null)
-            .order('legal_name'),
-        supabase
+            .order('legal_name'), { label: 'customer_lookup' }),
+        readAll(() => supabase
             .from('material_lookup')
             .select('id, name')
             .is('deleted_at', null)
-            .order('name'),
+            .order('name'), { label: 'material_lookup' }),
     ])
 
     const total = count ?? 0

@@ -1,0 +1,19 @@
+== platform substrate: absent (bare postgres)
+== prelude: db/platform-prelude.sql
+== database settings: db/database-settings.sql
+== replay db/functions (1016 files)
+== replay db/tables (328 files)
+== replay db/views (208 files)
+== after replay: db/platform-prelude.sql section 6 (default privileges)
+
+REBUILD OK - db/platform-prelude.sql is SUFFICIENT for the current mirror set.
+
+== comparing the rebuilt database against live
+
+== invariants (checked against BOTH live and the rebuild)
+   live     B1 anon-executable: 0   B2 definer-unchecked-and-callable: 0
+   rebuild  B1 anon-executable: 0   B2 definer-unchecked-and-callable: 0
+   allowlisted: B1 2, B2 18 (approvals_enabled, claim_receipt_limits, cod_verification, contract_terms_lock_reason, current_user_employee, current_user_permissions, export_my_personal_data, fiscal_year_end_setting, has_permission, ingest_submit, journal_entry_reversal_route, payroll_period_frozen, period_close_floor, portal_actor_labels, receipt_price_open, review_approval_code, session_is_floor_display_only, storage_licence_in_force)
+
+NO DIFFERENCES — the rebuild matches live ✓
+-- run 3 stopped at 16:30:56: its live-phase psql (pid 4317, the colgrant query) had no backend on live for 36 min and 0.05 s CPU — a dead socket from the start; supervisor sent TERM to the process group; .live-lock gone, 0 idle-in-transaction on live

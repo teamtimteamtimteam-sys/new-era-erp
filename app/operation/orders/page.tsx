@@ -26,6 +26,7 @@ import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { ListPage } from '@/app/components/ui/list-page'
 import WorkOrdersTable, { type WorkOrderRow } from './WorkOrdersTable'
 import { formatDate } from '@/lib/dates'
+import { readAll } from '@/lib/readAll'
 
 export default async function WorkOrdersPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -37,9 +38,9 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
     const supabase = await createClient()
 
     const orders = mustRows(
-        await supabase.from('work_orders')
+        await readAll(() => supabase.from('work_orders')
             .select('id, code, status, scheduled_date, notes, created_at')
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false }), { label: 'work_orders' }),
         'work_orders') as {
             id: string; code: string; status: string
             scheduled_date: string | null; notes: string | null; created_at: string }[]
@@ -48,9 +49,9 @@ export default async function WorkOrdersPage({ searchParams }: { searchParams: P
     // 列表要的是一个可扫的数,所以在这里加总 —— 而【加总的是视图的数】,
     // 不是重新算一遍(AGENTS.md:一处推导,N 个消费者)。
     const rows = orders.length === 0 ? [] : mustRows(
-        await supabase.from('work_order_fulfilment')
+        await readAll(() => supabase.from('work_order_fulfilment')
             .select('work_order_id, side, planned_or_expected_qty, actual_qty, has_plan')
-            .eq('side', 'input'),
+            .eq('side', 'input'), { label: 'work_order_fulfilment', key: ['work_order_id', 'work_order_code', 'status', 'scheduled_date', 'side', 'material_id', 'material_code', 'material_name', 'planned_or_expected_qty', 'actual_qty', 'variance_qty', 'has_plan'] }),
         'work_order_fulfilment') as {
             work_order_id: string; side: string
             planned_or_expected_qty: number | null; actual_qty: number; has_plan: boolean }[]

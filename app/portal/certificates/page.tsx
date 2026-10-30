@@ -1,10 +1,12 @@
 // app/portal/certificates/page.tsx
 // MES-9c(2026-10-20,MES-9 Step 0 §4 · §5 · Q19 · V39,Tim):【门户的证书】—— 调用者自己那一家在册的合规证书,它自己交上来的每一份与状态
 //   (等审核 · 已接受 · 已驳回与理由),以及交一份新的。
-//   读的只有 portal_certificates()(只授 supplier_portal;先过 portal_require_link)。交 = 一张 multipart 表单 POST 到
-//   /portal/certificates/upload(那条路由先按 V39 问库、库按名拒,过了才以这个会话自己的令牌把字节传进 portal-uploads)。
+//   读的只有 portal_certificates()(只授 supplier_portal;先过 portal_require_link)。交 = UploadForm(浏览器那一半):
+//   先按 V39 问库(beginSubmission,库按名拒),过了才以这个会话自己的令牌把字节【从浏览器直传】portal-uploads,再由服务端读回文件头确认
+//   (finishSubmission)。GOLIVE-2 第 9 行之前那条 multipart 路由(/portal/certificates/upload)读整份文件进函数,被 Vercel 4.5 MB 的请求体
+//   上限挡在应用之外 —— 页面上那句「每份不超过 10 MB」(V39 的数)从这一刀起在生产上才是真的。
 //   【一份上传只是一份等审核的申请】—— 这一页照直说:员工接受之前,它什么都不改。
-//   路由回来时带 ?submitted=1 或 ?error=<码>[&p=<参数>],这里把码说成人话(portal.errors.*)。
+//   上传完落回这里,带 ?submitted=1 或 ?error=<码>[&p=<参数>],这里把码说成人话(portal.errors.*)。
 //   门户函数按名拒的三种(撤销了 · 会话结束了 · 令牌不是门户角色)各说一句人话;别的失败照常抛(失败不是空集)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -14,6 +16,7 @@ import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style
 import { Button } from '@/app/components/ui/button'
 import { DatePicker } from '@/app/components/ui/date-picker'
 import { localizePortalError, PORTAL_ERROR_CODES } from '../portalErrorCodes'
+import UploadForm from './UploadForm'
 
 type Named = { name_en: string; name_zh: string }
 type PortalCertificates = {
@@ -126,7 +129,7 @@ export default async function PortalCertificatesPage({ searchParams }: { searchP
                 {!d.limits.set ? (
                     <p className="text-sm" data-limits="not-set">{t('portal.errors.PORTAL_UPLOAD_LIMITS_NOT_SET')}</p>
                 ) : (
-                    <form action="/portal/certificates/upload" method="post" encType="multipart/form-data" className="space-y-3" data-form="portal-upload">
+                    <UploadForm busyText={t('portal.certificates.uploading')}>
                         <p className="text-xs" data-limits="set">{t('portal.certificates.limits', { mb: maxMb, types: typesText })}</p>
                         <div className="flex flex-wrap gap-3">
                             <label className="block text-sm min-w-0 basis-full sm:basis-0 flex-1">
@@ -158,7 +161,7 @@ export default async function PortalCertificatesPage({ searchParams }: { searchP
                         </label>
                         <Button type="submit">{t('portal.certificates.submit')}</Button>
                         <p className="text-xs text-[color:var(--brand-muted-text)]">{t('portal.certificates.reviewNote')}</p>
-                    </form>
+                    </UploadForm>
                 )}
             </section>
         </div>

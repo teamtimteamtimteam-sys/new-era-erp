@@ -8,6 +8,7 @@ import CalculatorForm, { type FormulaOption } from './CalculatorForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, payableOnly, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { readAll } from '@/lib/readAll'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -29,12 +30,12 @@ export default async function CalculatorPage({
     const substanceOptions = toOptions(payableOnly(await loadSubstances(supabase)), await getLocale())   // MES-6a-2(Q27):定价这一页只给按含量计价的金属
     const t = await getTranslations()
 
-    const res = await supabase
+    const res = await readAll(() => supabase
         .from('pricing_formulas')
         .select('id, code, name, direction')
         .is('deleted_at', null)
         .eq('is_active', true)
-        .order('code')
+        .order('code'), { label: 'pricing_formulas' })
 
     if (res.error) {
         return (

@@ -32,6 +32,7 @@ import { TERM_KEYS, type DeviceValues, type Option } from '../deviceFields'
 import { INSTRUMENT_KINDS } from '@/app/operation/capture/captureFields'
 import { RecordCalibrationForm, VoidCalibration } from '@/app/operation/calibration/CalibrationControls'
 import MeterPanel, { type MeterReadingView } from '../MeterPanel'
+import { readAll } from '@/lib/readAll'
 
 type Device = {
     id: string; code: string; name: string; kind: string; gateway_id: string | null; data_class: string | null
@@ -63,9 +64,9 @@ export default async function DevicePage({ params, searchParams }: {
     const isGateway = d.kind === 'gateway'
 
     const [allRes, classRes, eqRes] = await Promise.all([
-        supabase.from('devices').select('id, code, name, kind, gateway_id, retired_at').order('code'),
+        readAll(() => supabase.from('devices').select('id, code, name, kind, gateway_id, retired_at').order('code'), { label: 'devices' }),
         supabase.from('ingest_data_classes').select('code, name_en, name_zh, is_active').order('sort_order'),
-        supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description, equipment_status').order('equipment_code'),
+        readAll(() => supabase.from('equipment_usage').select('equipment_id, equipment_code, equipment_description, equipment_status').order('equipment_code'), { label: 'equipment_usage', key: ['equipment_id', 'equipment_code', 'equipment_description', 'acquisition_date', 'in_service_date', 'equipment_status', 'run_count', 'input_kg', 'output_kg', 'loss_kg', 'first_run_date', 'last_run_date', 'equipment_category'] }),
     ])
     const all = mustRows(allRes, 'devices') as { id: string; code: string; name: string; kind: string; gateway_id: string | null; retired_at: string | null }[]
     const classes = mustRows(classRes, 'ingest_data_classes') as { code: string; name_en: string; name_zh: string; is_active: boolean }[]

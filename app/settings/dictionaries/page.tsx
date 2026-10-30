@@ -32,6 +32,7 @@ import { DICTIONARIES } from './registry'
 import DictSection, { type DictRow } from './DictSection'
 import { Alert } from '@/app/components/ui/alert'
 import AuditTrail, { trailCount, type TrailSubject } from '@/app/components/trail/AuditTrail'
+import { readAll } from '@/lib/readAll'
 
 // AUDIT-TRAIL-1d-1(Tim 的 Q4 —— M11):每一段一块审计记录 —— 那本字典整本是一条记录(集合主语:那张表今天的每一行、
 //   变更记录里它的每一行),所以加上的、改了的、停用 / 恢复的值都在那一段底下。主语名与表名一一对应(trail_subjects.sql)。
@@ -129,7 +130,7 @@ export default async function DictionariesPage({
         const cols = ['code', 'name_en', 'name_zh', 'is_active', 'sort_order', 'notes',
                       ...d.extras.map((e) => e.column)].join(', ')
         return mustRows(
-            await supabase.from(d.table).select(cols).order('sort_order'), d.table
+            await readAll(() => supabase.from(d.table).select(cols).order('sort_order'), { label: 'd.table' }), d.table
         ) as unknown as DictRow[]
     })
 
@@ -140,22 +141,20 @@ export default async function DictionariesPage({
     // 【为什么先摊平成一张平表,而不是嵌套三层并发】嵌套的并发上限乘不起来:
     // 外层 6 × 内层 8 会一次放出 48 个,上限就不再是上限了。摊平之后
     // 整页【只有一个】并发闸,79 次请求按 12 个一批走,批数是算得出来的。
-    const probes = visible.flatMap((d, di) =>
-        rowsPerDict[di].flatMap((r) => d.referencedBy.map((ref) => ({ di, code: r.code, ref }))))
-
-    const counts = await pMap(probes, DEFAULT_QUERY_CONCURRENCY, async (p) => {
-        const c = await supabase.from(p.ref.table)
-            .select(p.ref.column, { count: 'exact', head: true }).eq(p.ref.column, p.code)
-        // 【查不到不是零】—— 数错了会让人以为"没人用",然后放心停用。
-        if (c.error) throw new Error(`用量查询失败(${p.ref.table}): ${c.error.message}`)
-        return c.count ?? 0
-    })
+    // ★ GOLIVE-2 第 13 行(Tim 2026-10-30 Q2):上面那一段写的 79 次 —— 线上实测已是 180 次(17 本字典 × 引用表 × 每个值)—— 在线上
+    //   是 28–46 秒(库里一共只干 23 ms 的活,其余全是路上)。现在【一次】调用 dictionary_usage_counts:每张引用表一条按值分组的查询,
+    //   按读者自己的权限数(SECURITY INVOKER,行级策略照样生效)—— 每一个数与原来逐值数的那一份逐个相同(fixture 305 的 D 臂,七个角色)。
+    //   【查不到不是零】照旧:读不了某张引用表的人,那一次调用整个失败,页面照样抛 —— 不把用量说成 0。
+    const refs = [...new Map(visible.flatMap((d) => d.referencedBy.map((ref) => [`${ref.table}.${ref.column}`, { ref_table: ref.table, ref_column: ref.column }]))).values()]
+    const usageRes = await supabase.rpc('dictionary_usage_counts', { p_refs: refs })
+    if (usageRes.error) throw new Error(`用量查询失败(dictionary_usage_counts): ${usageRes.error.message}`)
+    const counted = (usageRes.data ?? {}) as Record<string, Record<string, number>>
 
     // MES-6a-1(Q23):一节字典若有指向供应商的那一列(实验室的付款户),读一次查名视图做选项 —— 只有编号与法定名(supplier_lookup);
     //   读不到这张视图的人(进不了供应商、收货、物流、财务、定价任何一个)不需要它,也不读它。
     const needsSuppliers = visible.some((d) => d.extras.some((e) => e.kind === 'supplier'))
     const supplierOptions = !needsSuppliers ? [] : (mustRows(
-        await supabase.from('supplier_lookup').select('id, code, legal_name').is('deleted_at', null).order('code'), 'supplier_lookup') as
+        await readAll(() => supabase.from('supplier_lookup').select('id, code, legal_name').is('deleted_at', null).order('code'), { label: 'supplier_lookup' }), 'supplier_lookup') as
         { id: string; code: string; legal_name: string }[]).map((r) => ({ value: r.id, label: `${r.code} — ${r.legal_name}` }))
 
     const sections = visible.map((d, di) => {
@@ -163,8 +162,10 @@ export default async function DictionariesPage({
         for (const r of rowsPerDict[di]) usage[r.code] = 0
         return { spec: d, rows: rowsPerDict[di], usage, readOnly: readOnlyPerVisible[di] }
     })
-    // 计数按【下标】归位,不靠完成顺序 —— pMap 保证返回顺序与输入顺序一致。
-    probes.forEach((p, i) => { sections[p.di].usage[p.code] += counts[i] })
+    // 每个值的用量 = 它在每一张引用表里的行数之和(与原来逐值、逐表数完再加起来同一个数)
+    visible.forEach((d, di) => {
+        for (const r of rowsPerDict[di]) for (const ref of d.referencedBy) sections[di].usage[r.code] += counted[`${ref.table}.${ref.column}`]?.[r.code] ?? 0
+    })
 
     return (
         <ListPage

@@ -24,6 +24,7 @@ import type { PayrollPaymentEntry } from '@/app/finance/payroll-payments/payment
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import DocumentChains from '@/app/components/chain/DocumentChains'
+import { readAll } from '@/lib/readAll'
 
 export default async function PayrollDetailPage({
     params,
@@ -80,7 +81,7 @@ export default async function PayrollDetailPage({
         can('data.view_pay'),
         supabase.rpc('current_user_employee'),
         // ★ OVERTIME-1(Tim Q1):批过的加班【小时】—— 只读、不算钱(政策 7.1);那个月考勤完成之后读冻住的数
-        supabase.rpc('overtime_month_hours', { p_month: period.period_month }),
+        readAll(() => supabase.rpc('overtime_month_hours', { p_month: period.period_month }), { label: 'overtime_month_hours', key: ['employee_id', 'weekday_hours', 'rest_day_hours', 'public_holiday_hours', 'total_hours', 'fixed'] }),
     ])
     const otRows = mustRows(otRes, 'overtime_month_hours')
     const otByEmployee = new Map(otRows.map((o) => [o.employee_id, Number(o.total_hours)]))
