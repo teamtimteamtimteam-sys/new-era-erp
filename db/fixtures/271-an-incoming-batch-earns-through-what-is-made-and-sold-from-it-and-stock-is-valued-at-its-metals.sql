@@ -395,7 +395,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 271 · LOG';
     v_x := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 10) IS NOT FALSE THEN
+    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 12) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 271 LOG: change-log coverage (gaps 0, exclusions 9): %', v_x; END IF;
     IF (EXISTS (SELECT 1 FROM unnest(ARRAY['compliance_settings', 'compliance_packs', 'compliance_pack_issues']) t
                 WHERE NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = ('public.' || t)::regclass))) IS NOT FALSE THEN

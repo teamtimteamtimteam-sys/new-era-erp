@@ -1,0 +1,9 @@
+STEP|base https://new-era-erp.vercel.app
+SELECT1|before the reader client round trips 472 / 623 / 421 / 461 / 422 ms (median 461) · server execution 0.025 ms
+HEALTH|before the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|/contracts (HTTP 200, h1 "Contracts", 22236 ms to network idle): error boundary none; alerts none
+PASS|/settings/signatories (HTTP 200, h1 "Contract signatories", 7124 ms to network idle): error boundary none; alerts none; route exists ⇒ production serves 0628769 / f5ffe87 (v1.4.85); main text: "Workbench Purchasing Operation Quality Sales Logistics Finance HR ESG Equipment 31/10/2026 E 2 Accounts · Restricted Roles · Restricted Permission reference · Restricted Dictionaries Bulk import · Restricted Approvals · Restricted Deleted records Pending values Change history Contract signatories · "
+SELECT1|after the reader client round trips 410 / 405 / 406 / 409 / 409 ms (median 409) · server execution 0.033 ms
+HEALTH|after the reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|done
+CE_CLOSEOUT_EXIT=0

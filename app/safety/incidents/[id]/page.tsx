@@ -22,6 +22,7 @@ import { neaStatusLabel, deadlineLabel } from '../neaStatus'
 import { fieldKey, updateKindKey, batchHref } from '../../safetyTypes'
 import IncidentUpdatesPanel, { type UpdateRow } from './IncidentUpdatesPanel'
 import IncidentBatchesPanel, { type LinkRow, type SuggestionRow } from './IncidentBatchesPanel'
+import DaysLostCorrectionForm from './DaysLostCorrectionForm'
 import { readAll } from '@/lib/readAll'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -36,9 +37,10 @@ type I = {
     closed_at: string | null; closed_summary: string | null; report_deadline: string | null; deadline_state: string; deadline_working_days: number | null
     deadline_confirmed: boolean; injury_visible: boolean; injured_employee_id: string | null; injured_employee_label: string | null
     injured_person_name: string | null; injury_nature: string | null; injury_treatment: string | null; days_lost: number | null
+    days_lost_recorded: number | null; days_lost_corrections: number | null
 }
 
-const COLS = 'id, code, kind_code, kind_name_en, kind_name_zh, occurred_at, location_code, location_name, equipment_id, equipment_code, equipment_name, duration_min, what_happened, immediate_action, responsible_label, nea_reportable, source, downtime_id, downtime_started_at, run_event_id, run_event_run_id, run_event_run_code, run_event_occurred_at, recorded_at, corrections, notified_at, notified_reference, report_submitted_at, report_reference, closed_at, closed_summary, report_deadline, deadline_state, deadline_working_days, deadline_confirmed, injury_visible, injured_employee_id, injured_employee_label, injured_person_name, injury_nature, injury_treatment, days_lost'
+const COLS = 'id, code, kind_code, kind_name_en, kind_name_zh, occurred_at, location_code, location_name, equipment_id, equipment_code, equipment_name, duration_min, what_happened, immediate_action, responsible_label, nea_reportable, source, downtime_id, downtime_started_at, run_event_id, run_event_run_id, run_event_run_code, run_event_occurred_at, recorded_at, corrections, notified_at, notified_reference, report_submitted_at, report_reference, closed_at, closed_summary, report_deadline, deadline_state, deadline_working_days, deadline_confirmed, injury_visible, injured_employee_id, injured_employee_label, injured_person_name, injury_nature, injury_treatment, days_lost, days_lost_recorded, days_lost_corrections'
 
 export default async function IncidentPage({ params, searchParams }: {
     params: Promise<{ id: string }>
@@ -80,7 +82,10 @@ export default async function IncidentPage({ params, searchParams }: {
                         { label: t('safety.incident.injuredPerson'), value: n.injured_employee_label ?? n.injured_person_name ?? '—' },
                         { label: t('safety.incident.injuryNature'), value: n.injury_nature ?? '—' },
                         { label: t('safety.incident.injuryTreatment'), value: n.injury_treatment ?? '—' },
-                        { label: t('safety.incident.daysLost'), value: num(n.days_lost) },
+                        // ESG-2(Q7):现在的值是最后一次更正;更正过就把记下时的那个数与次数一起写出来
+                        { label: t('safety.incident.daysLost'), value: (n.days_lost_corrections ?? 0) > 0
+                            ? <span data-days-lost-corrected="1">{num(n.days_lost)} <span className="text-xs text-[color:var(--brand-muted-text)]">{t('safety.daysLost.correctedFrom', { recorded: num(n.days_lost_recorded), n: n.days_lost_corrections ?? 0 })}</span></span>
+                            : num(n.days_lost) },
                     ]} />
                 ) : <p className="text-sm text-[color:var(--brand-muted-text)]" data-value="no-injury">{t('safety.incident.noInjury')}</p>
             ) : (
@@ -189,6 +194,10 @@ export default async function IncidentPage({ params, searchParams }: {
             )}
 
             {injury}
+            {/* ESG-2(Q7):误工天数的更正 —— 只在没关闭、而且(读得到受伤细节时)确实有受伤的人的事故上;读不到受伤细节的编辑者照样能更正(库判有没有受伤的人) */}
+            {!n.closed_at && (!n.injury_visible || n.injured_employee_id || n.injured_person_name) && (
+                <DaysLostCorrectionForm incidentId={n.id} canEdit={canEdit} />
+            )}
 
             <section className="mt-8" data-section="nea">
                 <h2 className="mb-1">{t('safety.incident.neaTitle')}</h2>

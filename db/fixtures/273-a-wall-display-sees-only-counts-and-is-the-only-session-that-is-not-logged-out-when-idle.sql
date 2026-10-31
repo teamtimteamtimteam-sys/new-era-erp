@@ -131,7 +131,8 @@ BEGIN
     SELECT array_agg(permission_code ORDER BY permission_code) INTO v_codes FROM role_permissions WHERE role_id = r_floor;
     IF (v_codes IS DISTINCT FROM ARRAY['data.view_floor_board']) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 273 REG: floor_display holds exactly data.view_floor_board, got %', v_codes; END IF;
-    IF (EXISTS (SELECT 1 FROM permissions p WHERE NOT EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = r_admin AND rp.permission_code = p.code))) IS NOT FALSE THEN
+    -- ★ ESG-2(Tim 2026-10-31 Q13):admin 持每一个码,唯一的例外是举报的两个读码。
+    IF (EXISTS (SELECT 1 FROM permissions p WHERE p.code NOT IN ('data.view_whistleblowing', 'data.view_whistleblowing_escalated') AND NOT EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role_id = r_admin AND rp.permission_code = p.code))) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 273 REG: admin holds every code, data.view_floor_board included'; END IF;
 
     -- 身份:大屏(只挂 floor_display)· 全码 · 零码 · 设 V28 的人(action.manage_permissions)· 只持大屏码、却经别的角色
@@ -299,7 +300,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 273 · LOG';
     v_x := change_log_coverage_gaps();
-    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 10) IS NOT FALSE THEN
+    IF (jsonb_array_length(v_x -> 'gaps') <> 0 OR (v_x ->> 'excluded')::int <> 12) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 273 LOG: change-log coverage (gaps 0, exclusions 9): %', v_x; END IF;
     IF (NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgname = 'zzz_change_log' AND g.tgrelid = 'public.floor_board_settings'::regclass)) IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 273 LOG: floor_board_settings is change-logged'; END IF;

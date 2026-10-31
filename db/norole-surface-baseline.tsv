@@ -46,6 +46,7 @@ rows	norole:public.waste_classifications	reference vocabulary read by many roles
 rows	norole:public.company_profile	the company's own name, address, contact, footer and logo path — the column grant leaves out all five bank columns; the same data company_profile_masked shows (Step 0 Q16)
 rows	norole:public.company_profile_masked	company name, address and contact for headers and /me; banking is masked behind data.view_banking (Step 0 Q16)
 rows	norole:public.document_relations	foreign-key metadata from pg_constraint and document_types — no business rows (Step 0 Q17)
+rows	norole:public.grid_emission_factors	the grid emission factor by year (kg CO2/kWh, its source and version) — a public published figure; hiding it would make Scope 2 read 'factor not set' when it is set (ESG-2, Tim 2026-10-31 Q1 · Q2)
 rows	display:public.battery_chemistries	reference vocabulary read by many roles' pages and by /me and / for any employee; no money, people or security data (Step 0 Q16, Tim 2026-10-19)
 rows	display:public.certificate_types	reference vocabulary read by many roles' pages and by /me and / for any employee; no money, people or security data (Step 0 Q16, Tim 2026-10-19)
 rows	display:public.currencies	reference vocabulary read by many roles' pages and by /me and / for any employee; no money, people or security data (Step 0 Q16, Tim 2026-10-19)
@@ -86,6 +87,7 @@ rows	display:public.company_profile	the company's own name, address, contact, fo
 rows	display:public.company_profile_masked	company name, address and contact for headers and /me; banking is masked behind data.view_banking (Step 0 Q16)
 rows	display:public.document_relations	foreign-key metadata from pg_constraint and document_types — no business rows (Step 0 Q17)
 rows	display:public.floor_board_settings	V28 (refresh interval, which tiles) — its policy is data.view_floor_board or action.manage_permissions; the display needs it to draw /display (MES-8b-2)
+rows	display:public.grid_emission_factors	the grid emission factor by year (kg CO2/kWh, its source and version) — a public published figure; hiding it would make Scope 2 read 'factor not set' when it is set (ESG-2, Tim 2026-10-31 Q1 · Q2)
 # ── call ──
 call	display:floor_board()	the wall display's one reader: counts only, gated on data.view_floor_board (Step 0 Q20; MES-8b-2)
 # ── policy ──
@@ -126,6 +128,7 @@ policy	public.shifts:shifts select all	reference vocabulary read by many roles' 
 policy	public.substances:substances select all	reference vocabulary read by many roles' pages and by /me and / for any employee; no money, people or security data (Step 0 Q16, Tim 2026-10-19)
 policy	public.waste_classifications:waste_classifications select	reference vocabulary read by many roles' pages and by /me and / for any employee; no money, people or security data (Step 0 Q16, Tim 2026-10-19)
 policy	public.company_profile:company_profile select by permission	USING (true) over a column-list grant without the bank columns; company name and address (Step 0 Q16)
+policy	public.grid_emission_factors:grid_emission_factors select by any signed-in user	the grid emission factor by year (kg CO2/kWh, its source and version) — a public published figure; hiding it would make Scope 2 read 'factor not set' when it is set (ESG-2, Tim 2026-10-31 Q1 · Q2)
 # ── view ──
 view	attendance_period_status	a shell over attendance_period_status_rows() (SECURITY DEFINER) that RAISEs PERMISSION_DENIED for a reader without the code — the judge is in the function (Step 0 §0.3)
 view	inbound_batch_valuation	a shell over inbound_batch_valuation_rows() (SECURITY DEFINER) that RAISEs PERMISSION_DENIED for a reader without the code (Step 0 §0.3)

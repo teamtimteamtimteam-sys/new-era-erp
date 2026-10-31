@@ -11,6 +11,10 @@
 // 【每一条按它自己的码】(Tim Q1:"each gated by its own code"):①② module.safety.view · ③ module.suppliers.view ·
 //   ④ data.view_cod。先判码、再决定查不查 —— 进不去的那一条画具名的「受限」,不是一个空集读出来的零(D5)。
 //   页面的门(注册表 /safety)是三者任一,所以一个只持其一的人进得来、看得见自己那一条。
+// ★ ESG-2(Tim 2026-10-31 Q15 · E):再加五条,各按自己的码 —— ⑤ Scope 2(能耗强度页那一对码:财务或加工查看)· ⑥ 误工事故与频率
+//   (module.safety.view 进得来,数要 data.view_health)· ⑦ 培训合规(module.hr.view)· ⑧ 制度登记簿(有员工档案的人都读得到 —— 行由视图裁)·
+//   ⑨ 还开着的举报(读者自己的举报码:涉及 CCO 的那几件只算给持 data.view_whistleblowing_escalated 的人 —— 行谓词在库里,这里只数读到的)。
+//   每一个数都是那一页同一支库函数 / 同一张视图的答案,这里不另算。
 // 【手机(390px)】单列 max-w-3xl,与另外几张概览逐字同一个外壳。
 // ════════════════════════════════════════════════════════════════════════════
 import Link from 'next/link'
@@ -27,6 +31,9 @@ import { readAll } from '@/lib/readAll'
 const P_SAFETY = 'module.safety.view'
 const P_SUPPLIERS = 'module.suppliers.view'
 const P_COD = 'data.view_cod'
+const P_HEALTH = 'data.view_health'
+const P_HR = 'module.hr.view'
+const P_WB = ['data.view_whistleblowing', 'data.view_whistleblowing_escalated'] as const
 
 const none = { data: null, error: null }
 
@@ -44,6 +51,12 @@ export default async function EsgOverviewPage() {
     const canSafety = allows(P_SAFETY, perms)
     const canSuppliers = allows(P_SUPPLIERS, perms)
     const canCod = allows(P_COD, perms)
+    const canEnergy = allows(FN.esgEnergy.permission, perms)
+    const canHealth = allows(P_HEALTH, perms)
+    const canHr = allows(P_HR, perms)
+    const canWb = allows({ all: [], any: [...P_WB] }, perms)
+    const thisYear = Number(asOf.slice(0, 4))
+    const thisMonth = Number(asOf.slice(5, 7))
 
     const [incRes, findRes, envRes, licRes, typeRes, supRes, codRes] = await Promise.all([
         canSafety ? readAll(() => supabase.from('incident_rows').select('id, occurred_on, closed_at'), { label: 'incident_rows' }) : Promise.resolve(none),
@@ -54,6 +67,39 @@ export default async function EsgOverviewPage() {
         canSuppliers ? readAll(() => supabase.from('supplier_certificate_status').select('id, status'), { label: 'supplier_certificate_status' }) : Promise.resolve(none),
         canCod ? readAll(() => supabase.from('certificates_of_destruction').select('id, status'), { label: 'certificates_of_destruction' }) : Promise.resolve(none),
     ])
+
+    const [s2Res, rateRes, covRes, polRes, wbRes] = await Promise.all([
+        canEnergy ? supabase.rpc('esg_scope2_monthly', { p_year: thisYear }) : Promise.resolve(none),   // unpaged-ok: 恒为 12 行(一年的 12 个月,esg_scope2_monthly 的形状)
+        canSafety ? supabase.rpc('esg_safety_rates', { p_year: thisYear }) : Promise.resolve(none),     // unpaged-ok: 至多 13 行(12 个月 + 年初至今那一行)
+        canHr ? readAll(() => supabase.rpc('esg_training_coverage'), { label: 'esg_training_coverage', key: 'required_training_id' }) : Promise.resolve(none),
+        readAll(() => supabase.from('company_policy_rows').select('id, is_current, review_overdue'), { label: 'company_policy_rows' }),
+        canWb ? readAll(() => supabase.from('whistleblowing_report_rows').select('id, status'), { label: 'whistleblowing_report_rows' }) : Promise.resolve(none),
+    ])
+
+    // ── ⑤ Scope 2(年初至今,按天摊)──────────────────────────────────────────
+    const s2 = canEnergy ? (mustRows(s2Res as never, 'esg_scope2_monthly') as { month: string; kwh: number | string; tco2: number | string | null; factor_missing: boolean; bills: number }[])
+        .filter((m) => Number(String(m.month).slice(5, 7)) <= thisMonth) : []
+    const s2Bills = s2.reduce((a, m) => a + m.bills, 0)
+    const s2Missing = s2.some((m) => m.factor_missing)
+    const s2T = s2.reduce((a, m) => a + Number(m.tco2 ?? 0), 0)
+    const s2Kwh = s2.reduce((a, m) => a + Number(m.kwh), 0)
+    const fmt = (v: number, d = 0) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
+
+    // ── ⑥ 误工事故与频率(年初至今那一行)────────────────────────────────────
+    const ytd = canSafety ? ((mustRows(rateRes as never, 'esg_safety_rates') as { month: string | null; hours_state: string; lti: number | null; days_lost: number | string | null; ltifr: number | string | null }[])
+        .find((r) => r.month === null) ?? null) : null
+
+    // ── ⑦ 培训合规 ──────────────────────────────────────────────────────────
+    const cov = canHr ? mustRows(covRes as never, 'esg_training_coverage') as { applicable: number; valid: number; expiring: number; expired: number; missing: number }[] : []
+    const covApplicable = cov.reduce((a, c) => a + c.applicable, 0)
+    const covOk = cov.reduce((a, c) => a + c.valid + c.expiring, 0)
+
+    // ── ⑧ 制度登记簿 ────────────────────────────────────────────────────────
+    const pols = mustRows(polRes, 'company_policy_rows') as { id: string; is_current: boolean; review_overdue: boolean }[]
+    const polCurrent = pols.filter((p) => p.is_current)
+
+    // ── ⑨ 还开着的举报(读到的才数)────────────────────────────────────────
+    const wbs = canWb ? mustRows(wbRes as never, 'whistleblowing_report_rows') as { id: string; status: string }[] : []
 
     // ── ① 事故与巡检 ────────────────────────────────────────────────────────
     const incidents = canSafety ? mustRows(incRes as never, 'incident_rows') as { id: string; occurred_on: string; closed_at: string | null }[] : []
@@ -164,6 +210,78 @@ export default async function EsgOverviewPage() {
             >
                 <p className="text-sm" style={{ color: 'var(--brand-text)' }} data-esg="cod">
                     {t('esg.overview.codLine', { issued: codCount('issued'), pending: codCount('pending'), voided: codCount('void') })}
+                </p>
+            </Figure>
+
+            {/* ── ⑤ Scope 2 ────────────────────────────────────────────── */}
+            <Figure
+                title={t('esg.overview.scope2Title')}
+                basis={{ asOf, source: t('esg.overview.scope2Source', { year: thisYear }), spans: t('esg.overview.scope2Spans') }}
+                state={!canEnergy ? { kind: 'restricted', permission: 'module.finance.view' }
+                    : s2Bills === 0 ? { kind: 'unanswerable', why: t('esg.overview.scope2None', { year: thisYear }) }
+                    : s2Missing ? { kind: 'unanswerable', why: t('esg.overview.scope2FactorNotSet') }
+                    : { kind: 'ok' }}
+                action={link(FN.esgEnergy.href, FN.esgEnergy.navKey)}
+            >
+                <p className="text-sm" style={{ color: 'var(--brand-text)' }} data-esg="scope2">
+                    {t('esg.overview.scope2Line', { t: fmt(s2T, 3), kwh: fmt(s2Kwh, 1) })}
+                </p>
+            </Figure>
+
+            {/* ── ⑥ 误工事故与频率 ─────────────────────────────────────── */}
+            <Figure
+                title={t('esg.overview.ratesTitle')}
+                basis={{ asOf, source: t('esg.overview.ratesSource', { year: thisYear }), spans: t('esg.overview.ratesSpans') }}
+                state={!canSafety ? { kind: 'restricted', permission: P_SAFETY }
+                    : !canHealth ? { kind: 'restricted', permission: P_HEALTH }
+                    : { kind: 'ok' }}
+                action={link(FN.esgRates.href, FN.esgRates.navKey)}
+            >
+                <p className="text-sm" style={{ color: 'var(--brand-text)' }} data-esg="rates">
+                    {ytd && ytd.hours_state === 'complete'
+                        ? t('esg.overview.ratesLine', { lti: ytd.lti ?? 0, days: fmt(Number(ytd.days_lost ?? 0), 1), rate: fmt(Number(ytd.ltifr ?? 0), 2) })
+                        : t('esg.overview.ratesNoRate', { lti: ytd?.lti ?? 0, days: fmt(Number(ytd?.days_lost ?? 0), 1) })}
+                </p>
+            </Figure>
+
+            {/* ── ⑦ 培训合规 ───────────────────────────────────────────── */}
+            <Figure
+                title={t('esg.overview.trainingTitle')}
+                basis={{ asOf, source: t('esg.overview.trainingSource'), spans: t('esg.overview.trainingSpans') }}
+                state={!canHr ? { kind: 'restricted', permission: P_HR }
+                    : cov.length === 0 ? { kind: 'unanswerable', why: t('esg.overview.trainingNone') }
+                    : { kind: 'ok' }}
+                action={link(FN.esgTraining.href, FN.esgTraining.navKey)}
+            >
+                <p className="text-sm" style={{ color: 'var(--brand-text)' }} data-esg="training">
+                    {t('esg.overview.trainingLine', {
+                        trainings: cov.length, pct: covApplicable === 0 ? '—' : `${Math.round((covOk / covApplicable) * 1000) / 10}%`,
+                        expiring: cov.reduce((a, c) => a + c.expiring, 0), expired: cov.reduce((a, c) => a + c.expired, 0), missing: cov.reduce((a, c) => a + c.missing, 0),
+                    })}
+                </p>
+            </Figure>
+
+            {/* ── ⑧ 制度登记簿 ─────────────────────────────────────────── */}
+            <Figure
+                title={t('esg.overview.policiesTitle')}
+                basis={{ asOf, source: t('esg.overview.policiesSource'), spans: t('esg.overview.policiesSpans') }}
+                state={polCurrent.length === 0 ? { kind: 'unanswerable', why: t('esg.overview.policiesNone') } : { kind: 'ok' }}
+                action={link(FN.esgPolicies.href, FN.esgPolicies.navKey)}
+            >
+                <p className="text-sm" style={{ color: 'var(--brand-text)' }} data-esg="policies">
+                    {t('esg.overview.policiesLine', { current: polCurrent.length, overdue: polCurrent.filter((p) => p.review_overdue).length })}
+                </p>
+            </Figure>
+
+            {/* ── ⑨ 还开着的举报 ───────────────────────────────────────── */}
+            <Figure
+                title={t('esg.overview.wbTitle')}
+                basis={{ asOf, source: t('esg.overview.wbSource'), spans: t('esg.overview.wbSpans') }}
+                state={!canWb ? { kind: 'restricted', permission: P_WB[0] } : { kind: 'ok' }}
+                action={link(FN.esgWhistleblowing.href, FN.esgWhistleblowing.navKey)}
+            >
+                <p className="text-sm" style={{ color: 'var(--brand-text)' }} data-esg="whistleblowing">
+                    {t('esg.overview.wbLine', { open: wbs.filter((w) => w.status !== 'closed').length, total: wbs.length })}
                 </p>
             </Figure>
         </div>

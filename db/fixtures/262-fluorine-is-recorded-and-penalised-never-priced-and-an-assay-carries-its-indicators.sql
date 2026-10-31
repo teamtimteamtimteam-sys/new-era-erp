@@ -491,7 +491,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 262 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 12 THEN
         RAISE EXCEPTION 'FIXTURE 262 LOG: change-log coverage %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'zzz_change_log' AND tgrelid = 'public.assay_indicators'::regclass)
        OR NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'zzz_change_log' AND tgrelid = 'public.assay_result_indicators'::regclass) THEN

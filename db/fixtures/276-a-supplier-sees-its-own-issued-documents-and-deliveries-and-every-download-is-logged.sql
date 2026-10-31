@@ -313,7 +313,7 @@ BEGIN
 
     -- ── EXCL ───────────────────────────────────────────────────────────────
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 12 THEN
         RAISE EXCEPTION 'FIXTURE 276 EXCL: change-log coverage %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log_exclusions() x WHERE x.table_name = 'portal_document_downloads' AND x.reason LIKE '%Q22%append-only%') THEN
         RAISE EXCEPTION 'FIXTURE 276 EXCL: portal_document_downloads is not the ninth exclusion with its reason'; END IF;

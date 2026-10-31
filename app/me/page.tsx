@@ -32,6 +32,8 @@ import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { mustOne, mustRows, mustCount } from '@/lib/db-helpers'
 import AvatarPanel from './AvatarPanel'
 import SignatureSpecimenPanel from './SignatureSpecimenPanel'
+import RaiseConcernPanel, { type MyConcern } from './RaiseConcernPanel'
+import { wbStatusKey } from '@/app/safety/whistleblowing/whistleblowingTypes'
 import { SIGNING_ASSETS_BUCKET, readStored } from '@/lib/contractFiles'
 import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
@@ -149,6 +151,12 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     const mySignatory = (mustRows(
         await supabase.from('contract_signatories').select('title').eq('employee_id', employeeId).is('removed_at', null).limit(1),
         'contract_signatories') as { title: string }[])[0] ?? null
+    // ── ESG-2(Q11 · Q13):我提出的关切 —— 只有状态(my_concerns 只回本人那几件,读者写的说明不给)──
+    const myConcerns: MyConcern[] = (mustRows(await readAll(() => supabase.rpc('my_concerns'), { label: 'my_concerns' }), 'my_concerns') as {
+        id: string; subject: string; received_on: string; status: string; status_at: string; concerns_cco: boolean }[]).map((c) => ({
+        id: c.id, subject: c.subject, received: formatDate(c.received_on, locale), statusLabel: t(wbStatusKey(c.status)),
+        statusAt: formatDateTime(c.status_at, locale), concernsCco: c.concerns_cco,
+    }))
     let mySpecimenUri: string | null = null
     if (mySignatory) {
         const spec = (mustRows(
@@ -636,6 +644,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
             {showOvertime && <MyOvertimePanel rows={myOvertime} />}
 
             <MyAttendancePanel rows={myAttendance} />
+
+            <RaiseConcernPanel mine={myConcerns} />
 
             <p className="text-sm text-gray-400 italic">{t('me.comingSoon')}</p>
         </div>

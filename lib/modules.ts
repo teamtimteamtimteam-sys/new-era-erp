@@ -443,6 +443,14 @@ const P_ESG_OVERVIEW = { all: [], any: ['module.safety.view', 'module.suppliers.
 const P_ESG_ENERGY = { all: [], any: ['module.finance.view', 'module.processing.view'] } as const
 /** 回收(循环):只读物料平衡(processing_balance_monthly 的门:加工 · 财务 · 库存任一)。 */
 const P_ESG_RECOVERY = { all: [], any: ['module.processing.view', 'module.finance.view', 'module.inventory.view'] } as const
+/** ESG-2(Tim 2026-10-31 Q6):安全率 —— 页面的门是 module.safety.view;误工事故、误工天数与率另要 data.view_health(页内画「受限」,由 esg_safety_rates 遮)。 */
+const P_ESG_RATES = 'module.safety.view'
+/** ESG-2(Q8):培训合规 —— 培训记录的读码(training_records 的读策略;esg_training_status 按它判)。 */
+const P_ESG_TRAINING = 'module.hr.view'
+/** ESG-2(Q10):制度登记簿 —— 每一位登录的员工都读得到(门恒真;读者的行由 company_policy_rows 的行谓词裁:有员工档案,或持 action.manage_esg)。 */
+const P_ESG_POLICIES = { all: [] } as const
+/** ESG-2(Q13):举报登记簿 —— 两个读码任一(cco 持没标涉及 CCO 的那一个,cfo 持标了的那一个);每一件按它自己的码判(whistleblowing_report_readable)。 */
+const P_ESG_WHISTLEBLOWING = { all: [], any: ['data.view_whistleblowing', 'data.view_whistleblowing_escalated'] } as const
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
     // ══ 我的工作台 My workbench(SYSTEM-MAP-1) ══════════════════════════════════════
@@ -862,6 +870,12 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/safety', navKey: 'nav.moduleOverview', modules: ['safety'], permission: P_ESG_OVERVIEW },
     { href: '/safety/energy', navKey: 'esg.energy.title', modules: ['safety'], permission: P_ESG_ENERGY },
     { href: '/safety/recovery', navKey: 'esg.recovery.title', modules: ['safety'], permission: P_ESG_RECOVERY },
+    // ★ ESG-2(Tim 2026-10-30 SYSTEM-MAP-4 Q1 · 2026-10-31 Q1–Q15):回收之后的四条新菜单行 —— 安全率 · 培训合规 · 制度登记簿 · 举报登记簿。
+    //   Scope 2 不另开一页:它是能耗强度页上的一列与一段按月(Q3)。举报的一件(/safety/whistleblowing/[id])在它下面,不必另登记。
+    { href: '/safety/rates', navKey: 'esg.rates.title', modules: ['safety'], permission: P_ESG_RATES },
+    { href: '/safety/training', navKey: 'esg.training.title', modules: ['safety'], permission: P_ESG_TRAINING },
+    { href: '/safety/policies', navKey: 'esg.policies.title', modules: ['safety'], permission: P_ESG_POLICIES },
+    { href: '/safety/whistleblowing', navKey: 'esg.whistleblowing.title', modules: ['safety'], permission: P_ESG_WHISTLEBLOWING },
     { href: '/safety/incidents', navKey: 'safety.subnav.incidents', modules: ['safety'], permission: 'module.safety.view' },
     // MES-7b-2(2026-10-16,MES-0 Q72 · Q75 · MES-7b Step 0 Q13–Q17,Tim):安全巡检(清单、一次一次的巡检、跟到关闭的发现)与环境监测(结果对着限值,
     //   超标开一件事故)—— 安全模块的第二、第三条二级条目。读 module.safety.view;存清单、交巡检、记 / 关发现、记结果要 module.safety.edit
@@ -1278,4 +1292,8 @@ export const FN = {
     esgHome: fnByHref('/safety'),
     esgEnergy: fnByHref('/safety/energy'),
     esgRecovery: fnByHref('/safety/recovery'),
+    esgRates: fnByHref('/safety/rates'),
+    esgTraining: fnByHref('/safety/training'),
+    esgPolicies: fnByHref('/safety/policies'),
+    esgWhistleblowing: fnByHref('/safety/whistleblowing'),
 } as const

@@ -232,7 +232,7 @@ BEGIN
          AND table_name = 'nonconformance_reports' AND numbering = 'gapless' AND route = '/quality/ncr') THEN
         RAISE EXCEPTION 'FIXTURE 263 REG: the document registry carries ncr → NCR, gapless, /quality/ncr'; END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 12 THEN
         RAISE EXCEPTION 'FIXTURE 263 REG: change-log coverage has no gap and exactly 8 exclusions, got %', v_j; END IF;
     SELECT count(*) INTO v_n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
      WHERE t.tgname = 'zzz_change_log' AND c.relname IN ('nonconformance_reports', 'contract_quality_limits', 'quality_limit_judgements');

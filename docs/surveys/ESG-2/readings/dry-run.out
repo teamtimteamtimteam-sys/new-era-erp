@@ -1,0 +1,783 @@
+SET
+Timing is on.
+BEGIN
+Time: 405.883 ms
+PROOF|A|postgres|{"new_code_holders" : "none", "grants_total" : 360, "user_roles" : "9 2372199afc0ae559a703d5b048992be5", "change_log" : "109630 max 117362", "cod_issues" : "2 097dacfa233e71e7cf70482c25249b4e", "new_tables" : "none", "anon_relations" : 284, "incidents" : 0, "training_records" : 1, "approvals" : true, "req_cal" : "NULL"}
+Time: 603.477 ms
+DO
+Time: 614.479 ms
+SELECT 360
+Time: 430.989 ms
+SELECT 9
+Time: 410.961 ms
+SELECT 0
+Time: 1000.782 ms (00:01.001)
+INSERT 0 3
+Time: 429.422 ms
+UPDATE 1
+Time: 491.228 ms
+INSERT 0 5
+Time: 416.047 ms
+CREATE FUNCTION
+Time: 417.288 ms
+CREATE FUNCTION
+Time: 512.116 ms
+CREATE TABLE
+Time: 503.580 ms
+COMMENT
+Time: 415.318 ms
+COMMENT
+Time: 408.461 ms
+INSERT 0 1
+Time: 412.401 ms
+CREATE TRIGGER
+Time: 703.844 ms
+ALTER TABLE
+Time: 532.254 ms
+CREATE POLICY
+Time: 449.139 ms
+REVOKE
+Time: 563.923 ms
+GRANT
+Time: 410.620 ms
+CREATE TABLE
+Time: 421.827 ms
+CREATE INDEX
+Time: 417.933 ms
+COMMENT
+Time: 407.302 ms
+COMMENT
+Time: 470.826 ms
+CREATE FUNCTION
+Time: 516.756 ms
+CREATE TRIGGER
+Time: 507.167 ms
+CREATE TRIGGER
+Time: 519.878 ms
+ALTER TABLE
+Time: 968.166 ms
+CREATE POLICY
+Time: 445.412 ms
+REVOKE
+Time: 410.970 ms
+GRANT
+Time: 410.072 ms
+CREATE TABLE
+Time: 416.722 ms
+CREATE INDEX
+Time: 410.527 ms
+COMMENT
+Time: 419.810 ms
+CREATE TRIGGER
+Time: 408.413 ms
+ALTER TABLE
+Time: 411.154 ms
+CREATE POLICY
+Time: 413.212 ms
+REVOKE
+Time: 501.989 ms
+GRANT
+Time: 516.945 ms
+ALTER TABLE
+Time: 1159.472 ms (00:01.159)
+CREATE INDEX
+Time: 586.347 ms
+CREATE TABLE
+Time: 507.812 ms
+CREATE INDEX
+Time: 512.312 ms
+CREATE INDEX
+Time: 509.607 ms
+COMMENT
+Time: 507.418 ms
+CREATE FUNCTION
+Time: 517.032 ms
+CREATE TRIGGER
+Time: 410.062 ms
+CREATE TRIGGER
+Time: 411.601 ms
+CREATE TRIGGER
+Time: 407.335 ms
+ALTER TABLE
+Time: 412.693 ms
+CREATE POLICY
+Time: 614.817 ms
+REVOKE
+Time: 407.213 ms
+GRANT
+Time: 510.527 ms
+CREATE TABLE
+Time: 427.357 ms
+CREATE INDEX
+Time: 491.672 ms
+COMMENT
+Time: 1121.172 ms (00:01.121)
+COMMENT
+Time: 559.703 ms
+CREATE FUNCTION
+Time: 469.923 ms
+CREATE TRIGGER
+Time: 410.803 ms
+CREATE TRIGGER
+Time: 407.702 ms
+ALTER TABLE
+Time: 460.477 ms
+CREATE POLICY
+Time: 460.670 ms
+REVOKE
+Time: 524.032 ms
+GRANT
+Time: 1113.535 ms (00:01.114)
+CREATE TABLE
+Time: 415.065 ms
+CREATE INDEX
+Time: 608.248 ms
+COMMENT
+Time: 419.208 ms
+CREATE TRIGGER
+Time: 414.325 ms
+CREATE TRIGGER
+Time: 499.906 ms
+ALTER TABLE
+Time: 406.984 ms
+CREATE POLICY
+Time: 411.712 ms
+REVOKE
+Time: 410.863 ms
+GRANT
+Time: 539.654 ms
+CREATE TABLE
+Time: 479.565 ms
+CREATE INDEX
+Time: 615.572 ms
+COMMENT
+Time: 512.535 ms
+CREATE FUNCTION
+Time: 434.918 ms
+CREATE TRIGGER
+Time: 484.627 ms
+CREATE TRIGGER
+Time: 422.062 ms
+ALTER TABLE
+Time: 498.592 ms
+CREATE POLICY
+Time: 411.634 ms
+REVOKE
+Time: 411.028 ms
+GRANT
+Time: 508.421 ms
+CREATE FUNCTION
+Time: 512.287 ms
+CREATE FUNCTION
+Time: 411.343 ms
+CREATE FUNCTION
+Time: 611.549 ms
+CREATE FUNCTION
+Time: 512.085 ms
+CREATE FUNCTION
+Time: 411.282 ms
+CREATE FUNCTION
+Time: 438.973 ms
+CREATE FUNCTION
+Time: 480.161 ms
+CREATE FUNCTION
+Time: 1096.723 ms (00:01.097)
+CREATE FUNCTION
+Time: 449.908 ms
+CREATE FUNCTION
+Time: 500.167 ms
+CREATE FUNCTION
+Time: 516.074 ms
+CREATE FUNCTION
+Time: 610.198 ms
+CREATE FUNCTION
+Time: 566.847 ms
+CREATE FUNCTION
+Time: 413.747 ms
+CREATE FUNCTION
+Time: 432.227 ms
+CREATE FUNCTION
+Time: 567.721 ms
+CREATE FUNCTION
+Time: 558.443 ms
+CREATE VIEW
+Time: 471.208 ms
+COMMENT
+Time: 571.944 ms
+REVOKE
+Time: 510.828 ms
+GRANT
+Time: 512.123 ms
+CREATE VIEW
+Time: 423.969 ms
+COMMENT
+Time: 1214.959 ms (00:01.215)
+REVOKE
+Time: 432.708 ms
+GRANT
+Time: 1154.177 ms (00:01.154)
+CREATE VIEW
+Time: 455.099 ms
+COMMENT
+Time: 426.274 ms
+REVOKE
+Time: 1506.830 ms (00:01.507)
+GRANT
+Time: 698.955 ms
+CREATE TRIGGER
+Time: 449.691 ms
+CREATE TRIGGER
+Time: 422.511 ms
+CREATE TRIGGER
+Time: 1005.246 ms (00:01.005)
+CREATE TRIGGER
+Time: 444.209 ms
+CREATE TRIGGER
+Time: 586.888 ms
+CREATE TRIGGER
+Time: 425.370 ms
+CREATE TRIGGER
+Time: 426.162 ms
+CREATE TRIGGER
+Time: 425.584 ms
+CREATE TRIGGER
+Time: 430.040 ms
+CREATE TRIGGER
+Time: 421.301 ms
+DO
+Time: 831.892 ms
+NOTIFY
+Time: 623.398 ms
+REVOKE
+Time: 501.036 ms
+GRANT
+Time: 503.062 ms
+REVOKE
+Time: 422.997 ms
+REVOKE
+Time: 1692.901 ms (00:01.693)
+REVOKE
+Time: 1062.375 ms (00:01.062)
+REVOKE
+Time: 426.162 ms
+REVOKE
+Time: 653.032 ms
+REVOKE
+Time: 654.506 ms
+REVOKE
+Time: 608.891 ms
+REVOKE
+Time: 425.412 ms
+REVOKE
+Time: 422.740 ms
+REVOKE
+Time: 420.873 ms
+REVOKE
+Time: 426.150 ms
+REVOKE
+Time: 572.635 ms
+REVOKE
+Time: 427.056 ms
+REVOKE
+Time: 424.916 ms
+REVOKE
+Time: 424.128 ms
+REVOKE
+Time: 424.800 ms
+REVOKE
+Time: 420.942 ms
+REVOKE
+Time: 541.026 ms
+REVOKE
+Time: 425.126 ms
+REVOKE
+Time: 422.898 ms
+REVOKE
+Time: 428.257 ms
+REVOKE
+Time: 463.339 ms
+REVOKE
+Time: 630.898 ms
+REVOKE
+Time: 425.421 ms
+REVOKE
+Time: 1402.416 ms (00:01.402)
+REVOKE
+Time: 1063.750 ms (00:01.064)
+REVOKE
+Time: 503.804 ms
+REVOKE
+Time: 426.588 ms
+REVOKE
+Time: 421.928 ms
+REVOKE
+Time: 427.755 ms
+REVOKE
+Time: 423.925 ms
+REVOKE
+Time: 426.780 ms
+REVOKE
+Time: 426.115 ms
+REVOKE
+Time: 421.387 ms
+REVOKE
+Time: 425.662 ms
+REVOKE
+Time: 422.868 ms
+REVOKE
+Time: 432.137 ms
+REVOKE
+Time: 490.334 ms
+REVOKE
+Time: 435.356 ms
+REVOKE
+Time: 721.639 ms
+REVOKE
+Time: 434.503 ms
+REVOKE
+Time: 436.012 ms
+REVOKE
+Time: 782.888 ms
+REVOKE
+Time: 434.647 ms
+REVOKE
+Time: 430.161 ms
+REVOKE
+Time: 451.298 ms
+REVOKE
+Time: 434.736 ms
+GRANT
+Time: 459.149 ms
+REVOKE
+Time: 439.546 ms
+REVOKE
+Time: 434.166 ms
+REVOKE
+Time: 426.169 ms
+REVOKE
+Time: 427.861 ms
+REVOKE
+Time: 431.756 ms
+REVOKE
+Time: 430.727 ms
+REVOKE
+Time: 455.527 ms
+REVOKE
+Time: 668.070 ms
+REVOKE
+Time: 957.197 ms
+REVOKE
+Time: 428.582 ms
+REVOKE
+Time: 425.517 ms
+REVOKE
+Time: 433.323 ms
+REVOKE
+Time: 424.893 ms
+REVOKE
+Time: 509.140 ms
+REVOKE
+Time: 505.805 ms
+REVOKE
+Time: 431.948 ms
+REVOKE
+Time: 429.702 ms
+REVOKE
+Time: 423.930 ms
+REVOKE
+Time: 427.073 ms
+REVOKE
+Time: 426.786 ms
+REVOKE
+Time: 425.569 ms
+REVOKE
+Time: 469.957 ms
+REVOKE
+Time: 425.016 ms
+REVOKE
+Time: 500.197 ms
+REVOKE
+Time: 428.211 ms
+REVOKE
+Time: 425.250 ms
+REVOKE
+Time: 485.826 ms
+REVOKE
+Time: 425.776 ms
+REVOKE
+Time: 426.370 ms
+REVOKE
+Time: 424.548 ms
+REVOKE
+Time: 421.795 ms
+REVOKE
+Time: 545.117 ms
+REVOKE
+Time: 770.287 ms
+REVOKE
+Time: 434.510 ms
+REVOKE
+Time: 457.815 ms
+REVOKE
+Time: 430.151 ms
+REVOKE
+Time: 891.430 ms
+REVOKE
+Time: 425.244 ms
+REVOKE
+Time: 511.001 ms
+REVOKE
+Time: 427.198 ms
+REVOKE
+Time: 451.980 ms
+REVOKE
+Time: 433.342 ms
+REVOKE
+Time: 433.040 ms
+REVOKE
+Time: 445.290 ms
+REVOKE
+Time: 425.970 ms
+REVOKE
+Time: 453.085 ms
+REVOKE
+Time: 511.822 ms
+REVOKE
+Time: 431.213 ms
+REVOKE
+Time: 428.620 ms
+REVOKE
+Time: 426.271 ms
+REVOKE
+Time: 421.301 ms
+REVOKE
+Time: 852.339 ms
+REVOKE
+Time: 438.933 ms
+REVOKE
+Time: 425.994 ms
+REVOKE
+Time: 568.145 ms
+REVOKE
+Time: 510.940 ms
+REVOKE
+Time: 508.567 ms
+REVOKE
+Time: 510.973 ms
+REVOKE
+Time: 423.506 ms
+REVOKE
+Time: 427.531 ms
+REVOKE
+Time: 503.194 ms
+REVOKE
+Time: 492.610 ms
+REVOKE
+Time: 511.724 ms
+REVOKE
+Time: 424.532 ms
+REVOKE
+Time: 423.536 ms
+REVOKE
+Time: 995.854 ms
+REVOKE
+Time: 425.165 ms
+REVOKE
+Time: 424.504 ms
+REVOKE
+Time: 421.118 ms
+REVOKE
+Time: 431.590 ms
+REVOKE
+Time: 422.389 ms
+REVOKE
+Time: 582.657 ms
+REVOKE
+Time: 1386.795 ms (00:01.387)
+REVOKE
+Time: 613.558 ms
+REVOKE
+Time: 1157.160 ms (00:01.157)
+REVOKE
+Time: 502.759 ms
+REVOKE
+Time: 426.640 ms
+REVOKE
+Time: 474.982 ms
+REVOKE
+Time: 428.017 ms
+REVOKE
+Time: 493.958 ms
+REVOKE
+Time: 445.221 ms
+REVOKE
+Time: 436.769 ms
+REVOKE
+Time: 652.283 ms
+REVOKE
+Time: 510.749 ms
+REVOKE
+Time: 426.529 ms
+REVOKE
+Time: 496.382 ms
+REVOKE
+Time: 421.296 ms
+REVOKE
+Time: 465.617 ms
+REVOKE
+Time: 441.064 ms
+GRANT
+Time: 568.709 ms
+REVOKE
+Time: 517.002 ms
+REVOKE
+Time: 436.087 ms
+REVOKE
+Time: 422.189 ms
+REVOKE
+Time: 561.248 ms
+REVOKE
+Time: 463.419 ms
+REVOKE
+Time: 421.410 ms
+REVOKE
+Time: 949.589 ms
+REVOKE
+Time: 425.720 ms
+REVOKE
+Time: 449.550 ms
+REVOKE
+Time: 424.048 ms
+REVOKE
+Time: 426.244 ms
+REVOKE
+Time: 589.798 ms
+REVOKE
+Time: 423.603 ms
+REVOKE
+Time: 598.213 ms
+REVOKE
+Time: 512.752 ms
+REVOKE
+Time: 425.140 ms
+REVOKE
+Time: 442.162 ms
+REVOKE
+Time: 462.294 ms
+REVOKE
+Time: 898.227 ms
+REVOKE
+Time: 424.113 ms
+REVOKE
+Time: 425.903 ms
+REVOKE
+Time: 421.415 ms
+REVOKE
+Time: 901.356 ms
+REVOKE
+Time: 741.818 ms
+REVOKE
+Time: 501.524 ms
+REVOKE
+Time: 429.362 ms
+REVOKE
+Time: 477.189 ms
+REVOKE
+Time: 427.889 ms
+REVOKE
+Time: 422.503 ms
+REVOKE
+Time: 584.469 ms
+REVOKE
+Time: 426.537 ms
+REVOKE
+Time: 423.441 ms
+REVOKE
+Time: 478.433 ms
+REVOKE
+Time: 427.715 ms
+REVOKE
+Time: 496.760 ms
+REVOKE
+Time: 449.005 ms
+REVOKE
+Time: 471.220 ms
+REVOKE
+Time: 510.198 ms
+REVOKE
+Time: 425.375 ms
+REVOKE
+Time: 496.967 ms
+REVOKE
+Time: 689.664 ms
+REVOKE
+Time: 423.941 ms
+REVOKE
+Time: 427.599 ms
+REVOKE
+Time: 423.504 ms
+REVOKE
+Time: 533.524 ms
+REVOKE
+Time: 572.135 ms
+REVOKE
+Time: 422.219 ms
+REVOKE
+Time: 424.762 ms
+REVOKE
+Time: 424.382 ms
+REVOKE
+Time: 423.446 ms
+REVOKE
+Time: 427.539 ms
+REVOKE
+Time: 641.290 ms
+REVOKE
+Time: 511.321 ms
+REVOKE
+Time: 425.203 ms
+REVOKE
+Time: 560.707 ms
+REVOKE
+Time: 453.080 ms
+REVOKE
+Time: 438.647 ms
+REVOKE
+Time: 430.871 ms
+REVOKE
+Time: 423.949 ms
+REVOKE
+Time: 836.059 ms
+REVOKE
+Time: 426.698 ms
+REVOKE
+Time: 426.514 ms
+REVOKE
+Time: 491.882 ms
+REVOKE
+Time: 511.894 ms
+REVOKE
+Time: 421.319 ms
+REVOKE
+Time: 499.522 ms
+REVOKE
+Time: 425.976 ms
+REVOKE
+Time: 495.137 ms
+REVOKE
+Time: 512.103 ms
+GRANT
+Time: 428.932 ms
+GRANT
+Time: 432.181 ms
+REVOKE
+Time: 425.636 ms
+REVOKE
+Time: 424.983 ms
+GRANT
+Time: 420.870 ms
+REVOKE
+Time: 630.649 ms
+REVOKE
+Time: 721.463 ms
+REVOKE
+Time: 1224.023 ms (00:01.224)
+REVOKE
+Time: 513.887 ms
+GRANT
+Time: 424.794 ms
+GRANT
+Time: 597.335 ms
+GRANT
+Time: 420.782 ms
+GRANT
+Time: 423.711 ms
+REVOKE
+Time: 975.150 ms
+REVOKE
+Time: 827.040 ms
+REVOKE
+Time: 461.250 ms
+REVOKE
+Time: 425.975 ms
+REVOKE
+Time: 423.041 ms
+GRANT
+Time: 430.785 ms
+GRANT
+Time: 425.120 ms
+GRANT
+Time: 504.326 ms
+GRANT
+Time: 427.331 ms
+GRANT
+Time: 913.841 ms
+DO
+Time: 1116.337 ms (00:01.116)
+REVOKE
+Time: 582.849 ms
+REVOKE
+Time: 423.631 ms
+PROOF|B|postgres|{"new_code_holders" : "admin:action.manage_esg,cco:action.manage_esg,cco:data.view_whistleblowing,cfo:action.manage_esg,cfo:data.view_whistleblowing_escalated", "grants_total" : 365, "user_roles" : "9 2372199afc0ae559a703d5b048992be5", "change_log" : "109639 max 117389", "cod_issues" : "2 097dacfa233e71e7cf70482c25249b4e", "new_tables" : "company_policies,esg_settings,grid_emission_factors,incident_days_lost_corrections,required_trainings,whistleblowing_reports,whistleblowing_updates", "anon_relations" : 284, "incidents" : 0, "training_records" : 1, "approvals" : true, "req_cal" : "NULL"}
+Time: 2052.605 ms (00:02.053)
+PROOF|B|postgres|settings 1 row, hours=NULL · factors=0 · exclusions=12 · coverage_gaps=0
+Time: 669.720 ms
+RESET
+Time: 475.769 ms
+Time: 429.123 ms
+PROOF|B|cfo|session uid 634c00f9-c3a9-4444-9eed-b624cb6a2a93
+Time: 941.558 ms
+SET
+Time: 427.507 ms
+PROOF|B|cfo|rates 11 rows · injury_visible=true · ytd_state=incomplete
+Time: 1134.067 ms (00:01.134)
+PROOF|B|cfo|readable(escalated)=true readable(plain)=false
+Time: 428.248 ms
+PROOF|B|cfo|report_rows=0 scope2_bills=0 my_concerns=0 policies=0
+Time: 472.916 ms
+RESET
+Time: 423.244 ms
+RESET
+Time: 427.041 ms
+Time: 464.540 ms
+PROOF|B|cco|session uid 01ae00e4-306f-4527-8537-10291e4750c7
+Time: 424.218 ms
+SET
+Time: 424.587 ms
+PROOF|B|cco|readable(escalated)=false readable(plain)=true
+Time: 427.678 ms
+RESET
+Time: 505.313 ms
+RESET
+Time: 420.338 ms
+Time: 425.481 ms
+PROOF|B|admin|session uid 321f1819-8449-48f7-9ae0-78b2c4b50f35
+Time: 512.205 ms
+SET
+Time: 620.159 ms
+PROOF|B|admin|readable(escalated)=false readable(plain)=false
+Time: 426.699 ms
+psql:docs/surveys/ESG-2/readings/dry-run.sql:2360: NOTICE:  PROOF|B|admin|set_standard_hours(25) refused ESG_STANDARD_HOURS_INVALID
+DO
+Time: 431.557 ms
+RESET
+Time: 427.457 ms
+RESET
+Time: 426.125 ms
+Time: 534.555 ms
+PROOF|B|warehouse|session uid c8116e6c-80db-4a16-be12-24fb6ce6859d
+Time: 424.079 ms
+SET
+Time: 1011.092 ms (00:01.011)
+psql:docs/surveys/ESG-2/readings/dry-run.sql:2367: NOTICE:  PROOF|B|warehouse|set_grid_factor refused PERMISSION_DENIED|action.manage_esg
+DO
+Time: 423.905 ms
+PROOF|B|warehouse|rates injury_visible=false · report_rows=0
+Time: 446.722 ms
+RESET
+Time: 421.019 ms
+ROLLBACK
+Time: 522.905 ms
+PROOF|C|after rollback|new_tables=none new_codes=0
+Time: 431.304 ms
+DRY_OWN_EXIT=0

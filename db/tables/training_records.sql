@@ -21,10 +21,13 @@ CREATE TABLE public.training_records (
     created_at      timestamptz NOT NULL DEFAULT now(),
     created_by      uuid DEFAULT auth.uid(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
-    updated_by      uuid DEFAULT auth.uid()
+    updated_by      uuid DEFAULT auth.uid(),
+    -- ESG-2(Tim 2026-10-31 Q8):这条记录满足的是哪一门必修培训(HR 的培训表单里选;老记录为空 —— 培训合规页数成「没挂到必修培训」)。
+    required_training_id uuid REFERENCES public.required_trainings (id)
 );
 
 CREATE INDEX idx_training_records_employee ON public.training_records (employee_id);
+CREATE INDEX idx_training_records_required ON public.training_records (required_training_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_training_records_expiry ON public.training_records (expiry_date) WHERE deleted_at IS NULL;
 
 CREATE TRIGGER trg_training_records_updated_at

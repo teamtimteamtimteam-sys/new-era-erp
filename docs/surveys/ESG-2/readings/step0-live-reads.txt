@@ -1,0 +1,20 @@
+ROLECODES|admin|action.manage_signatories,data.view_cod,data.view_health,module.compliance.view,module.finance.view,module.hr.edit,module.hr.view,module.inventory.view,module.processing.view,module.safety.edit,module.safety.view,module.suppliers.view
+ROLECODES|auditor|data.view_cod,module.compliance.view,module.finance.view,module.hr.view,module.inventory.view,module.processing.view,module.safety.view,module.suppliers.view
+ROLECODES|cco|data.view_cod,data.view_health,module.compliance.view,module.finance.view,module.hr.edit,module.hr.view,module.inventory.view,module.processing.view,module.safety.view,module.suppliers.view
+ROLECODES|cfo|data.view_cod,data.view_health,module.compliance.view,module.finance.view,module.hr.view,module.inventory.view,module.processing.view,module.safety.view,module.suppliers.view
+ROLECODES|cto|data.view_cod,module.compliance.view,module.finance.view,module.hr.view,module.inventory.view,module.processing.view,module.safety.edit,module.safety.view,module.suppliers.view
+ROLECODES|finance|data.view_cod,data.view_health,module.finance.view,module.hr.edit,module.hr.view,module.inventory.view,module.processing.view,module.safety.view,module.suppliers.view
+ROLECODES|gm|data.view_cod,module.compliance.view,module.finance.view,module.hr.view,module.inventory.view,module.processing.view,module.safety.view,module.suppliers.view
+ROLECODES|operations|module.inventory.view,module.processing.view,module.safety.view
+ROLECODES|warehouse|data.view_cod,module.inventory.view,module.processing.view,module.safety.edit,module.safety.view,module.suppliers.view
+HOLDERS|admin|1
+HOLDERS|cco|1
+HOLDERS|cfo|1
+HOLDERS|cto|1
+HOLDERS|finance|1
+HOLDERS|gm|1
+HOLDERS|warehouse|1
+ROWS|{"incidents" : 0, "incidents_injury" : 0, "incidents_days_lost_gt0" : 0, "incidents_injured_nonemployee" : 0, "training_records" : 1, "training_distinct_names" : 1, "training_with_expiry" : 0, "elec_bills" : 0, "elec_bills_reversed" : 0, "att_periods" : 0, "att_lines" : 0, "att_lines_recorded" : 0, "employees_live" : 7, "positions" : 6, "departments" : 1, "leave_requests" : 6}
+TRAINING_NAMES|iras tax training(technical)
+PERMCODES_LIKE|data.view_health,module.hr.edit,module.hr.view,module.safety.edit,module.safety.view
+RELKIND|attendance_lines=r,electricity_allocations=r,incidents=r,leave_requests=r,training_records=r

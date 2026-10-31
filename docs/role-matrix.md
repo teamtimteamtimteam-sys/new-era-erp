@@ -240,6 +240,7 @@ cfo · gm 不持以上任何一个码。16 对(角色 × 动作码)全部同时�
 | **人事备注 · HR's notes**(U1-A,Q6 · Q7)| `employees.notes` 与 `separation_notes` 只给持 `module.hr.view` 的人 —— **被写的那个员工本人经屏幕与 API 都读不到**;个人数据导出照旧交给本人(Tim 的 PDPA 裁定,刻意的例外)| ✅ done(U1-A)|
 | **还没结束的那一轮 KPI 分 · open-cycle KPI scores**(U1-A,Q5)| 本人只经 `my_kpi_entries` 读自己的 KPI(分数在关轮之后才有);`kpi_entries` 上的本人自读策略拿掉了 | ✅ done(U1-A)|
 | **设备保养建议里的钱 · costs in the maintenance advice**(U1-A,Q13)| 维修花费、机器的记录成本与两者之比只给持 `module.finance.view` 的人;只持加工权限的人(warehouse)读得到记录与"够不够资本化"的建议,读不到钱 | ✅ done(U1-A)|
+| ★ **举报只到它的那一位读者 · a whistleblowing report reaches only its one reader**(ESG-2,Tim 2026-10-31 Q13)| 没标「涉及 CCO」的举报只给持 **`data.view_whistleblowing`** 的人读(**cco**);标了的只给持 **`data.view_whistleblowing_escalated`** 的人读(**cfo**),**cco 读不到**。★ **上面两条常设裁定在这里各有一处例外,照直记下:**① 「admin 持每一个码」—— 两个举报码【都不】授 admin(Tim 原话「read by cco only」;admin 一并持有就多出一位读者);② 「CFO 读得到每一样东西」—— cfo【不】持 `data.view_whistleblowing`(一件没标的举报可能涉及 CFO,而它的读者是 cco)。理由与落地:`docs/system-map.md` 的 ESG-2 一节,`db/tables/role_permissions.sql`(admin 那一句的 NOT IN),fixture 307 的 W 臂(两条路各一格注入)。交的人只经 `my_concerns()` 读到自己那几件的状态。举报与状态不进变更记录(操作人会把交的人交出去)。| ✅ done(ESG-2,`v1.4.86`)|
 
 ## 14 · 后果较轻的动作 · Lower-consequence actions
 

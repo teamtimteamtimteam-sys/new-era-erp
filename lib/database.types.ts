@@ -3515,6 +3515,154 @@ export type Database = {
           },
         ]
       }
+      company_policies: {
+        Row: {
+          document_ref: string
+          effective_date: string
+          id: string
+          owner_employee_id: string
+          recorded_at: string
+          recorded_by: string | null
+          review_date: string
+          superseded_at: string | null
+          supersedes_id: string | null
+          title: string
+          version: string
+        }
+        Insert: {
+          document_ref: string
+          effective_date: string
+          id?: string
+          owner_employee_id: string
+          recorded_at?: string
+          recorded_by?: string | null
+          review_date: string
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          title: string
+          version: string
+        }
+        Update: {
+          document_ref?: string
+          effective_date?: string
+          id?: string
+          owner_employee_id?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          review_date?: string
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          title?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "company_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "company_policy_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_profile: {
         Row: {
           address_lines: string | null
@@ -9323,6 +9471,27 @@ export type Database = {
           },
         ]
       }
+      esg_settings: {
+        Row: {
+          id: boolean
+          standard_hours_per_day: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          standard_hours_per_day?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          standard_hours_per_day?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       expense_claim_items: {
         Row: {
           account_code: string | null
@@ -11588,6 +11757,39 @@ export type Database = {
           },
         ]
       }
+      grid_emission_factors: {
+        Row: {
+          factor_year: number
+          id: number
+          kg_co2_per_kwh: number
+          reason: string | null
+          recorded_at: string
+          recorded_by: string | null
+          source: string
+          unit: string
+        }
+        Insert: {
+          factor_year: number
+          id?: never
+          kg_co2_per_kwh: number
+          reason?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          source: string
+          unit?: string
+        }
+        Update: {
+          factor_year?: number
+          id?: never
+          kg_co2_per_kwh?: number
+          reason?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          source?: string
+          unit?: string
+        }
+        Relationships: []
+      }
       gst_filing_requests: {
         Row: {
           boxes: Json
@@ -12989,6 +13191,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_wip"
             referencedColumns: ["output_batch_id"]
+          },
+        ]
+      }
+      incident_days_lost_corrections: {
+        Row: {
+          days_lost: number
+          id: number
+          incident_id: string
+          reason: string
+          recorded_at: string
+          recorded_by: string | null
+        }
+        Insert: {
+          days_lost: number
+          id?: never
+          incident_id: string
+          reason: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Update: {
+          days_lost?: number
+          id?: never
+          incident_id?: string
+          reason?: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_days_lost_corrections_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_current_all"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_days_lost_corrections_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incident_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_days_lost_corrections_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_days_lost_corrections_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents_masked"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -26778,6 +27036,54 @@ export type Database = {
         }
         Relationships: []
       }
+      required_trainings: {
+        Row: {
+          applies_to: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          position_ids: string[]
+          retired_at: string | null
+          retired_by: string | null
+          updated_at: string
+          updated_by: string | null
+          validity_months: number | null
+        }
+        Insert: {
+          applies_to: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          position_ids?: string[]
+          retired_at?: string | null
+          retired_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          validity_months?: number | null
+        }
+        Update: {
+          applies_to?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          position_ids?: string[]
+          retired_at?: string | null
+          retired_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          validity_months?: number | null
+        }
+        Relationships: []
+      }
       review_cycles: {
         Row: {
           created_at: string
@@ -32267,6 +32573,7 @@ export type Database = {
           id: string
           notes: string | null
           provider: string | null
+          required_training_id: string | null
           training_name: string
           updated_at: string
           updated_by: string | null
@@ -32283,6 +32590,7 @@ export type Database = {
           id?: string
           notes?: string | null
           provider?: string | null
+          required_training_id?: string | null
           training_name: string
           updated_at?: string
           updated_by?: string | null
@@ -32299,6 +32607,7 @@ export type Database = {
           id?: string
           notes?: string | null
           provider?: string | null
+          required_training_id?: string | null
           training_name?: string
           updated_at?: string
           updated_by?: string | null
@@ -32394,6 +32703,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "training_records_required_training_id_fkey"
+            columns: ["required_training_id"]
+            isOneToOne: false
+            referencedRelation: "required_trainings"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -33187,6 +33503,182 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "weighbridge_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whistleblowing_reports: {
+        Row: {
+          concerns_cco: boolean
+          details: string
+          filed_by_employee_id: string | null
+          id: string
+          received_on: string
+          received_via: string | null
+          recorded_at: string
+          recorded_by: string
+          reporter_name: string | null
+          source: string
+          subject: string
+        }
+        Insert: {
+          concerns_cco: boolean
+          details: string
+          filed_by_employee_id?: string | null
+          id?: string
+          received_on: string
+          received_via?: string | null
+          recorded_at?: string
+          recorded_by: string
+          reporter_name?: string | null
+          source: string
+          subject: string
+        }
+        Update: {
+          concerns_cco?: boolean
+          details?: string
+          filed_by_employee_id?: string | null
+          id?: string
+          received_on?: string
+          received_via?: string | null
+          recorded_at?: string
+          recorded_by?: string
+          reporter_name?: string | null
+          source?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      whistleblowing_updates: {
+        Row: {
+          id: number
+          note: string
+          recorded_at: string
+          recorded_by: string
+          report_id: string
+          status: string
+        }
+        Insert: {
+          id?: never
+          note: string
+          recorded_at?: string
+          recorded_by: string
+          report_id: string
+          status: string
+        }
+        Update: {
+          id?: never
+          note?: string
+          recorded_at?: string
+          recorded_by?: string
+          report_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whistleblowing_updates_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "whistleblowing_report_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_updates_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "whistleblowing_reports"
             referencedColumns: ["id"]
           },
         ]
@@ -35186,6 +35678,131 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      company_policy_rows: {
+        Row: {
+          document_ref: string | null
+          effective_date: string | null
+          id: string | null
+          is_current: boolean | null
+          owner_employee_id: string | null
+          owner_label: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          review_date: string | null
+          review_overdue: boolean | null
+          superseded_at: string | null
+          supersedes_id: string | null
+          title: string | null
+          version: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "company_policies_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "company_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_policies_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "company_policy_rows"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -39088,6 +39705,8 @@ export type Database = {
           code: string | null
           corrections: number | null
           days_lost: number | null
+          days_lost_corrections: number | null
+          days_lost_recorded: number | null
           deadline_confirmed: boolean | null
           deadline_state: string | null
           deadline_working_days: number | null
@@ -49833,6 +50452,118 @@ export type Database = {
           },
         ]
       }
+      whistleblowing_report_rows: {
+        Row: {
+          concerns_cco: boolean | null
+          details: string | null
+          filed_by_employee_id: string | null
+          filed_by_label: string | null
+          id: string | null
+          received_on: string | null
+          received_via: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          reporter_name: string | null
+          source: string | null
+          status: string | null
+          status_at: string | null
+          subject: string | null
+          updates: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "incident_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "whistleblowing_reports_filed_by_employee_id_fkey"
+            columns: ["filed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
       wht_liability_by_month: {
         Row: {
           due_date: string | null
@@ -50710,6 +51441,18 @@ export type Database = {
         Args: { p_inbound_batch_id: string; p_reference_date: string }
         Returns: Json
       }
+      company_policy_record: {
+        Args: {
+          p_document_ref: string
+          p_effective_date: string
+          p_owner_employee_id: string
+          p_review_date: string
+          p_supersedes_id: string
+          p_title: string
+          p_version: string
+        }
+        Returns: Json
+      }
       company_stamp_record: {
         Args: { p_sha256: string; p_stamp_id: string }
         Returns: Json
@@ -51456,6 +52199,86 @@ export type Database = {
           unclassified_stops: number
         }[]
       }
+      esg_safety_rates: {
+        Args: { p_year: number }
+        Returns: {
+          days_lost: number
+          hours_state: string
+          hours_worked: number
+          injury_visible: boolean
+          lines_recorded: number
+          lines_total: number
+          lti: number
+          ltifr: number
+          month: string
+          nonemployee_injuries: number
+        }[]
+      }
+      esg_scope2_bills: {
+        Args: never
+        Returns: {
+          allocation_id: string
+          bill_kwh: number
+          bill_year: number
+          factor_year: number
+          invoice_ref: string
+          kg_co2_per_kwh: number
+          period_from: string
+          period_to: string
+          tco2: number
+        }[]
+      }
+      esg_scope2_monthly: {
+        Args: { p_year: number }
+        Returns: {
+          bills: number
+          factor_missing: boolean
+          kwh: number
+          month: string
+          tco2: number
+        }[]
+      }
+      esg_set_grid_factor: {
+        Args: {
+          p_kg_co2_per_kwh: number
+          p_reason?: string
+          p_source: string
+          p_year: number
+        }
+        Returns: Json
+      }
+      esg_set_standard_hours: { Args: { p_hours: number }; Returns: Json }
+      esg_training_coverage: {
+        Args: never
+        Returns: {
+          applicable: number
+          applies_to: string
+          category: string
+          expired: number
+          expiring: number
+          missing: number
+          name: string
+          position_ids: string[]
+          required_training_id: string
+          valid: number
+          validity_months: number
+        }[]
+      }
+      esg_training_status: {
+        Args: never
+        Returns: {
+          completed_date: string
+          days_remaining: number
+          employee_code: string
+          employee_id: string
+          employee_name: string
+          expiry_date: string
+          required_training_id: string
+          status: string
+          training_name: string
+          training_record_id: string
+        }[]
+      }
       execute_blending_plan: {
         Args: {
           p_actual: Json
@@ -51571,6 +52394,13 @@ export type Database = {
         Returns: number
       }
       gl_control_reconciliation: { Args: { p_as_of: string }; Returns: Json }
+      grid_emission_factor_for: {
+        Args: { p_year: number }
+        Returns: {
+          factor_year: number
+          kg_co2_per_kwh: number
+        }[]
+      }
       gst_filing_execute_internal: {
         Args: { p_request_id: string }
         Returns: Json
@@ -51672,6 +52502,10 @@ export type Database = {
       inbound_unit_price_asof: {
         Args: { p_as_of: string; p_batch_id: string }
         Returns: number
+      }
+      incident_injured_is_caller: {
+        Args: { p_incident_id: string }
+        Returns: boolean
       }
       index_period_average: {
         Args: {
@@ -52264,6 +53098,18 @@ export type Database = {
           p_run_id: string
         }
         Returns: undefined
+      }
+      my_concerns: {
+        Args: never
+        Returns: {
+          concerns_cco: boolean
+          id: string
+          received_on: string
+          recorded_at: string
+          status: string
+          status_at: string
+          subject: string
+        }[]
       }
       my_document_decisions: {
         Args: never
@@ -53155,6 +54001,10 @@ export type Database = {
         }
         Returns: Json
       }
+      record_incident_days_lost_correction: {
+        Args: { p_days_lost: number; p_incident_id: string; p_reason: string }
+        Returns: Json
+      }
       record_incident_update: {
         Args: {
           p_field?: string
@@ -53572,6 +54422,19 @@ export type Database = {
       require_reviewer_of: {
         Args: { p_allowed_status: string[]; p_review_id: string }
         Returns: undefined
+      }
+      required_training_retire: { Args: { p_id: string }; Returns: Json }
+      required_training_save: {
+        Args: {
+          p_applies_to: string
+          p_category: string
+          p_id: string
+          p_name: string
+          p_notes?: string
+          p_position_ids?: string[]
+          p_validity_months: number
+        }
+        Returns: Json
       }
       reserve_stock: {
         Args: {
@@ -54931,6 +55794,29 @@ export type Database = {
           p_ticket_id: string
         }
         Returns: string
+      }
+      whistleblowing_report_file: {
+        Args: { p_concerns_cco: boolean; p_details: string; p_subject: string }
+        Returns: Json
+      }
+      whistleblowing_report_readable: {
+        Args: { p_concerns_cco: boolean }
+        Returns: boolean
+      }
+      whistleblowing_report_record_outside: {
+        Args: {
+          p_concerns_cco: boolean
+          p_details: string
+          p_received_on: string
+          p_received_via: string
+          p_reporter_name: string
+          p_subject: string
+        }
+        Returns: Json
+      }
+      whistleblowing_report_update: {
+        Args: { p_note: string; p_report_id: string; p_status: string }
+        Returns: Json
       }
       wht_rate_for: {
         Args: { p_date: string; p_nature: string }

@@ -11946,3 +11946,25 @@ CHAIN-WALK-COST 的线上证明期间从 Supabase 的特权指标端点读到(�
 **屏幕与代码注释都改了;库里那两句注释没有改** —— 改一句表注释要一支迁移(镜像要逐字对得上),Tim 2026-10-30 Q5 裁定不为它出迁移。
 **后果:** 只有读库的人(`\d+`、Supabase 面板)会读到那句过期的话;没有一处屏幕或判据读它。
 **去处:** 下一支碰这两张表的迁移顺手把两句注释改成今天的事实(同一提交改镜像)。
+
+## ESG-2 登记(2026-10-31)
+
+### ESG2-GRID-FACTOR-UNVERIFIED —— 电网排放因子的候选值没有对着 EMA 的原页核过(Tim 2026-10-31 Q1)
+候选:**0.402 kg CO2/kWh,2024 年,EMA《Singapore Energy Statistics 2025》Table 2.4**。来源是二手的(uncleesg.com 的说明页与几份排放因子汇编;
+EMA 的 SES 第 2 章是脚本渲染的,这台机器读不到正文)。**引导不带值** —— 能耗强度页的每一个 Scope 2 读「没设因子」,直到 Tim 在 ESG › 能耗强度上
+对着 EMA 的页面核过、自己填(他的待办:`docs/manual-walk-list.md` §38)。核过之后这一条删掉。
+
+### ESG2-HOURS-ASSUME-MON-FRI —— 工时的「工作日」是周一至周五扣新加坡公共假期,不读 hr_settings.working_days_per_week,也不读班次
+`esg_safety_rates` 用 `calculate_leave_days`(与请假同一支)数在职期间的工作日。`hr_settings.working_days_per_week` 今天是 5,两者一致;
+它改成 5.5 或 6 时工时会偏小,而没有任何东西会报错。某一年 `public_holidays` 没种时,那年的公共假期会被当成工作日(工时偏大)——
+`hr_alerts` 的 holiday_calendar_missing 管这一件。轮班制的车间要是按班次算工时,是一刀新的设计。
+
+### ESG2-ADMIN-CAN-GRANT-ITSELF-THE-REPORT-CODES —— 两个举报码不授 admin,但 admin 持 action.manage_permissions
+admin 能在 设置 › 角色 里把 `data.view_whistleblowing` / `_escalated` 勾给自己(Q13 的例外挡的是【授予】,挡不住一次授权)。那一次授权进变更记录
+(role_permissions 绑着),所以它看得见,而不是拦得住。要拦,得在 `set_role_permissions` 里给这两个码一条按名拒 —— 一个新的决定,不在本刀。
+
+### ESG2-NO-RETENTION-FOR-REPORTS —— 举报与它的状态没有保留期(Tim 2026-10-31 Q14:本刀不设)
+两张举报表只追加、删不掉;PDPA 的「目的结束后不再保留」对它们今天没有出口(`personal_data_retention_months` 也还空着)。
+
+### ESG2-POLICY-CANNOT-BE-WITHDRAWN —— 一份制度只能被新版本取代,不能撤销
+登记簿没有「停用」:一份不再适用的制度会一直显示为现行(复审逾期之后标红)。要不要加「撤销,带理由」是 Tim 的一句话。

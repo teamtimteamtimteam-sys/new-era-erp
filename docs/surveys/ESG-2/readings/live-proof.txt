@@ -1,0 +1,189 @@
+STEP|base http://localhost:3196
+STEP|live before (postgres, base tables): {"factors" : 0, "hours" : "NULL", "required" : 0, "policies" : 0, "reports" : 0, "updates" : 0, "corrections" : 0, "linked_records" : 0}
+SELECT1|before admin client round trips 415 / 606 / 602 / 524 / 411 ms (median 524) · server execution 0.039 ms
+HEALTH|before admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|admin: codes → energy true · rates true · training true · whistleblowing false (plain false, escalated false) · health true · manage_esg true
+PASS|admin /safety/energy (HTTP 200, 7483 ms): opens — gate says opens
+PASS|admin /safety/energy: the grid factor panel reads "not set" (ships unset, Q1)
+PASS|admin /safety/energy: the factor form is pressable — action.manage_esg true
+PASS|admin /safety/rates (HTTP 200, 4089 ms): opens — gate says opens
+PASS|admin /safety/rates: injury figures visible — data.view_health true
+PASS|admin /safety/rates: standard hours per day reads "Not set" (ships unset, Q4)
+PASS|admin /safety/training (HTTP 200, 5200 ms): opens — gate says opens
+PASS|admin /safety/policies (HTTP 200, 3812 ms): opens — gate says opens
+PASS|admin /safety/whistleblowing (HTTP 200, 5609 ms): refused by name (受限) — gate says refuses
+PASS|admin /safety (HTTP 200, 10038 ms) opens
+PASS|admin overview · Scope 2: unanswerable (no bill on live; energy codes true)
+PASS|admin overview · lost-time injuries: ok (data.view_health true)
+PASS|admin overview · training: unanswerable (no required training on live; module.hr.view true)
+PASS|admin overview · policies: unanswerable (no policy on live)
+PASS|admin overview · open reports: restricted (report codes false)
+PASS|admin esg_safety_rates(2026): 11 rows · injury_visible [true] · hidden rows carry no injury figures true
+PASS|admin whistleblowing_report_readable: unmarked false (data.view_whistleblowing false) · concerning the CCO false (data.view_whistleblowing_escalated false)
+PASS|admin whistleblowing_report_rows 0 row(s) · my_concerns 0 (live has no report)
+PASS|admin esg_set_grid_factor with value 0 → ESG_GRID_FACTOR_VALUE_INVALID (the gate passed, the value was refused, nothing written)
+SELECT1|after admin client round trips 801 / 417 / 505 / 408 / 511 ms (median 505) · server execution 1.047 ms
+HEALTH|after admin: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before cco client round trips 411 / 411 / 411 / 407 / 856 ms (median 411) · server execution 0.646 ms
+HEALTH|before cco: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|cco: codes → energy true · rates true · training true · whistleblowing true (plain true, escalated false) · health true · manage_esg true
+PASS|cco /safety/energy (HTTP 200, 7497 ms): opens — gate says opens
+PASS|cco /safety/energy: the grid factor panel reads "not set" (ships unset, Q1)
+PASS|cco /safety/energy: the factor form is pressable — action.manage_esg true
+PASS|cco /safety/rates (HTTP 200, 4562 ms): opens — gate says opens
+PASS|cco /safety/rates: injury figures visible — data.view_health true
+PASS|cco /safety/rates: standard hours per day reads "Not set" (ships unset, Q4)
+PASS|cco /safety/training (HTTP 200, 5147 ms): opens — gate says opens
+PASS|cco /safety/policies (HTTP 200, 9844 ms): opens — gate says opens
+PASS|cco /safety/whistleblowing (HTTP 200, 5381 ms): opens — gate says opens
+PASS|cco /safety (HTTP 200, 9533 ms) opens
+PASS|cco overview · Scope 2: unanswerable (no bill on live; energy codes true)
+PASS|cco overview · lost-time injuries: ok (data.view_health true)
+PASS|cco overview · training: unanswerable (no required training on live; module.hr.view true)
+PASS|cco overview · policies: unanswerable (no policy on live)
+PASS|cco overview · open reports: ok (report codes true)
+PASS|cco esg_safety_rates(2026): 11 rows · injury_visible [true] · hidden rows carry no injury figures true
+PASS|cco whistleblowing_report_readable: unmarked true (data.view_whistleblowing true) · concerning the CCO false (data.view_whistleblowing_escalated false)
+PASS|cco whistleblowing_report_rows 0 row(s) · my_concerns 0 (live has no report)
+PASS|cco esg_set_grid_factor with value 0 → ESG_GRID_FACTOR_VALUE_INVALID (the gate passed, the value was refused, nothing written)
+SELECT1|after cco client round trips 1323 / 412 / 1148 / 969 / 511 ms (median 969) · server execution 0.028 ms
+HEALTH|after cco: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before cfo client round trips 411 / 417 / 505 / 509 / 511 ms (median 505) · server execution 0.036 ms
+HEALTH|before cfo: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|cfo: codes → energy true · rates true · training true · whistleblowing true (plain false, escalated true) · health true · manage_esg true
+PASS|cfo /safety/energy (HTTP 200, 6809 ms): opens — gate says opens
+PASS|cfo /safety/energy: the grid factor panel reads "not set" (ships unset, Q1)
+PASS|cfo /safety/energy: the factor form is pressable — action.manage_esg true
+PASS|cfo /safety/rates (HTTP 200, 4667 ms): opens — gate says opens
+PASS|cfo /safety/rates: injury figures visible — data.view_health true
+PASS|cfo /safety/rates: standard hours per day reads "Not set" (ships unset, Q4)
+PASS|cfo /safety/training (HTTP 200, 4283 ms): opens — gate says opens
+PASS|cfo /safety/policies (HTTP 200, 3717 ms): opens — gate says opens
+PASS|cfo /safety/whistleblowing (HTTP 200, 4741 ms): opens — gate says opens
+PASS|cfo /safety (HTTP 200, 8617 ms) opens
+PASS|cfo overview · Scope 2: unanswerable (no bill on live; energy codes true)
+PASS|cfo overview · lost-time injuries: ok (data.view_health true)
+PASS|cfo overview · training: unanswerable (no required training on live; module.hr.view true)
+PASS|cfo overview · policies: unanswerable (no policy on live)
+PASS|cfo overview · open reports: ok (report codes true)
+PASS|cfo esg_safety_rates(2026): 11 rows · injury_visible [true] · hidden rows carry no injury figures true
+PASS|cfo whistleblowing_report_readable: unmarked false (data.view_whistleblowing false) · concerning the CCO true (data.view_whistleblowing_escalated true)
+PASS|cfo whistleblowing_report_rows 0 row(s) · my_concerns 0 (live has no report)
+PASS|cfo esg_set_grid_factor with value 0 → ESG_GRID_FACTOR_VALUE_INVALID (the gate passed, the value was refused, nothing written)
+SELECT1|after cfo client round trips 500 / 617 / 512 / 410 / 508 ms (median 508) · server execution 0.601 ms
+HEALTH|after cfo: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before cto client round trips 424 / 569 / 437 / 450 / 615 ms (median 450) · server execution 0.032 ms
+HEALTH|before cto: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|cto: codes → energy true · rates true · training true · whistleblowing false (plain false, escalated false) · health false · manage_esg false
+PASS|cto /safety/energy (HTTP 200, 9839 ms): opens — gate says opens
+PASS|cto /safety/energy: the grid factor panel reads "not set" (ships unset, Q1)
+PASS|cto /safety/energy: the factor form is visible and unpressable (needs action.manage_esg) — action.manage_esg false
+PASS|cto /safety/rates (HTTP 200, 3949 ms): opens — gate says opens
+PASS|cto /safety/rates: injury figures restricted (data.view_health) — data.view_health false
+PASS|cto /safety/rates: standard hours per day reads "Not set" (ships unset, Q4)
+PASS|cto /safety/training (HTTP 200, 6008 ms): opens — gate says opens
+PASS|cto /safety/policies (HTTP 200, 4431 ms): opens — gate says opens
+PASS|cto /safety/whistleblowing (HTTP 200, 4285 ms): refused by name (受限) — gate says refuses
+PASS|cto /safety (HTTP 200, 7947 ms) opens
+PASS|cto overview · Scope 2: unanswerable (no bill on live; energy codes true)
+PASS|cto overview · lost-time injuries: restricted (data.view_health false)
+PASS|cto overview · training: unanswerable (no required training on live; module.hr.view true)
+PASS|cto overview · policies: unanswerable (no policy on live)
+PASS|cto overview · open reports: restricted (report codes false)
+PASS|cto esg_safety_rates(2026): 11 rows · injury_visible [false] · hidden rows carry no injury figures true
+PASS|cto whistleblowing_report_readable: unmarked false (data.view_whistleblowing false) · concerning the CCO false (data.view_whistleblowing_escalated false)
+PASS|cto whistleblowing_report_rows 0 row(s) · my_concerns 0 (live has no report)
+PASS|cto esg_set_grid_factor with value 0 → PERMISSION_DENIED|action.manage_esg (no action.manage_esg)
+SELECT1|after cto client round trips 465 / 434 / 432 / 434 / 523 ms (median 434) · server execution 0.029 ms
+HEALTH|after cto: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before finance client round trips 411 / 413 / 463 / 574 / 453 ms (median 453) · server execution 0.037 ms
+HEALTH|before finance: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|finance: codes → energy true · rates true · training true · whistleblowing false (plain false, escalated false) · health true · manage_esg false
+PASS|finance /safety/energy (HTTP 200, 6233 ms): opens — gate says opens
+PASS|finance /safety/energy: the grid factor panel reads "not set" (ships unset, Q1)
+PASS|finance /safety/energy: the factor form is visible and unpressable (needs action.manage_esg) — action.manage_esg false
+PASS|finance /safety/rates (HTTP 200, 6245 ms): opens — gate says opens
+PASS|finance /safety/rates: injury figures visible — data.view_health true
+PASS|finance /safety/rates: standard hours per day reads "Not set" (ships unset, Q4)
+PASS|finance /safety/training (HTTP 200, 5055 ms): opens — gate says opens
+PASS|finance /safety/policies (HTTP 200, 4058 ms): opens — gate says opens
+PASS|finance /safety/whistleblowing (HTTP 200, 4903 ms): refused by name (受限) — gate says refuses
+PASS|finance /safety (HTTP 200, 8652 ms) opens
+PASS|finance overview · Scope 2: unanswerable (no bill on live; energy codes true)
+PASS|finance overview · lost-time injuries: ok (data.view_health true)
+PASS|finance overview · training: unanswerable (no required training on live; module.hr.view true)
+PASS|finance overview · policies: unanswerable (no policy on live)
+PASS|finance overview · open reports: restricted (report codes false)
+PASS|finance esg_safety_rates(2026): 11 rows · injury_visible [true] · hidden rows carry no injury figures true
+PASS|finance whistleblowing_report_readable: unmarked false (data.view_whistleblowing false) · concerning the CCO false (data.view_whistleblowing_escalated false)
+PASS|finance whistleblowing_report_rows 0 row(s) · my_concerns 0 (live has no report)
+PASS|finance esg_set_grid_factor with value 0 → PERMISSION_DENIED|action.manage_esg (no action.manage_esg)
+SELECT1|after finance client round trips 1274 / 516 / 458 / 419 / 525 ms (median 516) · server execution 0.585 ms
+HEALTH|after finance: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before gm client round trips 438 / 995 / 633 / 408 / 496 ms (median 496) · server execution 0.037 ms
+HEALTH|before gm: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|gm: codes → energy true · rates true · training true · whistleblowing false (plain false, escalated false) · health false · manage_esg false
+PASS|gm /safety/energy (HTTP 200, 9999 ms): opens — gate says opens
+PASS|gm /safety/energy: the grid factor panel reads "not set" (ships unset, Q1)
+PASS|gm /safety/energy: the factor form is visible and unpressable (needs action.manage_esg) — action.manage_esg false
+PASS|gm /safety/rates (HTTP 200, 4918 ms): opens — gate says opens
+PASS|gm /safety/rates: injury figures restricted (data.view_health) — data.view_health false
+PASS|gm /safety/rates: standard hours per day reads "Not set" (ships unset, Q4)
+PASS|gm /safety/training (HTTP 200, 4438 ms): opens — gate says opens
+PASS|gm /safety/policies (HTTP 200, 4406 ms): opens — gate says opens
+PASS|gm /safety/whistleblowing (HTTP 200, 5185 ms): refused by name (受限) — gate says refuses
+PASS|gm /safety (HTTP 200, 9385 ms) opens
+PASS|gm overview · Scope 2: unanswerable (no bill on live; energy codes true)
+PASS|gm overview · lost-time injuries: restricted (data.view_health false)
+PASS|gm overview · training: unanswerable (no required training on live; module.hr.view true)
+PASS|gm overview · policies: unanswerable (no policy on live)
+PASS|gm overview · open reports: restricted (report codes false)
+PASS|gm esg_safety_rates(2026): 11 rows · injury_visible [false] · hidden rows carry no injury figures true
+PASS|gm whistleblowing_report_readable: unmarked false (data.view_whistleblowing false) · concerning the CCO false (data.view_whistleblowing_escalated false)
+PASS|gm whistleblowing_report_rows 0 row(s) · my_concerns 0 (live has no report)
+PASS|gm esg_set_grid_factor with value 0 → PERMISSION_DENIED|action.manage_esg (no action.manage_esg)
+SELECT1|after gm client round trips 619 / 452 / 501 / 444 / 475 ms (median 475) · server execution 0.027 ms
+HEALTH|after gm: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before warehouse client round trips 695 / 503 / 512 / 1007 / 529 ms (median 529) · server execution 0.038 ms
+HEALTH|before warehouse: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+STEP|warehouse: codes → energy true · rates true · training false · whistleblowing false (plain false, escalated false) · health false · manage_esg false
+PASS|warehouse /safety/energy (HTTP 200, 9218 ms): opens — gate says opens
+PASS|warehouse /safety/energy: the grid factor panel reads "not set" (ships unset, Q1)
+PASS|warehouse /safety/energy: the factor form is visible and unpressable (needs action.manage_esg) — action.manage_esg false
+PASS|warehouse /safety/rates (HTTP 200, 5119 ms): opens — gate says opens
+PASS|warehouse /safety/rates: injury figures restricted (data.view_health) — data.view_health false
+PASS|warehouse /safety/rates: standard hours per day reads "Not set" (ships unset, Q4)
+PASS|warehouse /safety/training (HTTP 200, 4094 ms): refused by name (受限) — gate says refuses
+PASS|warehouse /safety/policies (HTTP 200, 5229 ms): opens — gate says opens
+PASS|warehouse /safety/whistleblowing (HTTP 200, 4749 ms): refused by name (受限) — gate says refuses
+PASS|warehouse /safety (HTTP 200, 6465 ms) opens
+PASS|warehouse overview · Scope 2: unanswerable (no bill on live; energy codes true)
+PASS|warehouse overview · lost-time injuries: restricted (data.view_health false)
+PASS|warehouse overview · training: restricted (no required training on live; module.hr.view false)
+PASS|warehouse overview · policies: unanswerable (no policy on live)
+PASS|warehouse overview · open reports: restricted (report codes false)
+PASS|warehouse esg_safety_rates(2026): 11 rows · injury_visible [false] · hidden rows carry no injury figures true
+PASS|warehouse whistleblowing_report_readable: unmarked false (data.view_whistleblowing false) · concerning the CCO false (data.view_whistleblowing_escalated false)
+PASS|warehouse whistleblowing_report_rows 0 row(s) · my_concerns 0 (live has no report)
+PASS|warehouse esg_set_grid_factor with value 0 → PERMISSION_DENIED|action.manage_esg (no action.manage_esg)
+SELECT1|after warehouse client round trips 510 / 512 / 819 / 512 / 439 ms (median 512) · server execution 0.589 ms
+HEALTH|after warehouse: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before the employee reader client round trips 475 / 511 / 425 / 496 / 1520 ms (median 496) · server execution 0.036 ms
+WARN|before the employee reader: a single round trip took 1520 ms (> 1500 ms; recorded, not an abort)
+HEALTH|before the employee reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|E /me (HTTP 200): "Raise a concern" is there for an employee; no "Concerns you raised" list (none filed)
+PASS|E LAYOUT 390px /me with the concern form open: page 390px in a 390px window; the form says "Confidential, not anonymous: your name is recorded with the …" — the Send button was not pressed
+PASS|E LAYOUT 1440px /me with the concern form open: page 1440px in a 1440px window; the form says "Confidential, not anonymous: your name is recorded with the …" — the Send button was not pressed
+SELECT1|after the employee reader client round trips 427 / 478 / 422 / 425 / 582 ms (median 427) · server execution 0.026 ms
+HEALTH|after the employee reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+SELECT1|before the HR form reader client round trips 607 / 409 / 435 / 713 / 408 ms (median 435) · server execution 0.03 ms
+HEALTH|before the HR form reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|H /hr/training/new (HTTP 200): "Required training it satisfies" select present with 1 option(s) (only "not a required training": live has no required training)
+SELECT1|after the HR form reader client round trips 717 / 407 / 420 / 506 / 613 ms (median 506) · server execution 0.065 ms
+HEALTH|after the HR form reader: db=ACTIVE_HEALTHY rest=ACTIVE_HEALTHY
+PASS|live after (postgres, base tables): {"factors" : 0, "hours" : "NULL", "required" : 0, "policies" : 0, "reports" : 0, "updates" : 0, "corrections" : 0, "linked_records" : 0} — unchanged from before
+STEP|done
+WARN|before the employee reader: a single round trip took 1520 ms (> 1500 ms; recorded, not an abort)
+AFTER|committed on live by this run: the throwaway staff clones (one per real role, plus one cfo clone with an employee record) with their roles and grants — every one of them on the cleanup plan; no register entry, setting, report or correction was written, and nothing was pressed
+ESG2_PROOF_EXIT=0
+PROOF_EXIT=0

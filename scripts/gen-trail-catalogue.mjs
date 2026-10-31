@@ -736,6 +736,9 @@ const TABLE_NAMES = {
     supplier_statements: 'supplier statement', supplier_statement_issues: 'supplier statement PDF issue',
     // MES-8b-1(2026-10-17):合规包与它的签发档 · 合规包的设定(V26 / V27)
     compliance_packs: 'compliance pack', compliance_pack_issues: 'compliance pack PDF issue', compliance_settings: 'compliance pack settings',
+    // ESG-2(2026-10-31):ESG 的设定(标准日工时)· 电网排放因子的一个版本 · 一门必修培训 · 一份公司制度的一个版本 · 误工天数的一次更正
+    esg_settings: 'ESG settings', grid_emission_factors: 'grid emission factor', required_trainings: 'required training',
+    company_policies: 'company policy', incident_days_lost_corrections: 'days-lost correction',
     // MES-9a(2026-10-19):供应商门户账号(挂在供应商的审计记录下)· 账号那一侧的设定(V38 / V40)
     supplier_portal_users: 'supplier portal account', account_settings: 'account settings',
     // MES-9c(2026-10-20):供应商经门户交上来的证书(挂在供应商的审计记录下)

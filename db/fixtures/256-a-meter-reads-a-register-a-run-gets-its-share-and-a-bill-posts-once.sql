@@ -447,7 +447,7 @@ BEGIN
     -- ══════════════ LOG · 变更记录与审计记录 ══════════════
     RAISE NOTICE 'fixture 256 · LOG';
     v_j := change_log_coverage_gaps();
-    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 10 THEN
+    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 12 THEN
         RAISE EXCEPTION 'FIXTURE 256 LOG: every new table logged, exclusions still 8 — got %', v_j; END IF;
     IF NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'meter_readings' AND op = 'INSERT')
        OR NOT EXISTS (SELECT 1 FROM change_log WHERE table_name = 'electricity_allocations' AND op = 'INSERT')

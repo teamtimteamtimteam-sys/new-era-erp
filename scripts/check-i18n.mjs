@@ -453,6 +453,18 @@ const MANIFEST = {
     // CONTRACT-ESIGN:一个版本的种类与状态 —— 取自 contract_files 的 CHECK(状态只画存下的三种:uploading / abandoned 从不列出)
     'contractFiles.kind.': { kind: 'enum', values: () => sqlEnum('db/tables/contract_files.sql', 'kind') },
     'contractFiles.status.': { kind: 'enum', values: () => sqlEnum('db/tables/contract_files.sql', 'status').filter((v) => v !== 'uploading' && v !== 'abandoned') },
+    // ESG-2(2026-10-31):ESG 设定与登记簿那一族的具名拒绝(码从函数体数出来,登记在 ESG_ERROR_CODES)
+    'esg.errors.': { kind: 'enum', values: () => tsSet('app/safety/esgErrorCodes.ts', 'ESG_ERROR_CODES') },
+    // ESG-2:必修培训适用于谁 —— 取自 required_trainings 的 CHECK
+    'esg.training.applies.': { kind: 'enum', values: () => sqlEnum('db/tables/required_trainings.sql', 'applies_to') },
+    // ESG-2:逐人的培训状态 —— 由 esg_training_status 那一句 CASE … END AS status 产生(值的作者是那支函数,不是哪张表的 CHECK)
+    'esg.training.status.': { kind: 'enum', values: () => sqlCaseAs('db/functions/esg_training_status.sql', 'status') },
+    // ESG-2:举报的状态 = whistleblowing_updates 的 CHECK + 举报行视图里没有状态时的 'received'(两个作者,两条都接)
+    'esg.whistleblowing.status.': { kind: 'enum', values: union(() => sqlEnum('db/tables/whistleblowing_updates.sql', 'status'),
+        () => tsRegex('db/views/whistleblowing_report_rows.sql', /COALESCE\(u\.status, '(\w+)'::text\) AS status/g)) },
+    // ESG-2:举报的来源与收到的方式 —— 取自 whistleblowing_reports 的 CHECK(收到的方式那条带 IS NULL OR)
+    'esg.whistleblowing.source.': { kind: 'enum', values: () => sqlEnum('db/tables/whistleblowing_reports.sql', 'source') },
+    'esg.whistleblowing.via.': { kind: 'enum', values: () => sqlEnumAnywhere('db/tables/whistleblowing_reports.sql', 'received_via') },
     // PROC-BUILD-1:损耗分类那两个动态前缀,两条都【接真源】——
     // 金属去向读 loss_metal_fates 的种子行(那张字典没有 CHECK,种子【就是】取值),
     // 拒绝码读那张 Set。于是加一种金属去向、加一条拒绝,这道检查自动跟着变宽。

@@ -14,10 +14,13 @@ import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/component
 const initialState: TrainingFormState = {}
 
 export type EmployeeOption = { id: string; label: string }
+/** ESG-2(Q8):必修培训清单里的一门(停用了的只在这条记录正挂着它时出现,标「已停用」) */
+export type RequiredTrainingOption = { id: string; label: string }
 
 export default function TrainingForm({
     record,
     employees,
+    requiredTrainings,
     lockedEmployeeId,
     returnTo,
 }: {
@@ -31,8 +34,10 @@ export default function TrainingForm({
         provider: string | null
         certificate_ref: string | null
         notes: string | null
+        required_training_id?: string | null
     }
     employees: EmployeeOption[]
+    requiredTrainings: RequiredTrainingOption[]
     lockedEmployeeId?: string
     returnTo?: string
 }) {
@@ -113,6 +118,19 @@ export default function TrainingForm({
                             <option key={o.value} value={o.value}>
                                 {t(o.labelKey)}
                             </option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className={label}>{t('hr.requiredTraining')}</label>
+                    <select
+                        name="required_training_id"
+                        defaultValue={record?.required_training_id ?? ''}
+                        className={`${CONTROL_SELECT} max-w-full`}
+                    >
+                        <option value="">{t('hr.requiredTrainingNone')}</option>
+                        {requiredTrainings.map((o) => (
+                            <option key={o.id} value={o.id}>{o.label}</option>
                         ))}
                     </select>
                 </div>

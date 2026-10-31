@@ -564,7 +564,7 @@ BEGIN
     -- ══════════════ LOG · 变更记录与审计记录 ══════════════
     RAISE NOTICE 'fixture 258 · LOG';
     v_j := change_log_coverage_gaps();
-    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 10 THEN
+    IF COALESCE(jsonb_array_length(v_j -> 'gaps'), -1) <> 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 12 THEN
         RAISE EXCEPTION 'FIXTURE 258 LOG: the reversals table is logged, exclusions still 8 — got %', v_j; END IF;
     IF (SELECT count(*) FROM change_log WHERE table_name = 'electricity_allocation_reversals' AND op = 'INSERT') <> 3 THEN
         RAISE EXCEPTION 'FIXTURE 258 LOG: the three reversals should be in the change log'; END IF;

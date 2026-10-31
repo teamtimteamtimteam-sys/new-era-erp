@@ -1,0 +1,13 @@
+== 预检 2026-10-31-esg-2.sql
+account    未引用任何科目码
+function   23 条 CREATE FUNCTION:1 替换 · 22 新建
+masked     加了 1 列,其中 0 列落在遮蔽表上
+✓ 预检通过
+== 破窗开始(migration applied at): 2026-10-31 10:26:58 CST  ← 切次报告要写的那个起点
+== applying 2026-10-31-esg-2.sql over direct psql (single transaction)
+== re-asserting function grants (db/views/zzz_function_grants.sql)
+✓ committed atomically (含函数授权兜底)
+== 库已经是新的了(10:30:03) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)
+== 破窗起点已落盘:/Users/timchen/Documents/projects/new-era-erp/db/migration-windows.tsv
+   2026-10-31T10:30:03+0800  2026-10-31-esg-2.sql  f5ffe87b
+APPLY_OWN_EXIT=0

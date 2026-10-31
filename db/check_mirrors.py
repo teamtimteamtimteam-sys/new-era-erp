@@ -342,6 +342,9 @@ RUNTIME_CONFIG_TABLES = [
     #   线上与本文件不同是系统在正常工作。安全的设定(单行)—— 引导 V19 = 2、未确认;Tim 对着执照确认一次,线上就与本文件不同。
     #   ★ 引导默认值仍然正确(本刀新建,两张表的每一列都是第一次有意思)。
     "incident_kinds", "safety_settings",
+    # ESG-2(2026-10-31,Tim Q4):ESG 的设定(单行)—— 引导一行、标准日工时为空;Tim 在 ESG › 安全率上设一次,线上就与本文件不同,那是系统在正常工作。
+    #   ★ 引导默认值仍然正确(本刀新建,空就是那个决定 —— 不猜一个 8)。
+    "esg_settings",
     # MES-7b-2(2026-10-16,MES-7b Step 0 Q16 · Q20):监测参数字典 —— 引导【刻意是空的】(参数与限值 V20 是 NEA 执照给的,不是这里能编的),
     #   所以它同时在下面的 BOOTSTRAP_MAY_BE_EMPTY 里。Tim 在 /settings/dictionaries 上加一行(module.safety.edit),线上就与本文件不同。
     #   ★ 引导默认值仍然正确(本刀新建,空就是那个决定)。巡检清单不在这里:它们是记录(清单页上建),不是引导的配置。
@@ -760,7 +763,10 @@ CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employ
                   "portal_require_link(",
                   # CONTRACT-ESIGN(2026-10-30,Tim Q8):合同文件的调用者检查 —— 那一侧的读码 + 价格码,判据 contract_file_readable 自己读
                   # has_permission(按 auth.uid() 解析调用者)。verify_rebuild.py 的 CALLER_CHECK_RE 同改,两处必须一致。
-                  "contract_file_readable(")
+                  "contract_file_readable(",
+                  # ESG-2(2026-10-31,Tim Q13):举报的调用者检查 —— 判据 whistleblowing_report_readable 自己读 has_permission(按 auth.uid() 解析调用者)。
+                  # verify_rebuild.py 的 CALLER_CHECK_RE 同改,两处必须一致。
+                  "whistleblowing_report_readable(")
 
 
 def strip_sql_comments(sql: str) -> str:

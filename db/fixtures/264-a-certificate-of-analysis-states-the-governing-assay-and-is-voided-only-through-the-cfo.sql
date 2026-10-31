@@ -222,7 +222,7 @@ BEGIN
          AND table_name = 'certificates_of_analysis' AND numbering = 'gapless' AND route = '/quality/coa' AND view_permission = ARRAY['module.output.view']) THEN
         RAISE EXCEPTION 'FIXTURE 264 REG: the document registry carries coa → COA, gapless, /quality/coa, read by module.output.view'; END IF;
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') IS DISTINCT FROM 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 10 THEN
+    IF jsonb_array_length(v_j -> 'gaps') IS DISTINCT FROM 0 OR (v_j ->> 'excluded')::int IS DISTINCT FROM 12 THEN
         RAISE EXCEPTION 'FIXTURE 264 REG: change-log coverage has no gap and exactly 8 exclusions, got %', v_j; END IF;
     SELECT count(*) INTO v_n FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
      WHERE t.tgname = 'zzz_change_log' AND c.relname IN ('certificates_of_analysis', 'coa_issues');

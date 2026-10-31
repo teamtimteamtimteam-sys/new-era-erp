@@ -68,7 +68,10 @@ JUDGE = (r"(has_permission|has_any_permission|require_permission|require_any_per
          # CONTRACT-ESIGN(2026-10-30):合同文件与签字用图两个桶上四条存储策略的判据(各自判 auth.uid() / current_user_employee() /
          #   has_permission —— 合同那一侧的读码 + 价格码经 contract_file_readable),以及印章表读策略里的 contract_signatory_active
          r"contract_file_can_upload\(|contract_file_can_read\(|signing_asset_can_upload\(|signing_asset_can_read\(|"
-         r"contract_file_readable\(|contract_signatory_active\()")
+         r"contract_file_readable\(|contract_signatory_active\(|"
+         # ESG-2(2026-10-31):举报两张表的读策略与举报行视图的判据(has_permission 两个读码之一,按 concerns_cco 分),
+         #   以及误工天数更正表读策略里给受伤员工本人让路的那一支(current_user_employee)
+         r"whistleblowing_report_readable\(|incident_injured_is_caller\()")
 KINDS = ("rows", "storage", "call", "policy", "rls-off", "view", "definer")
 FLOORS = {"relations": 400, "policies": 400, "functions": 500}
 

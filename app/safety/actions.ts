@@ -249,3 +249,16 @@ export async function recordEnvironmentalResult(input: {
     if (incidentId) revalidatePath('/safety/incidents')
     return { incidentId }
 }
+
+// ESG-2(Tim 2026-10-31 Q7):更正一件事故的误工天数(带理由,最后一次说了算)。规矩全在 record_incident_days_lost_correction
+//   (module.safety.edit;关闭之后不收;只在有受伤的人的事故上)。值空或不是数 → 交给库按名拒(INCIDENT_DAYS_LOST_INVALID)。
+export async function correctDaysLost(incidentId: string, input: { daysLost: string; reason: string }): Promise<SafetyState> {
+    const v = input.daysLost.trim() === '' ? NaN : Number(input.daysLost.trim())
+    if (!Number.isFinite(v)) return { error: await localizeSafetyError('INCIDENT_DAYS_LOST_INVALID') }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('record_incident_days_lost_correction', { p_incident_id: incidentId, p_days_lost: v, p_reason: input.reason })
+    if (error) return { error: await localizeSafetyError(error.message) }
+    revalidateIncident(incidentId)
+    revalidatePath('/safety/rates')
+    return {}
+}

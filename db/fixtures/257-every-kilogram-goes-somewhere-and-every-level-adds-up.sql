@@ -531,8 +531,12 @@ BEGIN
     IF v_bad IS NOT NULL THEN RAISE EXCEPTION 'FIXTURE 257 FCHECK: a role holds an action without any of its views: %', v_bad; END IF;
     -- 引导:admin 持目录里【每一个】码(MES-5b-3 起含 module.tasks.view_all —— Tim 2026-10-09 裁定,关掉 MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED;
     --   此前这里断言的是"除它之外的每一个");财务持 module.processing.view(它持下达工单,那一页的门)
+    --   ★ ESG-2(Tim 2026-10-31 Q13):唯一的例外 —— 举报的两个读码不给 admin(举报只到它指定的那一位读者;db/tables/role_permissions.sql)。
     SELECT string_agg(p.code, ', ') INTO v_bad FROM permissions p
-     WHERE NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'admin' AND rp.permission_code = p.code);
+     WHERE p.code NOT IN ('data.view_whistleblowing', 'data.view_whistleblowing_escalated')
+       AND NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'admin' AND rp.permission_code = p.code);
+    IF EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'admin' AND rp.permission_code IN ('data.view_whistleblowing', 'data.view_whistleblowing_escalated')) THEN
+        RAISE EXCEPTION 'FIXTURE 257 FCHECK: the bootstrap admin must not hold the two whistleblowing read codes (ESG-2 Q13)'; END IF;
     IF v_bad IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 257 FCHECK: the bootstrap admin should hold every code; missing %', v_bad; END IF;
     IF NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'finance' AND rp.permission_code = 'module.processing.view') THEN
@@ -541,7 +545,7 @@ BEGIN
     -- ══════════════ LOG · 没有新表 ══════════════
     RAISE NOTICE 'fixture 257 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 12 THEN
         RAISE EXCEPTION 'FIXTURE 257 LOG: change-log coverage %', v_j; END IF;
 
     RAISE NOTICE 'FIXTURE 257 全部通过:CONS · ATTR · BAL · PRE · MONTH · NOTKG · ROLL · INV · YIELD · V37 · GROUP · READ · FCHECK · LOG';

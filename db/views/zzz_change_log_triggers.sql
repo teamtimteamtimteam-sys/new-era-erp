@@ -170,6 +170,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.company
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.company_compliance
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.company_policies
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.company_policies
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.company_profile
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.company_profile
@@ -390,6 +394,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.equipme
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.equipment_service_intervals
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.esg_settings
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.esg_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.expense_claim_items
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.expense_claim_items
@@ -474,6 +482,10 @@ CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.gateway
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.gateway_keys
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.grid_emission_factors
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.grid_emission_factors
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.gst_filing_requests
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.gst_filing_requests
@@ -525,6 +537,10 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.inbound_source_r
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.incident_batches
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.incident_batches
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.incident_days_lost_corrections
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.incident_days_lost_corrections
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.incident_kinds
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('code');
@@ -1029,6 +1045,10 @@ CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.receipt_price_re
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.receiving_settings
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
 CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.receiving_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
+CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.required_trainings
+    FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');
+CREATE TRIGGER zzz_change_log_truncate AFTER TRUNCATE ON public.required_trainings
     FOR EACH STATEMENT EXECUTE FUNCTION public.change_log_capture();
 CREATE TRIGGER zzz_change_log AFTER INSERT OR UPDATE OR DELETE ON public.review_cycles
     FOR EACH ROW EXECUTE FUNCTION public.change_log_capture('id');

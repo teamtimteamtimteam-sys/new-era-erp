@@ -223,3 +223,39 @@ Readings: `docs/surveys/SYSTEM-MAP-4/` (README + `readings/`). No migration.
 - **Yield** is the `#yield` section of /operation/balance (`YieldSection.tsx`); /operation/yield redirects there with its filters.
 - **Handovers**: `app/operation/handovers/shiftRuns.ts` matches runs by shift + process date; read-only on the handover page and the new-handover form; runs without a shift on that date are counted, not hidden. The run list has Start, End and Shift columns (sortable, exported).
 - **ESG**: the Overview (incidents and findings · environmental exceedances · licences and supplier certificates · certificates of destruction, each gated by its own code), Energy intensity (each bill's kWh against the material balance's plant input for bills whose period is whole calendar months) and Recovery (by month, by output form, losses by category).
+
+## ESG-2 — Tim's rulings (2026-10-31) and what was built (v1.4.86)
+
+Scope as queued by SYSTEM-MAP-4 Q1 (2026-10-30): Scope 2 with a grid emission factor setting; safety rates (lost-time injuries, with hours worked); training compliance; a policy / whistleblowing register; no gender or age data anywhere. Readings: `docs/surveys/ESG-2/`.
+
+From Tim's reply to ESG-2 Step 0 (2026-10-31): grilling's scope changes 1-9 accepted (hours worked must be derived from attendance; days lost and anything built from it are health data; days lost becomes correctable; required trainings need their own list; per-month Scope 2 needs apportioning; the EMA factor is CO2 only; a report filed in the system is confidential, not anonymous; non-employees have no hours; live has almost no data). Finding 10 noted (the brief cited a survey section that does not exist; `docs/forward-queue.md:1621` is the record).
+
+- Q1 - The grid factor ships unset ("factor not set"). Tim enters it after checking EMA's page; the candidate (0.402 kg CO2/kWh, 2024, EMA Singapore Energy Statistics 2025 Table 2.4, via secondary sources) is in `docs/known-issues.md` as unverified.
+- Q2 - (a) One factor per year, applied by each bill's year (the year its period ends); a missing year uses the latest earlier year and says so; a correction adds a new version with a reason.
+- Q3 - Per-bill figures exact; monthly and year-to-date figures apportioned by calendar days and labelled "apportioned by days"; Scope 2 is a column and a monthly section on the Energy intensity page, same gate; figures read tCO2.
+- Q4 - Hours worked = (working days while employed − approved leave days) × standard hours per day + overtime hours; "standard hours per day" ships unset; a month has a rate only if its attendance period exists and every line is recorded, else "hours incomplete (n of m recorded)"; year to date has no rate if any month is incomplete.
+- Q5 - Lost-time injury = incident kind Injury, days lost > 0, to an employee; rate per 1,000,000 hours (MOM); non-employee injuries counted separately and kept out of the rate.
+- Q6 - The rates page opens with module.safety.view; LTI count, days lost and the rate need data.view_health; hours worked come from a database function as a total only.
+- Q7 - Days lost joins the correctable incident fields, with a reason, masked by data.view_health, latest correction wins.
+- Q8 - A required-training list; each training record links to one, chosen on the HR training form; unlinked legacy records are shown as such; 90-day / 30-day windows.
+- Q9 - New code `action.manage_esg` granted to **admin, cco and cfo** (Tim enters the grid factor himself). It sets the grid factor, the standard hours per day, the required-training list and records company policies.
+- Q10 - Every signed-in employee reads the policy register; the document is a text reference, no upload; a new version supersedes the old; overdue reviews flagged.
+- Q11 - Any signed-in employee files from a "Raise a concern" form on /me; a reader may record reports received outside the system.
+- Q12 - In-system reports are confidential, not anonymous, and the form says so; "anonymous source" only when a reader records an outside report.
+- Q13 - New code `data.view_whistleblowing` granted to **cco**. The filing form asks "Does this concern the CCO?"; a report so marked is readable **only** by holders of a second new code `data.view_whistleblowing_escalated`, granted to **cfo**, and **not** by the cco. Unmarked reports are read by the cco only. Filers see the status of their own reports. Report content is not shown in Change history to anyone but the report's readers.
+- Q14 - Reports are never edited or deleted; status changes are appended entries; no retention rule in this cut.
+- Q15 - The ESG Overview gains the statements, with the open-reports statement gated by each reader's own report codes (an escalated report counts only for its reader).
+- Split - Do NOT split.
+
+**Two recorded exceptions to standing rulings (Q13), with the reason:**
+
+1. *"The admin role holds every code"* (Tim 2026-09-24 / 2026-10-09): neither whistleblowing read code is granted to admin. Tim's wording is that unmarked reports are read "by cco only" and marked ones "ONLY by holders of" the escalated code; an admin holding both would be a third reader of every report. `db/tables/role_permissions.sql` (the admin line's `NOT IN`), fixtures 257 / 259 / 273 name the exception.
+2. *"The CFO reads everything"* (PAY-REQ-1, Tim 2026-09-23): cfo does not hold `data.view_whistleblowing`. An unmarked report may concern the CFO, and its reader is the cco. cfo holds only the escalated code. Also recorded in `docs/role-matrix.md` §13.
+
+**How "masked in Change history" is met:** the change log prints every row's actor to each change-history reader (admin, cfo, auditor), which would reveal who filed a report. So the two whistleblowing tables are registered change-log exclusions (with that reason in `db/functions/change_log_exclusions.sql`): neither the content nor the filer appears in Change history for anyone. The rows are append-only and carry their own who and when, shown only to the report's readers on the report page.
+
+### What ESG-2 built (v1.4.86)
+
+- **Migration** `db/migrations/2026-10-31-esg-2.sql` (built by `db/scripts/build_esg2_migration.py`): three codes and five grants; tables `esg_settings` (standard hours per day, unset), `grid_emission_factors` (one per year with versions, empty), `required_trainings`, `company_policies`, `whistleblowing_reports`, `whistleblowing_updates`, `incident_days_lost_corrections`; column `training_records.required_training_id`; views `company_policy_rows`, `whistleblowing_report_rows`, `incident_rows` (days lost = latest correction, two columns appended); functions `esg_set_grid_factor`, `grid_emission_factor_for`, `esg_scope2_bills`, `esg_scope2_monthly`, `esg_set_standard_hours`, `esg_safety_rates`, `record_incident_days_lost_correction`, `required_training_save` / `_retire`, `esg_training_status`, `esg_training_coverage`, `company_policy_record`, `whistleblowing_report_file` / `_record_outside` / `_update`, `my_concerns`, and the predicates `whistleblowing_report_readable`, `incident_injured_is_caller`.
+- **Pages (ESG menu rows after Recovery):** /safety/rates (Safety rates), /safety/training (Training compliance), /safety/policies (Policy register), /safety/whistleblowing (+ /[id]) (Whistleblowing log). Energy intensity gains the Scope 2 column, the monthly section and the grid-factor panel. The ESG Overview gains five statements (Scope 2 · lost-time injuries · training compliance · company policies · open reports), each by its own code. /me gains "Raise a concern" and "Concerns you raised". The HR training form gains "Required training it satisfies". The incident page shows corrected days lost and the correction form.
+- **Fixture 307** (nine arms; two fault injections, one per whistleblowing route).

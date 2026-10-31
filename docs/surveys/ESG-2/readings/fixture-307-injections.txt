@@ -1,0 +1,3 @@
+INJECTION 1: SELECT has_permission('data.view_whistleblowing') -> fixture exit 3: FIXTURE 307 W route 2: a report concerning the CCO is read by the cfo only (cfo 0, cco 1, admin 0)
+INJECTION 2: SELECT has_permission('data.view_whistleblowing_escalated') -> fixture exit 3: FIXTURE 307 W route 1: an unmarked report is read by the cco only (cco 0, cfo 1, admin 0, filer 0)
+RESTORED (mirror replayed): fixture exit 0: FIXTURE 307 全部通过: P F S H L C T D W

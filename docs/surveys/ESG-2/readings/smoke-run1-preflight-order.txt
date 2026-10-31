@@ -1,0 +1,10 @@
+(node:30723) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/timchen/Documents/projects/new-era-erp/lib/trail/machineTokens.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/timchen/Documents/projects/new-era-erp/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+✗ 预检不通过(排序键):1 张 ID_SOURCES 表取不到"最新那一行" —— 【还没起 dev server】
+  ✗ whistleblowing_reports:镜像里没有 created_at,ORDER_OVERRIDES 里也没有它 —— id 查询会 42703
+      修:在 ORDER_OVERRIDES 里给它一个真的排序键(那一行"建出来那一刻"的列 + id)
+NETRETRY_TOTAL=0
+SMOKE_EXIT=1

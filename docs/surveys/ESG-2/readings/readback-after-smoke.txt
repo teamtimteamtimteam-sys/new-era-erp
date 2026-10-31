@@ -1,0 +1,5 @@
+PROOF|{"users" : 7, "enabled" : 7, "throwaway_users" : 0, "throwaway_roles" : 0, "orphan_grants" : 0, "role_codes_held" : "admin,cco,cfo,cto,finance,gm,warehouse", "approvals" : true, "chain" : "finance/cfo/1000", "req_cal" : "NULL", "cods" : 2, "view_cod_roles" : "admin,auditor,cco,cfo,cto,finance,gm,warehouse", "cfo_grants_active" : 1, "saved_views" : 0, "roles" : 11, "esg_new_rows" : {"factors" : 0, "hours" : "NULL", "required" : 0, "policies" : 0, "reports" : 0, "updates" : 0, "corrections" : 0}, "new_code_holders" : "admin:action.manage_esg,cco:action.manage_esg,cco:data.view_whistleblowing,cfo:action.manage_esg,cfo:data.view_whistleblowing_escalated"}
+BEGIN
+SET
+PROOF|recon ap unexplained=0.00 agrees=true · ar unexplained=0.00 agrees=true
+ROLLBACK

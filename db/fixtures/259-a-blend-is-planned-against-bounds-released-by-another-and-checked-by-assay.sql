@@ -408,7 +408,7 @@ BEGIN
     -- ══════════════ LOG ══════════════
     RAISE NOTICE 'fixture 259 · LOG';
     v_j := change_log_coverage_gaps();
-    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 10 THEN
+    IF jsonb_array_length(v_j -> 'gaps') <> 0 OR (v_j ->> 'excluded')::int <> 12 THEN
         RAISE EXCEPTION 'FIXTURE 259 LOG: change-log coverage (no gaps, 8 excluded), got %', v_j; END IF;
     IF (SELECT count(DISTINCT table_name) FROM change_log WHERE table_name IN ('blending_plans', 'blending_plan_targets', 'blending_plan_lines')
           AND row_key ->> 'id' IN (SELECT id::text FROM blending_plans UNION ALL SELECT id::text FROM blending_plan_targets UNION ALL SELECT id::text FROM blending_plan_lines)) <> 3 THEN
@@ -425,10 +425,11 @@ BEGIN
 
     -- ══════════════ ADMIN ══════════════
     RAISE NOTICE 'fixture 259 · ADMIN';
-    IF EXISTS (SELECT 1 FROM permissions p WHERE NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
+    -- ★ ESG-2(Tim 2026-10-31 Q13):唯一的例外 —— 举报的两个读码不给 admin。
+    IF EXISTS (SELECT 1 FROM permissions p WHERE p.code NOT IN ('data.view_whistleblowing', 'data.view_whistleblowing_escalated') AND NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
                                                              WHERE r.code = 'admin' AND rp.permission_code = p.code)) THEN
-        RAISE EXCEPTION 'FIXTURE 259 ADMIN: the bootstrap admin holds every code, module.tasks.view_all included — missing %',
-            (SELECT string_agg(p.code, ',') FROM permissions p WHERE NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
+        RAISE EXCEPTION 'FIXTURE 259 ADMIN: the bootstrap admin holds every code but the two whistleblowing read codes, module.tasks.view_all included — missing %',
+            (SELECT string_agg(p.code, ',') FROM permissions p WHERE p.code NOT IN ('data.view_whistleblowing', 'data.view_whistleblowing_escalated') AND NOT EXISTS (SELECT 1 FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
                                                                                   WHERE r.code = 'admin' AND rp.permission_code = p.code)); END IF;
     PERFORM pg_temp.f259_as(NULL);
     INSERT INTO roles (code, name_en, name_zh, is_active) VALUES ('fx259-every', 'f', 'f', true) RETURNING id INTO p3;

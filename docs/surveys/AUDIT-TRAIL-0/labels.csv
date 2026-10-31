@@ -2860,6 +2860,7 @@ training_records,created_at,audit_std,hide: the trail entry already says who and
 training_records,created_by,audit_std,hide: the trail entry already says who and when,,,Created by,,,uuid
 training_records,updated_at,audit_std,hide: the trail entry already says who and when,,,Updated on,,,timestamp with time zone
 training_records,updated_by,audit_std,hide: the trail entry already says who and when,,,Updated by,,,uuid
+training_records,required_training_id,fk_other,"required_trainings: its name (ESG-2, Tim 2026-10-31 Q8)",hr.requiredTraining,Required training it satisfies,,high,app/hr/training/TrainingForm.tsx,uuid
 user_roles,id,technical,hide: row identity (the trail names the record in its heading),,,ID,,,uuid
 user_roles,user_id,actor,bare auth-account uuid (no FK) → person name via loadActorNames (app/components/ActorName.tsx:49),,,User,,,uuid
 user_roles,role_id,dict,roles.name_en (via id),contacts.colRole,Role,,text-only,,uuid

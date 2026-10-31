@@ -70,12 +70,15 @@ CREATE POLICY "role_permissions delete by permission"
 --   而它不在 Tim 2026-09-23 还回去的 45 个码里;要不要加是 Tim 的一句话(docs/role-matrix.md §13)。线上 admin 今天持 74 / 75,本行与它逐码相同。~~
 --   ★★ MES-5b-3(2026-10-09,Tim 的裁定,关掉 MES5B1C-ADMIN-TASKS-VIEW-ALL-UNRULED):【admin 也持 module.tasks.view_all】—— admin 持目录里的
 --   每一个码,没有例外。同一支迁移给线上的 admin 角色补了那一行(那是本刀唯一的一处授权改动);引导与线上从此逐码相同:75 / 75。
+-- ★★ ESG-2(Tim 2026-10-31 Q13):【唯一的例外】—— 举报的两个读码不给 admin。Tim 的原话是举报「只由 cco 读」、涉及 CCO 的那几件「只由持
+--   data.view_whistleblowing_escalated 的人读」(授 cfo);admin 一并持有就等于多出一位读者。docs/role-matrix.md §13 记着这条例外与它的理由。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
- WHERE r.code = 'admin';
+ WHERE r.code = 'admin'
+   AND p.code NOT IN ('data.view_whistleblowing', 'data.view_whistleblowing_escalated');
 
 -- ★★ GOLIVE-1 第 5 行(Tim 2026-10-20 d2 #27 · 2026-10-29 Q2–Q5):下面每一个角色的码【逐字取自线上】(2026-10-29,以 postgres 读基表
---   role_permissions)—— 七个真角色 = db/seeds/seven-roles-2026-10-30.sql;auditor 按 Q2;operations 与 floor_display 照线上;employee 0 个。
+--   role_permissions)—— 七个真角色 = db/seeds/seven-roles-2026-10-31.sql;auditor 按 Q2;operations 与 floor_display 照线上;employee 0 个。
 --   此前这里是一份"全新安装的起点"设计(九角色分工 + 各刀追加),而线上早已按 Tim 的矩阵(ROLE-1 及以后)走开:
 --   没有 cfo / cco / cto、finance 少码、还留着无人持有的 hr / procurement / sales。Tim Q5:引导 = 线上。
 --   每一个角色【为什么】是这些码,写在它们各自落地的那一刀里(docs/role-matrix.md、db/migrations/、上面 admin 那一段的历史)——
@@ -120,6 +123,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.direct_sale',
         'action.hr_reviews',
         'action.issue_coa',
+        'action.manage_esg',
         'action.manage_portal_users',
         'action.ncr_decide',
         'action.raise_po_equipment',
@@ -134,6 +138,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'data.view_purchase_prices',
         'data.view_reviews',
         'data.view_sales',
+        'data.view_whistleblowing',
         'module.compliance.view',
         'module.customers.edit',
         'module.customers.view',
@@ -175,6 +180,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.decide_hr_requests',
         'action.finance_reopen',
         'action.finance_settings',
+        'action.manage_esg',
         'action.supplier_approve',
         'data.view_banking',
         'data.view_change_log',
@@ -189,6 +195,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'data.view_reviews',
         'data.view_sales',
         'data.view_self_approvals',
+        'data.view_whistleblowing_escalated',
         'module.compliance.view',
         'module.customers.view',
         'module.finance.view',

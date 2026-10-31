@@ -272,6 +272,9 @@ const ID_SOURCES = {
         //   故同时列在 EXPECTED_SKIPS 里 —— 建下第一张清单、记下第一次巡检的那天,那两条断言会响。
         //   清单那一条更长,前缀取最长匹配,所以 /safety/inspections/templates/[id] 不会落到巡检那一条上。
         '/safety/inspections': 'inspection_runs', '/safety/inspections/templates': 'inspection_templates',
+        // ESG-2(2026-10-31):一件举报。线上零行(本刀的举报证明在本地重建库上跑 —— 举报写下就删不掉,Q14),故同时列在 EXPECTED_SKIPS 里 ——
+        //   第一件举报登记下来的那天,那条断言会响。
+        '/safety/whistleblowing': 'whistleblowing_reports',
         '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
@@ -1394,6 +1397,8 @@ const EXPECTED_SKIPS = new Set([
     // CONTRACT-ESIGN(2026-10-30):线上 contract_files 零行 —— 本刀的线上证明造的那一份在 finally 里删掉了。第一份真的合同文件传上来那天,
     //   这条断言会响,这一行随之删掉。
     '/contracts/[id]/files/[fileId]',
+    // ESG-2(2026-10-31):线上 whistleblowing_reports 零行 —— 举报写下就删不掉,所以线上证明不留一件;第一件真的举报登记下来那天,这条断言会响。
+    '/safety/whistleblowing/[id]',
     // MES-3b(2026-10-07,Q9 · Q20):两条短链接【刻意】不走 —— 每打开一次都往只追加的 scan_events 写一行(理由在主循环里那一段)。
     //   这两行不是"等数据到位",它们永远在这里;要拿掉,先让冒烟有一个不留痕的办法证它们。
     '/b/[code]',
@@ -1795,6 +1800,8 @@ const ID_FILTERS = {
 const ORDER_OVERRIDES = {
     // 一个月一份底稿,period_month 是 UNIQUE 的 —— 它本身就是稳定序。
     attendance_periods: '&order=period_month.desc,id.desc',
+    // ESG-2(2026-10-31):一件举报"登记下来那一刻"叫 recorded_at,表上没有 created_at。
+    whistleblowing_reports: '&order=recorded_at.desc,id.desc',
     // GLEXPORT-1:一份包"产出来那一刻"叫 produced_at —— 再加一个 created_at
     // 就是同一件事的两个名字(与 attendance_periods 的 opened_at 逐字同一条)。
     // 【为什么不是按 period_month】同一个月可以有多份(重出),period_month

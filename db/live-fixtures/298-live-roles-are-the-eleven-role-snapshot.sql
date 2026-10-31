@@ -1,11 +1,11 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- live fixture 298 —— 线上的角色正是 db/seeds/eleven-roles-2026-10-30.sql 那 11 个,逐码相同(GOLIVE-1 第 5 行)
+-- live fixture 298 —— 线上的角色正是 db/seeds/eleven-roles-2026-10-31.sql 那 11 个,逐码相同(GOLIVE-1 第 5 行)
 -- ═══════════════════════════════════════════════════════════════════════════
 -- db/fixtures/298 证"重建 = 快照";这一支证"线上 = 快照"。由 db/gate.py 的整门对着线上跑(只读;--offline 不跑并点名)。
 -- 线上改了角色(界面上加减一个码是正常的),这一支就红 —— 同一个提交重取一份新日期的快照并改两支的 \ir。
 -- 以 postgres 读基表 roles / role_permissions(rolbypassrls = true,基表)。
 -- ═══════════════════════════════════════════════════════════════════════════
-\ir ../seeds/eleven-roles-2026-10-30.sql
+\ir ../seeds/eleven-roles-2026-10-31.sql
 BEGIN READ ONLY;
 SELECT set_config('golive1.eleven_roles', :'eleven_roles', true) \g /dev/null
 DO $live$
@@ -25,7 +25,7 @@ BEGIN
             SELECT jsonb_array_elements_text(snap -> k) AS c
             EXCEPT SELECT rp.permission_code FROM role_permissions rp JOIN roles r ON r.id = rp.role_id WHERE r.code = k) z;
         IF v_extra IS NOT NULL OR v_missing IS NOT NULL THEN
-            RAISE EXCEPTION 'LIVE FIXTURE 298 SAME: role % on live differs from db/seeds/eleven-roles-2026-10-30.sql — live has extra [%], live lacks [%]',
+            RAISE EXCEPTION 'LIVE FIXTURE 298 SAME: role % on live differs from db/seeds/eleven-roles-2026-10-31.sql — live has extra [%], live lacks [%]',
                 k, coalesce(v_extra, ''), coalesce(v_missing, '');
         END IF;
     END LOOP;

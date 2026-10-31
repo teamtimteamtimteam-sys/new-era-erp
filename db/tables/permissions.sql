@@ -133,6 +133,11 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     --   持有人 floor_display · admin(每一个码都给 admin)· cfo(「CFO 读得到每一样东西」:每一个 data.view_*)—— 只在迁移里授。
     --   【它是唯一一个能让会话免于空闲登出的码,而且只在它是那个会话【唯一】的码、floor_display 是那个会话【唯一】的角色时】。
     ('data.view_floor_board', 'data', 'View the floor board', '查看车间大屏', 'The wall display (/display): live counts of what is waiting on the plant floor in processing, safety and stock — counts only, no money, no names, no health details. A session holding only this code through only the floor_display role is not signed out when idle and opens nothing else.', '车间大屏(/display):加工、安全与库存里正在等人处理的事的实时计数 —— 只有数,没有钱、没有名字、没有健康信息。一个只经 floor_display 这一个角色持这一个码的会话,空闲时不被登出,也打不开别的任何一页。', 290),
+    -- ★ ESG-2(Tim 2026-10-31 Q13):举报登记簿的两个读码。data.view_whistleblowing 只授 cco —— 读【没有】勾「这件事涉及 CCO」的举报;
+    --   data.view_whistleblowing_escalated 只授 cfo —— 读勾了的那几件,cco 读不到。两个码【都不授 admin】,也不按「cfo 持每一个 view 码」给 cfo 前一个:
+    --   举报只给它指定的那一位读者(docs/system-map.md 的 ESG-2 一节、docs/role-matrix.md §13 记着这两处例外与理由)。
+    ('data.view_whistleblowing', 'data', 'Read whistleblowing reports', '阅读举报', 'Read the whistleblowing reports that are not marked as concerning the CCO, record reports received outside the system, and add their status updates. Reports marked as concerning the CCO are read only under Read escalated whistleblowing reports.', '阅读没有标明涉及 CCO 的举报,登记在系统之外收到的举报,并为它们追加状态。标明涉及 CCO 的举报只归「阅读涉及 CCO 的举报」。', 295),
+    ('data.view_whistleblowing_escalated', 'data', 'Read escalated whistleblowing reports', '阅读涉及 CCO 的举报', 'Read the whistleblowing reports marked as concerning the CCO, record such reports received outside the system, and add their status updates. The CCO cannot read these.', '阅读标明涉及 CCO 的举报,登记在系统之外收到的这类举报,并为它们追加状态。CCO 读不到这些。', 296),
     ('action.manage_permissions', 'action', 'Manage roles & permissions', '管理角色与权限', 'Create roles and change who holds what', '新建角色、调整授权', 300),
     -- IMPORT-1:批量导入自己一个码。**不复用 action.manage_permissions** ——
     -- 那会重演 DICT-ADMIN 之前的缺陷(一个物料编辑员永远够不到物料那张屏),
@@ -232,6 +237,9 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- ── MES-9a(2026-10-19,MES-0 Q87 · MES-9 Step 0 Q7,Tim):供应商门户的账号 —— 给一家供应商的一位联系人开一个门户登录(初始密码当面交、
     -- 首次登录必须换)、撤销它(下一次调用就拒)、应请求匿名化它背后的联系人。持有人 admin · cco(只在迁移里授 —— cco 只活在线上)。
     -- 它声明的查看码是 module.suppliers.view(供应商页 /suppliers/[id]/edit 的门,门户账号那一块在那一页上)。看那一块只要 module.suppliers.view。
+    -- ★ ESG-2(Tim 2026-10-31 Q9):ESG 的设定与登记簿 —— 电网排放因子(按年,带历史)、标准日工时、必修培训清单、公司制度登记簿。
+    --   持有人 admin · cco · cfo(只在迁移里授;Tim 要能自己填电网因子)。
+    ('action.manage_esg', 'action', 'Maintain ESG settings and registers', '维护 ESG 设定与登记簿', 'Set the grid emission factor for a year (a correction adds a new version with a reason), set the standard hours per working day used for injury rates, maintain the list of required trainings, and record company policies and their new versions.', '设定某一年的电网排放因子(更正是带理由的新版本)、设定算工伤率用的标准日工时、维护必修培训清单,以及登记公司制度与它们的新版本。', 1290),
     ('action.manage_portal_users', 'action', 'Manage supplier portal accounts', '管理供应商门户账号', 'Give a supplier''s contact a sign-in to the supplier portal (an initial password handed over outside the system, which must be changed at first sign-in), revoke one at once, and anonymise the contact behind a revoked one on request. A portal account sees only its own supplier''s records and none of the company''s internal pages. Seeing the portal accounts on a supplier needs only Suppliers (view).', '给一家供应商的一位联系人开一个供应商门户的登录(初始密码在系统之外当面交,第一次登录必须换)、立刻撤销一个,以及应请求把一个已撤销账号背后的联系人匿名化。门户账号只看得见它自己那一家供应商的记录,看不见公司的任何内部页面。看一家供应商有哪些门户账号只要「供应商(查看)」。', 1280);
 
 
@@ -287,6 +295,9 @@ UPDATE public.permissions p SET requires_view_any = d.views
     ('action.compliance_pack',          ARRAY['module.compliance.view']),
     -- MES-9a(Step 0 Q7):开 / 撤销 / 匿名化门户账号都在供应商页(门 module.suppliers.view)。
     ('action.manage_portal_users',      ARRAY['module.suppliers.view']),
+    -- ESG-2(Q9):电网因子在能耗强度页(门 module.finance.view 或 module.processing.view)、标准日工时在安全率页(module.safety.view)、
+    --   必修培训在培训合规页(module.hr.view)。制度登记簿也用它,而那一页的门恒真(不是一个码),所以不在这里声明。
+    ('action.manage_esg',               ARRAY['module.finance.view','module.hr.view','module.processing.view','module.safety.view']),
     ('action.wo_create',                ARRAY['module.processing.view']),
     ('action.wo_release',               ARRAY['module.processing.view'])
   ) AS d(code, views)

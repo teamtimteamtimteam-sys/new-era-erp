@@ -521,7 +521,9 @@ CALLER_CHECK_RE = ("require_permission\\(|has_permission\\(|current_user_employe
                    # MES-9a:门户函数的调用者检查(db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致)。
                    "|portal_require_link\\("
                    # CONTRACT-ESIGN:合同文件的调用者检查(db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致)。
-                   "|contract_file_readable\\(")
+                   "|contract_file_readable\\("
+                   # ESG-2:举报的调用者检查(db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致)。
+                   "|whistleblowing_report_readable\\(")
 
 B1_SQL = """
 SELECT coalesce(string_agg(p.proname, ',' ORDER BY p.proname), '')

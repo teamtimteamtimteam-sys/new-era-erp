@@ -28,6 +28,7 @@
     "inbound_safety_states": "dictionary",
     "inbound_source_reasons": "dictionary",
     "incident_kinds": "dictionary",
+    "required_trainings": "dictionary",
     "ingest_data_classes": "catalogue",
     "kpi_organisation": "catalogue",
     "kpi_position_linkage_matrix": "catalogue",

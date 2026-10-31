@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { mustRows } from '@/lib/db-helpers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import TrainingForm, { type EmployeeOption } from '../TrainingForm'
+import TrainingForm, { type EmployeeOption, type RequiredTrainingOption } from '../TrainingForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -29,6 +29,9 @@ export default async function NewTrainingPage({
         .neq('employment_status', 'separated')
         .order('code')
 
+    // ESG-2(Q8):在用的必修培训(一本小清单;培训记录挂上去才算进 ESG › 培训合规)
+    const rtRes = await supabase.from('required_trainings').select('id, name').is('retired_at', null).order('name')
+    const requiredTrainings: RequiredTrainingOption[] = (mustRows(rtRes) as { id: string; name: string }[]).map((r) => ({ id: r.id, label: r.name }))
     const employees: EmployeeOption[] = mustRows(res).map((e) => ({
         id: e.id,
         label: `${e.code} — ${e.legal_name}`,
@@ -48,6 +51,7 @@ export default async function NewTrainingPage({
             <h1 className="mb-4">{t('hr.newTraining')}</h1>
             <TrainingForm
                 employees={employees}
+                requiredTrainings={requiredTrainings}
                 lockedEmployeeId={locked}
                 returnTo={locked ? `/hr/employees/${locked}` : undefined}
             />

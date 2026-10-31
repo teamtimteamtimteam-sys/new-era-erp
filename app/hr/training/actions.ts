@@ -24,6 +24,8 @@ export async function saveTraining(
     const provider = String(formData.get('provider') ?? '').trim()
     const certRef = String(formData.get('certificate_ref') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
+    // ESG-2(Tim 2026-10-31 Q8):这条记录满足的是哪一门必修培训(可空);外键由库判
+    const requiredTraining = String(formData.get('required_training_id') ?? '').trim()
     // 从员工档案页进来时带着 ?employee=,保存后回那一页
     const returnTo = String(formData.get('return_to') ?? '').trim()
 
@@ -42,6 +44,7 @@ export async function saveTraining(
         provider: provider || null,
         certificate_ref: certRef || null,
         notes: notes || null,
+        required_training_id: requiredTraining || null,
     }
 
     const { error } = id

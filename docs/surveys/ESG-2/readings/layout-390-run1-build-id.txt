@@ -1,0 +1,8 @@
+· ephemeral all-codes session ready
+· ephemeral reviewer session ready · seeded probation review 232f9310-0a1e-4461-8f5b-cd2501109833
+· id filters from smoke: 27 soft-deleted tables · 2 row filters · 6 order overrides
+· routes: 259 measurable (60 dynamic) · 27 unresolvable (no live row / no id source)
+
+!! survey-phone failed: .next/BUILD_ID exists — there is a PRODUCTION build in .next, and `next dev` on top of it makes EVERY dynamic route return HTTP 404. Measured on one tree ten minutes apart: 16/16 routes 404 with it, 0/20 without — and the old scoring called all of those "usable". Fix: rm -rf .next (it is a regenerable cache), then re-run. If you just ran `npm run build`, that is exactly how you got here.
+· cleaned up ephemeral survey account(s)
+LAYOUT390_EXIT=1

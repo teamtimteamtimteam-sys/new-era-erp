@@ -6,6 +6,9 @@
 --   借来的列只有【标签】(名字、编号、时刻)—— 显示标签跟着单据走(四条常设裁定之三),没有任何一列钱。
 --   injury_visible:这位读者能不能读受伤的细节(data.view_health 或本人)。为假时页面说「受限」—— 不论这一件有没有受伤的记录,
 --   于是"有没有人受伤"这件事本身也不会从一个空字段里漏出去。
+--   ★ ESG-2(Tim 2026-10-31 Q7):days_lost 现在是【最后一次更正】(incident_days_lost_corrections),没有更正就是记下时的那个数 —— 遮蔽照旧
+--     (不持 data.view_health、又不是受伤的那名员工本人 → 空);days_lost_recorded = 记下时的那个数,days_lost_corrections = 更正过几次(同样遮蔽)。
+--     判据与 incidents_masked 里那句 CASE 逐字同一个(m.injured_employee_id 对看不见的人本来就是空,于是只剩 has_permission 那一半)。
 --
 -- NOTE: introduced by db/migrations/2026-10-16-mes7b1-incidents.sql.
 
@@ -56,10 +59,24 @@ CREATE VIEW public.incident_rows WITH (security_invoker = off) AS
     m.injured_person_name,
     m.injury_nature,
     m.injury_treatment,
-    m.days_lost,
+        CASE
+            WHEN has_permission('data.view_health'::text) OR COALESCE(m.injured_employee_id = current_user_employee(), false) THEN COALESCE(( SELECT dc.days_lost
+               FROM incident_days_lost_corrections dc
+              WHERE dc.incident_id = m.id
+              ORDER BY dc.id DESC
+             LIMIT 1), m.days_lost)
+            ELSE NULL::numeric
+        END AS days_lost,
     ( SELECT count(*)::integer AS count
            FROM incident_batches b
-          WHERE b.incident_id = m.id AND b.unlinked_at IS NULL) AS linked_batches
+          WHERE b.incident_id = m.id AND b.unlinked_at IS NULL) AS linked_batches,
+    m.days_lost AS days_lost_recorded,
+        CASE
+            WHEN has_permission('data.view_health'::text) OR COALESCE(m.injured_employee_id = current_user_employee(), false) THEN ( SELECT count(*)::integer AS count
+               FROM incident_days_lost_corrections dc
+              WHERE dc.incident_id = m.id)
+            ELSE NULL::integer
+        END AS days_lost_corrections
    FROM incidents_masked m
      JOIN incident_current_all c ON c.id = m.id
      JOIN incident_kinds k ON k.code = c.kind_code

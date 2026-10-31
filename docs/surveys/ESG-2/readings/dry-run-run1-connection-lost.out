@@ -1,0 +1,93 @@
+SET
+Timing is on.
+BEGIN
+Time: 614.520 ms
+PROOF|A|postgres|{"new_code_holders" : "none", "grants_total" : 360, "user_roles" : "9 2372199afc0ae559a703d5b048992be5", "change_log" : "109630 max 117362", "cod_issues" : "2 097dacfa233e71e7cf70482c25249b4e", "new_tables" : "none", "anon_relations" : 284, "incidents" : 0, "training_records" : 1, "approvals" : true, "req_cal" : "NULL"}
+Time: 1332.178 ms (00:01.332)
+DO
+Time: 684.881 ms
+SELECT 360
+Time: 482.986 ms
+SELECT 9
+Time: 533.486 ms
+SELECT 0
+Time: 638.424 ms
+INSERT 0 3
+Time: 461.622 ms
+UPDATE 1
+Time: 432.917 ms
+INSERT 0 5
+Time: 556.088 ms
+CREATE FUNCTION
+Time: 615.742 ms
+CREATE FUNCTION
+Time: 413.632 ms
+CREATE TABLE
+Time: 614.408 ms
+COMMENT
+Time: 453.606 ms
+COMMENT
+Time: 462.928 ms
+INSERT 0 1
+Time: 413.191 ms
+CREATE TRIGGER
+Time: 457.697 ms
+ALTER TABLE
+Time: 458.133 ms
+CREATE POLICY
+Time: 550.181 ms
+REVOKE
+Time: 470.759 ms
+GRANT
+Time: 407.369 ms
+CREATE TABLE
+Time: 513.535 ms
+CREATE INDEX
+Time: 514.249 ms
+COMMENT
+Time: 510.437 ms
+COMMENT
+Time: 512.984 ms
+CREATE FUNCTION
+Time: 509.893 ms
+CREATE TRIGGER
+Time: 408.089 ms
+CREATE TRIGGER
+Time: 512.680 ms
+ALTER TABLE
+Time: 513.199 ms
+CREATE POLICY
+Time: 510.569 ms
+REVOKE
+Time: 410.633 ms
+GRANT
+Time: 514.972 ms
+CREATE TABLE
+Time: 507.711 ms
+CREATE INDEX
+Time: 511.340 ms
+COMMENT
+Time: 514.491 ms
+CREATE TRIGGER
+Time: 406.165 ms
+ALTER TABLE
+Time: 410.923 ms
+CREATE POLICY
+Time: 418.363 ms
+REVOKE
+Time: 409.555 ms
+GRANT
+Time: 409.440 ms
+ALTER TABLE
+Time: 505.788 ms
+CREATE INDEX
+Time: 508.299 ms
+CREATE TABLE
+Time: 513.090 ms
+CREATE INDEX
+Time: 406.702 ms
+CREATE INDEX
+Time: 1436.712 ms (00:01.437)
+psql:docs/surveys/ESG-2/readings/dry-run.sql:251: SSL connection has been closed unexpectedly
+psql:docs/surveys/ESG-2/readings/dry-run.sql:251: error: connection to server was lost
+DRY_OWN_EXIT=2
